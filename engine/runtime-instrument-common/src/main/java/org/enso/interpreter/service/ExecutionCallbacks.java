@@ -155,8 +155,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
 
   @Override
   public void setExecutionEnvironment(IdExecutionService.Info info) {
-    ExecutionEnvironment nodeEnvironment =
-        expressionExecutionState.getExpressionExecutionEnvironment(info.getId());
+    ExecutionEnvironment nodeEnvironment = getExecutionEnvironment(info.getId());
     if (nodeEnvironment != null && originalExecutionEnvironment == null) {
       EnsoContext context = EnsoContext.get(info.getRootNode());
       originalExecutionEnvironment = context.getExecutionEnvironment();
@@ -167,10 +166,15 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   @Override
   public void resetExecutionEnvironment(IdExecutionService.Info info) {
     if (originalExecutionEnvironment != null) {
-      expressionExecutionState.setExpressionExecuted(info.getId());
+      setExpressionExecuted(info.getId());
       EnsoContext.get(info.getRootNode()).setExecutionEnvironment(originalExecutionEnvironment);
       originalExecutionEnvironment = null;
     }
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private void setExpressionExecuted(UUID expressionId) {
+    expressionExecutionState.setExpressionExecuted(expressionId);
   }
 
   @CompilerDirectives.TruffleBoundary
