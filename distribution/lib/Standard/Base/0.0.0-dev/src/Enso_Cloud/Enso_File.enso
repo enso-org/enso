@@ -53,19 +53,6 @@ type Enso_File
 
        Arguments:
        - path: The `enso://` path to a file or directory.
-
-       ? Enso Cloud Paths
-
-         The paths consist of the organization (user) name followed by a path to
-         the file/directory delimited by `/`.
-         For example `enso://my_org/some_dir/some-file.txt`.
-
-       ! Work in progress - only existing resources
-
-         Currently the API is only able to resolve paths to existing files or
-         directories. This is a temporary limitation and it will be improved in
-         the future, alongside with implementing the capabilities to write new
-         files.
     new : Text -> Enso_File ! Not_Found
     new (path : Text) =
         Enso_File.Value (Enso_Path.parse path)
