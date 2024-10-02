@@ -11,12 +11,14 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Properties;
+import org.enso.base.enso_cloud.RequestCache;
 import org.enso.base.net.URISchematic;
 import org.enso.base.net.URIWithSecrets;
 import org.graalvm.collections.Pair;
 
 /** Makes HTTP requests with secrets in either header or query string. */
 public final class EnsoSecretHelper extends SecretValueResolver {
+    private RequestCache requestCache = new RequestCache():
 
   /** Gets a JDBC connection resolving EnsoKeyValuePair into the properties. */
   public static Connection getJDBCConnection(
@@ -64,13 +66,11 @@ public final class EnsoSecretHelper extends SecretValueResolver {
 
     // Build a new URI with the query arguments.
     URI resolvedURI = resolveURI(uri);
-    //List<Pair<String, String>> resolvedHeaders = headers.stream().map(pair-> new Pair<String, String>(pair.getLeft(), resolveValue(pair.getRight())));
-    //List<Pair<String, String>> resolvedHeaders = headers.stream().map(pair-> Pair.of(pair.getLeft(), resolveValue(pair.getRight())));
-    // works List<Pair<String, String>> resolvedHeaders = headers.stream().map((pair)-> Pair.create("a", "b")).toList();
+
     List<Pair<String, String>> resolvedHeaders = headers.stream().map(pair -> {
       return Pair.create(pair.getLeft(), resolveValue(pair.getRight()));
     }).toList();
-    var cacheKey = createHashKey(resolvedURI, resolvedHeaders);
+    var cacheKey = requestCache.createHashKey(resolvedURI, resolvedHeaders);
 
     if (!cache.contains(cacheKey)) {
       boolean hasSecrets =
