@@ -8,16 +8,19 @@ npm_link_all_packages(name = "node_modules")
 ts_config(name = "tsconfig", src = "tsconfig.json", deps = ["//app:tsconfig"])
 ts_config(name = "tsconfig_node", src = "tsconfig.node.json", deps = [":tsconfig"])
 ts_config(name = "tsconfig_app", src = "tsconfig.app.json", deps = [":tsconfig"])
+ts_config(name = "tsconfig_scripts", src = "tsconfig.scripts.json")
 ts_config(name = "tsconfig_app_vitest", src = "tsconfig.app.vitest.json", deps = [":tsconfig_app"])
 
 SRCS = [
-    "//app:tsconfig",
+    ":tsconfig",
     ":tsconfig_app",
     ":tsconfig_node",
+    ":tsconfig_app_vitest",
+    ":tsconfig_scripts",
     "vite.config.ts",
     "package.json",
     "index.html",
-] + glob(["src/**", "shared/**", "public/**", "project-manager-shim-middleware/**"])
+] + glob(["src/**", "public/**", "project-manager-shim-middleware/**"])
 
 # BUILD_DEPS = [":node_modules/" + d for d in [
 #     "@vitejs/plugin-vue",
@@ -27,18 +30,9 @@ SRCS = [
 #     "vue-router",
 # ]]
 
-BUILD_DEPS = npm_link_targets()
-# print(BUILD_DEPS)
-
-js_library(
-    name = "vite.config",
-    srcs = ["vite.config.ts"],
-    deps = BUILD_DEPS,
-)
-
 vite_bin.vite(
-    name = "build",
-    srcs = SRCS + [":vite.config"] + npm_link_targets(),
+    name = "vite_build",
+    srcs = SRCS + npm_link_targets(),
     args = ["build"],
     chdir = package_name(),
     out_dirs = ["dist"]

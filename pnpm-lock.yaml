@@ -10,7 +10,7 @@ overrides:
   '@types/react': ^18.0.27
   ws: ^8.18.0
 
-packageExtensionsChecksum: a2c61d54c0d49b09629651395dc2b9f2
+packageExtensionsChecksum: cf2807262ce2e9198f3ece15f3d47884
 
 pnpmfileChecksum: yrev2pk43cjl5fkasomnhoqkcu
 
@@ -200,9 +200,9 @@ importers:
       cross-env:
         specifier: ^7.0.3
         version: 7.0.3
-      enso-chat:
+      enso-support:
         specifier: git://github.com/enso-org/enso-bot
-        version: enso-support@https://codeload.github.com/enso-org/enso-bot/tar.gz/aa903b6e639a31930ee4fff55c5639e4471fa48d
+        version: https://codeload.github.com/enso-org/enso-bot/tar.gz/aa903b6e639a31930ee4fff55c5639e4471fa48d
       eslint:
         specifier: ^8.49.0
         version: 8.57.0
@@ -347,6 +347,9 @@ importers:
       culori:
         specifier: ^3.2.0
         version: 3.3.0
+      enso-common:
+        specifier: workspace:*
+        version: link:../ide-desktop/common
       enso-dashboard:
         specifier: workspace:*
         version: link:../dashboard
@@ -516,9 +519,6 @@ importers:
       d3:
         specifier: ^7.4.0
         version: 7.9.0
-      enso-common:
-        specifier: workspace:*
-        version: link:../ide-desktop/common
       eslint:
         specifier: ^8.49.0
         version: 8.57.0
@@ -715,12 +715,12 @@ importers:
       react:
         specifier: ^18.3.1
         version: 18.3.1
+      typescript:
+        specifier: ^5.5.3
+        version: 5.5.3
       vitest:
         specifier: ^1.3.1
         version: 1.6.0(@types/node@20.11.21)(jsdom@24.1.0)(lightningcss@1.25.1)
-      vue:
-        specifier: ^3.5.2
-        version: 3.5.2(typescript@5.5.3)
 
   app/ide-desktop/icons:
     devDependencies:
@@ -10819,6 +10819,7 @@ snapshots:
   '@vue/compiler-core@3.5.2':
     dependencies:
       '@babel/parser': 7.25.6
+      '@babel/types': 7.25.6
       '@vue/shared': 3.5.2
       entities: 4.5.0
       estree-walker: 2.0.2
@@ -15377,7 +15378,9 @@ snapshots:
       buffer: 5.7.1
       through: 2.3.8
 
-  undici-types@5.26.5: {}
+  undici-types@5.26.5:
+    dependencies:
+      '@types/node': 20.11.21
 
   undici@6.13.0: {}
 

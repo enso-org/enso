@@ -59,7 +59,7 @@ export default defineConfig({
     ...(process.env.GUI_HOSTNAME ? { host: process.env.GUI_HOSTNAME } : {}),
   },
   resolve: {
-    conditions: ['source'],
+    conditions: process.env.NODE_ENV === 'development' ? ['source'] : [],
     alias: {
       '/src/entrypoint.ts': fileURLToPath(new URL(entrypoint, import.meta.url)),
       shared: fileURLToPath(new URL('./shared', import.meta.url)),

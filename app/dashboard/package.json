@@ -2,10 +2,10 @@
   "name": "enso-dashboard",
   "version": "0.1.0",
   "type": "module",
-  "main": "./src/index.tsx",
   "private": true,
   "imports": {
-    "#/*": "./src/*"
+    "#/assets/*": "./src/assets/*",
+    "#/*": "./dist/*"
   },
   "exports": {
     ".": {
@@ -88,7 +88,7 @@
     "@vitejs/plugin-react": "^4.2.1",
     "chalk": "^5.3.0",
     "cross-env": "^7.0.3",
-    "enso-chat": "git://github.com/enso-org/enso-bot",
+    "enso-support": "git://github.com/enso-org/enso-bot",
     "eslint": "^8.49.0",
     "eslint-plugin-react": "^7.32.1",
     "fast-check": "^3.15.0",

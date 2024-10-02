@@ -30,6 +30,6 @@ npm_package(
         "src/tailwind.css",
         "tailwind.config.js",
         "tailwind.config.d.ts",
-    ],
+    ] + glob(["src/assets/**/*"]),
     visibility = ["//visibility:public"],
 )

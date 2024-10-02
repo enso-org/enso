@@ -114,11 +114,24 @@
         "dependencies": {
           "@types/ws": "^8.5.5",
           "@types/validator": "^13.11.7"
+        },
+        "exports": {
+          "./chat": "./src/chat.ts"
         }
       },
       "@aws-crypto/sha256-browser": {
         "dependencies": {
           "@aws-sdk/util-utf8-browser": "*"
+        }
+      },
+      "@vue/compiler-core": {
+        "dependencies": {
+          "@babel/types": "*"
+        }
+      },
+      "undici-types": {
+        "dependencies": {
+          "@types/node": "*"
         }
       }
     },

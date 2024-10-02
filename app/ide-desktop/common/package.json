@@ -7,6 +7,10 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./appConfig": {
+      "types": "./dist/appConfig.d.ts",
+      "import": "./dist/appConfig.js"
+    },
     "./src/text": {
       "source": "./src/text/index.ts",
       "types": "./dist/text/index.d.ts",
@@ -20,18 +24,19 @@
     }
   },
   "scripts": {
-    "test": "vitest run"
+    "test": "vitest run",
+    "compile": "tsc"
   },
   "peerDependencies": {
     "@tanstack/query-core": "5.54.1",
-    "@tanstack/vue-query": ">= 5.54.0 < 5.56.0"
+    "@tanstack/vue-query": ">= 5.54.0 < 5.56.0",
+    "react": "^18.3.1"
   },
   "dependencies": {
     "idb-keyval": "^6.2.1",
-    "react": "^18.3.1",
     "@tanstack/query-persist-client-core": "^5.54.0",
     "@tanstack/vue-query": ">= 5.54.0 < 5.56.0",
-    "vue": "^3.5.2",
+    "typescript": "^5.5.3",
     "vitest": "^1.3.1"
   }
 }
