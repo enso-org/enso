@@ -38,7 +38,9 @@ class SetExpressionValueCmd(request: Api.SetExpressionValueNotification)
                 )
               )
             ctx.state.pendingEdits.enqueue(request.path, pendingApplyEdits)
-            ctx.jobControlPlane.abortAllJobs()
+            ctx.jobControlPlane.abortAllJobs(
+              "set expression value for expression " + request.expressionId
+            )
             ctx.jobProcessor.run(new EnsureCompiledJob(Seq(request.path)))
             executeJobs.foreach(ctx.jobProcessor.run)
             Future.successful(())

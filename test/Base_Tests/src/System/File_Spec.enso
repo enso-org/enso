@@ -387,7 +387,7 @@ add_specs suite_builder =
 
         cloud_setup = Cloud_Tests_Setup.prepare
         with_temporary_cloud_root ~action =
-            subdir = (Enso_File.root / ("my_test_CWD-" + Random.uuid.take 5)).create_directory
+            subdir = (Enso_File.home / ("my_test_CWD-" + Random.uuid.take 5)).create_directory
             subdir.should_succeed
             cleanup =
                 Enso_User.flush_caches
