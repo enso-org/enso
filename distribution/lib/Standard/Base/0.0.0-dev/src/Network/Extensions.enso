@@ -43,6 +43,7 @@ Text.to_uri self = URI.parse self
      Defaults to `Auto_Detect`. If `Raw_Response` is selected or if the format
      cannot be determined automatically, a raw HTTP `Response` will be returned.
 @format Data_Read_Helpers.format_widget_with_raw_response
+@headers Header.default_widget
 URI.fetch : HTTP_Method -> Vector (Header | Pair Text Text) -> File_Format -> Any
 URI.fetch self (method:HTTP_Method=..Get) headers=[] format=Auto_Detect =
     Data.fetch self method headers format
