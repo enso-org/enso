@@ -275,8 +275,8 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
         Enso_File.new "enso://~/a/b/c" . should_equal (Enso_File.home / "a/b/c")
 
         # It also works when resolving a path
-        Enso_File.root / "~" . should_equal Enso_File.home
-        Enso_File.root / "a/../~/b/c" . should_equal (Enso_File.home / "b/c")
+        (Enso_File.root / "~") . should_equal Enso_File.home
+        (Enso_File.root / "a/../~/b/c") . should_equal (Enso_File.home / "b/c")
         Enso_File.new "enso://a/../~/b/c" . should_equal (Enso_File.home / "b/c")
 
         # But a filename only containing ~ is not resolved

@@ -64,7 +64,7 @@ type Enso_File
        Represents the current user's home directory.
     home : Enso_File
     home -> Enso_File =
-        Enso_File.root /  "Users" / Enso_User.current.name
+        Enso_File.root / "Users" / Enso_User.current.name
 
 
     ## ICON folder
