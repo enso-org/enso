@@ -177,7 +177,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
         Context.Output.with_disabled <|
             r = "ABC".write f
             r.should_fail_with Forbidden_Operation
-            r.catch.to_display_text . should_contain "Currently dry-run is not supported for Enso_File"
+            r.catch.to_display_text . should_contain "As writing is disabled, no action has been performed"
         # The file should not have been created
         f.exists . should_be_false
 
