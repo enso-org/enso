@@ -1,6 +1,7 @@
 package org.enso.interpreter;
 
 import com.oracle.truffle.api.CallTarget;
+import com.oracle.truffle.api.ContextThreadLocal;
 import com.oracle.truffle.api.Option;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLogger;
@@ -87,8 +88,29 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
   private static final LanguageReference<EnsoLanguage> REFERENCE =
       LanguageReference.create(EnsoLanguage.class);
 
+  private final ContextThreadLocal<ExecutionEnvironmentReference> threadExecutionEnvironment =
+      locals.createContextThreadLocal(
+          (ctx, thread) -> new ExecutionEnvironmentReference(ctx.getExecutionEnvironment()));
+
   public static EnsoLanguage get(Node node) {
     return REFERENCE.get(node);
+  }
+
+  private static final class ExecutionEnvironmentReference {
+
+    private ExecutionEnvironment executionEnvironment;
+
+    ExecutionEnvironmentReference(ExecutionEnvironment executionEnvironment) {
+      this.executionEnvironment = executionEnvironment;
+    }
+
+    ExecutionEnvironment getExecutionEnvironment() {
+      return executionEnvironment;
+    }
+
+    void setExecutionEnvironment(ExecutionEnvironment executionEnvironment) {
+      this.executionEnvironment = executionEnvironment;
+    }
   }
 
   /**
@@ -362,6 +384,7 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
   }
 
   /** Conversions of primitive values */
+  @Override
   protected Object getLanguageView(EnsoContext context, Object value) {
     if (value instanceof Boolean b) {
       var bool = context.getBuiltins().bool();
@@ -369,5 +392,13 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
       return AtomNewInstanceNode.getUncached().newInstance(cons);
     }
     return null;
+  }
+
+  public ExecutionEnvironment getThreadExecutionEnvironment() {
+    return threadExecutionEnvironment.get().getExecutionEnvironment();
+  }
+
+  public void setExecutionEnvironment(ExecutionEnvironment executionEnvironment) {
+    threadExecutionEnvironment.get().setExecutionEnvironment(executionEnvironment);
   }
 }

@@ -109,7 +109,6 @@ public final class EnsoContext {
 
   private final Shape rootStateShape = Shape.newBuilder().layout(State.Container.class).build();
   private ExecutionEnvironment contextExecutionEnvironment;
-  private final ThreadLocal<ExecutionEnvironment> threadExecutionEnvironment;
 
   private final int warningsLimit;
 
@@ -146,7 +145,6 @@ public final class EnsoContext {
     this.isPrivateCheckDisabled = getOption(RuntimeOptions.DISABLE_PRIVATE_CHECK_KEY);
     this.isStaticTypeAnalysisEnabled = getOption(RuntimeOptions.ENABLE_STATIC_ANALYSIS_KEY);
     this.contextExecutionEnvironment = getOption(EnsoLanguage.EXECUTION_ENVIRONMENT);
-    this.threadExecutionEnvironment = initializeThreadExecutionEnvironment();
     this.assertionsEnabled = shouldAssertionsBeEnabled();
     this.shouldWaitForPendingSerializationJobs =
         getOption(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS_KEY);
@@ -217,11 +215,6 @@ public final class EnsoContext {
         run.accept(preinit);
       }
     }
-  }
-
-  @TruffleBoundary
-  private ThreadLocal<ExecutionEnvironment> initializeThreadExecutionEnvironment() {
-    return ThreadLocal.withInitial(this::getExecutionEnvironment);
   }
 
   /** Checks if the working directory is as expected and reports a warning if not. */
@@ -880,15 +873,14 @@ public final class EnsoContext {
     return contextExecutionEnvironment;
   }
 
-  @TruffleBoundary
   public ExecutionEnvironment getThreadExecutionEnvironment() {
-    return threadExecutionEnvironment.get();
+    return language.getThreadExecutionEnvironment();
   }
 
   /** Set the runtime execution environment of this context. */
   public void setExecutionEnvironment(ExecutionEnvironment executionEnvironment) {
     this.contextExecutionEnvironment = executionEnvironment;
-    this.threadExecutionEnvironment.remove();
+    language.setExecutionEnvironment(executionEnvironment);
   }
 
   /**
