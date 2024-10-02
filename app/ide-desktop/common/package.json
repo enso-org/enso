@@ -2,22 +2,21 @@
   "name": "enso-common",
   "version": "1.0.0",
   "type": "module",
-  "main": "./src/index.js",
   "exports": {
     ".": {
-      "types": "./src/index.d.ts",
-      "import": "./src/index.js"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
     },
     "./src/text": {
       "source": "./src/text/index.ts",
-      "types": "./src/text/index.d.ts",
-      "import": "./src/text/index.js"
+      "types": "./dist/text/index.d.ts",
+      "import": "./dist/text/index.js"
     },
     "./src/config.json": "./src/config.json",
     "./src/*": {
       "source": "./src/*.ts",
-      "types": "./src/*.d.ts",
-      "import": "./src/*.js"
+      "types": "./dist/*.d.ts",
+      "import": "./dist/*.js"
     }
   },
   "scripts": {

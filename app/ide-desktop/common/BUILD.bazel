@@ -14,7 +14,11 @@ ts_project(
     name = "tsc",
     composite = True,
     tsconfig = ":tsconfig",
+    allow_js = True,
+    out_dir = "dist",
+    root_dir = "src",
     resolve_json_module = True,
+    srcs = glob(["src/**/*.ts", "src/**/*.js", "src/text/english.json"]),
     deps = npm_link_targets()
 )
 
@@ -23,10 +27,7 @@ npm_package(
     srcs = [
         ":tsc",
         "package.json",
-        # Technically these two files are not an output of the tsc, so we must list them explicitly.
-        # At the same time, d.ts files are considered an output of the tsc, so we don't list them here.
-        "src/index.js",
-        "src/appConfig.js",
+        "src/config.json",
     ],
     visibility = ["//visibility:public"],
 )

@@ -3,7 +3,7 @@
 import react from '@vitejs/plugin-react'
 import vue from '@vitejs/plugin-vue'
 import { getDefines, readEnvironmentFromFile } from 'enso-common/src/appConfig'
-import * as tailwindConfig from 'enso-dashboard/tailwind.config'
+import tailwindConfig from 'enso-dashboard/tailwind.config'
 import { fileURLToPath } from 'node:url'
 import postcssNesting from 'postcss-nesting'
 import tailwindcss from 'tailwindcss'
@@ -84,15 +84,7 @@ export default defineConfig({
   assetsInclude: ['**/*.yaml', '**/*.svg'],
   css: {
     postcss: {
-      plugins: [
-        tailwindcssNesting(postcssNesting()),
-        tailwindcss({
-          ...tailwindConfig.default,
-          content: tailwindConfig.default.content.map((glob: string) =>
-            glob.replace(/^[.][/]/, fileURLToPath(new URL('../dashboard/', import.meta.url))),
-          ),
-        }),
-      ],
+      plugins: [tailwindcssNesting(postcssNesting()), tailwindcss(tailwindConfig)],
     },
   },
   build: {

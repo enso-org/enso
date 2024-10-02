@@ -27,9 +27,9 @@ npm_package(
     srcs = [
         ":tsc",
         "package.json",
-        "src/index.tsx",
         "src/tailwind.css",
         "tailwind.config.js",
+        "tailwind.config.d.ts",
     ],
     visibility = ["//visibility:public"],
 )

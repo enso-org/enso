@@ -8,8 +8,16 @@
     "#/*": "./src/*"
   },
   "exports": {
-    ".": "./src/index.tsx",
-    "./tailwind.config": "./tailwind.config.js",
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts",
+      "source": "./src/index.tsx"
+    },
+    "./tailwind.config": {
+      "import": "./tailwind.config.js",
+      "source": "./tailwind.config.js",
+      "types": "./tailwind.config.d.ts"
+    },
     "./src/tailwind.css": "./src/tailwind.css"
   },
   "scripts": {
