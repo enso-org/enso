@@ -33,6 +33,7 @@ import { mockDataWSHandler as originalMockDataWSHandler } from './dataServer'
 const mockProjectId = random.uuidv4() as Uuid
 const standardBase = 'Standard.Base' as QualifiedName
 
+/** TODO: Add docs */
 export function placeholderGroups(): LibraryComponentGroup[] {
   return [
     { color: '#4D9A29', name: 'Input', library: standardBase, exports: [] },
@@ -77,10 +78,12 @@ main =
     selected = data.select_columns
 `
 
+/** TODO: Add docs */
 export function getMainFile() {
   return mainFile
 }
 
+/** TODO: Add docs */
 export function setMainFile(newMainFile: string) {
   return (mainFile = newMainFile)
 }

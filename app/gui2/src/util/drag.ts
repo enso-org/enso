@@ -1,3 +1,4 @@
+/** TODO: Add docs */
 export function setDragImageToBlank(event: DragEvent) {
   const image = new Image()
   // Blank GIF

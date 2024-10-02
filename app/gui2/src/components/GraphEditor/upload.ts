@@ -15,6 +15,7 @@ import { Err, Ok, withContext, type Result } from 'ydoc-shared/util/data/result'
 
 const DATA_DIR_NAME = 'data'
 
+/** TODO: Add docs */
 export function uploadedExpression(result: UploadResult) {
   switch (result.source) {
     case 'Project': {
@@ -33,6 +34,7 @@ export interface UploadResult {
   name: string
 }
 
+/** TODO: Add docs */
 export class Uploader {
   private checksum: Hash<Keccak>
   private uploadedBytes: bigint
@@ -54,6 +56,7 @@ export class Uploader {
     this.stackItem = markRaw(toRaw(stackItem))
   }
 
+  /** TODO: Add docs */
   static Create(
     rpc: LanguageServer,
     binary: DataServer,
@@ -78,6 +81,7 @@ export class Uploader {
     )
   }
 
+  /** TODO: Add docs */
   async upload(): Promise<Result<UploadResult>> {
     // This non-standard property is defined in Electron.
     if (

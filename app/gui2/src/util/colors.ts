@@ -7,6 +7,7 @@ useMode(modeRgb)
 
 const oklch = converter('oklch')
 
+/** TODO: Add docs */
 export function cssSupported(css: string): boolean {
   return typeof CSS !== 'undefined' && 'supports' in CSS && CSS.supports(css)
 }
@@ -15,6 +16,7 @@ export function cssSupported(css: string): boolean {
 export const browserSupportsOklch: boolean = cssSupported('color: oklch(0 0 0)')
 
 /* Generate a CSS color value from the provided string. */
+/** TODO: Add docs */
 export function colorFromString(s: string) {
   const hash: number = hashString(s)
   const hue = mapInt32(hash & 0x3ff, 0, 1, 10)
@@ -22,6 +24,7 @@ export function colorFromString(s: string) {
 }
 
 /* Returns the enso color for a given hue, in the range 0-1. */
+/** TODO: Add docs */
 export function ensoColor(hue: number): Oklch {
   return {
     mode: 'oklch',
@@ -32,6 +35,7 @@ export function ensoColor(hue: number): Oklch {
 }
 
 /* Normalize a value to the range 0-1, as used for hues. */
+/** TODO: Add docs */
 export function normalizeHue(value: number) {
   return ((value % 1) + 1) % 1
 }
@@ -42,6 +46,7 @@ export function formatCssColor(color: Oklch) {
 }
 
 /* Parse the input as a CSS color value; convert it to Oklch if it isn't already. */
+/** TODO: Add docs */
 export function parseCssColor(cssColor: string): Oklch | undefined {
   return oklch(cssColor)
 }

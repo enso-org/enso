@@ -19,6 +19,7 @@ import {
 } from 'vue'
 import { useRaf } from './animation'
 
+/** TODO: Add docs */
 export function isTriggeredByKeyboard(e: MouseEvent | PointerEvent) {
   if (e instanceof PointerEvent) return e.pointerType !== 'mouse'
   else return false
@@ -54,6 +55,7 @@ export function useEvent(
   handler: EventListenerOrEventListenerObject,
   options?: boolean | AddEventListenerOptions,
 ): void
+/** TODO: Add docs */
 export function useEvent(
   target: EventTarget,
   event: string,
@@ -99,6 +101,7 @@ export function useEventConditional(
   handler: (event: unknown) => void,
   options?: boolean | AddEventListenerOptions,
 ): void
+/** TODO: Add docs */
 export function useEventConditional(
   target: EventTarget,
   event: string,
@@ -148,11 +151,13 @@ const hasWindow = typeof window !== 'undefined'
 const platform = hasWindow ? window.navigator?.platform ?? '' : ''
 export const isMacLike = /(Mac|iPhone|iPod|iPad)/i.test(platform)
 
+/** TODO: Add docs */
 export function modKey(e: KeyboardEvent | MouseEvent): boolean {
   return isMacLike ? e.metaKey : e.ctrlKey
 }
 
-/** A helper for getting Element out of VueInstance, it allows using `useResizeObserver` with Vue components.
+/**
+ * A helper for getting Element out of VueInstance, it allows using `useResizeObserver` with Vue components.
  *
  * Note that this function is only shallowly reactive: It will trigger its reactive scope if the value of `element`
  * changes, but not if the root `Element` of the provided `VueInstance` changes. This is because a
@@ -230,7 +235,6 @@ const sharedResizeObserver: ResizeObserver | undefined =
  * # Warning:
  * Updating DOM node layout based on values derived from their size can introduce unwanted feedback
  * loops across the script and layout reflow. Avoid doing that.
- *
  * @param elementRef DOM node to observe.
  * @returns Reactive value with the DOM node size.
  */
@@ -321,10 +325,13 @@ export const enum PointerButtonMask {
  * Options for `usePointer` composable.
  */
 export interface UsePointerOptions {
-  /** Declare which buttons to look for. The value represents a `PointerEvent.buttons` mask.
-   * Defaults to main mouse button. */
+  /**
+   * Declare which buttons to look for. The value represents a `PointerEvent.buttons` mask.
+   * Defaults to main mouse button.
+   */
   requiredButtonMask?: number
-  /** Which element should capture pointer when drag starts: event's `target`, `currentTarget`,
+  /**
+   * Which element should capture pointer when drag starts: event's `target`, `currentTarget`,
    * or none.
    */
   pointerCapturedBy?: 'target' | 'currentTarget' | 'none'
@@ -334,7 +341,6 @@ export interface UsePointerOptions {
 
 /**
  * Register for a pointer dragging events.
- *
  * @param handler callback on any pointer event. If `false` is returned from the callback, the
  * event will be considered _not_ handled and will propagate further.
  * @param options
@@ -465,7 +471,6 @@ export interface UseArrowsOptions {
  * always be Vec2.Zero (and thus, the absolute and relative positions will be equal).
  *
  * The "drag" starts on first arrow keypress and ends with last arrow key release.
- *
  * @param handler callback on any event. The 'move' event is fired on every frame, and thus does
  * not have any event associated (`event` parameter will be undefined).
  * @param options
@@ -572,7 +577,8 @@ export function useArrows(
   return { events, moving }
 }
 
-/** Supports panning or zooming "capturing" wheel events.
+/**
+ * Supports panning or zooming "capturing" wheel events.
  *
  * While events are captured, further events of the same type will continue the pan/zoom action.
  * The capture expires if no events are received within the specified `captureDurationMs`.

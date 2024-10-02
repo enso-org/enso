@@ -16,6 +16,7 @@ const orDefaultSize = (rect: Rect) => {
   return new Rect(rect.pos, new Vec2(width, height))
 }
 
+/** TODO: Add docs */
 export function usePlacement(nodeRects: ToValue<Iterable<Rect>>, screenBounds: ToValue<Rect>) {
   const gap = themeGap()
   const environment = (selectedNodeRects: Iterable<Rect>) => ({
@@ -50,7 +51,8 @@ function themeGap(): Vec2 {
   return new Vec2(theme.node.horizontal_gap, theme.node.vertical_gap)
 }
 
-/** The new node should appear at the center of the screen if there is enough space for the new node.
+/**
+ * The new node should appear at the center of the screen if there is enough space for the new node.
  * Otherwise, it should be moved down to the closest free space.
  *
  * Specifically, this code, in order:
@@ -60,7 +62,8 @@ function themeGap(): Vec2 {
  * - shifts the node down (if required) until there is sufficient vertical space -
  *   the height of the node, in addition to the specified gap both above and below the node.
  *
- * [Documentation](https://github.com/enso-org/design/blob/main/epics/component-browser/design.md#placement-of-newly-opened-component-browser) */
+ * [Documentation](https://github.com/enso-org/design/blob/main/epics/component-browser/design.md#placement-of-newly-opened-component-browser)
+ */
 export function nonDictatedPlacement(
   nodeSize: Vec2,
   { screenBounds, nodeRects }: NonDictatedEnvironment,
@@ -70,7 +73,8 @@ export function nonDictatedPlacement(
   return seekVertical(new Rect(initialPosition, nodeSize), nodeRects, gap)
 }
 
-/** The new node should be left aligned to the first selected node (order of selection matters).
+/**
+ * The new node should be left aligned to the first selected node (order of selection matters).
  * The Panel should also be placed vertically directly below the lowest of all selected nodes.
  *
  * If there is not enough empty space, the Expression Input Panel should be moved right
@@ -90,7 +94,8 @@ export function nonDictatedPlacement(
  * Note that the algorithm for finding free space is almost the same as for non-dictated placement,
  * except it searches horizontally instead of vertically.
  *
- * [Documentation](https://github.com/enso-org/design/blob/main/epics/component-browser/design.md#placement-of-newly-opened-component-browser) */
+ * [Documentation](https://github.com/enso-org/design/blob/main/epics/component-browser/design.md#placement-of-newly-opened-component-browser)
+ */
 export function previousNodeDictatedPlacement(
   nodeSize: Vec2,
   { screenBounds, selectedNodeRects, nodeRects }: Environment,
@@ -110,13 +115,15 @@ export function previousNodeDictatedPlacement(
   return seekHorizontal(new Rect(initialPosition, nodeSize), nodeRects, gap)
 }
 
-/** The new node should appear exactly below the mouse.
+/**
+ * The new node should appear exactly below the mouse.
  *
  * Specifically, this code assumes the node is fully rounded on the left and right sides,
  * so it adds half the node height (assumed to be the node radius) from the mouse x and y
  * positions.
  *
- * [Documentation](https://github.com/enso-org/design/blob/main/epics/component-browser/design.md#placement-of-newly-opened-component-browser) */
+ * [Documentation](https://github.com/enso-org/design/blob/main/epics/component-browser/design.md#placement-of-newly-opened-component-browser)
+ */
 export function mouseDictatedPlacement(
   mousePosition: Vec2,
   nodeSize: Vec2 = DEFAULT_NODE_SIZE,
@@ -145,7 +152,8 @@ export function inputNodePlacement(
   return seekHorizontal(new Rect(initialPosition, nodeSize), nodeRects, gap)
 }
 
-/** The new node should appear at the average Y-position of selected nodes and with the X-position of the leftmost node.
+/**
+ * The new node should appear at the average Y-position of selected nodes and with the X-position of the leftmost node.
  *
  * If the desired place is already occupied by non-selected node, it should be moved down to the closest free space.
  *
@@ -181,8 +189,10 @@ export function collapsedNodePlacement(
   return seekVertical(new Rect(initialPosition, nodeSize), nonSelectedNodeRects, gap)
 }
 
-/** Given a preferred location for a node, adjust the top as low as necessary for it not to collide with any of the
- *  provided `otherRects`. */
+/**
+ * Given a preferred location for a node, adjust the top as low as necessary for it not to collide with any of the
+ *  provided `otherRects`.
+ */
 export function seekVertical(preferredRect: Rect, otherRects: Iterable<Rect>, gap = themeGap()) {
   const initialRect = orDefaultSize(preferredRect)
   const nodeRectsSorted = Array.from(otherRects, orDefaultSize).sort((a, b) => a.top - b.top)
@@ -198,8 +208,10 @@ export function seekVertical(preferredRect: Rect, otherRects: Iterable<Rect>, ga
   return new Vec2(initialRect.left, top)
 }
 
-/** Given a preferred location for a node, adjust the left edge as much as necessary for it not to collide with any of
- *  the provided `otherRects`. */
+/**
+ * Given a preferred location for a node, adjust the left edge as much as necessary for it not to collide with any of
+ *  the provided `otherRects`.
+ */
 export function seekHorizontal(initialRect: Rect, otherRects: Iterable<Rect>, gap = themeGap()) {
   return seekVertical(
     orDefaultSize(initialRect).reflectXY(),

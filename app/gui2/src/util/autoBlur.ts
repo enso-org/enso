@@ -5,8 +5,10 @@ import type { VueInstance } from '@vueuse/core'
 import { toValue, watchEffect, type Ref } from 'vue'
 import type { Opt } from 'ydoc-shared/util/data/opt'
 
-/** Automatically `blur` the currently active element on any mouse click outside of `root`.
- * It is useful when other elements may capture pointer events, preventing default browser behavior for focus change. */
+/**
+ * Automatically `blur` the currently active element on any mouse click outside of `root`.
+ * It is useful when other elements may capture pointer events, preventing default browser behavior for focus change.
+ */
 export function useAutoBlur(root: ToValue<HTMLElement | SVGElement | undefined>) {
   watchEffect((onCleanup) => {
     const element = toValue(root)
@@ -19,6 +21,7 @@ export function useAutoBlur(root: ToValue<HTMLElement | SVGElement | undefined>)
 
 const autoBlurRoots = new Set<HTMLElement | SVGElement | MathMLElement>()
 
+/** TODO: Add docs */
 export function registerAutoBlurHandler() {
   useEvent(
     window,
@@ -54,7 +57,8 @@ export function isNodeOutside(element: any, area: Opt<Node>): boolean {
   return !!area && element instanceof Node && !area.contains(element)
 }
 
-/** Returns a new interaction based on the given `interaction`. The new interaction will be ended if a pointerdown event
+/**
+ * Returns a new interaction based on the given `interaction`. The new interaction will be ended if a pointerdown event
  *  occurs outside the given `area` element.
  *
  * See also {@link cancelOnClickOutside}.
@@ -66,7 +70,8 @@ export function endOnClickOutside(
   return endOnClick(isClickOutside(area), interaction)
 }
 
-/** Returns a new interaction based on the given `interaction`. The new interaction will be ended if a pointerdown event
+/**
+ * Returns a new interaction based on the given `interaction`. The new interaction will be ended if a pointerdown event
  *  occurs such as a `condition` returns `true`.
  *
  * See also {@link cancelOnClickOutside}.
@@ -79,7 +84,8 @@ export function endOnClick(
   return handleClick(condition, interaction, handler.end.bind(handler))
 }
 
-/** Returns a new interaction based on the given `interaction`. The new interaction will be canceled if a pointerdown event
+/**
+ * Returns a new interaction based on the given `interaction`. The new interaction will be canceled if a pointerdown event
  *  occurs such as a `condition` returns `true`.
  *
  * See also {@link cancelOnClickOutside}.
@@ -92,7 +98,8 @@ export function cancelOnClick(
   return handleClick(condition, interaction, handler.cancel.bind(handler))
 }
 
-/** Returns a new interaction based on the given `interaction`. The new interaction will be canceled if a pointerdown event
+/**
+ * Returns a new interaction based on the given `interaction`. The new interaction will be canceled if a pointerdown event
  *  occurs outside the given `area` element.
  *
  * See also {@link endOnClickOutside}.

@@ -2,6 +2,7 @@ import { useEvent } from '@/composables/events'
 import { type ProjectStore } from '@/stores/project'
 import { useToast } from '@/util/toast'
 
+/** TODO: Add docs */
 export function useGraphEditorToasts(projectStore: ProjectStore) {
   const toastStartup = useToast.info({ autoClose: false })
   const toastConnectionLost = useToast.error({ autoClose: false })

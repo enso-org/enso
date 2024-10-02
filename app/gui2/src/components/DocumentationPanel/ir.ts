@@ -59,6 +59,7 @@ export interface Example {
   body: Doc.HtmlString
 }
 
+/** TODO: Add docs */
 export function placeholder(text: string): Placeholder {
   return { kind: 'Placeholder', text }
 }
@@ -96,6 +97,7 @@ function filterSections(sections: Iterable<Doc.Section>): Sections {
 
 // === Lookup ===
 
+/** TODO: Add docs */
 export function lookupDocumentation(db: SuggestionDb, id: SuggestionId): Docs {
   const entry = db.get(id)
   if (!entry)

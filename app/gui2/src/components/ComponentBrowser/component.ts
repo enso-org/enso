@@ -29,6 +29,7 @@ export interface Component extends ComponentLabel {
   group?: number | undefined
 }
 
+/** TODO: Add docs */
 export function labelOfEntry(entry: SuggestionEntry, match: MatchResult): ComponentLabelInfo {
   if (entry.memberOf && entry.selfType == null) {
     const ownerLastSegmentStart = qnLastSegmentIndex(entry.memberOf) + 1
@@ -74,6 +75,7 @@ export interface MatchedSuggestion {
   match: MatchResult
 }
 
+/** TODO: Add docs */
 export function compareSuggestions(a: MatchedSuggestion, b: MatchedSuggestion): number {
   const matchCompare = a.match.score - b.match.score
   if (matchCompare !== 0) return matchCompare
@@ -93,6 +95,7 @@ export interface ComponentInfo {
   match: MatchResult
 }
 
+/** TODO: Add docs */
 export function makeComponent({ id, entry, match }: ComponentInfo): Component {
   return {
     ...formatLabel(labelOfEntry(entry, match)),
@@ -102,6 +105,7 @@ export function makeComponent({ id, entry, match }: ComponentInfo): Component {
   }
 }
 
+/** TODO: Add docs */
 export function makeComponentList(db: SuggestionDb, filtering: Filtering): Component[] {
   function* matchSuggestions() {
     for (const [id, entry] of db.entries()) {

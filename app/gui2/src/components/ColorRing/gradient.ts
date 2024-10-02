@@ -21,10 +21,12 @@ function normalizeRangeInputs(inputs: Iterable<number>, radius: number) {
   return normalizedInputs
 }
 
+/** TODO: Add docs */
 export function seminormalizeHue(value: number) {
   return value === 1 ? 1 : normalizeHue(value)
 }
 
+/** TODO: Add docs */
 export function rangesForInputs(inputs: Iterable<number>, radius: number): FixedRange[] {
   if (radius === 0) return []
   const ranges = new Array<FixedRange & { rawHue: number }>()
@@ -80,6 +82,7 @@ export interface GradientPoint {
   angle: number
   angle2?: number
 }
+/** TODO: Add docs */
 export function cssAngularColorStop({ hue, angle, angle2 }: GradientPoint) {
   return [
     formatCssColor(ensoColor(hue)),
@@ -88,6 +91,7 @@ export function cssAngularColorStop({ hue, angle, angle2 }: GradientPoint) {
   ].join(' ')
 }
 
+/** TODO: Add docs */
 export function gradientPoints(
   inputRanges: Iterable<FixedRange>,
   minStops?: number | undefined,

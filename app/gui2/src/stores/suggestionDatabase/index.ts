@@ -17,6 +17,7 @@ import type { MethodPointer } from 'ydoc-shared/languageServerTypes'
 import * as lsTypes from 'ydoc-shared/languageServerTypes/suggestions'
 import { exponentialBackoff } from 'ydoc-shared/util/net'
 
+/** TODO: Add docs */
 export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
   nameToId = new ReactiveIndex(this, (id, entry) => [[entryQn(entry), id]])
   childIdToParentId = new ReactiveIndex(this, (id, entry) => {
@@ -29,6 +30,7 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
   })
   conflictingNames = new ReactiveIndex(this, (id, entry) => [[entry.name, id]])
 
+  /** TODO: Add docs */
   getEntryByQualifiedName(name: QualifiedName): SuggestionEntry | undefined {
     const [id] = this.nameToId.lookup(name)
     if (id) {
@@ -36,6 +38,7 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
     }
   }
 
+  /** TODO: Add docs */
   findByMethodPointer(method: MethodPointer): SuggestionId | undefined {
     if (method == null) return
     const moduleName = tryQualifiedName(method.definedOnType)

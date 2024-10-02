@@ -44,20 +44,24 @@ function or(a: (page: Locator | Page) => Locator, b: (page: Locator | Page) => L
   return (page: Locator | Page) => a(page).or(b(page))
 }
 
+/** TODO: Add docs */
 export function toggleVisualizationButton(page: Locator | Page) {
   return page.getByLabel('Visualization', { exact: true })
 }
 
+/** TODO: Add docs */
 export function toggleVisualizationSelectorButton(page: Locator | Page) {
   return page.getByLabel('Visualization Selector')
 }
 
 // === Fullscreen ===
 
+/** TODO: Add docs */
 export function enterFullscreenButton(page: Locator | Page) {
   return page.getByLabel('Fullscreen')
 }
 
+/** TODO: Add docs */
 export function exitFullscreenButton(page: Locator | Page) {
   return page.getByLabel('Exit Fullscreen')
 }
@@ -69,21 +73,27 @@ export const toggleFullscreenButton = or(enterFullscreenButton, exitFullscreenBu
 declare const nodeLocatorBrand: unique symbol
 export type Node = Locator & { [nodeLocatorBrand]: never }
 
+/** TODO: Add docs */
 export function graphNode(page: Page | Locator): Node {
   return page.locator('.GraphNode') as Node
 }
+/** TODO: Add docs */
 export function graphNodeByBinding(page: Locator | Page, binding: string): Node {
   return graphNode(page).filter({ has: page.locator('.binding', { hasText: binding }) }) as Node
 }
+/** TODO: Add docs */
 export function graphNodeIcon(node: Node) {
   return node.locator('.nodeCategoryIcon')
 }
+/** TODO: Add docs */
 export function selectedNodes(page: Page | Locator): Node {
   return page.locator('.GraphNode.selected') as Node
 }
+/** TODO: Add docs */
 export function inputNode(page: Page | Locator): Node {
   return page.locator('.GraphNode.inputNode') as Node
 }
+/** TODO: Add docs */
 export function outputNode(page: Page | Locator): Node {
   return page.locator('.GraphNode.outputNode') as Node
 }
@@ -107,6 +117,7 @@ export const nodeOutputPort = componentLocator('.outputPortHoverArea')
 export const smallPlusButton = componentLocator('.SmallPlusButton')
 export const lexicalContent = componentLocator('.LexicalContent')
 
+/** TODO: Add docs */
 export function componentBrowserEntry(
   page: Locator | Page,
   filter?: (f: Filter) => { selector: string },
@@ -116,6 +127,7 @@ export function componentBrowserEntry(
   )
 }
 
+/** TODO: Add docs */
 export function componentBrowserSelectedEntry(
   page: Locator | Page,
   filter?: (f: Filter) => { selector: string },
@@ -125,10 +137,12 @@ export function componentBrowserSelectedEntry(
   )
 }
 
+/** TODO: Add docs */
 export function componentBrowserEntryByLabel(page: Locator | Page, label: string) {
   return componentBrowserEntry(page).filter({ has: page.getByText(label) })
 }
 
+/** TODO: Add docs */
 export function rightDock(page: Page) {
   return page.getByTestId('rightDock')
 }
@@ -138,6 +152,7 @@ export function rightDockRoot(page: Page) {
   return page.getByTestId('rightDockRoot')
 }
 
+/** TODO: Add docs */
 export function bottomDock(page: Page) {
   return page.getByTestId('bottomDock')
 }
@@ -167,12 +182,14 @@ export const warningsVisualization = visualizationLocator('.WarningsVisualizatio
 
 // === Edge locators ===
 
+/** TODO: Add docs */
 export async function edgesFromNodeWithBinding(page: Page, binding: string) {
   const node = graphNodeByBinding(page, binding).first()
   const nodeId = await node.getAttribute('data-node-id')
   return page.locator(`[data-source-node-id="${nodeId}"]`)
 }
 
+/** TODO: Add docs */
 export async function edgesToNodeWithBinding(page: Page, binding: string) {
   const node = graphNodeByBinding(page, binding).first()
   const nodeId = await node.getAttribute('data-node-id')
@@ -181,7 +198,8 @@ export async function edgesToNodeWithBinding(page: Page, binding: string) {
 
 // === Output ports ===
 
-/** Returns a location that can be clicked to activate an output port.
+/**
+ * Returns a location that can be clicked to activate an output port.
  *  Using a `Locator` would be better, but `position` option of `click` doesn't work.
  */
 export async function outputPortCoordinates(node: Locator) {

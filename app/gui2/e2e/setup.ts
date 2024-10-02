@@ -9,6 +9,7 @@ import {
 } from '../mock/projectManager'
 import pmSpec from './pm-openrpc.json' assert { type: 'json' }
 
+/** TODO: Add docs */
 export default function setup() {
   const pm = new Server({
     transportConfigs: [

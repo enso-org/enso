@@ -8,6 +8,7 @@ import type { ExternalId } from 'ydoc-shared/yjsModel'
 const AI_GOAL_PLACEHOLDER = '__$$GOAL$$__'
 const AI_STOP_SEQUENCE = '`'
 
+/** TODO: Add docs */
 export function useAI(
   graphDb: GraphDb = useGraphStore().db,
   project: {

@@ -1,10 +1,10 @@
+/** TODO: Add docs */
 export function defaultEquality(a: unknown, b: unknown): boolean {
   return a === b
 }
 
 /**
  * Element-wise equality check of arrays.
- *
  * @param a left array
  * @param b right array
  * @param eq equality function for elements. When not specified, `===` operator is used.

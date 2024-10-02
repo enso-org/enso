@@ -17,12 +17,14 @@ interface PartialVec2 {
   y: number | null
 }
 
+/** TODO: Add docs */
 export class SnapGrid {
   leftAxes: ComputedRef<number[]>
   rightAxes: ComputedRef<number[]>
   topAxes: ComputedRef<number[]>
   bottomAxes: ComputedRef<number[]>
 
+  /** TODO: Add docs */
   constructor(rects: ComputedRef<Rect[]>) {
     markRaw(this)
     this.leftAxes = computed(() =>
@@ -43,6 +45,7 @@ export class SnapGrid {
     )
   }
 
+  /** TODO: Add docs */
   snappedMany(rects: Rect[], threshold: number): Vec2 {
     const minSnap = rects.reduce<PartialVec2>(
       (minSnap, rect) => {
@@ -54,6 +57,7 @@ export class SnapGrid {
     return new Vec2(minSnap.x ?? 0.0, minSnap.y ?? 0.0)
   }
 
+  /** TODO: Add docs */
   snap(rect: Rect, threshold: number): PartialVec2 {
     const leftSnap = SnapGrid.boundSnap(rect.left, this.leftAxes.value, threshold)
     const rightSnap = SnapGrid.boundSnap(rect.right, this.rightAxes.value, threshold)
@@ -111,6 +115,7 @@ export function useDragging() {
     grid: SnapGrid
     stopPositionUpdate: WatchStopHandle
 
+    /** TODO: Add docs */
     constructor(movedId: NodeId) {
       markRaw(this)
       function* draggedNodes(): Generator<[NodeId, DraggedNode]> {
@@ -131,6 +136,7 @@ export function useDragging() {
       this.stopPositionUpdate = watchEffect(() => this.updateNodesPosition())
     }
 
+    /** TODO: Add docs */
     updateOffset(newOffset: Vec2): void {
       const oldSnappedOffset = snappedOffset.value
       const rects: Rect[] = []
@@ -154,10 +160,12 @@ export function useDragging() {
       }
     }
 
+    /** TODO: Add docs */
     finishDragging(): void {
       this.stopPositionUpdate()
       this.updateNodesPosition()
     }
+    /** TODO: Add docs */
     cancelDragging(): void {
       console.log('cancelDragging')
       this.stopPositionUpdate()
@@ -169,6 +177,7 @@ export function useDragging() {
       this.updateNodesPosition()
     }
 
+    /** TODO: Add docs */
     createSnapGrid() {
       const nonDraggedRects = computed(() => {
         const nonDraggedNodes = iteratorFilter(
@@ -180,6 +189,7 @@ export function useDragging() {
       return new SnapGrid(nonDraggedRects)
     }
 
+    /** TODO: Add docs */
     updateNodesPosition() {
       graphStore.batchEdits(() => {
         for (const [id, dragged] of this.draggedNodes) {

@@ -7,6 +7,7 @@ export type ScrollTarget =
   | { type: 'selected' }
   | { type: 'offset'; offset: number }
 
+/** TODO: Add docs */
 export function useScrolling(selectedPos: ToValue<number>) {
   const targetScroll = ref<ScrollTarget>({ type: 'top' })
   const targetScrollPosition = computed(() => {

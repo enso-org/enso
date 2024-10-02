@@ -7,7 +7,6 @@ import { mapIterator } from 'lib0/iterator'
  *
  * Internally keys are converted to strings using the provided {@link keyMapper} function and
  * then compared.
- *
  * @template Key The type of the keys.
  * @template Value The type of the values.
  */
@@ -15,8 +14,8 @@ export class MappedKeyMap<Key, Value> {
   /** The inner map that stores the values. */
   private readonly map = new Map<any, [Key, Value]>()
 
-  /** Construct a new map with a custom key mapper.
-   *
+  /**
+   * Construct a new map with a custom key mapper.
    * @param keyMapper The function that maps the user-facing keys to internal keys. It can be some
    * sort of hash function or custom to-string converter. The function should return values that
    * are `===`-equal for keys that should be considered equal.
@@ -70,14 +69,14 @@ export class MappedKeyMap<Key, Value> {
  *
  * It is useful e.g. when the values are objects, and we want to use different equality semantics
  * than the default.
- *
  * @template T The type of the values.
  */
 export class MappedSet<T extends Object> {
   /** The inner set that stores the keys. */
   private readonly set: Map<any, T>
 
-  /** Construct a new set, optionally setting a custom value mapper.
+  /**
+   * Construct a new set, optionally setting a custom value mapper.
    * @param valueMapper The function that maps the user-facing values to internal keys. It can be
    * some sort of hash function or custom to-string converter. The function should return values
    * that are `===`-equal for keys that should be considered equal.
@@ -126,7 +125,8 @@ export class MappedSet<T extends Object> {
   }
 }
 
-/** Stack that always has at least one element.
+/**
+ * Stack that always has at least one element.
  *
  * It is meant to be used with scope-based operations, thus it does not provide direct `push` and `pop` methods.
  */
@@ -134,7 +134,8 @@ export class NonEmptyStack<T> {
   /** The "actual" stack of elements. */
   private readonly stack: NonEmptyArray<T>
 
-  /** Construct a new stack with the given initial value.
+  /**
+   * Construct a new stack with the given initial value.
    *
    * The value will serve as an always-present bottom of the stack.
    */

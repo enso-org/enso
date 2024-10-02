@@ -3,6 +3,7 @@ import { nextTick } from 'vue'
 
 // It is currently not feasible to use generics here, as the type of the component's emits
 // is not exposed.
+/** TODO: Add docs */
 export function handleEmit(wrapper: VueWrapper<any>, event: string, fn: (...args: any[]) => void) {
   let previousLength = 0
   return {

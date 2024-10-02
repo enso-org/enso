@@ -52,6 +52,7 @@ export type DataServerEvents = {
   ) => void
 }
 
+/** TODO: Add docs */
 export class DataServer extends ObservableV2<DataServerEvents> {
   initialized: Promise<Result<void, Error>>
   private initializationScheduled = false
@@ -102,6 +103,7 @@ export class DataServer extends ObservableV2<DataServerEvents> {
     else this.initialized = this.scheduleInitializationAfterConnect()
   }
 
+  /** TODO: Add docs */
   dispose() {
     this.websocket.close()
     this.resolveCallbacks.clear()
@@ -170,6 +172,7 @@ export class DataServer extends ObservableV2<DataServerEvents> {
     return (builder: Builder) => EnsoUUID.createEnsoUUID(builder, leastSigBits, mostSigBits)
   }
 
+  /** TODO: Add docs */
   initSession(): Promise<Success | Error> {
     const builder = new Builder()
     const commandOffset = InitSessionCommand.createInitSessionCommand(
@@ -179,6 +182,7 @@ export class DataServer extends ObservableV2<DataServerEvents> {
     return this.send(builder, InboundPayload.INIT_SESSION_CMD, commandOffset, false)
   }
 
+  /** TODO: Add docs */
   async writeFile(
     path: LSPath,
     contents: string | ArrayBuffer | Uint8Array,
@@ -192,6 +196,7 @@ export class DataServer extends ObservableV2<DataServerEvents> {
     return await this.send(builder, InboundPayload.WRITE_FILE_CMD, command)
   }
 
+  /** TODO: Add docs */
   async readFile(path: LSPath): Promise<FileContentsReply | Error> {
     const builder = new Builder()
     const segmentOffsets = path.segments.map((segment) => builder.createString(segment))
@@ -201,6 +206,7 @@ export class DataServer extends ObservableV2<DataServerEvents> {
     return await this.send(builder, InboundPayload.READ_FILE_CMD, command)
   }
 
+  /** TODO: Add docs */
   async writeBytes(
     path: LSPath,
     index: bigint,
@@ -222,6 +228,7 @@ export class DataServer extends ObservableV2<DataServerEvents> {
     return await this.send(builder, InboundPayload.WRITE_BYTES_CMD, command)
   }
 
+  /** TODO: Add docs */
   async readBytes(path: LSPath, index: bigint, length: bigint): Promise<ReadBytesReply | Error> {
     const builder = new Builder()
     const segmentOffsets = path.segments.map((segment) => builder.createString(segment))
@@ -232,6 +239,7 @@ export class DataServer extends ObservableV2<DataServerEvents> {
     return await this.send(builder, InboundPayload.READ_BYTES_CMD, command)
   }
 
+  /** TODO: Add docs */
   async checksumBytes(
     path: LSPath,
     index: bigint,

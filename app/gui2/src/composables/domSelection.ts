@@ -3,6 +3,7 @@ import { Rect } from '@/util/data/rect'
 import type { MaybeElement } from '@vueuse/core'
 import { shallowRef, watch, type Ref } from 'vue'
 
+/** TODO: Add docs */
 export function useSelectionBounds(boundingElement: Ref<MaybeElement>, includeCollapsed = false) {
   const bounds = shallowRef<Rect>()
   const collapsed = shallowRef<boolean>()

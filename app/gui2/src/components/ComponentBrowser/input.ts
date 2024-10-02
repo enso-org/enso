@@ -16,9 +16,10 @@ export type Usage =
   | { type: 'newNode'; sourcePort?: AstId | undefined }
   | { type: 'editNode'; node: NodeId; cursorPos: number }
 
-/** One of the modes of the component browser:
- * * "component browsing" when user wants to add new component
- * * "code editing" for editing existing, or just added nodes
+/**
+ * One of the modes of the component browser:
+ * "component browsing" when user wants to add new component
+ * "code editing" for editing existing, or just added nodes
  * See https://github.com/enso-org/enso/issues/10598 for design details.
  */
 export type ComponentBrowserMode =
@@ -177,7 +178,8 @@ export function useComponentBrowserInput(
     }
   }
 
-  /** List of imports required for applied suggestions.
+  /**
+   * List of imports required for applied suggestions.
    *
    * If suggestion was manually edited by the user after accepting, it is not included.
    */

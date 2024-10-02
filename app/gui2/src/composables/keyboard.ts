@@ -2,6 +2,7 @@ import { isMacLike, useEvent } from '@/composables/events'
 import { proxyRefs, ref } from 'vue'
 
 export type KeyboardComposable = ReturnType<typeof useKeyboard>
+/** TODO: Add docs */
 export function useKeyboard() {
   const state = {
     alt: ref(false),
