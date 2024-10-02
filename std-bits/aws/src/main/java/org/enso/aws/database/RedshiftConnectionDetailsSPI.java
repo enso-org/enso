@@ -15,7 +15,7 @@ public final class RedshiftConnectionDetailsSPI extends DatabaseConnectionDetail
 
   @Override
   protected String getCodeForDefaultConstructor() {
-    return "(Redshift host=_ port=_)";
+    return "..Redshift";
   }
 
   @Override

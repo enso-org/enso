@@ -61,14 +61,14 @@ type SQLServer_Info_Data
 
 get_configured_connection_details =
     host = Environment.get "ENSO_SQLSERVER_HOST" if_missing="localhost"
-    port = Environment.get "ENSO_SQLSERVER_PORT" if_missing="1433"
+    port = Integer.parse (Environment.get "ENSO_SQLSERVER_PORT" if_missing="1433")
     user = Environment.get "ENSO_SQLSERVER_USER" if_missing="sa"
     password = Environment.get "ENSO_SQLSERVER_PASSWORD" if_missing="<YourStrong@Passw0rd>"
     database = Environment.get "ENSO_SQLSERVER_DATABASE"
     resolved_password = if password.starts_with "enso://" then Enso_Secret.get password else password
     credentials = Credentials.Username_And_Password user resolved_password
     if database.is_nothing then Nothing else
-        SQLServer_Details.SQLServer host port credentials database
+        SQLServer_Details.SQLServer host credentials port database
 
 ## Returns a function that takes anything and returns a new connection.
    The function creates a _new_ connection on each invocation

@@ -6,7 +6,7 @@ from Standard.Base.Enso_Cloud.Public_Utils import get_optional_field, get_requir
 import Standard.Database.Connection.Connection_Options.Connection_Options
 import Standard.Database.Connection.Credentials.Credentials
 
-import project.Snowflake_Details.Snowflake_Details
+import project.Connection.Snowflake_Details.Snowflake_Details
 
 ## PRIVATE
 type Snowflake_Data_Link

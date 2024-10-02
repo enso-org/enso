@@ -798,14 +798,26 @@ add_specs suite_builder =
             d.format format="#,##.##" locale=Locale.italy . should_equal "1.23.45.67.89,88"
 
         group_builder.specify "should parse correctly" <|
-            Decimal.parse "123456789.87654" . should_equal 123456789.87654
-            Decimal.parse "123,456,789.87654" locale=Locale.default . should_equal 123456789.87654
-            Decimal.parse "123,456,789.87654" locale=Locale.us . should_equal 123456789.87654
-            Decimal.parse "123.456.789,87654" locale=Locale.italy . should_equal 123456789.87654
+            Decimal.parse "123,456,789.87654" . should_equal (dec "123456789.87654")
+            Decimal.parse "123.456.789,87654" locale=Locale.italy . should_equal (dec "123456789.87654")
+
+            Decimal.parse "123,456,789.88" format="#,###.##" . should_equal (dec "123456789.88")
+            Decimal.parse "123.456.789,88" format="#.###,##" locale=Locale.italy . should_equal (dec "123456789.88")
+            Decimal.parse "1,23,45,67,89.88" format="#,##.##" . should_equal (dec "123456789.88")
+            Decimal.parse "1.23.45.67.89,88" format="#.##,##" locale=Locale.italy . should_equal (dec "123456789.88")
+
+            Decimal.parse "123.456.789,88" format="#,###.##" locale=Locale.italy . should_fail_with Illegal_Argument
+            Decimal.parse "123,456,789.88" format="#.###,##" . should_fail_with Illegal_Argument
+
             Decimal.parse "123,456,789.87654" locale=Locale.italy . should_equal 123.456
             Decimal.parse "123.456.789,87654" locale=Locale.us . should_equal 123.456
 
-            Decimal.parse "123,456,789.87654" . should_fail_with Number_Parse_Error
+            Decimal.parse "123,456,789.654" format="###,###.##;-###,###.##" . should_equal 123456789.654
+            Decimal.parse "-123,456,789.654" format="###,###.##;-###,###.##" . should_equal -123456789.654
+            Decimal.parse "(123,456,789.654)" format="###,###.##;-###,###.##" . should_fail_with Number_Parse_Error
+            Decimal.parse "123,456,789.654" format="###,###.##;(###,###.##)" . should_equal 123456789.654
+            Decimal.parse "-123,456,789.654" format="###,###.##;(###,###.##)" . should_fail_with Number_Parse_Error
+            Decimal.parse "(123,456,789.654)" format="###,###.##;(###,###.##)" . should_equal -123456789.654
 
     suite_builder.group "(Decimal_Spec) signs" group_builder->
         group_builder.specify "should calculate abs correctly" <|

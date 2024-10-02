@@ -212,7 +212,8 @@ type XML_Document
         XML_Error.handle_java_exceptions <|
             XML_Utils.innerXML self.java_document
 
-    ## GROUP Output
+    ## ALIAS export, save, output, to_file
+       GROUP Output
        ICON data_output
        Writes (or appends) the xml to the specified file using the supplied
        encoding. The behavior specified in the `existing_file` parameter will be
@@ -574,7 +575,8 @@ type XML_Element
         XML_Error.handle_java_exceptions <|
             XML_Utils.innerXML self.java_element
 
-    ## GROUP Output
+    ## ALIAS export, save, output, to_file
+       GROUP Output
        ICON data_output
        Writes (or appends) the xml to the specified file using the supplied
        encoding. The behavior specified in the `existing_file` parameter will be
