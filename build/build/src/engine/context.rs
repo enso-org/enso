@@ -201,6 +201,7 @@ impl RunContext {
         }
 
         prepare_simple_library_server.await??;
+
         Ok(())
     }
 
