@@ -1,6 +1,5 @@
 package org.enso.compiler.pass;
 
-import java.util.Set;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.ProcessingPass;
 
@@ -24,12 +23,6 @@ import org.enso.compiler.core.ir.ProcessingPass;
  * href="https://infoscience.epfl.ch/server/api/core/bitstreams/8ab72c0a-8aa6-4dee-a704-3504938dc316/content">infoscience.epfl.ch</a>
  */
 public abstract class MiniIRPass implements ProcessingPass {
-
-  /** Set of mini passes that should run before this mini pass. */
-  public Set<MiniIRPass> runsAfter() {
-    return Set.of();
-  }
-
   /**
    * Prepare the pass for the provided IR element. This method is called when the
    * {@link org.enso.compiler.Compiler} traverses the IR element from top to bottom.
