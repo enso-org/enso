@@ -261,6 +261,20 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
         (Enso_File.root / "test-directory" / "non-existent") . is_descendant_of (Enso_File.root / "test-directory") . should_be_true
         (Enso_File.root / "test-directory") . is_descendant_of (Enso_File.root / "test-directory" / "non-existent") . should_be_false
 
+    group_builder.specify "currently does not support metadata for directories" <|
+        # TODO this test should be 'reversed' and merged with above once the metadata is implemented
+        dir = test_root.get / "test-directory"
+        dir.creation_time.should_fail_with Illegal_Argument
+        dir.last_modified_time.should_fail_with Illegal_Argument
+
+    group_builder.specify "should be able to read and modify asset description" <|
+        nested_file = test_root.get / "test-directory" / "another.txt"
+        nested_file.description . should_equal ""
+
+        my_description = "This is a test file."
+        nested_file.set_description my_description . should_equal nested_file
+        nested_file.description . should_equal my_description
+
     group_builder.specify "allows / as well as .. and . in resolve" <|
         (Enso_File.root / "a/b/c") . should_equal (Enso_File.root / "a" / "b" / "c")
         (Enso_File.root / "a///b/c") . should_equal (Enso_File.root / "a" / "b" / "c")
@@ -284,21 +298,6 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
 
         # If the `~` is not at the beginning, it is not resolved
         Enso_File.new "enso://a/b/c/~" . should_not_equal Enso_File.home
-
-    group_builder.specify "currently does not support metadata for directories" <|
-        # TODO this test should be 'reversed' and merged with above once the metadata is implemented
-        dir = test_root.get / "test-directory"
-        dir.creation_time.should_fail_with Illegal_Argument
-        dir.last_modified_time.should_fail_with Illegal_Argument
-
-    group_builder.specify "should be able to read other file metadata" pending="TODO needs further design" <|
-        nested_file = test_root.get / "test-directory" / "another.txt"
-
-        nested_file.is_absolute.should_be_true
-        nested_file.absolute . should_equal nested_file
-        nested_file.normalize . should_equal nested_file
-        nested_file.posix_permissions . should_be_a File_Permissions
-        nested_file.is_writable . should_be_a Boolean
 
     Local_File_Spec.add_create_and_delete_directory_specs group_builder test_root.get
     Local_File_Spec.add_copy_edge_cases_specs group_builder test_root.get

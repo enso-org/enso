@@ -147,6 +147,27 @@ type Enso_File
 
     ## GROUP Metadata
        ICON metadata
+       Gets the description associated with the file in Enso Cloud.
+
+       By default, the description is empty. It can be set in the Dashboard, or
+       using the `set_description` method.
+    description : Text
+    description self -> Text =
+        asset = Existing_Enso_Asset.get_asset_reference_for self
+        "TODO"
+
+    ## GROUP Metadata
+       ICON data_output
+       Sets the description associated with the file in Enso Cloud.
+       It returns the same file.
+    set_description : Text -> Enso_File
+    set_description self (description : Text) -> Enso_File =
+        asset = Existing_Enso_Asset.get_asset_reference_for self
+        #asset.set_description description
+        self
+
+    ## GROUP Metadata
+       ICON metadata
        Checks if this is a folder
     is_directory : Boolean
     is_directory self =
