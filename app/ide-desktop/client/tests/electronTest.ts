@@ -2,6 +2,8 @@
 
 import { _electron, expect, type Page, test } from '@playwright/test'
 
+const LOADING_TIMEOUT = 10000
+
 /**
  * Tests run on electron executable.
  *
@@ -15,6 +17,9 @@ export function electronTest(name: string, body: (page: Page) => Promise<void> |
       env: { ...process.env, ['ENSO_TEST']: name },
     })
     const page = await app.firstWindow()
+    // Wait until page will be finally loaded: we expect login screen.
+    // There's bigger timeout, because the page may load longer on CI machines.
+    await expect(page.getByText('Login to your account')).toBeVisible({ timeout: LOADING_TIMEOUT })
     await body(page)
     await app.close()
   })
@@ -26,7 +31,7 @@ export function electronTest(name: string, body: (page: Page) => Promise<void> |
  */
 export async function loginAsTestUser(page: Page) {
   // Login screen
-  await expect(page.getByRole('textbox', { name: 'email' })).toBeVisible({ timeout: 15000 })
+  await expect(page.getByRole('textbox', { name: 'email' })).toBeVisible()
   await expect(page.getByRole('textbox', { name: 'password' })).toBeVisible()
   if (process.env.ENSO_TEST_USER == null || process.env.ENSO_TEST_USER_PASSWORD == null) {
     throw Error(

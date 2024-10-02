@@ -20,10 +20,15 @@ electronTest('Create new project', async page => {
   await page.locator('.GraphNode').click()
   await page.keyboard.press('Enter')
   await expect(page.locator('.ComponentBrowser')).toBeVisible()
-  const entry = page.locator('.ComponentList .list-variant .selected', { hasText: 'column_count' })
+  const entry = page.locator('.ComponentList .list-variant.selected .component', {
+    hasText: 'column_count',
+  })
   await expect(entry).toBeVisible()
   await entry.click()
   await expect(page.locator('.GraphNode'), {}).toHaveCount(2)
   await page.locator('.GraphNode', { hasText: 'column_count' }).click()
-  await page.getByRole('button', { name: 'Visualization' }).click()
+  await page
+    .locator('.GraphNode', { hasText: 'column_count' })
+    .getByRole('button', { name: 'Visualization' })
+    .click()
 })
