@@ -5,6 +5,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
+
+import org.enso.interpreter.instrument.ExpressionExecutionState;
 import org.enso.interpreter.instrument.MethodCallsCache;
 import org.enso.interpreter.instrument.OneshotExpression;
 import org.enso.interpreter.instrument.RuntimeCache;
@@ -33,7 +35,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   private final MethodCallsCache methodCallsCache;
   private final UpdatesSynchronizationState syncState;
   private final Map<UUID, FunctionCallInfo> calls = new HashMap<>();
-  private final Map<UUID, ExecutionEnvironment> expressionConfigs;
+  private final ExpressionExecutionState expressionExecutionState;
   private final Consumer<ExpressionValue> onCachedCallback;
   private final Consumer<ExpressionValue> onComputedCallback;
   private final Consumer<ExpressionCall> functionCallCallback;
@@ -49,7 +51,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
    * @param cache the precomputed expression values.
    * @param methodCallsCache the storage tracking the executed updateCachedResult calls.
    * @param syncState the synchronization state of runtime updates.
-   * @param expressionConfigs the execution config for each expression.
+   * @param expressionExecutionState the execution state for each expression.
    * @param onComputedCallback the consumer of the computed value events.
    * @param onCachedCallback the consumer of the cached value events.
    * @param functionCallCallback the consumer of function call events.
@@ -61,7 +63,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
       RuntimeCache cache,
       MethodCallsCache methodCallsCache,
       UpdatesSynchronizationState syncState,
-      Map<UUID, ExecutionEnvironment> expressionConfigs,
+      ExpressionExecutionState expressionExecutionState,
       Consumer<ExpressionValue> onCachedCallback,
       Consumer<ExpressionValue> onComputedCallback,
       Consumer<ExpressionCall> functionCallCallback,
@@ -71,7 +73,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
     this.cache = cache;
     this.methodCallsCache = methodCallsCache;
     this.syncState = syncState;
-    this.expressionConfigs = expressionConfigs;
+    this.expressionExecutionState = expressionExecutionState;
     this.onCachedCallback = onCachedCallback;
     this.onComputedCallback = onComputedCallback;
     this.functionCallCallback = functionCallCallback;
@@ -151,10 +153,10 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
     return null;
   }
 
-  @CompilerDirectives.TruffleBoundary
   @Override
   public void setExecutionEnvironment(IdExecutionService.Info info) {
-    ExecutionEnvironment nodeEnvironment = expressionConfigs.get(info.getId());
+    ExecutionEnvironment nodeEnvironment =
+        expressionExecutionState.getExpressionExecutionEnvironment(info.getId());
     if (nodeEnvironment != null && originalExecutionEnvironment == null) {
       EnsoContext context = EnsoContext.get(info.getRootNode());
       originalExecutionEnvironment = context.getExecutionEnvironment();
@@ -165,9 +167,15 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   @Override
   public void resetExecutionEnvironment(IdExecutionService.Info info) {
     if (originalExecutionEnvironment != null) {
+      expressionExecutionState.setExpressionExecuted(info.getId());
       EnsoContext.get(info.getRootNode()).setExecutionEnvironment(originalExecutionEnvironment);
       originalExecutionEnvironment = null;
     }
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private ExecutionEnvironment getExecutionEnvironment(UUID expressionId) {
+    return expressionExecutionState.getExpressionExecutionEnvironment(expressionId);
   }
 
   @CompilerDirectives.TruffleBoundary

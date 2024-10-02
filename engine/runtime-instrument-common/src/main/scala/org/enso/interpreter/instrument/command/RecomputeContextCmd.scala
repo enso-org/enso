@@ -79,17 +79,20 @@ class RecomputeContextCmd(
   ): Future[Unit] = {
     if (isStackNonEmpty) {
       val stack = ctx.contextManager.getStack(request.contextId)
-      val executionConfig = ExecutionConfig.create(
-        request.executionEnvironment,
-        request.expressionConfigs
-      )
+      val executionConfig =
+        ExecutionConfig.create(
+          request.executionEnvironment,
+          request.expressionConfigs
+        )
+      ctx.state.expressionExecutionState
+        .setExpressionConfigs(executionConfig.expressionConfigs)
       for {
         _ <- ctx.jobProcessor.run(EnsureCompiledJob(stack))
         _ <- ctx.jobProcessor.run(
           new ExecuteJob(
             request.contextId,
             stack.toList,
-            executionConfig
+            request.executionEnvironment
           )
         )
       } yield ()

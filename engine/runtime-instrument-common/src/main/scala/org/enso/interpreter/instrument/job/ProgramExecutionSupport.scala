@@ -2,7 +2,6 @@ package org.enso.interpreter.instrument.job
 
 import com.oracle.truffle.api.exception.AbstractTruffleException
 import org.enso.interpreter.instrument.{
-  ExecutionConfig,
   InstrumentFrame,
   MethodCallsCache,
   RuntimeCache,
@@ -62,14 +61,12 @@ object ProgramExecutionSupport {
   /** Runs the program.
     *
     * @param contextId an identifier of an execution context
-    * @param executionConfig the program execution config
     * @param executionFrame an execution frame
     * @param callStack a call stack
     */
   @scala.annotation.tailrec
   final private def executeProgram(
     contextId: Api.ContextId,
-    executionConfig: ExecutionConfig,
     executionFrame: ExecutionFrame,
     callStack: List[LocalCallFrame]
   )(implicit ctx: RuntimeContext): Unit = {
@@ -146,7 +143,7 @@ object ProgramExecutionSupport {
           methodCallsCache,
           syncState,
           callStack.headOption.map(_.expressionId).orNull,
-          executionConfig.expressionConfigs,
+          ctx.state.expressionExecutionState,
           callablesCallback,
           onComputedValueCallback,
           onCachedValueCallback,
@@ -188,7 +185,7 @@ object ProgramExecutionSupport {
           methodCallsCache,
           syncState,
           callStack.headOption.map(_.expressionId).orNull,
-          executionConfig.expressionConfigs,
+          ctx.state.expressionExecutionState,
           callablesCallback,
           onComputedValueCallback,
           onCachedValueCallback,
@@ -225,7 +222,7 @@ object ProgramExecutionSupport {
                 item.cache,
                 item.syncState
               )
-            executeProgram(contextId, executionConfig, executionFrame, tail)
+            executeProgram(contextId, executionFrame, tail)
           case None =>
             ()
         }
@@ -236,14 +233,12 @@ object ProgramExecutionSupport {
     *
     * @param contextId an identifier of an execution context
     * @param stack a call stack
-    * @param executionConfig the program execution config
     * @param ctx a runtime context
     * @return an execution result
     */
   final def runProgram(
     contextId: Api.ContextId,
-    stack: List[InstrumentFrame],
-    executionConfig: ExecutionConfig
+    stack: List[InstrumentFrame]
   )(implicit ctx: RuntimeContext): Option[Api.ExecutionResult] = {
     val logger = ctx.executionService.getLogger
     logger.log(Level.FINEST, s"Run program $contextId")
@@ -280,7 +275,7 @@ object ProgramExecutionSupport {
         )
       _ <-
         Try(
-          executeProgram(contextId, executionConfig, stackItem, localCalls)
+          executeProgram(contextId, stackItem, localCalls)
         ).toEither.left
           .map(onExecutionError(stackItem.item, _))
     } yield ()

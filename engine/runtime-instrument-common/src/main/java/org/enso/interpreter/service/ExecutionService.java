@@ -20,8 +20,6 @@ import com.oracle.truffle.api.source.SourceSection;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
@@ -31,6 +29,7 @@ import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames;
 import org.enso.compiler.suggestions.SimpleUpdate;
 import org.enso.interpreter.instrument.Endpoint;
+import org.enso.interpreter.instrument.ExpressionExecutionState;
 import org.enso.interpreter.instrument.MethodCallsCache;
 import org.enso.interpreter.instrument.RuntimeCache;
 import org.enso.interpreter.instrument.UpdatesSynchronizationState;
@@ -160,7 +159,7 @@ public final class ExecutionService {
    * @param methodCallsCache the storage tracking the executed method calls.
    * @param syncState the synchronization state of runtime updates.
    * @param nextExecutionItem the next item scheduled for execution.
-   * @param expressionConfigs the execution config for each expression.
+   * @param expressionExecutionState the execution state for each expression.
    * @param funCallCallback the consumer for function call events.
    * @param onComputedCallback the consumer of the computed value events.
    * @param onCachedCallback the consumer of the cached value events.
@@ -174,7 +173,7 @@ public final class ExecutionService {
       MethodCallsCache methodCallsCache,
       UpdatesSynchronizationState syncState,
       UUID nextExecutionItem,
-      Map<UUID, ExecutionEnvironment> expressionConfigs,
+      ExpressionExecutionState expressionExecutionState,
       Consumer<ExecutionService.ExpressionCall> funCallCallback,
       Consumer<ExecutionService.ExpressionValue> onComputedCallback,
       Consumer<ExecutionService.ExpressionValue> onCachedCallback,
@@ -194,7 +193,7 @@ public final class ExecutionService {
             cache,
             methodCallsCache,
             syncState,
-            expressionConfigs,
+            expressionExecutionState,
             onCachedCallback,
             onComputedCallback,
             funCallCallback,
@@ -227,7 +226,7 @@ public final class ExecutionService {
    * @param methodCallsCache the storage tracking the executed method calls.
    * @param syncState the synchronization state of runtime updates.
    * @param nextExecutionItem the next item scheduled for execution.
-   * @param expressionConfigs the execution config for each expression.
+   * @param expressionExecutionState the execution state for each expression.
    * @param funCallCallback the consumer for function call events.
    * @param onComputedCallback the consumer of the computed value events.
    * @param onCachedCallback the consumer of the cached value events.
@@ -242,7 +241,7 @@ public final class ExecutionService {
       MethodCallsCache methodCallsCache,
       UpdatesSynchronizationState syncState,
       UUID nextExecutionItem,
-      Map<UUID, ExecutionEnvironment> expressionConfigs,
+      ExpressionExecutionState expressionExecutionState,
       Consumer<ExecutionService.ExpressionCall> funCallCallback,
       Consumer<ExecutionService.ExpressionValue> onComputedCallback,
       Consumer<ExecutionService.ExpressionValue> onCachedCallback,
@@ -265,7 +264,7 @@ public final class ExecutionService {
         methodCallsCache,
         syncState,
         nextExecutionItem,
-        expressionConfigs,
+        expressionExecutionState,
         funCallCallback,
         onComputedCallback,
         onCachedCallback,
@@ -371,6 +370,7 @@ public final class ExecutionService {
     Consumer<ExpressionValue> onCachedCallback =
         (value) -> context.getLogger().finest("_ON_CACHED_VALUE " + value.getExpressionId());
     Consumer<ExecutedVisualization> onExecutedVisualizationCallback = (value) -> {};
+    ExpressionExecutionState expressionExecutionState = new ExpressionExecutionState();
 
     var callbacks =
         new ExecutionCallbacks(
@@ -379,7 +379,7 @@ public final class ExecutionService {
             cache,
             methodCallsCache,
             syncState,
-            Collections.emptyMap(),
+            expressionExecutionState,
             onCachedCallback,
             onComputedCallback,
             funCallCallback,
