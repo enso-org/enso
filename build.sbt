@@ -3118,11 +3118,13 @@ lazy val `runtime-compiler` =
         "org.yaml"             % "snakeyaml"               % snakeyamlVersion          % Test,
         "org.jline"            % "jline"                   % jlineVersion              % Test,
         "com.typesafe"         % "config"                  % typesafeConfigVersion     % Test,
-        "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion % Test
+        "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion % Test,
+        "org.graalvm.sdk"      % "collections"             % graalMavenPackagesVersion
       ),
       Compile / moduleDependencies ++= Seq(
         "org.slf4j"        % "slf4j-api"               % slf4jVersion,
-        "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion
+        "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion,
+        "org.graalvm.sdk"  % "collections"             % graalMavenPackagesVersion
       ),
       Compile / internalModuleDependencies := Seq(
         (`engine-common` / Compile / exportedModule).value,
