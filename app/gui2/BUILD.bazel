@@ -38,6 +38,13 @@ vite_bin.vite(
     out_dirs = ["dist"]
 )
 
+vite_bin.vite_binary(
+    name = "vite_preview",
+    args = ["preview"],
+    chdir = package_name(),
+    data = [":vite_build"],
+)
+
 # vue_tsc_bin.vue_tsc_test(
 #     name = "type-check",
 #     args = ["--noEmit"],

@@ -22,6 +22,12 @@ ts_project(
     deps = npm_link_targets()
 )
 
+filegroup(
+    name = "css_deps",
+    srcs = glob(["src/**/*.ts", "src/**/*.tsx"]) + ["tailwind.config.js", "tailwind.config.d.ts"],
+    visibility = ["//visibility:public"],
+)
+
 npm_package(
     name = "pkg",
     srcs = [
@@ -30,6 +36,7 @@ npm_package(
         "src/tailwind.css",
         "tailwind.config.js",
         "tailwind.config.d.ts",
+        ":css_deps",
     ] + glob(["src/assets/**/*"]),
     visibility = ["//visibility:public"],
 )

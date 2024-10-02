@@ -8,7 +8,6 @@ import 'enso-dashboard/src/tailwind.css'
 import { lazyVueInReact } from 'veaury'
 import { type App } from 'vue'
 
-import 'enso-dashboard/src/tailwind.css'
 import { AsyncApp } from './asyncApp'
 
 const INITIAL_URL_KEY = `Enso-initial-url`
