@@ -1,10 +1,13 @@
 package org.enso.table.data.column.builder;
 
 import java.math.BigInteger;
+
+import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
+import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.problems.ProblemAggregator;
 
 /**
@@ -36,11 +39,18 @@ public class InferredIntegerBuilder extends Builder {
     } else if (o instanceof BigInteger bi) {
       retypeToBigIntegerMaybe();
       bigIntegerBuilder.appendNoGrow(bi);
-    } else if (o instanceof Long lng) {
-      if (bigIntegerBuilder != null) {
-        bigIntegerBuilder.appendNoGrow(BigInteger.valueOf(lng));
+    } else {
+      Long lng = NumericConverter.tryConvertingToLong(o);
+      if (lng == null) {
+        throw new IllegalStateException(
+            "Unexpected value added to InferredIntegerBuilder " + o.getClass()
+                + ". This is a bug in the Table library.");
       } else {
-        longBuilder.appendNoGrow(lng);
+        if (bigIntegerBuilder != null) {
+          bigIntegerBuilder.appendNoGrow(BigInteger.valueOf(lng));
+        } else {
+          longBuilder.appendNoGrow(lng);
+        }
       }
     }
     currentSize++;
@@ -53,11 +63,18 @@ public class InferredIntegerBuilder extends Builder {
     } else if (o instanceof BigInteger bi) {
       retypeToBigIntegerMaybe();
       bigIntegerBuilder.append(bi);
-    } else if (o instanceof Long lng) {
-      if (bigIntegerBuilder != null) {
-        bigIntegerBuilder.append(BigInteger.valueOf(lng));
+    } else {
+      Long lng = NumericConverter.tryConvertingToLong(o);
+      if (lng == null) {
+        throw new IllegalStateException(
+            "Unexpected value added to InferredIntegerBuilder " + o.getClass()
+                + ". This is a bug in the Table library.");
       } else {
-        longBuilder.append(lng);
+        if (bigIntegerBuilder != null) {
+          bigIntegerBuilder.append(BigInteger.valueOf(lng));
+        } else {
+          longBuilder.append(lng);
+        }
       }
     }
     currentSize++;
