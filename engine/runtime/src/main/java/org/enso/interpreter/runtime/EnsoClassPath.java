@@ -4,7 +4,9 @@ import java.lang.module.Configuration;
 import java.lang.module.ModuleFinder;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 
 /** Representation of an Enso library class path. */
@@ -61,7 +63,22 @@ public final class EnsoClassPath {
       var layer = cntrl.layer();
       var loader =
           !moduleNames.isEmpty() ? layer.findLoader(moduleNames.get(0)) : parents.get(0).loader;
+
+      registerLayer(layer);
       return new EnsoClassPath(cntrl, layer, loader);
     }
+  }
+
+  @SuppressWarnings("unchecked")
+  private static void registerLayer(ModuleLayer moduleLayer) {
+    var props = System.getProperties();
+    Collection<ModuleLayer> layers;
+    if (props.get("enso.class.path") instanceof Collection registeredLayers) {
+      layers = registeredLayers;
+    } else {
+      layers = new LinkedHashSet<>();
+      props.put("enso.class.path", layers);
+    }
+    layers.add(moduleLayer);
   }
 }

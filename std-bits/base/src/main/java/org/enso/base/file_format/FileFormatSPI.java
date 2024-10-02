@@ -1,14 +1,14 @@
 package org.enso.base.file_format;
 
+import java.util.ArrayList;
 import java.util.Objects;
-import java.util.ServiceLoader;
 import java.util.stream.Collectors;
+import org.enso.base.lookup.Lookup;
 import org.enso.base.polyglot.EnsoMeta;
 import org.graalvm.polyglot.Value;
 
 public abstract class FileFormatSPI {
-  private static final ServiceLoader<FileFormatSPI> loader =
-      ServiceLoader.load(FileFormatSPI.class, FileFormatSPI.class.getClassLoader());
+  private static final Lookup<FileFormatSPI> loader = Lookup.lookup(FileFormatSPI.class);
 
   public static Value[] get_types(boolean refresh) {
     if (refresh) {
@@ -20,19 +20,19 @@ public abstract class FileFormatSPI {
   public static Value findFormatForDataLinkSubType(String subType) {
     Objects.requireNonNull(subType, "subType must not be null/Nothing.");
 
-    var providers =
-        loader.stream()
-            .filter(provider -> subType.equalsIgnoreCase(provider.get().getDataLinkFormatName()))
-            .toList();
+    var providers = new ArrayList<FileFormatSPI>();
+    for (var s : loader) {
+      if (subType.equalsIgnoreCase(s.getDataLinkFormatName())) {
+        providers.add(s);
+      }
+    }
     if (providers.isEmpty()) {
       return null;
     }
 
     if (providers.size() > 1) {
       var modules =
-          providers.stream()
-              .map(provider -> provider.get().getModuleName())
-              .collect(Collectors.joining(", "));
+          providers.stream().map(s -> s.getModuleName()).collect(Collectors.joining(", "));
       throw new IllegalStateException(
           "Error: Multiple Format providers found for format: "
               + subType
@@ -41,7 +41,7 @@ public abstract class FileFormatSPI {
               + ".");
     }
 
-    return providers.get(0).get().getTypeObject();
+    return providers.get(0).getTypeObject();
   }
 
   public Value getTypeObject() {
