@@ -2,8 +2,7 @@
 import { Fragment, type JSX, useState } from 'react'
 
 import { Input } from '#/components/aria'
-import { Button, Checkbox, Dropdown, Text } from '#/components/AriaComponents'
-import Autocomplete from '#/components/Autocomplete'
+import { Button, Checkbox, ComboBox, Dropdown, Text } from '#/components/AriaComponents'
 import FocusRing from '#/components/styled/FocusRing'
 import { useBackendQuery } from '#/hooks/backendHooks'
 import { useRemoteBackendStrict } from '#/providers/BackendProvider'
@@ -37,9 +36,6 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
   // but it is more convenient to avoid having plugin infrastructure.
   const remoteBackend = useRemoteBackendStrict()
   const { getText } = useText()
-  const [autocompleteText, setAutocompleteText] = useState(() =>
-    typeof value === 'string' ? value : null,
-  )
   const [selectedChildIndex, setSelectedChildIndex] = useState<number>(0)
   const isSecret =
     'type' in schema &&
@@ -61,23 +57,22 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
       switch (schema.type) {
         case 'string': {
           if ('format' in schema && schema.format === 'enso-secret') {
-            const isValid = typeof value === 'string' && value !== ''
+            const isValid =
+              (typeof value === 'string' && value !== '' && autocompleteItems?.includes(value)) ??
+              false
             children.push(
               <div className={twMerge('w-full rounded-default border-0.5', validityClassName)}>
-                <Autocomplete
+                <ComboBox
+                  name="combo-box"
                   items={autocompleteItems ?? []}
-                  itemToKey={(item) => item}
                   placeholder={getText('enterSecretPath')}
-                  matches={(item, text) => item.toLowerCase().includes(text.toLowerCase())}
-                  values={isValid ? [value] : []}
-                  setValues={(values) => {
-                    onChange(values[0] ?? '')
+                  value={isValid ? value : null}
+                  onSelectionChange={(newValue) => {
+                    onChange(newValue ?? '')
                   }}
-                  text={autocompleteText}
-                  setText={setAutocompleteText}
                 >
-                  {(item) => item}
-                </Autocomplete>
+                  {(item: string) => item}
+                </ComboBox>
               </div>,
             )
           } else {
