@@ -15,6 +15,7 @@ import org.enso.projectmanager.boot.command.filesystem.{
   FileSystemExistsCommand,
   FileSystemListCommand,
   FileSystemMoveDirectoryCommand,
+  FileSystemReadPathCommand,
   FileSystemWritePathCommand
 }
 import org.enso.projectmanager.boot.command.{CommandHandler, ProjectListCommand}
@@ -254,14 +255,22 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
           to.toFile
         )
       commandHandler.printJson(fileSystemMoveDirectoryCommand.run)
+    } else if (options.hasOption(Cli.FILESYSTEM_READ_PATH)) {
+      val path = Paths.get(options.getOptionValue(Cli.FILESYSTEM_READ_PATH))
+      val fileSystemReadPathCommand =
+        FileSystemReadPathCommand[ZIO[ZAny, +*, +*]](
+          config,
+          path.toFile
+        )
+      commandHandler.printJsonErr(fileSystemReadPathCommand.run)
     } else if (options.hasOption(Cli.FILESYSTEM_WRITE_PATH)) {
       val path = Paths.get(options.getOptionValue(Cli.FILESYSTEM_WRITE_PATH))
-      val fileSystemMoveDirectoryCommand =
+      val fileSystemWritePathCommand =
         FileSystemWritePathCommand[ZIO[ZAny, +*, +*]](
           config,
           path.toFile
         )
-      commandHandler.printJson(fileSystemMoveDirectoryCommand.run)
+      commandHandler.printJson(fileSystemWritePathCommand.run)
     } else if (options.hasOption(Cli.PROJECT_LIST)) {
       val projectsPathOpt =
         Option(options.getOptionValue(Cli.PROJECTS_DIRECTORY))

@@ -392,7 +392,7 @@ const handler = componentBrowserBindings.handler({
       :style="{ '--component-editor-padding': cssComponentEditorPadding }"
     >
       <SvgButton
-        name="add"
+        name="add_to_graph_editor"
         :title="
           input.mode.mode === 'componentBrowsing' && selected != null ?
             'Accept Suggested Component'
