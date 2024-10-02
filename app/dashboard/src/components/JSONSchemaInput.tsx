@@ -57,9 +57,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
       switch (schema.type) {
         case 'string': {
           if ('format' in schema && schema.format === 'enso-secret') {
-            const isValid =
-              (typeof value === 'string' && value !== '' && autocompleteItems?.includes(value)) ??
-              false
+            const isValid = typeof value === 'string' && value !== ''
             children.push(
               <div className={twMerge('w-full rounded-default border-0.5', validityClassName)}>
                 <ComboBox
@@ -67,6 +65,9 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                   items={autocompleteItems ?? []}
                   placeholder={getText('enterSecretPath')}
                   value={isValid ? value : null}
+                  onInputChange={(newValue) => {
+                    onChange(newValue)
+                  }}
                   onSelectionChange={(newValue) => {
                     onChange(newValue ?? '')
                   }}

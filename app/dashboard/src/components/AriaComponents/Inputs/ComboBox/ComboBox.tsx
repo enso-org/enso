@@ -1,5 +1,5 @@
 /** @file A combo box with a list of items that can be filtered. */
-import { useContext, type ForwardedRef } from 'react'
+import { useContext, useMemo, type ForwardedRef } from 'react'
 
 import CrossIcon from '#/assets/cross.svg'
 import ArrowIcon from '#/assets/folder_arrow.svg'
@@ -10,7 +10,6 @@ import {
   ListBox,
   ListBoxItem,
   type ComboBoxProps as AriaComboBoxProps,
-  type DateValue,
 } from '#/components/aria'
 import {
   Button,
@@ -52,7 +51,7 @@ const COMBO_BOX_STYLES = tv({
 export interface ComboBoxProps<Schema extends TSchema, TFieldName extends FieldPath<Schema>>
   extends FieldStateProps<
       Omit<
-        AriaComboBoxProps<Extract<FieldValues<Schema>[TFieldName], DateValue>>,
+        AriaComboBoxProps<FieldValues<Schema>[TFieldName]>,
         'children' | 'className' | 'style'
       > & { value?: FieldValues<Schema>[TFieldName] },
       Schema,
@@ -87,6 +86,11 @@ export const ComboBox = forwardRef(function ComboBox<
     noResetButton = false,
     variants = COMBO_BOX_STYLES,
   } = props
+  const itemsAreStrings = typeof items[0] === 'string'
+  const effectiveItems = useMemo(
+    () => (itemsAreStrings ? items.map((id) => ({ id })) : items),
+    [items, itemsAreStrings],
+  )
 
   const { fieldState, formInstance } = Form.useField({
     name,
@@ -117,22 +121,44 @@ export const ComboBox = forwardRef(function ComboBox<
         name={name}
         render={(renderProps) => {
           return (
-            <AriaComboBox className={styles.base({ className })} {...renderProps.field}>
+            <AriaComboBox
+              className={styles.base({ className })}
+              // @ts-expect-error Items must not be strings; this is a limitation of `react-aria`.
+              items={effectiveItems}
+              {...renderProps.field}
+              onSelectionChange={(key) => {
+                renderProps.field.onChange(key ?? '')
+              }}
+            >
               <Label>{label}</Label>
               <div className={styles.inputContainer()}>
                 <Button variant="icon" icon={ArrowIcon} className="rotate-90" />
-                <Input name={name} placeholder={placeholder} size="custom" variant="custom" />
+                <Input
+                  name={name}
+                  placeholder={placeholder}
+                  size="custom"
+                  variant="custom"
+                  value={renderProps.field.value}
+                />
                 {!noResetButton && <ComboBoxResetButton className={styles.resetButton()} />}
               </div>
               <Popover crossOffset={POPOVER_CROSS_OFFSET_PX} className={styles.popover()}>
                 <ListBox className={styles.listBox()}>
-                  {items.map((item, i) => (
-                    <ListBoxItem key={i} className={styles.listBoxItem()}>
-                      <Text truncate="1" className="w-full" tooltipPlacement="left">
-                        {children(item)}
-                      </Text>
-                    </ListBoxItem>
-                  ))}
+                  {(item) => {
+                    const text = children(
+                      // @ts-expect-error When items are strings, they are mapped to
+                      // `{ id: item }`.
+                      // eslint-disable-next-line no-restricted-syntax
+                      (itemsAreStrings ? item.id : item) as FieldValues<Schema>[TFieldName],
+                    )
+                    return (
+                      <ListBoxItem id={text} className={styles.listBoxItem()}>
+                        <Text truncate="1" className="w-full" tooltipPlacement="left">
+                          {text}
+                        </Text>
+                      </ListBoxItem>
+                    )
+                  }}
                 </ListBox>
               </Popover>
             </AriaComboBox>
