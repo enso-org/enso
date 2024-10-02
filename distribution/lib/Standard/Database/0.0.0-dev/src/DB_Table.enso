@@ -157,7 +157,7 @@ type DB_Table
             internal_column = case selector of
                 _ : Integer -> self.internal_columns.get selector if_missing=Nothing
                 _ : Text -> self.internal_columns.find (p -> p.name == selector) if_missing=Nothing
-            if internal_column.is_nothing then if_missing else self.make_column internal_column.get
+            if internal_column.is_nothing then if_missing else self.make_column internal_column
 
     ## ALIAS cell value, get cell
        GROUP Standard.Base.Selections
