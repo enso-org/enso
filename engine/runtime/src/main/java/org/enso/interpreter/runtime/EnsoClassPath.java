@@ -21,26 +21,22 @@ public final class EnsoClassPath {
   }
 
   static EnsoClassPath create(Path file, List<EnsoClassPath> parents) {
-    java.util.List<Path> locations = new ArrayList<>();
-
-    java.util.List<java.lang.String> moduleNames =
-        ModuleFinder.of(file).findAll().stream()
-            .filter(
-                (mod) -> {
-                  if (ModuleLayer.boot().findModule(mod.descriptor().name()).isPresent()) {
-                    return false;
-                  }
-                  for (var p : parents) {
-                    if (p.layer.findModule(mod.descriptor().name()).isPresent()) {
-                      return false;
-                    }
-                  }
-                  var uri = mod.location().get();
-                  locations.add(Path.of(uri));
-                  return true;
-                })
-            .map(mod -> mod.descriptor().name())
-            .toList();
+    var locations = new ArrayList<Path>();
+    var moduleNames = new ArrayList<String>();
+    MODULE_LOOP:
+    for (var mod : ModuleFinder.of(file).findAll()) {
+      if (ModuleLayer.boot().findModule(mod.descriptor().name()).isPresent()) {
+        continue;
+      }
+      for (var p : parents) {
+        if (p.layer.findModule(mod.descriptor().name()).isPresent()) {
+          continue MODULE_LOOP;
+        }
+      }
+      moduleNames.add(mod.descriptor().name());
+      var uri = mod.location().get();
+      locations.add(Path.of(uri));
+    }
     if (moduleNames.isEmpty() && parents.isEmpty()) {
       return EMPTY;
     } else {
