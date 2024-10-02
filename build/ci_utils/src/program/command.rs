@@ -498,7 +498,8 @@ pub fn spawn_log_processor(
 fn extract_github_command(line: &str) -> Option<String> {
     // We remove a possible [info] prefix that is added by sbt.
     let trimmed = line.trim_start().strip_prefix("[info]").unwrap_or(line).trim_start();
-    if let Some(remaining) = trimmed.strip_prefix("::") {
+    let tmp = trimmed.strip_prefix("::");
+    if let Some(remaining) = tmp {
         if remaining.starts_with("error")
             || remaining.starts_with("group")
             || remaining.starts_with("endgroup")
@@ -508,7 +509,7 @@ fn extract_github_command(line: &str) -> Option<String> {
     };
 
     if line.contains("group") {
-        info!("GROUP??? '{line}'")
+        info!("GROUP??? line='{line}', trimmed={trimmed}, tmp={tmp}")
     }
     None
 }
