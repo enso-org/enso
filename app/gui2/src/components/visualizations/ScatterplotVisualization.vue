@@ -850,7 +850,7 @@ config.setToolbar([
     onClick: zoomToSelected,
   },
   {
-    icon: 'add',
+    icon: 'add_to_graph_editor',
     title: 'Create component of selected points',
     disabled: () => !createNewFilterNodeEnabled.value,
     onClick: createNewFilterNode,
