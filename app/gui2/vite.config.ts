@@ -45,7 +45,7 @@ export default defineConfig({
       include: fileURLToPath(new URL('../dashboard/**/*.tsx', import.meta.url)),
       babel: { plugins: ['@babel/plugin-syntax-import-attributes'] },
     }),
-    ...(process.env.NODE_ENV === 'development' ? [await projectManagerShim()] : []),
+    ...[await projectManagerShim()],
   ],
   optimizeDeps: {
     entries: fileURLToPath(new URL('./index.html', import.meta.url)),
@@ -97,6 +97,9 @@ async function projectManagerShim(): Promise<Plugin> {
   return {
     name: 'project-manager-shim',
     configureServer(server) {
+      server.middlewares.use(module.default)
+    },
+    configurePreviewServer(server) {
       server.middlewares.use(module.default)
     },
   }

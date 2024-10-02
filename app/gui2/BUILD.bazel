@@ -42,7 +42,7 @@ vite_bin.vite_binary(
     name = "vite_preview",
     args = ["preview"],
     chdir = package_name(),
-    data = [":vite_build"],
+    data = [":vite_build", "vite.config.ts"],
 )
 
 # vue_tsc_bin.vue_tsc_test(
