@@ -270,6 +270,10 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
         r.should_fail_with Illegal_Argument
         r.catch.to_display_text . should_contain "Cannot move above root"
 
+    group_builder.specify "resolves ~ to user home" <|
+        Enso_File.new "enso://~" . should_equal Enso_File.home
+        Enso_File.new "enso://~/a/b/c" . should_equal (Enso_File.home / "a/b/c")
+
     group_builder.specify "currently does not support metadata for directories" <|
         # TODO this test should be 'reversed' and merged with above once the metadata is implemented
         dir = test_root.get / "test-directory"
