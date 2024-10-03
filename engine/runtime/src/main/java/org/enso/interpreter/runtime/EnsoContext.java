@@ -494,7 +494,7 @@ public final class EnsoContext {
                       return findClassPath(null);
                     })
                 .toList();
-        l = EnsoClassPath.create(Paths.get(ch.toUri()), parents);
+        l = EnsoClassPath.create(Paths.get(ch.toUri()), parents, logger);
       } else {
         l = EnsoClassPath.EMPTY;
       }
