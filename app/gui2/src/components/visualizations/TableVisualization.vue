@@ -205,10 +205,6 @@ function formatText(params: ICellRendererParams) {
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;')
-    .replace(
-      /https?:\/\/([-()_.!~*';/?:@&=+$,A-Za-z0-9])+/g,
-      (url: string) => `<a href="${url}" target="_blank" class="link">${url}</a>`,
-    )
 
   if (textFormatterSelected.value === 'off') {
     return htmlEscaped.replace(/^\s+|\s+$/g, '&nbsp;')
@@ -225,24 +221,19 @@ function formatText(params: ICellRendererParams) {
     '\t': '<span style="color: #df8800; white-space: break-spaces;">&#8594;  |</span>',
   }
 
-  const replaceSpacesNotInLinks = (text: string) => {
-    return text.replace(/(<a[^>]*>.*?<\/a>|[^<]+)/g, (match) => {
-      if (match.startsWith('<a')) {
-        return match
-      } else {
-        return match.replace(/ /g, '<span style="color: #df8800">&#183;</span>')
-      }
-    })
-  }
-
   const replaceSpaces =
     textFormatterSelected.value === 'full' ?
-      replaceSpacesNotInLinks(htmlEscaped)
+      htmlEscaped.replaceAll(' ', '<span style="color: #df8800">&#183;</span>')
     : htmlEscaped.replace(/ \s+|^ +| +$/g, function (match: string) {
         return `<span style="color: #df8800">${match.replaceAll(' ', '&#183;')}</span>`
       })
 
-  const replaceReturns = replaceSpaces.replace(
+  const replaceLinks = replaceSpaces.replace(
+    /https?:\/\/([-()_.!~*';/?:@&=+$,A-Za-z0-9])+/g,
+    (url: string) => `<a href="${url}" target="_blank" class="link">${url}</a>`,
+  )
+
+  const replaceReturns = replaceLinks.replace(
     /\r\n/g,
     '<span style="color: #df8800">␍␊</span> <br>',
   )
