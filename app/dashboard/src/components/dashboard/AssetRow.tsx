@@ -18,7 +18,6 @@ import {
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import * as aria from '#/components/aria'
 import * as assetRowUtils from '#/components/dashboard/AssetRow/assetRowUtils'
 import * as columnModule from '#/components/dashboard/column'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
@@ -34,6 +33,7 @@ import * as localBackend from '#/services/LocalBackend'
 
 import * as backendModule from '#/services/Backend'
 
+import { Text } from '#/components/AriaComponents'
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import { createGetProjectDetailsQuery } from '#/hooks/projectHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
@@ -837,9 +837,31 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
                 )}
               >
                 <img src={BlankIcon} />
-                <aria.Text className="px-name-column-x placeholder">
+                <Text className="px-name-column-x placeholder" disableLineHeightCompensation>
                   {getText('thisFolderIsEmpty')}
-                </aria.Text>
+                </Text>
+              </div>
+            </td>
+          </tr>
+        )
+    }
+    case backendModule.AssetType.specialError: {
+      return hidden ? null : (
+          <tr>
+            <td colSpan={columns.length} className="border-r p-0 rounded-rows-skip-level">
+              <div
+                className={tailwindMerge.twMerge(
+                  'flex h-table-row items-center rounded-full rounded-rows-child',
+                  indent.indentClass(item.depth),
+                )}
+              >
+                <img src={BlankIcon} />
+                <Text
+                  className="px-name-column-x text-danger placeholder"
+                  disableLineHeightCompensation
+                >
+                  {getText('thisFolderFailedToFetch')}
+                </Text>
               </div>
             </td>
           </tr>

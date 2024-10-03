@@ -177,6 +177,7 @@
   "secretAssetType": "secret",
   "specialLoadingAssetType": "special loading asset",
   "specialEmptyAssetType": "special empty asset",
+  "specialErrorAssetType": "special error asset",
 
   "couldNotConnectToPM": "Could not connect to the Project Manager. Please try restarting Enso, or manually launching the Project Manager.",
   "upgradeToUseCloud": "Upgrade your plan to use Enso Cloud.",
@@ -382,6 +383,7 @@
   "downloadFreeEditionMessage": "Alternatively, you can download the free edition to start working on your local projects.",
   "downloadFreeEdition": "Download Free Edition",
   "thisFolderIsEmpty": "This folder is empty.",
+  "thisFolderFailedToFetch": "This folder failed to fetch.",
   "yourTrashIsEmpty": "Your trash is empty.",
   "deleteTheAssetTypeTitle": "delete the $0 '$1'",
   "trashTheAssetTypeTitle": "move the $0 '$1' to Trash",
