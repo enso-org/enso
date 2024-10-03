@@ -3,9 +3,6 @@ import * as url from 'node:url'
 
 import * as vitestConfig from 'vitest/config'
 
-import * as appConfig from 'enso-common/src/appConfig'
-
-appConfig.loadTestEnvironmentVariables()
 // @ts-expect-error This is required, otherwise importing node modules is broken.
 // This is required for `datalinkSchema.test.ts`.
 process.env.NODE_ENV = 'development'

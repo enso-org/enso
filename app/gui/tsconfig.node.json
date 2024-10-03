@@ -6,11 +6,8 @@
     "project-manager-shim-middleware/*.ts",
     "playwright.config.*",
     "eslint.config.js",
-    "histoire.config.ts",
     "e2e/**/*",
-    "parser-codegen/**/*",
     "node.env.d.ts",
-    "mock/engine.ts"
   ],
   "compilerOptions": {
     "baseUrl": ".",

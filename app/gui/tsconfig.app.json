@@ -7,11 +7,6 @@
     "src/**/*.vue",
     "src/**/*.ts",
     "src/util/theme.json",
-    "mock/**/*",
-    "mock/**/*.vue",
-    "stories/**/*",
-    "stories/**/*.json",
-    "stories/**/*.vue",
     "src/**/__tests__/*.json"
   ],
   "exclude": ["src/**/__tests__/*", "public/**/__tests__/*"],
@@ -19,7 +14,7 @@
     "noEmit": true,
     "allowImportingTsExtensions": true,
     "types": ["vitest/importMeta"],
-    "paths": { "@/*": ["./src/*"] }
+    "paths": { "@/*": ["./src/project-view/*"], "#/*": ["./src/dashboard/*"] },
   },
   "references": [{ "path": "../dashboard" }, { "path": "../ydoc-shared" }]
 }

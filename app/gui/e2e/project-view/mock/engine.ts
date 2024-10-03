@@ -30,8 +30,8 @@ import {
   mockFsDirectoryHandle,
   type FileTree,
 } from '../../../src/project-view/util/convert/fsAccess'
-import mockDb from '../stories/mockSuggestions.json' assert { type: 'json' }
 import { mockDataWSHandler as originalMockDataWSHandler } from './dataServer'
+import mockDb from './mockSuggestions.json' assert { type: 'json' }
 
 const mockProjectId = random.uuidv4() as Uuid
 const standardBase = 'Standard.Base' as QualifiedName
@@ -174,7 +174,7 @@ const mockVizPreprocessors: Record<string, Uint8Array | ((params: string[]) => U
     'warning 1',
     "warning 2!!&<>;'\x22",
   ]),
-  'Standard.Visualization.Widgets.get_widget_json': params => mockWidgetConfiguration(params[0]),
+  'Standard.Visualization.Widgets.get_widget_json': (params) => mockWidgetConfiguration(params[0]),
 
   // The following visualizations do not have unique transformation methods, and as such are only kept
   // for posterity.
@@ -487,7 +487,7 @@ export const mockLSHandler: MockTransportData = async (method, data, transport) 
           executionContextId: data_.executionContextId,
           visualizationModule: func.lhs.code(),
           expression: func.rhs.code(),
-          positionalArgumentsExpressions: args.map(ast => ast.code()),
+          positionalArgumentsExpressions: args.map((ast) => ast.code()),
         }
         sendVizData(data_.visualizationId, visualizationConfig, data_.expressionId)
       }
@@ -560,7 +560,7 @@ export const mockLSHandler: MockTransportData = async (method, data, transport) 
 const directory = mockFsDirectoryHandle(fileTree, '(root)')
 
 export const mockDataHandler: WebSocketHandler = originalMockDataWSHandler(
-  async segments => {
+  async (segments) => {
     if (!segments.length) return
     let file
     try {
@@ -575,7 +575,7 @@ export const mockDataHandler: WebSocketHandler = originalMockDataWSHandler(
     }
     return await file?.arrayBuffer()
   },
-  send => (sendData = send),
+  (send) => (sendData = send),
 )
 
 export const mockYdocProvider: MockYdocProviderImpl = (msg, room, doc) => {

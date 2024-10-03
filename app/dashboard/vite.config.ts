@@ -41,11 +41,6 @@ export default vite.defineConfig({
       },
     },
   },
-  define: {
-    // The sole hardcoded usage of `global` in aws-amplify.
-    'global.TYPED_ARRAY_SUPPORT': JSON.stringify(true),
-    ...appConfig.getDefines(),
-  },
 })
 
 /** A plugin to serve a favicon, in development mode only. */

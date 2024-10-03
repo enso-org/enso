@@ -42,7 +42,7 @@ export default defineConfig({
       },
     }),
     react({
-      include: fileURLToPath(new URL('../dashboard/**/*.tsx', import.meta.url)),
+      include: fileURLToPath(new URL('./src/dashboard/**/*.tsx', import.meta.url)),
       babel: { plugins: ['@babel/plugin-syntax-import-attributes'] },
     }),
     ...(process.env.NODE_ENV === 'development' ? [await projectManagerShim()] : []),
@@ -62,7 +62,8 @@ export default defineConfig({
     alias: {
       '/src/entrypoint.ts': fileURLToPath(new URL(entrypoint, import.meta.url)),
       shared: fileURLToPath(new URL('./shared', import.meta.url)),
-      '@': fileURLToPath(new URL('./src', import.meta.url)),
+      '@': fileURLToPath(new URL('./src/project-view', import.meta.url)),
+      '#': fileURLToPath(new URL('./src/dashboard', import.meta.url)),
     },
   },
   define: {
@@ -80,7 +81,7 @@ export default defineConfig({
       'top-level-await': true,
     },
   },
-  assetsInclude: ['**/*.yaml', '**/*.svg'],
+  assetsInclude: ['**/*.svg'],
   css: {
     postcss: {
       plugins: [

@@ -86,7 +86,7 @@ const DEJAVU_FONT_VARIANTS = [
 ].map((variant) => ({ font: 'DejaVu Sans Mono', ...variant }))
 
 try {
-  await fs.access(`./src/assets/font-enso.css`)
+  await fs.access(`./src/project-view/assets/font-enso.css`)
   for (const { variant } of ENSO_FONT_VARIANTS) {
     await fs.access(`./public/font-enso/Enso-${variant}.ttf`)
   }
@@ -129,11 +129,11 @@ try {
 }
 `)
     }
-    await fs.writeFile('./src/assets/font-enso.css', css.join('\n'))
+    await fs.writeFile('./src/project-view/assets/font-enso.css', css.join('\n'))
   }
 }
 try {
-  await fs.access(`./src/assets/font-mplus1.css`)
+  await fs.access(`./src/project-view/assets/font-mplus1.css`)
   await fs.access(`./public/font-mplus1/MPLUS1[wght].ttf`)
   console.info('M PLUS 1 font already downloaded, skipping...')
 } catch (error) {
@@ -160,11 +160,11 @@ try {
   src: url('/font-mplus1/MPLUS1[wght].ttf');
 }
 `
-    await fs.writeFile('./src/assets/font-mplus1.css', css)
+    await fs.writeFile('./src/project-view/assets/font-mplus1.css', css)
   }
 }
 try {
-  await fs.access(`./src/assets/font-dejavu.css`)
+  await fs.access(`./src/project-view/assets/font-dejavu.css`)
   for (const variant of ['', '-Bold']) {
     await fs.access(`./public/font-dejavu/DejaVuSansMono${variant}.ttf`)
   }
@@ -206,7 +206,7 @@ try {
 }
 `)
     }
-    await fs.writeFile('./src/assets/font-dejavu.css', css.join('\n'))
+    await fs.writeFile('./src/project-view/assets/font-dejavu.css', css.join('\n'))
   }
 }
 console.info('Done.')
