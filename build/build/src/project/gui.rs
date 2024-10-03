@@ -1,6 +1,6 @@
 //! Build logic for the GUI project.
 //!
-//! The GUI is Vue.js-based and located under `app/gui2`.
+//! The GUI is Vue.js-based and located under `app/gui`.
 
 use crate::prelude::*;
 

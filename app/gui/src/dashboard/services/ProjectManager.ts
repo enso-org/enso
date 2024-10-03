@@ -264,7 +264,7 @@ export interface DeleteProjectParams {
 /** Possible events that may be emitted by a {@link ProjectManager}. */
 export enum ProjectManagerEvents {
   // If this member is renamed, the corresponding event listener should also be renamed in
-  // `app/gui2/src/components/GraphEditor/toasts.ts`.
+  // `app/gui/src/project-view/components/GraphEditor/toasts.ts`.
   loadingFailed = 'project-manager-loading-failed',
 }
 

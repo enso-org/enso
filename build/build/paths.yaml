@@ -18,7 +18,7 @@
       shader-tools.yml:
       std-libs-benchmark.yml:
   app/:
-    gui2/: # The new, Vue-based GUI.
+    gui2/: # Vue-based GUI.
       dist/:
       playwright-report/: # Test results for the new GUI that we want to keep as artifacts.
       public/:
