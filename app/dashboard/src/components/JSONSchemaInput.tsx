@@ -2,7 +2,7 @@
 import { Fragment, type JSX, useState } from 'react'
 
 import { Input } from '#/components/aria'
-import { Button, Checkbox, ComboBox, Dropdown, Text } from '#/components/AriaComponents'
+import { Button, Checkbox, Dropdown, Text } from '#/components/AriaComponents'
 import Autocomplete from '#/components/Autocomplete'
 import FocusRing from '#/components/styled/FocusRing'
 import { useBackendQuery } from '#/hooks/backendHooks'

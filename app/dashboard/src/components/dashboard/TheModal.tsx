@@ -1,5 +1,6 @@
 /** @file A component that renders the modal instance from the modal React Context. */
 import { DialogTrigger } from '#/components/AriaComponents'
+import { ClearPressResponder } from '#/components/aria'
 import * as modalProvider from '#/providers/ModalProvider'
 import { AnimatePresence, motion } from 'framer-motion'
 
@@ -24,7 +25,7 @@ export default function TheModal() {
         >
           <DialogTrigger key={key} defaultOpen>
             <></>
-            {modal}
+            <ClearPressResponder>{modal}</ClearPressResponder>
           </DialogTrigger>
         </motion.div>
       )}
