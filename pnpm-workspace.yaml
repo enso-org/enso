@@ -2,6 +2,7 @@ packages:
   - app/dashboard
   - app/ide-desktop/*
   - app/gui2
+  - app/common
   - app/rust-ffi
   - app/ydoc-server
   - app/ydoc-shared

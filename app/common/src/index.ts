@@ -13,24 +13,24 @@
  *
  * For example: the deep link URL
  * `enso://authentication/register?code=...&state=...` uses this scheme. */
-export const DEEP_LINK_SCHEME = 'enso'
+export const DEEP_LINK_SCHEME: string = 'enso'
 
 /** Name of the product. */
-export const PRODUCT_NAME = 'Enso'
+export const PRODUCT_NAME: string = 'Enso'
 
 /** Company name, used as the copyright holder. */
-export const COMPANY_NAME = 'New Byte Order sp. z o.o.'
+export const COMPANY_NAME: string = 'New Byte Order sp. z o.o.'
 
 /** The domain on which the Cloud Dashboard web app is hosted.
  * Excludes the protocol (`https://`). */
-export const CLOUD_DASHBOARD_DOMAIN = 'cloud.enso.org'
+export const CLOUD_DASHBOARD_DOMAIN: string = 'cloud.enso.org'
 
 /** @type {[header: string, value: string][]}
  * COOP, COEP, and CORP headers: https://web.dev/coop-coep/
  *
  * These are required to increase the resolution of `performance.now()` timers,
  * making profiling a lot more accurate and consistent. */
-export const COOP_COEP_CORP_HEADERS = [
+export const COOP_COEP_CORP_HEADERS: [header: string, value: string][] = [
   ['Cross-Origin-Opener-Policy', 'same-origin'],
   ['Cross-Origin-Resource-Policy', 'same-origin'],
 ]

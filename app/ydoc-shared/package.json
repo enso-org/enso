@@ -10,7 +10,8 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "format": "prettier --version && prettier --write src/ && eslint . --fix"
+    "format": "prettier --version && prettier --write src/ && eslint . --fix",
+    "compile": "tsc"
   },
   "exports": {
     "./ast": {
