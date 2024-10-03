@@ -43,3 +43,15 @@ add_specs suite_builder setup =
             colA = t.get "A"
             result = colA.coalesce 42
             result.to_vector . should_equal [1, 2, 42, 42]
+        group_builder.specify "column and constant and column" <|
+            t = table_builder [["A", [1, 2, Nothing, Nothing]], ["B", [3, Nothing, 4, Nothing]]]
+            colA = t.get "A"
+            colB = t.get "B"
+            result = colA.coalesce [42, colB]
+            result.to_vector . should_equal [1, 2, 42, 42]
+        group_builder.specify "2 columns of diffferent types" <|
+            t = table_builder [["A", [1, 2, Nothing, Nothing]], ["B", ["3", Nothing, "4", Nothing]]]
+            colA = t.get "A"
+            colB = t.get "B"
+            result = colA.coalesce colB
+            result.should_fail_with No_Common_Type
