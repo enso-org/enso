@@ -159,12 +159,89 @@ type Enso_File
     ## GROUP Metadata
        ICON data_output
        Sets the description associated with the file in Enso Cloud.
-       It returns the same file.
+
+       Arguments:
+       - description: The new description to set.
+
+       Returns:
+       - The file on which it was called.
     set_description : Text -> Enso_File
     set_description self (description : Text) -> Enso_File =
         asset = Existing_Enso_Asset.get_asset_reference_for self
         #asset.set_description description
         self
+
+    ## GROUP Metadata
+       ICON metadata
+       Gets the labels associated with the file in Enso Cloud.
+    labels : Vector Text
+    labels self -> Vector Text =
+        asset = Existing_Enso_Asset.get_asset_reference_for self
+        "TODO"
+
+    ## GROUP Metadata
+       ICON data_output
+       Adds a label to the file in Enso Cloud.
+
+       If the label with the given name did not exist before, it is created with
+       a random color associated with it. If you want to set a specific color,
+       use `Enso_File.create_label` before calling this method.
+
+       Arguments:
+       - label: The name of the label to add to the file.
+
+       Returns:
+       - The file on which it was called.
+    add_label : Text -> Enso_File
+    add_label self (label : Text) -> Enso_File =
+        asset = Existing_Enso_Asset.get_asset_reference_for self
+        #asset.add_label label
+        self
+
+    ## GROUP Metadata
+       ICON data_output
+       Removes a label from the file in Enso Cloud.
+
+       Arguments:
+       - label: The name of the label to remove from the file.
+
+       Returns:
+       - A boolean value indicating if the file had the label before the operation.
+    remove_label : Text -> Boolean
+    remove_label self (label : Text) -> Boolean =
+        asset = Existing_Enso_Asset.get_asset_reference_for self
+        "TODO"
+
+    ## GROUP Metadata
+       ICON data_output
+       Sets the set of labels associated with the file in Enso Cloud.
+       Any other labels than the ones provided are removed from the file.
+
+       If any of the provided labels did not exist before, it is created with
+       a random color associated with it. If you want to set a specific color,
+       use `Enso_File.create_label` before calling this method.
+
+       Arguments:
+       - labels: The new set of labels to associate with the file.
+
+       Returns:
+       - The file on which it was called.
+    set_labels : Vector Text -> Enso_File
+    set_labels self (labels : Vector Text) -> Enso_File =
+        asset = Existing_Enso_Asset.get_asset_reference_for self
+        #asset.set_labels labels
+        self
+
+    ## GROUP Metadata
+       ICON data_output
+       Creates a new label with the given name and color.
+
+       Arguments:
+       - name: The name of the label to create.
+       - color: The color of the label to create.
+    create_label : Text -> Text -> Nothing
+    create_label (name : Text) (color : Color) =
+        "TODO"
 
     ## GROUP Metadata
        ICON metadata

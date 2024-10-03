@@ -98,6 +98,7 @@ type Existing_Enso_Asset
 
     ## PRIVATE
     from_json json -> Existing_Enso_Asset =
+        Standard.Base.IO.println json
         title = get_required_field "title" json expected_type=Text
         id = get_required_field "id" json expected_type=Text
         Existing_Enso_Asset.from_id_and_title id title
