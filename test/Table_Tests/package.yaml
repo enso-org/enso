@@ -7,3 +7,4 @@ maintainer: enso-dev@enso.org
 prefer-local-libraries: true
 requires:
   - Standard.Table
+  - Standard.Base_Tests

@@ -4418,6 +4418,7 @@ lazy val `common-polyglot-core-utils` = project
 
 lazy val `enso-test-java-helpers` = project
   .in(file("test/Base_Tests/polyglot-sources/enso-test-java-helpers"))
+  .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
@@ -4425,6 +4426,13 @@ lazy val `enso-test-java-helpers` = project
       file("test/Base_Tests/polyglot/java/helpers.jar"),
     libraryDependencies ++= Seq(
       "org.graalvm.polyglot" % "polyglot" % graalMavenPackagesVersion % "provided"
+    ),
+    Compile / moduleDependencies ++= Seq(
+      "org.graalvm.polyglot" % "polyglot" % graalMavenPackagesVersion
+    ),
+    Compile / internalModuleDependencies := Seq(
+      (`std-base` / Compile / exportedModule).value,
+      (`std-table` / Compile / exportedModule).value
     ),
     Compile / packageBin := Def.task {
       val result          = (Compile / packageBin).value

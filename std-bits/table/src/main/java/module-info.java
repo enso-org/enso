@@ -31,22 +31,30 @@ module org.enso.std.table {
   opens org.enso.table.problems;
   opens org.enso.table.parsing;
   opens org.enso.table.parsing.problems;
-  opens org.enso.table.data.column.storage;
+
+  exports org.enso.table.data.column.storage;
+
   opens org.enso.table.data.column.storage.numeric;
   opens org.enso.table.data.column.builder;
   opens org.enso.table.data.column.operation;
   opens org.enso.table.data.column.operation.cast;
-  opens org.enso.table.data.column.operation.map;
+
+  exports org.enso.table.data.column.operation.map;
+
   opens org.enso.table.data.column.operation.unary;
-  opens org.enso.table.data.column.storage.type;
-  opens org.enso.table.data.mask;
+
+  exports org.enso.table.data.column.storage.type;
+  exports org.enso.table.data.mask;
+
   opens org.enso.table.data.index;
 
   exports org.enso.table.data.table;
 
   opens org.enso.table.data.table.problems;
   opens org.enso.table.data.table.join;
+
   exports org.enso.table.data.table.join.between;
+
   opens org.enso.table.data.table.join.conditions;
   opens org.enso.table.data.table.join.lookup;
   opens org.enso.table.error;
