@@ -76,7 +76,6 @@ public final class EnsoSecretHelper extends SecretValueResolver {
 
     TransientHTTPResponseCache.RequestMaker requestMaker =
       () -> makeRequestWithResolvedSecrets(client, builder, uri, resolvedURI, headers, resolvedHeaders);
-    //Supplier<EnsoHttpResponse> supplier = () -> makeRequestWithResolvedSecrets(client, builder, uri, resolvedURI, headers, resolvedHeaders);
     if (!useCache) {
       return requestMaker.run();
     } else {
