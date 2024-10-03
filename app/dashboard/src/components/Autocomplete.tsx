@@ -199,6 +199,7 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
                 ref={inputRef}
                 autoFocus={autoFocus}
                 size="custom"
+                variant="custom"
                 value={text ?? ''}
                 autoComplete="off"
                 {...(placeholder == null ? {} : { placeholder })}
