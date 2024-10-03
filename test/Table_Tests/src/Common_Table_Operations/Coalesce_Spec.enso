@@ -25,3 +25,10 @@ add_specs suite_builder setup =
             colB = t.get "B"
             result = colA.coalesce [colB]
             result.to_vector . should_equal [1, 2, 4, Nothing]
+        group_builder.specify "2 columns passing second and third as vector" <|
+            t = table_builder [["A", [1, 2, Nothing, Nothing]], ["B", [3, Nothing, 4, Nothing]], ["C", [5, 6, 7, 8]]]
+            colA = t.get "A"
+            colB = t.get "B"
+            colC = t.get "C"
+            result = colA.coalesce [colB, colC]
+            result.to_vector . should_equal [1, 2, 4, 8]
