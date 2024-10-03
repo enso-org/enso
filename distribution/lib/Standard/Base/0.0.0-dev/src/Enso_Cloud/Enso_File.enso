@@ -192,6 +192,11 @@ type Enso_File
 
        Returns:
        - The file on which it was called.
+
+       ? Race Conditions
+
+         Adding labels is not atomic. If two processes are adding labels on the
+         same asset at the same time, some changes may be lost.
     add_label : Text -> Enso_File
     add_label self (label : Text) -> Enso_File =
         asset = Existing_Enso_Asset.get_asset_reference_for self
@@ -207,6 +212,11 @@ type Enso_File
 
        Returns:
        - A boolean value indicating if the file had the label before the operation.
+
+       ? Race Conditions
+
+         Adding labels is not atomic. If two processes are adding labels on the
+         same asset at the same time, some changes may be lost.
     remove_label : Text -> Boolean
     remove_label self (label : Text) -> Boolean =
         asset = Existing_Enso_Asset.get_asset_reference_for self
