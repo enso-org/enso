@@ -55,3 +55,12 @@ add_specs suite_builder setup =
             colB = t.get "B"
             result = colA.coalesce colB
             result.should_fail_with No_Common_Type
+        group_builder.specify "2 columns of diffferent length" <|
+            t1 = table_builder [["A", [1, 2, Nothing, Nothing, 6]]]
+            t2 = table_builder [["B", [4, Nothing, 5, Nothing]]]
+            colA = t1.get "A"
+            colB = t2.get "B"
+            result = colA.coalesce colB
+            result.to_vector . should_equal [1, 2, 5, Nothing, 6]
+            result2 = colB.coalesce colA
+            result2.to_vector . should_equal [4, 2, 5, Nothing]
