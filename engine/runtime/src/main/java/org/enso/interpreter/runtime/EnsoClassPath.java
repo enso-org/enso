@@ -17,6 +17,11 @@ public final class EnsoClassPath {
   final ClassLoader loader;
 
   private EnsoClassPath(ModuleLayer.Controller cntrl, ModuleLayer layer, ClassLoader loader) {
+    if (cntrl != null) {
+      // cannot be null
+      layer.getClass();
+      loader.getClass();
+    }
     this.cntrl = cntrl;
     this.layer = layer;
     this.loader = loader;
@@ -31,7 +36,7 @@ public final class EnsoClassPath {
         continue;
       }
       for (var p : parents) {
-        if (p.layer.findModule(mod.descriptor().name()).isPresent()) {
+        if (p.layer != null && p.layer.findModule(mod.descriptor().name()).isPresent()) {
           continue MODULE_LOOP;
         }
       }
@@ -53,8 +58,15 @@ public final class EnsoClassPath {
             Configuration.resolveAndBind(finder, parentCfgs, ModuleFinder.ofSystem(), moduleNames);
         cntrl = ModuleLayer.defineModulesWithOneLoader(cfg, parentModules, parentLoader);
       } else {
-        var parentCfgs = parents.stream().map(cp -> cp.layer.configuration()).toList();
-        var parentLayers = parents.stream().map(cp -> cp.layer).toList();
+        var parentCfgs = new ArrayList<Configuration>();
+        var parentLayers = new ArrayList<ModuleLayer>();
+        for (var cp : parents) {
+          if (cp.layer == null) {
+            continue;
+          }
+          parentLayers.add(cp.layer);
+          parentCfgs.add(cp.layer.configuration());
+        }
         var parentLoader = ModuleLayer.boot().findLoader("java.base");
         var cfg =
             Configuration.resolveAndBind(finder, parentCfgs, ModuleFinder.ofSystem(), moduleNames);
