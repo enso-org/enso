@@ -267,7 +267,7 @@ case object GenerateMethodBodies extends IRPass {
       None,
       defaultValue = None,
       suspended    = false,
-      None
+      null
     )
   }
 

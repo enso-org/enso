@@ -146,10 +146,10 @@ case object LambdaShorthandToLambda extends IRPass {
                 isMethod = false,
                 None
               ),
-              ascribedType = None,
-              defaultValue = None,
-              suspended    = false,
-              location     = None
+              ascribedType       = None,
+              defaultValue       = None,
+              suspended          = false,
+              identifiedLocation = null
             )
           ),
           newName,
@@ -225,16 +225,15 @@ case object LambdaShorthandToLambda extends IRPass {
           new Function.Lambda(
             List(
               DefinitionArgument.Specified(
-                Name
-                  .Literal(
-                    updatedName.get,
-                    isMethod = false,
-                    fn.location
-                  ),
+                Name.Literal(
+                  updatedName.get,
+                  isMethod = false,
+                  fn.location
+                ),
                 None,
                 None,
                 suspended = false,
-                None
+                null
               )
             ),
             appResult,
@@ -269,10 +268,10 @@ case object LambdaShorthandToLambda extends IRPass {
         bindings.foldLeft(newVec: Expression) { (body, bindingName) =>
           val defArg = DefinitionArgument.Specified(
             bindingName,
-            ascribedType = None,
-            defaultValue = None,
-            suspended    = false,
-            location     = None
+            ascribedType       = None,
+            defaultValue       = None,
+            suspended          = false,
+            identifiedLocation = null
           )
           new Function.Lambda(List(defArg), body, locWithoutId)
         }
@@ -364,7 +363,7 @@ case object LambdaShorthandToLambda extends IRPass {
               None,
               None,
               suspended = false,
-              None,
+              null,
               passData.duplicate,
               specified.diagnosticsCopy
             )
@@ -413,7 +412,7 @@ case object LambdaShorthandToLambda extends IRPass {
           None,
           None,
           suspended = false,
-          None
+          null
         )
 
         val newCaseExpr = caseExpr.copy(

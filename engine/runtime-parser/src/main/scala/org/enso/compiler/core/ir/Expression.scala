@@ -50,14 +50,14 @@ object Expression {
     *
     * @param expressions the expressions in the block
     * @param returnValue the final expression in the block
-    * @param location    the source location that the node corresponds to
-    * @param suspended   whether or not the block is suspended
-    * @param passData    the pass metadata associated with this node
+    * @param identifiedLocation the source location that the node corresponds to
+    * @param suspended whether or not the block is suspended
+    * @param passData the pass metadata associated with this node
     */
   sealed case class Block(
     expressions: List[Expression],
     returnValue: Expression,
-    location: Option[IdentifiedLocation],
+    identifiedLocation: IdentifiedLocation,
     suspended: Boolean        = false,
     passData: MetadataStorage = new MetadataStorage()
   ) extends Expression
@@ -97,7 +97,7 @@ object Expression {
         val res = Block(
           expressions,
           returnValue,
-          location,
+          location.orNull,
           suspended,
           passData
         )
@@ -184,15 +184,15 @@ object Expression {
     * To create a binding that binds no available name, set the name of the
     * binding to an [[Name.Blank]] (e.g. _ = foo a b).
     *
-    * @param name        the name being bound to
-    * @param expression  the expression being bound to `name`
-    * @param location    the source location that the node corresponds to
-    * @param passData    the pass metadata associated with this node
+    * @param name the name being bound to
+    * @param expression the expression being bound to `name`
+    * @param identifiedLocation the source location that the node corresponds to
+    * @param passData the pass metadata associated with this node
     */
   sealed case class Binding(
     name: Name,
     expression: Expression,
-    location: Option[IdentifiedLocation],
+    identifiedLocation: IdentifiedLocation,
     passData: MetadataStorage = new MetadataStorage()
   ) extends Expression
       with IRKind.Primitive
@@ -205,7 +205,7 @@ object Expression {
       * @param lambda the body of the function
       */
     def this(ir: Function.Binding, lambda: Function.Lambda) = {
-      this(ir.name, lambda, ir.location, ir.passData)
+      this(ir.name, lambda, ir.identifiedLocation, ir.passData)
       this.diagnostics = ir.diagnostics
     }
 
@@ -235,7 +235,7 @@ object Expression {
         || diagnostics != this.diagnostics
         || id != this.id
       ) {
-        val res = Binding(name, expression, location, passData)
+        val res = Binding(name, expression, location.orNull, passData)
         res.diagnostics = diagnostics
         res.id          = id
         res

@@ -110,7 +110,7 @@ case object SectionsToBinOp extends IRPass {
           None,
           None,
           suspended = false,
-          None
+          null
         )
 
         if (arg.value.isInstanceOf[Name.Blank]) {
@@ -122,7 +122,7 @@ case object SectionsToBinOp extends IRPass {
             None,
             None,
             suspended = false,
-            None
+            null
           )
           val opCall = new Application.Prefix(
             function             = op,
@@ -166,7 +166,7 @@ case object SectionsToBinOp extends IRPass {
           None,
           None,
           suspended = false,
-          None
+          null
         )
 
         val rightArgName = freshNameSupply.newName()
@@ -177,7 +177,7 @@ case object SectionsToBinOp extends IRPass {
           None,
           None,
           suspended = false,
-          None
+          null
         )
 
         val opCall = new Application.Prefix(
@@ -230,7 +230,7 @@ case object SectionsToBinOp extends IRPass {
             None,
             None,
             suspended = false,
-            None
+            null
           )
 
         if (arg.value.isInstanceOf[Name.Blank]) {
@@ -243,7 +243,7 @@ case object SectionsToBinOp extends IRPass {
             None,
             None,
             suspended = false,
-            None
+            null
           )
 
           val opCall = new Application.Prefix(

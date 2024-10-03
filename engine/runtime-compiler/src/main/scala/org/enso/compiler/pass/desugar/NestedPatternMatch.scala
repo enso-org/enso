@@ -211,7 +211,7 @@ case object NestedPatternMatch extends IRPass {
             fields.zipWithIndex.findLast { case (pat, _) => isNested(pat) }.get
 
           val newName  = freshNameSupply.newName(from = Some(constrName))
-          val newField = Pattern.Name(newName, None)
+          val newField = Pattern.Name(newName, null)
           val nestedScrutinee =
             newName.duplicate()
 

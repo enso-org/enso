@@ -1703,29 +1703,27 @@ class IrToTruffle(
                 )
               )
           }
-        case Pattern.Type(varName, tpeName, location, _) =>
-          tpeName.getMetadata(Patterns) match {
+        case typePattern: Pattern.Type =>
+          typePattern.tpe.getMetadata(Patterns) match {
             case None =>
-              Left(BadPatternMatch.NonVisibleType(tpeName.name))
+              Left(BadPatternMatch.NonVisibleType(typePattern.tpe.name))
             case Some(
                   BindingsMap.Resolution(
                     binding @ BindingsMap.ResolvedType(_, _)
                   )
                 ) =>
               // Using .getTypes because .getType may return an associated type
-              Option(
-                asType(binding)
-              ) match {
+              Option(asType(binding)) match {
                 case Some(tpe) =>
                   val argOfType = List(
                     new DefinitionArgument.Specified(
-                      varName,
+                      typePattern.name,
                       None,
                       None,
                       suspended = false,
-                      location,
-                      passData    = varName.passData,
-                      diagnostics = varName.diagnostics
+                      typePattern.identifiedLocation,
+                      passData    = typePattern.name.passData,
+                      diagnostics = typePattern.name.diagnostics
                     )
                   )
 
@@ -1741,7 +1739,8 @@ class IrToTruffle(
                       branch.terminalBranch
                     )
                   )
-                case None => Left(BadPatternMatch.NonVisibleType(tpeName.name))
+                case None =>
+                  Left(BadPatternMatch.NonVisibleType(typePattern.tpe.name))
               }
             case Some(
                   BindingsMap.Resolution(
@@ -1755,13 +1754,13 @@ class IrToTruffle(
               if (polySymbol != null) {
                 val argOfType = List(
                   new DefinitionArgument.Specified(
-                    varName,
+                    typePattern.name,
                     None,
                     None,
                     suspended = false,
-                    location,
-                    passData    = varName.passData,
-                    diagnostics = varName.diagnostics
+                    typePattern.identifiedLocation,
+                    passData    = typePattern.name.passData,
+                    diagnostics = typePattern.name.diagnostics
                   )
                 )
 
@@ -1778,7 +1777,11 @@ class IrToTruffle(
                   )
                 )
               } else {
-                Left(BadPatternMatch.NonVisiblePolyglotSymbol(tpeName.name))
+                Left(
+                  BadPatternMatch.NonVisiblePolyglotSymbol(
+                    typePattern.name.name
+                  )
+                )
               }
             case Some(BindingsMap.Resolution(resolved)) =>
               throw new CompilerError(
@@ -1819,7 +1822,7 @@ class IrToTruffle(
         None,
         None,
         suspended = false,
-        name.location,
+        name.identifiedLocation,
         passData    = name.name.passData,
         diagnostics = name.name.diagnostics
       )
@@ -2061,8 +2064,8 @@ class IrToTruffle(
             case b: BigInteger => LiteralNode.build(b)
           }
           setLocation(node, lit.location)
-        case Literal.Text(text, location, _) =>
-          setLocation(LiteralNode.build(text), location)
+        case lit: Literal.Text =>
+          setLocation(LiteralNode.build(lit.text), lit.location)
       }
 
     private def fileLocationFromSection(loc: IdentifiedLocation) = {

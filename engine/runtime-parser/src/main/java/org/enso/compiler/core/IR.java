@@ -54,7 +54,12 @@ public interface IR {
   MetadataStorage passData();
 
   /** The source location that the node corresponds to. */
-  Option<IdentifiedLocation> location();
+  IdentifiedLocation identifiedLocation();
+
+  /** The source location that the node corresponds to. */
+  default Option<IdentifiedLocation> location() {
+    return Option.apply(identifiedLocation());
+  };
 
   /**
    * Sets the location for an IR node.

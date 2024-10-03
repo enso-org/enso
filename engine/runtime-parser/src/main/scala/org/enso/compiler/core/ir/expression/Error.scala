@@ -19,6 +19,10 @@ trait Error extends Expression with ir.module.scope.Definition with Diagnostic {
   override def setLocation(location: Option[IdentifiedLocation]): Error
 
   /** @inheritdoc */
+  override def location: Option[IdentifiedLocation] =
+    Option(identifiedLocation)
+
+  /** @inheritdoc */
   override def duplicate(
     keepLocations: Boolean   = true,
     keepMetadata: Boolean    = true,
@@ -96,7 +100,8 @@ object Error {
     ): InvalidIR = this
 
     /** @inheritdoc */
-    override val location: Option[IdentifiedLocation] = ir.location
+    override def identifiedLocation: IdentifiedLocation =
+      ir.identifiedLocation()
 
     /** @inheritdoc */
     override def mapExpressions(

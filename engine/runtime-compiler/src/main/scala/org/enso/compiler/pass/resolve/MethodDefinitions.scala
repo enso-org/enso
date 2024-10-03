@@ -112,7 +112,7 @@ case object MethodDefinitions extends IRPass {
               None,
               None,
               suspended = false,
-              None
+              null
             )
 
             // The actual `self` argument that is referenced inside of method body is the second one in the lambda.
