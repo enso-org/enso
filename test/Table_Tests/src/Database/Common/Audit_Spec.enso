@@ -34,7 +34,7 @@ add_specs suite_builder prefix ~datalink_to_connection database_pending =
 
             # Retrying is needed as there may be some delay before the background thread finishes processing the logs.
             Test.with_retries <|
-                Thread.sleep 500
+                Thread.sleep 1000
                 all_events = get_audit_log_events
                 relevant_events = all_events.filter e-> e.message.contains table_name
 

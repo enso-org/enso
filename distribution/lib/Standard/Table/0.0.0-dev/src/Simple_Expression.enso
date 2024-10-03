@@ -94,10 +94,10 @@ type Simple_Expression
 ## Defines a set of Text based operations.
 type Text_Operation
     ## Takes the first characters from the input column.
-    Left (length : Integer = 1)
+    Left (length : Column_Ref|Expression|Integer = 1)
 
     ## Takes the first characters from the input column.
-    Right (length : Integer = 1)
+    Right (length : Column_Ref|Expression|Integer = 1)
 
     ## Returns the character length of the input column.
     Length
