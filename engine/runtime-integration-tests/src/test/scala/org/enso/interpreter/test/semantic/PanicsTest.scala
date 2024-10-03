@@ -49,6 +49,29 @@ class PanicsTest extends InterpreterTest {
       consumeOut shouldEqual List("(Error: MyError)")
     }
 
+    "message should be computed soon enough" in {
+      val code =
+        """from Standard.Base import all
+          |
+          |type LM
+          |    V txt
+          |
+          |    to_display_text self =
+          |        res = self.txt + " from exception"
+          |        Panic.throw res
+          |
+          |main = Panic.throw (LM.V "Hi")
+          |""".stripMargin
+
+      try {
+        eval(code)
+      } catch {
+        case ex: InterpreterException =>
+          ex.getMessage() shouldEqual "Hi from exception"
+        case any: Throwable => throw any
+      }
+    }
+
     "catch polyglot errors" in {
       val code =
         """from Standard.Base import all
