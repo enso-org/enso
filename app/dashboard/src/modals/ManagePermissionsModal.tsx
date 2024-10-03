@@ -5,7 +5,7 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import * as toast from 'react-toastify'
 import isEmail from 'validator/es/lib/isEmail'
 
-import { backendMutationOptions } from '#/hooks/backendHooks'
+import { backendMutationOptions, useAssetPassiveListenerStrict } from '#/hooks/backendHooks'
 import * as billingHooks from '#/hooks/billing'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -23,9 +23,9 @@ import Modal from '#/components/Modal'
 import * as paywall from '#/components/Paywall'
 import FocusArea from '#/components/styled/FocusArea'
 
+import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 
-import * as object from '#/utilities/object'
 import * as permissionsModule from '#/utilities/permissions'
 
 // =================
@@ -44,8 +44,8 @@ const TYPE_SELECTOR_Y_OFFSET_PX = 32
 export interface ManagePermissionsModalProps<
   Asset extends backendModule.AnyAsset = backendModule.AnyAsset,
 > {
-  readonly item: Pick<Asset, 'id' | 'permissions' | 'type'>
-  readonly setItem: React.Dispatch<React.SetStateAction<Asset>>
+  readonly backend: Backend
+  readonly item: Pick<Asset, 'id' | 'parentId' | 'permissions' | 'type'>
   readonly self: backendModule.AssetPermission
   /** Remove the current user's permissions from this asset. This MUST be a prop because it should
    * change the assets list. */
@@ -60,7 +60,8 @@ export interface ManagePermissionsModalProps<
 export default function ManagePermissionsModal<
   Asset extends backendModule.AnyAsset = backendModule.AnyAsset,
 >(props: ManagePermissionsModalProps<Asset>) {
-  const { item, setItem, self, doRemoveSelf, eventTarget } = props
+  const { backend, item: itemRaw, self, doRemoveSelf, eventTarget } = props
+  const item = useAssetPassiveListenerStrict(backend.type, itemRaw.id, itemRaw.parentId)
   const remoteBackend = backendProvider.useRemoteBackendStrict()
   const { user } = authProvider.useFullUserSession()
   const { unsetModal } = modalProvider.useSetModal()
@@ -127,12 +128,6 @@ export default function ManagePermissionsModal<
   const createPermissionMutation = useMutation(
     backendMutationOptions(remoteBackend, 'createPermission'),
   )
-
-  React.useEffect(() => {
-    // This is SAFE, as the type of asset is not being changed.
-    // eslint-disable-next-line no-restricted-syntax
-    setItem(object.merger({ permissions } as Partial<Asset>))
-  }, [permissions, setItem])
 
   const canAdd = React.useMemo(
     () => [

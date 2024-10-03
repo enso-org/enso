@@ -21,29 +21,30 @@ import ManagePermissionsModal from '#/modals/ManagePermissionsModal'
 
 import * as backendModule from '#/services/Backend'
 
+import { useAssetPassiveListenerStrict } from '#/hooks/backendHooks'
 import * as permissions from '#/utilities/permissions'
-import * as uniqueString from '#/utilities/uniqueString'
 
 // ========================
 // === SharedWithColumn ===
 // ========================
 
 /** The type of the `state` prop of a {@link SharedWithColumn}. */
-interface SharedWithColumnStateProp extends Pick<column.AssetColumnProps['state'], 'category'> {
+interface SharedWithColumnStateProp
+  extends Pick<column.AssetColumnProps['state'], 'backend' | 'category'> {
   readonly setQuery: column.AssetColumnProps['state']['setQuery'] | null
 }
 
 /** Props for a {@link SharedWithColumn}. */
-interface SharedWithColumnPropsInternal extends Pick<column.AssetColumnProps, 'item' | 'setItem'> {
+interface SharedWithColumnPropsInternal extends Pick<column.AssetColumnProps, 'item'> {
   readonly isReadonly?: boolean
   readonly state: SharedWithColumnStateProp
 }
 
 /** A column listing the users with which this asset is shared. */
 export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
-  const { item, setItem, state, isReadonly = false } = props
-  const { category, setQuery } = state
-  const asset = item.item
+  const { item, state, isReadonly = false } = props
+  const { backend, category, setQuery } = state
+  const asset = useAssetPassiveListenerStrict(backend.type, item.item.id, item.item.parentId)
   const { user } = authProvider.useFullUserSession()
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const { isFeatureUnderPaywall } = billingHooks.usePaywall({ plan: user.plan })
@@ -57,17 +58,6 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
     category.type !== 'trash' &&
     (self?.permission === permissions.PermissionAction.own ||
       self?.permission === permissions.PermissionAction.admin)
-  const setAsset = React.useCallback(
-    (valueOrUpdater: React.SetStateAction<backendModule.AnyAsset>) => {
-      setItem((oldItem) =>
-        oldItem.with({
-          item:
-            typeof valueOrUpdater !== 'function' ? valueOrUpdater : valueOrUpdater(oldItem.item),
-        }),
-      )
-    },
-    [setItem],
-  )
 
   return (
     <div className="group flex items-center gap-column-items">
@@ -117,9 +107,8 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
           onPress={() => {
             setModal(
               <ManagePermissionsModal
-                key={uniqueString.uniqueString()}
+                backend={backend}
                 item={asset}
-                setItem={setAsset}
                 self={self}
                 eventTarget={plusButtonRef.current}
                 doRemoveSelf={() => {

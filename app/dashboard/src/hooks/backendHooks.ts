@@ -8,6 +8,7 @@ import * as backendQuery from 'enso-common/src/backendQuery'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
+import invariant from 'tiny-invariant'
 
 // ============================
 // === DefineBackendMethods ===
@@ -249,11 +250,11 @@ export function useListUserGroupsWithUsers(
   }, [listUserGroupsQuery.data, listUsersQuery.data])
 }
 
-/** Return a hook to set data for a specific asset. */
+/** Data for a specific asset. */
 export function useAssetPassiveListener(
   backendType: backendModule.BackendType,
-  assetId: backendModule.AssetId,
-  parentId: backendModule.DirectoryId,
+  assetId: backendModule.AssetId | null | undefined,
+  parentId: backendModule.DirectoryId | null | undefined,
 ) {
   const queryClient = reactQuery.useQueryClient()
   const listDirectoryQuery = queryClient.getQueryCache().find<
@@ -268,6 +269,29 @@ export function useAssetPassiveListener(
   })
 
   return listDirectoryQuery?.state.data?.children.find((child) => child.id === assetId)
+}
+
+/** Data for a specific asset. */
+export function useAssetPassiveListenerStrict(
+  backendType: backendModule.BackendType,
+  assetId: backendModule.AssetId | null | undefined,
+  parentId: backendModule.DirectoryId | null | undefined,
+) {
+  const queryClient = reactQuery.useQueryClient()
+  const listDirectoryQuery = queryClient.getQueryCache().find<
+    | {
+        parentId: backendModule.DirectoryId
+        children: readonly backendModule.AnyAsset<backendModule.AssetType>[]
+      }
+    | undefined
+  >({
+    queryKey: [backendType, 'listDirectory', parentId],
+    exact: false,
+  })
+
+  const asset = listDirectoryQuery?.state.data?.children.find((child) => child.id === assetId)
+  invariant(asset, 'Asset not found')
+  return asset
 }
 
 /** Return a hook to set data for a specific asset. */

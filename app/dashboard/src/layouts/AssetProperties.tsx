@@ -7,7 +7,11 @@ import PenIcon from '#/assets/pen.svg'
 
 import * as datalinkValidator from '#/data/datalinkValidator'
 
-import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
+import {
+  backendMutationOptions,
+  useAssetPassiveListener,
+  useBackendQuery,
+} from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -17,7 +21,7 @@ import * as textProvider from '#/providers/TextProvider'
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import SharedWithColumn from '#/components/dashboard/column/SharedWithColumn'
-import { DatalinkFormInput } from '#/components/dashboard/DatalinkInput'
+import DatalinkInput from '#/components/dashboard/DatalinkInput'
 import Label from '#/components/dashboard/Label'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
 
@@ -34,6 +38,7 @@ import type * as assetTreeNode from '#/utilities/AssetTreeNode'
 import { normalizePath } from '#/utilities/fileInfo'
 import { mapNonNullish } from '#/utilities/nullable'
 import * as permissions from '#/utilities/permissions'
+import invariant from 'tiny-invariant'
 
 // =======================
 // === AssetProperties ===
@@ -46,7 +51,6 @@ export type AssetPropertiesSpotlight = 'datalink' | 'description' | 'secret'
 export interface AssetPropertiesProps {
   readonly backend: Backend
   readonly item: assetTreeNode.AnyAssetTreeNode
-  readonly setItem: React.Dispatch<React.SetStateAction<assetTreeNode.AnyAssetTreeNode>>
   readonly category: Category
   readonly isReadonly?: boolean
   readonly spotlightOn: AssetPropertiesSpotlight | undefined
@@ -54,9 +58,11 @@ export interface AssetPropertiesProps {
 
 /** Display and modify the properties of an asset. */
 export default function AssetProperties(props: AssetPropertiesProps) {
-  const { backend, item, setItem, category, spotlightOn } = props
+  const { backend, item, category, spotlightOn } = props
   const { isReadonly = false } = props
 
+  const asset = useAssetPassiveListener(backend.type, item.item.id, item.item.parentId)
+  invariant(asset, 'No asset is selected')
   const setAssetPanelProps = useSetAssetPanelProps()
   const closeSpotlight = useEventCallback(() => {
     const assetPanelProps = driveStore.getState().assetPanelProps
@@ -89,7 +95,14 @@ export default function AssetProperties(props: AssetPropertiesProps) {
   const [queuedDescription, setQueuedDescripion] = React.useState<string | null>(null)
   const [description, setDescription] = React.useState('')
   const [datalinkValue, setDatalinkValue] = React.useState<NonNullable<unknown> | null>(null)
+  const [editedDatalinkValue, setEditedDatalinkValue] = React.useState<NonNullable<unknown> | null>(
+    datalinkValue,
+  )
   const [isDatalinkFetched, setIsDatalinkFetched] = React.useState(false)
+  const isDatalinkSubmittable = React.useMemo(
+    () => datalinkValidator.validateDatalink(datalinkValue),
+    [datalinkValue],
+  )
   const driveStore = useDriveStore()
   const descriptionRef = React.useRef<HTMLDivElement>(null)
   const descriptionSpotlight = useSpotlight({
@@ -111,21 +124,22 @@ export default function AssetProperties(props: AssetPropertiesProps) {
   })
 
   const labels = useBackendQuery(backend, 'listTags', []).data ?? []
-  const self = permissions.tryFindSelfPermission(user, item.item.permissions)
+  const self = permissions.tryFindSelfPermission(user, asset.permissions)
   const ownsThisAsset = self?.permission === permissions.PermissionAction.own
   const canEditThisAsset =
     ownsThisAsset ||
     self?.permission === permissions.PermissionAction.admin ||
     self?.permission === permissions.PermissionAction.edit
-  const isSecret = item.type === backendModule.AssetType.secret
-  const isDatalink = item.type === backendModule.AssetType.datalink
+  const isSecret = asset.type === backendModule.AssetType.secret
+  const isDatalink = asset.type === backendModule.AssetType.datalink
+  const isDatalinkDisabled = datalinkValue === editedDatalinkValue || !isDatalinkSubmittable
   const isCloud = backend.type === backendModule.BackendType.remote
   const pathRaw =
     category.type === 'recent' || category.type === 'trash' ? null
     : isCloud ? `${item.path}${item.type === backendModule.AssetType.datalink ? '.datalink' : ''}`
-    : item.item.type === backendModule.AssetType.project ?
-      mapNonNullish(localBackend?.getProjectPath(item.item.id) ?? null, normalizePath)
-    : normalizePath(localBackendModule.extractTypeAndId(item.item.id).id)
+    : asset.type === backendModule.AssetType.project ?
+      mapNonNullish(localBackend?.getProjectPath(asset.id) ?? null, normalizePath)
+    : normalizePath(localBackendModule.extractTypeAndId(asset.id).id)
   const path =
     pathRaw == null ? null
     : isCloud ? encodeURI(pathRaw)
@@ -137,26 +151,26 @@ export default function AssetProperties(props: AssetPropertiesProps) {
   const getDatalink = getDatalinkMutation.mutateAsync
 
   React.useEffect(() => {
-    setDescription(item.item.description ?? '')
-  }, [item.item.description])
+    setDescription(asset.description ?? '')
+  }, [asset.description])
 
   React.useEffect(() => {
     void (async () => {
-      if (item.item.type === backendModule.AssetType.datalink) {
-        const value = await getDatalink([item.item.id, item.item.title])
+      if (asset.type === backendModule.AssetType.datalink) {
+        const value = await getDatalink([asset.id, asset.title])
         setDatalinkValue(value)
         setIsDatalinkFetched(true)
       }
     })()
-  }, [backend, item.item, getDatalink])
+  }, [backend, asset, getDatalink])
 
   const editDescription = async () => {
     setIsEditingDescription(false)
-    if (description !== item.item.description) {
+    if (description !== asset.description) {
       await updateAssetMutation.mutateAsync([
-        item.item.id,
+        asset.id,
         { parentDirectoryId: null, description },
-        item.item.title,
+        asset.title,
       ])
     }
   }
@@ -183,7 +197,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
               icon={PenIcon}
               onPress={() => {
                 setIsEditingDescription(true)
-                setQueuedDescripion(item.item.description)
+                setQueuedDescripion(asset.description)
               }}
             />
           )}
@@ -193,7 +207,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
           className="self-stretch py-side-panel-description-y"
         >
           {!isEditingDescription ?
-            <aria.Text className="text">{item.item.description}</aria.Text>
+            <aria.Text className="text">{asset.description}</aria.Text>
           : <form className="flex flex-col gap-modal pr-4" onSubmit={editDescription}>
               <textarea
                 ref={(element) => {
@@ -266,8 +280,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                   <SharedWithColumn
                     isReadonly={isReadonly}
                     item={item}
-                    setItem={setItem}
-                    state={{ category, setQuery: () => {} }}
+                    state={{ backend, category, setQuery: () => {} }}
                   />
                 </td>
               </tr>
@@ -276,7 +289,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                   <aria.Label className="text inline-block">{getText('labels')}</aria.Label>
                 </td>
                 <td className="flex w-full gap-1 p-0">
-                  {item.item.labels?.map((value) => {
+                  {asset.labels?.map((value) => {
                     const label = labels.find((otherLabel) => otherLabel.value === value)
                     return label == null ? null : (
                         <Label key={value} active isDisabled color={label.color} onPress={() => {}}>
@@ -307,10 +320,10 @@ export default function AssetProperties(props: AssetPropertiesProps) {
             noDialog
             canReset
             canCancel={false}
-            id={item.item.id}
-            name={item.item.title}
+            id={asset.id}
+            name={asset.title}
             doCreate={async (name, value) => {
-              await updateSecretMutation.mutateAsync([item.item.id, { value }, name])
+              await updateSecretMutation.mutateAsync([asset.id, { value }, name])
             }}
           />
         </div>
@@ -333,42 +346,52 @@ export default function AssetProperties(props: AssetPropertiesProps) {
               <StatelessSpinner size={48} state={statelessSpinner.SpinnerState.loadingMedium} />
             </div>
           : <>
-              <ariaComponents.Form
-                schema={(z) =>
-                  z.object({
-                    value: z.unknown().refine(datalinkValidator.validateDatalink),
-                  })
-                }
-                defaultValues={{ value: datalinkValue }}
-                className="w-full"
-                onSubmit={async ({ value }) => {
-                  await createDatalinkMutation.mutateAsync([
-                    {
-                      datalinkId: item.item.id,
-                      name: item.item.title,
-                      parentDirectoryId: null,
-                      value: value,
-                    },
-                  ])
-                }}
-              >
-                {({ form }) => (
-                  <>
-                    <DatalinkFormInput
-                      form={form}
-                      name="value"
-                      readOnly={!canEditThisAsset}
-                      dropdownTitle={getText('type')}
-                    />
-                    {canEditThisAsset && (
-                      <ariaComponents.ButtonGroup>
-                        <ariaComponents.Form.Submit action="update" />
-                        <ariaComponents.Form.Reset action="cancel" />
-                      </ariaComponents.ButtonGroup>
-                    )}
-                  </>
-                )}
-              </ariaComponents.Form>
+              <DatalinkInput
+                readOnly={!canEditThisAsset}
+                dropdownTitle="Type"
+                value={editedDatalinkValue}
+                onChange={setEditedDatalinkValue}
+              />
+              {canEditThisAsset && (
+                <ariaComponents.ButtonGroup>
+                  <ariaComponents.Button
+                    variant="submit"
+                    isDisabled={isDatalinkDisabled}
+                    {...(isDatalinkDisabled ?
+                      { title: 'Edit the Datalink before updating it.' }
+                    : {})}
+                    onPress={async () => {
+                      const oldDatalinkValue = datalinkValue
+                      try {
+                        setDatalinkValue(editedDatalinkValue)
+                        await createDatalinkMutation.mutateAsync([
+                          {
+                            datalinkId: asset.id,
+                            name: asset.title,
+                            parentDirectoryId: null,
+                            value: editedDatalinkValue,
+                          },
+                        ])
+                      } catch (error) {
+                        toastAndLog(null, error)
+                        setDatalinkValue(oldDatalinkValue)
+                        setEditedDatalinkValue(oldDatalinkValue)
+                      }
+                    }}
+                  >
+                    {getText('update')}
+                  </ariaComponents.Button>
+                  <ariaComponents.Button
+                    variant="outline"
+                    isDisabled={isDatalinkDisabled}
+                    onPress={() => {
+                      setEditedDatalinkValue(datalinkValue)
+                    }}
+                  >
+                    {getText('cancel')}
+                  </ariaComponents.Button>
+                </ariaComponents.ButtonGroup>
+              )}
             </>
           }
         </div>

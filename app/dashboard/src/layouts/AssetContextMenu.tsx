@@ -341,7 +341,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               label={getText('editDescriptionShortcut')}
               doAction={() => {
                 setIsAssetPanelTemporarilyVisible(true)
-                setAssetPanelProps({ backend, item, setItem, spotlightOn: 'description' })
+                setAssetPanelProps({ backend, item, spotlightOn: 'description' })
               }}
             />
           )}
