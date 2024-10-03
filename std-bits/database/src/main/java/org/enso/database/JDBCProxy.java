@@ -7,7 +7,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
-
 import org.enso.base.enso_cloud.EnsoSecretAccessDenied;
 import org.enso.base.enso_cloud.EnsoSecretHelper;
 import org.enso.base.enso_cloud.HideableValue;

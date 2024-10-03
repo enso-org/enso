@@ -4753,7 +4753,11 @@ lazy val `std-microsoft` = project
         )
         .value
       result
-    }.value
+    }.value,
+    Compile / internalModuleDependencies := Seq(
+      (`std-base` / Compile / exportedModule).value,
+      (`std-database` / Compile / exportedModule).value
+    )
   )
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
