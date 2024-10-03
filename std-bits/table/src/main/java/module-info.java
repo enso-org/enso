@@ -46,6 +46,7 @@ module org.enso.std.table {
 
   opens org.enso.table.data.table.problems;
   opens org.enso.table.data.table.join;
+  exports org.enso.table.data.table.join.between;
   opens org.enso.table.data.table.join.conditions;
   opens org.enso.table.data.table.join.lookup;
   opens org.enso.table.error;
