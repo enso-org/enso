@@ -38,6 +38,8 @@ const _props = defineProps<{
   components?: Record<string, unknown>
   singleClickEdit?: boolean
   stopEditingWhenCellsLoseFocus?: boolean
+  suppressDragLeaveHidesColumns?: boolean
+  suppressMoveWhenColumnDragging?: boolean
   textFormatOption?: TextFormatOptions
 }>()
 const emit = defineEmits<{
@@ -189,6 +191,8 @@ const { AgGridVue } = await import('ag-grid-vue3')
     :components="components"
     :singleClickEdit="singleClickEdit"
     :stopEditingWhenCellsLoseFocus="stopEditingWhenCellsLoseFocus"
+    :suppressDragLeaveHidesColumns="suppressDragLeaveHidesColumns"
+    :suppressMoveWhenColumnDragging="suppressMoveWhenColumnDragging"
     @gridReady="onGridReady"
     @firstDataRendered="updateColumnWidths"
     @rowDataUpdated="updateColumnWidths($event), emit('rowDataUpdated', $event)"

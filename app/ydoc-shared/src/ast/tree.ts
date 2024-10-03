@@ -2500,6 +2500,22 @@ export class MutableVector extends Vector implements MutableAst {
     this.fields.set('elements', elements)
   }
 
+  /**
+   * Move an element inside vector.
+   * @param fromIndex index of moved element. If outside array's index range, no element will be
+   *  moved.
+   * @param toIndex new index of moved element. If outside array's index range, the element will
+   *  be placed at the end.
+   */
+  move(fromIndex: number, toIndex: number) {
+    const elements = [...this.fields.get('elements')]
+    const [element] = elements.splice(fromIndex, 1)
+    if (element != null) {
+      elements.splice(toIndex, 0, element)
+      this.fields.set('elements', elements)
+    }
+  }
+
   keep(predicate: (ast: Ast) => boolean) {
     const elements = this.fields.get('elements')
     const filtered = elements.filter(
