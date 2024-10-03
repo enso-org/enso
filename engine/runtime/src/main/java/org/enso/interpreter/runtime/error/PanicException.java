@@ -60,8 +60,8 @@ public final class PanicException extends AbstractTruffleException implements En
     }
     this.payload = payload;
     if (CompilerDirectives.inInterpreter()) {
-        getMessage();
-        assert cacheMessage != null;
+      getMessage();
+      assert cacheMessage != null;
     }
   }
 
