@@ -41,7 +41,9 @@ module org.enso.std.table {
   opens org.enso.table.data.column.storage.type;
   opens org.enso.table.data.mask;
   opens org.enso.table.data.index;
-  opens org.enso.table.data.table;
+
+  exports org.enso.table.data.table;
+
   opens org.enso.table.data.table.problems;
   opens org.enso.table.data.table.join;
   opens org.enso.table.data.table.join.conditions;
