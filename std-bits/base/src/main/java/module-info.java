@@ -41,7 +41,9 @@ module org.enso.std.base {
   // following packages are accessed by Enso via polyglot java import
   opens org.enso.base;
   opens org.enso.base.arrays;
-  opens org.enso.base.encoding;
+
+  exports org.enso.base.encoding;
+
   opens org.enso.base.numeric;
   opens org.enso.base.net;
   opens org.enso.base.polyglot;
