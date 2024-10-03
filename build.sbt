@@ -3976,7 +3976,7 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
         (Compile / run).toTask("").tag(Exclusive).value
       }
       .dependsOn(
-        buildEngineDistribution
+        buildEngineDistributionNoIndex
       )
       .value,
     benchOnly := Def.inputTaskDyn {
