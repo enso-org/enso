@@ -18,9 +18,6 @@ const orDefaultSize = (rect: Rect) => {
 
 /**
  * A composable with logic related to nodes placement.
- * @returns object with three functions: `place` specifying a free place for new node. `collapse`
- * returning position for new collapsed node, and `input` returning default position for next
- * input component.
  */
 export function usePlacement(nodeRects: ToValue<Iterable<Rect>>, screenBounds: ToValue<Rect>) {
   const gap = themeGap()
@@ -30,10 +27,13 @@ export function usePlacement(nodeRects: ToValue<Iterable<Rect>>, screenBounds: T
     nodeRects: Array.from(toValue(nodeRects), orDefaultSize),
   })
   return {
+    /** Find a free position for a new node. For details, see {@link previousNodeDictatedPlacement}. */
     place: (selectedNodeRects: Iterable<Rect> = [], nodeSize: Vec2 = DEFAULT_NODE_SIZE): Vec2 =>
       previousNodeDictatedPlacement(nodeSize, environment(selectedNodeRects), gap),
+    /** Compute position of new collapsed node. For details, see {@link collapsedNodePlacement}. */
     collapse: (selectedNodeRects: Iterable<Rect>, nodeSize: Vec2 = DEFAULT_NODE_SIZE): Vec2 =>
       collapsedNodePlacement(nodeSize, environment(selectedNodeRects), gap),
+    /** Compute position of an input node. For details, see {@link inputNodePlacement}. */
     input: (nonInputNodeRects: Iterable<Rect>, nodeSize: Vec2 = DEFAULT_NODE_SIZE): Vec2 =>
       inputNodePlacement(nodeSize, { ...environment([]), nonInputNodeRects }, gap),
   }
