@@ -742,23 +742,30 @@ public class Main {
       factory.checkForWarnings(mainFile.getName().replace(".enso", "") + ".main");
     }
     var context = new PolyglotContext(factory.build());
-
-    if (projectMode) {
-      var result = PackageManager$.MODULE$.Default().loadPackage(file);
-      if (result.isSuccess()) {
-        var s = (scala.util.Success) result;
-        @SuppressWarnings("unchecked")
-        var pkg = (org.enso.pkg.Package<java.io.File>) s.get();
-        var mainModuleName = pkg.moduleNameForFile(pkg.mainFile()).toString();
-        runPackage(context, mainModuleName, file, additionalArgs);
+    try {
+      if (projectMode) {
+        var result = PackageManager$.MODULE$.Default().loadPackage(file);
+        if (result.isSuccess()) {
+          var s = (scala.util.Success) result;
+          @SuppressWarnings("unchecked")
+          var pkg = (org.enso.pkg.Package<java.io.File>) s.get();
+          var mainModuleName = pkg.moduleNameForFile(pkg.mainFile()).toString();
+          runPackage(context, mainModuleName, file, additionalArgs);
+        } else {
+          println(((scala.util.Failure) result).exception().getMessage());
+          throw exitFail();
+        }
       } else {
-        println(((scala.util.Failure) result).exception().getMessage());
-        throw exitFail();
+        runSingleFile(context, file, additionalArgs);
       }
-    } else {
-      runSingleFile(context, file, additionalArgs);
+    } catch (RuntimeException e) {
+      // forces computation of the exception message sooner than context is closed
+      // should work around issues seen at #11127
+      logger.debug("Execution failed with " + e.getMessage());
+      throw e;
+    } finally {
+      context.context().close();
     }
-    context.context().close();
     throw exitSuccess();
   }
 
@@ -1215,7 +1222,7 @@ public class Main {
 
     try {
       return main.call();
-    } catch (IOException ex) {
+    } catch (IOException | RuntimeException ex) {
       throw ex;
     } catch (Exception ex) {
       throw new IOException(ex);
