@@ -14,6 +14,7 @@ use crate::ide::web::env::VITE_ENSO_AG_GRID_LICENSE_KEY;
 use crate::ide::web::env::VITE_ENSO_MAPBOX_API_TOKEN;
 
 use ide_ci::actions::workflow::definition::cancel_workflow_action;
+use ide_ci::actions::workflow::definition::shell;
 use ide_ci::actions::workflow::definition::Access;
 use ide_ci::actions::workflow::definition::Job;
 use ide_ci::actions::workflow::definition::JobArchetype;
@@ -528,7 +529,26 @@ impl JobArchetype for PackageIde {
         RunStepsBuilder::new(
             "ide build --backend-source current-ci-run --gui-upload-artifact false",
         )
-        .customize(with_packaging_steps(target.0))
+        .customize(move |step| {
+            let mut steps = prepare_packaging_steps(target.0, step);
+            const TEST_COMMAND: &str = "corepack pnpm -r --filter enso exec playwright test";
+            let test_step = if target.0 == OS::Linux {
+                shell(format!("xvfb-run {TEST_COMMAND}"))
+                    // See https://askubuntu.com/questions/1512287/obsidian-appimage-the-suid-sandbox-helper-binary-was-found-but-is-not-configu
+                    .with_env("ENSO_TEST_APP_ARGS", "--no-sandbox")
+            } else {
+                shell(TEST_COMMAND)
+            };
+            let test_step = test_step
+                .with_env("DEBUG", "pw:browser log:")
+                .with_secret_exposed_as(secret::ENSO_CLOUD_TEST_ACCOUNT_USERNAME, "ENSO_TEST_USER")
+                .with_secret_exposed_as(
+                    secret::ENSO_CLOUD_TEST_ACCOUNT_PASSWORD,
+                    "ENSO_TEST_USER_PASSWORD",
+                );
+            steps.push(test_step);
+            steps
+        })
         .build_job("Package New IDE", target)
     }
 }
