@@ -19,6 +19,12 @@ add_specs suite_builder setup =
     table_builder = setup.light_table_builder
 
     suite_builder.group prefix+"Table.coalesce" group_builder->
+        group_builder.specify "2 columns" <|
+            t = table_builder [["A", [1, 2, Nothing, Nothing]], ["B", [3, Nothing, 4, Nothing]]]
+            colA = t.get "A"
+            colB = t.get "B"
+            result = colA.coalesce colB
+            result.to_vector . should_equal [1, 2, 4, Nothing]
         group_builder.specify "2 columns passing second as vector" <|
             t = table_builder [["A", [1, 2, Nothing, Nothing]], ["B", [3, Nothing, 4, Nothing]]]
             colA = t.get "A"
