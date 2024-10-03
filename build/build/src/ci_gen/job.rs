@@ -245,31 +245,31 @@ impl JobArchetype for StandardLibraryTests {
     fn job(&self, target: Target) -> Job {
         let graal_edition = self.graal_edition;
         let should_enable_cloud_tests = self.cloud_tests_enabled;
+        // If cloud tests are enabled, we run only cloud related tests.
+        let test_scope =
+            if should_enable_cloud_tests { "std-cloud-related" } else { "standard-library" };
         let job_name = format!("Standard Library Tests ({graal_edition})");
-        let run_steps_builder =
-            RunStepsBuilder::new("backend test standard-library").customize(move |step| {
-                let main_step = step
-                    .with_secret_exposed_as(
-                        secret::ENSO_LIB_S3_AWS_REGION,
-                        crate::libraries_tests::s3::env::ENSO_LIB_S3_AWS_REGION,
-                    )
-                    .with_secret_exposed_as(
-                        secret::ENSO_LIB_S3_AWS_ACCESS_KEY_ID,
-                        crate::libraries_tests::s3::env::ENSO_LIB_S3_AWS_ACCESS_KEY_ID,
-                    )
-                    .with_secret_exposed_as(
-                        secret::ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY,
-                        crate::libraries_tests::s3::env::ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY,
-                    );
+        let run_command = format!("backend test {test_scope}");
+        let run_steps_builder = RunStepsBuilder::new(run_command).customize(move |step| {
+            let main_step = step
+                .with_secret_exposed_as(
+                    secret::ENSO_LIB_S3_AWS_REGION,
+                    crate::libraries_tests::s3::env::ENSO_LIB_S3_AWS_REGION,
+                )
+                .with_secret_exposed_as(
+                    secret::ENSO_LIB_S3_AWS_ACCESS_KEY_ID,
+                    crate::libraries_tests::s3::env::ENSO_LIB_S3_AWS_ACCESS_KEY_ID,
+                )
+                .with_secret_exposed_as(
+                    secret::ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY,
+                    crate::libraries_tests::s3::env::ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY,
+                );
 
-                let updated_main_step = if should_enable_cloud_tests {
-                    enable_cloud_tests(main_step)
-                } else {
-                    main_step
-                };
+            let updated_main_step =
+                if should_enable_cloud_tests { enable_cloud_tests(main_step) } else { main_step };
 
-                vec![updated_main_step, step::stdlib_test_reporter(target, graal_edition)]
-            });
+            vec![updated_main_step, step::stdlib_test_reporter(target, graal_edition)]
+        });
         let mut job = build_job_ensuring_cloud_tests_run_on_github(
             run_steps_builder,
             target,
