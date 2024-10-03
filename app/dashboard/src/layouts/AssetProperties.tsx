@@ -4,41 +4,34 @@ import * as React from 'react'
 import { useMutation } from '@tanstack/react-query'
 
 import PenIcon from '#/assets/pen.svg'
-
-import * as datalinkValidator from '#/data/datalinkValidator'
-
-import {
-  backendMutationOptions,
-  useAssetPassiveListener,
-  useBackendQuery,
-} from '#/hooks/backendHooks'
-import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
-
-import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
-import * as textProvider from '#/providers/TextProvider'
-
-import * as aria from '#/components/aria'
-import * as ariaComponents from '#/components/AriaComponents'
+import { Heading } from '#/components/aria'
+import { Button, ButtonGroup, CopyButton, Text } from '#/components/AriaComponents'
 import SharedWithColumn from '#/components/dashboard/column/SharedWithColumn'
 import DatalinkInput from '#/components/dashboard/DatalinkInput'
 import Label from '#/components/dashboard/Label'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
-
-import type Backend from '#/services/Backend'
-import * as backendModule from '#/services/Backend'
-import * as localBackendModule from '#/services/LocalBackend'
-
+import { validateDatalink } from '#/data/datalinkValidator'
+import {
+  backendMutationOptions,
+  useAssetPassiveListenerStrict,
+  useBackendQuery,
+} from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSpotlight } from '#/hooks/spotlightHooks'
+import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
+import { useFullUserSession } from '#/providers/AuthProvider'
+import { useLocalBackend } from '#/providers/BackendProvider'
 import { useDriveStore, useSetAssetPanelProps } from '#/providers/DriveProvider'
-import type * as assetTreeNode from '#/utilities/AssetTreeNode'
+import { useText } from '#/providers/TextProvider'
+import type Backend from '#/services/Backend'
+import { AssetType, BackendType } from '#/services/Backend'
+import { extractTypeAndId } from '#/services/LocalBackend'
+import type { AnyAssetTreeNode } from '#/utilities/AssetTreeNode'
 import { normalizePath } from '#/utilities/fileInfo'
 import { mapNonNullish } from '#/utilities/nullable'
 import * as permissions from '#/utilities/permissions'
-import invariant from 'tiny-invariant'
 
 // =======================
 // === AssetProperties ===
@@ -50,7 +43,7 @@ export type AssetPropertiesSpotlight = 'datalink' | 'description' | 'secret'
 /** Props for an {@link AssetPropertiesProps}. */
 export interface AssetPropertiesProps {
   readonly backend: Backend
-  readonly item: assetTreeNode.AnyAssetTreeNode
+  readonly item: AnyAssetTreeNode
   readonly category: Category
   readonly isReadonly?: boolean
   readonly spotlightOn: AssetPropertiesSpotlight | undefined
@@ -61,8 +54,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
   const { backend, item, category, spotlightOn } = props
   const { isReadonly = false } = props
 
-  const asset = useAssetPassiveListener(backend.type, item.item.id, item.item.parentId)
-  invariant(asset, 'No asset is selected')
+  const asset = useAssetPassiveListenerStrict(backend.type, item.item.id, item.item.parentId)
   const setAssetPanelProps = useSetAssetPanelProps()
   const closeSpotlight = useEventCallback(() => {
     const assetPanelProps = driveStore.getState().assetPanelProps
@@ -72,10 +64,10 @@ export default function AssetProperties(props: AssetPropertiesProps) {
       setAssetPanelProps(rest)
     }
   })
-  const { user } = authProvider.useFullUserSession()
-  const { getText } = textProvider.useText()
-  const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const localBackend = backendProvider.useLocalBackend()
+  const { user } = useFullUserSession()
+  const { getText } = useText()
+  const toastAndLog = useToastAndLog()
+  const localBackend = useLocalBackend()
   const [isEditingDescriptionRaw, setIsEditingDescriptionRaw] = React.useState(false)
   const isEditingDescription = isEditingDescriptionRaw || spotlightOn === 'description'
   const setIsEditingDescription = React.useCallback(
@@ -100,7 +92,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
   )
   const [isDatalinkFetched, setIsDatalinkFetched] = React.useState(false)
   const isDatalinkSubmittable = React.useMemo(
-    () => datalinkValidator.validateDatalink(datalinkValue),
+    () => validateDatalink(datalinkValue),
     [datalinkValue],
   )
   const driveStore = useDriveStore()
@@ -130,16 +122,16 @@ export default function AssetProperties(props: AssetPropertiesProps) {
     ownsThisAsset ||
     self?.permission === permissions.PermissionAction.admin ||
     self?.permission === permissions.PermissionAction.edit
-  const isSecret = asset.type === backendModule.AssetType.secret
-  const isDatalink = asset.type === backendModule.AssetType.datalink
+  const isSecret = asset.type === AssetType.secret
+  const isDatalink = asset.type === AssetType.datalink
   const isDatalinkDisabled = datalinkValue === editedDatalinkValue || !isDatalinkSubmittable
-  const isCloud = backend.type === backendModule.BackendType.remote
+  const isCloud = backend.type === BackendType.remote
   const pathRaw =
     category.type === 'recent' || category.type === 'trash' ? null
-    : isCloud ? `${item.path}${item.type === backendModule.AssetType.datalink ? '.datalink' : ''}`
-    : asset.type === backendModule.AssetType.project ?
+    : isCloud ? `${item.path}${item.type === AssetType.datalink ? '.datalink' : ''}`
+    : asset.type === AssetType.project ?
       mapNonNullish(localBackend?.getProjectPath(asset.id) ?? null, normalizePath)
-    : normalizePath(localBackendModule.extractTypeAndId(asset.id).id)
+    : normalizePath(extractTypeAndId(asset.id).id)
   const path =
     pathRaw == null ? null
     : isCloud ? encodeURI(pathRaw)
@@ -156,7 +148,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
 
   React.useEffect(() => {
     void (async () => {
-      if (asset.type === backendModule.AssetType.datalink) {
+      if (asset.type === AssetType.datalink) {
         const value = await getDatalink([asset.id, asset.title])
         setDatalinkValue(value)
         setIsDatalinkFetched(true)
@@ -185,13 +177,13 @@ export default function AssetProperties(props: AssetPropertiesProps) {
         className="pointer-events-auto flex flex-col items-start gap-side-panel rounded-default"
         {...descriptionSpotlight.props}
       >
-        <aria.Heading
+        <Heading
           level={2}
           className="flex h-side-panel-heading items-center gap-side-panel-section py-side-panel-heading-y text-lg leading-snug"
         >
           {getText('description')}
           {!isReadonly && ownsThisAsset && !isEditingDescription && (
-            <ariaComponents.Button
+            <Button
               size="medium"
               variant="icon"
               icon={PenIcon}
@@ -201,13 +193,13 @@ export default function AssetProperties(props: AssetPropertiesProps) {
               }}
             />
           )}
-        </aria.Heading>
+        </Heading>
         <div
           data-testid="asset-panel-description"
           className="self-stretch py-side-panel-description-y"
         >
           {!isEditingDescription ?
-            <aria.Text className="text">{asset.description}</aria.Text>
+            <Text>{asset.description}</Text>
           : <form className="flex flex-col gap-modal pr-4" onSubmit={editDescription}>
               <textarea
                 ref={(element) => {
@@ -238,43 +230,43 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                   }
                 }}
               />
-              <ariaComponents.ButtonGroup>
-                <ariaComponents.Button size="medium" variant="outline" onPress={editDescription}>
+              <ButtonGroup>
+                <Button size="medium" variant="outline" onPress={editDescription}>
                   {getText('update')}
-                </ariaComponents.Button>
-              </ariaComponents.ButtonGroup>
+                </Button>
+              </ButtonGroup>
             </form>
           }
         </div>
       </div>
       {isCloud && (
         <div className="pointer-events-auto flex flex-col items-start gap-side-panel-section">
-          <aria.Heading
+          <Heading
             level={2}
             className="h-side-panel-heading py-side-panel-heading-y text-lg leading-snug"
           >
             {getText('settings')}
-          </aria.Heading>
+          </Heading>
           <table>
             <tbody>
               {path != null && (
                 <tr data-testid="asset-panel-permissions" className="h-row">
                   <td className="text my-auto min-w-side-panel-label p-0">
-                    <aria.Label className="text inline-block">{getText('path')}</aria.Label>
+                    <Text>{getText('path')}</Text>
                   </td>
                   <td className="w-full p-0">
                     <div className="flex items-center gap-2">
-                      <ariaComponents.Text className="w-0 grow" truncate="1">
+                      <Text className="w-0 grow" truncate="1">
                         {decodeURI(path)}
-                      </ariaComponents.Text>
-                      <ariaComponents.CopyButton copyText={path} />
+                      </Text>
+                      <CopyButton copyText={path} />
                     </div>
                   </td>
                 </tr>
               )}
               <tr data-testid="asset-panel-permissions" className="h-row">
                 <td className="text my-auto min-w-side-panel-label p-0">
-                  <aria.Label className="text inline-block">{getText('sharedWith')}</aria.Label>
+                  <Text className="text inline-block">{getText('sharedWith')}</Text>
                 </td>
                 <td className="flex w-full gap-1 p-0">
                   <SharedWithColumn
@@ -286,7 +278,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
               </tr>
               <tr data-testid="asset-panel-labels" className="h-row">
                 <td className="text my-auto min-w-side-panel-label p-0">
-                  <aria.Label className="text inline-block">{getText('labels')}</aria.Label>
+                  <Text className="text inline-block">{getText('labels')}</Text>
                 </td>
                 <td className="flex w-full gap-1 p-0">
                   {asset.labels?.map((value) => {
@@ -310,12 +302,12 @@ export default function AssetProperties(props: AssetPropertiesProps) {
           className="pointer-events-auto flex flex-col items-start gap-side-panel-section rounded-default"
           {...secretSpotlight.props}
         >
-          <aria.Heading
+          <Heading
             level={2}
             className="h-side-panel-heading py-side-panel-heading-y text-lg leading-snug"
           >
             {getText('secret')}
-          </aria.Heading>
+          </Heading>
           <UpsertSecretModal
             noDialog
             canReset
@@ -335,12 +327,12 @@ export default function AssetProperties(props: AssetPropertiesProps) {
           className="pointer-events-auto flex flex-col items-start gap-side-panel-section rounded-default"
           {...datalinkSpotlight.props}
         >
-          <aria.Heading
+          <Heading
             level={2}
             className="h-side-panel-heading py-side-panel-heading-y text-lg leading-snug"
           >
             {getText('datalink')}
-          </aria.Heading>
+          </Heading>
           {!isDatalinkFetched ?
             <div className="grid place-items-center self-stretch">
               <StatelessSpinner size={48} state={statelessSpinner.SpinnerState.loadingMedium} />
@@ -353,8 +345,8 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                 onChange={setEditedDatalinkValue}
               />
               {canEditThisAsset && (
-                <ariaComponents.ButtonGroup>
-                  <ariaComponents.Button
+                <ButtonGroup>
+                  <Button
                     variant="submit"
                     isDisabled={isDatalinkDisabled}
                     {...(isDatalinkDisabled ?
@@ -380,8 +372,8 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                     }}
                   >
                     {getText('update')}
-                  </ariaComponents.Button>
-                  <ariaComponents.Button
+                  </Button>
+                  <Button
                     variant="outline"
                     isDisabled={isDatalinkDisabled}
                     onPress={() => {
@@ -389,8 +381,8 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                     }}
                   >
                     {getText('cancel')}
-                  </ariaComponents.Button>
-                </ariaComponents.ButtonGroup>
+                  </Button>
+                </ButtonGroup>
               )}
             </>
           }

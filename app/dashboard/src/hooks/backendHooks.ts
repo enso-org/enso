@@ -1,14 +1,28 @@
 /** @file Hooks for interacting with the backend. */
-import * as React from 'react'
+import { useMemo } from 'react'
 
-import * as reactQuery from '@tanstack/react-query'
+import {
+  useQuery,
+  useQueryClient,
+  type UseMutationOptions,
+  type UseQueryOptions,
+  type UseQueryResult,
+} from '@tanstack/react-query'
+import invariant from 'tiny-invariant'
 
-import * as backendQuery from 'enso-common/src/backendQuery'
+import { backendQueryOptions, type BackendMethods } from 'enso-common/src/backendQuery'
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import type Backend from '#/services/Backend'
-import * as backendModule from '#/services/Backend'
-import invariant from 'tiny-invariant'
+import {
+  BackendType,
+  type AnyAsset,
+  type AssetId,
+  type AssetType,
+  type DirectoryId,
+  type User,
+  type UserGroupInfo,
+} from '#/services/Backend'
 
 // ============================
 // === DefineBackendMethods ===
@@ -73,43 +87,34 @@ export type MutationMethod = DefineBackendMethods<
 // === useBackendQuery ===
 // =======================
 
-export function useBackendQuery<Method extends backendQuery.BackendMethods>(
+export function useBackendQuery<Method extends BackendMethods>(
   backend: Backend,
   method: Method,
   args: Parameters<Backend[Method]>,
-  options?: Omit<
-    reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>,
-    'queryFn' | 'queryKey'
-  > &
-    Partial<Pick<reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryKey'>>,
-): reactQuery.UseQueryResult<Awaited<ReturnType<Backend[Method]>>>
-export function useBackendQuery<Method extends backendQuery.BackendMethods>(
+  options?: Omit<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn' | 'queryKey'> &
+    Partial<Pick<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryKey'>>,
+): UseQueryResult<Awaited<ReturnType<Backend[Method]>>>
+export function useBackendQuery<Method extends BackendMethods>(
   backend: Backend | null,
   method: Method,
   args: Parameters<Backend[Method]>,
-  options?: Omit<
-    reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>,
-    'queryFn' | 'queryKey'
-  > &
-    Partial<Pick<reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryKey'>>,
-): reactQuery.UseQueryResult<
+  options?: Omit<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn' | 'queryKey'> &
+    Partial<Pick<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryKey'>>,
+): UseQueryResult<
   // eslint-disable-next-line no-restricted-syntax
   Awaited<ReturnType<Backend[Method]>> | undefined
 >
 /** Wrap a backend method call in a React Query. */
-export function useBackendQuery<Method extends backendQuery.BackendMethods>(
+export function useBackendQuery<Method extends BackendMethods>(
   backend: Backend | null,
   method: Method,
   args: Parameters<Backend[Method]>,
-  options?: Omit<
-    reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>,
-    'queryFn' | 'queryKey'
-  > &
-    Partial<Pick<reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryKey'>>,
+  options?: Omit<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn' | 'queryKey'> &
+    Partial<Pick<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryKey'>>,
 ) {
-  return reactQuery.useQuery<Awaited<ReturnType<Backend[Method]>>>({
+  return useQuery<Awaited<ReturnType<Backend[Method]>>>({
     ...options,
-    ...backendQuery.backendQueryOptions(backend, method, args, options?.queryKey),
+    ...backendQueryOptions(backend, method, args, options?.queryKey),
     // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
     queryFn: () => (backend?.[method] as any)?.(...args),
   })
@@ -121,7 +126,7 @@ export function useBackendQuery<Method extends backendQuery.BackendMethods>(
 
 const INVALIDATE_ALL_QUERIES = Symbol('invalidate all queries')
 const INVALIDATION_MAP: Partial<
-  Record<MutationMethod, readonly (backendQuery.BackendMethods | typeof INVALIDATE_ALL_QUERIES)[]>
+  Record<MutationMethod, readonly (BackendMethods | typeof INVALIDATE_ALL_QUERIES)[]>
 > = {
   createUser: ['usersMe'],
   updateUser: ['usersMe'],
@@ -157,30 +162,18 @@ export function backendMutationOptions<Method extends MutationMethod>(
   backend: Backend,
   method: Method,
   options?: Omit<
-    reactQuery.UseMutationOptions<
-      Awaited<ReturnType<Backend[Method]>>,
-      Error,
-      Parameters<Backend[Method]>
-    >,
+    UseMutationOptions<Awaited<ReturnType<Backend[Method]>>, Error, Parameters<Backend[Method]>>,
     'mutationFn'
   >,
-): reactQuery.UseMutationOptions<
-  Awaited<ReturnType<Backend[Method]>>,
-  Error,
-  Parameters<Backend[Method]>
->
+): UseMutationOptions<Awaited<ReturnType<Backend[Method]>>, Error, Parameters<Backend[Method]>>
 export function backendMutationOptions<Method extends MutationMethod>(
   backend: Backend | null,
   method: Method,
   options?: Omit<
-    reactQuery.UseMutationOptions<
-      Awaited<ReturnType<Backend[Method]>>,
-      Error,
-      Parameters<Backend[Method]>
-    >,
+    UseMutationOptions<Awaited<ReturnType<Backend[Method]>>, Error, Parameters<Backend[Method]>>,
     'mutationFn'
   >,
-): reactQuery.UseMutationOptions<
+): UseMutationOptions<
   Awaited<ReturnType<Backend[Method]>> | undefined,
   Error,
   Parameters<Backend[Method]>
@@ -190,24 +183,16 @@ export function backendMutationOptions<Method extends MutationMethod>(
   backend: Backend | null,
   method: Method,
   options?: Omit<
-    reactQuery.UseMutationOptions<
-      Awaited<ReturnType<Backend[Method]>>,
-      Error,
-      Parameters<Backend[Method]>
-    >,
+    UseMutationOptions<Awaited<ReturnType<Backend[Method]>>, Error, Parameters<Backend[Method]>>,
     'mutationFn'
   >,
-): reactQuery.UseMutationOptions<
-  Awaited<ReturnType<Backend[Method]>>,
-  Error,
-  Parameters<Backend[Method]>
-> {
+): UseMutationOptions<Awaited<ReturnType<Backend[Method]>>, Error, Parameters<Backend[Method]>> {
   return {
     ...options,
     mutationKey: [backend?.type, method, ...(options?.mutationKey ?? [])],
     // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
     mutationFn: (args) => (backend?.[method] as any)?.(...args),
-    networkMode: backend?.type === backendModule.BackendType.local ? 'always' : 'online',
+    networkMode: backend?.type === BackendType.local ? 'always' : 'online',
     meta: {
       invalidates: [
         ...(options?.meta?.invalidates ?? []),
@@ -225,8 +210,8 @@ export function backendMutationOptions<Method extends MutationMethod>(
 // ==================================
 
 /** A user group, as well as the users that are a part of the user group. */
-export interface UserGroupInfoWithUsers extends backendModule.UserGroupInfo {
-  readonly users: readonly backendModule.User[]
+export interface UserGroupInfoWithUsers extends UserGroupInfo {
+  readonly users: readonly User[]
 }
 
 /** A list of user groups, taking into account optimistic state. */
@@ -235,12 +220,12 @@ export function useListUserGroupsWithUsers(
 ): readonly UserGroupInfoWithUsers[] | null {
   const listUserGroupsQuery = useBackendQuery(backend, 'listUserGroups', [])
   const listUsersQuery = useBackendQuery(backend, 'listUsers', [])
-  return React.useMemo(() => {
+  return useMemo(() => {
     if (listUserGroupsQuery.data == null || listUsersQuery.data == null) {
       return null
     } else {
       const result = listUserGroupsQuery.data.map((userGroup) => {
-        const usersInGroup: readonly backendModule.User[] = listUsersQuery.data.filter((user) =>
+        const usersInGroup: readonly User[] = listUsersQuery.data.filter((user) =>
           user.userGroups?.includes(userGroup.id),
         )
         return { ...userGroup, users: usersInGroup }
@@ -252,15 +237,15 @@ export function useListUserGroupsWithUsers(
 
 /** Data for a specific asset. */
 export function useAssetPassiveListener(
-  backendType: backendModule.BackendType,
-  assetId: backendModule.AssetId | null | undefined,
-  parentId: backendModule.DirectoryId | null | undefined,
+  backendType: BackendType,
+  assetId: AssetId | null | undefined,
+  parentId: DirectoryId | null | undefined,
 ) {
-  const queryClient = reactQuery.useQueryClient()
+  const queryClient = useQueryClient()
   const listDirectoryQuery = queryClient.getQueryCache().find<
     | {
-        parentId: backendModule.DirectoryId
-        children: readonly backendModule.AnyAsset<backendModule.AssetType>[]
+        parentId: DirectoryId
+        children: readonly AnyAsset<AssetType>[]
       }
     | undefined
   >({
@@ -273,15 +258,15 @@ export function useAssetPassiveListener(
 
 /** Data for a specific asset. */
 export function useAssetPassiveListenerStrict(
-  backendType: backendModule.BackendType,
-  assetId: backendModule.AssetId | null | undefined,
-  parentId: backendModule.DirectoryId | null | undefined,
+  backendType: BackendType,
+  assetId: AssetId | null | undefined,
+  parentId: DirectoryId | null | undefined,
 ) {
-  const queryClient = reactQuery.useQueryClient()
+  const queryClient = useQueryClient()
   const listDirectoryQuery = queryClient.getQueryCache().find<
     | {
-        parentId: backendModule.DirectoryId
-        children: readonly backendModule.AnyAsset<backendModule.AssetType>[]
+        parentId: DirectoryId
+        children: readonly AnyAsset<AssetType>[]
       }
     | undefined
   >({
@@ -295,13 +280,13 @@ export function useAssetPassiveListenerStrict(
 }
 
 /** Return a hook to set data for a specific asset. */
-export function useSetAsset(backendType: backendModule.BackendType) {
-  const queryClient = reactQuery.useQueryClient()
-  return useEventCallback((assetId: backendModule.AssetId, asset: backendModule.AnyAsset) => {
+export function useSetAsset(backendType: BackendType) {
+  const queryClient = useQueryClient()
+  return useEventCallback((assetId: AssetId, asset: AnyAsset) => {
     const listDirectoryQuery = queryClient.getQueryCache().find<
       | {
-          parentId: backendModule.DirectoryId
-          children: readonly backendModule.AnyAsset<backendModule.AssetType>[]
+          parentId: DirectoryId
+          children: readonly AnyAsset<AssetType>[]
         }
       | undefined
     >({
