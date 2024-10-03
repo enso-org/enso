@@ -91,6 +91,7 @@ class TailCallMini(
         pat.children().foreach { patChild =>
           notTails.add(patChild)
         }
+      case _ => ()
     }
     this
   }
@@ -126,7 +127,7 @@ class TailCallMini(
   override def checkPostCondition(ir: IR): Boolean = {
     // If isInTail position is true, there must be TailCall metadata attached.
     if (isInTailPosition) {
-      ir.getMetadata(TailCall) match {
+      ir.getMetadata(this) match {
         case Some(meta) if meta.isTail => true
         case _                         => false
       }
