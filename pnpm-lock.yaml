@@ -44,206 +44,7 @@ importers:
         specifier: ^4.0.0
         version: 4.0.0(prettier@3.3.2)(typescript@5.5.3)(vue-tsc@2.0.24(typescript@5.5.3))
 
-  app/dashboard:
-    dependencies:
-      '@aws-amplify/auth':
-        specifier: 5.6.5
-        version: 5.6.5
-      '@aws-amplify/core':
-        specifier: 5.8.5
-        version: 5.8.5
-      '@hookform/resolvers':
-        specifier: ^3.4.0
-        version: 3.6.0(react-hook-form@7.52.0(react@18.3.1))
-      '@internationalized/date':
-        specifier: ^3.5.5
-        version: 3.5.5
-      '@monaco-editor/react':
-        specifier: 4.6.0
-        version: 4.6.0(monaco-editor@0.48.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@sentry/react':
-        specifier: ^7.74.0
-        version: 7.118.0(react@18.3.1)
-      '@stripe/react-stripe-js':
-        specifier: ^2.7.1
-        version: 2.7.2(@stripe/stripe-js@3.5.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@stripe/stripe-js':
-        specifier: ^3.5.0
-        version: 3.5.0
-      '@tanstack/react-query':
-        specifier: 5.55.0
-        version: 5.55.0(react@18.3.1)
-      '@tanstack/vue-query':
-        specifier: '>= 5.54.0 < 5.56.0'
-        version: 5.54.2(vue@3.5.2(typescript@5.5.3))
-      ajv:
-        specifier: ^8.12.0
-        version: 8.16.0
-      amazon-cognito-identity-js:
-        specifier: 6.3.6
-        version: 6.3.6
-      clsx:
-        specifier: ^2.1.1
-        version: 2.1.1
-      enso-common:
-        specifier: workspace:*
-        version: link:../ide-desktop/common
-      framer-motion:
-        specifier: 11.3.0
-        version: 11.3.0(@emotion/is-prop-valid@1.3.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      input-otp:
-        specifier: 1.2.4
-        version: 1.2.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      is-network-error:
-        specifier: ^1.0.1
-        version: 1.1.0
-      monaco-editor:
-        specifier: 0.48.0
-        version: 0.48.0
-      qrcode.react:
-        specifier: 3.1.0
-        version: 3.1.0(react@18.3.1)
-      react:
-        specifier: ^18.3.1
-        version: 18.3.1
-      react-aria:
-        specifier: ^3.34.3
-        version: 3.34.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      react-aria-components:
-        specifier: ^1.3.3
-        version: 1.3.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      react-dom:
-        specifier: ^18.3.1
-        version: 18.3.1(react@18.3.1)
-      react-error-boundary:
-        specifier: 4.0.13
-        version: 4.0.13(react@18.3.1)
-      react-hook-form:
-        specifier: ^7.51.4
-        version: 7.52.0(react@18.3.1)
-      react-router:
-        specifier: ^6.23.1
-        version: 6.24.0(react@18.3.1)
-      react-router-dom:
-        specifier: ^6.23.1
-        version: 6.24.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      react-stately:
-        specifier: ^3.32.2
-        version: 3.32.2(react@18.3.1)
-      react-toastify:
-        specifier: ^9.1.3
-        version: 9.1.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      tailwind-merge:
-        specifier: ^2.3.0
-        version: 2.3.0
-      tailwind-variants:
-        specifier: 0.2.1
-        version: 0.2.1(tailwindcss@3.4.4)
-      tiny-invariant:
-        specifier: ^1.3.3
-        version: 1.3.3
-      ts-results:
-        specifier: ^3.3.0
-        version: 3.3.0
-      validator:
-        specifier: ^13.12.0
-        version: 13.12.0
-      zod:
-        specifier: ^3.23.8
-        version: 3.23.8
-      zustand:
-        specifier: ^4.5.4
-        version: 4.5.4(@types/react@18.3.3)(react@18.3.1)
-    devDependencies:
-      '@fast-check/vitest':
-        specifier: ^0.0.8
-        version: 0.0.8(vitest@1.6.0(@types/node@20.11.21)(jsdom@24.1.0)(lightningcss@1.25.1))
-      '@modyfi/vite-plugin-yaml':
-        specifier: ^1.0.4
-        version: 1.1.0(rollup@4.18.1)(vite@5.3.5(@types/node@20.11.21)(lightningcss@1.25.1))
-      '@playwright/test':
-        specifier: ^1.40.0
-        version: 1.45.0
-      '@react-types/shared':
-        specifier: ^3.22.1
-        version: 3.24.1(react@18.3.1)
-      '@tanstack/react-query-devtools':
-        specifier: 5.45.1
-        version: 5.45.1(@tanstack/react-query@5.55.0(react@18.3.1))(react@18.3.1)
-      '@types/eslint__js':
-        specifier: ^8.42.3
-        version: 8.42.3
-      '@types/node':
-        specifier: ^20.11.21
-        version: 20.11.21
-      '@types/react':
-        specifier: ^18.0.27
-        version: 18.3.3
-      '@types/react-dom':
-        specifier: ^18.0.10
-        version: 18.3.0
-      '@types/validator':
-        specifier: ^13.11.7
-        version: 13.12.0
-      '@typescript-eslint/eslint-plugin':
-        specifier: ^7.15.0
-        version: 7.15.0(@typescript-eslint/parser@7.15.0(eslint@8.57.0)(typescript@5.5.3))(eslint@8.57.0)(typescript@5.5.3)
-      '@typescript-eslint/parser':
-        specifier: ^7.15.0
-        version: 7.15.0(eslint@8.57.0)(typescript@5.5.3)
-      '@vitejs/plugin-react':
-        specifier: ^4.2.1
-        version: 4.3.1(vite@5.3.5(@types/node@20.11.21)(lightningcss@1.25.1))
-      chalk:
-        specifier: ^5.3.0
-        version: 5.3.0
-      cross-env:
-        specifier: ^7.0.3
-        version: 7.0.3
-      enso-chat:
-        specifier: git://github.com/enso-org/enso-bot
-        version: enso-support@https://codeload.github.com/enso-org/enso-bot/tar.gz/aa903b6e639a31930ee4fff55c5639e4471fa48d
-      eslint:
-        specifier: ^8.49.0
-        version: 8.57.0
-      eslint-plugin-react:
-        specifier: ^7.32.1
-        version: 7.34.3(eslint@8.57.0)
-      fast-check:
-        specifier: ^3.15.0
-        version: 3.19.0
-      playwright:
-        specifier: ^1.38.0
-        version: 1.45.0
-      postcss:
-        specifier: ^8.4.29
-        version: 8.4.45
-      prettier-plugin-organize-imports:
-        specifier: ^4.0.0
-        version: 4.0.0(prettier@3.3.2)(typescript@5.5.3)(vue-tsc@2.0.24(typescript@5.5.3))
-      prettier-plugin-tailwindcss:
-        specifier: ^0.5.11
-        version: 0.5.14(@ianvs/prettier-plugin-sort-imports@4.3.0(prettier@3.3.2))(prettier-plugin-organize-imports@4.0.0(prettier@3.3.2)(typescript@5.5.3)(vue-tsc@2.0.24(typescript@5.5.3)))(prettier@3.3.2)
-      tailwindcss:
-        specifier: ^3.4.1
-        version: 3.4.4
-      tailwindcss-animate:
-        specifier: 1.0.7
-        version: 1.0.7(tailwindcss@3.4.4)
-      tailwindcss-react-aria-components:
-        specifier: ^1.1.1
-        version: 1.1.3(tailwindcss@3.4.4)
-      typescript:
-        specifier: ^5.5.3
-        version: 5.5.3
-      vite:
-        specifier: ^5.3.5
-        version: 5.3.5(@types/node@20.11.21)(lightningcss@1.25.1)
-      vitest:
-        specifier: ^1.3.1
-        version: 1.6.0(@types/node@20.11.21)(jsdom@24.1.0)(lightningcss@1.25.1)
-
-  app/gui2:
+  app/gui:
     dependencies:
       '@ag-grid-community/client-side-row-model':
         specifier: ^31.1.1
@@ -260,6 +61,12 @@ importers:
       '@ag-grid-enterprise/range-selection':
         specifier: ^31.1.1
         version: 31.3.4
+      '@aws-amplify/auth':
+        specifier: 5.6.5
+        version: 5.6.5
+      '@aws-amplify/core':
+        specifier: 5.8.5
+        version: 5.8.5
       '@babel/parser':
         specifier: ^7.24.7
         version: 7.25.6
@@ -287,6 +94,12 @@ importers:
       '@floating-ui/vue':
         specifier: ^1.0.6
         version: 1.1.0(vue@3.5.2(typescript@5.5.3))
+      '@hookform/resolvers':
+        specifier: ^3.4.0
+        version: 3.6.0(react-hook-form@7.52.0(react@18.3.1))
+      '@internationalized/date':
+        specifier: ^3.5.5
+        version: 3.5.5
       '@lexical/code':
         specifier: ^0.16.0
         version: 0.16.0
@@ -320,9 +133,24 @@ importers:
       '@lezer/highlight':
         specifier: ^1.1.6
         version: 1.2.0
+      '@monaco-editor/react':
+        specifier: 4.6.0
+        version: 4.6.0(monaco-editor@0.48.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@noble/hashes':
         specifier: ^1.4.0
         version: 1.4.0
+      '@sentry/react':
+        specifier: ^7.74.0
+        version: 7.118.0(react@18.3.1)
+      '@stripe/react-stripe-js':
+        specifier: ^2.7.1
+        version: 2.7.2(@stripe/stripe-js@3.5.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@stripe/stripe-js':
+        specifier: ^3.5.0
+        version: 3.5.0
+      '@tanstack/react-query':
+        specifier: 5.55.0
+        version: 5.55.0(react@18.3.1)
       '@tanstack/vue-query':
         specifier: '>= 5.54.0 < 5.56.0'
         version: 5.54.2(vue@3.5.2(typescript@5.5.3))
@@ -341,24 +169,42 @@ importers:
       ag-grid-vue3:
         specifier: ^31.1.1
         version: 31.3.4(typescript@5.5.3)
+      ajv:
+        specifier: ^8.12.0
+        version: 8.16.0
+      amazon-cognito-identity-js:
+        specifier: 6.3.6
+        version: 6.3.6
+      clsx:
+        specifier: ^2.1.1
+        version: 2.1.1
       codemirror:
         specifier: ^6.0.1
         version: 6.0.1(@lezer/common@1.2.1)
       culori:
         specifier: ^3.2.0
         version: 3.3.0
-      enso-dashboard:
+      enso-common:
         specifier: workspace:*
-        version: link:../dashboard
+        version: link:../ide-desktop/common
       events:
         specifier: ^3.3.0
         version: 3.3.0
+      framer-motion:
+        specifier: 11.3.0
+        version: 11.3.0(@emotion/is-prop-valid@1.3.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       hash-sum:
         specifier: ^2.0.0
         version: 2.0.0
+      input-otp:
+        specifier: 1.2.4
+        version: 1.2.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       install:
         specifier: ^0.13.0
         version: 0.13.0
+      is-network-error:
+        specifier: ^1.0.1
+        version: 1.1.0
       isomorphic-ws:
         specifier: ^5.0.0
         version: 5.0.0(ws@8.18.0)
@@ -371,6 +217,9 @@ importers:
       magic-string:
         specifier: ^0.30.3
         version: 0.30.11
+      monaco-editor:
+        specifier: 0.48.0
+        version: 0.48.0
       murmurhash:
         specifier: ^2.0.1
         version: 2.0.1
@@ -380,12 +229,57 @@ importers:
       postcss-nesting:
         specifier: ^12.0.1
         version: 12.1.5(postcss@8.4.45)
+      qrcode.react:
+        specifier: 3.1.0
+        version: 3.1.0(react@18.3.1)
+      react:
+        specifier: ^18.3.1
+        version: 18.3.1
+      react-aria:
+        specifier: ^3.34.3
+        version: 3.34.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      react-aria-components:
+        specifier: ^1.3.3
+        version: 1.3.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      react-dom:
+        specifier: ^18.3.1
+        version: 18.3.1(react@18.3.1)
+      react-error-boundary:
+        specifier: 4.0.13
+        version: 4.0.13(react@18.3.1)
+      react-hook-form:
+        specifier: ^7.51.4
+        version: 7.52.0(react@18.3.1)
+      react-router:
+        specifier: ^6.23.1
+        version: 6.24.0(react@18.3.1)
+      react-router-dom:
+        specifier: ^6.23.1
+        version: 6.24.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      react-stately:
+        specifier: ^3.32.2
+        version: 3.32.2(react@18.3.1)
       react-toastify:
         specifier: ^9.1.3
         version: 9.1.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       sucrase:
         specifier: ^3.34.0
         version: 3.35.0
+      tailwind-merge:
+        specifier: ^2.3.0
+        version: 2.3.0
+      tailwind-variants:
+        specifier: 0.2.1
+        version: 0.2.1(tailwindcss@3.4.4)
+      tiny-invariant:
+        specifier: ^1.3.3
+        version: 1.3.3
+      ts-results:
+        specifier: ^3.3.0
+        version: 3.3.0
+      validator:
+        specifier: ^13.12.0
+        version: 13.12.0
       veaury:
         specifier: ^2.3.18
         version: 2.4.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -416,6 +310,9 @@ importers:
       zod:
         specifier: ^3.23.8
         version: 3.23.8
+      zustand:
+        specifier: ^4.5.4
+        version: 4.5.4(@types/react@18.3.3)(react@18.3.1)
     devDependencies:
       '@codemirror/theme-one-dark':
         specifier: ^6.1.2
@@ -432,15 +329,24 @@ importers:
       '@histoire/plugin-vue':
         specifier: ^0.17.12
         version: 0.17.17(histoire@0.17.17(@types/node@20.11.21)(lightningcss@1.25.1)(vite@5.3.5(@types/node@20.11.21)(lightningcss@1.25.1)))(vite@5.3.5(@types/node@20.11.21)(lightningcss@1.25.1))(vue@3.5.2(typescript@5.5.3))
+      '@modyfi/vite-plugin-yaml':
+        specifier: ^1.0.4
+        version: 1.1.0(rollup@4.18.1)(vite@5.3.5(@types/node@20.11.21)(lightningcss@1.25.1))
       '@open-rpc/server-js':
         specifier: ^1.9.4
         version: 1.9.5
       '@playwright/test':
         specifier: ^1.40.0
         version: 1.45.0
+      '@react-types/shared':
+        specifier: ^3.22.1
+        version: 3.24.1(react@18.3.1)
       '@rushstack/eslint-patch':
         specifier: ^1.3.2
         version: 1.10.3
+      '@tanstack/react-query-devtools':
+        specifier: 5.45.1
+        version: 5.45.1(@tanstack/react-query@5.55.0(react@18.3.1))(react@18.3.1)
       '@tsconfig/node20':
         specifier: ^20.1.4
         version: 20.1.4
@@ -453,6 +359,9 @@ importers:
       '@types/d3':
         specifier: ^7.4.0
         version: 7.4.3
+      '@types/eslint__js':
+        specifier: ^8.42.3
+        version: 8.42.3
       '@types/hash-sum':
         specifier: ^1.0.0
         version: 1.0.2
@@ -465,6 +374,12 @@ importers:
       '@types/node':
         specifier: ^20.11.21
         version: 20.11.21
+      '@types/react':
+        specifier: ^18.0.27
+        version: 18.3.3
+      '@types/react-dom':
+        specifier: ^18.0.10
+        version: 18.3.0
       '@types/shuffle-seed':
         specifier: ^1.1.0
         version: 1.1.3
@@ -474,14 +389,23 @@ importers:
       '@types/unbzip2-stream':
         specifier: ^1.4.3
         version: 1.4.3
+      '@types/validator':
+        specifier: ^13.11.7
+        version: 13.12.0
       '@types/wicg-file-system-access':
         specifier: ^2023.10.2
         version: 2023.10.5
       '@types/ws':
         specifier: ^8.5.5
         version: 8.5.10
+      '@typescript-eslint/eslint-plugin':
+        specifier: ^7.15.0
+        version: 7.15.0(@typescript-eslint/parser@7.15.0(eslint@8.57.0)(typescript@5.5.3))(eslint@8.57.0)(typescript@5.5.3)
+      '@typescript-eslint/parser':
+        specifier: ^7.15.0
+        version: 7.15.0(eslint@8.57.0)(typescript@5.5.3)
       '@vitejs/plugin-react':
-        specifier: ^4.0.4
+        specifier: ^4.2.1
         version: 4.3.1(vite@5.3.5(@types/node@20.11.21)(lightningcss@1.25.1))
       '@vitejs/plugin-vue':
         specifier: ^5.0.4
@@ -501,6 +425,9 @@ importers:
       '@vue/tsconfig':
         specifier: ^0.5.1
         version: 0.5.1
+      chalk:
+        specifier: ^5.3.0
+        version: 5.3.0
       cross-env:
         specifier: ^7.0.3
         version: 7.0.3
@@ -510,15 +437,21 @@ importers:
       d3:
         specifier: ^7.4.0
         version: 7.9.0
-      enso-common:
-        specifier: workspace:*
-        version: link:../ide-desktop/common
+      enso-chat:
+        specifier: git://github.com/enso-org/enso-bot
+        version: enso-support@https://codeload.github.com/enso-org/enso-bot/tar.gz/aa903b6e639a31930ee4fff55c5639e4471fa48d
       eslint:
         specifier: ^8.49.0
         version: 8.57.0
+      eslint-plugin-react:
+        specifier: ^7.32.1
+        version: 7.34.3(eslint@8.57.0)
       eslint-plugin-vue:
         specifier: ^9.22.0
         version: 9.26.0(eslint@8.57.0)
+      fast-check:
+        specifier: ^3.15.0
+        version: 3.19.0
       floating-vue:
         specifier: ^2.0.0-beta.24
         version: 2.0.0(vue@3.5.2(typescript@5.5.3))
@@ -534,18 +467,18 @@ importers:
       playwright:
         specifier: ^1.39.0
         version: 1.45.0
+      postcss:
+        specifier: ^8.4.29
+        version: 8.4.45
       prettier:
         specifier: ^3.3.2
         version: 3.3.2
       prettier-plugin-organize-imports:
         specifier: ^4.0.0
         version: 4.0.0(prettier@3.3.2)(typescript@5.5.3)(vue-tsc@2.0.24(typescript@5.5.3))
-      react:
-        specifier: ^18.3.1
-        version: 18.3.1
-      react-dom:
-        specifier: ^18.3.1
-        version: 18.3.1(react@18.3.1)
+      prettier-plugin-tailwindcss:
+        specifier: ^0.5.11
+        version: 0.5.14(@ianvs/prettier-plugin-sort-imports@4.3.0(prettier@3.3.2))(prettier-plugin-organize-imports@4.0.0(prettier@3.3.2)(typescript@5.5.3)(vue-tsc@2.0.24(typescript@5.5.3)))(prettier@3.3.2)
       shuffle-seed:
         specifier: ^1.1.6
         version: 1.1.6
@@ -553,8 +486,14 @@ importers:
         specifier: ^13.0.0
         version: 13.1.0
       tailwindcss:
-        specifier: ^3.2.7
+        specifier: ^3.4.1
         version: 3.4.4
+      tailwindcss-animate:
+        specifier: 1.0.7
+        version: 1.0.7(tailwindcss@3.4.4)
+      tailwindcss-react-aria-components:
+        specifier: ^1.1.1
+        version: 1.1.3(tailwindcss@3.4.4)
       tar:
         specifier: ^6.2.1
         version: 6.2.1
@@ -667,12 +606,9 @@ importers:
       enso-common:
         specifier: workspace:*
         version: link:../common
-      enso-dashboard:
+      enso-gui:
         specifier: workspace:*
-        version: link:../../dashboard
-      enso-gui2:
-        specifier: workspace:*
-        version: link:../../gui2
+        version: link:../../gui
       enso-runner:
         specifier: workspace:*
         version: link:../../../lib/js/runner
