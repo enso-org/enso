@@ -545,7 +545,7 @@ object ProgramExecutionSupport {
         } else {
           runtimeCache.getAnyValue(visualization.expressionId)
         }
-        if (v != null) {
+        if (v != null && !VisualizationResult.isInterruptedExceptionValue(v)) {
           executeAndSendVisualizationUpdate(
             contextId,
             runtimeCache,

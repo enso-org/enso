@@ -190,7 +190,7 @@ final class JobExecutionEngine(
     logger.log(
       Level.FINE,
       "Aborting {0} jobs because {1}: {2}",
-      Array(cancellableJobs.length, reason, cancellableJobs.map(_.id))
+      Array[Any](cancellableJobs.length, reason, cancellableJobs.map(_.id))
     )
     cancellableJobs.foreach { runningJob =>
       runningJob.future.cancel(runningJob.job.mayInterruptIfRunning)
@@ -215,7 +215,7 @@ final class JobExecutionEngine(
         logger.log(
           Level.FINE,
           "Aborting job {0} because {1}",
-          Array(runningJob.id, reason)
+          Array[Any](runningJob.id, reason)
         )
         runningJob.future.cancel(runningJob.job.mayInterruptIfRunning)
       }
@@ -237,7 +237,7 @@ final class JobExecutionEngine(
         logger.log(
           Level.FINE,
           "Aborting job {0} because {1}",
-          Array(runningJob.id, reason)
+          Array[Any](runningJob.id, reason)
         )
         runningJob.future.cancel(runningJob.job.mayInterruptIfRunning)
       }
@@ -260,7 +260,7 @@ final class JobExecutionEngine(
     logger.log(
       Level.FINE,
       "Aborting {0} background jobs because {1}: {2}",
-      Array(cancellableJobs.length, reason, cancellableJobs.map(_.id))
+      Array[Any](cancellableJobs.length, reason, cancellableJobs.map(_.id))
     )
     cancellableJobs.foreach { runningJob =>
       runningJob.future.cancel(runningJob.job.mayInterruptIfRunning)
