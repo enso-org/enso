@@ -3,6 +3,7 @@
   "include": [
     "env.d.ts",
     "lib0-ext.d.ts",
+    "e2e/project-view/mock/*",
     "src/**/*",
     "src/**/*.vue",
     "src/**/*.ts",
@@ -16,5 +17,5 @@
     "types": ["vitest/importMeta"],
     "paths": { "@/*": ["./src/project-view/*"], "#/*": ["./src/dashboard/*"] },
   },
-  "references": [{ "path": "../dashboard" }, { "path": "../ydoc-shared" }]
+  "references": [{ "path": "../ydoc-shared" }]
 }

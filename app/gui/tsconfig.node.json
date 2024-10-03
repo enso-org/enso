@@ -5,6 +5,7 @@
     "vitest.config.*",
     "project-manager-shim-middleware/*.ts",
     "playwright.config.*",
+    "tailwind.config.*",
     "eslint.config.js",
     "e2e/**/*",
     "node.env.d.ts",
