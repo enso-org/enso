@@ -38,3 +38,8 @@ add_specs suite_builder setup =
             colC = t.get "C"
             result = colA.coalesce [colB, colC]
             result.to_vector . should_equal [1, 2, 4, 8]
+        group_builder.specify "column and constant" <|
+            t = table_builder [["A", [1, 2, Nothing, Nothing]]]
+            colA = t.get "A"
+            result = colA.coalesce 42
+            result.to_vector . should_equal [1, 2, 42, 42]
