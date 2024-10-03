@@ -1,13 +1,11 @@
 package org.enso.table.data.column.builder;
 
 import java.math.BigInteger;
-
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
-import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.problems.ProblemAggregator;
 
 /**
@@ -43,7 +41,8 @@ public class InferredIntegerBuilder extends Builder {
       Long lng = NumericConverter.tryConvertingToLong(o);
       if (lng == null) {
         throw new IllegalStateException(
-            "Unexpected value added to InferredIntegerBuilder " + o.getClass()
+            "Unexpected value added to InferredIntegerBuilder "
+                + o.getClass()
                 + ". This is a bug in the Table library.");
       } else {
         if (bigIntegerBuilder != null) {
@@ -67,7 +66,8 @@ public class InferredIntegerBuilder extends Builder {
       Long lng = NumericConverter.tryConvertingToLong(o);
       if (lng == null) {
         throw new IllegalStateException(
-            "Unexpected value added to InferredIntegerBuilder " + o.getClass()
+            "Unexpected value added to InferredIntegerBuilder "
+                + o.getClass()
                 + ". This is a bug in the Table library.");
       } else {
         if (bigIntegerBuilder != null) {
