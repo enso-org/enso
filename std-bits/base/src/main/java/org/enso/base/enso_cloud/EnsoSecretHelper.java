@@ -9,16 +9,19 @@ import java.net.http.HttpResponse;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.function.Supplier;
 import java.util.List;
 import java.util.Properties;
-import org.enso.base.enso_cloud.RequestCache;
+import java.util.function.Supplier;
+
+import org.enso.base.enso_cloud.TransientHTTPResponseCache;
 import org.enso.base.net.URISchematic;
 import org.enso.base.net.URIWithSecrets;
 import org.graalvm.collections.Pair;
 
 /** Makes HTTP requests with secrets in either header or query string. */
 public final class EnsoSecretHelper extends SecretValueResolver {
-    private RequestCache requestCache = new RequestCache():
+  private static TransientHTTPResponseCache transientHTTPResponseCache = new TransientHTTPResponseCache();
 
   /** Gets a JDBC connection resolving EnsoKeyValuePair into the properties. */
   public static Connection getJDBCConnection(
@@ -70,50 +73,54 @@ public final class EnsoSecretHelper extends SecretValueResolver {
     List<Pair<String, String>> resolvedHeaders = headers.stream().map(pair -> {
       return Pair.create(pair.getLeft(), resolveValue(pair.getRight()));
     }).toList();
-    var cacheKey = requestCache.createHashKey(resolvedURI, resolvedHeaders);
 
-    if (!cache.contains(cacheKey)) {
-      boolean hasSecrets =
-          uri.containsSecrets() || headers.stream().anyMatch(p -> p.getRight().containsSecrets());
-      if (hasSecrets) {
-        if (resolvedURI.getScheme() == null) {
-          throw new IllegalArgumentException("The URI must have a scheme.");
-        }
+    TransientHTTPResponseCache.RequestMaker requestMaker =
+      () -> makeRequestWithResolvedSecrets(client, builder, uri, resolvedURI, headers, resolvedHeaders);
+    //Supplier<EnsoHttpResponse> supplier = () -> makeRequestWithResolvedSecrets(client, builder, uri, resolvedURI, headers, resolvedHeaders);
+    if (!useCache) {
+      return requestMaker.run();
+    } else {
+      return transientHTTPResponseCache.makeRequest(resolvedURI, resolvedHeaders, requestMaker);
+    }
+  }
 
-        if (!resolvedURI.getScheme().equalsIgnoreCase("https")) {
-          throw new IllegalArgumentException(
-              "Secrets are not allowed in HTTP connections, use HTTPS instead.");
-        }
+  /** Makes a request with secrets resolved to their actual values. * */
+  static EnsoHttpResponse makeRequestWithResolvedSecrets(
+      HttpClient client,
+      Builder builder,
+      URIWithSecrets uri,
+      URI resolvedURI,
+      List<Pair<String, HideableValue>> headers,
+      List<Pair<String, String>> resolvedHeaders)
+      throws IOException, InterruptedException {
+    boolean hasSecrets =
+        uri.containsSecrets() || headers.stream().anyMatch(p -> p.getRight().containsSecrets());
+    if (hasSecrets) {
+      if (resolvedURI.getScheme() == null) {
+        throw new IllegalArgumentException("The URI must have a scheme.");
       }
 
-      builder.uri(resolvedURI);
-
-      // Resolve the header arguments.
-      for (Pair<String, HideableValue> resolvedHeader : resolvedHeaders) {
-        builder.header(resolvedHeader.getLeft(), resolvedHeader.getRight());
-      }
-
-      // Build and Send the request.
-      var httpRequest = builder.build();
-      var bodyHandler = HttpResponse.BodyHandlers.ofInputStream();
-      var javaResponse = client.send(httpRequest, bodyHandler);
-
-      if (javaResponse == 200) {
-        // Extract parts of the response
-        cache.add(cacheKey, new CacheEntry(javaResponse.headers(), javaResponse.statusCode()), javaResponse.body());
-      } else {
-        return new EnsoHttpResponse(
-            renderedURI, javaResponse.headers(), javaResponse.body(), javaResponse.statusCode());
+      if (!resolvedURI.getScheme().equalsIgnoreCase("https")) {
+        throw new IllegalArgumentException(
+            "Secrets are not allowed in HTTP connections, use HTTPS instead.");
       }
     }
 
-    CacheEntry cacheEntry = cacheKey.get(cacheKey);
-    assert cacheEntry != null;
+    builder.uri(resolvedURI);
+
+    for (Pair<String, String> resolvedHeader : resolvedHeaders) {
+      builder.header(resolvedHeader.getLeft(), resolvedHeader.getRight());
+    }
+
+    // Build and Send the request.
+    var httpRequest = builder.build();
+    var bodyHandler = HttpResponse.BodyHandlers.ofInputStream();
+    var javaResponse = client.send(httpRequest, bodyHandler);
 
     URI renderedURI = uri.render();
 
     return new EnsoHttpResponse(
-        renderedURI, cacheEntry.headers(), cacheEntry.body(), cacheEntry.statusCode());
+        renderedURI, javaResponse.headers(), javaResponse.body(), javaResponse.statusCode());
   }
 
   public static void deleteSecretFromCache(String secretId) {
