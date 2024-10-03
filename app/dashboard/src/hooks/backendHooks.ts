@@ -5,6 +5,7 @@ import * as reactQuery from '@tanstack/react-query'
 
 import * as backendQuery from 'enso-common/src/backendQuery'
 
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 
@@ -246,4 +247,51 @@ export function useListUserGroupsWithUsers(
       return result
     }
   }, [listUserGroupsQuery.data, listUsersQuery.data])
+}
+
+/** Return a hook to set data for a specific asset. */
+export function useAssetPassiveListener(
+  backendType: backendModule.BackendType,
+  assetId: backendModule.AssetId,
+  parentId: backendModule.DirectoryId,
+) {
+  const queryClient = reactQuery.useQueryClient()
+  const listDirectoryQuery = queryClient.getQueryCache().find<
+    | {
+        parentId: backendModule.DirectoryId
+        children: readonly backendModule.AnyAsset<backendModule.AssetType>[]
+      }
+    | undefined
+  >({
+    queryKey: [backendType, 'listDirectory', parentId],
+    exact: false,
+  })
+
+  return listDirectoryQuery?.state.data?.children.find((child) => child.id === assetId)
+}
+
+/** Return a hook to set data for a specific asset. */
+export function useSetAsset(backendType: backendModule.BackendType) {
+  const queryClient = reactQuery.useQueryClient()
+  return useEventCallback((assetId: backendModule.AssetId, asset: backendModule.AnyAsset) => {
+    const listDirectoryQuery = queryClient.getQueryCache().find<
+      | {
+          parentId: backendModule.DirectoryId
+          children: readonly backendModule.AnyAsset<backendModule.AssetType>[]
+        }
+      | undefined
+    >({
+      queryKey: [backendType, 'listDirectory', asset.parentId],
+      exact: false,
+    })
+
+    if (listDirectoryQuery?.state.data) {
+      listDirectoryQuery.setData({
+        ...listDirectoryQuery.state.data,
+        children: listDirectoryQuery.state.data.children.map((child) =>
+          child.id === assetId ? asset : child,
+        ),
+      })
+    }
+  })
 }

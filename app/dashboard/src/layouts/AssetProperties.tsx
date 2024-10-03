@@ -33,7 +33,6 @@ import { useDriveStore, useSetAssetPanelProps } from '#/providers/DriveProvider'
 import type * as assetTreeNode from '#/utilities/AssetTreeNode'
 import { normalizePath } from '#/utilities/fileInfo'
 import { mapNonNullish } from '#/utilities/nullable'
-import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 
 // =======================
@@ -151,23 +150,14 @@ export default function AssetProperties(props: AssetPropertiesProps) {
     })()
   }, [backend, item.item, getDatalink])
 
-  const doEditDescription = async () => {
+  const editDescription = async () => {
     setIsEditingDescription(false)
     if (description !== item.item.description) {
-      const oldDescription = item.item.description
-      setItem((oldItem) => oldItem.with({ item: object.merge(oldItem.item, { description }) }))
-      try {
-        await updateAssetMutation.mutateAsync([
-          item.item.id,
-          { parentDirectoryId: null, description },
-          item.item.title,
-        ])
-      } catch (error) {
-        toastAndLog('editDescriptionError')
-        setItem((oldItem) =>
-          oldItem.with({ item: object.merge(oldItem.item, { description: oldDescription }) }),
-        )
-      }
+      await updateAssetMutation.mutateAsync([
+        item.item.id,
+        { parentDirectoryId: null, description },
+        item.item.title,
+      ])
     }
   }
 
@@ -204,7 +194,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
         >
           {!isEditingDescription ?
             <aria.Text className="text">{item.item.description}</aria.Text>
-          : <form className="flex flex-col gap-modal pr-4" onSubmit={doEditDescription}>
+          : <form className="flex flex-col gap-modal pr-4" onSubmit={editDescription}>
               <textarea
                 ref={(element) => {
                   if (element != null && queuedDescription != null) {
@@ -227,7 +217,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                     }
                     case 'Enter': {
                       if (event.ctrlKey) {
-                        void doEditDescription()
+                        void editDescription()
                         break
                       }
                     }
@@ -235,7 +225,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                 }}
               />
               <ariaComponents.ButtonGroup>
-                <ariaComponents.Button size="medium" variant="outline" onPress={doEditDescription}>
+                <ariaComponents.Button size="medium" variant="outline" onPress={editDescription}>
                   {getText('update')}
                 </ariaComponents.Button>
               </ariaComponents.ButtonGroup>
