@@ -31,6 +31,8 @@ import type { Category } from '#/layouts/CategorySwitcher/Category'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 import { useDriveStore, useSetAssetPanelProps } from '#/providers/DriveProvider'
 import type * as assetTreeNode from '#/utilities/AssetTreeNode'
+import { normalizePath } from '#/utilities/fileInfo'
+import { mapNonNullish } from '#/utilities/nullable'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 
@@ -127,12 +129,16 @@ export default function AssetProperties(props: AssetPropertiesProps) {
   const isDatalink = item.type === backendModule.AssetType.datalink
   const isDatalinkDisabled = datalinkValue === editedDatalinkValue || !isDatalinkSubmittable
   const isCloud = backend.type === backendModule.BackendType.remote
-  const path =
-    isCloud ? null
+  const pathRaw =
+    category.type === 'recent' || category.type === 'trash' ? null
+    : isCloud ? `${item.path}${item.type === backendModule.AssetType.datalink ? '.datalink' : ''}`
     : item.item.type === backendModule.AssetType.project ?
-      localBackend?.getProjectPath(item.item.id) ?? null
-    : localBackendModule.extractTypeAndId(item.item.id).id
-
+      mapNonNullish(localBackend?.getProjectPath(item.item.id) ?? null, normalizePath)
+    : normalizePath(localBackendModule.extractTypeAndId(item.item.id).id)
+  const path =
+    pathRaw == null ? null
+    : isCloud ? encodeURI(pathRaw)
+    : pathRaw
   const createDatalinkMutation = useMutation(backendMutationOptions(backend, 'createDatalink'))
   const getDatalinkMutation = useMutation(backendMutationOptions(backend, 'getDatalink'))
   const updateAssetMutation = useMutation(backendMutationOptions(backend, 'updateAsset'))
@@ -246,31 +252,6 @@ export default function AssetProperties(props: AssetPropertiesProps) {
           }
         </div>
       </div>
-      {!isCloud && (
-        <div className="pointer-events-auto flex flex-col items-start gap-side-panel-section">
-          <aria.Heading
-            level={2}
-            className="h-side-panel-heading py-side-panel-heading-y text-lg leading-snug"
-          >
-            {getText('metadata')}
-          </aria.Heading>
-          <table>
-            <tbody>
-              <tr data-testid="asset-panel-permissions" className="h-row">
-                <td className="text my-auto min-w-side-panel-label p-0">
-                  <aria.Label className="text inline-block">{getText('path')}</aria.Label>
-                </td>
-                <td className="w-full p-0">
-                  <div className="flex gap-2">
-                    <span className="grow">{path}</span>
-                    <ariaComponents.CopyButton copyText={path ?? ''} />
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      )}
       {isCloud && (
         <div className="pointer-events-auto flex flex-col items-start gap-side-panel-section">
           <aria.Heading
@@ -281,6 +262,21 @@ export default function AssetProperties(props: AssetPropertiesProps) {
           </aria.Heading>
           <table>
             <tbody>
+              {path != null && (
+                <tr data-testid="asset-panel-permissions" className="h-row">
+                  <td className="text my-auto min-w-side-panel-label p-0">
+                    <aria.Label className="text inline-block">{getText('path')}</aria.Label>
+                  </td>
+                  <td className="w-full p-0">
+                    <div className="flex items-center gap-2">
+                      <ariaComponents.Text className="w-0 grow" truncate="1">
+                        {decodeURI(path)}
+                      </ariaComponents.Text>
+                      <ariaComponents.CopyButton copyText={path} />
+                    </div>
+                  </td>
+                </tr>
+              )}
               <tr data-testid="asset-panel-permissions" className="h-row">
                 <td className="text my-auto min-w-side-panel-label p-0">
                   <aria.Label className="text inline-block">{getText('sharedWith')}</aria.Label>
