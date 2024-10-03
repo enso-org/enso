@@ -13,8 +13,8 @@
   },
   "name": "root",
   "scripts": {
-    "dev:gui": "corepack pnpm run --parallel -r --filter enso-gui2 --filter ydoc-server-nodejs  --aggregate-output /^^^^dev:/",
-    "build:gui": "corepack pnpm run -r --filter enso-gui2 build",
+    "dev:gui": "corepack pnpm run --parallel -r --filter enso-gui --filter ydoc-server-nodejs  --aggregate-output /^^^^dev:/",
+    "build:gui": "corepack pnpm run -r --filter enso-gui build",
     "build:ide": "corepack pnpm run -r compile && corepack pnpm run -r --filter enso build",
     "build:icons": "corepack pnpm run -r --filter enso-icons build",
     "dist:ide": "corepack pnpm run -r --filter enso dist",
@@ -26,10 +26,6 @@
     "ci:test": "corepack pnpm run -r --parallel test",
     "ci:typecheck": "corepack pnpm run -r typecheck"
   },
-  "//": "Workspaces kept only to show deprecated message when running a script. Remove once everyone is familiar with pnpm.",
-  "workspaces": [
-    "app/gui2"
-  ],
   "pnpm": {
     "//": "To completely ignore deep dependencies, see .pnpmfile.cjs",
     "overrides": {
