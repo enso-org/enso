@@ -10,10 +10,13 @@ import * as url from 'node:url'
 import eslintJs from '@eslint/js'
 import tsEslint from '@typescript-eslint/eslint-plugin'
 import tsEslintParser from '@typescript-eslint/parser'
+import eslintVuePrettier from '@vue/eslint-config-prettier'
+import eslintVueTypescript from '@vue/eslint-config-typescript'
 import jsdoc from 'eslint-plugin-jsdoc'
 import react from 'eslint-plugin-react'
 import reactHooks from 'eslint-plugin-react-hooks'
 import globals from 'globals'
+import vue from 'vue'
 /* eslint-enable no-restricted-syntax */
 
 // =================
@@ -520,6 +523,40 @@ export default [
     rules: {
       'no-restricted-syntax': 'off',
       '@typescript-eslint/naming-convention': 'off',
+    },
+  },
+  {
+    files: ['**/*.vue'],
+    plugins: { eslintVueTypescript, eslintVueTypescript },
+    ...eslintVueTypescript.configs.recommended,
+    // TODO: Finish here.
+  },
+  {
+    files: ['gui/src/project-view/**/*.{vue,js,jsx,cjs,mjs,ts,tsx,cts,mts}'],
+    languageOptions: {
+      parserOptions: {
+        tsconfigRootDir: DIR_NAME,
+        ecmaVersion: 'latest',
+        project: [
+          './gui/tsconfig.app.json',
+          './gui/tsconfig.node.json',
+          './gui/tsconfig.app.vitest.json',
+        ],
+      },
+    },
+    rules: {
+      camelcase: [1, { ignoreImports: true }],
+      'no-inner-declarations': 0,
+      'vue/attribute-hyphenation': [2, 'never'],
+      'vue/v-on-event-hyphenation': [2, 'never'],
+      '@typescript-eslint/no-unused-vars': [
+        1,
+        {
+          varsIgnorePattern: '^_',
+          argsIgnorePattern: '^_',
+        },
+      ],
+      'no-unused-labels': 0,
     },
   },
 ]
