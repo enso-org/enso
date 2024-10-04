@@ -126,11 +126,7 @@ export default function ManageLabelsModal<Asset extends AnyAsset = AnyAsset>(
               </ButtonGroup>
             )}
           </FocusArea>
-          {canSelectColor && (
-            <div className="mx-auto">
-              <ColorPicker setColor={setColor} />
-            </div>
-          )}
+          {canSelectColor && <ColorPicker setColor={setColor} className="w-full" />}
           <FocusArea direction="vertical">
             {(innerProps) => (
               <Checkbox.Group
