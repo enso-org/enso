@@ -13,7 +13,6 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.SourceSection;
-import java.util.logging.Level;
 import org.enso.interpreter.node.BaseNode.TailStatus;
 import org.enso.interpreter.node.callable.IndirectInvokeMethodNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;
@@ -27,6 +26,8 @@ import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.State;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** An exception type for user thrown panic exceptions. */
 @ExportLibrary(value = InteropLibrary.class, delegateTo = "payload")
@@ -59,8 +60,8 @@ public final class PanicException extends AbstractTruffleException implements En
       throw new IllegalArgumentException("Only interop values are supported: " + payload);
     }
     this.payload = payload;
-    if (CompilerDirectives.inInterpreter()) {
-      getMessage();
+    if (CompilerDirectives.inInterpreter() && location == null) {
+      cacheMessage = computeMessage();
       assert cacheMessage != null;
     }
   }
@@ -91,15 +92,8 @@ public final class PanicException extends AbstractTruffleException implements En
       info = library.getExceptionMessage(this);
       msg = library.asString(info);
     } catch (AssertionError | UnsupportedMessageException e) {
-      try {
-        var ctx = EnsoContext.get(null);
-        ctx.getLogger().log(Level.WARNING, "Cannot convert " + info + " to string", e);
-        msg = TypeToDisplayTextNode.getUncached().execute(payload);
-      } catch (AssertionError assertionError) {
-        throw new AssertionError(
-            "Failed to log failed conversion of " + info + " to string and payload " + payload,
-            assertionError);
-      }
+      logger().error("Cannot convert " + info + " to string", e);
+      msg = TypeToDisplayTextNode.getUncached().execute(payload);
     }
     cacheMessage = msg;
     return msg;
@@ -169,7 +163,7 @@ public final class PanicException extends AbstractTruffleException implements En
       return Text.create(strings.asString(text));
     } catch (UnsupportedMessageException e) {
       CompilerDirectives.transferToInterpreter();
-      ctx.getLogger().log(Level.WARNING, "Cannot convert " + text + " to string", e);
+      logger().error("Cannot convert " + text + " to string", e);
       return Text.create(typeToDisplayTextNode.execute(payload));
     }
   }
@@ -221,5 +215,9 @@ public final class PanicException extends AbstractTruffleException implements En
       throw UnsupportedMessageException.create();
     }
     return getLocation().getEncapsulatingSourceSection();
+  }
+
+  private static Logger logger() {
+    return LoggerFactory.getLogger(PanicException.class);
   }
 }
