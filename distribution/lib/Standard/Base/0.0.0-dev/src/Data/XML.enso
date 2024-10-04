@@ -158,6 +158,23 @@ type XML_Document
 
     ## GROUP Selections
        ICON parse3
+       Gets the child element of the inner XML Element 
+
+       Arguments:
+       - key: If an `Integer`, returns the element at position `at` in its list
+         of children. If `Text`, then if starts with `"@"`, returns the
+         attribute with the given name otherwise returns the first child element
+         with the given name.
+
+    @key child_selector
+    get_child_element : Text | Integer -> Any | Text | XML_Element | Vector (Text | XML_Element) ! No_Such_Key | Index_Out_Of_Bounds | XML_Error
+    get_child_element self key:(Text | Integer)="." =
+        root = self.get 0
+        root.get key
+
+
+    ## GROUP Selections
+       ICON parse3
        Gets a child or attribute of an XML document.
 
        Arguments:
