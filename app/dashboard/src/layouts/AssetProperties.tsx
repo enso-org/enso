@@ -324,6 +324,8 @@ export default function AssetProperties(props: AssetPropertiesProps) {
           </aria.Heading>
           <UpsertSecretModal
             noDialog
+            canReset
+            canCancel={false}
             id={item.item.id}
             name={item.item.title}
             doCreate={async (name, value) => {
