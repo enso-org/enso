@@ -5,25 +5,19 @@ import BlankIcon from '#/assets/blank.svg'
 import CrossIcon from '#/assets/cross.svg'
 import Plus2Icon from '#/assets/plus2.svg'
 import ReloadIcon from '#/assets/reload.svg'
-
-import type * as inputBindings from '#/configurations/inputBindings'
-
-import * as refreshHooks from '#/hooks/refreshHooks'
-import * as scrollHooks from '#/hooks/scrollHooks'
-
-import * as inputBindingsManager from '#/providers/InputBindingsProvider'
-import * as textProvider from '#/providers/TextProvider'
-
-import * as aria from '#/components/aria'
+import { mergeProps } from '#/components/aria'
 import { Button, ButtonGroup, DialogTrigger } from '#/components/AriaComponents'
 import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
 import FocusArea from '#/components/styled/FocusArea'
 import SvgMask from '#/components/SvgMask'
-
+import type { DashboardBindingKey } from '#/configurations/inputBindings'
+import { useRefresh } from '#/hooks/refreshHooks'
+import { useStickyTableHeaderOnScroll } from '#/hooks/scrollHooks'
 import CaptureKeyboardShortcutModal from '#/modals/CaptureKeyboardShortcutModal'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
-
-import * as object from '#/utilities/object'
+import { useInputBindings } from '#/providers/InputBindingsProvider'
+import { useText } from '#/providers/TextProvider'
+import { unsafeEntries } from '#/utilities/object'
 
 // ========================================
 // === KeyboardShortcutsSettingsSection ===
@@ -31,9 +25,9 @@ import * as object from '#/utilities/object'
 
 /** Settings tab for viewing and editing keyboard shortcuts. */
 export default function KeyboardShortcutsSettingsSection() {
-  const [refresh, doRefresh] = refreshHooks.useRefresh()
-  const inputBindings = inputBindingsManager.useInputBindings()
-  const { getText } = textProvider.useText()
+  const [refresh, doRefresh] = useRefresh()
+  const inputBindings = useInputBindings()
+  const { getText } = useText()
   const rootRef = React.useRef<HTMLDivElement>(null)
   const bodyRef = React.useRef<HTMLTableSectionElement>(null)
   const allShortcuts = React.useMemo(() => {
@@ -43,11 +37,11 @@ export default function KeyboardShortcutsSettingsSection() {
     return new Set(Object.values(inputBindings.metadata).flatMap((value) => value.bindings))
   }, [inputBindings.metadata, refresh])
   const visibleBindings = React.useMemo(
-    () => object.unsafeEntries(inputBindings.metadata).filter((kv) => kv[1].rebindable !== false),
+    () => unsafeEntries(inputBindings.metadata).filter((kv) => kv[1].rebindable !== false),
     [inputBindings.metadata],
   )
 
-  const { onScroll } = scrollHooks.useStickyTableHeaderOnScroll(rootRef, bodyRef)
+  const { onScroll } = useStickyTableHeaderOnScroll(rootRef, bodyRef)
 
   return (
     <>
@@ -62,7 +56,7 @@ export default function KeyboardShortcutsSettingsSection() {
             doDelete={() => {
               for (const k in inputBindings.metadata) {
                 // eslint-disable-next-line no-restricted-syntax
-                inputBindings.reset(k as inputBindings.DashboardBindingKey)
+                inputBindings.reset(k as DashboardBindingKey)
               }
               doRefresh()
             }}
@@ -72,7 +66,7 @@ export default function KeyboardShortcutsSettingsSection() {
       <FocusArea direction="vertical" focusChildClass="focus-default" focusDefaultClass="">
         {(innerProps) => (
           <div
-            {...aria.mergeProps<JSX.IntrinsicElements['div']>()(innerProps, {
+            {...mergeProps<JSX.IntrinsicElements['div']>()(innerProps, {
               ref: rootRef,
               // There is a horizontal scrollbar for some reason without `px-px`.
               // eslint-disable-next-line no-restricted-syntax
