@@ -189,19 +189,17 @@ class TailCallTest extends CompilerTest {
         |""".stripMargin
 
     "mark the expression as tail if the context requires it" in {
-      val megaIr = analyseInlineWithMegaPass(code)
-      val miniIr = analyseInlineWithMiniPass(code)
+      implicit val ctx: InlineContext = mkTailContext
+      val ir                          = code.preprocessExpression.get.analyse
 
-      megaIr.getMetadata(TailCall) shouldEqual Some(TailPosition.Tail)
-      miniIr.getMetadata(TailCall) shouldEqual Some(TailPosition.Tail)
+      ir.getMetadata(TailCall) shouldEqual Some(TailPosition.Tail)
     }
 
     "not mark the expression as tail if the context doesn't require it" in {
-      val megaIr = analyseInlineWithMegaPass(code)
-      val miniIr = analyseInlineWithMiniPass(code)
+      implicit val ctx: InlineContext = mkNoTailContext
+      val ir                          = code.preprocessExpression.get.analyse
 
-      megaIr.getMetadata(TailCall) shouldEqual Some(TailPosition.NotTail)
-      miniIr.getMetadata(TailCall) shouldEqual Some(TailPosition.NotTail)
+      ir.getMetadata(TailCall) shouldEqual Some(TailPosition.NotTail)
     }
 
     "mark the value of a tail assignment as non-tail" in {
