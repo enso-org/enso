@@ -10,19 +10,22 @@ import project.Enso_Cloud.Cloud_Caching_Settings
 import project.Enso_Cloud.Enso_File.Enso_Asset_Type
 import project.Enso_Cloud.Enso_File.Enso_File
 import project.Enso_Cloud.Enso_User.Enso_User
+import project.Enso_Cloud.Errors.Enso_Cloud_Error
 import project.Enso_Cloud.Internal.Utils
 import project.Error.Error
 import project.Errors.Common.Not_Found
 import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Errors.Time_Error.Time_Error
 import project.Network.HTTP.HTTP_Method.HTTP_Method
 import project.Network.URI.URI
+import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Runtime.Context
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
 from project.Enso_Cloud.Data_Link_Helpers import data_link_extension
-from project.Enso_Cloud.Public_Utils import get_required_field
+from project.Enso_Cloud.Public_Utils import get_required_field, get_optional_field
 
 ## PRIVATE
    Currently, most of the Cloud API relies on asset IDs and not paths.
@@ -32,7 +35,11 @@ from project.Enso_Cloud.Public_Utils import get_required_field
 type Existing_Enso_Asset
     ## PRIVATE
        Represents an existing asset within the Enso cloud.
-    private Value title:Text id:Text asset_type:Enso_Asset_Type
+
+       The metadata represents additional information about the asset.
+       In it, we either store cached metadata that was returned as part of a response,
+       or a recipe to fetch it. Thus, it is lazy to avoid the fetching if not needed, and fetch at most once.
+    private Value title:Text id:Text asset_type:Enso_Asset_Type ~metadata:Asset_Metadata
 
     ## PRIVATE
        Target URI for the api
@@ -101,30 +108,63 @@ type Existing_Enso_Asset
         Standard.Base.IO.println json
         title = get_required_field "title" json expected_type=Text
         id = get_required_field "id" json expected_type=Text
-        Existing_Enso_Asset.from_id_and_title id title
+        metadata = Asset_Metadata.from_json json
+        Existing_Enso_Asset.new_with_metadata id title metadata
 
     ## PRIVATE
-    from_id_and_title id:Text title:Text -> Existing_Enso_Asset =
-        asset_type = Enso_Asset_Type.from (id.take (..Before "-"))
-        Existing_Enso_Asset.Value title id asset_type
+    new_with_metadata id:Text title:Text metadata:Asset_Metadata -> Existing_Enso_Asset =
+        Existing_Enso_Asset.Value title id (asset_type_from_id id) metadata
 
+    ## PRIVATE
+    new_without_metadata id:Text title:Text path:Enso_File -> Existing_Enso_Asset =
+        lazily_download_metadata =
+            # This must be a block, so that it is not evaluated immediately.
+            asset_with_metadata = Existing_Enso_Asset.resolve_path path.enso_path.to_text if_not_found=(Error.throw (Illegal_Status.Error "The asset at path "+path.to_text+" no longer exists."))
+            if asset_with_metadata.id != id then Error.throw (Illegal_Status.Error "The asset at path "+path.to_text+" is no longer the same asset as the one that was cached. The metadata of the old asset can no longer be accessed.")
+
+
+        Existing_Enso_Asset.Value title id (asset_type_from_id id) lazily_download_metadata
+
+## PRIVATE
+asset_type_from_id id:Text -> Existing_Enso_Asset =
+    Enso_Asset_Type.from (id.take (..Before "-"))
+
+## PRIVATE
+   The asset metadata that is currently automatically included as part of the path resolution response.
+type Asset_Metadata
+    ## PRIVATE
+    Value modified_at:Date_Time description:Text|Nothing labels:Vector
+
+    ## PRIVATE
+    from_json json -> Asset_Metadata =
+        modified_at_text = get_required_field "modified_at" json expected_type=Text
+        modified_at = Date_Time.parse modified_at_text Date_Time_Formatter.iso_offset_date_time
+            . catch Time_Error error-> Error.throw (Enso_Cloud_Error.Invalid_Response_Payload error)
+        description = get_optional_field "description" json expected_type=Text
+        labels = get_optional_field "labels" json expected_type=Vector if_missing=[]
+        Asset_Metadata.Value modified_at description labels
 
 ## PRIVATE
 type Asset_Cache
+    ## PRIVATE
     asset_prefix = "asset:"
 
+    ## PRIVATE
     asset_key (file : Enso_File) -> Text = Asset_Cache.asset_prefix+file.enso_path.to_text
 
     ## PRIVATE
     invalidate (file : Enso_File) =
         Utils.invalidate_cache (Asset_Cache.asset_key file)
 
+    ## PRIVATE
     invalidate_subtree (file : Enso_File) =
         Utils.invalidate_caches_with_prefix (Asset_Cache.asset_key file)
 
+    ## PRIVATE
     invalidate_all =
         Utils.invalidate_caches_with_prefix Asset_Cache.asset_prefix
 
+    ## PRIVATE
     update (file : Enso_File) (asset : Existing_Enso_Asset) =
         Utils.set_cached (Asset_Cache.asset_key file) asset cache_duration=Cloud_Caching_Settings.get_file_cache_ttl
 

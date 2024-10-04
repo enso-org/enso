@@ -87,7 +87,7 @@ perform_upload (destination : Enso_File) (allow_existing : Boolean) (~generate_r
             response = Utils.http_request_as_json HTTP_Method.Post full_uri pair.first error_handlers=error_handlers
             response.if_not_error <|
                 id = get_required_field "id" response expected_type=Text
-                Asset_Cache.update destination (Existing_Enso_Asset.from_id_and_title id file_name) . if_not_error <|
+                Asset_Cache.update destination (Existing_Enso_Asset.new_without_metadata id file_name destination) . if_not_error <|
                     pair.second
 
 ## PRIVATE
@@ -129,5 +129,5 @@ create_datalink_from_stream_action (destination : Enso_File) (allow_existing : B
                     response = Utils.http_request_as_json HTTP_Method.Post Utils.datalinks_api payload error_handlers=error_handlers
                     response.if_not_error <|
                         id = get_required_field "id" response expected_type=Text
-                        Asset_Cache.update destination (Existing_Enso_Asset.from_id_and_title id title) . if_not_error <|
+                        Asset_Cache.update destination (Existing_Enso_Asset.new_without_metadata id title destination) . if_not_error <|
                             action_result
