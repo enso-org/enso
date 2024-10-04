@@ -64,13 +64,13 @@ case object TailCall extends IRPass with MiniPassFactory[TailCallMini] {
   override def createForInlineCompilation(
     inlineContext: InlineContext
   ): TailCallMini = {
-    inlineContext.isInTailPosition.getOrElse(
+    val isInTailPos = inlineContext.isInTailPosition.getOrElse(
       throw new CompilerError(
         "Information about the tail position for an inline expression " +
         "must be known by the point of tail call analysis."
       )
     )
-    new TailCallMini()
+    new TailCallMini(isInTailPos)
   }
 
   override def createForModuleCompilation(
