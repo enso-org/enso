@@ -32,6 +32,7 @@ import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.type.Types;
+import org.slf4j.LoggerFactory;
 
 /** A runtime representation of a function object in Enso. */
 @ExportLibrary(InteropLibrary.class)
@@ -202,8 +203,21 @@ public final class Function implements EnsoObject {
         Object[] arguments,
         @Cached InteropApplicationNode interopApplicationNode,
         @CachedLibrary("function") InteropLibrary thisLib) {
-      return interopApplicationNode.execute(
-          function, EnsoContext.get(thisLib).emptyState(), arguments);
+      try {
+        return interopApplicationNode.execute(
+            function, EnsoContext.get(thisLib).emptyState(), arguments);
+      } catch (StackOverflowError err) {
+        CompilerDirectives.transferToInterpreter();
+        var asserts = false;
+        assert asserts = true;
+        var logger = LoggerFactory.getLogger(Function.class);
+        if (asserts) {
+          logger.error("StackOverflowError detected", err);
+        } else {
+          logger.debug("StackOverflowError detected", err);
+        }
+        throw err;
+      }
     }
   }
 

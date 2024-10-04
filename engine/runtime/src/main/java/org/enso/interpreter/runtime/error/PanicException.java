@@ -60,7 +60,7 @@ public final class PanicException extends AbstractTruffleException implements En
       throw new IllegalArgumentException("Only interop values are supported: " + payload);
     }
     this.payload = payload;
-    if (CompilerDirectives.inInterpreter() && location == null) {
+    if (CompilerDirectives.inInterpreter()) {
       cacheMessage = computeMessage();
       assert cacheMessage != null;
     }
@@ -86,13 +86,12 @@ public final class PanicException extends AbstractTruffleException implements En
   @CompilerDirectives.TruffleBoundary
   private String computeMessage() {
     String msg;
-    InteropLibrary library = InteropLibrary.getUncached();
-    Object info = null;
+    var library = InteropLibrary.getUncached();
     try {
-      info = library.getExceptionMessage(this);
+      var info = library.getExceptionMessage(this);
       msg = library.asString(info);
     } catch (AssertionError | UnsupportedMessageException e) {
-      logger().error("Cannot convert " + info + " to string", e);
+      logger().error("Cannot compute message for " + payload, e);
       msg = TypeToDisplayTextNode.getUncached().execute(payload);
     }
     cacheMessage = msg;
