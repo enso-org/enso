@@ -139,12 +139,9 @@ type Enso_File
        ICON metadata
        Gets the last modified time of a file.
     last_modified_time : Date_Time
-    last_modified_time self =
-        asset = Existing_Enso_Asset.get_asset_reference_for self
-        if asset.is_regular_file.not then Error.throw (Illegal_Argument.Error "`last_modified_time` can only be queried for files.") else
-            metadata = asset.get_file_description |> get_required_field "metadata"
-            Date_Time.parse (get_required_field "modifiedAt" metadata expected_type=Text) Date_Time_Formatter.iso_offset_date_time
-                . catch Time_Error error-> Error.throw (Enso_Cloud_Error.Invalid_Response_Payload error)
+    last_modified_time self -> Date_Time =
+        asset = Existing_Enso_Asset.get_asset_reference_for self want_metadata=True
+        asset.metadata.modified_at
 
     ## GROUP Metadata
        ICON metadata
@@ -154,8 +151,8 @@ type Enso_File
        using the `set_description` method.
     description : Text
     description self -> Text =
-        asset = Existing_Enso_Asset.get_asset_reference_for self
-        "TODO"
+        asset = Existing_Enso_Asset.get_asset_reference_for self want_metadata=True
+        asset.metadata.description.if_nothing ""
 
     ## GROUP Metadata
        ICON data_output
@@ -177,8 +174,8 @@ type Enso_File
        Gets the labels associated with the file in Enso Cloud.
     labels : Vector Text
     labels self -> Vector Text =
-        asset = Existing_Enso_Asset.get_asset_reference_for self
-        "TODO"
+        asset = Existing_Enso_Asset.get_asset_reference_for self want_metadata=True
+        asset.metadata.labels
 
     ## GROUP Metadata
        ICON data_output

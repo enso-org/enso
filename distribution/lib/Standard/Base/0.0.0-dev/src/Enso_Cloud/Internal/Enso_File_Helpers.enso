@@ -87,7 +87,7 @@ perform_upload (destination : Enso_File) (allow_existing : Boolean) (~generate_r
             response = Utils.http_request_as_json HTTP_Method.Post full_uri pair.first error_handlers=error_handlers
             response.if_not_error <|
                 id = get_required_field "id" response expected_type=Text
-                Asset_Cache.update destination (Existing_Enso_Asset.new_without_metadata id file_name destination) . if_not_error <|
+                Asset_Cache.update destination (Existing_Enso_Asset.new_without_metadata id file_name) . if_not_error <|
                     pair.second
 
 ## PRIVATE
@@ -103,7 +103,9 @@ create_directory_with_parents (target : Enso_File) -> Existing_Enso_Asset =
         body = JS_Object.from_pairs [["title", target.name], ["parentId", parent_asset.id]]
         Asset_Cache.invalidate target
         response = Utils.http_request_as_json HTTP_Method.Post Utils.directory_api body
-        created_asset = Existing_Enso_Asset.from_json response
+        id = get_required_field "id" response expected_type=Text
+        title = get_required_field "title" response expected_type=Text
+        created_asset = Existing_Enso_Asset.new_without_metadata id title
         created_asset.if_not_error <|
             Asset_Cache.update target created_asset
             created_asset
@@ -129,5 +131,5 @@ create_datalink_from_stream_action (destination : Enso_File) (allow_existing : B
                     response = Utils.http_request_as_json HTTP_Method.Post Utils.datalinks_api payload error_handlers=error_handlers
                     response.if_not_error <|
                         id = get_required_field "id" response expected_type=Text
-                        Asset_Cache.update destination (Existing_Enso_Asset.new_without_metadata id title destination) . if_not_error <|
+                        Asset_Cache.update destination (Existing_Enso_Asset.new_without_metadata id title) . if_not_error <|
                             action_result

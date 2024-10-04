@@ -37,9 +37,9 @@ type Existing_Enso_Asset
        Represents an existing asset within the Enso cloud.
 
        The metadata represents additional information about the asset.
-       In it, we either store cached metadata that was returned as part of a response,
-       or a recipe to fetch it. Thus, it is lazy to avoid the fetching if not needed, and fetch at most once.
-    private Value title:Text id:Text asset_type:Enso_Asset_Type ~metadata:Asset_Metadata
+       It is stored if it was available in a response. It may not be present for
+       entries saved in cache after an upload operation that does not return metadata.
+    private Value title:Text id:Text asset_type:Enso_Asset_Type metadata:Asset_Metadata|Nothing
 
     ## PRIVATE
        Target URI for the api
@@ -76,8 +76,14 @@ type Existing_Enso_Asset
     ## PRIVATE
        Fetches the basic information about an existing file from the Cloud.
        It will fail if the file does not exist.
-    get_asset_reference_for (file : Enso_File) -> Existing_Enso_Asset ! File_Error =
-        fetch_asset_reference file
+
+       Arguments:
+       - file: The file to fetch the information for.
+       - want_metadata: Whether to require metadata for the file.
+         If set to True, a cached entry without metadata will not be considered
+         and a full fetch will be performed.
+    get_asset_reference_for (file : Enso_File) (want_metadata : Boolean = False) -> Existing_Enso_Asset ! File_Error =
+        fetch_asset_reference file want_metadata
 
     ## PRIVATE
        Resolves a path to an existing asset in the cloud.
@@ -105,7 +111,6 @@ type Existing_Enso_Asset
 
     ## PRIVATE
     from_json json -> Existing_Enso_Asset =
-        Standard.Base.IO.println json
         title = get_required_field "title" json expected_type=Text
         id = get_required_field "id" json expected_type=Text
         metadata = Asset_Metadata.from_json json
@@ -116,17 +121,11 @@ type Existing_Enso_Asset
         Existing_Enso_Asset.Value title id (asset_type_from_id id) metadata
 
     ## PRIVATE
-    new_without_metadata id:Text title:Text path:Enso_File -> Existing_Enso_Asset =
-        lazily_download_metadata =
-            # This must be a block, so that it is not evaluated immediately.
-            asset_with_metadata = Existing_Enso_Asset.resolve_path path.enso_path.to_text if_not_found=(Error.throw (Illegal_Status.Error "The asset at path "+path.to_text+" no longer exists."))
-            if asset_with_metadata.id != id then Error.throw (Illegal_Status.Error "The asset at path "+path.to_text+" is no longer the same asset as the one that was cached. The metadata of the old asset can no longer be accessed.")
-
-
-        Existing_Enso_Asset.Value title id (asset_type_from_id id) lazily_download_metadata
+    new_without_metadata id:Text title:Text -> Existing_Enso_Asset =
+        Existing_Enso_Asset.Value title id (asset_type_from_id id) Nothing
 
 ## PRIVATE
-asset_type_from_id id:Text -> Existing_Enso_Asset =
+asset_type_from_id id:Text -> Enso_Asset_Type =
     Enso_Asset_Type.from (id.take (..Before "-"))
 
 ## PRIVATE
@@ -137,7 +136,7 @@ type Asset_Metadata
 
     ## PRIVATE
     from_json json -> Asset_Metadata =
-        modified_at_text = get_required_field "modified_at" json expected_type=Text
+        modified_at_text = get_required_field "modifiedAt" json expected_type=Text
         modified_at = Date_Time.parse modified_at_text Date_Time_Formatter.iso_offset_date_time
             . catch Time_Error error-> Error.throw (Enso_Cloud_Error.Invalid_Response_Payload error)
         description = get_optional_field "description" json expected_type=Text
@@ -170,7 +169,15 @@ type Asset_Cache
 
 ## PRIVATE
    Returns the cached reference or fetches it from the cloud.
-fetch_asset_reference (file : Enso_File) -> Existing_Enso_Asset ! File_Error =
+fetch_asset_reference (file : Enso_File) (want_metadata : Boolean) -> Existing_Enso_Asset ! File_Error =
     path = file.enso_path.to_text
-    Utils.get_cached (Asset_Cache.asset_key file) cache_duration=Cloud_Caching_Settings.get_file_cache_ttl <|
-        Existing_Enso_Asset.resolve_path path if_not_found=(Error.throw (File_Error.Not_Found file))
+    on_not_found =
+        Error.throw (File_Error.Not_Found file)
+    r = Utils.get_cached (Asset_Cache.asset_key file) cache_duration=Cloud_Caching_Settings.get_file_cache_ttl <|
+        Existing_Enso_Asset.resolve_path path if_not_found=on_not_found
+
+    needs_refetch = want_metadata && r.metadata.is_nothing
+    if needs_refetch.not then r else
+        with_metadata = Existing_Enso_Asset.resolve_path path if_not_found=on_not_found
+        Asset_Cache.update file with_metadata
+        with_metadata
