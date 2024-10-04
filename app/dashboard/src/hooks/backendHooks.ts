@@ -61,7 +61,6 @@ export type MutationMethod = DefineBackendMethods<
   | 'deleteUserGroup'
   | 'duplicateProject'
   // TODO: `get*` are not mutations, but are currently used in some places.
-  | 'getDatalink'
   | 'getFileDetails'
   | 'getProjectDetails'
   | 'inviteUser'
@@ -148,7 +147,7 @@ const INVALIDATION_MAP: Partial<
   createDirectory: ['listDirectory'],
   createSecret: ['listDirectory'],
   updateSecret: ['listDirectory'],
-  createDatalink: ['listDirectory'],
+  createDatalink: ['listDirectory', 'getDatalink'],
   uploadFile: ['listDirectory'],
   copyAsset: ['listDirectory', 'listAssetVersions'],
   deleteAsset: ['listDirectory', 'listAssetVersions'],

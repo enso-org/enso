@@ -5,9 +5,16 @@ import { useMutation } from '@tanstack/react-query'
 
 import PenIcon from '#/assets/pen.svg'
 import { Heading } from '#/components/aria'
-import { Button, ButtonGroup, CopyButton, Text } from '#/components/AriaComponents'
+import {
+  Button,
+  ButtonGroup,
+  CopyButton,
+  Form,
+  ResizableContentEditableInput,
+  Text,
+} from '#/components/AriaComponents'
 import SharedWithColumn from '#/components/dashboard/column/SharedWithColumn'
-import DatalinkInput from '#/components/dashboard/DatalinkInput'
+import { DatalinkFormInput } from '#/components/dashboard/DatalinkInput'
 import Label from '#/components/dashboard/Label'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
 import { validateDatalink } from '#/data/datalinkValidator'
@@ -18,7 +25,7 @@ import {
 } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSpotlight } from '#/hooks/spotlightHooks'
-import { useToastAndLog } from '#/hooks/toastAndLogHooks'
+import { useSyncRef } from '#/hooks/syncRefHooks'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 import { useFullUserSession } from '#/providers/AuthProvider'
@@ -26,16 +33,24 @@ import { useLocalBackend } from '#/providers/BackendProvider'
 import { useDriveStore, useSetAssetPanelProps } from '#/providers/DriveProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
-import { AssetType, BackendType } from '#/services/Backend'
+import { AssetType, BackendType, type DatalinkId } from '#/services/Backend'
 import { extractTypeAndId } from '#/services/LocalBackend'
 import type { AnyAssetTreeNode } from '#/utilities/AssetTreeNode'
 import { normalizePath } from '#/utilities/fileInfo'
 import { mapNonNullish } from '#/utilities/nullable'
 import * as permissions from '#/utilities/permissions'
+import { tv } from '#/utilities/tailwindVariants'
 
 // =======================
 // === AssetProperties ===
 // =======================
+
+const ASSET_PROPERTIES_VARIANTS = tv({
+  base: '',
+  slots: {
+    section: 'pointer-events-auto flex flex-col items-start gap-side-panel-section rounded-default',
+  },
+})
 
 /** Possible elements in this screen to spotlight on. */
 export type AssetPropertiesSpotlight = 'datalink' | 'description' | 'secret'
@@ -53,6 +68,7 @@ export interface AssetPropertiesProps {
 export default function AssetProperties(props: AssetPropertiesProps) {
   const { backend, item, category, spotlightOn } = props
   const { isReadonly = false } = props
+  const styles = ASSET_PROPERTIES_VARIANTS({})
 
   const asset = useAssetPassiveListenerStrict(backend.type, item.item.id, item.item.parentId)
   const setAssetPanelProps = useSetAssetPanelProps()
@@ -66,7 +82,6 @@ export default function AssetProperties(props: AssetPropertiesProps) {
   })
   const { user } = useFullUserSession()
   const { getText } = useText()
-  const toastAndLog = useToastAndLog()
   const localBackend = useLocalBackend()
   const [isEditingDescriptionRaw, setIsEditingDescriptionRaw] = React.useState(false)
   const isEditingDescription = isEditingDescriptionRaw || spotlightOn === 'description'
@@ -84,16 +99,12 @@ export default function AssetProperties(props: AssetPropertiesProps) {
     },
     [closeSpotlight],
   )
-  const [queuedDescription, setQueuedDescripion] = React.useState<string | null>(null)
-  const [description, setDescription] = React.useState('')
-  const [datalinkValue, setDatalinkValue] = React.useState<NonNullable<unknown> | null>(null)
-  const [editedDatalinkValue, setEditedDatalinkValue] = React.useState<NonNullable<unknown> | null>(
-    datalinkValue,
-  )
-  const [isDatalinkFetched, setIsDatalinkFetched] = React.useState(false)
-  const isDatalinkSubmittable = React.useMemo(
-    () => validateDatalink(datalinkValue),
-    [datalinkValue],
+  const datalinkQuery = useBackendQuery(
+    backend,
+    'getDatalink',
+    // eslint-disable-next-line no-restricted-syntax
+    [asset.id as DatalinkId, asset.title],
+    { enabled: asset.type === AssetType.datalink },
   )
   const driveStore = useDriveStore()
   const descriptionRef = React.useRef<HTMLDivElement>(null)
@@ -124,7 +135,6 @@ export default function AssetProperties(props: AssetPropertiesProps) {
     self?.permission === permissions.PermissionAction.edit
   const isSecret = asset.type === AssetType.secret
   const isDatalink = asset.type === AssetType.datalink
-  const isDatalinkDisabled = datalinkValue === editedDatalinkValue || !isDatalinkSubmittable
   const isCloud = backend.type === BackendType.remote
   const pathRaw =
     category.type === 'recent' || category.type === 'trash' ? null
@@ -137,51 +147,56 @@ export default function AssetProperties(props: AssetPropertiesProps) {
     : isCloud ? encodeURI(pathRaw)
     : pathRaw
   const createDatalinkMutation = useMutation(backendMutationOptions(backend, 'createDatalink'))
-  const getDatalinkMutation = useMutation(backendMutationOptions(backend, 'getDatalink'))
   const editDescriptionMutation = useMutation(
     // Provide an extra `mutationKey` so that it has its own loading state.
     backendMutationOptions(backend, 'updateAsset', { mutationKey: ['editDescription'] }),
   )
   const updateSecretMutation = useMutation(backendMutationOptions(backend, 'updateSecret'))
-  const getDatalink = getDatalinkMutation.mutateAsync
   const displayedDescription =
     editDescriptionMutation.variables?.[1].description ?? asset.description
 
-  React.useEffect(() => {
-    setDescription(asset.description ?? '')
-  }, [asset.description])
-
-  React.useEffect(() => {
-    void (async () => {
-      if (asset.type === AssetType.datalink) {
-        const value = await getDatalink([asset.id, asset.title])
-        setDatalinkValue(value)
-        setIsDatalinkFetched(true)
+  const editDescriptionForm = Form.useForm({
+    schema: (z) => z.object({ description: z.string() }),
+    defaultValues: { description: asset.description ?? '' },
+    onSubmit: async ({ description }) => {
+      if (description !== asset.description) {
+        await editDescriptionMutation.mutateAsync([
+          asset.id,
+          { parentDirectoryId: null, description },
+          asset.title,
+        ])
       }
-    })()
-  }, [backend, asset, getDatalink])
+    },
+  })
 
-  const editDescription = async () => {
-    setIsEditingDescription(false)
-    if (description !== asset.description) {
-      await editDescriptionMutation.mutateAsync([
-        asset.id,
-        { parentDirectoryId: null, description },
-        asset.title,
+  const editDatalinkForm = Form.useForm({
+    schema: (z) => z.object({ datalink: z.custom((x) => validateDatalink(x)) }),
+    defaultValues: { datalink: datalinkQuery.data },
+    onSubmit: async ({ datalink }) => {
+      await createDatalinkMutation.mutateAsync([
+        {
+          // The UI to submit this form is only visible if the asset is a datalink.
+          // eslint-disable-next-line no-restricted-syntax
+          datalinkId: asset.id as DatalinkId,
+          name: asset.title,
+          parentDirectoryId: null,
+          value: datalink,
+        },
       ])
-    }
-  }
+    },
+  })
+
+  const editDatalinkFormRef = useSyncRef(editDatalinkForm)
+  React.useEffect(() => {
+    editDatalinkFormRef.current.setValue('datalink', datalinkQuery.data)
+  }, [datalinkQuery.data, editDatalinkFormRef])
 
   return (
     <>
       {descriptionSpotlight.spotlightElement}
       {secretSpotlight.spotlightElement}
       {datalinkSpotlight.spotlightElement}
-      <div
-        ref={descriptionRef}
-        className="pointer-events-auto flex flex-col items-start gap-side-panel rounded-default"
-        {...descriptionSpotlight.props}
-      >
+      <div ref={descriptionRef} className={styles.section()} {...descriptionSpotlight.props}>
         <Heading
           level={2}
           className="flex h-side-panel-heading items-center gap-side-panel-section py-side-panel-heading-y text-lg leading-snug"
@@ -195,7 +210,6 @@ export default function AssetProperties(props: AssetPropertiesProps) {
               loading={editDescriptionMutation.isPending}
               onPress={() => {
                 setIsEditingDescription(true)
-                setQueuedDescripion(asset.description)
               }}
             />
           )}
@@ -204,49 +218,23 @@ export default function AssetProperties(props: AssetPropertiesProps) {
           data-testid="asset-panel-description"
           className="self-stretch py-side-panel-description-y"
         >
-          {!isEditingDescription ?
+          {isEditingDescription ?
             <Text>{displayedDescription}</Text>
-          : <form className="flex flex-col gap-modal pr-4" onSubmit={editDescription}>
-              <textarea
-                ref={(element) => {
-                  if (element != null && queuedDescription != null) {
-                    element.value = queuedDescription
-                    setQueuedDescripion(null)
-                  }
-                }}
+          : <Form form={editDescriptionForm} className="flex flex-col gap-modal pr-4">
+              <ResizableContentEditableInput
+                form={editDescriptionForm}
+                name="description"
                 autoFocus
-                value={description}
-                className="w-full resize-none rounded-default border-0.5 border-primary/20 p-2 outline-2 outline-offset-2 transition-[border-color,outline] focus-within:outline focus-within:outline-offset-0"
-                onChange={(event) => {
-                  setDescription(event.currentTarget.value)
-                }}
-                onKeyDown={(event) => {
-                  event.stopPropagation()
-                  switch (event.key) {
-                    case 'Escape': {
-                      setIsEditingDescription(false)
-                      break
-                    }
-                    case 'Enter': {
-                      if (event.ctrlKey) {
-                        void editDescription()
-                        break
-                      }
-                    }
-                  }
-                }}
               />
               <ButtonGroup>
-                <Button size="medium" variant="outline" onPress={editDescription}>
-                  {getText('update')}
-                </Button>
+                <Form.Submit>{getText('update')}</Form.Submit>
               </ButtonGroup>
-            </form>
+            </Form>
           }
         </div>
       </div>
       {isCloud && (
-        <div className="pointer-events-auto flex flex-col items-start gap-side-panel-section">
+        <div className={styles.section()}>
           <Heading
             level={2}
             className="h-side-panel-heading py-side-panel-heading-y text-lg leading-snug"
@@ -303,11 +291,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
       )}
 
       {isSecret && (
-        <div
-          ref={secretRef}
-          className="pointer-events-auto flex flex-col items-start gap-side-panel-section rounded-default"
-          {...secretSpotlight.props}
-        >
+        <div ref={secretRef} className={styles.section()} {...secretSpotlight.props}>
           <Heading
             level={2}
             className="h-side-panel-heading py-side-panel-heading-y text-lg leading-snug"
@@ -328,69 +312,35 @@ export default function AssetProperties(props: AssetPropertiesProps) {
       )}
 
       {isDatalink && (
-        <div
-          ref={datalinkRef}
-          className="pointer-events-auto flex flex-col items-start gap-side-panel-section rounded-default"
-          {...datalinkSpotlight.props}
-        >
+        <div ref={datalinkRef} className={styles.section()} {...datalinkSpotlight.props}>
           <Heading
             level={2}
             className="h-side-panel-heading py-side-panel-heading-y text-lg leading-snug"
           >
             {getText('datalink')}
           </Heading>
-          {!isDatalinkFetched ?
+          {datalinkQuery.isLoading ?
             <div className="grid place-items-center self-stretch">
               <StatelessSpinner size={48} state={statelessSpinner.SpinnerState.loadingMedium} />
             </div>
-          : <>
-              <DatalinkInput
+          : <Form form={editDatalinkForm} className="flex w-full flex-col">
+              <DatalinkFormInput
+                form={editDatalinkForm}
+                name="datalink"
                 readOnly={!canEditThisAsset}
-                dropdownTitle="Type"
-                value={editedDatalinkValue}
-                onChange={setEditedDatalinkValue}
+                dropdownTitle={getText('type')}
               />
               {canEditThisAsset && (
                 <ButtonGroup>
-                  <Button
-                    variant="submit"
-                    isDisabled={isDatalinkDisabled}
-                    {...(isDatalinkDisabled ?
-                      { title: 'Edit the Datalink before updating it.' }
-                    : {})}
-                    onPress={async () => {
-                      const oldDatalinkValue = datalinkValue
-                      try {
-                        setDatalinkValue(editedDatalinkValue)
-                        await createDatalinkMutation.mutateAsync([
-                          {
-                            datalinkId: asset.id,
-                            name: asset.title,
-                            parentDirectoryId: null,
-                            value: editedDatalinkValue,
-                          },
-                        ])
-                      } catch (error) {
-                        toastAndLog(null, error)
-                        setDatalinkValue(oldDatalinkValue)
-                        setEditedDatalinkValue(oldDatalinkValue)
-                      }
-                    }}
-                  >
-                    {getText('update')}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    isDisabled={isDatalinkDisabled}
+                  <Form.Submit>{getText('update')}</Form.Submit>
+                  <Form.Reset
                     onPress={() => {
-                      setEditedDatalinkValue(datalinkValue)
+                      editDatalinkForm.reset({ datalink: datalinkQuery.data })
                     }}
-                  >
-                    {getText('cancel')}
-                  </Button>
+                  />
                 </ButtonGroup>
               )}
-            </>
+            </Form>
           }
         </div>
       )}
