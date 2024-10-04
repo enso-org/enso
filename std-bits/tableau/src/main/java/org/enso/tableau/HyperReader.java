@@ -8,6 +8,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.channels.Channels;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -46,7 +47,7 @@ public class HyperReader {
     if (!Files.exists(HYPER_PATH)) {
       try {
         Files.createDirectories(HYPER_PATH);
-      } catch (Exception e) {
+      } catch (IOException | UnsupportedOperationException | SecurityException e) {
         throw new IOException("Failed to create Hyper directory: " + HYPER_PATH, e);
       }
     }
@@ -75,7 +76,8 @@ public class HyperReader {
               "Unsupported platform: " + OSPlatform.CurrentPlatform);
         }
       }
-    } catch (Exception e) {
+    } catch (IOException | URISyntaxException | InvalidPathException | UnsupportedOperationException
+        | SecurityException e) {
       throw new IOException("Failed to download hyperd.", e);
     }
 
@@ -100,7 +102,7 @@ public class HyperReader {
   }
 
   private static void downloadHyper(String uri, String fileName, boolean setExecutable)
-      throws IOException, URISyntaxException {
+      throws IOException, URISyntaxException, InvalidPathException, UnsupportedOperationException, SecurityException {
     LOGGER.log(Level.INFO, "Downloading Hyper from: " + uri);
     var hyperdFile = HYPER_PATH.resolve(fileName).toFile();
     var url = new URI(uri);
