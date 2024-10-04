@@ -86,8 +86,8 @@ public final class PanicException extends AbstractTruffleException implements En
     try {
       var info = library.getExceptionMessage(this);
       msg = library.asString(info);
-    } catch (AssertionError | UnsupportedMessageException e) {
-      logger().error("Cannot compute message for " + payload, e);
+    } catch (StackOverflowError | AssertionError | UnsupportedMessageException e) {
+      logger().atError().log("Cannot compute message for " + payload, e);
       msg = TypeToDisplayTextNode.getUncached().execute(payload);
     }
     cacheMessage = msg;

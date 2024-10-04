@@ -49,7 +49,7 @@ class PanicsTest extends InterpreterTest {
       consumeOut shouldEqual List("(Error: MyError)")
     }
 
-    "message should be computed soon enough" in {
+    "message should be computed before leaving the context" in {
       val code =
         """from Standard.Base import all
           |
@@ -65,9 +65,34 @@ class PanicsTest extends InterpreterTest {
 
       try {
         eval(code)
+        fail("Should raise an InterpreterException");
       } catch {
         case ex: InterpreterException =>
           ex.getMessage() shouldEqual "Hi from exception"
+        case any: Throwable => throw any
+      }
+    }
+
+    "panic causing stack overflow in to_display_text should still generate some error message" in {
+      val code =
+        """from Standard.Base import all
+          |
+          |type LM
+          |    V txt
+          |
+          |    to_display_text self =
+          |        res = LM.V (self.txt + "Ex")
+          |        res.to_display_text
+          |
+          |main = Panic.throw (LM.V "Hi")
+          |""".stripMargin
+
+      try {
+        eval(code)
+        fail("Should raise an InterpreterException");
+      } catch {
+        case ex: InterpreterException =>
+          ex.getMessage() shouldEqual "LM"
         case any: Throwable => throw any
       }
     }
