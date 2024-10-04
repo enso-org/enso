@@ -9,7 +9,6 @@ module org.enso.runtime.compiler {
   requires static org.enso.persistance;
   requires org.enso.syntax;
 
-  requires org.graalvm.collections;
   requires org.openide.util.lookup.RELEASE180;
   requires org.slf4j;
 
