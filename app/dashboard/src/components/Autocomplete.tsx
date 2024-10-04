@@ -191,7 +191,7 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
         )}
       >
         <FocusRing within>
-          <div className="relative z-1 flex flex-1 rounded-full">
+          <div className="relative z-1 flex flex-1 items-center gap-2 rounded-full px-2">
             {canEditText ?
               <Input
                 name="autocomplete"
@@ -217,9 +217,10 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
                   setText(event.currentTarget.value === '' ? null : event.currentTarget.value)
                 }}
               />
-            : <div
+            : <Text
                 tabIndex={-1}
-                className="text w-full grow cursor-pointer overflow-auto whitespace-nowrap bg-transparent px-button-x scroll-hidden"
+                truncate="1"
+                tooltipPlacement="left"
                 onClick={() => {
                   setIsDropdownVisible(true)
                 }}
@@ -230,13 +231,12 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
                 }}
               >
                 {itemsToString?.(values) ?? (values[0] != null ? children(values[0]) : ZWSP)}
-              </div>
+              </Text>
             }
             <Button
               size="medium"
               variant="icon"
               icon={CloseIcon}
-              className="absolute right-1 top-1/2 -translate-y-1/2"
               onPress={() => {
                 setValues([])
                 // setIsDropdownVisible(true)
