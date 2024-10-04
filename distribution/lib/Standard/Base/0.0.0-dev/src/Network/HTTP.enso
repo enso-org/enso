@@ -30,7 +30,7 @@ from project.Data.Boolean import Boolean, False, True
 from project.Data.Json.Extensions import all
 
 polyglot java import java.lang.IllegalArgumentException
-polyglot java import java.IO.IOException
+polyglot java import java.io.IOException
 polyglot java import java.net.http.HttpClient
 polyglot java import java.net.http.HttpClient.Builder as ClientBuilder
 polyglot java import java.net.http.HttpClient.Redirect

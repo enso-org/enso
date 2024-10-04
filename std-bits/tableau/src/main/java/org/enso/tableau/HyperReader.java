@@ -76,7 +76,10 @@ public class HyperReader {
               "Unsupported platform: " + OSPlatform.CurrentPlatform);
         }
       }
-    } catch (IOException | URISyntaxException | InvalidPathException | UnsupportedOperationException
+    } catch (IOException
+        | URISyntaxException
+        | InvalidPathException
+        | UnsupportedOperationException
         | SecurityException e) {
       throw new IOException("Failed to download hyperd.", e);
     }
@@ -102,7 +105,11 @@ public class HyperReader {
   }
 
   private static void downloadHyper(String uri, String fileName, boolean setExecutable)
-      throws IOException, URISyntaxException, InvalidPathException, UnsupportedOperationException, SecurityException {
+      throws IOException,
+          URISyntaxException,
+          InvalidPathException,
+          UnsupportedOperationException,
+          SecurityException {
     LOGGER.log(Level.INFO, "Downloading Hyper from: " + uri);
     var hyperdFile = HYPER_PATH.resolve(fileName).toFile();
     var url = new URI(uri);
