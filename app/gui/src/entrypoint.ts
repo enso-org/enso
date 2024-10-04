@@ -1,15 +1,13 @@
 import * as dashboard from '#/index'
+import '#/tailwind.css'
+import { AsyncApp } from '@/asyncApp'
 import { baseConfig, configValue, mergeConfig } from '@/util/config'
 import { urlParams } from '@/util/urlParams'
 import * as vueQuery from '@tanstack/vue-query'
 import { isOnLinux } from 'enso-common/src/detect'
 import * as commonQuery from 'enso-common/src/queryClient'
-import 'enso-dashboard/src/tailwind.css'
 import { lazyVueInReact } from 'veaury'
 import { type App } from 'vue'
-
-import 'enso-dashboard/src/tailwind.css'
-import { AsyncApp } from './project-view/asyncApp'
 
 const INITIAL_URL_KEY = `Enso-initial-url`
 const SCAM_WARNING_TIMEOUT = 1000

@@ -10,7 +10,7 @@ import tailwindcssNesting from 'tailwindcss/nesting'
 import { defineConfig, type Plugin } from 'vite'
 import VueDevTools from 'vite-plugin-vue-devtools'
 import wasm from 'vite-plugin-wasm'
-import * as tailwindConfig from './tailwind.config'
+import tailwindConfig from './tailwind.config'
 
 const dynHostnameWsUrl = (port: number) => JSON.stringify(`ws://__HOSTNAME__:${port}`)
 const projectManagerUrl = dynHostnameWsUrl(process.env.E2E === 'true' ? 30536 : 30535)
@@ -84,15 +84,7 @@ export default defineConfig({
   assetsInclude: ['**/*.svg'],
   css: {
     postcss: {
-      plugins: [
-        tailwindcssNesting(postcssNesting()),
-        tailwindcss({
-          ...tailwindConfig.default,
-          content: tailwindConfig.default.content.map((glob: string) =>
-            glob.replace(/^[.][/]/, fileURLToPath(new URL('../dashboard/', import.meta.url))),
-          ),
-        }),
-      ],
+      plugins: [tailwindcssNesting(postcssNesting()), tailwindcss(tailwindConfig)],
     },
   },
   build: {

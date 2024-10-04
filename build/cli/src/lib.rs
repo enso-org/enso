@@ -324,15 +324,10 @@ impl Processor {
                             .await;
                     if is_in_env() {
                         let gui_report = ide_ci::actions::artifacts::upload_directory_if_exists(
-                            &repo_root.app.gui_2.playwright_report,
+                            repo_root.app.gui.playwright_report,
                             "gui-playwright-report",
                         );
-                        let dashboard_report =
-                            ide_ci::actions::artifacts::upload_directory_if_exists(
-                                repo_root.app.dashboard.playwright_report,
-                                "dashboard-playwright-report",
-                            );
-                        try_join!(gui_report, dashboard_report)?;
+                        gui_report.await?;
                     }
                     check_result
                 }

@@ -26,10 +26,7 @@ import type { SuggestionEntry } from 'ydoc-shared/languageServerTypes/suggestion
 import type { MockTransportData } from 'ydoc-shared/util/net'
 import { uuidToBits } from 'ydoc-shared/uuid'
 import * as Y from 'yjs'
-import {
-  mockFsDirectoryHandle,
-  type FileTree,
-} from '../../../src/project-view/util/convert/fsAccess'
+import { mockFsDirectoryHandle, type FileTree } from '../util/convert/fsAccess'
 import { mockDataWSHandler as originalMockDataWSHandler } from './dataServer'
 import mockDb from './mockSuggestions.json' assert { type: 'json' }
 

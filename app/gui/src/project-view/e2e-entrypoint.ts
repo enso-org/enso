@@ -6,13 +6,9 @@
 
 import { MockYdocProvider } from '@/util/crdt'
 import { MockWebSocket, MockWebSocketTransport } from '@/util/net'
-import {
-  mockDataHandler,
-  mockLSHandler,
-  mockYdocProvider,
-} from '../../e2e/project-view/mock/engine'
+import { mockDataHandler, mockLSHandler, mockYdocProvider } from './mock/engine'
 
-import 'enso-dashboard/src/tailwind.css'
+import '#/tailwind.css'
 import { createApp } from 'vue'
 import { AsyncApp } from './asyncApp'
 

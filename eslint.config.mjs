@@ -10,9 +10,11 @@ import * as url from 'node:url'
 import eslintJs from '@eslint/js'
 import tsEslint from '@typescript-eslint/eslint-plugin'
 import tsEslintParser from '@typescript-eslint/parser'
+import vueTsEslintConfig from '@vue/eslint-config-typescript'
 import jsdoc from 'eslint-plugin-jsdoc'
 import react from 'eslint-plugin-react'
 import reactHooks from 'eslint-plugin-react-hooks'
+import pluginVue from 'eslint-plugin-vue'
 import globals from 'globals'
 /* eslint-enable no-restricted-syntax */
 
@@ -189,6 +191,7 @@ const RESTRICTED_SYNTAXES = [
 /* eslint-disable @typescript-eslint/naming-convention */
 export default [
   eslintJs.configs.recommended,
+  ...vueTsEslintConfig(),
   {
     // Playwright build cache and Vite build directory.
     ignores: [
@@ -215,14 +218,7 @@ export default [
       parser: tsEslintParser,
       parserOptions: {
         tsconfigRootDir: DIR_NAME,
-        project: [
-          './*/tsconfig.json',
-          './ide-desktop/*/tsconfig.json',
-          './gui/tsconfig.app.json',
-          './gui/tsconfig.node.json',
-          './gui/tsconfig.scripts.json',
-          './gui/tsconfig.app.vitest.json',
-        ],
+        projectService: true,
       },
       globals: {
         ...globals.browser,
