@@ -45,9 +45,7 @@ module org.enso.std.table {
 
   exports org.enso.table.data.column.storage.type;
   exports org.enso.table.data.mask;
-
-  opens org.enso.table.data.index;
-
+  exports org.enso.table.data.index;
   exports org.enso.table.data.table;
 
   opens org.enso.table.data.table.problems;
