@@ -24,72 +24,74 @@ import org.enso.compiler.core.{CompilerError, IR}
 import org.enso.compiler.pass.MiniIRPass
 import org.enso.compiler.pass.analyse.TailCall.TailPosition
 import org.enso.compiler.pass.resolve.ExpressionAnnotations
-import org.graalvm.collections.{EconomicSet, Equivalence}
+
+import java.util.IdentityHashMap
 
 /** @param isInTailPosition Indicates whether the current IR element should be marked as tail call.
   *                         This flag is propagated to the children during the preparation phase.
   * @param tails A set of IR elements (collected and used only during the preparation phase)
-  *                         that are definitely tail calls, even if `isInTailPosition` is false.
-  *              EconomitSet with IDENTITY_SYSTEM_HASHCODE is chosen to the comparison of
-  *              references rather than via `IR.equals` and `IR.hashCode`.
+  *              that are definitely tail calls, even if `isInTailPosition` is false.
+  *              Implemented as [[java.util.IdentityHashMap]] to force comparison via referential
+  *              equality of the IR elements, instead of `IR.equals`. The value type in this map has
+  *              no meaning.
   * @param notTails A set of IR elements (collected and used only during the preparation phase)
   *                 that are definitely not tail calls, even if `isInTailPosition` is true.
   */
 class TailCallMini(
   private val isInTailPosition: Boolean = false,
-  private val tails: EconomicSet[IR] =
-    EconomicSet.create(Equivalence.IDENTITY_WITH_SYSTEM_HASHCODE),
-  private val notTails: EconomicSet[IR] =
-    EconomicSet.create(Equivalence.IDENTITY_WITH_SYSTEM_HASHCODE)
+  private val tails: IdentityHashMap[IR, Boolean] =
+    new IdentityHashMap[IR, Boolean](),
+  private val notTails: IdentityHashMap[IR, Boolean] =
+    new IdentityHashMap[IR, Boolean]()
 ) extends MiniIRPass {
   override type Metadata = TailCall.TailPosition
 
   override def prepare(current: IR): MiniIRPass = {
-    if (tails.contains(current)) {
+    if (tails.containsKey(current)) {
       tails.remove(current)
       return new TailCallMini(true, tails, notTails)
     }
-    if (notTails.contains(current)) {
+    if (notTails.containsKey(current)) {
       notTails.remove(current)
       return new TailCallMini(false, tails, notTails)
     }
 
     current match {
       case binding: Expression.Binding =>
-        notTails.add(binding.expression)
+        notTails.put(binding.expression, true)
       case block: Expression.Block =>
         block.expressions.foreach { bodyExpr =>
-          notTails.add(bodyExpr)
+          notTails.put(bodyExpr, true)
         }
       case Application.Prefix(fn, _, _, _, _) if current eq fn =>
-        notTails.add(fn)
+        notTails.put(fn, true)
       case seq: Application.Sequence =>
         seq.items.foreach { item =>
-          notTails.add(item)
+          notTails.put(item, true)
         }
       case tpSet: Application.Typeset =>
-        tpSet.expression.map(notTails.add)
+        tpSet.expression.map(notTails.put(_, true))
       case Function.Lambda(_, body, _, canBeTCO, _, _) if current eq body =>
         val markAsTail = (!canBeTCO && isInTailPosition) || canBeTCO
         if (markAsTail) {
-          tails.add(body)
+          tails.put(body, true)
         } else {
-          notTails.add(body)
+          notTails.put(body, true)
         }
       // Note [Call Argument Tail Position]
       case CallArgument.Specified(_, value, _, _) =>
-        tails.add(value)
+        tails.put(value, true)
       case DefinitionArgument.Specified(_, _, Some(defaultValue), _, _, _) =>
-        notTails.add(defaultValue)
+        notTails.put(defaultValue, true)
       case tp: Type =>
         tp.children().foreach { tpChild =>
-          notTails.add(tpChild)
+          notTails.put(tpChild, true)
         }
       case Case.Expr(scrutinee, _, _, _, _) =>
-        notTails.add(scrutinee)
+        notTails.put(scrutinee, true)
       case pat: Pattern =>
         pat.children().foreach { patChild =>
-          notTails.add(patChild)
+          notTails.put(patChild, true)
         }
       case _ => ()
     }
