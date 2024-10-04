@@ -55,7 +55,7 @@ import AssetEventType from '#/events/AssetEventType'
 import type { AssetListEvent } from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
 import { useAutoScroll } from '#/hooks/autoScrollHooks'
-import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
+import { backendMutationOptions, backendQueryOptions, useBackendQuery } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useIntersectionRatio } from '#/hooks/intersectionHooks'
 import { useOpenProject } from '#/hooks/projectHooks'
@@ -444,9 +444,6 @@ export default function AssetsTable(props: AssetsTableProps) {
   const updateSecretMutation = useMutation(backendMutationOptions(backend, 'updateSecret'))
   const createDatalinkMutation = useMutation(backendMutationOptions(backend, 'createDatalink'))
   const uploadFileMutation = useMutation(backendMutationOptions(backend, 'uploadFile'))
-  const getProjectDetailsMutation = useMutation(
-    backendMutationOptions(backend, 'getProjectDetails'),
-  )
   const copyAssetMutation = useMutation(backendMutationOptions(backend, 'copyAsset'))
   const deleteAssetMutation = useMutation(backendMutationOptions(backend, 'deleteAsset'))
   const undoDeleteAssetMutation = useMutation(backendMutationOptions(backend, 'undoDeleteAsset'))
@@ -1769,8 +1766,14 @@ export default function AssetsTable(props: AssetsTableProps) {
                   const projectId = newProjectId(UUID(id))
                   addIdToSelection(projectId)
 
-                  await getProjectDetailsMutation
-                    .mutateAsync([projectId, asset.parentId, file.name])
+                  await queryClient
+                    .fetchQuery(
+                      backendQueryOptions(backend, 'getProjectDetails', [
+                        projectId,
+                        asset.parentId,
+                        file.name,
+                      ]),
+                    )
                     .catch((error) => {
                       deleteAsset(projectId)
                       toastAndLog('uploadProjectError', error)

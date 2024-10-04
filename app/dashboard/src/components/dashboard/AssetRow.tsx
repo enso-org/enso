@@ -193,10 +193,6 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
 
   const toastAndLog = useToastAndLog()
 
-  const getProjectDetailsMutation = useMutation(
-    backendMutationOptions(backend, 'getProjectDetails'),
-  )
-  const getFileDetailsMutation = useMutation(backendMutationOptions(backend, 'getFileDetails'))
   const createPermissionMutation = useMutation(backendMutationOptions(backend, 'createPermission'))
   const associateTagMutation = useMutation(backendMutationOptions(backend, 'associateTag'))
 
@@ -376,11 +372,13 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
               switch (asset.type) {
                 case backendModule.AssetType.project: {
                   try {
-                    const details = await getProjectDetailsMutation.mutateAsync([
-                      asset.id,
-                      asset.parentId,
-                      asset.title,
-                    ])
+                    const details = await queryClient.fetchQuery(
+                      backendQueryOptions(backend, 'getProjectDetails', [
+                        asset.id,
+                        asset.parentId,
+                        asset.title,
+                      ]),
+                    )
                     if (details.url != null) {
                       await backend.download(details.url, `${asset.title}.enso-project`)
                     } else {
@@ -394,10 +392,9 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
                 }
                 case backendModule.AssetType.file: {
                   try {
-                    const details = await getFileDetailsMutation.mutateAsync([
-                      asset.id,
-                      asset.title,
-                    ])
+                    const details = await queryClient.fetchQuery(
+                      backendQueryOptions(backend, 'getFileDetails', [asset.id, asset.title]),
+                    )
                     if (details.url != null) {
                       await backend.download(details.url, asset.title)
                     } else {

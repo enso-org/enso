@@ -64,9 +64,6 @@ export type MutationMethod = DefineBackendMethods<
   | 'deleteUser'
   | 'deleteUserGroup'
   | 'duplicateProject'
-  // TODO: `get*` are not mutations, but are currently used in some places.
-  | 'getFileDetails'
-  | 'getProjectDetails'
   | 'inviteUser'
   | 'logEvent'
   | 'openProject'
