@@ -12,6 +12,7 @@ import * as suspense from '#/components/Suspense'
 
 import * as twv from '#/utilities/tailwindVariants'
 
+import { OVERLAY_STYLES } from '#/components/AriaComponents/Dialog/Dialog'
 import * as dialogProvider from './DialogProvider'
 import * as dialogStackProvider from './DialogStackProvider'
 import * as utlities from './utilities'
@@ -25,6 +26,7 @@ export interface PopoverProps
     | React.ReactNode
     // eslint-disable-next-line no-restricted-syntax
     | ((opts: aria.PopoverRenderProps & { readonly close: () => void }) => React.ReactNode)
+  readonly overlay?: boolean
 }
 
 export const POPOVER_STYLES = twv.tv({
@@ -75,6 +77,7 @@ export function Popover(props: PopoverProps) {
     size,
     rounded,
     placement = 'bottom start',
+    overlay = false,
     ...ariaPopoverProps
   } = props
 
@@ -108,6 +111,15 @@ export function Popover(props: PopoverProps) {
     >
       {(opts) => (
         <dialogStackProvider.DialogStackRegistrar id={dialogId} type="popover">
+          {overlay && (
+            <div
+              className={OVERLAY_STYLES({
+                isEntering: opts.isEntering,
+                isExiting: opts.isExiting,
+                className: 'fixed h-[200vh] w-[200vw] -translate-x-[100vw] -translate-y-[100vh]',
+              })}
+            />
+          )}
           <aria.Dialog
             id={dialogId}
             ref={dialogRef}
