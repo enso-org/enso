@@ -60,10 +60,6 @@ public final class PanicException extends AbstractTruffleException implements En
       throw new IllegalArgumentException("Only interop values are supported: " + payload);
     }
     this.payload = payload;
-    if (CompilerDirectives.inInterpreter()) {
-      cacheMessage = computeMessage();
-      assert cacheMessage != null;
-    }
   }
 
   /**

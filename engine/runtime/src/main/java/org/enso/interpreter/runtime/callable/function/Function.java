@@ -17,6 +17,7 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
+import com.oracle.truffle.api.profiles.InlinedBranchProfile;
 import com.oracle.truffle.api.source.SourceSection;
 import org.enso.common.MethodNames;
 import org.enso.interpreter.node.callable.InteropApplicationNode;
@@ -29,6 +30,7 @@ import org.enso.interpreter.runtime.callable.function.FunctionSchema.CallerFrame
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
+import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.type.Types;
@@ -202,7 +204,8 @@ public final class Function implements EnsoObject {
         Function function,
         Object[] arguments,
         @Cached InteropApplicationNode interopApplicationNode,
-        @CachedLibrary("function") InteropLibrary thisLib) {
+        @CachedLibrary("function") InteropLibrary thisLib,
+        @Cached InlinedBranchProfile panicProfile) {
       try {
         return interopApplicationNode.execute(
             function, EnsoContext.get(thisLib).emptyState(), arguments);
@@ -217,6 +220,11 @@ public final class Function implements EnsoObject {
           logger.debug("StackOverflowError detected", err);
         }
         throw err;
+      } catch (PanicException ex) {
+        panicProfile.enter(thisLib);
+        // materialize the exception message
+        ex.getMessage();
+        throw ex;
       }
     }
   }
