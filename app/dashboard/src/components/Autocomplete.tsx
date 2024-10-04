@@ -203,7 +203,6 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
                 value={text ?? ''}
                 autoComplete="off"
                 {...(placeholder == null ? {} : { placeholder })}
-                className="text grow rounded-full bg-transparent px-button-x"
                 onFocus={() => {
                   setIsDropdownVisible(true)
                 }}
