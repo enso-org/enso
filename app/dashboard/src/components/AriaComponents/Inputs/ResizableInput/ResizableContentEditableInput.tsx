@@ -1,7 +1,13 @@
 /**
  * @file A resizable input that uses a content-editable div.
  */
-import { useRef, type ClipboardEvent, type ForwardedRef, type HTMLAttributes } from 'react'
+import {
+  useEffect,
+  useRef,
+  type ClipboardEvent,
+  type ForwardedRef,
+  type HTMLAttributes,
+} from 'react'
 
 import type { FieldVariantProps } from '#/components/AriaComponents'
 import {
@@ -43,6 +49,8 @@ export interface ResizableContentEditableInputProps<
       VariantProps<typeof CONTENT_EDITABLE_STYLES>,
       'disabled' | 'invalid' | 'rounded' | 'size' | 'variant'
     > {
+  /** Defaults to `onInput`. */
+  readonly mode?: 'onBlur' | 'onInput'
   /**
    * onChange is called when the content of the input changes.
    * There is no way to prevent the change, so the value is always the new value.
@@ -65,6 +73,7 @@ export const ResizableContentEditableInput = forwardRef(function ResizableConten
   ref: ForwardedRef<HTMLDivElement>,
 ) {
   const {
+    mode = 'onInput',
     placeholder = '',
     description = null,
     name,
@@ -108,6 +117,12 @@ export const ResizableContentEditableInput = forwardRef(function ResizableConten
     size,
   })
 
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.textContent = field.value
+    }
+  }, [field.value])
+
   return (
     <Form.Field
       form={formInstance}
@@ -134,9 +149,16 @@ export const ResizableContentEditableInput = forwardRef(function ResizableConten
             spellCheck="false"
             aria-autocomplete="none"
             onPaste={onPaste}
-            onBlur={field.onBlur}
+            onBlur={(event) => {
+              if (mode === 'onBlur') {
+                field.onChange(event.currentTarget.textContent ?? '')
+              }
+              field.onBlur()
+            }}
             onInput={(event) => {
-              field.onChange(event.currentTarget.textContent ?? '')
+              if (mode === 'onInput') {
+                field.onChange(event.currentTarget.textContent ?? '')
+              }
             }}
           />
 

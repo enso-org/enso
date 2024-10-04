@@ -173,6 +173,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
           asset.title,
         ])
       }
+      setIsEditingDescription(false)
     },
   })
 
@@ -229,9 +230,10 @@ export default function AssetProperties(props: AssetPropertiesProps) {
             <Text>{displayedDescription}</Text>
           : <Form form={editDescriptionForm} className="flex flex-col gap-modal pr-4">
               <ResizableContentEditableInput
+                autoFocus
                 form={editDescriptionForm}
                 name="description"
-                autoFocus
+                mode="onBlur"
               />
               <ButtonGroup>
                 <Form.Submit>{getText('update')}</Form.Submit>
