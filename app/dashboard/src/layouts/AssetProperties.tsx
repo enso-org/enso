@@ -138,9 +138,14 @@ export default function AssetProperties(props: AssetPropertiesProps) {
     : pathRaw
   const createDatalinkMutation = useMutation(backendMutationOptions(backend, 'createDatalink'))
   const getDatalinkMutation = useMutation(backendMutationOptions(backend, 'getDatalink'))
-  const updateAssetMutation = useMutation(backendMutationOptions(backend, 'updateAsset'))
+  const editDescriptionMutation = useMutation(
+    // Provide an extra `mutationKey` so that it has its own loading state.
+    backendMutationOptions(backend, 'updateAsset', { mutationKey: ['editDescription'] }),
+  )
   const updateSecretMutation = useMutation(backendMutationOptions(backend, 'updateSecret'))
   const getDatalink = getDatalinkMutation.mutateAsync
+  const displayedDescription =
+    editDescriptionMutation.variables?.[1].description ?? asset.description
 
   React.useEffect(() => {
     setDescription(asset.description ?? '')
@@ -159,7 +164,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
   const editDescription = async () => {
     setIsEditingDescription(false)
     if (description !== asset.description) {
-      await updateAssetMutation.mutateAsync([
+      await editDescriptionMutation.mutateAsync([
         asset.id,
         { parentDirectoryId: null, description },
         asset.title,
@@ -187,6 +192,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
               size="medium"
               variant="icon"
               icon={PenIcon}
+              loading={editDescriptionMutation.isPending}
               onPress={() => {
                 setIsEditingDescription(true)
                 setQueuedDescripion(asset.description)
@@ -199,7 +205,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
           className="self-stretch py-side-panel-description-y"
         >
           {!isEditingDescription ?
-            <Text>{asset.description}</Text>
+            <Text>{displayedDescription}</Text>
           : <form className="flex flex-col gap-modal pr-4" onSubmit={editDescription}>
               <textarea
                 ref={(element) => {
