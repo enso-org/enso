@@ -221,9 +221,9 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                     setQueuedDescripion(null)
                   }
                 }}
+                autoFocus
                 value={description}
-                className="w-full resize-none rounded-default border-0.5 border-primary/20 p-2"
-                onBlur={doEditDescription}
+                className="w-full resize-none rounded-default border-0.5 border-primary/20 p-2 outline-2 outline-offset-2 transition-[border-color,outline] focus-within:outline focus-within:outline-offset-0"
                 onChange={(event) => {
                   setDescription(event.currentTarget.value)
                 }}
