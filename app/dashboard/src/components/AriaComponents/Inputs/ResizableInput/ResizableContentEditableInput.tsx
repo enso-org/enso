@@ -85,6 +85,7 @@ export const ResizableContentEditableInput = forwardRef(function ResizableConten
     variant,
     variants = CONTENT_EDITABLE_STYLES,
     fieldVariants,
+    autoFocus = false,
     ...textFieldProps
   } = props
 
@@ -116,6 +117,12 @@ export const ResizableContentEditableInput = forwardRef(function ResizableConten
     rounded,
     size,
   })
+
+  useEffect(() => {
+    if (autoFocus && inputRef.current) {
+      inputRef.current.focus()
+    }
+  }, [autoFocus])
 
   useEffect(() => {
     if (inputRef.current) {
