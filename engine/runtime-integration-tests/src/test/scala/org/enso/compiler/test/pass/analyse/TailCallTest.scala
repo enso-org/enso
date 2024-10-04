@@ -213,6 +213,19 @@ class TailCallTest extends CompilerTest {
       binding.expression.getMetadata(TailCall) shouldEqual Some(
         TailPosition.NotTail
       )
+    }
+
+    "mark the value of a tail assignment as non-tail (mini pass)" in {
+      implicit val ctx: InlineContext = mkTailContext
+      val binding =
+        """
+          |foo = a b
+          |""".stripMargin.preprocessExpression.get.analyseMini
+          .asInstanceOf[Expression.Binding]
+      binding.getMetadata(TailCall) shouldEqual Some(TailPosition.Tail)
+      binding.expression.getMetadata(TailCall) shouldEqual Some(
+        TailPosition.NotTail
+      )
 
     }
   }
