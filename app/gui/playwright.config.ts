@@ -8,6 +8,7 @@ import { defineConfig } from '@playwright/test'
 import net from 'net'
 
 const DEBUG = process.env.DEBUG_E2E === 'true'
+const TIMEOUT_MS = DEBUG ? 100_000_000 : 30_000
 
 async function findFreePortInRange(min: number, max: number) {
   for (let i = 0; i < 50; i++) {
@@ -35,22 +36,16 @@ console.log(`Selected playwright server port: ${PORT}`)
 process.env.PLAYWRIGHT_PORT = `${PORT}`
 
 export default defineConfig({
-  globalSetup: './e2e/setup.ts',
-  testDir: './e2e',
+  fullyParallel: true,
   forbidOnly: !!process.env.CI,
+  workers: process.env.PROD ? 8 : 1,
   repeatEach: process.env.CI ? 3 : 1,
   ...(process.env.CI ? { workers: 1 } : {}),
-  timeout: 60000,
-  expect: {
-    timeout: 5000,
-    toHaveScreenshot: { threshold: 0 },
-  },
   reporter: 'html',
   use: {
     headless: !DEBUG,
     actionTimeout: 5000,
     trace: 'retain-on-failure',
-    viewport: { width: 1920, height: 1750 },
     ...(DEBUG ?
       {}
     : {
@@ -77,18 +72,56 @@ export default defineConfig({
         },
       }),
   },
-  webServer: {
-    env: {
-      E2E: 'true',
+  projects: [
+    {
+      name: 'Dashboard',
+      testDir: './e2e/dashboard',
+      expect: {
+        toHaveScreenshot: { threshold: 0 },
+        timeout: TIMEOUT_MS,
+      },
+      timeout: TIMEOUT_MS,
+      use: {
+        baseURL: 'http://localhost:8080',
+      },
     },
-    command:
-      process.env.CI || process.env.PROD ?
-        `corepack pnpm build && corepack pnpm exec vite preview --port ${PORT} --strictPort`
-      : `corepack pnpm exec vite dev --port ${PORT}`,
-    // Build from scratch apparently can take a while on CI machines.
-    timeout: 240 * 1000,
-    port: PORT,
-    // We use our special, mocked version of server, thus do not want to re-use user's one.
-    reuseExistingServer: false,
-  },
+    {
+      name: 'Setup Tests for Project View',
+      testMatch: /e2e\/setup\.ts/,
+    },
+    {
+      name: 'Project View',
+      dependencies: ['Setup Tests for Project View'],
+      testDir: './e2e/project-view',
+      timeout: 60000,
+      expect: {
+        timeout: 5000,
+        toHaveScreenshot: { threshold: 0 },
+      },
+      use: {
+        viewport: { width: 1920, height: 1750 },
+      },
+    },
+  ],
+  webServer: [
+    {
+      env: {
+        E2E: 'true',
+      },
+      command:
+        process.env.CI || process.env.PROD ?
+          `corepack pnpm build && corepack pnpm exec vite preview --port ${PORT} --strictPort`
+        : `corepack pnpm exec vite dev --port ${PORT}`,
+      // Build from scratch apparently can take a while on CI machines.
+      timeout: 240 * 1000,
+      port: PORT,
+      // We use our special, mocked version of server, thus do not want to re-use user's one.
+      reuseExistingServer: false,
+    },
+    {
+      command: `corepack pnpm run ${process.env.CI || process.env.PROD ? 'test-server:e2e:ci' : 'test-server:e2e'}`,
+      port: 8080,
+      reuseExistingServer: false,
+    },
+  ],
 })

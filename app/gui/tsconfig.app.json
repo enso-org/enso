@@ -7,8 +7,7 @@
     "src/**/*.vue",
     "src/**/*.ts",
     "src/util/theme.json",
-    "src/**/__tests__/*.json",
-    "src/project-view/mock/*"
+    "src/**/__tests__/*.json", 
   ],
   "exclude": ["src/**/__tests__/*", "public/**/__tests__/*"],
   "compilerOptions": {

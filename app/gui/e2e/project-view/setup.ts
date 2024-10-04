@@ -1,13 +1,13 @@
 import { Server } from '@open-rpc/server-js'
 import * as random from 'lib0/random'
+import pmSpec from './pm-openrpc.json' assert { type: 'json' }
 import {
   methods as pmMethods,
   projects,
   type ProjectId,
   type ProjectName,
   type UTCDateTime,
-} from '../mock/projectManager'
-import pmSpec from './pm-openrpc.json' assert { type: 'json' }
+} from './projectManager'
 
 export default function setup() {
   const pm = new Server({

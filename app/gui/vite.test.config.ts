@@ -19,10 +19,12 @@ export default mergeConfig(
     resolve: {
       alias: {
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        '@stripe/stripe-js/pure': fileURLToPath(new URL('./e2e/mock/stripe.ts', import.meta.url)),
+        '@stripe/stripe-js/pure': fileURLToPath(
+          new URL('./e2e/dashboard/mock/stripe.ts', import.meta.url),
+        ),
         // eslint-disable-next-line @typescript-eslint/naming-convention
         '@stripe/react-stripe-js': fileURLToPath(
-          new URL('./e2e/mock/react-stripe.tsx', import.meta.url),
+          new URL('./e2e/dashboard/mock/react-stripe.tsx', import.meta.url),
         ),
       },
       extensions: [

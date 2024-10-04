@@ -22,7 +22,8 @@ const YDOC_SERVER_URL =
 
 await readEnvironmentFromFile()
 
-const entrypoint = process.env.E2E === 'true' ? './src/e2e-entrypoint.ts' : './src/entrypoint.ts'
+const entrypoint =
+  process.env.E2E === 'true' ? './src/project-view/e2e-entrypoint.ts' : './src/entrypoint.ts'
 
 // https://vitejs.dev/config/
 export default defineConfig({

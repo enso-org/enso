@@ -33,12 +33,6 @@ export default test.defineConfig({
     launchOptions: {
       ignoreDefaultArgs: ['--headless'],
       args: [
-        ...(DEBUG ?
-          []
-        : [
-            // Much closer to headful Chromium than classic headless.
-            '--headless=new',
-          ]),
         // Required for `backdrop-filter: blur` to work.
         '--use-angle=swiftshader',
         // FIXME: `--disable-gpu` disables `backdrop-filter: blur`, which is not handled by
