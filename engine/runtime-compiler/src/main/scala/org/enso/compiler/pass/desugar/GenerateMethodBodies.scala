@@ -137,7 +137,9 @@ case object GenerateMethodBodies extends IRPass {
 
     selfArgs match {
       case _ :: (redefined, _) :: _ =>
-        val errorBody = errors.Redefined.SelfArg(location = redefined.location)
+        val errorBody = errors.Redefined.SelfArg(
+          identifiedLocation = redefined.identifiedLocation()
+        )
         fun match {
           case functionBinding: Function.Binding =>
             functionBinding.copy(body = errorBody)
@@ -252,8 +254,8 @@ case object GenerateMethodBodies extends IRPass {
       arguments =
         if (funName.name == MAIN_FUNCTION_NAME) Nil
         else genSyntheticSelf() :: Nil,
-      body     = expr,
-      location = expr.location
+      body               = expr,
+      identifiedLocation = expr.identifiedLocation()
     )
   }
 
@@ -263,7 +265,7 @@ case object GenerateMethodBodies extends IRPass {
     */
   private def genSyntheticSelf(): DefinitionArgument.Specified = {
     DefinitionArgument.Specified(
-      Name.Self(None, synthetic = true),
+      Name.Self(identifiedLocation = null, synthetic = true),
       None,
       defaultValue = None,
       suspended    = false,

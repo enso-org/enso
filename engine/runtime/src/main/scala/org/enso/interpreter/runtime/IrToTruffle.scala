@@ -1016,6 +1016,25 @@ class IrToTruffle(
     expr
   }
 
+  /** Sets the source section for a given expression node to the provided
+    * location.
+    *
+    * @param expr the expression to set the location for
+    * @param location the location to assign to `expr`
+    * @tparam T the type of `expr`
+    * @return `expr` with its location set to `location`
+    */
+  private def setLocation[T <: RuntimeExpression](
+    expr: T,
+    location: IdentifiedLocation
+  ): T = {
+    if (location ne null) {
+      expr.setSourceLocation(location.start, location.length)
+      location.id.foreach { id => expr.setId(id) }
+    }
+    expr
+  }
+
   private def generateReExportBindings(module: Module): Unit = {
     def mkConsGetter(constructor: AtomConstructor): RuntimeFunction =
       constructor.getAccessorFunction()
@@ -1407,7 +1426,7 @@ class IrToTruffle(
       subjectToInstrumentation: Boolean
     ): RuntimeExpression =
       caseExpr match {
-        case Case.Expr(scrutinee, branches, isNested, location, _) =>
+        case caseExpr @ Case.Expr(scrutinee, branches, isNested, location, _) =>
           val scrutineeNode = this.run(scrutinee, subjectToInstrumentation)
 
           val maybeCases    = branches.map(processCaseBranch)

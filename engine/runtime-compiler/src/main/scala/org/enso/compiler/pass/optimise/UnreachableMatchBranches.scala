@@ -158,7 +158,8 @@ case object UnreachableMatchBranches extends IRPass {
               }
             )
 
-          val diagnostic = warnings.Unreachable.Branches(unreachableLocation)
+          val diagnostic =
+            warnings.Unreachable.Branches(unreachableLocation.orNull)
 
           expr
             .copy(

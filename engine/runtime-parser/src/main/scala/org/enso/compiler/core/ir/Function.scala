@@ -76,12 +76,12 @@ object Function {
       ir: expression.Case.Expr,
       arguments: List[DefinitionArgument],
       body: Expression,
-      location: Option[IdentifiedLocation]
+      identifiedLocation: IdentifiedLocation
     ) = {
       this(
         arguments,
         Persistance.Reference.of(body, true),
-        location.orNull,
+        identifiedLocation,
         true,
         ir.passData.duplicate()
       )

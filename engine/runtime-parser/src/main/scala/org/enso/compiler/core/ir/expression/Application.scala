@@ -38,7 +38,7 @@ object Application {
       * @param arguments the arguments to the function being called
       * @param hasDefaultsSuspended whether the function application has any
       * argument defaults in `function` suspended
-      * @param location the source location that the node corresponds to
+      * @param identifiedLocation the source location that the node corresponds to
       * @param passData the pass metadata associated with this node
       * @param diagnostics the compiler diagnostics
       */
@@ -46,7 +46,7 @@ object Application {
       function: Expression,
       arguments: List[CallArgument],
       hasDefaultsSuspended: Boolean,
-      location: Option[IdentifiedLocation],
+      identifiedLocation: IdentifiedLocation,
       passData: MetadataStorage,
       diagnostics: DiagnosticStorage
     ) = {
@@ -54,7 +54,7 @@ object Application {
         function,
         arguments,
         hasDefaultsSuspended,
-        location.orNull,
+        identifiedLocation,
         passData
       )
       this.diagnostics = diagnostics

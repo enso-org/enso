@@ -164,7 +164,11 @@ case object NestedPatternMatch extends IRPass {
         val scrutineeBindingName = freshNameSupply.newName()
         val scrutineeExpression  = desugarExpression(scrutinee, freshNameSupply)
         val scrutineeBinding =
-          Expression.Binding(scrutineeBindingName, scrutineeExpression, None)
+          Expression.Binding(
+            scrutineeBindingName,
+            scrutineeExpression,
+            identifiedLocation = null
+          )
 
         val caseExprScrutinee = scrutineeBindingName.duplicate()
 
@@ -181,7 +185,11 @@ case object NestedPatternMatch extends IRPass {
           branches  = processedBranches
         )
 
-        Expression.Block(List(scrutineeBinding), desugaredCaseExpr, None)
+        Expression.Block(
+          List(scrutineeBinding),
+          desugaredCaseExpr,
+          identifiedLocation = null
+        )
       case _: Case.Branch =>
         throw new CompilerError(
           "Unexpected case branch during case desugaring."
@@ -232,10 +240,10 @@ case object NestedPatternMatch extends IRPass {
 
           val newPattern1 = newPattern.duplicate()
           val partDesugaredBranch = Case.Branch(
-            pattern        = newPattern1,
-            expression     = newExpression.duplicate(),
-            terminalBranch = false,
-            None
+            pattern            = newPattern1,
+            expression         = newExpression.duplicate(),
+            terminalBranch     = false,
+            identifiedLocation = null
           )
 
           desugarCaseBranch(
@@ -306,15 +314,15 @@ case object NestedPatternMatch extends IRPass {
       Case.Branch(
         patternDuplicate,
         currentBranchExpr.duplicate(),
-        terminalBranch = !finalTest,
-        location       = None
+        terminalBranch     = !finalTest,
+        identifiedLocation = null
       )
 
     Case.Expr(
       nestedScrutinee.duplicate(),
       List(patternBranch),
-      isNested = true,
-      location = None
+      isNested           = true,
+      identifiedLocation = null
     )
   }
 

@@ -270,7 +270,7 @@ object Method {
       * @param isPrivate if the method is declared as private (project-private).
       * i.e. with prepended `private` keyword.
       * @param body the body of the method
-      * @param location the source location that the node corresponds to
+      * @param identifiedLocation the source location that the node corresponds to
       * @param passData the pass metadata associated with this node
       * @param diagnostics the compiler diagnostics
       */
@@ -279,7 +279,7 @@ object Method {
       arguments: List[DefinitionArgument],
       isPrivate: Boolean,
       body: Expression,
-      location: Option[IdentifiedLocation],
+      identifiedLocation: IdentifiedLocation,
       passData: MetadataStorage,
       diagnostics: DiagnosticStorage
     ) = {
@@ -288,7 +288,7 @@ object Method {
         arguments,
         isPrivate,
         body,
-        location.orNull,
+        identifiedLocation,
         passData
       )
       this.diagnostics = diagnostics

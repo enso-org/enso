@@ -228,11 +228,12 @@ case object LambdaConsolidate extends IRPass {
                 s
             }
 
-            val shadower: IR = mShadower.getOrElse(Empty(spec.location))
+            val shadower: IR =
+              mShadower.getOrElse(Empty(spec.identifiedLocation))
 
             spec.getDiagnostics.add(
               warnings.Shadowed
-                .FunctionParam(argName.name, shadower, spec.location)
+                .FunctionParam(argName.name, shadower, spec.identifiedLocation)
             )
 
             (spec, isShadowed)
