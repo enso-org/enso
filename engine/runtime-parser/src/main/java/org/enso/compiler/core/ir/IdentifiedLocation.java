@@ -3,35 +3,33 @@ package org.enso.compiler.core.ir;
 import java.util.UUID;
 import scala.Option;
 
-public record IdentifiedLocation(Location location, UUID uuid) {
+public record IdentifiedLocation(int start, int end, UUID uuid) {
+
+  public IdentifiedLocation(Location location, UUID uuid) {
+    this(location.start(), location.end(), uuid);
+  }
+
   public IdentifiedLocation(Location location) {
-    this(location, (UUID) null);
+    this(location.start(), location.end(), null);
   }
 
   /** Creates new location from an optional UUID. */
   public static IdentifiedLocation create(Location location, Option<UUID> uuid) {
-    return new IdentifiedLocation(location, uuid.isEmpty() ? null : uuid.get());
+    return new IdentifiedLocation(location.start(), location.end(), uuid.isEmpty() ? null : uuid.get());
   }
 
   /**
-   * @return the character index of the start of this source location.
+   * @return location of this identified location.
    */
-  public int start() {
-    return location().start();
-  }
-
-  /**
-   * @return the character index of the end of this source location.
-   */
-  public int end() {
-    return location().end();
+  public Location location() {
+    return new Location(start, end);
   }
 
   /**
    * @return the length in characters of this location.
    */
   public int length() {
-    return location().length();
+    return end - start;
   }
 
   /**
@@ -43,6 +41,6 @@ public record IdentifiedLocation(Location location, UUID uuid) {
 
   @Override
   public String toString() {
-    return "IdentifiedLocation[location=" + this.location() + ", uuid=" + id() + "]";
+    return "IdentifiedLocation[start=" + start + ", end=" + end + ", uuid=" + id() + "]";
   }
 }
