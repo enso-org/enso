@@ -82,16 +82,25 @@ public final class IrPersistance {
 
     @Override
     protected void writeObject(IdentifiedLocation obj, Output out) throws IOException {
-      out.writeInline(Location.class, obj.location());
-      out.writeInline(Option.class, obj.id());
+      if (obj == null) {
+        out.writeBoolean(false);
+      } else {
+        out.writeBoolean(true);
+        out.writeInline(Location.class, obj.location());
+        out.writeInline(Option.class, obj.id());
+      }
     }
 
     @Override
     @SuppressWarnings("unchecked")
     protected IdentifiedLocation readObject(Input in) throws IOException, ClassNotFoundException {
-      var obj = in.readInline(Location.class);
-      var id = in.readInline(Option.class);
-      return IdentifiedLocation.create((Location) obj, id);
+      if (in.readBoolean()) {
+        var obj = in.readInline(Location.class);
+        var id = in.readInline(Option.class);
+        return IdentifiedLocation.create((Location) obj, id);
+      } else {
+        return null;
+      }
     }
   }
 

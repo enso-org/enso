@@ -128,7 +128,7 @@ public class ModuleTest {
 
     assertNull("No IR by default", module.getIr());
 
-    var ir = new org.enso.compiler.core.ir.Module(nil(), nil(), nil(), false, Option.empty(), null);
+    var ir = new org.enso.compiler.core.ir.Module(nil(), nil(), nil(), false, null, null);
     compilerContext.updateModule(
         module,
         (u) -> {
