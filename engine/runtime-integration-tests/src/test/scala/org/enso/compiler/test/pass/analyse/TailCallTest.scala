@@ -218,27 +218,35 @@ class TailCallTest extends CompilerTest {
   }
 
   "Tail call analysis on functions" should {
-    implicit val ctx: InlineContext = mkTailContext
-
-    val ir =
+    val code =
       """
         |a -> b -> c ->
         |    d = @Tail_Call (a + b)
         |    e = a * c
         |    @Tail_Call (d + e)
-        |""".stripMargin.preprocessExpression.get.analyse
-        .asInstanceOf[Function.Lambda]
+        |""".stripMargin
+    val megaIr = analyseInlineWithMegaPass(code).asInstanceOf[Function.Lambda]
+    val miniIr = analyseInlineWithMiniPass(code).asInstanceOf[Function.Lambda]
 
-    val fnBody = ir.body.asInstanceOf[Expression.Block]
+    val fnBodyMega = megaIr.body.asInstanceOf[Expression.Block]
+    val fnBodyMini = miniIr.body.asInstanceOf[Expression.Block]
 
     "mark the last expression of the function as tail" in {
-      fnBody.returnValue.getMetadata(TailCall) shouldEqual Some(
+      fnBodyMega.returnValue.getMetadata(TailCall) shouldEqual Some(
+        TailPosition.Tail
+      )
+      fnBodyMini.returnValue.getMetadata(TailCall) shouldEqual Some(
         TailPosition.Tail
       )
     }
 
     "mark the other expressions in the function as not tail" in {
-      fnBody.expressions.foreach(expr =>
+      fnBodyMega.expressions.foreach(expr =>
+        expr.getMetadata(TailCall) shouldEqual Some(
+          TailPosition.NotTail
+        )
+      )
+      fnBodyMini.expressions.foreach(expr =>
         expr.getMetadata(TailCall) shouldEqual Some(
           TailPosition.NotTail
         )
@@ -246,14 +254,26 @@ class TailCallTest extends CompilerTest {
     }
 
     "warn about misplaced @TailCall annotations" in {
-      fnBody
+      fnBodyMega
         .expressions(0)
         .asInstanceOf[Expression.Binding]
         .expression
         .diagnosticsList
         .count(_.isInstanceOf[Warning.WrongTco]) shouldEqual 1
 
-      fnBody.returnValue.diagnosticsList
+      fnBodyMega.returnValue.diagnosticsList
+        .count(_.isInstanceOf[Warning.WrongTco]) shouldEqual 0
+    }
+
+    "warn about misplaced @TailCall annotations (mini)" in {
+      fnBodyMini
+        .expressions(0)
+        .asInstanceOf[Expression.Binding]
+        .expression
+        .diagnosticsList
+        .count(_.isInstanceOf[Warning.WrongTco]) shouldEqual 1
+
+      fnBodyMini.returnValue.diagnosticsList
         .count(_.isInstanceOf[Warning.WrongTco]) shouldEqual 0
     }
   }
