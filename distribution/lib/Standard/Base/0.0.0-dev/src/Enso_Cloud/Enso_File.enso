@@ -165,9 +165,7 @@ type Enso_File
        - The file on which it was called.
     set_description : Text -> Enso_File
     set_description self (description : Text) -> Enso_File =
-        asset = Existing_Enso_Asset.get_asset_reference_for self
-        #asset.set_description description
-        self
+        update_asset_description self description . if_not_error self
 
     ## GROUP Metadata
        ICON metadata

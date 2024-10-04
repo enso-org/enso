@@ -133,3 +133,10 @@ create_datalink_from_stream_action (destination : Enso_File) (allow_existing : B
                         id = get_required_field "id" response expected_type=Text
                         Asset_Cache.update destination (Existing_Enso_Asset.new_without_metadata id title) . if_not_error <|
                             action_result
+
+## PRIVATE
+update_asset_description (asset : Enso_File) (description : Text) =
+    existing_asset = Existing_Enso_Asset.get_asset_reference_for asset
+    payload = JS_Object.from_pairs [["description", description]]
+    Asset_Cache.invalidate asset
+    Utils.http_request HTTP_Method.Patch existing_asset.asset_uri payload
