@@ -247,7 +247,7 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
 
   React.useEffect(() => {
     if (isSoleSelected && item.item.id !== driveStore.getState().assetPanelProps?.item?.item.id) {
-      setAssetPanelProps({ backend, item, setItem })
+      setAssetPanelProps({ backend, item })
       setIsAssetPanelTemporarilyVisible(false)
     }
   }, [
@@ -656,6 +656,7 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
                       <AssetContextMenu
                         innerProps={innerProps}
                         rootDirectoryId={rootDirectoryId}
+                        triggerRef={rootRef}
                         event={event}
                         eventTarget={
                           event.target instanceof HTMLElement ? event.target : event.currentTarget
@@ -799,6 +800,7 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
                 setRowState,
               }}
               rootDirectoryId={rootDirectoryId}
+              triggerRef={rootRef}
               event={{ pageX: 0, pageY: 0 }}
               eventTarget={null}
               doCopy={doCopy}

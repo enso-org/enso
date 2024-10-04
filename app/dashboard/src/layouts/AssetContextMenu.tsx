@@ -7,7 +7,6 @@ import * as toast from 'react-toastify'
 import * as billingHooks from '#/hooks/billing'
 import * as copyHooks from '#/hooks/copyHooks'
 import * as projectHooks from '#/hooks/projectHooks'
-import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -54,6 +53,7 @@ export interface AssetContextMenuProps {
   readonly hidden?: boolean
   readonly innerProps: assetRow.AssetRowInnerProps
   readonly rootDirectoryId: backendModule.DirectoryId
+  readonly triggerRef: React.MutableRefObject<HTMLElement | null>
   readonly event: Pick<React.MouseEvent, 'pageX' | 'pageY'>
   readonly eventTarget: HTMLElement | null
   readonly doDelete: () => void
@@ -67,7 +67,7 @@ export interface AssetContextMenuProps {
 
 /** The context menu for an arbitrary {@link backendModule.Asset}. */
 export default function AssetContextMenu(props: AssetContextMenuProps) {
-  const { innerProps, rootDirectoryId, event, eventTarget, hidden = false } = props
+  const { innerProps, rootDirectoryId, event, eventTarget, hidden = false, triggerRef } = props
   const { doCopy, doCut, doPaste, doDelete } = props
   const { item, setItem, state, setRowState } = innerProps
   const { backend, category, hasPasteData, pasteData, nodeMap } = state
@@ -153,8 +153,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     backendModule.assetIsProject(asset) &&
     asset.projectState.openedBy != null &&
     asset.projectState.openedBy !== user.email
-
-  const setAsset = setAssetHooks.useSetAsset(asset, setItem)
 
   return (
     category.type === 'trash' ?
@@ -400,8 +398,8 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                   doAction={() => {
                     setModal(
                       <ManagePermissionsModal
+                        backend={backend}
                         item={asset}
-                        setItem={setAsset}
                         self={self}
                         eventTarget={eventTarget}
                         doRemoveSelf={() => {
@@ -424,7 +422,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               action="label"
               doAction={() => {
                 setModal(
-                  <ManageLabelsModal backend={backend} item={asset} eventTarget={eventTarget} />,
+                  <ManageLabelsModal backend={backend} item={asset} triggerRef={triggerRef} />,
                 )
               }}
             />
