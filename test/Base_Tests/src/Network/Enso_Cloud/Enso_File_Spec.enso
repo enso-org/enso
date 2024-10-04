@@ -276,6 +276,10 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
         nested_file.set_description my_description . should_equal nested_file
         nested_file.description . should_equal my_description
 
+        # We can also set description back to empty
+        nested_file.set_description "" . should_equal nested_file
+        nested_file.description . should_equal ""
+
     group_builder.specify "allows / as well as .. and . in resolve" <|
         (Enso_File.root / "a/b/c") . should_equal (Enso_File.root / "a" / "b" / "c")
         (Enso_File.root / "a///b/c") . should_equal (Enso_File.root / "a" / "b" / "c")
