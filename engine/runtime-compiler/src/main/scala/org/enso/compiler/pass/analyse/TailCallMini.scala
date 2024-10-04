@@ -220,4 +220,12 @@ class TailCallMini(
         )
       )
   }
+
+  override def toString: String = {
+    val _tails =
+      tails.keySet().stream().map(k => k.getClass.getSimpleName).toList
+    val _notTails =
+      notTails.keySet().stream().map(k => k.getClass.getSimpleName).toList
+    s"TailCallMini(isInTailPosition=$isInTailPosition, tails=${_tails}, notTails=${_notTails})"
+  }
 }
