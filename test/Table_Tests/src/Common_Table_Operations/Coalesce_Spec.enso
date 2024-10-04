@@ -1,14 +1,10 @@
 from Standard.Base import all
 
 from Standard.Table import all hiding Table
-from Standard.Table.Errors import all
-import Standard.Table.Expression.Expression_Error
-
-import Standard.Database.Internal.IR.SQL_Expression.SQL_Expression
-from Standard.Database.Errors import SQL_Error
+from Standard.Table.Errors import No_Common_Type
+from Standard.Database.Errors import Integrity_Error
 
 from Standard.Test import all
-
 
 from project.Common_Table_Operations.Util import run_default_backend
 
@@ -16,7 +12,7 @@ main filter=Nothing = run_default_backend add_specs filter
 
 add_specs suite_builder setup =
     prefix = setup.prefix
-    table_builder = setup.light_table_builder
+    table_builder = setup.table_builder
 
     suite_builder.group prefix+"Table.coalesce" group_builder->
         group_builder.specify "2 columns" <|
@@ -55,12 +51,31 @@ add_specs suite_builder setup =
             colB = t.get "B"
             result = colA.coalesce colB
             result.should_fail_with No_Common_Type
-        group_builder.specify "2 columns of diffferent length" <|
-            t1 = table_builder [["A", [1, 2, Nothing, Nothing, 6]]]
-            t2 = table_builder [["B", [4, Nothing, 5, Nothing]]]
+        group_builder.specify "2 columns from different tables only works In-Memory" <|
+            t1 = table_builder [["A", [1, 2, Nothing, Nothing]], ["B", [Nothing, Nothing, Nothing, 99]]]
+            t2 = table_builder [["A", [99, Nothing, Nothing, Nothing]], ["B", [3, Nothing, 4, Nothing]]]
             colA = t1.get "A"
             colB = t2.get "B"
             result = colA.coalesce colB
-            result.to_vector . should_equal [1, 2, 5, Nothing, 6]
             result2 = colB.coalesce colA
-            result2.to_vector . should_equal [4, 2, 5, Nothing]
+            case setup.is_database of
+                True ->
+                    result.should_fail_with Integrity_Error
+                    result2.should_fail_with Integrity_Error
+                False ->
+                    result.to_vector . should_equal [1, 2, 4, Nothing]
+                    result2.to_vector . should_equal [3, 2, 4, Nothing]
+        group_builder.specify "2 columns from length tables only works In-Memory" <|
+            t1 = table_builder [["A", [1, 2, Nothing, Nothing, 3]], ["B", [Nothing, Nothing, Nothing, 99, 99]]]
+            t2 = table_builder [["A", [99, Nothing, Nothing, Nothing]], ["B", [3, Nothing, 4, Nothing]]]
+            colA = t1.get "A"
+            colB = t2.get "B"
+            result = colA.coalesce colB
+            result2 = colB.coalesce colA
+            case setup.is_database of
+                True ->
+                    result.should_fail_with Integrity_Error
+                    result2.should_fail_with Integrity_Error
+                False ->
+                    result.to_vector . should_equal [1, 2, 4, Nothing, 3]
+                    result2.to_vector . should_equal [3, 2, 4, Nothing]
