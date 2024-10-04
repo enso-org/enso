@@ -272,6 +272,14 @@ object Application {
     /** @inheritdoc */
     override def children: List[IR] = List(target)
 
+    override def withNewChildren(newChildren: List[IR]): IR = {
+      newChildren match {
+        case (t: Expression) :: Nil => copy(target = t)
+        case _ =>
+          throw new IllegalArgumentException("Force can only have one child")
+      }
+    }
+
     /** @inheritdoc */
     override def showCode(indent: Int): String =
       s"(FORCE ${target.showCode(indent)})"

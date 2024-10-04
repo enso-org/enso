@@ -148,6 +148,21 @@ final case class Module(
   /** @inheritdoc */
   override def children: List[IR] = imports ++ exports ++ bindings
 
+  override def withNewChildren(newChildren: List[IR]): IR = {
+    val newImports = newChildren.take(imports.size).map(_.asInstanceOf[Import])
+    val newExports = newChildren
+      .slice(imports.size, imports.size + exports.size)
+      .map(_.asInstanceOf[Export])
+    val newBindings = newChildren
+      .drop(imports.size + exports.size)
+      .map(_.asInstanceOf[Definition])
+    copy(
+      imports  = newImports,
+      exports  = newExports,
+      bindings = newBindings
+    )
+  }
+
   /** String representation. */
   override def toString: String =
     s"""

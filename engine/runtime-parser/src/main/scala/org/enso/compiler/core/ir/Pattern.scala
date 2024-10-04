@@ -124,6 +124,17 @@ object Pattern {
     /** @inheritdoc */
     override def children: List[IR] = List(name)
 
+    override def withNewChildren(newChildren: List[IR]): IR = {
+      newChildren match {
+        case (newName: IRName) :: Nil =>
+          copy(name = newName)
+        case _ =>
+          throw new IllegalArgumentException(
+            "Expected a single child for the name."
+          )
+      }
+    }
+
     /** @inheritdoc */
     override def showCode(indent: Int): String = name.showCode(indent)
   }

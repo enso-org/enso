@@ -167,6 +167,13 @@ object Expression {
     /** @inheritdoc */
     override def children: List[IR] = expressions :+ returnValue
 
+    override def withNewChildren(newChildren: List[IR]): IR = {
+      copy(
+        expressions = newChildren.dropRight(1).map(_.asInstanceOf[Expression]),
+        returnValue = newChildren.last.asInstanceOf[Expression]
+      )
+    }
+
     /** @inheritdoc */
     override def showCode(indent: Int): String = {
       val newIndent = indent + indentLevel
