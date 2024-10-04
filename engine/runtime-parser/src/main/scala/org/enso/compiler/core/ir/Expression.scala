@@ -57,9 +57,9 @@ object Expression {
   sealed case class Block(
     expressions: List[Expression],
     returnValue: Expression,
-    identifiedLocation: IdentifiedLocation,
-    suspended: Boolean        = false,
-    passData: MetadataStorage = new MetadataStorage()
+    override val identifiedLocation: IdentifiedLocation,
+    suspended: Boolean                     = false,
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends Expression
       with IRKind.Primitive
       with LazyDiagnosticStorage
@@ -192,8 +192,8 @@ object Expression {
   sealed case class Binding(
     name: Name,
     expression: Expression,
-    identifiedLocation: IdentifiedLocation,
-    passData: MetadataStorage = new MetadataStorage()
+    override val identifiedLocation: IdentifiedLocation,
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends Expression
       with IRKind.Primitive
       with LazyDiagnosticStorage

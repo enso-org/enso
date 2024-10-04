@@ -7,7 +7,7 @@ import org.enso.compiler.core.{ir, IR, Identifier}
 
 import java.util.UUID
 
-/** A trait for all errors in Enso's IR. */
+/** A trait for all errors in IR. */
 trait Error extends Expression with ir.module.scope.Definition with Diagnostic {
 
   /** @inheritdoc */
@@ -20,7 +20,7 @@ trait Error extends Expression with ir.module.scope.Definition with Diagnostic {
 
   /** @inheritdoc */
   override def location: Option[IdentifiedLocation] =
-    Option(identifiedLocation)
+    super[Expression].location()
 
   /** @inheritdoc */
   override def duplicate(
