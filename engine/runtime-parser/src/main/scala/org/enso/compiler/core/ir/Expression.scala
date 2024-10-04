@@ -40,24 +40,6 @@ trait Expression extends IR {
     keepDiagnostics: Boolean = true,
     keepIdentifiers: Boolean = false
   ): Expression
-
-  override def withNewChildren(newChildren: List[IR]): IR = {
-    val _children = children()
-    if (newChildren.size != children.size) {
-      throw new IllegalArgumentException(
-        s"Size of newChildren must match size of children. Expected ${_children.size}, got ${newChildren.size}"
-      )
-    }
-    mapExpressions { childExpr =>
-      // Find by `==` operator, rather than with `equals` method
-      val childIdx = _children.zipWithIndex.collectFirst {
-        case (c, idx) if c eq childExpr => idx
-      }
-      assert(childIdx.isDefined)
-      val newChild = newChildren(childIdx.get)
-      newChild.asInstanceOf[Expression]
-    }
-  }
 }
 
 object Expression {
@@ -313,6 +295,17 @@ object Expression {
 
     /** @inheritdoc */
     override def children: List[IR] = List(name, expression)
+
+    override def withNewChildren(newChildren: List[IR]): IR = {
+      newChildren match {
+        case List(newName: Name, newExpression: Expression) =>
+          copy(name = newName, expression = newExpression)
+        case _ =>
+          throw new IllegalArgumentException(
+            s"Invalid children list for Binding: $newChildren"
+          )
+      }
+    }
 
     /** @inheritdoc */
     override def showCode(indent: Int): String =
