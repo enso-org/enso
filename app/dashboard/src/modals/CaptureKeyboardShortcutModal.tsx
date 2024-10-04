@@ -6,10 +6,8 @@ import * as detect from 'enso-common/src/detect'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import * as aria from '#/components/aria'
-import * as ariaComponents from '#/components/AriaComponents'
+import { ButtonGroup, Dialog, Form, Text } from '#/components/AriaComponents'
 import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
-import Modal from '#/components/Modal'
 
 import * as inputBindings from '#/utilities/inputBindings'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
@@ -65,13 +63,16 @@ export default function CaptureKeyboardShortcutModal(props: CaptureKeyboardShort
   const canSubmit = key != null && !doesAlreadyExist
 
   return (
-    <Modal centered className="bg-dim">
-      <form
+    <Dialog>
+      <Form
         ref={(element) => {
           element?.focus()
         }}
         tabIndex={-1}
-        className="pointer-events-auto relative flex w-capture-keyboard-shortcut-modal flex-col items-center gap-modal rounded-default p-modal before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-3xl"
+        method="dialog"
+        schema={(z) => z.object({})}
+        className="flex-col items-center"
+        gap="none"
         onKeyDown={(event) => {
           if (event.key === 'Escape' && key === 'Escape') {
             // Ignore.
@@ -99,8 +100,7 @@ export default function CaptureKeyboardShortcutModal(props: CaptureKeyboardShort
         onClick={(event) => {
           event.stopPropagation()
         }}
-        onSubmit={(event) => {
-          event.preventDefault()
+        onSubmit={() => {
           if (canSubmit) {
             unsetModal()
             onSubmit(shortcut)
@@ -115,28 +115,17 @@ export default function CaptureKeyboardShortcutModal(props: CaptureKeyboardShort
           )}
         >
           {shortcut === '' ?
-            <aria.Text className="text text-primary/30">{getText('noShortcutEntered')}</aria.Text>
+            <Text>{getText('noShortcutEntered')}</Text>
           : <KeyboardShortcut shortcut={shortcut} />}
         </div>
-        <aria.Text className="relative text-red-600">
+        <Text className="relative text-red-600">
           {doesAlreadyExist ? 'This shortcut already exists.' : ''}
-        </aria.Text>
-        <ariaComponents.ButtonGroup>
-          <ariaComponents.Button
-            variant="submit"
-            isDisabled={!canSubmit}
-            onPress={() => {
-              unsetModal()
-              onSubmit(shortcut)
-            }}
-          >
-            {getText('confirm')}
-          </ariaComponents.Button>
-          <ariaComponents.Button variant="outline" onPress={unsetModal}>
-            {getText('cancel')}
-          </ariaComponents.Button>
-        </ariaComponents.ButtonGroup>
-      </form>
-    </Modal>
+        </Text>
+        <ButtonGroup>
+          <Form.Submit isDisabled={!canSubmit}>{getText('confirm')}</Form.Submit>
+          <Form.Submit cancel />
+        </ButtonGroup>
+      </Form>
+    </Dialog>
   )
 }
