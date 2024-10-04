@@ -1695,7 +1695,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                   if (
                     'backendApi' in window &&
                     // This non-standard property is defined in Electron.
-                    'path' in file
+                    'path' in file &&
+                    typeof file.path === 'string'
                   ) {
                     const projectInfo = await window.backendApi.importProjectFromPath(
                       file.path,

@@ -37,13 +37,11 @@ import type * as loggerProvider from '#/providers/LoggerProvider'
 
 import type * as service from '#/authentication/service'
 
-// @ts-expect-error This is a mock file that needs to reference its original file.
 import * as original from './cognito.js'
 import * as listen from './listen.mock.js'
 
 // This file exports a subset of the values from the original file.
 /* eslint-disable no-restricted-syntax */
-// @ts-expect-error This is a mock file that needs to reference its original file.
 export { CognitoErrorType } from './cognito.js'
 /* eslint-enable no-restricted-syntax */
 
@@ -359,7 +357,7 @@ async function signUp(
 async function confirmSignUp(_email: string, _code: string) {
   return results.Result.wrapAsync(async () => {
     // Ignored.
-  }).then(result =>
+  }).then((result) =>
     result.mapErr(original.intoAmplifyErrorOrThrow).mapErr(original.intoConfirmSignUpErrorOrThrow),
   )
 }

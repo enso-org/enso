@@ -8,7 +8,7 @@ const config = mergeConfig(
     test: {
       environment: 'jsdom',
       includeSource: ['./src/**/*.{ts,vue}'],
-      exclude: [...configDefaults.exclude, 'e2e/*'],
+      exclude: [...configDefaults.exclude, 'e2e/**/*'],
       root: fileURLToPath(new URL('./', import.meta.url)),
       restoreMocks: true,
     },

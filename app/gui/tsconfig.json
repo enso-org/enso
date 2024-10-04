@@ -9,7 +9,6 @@
   ],
   "compilerOptions": {
     "module": "Preserve",
-    "moduleResolution": "Bundler",
     "customConditions": ["source"],
     "composite": true,
     "strict": true,

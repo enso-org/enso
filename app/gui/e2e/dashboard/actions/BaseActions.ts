@@ -122,7 +122,7 @@ export default class BaseActions implements Promise<void> {
   /** Press a key, replacing the text `Mod` with `Meta` (`Cmd`) on macOS, and `Control`
    * on all other platforms. */
   press<Key extends string>(keyOrShortcut: inputBindings.AutocompleteKeybind<Key>) {
-    return this.do(page => BaseActions.press(page, keyOrShortcut))
+    return this.do((page) => BaseActions.press(page, keyOrShortcut))
   }
 
   /** Perform actions until a predicate passes. */
@@ -133,7 +133,7 @@ export default class BaseActions implements Promise<void> {
   ) {
     // eslint-disable-next-line @typescript-eslint/no-magic-numbers
     const { retries = 3, delay = 1_000 } = options
-    return this.step('Perform actions with retries', async thePage => {
+    return this.step('Perform actions with retries', async (thePage) => {
       for (let i = 0; i < retries; i += 1) {
         await callback(this)
         if (await predicate(thePage)) {
@@ -149,10 +149,10 @@ export default class BaseActions implements Promise<void> {
   /** Perform actions with the "Mod" modifier key pressed. */
   withModPressed<R extends BaseActions>(callback: (actions: this) => R) {
     return callback(
-      this.step('Press "Mod"', async page => {
+      this.step('Press "Mod"', async (page) => {
         await page.keyboard.down(await modModifier(page))
       }),
-    ).step('Release "Mod"', async page => {
+    ).step('Release "Mod"', async (page) => {
       await page.keyboard.up(await modModifier(page))
     })
   }
@@ -163,11 +163,11 @@ export default class BaseActions implements Promise<void> {
     if (expected === undefined) {
       return this
     } else if (expected != null) {
-      return this.step(`Expect ${description} error to be '${expected}'`, async page => {
+      return this.step(`Expect ${description} error to be '${expected}'`, async (page) => {
         await test.expect(page.getByTestId(testId).getByTestId('error')).toHaveText(expected)
       })
     } else {
-      return this.step(`Expect no ${description} error`, async page => {
+      return this.step(`Expect no ${description} error`, async (page) => {
         await test.expect(page.getByTestId(testId).getByTestId('error')).not.toBeVisible()
       })
     }

@@ -29,7 +29,7 @@ function testSchema(json: unknown, fileName: string): void {
 }
 
 // We need to go up from `app/dashboard/` to the root of the repo
-const DIR_DEPTH = 5
+const DIR_DEPTH = 6
 const REPO_ROOT = url.fileURLToPath(new URL('../'.repeat(DIR_DEPTH), import.meta.url))
 const BASE_DATA_LINKS_ROOT = path.resolve(REPO_ROOT, 'test/Base_Tests/data/datalinks/')
 const S3_DATA_LINKS_ROOT = path.resolve(REPO_ROOT, 'test/AWS_Tests/data/')

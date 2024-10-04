@@ -10,7 +10,7 @@
     ".prettierrc.cjs",
     "*.js",
     "*.ts"
-  ],
+, "../gui/tailwind.config.js"  ],
   "exclude": ["./dist"],
   "compilerOptions": {
     "composite": true,

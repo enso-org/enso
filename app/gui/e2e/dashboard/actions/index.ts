@@ -4,9 +4,9 @@ import * as test from '@playwright/test'
 
 import { TEXTS } from 'enso-common/src/text'
 
-import DrivePageActions from './actions/DrivePageActions'
-import LoginPageActions from './actions/LoginPageActions'
-import * as apiModule from './api'
+import * as apiModule from '../api'
+import DrivePageActions from './DrivePageActions'
+import LoginPageActions from './LoginPageActions'
 
 /* eslint-disable @typescript-eslint/no-namespace */
 

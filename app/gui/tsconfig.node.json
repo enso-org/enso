@@ -7,12 +7,14 @@
     "playwright.config.*",
     "eslint.config.js",
     "e2e/**/*",
+    "src/dashboard/utilities/**/*",
     "node.env.d.ts",
   ],
   "compilerOptions": {
     "baseUrl": ".",
     "module": "ESNext",
     "verbatimModuleSyntax": true,
-    "types": ["node", "vitest/importMeta"]
+    "types": ["node", "vitest/importMeta"],
+    "paths": { "@/*": ["./src/project-view/*"], "#/*": ["./src/dashboard/*"] }
   }
 }
