@@ -45,6 +45,9 @@ export default function ManageLabelsModal<Asset extends AnyAsset = AnyAsset>(
   const leastUsedColor = useMemo(() => findLeastUsedColor(allLabels ?? []), [allLabels])
   const position = useMemo(() => eventTarget?.getBoundingClientRect(), [eventTarget])
 
+  const createTagMutation = useMutation(backendMutationOptions(backend, 'createTag'))
+  const associateTagMutation = useMutation(backendMutationOptions(backend, 'associateTag'))
+
   const form = Form.useForm({
     schema: (z) =>
       z.object({
@@ -55,7 +58,12 @@ export default function ManageLabelsModal<Asset extends AnyAsset = AnyAsset>(
     onSubmit: async ({ name }) => {
       const labelName = LabelName(name)
       try {
-        await createTag([{ value: labelName, color: color ?? leastUsedColor }])
+        await createTagMutation.mutateAsync([{ value: labelName, color: color ?? leastUsedColor }])
+        await associateTagMutation.mutateAsync([
+          item.id,
+          [...(item.labels ?? []), labelName],
+          item.title,
+        ])
         unsetModal()
       } catch (error) {
         toastAndLog(null, error)
@@ -77,9 +85,6 @@ export default function ManageLabelsModal<Asset extends AnyAsset = AnyAsset>(
     [allLabels, query, regex],
   )
   const canCreateNewLabel = canSelectColor
-
-  const createTag = useMutation(backendMutationOptions(backend, 'createTag')).mutateAsync
-  const associateTag = useMutation(backendMutationOptions(backend, 'associateTag')).mutateAsync
 
   return (
     <Modal
@@ -134,7 +139,11 @@ export default function ManageLabelsModal<Asset extends AnyAsset = AnyAsset>(
                 name="labels"
                 className="max-h-manage-labels-list overflow-auto"
                 onChange={async (values) => {
-                  await associateTag([item.id, values.map(LabelName), item.title])
+                  await associateTagMutation.mutateAsync([
+                    item.id,
+                    values.map(LabelName),
+                    item.title,
+                  ])
                 }}
                 {...innerProps}
               >
