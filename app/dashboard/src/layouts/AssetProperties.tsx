@@ -31,6 +31,7 @@ import UpsertSecretModal from '#/modals/UpsertSecretModal'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useLocalBackend } from '#/providers/BackendProvider'
 import { useDriveStore, useSetAssetPanelProps } from '#/providers/DriveProvider'
+import { useFeatureFlags } from '#/providers/FeatureFlagsProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import { AssetType, BackendType, type DatalinkId } from '#/services/Backend'
@@ -99,12 +100,18 @@ export default function AssetProperties(props: AssetPropertiesProps) {
     },
     [closeSpotlight],
   )
+  const featureFlags = useFeatureFlags()
   const datalinkQuery = useBackendQuery(
     backend,
     'getDatalink',
     // eslint-disable-next-line no-restricted-syntax
     [asset.id as DatalinkId, asset.title],
-    { enabled: asset.type === AssetType.datalink },
+    {
+      enabled: asset.type === AssetType.datalink,
+      ...(featureFlags.enableAssetsTableBackgroundRefresh ?
+        { refetchInterval: featureFlags.assetsTableBackgroundRefreshInterval }
+      : {}),
+    },
   )
   const driveStore = useDriveStore()
   const descriptionRef = React.useRef<HTMLDivElement>(null)
