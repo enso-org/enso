@@ -2,6 +2,7 @@
 import { useMemo } from 'react'
 
 import {
+  queryOptions,
   useQuery,
   useQueryClient,
   type UseMutationOptions,
@@ -10,7 +11,10 @@ import {
 } from '@tanstack/react-query'
 import invariant from 'tiny-invariant'
 
-import { backendQueryOptions, type BackendMethods } from 'enso-common/src/backendQuery'
+import {
+  backendQueryOptions as backendQueryOptionsBase,
+  type BackendMethods,
+} from 'enso-common/src/backendQuery'
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import type Backend from '#/services/Backend'
@@ -86,6 +90,40 @@ export type MutationMethod = DefineBackendMethods<
 // === useBackendQuery ===
 // =======================
 
+export function backendQueryOptions<Method extends BackendMethods>(
+  backend: Backend,
+  method: Method,
+  args: Parameters<Backend[Method]>,
+  options?: Omit<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn' | 'queryKey'> &
+    Partial<Pick<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryKey'>>,
+): UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>
+export function backendQueryOptions<Method extends BackendMethods>(
+  backend: Backend | null,
+  method: Method,
+  args: Parameters<Backend[Method]>,
+  options?: Omit<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn' | 'queryKey'> &
+    Partial<Pick<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryKey'>>,
+): UseQueryOptions<
+  // eslint-disable-next-line no-restricted-syntax
+  Awaited<ReturnType<Backend[Method]>> | undefined
+>
+/** Wrap a backend method call in a React Query. */
+export function backendQueryOptions<Method extends BackendMethods>(
+  backend: Backend | null,
+  method: Method,
+  args: Parameters<Backend[Method]>,
+  options?: Omit<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn' | 'queryKey'> &
+    Partial<Pick<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryKey'>>,
+) {
+  // @ts-expect-error This call is generic over the presence or absence of `inputData`.
+  return queryOptions<Awaited<ReturnType<Backend[Method]>>>({
+    ...options,
+    ...backendQueryOptionsBase(backend, method, args, options?.queryKey),
+    // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
+    queryFn: () => (backend?.[method] as any)?.(...args),
+  })
+}
+
 export function useBackendQuery<Method extends BackendMethods>(
   backend: Backend,
   method: Method,
@@ -111,12 +149,7 @@ export function useBackendQuery<Method extends BackendMethods>(
   options?: Omit<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn' | 'queryKey'> &
     Partial<Pick<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryKey'>>,
 ) {
-  return useQuery<Awaited<ReturnType<Backend[Method]>>>({
-    ...options,
-    ...backendQueryOptions(backend, method, args, options?.queryKey),
-    // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
-    queryFn: () => (backend?.[method] as any)?.(...args),
-  })
+  return useQuery(backendQueryOptions(backend, method, args, options))
 }
 
 // ==========================

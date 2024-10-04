@@ -34,7 +34,7 @@ import * as localBackend from '#/services/LocalBackend'
 import * as backendModule from '#/services/Backend'
 
 import { Text } from '#/components/AriaComponents'
-import { backendMutationOptions } from '#/hooks/backendHooks'
+import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import { createGetProjectDetailsQuery } from '#/hooks/projectHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
@@ -49,7 +49,7 @@ import * as permissions from '#/utilities/permissions'
 import * as set from '#/utilities/set'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import Visibility from '#/utilities/Visibility'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 // =================
 // === Constants ===
@@ -131,6 +131,7 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
 
   const [item, setItem] = React.useState(rawItem)
   const driveStore = useDriveStore()
+  const queryClient = useQueryClient()
   const { user } = useFullUserSession()
   const setSelectedKeys = useSetSelectedKeys()
   const setAssetPanelProps = useSetAssetPanelProps()
@@ -196,7 +197,6 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
     backendMutationOptions(backend, 'getProjectDetails'),
   )
   const getFileDetailsMutation = useMutation(backendMutationOptions(backend, 'getFileDetails'))
-  const getDatalinkMutation = useMutation(backendMutationOptions(backend, 'getDatalink'))
   const createPermissionMutation = useMutation(backendMutationOptions(backend, 'createPermission'))
   const associateTagMutation = useMutation(backendMutationOptions(backend, 'associateTag'))
 
@@ -411,7 +411,9 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
                 }
                 case backendModule.AssetType.datalink: {
                   try {
-                    const value = await getDatalinkMutation.mutateAsync([asset.id, asset.title])
+                    const value = await queryClient.fetchQuery(
+                      backendQueryOptions(backend, 'getDatalink', [asset.id, asset.title]),
+                    )
                     const fileName = `${asset.title}.datalink`
                     download(
                       URL.createObjectURL(
