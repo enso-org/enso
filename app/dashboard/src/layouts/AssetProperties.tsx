@@ -225,7 +225,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
           data-testid="asset-panel-description"
           className="self-stretch py-side-panel-description-y"
         >
-          {isEditingDescription ?
+          {!isEditingDescription ?
             <Text>{displayedDescription}</Text>
           : <Form form={editDescriptionForm} className="flex flex-col gap-modal pr-4">
               <ResizableContentEditableInput

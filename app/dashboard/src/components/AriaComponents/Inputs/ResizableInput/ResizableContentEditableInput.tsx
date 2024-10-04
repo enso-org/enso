@@ -100,13 +100,7 @@ export const ResizableContentEditableInput = forwardRef(function ResizableConten
     defaultValue,
   })
 
-  const {
-    base,
-    description: descriptionClass,
-    inputContainer,
-    textArea,
-    placeholder: placeholderClass,
-  } = variants({
+  const styles = variants({
     invalid: fieldState.invalid,
     disabled: isDisabled || formInstance.formState.isSubmitting,
     variant,
@@ -123,14 +117,14 @@ export const ResizableContentEditableInput = forwardRef(function ResizableConten
       {...textFieldProps}
     >
       <div
-        className={base()}
+        className={styles.base()}
         onClick={() => {
           inputRef.current?.focus({ preventScroll: true })
         }}
       >
-        <div className={inputContainer()}>
+        <div className={styles.inputContainer()}>
           <div
-            className={textArea()}
+            className={styles.textArea()}
             ref={mergeRefs(inputRef, ref, field.ref)}
             contentEditable
             suppressContentEditableWarning
@@ -146,13 +140,13 @@ export const ResizableContentEditableInput = forwardRef(function ResizableConten
             }}
           />
 
-          <Text className={placeholderClass({ class: field.value.length > 0 ? 'hidden' : '' })}>
+          <Text className={styles.placeholder({ class: field.value.length > 0 ? 'hidden' : '' })}>
             {placeholder}
           </Text>
         </div>
 
         {description != null && (
-          <Text slot="description" className={descriptionClass()}>
+          <Text slot="description" className={styles.description()}>
             {description}
           </Text>
         )}
