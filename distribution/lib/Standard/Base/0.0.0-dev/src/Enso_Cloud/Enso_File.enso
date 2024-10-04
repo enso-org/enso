@@ -195,9 +195,10 @@ type Enso_File
          same asset at the same time, some changes may be lost.
     add_label : Text -> Enso_File
     add_label self (label : Text) -> Enso_File =
-        asset = Existing_Enso_Asset.get_asset_reference_for self
-        #asset.add_label label
-        self
+        labels = self.labels
+        if labels.contains label then self else
+            new_labels = labels+[label]
+            update_asset_labels self new_labels . if_not_error self
 
     ## GROUP Metadata
        ICON data_output
@@ -215,8 +216,10 @@ type Enso_File
          same asset at the same time, some changes may be lost.
     remove_label : Text -> Boolean
     remove_label self (label : Text) -> Boolean =
-        asset = Existing_Enso_Asset.get_asset_reference_for self
-        "TODO"
+        labels = self.labels
+        if labels.contains label . not then False else
+            new_labels = labels.filter l-> l != label
+            update_asset_labels self new_labels . if_not_error True
 
     ## GROUP Metadata
        ICON data_output
@@ -234,9 +237,7 @@ type Enso_File
        - The file on which it was called.
     set_labels : Vector Text -> Enso_File
     set_labels self (labels : Vector Text) -> Enso_File =
-        asset = Existing_Enso_Asset.get_asset_reference_for self
-        #asset.set_labels labels
-        self
+        update_asset_labels self labels . if_not_error self
 
     ## GROUP Metadata
        ICON data_output

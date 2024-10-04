@@ -5,6 +5,7 @@ import project.Data.Dictionary.Dictionary
 import project.Data.Json.Invalid_JSON
 import project.Data.Json.JS_Object
 import project.Data.Text.Text
+import project.Data.Vector.Vector
 import project.Enso_Cloud.Enso_File.Enso_Asset_Type
 import project.Enso_Cloud.Enso_File.Enso_File
 import project.Enso_Cloud.Errors.Enso_Cloud_Error
@@ -140,3 +141,10 @@ update_asset_description (asset : Enso_File) (description : Text) =
     payload = JS_Object.from_pairs [["description", description]]
     Asset_Cache.invalidate asset
     Utils.http_request HTTP_Method.Patch existing_asset.asset_uri payload
+
+## PRIVATE
+update_asset_labels (asset : Enso_File) (new_labels : Vector Text) =
+    existing_asset = Existing_Enso_Asset.get_asset_reference_for asset
+    payload = JS_Object.from_pairs [["labels", new_labels]]
+    Asset_Cache.invalidate asset
+    Utils.http_request HTTP_Method.Patch existing_asset.asset_uri+"/labels" payload
