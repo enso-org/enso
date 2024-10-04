@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Missing_Argument
+import Standard.Base.Errors.Common.Type_Error
 
 import project.Connection.Connection_Options.Connection_Options
 import project.Connection.SQLite_Connection.SQLite_Connection
@@ -18,7 +19,7 @@ type SQLite
        Attempt to resolve the constructor.
     resolve : Function -> SQLite | Nothing
     resolve constructor =
-        Panic.catch Any (constructor:SQLite) _->Nothing
+        Panic.catch Type_Error (constructor:SQLite) _->Nothing
 
     ## PRIVATE
        Build the Connection resource.
