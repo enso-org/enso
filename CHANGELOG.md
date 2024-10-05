@@ -11,8 +11,11 @@
 
 - [The `enso://~` path now resolves to user's home directory in the
   cloud.][11235]
+- [The user may set description and labels of an Enso Cloud asset
+  programmatically.][11255]
 
 [11235]: https://github.com/enso-org/enso/pull/11235
+[11255]: https://github.com/enso-org/enso/pull/11255
 
 # Enso 2024.4
 
