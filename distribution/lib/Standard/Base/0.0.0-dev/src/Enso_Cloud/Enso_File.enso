@@ -192,8 +192,8 @@ type Enso_File
 
        ? Race Conditions
 
-         Adding labels is not atomic. If two processes are adding labels on the
-         same asset at the same time, some changes may be lost.
+         Adding labels is not atomic. If two processes are modifying labels of
+         the same asset at the same time, some changes may be lost.
     add_label : Text -> Enso_File
     add_label self (label : Text) -> Enso_File =
         Context.Output.if_enabled disabled_message="Cannot add a label when writing is disabled. Press the Write button ▶ to perform the operation." panic=False <|
@@ -215,8 +215,8 @@ type Enso_File
 
        ? Race Conditions
 
-         Adding labels is not atomic. If two processes are adding labels on the
-         same asset at the same time, some changes may be lost.
+         Removing labels is not atomic. If two processes are modifying labels of
+         the same asset at the same time, some changes may be lost.
     remove_label : Text -> Boolean
     remove_label self (label : Text) -> Boolean =
         Context.Output.if_enabled disabled_message="Cannot remove a label when writing is disabled. Press the Write button ▶ to perform the operation." panic=False <|
