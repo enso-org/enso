@@ -303,6 +303,23 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
         f.set_labels [] . should_equal f
         f.labels . should_equal []
 
+    group_builder.specify "can get and set metadata on just-created asset" <|
+        ## This is a bit of a white-box test - we know that just-created assets are cached without metadata,
+           so we want to test this case to ensure nothing breaks here.
+        f = (test_root.get / "my-directory-for-metadata").create_directory
+        f.should_succeed
+
+        f.description . should_equal ""
+        f.labels . should_equal []
+
+        f.set_description "ABC" . should_succeed
+        f.description . should_equal "ABC"
+
+        # Also test setting metadata before querying it:
+        g = (test_root.get / "my-directory-for-metadata-2").create_directory
+        g.set_labels ["A"] . should_succeed
+        g.labels . should_equal ["A"]
+
     group_builder.specify "allows / as well as .. and . in resolve" <|
         (Enso_File.root / "a/b/c") . should_equal (Enso_File.root / "a" / "b" / "c")
         (Enso_File.root / "a///b/c") . should_equal (Enso_File.root / "a" / "b" / "c")
