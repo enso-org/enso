@@ -145,8 +145,8 @@ type Refresh_Token_Data
                 HTTP_Error.Status_Error status message _ ->
                     Authentication_Service.log_message level=..Warning "Refresh token request failed with status "+status.to_text+": "+(message.if_nothing "<no message>")+"."
 
-                    # If the status code is 400-499, then most likely the reason is that the session has expired, so we ask the user to log in again.
-                    if (400 <= status.code) && (status.code < 500) then Panic.throw (Cloud_Session_Expired.Error error) else
+                    # As per OAuth specification, an expired refresh token should result in a 401 status code: https://www.rfc-editor.org/rfc/rfc6750.html#section-3.1
+                    if status.code == 401 then Panic.throw (Cloud_Session_Expired.Error error) else
                         # Otherwise, we fail with the generic error that gives more details.
                         Panic.throw (Enso_Cloud_Error.Connection_Error error)
                 _ -> Panic.throw (Enso_Cloud_Error.Connection_Error error)
