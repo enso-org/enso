@@ -39,15 +39,11 @@ public class MethodRootNode extends ClosureRootNode {
         moduleScope,
         body,
         section,
-        shortName(type.getName(), methodName),
+        methodName,
         null,
         false);
     this.type = type;
     this.methodName = methodName;
-  }
-
-  private static String shortName(String atomName, String methodName) {
-    return atomName + "." + methodName;
   }
 
   /**
@@ -147,17 +143,11 @@ public class MethodRootNode extends ClosureRootNode {
   /**
    * Computes the fully qualified name of this method.
    *
-   * <p>The name has a form of [method's module]::[qualified type name]::[method name].
-   *
    * @return the qualified name of this method.
    */
   @Override
   public String getQualifiedName() {
-    return getModuleScope().getModule().getName().toString()
-        + "::"
-        + type.getQualifiedName().toString()
-        + "::"
-        + methodName;
+    return type.getQualifiedName() + "." + methodName;
   }
 
   /**

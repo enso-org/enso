@@ -2,6 +2,8 @@ package org.enso.interpreter.test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
@@ -106,6 +108,28 @@ public class AtomInteropTest {
         "Member names correspond to constructor field names for a single constructor",
         myTypeAtom.getMemberKeys(),
         containsInAnyOrder("g1", "g2", "g3"));
+  }
+
+  @Test
+  public void methodIsAtomMember() {
+    var myTypeAtom =
+        ContextUtils.evalModule(
+            ctx,
+            """
+        type My_Type
+            Cons a b
+            method self = 42
+
+        main = My_Type.Cons "a" "b"
+        """);
+    assertThat(
+        "Method is a member of the atom",
+        myTypeAtom.getMemberKeys(),
+        hasItem("method"));
+    assertThat(
+        "method is an invokable member",
+        myTypeAtom.canInvokeMember("method"),
+        is(true));
   }
 
   @Test
