@@ -136,7 +136,8 @@ type Postgres_Connection
     tables self name_like=Nothing database=self.database schema=Nothing types=self.dialect.default_table_types all_fields=False =
         self.connection.tables name_like database schema types all_fields
 
-    ## GROUP Standard.Base.Input
+    ## ALIAS read, load, open, import
+       GROUP Standard.Base.Input
        ICON data_input
        Set up a query returning a Table object, which can be used to work with
        data within the database or load it into memory.
@@ -157,7 +158,8 @@ type Postgres_Connection
     query : SQL_Query -> Text -> DB_Table ! Table_Not_Found
     query self query:SQL_Query alias="" = self.connection.query query alias
 
-    ## GROUP Standard.Base.Input
+    ## ALIAS query, load, open, import
+       GROUP Standard.Base.Input
        ICON data_input
        Execute the query and load the results into memory as a Table.
 

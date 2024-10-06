@@ -103,7 +103,8 @@ type DB_Column
     info : Table
     info self -> Table = self.to_table.column_info
 
-    ## GROUP Standard.Base.Input
+    ## ALIAS import, load
+       GROUP Standard.Base.Input
        ICON data_input
        Returns a materialized column containing rows of this column.
 

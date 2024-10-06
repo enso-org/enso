@@ -82,7 +82,8 @@ type Hyper_Table
         cols = self.column_metadata
         Table.new [["Column", cols.map .name], ["Value Type", cols.map .value_type], ["Nullable", cols.map .nullable]]
 
-    ## GROUP Standard.Base.Input
+    ## ALIAS load, open, import
+       GROUP Standard.Base.Input
        ICON data_input
        Reads the Table into Enso Table
 

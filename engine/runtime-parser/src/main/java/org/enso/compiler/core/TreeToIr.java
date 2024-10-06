@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
+
 import org.enso.compiler.core.ir.CallArgument;
 import org.enso.compiler.core.ir.DefinitionArgument;
 import org.enso.compiler.core.ir.Diagnostic;
@@ -42,6 +43,7 @@ import org.enso.syntax2.Token;
 import org.enso.syntax2.Tree;
 import org.enso.syntax2.Tree.Invalid;
 import org.enso.syntax2.Tree.Private;
+
 import scala.Option;
 import scala.collection.immutable.LinearSeq;
 import scala.collection.immutable.List;
@@ -318,10 +320,14 @@ final class TreeToIr {
       }
 
       case Tree.Annotated anno -> {
-        var annotationArgument = translateExpression(anno.getArgument());
-        var annotation = new Name.GenericAnnotation(anno.getAnnotation().codeRepr(),
-            annotationArgument, getIdentifiedLocation(anno), meta());
-        yield translateModuleSymbol(anno.getExpression(), join(annotation, appendTo));
+        if (anno.getArgument() == null) {
+          yield join(translateSyntaxError(anno, Syntax.UnexpectedExpression$.MODULE$), appendTo);
+        } else {
+          var annotationArgument = translateExpression(anno.getArgument());
+          var annotation = new Name.GenericAnnotation(anno.getAnnotation().codeRepr(),
+              annotationArgument, getIdentifiedLocation(anno), meta());
+          yield translateModuleSymbol(anno.getExpression(), join(annotation, appendTo));
+        }
       }
 
       case Tree.Documented doc -> {

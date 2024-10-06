@@ -26,12 +26,27 @@ export function nodeRootExpr(ast: Ast.Ast): {
   }
 }
 
+export function inputNodeFromAst(ast: Ast.Ast, argIndex: number): NodeDataFromAst {
+  return {
+    type: 'input',
+    outerExpr: ast,
+    pattern: undefined,
+    rootExpr: ast,
+    innerExpr: ast,
+    prefixes: { enableRecording: undefined },
+    primarySubject: undefined,
+    conditionalPorts: new Set(),
+    docs: undefined,
+    argIndex,
+  }
+}
+
 /** Given a node's outer expression, return all the `Node` fields that depend on its AST structure. */
-export function nodeFromAst(ast: Ast.Ast, isLastLine: boolean): NodeDataFromAst | undefined {
+export function nodeFromAst(ast: Ast.Ast, isOutput: boolean): NodeDataFromAst | undefined {
   const { root, docs, assignment } = nodeRootExpr(ast)
   if (!root) return
   const { innerExpr, matches } = prefixes.extractMatches(root)
-  const type = assignment == null && isLastLine ? 'output' : 'component'
+  const type = assignment == null && isOutput ? 'output' : 'component'
   const primaryApplication = primaryApplicationSubject(innerExpr)
   return {
     type,
@@ -43,6 +58,7 @@ export function nodeFromAst(ast: Ast.Ast, isLastLine: boolean): NodeDataFromAst 
     primarySubject: primaryApplication?.subject,
     conditionalPorts: new Set(primaryApplication?.accessChain ?? []),
     docs,
+    argIndex: undefined,
   }
 }
 

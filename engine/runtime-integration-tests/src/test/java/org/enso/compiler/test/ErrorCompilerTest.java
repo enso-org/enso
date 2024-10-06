@@ -25,6 +25,17 @@ public class ErrorCompilerTest extends CompilerTests {
   }
 
   @Test
+  public void brokenAnnotation() throws Exception {
+    var ir = parse("""
+    @anno
+    fn = 10
+    """);
+
+    assertSingleSyntaxError(
+        ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 13);
+  }
+
+  @Test
   public void dotUnderscore() throws Exception {
     var ir = parse("""
     run op =
