@@ -33,15 +33,7 @@ public class MethodRootNode extends ClosureRootNode {
       SourceSection section,
       Type type,
       String methodName) {
-    super(
-        language,
-        localScope,
-        moduleScope,
-        body,
-        section,
-        methodName,
-        null,
-        false);
+    super(language, localScope, moduleScope, body, section, methodName, null, false);
     this.type = type;
     this.methodName = methodName;
   }
