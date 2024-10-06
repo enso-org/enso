@@ -158,9 +158,7 @@ public abstract class Atom implements EnsoObject {
     return ArrayLikeHelpers.wrapStrings(publicMembers);
   }
 
-  /**
-   * Get all instance methods for this atom's type.
-   */
+  /** Get all instance methods for this atom's type. */
   private Set<Function> getInstanceMethods() {
     var allMethods = constructor.getDefinitionScope().getMethodsForType(constructor.getType());
     if (allMethods != null) {
@@ -171,9 +169,7 @@ public abstract class Atom implements EnsoObject {
     return Set.of();
   }
 
-  /**
-   * Get field getters for this atom's constructor.
-   */
+  /** Get field getters for this atom's constructor. */
   private Set<Function> getFieldGetters() {
     var allMethods = constructor.getDefinitionScope().getMethodsForType(constructor.getType());
     if (allMethods != null) {
@@ -193,7 +189,7 @@ public abstract class Atom implements EnsoObject {
    */
   private boolean isGetterForOwnField(Function function) {
     if (function.getCallTarget() != null
-        && function.getCallTarget().getRootNode() instanceof GetFieldWithMatchNode getFieldNode) {
+        && function.getCallTarget().getRootNode() instanceof GetFieldBaseNode getFieldNode) {
       var fieldName = getFieldNode.getName();
       var thisConsFieldNames =
           Arrays.stream(constructor.getFields()).map(ArgumentDefinition::getName).toList();
@@ -204,7 +200,7 @@ public abstract class Atom implements EnsoObject {
 
   private boolean isFieldGetter(Function function) {
     return function.getCallTarget() != null
-        && function.getCallTarget().getRootNode() instanceof GetFieldWithMatchNode;
+        && function.getCallTarget().getRootNode() instanceof GetFieldBaseNode;
   }
 
   protected boolean isMethodProjectPrivate(Type type, String methodName) {
@@ -220,53 +216,64 @@ public abstract class Atom implements EnsoObject {
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
   final boolean isMemberInvocable(String member) {
-    var type = constructor.getType();
-    Set<String> members = constructor.getDefinitionScope().getMethodNamesForType(type);
-    if (members != null && members.contains(member)) {
-      return !isMethodProjectPrivate(type, member);
+    if (!isMemberReadable(member)) {
+      return false;
     }
-    members = type.getDefinitionScope().getMethodNamesForType(type);
-    if (members != null && members.contains(member)) {
-      return !isMethodProjectPrivate(type, member);
-    }
-    return false;
+    var publicMethodNames =
+        getInstanceMethods().stream()
+            .filter(method -> !method.getSchema().isProjectPrivate())
+            .map(Function::getName)
+            .collect(Collectors.toUnmodifiableSet());
+    return publicMethodNames.contains(member);
   }
 
-  /** A member is readable if it is an atom constructor and if the atom constructor is public. */
+  /** Readable members are fields of non-project-private constructors and public methods. */
   @ExportMessage
   @ExplodeLoop
   final boolean isMemberReadable(String member) {
-    if (hasProjectPrivateConstructor()) {
-      return false;
-    }
-    for (int i = 0; i < constructor.getArity(); i++) {
-      if (member.equals(constructor.getFields()[i].getName())) {
-        return true;
+    if (!hasProjectPrivateConstructor()) {
+      for (int i = 0; i < constructor.getArity(); i++) {
+        if (member.equals(constructor.getFields()[i].getName())) {
+          return true;
+        }
       }
     }
-    return false;
+    var publicMethodNames =
+        getInstanceMethods().stream()
+            .filter(method -> !method.getSchema().isProjectPrivate())
+            .map(Function::getName)
+            .collect(Collectors.toUnmodifiableSet());
+    return publicMethodNames.contains(member);
   }
 
   /**
-   * Reads a field of the atom.
+   * Reads a field or a method.
    *
-   * @param member An identifier of a field.
-   * @return Value of the member.
-   * @throws UnknownIdentifierException If an unknown field is requested.
-   * @throws UnsupportedMessageException If the atom constructor is project-private, and thus all
-   *     the fields are project-private.
+   * @param member An identifier of a field or method.
+   * @return Value of the field or function.
+   * @throws UnknownIdentifierException If an unknown field/method is requested.
+   * @throws UnsupportedMessageException If the requested member is not readable.
    */
   @ExportMessage
   @ExplodeLoop
   final Object readMember(String member, @CachedLibrary(limit = "3") StructsLibrary structs)
       throws UnknownIdentifierException, UnsupportedMessageException {
-    if (hasProjectPrivateConstructor()) {
+    if (!isMemberReadable(member)) {
       throw UnsupportedMessageException.create();
     }
-    for (int i = 0; i < constructor.getArity(); i++) {
-      if (member.equals(constructor.getFields()[i].getName())) {
-        return structs.getField(this, i);
+    if (!hasProjectPrivateConstructor()) {
+      for (int i = 0; i < constructor.getArity(); i++) {
+        if (member.equals(constructor.getFields()[i].getName())) {
+          return structs.getField(this, i);
+        }
       }
+    }
+    var matchedMethod =
+        getInstanceMethods().stream().filter(method -> method.getName().equals(member)).findFirst();
+    if (matchedMethod.isPresent()) {
+      assert !matchedMethod.get().getSchema().isProjectPrivate()
+          : "This is checked in isMemberReadable";
+      return matchedMethod.get();
     }
     throw UnknownIdentifierException.create(member);
   }
