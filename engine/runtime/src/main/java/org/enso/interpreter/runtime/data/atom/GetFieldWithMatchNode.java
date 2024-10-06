@@ -82,8 +82,9 @@ final class GetFieldWithMatchNode extends RootNode {
     return type.getQualifiedName().createChild(name).toString();
   }
 
+  /** Returns the name of the field. */
   @Override
   public String getName() {
-    return type.getName() + "." + name;
+    return name;
   }
 }
