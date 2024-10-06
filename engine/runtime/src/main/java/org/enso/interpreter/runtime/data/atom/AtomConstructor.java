@@ -317,8 +317,11 @@ public final class AtomConstructor implements EnsoObject {
   public static Map<String, RootNode> collectFieldAccessors(EnsoLanguage language, Type type) {
     var constructors = type.getConstructors().values();
     var roots = new TreeMap<String, RootNode>();
-    if (constructors.size() != 1) {
+    if (constructors.size() > 1) {
       var names = new TreeMap<String, List<GetFieldWithMatchNode.GetterPair>>();
+      // We assume that all the constructors have the same definition scope. So we
+      // take just the first one.
+      var moduleScope = constructors.iterator().next().getDefinitionScope();
       for (var cons : constructors) {
         for (var field : cons.getFields()) {
           var items = names.computeIfAbsent(field.getName(), (k) -> new ArrayList<>());
@@ -334,9 +337,10 @@ public final class AtomConstructor implements EnsoObject {
                 language,
                 name,
                 Type.noType(),
+                moduleScope,
                 fields.toArray(new GetFieldWithMatchNode.GetterPair[0])));
       }
-    } else {
+    } else if (constructors.size() == 1) {
       var cons = constructors.toArray(AtomConstructor[]::new)[0];
       for (var field : cons.getFields()) {
         var node =
