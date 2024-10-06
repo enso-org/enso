@@ -2,11 +2,12 @@ package org.enso.interpreter.test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 
+import com.oracle.truffle.api.interop.InteropLibrary;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.junit.After;
@@ -122,14 +123,94 @@ public class AtomInteropTest {
 
         main = My_Type.Cons "a" "b"
         """);
+    assertThat("Method is a member of the atom", myTypeAtom.getMemberKeys(), hasItem("method"));
+    assertThat("method is an invokable member", myTypeAtom.canInvokeMember("method"), is(true));
+  }
+
+  @Test
+  public void methodIsAtomMember_InteropLibrary() {
+    var myTypeAtom =
+        ContextUtils.evalModule(
+            ctx,
+            """
+        type My_Type
+            Cons a b
+            method self = 42
+
+        main = My_Type.Cons "a" "b"
+        """);
+    var atom = ContextUtils.unwrapValue(ctx, myTypeAtom);
+    var interop = InteropLibrary.getUncached();
+    assertThat("Atom has members", interop.hasMembers(atom), is(true));
+    assertThat("Method is readable", interop.isMemberReadable(atom, "method"), is(true));
+    assertThat("Method is invocable", interop.isMemberInvocable(atom, "method"), is(true));
+    assertThat("Field is readable", interop.isMemberReadable(atom, "a"), is(true));
+  }
+
+  @Test
+  public void constructorIsNotAtomMember() {
+    var myTypeAtom =
+        ContextUtils.evalModule(
+            ctx,
+            """
+        type My_Type
+            Cons a b
+            method self = 42
+
+        main = My_Type.Cons "a" "b"
+        """);
+    assertThat("Cons is not atom member", myTypeAtom.getMemberKeys(), not(hasItem("Cons")));
+  }
+
+  @Test
+  public void fieldIsNotInvocable() {
+    var myTypeAtom =
+        ContextUtils.evalModule(
+            ctx,
+            """
+        type My_Type
+            Cons a b
+
+        main = My_Type.Cons "a" "b"
+        """);
+    var atom = ContextUtils.unwrapValue(ctx, myTypeAtom);
+    var interop = InteropLibrary.getUncached();
+    assertThat("Field is not invocable", interop.isMemberInvocable(atom, "a"), is(false));
+  }
+
+  @Test
+  public void staticMethodIsNotAtomMember() {
+    var myTypeAtom =
+        ContextUtils.evalModule(
+            ctx,
+            """
+        type My_Type
+            Cons
+            static_method = 42
+
+        main = My_Type.Cons
+        """);
     assertThat(
-        "Method is a member of the atom",
+        "Static method is not atom member",
         myTypeAtom.getMemberKeys(),
-        hasItem("method"));
-    assertThat(
-        "method is an invokable member",
-        myTypeAtom.canInvokeMember("method"),
-        is(true));
+        not(hasItem("static_method")));
+  }
+
+  @Test
+  public void constructorIsNotAtomMember_InteropLibrary() {
+    var myTypeAtom =
+        ContextUtils.evalModule(
+            ctx,
+            """
+        type My_Type
+            Cons a b
+            method self = 42
+
+        main = My_Type.Cons "a" "b"
+        """);
+    var atom = ContextUtils.unwrapValue(ctx, myTypeAtom);
+    var interop = InteropLibrary.getUncached();
+    assertThat("Cons is not atom member", interop.isMemberExisting(atom, "Cons"), is(false));
   }
 
   @Test
