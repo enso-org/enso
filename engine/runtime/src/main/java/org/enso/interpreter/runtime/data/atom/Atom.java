@@ -16,10 +16,13 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.profiles.BranchProfile;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
+import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
@@ -143,23 +146,65 @@ public abstract class Atom implements EnsoObject {
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
   EnsoObject getMembers(boolean includeInternal) {
-    Set<Function> members =
-        constructor.getDefinitionScope().getMethodsForType(constructor.getType());
-    Set<Function> allFuncMembers = new HashSet<>();
-    if (members != null) {
-      allFuncMembers.addAll(members);
-    }
-    members = constructor.getType().getDefinitionScope().getMethodsForType(constructor.getType());
-    if (members != null) {
-      allFuncMembers.addAll(members);
-    }
+    Set<Function> allMembers = new HashSet<>();
+    allMembers.addAll(getInstanceMethods());
+    allMembers.addAll(getFieldGetters());
     String[] publicMembers =
-        allFuncMembers.stream()
+        allMembers.stream()
             .filter(method -> !method.getSchema().isProjectPrivate())
             .map(Function::getName)
             .distinct()
             .toArray(String[]::new);
     return ArrayLikeHelpers.wrapStrings(publicMembers);
+  }
+
+  /**
+   * Get all instance methods for this atom's type.
+   */
+  private Set<Function> getInstanceMethods() {
+    var allMethods = constructor.getDefinitionScope().getMethodsForType(constructor.getType());
+    if (allMethods != null) {
+      return allMethods.stream()
+          .filter(method -> !isFieldGetter(method))
+          .collect(Collectors.toUnmodifiableSet());
+    }
+    return Set.of();
+  }
+
+  /**
+   * Get field getters for this atom's constructor.
+   */
+  private Set<Function> getFieldGetters() {
+    var allMethods = constructor.getDefinitionScope().getMethodsForType(constructor.getType());
+    if (allMethods != null) {
+      return allMethods.stream()
+          .filter(method -> isFieldGetter(method) && isGetterForOwnField(method))
+          .collect(Collectors.toUnmodifiableSet());
+    }
+    return Set.of();
+  }
+
+  /**
+   * Returns true if the given {@code function} is a getter for a field inside this atom
+   * constructor.
+   *
+   * @param function the function to check.
+   * @return true if the function is a getter for a field inside this atom constructor.
+   */
+  private boolean isGetterForOwnField(Function function) {
+    if (function.getCallTarget() != null
+        && function.getCallTarget().getRootNode() instanceof GetFieldWithMatchNode getFieldNode) {
+      var fieldName = getFieldNode.getName();
+      var thisConsFieldNames =
+          Arrays.stream(constructor.getFields()).map(ArgumentDefinition::getName).toList();
+      return thisConsFieldNames.contains(fieldName);
+    }
+    return false;
+  }
+
+  private boolean isFieldGetter(Function function) {
+    return function.getCallTarget() != null
+        && function.getCallTarget().getRootNode() instanceof GetFieldWithMatchNode;
   }
 
   protected boolean isMethodProjectPrivate(Type type, String methodName) {
