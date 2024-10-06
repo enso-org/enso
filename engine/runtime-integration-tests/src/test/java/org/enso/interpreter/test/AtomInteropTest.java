@@ -9,7 +9,6 @@ import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
