@@ -4782,7 +4782,7 @@ lazy val `std-aws` = project
       result
     }.value
   )
-  .dependsOn(`aws-wrapper`)
+  .dependsOn(`aws-wrapper` % "provided")
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
   .dependsOn(`std-database` % "provided")
