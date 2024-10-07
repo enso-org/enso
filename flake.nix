@@ -24,7 +24,7 @@
                 minimal.cargo
                 minimal.rustc
                 targets.x86_64-unknown-linux-musl.latest.rust-std
-              ] else fenix.packages.${system}.minimal;
+              ] else fenix.packages.${system}.minimal.toolchain;
           in
           pkgs.mkShell rec {
             buildInputs = with pkgs; [
