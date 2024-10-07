@@ -1538,6 +1538,7 @@ lazy val `aws-wrapper` = project
   .enablePlugins(JPMSPlugin)
   .settings(
     modularFatJarWrapperSettings,
+    javaModuleName := "org.enso.aws.wrapper",
     libraryDependencies ++= Seq(
       "com.amazon.redshift"              % "redshift-jdbc42"         % redshiftVersion,
       "com.amazonaws"                    % "aws-java-sdk-core"       % awsJavaSdkV1Version,
@@ -1553,7 +1554,6 @@ lazy val `aws-wrapper` = project
       "com.fasterxml.jackson.core"       % "jackson-core"            % "2.12.7",
       "com.fasterxml.jackson.dataformat" % "jackson-dataformat-cbor" % "2.12.6"
     ),
-    javaModuleName := "org.enso.aws.wrapper",
     assembly / assemblyExcludedJars := {
       val excludedJars = JPMSUtils.filterModulesFromUpdate(
         update.value,
@@ -1588,7 +1588,6 @@ lazy val `aws-wrapper` = project
     Compile / patchModules := {
       val aws = JPMSUtils.filterModulesFromUpdate(
         update.value,
-        scalaLibrary ++
         Seq(
           "software.amazon.awssdk" % "auth" % awsJavaSdkV2Version
         ),
