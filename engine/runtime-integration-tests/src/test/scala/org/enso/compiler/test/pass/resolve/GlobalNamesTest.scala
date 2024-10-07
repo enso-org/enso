@@ -2,6 +2,7 @@ package org.enso.compiler.test.pass.resolve
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
+import org.enso.compiler.core.{EnsoParser, IR}
 import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.Function
@@ -83,7 +84,7 @@ class GlobalNamesTest extends CompilerTest {
                  |add_one x = x + 1
                  |
                  |""".stripMargin
-    val parsed       = code.toIrModule
+    val parsed       = EnsoParser.compile(code)
     val moduleMapped = passManager.runPassesOnModule(parsed, ctx, group1)
     ModuleTestUtils.unsafeSetIr(both._2, moduleMapped)
 
@@ -187,6 +188,35 @@ class GlobalNamesTest extends CompilerTest {
         Resolution(ResolvedModule(ctx.moduleReference()))
       )
     }
+
+    "resolve type in static method call" in {
+      implicit val ctx: ModuleContext = mkModuleContext._1
+      val ir =
+        """
+          |type My_Type
+          |    method x = x
+          |
+          |main =
+          |    My_Type.method 42
+          |""".stripMargin.preprocessModule.analyse
+      val allGlobNames = collectAllGlobalNames(ir)
+      allGlobNames shouldNot be(null)
+      allGlobNames.size shouldBe 1
+      allGlobNames.head._1 shouldBe a[Name.Literal]
+      allGlobNames.head._1.asInstanceOf[Name.Literal].name shouldEqual "My_Type"
+      allGlobNames.head._2.target.qualifiedName.item shouldEqual "My_Type"
+    }
+  }
+
+  private def collectAllGlobalNames(
+    moduleIr: Module
+  ): Seq[(IR, Resolution)] = {
+    moduleIr
+      .preorder()
+      .collect { case ir: IR =>
+        ir.getMetadata(GlobalNames).map((ir, _))
+      }
+      .flatten
   }
 
   "Undefined names" should {
@@ -205,7 +235,6 @@ class GlobalNamesTest extends CompilerTest {
         case errors.Resolution(
               name,
               _: errors.Resolution.ResolverError,
-              _,
               _
             ) =>
           name
@@ -227,12 +256,33 @@ class GlobalNamesTest extends CompilerTest {
         case errors.Resolution(
               name,
               _: errors.Resolution.ResolverError,
-              _,
               _
             ) =>
           name
       }
       unresolved.map(_.name) shouldEqual List("here")
+    }
+
+    "should be detected when trying to use static method without type" in {
+      implicit val ctx: ModuleContext = mkModuleContext._1
+
+      val ir =
+        """
+          |type My_Type
+          |    static_method = 23
+          |main =
+          |    static_method
+          |""".stripMargin.preprocessModule.analyse
+
+      val unresolved = ir.preorder.collect {
+        case errors.Resolution(
+              name,
+              _: errors.Resolution.ResolverError,
+              _
+            ) =>
+          name
+      }
+      unresolved.map(_.name) shouldEqual List("static_method")
     }
   }
 }

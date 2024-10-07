@@ -3,30 +3,37 @@
  *
  * Field component
  */
-
 import * as React from 'react'
 
 import * as aria from '#/components/aria'
 
-import * as twv from '#/utilities/tailwindVariants'
-
+import { forwardRef } from '#/utilities/react'
+import { tv, type VariantProps } from '#/utilities/tailwindVariants'
+import type { Path } from 'react-hook-form'
 import * as text from '../../Text'
+import { Form } from '../Form'
 import type * as types from './types'
-import * as formContext from './useFormContext'
 
 /**
  * Props for Field component
  */
-export interface FieldComponentProps
-  extends twv.VariantProps<typeof FIELD_STYLES>,
+export interface FieldComponentProps<Schema extends types.TSchema>
+  extends VariantProps<typeof FIELD_STYLES>,
     types.FieldProps {
-  readonly name: string
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  readonly form?: types.FormInstance<any, any, any>
+  readonly 'data-testid'?: string | undefined
+  readonly name: Path<types.FieldValues<Schema>>
+  readonly form?: types.FormInstance<Schema> | undefined
   readonly isInvalid?: boolean | undefined
   readonly className?: string | undefined
   readonly children?: React.ReactNode | ((props: FieldChildrenRenderProps) => React.ReactNode)
   readonly style?: React.CSSProperties | undefined
+}
+
+/**
+ * Props for Field variants
+ */
+export interface FieldVariantProps {
+  readonly fieldVariants?: VariantProps<typeof FIELD_STYLES>['variants'] | undefined
 }
 
 /**
@@ -37,14 +44,16 @@ export interface FieldChildrenRenderProps {
   readonly isDirty: boolean
   readonly isTouched: boolean
   readonly isValidating: boolean
+  readonly hasError: boolean
   readonly error?: string | undefined
 }
 
-export const FIELD_STYLES = twv.tv({
+export const FIELD_STYLES = tv({
   base: 'flex flex-col gap-0.5 items-start',
   variants: {
     fullWidth: { true: 'w-full' },
     isInvalid: { true: { label: 'text-danger' } },
+    isHidden: { true: { base: 'hidden' } },
   },
   slots: {
     labelContainer: 'contents',
@@ -59,42 +68,41 @@ export const FIELD_STYLES = twv.tv({
 /**
  * Field component
  */
-export const Field = React.forwardRef(function Field(
-  props: FieldComponentProps,
+// eslint-disable-next-line no-restricted-syntax
+export const Field = forwardRef(function Field<Schema extends types.TSchema>(
+  props: FieldComponentProps<Schema>,
   ref: React.ForwardedRef<HTMLFieldSetElement>,
 ) {
   const {
-    form = formContext.useFormContext(),
-    isInvalid,
     children,
     className,
     label,
     description,
     fullWidth,
     error,
-    name,
+    isHidden,
+    isInvalid = false,
     isRequired = false,
+    variants = FIELD_STYLES,
   } = props
-
-  const fieldState = form.getFieldState(name)
 
   const labelId = React.useId()
   const descriptionId = React.useId()
   const errorId = React.useId()
 
-  const invalid = isInvalid === true || fieldState.invalid
+  const fieldState = Form.useFieldState(props)
 
-  const classes = FIELD_STYLES({
-    fullWidth,
-    isInvalid: invalid,
-  })
+  const invalid = isInvalid || fieldState.hasError
 
-  const hasError = (error ?? fieldState.error?.message) != null
+  const classes = variants({ fullWidth, isInvalid: invalid, isHidden })
+
+  const hasError = (error ?? fieldState.error) != null
 
   return (
     <fieldset
       ref={ref}
       className={classes.base({ className })}
+      data-testid={props['data-testid']}
       aria-invalid={invalid}
       aria-label={props['aria-label']}
       aria-labelledby={labelId}
@@ -124,7 +132,8 @@ export const Field = React.forwardRef(function Field(
               isDirty: fieldState.isDirty,
               isTouched: fieldState.isTouched,
               isValidating: fieldState.isValidating,
-              error: fieldState.error?.message,
+              hasError: fieldState.hasError,
+              error: fieldState.error,
             })
           : children}
         </div>
@@ -137,8 +146,8 @@ export const Field = React.forwardRef(function Field(
       )}
 
       {hasError && (
-        <span id={errorId} className={classes.error()}>
-          {error ?? fieldState.error?.message}
+        <span data-testid="error" id={errorId} className={classes.error()}>
+          {error ?? fieldState.error}
         </span>
       )}
     </fieldset>

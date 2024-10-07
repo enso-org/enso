@@ -208,7 +208,8 @@ type Time_Zone
         options = [Option "System" "Time_Zone.system", Option "Local" "Time_Zone.local", Option "UTC" "Time_Zone.utc", Option "Named" "(Time_Zone.parse 'UTC')", Option "custom" "(Time_Zone.new 1 0 0)"]
         Widget.Single_Choice values=options display=Display.When_Modified
 
-    ## Gets a list of all the time zone names that are predefined.
+    ## ICON time
+       Gets a list of all the time zone names that are predefined.
     zone_names : Vector Text
     zone_names = Time_Utils.getZoneNames
 

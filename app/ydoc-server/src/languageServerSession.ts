@@ -277,6 +277,7 @@ enum LsSyncState {
   Synchronized,
   WritingFile,
   WriteError,
+  CapabilityError,
   Reloading,
   Closing,
   Disposed,
@@ -396,12 +397,13 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
             return Ok()
           }
           case LsSyncState.Closed: {
-            await this.withState(LsSyncState.Opening, async () => {
+            return await this.withState(LsSyncState.Opening, async () => {
               const promise = this.ls.openTextFile(this.path)
               this.setLastAction(promise.then(res => !res.ok && this.setState(LsSyncState.Closed)))
               const result = await promise
               if (!result.ok) return result
               if (!result.value.writeCapability) {
+                this.setState(LsSyncState.CapabilityError)
                 return Err(
                   `Could not acquire write capability for module '${this.path.segments.join('/')}'`,
                 )
@@ -409,8 +411,9 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
               this.syncFileContents(result.value.content, result.value.currentVersion)
               return Ok()
             })
-            return Ok()
           }
+          case LsSyncState.CapabilityError:
+            return this.reload()
           default: {
             assertNever(this.state)
           }
@@ -656,6 +659,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
         }
         return
       }
+      case LsSyncState.CapabilityError:
       case LsSyncState.WriteError:
       case LsSyncState.Synchronized: {
         this.setState(LsSyncState.Closing)
@@ -704,6 +708,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
               return Ok()
             })
           }
+          case LsSyncState.CapabilityError:
           case LsSyncState.WriteError: {
             return this.withState(LsSyncState.Reloading, async () => {
               const path = this.path.segments.join('/')

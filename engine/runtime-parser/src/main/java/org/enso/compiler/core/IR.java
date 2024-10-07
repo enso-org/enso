@@ -1,6 +1,8 @@
 package org.enso.compiler.core;
 
+import java.util.Comparator;
 import java.util.UUID;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import org.enso.compiler.core.ir.DiagnosticStorage;
 import org.enso.compiler.core.ir.Expression;
@@ -8,7 +10,6 @@ import org.enso.compiler.core.ir.IdentifiedLocation;
 import org.enso.compiler.core.ir.MetadataStorage;
 import org.enso.compiler.debug.Debug;
 import scala.Option;
-import scala.collection.immutable.$colon$colon$;
 import scala.collection.immutable.List;
 
 /**
@@ -28,6 +29,23 @@ import scala.collection.immutable.List;
  * <p>See also: Note [IR Equality and hashing]
  */
 public interface IR {
+  /**
+   * Compares IR structure, but not metadata neither diagnostics. A special comparator used by
+   * <em>Persistance API</em> to perform some rare consistency checks.
+   */
+  public static final Comparator<IR> STRUCTURE_COMPARATOR =
+      (aIr, bIr) -> {
+        if (aIr == bIr) {
+          return 0;
+        }
+        var aCopy = aIr.duplicate(true, false, false, true);
+        var bCopy = bIr.duplicate(true, false, false, true);
+
+        if (aCopy.equals(bCopy)) {
+          return 0;
+        }
+        return System.identityHashCode(aIr) - System.identityHashCode(bIr);
+      };
 
   /**
    * Storage for metadata that the node has been tagged with as the result of various compiler
@@ -52,7 +70,7 @@ public interface IR {
    * @return the external identifier for this IR node
    */
   default Option<@ExternalID UUID> getExternalId() {
-    return location().flatMap(l -> l.id());
+    return location().flatMap(IdentifiedLocation::id);
   }
 
   /**
@@ -72,15 +90,35 @@ public interface IR {
   List<IR> children();
 
   /**
+   * Applies the callback to nodes in the preorder walk of the tree of this node.
+   *
+   * @param ir the node to traverse
+   * @param cb the callback to apply
+   */
+  static void preorder(IR ir, Consumer<IR> cb) {
+    final class CB implements scala.Function1<IR, scala.Unit> {
+      @Override
+      public scala.Unit apply(IR ir) {
+        cb.accept(ir);
+        ir.children().foreach(this);
+        return null;
+      }
+    }
+
+    cb.accept(ir);
+    ir.children().foreach(new CB());
+  }
+
+  /**
    * Lists all the nodes in the preorder walk of the tree of this node.
    *
    * @return all the descendants of this node.
    */
   default List<IR> preorder() {
-    List<IR> ordered = children().flatMap(c -> c.preorder());
-    IR element = this;
-    return $colon$colon$.MODULE$.apply(
-        element, ordered); // ordered.prepended(element) is reporeted as ambiguous
+    var builder = new scala.collection.mutable.ListBuffer<IR>();
+    IR.preorder(this, builder::addOne);
+
+    return builder.result();
   }
 
   /**
@@ -100,8 +138,19 @@ public interface IR {
   @Identifier
   UUID getId();
 
-  /** Storage for compiler diagnostics related to the IR node. */
+  /**
+   * Get the storage for compiler diagnostics related to the IR node.
+   *
+   * @return the diagnostic storage or {@code null} if not initialized
+   */
   DiagnosticStorage diagnostics();
+
+  /**
+   * Initialize and get the storage for compiler diagnostics associated with this IR node.
+   *
+   * @return the diagnostic storage of this node. The result is never {@code null}
+   */
+  DiagnosticStorage getDiagnostics();
 
   /**
    * Creates a deep structural copy of `this`, representing the same structure.

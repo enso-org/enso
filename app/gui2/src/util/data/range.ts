@@ -74,6 +74,10 @@ export class Range {
   expand(by: number) {
     return new Range(this.start - by, this.end + by)
   }
+
+  shift(offset: number) {
+    return new Range(this.start + offset, this.end + offset)
+  }
 }
 
 /** A sorted array of non-intersecting ranges. */

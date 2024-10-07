@@ -197,15 +197,6 @@ add_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connection_fn 
             name = data.t1.name
             tmp = data.connection.query (SQL_Query.Table_Name name)
             tmp.read . should_equal data.t1.read
-            
-        group_builder.specify "should allow to access a Table by an SQL query" <|
-            name = data.t1.name
-            t2 = data.connection.query (SQL_Query.Raw_SQL ('SELECT "a", "b" FROM "' + name + '" WHERE "a" >= 3'))
-            m2 = t2.read
-            m2.column_names . should_equal ["a", "b"]
-            m2.at "a" . to_vector . should_equal [4]
-            m2.at "b" . to_vector . should_equal [5]
-            m2.at "c" . should_fail_with No_Such_Column
 
         group_builder.specify "should allow to access a Table by an SQL query" <|
             name = data.t1.name
@@ -216,7 +207,7 @@ add_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connection_fn 
             m2.at "b" . to_vector . should_equal [5]
             m2.at "c" . should_fail_with No_Such_Column
 
-            t3 = data.connection.query (SQL_Query.Raw_SQL ('SELECT 1+2'))
+            t3 = data.connection.query (SQL_Query.Raw_SQL ('SELECT 1+2 AS "a"'))
             m3 = t3.read
             m3.at 0 . to_vector . should_equal [3]
 
@@ -228,22 +219,6 @@ add_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connection_fn 
             m2.at "c" . to_vector . should_equal [4]
             m2.at "b" . to_vector . should_equal [5]
             m2.at "a" . should_fail_with No_Such_Column
-
-        group_builder.specify "should allow a shorthand trying to deduce if the query is a table name or an SQL query" <|
-            name = data.t1.name
-            t2 = data.connection.query name
-            t2.read . should_equal data.t1.read
-
-            t3 = data.connection.query ('SELECT "a", "b" FROM "' + name + '" WHERE "a" >= 3')
-            m3 = t3.read
-            m3.column_names . should_equal ["a", "b"]
-            m3.at "a" . to_vector . should_equal [4]
-
-            t5 = data.connection.query data.t4.name
-            m5 = t5.read
-            m5.column_names . should_equal ["X", "Y"]
-            m5.at "X" . to_vector . should_equal ["a", "B"]
-            m5.at "Y" . to_vector . should_equal [2, 5]
 
         group_builder.specify "should report an error depending on input SQL_Query type" <|
             r2 = data.connection.query (SQL_Query.Table_Name "NONEXISTENT-TABLE")
@@ -258,31 +233,17 @@ add_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connection_fn 
             r = data.connection.query (SQL_Query.Raw_SQL "SELECT 1 + ?")
             r.should_fail_with Illegal_Argument
 
-        group_builder.specify "should make a best-effort attempt at returning a reasonable error for the short-hand" <|
-            r2 = data.connection.query "NONEXISTENT-TABLE"
-            r2.should_fail_with Table_Not_Found
-            r2.catch.name . should_equal "NONEXISTENT-TABLE"
-            r2.catch.treated_as_query . should_be_true
-            error_text = r2.catch.to_display_text
-            Test.with_clue "r2.catch.to_display_text = "+error_text <|
-                error_text.starts_with "The name NONEXISTENT-TABLE was treated as a query, but the query failed" . should_be_true
-                error_text.ends_with "wrap it in `SQL_Query.Table_Name`." . should_be_true
-
-            r3 = data.connection.query "SELECT * FROM ........"
-            r3.should_fail_with SQL_Error
-
         group_builder.specify "will fail if the table is modified and a column gets removed" <|
             name = Name_Generator.random_name "removing-column"
-            Problems.assume_no_problems <|
-                (Table.new [["a", [1, 2, 3]], ["b", [4, 5, 6]]]).select_into_database_table data.connection name temporary=True
 
-            t1 = data.connection.query name
+            t0 = (Table.new [["a", [1, 2, 3]], ["b", [4, 5, 6]]]).select_into_database_table data.connection name temporary=True
+            t1 = data.connection.query t0.name
             m1 = t1.read.sort "a"
             Problems.assume_no_problems m1
             m1.at "a" . to_vector . should_equal [1, 2, 3]
             m1.at "b" . to_vector . should_equal [4, 5, 6]
 
-            Problems.assume_no_problems <| data.connection.drop_table name
+            Problems.assume_no_problems <| data.connection.drop_table t0.name
             Problems.assume_no_problems <|
                 (Table.new [["a", [100, 200]]]).select_into_database_table data.connection name temporary=True
 
@@ -295,16 +256,16 @@ add_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connection_fn 
 
         group_builder.specify "will not fail if the table is modified and a column gets added" <|
             name = Name_Generator.random_name "adding-column"
-            Problems.assume_no_problems <|
-                (Table.new [["a", [1, 2, 3]], ["b", [4, 5, 6]]]).select_into_database_table data.connection name temporary=True
 
-            t1 = data.connection.query name
+            t0 = (Table.new [["a", [1, 2, 3]], ["b", [4, 5, 6]]]).select_into_database_table data.connection name temporary=True
+
+            t1 = data.connection.query t0.name
             m1 = t1.read.sort "a"
             Problems.assume_no_problems m1
             m1.at "a" . to_vector . should_equal [1, 2, 3]
             m1.at "b" . to_vector . should_equal [4, 5, 6]
 
-            Problems.assume_no_problems <| data.connection.drop_table name
+            Problems.assume_no_problems <| data.connection.drop_table t0.name
             Problems.assume_no_problems <|
                 (Table.new [["a", [100, 200]], ["b", [300, 400]], ["c", [500, 600]]]).select_into_database_table data.connection name temporary=True
 
@@ -316,7 +277,7 @@ add_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connection_fn 
 
             t1.at "c" . should_fail_with No_Such_Column
 
-            t2 = data.connection.query name
+            t2 = data.connection.query t0.name
             t2.column_names . should_equal ["a", "b", "c"]
 
 

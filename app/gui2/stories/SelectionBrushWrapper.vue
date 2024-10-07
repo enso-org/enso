@@ -26,12 +26,7 @@ const scaledSelectionAnchor = computed(() => selectionAnchor.value?.scale(naviga
 </script>
 
 <template>
-  <div
-    ref="viewportNode"
-    style="cursor: none; height: 100%"
-    v-on.="navigator.pointerEvents"
-    v-on..="selection.events"
-  >
+  <div ref="viewportNode" style="cursor: none; height: 100%" v-on="selection.events">
     <slot
       :scaledMousePos="scaledMousePos"
       :scaledSelectionAnchor="scaledSelectionAnchor"

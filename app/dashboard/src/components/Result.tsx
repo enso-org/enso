@@ -1,18 +1,24 @@
 /** @file Display the result of an operation. */
 import * as React from 'react'
 
-import * as twv from 'tailwind-variants'
-
 import Success from '#/assets/check_mark.svg'
 import Error from '#/assets/cross.svg'
 
 import * as ariaComponents from '#/components/AriaComponents'
 import * as loader from '#/components/Loader'
 import SvgMask from '#/components/SvgMask'
+import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 
 // =================
 // === Constants ===
 // =================
+
+const INFO_ICON = (
+  // eslint-disable-next-line no-restricted-syntax
+  <ariaComponents.Text variant="custom" className="pb-0.5 text-xl leading-[0]" aria-hidden>
+    !
+  </ariaComponents.Text>
+)
 
 const STATUS_ICON_MAP: Readonly<Record<Status, StatusIcon>> = {
   loading: {
@@ -20,21 +26,28 @@ const STATUS_ICON_MAP: Readonly<Record<Status, StatusIcon>> = {
     colorClassName: 'text-primary',
     bgClassName: 'bg-transparent',
   },
+  info: {
+    icon: INFO_ICON,
+    colorClassName: 'text-primary',
+    bgClassName: 'bg-primary/30',
+  },
   error: { icon: Error, colorClassName: 'text-red-500', bgClassName: 'bg-red-500' },
   success: { icon: Success, colorClassName: 'text-green-500', bgClassName: 'bg-green' },
-  info: {
-    icon: (
-      // eslint-disable-next-line no-restricted-syntax
-      <ariaComponents.Text variant="custom" className="pb-0.5 text-xl leading-[0]" aria-hidden>
-        !
-      </ariaComponents.Text>
-    ),
+  // pending is the same as loading. Used for mutations.
+  pending: {
+    icon: <loader.Loader minHeight="h8" />,
+    colorClassName: 'text-primary',
+    bgClassName: 'bg-transparent',
+  },
+  // idle is the same as info. Used for mutations.
+  idle: {
+    icon: INFO_ICON,
     colorClassName: 'text-primary',
     bgClassName: 'bg-primary/30',
   },
 }
 
-const RESULT_STYLES = twv.tv({
+const RESULT_STYLES = tv({
   base: 'flex flex-col items-center justify-center max-w-full px-6 py-4 text-center h-[max-content]',
   variants: {
     centered: {
@@ -60,7 +73,7 @@ const RESULT_STYLES = twv.tv({
 // ==============
 
 /** Possible statuses for a result. */
-export type Status = 'error' | 'info' | 'loading' | 'success'
+export type Status = 'error' | 'idle' | 'info' | 'loading' | 'pending' | 'success'
 
 // ==================
 // === StatusIcon ===
@@ -78,9 +91,7 @@ interface StatusIcon {
 // ==============
 
 /** Props for a {@link Result}. */
-export interface ResultProps
-  extends React.PropsWithChildren,
-    twv.VariantProps<typeof RESULT_STYLES> {
+export interface ResultProps extends React.PropsWithChildren, VariantProps<typeof RESULT_STYLES> {
   readonly className?: string
   readonly title?: React.JSX.Element | string
   readonly subtitle?: React.JSX.Element | string

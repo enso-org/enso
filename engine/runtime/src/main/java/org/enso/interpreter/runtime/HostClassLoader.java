@@ -1,12 +1,9 @@
 package org.enso.interpreter.runtime;
 
-import java.io.IOException;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.util.Enumeration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import org.enso.ClassLoaderConstants;
 import org.graalvm.polyglot.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,7 +14,7 @@ import org.slf4j.LoggerFactory;
  * the classes that are loaded via this class loader are first searched inside those archives. If
  * not found, delegates to parent class loaders.
  */
-final class HostClassLoader extends URLClassLoader {
+final class HostClassLoader extends URLClassLoader implements AutoCloseable {
 
   private final Map<String, Class<?>> loadedClasses = new ConcurrentHashMap<>();
   private static final Logger logger = LoggerFactory.getLogger(HostClassLoader.class);
@@ -28,8 +25,19 @@ final class HostClassLoader extends URLClassLoader {
   // module layer's class loader.
   private static final ClassLoader polyglotClassLoader = Context.class.getClassLoader();
 
+  // polyglotClassLoader will be used only iff `org.enso.runtime` module is not in the
+  // boot module layer.
+  private static final boolean isRuntimeModInBootLayer;
+
   public HostClassLoader() {
-    super(new URL[0], polyglotClassLoader);
+    super(new URL[0]);
+  }
+
+  static {
+    var bootModules = ModuleLayer.boot().modules();
+    var hasRuntimeMod =
+        bootModules.stream().anyMatch(module -> module.getName().equals("org.enso.runtime"));
+    isRuntimeModInBootLayer = hasRuntimeMod;
   }
 
   void add(URL u) {
@@ -50,7 +58,7 @@ final class HostClassLoader extends URLClassLoader {
       logger.trace("Class {} found in cache", name);
       return l;
     }
-    if (ClassLoaderConstants.CLASS_DELEGATION_PATTERNS.stream().anyMatch(name::startsWith)) {
+    if (!isRuntimeModInBootLayer && name.startsWith("org.graalvm")) {
       return polyglotClassLoader.loadClass(name);
     }
     try {
@@ -68,20 +76,7 @@ final class HostClassLoader extends URLClassLoader {
   }
 
   @Override
-  public URL findResource(String name) {
-    if (ClassLoaderConstants.CLASS_DELEGATION_PATTERNS.stream().anyMatch(name::startsWith)) {
-      return polyglotClassLoader.getResource(name);
-    } else {
-      return super.findResource(name);
-    }
-  }
-
-  @Override
-  public Enumeration<URL> findResources(String name) throws IOException {
-    if (ClassLoaderConstants.CLASS_DELEGATION_PATTERNS.stream().anyMatch(name::startsWith)) {
-      return polyglotClassLoader.getResources(name);
-    } else {
-      return super.findResources(name);
-    }
+  public void close() {
+    loadedClasses.clear();
   }
 }

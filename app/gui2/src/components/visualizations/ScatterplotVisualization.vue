@@ -1,11 +1,11 @@
 <script lang="ts">
-import SvgButton from '@/components/SvgButton.vue'
 import { useEvent } from '@/composables/events'
 import { useVisualizationConfig } from '@/providers/visualizationConfig'
 import { Ast } from '@/util/ast'
 import { tryNumberToEnso } from '@/util/ast/abstract'
+import { Pattern } from '@/util/ast/match'
 import { getTextWidthBySizeAndFamily } from '@/util/measurement'
-import { VisualizationContainer, defineKeybinds } from '@/util/visualizationBuiltins'
+import { defineKeybinds } from '@/util/visualizationBuiltins'
 import { computed, ref, watch, watchEffect, watchPostEffect } from 'vue'
 
 export const name = 'Scatter Plot'
@@ -54,6 +54,10 @@ interface Data {
   focus: Focus | undefined
   points: PointsConfiguration
   data: Point[]
+  isTimeSeries: boolean
+  x_value_type: string
+  is_multi_series?: boolean
+  get_row_method: string
 }
 
 interface Focus {
@@ -63,12 +67,14 @@ interface Focus {
 }
 
 interface Point {
-  x: number
+  x: number | DateObj | Date
   y: number
   label?: string
   color?: string
   shape?: string
   size?: number
+  series?: string
+  row_number: number
 }
 
 interface PointsConfiguration {
@@ -78,6 +84,7 @@ interface PointsConfiguration {
 enum ScaleType {
   Linear = 'linear',
   Logarithmic = 'logarithmic',
+  Time = 'time',
 }
 
 interface AxisConfiguration {
@@ -95,15 +102,21 @@ interface Color {
   green: number
   blue: number
 }
+
+interface DateObj {
+  day?: number
+  month?: number
+  year?: number
+  hour?: number
+  minute?: number
+  second?: number
+}
 </script>
 
 <script setup lang="ts">
 const d3 = await import('d3')
 
 const props = defineProps<{ data: Partial<Data> | number[] }>()
-const emit = defineEmits<{
-  'update:preprocessor': [module: string, method: string, ...args: string[]]
-}>()
 
 const config = useVisualizationConfig()
 
@@ -114,7 +127,7 @@ const ANIMATION_DURATION_MS = 400
 const VISIBLE_POINTS = 'visible'
 const ACCENT_COLOR: Color = { red: 78, green: 165, blue: 253 }
 const SIZE_SCALE_MULTIPLER = 100
-const FILL_COLOR = `rgba(${ACCENT_COLOR.red},${ACCENT_COLOR.green},${ACCENT_COLOR.blue},0.8)`
+const DEFAULT_FILL_COLOR = `rgba(${ACCENT_COLOR.red},${ACCENT_COLOR.green},${ACCENT_COLOR.blue},0.8)`
 
 const ZOOM_EXTENT = [0.5, 20] satisfies d3.BrushSelection
 const RIGHT_BUTTON = 2
@@ -130,32 +143,72 @@ const SHAPE_TO_SYMBOL: Record<string, d3.SymbolType> = {
   triangle: d3.symbolTriangle,
 }
 
-const SCALE_TO_D3_SCALE: Record<ScaleType, () => d3.ScaleContinuousNumeric<number, number>> = {
-  [ScaleType.Linear]: () => d3.scaleLinear(),
-  [ScaleType.Logarithmic]: () => d3.scaleLog(),
+const createDateTime = (x: DateObj) => {
+  const dateTime = new Date()
+  if (x.day != null) dateTime.setDate(x.day)
+  if (x.month != null) dateTime.setMonth(x.month)
+  if (x.year != null) dateTime.setFullYear(x.year)
+  if (x.hour != null) dateTime.setHours(x.hour)
+  if (x.minute != null) dateTime.setMinutes(x.minute)
+  if (x.second != null) dateTime.setSeconds(x.second)
+  return dateTime
 }
 
 const data = computed<Data>(() => {
   let rawData = props.data
   const unfilteredData =
-    Array.isArray(rawData) ? rawData.map((y, index) => ({ x: index, y })) : rawData.data ?? []
-  const data: Point[] = unfilteredData.filter(
-    (point) =>
-      typeof point.x === 'number' &&
-      !Number.isNaN(point.x) &&
-      typeof point.y === 'number' &&
-      !Number.isNaN(point.y),
-  )
+    Array.isArray(rawData) ?
+      // eslint-disable-next-line camelcase
+      rawData.map((y, index) => ({ x: index, y, row_number: index }))
+    : rawData.data ?? []
+  let data: Point[]
+  // eslint-disable-next-line camelcase
+  const isTimeSeries: boolean =
+    'x_value_type' in rawData ?
+      rawData.x_value_type === 'Time' ||
+      rawData.x_value_type === 'Date' ||
+      rawData.x_value_type === 'Date_Time'
+    : false
+  // eslint-disable-next-line camelcase
+  if (isTimeSeries) {
+    data = unfilteredData
+      .filter((point) => typeof point.y === 'number' && !Number.isNaN(point.y))
+      .map((point) => ({ ...point, x: createDateTime(point.x as DateObj) }))
+  } else {
+    data = unfilteredData.filter(
+      (point) =>
+        typeof point.x === 'number' &&
+        !Number.isNaN(point.x) &&
+        typeof point.y === 'number' &&
+        !Number.isNaN(point.y),
+    )
+  }
   if (Array.isArray(rawData)) {
     rawData = {}
   }
   const axis: AxesConfiguration = rawData.axis ?? {
-    x: { label: '', scale: ScaleType.Linear },
+    x: { label: '', scale: isTimeSeries ? ScaleType.Time : ScaleType.Linear },
     y: { label: '', scale: ScaleType.Linear },
   }
   const points = rawData.points ?? { labels: 'visible' }
   const focus: Focus | undefined = rawData.focus
-  return { axis, points, data, focus }
+  // eslint-disable-next-line camelcase
+  const is_multi_series: boolean = !!rawData.is_multi_series
+  // eslint-disable-next-line camelcase
+  const get_row_method: string = rawData.get_row_method || 'get_row'
+  return {
+    axis,
+    points,
+    data,
+    focus,
+    // eslint-disable-next-line camelcase
+    is_multi_series,
+    // eslint-disable-next-line camelcase
+    x_value_type: rawData.x_value_type || '',
+    // eslint-disable-next-line camelcase
+    get_row_method,
+    isTimeSeries,
+  }
 })
 
 const containerNode = ref<HTMLElement>()
@@ -164,28 +217,39 @@ const xAxisNode = ref<SVGGElement>()
 const yAxisNode = ref<SVGGElement>()
 const zoomNode = ref<SVGGElement>()
 const brushNode = ref<SVGGElement>()
+const legendNode = ref<SVGGElement>()
 
 const d3Points = computed(() => d3.select(pointsNode.value))
 const d3XAxis = computed(() => d3.select(xAxisNode.value))
 const d3YAxis = computed(() => d3.select(yAxisNode.value))
 const d3Zoom = computed(() => d3.select(zoomNode.value))
 const d3Brush = computed(() => d3.select(brushNode.value))
+const d3Legend = computed(() => d3.select(legendNode.value))
 
 const bounds = ref<[number, number, number, number]>()
 const brushExtent = ref<d3.BrushSelection>()
 const limit = ref(DEFAULT_LIMIT)
 const focus = ref<Focus>()
 const shouldAnimate = ref(false)
-const xDomain = ref([0, 1])
-const yDomain = ref([0, 1])
+const xDomain = ref<number[] | Date[]>([0, 1])
+const yDomain = ref<number[] | Date[]>([0, 1])
+const selectionEnabled = ref(false)
+const createNewFilterNodeEnabled = ref(false)
 
 const isBrushing = computed(() => brushExtent.value != null)
+
+function axisD3Scale(axis: AxisConfiguration | undefined) {
+  return axis?.scale === ScaleType.Logarithmic ? d3.scaleLog() : d3.scaleLinear()
+}
+
 const xScale = computed(() =>
   axisD3Scale(data.value.axis.x).domain(xDomain.value).range([0, boxWidth.value]),
 )
 const yScale = computed(() =>
   axisD3Scale(data.value.axis.y).domain(yDomain.value).range([boxHeight.value, 0]),
 )
+
+const xScaleTime = computed(() => d3.scaleTime().domain(xDomain.value).range([0, boxWidth.value]))
 
 const symbol: d3.Symbol<unknown, Point> = d3.symbol()
 
@@ -203,21 +267,22 @@ const margin = computed(() => {
     return { top: 10, right: 10, bottom: 35, left: 55 }
   }
 })
-const width = computed(() =>
-  config.fullscreen ?
-    containerNode.value?.parentElement?.clientWidth ?? 0
-  : Math.max(config.width ?? 0, config.nodeSize.x),
-)
-
-const height = computed(() =>
-  config.fullscreen ?
-    containerNode.value?.parentElement?.clientHeight ?? 0
-  : config.height ?? (config.nodeSize.x * 3) / 4,
-)
+const width = computed(() => config.size.x)
+const height = computed(() => config.size.y)
 
 const boxWidth = computed(() => Math.max(0, width.value - margin.value.left - margin.value.right))
 const boxHeight = computed(() => Math.max(0, height.value - margin.value.top - margin.value.bottom))
-const xTicks = computed(() => boxWidth.value / 40)
+const xTicks = computed(() => {
+  switch (data.value.x_value_type) {
+    case 'Time':
+    case 'Date':
+    case 'Date_Time':
+      return boxWidth.value / 80
+    default:
+      return boxWidth.value / 40
+  }
+})
+
 const yTicks = computed(() => boxHeight.value / 20)
 const xLabelLeft = computed(
   () =>
@@ -232,12 +297,23 @@ const yLabelLeft = computed(
     getTextWidthBySizeAndFamily(data.value.axis.y.label, LABEL_FONT_STYLE) / 2,
 )
 const yLabelTop = computed(() => -margin.value.left + 15)
+const showYLabelText = computed(() => !data.value.is_multi_series)
+const xTickFormat = computed(() => {
+  switch (data.value.x_value_type) {
+    case 'Time':
+      return '%H:%M:%S'
+    case 'Date':
+      return '%d/%m/%Y'
+    default:
+      return '%d/%m/%Y %H:%M:%S'
+  }
+})
+const isUsingIndexForX = computed(() => data.value.axis.x.label === 'index')
 
 watchEffect(() => {
   const boundsExpression =
     bounds.value != null ? Ast.Vector.tryBuild(bounds.value, tryNumberToEnso) : undefined
-  emit(
-    'update:preprocessor',
+  config.setPreprocessor(
     'Standard.Visualization.Scatter_Plot',
     'process_to_json_text',
     boundsExpression?.code() ?? 'Nothing',
@@ -255,9 +331,22 @@ watchEffect(() => (focus.value = data.value.focus))
  * than the container.
  */
 const extremesAndDeltas = computed(() => {
-  const [xMin = 0, xMax = 0] = d3.extent(data.value.data, (point) => point.x)
-  const [yMin = 0, yMax = 0] = d3.extent(data.value.data, (point) => point.y)
-  const dx = xMax - xMin
+  let yMin = 0
+  let yMax = 0
+  if (data.value.is_multi_series) {
+    const axis = data.value.axis
+    const series = Object.keys(axis).filter((s) => s != 'x')
+    const allYValues = series.flatMap((s) =>
+      data.value.data.map((d) => d[s as keyof Point]),
+    ) as number[]
+    yMin = Math.min(...allYValues)
+    yMax = Math.max(...allYValues)
+  } else {
+    ;[yMin = 0, yMax = 0] = d3.extent(data.value.data, (point) => point.y)
+  }
+
+  const [xMin = 0, xMax = 0] = d3.extent(data.value.data, (point) => point.x as number)
+  const dx = Number(xMax) - Number(xMin)
   const dy = yMax - yMin
   const paddingX = 0.1 * dx
   const paddingY = 0.1 * dy
@@ -380,8 +469,15 @@ function startZoom(event: d3.D3ZoomEvent<Element, unknown>) {
   actionStartYScale = yScale.value.copy()
 }
 
-const brush = computed(() =>
-  d3
+const brush = computed(() => {
+  if (!selectionEnabled.value) {
+    return d3.brush().extent([
+      [0, 0],
+      [0, 0],
+    ])
+  }
+
+  return d3
     .brush()
     .extent([
       [0, 0],
@@ -389,25 +485,26 @@ const brush = computed(() =>
     ])
     .on('start brush', (event: d3.D3BrushEvent<unknown>) => {
       brushExtent.value = event.selection ?? undefined
-    }),
-)
-watchEffect(() => d3Brush.value.call(brush.value))
+    })
+})
+
+watchEffect(() => {
+  if (selectionEnabled.value && brush.value) {
+    d3Brush.value.call(brush.value)
+  } else {
+    d3Brush.value.on('.brush', null)
+    d3Brush.value.style('cursor', 'default')
+    if (brush.value) {
+      d3Brush.value.call(brush.value)
+    }
+  }
+})
 
 watch([boxWidth, boxHeight], () => (shouldAnimate.value = false))
 
 /** Helper function to match a d3 shape from its name. */
 function matchShape(d: Point) {
   return d.shape != null ? SHAPE_TO_SYMBOL[d.shape] ?? d3.symbolCircle : d3.symbolCircle
-}
-
-/** Construct either a linear or a logarithmic D3 scale.
- *
- * The scale kind is selected depending on update contents.
- *
- * @param axis Axis information as received in the visualization update.
- * @returns D3 scale. */
-function axisD3Scale(axis: AxisConfiguration | undefined) {
-  return axis?.scale != null ? SCALE_TO_D3_SCALE[axis.scale]() : d3.scaleLinear()
 }
 
 watchEffect(() => {
@@ -420,7 +517,7 @@ watchEffect(() => {
     xDomain.value = [focus_.x - newPaddingX, focus_.x + newPaddingX]
     yDomain.value = [focus_.y - newPaddingY, focus_.y + newPaddingY]
   } else {
-    xDomain.value = [xMin - paddingX, xMax + paddingX]
+    xDomain.value = [Number(xMin) - paddingX, Number(xMax) + paddingX]
     yDomain.value = [yMin - paddingY, yMax + paddingY]
   }
 })
@@ -431,12 +528,16 @@ watchEffect(() => {
 
 // === Update x axis ===
 
-watchPostEffect(() =>
-  d3XAxis.value
-    .transition()
-    .duration(animationDuration.value)
-    .call(d3.axisBottom(xScale.value).ticks(xTicks.value)),
-)
+watchPostEffect(() => {
+  const xCallVal =
+    data.value.isTimeSeries ?
+      d3
+        .axisBottom<Date>(xScaleTime.value)
+        .ticks(xTicks.value)
+        .tickFormat(d3.timeFormat(xTickFormat.value))
+    : d3.axisBottom(xScale.value).ticks(xTicks.value)
+  return d3XAxis.value.transition().duration(animationDuration.value).call(xCallVal)
+})
 
 // === Update y axis ===
 
@@ -447,33 +548,222 @@ watchPostEffect(() =>
     .call(d3.axisLeft(yScale.value).ticks(yTicks.value)),
 )
 
+function getPlotData(data: Data) {
+  const axis = data.axis
+  if (data.is_multi_series) {
+    const series = Object.keys(axis).filter((s) => s != 'x')
+    const transformedData = series.flatMap((s) =>
+      data.data.map((d) => ({
+        ...d,
+        x: d.x,
+        y: d[s as keyof Point],
+        series: s,
+      })),
+    )
+    return transformedData
+  }
+  return data.data
+}
+
+const filterPattern = computed(() => Pattern.parse('__ (..Between __ __)'))
+const makeFilterPattern = (
+  module: Ast.MutableModule,
+  columnName: string,
+  min: number,
+  max: number,
+) => {
+  return filterPattern.value.instantiateCopied([
+    Ast.TextLiteral.new(columnName),
+    Ast.tryNumberToEnso(min, module)!,
+    Ast.tryNumberToEnso(max, module)!,
+  ])
+}
+function getAstPatternFilterAndSort(
+  series: string[],
+  xColName: string,
+  minX: number,
+  maxX: number,
+  minY: number,
+  maxY: number,
+) {
+  return Pattern.new((ast) => {
+    let pattern: Ast.Owned<Ast.MutableOprApp> | Ast.Owned<Ast.MutableApp> = Ast.App.positional(
+      Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('filter')!),
+      makeFilterPattern(ast.module, xColName, minX, maxX),
+    )
+    for (let s of series) {
+      pattern = Ast.OprApp.new(
+        ast.module,
+        pattern,
+        '.',
+        Ast.App.positional(
+          Ast.Ident.new(ast.module, Ast.identifier('filter')!),
+          makeFilterPattern(ast.module, s!, minY, maxY),
+        ),
+      )
+    }
+    return pattern
+  })
+}
+const createNewFilterNode = () => {
+  const seriesLabels = Object.keys(data.value.axis)
+    .filter((s) => s != 'x')
+    .map((s) => data.value.axis[s as keyof AxesConfiguration].label)
+  const xColName = data.value.axis.x.label
+  const xItems = data.value.data.map((d) => d.x as number)
+  const minX = Math.min(...xItems)
+  const maxX = Math.max(...xItems)
+  const yItems = data.value.data.map((d) => {
+    const { x, label, color, shape, size, row_number, series, ...rest } = d
+    return rest
+  })
+  const yItemsVal = yItems.map((k) => Object.values(k)).flat(1)
+  const minY = Math.min(...yItemsVal)
+  const maxY = Math.max(...yItemsVal)
+  const pattern = getAstPatternFilterAndSort(seriesLabels, xColName, minX, maxX, minY, maxY)
+  config.createNodes({
+    content: pattern,
+    commit: true,
+  })
+}
+
+function getAstPattern(selector?: number, action?: string) {
+  if (action && selector != null) {
+    return Pattern.new((ast) =>
+      Ast.App.positional(
+        Ast.PropertyAccess.new(ast.module, ast, Ast.identifier(action)!),
+        Ast.tryNumberToEnso(selector, ast.module)!,
+      ),
+    )
+  }
+}
+
+function createNode(rowNumber: number) {
+  const selector = data.value.get_row_method
+  const pattern = getAstPattern(rowNumber, selector)
+  if (pattern) {
+    config.createNodes({
+      content: pattern,
+      commit: true,
+    })
+  }
+}
+
+function formatXPoint(x: Date | number | DateObj) {
+  if (data.value.isTimeSeries && x instanceof Date) {
+    switch (data.value.x_value_type) {
+      case 'Time':
+        return x.toTimeString()
+      case 'Date':
+        return x.toDateString()
+      default:
+        return x.toString()
+    }
+  }
+  return x
+}
+
+function getTooltipMessage(point: Point) {
+  if (data.value.is_multi_series) {
+    const axis = data.value.axis
+    const label =
+      point.series && point.series in axis ?
+        axis[point.series as keyof AxesConfiguration].label
+      : ''
+    return `${formatXPoint(point.x)}, ${point.y}, ${label}- Double click to inspect point`
+  }
+  return `${formatXPoint(point.x)}, ${point.y}- Double click to inspect point`
+}
+
 // === Update contents ===
 
 watchPostEffect(() => {
-  const xScale_ = xScale.value
+  const xScale_ = data.value.isTimeSeries ? xScaleTime.value : xScale.value
   const yScale_ = yScale.value
+  const plotData = getPlotData(data.value) as Point[]
+  const series = Object.keys(data.value.axis).filter((s) => s != 'x')
+  const colorScale = (d: string) => {
+    const color = d3.scaleOrdinal(d3.schemeCategory10).domain(series)
+    if (data.value.is_multi_series) {
+      return color(d)
+    }
+    return DEFAULT_FILL_COLOR
+  }
   d3Points.value
     .selectAll<SVGPathElement, unknown>('path')
-    .data(data.value.data)
+    .data(plotData)
     .join((enter) => enter.append('path'))
+    .call((data) => {
+      return data.append('title').text((d) => getTooltipMessage(d))
+    })
+    .on('dblclick', (d) => {
+      createNode(d.srcElement.__data__.row_number)
+    })
     .transition()
     .duration(animationDuration.value)
     .attr(
       'd',
-      symbol.type(matchShape).size((d) => (d.size ?? 1.0) * SIZE_SCALE_MULTIPLER),
+      symbol.type(matchShape).size((d) => (d.size ?? 0.15) * SIZE_SCALE_MULTIPLER),
     )
-    .style('fill', (d) => d.color ?? FILL_COLOR)
-    .attr('transform', (d) => `translate(${xScale_(d.x)}, ${yScale_(d.y)})`)
+    .style('fill', (d) => colorScale(d.series || ''))
+    .attr('transform', (d) => `translate(${xScale_(Number(d.x))}, ${yScale_(d.y)})`)
   if (data.value.points.labels === VISIBLE_POINTS) {
     d3Points.value
       .selectAll<SVGPathElement, unknown>('text')
-      .data(data.value.data)
+      .data(plotData)
       .join((enter) => enter.append('text').attr('class', 'label'))
       .transition()
       .duration(animationDuration.value)
       .text((d) => d.label ?? '')
-      .attr('x', (d) => xScale_(d.x) + POINT_LABEL_PADDING_X_PX)
+      .attr('x', (d) => xScale_(Number(d.x)) + POINT_LABEL_PADDING_X_PX)
       .attr('y', (d) => yScale_(d.y) + POINT_LABEL_PADDING_Y_PX)
+  }
+})
+
+watchPostEffect(() => {
+  if (data.value.is_multi_series) {
+    const seriesLabels = Object.keys(data.value.axis)
+      .filter((s) => s != 'x')
+      .map((s) => {
+        return data.value.axis[s as keyof AxesConfiguration].label
+      })
+    const formatLabel = (string: string) =>
+      string.length > 10 ? `${string.substr(0, 10)}...` : string
+
+    const color = d3
+      .scaleOrdinal<string>()
+      .domain(seriesLabels)
+      .range(d3.schemeCategory10)
+      .domain(seriesLabels)
+
+    d3Legend.value.selectAll('circle').remove()
+    d3Legend.value.selectAll('text').remove()
+
+    d3Legend.value
+      .selectAll('dots')
+      .data(seriesLabels)
+      .enter()
+      .append('circle')
+      .attr('cx', function (d, i) {
+        return 90 + i * 120
+      })
+      .attr('cy', 10)
+      .attr('r', 6)
+      .style('fill', (d) => color(d) || DEFAULT_FILL_COLOR)
+
+    d3Legend.value
+      .selectAll('labels')
+      .data(seriesLabels)
+      .enter()
+      .append('text')
+      .attr('x', function (d, i) {
+        return 100 + i * 120
+      })
+      .attr('y', 10)
+      .style('font-size', '15px')
+      .text((d) => formatLabel(d))
+      .attr('alignment-baseline', 'middle')
+      .call((labels) => labels.append('title').text((d) => d))
   }
 })
 
@@ -505,8 +795,8 @@ function zoomToSelected(override?: boolean) {
     bounds.value = undefined
     limit.value = DEFAULT_LIMIT
     xDomain.value = [
-      extremesAndDeltas.value.xMin - extremesAndDeltas.value.paddingX,
-      extremesAndDeltas.value.xMax + extremesAndDeltas.value.paddingX,
+      Number(extremesAndDeltas.value.xMin) - extremesAndDeltas.value.paddingX,
+      Number(extremesAndDeltas.value.xMax) + extremesAndDeltas.value.paddingX,
     ]
     yDomain.value = [
       extremesAndDeltas.value.yMin - extremesAndDeltas.value.paddingY,
@@ -531,62 +821,85 @@ function zoomToSelected(override?: boolean) {
     yDomain.value = [yMin, yMax]
   }
   endBrushing()
+
+  if (!isUsingIndexForX.value && !data.value.isTimeSeries) {
+    createNewFilterNodeEnabled.value = true
+  }
+  if (!override) {
+    createNewFilterNodeEnabled.value = false
+  }
 }
 
 useEvent(document, 'keydown', bindings.handler({ zoomToSelected: () => zoomToSelected() }))
+
+config.setToolbar([
+  {
+    icon: 'select',
+    title: 'Enable Selection',
+    toggle: selectionEnabled,
+  },
+  {
+    icon: 'show_all',
+    title: 'Fit All',
+    onClick: () => zoomToSelected(false),
+  },
+  {
+    icon: 'zoom',
+    title: 'Zoom to Selected',
+    disabled: () => brushExtent.value == null,
+    onClick: zoomToSelected,
+  },
+  {
+    icon: 'add_to_graph_editor',
+    title: 'Create component of selected points',
+    disabled: () => !createNewFilterNodeEnabled.value,
+    onClick: createNewFilterNode,
+  },
+])
 </script>
 
 <template>
-  <VisualizationContainer :belowToolbar="true">
-    <template #toolbar>
-      <SvgButton name="show_all" title="Fit All" @click.stop="zoomToSelected(false)" />
-      <SvgButton
-        name="find"
-        title="Zoom to Selected"
-        :disabled="brushExtent == null"
-        @click.stop="zoomToSelected"
-      />
-    </template>
-    <div ref="containerNode" class="ScatterplotVisualization" @pointerdown.stop>
-      <svg :width="width" :height="height">
-        <g :transform="`translate(${margin.left}, ${margin.top})`">
-          <defs>
-            <clipPath id="clip">
-              <rect :width="boxWidth" :height="boxHeight"></rect>
-            </clipPath>
-          </defs>
-          <g ref="xAxisNode" class="axis-x" :transform="`translate(0, ${boxHeight})`"></g>
-          <g ref="yAxisNode" class="axis-y"></g>
-          <text
-            v-if="data.axis.x.label"
-            class="label label-x"
-            text-anchor="end"
-            :x="xLabelLeft"
-            :y="xLabelTop"
-            v-text="data.axis.x.label"
-          ></text>
-          <text
-            v-if="data.axis.y.label"
-            class="label label-y"
-            text-anchor="end"
-            :x="yLabelLeft"
-            :y="yLabelTop"
-            v-text="data.axis.y.label"
-          ></text>
-          <g ref="pointsNode" clip-path="url(#clip)"></g>
-          <g ref="zoomNode" class="zoom" :width="boxWidth" :height="boxHeight" fill="none">
-            <g ref="brushNode" class="brush"></g>
-          </g>
+  <div ref="containerNode" class="ScatterplotVisualization">
+    <svg :width="width" :height="height">
+      <g ref="legendNode"></g>
+      <g :transform="`translate(${margin.left}, ${margin.top})`">
+        <defs>
+          <clipPath id="clip">
+            <rect :width="boxWidth" :height="boxHeight"></rect>
+          </clipPath>
+        </defs>
+        <g ref="xAxisNode" class="axis-x" :transform="`translate(0, ${boxHeight})`"></g>
+        <g ref="yAxisNode" class="axis-y"></g>
+        <text
+          v-if="data.axis.x.label"
+          class="label label-x"
+          text-anchor="end"
+          :x="xLabelLeft"
+          :y="xLabelTop"
+          v-text="data.axis.x.label"
+        ></text>
+        <text
+          v-if="showYLabelText"
+          class="label label-y"
+          text-anchor="end"
+          :x="yLabelLeft"
+          :y="yLabelTop"
+          v-text="data.axis.y.label"
+        ></text>
+        <g ref="pointsNode" clip-path="url(#clip)"></g>
+        <g ref="zoomNode" class="zoom" :width="boxWidth" :height="boxHeight" fill="none">
+          <g ref="brushNode" class="brush"></g>
         </g>
-      </svg>
-    </div>
-  </VisualizationContainer>
+      </g>
+    </svg>
+  </div>
 </template>
 
 <style scoped>
 .ScatterplotVisualization {
   user-select: none;
   display: flex;
+  flex-direction: column;
 }
 
 .ScatterplotVisualization .selection {

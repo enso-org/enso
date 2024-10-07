@@ -60,7 +60,7 @@ from project.Internal.Upload.Operations.Update import common_update_table
      rows, so errors may still occur when the output action is enabled.
 @primary_key Widget_Helpers.make_column_name_vector_selector
 DB_Table.select_into_database_table : Connection -> Text -> Vector Text | Nothing -> Boolean -> Problem_Behavior -> DB_Table ! Table_Already_Exists | Inexact_Type_Coercion | Missing_Input_Columns | Non_Unique_Key | SQL_Error | Illegal_Argument
-DB_Table.select_into_database_table self connection (table_name : Text) primary_key=[self.columns.first.name] temporary=False on_problems:Problem_Behavior=..Report_Warning =
+DB_Table.select_into_database_table self connection (table_name : Text) primary_key=[] temporary=False on_problems:Problem_Behavior=..Report_Warning =
     select_into_table_implementation self connection table_name primary_key temporary on_problems
 
 ## GROUP Standard.Base.Output

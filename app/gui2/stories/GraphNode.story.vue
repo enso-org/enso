@@ -45,9 +45,10 @@ const node = computed((): Node => {
     innerExpr: innerExpr.value,
     primarySubject: undefined,
     vis: undefined,
-    documentation: undefined,
     conditionalPorts: new Set(),
     type: 'component',
+    docs: undefined,
+    argIndex: undefined,
   }
 })
 

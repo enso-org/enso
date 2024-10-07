@@ -14,7 +14,6 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
-import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 
@@ -214,7 +213,7 @@ public class MethodRootNode extends ClosureRootNode {
         return newNode;
       } catch (CompilerError abnormalException) {
         var ctx = EnsoContext.get(this);
-        var msg = Text.create(abnormalException.getMessage());
+        var msg = abnormalException.getMessage();
         var load = ctx.getBuiltins().error().makeCompileError(msg);
         throw new PanicException(load, this);
       }

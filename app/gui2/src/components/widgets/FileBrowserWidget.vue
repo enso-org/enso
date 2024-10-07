@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import LoadingSpinner from '@/components/LoadingSpinner.vue'
+import LoadingSpinner from '@/components/shared/LoadingSpinner.vue'
 import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useBackendQuery, useBackendQueryPrefetching } from '@/composables/backend'
@@ -17,7 +17,7 @@ const emit = defineEmits<{
   pathSelected: [path: string]
 }>()
 
-const { prefetch, ensureQueryData } = useBackendQueryPrefetching()
+const { ensureQueryData } = useBackendQueryPrefetching()
 
 // === Current Directory ===
 
@@ -33,6 +33,12 @@ const directoryStack = ref<Directory[]>([
   },
 ])
 const currentDirectory = computed(() => directoryStack.value[directoryStack.value.length - 1]!)
+const currentUser = useBackendQuery('usersMe', [])
+const currentPath = computed(
+  () =>
+    currentUser.data.value &&
+    `enso://Users/${currentUser.data.value.name}${Array.from(directoryStack.value.slice(1), (frame) => '/' + frame.title).join()}`,
+)
 
 // === Directory Contents ===
 
@@ -75,15 +81,6 @@ interface File {
 
 const selectedFile = ref<File>()
 
-function getFileDetailsArgs(parameters: ToValue<File | undefined>) {
-  return computed<Parameters<Backend['getFileDetails']> | undefined>(() => {
-    const paramsValue = toValue(parameters)
-    return paramsValue ? [paramsValue.id, paramsValue.title] : undefined
-  })
-}
-
-const selectedFileDetails = useBackendQuery('getFileDetails', getFileDetailsArgs(selectedFile))
-
 // === Prefetching ===
 
 watch(directories, (directories) => {
@@ -92,11 +89,6 @@ watch(directories, (directories) => {
   // changed since they last viewed.
   for (const directory of directories ?? [])
     ensureQueryData('listDirectory', listDirectoryArgs(directory))
-})
-
-watch(files, (files) => {
-  // Prefetch file info to avoid lag when the user makes a selection.
-  for (const file of files ?? []) prefetch('getFileDetails', getFileDetailsArgs(file))
 })
 
 // === Interactivity ===
@@ -114,17 +106,22 @@ function chooseFile(file: FileAsset) {
 }
 
 const isBusy = computed(
-  () => isPending.value || (selectedFile.value && selectedFileDetails.isPending.value),
+  () => isPending.value || (selectedFile.value && currentUser.isPending.value),
 )
 
 const anyError = computed(() =>
   isError.value ? error
-  : selectedFileDetails.isError.value ? selectedFileDetails.error
+  : currentUser.isError.value ? currentUser.error
   : undefined,
 )
 
-watch(selectedFileDetails.data, (details) => {
-  if (details) emit('pathSelected', details.file.path)
+const selectedFilePath = computed(
+  () =>
+    selectedFile.value && currentPath.value && `${currentPath.value}/${selectedFile.value.title}`,
+)
+
+watch(selectedFilePath, (path) => {
+  if (path) emit('pathSelected', path)
 })
 </script>
 

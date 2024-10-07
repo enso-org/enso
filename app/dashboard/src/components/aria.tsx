@@ -1,4 +1,5 @@
 /** @file Barrel re-export of `react-aria` and `react-aria-components`. */
+import type { Mutable } from 'enso-common/src/utilities/data/object'
 import * as aria from 'react-aria'
 
 export type * from '@react-types/shared'
@@ -18,6 +19,9 @@ export { useTooltipTriggerState, type OverlayTriggerState } from 'react-stately'
  *
  * The constraint is defaulted to `never` to make an explicit constraint mandatory. */
 export function mergeProps<Constraint extends object = never>() {
-  return <T extends (Partial<Constraint> | null | undefined)[]>(...args: T) =>
-    aria.mergeProps(...args)
+  return <const T extends readonly (Partial<Constraint> | null | undefined)[]>(
+    ...args: T & { [K in keyof T]: Pick<T[K], keyof Constraint & keyof T[K]> }
+    // This is SAFE, as `args` is an intersection of `T` and another type.
+    // eslint-disable-next-line no-restricted-syntax
+  ) => aria.mergeProps<Mutable<T>>(...(args as T))
 }

@@ -1,6 +1,4 @@
 /** @file The icon and name of a {@link backendModule.DirectoryAsset}. */
-import * as React from 'react'
-
 import { useMutation } from '@tanstack/react-query'
 
 import FolderIcon from '#/assets/folder.svg'
@@ -11,35 +9,31 @@ import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import { useDriveStore } from '#/providers/DriveProvider'
-import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as textProvider from '#/providers/TextProvider'
-
-import AssetEventType from '#/events/AssetEventType'
-import AssetListEventType from '#/events/AssetListEventType'
-
-import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 
 import * as ariaComponents from '#/components/AriaComponents'
 import type * as column from '#/components/dashboard/column'
 import EditableSpan from '#/components/EditableSpan'
 import SvgMask from '#/components/SvgMask'
 
-import * as backendModule from '#/services/Backend'
+import type * as backendModule from '#/services/Backend'
 
+import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
 import * as string from '#/utilities/string'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import * as validation from '#/utilities/validation'
-import Visibility from '#/utilities/Visibility'
 
 // =====================
 // === DirectoryName ===
 // =====================
 
 /** Props for a {@link DirectoryNameColumn}. */
-export interface DirectoryNameColumnProps extends column.AssetColumnProps {}
+export interface DirectoryNameColumnProps extends column.AssetColumnProps {
+  readonly item: AssetTreeNode<backendModule.DirectoryAsset>
+}
 
 /** The icon and name of a {@link backendModule.DirectoryAsset}.
  * @throws {Error} when the asset is not a {@link backendModule.DirectoryAsset}.
@@ -47,26 +41,24 @@ export interface DirectoryNameColumnProps extends column.AssetColumnProps {}
 export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
   const { item, setItem, selected, state, rowState, setRowState, isEditable } = props
   const { backend, nodeMap } = state
-  const { doToggleDirectoryExpansion } = state
+  const { doToggleDirectoryExpansion, expandedDirectoryIds } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { getText } = textProvider.useText()
-  const inputBindings = inputBindingsProvider.useInputBindings()
   const driveStore = useDriveStore()
-  const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
-  if (item.type !== backendModule.AssetType.directory) {
-    // eslint-disable-next-line no-restricted-syntax
-    throw new Error('`DirectoryNameColumn` can only display folders.')
-  }
   const asset = item.item
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
-  const isExpanded = item.children != null && item.isExpanded
 
-  const createDirectoryMutation = useMutation(backendMutationOptions(backend, 'createDirectory'))
+  const isExpanded = item.children != null && expandedDirectoryIds.includes(asset.id)
+
   const updateDirectoryMutation = useMutation(backendMutationOptions(backend, 'updateDirectory'))
 
   const setIsEditing = (isEditingName: boolean) => {
     if (isEditable) {
       setRowState(object.merger({ isEditingName }))
+    }
+
+    if (!isEditingName) {
+      driveStore.setState({ newestFolderId: null })
     }
   }
 
@@ -79,12 +71,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         const oldTitle = asset.title
         setAsset(object.merger({ title: newTitle }))
         try {
-          const updated = await updateDirectoryMutation.mutateAsync([
-            asset.id,
-            { title: newTitle },
-            asset.title,
-          ])
-          setAsset(object.merger(updated))
+          await updateDirectoryMutation.mutateAsync([asset.id, { title: newTitle }, asset.title])
         } catch (error) {
           toastAndLog('renameFolderError', error)
           setAsset(object.merger({ title: oldTitle }))
@@ -92,65 +79,6 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
       }
     }
   }
-
-  eventListProvider.useAssetEventListener(async (event) => {
-    if (isEditable) {
-      switch (event.type) {
-        case AssetEventType.newProject:
-        case AssetEventType.uploadFiles:
-        case AssetEventType.newDatalink:
-        case AssetEventType.newSecret:
-        case AssetEventType.updateFiles:
-        case AssetEventType.copy:
-        case AssetEventType.cut:
-        case AssetEventType.cancelCut:
-        case AssetEventType.move:
-        case AssetEventType.delete:
-        case AssetEventType.deleteForever:
-        case AssetEventType.restore:
-        case AssetEventType.download:
-        case AssetEventType.downloadSelected:
-        case AssetEventType.removeSelf:
-        case AssetEventType.temporarilyAddLabels:
-        case AssetEventType.temporarilyRemoveLabels:
-        case AssetEventType.addLabels:
-        case AssetEventType.removeLabels:
-        case AssetEventType.deleteLabel:
-        case AssetEventType.setItem:
-        case AssetEventType.projectClosed: {
-          // Ignored. These events should all be unrelated to directories.
-          // `delete`, `deleteForever`, `restore`, `download`, and `downloadSelected`
-          // are handled by`AssetRow`.
-          break
-        }
-        case AssetEventType.newFolder: {
-          if (item.key === event.placeholderId) {
-            rowState.setVisibility(Visibility.faded)
-            try {
-              const createdDirectory = await createDirectoryMutation.mutateAsync([
-                {
-                  parentId: asset.parentId,
-                  title: asset.title,
-                },
-              ])
-              rowState.setVisibility(Visibility.visible)
-              setAsset(object.merge(asset, createdDirectory))
-            } catch (error) {
-              dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
-              toastAndLog('createFolderError', error)
-            }
-          }
-          break
-        }
-      }
-    }
-  }, item.initialAssetEvents)
-
-  const handleClick = inputBindings.handler({
-    editName: () => {
-      setIsEditing(true)
-    },
-  })
 
   return (
     <div
@@ -164,9 +92,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         }
       }}
       onClick={(event) => {
-        if (handleClick(event)) {
-          // Already handled.
-        } else if (
+        if (
           eventModule.isSingleClick(event) &&
           selected &&
           driveStore.getState().selectedKeys.size === 1
@@ -187,7 +113,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
           isExpanded && 'rotate-90',
         )}
         onPress={() => {
-          doToggleDirectoryExpansion(asset.id, item.key, asset.title)
+          doToggleDirectoryExpansion(asset.id, item.key)
         }}
       />
       <SvgMask src={FolderIcon} className="m-name-column-icon size-4 group-hover:hidden" />
@@ -195,7 +121,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         data-testid="asset-row-name"
         editable={rowState.isEditingName}
         className={tailwindMerge.twMerge(
-          'text grow cursor-pointer bg-transparent font-naming',
+          'grow cursor-pointer bg-transparent font-naming',
           rowState.isEditingName ? 'cursor-text' : 'cursor-pointer',
         )}
         checkSubmittable={(newTitle) =>

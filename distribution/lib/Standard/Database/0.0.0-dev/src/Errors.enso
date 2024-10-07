@@ -6,19 +6,63 @@ polyglot java import java.sql.SQLException
    particular database backend does not support it.
 type Unsupported_Database_Operation
     ## PRIVATE
-    Error message
+    Error operation:Text
 
     ## PRIVATE
        Convert the SQL error to a textual representation.
-    to_text : Text
-    to_text self =
-        "Unsupported database operation: " + self.message
+    to_text self -> Text =
+        self.operation + " not yet supported for DB backend. Use .read to download the data and use this feature."
 
     ## PRIVATE
        Pretty print the error.
-    to_display_text : Text
-    to_display_text self =
-        "Unsupported database operation: " + self.message
+    to_display_text self -> Text =
+        self.to_text
+
+## Indicates that a requested type is not supported, for example because a
+   particular database backend does not support it.
+type Unsupported_Database_Type
+    ## PRIVATE
+    Error type:Text db:Text 
+
+    ## PRIVATE
+       Convert the SQL error to a textual representation.
+    to_text self -> Text =
+        self.db + " tables do not support " + self.type + " types."
+
+    ## PRIVATE
+       Pretty print the error.
+    to_display_text self -> Text =
+        self.to_text
+
+type Different_Connections
+    ## PRIVATE
+       Indicates that the operation tried to use tables from different connections.
+    Error
+
+    ## PRIVATE
+       Convert the SQL error to a textual representation.
+    to_text self -> Text =
+        "The Database table to be uploaded must be coming from the same connection as the connection on which the new table is being created. Cross-connection uploads are currently not supported. To work around this, you can first `.read` the table into memory and then upload it from memory to a different connection."
+
+    ## PRIVATE
+       Pretty print the error.
+    to_display_text self -> Text =
+        self.to_text
+
+type Aggregagtion_Requires_Order
+    ## PRIVATE
+       Indicates that an aggregation operation requires the input to be ordered.
+    Error op_name:Text
+
+    ## PRIVATE
+       Convert the SQL error to a textual representation.
+    to_text self -> Text =
+        "`" + self.op_name + "` aggregation requires at least one `order_by` column."
+
+    ## PRIVATE
+       Pretty print the error.
+    to_display_text self -> Text =
+        self.to_text
 
 type SQL_Error
     ## PRIVATE
@@ -123,27 +167,12 @@ type Table_Not_Found
 
        Arguments:
        - table_name: The name of the table that was not found.
-       - related_query_error: The error that was thrown when the query looking
-         for the table was executed.
-       - treated_as_query: Whether the table name was treated as a raw query
-         string.
-       - extra_message: An extra message to append.
-    Error (name:Text) (related_query_error:SQL_Error|Nothing) (treated_as_query:Boolean) (extra_message:Text)
+    Error (name:Text)
 
     ## PRIVATE
        Pretty print the table not found error.
     to_display_text : Text
-    to_display_text self =
-        base_repr = case self.treated_as_query of
-            True -> "The name " + self.name + " was treated as a query, but the query failed with the following error: " + self.related_query_error.to_display_text + "; if you want to force to use that as a table name, wrap it in `SQL_Query.Table_Name`."
-            False -> "Table " + self.name + " was not found in the database."
-        base_repr + self.extra_message
-
-    ## PRIVATE
-       Creates a copy of this error with a changed `extra_message`.
-    with_changed_extra_message : Text -> Table_Not_Found
-    with_changed_extra_message self new_extra_message =
-        Table_Not_Found.Error self.name self.related_query_error self.treated_as_query new_extra_message
+    to_display_text self = "Table " + self.name + " was not found in the database."
 
 type Table_Already_Exists
     ## PRIVATE

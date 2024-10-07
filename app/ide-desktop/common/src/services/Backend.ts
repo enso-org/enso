@@ -162,6 +162,8 @@ export interface UserInfo {
   readonly userId: UserId
   readonly name: string
   readonly email: EmailAddress
+  readonly newOrganizationName?: string
+  readonly newOrganizationInvite?: 'error' | 'pending'
 }
 
 /** A user in the application. These are the primary owners of a project. */
@@ -503,6 +505,21 @@ export interface CreateCustomerPortalSessionResponse {
   readonly url: string | null
 }
 
+/** Whether the user is on a plan associated with an organization. */
+export function isUserOnPlanWithOrganization(user: User) {
+  switch (user.plan) {
+    case undefined:
+    case Plan.free:
+    case Plan.solo: {
+      return false
+    }
+    case Plan.team:
+    case Plan.enterprise: {
+      return true
+    }
+  }
+}
+
 /** Whether an {@link AssetPermission} is a {@link UserPermission}. */
 export function isUserPermission(permission: AssetPermission): permission is UserPermission {
   return 'user' in permission
@@ -626,7 +643,7 @@ export interface LChColor {
   readonly lightness: number
   readonly chroma: number
   readonly hue: number
-  readonly alpha?: number
+  readonly alpha?: number | undefined
 }
 
 /** A pre-selected list of colors to be used in color pickers. */
@@ -668,7 +685,7 @@ export const COLOR_STRING_TO_COLOR = new Map(
 export const INITIAL_COLOR_COUNTS = new Map(COLORS.map(color => [lChColorToCssColor(color), 0]))
 
 /** The color that is used for the least labels. Ties are broken by order. */
-export function leastUsedColor(labels: Iterable<Label>) {
+export function findLeastUsedColor(labels: Iterable<Label>) {
   const colorCounts = new Map(INITIAL_COLOR_COUNTS)
   for (const label of labels) {
     const colorString = lChColorToCssColor(label.color)
@@ -737,8 +754,8 @@ export interface BaseAsset {
   /** This is defined as a generic {@link AssetId} in the backend, however it is more convenient
    * (and currently safe) to assume it is always a {@link DirectoryId}. */
   readonly parentId: DirectoryId
-  readonly permissions: AssetPermission[] | null
-  readonly labels: LabelName[] | null
+  readonly permissions: readonly AssetPermission[] | null
+  readonly labels: readonly LabelName[] | null
   readonly description: string | null
 }
 
@@ -791,7 +808,7 @@ export function createRootDirectoryAsset(directoryId: DirectoryId): DirectoryAss
 export function createPlaceholderFileAsset(
   title: string,
   parentId: DirectoryId,
-  assetPermissions: AssetPermission[],
+  assetPermissions: readonly AssetPermission[],
 ): FileAsset {
   return {
     type: AssetType.file,
@@ -810,7 +827,7 @@ export function createPlaceholderFileAsset(
 export function createPlaceholderProjectAsset(
   title: string,
   parentId: DirectoryId,
-  assetPermissions: AssetPermission[],
+  assetPermissions: readonly AssetPermission[],
   organization: User | null,
   path: Path | null,
 ): ProjectAsset {
@@ -1025,6 +1042,7 @@ export interface InviteUserRequestBody {
 /** HTTP response body for the "list invitations" endpoint. */
 export interface ListInvitationsResponseBody {
   readonly invitations: readonly Invitation[]
+  readonly availableLicenses: number
 }
 
 /** Invitation to join an organization. */
@@ -1128,6 +1146,8 @@ export interface CreateUserGroupRequestBody {
 export interface CreateCheckoutSessionRequestBody {
   readonly plan: Plan
   readonly paymentMethodId: string
+  readonly quantity: number
+  readonly interval: number
 }
 
 /** URL query string parameters for the "list directory" endpoint. */
@@ -1155,16 +1175,6 @@ export interface UploadPictureRequestParams {
 export interface ListVersionsRequestParams {
   readonly versionType: VersionType
   readonly default: boolean
-}
-
-/**
- * POST request body for the "create checkout session" endpoint.
- */
-export interface CreateCheckoutSessionRequestParams {
-  readonly plan: Plan
-  readonly paymentMethodId: string
-  readonly quantity: number
-  readonly interval: number
 }
 
 // ==============================
@@ -1218,6 +1228,25 @@ export function compareAssets(a: AnyAsset, b: AnyAsset) {
  * This is useful to avoid React re-renders as it is not re-created on each function call. */
 export function getAssetId<Type extends AssetType>(asset: Asset<Type>) {
   return asset.id
+}
+
+// ================================
+// === userHasUserAndTeamSpaces ===
+// ================================
+
+/** Whether a user's root directory has the "Users" and "Teams" subdirectories. */
+export function userHasUserAndTeamSpaces(user: User | null) {
+  switch (user?.plan ?? null) {
+    case null:
+    case Plan.free:
+    case Plan.solo: {
+      return false
+    }
+    case Plan.team:
+    case Plan.enterprise: {
+      return true
+    }
+  }
 }
 
 // =====================
@@ -1289,9 +1318,13 @@ export default abstract class Backend {
   abstract readonly type: BackendType
 
   /** The path to the root directory of this {@link Backend}. */
-  abstract readonly rootPath: string
+  abstract rootPath(user: User): string
   /** Return the ID of the root directory, if known. */
-  abstract rootDirectoryId(user: User | null): DirectoryId | null
+  abstract rootDirectoryId(
+    user: User,
+    organization: OrganizationInfo | null,
+    localRootDirectory: Path | null | undefined,
+  ): DirectoryId | null
   /** Return a list of all users in the same organization. */
   abstract listUsers(): Promise<readonly User[]>
   /** Set the username of the current user. */
@@ -1315,11 +1348,15 @@ export default abstract class Backend {
   /** Invite a new user to the organization by email. */
   abstract inviteUser(body: InviteUserRequestBody): Promise<void>
   /** Return a list of invitations to the organization. */
-  abstract listInvitations(): Promise<readonly Invitation[]>
-  /** Delete an invitation. */
+  abstract listInvitations(): Promise<ListInvitationsResponseBody>
+  /** Delete an outgoing invitation. */
   abstract deleteInvitation(userEmail: EmailAddress): Promise<void>
-  /** Resend an invitation. */
+  /** Resend an outgoing invitation. */
   abstract resendInvitation(userEmail: EmailAddress): Promise<void>
+  /** Accept an incoming invitation to a new organization. */
+  abstract acceptInvitation(): Promise<void>
+  /** Decline an incoming invitation to a new organization. */
+  abstract declineInvitation(userEmail: string): Promise<void>
   /** Get the details of the current organization. */
   abstract getOrganization(): Promise<OrganizationInfo | null>
   /** Change the details of the current organization. */
@@ -1334,7 +1371,10 @@ export default abstract class Backend {
   /** Return user details for the current user. */
   abstract usersMe(): Promise<User | null>
   /** Return a list of assets in a directory. */
-  abstract listDirectory(query: ListDirectoryRequestParams, title: string): Promise<AnyAsset[]>
+  abstract listDirectory(
+    query: ListDirectoryRequestParams,
+    title: string,
+  ): Promise<readonly AnyAsset[]>
   /** Create a directory. */
   abstract createDirectory(body: CreateDirectoryRequestBody): Promise<CreatedDirectory>
   /** Change the name of a directory. */
@@ -1359,13 +1399,16 @@ export default abstract class Backend {
     parentDirectoryTitle: string,
   ): Promise<CopyAssetResponse>
   /** Return a list of projects belonging to the current user. */
-  abstract listProjects(): Promise<ListedProject[]>
+  abstract listProjects(): Promise<readonly ListedProject[]>
   /** Create a project for the current user. */
   abstract createProject(body: CreateProjectRequestBody): Promise<CreatedProject>
   /** Close a project. */
   abstract closeProject(projectId: ProjectId, title: string): Promise<void>
   /** Return a list of sessions for the current project. */
-  abstract listProjectSessions(projectId: ProjectId, title: string): Promise<ProjectSession[]>
+  abstract listProjectSessions(
+    projectId: ProjectId,
+    title: string,
+  ): Promise<readonly ProjectSession[]>
   /** Restore a project from a different version. */
   abstract restoreProject(
     projectId: ProjectId,
@@ -1388,7 +1431,7 @@ export default abstract class Backend {
   abstract getProjectSessionLogs(
     projectSessionId: ProjectSessionId,
     title: string,
-  ): Promise<string[]>
+  ): Promise<readonly string[]>
   /** Set a project to an open state. */
   abstract openProject(
     projectId: ProjectId,
@@ -1406,7 +1449,7 @@ export default abstract class Backend {
   /** Return project memory, processor and storage usage. */
   abstract checkResources(projectId: ProjectId, title: string): Promise<ResourceUsage>
   /** Return a list of files accessible by the current user. */
-  abstract listFiles(): Promise<FileLocator[]>
+  abstract listFiles(): Promise<readonly FileLocator[]>
   /** Upload a file. */
   abstract uploadFile(params: UploadFileRequestParams, file: Blob): Promise<FileInfo>
   /** Change the name of a file. */
@@ -1430,13 +1473,17 @@ export default abstract class Backend {
     title: string,
   ): Promise<void>
   /** Return the secret environment variables accessible by the user. */
-  abstract listSecrets(): Promise<SecretInfo[]>
+  abstract listSecrets(): Promise<readonly SecretInfo[]>
   /** Create a label used for categorizing assets. */
   abstract createTag(body: CreateTagRequestBody): Promise<Label>
   /** Return all labels accessible by the user. */
-  abstract listTags(): Promise<Label[]>
+  abstract listTags(): Promise<readonly Label[]>
   /** Set the full list of labels for a specific asset. */
-  abstract associateTag(assetId: AssetId, tagIds: LabelName[], title: string): Promise<void>
+  abstract associateTag(
+    assetId: AssetId,
+    tagIds: readonly LabelName[],
+    title: string,
+  ): Promise<void>
   /** Delete a label. */
   abstract deleteTag(tagId: TagId, value: LabelName): Promise<void>
   /** Create a user group. */
@@ -1444,17 +1491,15 @@ export default abstract class Backend {
   /** Delete a user group. */
   abstract deleteUserGroup(userGroupId: UserGroupId, name: string): Promise<void>
   /** Return all user groups in the organization. */
-  abstract listUserGroups(): Promise<UserGroupInfo[]>
+  abstract listUserGroups(): Promise<readonly UserGroupInfo[]>
   /** Return a list of backend or IDE versions. */
-  abstract listVersions(params: ListVersionsRequestParams): Promise<Version[]>
+  abstract listVersions(params: ListVersionsRequestParams): Promise<readonly Version[]>
   /** Create a payment checkout session. */
-  abstract createCheckoutSession(
-    params: CreateCheckoutSessionRequestParams,
-  ): Promise<CheckoutSession>
+  abstract createCheckoutSession(body: CreateCheckoutSessionRequestBody): Promise<CheckoutSession>
   /** Get the status of a payment checkout session. */
   abstract getCheckoutSession(sessionId: CheckoutSessionId): Promise<CheckoutSessionStatus>
   /** List events in the organization's audit log. */
-  abstract getLogEvents(): Promise<Event[]>
+  abstract getLogEvents(): Promise<readonly Event[]>
   /** Log an event that will be visible in the organization audit log. */
   abstract logEvent(
     message: string,

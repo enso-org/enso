@@ -1,25 +1,16 @@
 /** @file A toolbar containing chat and the user menu. */
-import * as React from 'react'
-
+import { SUBSCRIBE_PATH } from '#/appUtils'
 import ChatIcon from '#/assets/chat.svg'
 import DefaultUserIcon from '#/assets/default_user.svg'
-
-import * as appUtils from '#/appUtils'
-
-import * as billing from '#/hooks/billing'
-
-import * as authProvider from '#/providers/AuthProvider'
-import * as modalProvider from '#/providers/ModalProvider'
-import * as textProvider from '#/providers/TextProvider'
-
-import UserMenu from '#/layouts/UserMenu'
-
-import * as ariaComponents from '#/components/AriaComponents'
-import * as paywall from '#/components/Paywall'
-import Button from '#/components/styled/Button'
+import { Button, DialogTrigger } from '#/components/AriaComponents'
+import { PaywallDialogButton } from '#/components/Paywall'
 import FocusArea from '#/components/styled/FocusArea'
-
+import { usePaywall } from '#/hooks/billing'
+import UserMenu from '#/layouts/UserMenu'
 import InviteUsersModal from '#/modals/InviteUsersModal'
+import { useFullUserSession } from '#/providers/AuthProvider'
+import { useText } from '#/providers/TextProvider'
+import { Plan } from '#/services/Backend'
 
 // =================
 // === Constants ===
@@ -47,14 +38,20 @@ export interface UserBarProps {
 export default function UserBar(props: UserBarProps) {
   const { invisible = false, setIsHelpChatOpen, onShareClick, goToSettingsPage, onSignOut } = props
 
-  const { user } = authProvider.useFullUserSession()
-  const { setModal } = modalProvider.useSetModal()
-  const { getText } = textProvider.useText()
-  const { isFeatureUnderPaywall } = billing.usePaywall({ plan: user.plan })
+  const { user } = useFullUserSession()
+  const { getText } = useText()
+  const { isFeatureUnderPaywall } = usePaywall({ plan: user.plan })
 
-  const shouldShowUpgradeButton = isFeatureUnderPaywall('inviteUser')
-  const shouldShowShareButton = onShareClick != null
-  const shouldShowInviteButton = !shouldShowShareButton && !shouldShowUpgradeButton
+  const shouldShowUpgradeButton =
+    user.isOrganizationAdmin && user.plan !== Plan.enterprise && user.plan !== Plan.team
+  // eslint-disable-next-line no-restricted-syntax
+  const shouldShowPaywallButton = (false as boolean) && isFeatureUnderPaywall('inviteUser')
+  // FIXME[sb]: Re-enable when they are wanted again.
+  // eslint-disable-next-line no-restricted-syntax
+  const shouldShowShareButton = (false as boolean) && onShareClick != null
+  const shouldShowInviteButton =
+    // eslint-disable-next-line no-restricted-syntax
+    (false as boolean) && !shouldShowShareButton && !shouldShowPaywallButton
 
   return (
     <FocusArea active={!invisible} direction="horizontal">
@@ -65,7 +62,7 @@ export default function UserBar(props: UserBarProps) {
             {...innerProps}
           >
             {SHOULD_SHOW_CHAT_BUTTON && (
-              <ariaComponents.Button
+              <Button
                 variant="icon"
                 size="custom"
                 className="mr-1"
@@ -77,47 +74,52 @@ export default function UserBar(props: UserBarProps) {
               />
             )}
 
-            {shouldShowUpgradeButton && (
-              <paywall.PaywallDialogButton feature="inviteUser" size="medium" variant="tertiary">
+            {shouldShowPaywallButton && (
+              <PaywallDialogButton feature="inviteUser" size="medium" variant="accent">
                 {getText('invite')}
-              </paywall.PaywallDialogButton>
+              </PaywallDialogButton>
             )}
 
             {shouldShowInviteButton && (
-              <ariaComponents.DialogTrigger>
-                <ariaComponents.Button size="medium" variant="tertiary">
+              <DialogTrigger>
+                <Button size="medium" variant="accent">
                   {getText('invite')}
-                </ariaComponents.Button>
+                </Button>
 
                 <InviteUsersModal />
-              </ariaComponents.DialogTrigger>
+              </DialogTrigger>
             )}
 
-            <ariaComponents.Button variant="primary" size="medium" href={appUtils.SUBSCRIBE_PATH}>
-              {getText('upgrade')}
-            </ariaComponents.Button>
+            {shouldShowUpgradeButton && (
+              <Button variant="primary" size="medium" href={SUBSCRIBE_PATH}>
+                {getText('upgrade')}
+              </Button>
+            )}
 
             {shouldShowShareButton && (
-              <ariaComponents.Button
+              <Button
                 size="medium"
-                variant="tertiary"
+                variant="accent"
                 aria-label={getText('shareButtonAltText')}
                 onPress={onShareClick}
               >
                 {getText('share')}
-              </ariaComponents.Button>
+              </Button>
             )}
-            <Button
-              active
-              mask={false}
-              alt={getText('userMenuAltText')}
-              image={user.profilePicture ?? DefaultUserIcon}
-              buttonClassName="rounded-full after:rounded-full"
-              className="h-row-h w-row-h rounded-full"
-              onPress={() => {
-                setModal(<UserMenu goToSettingsPage={goToSettingsPage} onSignOut={onSignOut} />)
-              }}
-            />
+            <DialogTrigger>
+              <Button
+                size="custom"
+                variant="icon"
+                isActive
+                icon={
+                  <img src={user.profilePicture ?? DefaultUserIcon} className="aspect-square" />
+                }
+                aria-label={getText('userMenuLabel')}
+                className="overflow-clip rounded-full opacity-100"
+                contentClassName="size-8"
+              />
+              <UserMenu goToSettingsPage={goToSettingsPage} onSignOut={onSignOut} />
+            </DialogTrigger>
             {/* Required for shortcuts to work. */}
             <div className="hidden">
               <UserMenu hidden goToSettingsPage={goToSettingsPage} onSignOut={onSignOut} />

@@ -185,7 +185,7 @@ export function writeClipboard(data: MimeData) {
 function nodeStructuredData(node: Node): CopiedNode {
   return {
     expression: node.innerExpr.code(),
-    documentation: node.documentation,
+    documentation: node.docs?.documentation(),
     metadata: node.rootExpr.serializeMetadata(),
     ...(node.pattern ? { binding: node.pattern.code() } : {}),
   }

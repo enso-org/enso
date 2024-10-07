@@ -38,6 +38,8 @@
     "@types/semver": "^7.5.8",
     "@types/tar": "^6.1.4",
     "@types/yargs": "^17.0.30",
+    "@playwright/test": "^1.45.0",
+    "cross-env": "^7.0.3",
     "electron": "31.2.0",
     "electron-builder": "^24.13.3",
     "enso-common": "workspace:*",
@@ -49,7 +51,8 @@
     "fast-glob": "^3.2.12",
     "portfinder": "^1.0.32",
     "tsx": "^4.7.1",
-    "vite": "^5.3.5"
+    "vite": "^5.3.5",
+    "playwright": "^1.45.0"
   },
   "//": [
     "vite is required for the watch script",
@@ -59,8 +62,8 @@
     "typecheck": "tsc --build",
     "build": "tsx bundle.ts",
     "dist": "tsx dist.ts",
-    "watch:windows": "cross-env ENSO_BUILD_IDE=%LOCALAPPDATA%/Temp/enso/dist/ide ENSO_BUILD_PROJECT_MANAGER=%CD%/../../../dist/backend ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH=bin/project-manager.exe ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION=0 tsx watch.ts",
-    "watch:linux": "ENSO_BUILD_IDE=\"${ENSO_BUILD_IDE:-/tmp/enso/dist/ide}\" ENSO_BUILD_PROJECT_MANAGER=\"${ENSO_BUILD_PROJECT_MANAGER:-\"$(pwd)/../../../dist/backend\"}\" ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH=\"${ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH:-bin/project-manager}\" ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION=\"${ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION:-0}\" tsx watch.ts \"$@\"",
-    "watch:macos": "ENSO_BUILD_IDE=\"${ENSO_BUILD_IDE:-/tmp/enso/dist/ide}\" ENSO_BUILD_PROJECT_MANAGER=\"${ENSO_BUILD_PROJECT_MANAGER:-\"$(pwd)/../../../dist/backend\"}\" ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH=\"${ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH:-bin/project-manager}\" ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION=\"${ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION:-0}\" tsx watch.ts \"$@\""
+    "watch:windows": "cross-env ENSO_BUILD_IDE=%LOCALAPPDATA%\\Temp\\enso\\dist\\ide ENSO_BUILD_PROJECT_MANAGER=%CD%\\..\\..\\..\\dist\\backend ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH=bin\\project-manager.exe ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION=0 ENSO_POLYGLOT_YDOC_SERVER=wss://localhost:8080 tsx watch.ts",
+    "watch:linux": "ENSO_BUILD_IDE=\"${ENSO_BUILD_IDE:-/tmp/enso/dist/ide}\" ENSO_BUILD_PROJECT_MANAGER=\"${ENSO_BUILD_PROJECT_MANAGER:-\"$(pwd)/../../../dist/backend\"}\" ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH=\"${ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH:-bin/project-manager}\" ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION=\"${ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION:-0}\" ENSO_POLYGLOT_YDOC_SERVER=\"${ENSO_POLYGLOT_YDOC_SERVER:-wss://localhost:8080}\" tsx watch.ts \"$@\"",
+    "watch:macos": "ENSO_BUILD_IDE=\"${ENSO_BUILD_IDE:-/tmp/enso/dist/ide}\" ENSO_BUILD_PROJECT_MANAGER=\"${ENSO_BUILD_PROJECT_MANAGER:-\"$(pwd)/../../../dist/backend\"}\" ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH=\"${ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH:-bin/project-manager}\" ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION=\"${ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION:-0}\" ENSO_POLYGLOT_YDOC_SERVER=\"${ENSO_POLYGLOT_YDOC_SERVER:-wss://localhost:8080}\" tsx watch.ts \"$@\""
   }
 }

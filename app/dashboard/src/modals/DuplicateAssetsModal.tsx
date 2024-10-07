@@ -4,11 +4,6 @@ import * as React from 'react'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import AssetEventType from '#/events/AssetEventType'
-import AssetListEventType from '#/events/AssetListEventType'
-
-import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
-
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import AssetSummary from '#/components/dashboard/AssetSummary'
@@ -50,19 +45,18 @@ export interface DuplicateAssetsModalProps {
   readonly nonConflictingFileCount: number
   readonly nonConflictingProjectCount: number
   readonly doUploadNonConflicting: () => void
+  readonly doUpdateConflicting: (toUpdate: ConflictingAsset[]) => void
 }
 
 /** A modal for creating a new label. */
 export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
-  const { parentKey, parentId, conflictingFiles: conflictingFilesRaw } = props
-  const { conflictingProjects: conflictingProjectsRaw } = props
+  const { conflictingFiles: conflictingFilesRaw } = props
+  const { conflictingProjects: conflictingProjectsRaw, doUpdateConflicting } = props
   const { siblingFileNames: siblingFileNamesRaw } = props
   const { siblingProjectNames: siblingProjectNamesRaw } = props
   const { nonConflictingFileCount, nonConflictingProjectCount, doUploadNonConflicting } = props
   const { unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
-  const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
-  const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
   const [conflictingFiles, setConflictingFiles] = React.useState(conflictingFilesRaw)
   const [conflictingProjects, setConflictingProjects] = React.useState(conflictingProjectsRaw)
   const [didUploadNonConflicting, setDidUploadNonConflicting] = React.useState(false)
@@ -125,29 +119,15 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
     return title
   }
 
-  const doUpdate = (toUpdate: ConflictingAsset[]) => {
-    dispatchAssetEvent({
-      type: AssetEventType.updateFiles,
-      files: new Map(toUpdate.map((asset) => [asset.current.id, asset.file])),
-    })
-  }
-
   const doRename = (toRename: ConflictingAsset[]) => {
     const clonedConflicts = structuredClone(toRename)
+
     for (const conflict of clonedConflicts) {
       // This is SAFE, as it is a shallow mutation of a freshly cloned object.
       object.unsafeMutable(conflict.new).title = findNewName(conflict)
     }
-    dispatchAssetListEvent({
-      type: AssetListEventType.insertAssets,
-      parentKey,
-      parentId,
-      assets: clonedConflicts.map((conflict) => conflict.new),
-    })
-    dispatchAssetEvent({
-      type: AssetEventType.uploadFiles,
-      files: new Map(clonedConflicts.map((conflict) => [conflict.new.id, conflict.file])),
-    })
+
+    return clonedConflicts
   }
 
   return (
@@ -188,7 +168,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                 </aria.Text>
               )}
               <ariaComponents.Button
-                variant="cancel"
+                variant="outline"
                 isDisabled={didUploadNonConflicting}
                 onPress={() => {
                   doUploadNonConflicting()
@@ -217,9 +197,9 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
             {count > 1 && (
               <ariaComponents.ButtonGroup>
                 <ariaComponents.Button
-                  variant="cancel"
+                  variant="outline"
                   onPress={() => {
-                    doUpdate([firstConflict])
+                    doUpdateConflicting([firstConflict])
                     switch (firstConflict.new.type) {
                       case backendModule.AssetType.file: {
                         setConflictingFiles((oldConflicts) => oldConflicts.slice(1))
@@ -235,7 +215,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                   {getText('update')}
                 </ariaComponents.Button>
                 <ariaComponents.Button
-                  variant="cancel"
+                  variant="outline"
                   onPress={() => {
                     doRename([firstConflict])
                     switch (firstConflict.new.type) {
@@ -276,19 +256,23 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
           <ariaComponents.Button
             variant="submit"
             onPress={() => {
-              unsetModal()
               doUploadNonConflicting()
-              doUpdate([...conflictingFiles, ...conflictingProjects])
+              doUpdateConflicting([...conflictingFiles, ...conflictingProjects])
+              unsetModal()
             }}
           >
             {count === 1 ? getText('update') : getText('updateAll')}
           </ariaComponents.Button>
           <ariaComponents.Button
-            variant="submit"
+            variant="accent"
             onPress={() => {
-              unsetModal()
+              const resolved = doRename([...conflictingFiles, ...conflictingProjects])
+
               doUploadNonConflicting()
-              doRename([...conflictingFiles, ...conflictingProjects])
+
+              doUpdateConflicting(resolved)
+
+              unsetModal()
             }}
           >
             {count === 1 ?
@@ -299,7 +283,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
               getText('renameNewFiles')
             : getText('renameNewProjects')}
           </ariaComponents.Button>
-          <ariaComponents.Button variant="cancel" onPress={unsetModal}>
+          <ariaComponents.Button variant="outline" onPress={unsetModal}>
             {getText('cancel')}
           </ariaComponents.Button>
         </ariaComponents.ButtonGroup>

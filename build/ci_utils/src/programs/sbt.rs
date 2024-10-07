@@ -25,6 +25,9 @@ impl Manipulator for ServerAutostart {
 pub struct Sbt;
 
 impl Program for Sbt {
+    type Command = Command;
+    type Version = Version;
+
     fn executable_name(&self) -> &'static str {
         "sbt"
     }

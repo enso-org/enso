@@ -41,7 +41,7 @@ interface Bucket {
 </script>
 
 <script setup lang="ts">
-import { VisualizationContainer, useVisualizationConfig } from '@/util/visualizationBuiltins'
+import { useVisualizationConfig } from '@/util/visualizationBuiltins'
 import { computed, ref, watchPostEffect } from 'vue'
 
 const d3 = await import('d3')
@@ -87,20 +87,8 @@ const fill = computed(() =>
     .domain([0, d3.max(buckets.value, (d) => d.value) ?? 1]),
 )
 
-const width = ref(Math.max(config.width ?? 0, config.nodeSize.x))
-watchPostEffect(() => {
-  width.value =
-    config.fullscreen ?
-      containerNode.value?.parentElement?.clientWidth ?? 0
-    : Math.max(config.width ?? 0, config.nodeSize.x)
-})
-const height = ref(config.height ?? (config.nodeSize.x * 3) / 4)
-watchPostEffect(() => {
-  height.value =
-    config.fullscreen ?
-      containerNode.value?.parentElement?.clientHeight ?? 0
-    : config.height ?? (config.nodeSize.x * 3) / 4
-})
+const width = computed(() => config.size.x)
+const height = computed(() => config.size.y)
 const boxWidth = computed(() => Math.max(0, width.value - MARGIN.left - MARGIN.right))
 const boxHeight = computed(() => Math.max(0, height.value - MARGIN.top - MARGIN.bottom))
 
@@ -212,17 +200,15 @@ watchPostEffect(() => {
 </script>
 
 <template>
-  <VisualizationContainer :belowToolbar="true">
-    <div ref="containerNode" class="HeatmapVisualization">
-      <svg :width="width" :height="height">
-        <g :transform="`translate(${MARGIN.left},${MARGIN.top})`">
-          <g ref="xAxisNode" class="label label-x" :transform="`translate(0, ${boxHeight})`"></g>
-          <g ref="yAxisNode" class="label label-y"></g>
-          <g ref="pointsNode"></g>
-        </g>
-      </svg>
-    </div>
-  </VisualizationContainer>
+  <div ref="containerNode" class="HeatmapVisualization">
+    <svg :width="width" :height="height">
+      <g :transform="`translate(${MARGIN.left},${MARGIN.top})`">
+        <g ref="xAxisNode" class="label label-x" :transform="`translate(0, ${boxHeight})`"></g>
+        <g ref="yAxisNode" class="label label-y"></g>
+        <g ref="pointsNode"></g>
+      </g>
+    </svg>
+  </div>
 </template>
 
 <style scoped>

@@ -13,9 +13,9 @@ export project.Extensions.should_be_a
 export project.Extensions.should_be_false
 export project.Extensions.should_be_true
 export project.Extensions.should_contain
-export project.Extensions.should_equal_ignoring_order
 export project.Extensions.should_end_with
 export project.Extensions.should_equal
+export project.Extensions.should_equal_ignoring_order
 export project.Extensions.should_equal_type
 export project.Extensions.should_fail_with
 export project.Extensions.should_not_contain

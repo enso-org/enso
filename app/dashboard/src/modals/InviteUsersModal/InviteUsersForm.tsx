@@ -1,7 +1,7 @@
 /** @file A modal with inputs for user email and permission level. */
 import * as React from 'react'
 
-import { useMutation, useSuspenseQueries } from '@tanstack/react-query'
+import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
 import isEmail from 'validator/es/lib/isEmail'
 
 import { backendMutationOptions } from '#/hooks/backendHooks'
@@ -36,7 +36,7 @@ export function InviteUsersForm(props: InviteUsersFormProps) {
   const inputRef = React.useRef<HTMLDivElement>(null)
 
   const { user } = authProvider.useFullUserSession()
-  const { isFeatureUnderPaywall, getFeature } = billingHooks.usePaywall({ plan: user.plan })
+  const { isFeatureUnderPaywall } = billingHooks.usePaywall({ plan: user.plan })
 
   const inviteUserMutation = useMutation(
     backendMutationOptions(backend, 'inviteUser', {
@@ -44,26 +44,17 @@ export function InviteUsersForm(props: InviteUsersFormProps) {
     }),
   )
 
-  const [{ data: usersCount }, { data: invitationsCount }] = useSuspenseQueries({
-    queries: [
-      {
-        queryKey: ['listInvitations'],
-        queryFn: async () => backend.listInvitations(),
-        select: (invitations: readonly backendModule.Invitation[]) => invitations.length,
-      },
-      {
-        queryKey: ['listUsers'],
-        queryFn: async () => backend.listUsers(),
-        select: (users: readonly backendModule.User[]) => users.length,
-      },
-    ],
+  const { data: invitations } = useSuspenseQuery({
+    queryKey: ['listInvitations'],
+    queryFn: async () => backend.listInvitations(),
+    select: (data) => ({
+      count: data.invitations.length,
+      availableLicenses: data.availableLicenses,
+    }),
   })
 
   const isUnderPaywall = isFeatureUnderPaywall('inviteUserFull')
-  const feature = getFeature('inviteUser')
-
-  const seatsLeft =
-    isUnderPaywall ? Math.max(feature.meta.maxSeats - (usersCount + invitationsCount), 0) : Infinity
+  const seatsLeft = invitations.availableLicenses
 
   const getEmailsFromInput = eventCallbackHooks.useEventCallback((value: string) =>
     parserUserEmails.parseUserEmails(value),
@@ -153,14 +144,10 @@ export function InviteUsersForm(props: InviteUsersFormProps) {
         })
       }}
     >
-      <ariaComponents.Text disableLineHeightCompensation>
-        {getText('inviteFormDescription')}
-      </ariaComponents.Text>
-
       <ariaComponents.ResizableContentEditableInput
         ref={inputRef}
         name="emails"
-        aria-label={getText('inviteEmailFieldLabel')}
+        label={getText('inviteEmailFieldLabel')}
         placeholder={getText('inviteEmailFieldPlaceholder')}
         description={getText('inviteEmailFieldDescription')}
       />
@@ -172,7 +159,12 @@ export function InviteUsersForm(props: InviteUsersFormProps) {
         />
       )}
 
-      <ariaComponents.Form.Submit variant="tertiary" rounded="medium" size="medium" fullWidth>
+      <ariaComponents.Form.Submit
+        variant="accent"
+        size="medium"
+        fullWidth
+        isDisabled={seatsLeft <= 0}
+      >
         {getText('inviteSubmit')}
       </ariaComponents.Form.Submit>
 

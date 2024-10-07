@@ -23,7 +23,6 @@ import Standard.Table.Columns_To_Keep.Columns_To_Keep
 import Standard.Table.Expression.Expression
 import Standard.Table.Expression.Expression_Error
 import Standard.Table.Internal.Add_Row_Number
-import Standard.Table.Internal.Aggregate_Column_Helper
 import Standard.Table.Internal.Column_Naming_Helper.Column_Naming_Helper
 import Standard.Table.Internal.Constant_Column.Constant_Column
 import Standard.Table.Internal.Display_Helpers
@@ -52,12 +51,11 @@ import project.Internal.Aggregate_Helper
 import project.Internal.Base_Generator
 import project.Internal.Common.Database_Join_Helper
 import project.Internal.Common.Lookup_Query_Helper
-import project.Internal.DB_Wrapped_Error.DB_Wrapped_Error
+import project.Internal.Common.Row_Number_Helpers
 import project.Internal.Helpers
 import project.Internal.IR.Context.Context
 import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Internal_Column.Internal_Column
-import project.Internal.IR.Operation_Metadata
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
@@ -598,7 +596,7 @@ type DB_Table
             Warning.with_suspended new_names names->
                 self.updated_columns (self.internal_columns.map c-> c.rename (names.at c.name))
 
-    ## ALIAS rename
+    ## ALIAS rename, header
        GROUP Standard.Base.Metadata
        ICON table_edit
        Returns a new table with the columns renamed based on entries in the
@@ -621,7 +619,7 @@ type DB_Table
     use_first_row_as_names : Problem_Behavior -> DB_Table
     use_first_row_as_names self (on_problems:Problem_Behavior=..Report_Warning) =
         _ = on_problems
-        Error.throw (Unsupported_Database_Operation.Error "DB_Table.use_first_row_as_names is currently not implemented for the Database backend. You may download the table to memory using `.read` to use this feature.")
+        Error.throw (Unsupported_Database_Operation.Error "use_first_row_as_names")
 
     ## PRIVATE
 
@@ -707,7 +705,7 @@ type DB_Table
                     resolved = (self:Table_Ref).resolve_condition filter_condition
                     mask (make_filter_column column resolved on_problems)
                 _ : Function ->
-                    Error.throw (Unsupported_Database_Operation.Error "Filtering with a custom predicate is not supported in the database.")
+                    Error.throw (Unsupported_Database_Operation.Error "Filtering with a custom predicate")
         _ : Expression -> self.filter (self.evaluate_expression column on_problems) filter on_problems
         _ ->
             table_at = self.at column
@@ -829,7 +827,7 @@ type DB_Table
 
        Arguments:
        - name: The name of the new column. Defaults to "Row".
-       - from: The starting value for the enumeration. Defaults to 1.
+       - from: The starting value for the enumeration. Defaults to 0.
        - step: The amount to increment the enumeration by. Defaults to 1.
        - group_by: Specifies the columns to group by. The row numbers are
          counted separately for each group. By default, all rows are treated as
@@ -854,10 +852,12 @@ type DB_Table
            existing column is renamed to avoid the clash.
          - If grouping on floating point numbers, a `Floating_Point_Equality`
            problem is reported.
-    @group_by Widget_Helpers.make_column_name_multi_selector
-    @order_by Widget_Helpers.make_order_by_selector
+    @name (Widget.Text_Input display=..Always)
+    @from (Widget.Numeric_Input display=..Always)
+    @group_by (Widget_Helpers.make_column_name_multi_selector display=..When_Modified)
+    @order_by (Widget_Helpers.make_order_by_selector display=..When_Modified)
     add_row_number : Text -> Integer -> Integer -> Vector (Text | Integer | Regex) | Text | Integer | Regex -> Vector (Text | Sort_Column) | Text -> Problem_Behavior -> DB_Table
-    add_row_number self (name:Text="Row") (from:Integer=1) (step:Integer=1) (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (on_problems:Problem_Behavior=..Report_Warning) =
+    add_row_number self (name:Text="Row") (from:Integer=0) (step:Integer=1) (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (on_problems:Problem_Behavior=..Report_Warning) =
         problem_builder = Problem_Builder.new error_on_missing_columns=True
         grouping_columns = self.columns_helper.select_columns_helper group_by Case_Sensitivity.Default True problem_builder
         grouping_columns.each column->
@@ -875,11 +875,7 @@ type DB_Table
                     descriptors -> descriptors
             grouping_expressions = (grouping_columns.map _.as_internal).map .expression
 
-            # The SQL row_number() counts from 1, so we adjust the offset.
-            offset = from - step
-            params = [SQL_Expression.Constant offset, SQL_Expression.Constant step] + order_descriptors + grouping_expressions
-            metadata = Operation_Metadata.Row_Number_Metadata.Value grouping_expressions.length
-            new_expr = SQL_Expression.Operation "ROW_NUMBER" params metadata
+            new_expr = Row_Number_Helpers.make_row_number from step order_descriptors grouping_expressions
 
             type_mapping = self.connection.dialect.get_type_mapping
             infer_from_database_callback expression =
@@ -991,10 +987,10 @@ type DB_Table
                     Error.throw (Integrity_Error.Error "Column "+value.name)
             _ : Constant_Column -> self.make_constant_column value
             _ : Simple_Expression -> value.evaluate self (set_mode==Set_Mode.Update && as=="") on_problems
-            _ : Vector -> Error.throw (Unsupported_Database_Operation.Error "Cannot use `Vector` for `set` in the database.")
-            _ : Array -> Error.throw (Unsupported_Database_Operation.Error "Cannot use `Array` for `set` in the database.")
-            _ : Range -> Error.throw (Unsupported_Database_Operation.Error "Cannot use `Range` for `set` in the database.")
-            _ : Date_Range -> Error.throw (Unsupported_Database_Operation.Error "Cannot use `Date_Range` for `set` in the database.")
+            _ : Vector -> Error.throw (Unsupported_Database_Operation "`Vector` for `set`")
+            _ : Array -> Error.throw (Unsupported_Database_Operation.Error "`Array` for `set`")
+            _ : Range -> Error.throw (Unsupported_Database_Operation.Error "`Range` for `set`")
+            _ : Date_Range -> Error.throw (Unsupported_Database_Operation.Error "`Date_Range` for `set`")
             _ -> Error.throw (Illegal_Argument.Error "Unsupported type for `DB_Table.set`.")
 
         ## If `as` was specified, use that. Otherwise, if `value` is a
@@ -1045,7 +1041,10 @@ type DB_Table
     evaluate_expression : Text | Expression -> Problem_Behavior -> DB_Column ! No_Such_Column | Invalid_Value_Type | Expression_Error
     evaluate_expression self expression:(Text | Expression) on_problems:Problem_Behavior=..Report_Warning = if expression.is_a Text then self.evaluate_expression (Expression.Value expression) on_problems else
         get_column name = self.at name
-        new_column = Expression.evaluate expression get_column self.make_constant_column "Standard.Database.DB_Column" "DB_Column" DB_Column.var_args_functions
+        make_constant_column value = case value of
+            _ : DB_Column -> value
+            _ -> self.make_constant_column value
+        new_column = Expression.evaluate expression get_column make_constant_column "Standard.Database.DB_Column" "DB_Column" DB_Column.var_args_functions
         problems = Warning.get_all new_column . map .value
         result = new_column.rename (self.connection.base_connection.column_naming_helper.sanitize_name expression.expression)
         on_problems.attach_problems_before problems <|
@@ -1375,7 +1374,7 @@ type DB_Table
     duplicates : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Case_Sensitivity -> Problem_Behavior -> DB_Table ! No_Output_Columns | Missing_Input_Columns | No_Input_Columns_Selected | Floating_Point_Equality
     duplicates self columns=self.column_names case_sensitivity:Case_Sensitivity=..Default on_problems:Problem_Behavior=..Report_Warning =
         _ = [columns, case_sensitivity, on_problems]
-        Error.throw (Unsupported_Database_Operation.Error "DB_Table.duplicates is not implemented yet for the Database backends.")
+        Error.throw (Unsupported_Database_Operation.Error "duplicates")
 
     ## GROUP Standard.Base.Calculations
        ICON join
@@ -1761,7 +1760,7 @@ type DB_Table
     zip : DB_Table -> Boolean | Report_Unmatched -> Text -> Problem_Behavior -> DB_Table
     zip self right keep_unmatched=Report_Unmatched right_prefix:Text="Right " on_problems:Problem_Behavior=..Report_Warning =
         _ = [right, keep_unmatched, right_prefix, on_problems]
-        Error.throw (Unsupported_Database_Operation.Error "DB_Table.zip is not implemented yet for the Database backends.")
+        Error.throw (Unsupported_Database_Operation.Error "zip")
 
     ## ALIAS append, concat, join
        GROUP Standard.Base.Calculations
@@ -1924,7 +1923,7 @@ type DB_Table
 
                     DB_Table.Value union_alias self.connection new_columns new_ctx
 
-    ## ALIAS group by, summarize
+    ## ALIAS group by, summarize, count, count distinct, sum, average, mean, median, percentile, mode, standard deviation, variance, minimum, maximum, first, last, shortest, longest
        GROUP Standard.Base.Calculations
        ICON transform4
 
@@ -1995,65 +1994,8 @@ type DB_Table
     @group_by Widget_Helpers.make_column_name_multi_selector
     @columns Widget_Helpers.make_aggregate_column_vector_selector
     aggregate : Vector (Integer | Text | Regex | Aggregate_Column) | Text | Integer | Regex -> Vector Aggregate_Column -> Boolean -> Problem_Behavior -> DB_Table ! No_Output_Columns | Invalid_Aggregate_Column | Invalid_Column_Names | Duplicate_Output_Column_Names | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
-    aggregate self group_by=[] columns=[] (error_on_missing_columns:Boolean=False) (on_problems:Problem_Behavior=..Report_Warning) =
-        normalized_group_by = Vector.unify_vector_or_element group_by
-        if normalized_group_by.is_empty && columns.is_empty then Error.throw (No_Output_Columns.Error "No columns specified in aggregate.") else
-            ## This is a workaround for #10321 - if the source query contains an ORDER BY,
-               we need to push it into a subquery to not interfere with aggregations.
-            base_table = if self.context.orders.not_empty then self.as_subquery else self
-
-            validated = Aggregate_Column_Helper.prepare_aggregate_columns base_table.column_naming_helper normalized_group_by columns base_table error_on_missing_columns=error_on_missing_columns
-
-            key_columns = validated.key_columns
-            key_problems = key_columns.flat_map internal_column->
-                column = base_table.make_column internal_column
-                case column.value_type.is_floating_point of
-                    True -> [Floating_Point_Equality.Error column.name]
-                    False -> []
-            on_problems.attach_problems_before validated.problems+key_problems <|
-                resolved_aggregates = validated.valid_columns
-                key_expressions = key_columns.map .expression
-                new_ctx = base_table.context.set_groups key_expressions
-                problem_builder = Problem_Builder.new
-                ## TODO [RW] here we will perform as many fetches as there are
-                   aggregate columns, but technically we could perform just one
-                   fetch fetching all column types - TODO we should do that. We can
-                   do it here by creating a builder that will gather all requests
-                   from the executed callbacks and create Lazy references that all
-                   point to a single query.
-                   See #6118.
-                infer_from_database_callback expression =
-                    SQL_Type_Reference.new base_table.connection base_table.context expression
-                dialect = base_table.connection.dialect
-                type_mapping = dialect.get_type_mapping
-                infer_return_type op_kind columns expression =
-                    type_mapping.infer_return_type infer_from_database_callback op_kind columns expression
-                results = resolved_aggregates.map p->
-                    agg = p.second
-                    as = p.first
-                    result = Aggregate_Helper.make_aggregate_column base_table agg as dialect infer_return_type problem_builder
-                    ## If the `result` did contain an error, we catch it to be
-                       able to store it in a vector and then we will partition the
-                       created columns and failures.
-                    result.catch Any error->(DB_Wrapped_Error.Value error)
-
-                partitioned = results.partition (_.is_a DB_Wrapped_Error)
-
-                ## When working on join we may encounter further issues with having
-                   aggregate columns exposed directly, it may be useful to re-use
-                   the `lift_aggregate` method to push the aggregates into a
-                   subquery.
-                new_columns = partitioned.second
-                problem_builder.attach_problems_before on_problems <|
-                    problems = partitioned.first.map .value
-                    on_problems.attach_problems_before problems <|
-                        handle_no_output_columns =
-                            first_problem = if problems.is_empty then Nothing else problems.first
-                            Error.throw (No_Output_Columns.Error first_problem)
-                        if new_columns.is_empty then handle_no_output_columns else
-                            result = base_table.updated_context_and_columns new_ctx new_columns subquery=True
-                            if validated.old_style.not then result else
-                                Warning.attach (Deprecated.Warning "Standard.Table.Aggregate_Column.Aggregate_Column" "Group_By" "Deprecated: `Group_By` constructor has been deprecated, use the `group_by` argument instead.") result
+    aggregate self (group_by : Vector | Text | Integer | Regex = []) (columns : Vector = []) (error_on_missing_columns : Boolean = False) (on_problems : Problem_Behavior = ..Report_Warning) =
+        Aggregate_Helper.aggregate self group_by columns error_on_missing_columns on_problems
 
     ## ALIAS pivot, unpivot
        GROUP Standard.Base.Calculations
@@ -2111,8 +2053,7 @@ type DB_Table
         ## Avoid unused arguments warning. We cannot rename arguments to `_`,
            because we need to keep the API consistent with the in-memory table.
         _ = [key_columns, attribute_column_name, value_column_name, error_on_missing_columns, on_problems]
-        msg = "Transposing columns is not supported in database tables, the table has to be materialized first with `read`."
-        Error.throw (Unsupported_Database_Operation.Error msg)
+        Error.throw (Unsupported_Database_Operation.Error "transpose")
 
     ## ALIAS pivot, unpivot
        GROUP Standard.Base.Calculations
@@ -2175,8 +2116,7 @@ type DB_Table
         ## Avoid unused arguments warning. We cannot rename arguments to `_`,
            because we need to keep the API consistent with the in-memory table.
         _ = [group_by, names, values, on_problems]
-        msg = "Cross tab of database tables is not supported, the table has to be materialized first with `read`."
-        Error.throw (Unsupported_Database_Operation.Error msg)
+        Error.throw (Unsupported_Database_Operation.Error "cross_tab")
 
     ## GROUP Standard.Base.Conversions
        ICON convert
@@ -2319,7 +2259,7 @@ type DB_Table
     format : Vector (Text | Integer | Regex | By_Type) | Text | Integer | Regex | By_Type -> Text | Date_Time_Formatter | DB_Column -> Locale -> Boolean -> Problem_Behavior -> DB_Table ! Date_Time_Format_Parse_Error | Illegal_Argument
     format self columns:(Vector (Text | Integer | Regex | By_Type) | Text | Integer | Regex | By_Type) format:(Text | Date_Time_Formatter | DB_Column)="" locale:Locale=Locale.default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning =
         _ = [columns, format, locale, error_on_missing_columns, on_problems]
-        Error.throw (Unsupported_Database_Operation.Error "DB_Table.format is not implemented yet for the Database backends.")
+        Error.throw (Unsupported_Database_Operation.Error "format")
 
     ## GROUP Standard.Base.Conversions
        ICON split
@@ -2344,7 +2284,7 @@ type DB_Table
     split_to_columns : Text | Integer -> Text -> Columns_To_Add -> Problem_Behavior -> DB_Table
     split_to_columns self column delimiter="," (column_count : Columns_To_Add = ..All_Columns) on_problems:Problem_Behavior=..Report_Warning =
         _ = [column, delimiter, column_count.columns_to_split, on_problems]
-        Error.throw (Unsupported_Database_Operation.Error "DB_Table.split_to_columns is not implemented yet for the Database backends.")
+        Error.throw (Unsupported_Database_Operation.Error "split_to_columns")
 
     ## GROUP Standard.Base.Conversions
        ICON split
@@ -2359,7 +2299,7 @@ type DB_Table
     split_to_rows : Text | Integer -> Text -> DB_Table
     split_to_rows self column delimiter="," =
         _ = [column, delimiter]
-        Error.throw (Unsupported_Database_Operation.Error "DB_Table.split_to_rows is not implemented yet for the Database backends.")
+        Error.throw (Unsupported_Database_Operation.Error "split_to_rows")
 
     ## GROUP Standard.Base.Conversions
        ICON split
@@ -2387,7 +2327,7 @@ type DB_Table
     tokenize_to_columns : Text | Integer -> Text -> Case_Sensitivity -> Columns_To_Add -> Problem_Behavior -> DB_Table
     tokenize_to_columns self column pattern="." case_sensitivity:Case_Sensitivity=..Sensitive (column_count : Columns_To_Add = ..All_Columns) (on_problems : Problem_Behavior = ..Report_Warning) =
         _ = [column, pattern, case_sensitivity, column_count, on_problems]
-        Error.throw (Unsupported_Database_Operation.Error "DB_Table.tokenize_to_columns is not implemented yet for the Database backends.")
+        Error.throw (Unsupported_Database_Operation.Error "tokenize_to_columns")
 
     ## GROUP Standard.Base.Conversions
        ICON split
@@ -2409,7 +2349,7 @@ type DB_Table
     tokenize_to_rows : Text | Integer -> Text -> Case_Sensitivity -> Boolean -> DB_Table
     tokenize_to_rows self column pattern="." case_sensitivity:Case_Sensitivity=..Sensitive at_least_one_row:Boolean=False =
         _ = [column, pattern, case_sensitivity, at_least_one_row]
-        Error.throw (Unsupported_Database_Operation.Error "DB_Table.tokenize_to_rows is not implemented yet for the Database backends.")
+        Error.throw (Unsupported_Database_Operation.Error "tokenize_to_rows")
 
     ## GROUP Standard.Base.Conversions
        ICON split
@@ -2442,7 +2382,7 @@ type DB_Table
     parse_to_columns : Text | Integer -> Text | Regex -> Case_Sensitivity -> Boolean -> Problem_Behavior -> DB_Table
     parse_to_columns self column pattern="." case_sensitivity:Case_Sensitivity=..Sensitive parse_values=True on_problems:Problem_Behavior=..Report_Error =
         _ = [column, pattern, case_sensitivity, parse_values, on_problems]
-        Error.throw (Unsupported_Database_Operation.Error "DB_Table.parse_to_columns is not implemented yet for the Database backends.")
+        Error.throw (Unsupported_Database_Operation.Error "parse_to_columns")
 
     ## GROUP Standard.Base.Calculations
        ICON split
@@ -2458,7 +2398,7 @@ type DB_Table
     expand_column : Text | Integer -> Vector | Nothing -> Text | DB_Table -> DB_Table ! Type_Error
     expand_column self column fields=Nothing prefix=Nothing =
             _ = [column, fields, prefix]
-            Error.throw (Unsupported_Database_Operation.Error "DB_Table.expand_column is currently not implemented for the Database backend. You may download the table to memory using `.read` to use this feature.")
+            Error.throw (Unsupported_Database_Operation.Error "expand_column")
 
     ## GROUP Standard.Base.Calculations
        ICON split
@@ -2498,7 +2438,7 @@ type DB_Table
     expand_to_rows : Text | Integer -> Boolean -> DB_Table ! Type_Error | No_Such_Column | Index_Out_Of_Bounds
     expand_to_rows self column at_least_one_row:Boolean=False =
         _ = [column, at_least_one_row]
-        Error.throw (Unsupported_Database_Operation.Error "DB_Table.expand_to_rows is currently not implemented for the Database backend. You may download the table to memory using `.read` to use this feature.")
+        Error.throw (Unsupported_Database_Operation.Error "expand_to_rows")
 
     ## GROUP Standard.Base.Conversions
        ICON convert
@@ -2570,7 +2510,7 @@ type DB_Table
     auto_cast : Vector (Text | Integer | Regex | By_Type) | Text | Integer | Regex | By_Type -> Boolean -> Boolean -> Problem_Behavior -> DB_Table
     auto_cast self columns:(Vector (Text | Integer | Regex | By_Type) | Text | Integer | Regex | By_Type)=self.column_names shrink_types:Boolean=False error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning =
         _ = [columns, shrink_types, error_on_missing_columns, on_problems]
-        Error.throw (Unsupported_Database_Operation.Error "DB_Table.auto_value_types is not supported in the Database backends.")
+        Error.throw (Unsupported_Database_Operation.Error "auto_cast")
 
     ## ALIAS drop_missing_rows, dropna
        GROUP Standard.Base.Selections
@@ -2608,7 +2548,8 @@ type DB_Table
         table = self.connection.read_statement sql
         table.at column_name . at 0
 
-    ## GROUP Standard.Base.Input
+    ## ALIAS load, import
+       GROUP Standard.Base.Input
        ICON data_input
        Returns a materialized dataframe containing rows of this table.
 
@@ -2774,7 +2715,8 @@ type DB_Table
     to_text : Text
     to_text self = "(Database Table "+self.name.to_text+")"
 
-    ## GROUP Standard.Base.Output
+    ## ALIAS export, save, output, to_file
+       GROUP Standard.Base.Output
        ICON data_output
        This function writes the table into a file.
 
@@ -2888,7 +2830,7 @@ type DB_Table
 
              fill_empty = table.fill_empty ["col0", "col1"] "hello"
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
-    @default (self-> Widget_Helpers.make_fill_default_value_selector value_type=Value_Type.Char add_nothing=True)
+    @default (self-> Widget_Helpers.make_fill_default_value_selector (self.select_columns (..By_Type ..Char)) value_types=Value_Type.Char add_nothing=True)
     fill_empty : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type -> DB_Column | Column_Ref | Expression | Previous_Value | Any -> DB_Table
     fill_empty self (columns : Vector | Text | Integer | Regex | By_Type) default =
         resolved_default = (self:Table_Ref).resolve default
@@ -2902,6 +2844,16 @@ type DB_Table
        table unchanged.
 
        This method follows the exact replacement semantics of `Text.replace`.
+
+       If regex is used the replacement string can contain references to groups
+       matched. The following syntaxes are supported:
+           $0: the entire match string
+           $&: the entire match string
+           $n: the nth group
+           $&lt;foo&gt;: Named group `foo`
+
+       The exact syntax of the regular expression is dependent on the database
+       engine.
 
        Arguments:
        - columns: Specifies columns by a name, index or regular expression to
@@ -2972,7 +2924,7 @@ type DB_Table
         transformer col = col.text_cleanse remove
         Table_Helpers.replace_columns_with_transformed_columns self from transformer
 
-    ## ALIAS cumulative
+    ## ALIAS cumulative, count, sum, total, minimum, maximum, sum, mean, product, variance, standard deviation
        GROUP Standard.Base.Values
        ICON data_input
        Adds a new column to the table with a running calculation.
@@ -2981,6 +2933,8 @@ type DB_Table
        - statistic: The running statistic to calculate.
        - of: The existing column to run the statistic over.
        - as: The name of the new column.
+       - set_mode: Specifies the expected behaviour in regards to existing
+         column with the same name.
        - group_by: Specifies the columns to group by. The running statistic is
          calculated separately for each group. By default, all rows are treated as
          a single group.
@@ -3007,10 +2961,10 @@ type DB_Table
     @group_by Widget_Helpers.make_column_name_multi_selector
     @order_by Widget_Helpers.make_order_by_selector
     @of Widget_Helpers.make_column_name_selector
-    running : Statistic -> (Text | Integer) -> Text -> Vector (Text | Integer | Regex) | Text | Integer | Regex -> Vector (Text | Sort_Column) | Text -> Problem_Behavior -> Table
-    running self (statistic:Statistic=..Count) (of:(Text | Integer)=0) (as:Text='') (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (on_problems:Problem_Behavior=..Report_Warning) =
-        _ = [statistic, of, as, group_by, order_by, on_problems]
-        Error.throw (Unsupported_Database_Operation.Error "DB_Table.running is currently not implemented for the Database backend. You may download the table to memory using `.read` to use this feature.")
+    running : Statistic -> (Text | Integer) -> Text -> Set_Mode -> Vector (Text | Integer | Regex) | Text | Integer | Regex -> Vector (Text | Sort_Column) | Text -> Problem_Behavior -> Table
+    running self (statistic:Statistic=..Count) (of:(Text | Integer)=0) (as:Text='') (set_mode:Set_Mode=..Add) (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (on_problems:Problem_Behavior=..Report_Warning) =
+        _ = [statistic, of, as, set_mode, group_by, order_by, on_problems]
+        Error.throw (Unsupported_Database_Operation.Error "running")
 
 
 ## PRIVATE

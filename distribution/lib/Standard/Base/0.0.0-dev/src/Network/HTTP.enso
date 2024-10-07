@@ -11,6 +11,7 @@ import project.Enso_Cloud.Enso_Secret.Enso_Secret
 import project.Error.Error
 import project.Errors.Common.Forbidden_Operation
 import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Function.Function
 import project.Meta
 import project.Network.HTTP.Header.Header
 import project.Network.HTTP.HTTP_Error.HTTP_Error
@@ -28,7 +29,8 @@ import project.System.File.File
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Json.Extensions import all
 
-polyglot java import java.lang.Exception as JException
+polyglot java import java.lang.IllegalArgumentException
+polyglot java import java.io.IOException
 polyglot java import java.net.http.HttpClient
 polyglot java import java.net.http.HttpClient.Builder as ClientBuilder
 polyglot java import java.net.http.HttpClient.Redirect
@@ -106,12 +108,12 @@ type HTTP
         # Prevent request if the method is a write-like method and output context is disabled.
         check_output_context ~action =
             if fetch_methods.contains req.method || Context.Output.is_enabled then action else
-                Error.throw (Forbidden_Operation.Error ("Method " + req.method.to_text + " requests are forbidden as the Output context is disabled."))
+                Error.throw (Forbidden_Operation.Error ("As writing is disabled, " + req.method.to_text + " request not sent. Press the Write button ▶ to send it."))
         handle_request_error =
             handler caught_panic =
                 exception = caught_panic.payload
                 Error.throw (Request_Error.Error (Meta.type_of exception . to_text) exception.getMessage)
-            Panic.catch JException handler=handler
+            Panic.catch IllegalArgumentException handler=handler <| Panic.catch IOException handler=handler
 
         handle_request_error <| Illegal_Argument.handle_java_exception <| check_output_context <|
             headers = resolve_headers req
@@ -137,7 +139,7 @@ type HTTP
     ## PRIVATE
        Static helper for get-like methods
     fetch : (URI | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> Response ! Request_Error | HTTP_Error
-    fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (Header | Pair Text Text))=[]) =
+    fetch (uri:(URI | Text)) (method:HTTP_Method=..Get) (headers:(Vector (Header | Pair Text Text))=[]) =
         check_method fetch_methods method <|
             request = Request.new method uri (parse_headers headers) Request_Body.Empty
             HTTP.new.request request
@@ -187,6 +189,7 @@ parse_headers headers =
     headers . map on_problems=No_Wrap h-> case h of
         _ : Vector -> Header.new (h.at 0) (h.at 1)
         _ : Pair -> Header.new (h.at 0) (h.at 1)
+        _ : Function -> h:Header
         _ : Header -> h
         _ -> Error.throw (Illegal_Argument.Error "Invalid header type - all values must be Vector, Pair or Header (got "+(Meta.get_simple_type_name h)+").")
 

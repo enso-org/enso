@@ -63,11 +63,8 @@ const nodeMetadataKeys = allKeys<NodeMetadataFields>({
   visualization: null,
   colorOverride: null,
 })
-export type NodeMetadata = FixedMapView<NodeMetadataFields>
-export type MutableNodeMetadata = FixedMap<NodeMetadataFields>
-export function asNodeMetadata(map: Map<string, unknown>): NodeMetadata {
-  return map as unknown as NodeMetadata
-}
+export type NodeMetadata = FixedMapView<NodeMetadataFields & MetadataFields>
+export type MutableNodeMetadata = FixedMap<NodeMetadataFields & MetadataFields>
 /** @internal */
 interface RawAstFields {
   id: AstId
@@ -100,7 +97,7 @@ export abstract class Ast {
 
   get nodeMetadata(): NodeMetadata {
     const metadata = this.fields.get('metadata')
-    return metadata as FixedMapView<NodeMetadataFields>
+    return metadata as FixedMapView<NodeMetadataFields & MetadataFields>
   }
 
   /** Returns a JSON-compatible object containing all metadata properties. */
@@ -232,7 +229,7 @@ export abstract class MutableAst extends Ast {
 
   mutableNodeMetadata(): MutableNodeMetadata {
     const metadata = this.fields.get('metadata')
-    return metadata as FixedMap<NodeMetadataFields>
+    return metadata as FixedMap<NodeMetadataFields & MetadataFields>
   }
 
   setNodeMetadata(nodeMeta: NodeMetadataFields) {
@@ -877,8 +874,9 @@ export class NegationApp extends Ast {
     return asOwned(new MutableNegationApp(module, fields))
   }
 
-  static new(module: MutableModule, operator: Token, argument: Owned) {
-    return this.concrete(module, unspaced(operator), autospaced(argument))
+  static new(module: MutableModule, argument: Owned) {
+    const minus = Token.new('-', RawAst.Token.Type.Operator)
+    return this.concrete(module, unspaced(minus), unspaced(argument))
   }
 
   get operator(): Token {
@@ -1803,6 +1801,18 @@ export class NumericLiteral extends Ast {
     if (parsed instanceof MutableNumericLiteral) return parsed
   }
 
+  static tryParseWithSign(
+    source: string,
+    module?: MutableModule,
+  ): Owned<MutableNumericLiteral | MutableNegationApp> | undefined {
+    const parsed = parse(source, module)
+    if (
+      parsed instanceof MutableNumericLiteral ||
+      (parsed instanceof MutableNegationApp && parsed.argument instanceof MutableNumericLiteral)
+    )
+      return parsed
+  }
+
   static concrete(module: MutableModule, tokens: NodeChild<Token>[]) {
     const base = module.baseObject('NumericLiteral')
     const fields = composeFieldData(base, { tokens })
@@ -1824,9 +1834,26 @@ export function isNumericLiteral(code: string) {
   return is_numeric_literal(code)
 }
 
-/** The actual contents of an `ArgumentDefinition` are complex, but probably of more interest to the compiler than the
- *  GUI. We just need to represent them faithfully and create the simple cases. */
-type ArgumentDefinition<T extends TreeRefs = RawRefs> = (T['ast'] | T['token'])[]
+export interface ArgumentDefinition<T extends TreeRefs = RawRefs> {
+  open?: T['token'] | undefined
+  open2?: T['token'] | undefined
+  suspension?: T['token'] | undefined
+  pattern: T['ast']
+  type?: ArgumentType<T> | undefined
+  close2?: T['token'] | undefined
+  defaultValue?: ArgumentDefault<T> | undefined
+  close?: T['token'] | undefined
+}
+
+interface ArgumentDefault<T extends TreeRefs = RawRefs> {
+  equals: T['token']
+  expression: T['ast']
+}
+
+interface ArgumentType<T extends TreeRefs = RawRefs> {
+  operator: T['token']
+  type: T['ast']
+}
 
 export interface FunctionFields {
   name: NodeChild<AstId>
@@ -1854,7 +1881,7 @@ export class Function extends Ast {
   get argumentDefinitions(): ArgumentDefinition<ConcreteRefs>[] {
     return this.fields
       .get('argumentDefinitions')
-      .map(raw => raw.map(part => this.module.getConcrete(part)))
+      .map(def => mapRefs(def, rawToConcrete(this.module)))
   }
 
   static concrete(
@@ -1903,7 +1930,9 @@ export class Function extends Ast {
     const statements_: OwnedBlockLine[] = statements.map(statement => ({
       expression: unspaced(statement),
     }))
-    const argumentDefinitions = argumentNames.map(name => [spaced(Ident.new(module, name))])
+    const argumentDefinitions = argumentNames.map(name => ({
+      pattern: spaced(Ident.new(module, name)),
+    }))
     const body = BodyBlock.new(statements_, module)
     return MutableFunction.new(module, name, argumentDefinitions, body)
   }
@@ -1924,7 +1953,23 @@ export class Function extends Ast {
   *concreteChildren(_verbatim?: boolean): IterableIterator<RawNodeChild> {
     const { name, argumentDefinitions, equals, body } = getAll(this.fields)
     yield name
-    for (const def of argumentDefinitions) yield* def
+    for (const def of argumentDefinitions) {
+      const { open, open2, suspension, pattern, type, close2, defaultValue, close } = def
+      if (open) yield open
+      if (open2) yield open2
+      if (suspension) yield suspension
+      yield pattern
+      if (type) {
+        yield type.operator
+        yield type.type
+      }
+      if (defaultValue) {
+        yield defaultValue.equals
+        yield defaultValue.expression
+      }
+      if (close2) yield close2
+      if (close) yield close
+    }
     yield { whitespace: equals.whitespace ?? ' ', node: this.module.getToken(equals.node) }
     if (body) yield preferSpacedIf(body, this.module.tryGet(body.node) instanceof BodyBlock)
   }
@@ -1952,6 +1997,7 @@ export class MutableFunction extends Function implements MutableAst {
     if (oldBody instanceof MutableBodyBlock) return oldBody
     const newBody = BodyBlock.new([], this.module)
     if (oldBody) newBody.push(oldBody.take())
+    this.setBody(newBody)
     return newBody
   }
 }
@@ -2214,6 +2260,10 @@ export class Ident extends Ast {
     return this.module.getToken(this.fields.get('token').node) as IdentifierToken
   }
 
+  isTypeOrConstructor(): boolean {
+    return /^[A-Z]/.test(this.token.code())
+  }
+
   static concrete(module: MutableModule, token: NodeChild<Token>) {
     const base = module.baseObject('Ident')
     const fields = composeFieldData(base, { token })
@@ -2383,8 +2433,8 @@ export class Vector extends Ast {
     yield ensureUnspaced(open, verbatim)
     let isFirst = true
     for (const { delimiter, value } of elements) {
-      if (isFirst && value) {
-        yield preferUnspaced(value)
+      if (isFirst) {
+        if (value) yield preferUnspaced(value)
       } else {
         yield preferUnspaced(delimiter)
         if (value) yield preferSpaced(value)
@@ -2398,6 +2448,16 @@ export class Vector extends Ast {
     for (const element of this.fields.get('elements'))
       if (element.value) yield this.module.get(element.value.node)
   }
+
+  *enumerate(): IterableIterator<[number, Ast | undefined]> {
+    for (const [index, element] of this.fields.get('elements').entries()) {
+      yield [index, this.module.get(element.value?.node)]
+    }
+  }
+
+  get length() {
+    return this.fields.get('elements').length
+  }
 }
 export class MutableVector extends Vector implements MutableAst {
   declare readonly module: MutableModule
@@ -2410,6 +2470,34 @@ export class MutableVector extends Vector implements MutableAst {
       ownedToRaw(this.module, this.id),
     )
     this.fields.set('elements', [...elements, element])
+  }
+
+  pop(): Owned | undefined {
+    const elements = this.fields.get('elements')
+    const last = elements[elements.length - 1]?.value?.node
+    this.fields.set('elements', elements.slice(0, -1))
+    const lastNode = this.module.get(last)
+    if (lastNode != null) {
+      lastNode.fields.set('parent', undefined)
+      return lastNode as Owned
+    } else {
+      return undefined
+    }
+  }
+
+  set<T extends MutableAst>(index: number, value: Owned<T>) {
+    const elements = [...this.fields.get('elements')]
+    elements[index] = {
+      delimiter: elements[index]!.delimiter,
+      value: autospaced(this.claimChild(value)),
+    }
+    this.fields.set('elements', elements)
+  }
+
+  splice(start: number, deletedCount: number) {
+    const elements = [...this.fields.get('elements')]
+    elements.splice(start, deletedCount)
+    this.fields.set('elements', elements)
   }
 
   keep(predicate: (ast: Ast) => boolean) {

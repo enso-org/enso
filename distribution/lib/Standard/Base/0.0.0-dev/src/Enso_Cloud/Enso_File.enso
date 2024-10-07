@@ -53,19 +53,6 @@ type Enso_File
 
        Arguments:
        - path: The `enso://` path to a file or directory.
-
-       ? Enso Cloud Paths
-
-         The paths consist of the organization (user) name followed by a path to
-         the file/directory delimited by `/`.
-         For example `enso://my_org/some_dir/some-file.txt`.
-
-       ! Work in progress - only existing resources
-
-         Currently the API is only able to resolve paths to existing files or
-         directories. This is a temporary limitation and it will be improved in
-         the future, alongside with implementing the capabilities to write new
-         files.
     new : Text -> Enso_File ! Not_Found
     new (path : Text) =
         Enso_File.Value (Enso_Path.parse path)
@@ -74,9 +61,22 @@ type Enso_File
     private Value (enso_path : Enso_Path)
 
     ## ICON folder
-       Represents the root folder of the current users.
+       Represents the current user's home directory.
+    home : Enso_File
+    home -> Enso_File =
+        Enso_File.root / "Users" / Enso_User.current.name
+
+
+    ## ICON folder
+       Represents the root folder of the organization.
+
+       ? Organization Root Directory
+
+         The organization root directory cannot be directly written into.
+         You should put your files and projects in a subdirectory dedicated to a
+         given user or team in the `Users` or `Teams` subdirectories within it.
     root : Enso_File
-    root = Enso_File.Value (Enso_Path.root_for Enso_User.current.organization_name)
+    root = Enso_File.Value Enso_Path.root
 
     ## ICON folder
        Represents the current working directory.
@@ -88,7 +88,7 @@ type Enso_File
        directory.
     current_working_directory : Enso_File
     current_working_directory =
-        Enso_File.cloud_project_parent_directory . if_nothing Enso_File.root
+        Enso_File.cloud_project_parent_directory . if_nothing Enso_File.home
 
     ## PRIVATE
        The parent directory containing the currently open project if in the
@@ -179,6 +179,11 @@ type Enso_File
         self.enso_path.is_descendant_of other.enso_path
 
     ## PRIVATE
+       Convert to a display representation of this S3_File.
+    to_display_text : Text
+    to_display_text self = "Enso_File {" + self.path + "}"
+
+    ## PRIVATE
        ADVANCED
        Creates a new output stream for this file and runs the specified action
        on it.
@@ -193,7 +198,7 @@ type Enso_File
          value. The value is returned from this method.
     with_output_stream : Vector File_Access -> (Output_Stream -> Any ! File_Error) -> Any ! File_Error
     with_output_stream self (open_options : Vector) action =
-        Context.Output.if_enabled disabled_message="Writing to an Enso_File is forbidden as the Output context is disabled." panic=False <|
+        Context.Output.if_enabled disabled_message="As writing is disabled, cannot write to a file. Press the Write button ▶ to perform the operation." panic=False <|
             is_data_link = Data_Link.is_data_link self
             open_as_data_link = (open_options.contains Data_Link_Access.No_Follow . not) && is_data_link
             if open_as_data_link then Data_Link_Helpers.write_data_link_as_stream self open_options action else
@@ -238,7 +243,7 @@ type Enso_File
                         Error.throw (Illegal_Argument.Error "Only files can be opened as a stream.")
                 response.if_not_error <| response.body.with_stream action
 
-    ## ALIAS load, open
+    ## ALIAS load, open, import
        GROUP Input
        ICON data_input
        Read a file using the specified file format
@@ -403,10 +408,6 @@ type Enso_File
     / : Text -> Enso_File ! Not_Found
     / self (name : Text) -> Enso_File ! Not_Found =
         Enso_File.Value (self.enso_path.resolve name)
-
-    ## PRIVATE
-    is_current_user_root self -> Boolean =
-        self.enso_path.is_root && self.enso_path.organization_name == Enso_User.current.organization_name
 
     ## PRIVATE
        Returns the text representation of the file descriptor.

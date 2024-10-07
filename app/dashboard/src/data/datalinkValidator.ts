@@ -6,8 +6,14 @@ import SCHEMA from '#/data/datalinkSchema.json' with { type: 'json' }
 
 import * as error from '#/utilities/error'
 
-// eslint-disable-next-line @typescript-eslint/naming-convention
-export const AJV = new Ajv({ formats: { 'enso-secret': true, 'enso-file': true } })
+export const AJV = new Ajv({
+  formats: {
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    'enso-secret': (value) => typeof value === 'string' && value !== '',
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    'enso-file': true,
+  },
+})
 AJV.addSchema(SCHEMA)
 
 // This is a function, even though it does not contain function syntax.

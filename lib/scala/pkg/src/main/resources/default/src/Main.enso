@@ -4,7 +4,14 @@ from Standard.Database import all
 from Standard.AWS import all
 from Standard.Google_Api import all
 from Standard.Snowflake import all
+import Standard.Examples
 import Standard.Visualization
 
 main =
-    operator1 = "Press ENTER key to create a new component"
+    file1 = Data.read Examples.welcome
+
+
+
+#### METADATA ####
+[[{"index":{"value":270},"size":{"value":26}},"fcf199e6-d2b1-44b7-be92-a47545d6a593"]]
+{"ide":{"node":{"fcf199e6-d2b1-44b7-be92-a47545d6a593":{"position":{"vector":[-388,282]},"visualization":{"show":true,"width":1027.671875,"height":193}}},"import":{}}}

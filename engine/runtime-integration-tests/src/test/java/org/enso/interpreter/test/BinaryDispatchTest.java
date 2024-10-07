@@ -63,7 +63,9 @@ public class BinaryDispatchTest {
 
   @AfterClass
   public static void closeCtx() {
+    module = null;
     ctx.close();
+    ctx = null;
   }
 
   @Test

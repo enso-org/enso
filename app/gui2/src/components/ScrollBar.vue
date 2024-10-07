@@ -78,6 +78,11 @@ function dragEventsHandler(axis: 'x' | 'y') {
         emit('scroll', { type: 'stop' })
         break
       }
+      case 'cancel': {
+        emit('scroll', { type: 'move', startOffset: Vec2.Zero })
+        emit('scroll', { type: 'stop' })
+        break
+      }
     }
     return true
   })
@@ -121,10 +126,10 @@ export default {}
 
 <template>
   <div ref="element" class="ScrollBar" :style="scrollBarStyles">
-    <div class="track vertical" @pointerdown.stop="clickTrack.y">
+    <div class="track vertical" :class="{ scrollable: !yFull }" @pointerdown.stop="clickTrack.y">
       <div class="bar vertical" v-on.stop="dragSlider.y" />
     </div>
-    <div class="track horizontal" @pointerdown.stop="clickTrack.x">
+    <div class="track horizontal" :class="{ scrollable: !xFull }" @pointerdown.stop="clickTrack.x">
       <div class="bar horizontal" v-on.stop="dragSlider.x" />
     </div>
   </div>
@@ -190,8 +195,10 @@ export default {}
   background-color: rgba(150 150 150 / 15%);
   transition: opacity 0.2s ease-in;
   opacity: 0;
+  &.scrollable {
+    opacity: var(--scrollbar-scrollable-opacity);
+  }
   &:hover {
-    transition: opacity 0.2s ease-in;
     opacity: 1;
   }
   &:active {

@@ -1,5 +1,3 @@
-// === Features ===
-#![feature(future_join)]
 // === Non-Standard Linter Configuration ===
 #![warn(unused_qualifications)]
 
@@ -31,7 +29,6 @@ use crate::arg::WatchJob;
 use anyhow::Context;
 use arg::BuildDescription;
 use clap::Parser;
-use derivative::Derivative;
 use enso_build::config::Config;
 use enso_build::context::BuildContext;
 use enso_build::engine::context::EnginePackageProvider;
@@ -86,34 +83,12 @@ fn resolve_artifact_name(input: Option<String>, project: &impl IsTarget) -> Stri
     input.unwrap_or_else(|| project.artifact_name())
 }
 
-/// Run the given future. After it is complete (regardless of success or failure), upload the
-/// directory as a CI artifact.
-///
-/// Does not attempt any uploads if not running in a CI environment.
-pub fn run_and_upload_dir(
-    fut: BoxFuture<'static, Result>,
-    dir_path: impl Into<PathBuf>,
-    artifact_name: impl Into<String>,
-) -> BoxFuture<'static, Result> {
-    let dir_path = dir_path.into();
-    let artifact_name = artifact_name.into();
-    async move {
-        let result = fut.await;
-        if is_in_env() {
-            ide_ci::actions::artifacts::upload_directory(dir_path, artifact_name).await?;
-        }
-        result
-    }
-    .boxed()
-}
-
 define_env_var! {
     ENSO_BUILD_KIND, version::Kind;
 }
 
 /// The basic, common information available in this application.
-#[derive(Clone, Derivative)]
-#[derivative(Debug)]
+#[derive(Clone, Debug)]
 pub struct Processor {
     pub context: BuildContext,
 }
@@ -213,12 +188,12 @@ impl Processor {
     ) -> BoxFuture<'static, Result<ReleaseSource>> {
         let repository = self.remote_repo.clone();
         let release = self.resolve_release_designator(designator);
-        release
-            .and_then_sync(move |release| {
-                let asset = target.find_asset(&release)?;
-                Ok(ReleaseSource { repository, asset_id: asset.id })
-            })
-            .boxed()
+        async move {
+            let release = release.await?;
+            let asset = target.find_asset(&release)?;
+            Ok(ReleaseSource { repository, asset_id: asset.id })
+        }
+        .boxed()
     }
 
     pub fn js_build_info(&self) -> BoxFuture<'static, Result<gui::BuildInfo>> {
@@ -348,14 +323,15 @@ impl Processor {
                         enso_build::web::run_script(&repo_root, enso_build::web::Script::CiCheck)
                             .await;
                     if is_in_env() {
-                        let gui_report = ide_ci::actions::artifacts::upload_directory(
+                        let gui_report = ide_ci::actions::artifacts::upload_directory_if_exists(
                             &repo_root.app.gui_2.playwright_report,
                             "gui-playwright-report",
                         );
-                        let dashboard_report = ide_ci::actions::artifacts::upload_directory(
-                            repo_root.app.dashboard.playwright_report,
-                            "dashboard-playwright-report",
-                        );
+                        let dashboard_report =
+                            ide_ci::actions::artifacts::upload_directory_if_exists(
+                                repo_root.app.dashboard.playwright_report,
+                                "dashboard-playwright-report",
+                            );
                         try_join!(gui_report, dashboard_report)?;
                     }
                     check_result
@@ -429,6 +405,15 @@ impl Processor {
                         Tests::StdSnowflake => config.add_standard_library_test_selection(
                             StandardLibraryTestsSelection::Selected(vec![
                                 "Snowflake_Tests".to_string()
+                            ]),
+                        ),
+                        Tests::StdCloudRelated => config.add_standard_library_test_selection(
+                            StandardLibraryTestsSelection::Selected(vec![
+                                "Base_Tests".to_string(),
+                                // Table tests check integration of e.g. Postgres datalinks
+                                "Table_Tests".to_string(),
+                                // AWS tests check copying between Cloud and S3
+                                "AWS_Tests".to_string(),
                             ]),
                         ),
                     }
@@ -571,7 +556,13 @@ impl Processor {
         &self,
         params: arg::ide::BuildInput,
     ) -> BoxFuture<'static, Result<ide::Artifact>> {
-        let arg::ide::BuildInput { gui, project_manager, output_path, electron_target } = params;
+        let arg::ide::BuildInput {
+            gui,
+            project_manager,
+            output_path,
+            electron_target,
+            sign_artifacts,
+        } = params;
 
         let build_info_get = self.js_build_info();
         let build_info_path = self.context.inner.repo_root.join(&*enso_build::ide::web::BUILD_INFO);
@@ -593,6 +584,7 @@ impl Processor {
             version: self.triple.versions.version.clone(),
             electron_target,
             artifact_name: "ide".into(),
+            sign_artifacts,
         };
 
         let target = Ide { target_os: self.triple.os, target_arch: self.triple.arch };
@@ -660,22 +652,21 @@ impl Resolvable for Backend {
     ) -> BoxFuture<'static, Result<<Self as IsTarget>::BuildInput>> {
         let arg::backend::BuildInput { runtime } = from;
         let versions = ctx.triple.versions.clone();
-
         let context = ctx.context.inner.clone();
-
-        ctx.resolve(Runtime, runtime)
-            .and_then_sync(|runtime| {
-                let external_runtime = runtime.to_external().map(move |external| {
-                    Arc::new(move || {
-                        Runtime
-                            .get_external(context.clone(), external.clone())
-                            .map_ok(|artifact| artifact.into_inner())
-                            .boxed()
-                    }) as Arc<EnginePackageProvider>
-                });
-                Ok(backend::BuildInput { external_runtime, versions })
-            })
-            .boxed()
+        let runtime_future = ctx.resolve(Runtime, runtime);
+        async {
+            let runtime = runtime_future.await?;
+            let external_runtime = runtime.to_external().map(move |external| {
+                Arc::new(move || {
+                    Runtime
+                        .get_external(context.clone(), external.clone())
+                        .map_ok(|artifact| artifact.into_inner())
+                        .boxed()
+                }) as Arc<EnginePackageProvider>
+            });
+            Ok(backend::BuildInput { external_runtime, versions })
+        }
+        .boxed()
     }
 }
 
@@ -815,7 +806,11 @@ pub async fn main_internal(config: Option<Config>) -> Result {
                     java_gen::Command::Build => generate_job.await,
                     java_gen::Command::Test => {
                         generate_job.await?;
-                        let backend_context = ctx.prepare_backend_context(default()).await?;
+                        let config = enso_build::engine::BuildConfigurationFlags {
+                            test_java_generated_from_rust: true,
+                            ..Default::default()
+                        };
+                        let backend_context = ctx.prepare_backend_context(config).await?;
                         backend_context.prepare_build_env().await?;
                         enso_build::rust::parser::run_self_tests(&repo_root).await
                     }

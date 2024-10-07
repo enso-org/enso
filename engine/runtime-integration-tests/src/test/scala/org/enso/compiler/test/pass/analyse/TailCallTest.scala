@@ -31,14 +31,14 @@ class TailCallTest extends CompilerTest {
 
   def mkTailContext: InlineContext =
     buildInlineContext(
-      localScope       = Some(LocalScope.root),
+      localScope       = Some(LocalScope.createEmpty),
       isInTailPosition = Some(true),
       freshNameSupply  = Some(new FreshNameSupply)
     )
 
   def mkNoTailContext: InlineContext =
     buildInlineContext(
-      localScope       = Some(LocalScope.root),
+      localScope       = Some(LocalScope.createEmpty),
       isInTailPosition = Some(false),
       freshNameSupply  = Some(new FreshNameSupply)
     )
@@ -186,15 +186,11 @@ class TailCallTest extends CompilerTest {
         .expressions(0)
         .asInstanceOf[Expression.Binding]
         .expression
-        .diagnostics
-        .filter(_.isInstanceOf[Warning.WrongTco])
-        .toList
-        .length shouldEqual 1
+        .diagnosticsList
+        .count(_.isInstanceOf[Warning.WrongTco]) shouldEqual 1
 
-      fnBody.returnValue.diagnostics
-        .filter(_.isInstanceOf[Warning.WrongTco])
-        .toList
-        .length shouldEqual 0
+      fnBody.returnValue.diagnosticsList
+        .count(_.isInstanceOf[Warning.WrongTco]) shouldEqual 0
     }
   }
 
@@ -225,10 +221,8 @@ class TailCallTest extends CompilerTest {
         .returnValue
         .asInstanceOf[Application.Prefix]
         .function
-        .diagnostics
-        .filter(_.isInstanceOf[Warning.WrongTco])
-        .toList
-        .length shouldEqual 0
+        .diagnosticsList
+        .count(_.isInstanceOf[Warning.WrongTco]) shouldEqual 0
     }
 
   }

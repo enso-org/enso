@@ -117,7 +117,6 @@ public final class TopLevelScope implements EnsoObject {
         MethodNames.TopScope.CREATE_MODULE,
         MethodNames.TopScope.REGISTER_MODULE,
         MethodNames.TopScope.UNREGISTER_MODULE,
-        MethodNames.TopScope.LOCAL_LIBRARIES,
         MethodNames.TopScope.COMPILE);
   }
 
@@ -166,18 +165,6 @@ public final class TopLevelScope implements EnsoObject {
       return context.getNothing();
     }
 
-    @CompilerDirectives.TruffleBoundary
-    private static EnsoObject localLibraries(EnsoContext context) {
-      var seq = context.getTopScope().packageRepository.findAvailableLocalLibraries();
-      String[] names = new String[seq.size()];
-      var it = seq.iterator();
-      var i = 0;
-      while (it.hasNext()) {
-        names[i++] = it.next().toString();
-      }
-      return ArrayLikeHelpers.wrapStrings(names);
-    }
-
     private static Object leakContext(EnsoContext context) {
       return context.asGuestValue(context);
     }
@@ -192,26 +179,31 @@ public final class TopLevelScope implements EnsoObject {
       } catch (InterruptedException e) {
         throw new RuntimeException(e);
       } catch (ExecutionException e) {
-        throw new RuntimeException(e);
+        var re = new RuntimeException(e);
+        re.setStackTrace(e.getStackTrace());
+        throw re;
       }
     }
 
     @Specialization
     static Object doInvoke(TopLevelScope scope, String member, Object[] arguments)
         throws UnknownIdentifierException, ArityException, UnsupportedTypeException {
-      return switch (member) {
-        case MethodNames.TopScope.GET_MODULE -> getModule(scope, arguments);
-        case MethodNames.TopScope.CREATE_MODULE -> createModule(
-            scope, arguments, EnsoContext.get(null));
-        case MethodNames.TopScope.REGISTER_MODULE -> registerModule(
-            scope, arguments, EnsoContext.get(null));
-        case MethodNames.TopScope.UNREGISTER_MODULE -> unregisterModule(
-            scope, arguments, EnsoContext.get(null));
-        case MethodNames.TopScope.LEAK_CONTEXT -> leakContext(EnsoContext.get(null));
-        case MethodNames.TopScope.LOCAL_LIBRARIES -> localLibraries(EnsoContext.get(null));
-        case MethodNames.TopScope.COMPILE -> compile(arguments, EnsoContext.get(null));
-        default -> throw UnknownIdentifierException.create(member);
-      };
+      switch (member) {
+        case MethodNames.TopScope.GET_MODULE:
+          return getModule(scope, arguments);
+        case MethodNames.TopScope.CREATE_MODULE:
+          return createModule(scope, arguments, EnsoContext.get(null));
+        case MethodNames.TopScope.REGISTER_MODULE:
+          return registerModule(scope, arguments, EnsoContext.get(null));
+        case MethodNames.TopScope.UNREGISTER_MODULE:
+          return unregisterModule(scope, arguments, EnsoContext.get(null));
+        case MethodNames.TopScope.LEAK_CONTEXT:
+          return leakContext(EnsoContext.get(null));
+        case MethodNames.TopScope.COMPILE:
+          return compile(arguments, EnsoContext.get(null));
+        default:
+          throw UnknownIdentifierException.create(member);
+      }
     }
   }
 
@@ -228,7 +220,6 @@ public final class TopLevelScope implements EnsoObject {
         || member.equals(MethodNames.TopScope.REGISTER_MODULE)
         || member.equals(MethodNames.TopScope.UNREGISTER_MODULE)
         || member.equals(MethodNames.TopScope.LEAK_CONTEXT)
-        || member.equals(MethodNames.TopScope.LOCAL_LIBRARIES)
         || member.equals(MethodNames.TopScope.COMPILE);
   }
 

@@ -1,7 +1,7 @@
 package org.enso.editions.repository
 
 import org.enso.editions.EditionName
-import org.enso.yaml.{YamlDecoder, YamlEncoder}
+import org.enso.scala.yaml.{YamlDecoder, YamlEncoder}
 import org.yaml.snakeyaml.error.YAMLException
 import org.yaml.snakeyaml.nodes.{MappingNode, Node, ScalarNode, SequenceNode}
 

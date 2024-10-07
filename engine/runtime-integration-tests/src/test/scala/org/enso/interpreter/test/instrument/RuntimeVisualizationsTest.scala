@@ -1351,6 +1351,17 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
     )
 
+    val attachVisualizationResponses =
+      context.receiveNIgnoreExpressionUpdates(4)
+
+    attachVisualizationResponses.filter(
+      _.payload.isInstanceOf[Api.VisualizationAttached]
+    ) shouldEqual List(
+      Api.Response(requestId, Api.VisualizationAttached()),
+      Api.Response(requestId, Api.VisualizationAttached())
+    )
+
+    // Modify the file
     context.send(
       Api.Request(
         Api.EditFileNotification(
@@ -1367,23 +1378,17 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
     )
 
-    val responses =
-      context.receiveNIgnoreExpressionUpdates(7)
+    val editFileResponses =
+      context.receiveNIgnoreExpressionUpdates(3)
 
-    responses should contain allOf (
-      Api.Response(requestId, Api.VisualizationAttached()),
+    editFileResponses should contain(
       context.executionComplete(contextId)
     )
 
-    responses.filter(
-      _.payload.isInstanceOf[Api.VisualizationAttached]
-    ) shouldEqual List(
-      Api.Response(requestId, Api.VisualizationAttached()),
-      Api.Response(requestId, Api.VisualizationAttached())
-    )
-
     val visualizationUpdatesResponses =
-      responses.filter(_.payload.isInstanceOf[Api.VisualizationUpdate])
+      (attachVisualizationResponses ::: editFileResponses).filter(
+        _.payload.isInstanceOf[Api.VisualizationUpdate]
+      )
     val expectedExpressionId = context.Main.idMainX
     val visualizationUpdates = visualizationUpdatesResponses.map(
       _.payload.asInstanceOf[Api.VisualizationUpdate]
@@ -2806,7 +2811,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           data
       }
       val stringified = new String(data)
-      stringified shouldEqual "\"Function\""
+      stringified should include("""{"value":"Function"""")
   }
 
   it should "attach text visualization with arguments" in withContext() {
@@ -4166,10 +4171,13 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         )
       )
       val attachVisualizationResponses =
-        context.receiveNIgnoreExpressionUpdates(3)
-      attachVisualizationResponses should contain allOf (
-        Api.Response(requestId, Api.VisualizationAttached()),
-        context.executionComplete(contextId)
+        context.receiveNIgnoreExpressionUpdates(2)
+      attachVisualizationResponses.size should be(2)
+      attachVisualizationResponses should contain(
+        Api.Response(requestId, Api.VisualizationAttached())
+      )
+      attachVisualizationResponses should not contain context.executionComplete(
+        contextId
       )
       val Some(data) = attachVisualizationResponses.collectFirst {
         case Api.Response(

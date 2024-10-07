@@ -1,7 +1,8 @@
 package org.enso.projectmanager.protocol
+
 import org.enso.semver.SemVer
-import org.enso.logger.ReportLogsOnFailure
 import org.enso.runtimeversionmanager.test.OverrideTestVersionSuite
+import org.enso.testkit.ReportLogsOnFailure
 
 class ProjectOpenMissingComponentsSpec
     extends ProjectOpenSpecBase

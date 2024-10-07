@@ -52,7 +52,7 @@ pub trait TypedVariable: RawVariable {
     type Value;
 
     /// The borrowed type of this variable.
-    type Borrowed: ?Sized = Self::Value;
+    type Borrowed: ?Sized;
 
     /// Construct a value of this variable by parsing the raw text value.
     fn parse(&self, value: &str) -> Result<Self::Value>;
@@ -98,7 +98,7 @@ impl<Variable: TypedVariable, Value: AsRef<Variable::Borrowed>> FallibleManipula
 #[derive(Clone, Copy, Debug, Display, Ord, PartialOrd, Eq, PartialEq)]
 pub struct PathBufVariable(pub &'static str);
 
-impl const From<&'static str> for PathBufVariable {
+impl From<&'static str> for PathBufVariable {
     fn from(value: &'static str) -> Self {
         PathBufVariable(value)
     }
@@ -120,7 +120,7 @@ impl TypedVariable for PathBufVariable {
     type Value = PathBuf;
     type Borrowed = Path;
     fn parse(&self, value: &str) -> Result<Self::Value> {
-        PathBuf::from_str(value)
+        Ok(PathBuf::from_str(value)?)
     }
     fn generate(&self, value: &Self::Borrowed) -> Result<String> {
         value
@@ -144,7 +144,7 @@ impl<Value, Borrowed: ?Sized> From<&'static str> for SimpleVariable<Value, Borro
     }
 }
 
-impl<Value, Borrowed: ?Sized> const AsRef<str> for SimpleVariable<Value, Borrowed> {
+impl<Value, Borrowed: ?Sized> AsRef<str> for SimpleVariable<Value, Borrowed> {
     fn as_ref(&self) -> &str {
         self.name
     }
@@ -180,13 +180,13 @@ impl<Value, Borrowed: ?Sized> RawVariable for SimpleVariable<Value, Borrowed> {
     }
 }
 
-impl<Value: FromString, Borrowed: ToString + ?Sized> TypedVariable
-    for SimpleVariable<Value, Borrowed>
+impl<Value: FromStr, Borrowed: ToString + ?Sized> TypedVariable for SimpleVariable<Value, Borrowed>
+where Value::Err: Into<anyhow::Error>
 {
     type Value = Value;
     type Borrowed = Borrowed;
     fn parse(&self, value: &str) -> Result<Self::Value> {
-        Value::from_str(value)
+        Value::from_str(value).map_err(Into::into)
     }
     fn generate(&self, value: &Self::Borrowed) -> Result<String> {
         Ok(Borrowed::to_string(value))
@@ -210,11 +210,12 @@ impl RawVariable for PathLike {
 
 impl TypedVariable for PathLike {
     type Value = Vec<PathBuf>;
+    type Borrowed = [PathBuf];
     fn parse(&self, value: &str) -> Result<Self::Value> {
         Ok(std::env::split_paths(value).collect())
     }
 
-    fn generate(&self, value: &Self::Value) -> Result<String> {
+    fn generate(&self, value: &Self::Borrowed) -> Result<String> {
         std::env::join_paths(value)?
             .into_string()
             .map_err(|e| anyhow!("Not a valid UTF-8 string: '{}'.", e.to_string_lossy()))
@@ -247,6 +248,7 @@ impl RawVariable for Separated {
 
 impl TypedVariable for Separated {
     type Value = Vec<String>;
+    type Borrowed = [String];
 
     fn parse(&self, value: &str) -> Result<Self::Value> {
         Ok(value.split(self.separator).map(ToString::to_string).collect())

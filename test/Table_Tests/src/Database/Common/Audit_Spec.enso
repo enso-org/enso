@@ -9,6 +9,8 @@ from Standard.Test import all
 import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
 from enso_dev.Base_Tests.Network.Enso_Cloud.Audit_Log_Spec import Audit_Log_Event, get_audit_log_events
 
+import project.Database.Postgres_Spec.Temporary_Data_Link_File
+from project.Database.Postgres_Spec import get_configured_connection_details
 from project.Util import all
 
 polyglot java import java.lang.Thread
@@ -34,22 +36,23 @@ add_specs suite_builder prefix ~datalink_to_connection database_pending =
 
             # Retrying is needed as there may be some delay before the background thread finishes processing the logs.
             Test.with_retries <|
-                Thread.sleep 500
+                Thread.sleep 1000
                 all_events = get_audit_log_events
                 relevant_events = all_events.filter e-> e.message.contains table_name
 
                 create = relevant_events.find (e-> e.message.contains "CREATE")
                 create.should_succeed
                 create.user_email . should_equal Enso_User.current.email
-                create.metadata.get "connection_uri" . should_contain "jdbc:"
+                create.metadata.get "connectionUri" . should_contain "jdbc:"
+                create.metadata.get "projectName" . should_equal enso_project.namespace+"."+enso_project.name
 
                 insert = relevant_events.find (e-> e.message.contains "INSERT INTO")
                 insert.should_succeed
                 # The insert query should not contain column cell data - only column names / metadata.
                 insert.message.should_not_contain "my_payload"
 
-                create_sequence_number = create.metadata.get "sequence_number"
-                insert_sequence_number = insert.metadata.get "sequence_number"
+                create_sequence_number = create.metadata.get "sequenceNumber"
+                insert_sequence_number = insert.metadata.get "sequenceNumber"
                 create_sequence_number.should_be_a Integer
                 insert_sequence_number.should_be_a Integer
                 (create_sequence_number < insert_sequence_number) . should_be_true
@@ -60,7 +63,7 @@ add_specs suite_builder prefix ~datalink_to_connection database_pending =
         group_builder.specify "should see Database operations performed manually" <| cloud_setup.with_prepared_environment <|
             audited_connection = datalink_to_connection.read
             query = "SELECT 1 AS A, 2 AS B, "+(Random.integer 0 1000000).to_text+" AS C"
-            t = audited_connection.read query
+            t = audited_connection.read (SQL_Query.Raw_SQL query)
             # Force the connector to perform the query:
             t.at 0 . to_vector . should_equal [1]
 
@@ -80,7 +83,7 @@ add_specs suite_builder prefix ~datalink_to_connection database_pending =
                 locally_audited_connection = datalink_to_connection.read
 
                 # We just check that we can read queries through this connection:
-                locally_audited_connection.read "SELECT 1" . at 0 . to_vector . should_equal [1]
+                locally_audited_connection.read (SQL_Query.Raw_SQL "SELECT 1") . at 0 . to_vector . should_equal [1]
 
         group_builder.specify "should know the asset id of the data link used for the connection" pending="TODO: https://github.com/enso-org/enso/issues/9869" <|
             ## TODO:
@@ -89,3 +92,11 @@ add_specs suite_builder prefix ~datalink_to_connection database_pending =
                3. switch to mock cloud (if wanted) and run some queries
                4. inspect logs and search for the asset id
             Error.throw "TODO"
+
+main filter=Nothing =
+    connection_details = get_configured_connection_details
+    pending = if connection_details.is_nothing then "PostgreSQL test database is not configured. See README.md for instructions."
+    data_link_file = Temporary_Data_Link_File.make connection_details
+    suite = Test.build suite_builder->
+        add_specs suite_builder "[PostgreSQL] " data_link_file.get database_pending=pending
+    suite.run_with_filter filter

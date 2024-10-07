@@ -298,7 +298,7 @@ final class EnsoHashMapBuilder {
     if (a instanceof Double aDbl && b instanceof Double bDbl && aDbl.isNaN() && bDbl.isNaN()) {
       return true;
     } else {
-      return equalsNode.execute(frame, a, b);
+      return equalsNode.execute(frame, a, b).isTrue();
     }
   }
 

@@ -202,6 +202,8 @@ object NativeImage {
           cpToSearch,
           JPMSUtils.componentModules,
           log,
+          projName = (moduleName.value),
+          scalaBinaryVersion.value,
           shouldContainAll = true
         )
         .map(_.data.getAbsolutePath)

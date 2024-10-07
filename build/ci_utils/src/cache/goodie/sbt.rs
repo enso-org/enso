@@ -18,7 +18,7 @@ pub struct Sbt;
 
 impl Goodie for Sbt {
     fn get(&self, cache: &Cache) -> BoxFuture<'static, Result<PathBuf>> {
-        goodie::download_try_url(Url::from_str(DOWNLOAD_URL_TEXT), cache)
+        goodie::download_try_url(Url::from_str(DOWNLOAD_URL_TEXT).map_err(Into::into), cache)
     }
 
     fn is_active(&self) -> BoxFuture<'static, Result<bool>> {

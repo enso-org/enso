@@ -26,7 +26,7 @@ import org.enso.languageserver.runtime.{
 }
 import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.util.UnhandledLogging
-import org.enso.logger.akka.ActorMessageLogging
+import org.enso.logging.utils.akka.ActorMessageLogging
 import org.enso.polyglot.runtime.Runtime.Api
 
 import java.nio.charset.StandardCharsets

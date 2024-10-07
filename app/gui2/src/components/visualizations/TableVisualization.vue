@@ -1,35 +1,18 @@
 <script lang="ts">
 import icons from '@/assets/icons.svg'
-import {
-  clipboardNodeData,
-  tsvTableToEnsoExpression,
-  writeClipboard,
-} from '@/components/GraphEditor/clipboard'
-import TextFormattingSelector from '@/components/TextFormattingSelector.vue'
+import AgGridTableView from '@/components/shared/AgGridTableView.vue'
+import { SortModel, useTableVizToolbar } from '@/components/visualizations/tableVizToolbar'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
-import { useAutoBlur } from '@/util/autoBlur'
-import { VisualizationContainer, useVisualizationConfig } from '@/util/visualizationBuiltins'
-import '@ag-grid-community/styles/ag-grid.css'
-import '@ag-grid-community/styles/ag-theme-alpine.css'
+import { useVisualizationConfig } from '@/util/visualizationBuiltins'
 import type {
   CellClassParams,
   CellClickedEvent,
-  ColumnResizedEvent,
+  ColDef,
   ICellRendererParams,
-  RowHeightParams,
-} from 'ag-grid-community'
-import type { ColDef, GridOptions } from 'ag-grid-enterprise'
-import {
-  computed,
-  onMounted,
-  onUnmounted,
-  reactive,
-  ref,
-  shallowRef,
-  watchEffect,
-  type Ref,
-} from 'vue'
+  SortChangedEvent,
+} from 'ag-grid-enterprise'
+import { computed, onMounted, ref, shallowRef, watchEffect, type Ref } from 'vue'
 
 export const name = 'Table'
 export const icon = 'table'
@@ -60,6 +43,7 @@ interface Matrix {
   all_rows_count: number
   json: unknown[][]
   value_type: ValueType[]
+  get_child_node_action: string
 }
 
 interface Excel_Workbook {
@@ -68,6 +52,7 @@ interface Excel_Workbook {
   all_rows_count: number
   sheet_names: string[]
   json: unknown[][]
+  get_child_node_action: string
 }
 
 interface ObjectMatrix {
@@ -76,6 +61,7 @@ interface ObjectMatrix {
   all_rows_count: number
   json: object[]
   value_type: ValueType[]
+  get_child_node_action: string
 }
 
 interface UnknownTable {
@@ -90,34 +76,16 @@ interface UnknownTable {
   value_type: ValueType[]
   has_index_col: boolean | undefined
   links: string[] | undefined
+  get_child_node_action: string
+  get_child_node_link_name: string
+  link_value_type: string
 }
 
-export enum TextFormatOptions {
-  Partial,
-  On,
-  Off,
-}
-
-declare module 'ag-grid-enterprise' {
-  // These type parameters are defined on the original interface.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  interface AbstractColDef<TData, TValue> {
-    field: string
-  }
-}
-
-if (typeof import.meta.env.VITE_ENSO_AG_GRID_LICENSE_KEY !== 'string') {
-  console.warn('The AG_GRID_LICENSE_KEY is not defined.')
-}
+export type TextFormatOptions = 'full' | 'partial' | 'off'
 </script>
 
 <script setup lang="ts">
-const { LicenseManager, Grid } = await import('ag-grid-enterprise')
-
 const props = defineProps<{ data: Data }>()
-const emit = defineEmits<{
-  'update:preprocessor': [module: string, method: string, ...args: string[]]
-}>()
 const config = useVisualizationConfig()
 
 const INDEX_FIELD_NAME = '#'
@@ -131,7 +99,8 @@ const SQLITE_CONNECTIONS_NODE_TYPE =
   'Standard.Database.Internal.SQLite.SQLite_Connection.SQLite_Connection'
 const POSTGRES_CONNECTIONS_NODE_TYPE =
   'Standard.Database.Internal.Postgres.Postgres_Connection.Postgres_Connection'
-const DEFAULT_ROW_HEIGHT = 22
+const SNOWFLAKE_CONNECTIONS_NODE_TYPE =
+  'Standard.Snowflake.Snowflake_Connection.Snowflake_Connection'
 
 const rowLimit = ref(0)
 const page = ref(0)
@@ -139,11 +108,11 @@ const pageLimit = ref(0)
 const rowCount = ref(0)
 const showRowCount = ref(true)
 const isTruncated = ref(false)
-const tableNode = ref<HTMLElement>()
+const isCreateNodeEnabled = ref(false)
+const filterModel = ref({})
+const sortModel = ref<SortModel[]>([])
 const dataGroupingMap = shallowRef<Map<string, boolean>>()
-useAutoBlur(tableNode)
-const widths = reactive(new Map<string, number>())
-const defaultColDef = {
+const defaultColDef: Ref<ColDef> = ref({
   editable: false,
   sortable: true,
   filter: true,
@@ -151,25 +120,11 @@ const defaultColDef = {
   minWidth: 25,
   cellRenderer: cellRenderer,
   cellClass: cellClass,
-}
-const agGridOptions: Ref<GridOptions & Required<Pick<GridOptions, 'defaultColDef'>>> = ref({
-  headerHeight: 26,
-  getRowHeight: getRowHeight,
-  rowData: [],
-  columnDefs: [],
-  defaultColDef: defaultColDef as typeof defaultColDef & { manuallySized: boolean },
-  onFirstDataRendered: updateColumnWidths,
-  onRowDataUpdated: updateColumnWidths,
-  onColumnResized: lockColumnSize,
-  sendToClipboard: ({ data }: { data: string }) => sendToClipboard(data),
-  suppressFieldDotNotation: true,
-  enableRangeSelection: true,
-  popupParent: document.body,
-})
-const textFormatterSelected = ref<TextFormatOptions>(TextFormatOptions.Partial)
-const updateTextFormat = (option: TextFormatOptions) => {
-  textFormatterSelected.value = option
-}
+} satisfies ColDef)
+const rowData = ref<Record<string, any>[]>([])
+const columnDefs: Ref<ColDef[]> = ref([])
+
+const textFormatterSelected = ref<TextFormatOptions>('partial')
 
 const isRowCountSelectorVisible = computed(() => rowCount.value >= 1000)
 
@@ -187,32 +142,21 @@ const selectableRowLimits = computed(() => {
 })
 
 const newNodeSelectorValues = computed(() => {
-  let selector
-  let identifierAction
   let tooltipValue
   let headerName
   switch (config.nodeType) {
     case COLUMN_NODE_TYPE:
     case VECTOR_NODE_TYPE:
-      selector = INDEX_FIELD_NAME
-      identifierAction = 'at'
-      tooltipValue = 'value'
-      break
     case ROW_NODE_TYPE:
-      selector = 'column'
-      identifierAction = 'at'
       tooltipValue = 'value'
       break
     case EXCEL_WORKBOOK_NODE_TYPE:
-      selector = 'Value'
-      identifierAction = 'read'
       tooltipValue = 'sheet'
       headerName = 'Sheets'
       break
     case SQLITE_CONNECTIONS_NODE_TYPE:
     case POSTGRES_CONNECTIONS_NODE_TYPE:
-      selector = 'Value'
-      identifierAction = 'query'
+    case SNOWFLAKE_CONNECTIONS_NODE_TYPE:
       tooltipValue = 'table'
       headerName = 'Tables'
       break
@@ -221,12 +165,14 @@ const newNodeSelectorValues = computed(() => {
       tooltipValue = 'row'
   }
   return {
-    selector,
-    identifierAction,
     tooltipValue,
     headerName,
   }
 })
+
+const isFilterSortNodeEnabled = computed(
+  () => config.nodeType === TABLE_NODE_TYPE || config.nodeType === DB_TABLE_NODE_TYPE,
+)
 
 const numberFormatGroupped = new Intl.NumberFormat(undefined, {
   style: 'decimal',
@@ -255,40 +201,50 @@ function formatNumber(params: ICellRendererParams) {
 }
 
 function formatText(params: ICellRendererParams) {
-  if (textFormatterSelected.value === TextFormatOptions.Off) {
-    return params.value
+  const htmlEscaped = params.value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+
+  if (textFormatterSelected.value === 'off') {
+    return htmlEscaped.replace(/^\s+|\s+$/g, '&nbsp;')
   }
+
   const partialMappings = {
     '\r': '<span style="color: #df8800">␍</span> <br>',
     '\n': '<span style="color: #df8800;">␊</span> <br>',
-    '\t': '<span style="white-space: break-spaces;">    </span>',
+    '\t': '<span style="color: #df8800; white-space: break-spaces;">&#8594;  |</span>',
   }
   const fullMappings = {
     '\r': '<span style="color: #df8800">␍</span> <br>',
     '\n': '<span style="color: #df8800">␊</span> <br>',
-    '\t': '<span style="color: #df8800; white-space: break-spaces;">&#8594;   </span>',
+    '\t': '<span style="color: #df8800; white-space: break-spaces;">&#8594;  |</span>',
   }
 
   const replaceSpaces =
-    textFormatterSelected.value === TextFormatOptions.On ?
-      params.value.replaceAll(' ', '<span style="color: #df8800">&#183;</span>')
-    : params.value.replace(/ {2,}/g, function (match: string) {
-        return `<span style="color: #df8800">${'&#183;'.repeat(match.length)}</span>`
+    textFormatterSelected.value === 'full' ?
+      htmlEscaped.replaceAll(' ', '<span style="color: #df8800">&#183;</span>')
+    : htmlEscaped.replace(/ \s+|^ +| +$/g, function (match: string) {
+        return `<span style="color: #df8800">${match.replaceAll(' ', '&#183;')}</span>`
       })
 
-  const replaceReturns = replaceSpaces.replace(
+  const replaceLinks = replaceSpaces.replace(
+    /https?:\/\/([-()_.!~*';/?:@&=+$,A-Za-z0-9])+/g,
+    (url: string) => `<a href="${url}" target="_blank" class="link">${url}</a>`,
+  )
+
+  const replaceReturns = replaceLinks.replace(
     /\r\n/g,
     '<span style="color: #df8800">␍␊</span> <br>',
   )
 
   const renderOtherWhitespace = (match: string) => {
-    return textFormatterSelected.value === TextFormatOptions.On && match != ' ' ?
+    return textFormatterSelected.value === 'full' && match != ' ' ?
         '<span style="color: #df8800">&#9744;</span>'
       : match
   }
   const newString = replaceReturns.replace(/[\s]/g, function (match: string) {
-    const mapping =
-      textFormatterSelected.value === TextFormatOptions.On ? fullMappings : partialMappings
+    const mapping = textFormatterSelected.value === 'full' ? fullMappings : partialMappings
     return mapping[match as keyof typeof mapping] || renderOtherWhitespace(match)
   })
   return `<span > ${newString} <span>`
@@ -297,8 +253,7 @@ function formatText(params: ICellRendererParams) {
 function setRowLimit(newRowLimit: number) {
   if (newRowLimit !== rowLimit.value) {
     rowLimit.value = newRowLimit
-    emit(
-      'update:preprocessor',
+    config.setPreprocessor(
       'Standard.Visualization.Table.Visualization',
       'prepare_visualization',
       newRowLimit.toString(),
@@ -315,29 +270,6 @@ function escapeHTML(str: string) {
     '>': '&gt;',
   }
   return str.replace(/[&<>"']/g, (m) => mapping[m]!)
-}
-
-function getRowHeight(params: RowHeightParams): number {
-  if (textFormatterSelected.value === TextFormatOptions.Off) {
-    return DEFAULT_ROW_HEIGHT
-  }
-
-  const rowData = Object.values(params.data)
-  const textValues = rowData.filter((r): r is string => typeof r === 'string')
-
-  if (!textValues.length) {
-    return DEFAULT_ROW_HEIGHT
-  }
-
-  const returnCharsCount = textValues.map((text: string) => {
-    const crlfCount = (text.match(/\r\n/g) || []).length
-    const crCount = (text.match(/\r/g) || []).length
-    const lfCount = (text.match(/\n/g) || []).length
-    return crCount + lfCount - crlfCount
-  })
-
-  const maxReturnCharsCount = Math.max(...returnCharsCount)
-  return (maxReturnCharsCount + 1) * DEFAULT_ROW_HEIGHT
 }
 
 function cellClass(params: CellClassParams) {
@@ -413,7 +345,7 @@ function toField(name: string, valueType?: ValueType | null | undefined): ColDef
     `
   const template =
     icon ?
-      `<span style='display:flex; flex-direction:row; justify-content:space-between; width:inherit;'><span ref="eLabel" class="ag-header-cell-label" role="presentation" style='display:flex; flex-direction:row; justify-content:space-between; width:inherit;'> ${name} ${menu}</span> ${sort} ${svgTemplate}</span>`
+      `<span style='display:flex; flex-direction:row; justify-content:space-between; width:inherit;'><span ref="eLabel" class="ag-header-cell-label" role="presentation" style='display:flex; flex-direction:row; justify-content:space-between; width:inherit;'> ${name} </span>  ${menu} ${sort} ${svgTemplate}</span>`
     : `<span ref="eLabel" style='display:flex; flex-direction:row; justify-content:space-between; width:inherit;'>${name} ${menu} ${sort}</span>`
   return {
     field: name,
@@ -432,61 +364,45 @@ function toRowField(name: string, valueType?: ValueType | null | undefined) {
   }
 }
 
-function getAstPattern(selector: string | number, action: string) {
-  return Pattern.new((ast) =>
-    Ast.App.positional(
-      Ast.PropertyAccess.new(ast.module, ast, Ast.identifier(action)!),
-      typeof selector === 'number' ?
-        Ast.tryNumberToEnso(selector, ast.module)!
-      : Ast.TextLiteral.new(selector, ast.module),
-    ),
-  )
+function getAstPattern(selector?: string | number, action?: string) {
+  if (action && selector != null) {
+    return Pattern.new((ast) =>
+      Ast.App.positional(
+        Ast.PropertyAccess.new(ast.module, ast, Ast.identifier(action)!),
+        typeof selector === 'number' ?
+          Ast.tryNumberToEnso(selector, ast.module)!
+        : Ast.TextLiteral.new(selector, ast.module),
+      ),
+    )
+  }
 }
 
-const getTablePattern = (index: number) =>
-  Pattern.new((ast) =>
-    Ast.OprApp.new(
-      ast.module,
-      Ast.App.positional(
-        Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('rows')!),
-        Ast.parse('(..All_Rows)'),
-      ),
-      '.',
-      Ast.App.positional(
-        Ast.Ident.new(ast.module, Ast.identifier('get')!),
-        Ast.tryNumberToEnso(index, ast.module)!,
-      ),
-    ),
-  )
-
-function createNode(params: CellClickedEvent) {
-  if (config.nodeType === TABLE_NODE_TYPE || config.nodeType === DB_TABLE_NODE_TYPE) {
+function createNode(
+  params: CellClickedEvent,
+  selector: string,
+  action?: string,
+  castValueTypes?: string,
+) {
+  const selectorKey = params.data[selector]
+  const castSelector =
+    castValueTypes === 'number' && !isNaN(Number(selectorKey)) ? Number(selectorKey) : selectorKey
+  const identifierAction =
+    config.nodeType === (COLUMN_NODE_TYPE || VECTOR_NODE_TYPE) ? 'at' : action
+  const pattern = getAstPattern(castSelector, identifierAction)
+  if (pattern) {
     config.createNodes({
-      content: getTablePattern(params.data[INDEX_FIELD_NAME]),
-      commit: true,
-    })
-  }
-  if (
-    newNodeSelectorValues.value.selector !== undefined &&
-    newNodeSelectorValues.value.selector !== null &&
-    newNodeSelectorValues.value.identifierAction
-  ) {
-    config.createNodes({
-      content: getAstPattern(
-        params.data[newNodeSelectorValues.value.selector],
-        newNodeSelectorValues.value.identifierAction,
-      ),
+      content: pattern,
       commit: true,
     })
   }
 }
 
-function toLinkField(fieldName: string): ColDef {
+function toLinkField(fieldName: string, getChildAction?: string, castValueTypes?: string): ColDef {
   return {
     headerName:
       newNodeSelectorValues.value.headerName ? newNodeSelectorValues.value.headerName : fieldName,
     field: fieldName,
-    onCellDoubleClicked: (params) => createNode(params),
+    onCellDoubleClicked: (params) => createNode(params, fieldName, getChildAction, castValueTypes),
     tooltipValueGetter: () => {
       return `Double click to view this ${newNodeSelectorValues.value.tooltipValue} in a separate component`
     },
@@ -515,55 +431,57 @@ watchEffect(() => {
         // eslint-disable-next-line camelcase
         has_index_col: false,
         links: undefined,
+        // eslint-disable-next-line camelcase
+        get_child_node_action: undefined,
+        // eslint-disable-next-line camelcase
+        get_child_node_link_name: undefined,
+        // eslint-disable-next-line camelcase
+        link_value_type: undefined,
       }
-  const options = agGridOptions.value
-  if (options.api == null) {
-    return
-  }
-
-  let columnDefs: ColDef[] = []
-  let rowData: object[] = []
-
   if ('error' in data_) {
-    columnDefs = [
+    columnDefs.value = [
       {
         field: 'Error',
         cellStyle: { 'white-space': 'normal' },
       },
     ]
-    rowData = [{ Error: data_.error }]
+    rowData.value = [{ Error: data_.error }]
   } else if (data_.type === 'Matrix') {
-    columnDefs.push(toLinkField(INDEX_FIELD_NAME))
+    columnDefs.value = [toLinkField(INDEX_FIELD_NAME, data_.get_child_node_action)]
     for (let i = 0; i < data_.column_count; i++) {
-      columnDefs.push(toField(i.toString()))
+      columnDefs.value.push(toField(i.toString()))
     }
-    rowData = addRowIndex(data_.json)
+    rowData.value = addRowIndex(data_.json)
     isTruncated.value = data_.all_rows_count !== data_.json.length
   } else if (data_.type === 'Object_Matrix') {
-    columnDefs.push(toLinkField(INDEX_FIELD_NAME))
+    columnDefs.value = [toLinkField(INDEX_FIELD_NAME, data_.get_child_node_action)]
     let keys = new Set<string>()
     for (const val of data_.json) {
       if (val != null) {
         Object.keys(val).forEach((k) => {
           if (!keys.has(k)) {
             keys.add(k)
-            columnDefs.push(toField(k))
+            columnDefs.value.push(toField(k))
           }
         })
       }
     }
-    rowData = addRowIndex(data_.json)
+    rowData.value = addRowIndex(data_.json)
     isTruncated.value = data_.all_rows_count !== data_.json.length
   } else if (data_.type === 'Excel_Workbook') {
-    columnDefs = [toLinkField('Value')]
-    rowData = data_.sheet_names.map((name) => ({ Value: name }))
+    columnDefs.value = [toLinkField('Value', data_.get_child_node_action)]
+    rowData.value = data_.sheet_names.map((name) => ({ Value: name }))
   } else if (Array.isArray(data_.json)) {
-    columnDefs = [toLinkField(INDEX_FIELD_NAME), toField('Value')]
-    rowData = data_.json.map((row, i) => ({ [INDEX_FIELD_NAME]: i, Value: toRender(row) }))
+    columnDefs.value = [
+      toLinkField(INDEX_FIELD_NAME, data_.get_child_node_action),
+      toField('Value'),
+    ]
+    rowData.value = data_.json.map((row, i) => ({ [INDEX_FIELD_NAME]: i, Value: toRender(row) }))
     isTruncated.value = data_.all_rows_count ? data_.all_rows_count !== data_.json.length : false
   } else if (data_.json !== undefined) {
-    columnDefs = data_.links ? [toLinkField('Value')] : [toField('Value')]
-    rowData =
+    columnDefs.value =
+      data_.links ? [toLinkField('Value', data_.get_child_node_action)] : [toField('Value')]
+    rowData.value =
       data_.links ?
         data_.links.map((link) => ({
           Value: link,
@@ -573,18 +491,24 @@ watchEffect(() => {
     const dataHeader =
       ('header' in data_ ? data_.header : [])?.map((v, i) => {
         const valueType = data_.value_type ? data_.value_type[i] : null
+        if (data_.get_child_node_link_name === v) {
+          return toLinkField(v, data_.get_child_node_action, data_.link_value_type)
+        }
         if (config.nodeType === ROW_NODE_TYPE) {
-          return v === 'column' ? toLinkField(v) : toRowField(v, valueType)
+          return toRowField(v, valueType)
         }
         return toField(v, valueType)
       }) ?? []
 
-    columnDefs = data_.has_index_col ? [toLinkField(INDEX_FIELD_NAME), ...dataHeader] : dataHeader
+    columnDefs.value =
+      data_.has_index_col ?
+        [toLinkField(INDEX_FIELD_NAME, data_.get_child_node_action), ...dataHeader]
+      : dataHeader
     const rows = data_.data && data_.data.length > 0 ? data_.data[0]?.length ?? 0 : 0
-    rowData = Array.from({ length: rows }, (_, i) => {
+    rowData.value = Array.from({ length: rows }, (_, i) => {
       const shift = data_.has_index_col ? 1 : 0
       return Object.fromEntries(
-        columnDefs.map((h, j) => {
+        columnDefs.value.map((h, j) => {
           return [
             h.field,
             toRender(h.field === INDEX_FIELD_NAME ? i : data_.data?.[j - shift]?.[i]),
@@ -592,7 +516,7 @@ watchEffect(() => {
         }),
       )
     })
-    isTruncated.value = data_.all_rows_count !== rowData.length
+    isTruncated.value = data_.all_rows_count !== rowData.value.length
   }
 
   // Update paging
@@ -605,11 +529,11 @@ watchEffect(() => {
     page.value = newPageLimit
   }
 
-  if (rowData.length) {
-    const headers = Object.keys(rowData[0] as object)
+  if (rowData.value[0]) {
+    const headers = Object.keys(rowData.value[0])
     const headerGroupingMap = new Map()
     headers.forEach((header) => {
-      const needsGrouping = rowData.some((row: any) => {
+      const needsGrouping = rowData.value.some((row) => {
         if (header in row && row[header] != null) {
           const value = typeof row[header] === 'object' ? row[header].value : row[header]
           return value > 9999
@@ -620,72 +544,41 @@ watchEffect(() => {
     dataGroupingMap.value = headerGroupingMap
   }
 
-  // If an existing grid, merge width from manually sized columns.
-  const newWidths = new Map<string, number>()
-  const mergedColumnDefs = columnDefs.map((columnDef) => {
-    if (!columnDef.field) return columnDef
-    const width = widths.get(columnDef.field)
-    if (width != null) newWidths.set(columnDef.field, (columnDef.width = width))
-    return columnDef
-  })
-  widths.clear()
-  for (const [key, value] of newWidths) widths.set(key, value)
-
   // If data is truncated, we cannot rely on sorting/filtering so will disable.
-  options.defaultColDef.filter = !isTruncated.value
-  options.defaultColDef.sortable = !isTruncated.value
-  options.api.setColumnDefs(mergedColumnDefs)
-  options.api.setRowData(rowData)
+  defaultColDef.value.filter = !isTruncated.value
+  defaultColDef.value.sortable = !isTruncated.value
 })
 
-function updateColumnWidths() {
-  const columnApi = agGridOptions.value.columnApi
-  if (columnApi == null) {
+function checkSortAndFilter(e: SortChangedEvent) {
+  const gridApi = e.api
+  const columnApi = e.columnApi
+  if (gridApi == null || columnApi == null) {
     console.warn('AG Grid column API does not exist.')
+    isCreateNodeEnabled.value = false
     return
   }
-  const cols = columnApi.getAllGridColumns().filter((c) => {
-    const field = c.getColDef().field
-    return field && !widths.has(field)
-  })
-  columnApi.autoSizeColumns(cols)
-}
-
-function lockColumnSize(e: ColumnResizedEvent) {
-  // Check if the resize is finished, and it's not from the API (which is triggered by us).
-  if (!e.finished || e.source === 'api') return
-  // If the user manually resized (or manually autosized) a column, we don't want to auto-size it
-  // on a resize.
-  const manuallySized = e.source !== 'autosizeColumns'
-  for (const column of e.columns ?? []) {
-    const field = column.getColDef().field
-    if (field && manuallySized) widths.set(field, column.getActualWidth())
+  const colState = columnApi.getColumnState()
+  const filter = gridApi.getFilterModel()
+  const sort = colState
+    .map((cs) => {
+      if (cs.sort) {
+        return {
+          columnName: cs.colId,
+          sortDirection: cs.sort,
+          sortIndex: cs.sortIndex,
+        } as SortModel
+      }
+    })
+    .filter((sort) => sort)
+  if (sort.length || Object.keys(filter).length) {
+    isCreateNodeEnabled.value = true
+    sortModel.value = sort as SortModel[]
+    filterModel.value = filter
+  } else {
+    isCreateNodeEnabled.value = false
+    sortModel.value = []
+    filterModel.value = {}
   }
-}
-
-/** Copy the provided TSV-formatted table data to the clipboard.
- *
- * The data will be copied as `text/plain` TSV data for spreadsheet applications, and an Enso-specific MIME section for
- * pasting as a new table node.
- *
- * By default, AG Grid writes only `text/plain` TSV data to the clipboard. This is sufficient to paste into spreadsheet
- * applications, which are liberal in what they try to interpret as tabular data; however, when pasting into Enso, the
- * application needs to be able to distinguish tabular clipboard contents to choose the correct paste action.
- *
- * Our heuristic to identify clipboard data from applications like Excel and Google Sheets is to check for a <table> tag
- * in the clipboard `text/html` data. If we were to add a `text/html` section to the data so that it could be recognized
- * like other spreadsheets, when pasting into other applications some applications might use the `text/html` data in
- * preference to the `text/plain` content--so we would need to construct an HTML table that fully represents the
- * content.
- *
- * To avoid that complexity, we bypass our table-data detection by including application-specific data in the clipboard
- * content. This data contains a ready-to-paste node that constructs an Enso table from the provided TSV.
- */
-function sendToClipboard(tsvData: string) {
-  return writeClipboard({
-    ...clipboardNodeData([{ expression: tsvTableToEnsoExpression(tsvData) }]),
-    'text/plain': tsvData,
-  })
 }
 
 // ===============
@@ -694,67 +587,61 @@ function sendToClipboard(tsvData: string) {
 
 onMounted(() => {
   setRowLimit(1000)
-  const agGridLicenseKey = import.meta.env.VITE_ENSO_AG_GRID_LICENSE_KEY
-  if (typeof agGridLicenseKey === 'string') {
-    LicenseManager.setLicenseKey(agGridLicenseKey)
-  } else if (import.meta.env.DEV) {
-    // Hide annoying license validation errors in dev mode when the license is not defined. The
-    // missing define warning is still displayed to not forget about it, but it isn't as obnoxious.
-    const origValidateLicense = LicenseManager.prototype.validateLicense
-    LicenseManager.prototype.validateLicense = function (this) {
-      if (!('licenseManager' in this))
-        Object.defineProperty(this, 'licenseManager', {
-          configurable: true,
-          set(value: any) {
-            Object.getPrototypeOf(value).validateLicense = () => {}
-            delete this.licenseManager
-            this.licenseManager = value
-          },
-        })
-      origValidateLicense.call(this)
-    }
-  }
-  // TODO: consider using Vue component instead: https://ag-grid.com/vue-data-grid/getting-started/
-  new Grid(tableNode.value!, agGridOptions.value)
-  updateColumnWidths()
 })
 
-onUnmounted(() => {
-  agGridOptions.value.api?.destroy()
-})
+// ===============
+// === Toolbar ===
+// ===============
+
+config.setToolbar(
+  useTableVizToolbar({
+    textFormatterSelected,
+    filterModel,
+    sortModel,
+    isDisabled: () => !isCreateNodeEnabled.value,
+    isFilterSortNodeEnabled,
+    createNodes: config.createNodes,
+  }),
+)
 </script>
 
 <template>
-  <VisualizationContainer :belowToolbar="true" :overflow="true" :toolbarOverflow="true">
-    <template #toolbar>
-      <TextFormattingSelector @changeFormat="(i) => updateTextFormat(i)" />
-    </template>
-    <div ref="rootNode" class="TableVisualization" @wheel.stop @pointerdown.stop>
-      <div class="table-visualization-status-bar">
-        <select
-          v-if="isRowCountSelectorVisible"
-          @change="setRowLimit(Number(($event.target as HTMLOptionElement).value))"
-        >
-          <option
-            v-for="limit in selectableRowLimits"
-            :key="limit"
-            :value="limit"
-            v-text="limit"
-          ></option>
-        </select>
-        <template v-if="showRowCount">
-          <span
-            v-if="isRowCountSelectorVisible && isTruncated"
-            v-text="` of ${rowCount} rows (Sorting/Filtering disabled).`"
-          ></span>
-          <span v-else-if="isRowCountSelectorVisible" v-text="' rows.'"></span>
-          <span v-else-if="rowCount === 1" v-text="'1 row.'"></span>
-          <span v-else v-text="`${rowCount} rows.`"></span>
-        </template>
-      </div>
-      <div ref="tableNode" class="scrollable ag-theme-alpine"></div>
+  <div ref="rootNode" class="TableVisualization" @wheel.stop @pointerdown.stop>
+    <div class="table-visualization-status-bar">
+      <select
+        v-if="isRowCountSelectorVisible"
+        @change="setRowLimit(Number(($event.target as HTMLOptionElement).value))"
+      >
+        <option
+          v-for="limit in selectableRowLimits"
+          :key="limit"
+          :value="limit"
+          v-text="limit"
+        ></option>
+      </select>
+      <template v-if="showRowCount">
+        <span
+          v-if="isRowCountSelectorVisible && isTruncated"
+          v-text="` of ${rowCount} rows (Sorting/Filtering disabled).`"
+        ></span>
+        <span v-else-if="isRowCountSelectorVisible" v-text="' rows.'"></span>
+        <span v-else-if="rowCount === 1" v-text="'1 row.'"></span>
+        <span v-else v-text="`${rowCount} rows.`"></span>
+      </template>
     </div>
-  </VisualizationContainer>
+    <!-- TODO[ao]: Suspence in theory is not needed here (the entire visualization is inside
+     suspense), but for some reason it causes reactivity loop - see https://github.com/enso-org/enso/issues/10782 -->
+    <Suspense>
+      <AgGridTableView
+        class="scrollable grid"
+        :columnDefs="columnDefs"
+        :rowData="rowData"
+        :defaultColDef="defaultColDef"
+        :textFormatOption="textFormatterSelected"
+        @sortOrFilterUpdated="(e) => checkSortAndFilter(e)"
+      />
+    </Suspense>
+  </div>
 </template>
 
 <style scoped>
@@ -765,11 +652,8 @@ onUnmounted(() => {
   height: 100%;
 }
 
-.ag-theme-alpine {
-  --ag-grid-size: 3px;
-  --ag-list-item-height: 20px;
+.grid {
   flex-grow: 1;
-  font-family: var(--font-mono);
 }
 
 .table-visualization-status-bar {
@@ -795,5 +679,10 @@ onUnmounted(() => {
 
 :deep(.link):hover {
   color: darkblue;
+}
+
+.button-wrappers {
+  display: flex;
+  flex-direction: row;
 }
 </style>

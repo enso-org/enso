@@ -11,11 +11,14 @@ import tailwindcssNesting from 'tailwindcss/nesting'
 import { defineConfig, type Plugin } from 'vite'
 import VueDevTools from 'vite-plugin-vue-devtools'
 import wasm from 'vite-plugin-wasm'
-const projectManagerUrl =
-  process.env.E2E === 'true' ? 'ws://127.0.0.1:30536' : 'ws://127.0.0.1:30535'
 
+const dynHostnameWsUrl = (port: number) => JSON.stringify(`ws://__HOSTNAME__:${port}`)
+const projectManagerUrl = dynHostnameWsUrl(process.env.E2E === 'true' ? 30536 : 30535)
 const IS_CLOUD_BUILD = process.env.CLOUD_BUILD === 'true'
-const YDOC_SERVER_URL = process.env.ENSO_POLYGLOT_YDOC_SERVER ?? 'ws://localhost:5976'
+const YDOC_SERVER_URL =
+  process.env.ENSO_POLYGLOT_YDOC_SERVER ? JSON.stringify(process.env.ENSO_POLYGLOT_YDOC_SERVER)
+  : process.env.NODE_ENV === 'development' ? dynHostnameWsUrl(5976)
+  : undefined
 
 await readEnvironmentFromFile()
 
@@ -29,8 +32,15 @@ export default defineConfig({
   envDir: fileURLToPath(new URL('.', import.meta.url)),
   plugins: [
     wasm(),
-    VueDevTools(),
-    vue(),
+    ...(process.env.NODE_ENV === 'development' ? [await VueDevTools()] : []),
+    vue({
+      customElement: ['**/components/visualizations/**', '**/components/shared/**'],
+      template: {
+        compilerOptions: {
+          isCustomElement: (tag) => tag.startsWith('enso-'),
+        },
+      },
+    }),
     react({
       include: fileURLToPath(new URL('../dashboard/**/*.tsx', import.meta.url)),
       babel: { plugins: ['@babel/plugin-syntax-import-attributes'] },
@@ -45,6 +55,7 @@ export default defineConfig({
       'Cross-Origin-Opener-Policy': 'same-origin',
       'Cross-Origin-Resource-Policy': 'same-origin',
     },
+    ...(process.env.GUI_HOSTNAME ? { host: process.env.GUI_HOSTNAME } : {}),
   },
   resolve: {
     conditions: ['source'],
@@ -57,8 +68,8 @@ export default defineConfig({
   define: {
     ...getDefines(),
     IS_CLOUD_BUILD: JSON.stringify(IS_CLOUD_BUILD),
-    PROJECT_MANAGER_URL: JSON.stringify(projectManagerUrl),
-    YDOC_SERVER_URL: JSON.stringify(YDOC_SERVER_URL),
+    PROJECT_MANAGER_URL: projectManagerUrl,
+    YDOC_SERVER_URL: YDOC_SERVER_URL,
     'import.meta.vitest': false,
     // Single hardcoded usage of `global` in aws-amplify.
     'global.TYPED_ARRAY_SUPPORT': true,

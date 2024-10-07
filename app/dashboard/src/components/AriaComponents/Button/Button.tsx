@@ -8,9 +8,10 @@ import * as ariaComponents from '#/components/AriaComponents'
 import StatelessSpinner, * as spinnerModule from '#/components/StatelessSpinner'
 import SvgMask from '#/components/SvgMask'
 
-import * as twv from '#/utilities/tailwindVariants'
-
-import * as text from '../Text'
+import { forwardRef } from '#/utilities/react'
+import type { ExtractFunction, VariantProps } from '#/utilities/tailwindVariants'
+import { tv } from '#/utilities/tailwindVariants'
+import { TEXT_STYLE } from '../Text'
 
 // ==============
 // === Button ===
@@ -39,7 +40,7 @@ interface PropsWithoutHref {
  * Base props for a button.
  */
 export interface BaseButtonProps<Render>
-  extends Omit<twv.VariantProps<typeof BUTTON_STYLES>, 'iconOnly'> {
+  extends Omit<VariantProps<typeof BUTTON_STYLES>, 'iconOnly'> {
   /** Falls back to `aria-label`. Pass `false` to explicitly disable the tooltip. */
   readonly tooltip?: React.ReactElement | string | false | null
   readonly tooltipPlacement?: aria.Placement
@@ -67,10 +68,10 @@ export interface BaseButtonProps<Render>
   /** Defaults to `full`. When `full`, the entire button will be replaced with the loader.
    * When `icon`, only the icon will be replaced with the loader. */
   readonly loaderPosition?: 'full' | 'icon'
-  readonly styles?: typeof BUTTON_STYLES
+  readonly styles?: ExtractFunction<typeof BUTTON_STYLES> | undefined
 }
 
-export const BUTTON_STYLES = twv.tv({
+export const BUTTON_STYLES = tv({
   base: [
     'group',
     // we need to set the height to max-content to prevent the button from growing in flex containers
@@ -88,7 +89,9 @@ export const BUTTON_STYLES = twv.tv({
     'transition-[opacity,outline-offset,background,border-color] duration-150 ease-in-out',
   ],
   variants: {
-    isDisabled: { true: 'disabled:opacity-50 disabled:cursor-not-allowed' },
+    isDisabled: {
+      true: 'disabled:opacity-50 disabled:cursor-not-allowed aria-disabled:opacity-50 aria-disabled:cursor-not-allowed',
+    },
     isFocused: {
       true: 'focus:outline-none focus-visible:outline-2 focus-visible:outline-black focus-visible:outline-offset-[-2px]',
     },
@@ -100,23 +103,22 @@ export const BUTTON_STYLES = twv.tv({
     },
     loading: { true: { base: 'cursor-wait' } },
     fullWidth: { true: 'w-full' },
-    fullWidthText: { true: { text: 'w-full' } },
     size: {
-      custom: { base: '', extraClickZone: '', icon: 'h-full' },
+      custom: { base: '', extraClickZone: '', icon: 'h-full w-unset min-w-[1.906cap]' },
       hero: { base: 'px-8 py-4 text-lg font-bold', content: 'gap-[0.75em]' },
       large: {
-        base: text.TEXT_STYLE({
+        base: TEXT_STYLE({
           variant: 'body',
           color: 'custom',
           weight: 'semibold',
           className: 'flex px-[11px] py-[5.5px]',
         }),
         content: 'gap-2',
-        icon: 'mb-[-0.1cap] h-4.5 w-4.5',
+        icon: 'mb-[-0.1cap] h-4 w-4',
         extraClickZone: 'after:inset-[-6px]',
       },
       medium: {
-        base: text.TEXT_STYLE({
+        base: TEXT_STYLE({
           variant: 'body',
           color: 'custom',
           weight: 'semibold',
@@ -127,7 +129,7 @@ export const BUTTON_STYLES = twv.tv({
         extraClickZone: 'after:inset-[-8px]',
       },
       small: {
-        base: text.TEXT_STYLE({
+        base: TEXT_STYLE({
           variant: 'body',
           color: 'custom',
           weight: 'medium',
@@ -138,7 +140,7 @@ export const BUTTON_STYLES = twv.tv({
         extraClickZone: 'after:inset-[-10px]',
       },
       xsmall: {
-        base: text.TEXT_STYLE({
+        base: TEXT_STYLE({
           variant: 'body',
           color: 'custom',
           weight: 'medium',
@@ -150,7 +152,7 @@ export const BUTTON_STYLES = twv.tv({
         extraClickZone: 'after:inset-[-12px]',
       },
       xxsmall: {
-        base: text.TEXT_STYLE({
+        base: TEXT_STYLE({
           variant: 'body',
           color: 'custom',
           className: 'flex px-[3px] pt-[0.5px] pb-[2.5px] leading-[16px]',
@@ -165,7 +167,7 @@ export const BUTTON_STYLES = twv.tv({
     },
     iconOnly: {
       true: {
-        base: text.TEXT_STYLE({
+        base: TEXT_STYLE({
           disableLineHeightCompensation: true,
           className: 'border-0 outline-offset-[5px]',
         }),
@@ -190,8 +192,7 @@ export const BUTTON_STYLES = twv.tv({
         icon: 'h-[1.25cap] w-[1.25cap] mt-[0.25cap]',
       },
       primary: 'bg-primary text-white hover:bg-primary/70',
-      tertiary: 'bg-accent text-white hover:bg-accent-dark',
-      cancel: 'bg-white/50 hover:bg-white',
+      accent: 'bg-accent text-white hover:bg-accent-dark',
       delete:
         'bg-danger/80 hover:bg-danger text-white focus-visible:outline-danger focus-visible:bg-danger',
       icon: {
@@ -202,9 +203,11 @@ export const BUTTON_STYLES = twv.tv({
       },
       ghost:
         'text-primary hover:text-primary/80 hover:bg-white focus-visible:text-primary/80 focus-visible:bg-white',
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      'ghost-fading':
+        'text-primary opacity-80 hover:opacity-100 hover:bg-white focus-visible:bg-white',
       submit: 'bg-invite text-white opacity-80 hover:opacity-100',
-      outline: 'border-primary/40 text-primary hover:border-primary hover:bg-primary/5',
-      bar: 'border-primary/20 hover:bg-primary/5',
+      outline: 'border-primary/20 text-primary hover:border-primary hover:bg-primary/5',
     },
     iconPosition: {
       start: { content: '' },
@@ -215,10 +218,11 @@ export const BUTTON_STYLES = twv.tv({
     },
     extraClickZone: {
       true: {
-        extraClickZone: 'flex relative after:absolute after:cursor-pointer',
+        extraClickZone:
+          'flex relative after:absolute after:cursor-pointer group-disabled:after:cursor-not-allowed',
       },
       false: {
-        extraClickZone: '',
+        extraClickZone: 'after:inset-0',
       },
       xxsmall: {
         extraClickZone: 'after:inset-[-2px]',
@@ -241,7 +245,8 @@ export const BUTTON_STYLES = twv.tv({
     },
   },
   slots: {
-    extraClickZone: 'flex relative after:absolute after:cursor-pointer',
+    extraClickZone:
+      'flex relative after:absolute after:cursor-pointer group-disabled:after:cursor-not-allowed',
     wrapper: 'relative block',
     loader: 'absolute inset-0 flex items-center justify-center',
     content: 'flex items-center gap-[0.5em]',
@@ -279,7 +284,7 @@ export const BUTTON_STYLES = twv.tv({
 })
 
 /** A button allows a user to perform an action, with mouse, touch, and keyboard interactions. */
-export const Button = React.forwardRef(function Button(
+export const Button = forwardRef(function Button(
   props: ButtonProps,
   ref: React.ForwardedRef<HTMLButtonElement>,
 ) {
@@ -295,7 +300,6 @@ export const Button = React.forwardRef(function Button(
     iconPosition,
     size,
     fullWidth,
-    fullWidthText,
     rounded,
     tooltip,
     tooltipPlacement,
@@ -303,6 +307,7 @@ export const Button = React.forwardRef(function Button(
     loaderPosition = 'full',
     extraClickZone: extraClickZoneProp,
     onPress = () => {},
+    variants = BUTTON_STYLES,
     ...ariaProps
   } = props
   const focusChildProps = focusHooks.useFocusChild()
@@ -316,9 +321,8 @@ export const Button = React.forwardRef(function Button(
   const Tag = isLink ? aria.Link : aria.Button
 
   const goodDefaults = {
-    ...(isLink ? { rel: 'noopener noreferrer', ref } : {}),
-    ...(isLink ? {} : { type: 'button' as const }),
-    'data-testid': testId ?? (isLink ? 'link' : 'button'),
+    ...(isLink ? { rel: 'noopener noreferrer' } : { type: 'button' as const }),
+    'data-testid': testId,
   }
 
   const isIconOnly = (children == null || children === '' || children === false) && icon != null
@@ -334,7 +338,7 @@ export const Button = React.forwardRef(function Button(
   const tooltipElement = shouldShowTooltip ? tooltip ?? ariaProps['aria-label'] : null
 
   const isLoading = loading || implicitlyLoading
-  const isDisabled = props.isDisabled == null ? isLoading : props.isDisabled
+  const isDisabled = props.isDisabled ?? isLoading
 
   React.useLayoutEffect(() => {
     const delay = 350
@@ -376,20 +380,11 @@ export const Button = React.forwardRef(function Button(
     }
   }
 
-  const {
-    base,
-    content,
-    wrapper,
-    loader,
-    extraClickZone,
-    icon: iconClasses,
-    text: textClasses,
-  } = BUTTON_STYLES({
-    isDisabled: isDisabled,
+  const styles = variants({
+    isDisabled,
     isActive,
     loading: isLoading,
     fullWidth,
-    fullWidthText,
     size,
     rounded,
     variant,
@@ -407,7 +402,7 @@ export const Button = React.forwardRef(function Button(
         return null
       } else if (isLoading && loaderPosition === 'icon') {
         return (
-          <span className={iconClasses()}>
+          <span className={styles.icon()}>
             <StatelessSpinner state={spinnerModule.SpinnerState.loadingMedium} size={16} />
           </span>
         )
@@ -416,21 +411,21 @@ export const Button = React.forwardRef(function Button(
         const actualIcon = typeof icon === 'function' ? icon(render) : icon
 
         if (typeof actualIcon === 'string') {
-          return <SvgMask src={actualIcon} className={iconClasses()} />
+          return <SvgMask src={actualIcon} className={styles.icon()} />
         } else {
-          return <span className={iconClasses()}>{actualIcon}</span>
+          return <span className={styles.icon()}>{actualIcon}</span>
         }
       }
     })()
     // Icon only button
     if (isIconOnly) {
-      return <span className={extraClickZone()}>{iconComponent}</span>
+      return <span className={styles.extraClickZone()}>{iconComponent}</span>
     } else {
       // Default button
       return (
         <>
           {iconComponent}
-          <span className={textClasses()}>
+          <span className={styles.text()}>
             {/* @ts-expect-error any here is safe because we transparently pass it to the children, and ts infer the type outside correctly */}
             {typeof children === 'function' ? children(render) : children}
           </span>
@@ -443,31 +438,33 @@ export const Button = React.forwardRef(function Button(
     <Tag
       // @ts-expect-error ts errors are expected here because we are merging props with different types
       {...aria.mergeProps<aria.ButtonProps>()(goodDefaults, ariaProps, focusChildProps, {
-        isDisabled: isDisabled,
+        ref,
+        isDisabled,
         // we use onPressEnd instead of onPress because for some reason react-aria doesn't trigger
         // onPress on EXTRA_CLICK_ZONE, but onPress{start,end} are triggered
-        onPressEnd: handlePress,
+        onPressEnd: (e) => {
+          if (!isDisabled) {
+            handlePress(e)
+          }
+        },
         className: aria.composeRenderProps(className, (classNames, states) =>
-          base({ className: classNames, ...states }),
+          styles.base({ className: classNames, ...states }),
         ),
       })}
     >
-      {/* @ts-expect-error any here is safe because we transparently pass it to the children, and ts infer the type outside correctly */}
-      {(render) => (
-        <>
-          <span className={wrapper()}>
-            <span ref={contentRef} className={content({ className: contentClassName })}>
-              {/* eslint-disable-next-line @typescript-eslint/no-unsafe-argument */}
-              {childrenFactory(render)}
-            </span>
-
-            {isLoading && loaderPosition === 'full' && (
-              <span ref={loaderRef} className={loader()}>
-                <StatelessSpinner state={spinnerModule.SpinnerState.loadingMedium} size={16} />
-              </span>
-            )}
+      {(render: aria.ButtonRenderProps | aria.LinkRenderProps) => (
+        <span className={styles.wrapper()}>
+          <span ref={contentRef} className={styles.content({ className: contentClassName })}>
+            {/* eslint-disable-next-line @typescript-eslint/no-unsafe-argument */}
+            {childrenFactory(render)}
           </span>
-        </>
+
+          {isLoading && loaderPosition === 'full' && (
+            <span ref={loaderRef} className={styles.loader()}>
+              <StatelessSpinner state={spinnerModule.SpinnerState.loadingMedium} size={16} />
+            </span>
+          )}
+        </span>
       )}
     </Tag>
   )

@@ -12,7 +12,7 @@ public class CloudRoot extends HandlerWithTokenAuth {
   private final ExpiredTokensCounter expiredTokensCounter;
   private final CloudHandler[] handlers;
 
-  public CloudRoot(ExpiredTokensCounter expiredTokensCounter) {
+  public CloudRoot(ExpiredTokensCounter expiredTokensCounter, CloudMockSetup setup) {
     this.expiredTokensCounter = expiredTokensCounter;
     AssetStore assetStore = new AssetStore();
     UsersService usersService = new UsersService();
@@ -26,7 +26,7 @@ public class CloudRoot extends HandlerWithTokenAuth {
           new PathResolver(assetStore),
           new DirectoriesHandler(assetStore),
           new GetLogsHandler(eventsService),
-          new PostLogHandler(usersService, eventsService)
+          new PostLogHandler(usersService, eventsService, setup.logBatchingTestModeEnabled())
         };
   }
 

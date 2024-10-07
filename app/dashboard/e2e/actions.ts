@@ -2,6 +2,8 @@
 /** @file Various actions, locators, and constants used in end-to-end tests. */
 import * as test from '@playwright/test'
 
+import { TEXTS } from 'enso-common/src/text'
+
 import DrivePageActions from './actions/DrivePageActions'
 import LoginPageActions from './actions/LoginPageActions'
 import * as apiModule from './api'
@@ -18,6 +20,7 @@ export const INVALID_PASSWORD = 'password'
 export const VALID_PASSWORD = 'Password0!'
 /** An example valid email address. */
 export const VALID_EMAIL = 'email@example.com'
+export const TEXT = TEXTS.english
 
 // ================
 // === Locators ===
@@ -40,14 +43,9 @@ export function locateConfirmPasswordInput(page: test.Locator | test.Page) {
   return page.getByPlaceholder('Confirm your password')
 }
 
-/** Find a "username" input (if any) on the current page. */
-export function locateUsernameInput(page: test.Locator | test.Page) {
-  return page.getByPlaceholder('Enter your username')
-}
-
 /** Find a "name" input for a "new label" modal (if any) on the current page. */
 export function locateNewLabelModalNameInput(page: test.Page) {
-  return locateNewLabelModal(page).getByLabel('Name')
+  return locateNewLabelModal(page).getByLabel('Name').and(page.getByRole('textbox'))
 }
 
 /** Find all color radio button inputs for a "new label" modal (if any) on the current page. */
@@ -62,12 +60,12 @@ export function locateNewLabelModalColorButtons(page: test.Page) {
 
 /** Find a "name" input for an "upsert secret" modal (if any) on the current page. */
 export function locateSecretNameInput(page: test.Page) {
-  return locateUpsertSecretModal(page).getByPlaceholder('Enter the name of the secret')
+  return locateUpsertSecretModal(page).getByPlaceholder(TEXT.secretNamePlaceholder)
 }
 
 /** Find a "value" input for an "upsert secret" modal (if any) on the current page. */
 export function locateSecretValueInput(page: test.Page) {
-  return locateUpsertSecretModal(page).getByPlaceholder('Enter the value of the secret')
+  return locateUpsertSecretModal(page).getByPlaceholder(TEXT.secretValuePlaceholder)
 }
 
 /** Find a search bar input (if any) on the current page. */
@@ -90,21 +88,6 @@ export function locateLoginButton(page: test.Locator | test.Page) {
 /** Find a "register" button (if any) on the current locator. */
 export function locateRegisterButton(page: test.Locator | test.Page) {
   return page.getByRole('button', { name: 'Register' }).getByText('Register')
-}
-
-/** Find a "set username" button (if any) on the current page. */
-export function locateSetUsernameButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Set Username' }).getByText('Set Username')
-}
-
-/** Find a "delete" button (if any) on the current page. */
-export function locateDeleteButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Delete' }).getByText('Delete')
-}
-
-/** Find a button to delete something (if any) on the current page. */
-export function locateDeleteIcon(page: test.Locator | test.Page) {
-  return page.getByAltText('Delete')
 }
 
 /** Find a "create" button (if any) on the current page. */
@@ -158,37 +141,37 @@ export function locateAssetLabels(page: test.Locator | test.Page) {
 
 /** Find a toggle for the "Name" column (if any) on the current page. */
 export function locateNameColumnToggle(page: test.Locator | test.Page) {
-  return page.getByAltText('Name')
+  return page.getByLabel('Name')
 }
 
 /** Find a toggle for the "Modified" column (if any) on the current page. */
 export function locateModifiedColumnToggle(page: test.Locator | test.Page) {
-  return page.getByAltText('Modified')
+  return page.getByLabel('Modified')
 }
 
 /** Find a toggle for the "Shared with" column (if any) on the current page. */
 export function locateSharedWithColumnToggle(page: test.Locator | test.Page) {
-  return page.getByAltText('Shared With')
+  return page.getByLabel('Shared With')
 }
 
 /** Find a toggle for the "Labels" column (if any) on the current page. */
 export function locateLabelsColumnToggle(page: test.Locator | test.Page) {
-  return page.getByAltText('Labels')
+  return page.getByLabel('Labels')
 }
 
 /** Find a toggle for the "Accessed by projects" column (if any) on the current page. */
 export function locateAccessedByProjectsColumnToggle(page: test.Locator | test.Page) {
-  return page.getByAltText('Accessed By Projects')
+  return page.getByLabel('Accessed By Projects')
 }
 
 /** Find a toggle for the "Accessed data" column (if any) on the current page. */
 export function locateAccessedDataColumnToggle(page: test.Locator | test.Page) {
-  return page.getByAltText('Accessed Data')
+  return page.getByLabel('Accessed Data')
 }
 
 /** Find a toggle for the "Docs" column (if any) on the current page. */
 export function locateDocsColumnToggle(page: test.Locator | test.Page) {
-  return page.getByAltText('Docs')
+  return page.getByLabel('Docs')
 }
 
 /** Find a button for the "Recent" category (if any) on the current page. */
@@ -306,12 +289,6 @@ export function locateSamples(page: test.Locator | test.Page) {
   return locateSamplesList(page).getByRole('button')
 }
 
-/** Find a modal background (if any) on the current page. */
-export function locateModalBackground(page: test.Locator | test.Page) {
-  // This has no identifying features.
-  return page.getByTestId('modal-background')
-}
-
 /** Find an editor container (if any) on the current page. */
 export function locateEditor(page: test.Page) {
   // Test ID of a placeholder editor component used during testing.
@@ -326,6 +303,11 @@ export function locateAssetsTable(page: test.Page) {
 /** Find assets table rows (if any) on the current page. */
 export function locateAssetRows(page: test.Page) {
   return locateAssetsTable(page).getByTestId('asset-row')
+}
+
+/** Find assets table placeholder rows (if any) on the current page. */
+export function locateNonAssetRows(page: test.Page) {
+  return locateAssetsTable(page).locator('tbody tr:not([data-testid="asset-row"])')
 }
 
 /** Find the name column of the given asset row. */
@@ -349,12 +331,6 @@ export function locateCollapsibleDirectories(page: test.Page) {
   return locateAssetRows(page).filter({ has: page.locator('[aria-label=Collapse]') })
 }
 
-/** Find a "confirm delete" modal (if any) on the current page. */
-export function locateConfirmDeleteModal(page: test.Page) {
-  // This has no identifying features.
-  return page.getByTestId('confirm-delete-modal')
-}
-
 /** Find a "new label" modal (if any) on the current page. */
 export function locateNewLabelModal(page: test.Page) {
   // This has no identifying features.
@@ -367,15 +343,9 @@ export function locateUpsertSecretModal(page: test.Page) {
   return page.getByTestId('upsert-secret-modal')
 }
 
-/** Find a "new user group" modal (if any) on the current page. */
-export function locateNewUserGroupModal(page: test.Page) {
-  // This has no identifying features.
-  return page.getByTestId('new-user-group-modal')
-}
-
 /** Find a user menu (if any) on the current page. */
 export function locateUserMenu(page: test.Page) {
-  return page.getByAltText('User Settings').locator('visible=true')
+  return page.getByLabel(TEXT.userMenuLabel).and(page.getByRole('button')).locator('visible=true')
 }
 
 /** Find a "set username" panel (if any) on the current page. */
@@ -494,17 +464,21 @@ export namespace settings {
 
     /** Find a "current password" input in the "user account" settings section. */
     export function locateCurrentPasswordInput(page: test.Page) {
-      return locate(page).getByLabel('Current password')
+      return locate(page).getByRole('group', { name: 'Current password' }).getByRole('textbox')
     }
 
     /** Find a "new password" input in the "user account" settings section. */
     export function locateNewPasswordInput(page: test.Page) {
-      return locate(page).getByLabel('New password', { exact: true })
+      return locate(page)
+        .getByRole('group', { name: /^New password/, exact: true })
+        .getByRole('textbox')
     }
 
     /** Find a "confirm new password" input in the "user account" settings section. */
     export function locateConfirmNewPasswordInput(page: test.Page) {
-      return locate(page).getByLabel('Confirm new password')
+      return locate(page)
+        .getByRole('group', { name: /^Confirm new password/, exact: true })
+        .getByRole('textbox')
     }
 
     /** Find a "change" button. */
@@ -701,34 +675,6 @@ export async function expectNotOnScreen(locator: test.Locator) {
   })
 }
 
-// =======================
-// === Mouse utilities ===
-// =======================
-
-// eslint-disable-next-line @typescript-eslint/no-magic-numbers
-export const ASSET_ROW_SAFE_POSITION = { x: 300, y: 16 }
-
-/** Click an asset row. The center must not be clicked as that is the button for adding a label. */
-export async function clickAssetRow(assetRow: test.Locator) {
-  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-  await assetRow.click({ position: ASSET_ROW_SAFE_POSITION })
-}
-
-/** Drag an asset row. The center must not be clicked as that is the button for adding a label. */
-export async function dragAssetRowToAssetRow(from: test.Locator, to: test.Locator) {
-  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-  await from.dragTo(to, {
-    sourcePosition: ASSET_ROW_SAFE_POSITION,
-    targetPosition: ASSET_ROW_SAFE_POSITION,
-  })
-}
-
-/** Drag an asset row. The center must not be clicked as that is the button for adding a label. */
-export async function dragAssetRow(from: test.Locator, to: test.Locator) {
-  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-  await from.dragTo(to, { sourcePosition: ASSET_ROW_SAFE_POSITION })
-}
-
 // ==========================
 // === Keyboard utilities ===
 // ==========================
@@ -762,9 +708,9 @@ export async function press(page: test.Page, keyOrShortcut: string) {
   })
 }
 
-// =============
-// === login ===
-// =============
+// ===============================
+// === Miscellaneous utilities ===
+// ===============================
 
 /** Perform a successful login. */
 // This syntax is required for Playwright to work properly.
@@ -776,21 +722,16 @@ export async function login(
   first = true,
 ) {
   await test.test.step('Login', async () => {
-    await page.goto('/')
     await locateEmailInput(page).fill(email)
     await locatePasswordInput(page).fill(password)
     await locateLoginButton(page).click()
-    await test.expect(page.getByText('Logging in to Enso...')).not.toBeVisible()
+    await test.expect(page.getByText(TEXT.loadingAppMessage)).not.toBeVisible()
     if (first) {
-      await passTermsAndConditionsDialog({ page, setupAPI })
-      await test.expect(page.getByText('Logging in to Enso...')).not.toBeVisible()
+      await passAgreementsDialog({ page, setupAPI })
+      await test.expect(page.getByText(TEXT.loadingAppMessage)).not.toBeVisible()
     }
   })
 }
-
-// ==============
-// === reload ===
-// ==============
 
 /** Reload. */
 // This syntax is required for Playwright to work properly.
@@ -798,13 +739,9 @@ export async function login(
 export async function reload({ page }: MockParams) {
   await test.test.step('Reload', async () => {
     await page.reload()
-    await test.expect(page.getByText('Logging in to Enso...')).not.toBeVisible()
+    await test.expect(page.getByText(TEXT.loadingAppMessage)).not.toBeVisible()
   })
 }
-
-// =============
-// === relog ===
-// =============
 
 /** Logout and then login again. */
 // This syntax is required for Playwright to work properly.
@@ -815,15 +752,14 @@ export async function relog(
   password = VALID_PASSWORD,
 ) {
   await test.test.step('Relog', async () => {
-    await page.getByAltText('User Settings').locator('visible=true').click()
-    await page.getByRole('button', { name: 'Logout' }).getByText('Logout').click()
+    await page.getByLabel(TEXT.userMenuLabel).locator('visible=true').click()
+    await page
+      .getByRole('button', { name: TEXT.signOutShortcut })
+      .getByText(TEXT.signOutShortcut)
+      .click()
     await login({ page, setupAPI }, email, password, false)
   })
 }
-
-// ================
-// === mockDate ===
-// ================
 
 /** A placeholder date for visual regression testing. */
 const MOCK_DATE = Number(new Date('01/23/45 01:23:45'))
@@ -857,26 +793,25 @@ async function mockDate({ page }: MockParams) {
   })
 }
 
-/** Pass the Terms and conditions dialog. */
-export async function passTermsAndConditionsDialog({ page }: MockParams) {
+/** Pass the Agreements dialog. */
+export async function passAgreementsDialog({ page }: MockParams) {
   await test.test.step('Accept Terms and Conditions', async () => {
-    await page.waitForSelector('#terms-of-service-modal')
-    await page.getByRole('checkbox').click()
+    await page.waitForSelector('#agreements-modal')
+    await page
+      .getByRole('group', { name: TEXT.licenseAgreementCheckbox })
+      .getByText(TEXT.licenseAgreementCheckbox)
+      .click()
+    await page
+      .getByRole('group', { name: TEXT.privacyPolicyCheckbox })
+      .getByText(TEXT.privacyPolicyCheckbox)
+      .click()
     await page.getByRole('button', { name: 'Accept' }).click()
   })
 }
 
-// ===============
-// === mockApi ===
-// ===============
-
 // This is a function, even though it does not use function syntax.
 // eslint-disable-next-line no-restricted-syntax
 export const mockApi = apiModule.mockApi
-
-// ===============
-// === mockAll ===
-// ===============
 
 /** Set up all mocks, without logging in. */
 // This syntax is required for Playwright to work properly.
@@ -885,12 +820,9 @@ export function mockAll({ page, setupAPI }: MockParams) {
   return new LoginPageActions(page).step('Execute all mocks', async () => {
     await mockApi({ page, setupAPI })
     await mockDate({ page, setupAPI })
+    await page.goto('/')
   })
 }
-
-// =======================
-// === mockAllAndLogin ===
-// =======================
 
 /** Set up all mocks, and log in with dummy credentials. */
 // This syntax is required for Playwright to work properly.
@@ -900,13 +832,10 @@ export function mockAllAndLogin({ page, setupAPI }: MockParams) {
     .step('Execute all mocks', async () => {
       await mockApi({ page, setupAPI })
       await mockDate({ page, setupAPI })
+      await page.goto('/')
     })
     .do((thePage) => login({ page: thePage, setupAPI }))
 }
-
-// ===================================
-// === mockAllAndLoginAndExposeAPI ===
-// ===================================
 
 /** Set up all mocks, and log in with dummy credentials.
  * @deprecated Prefer {@link mockAllAndLogin}. */
@@ -916,6 +845,7 @@ export async function mockAllAndLoginAndExposeAPI({ page, setupAPI }: MockParams
   return await test.test.step('Execute all mocks and login', async () => {
     const api = await mockApi({ page, setupAPI })
     await mockDate({ page, setupAPI })
+    await page.goto('/')
     await login({ page, setupAPI })
     return api
   })

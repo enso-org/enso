@@ -1,13 +1,13 @@
 from Standard.Base import all
 import Standard.Base.Errors.File_Error.File_Error
 
-from Standard.Table import Column, Table, Value_Type
-import Standard.Table.Rows_To_Read.Rows_To_Read
 import Standard.Table.Internal.Java_Problems
+import Standard.Table.Rows_To_Read.Rows_To_Read
+from Standard.Table import Column, Table, Value_Type
 
 import project.Hyper_Column.Hyper_Column
-import project.Hyper_File.Hyper_File
 import project.Hyper_Errors
+import project.Hyper_File.Hyper_File
 
 polyglot java import java.sql.Types
 polyglot java import org.enso.tableau.HyperReader
@@ -19,11 +19,14 @@ type Hyper_Table
        Represents a Tableau Hyper Table.
     private Value file:Hyper_File internal_schema:Text internal_table:Text
 
-    ## The schema of the table.
+    ## ICON metadata
+       The schema of the table.
     schema : Text
     schema self = self.internal_schema
 
-    ## The name of the table.
+    ## GROUP Standard.Base.Metadata
+       ICON metadata
+       The name of the table.
     table : Text
     table self = self.internal_table
 
@@ -36,7 +39,8 @@ type Hyper_Table
     to_js_object self =
         JS_Object.from_pairs [["type", "Hyper_Table"], ["schema", self.schema], ["table", self.table], ["file", self.file.file.path]]
 
-    ## ICON metadata
+    ## GROUP Standard.Base.Metadata
+       ICON metadata
        Reads The Columns for the Table
     column_metadata : Vector Hyper_Column
     column_metadata self = File_Error.handle_java_exceptions self.file.file <| Hyper_Errors.handle_java_exceptions <|
@@ -78,7 +82,8 @@ type Hyper_Table
         cols = self.column_metadata
         Table.new [["Column", cols.map .name], ["Value Type", cols.map .value_type], ["Nullable", cols.map .nullable]]
 
-    ## GROUP Standard.Base.Input
+    ## ALIAS load, open, import
+       GROUP Standard.Base.Input
        ICON data_input
        Reads the Table into Enso Table
 

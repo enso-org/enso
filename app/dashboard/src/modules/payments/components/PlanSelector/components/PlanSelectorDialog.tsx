@@ -10,22 +10,31 @@ import { useQuery } from '@tanstack/react-query'
 
 import { type GetText, useText } from '#/providers/TextProvider'
 
-import { Dialog, Form, Input, Selector, Separator, Text } from '#/components/AriaComponents'
+import {
+  Button,
+  Checkbox,
+  Dialog,
+  Form,
+  Input,
+  Selector,
+  Separator,
+  Text,
+} from '#/components/AriaComponents'
 import { ErrorDisplay } from '#/components/ErrorBoundary'
 import { Suspense } from '#/components/Suspense'
 
-import { createSubscriptionPriceQuery } from '#/modules/payments'
 import type { Plan } from '#/services/Backend'
 
 import { twMerge } from '#/utilities/tailwindMerge'
 
+import { createSubscriptionPriceQuery, useCreatePaymentMethodMutation } from '../../../api'
 import {
   MAX_SEATS_BY_PLAN,
   PRICE_BY_PLAN,
   PRICE_CURRENCY,
   TRIAL_DURATION_DAYS,
 } from '../../../constants'
-import { ADD_PAYMENT_METHOD_FORM_SCHEMA, AddPaymentMethodForm } from '../../AddPaymentMethodForm'
+import { AddPaymentMethodForm, createAddPaymentMethodFormSchema } from '../../AddPaymentMethodForm'
 import { StripeProvider } from '../../StripeProvider'
 import { PlanFeatures } from './PlanFeatures'
 
@@ -53,10 +62,8 @@ export interface PlanSelectorDialogProps {
 /** Get the string representation of a billing period. */
 function billingPeriodToString(getText: GetText, item: number) {
   return (
-    item === 1 ? getText('billingPeriodOneMonth')
-      // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-    : item === 12 ? getText('billingPeriodOneYear')
-    : getText('billingPeriodThreeYears')
+    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+    item === 12 ? getText('billingPeriodOneYear') : getText('billingPeriodThreeYears')
   )
 }
 
@@ -70,9 +77,12 @@ export function PlanSelectorDialog(props: PlanSelectorDialogProps) {
   const price = PRICE_BY_PLAN[plan]
   const maxSeats = MAX_SEATS_BY_PLAN[plan]
 
+  const createPaymentMethodMutation = useCreatePaymentMethodMutation()
+
   const form = Form.useForm({
+    mode: 'onChange',
     schema: (z) =>
-      ADD_PAYMENT_METHOD_FORM_SCHEMA.extend({
+      createAddPaymentMethodFormSchema(z, getText).extend({
         seats: z
           .number()
           .int()
@@ -80,14 +90,25 @@ export function PlanSelectorDialog(props: PlanSelectorDialogProps) {
           .min(1)
           .max(maxSeats, { message: getText('wantMoreSeats') }),
         period: z.number(),
+        agree: z
+          .array(z.string())
+          .min(1, { message: getText('licenseAgreementCheckboxError') })
+          .max(1, { message: getText('licenseAgreementCheckboxError') }),
       }),
     // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-    defaultValues: { seats: 1, period: 12 },
-    mode: 'onChange',
+    defaultValues: { seats: 1, period: 12, agree: [] },
+    onSubmit: async ({ cardElement, stripeInstance, seats, period }) => {
+      const res = await createPaymentMethodMutation.mutateAsync({
+        cardElement,
+        stripeInstance,
+      })
+
+      return onSubmit?.(res.paymentMethod.id, seats, period)
+    },
   })
 
-  const seats = form.watch('seats')
-  const period = form.watch('period')
+  const seats = Form.useWatch({ name: 'seats', control: form.control })
+  const period = Form.useWatch({ name: 'period', control: form.control })
 
   const formatter = React.useMemo(
     () => new Intl.NumberFormat(locale, { style: 'currency', currency: PRICE_CURRENCY }),
@@ -134,10 +155,11 @@ export function PlanSelectorDialog(props: PlanSelectorDialogProps) {
                   form={form}
                   name="period"
                   // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-                  items={[1, 12, 36]}
-                  itemToString={(item) => billingPeriodToString(getText, item)}
+                  items={[12, 36]}
                   label={getText('billingPeriod')}
-                />
+                >
+                  {(item) => billingPeriodToString(getText, item)}
+                </Selector>
 
                 <Input
                   isRequired
@@ -151,6 +173,26 @@ export function PlanSelectorDialog(props: PlanSelectorDialogProps) {
                   label={getText('seats')}
                   description={getText(`${plan}PlanSeatsDescription`, maxSeats)}
                 />
+
+                <Checkbox.Group
+                  form={form}
+                  name="agree"
+                  description={
+                    <>
+                      {getText('slsaLicenseAgreementDescription1')}{' '}
+                      <Button
+                        variant="link"
+                        href="https://www.ensoanalytics.com/SLSA"
+                        target="_blank"
+                      >
+                        {getText('SLSA')}
+                      </Button>
+                      {getText('slsaLicenseAgreementDescription2')}
+                    </>
+                  }
+                >
+                  <Checkbox value="agree">{getText('licenseAgreementCheckbox')}</Checkbox>
+                </Checkbox.Group>
               </Form>
             </div>
           </div>
@@ -212,88 +254,81 @@ function Summary(props: SummaryProps) {
 
   const billingPeriodText = billingPeriodToString(getText, period)
 
-  if (isError) {
-    // eslint-disable-next-line no-restricted-syntax
-    return (
+  return isError ?
       <ErrorDisplay
         error={error}
         title={getText('asyncHookError')}
         resetErrorBoundary={() => refetch()}
       />
-    )
-  }
+    : <div className="flex flex-col">
+        <Text variant="subtitle">{getText('summary')}</Text>
 
-  return (
-    <div className="flex flex-col">
-      <Text variant="subtitle">{getText('summary')}</Text>
-
-      <div
-        className={twMerge(
-          '-ml-4 table table-auto border-spacing-x-4 transition-[filter] duration-200',
-          (isLoading || isInvalid) && 'pointer-events-none blur-[4px]',
-          isLoading && 'animate-pulse duration-1000',
-        )}
-      >
-        <div className="table-row">
-          <Text className="table-cell w-[0%]" variant="body" nowrap>
-            {getText('priceMonthly')}
-          </Text>
-          {data && (
-            <Text className="table-cell " variant="body">
-              {formatter.format(data.monthlyPrice)}
-            </Text>
+        <div
+          className={twMerge(
+            '-ml-4 table table-auto border-spacing-x-4 transition-[filter] duration-200',
+            (isLoading || isInvalid) && 'pointer-events-none blur-[4px]',
+            isLoading && 'animate-pulse duration-1000',
           )}
-        </div>
-
-        <div className="table-row">
-          <Text className="table-cell w-[0%]" variant="body" nowrap>
-            {getText('billingPeriod')}
-          </Text>
-
-          {data && (
-            <Text className="table-cell" variant="body">
-              {billingPeriodText}
+        >
+          <div className="table-row">
+            <Text className="table-cell w-[0%]" variant="body" nowrap>
+              {getText('priceMonthly')}
             </Text>
-          )}
-        </div>
+            {data && (
+              <Text className="table-cell " variant="body">
+                {formatter.format(data.monthlyPrice)}
+              </Text>
+            )}
+          </div>
 
-        <div className="table-row">
-          <Text className="table-cell w-[0%]" variant="body" nowrap>
-            {getText('originalPrice')}
-          </Text>
-          {data && (
-            <Text className="table-cell" variant="body">
-              {formatter.format(data.fullPrice)}
+          <div className="table-row">
+            <Text className="table-cell w-[0%]" variant="body" nowrap>
+              {getText('billingPeriod')}
             </Text>
-          )}
-        </div>
 
-        <div className="table-row">
-          <Text className="table-cell w-[0%]" variant="body" nowrap>
-            {getText('youSave')}
-          </Text>
-          {data && (
-            <Text
-              className="table-cell"
-              color={data.discount > 0 ? 'success' : 'primary'}
-              variant="body"
-            >
-              {formatter.format(data.discount)}
-            </Text>
-          )}
-        </div>
+            {data && (
+              <Text className="table-cell" variant="body">
+                {billingPeriodText}
+              </Text>
+            )}
+          </div>
 
-        <div className="table-row">
-          <Text className="table-cell w-[0%]" variant="body" nowrap>
-            {getText('subtotalPrice')}
-          </Text>
-          {data && (
-            <Text className="table-cell" variant="body">
-              {formatter.format(data.totalPrice)}
+          <div className="table-row">
+            <Text className="table-cell w-[0%]" variant="body" nowrap>
+              {getText('originalPrice')}
             </Text>
-          )}
+            {data && (
+              <Text className="table-cell" variant="body">
+                {formatter.format(data.fullPrice)}
+              </Text>
+            )}
+          </div>
+
+          <div className="table-row">
+            <Text className="table-cell w-[0%]" variant="body" nowrap>
+              {getText('youSave')}
+            </Text>
+            {data && (
+              <Text
+                className="table-cell"
+                color={data.discount > 0 ? 'success' : 'primary'}
+                variant="body"
+              >
+                {formatter.format(data.discount)}
+              </Text>
+            )}
+          </div>
+
+          <div className="table-row">
+            <Text className="table-cell w-[0%]" variant="body" nowrap>
+              {getText('subtotalPrice')}
+            </Text>
+            {data && (
+              <Text className="table-cell" variant="body">
+                {formatter.format(data.totalPrice)}
+              </Text>
+            )}
+          </div>
         </div>
       </div>
-    </div>
-  )
 }

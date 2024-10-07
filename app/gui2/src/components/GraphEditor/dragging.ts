@@ -158,11 +158,21 @@ export function useDragging() {
       this.stopPositionUpdate()
       this.updateNodesPosition()
     }
+    cancelDragging(): void {
+      console.log('cancelDragging')
+      this.stopPositionUpdate()
+      offset.value = Vec2.Zero
+      snapXTarget.value = 0
+      snapYTarget.value = 0
+      snapX.skip()
+      snapY.skip()
+      this.updateNodesPosition()
+    }
 
     createSnapGrid() {
       const nonDraggedRects = computed(() => {
         const nonDraggedNodes = iteratorFilter(
-          graphStore.db.nodeIdToNode.keys(),
+          graphStore.db.nodeIds(),
           (id) => !this.draggedNodes.has(id),
         )
         return Array.from(nonDraggedNodes, (id) => graphStore.nodeRects.get(id)!)
@@ -196,6 +206,10 @@ export function useDragging() {
     },
     finishDrag() {
       currentDrag?.finishDragging()
+      currentDrag = undefined
+    },
+    cancelDrag() {
+      currentDrag?.cancelDragging()
       currentDrag = undefined
     },
   }

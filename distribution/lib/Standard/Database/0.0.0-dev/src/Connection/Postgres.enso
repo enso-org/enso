@@ -1,13 +1,14 @@
 from Standard.Base import all
 import Standard.Base.Data.Numbers.Number_Parse_Error
+import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
 import project.Connection.Client_Certificate.Client_Certificate
 import project.Connection.Connection_Options.Connection_Options
 import project.Connection.Credentials.Credentials
+import project.Connection.Postgres_Connection.Postgres_Connection
 import project.Connection.SSL_Mode.SSL_Mode
 import project.Internal.Postgres.Pgpass
-import project.Internal.Postgres.Postgres_Connection.Postgres_Connection
 import project.Internal.Postgres.Postgres_Data_Link_Setup.Postgres_Data_Link_Setup
 
 polyglot java import org.postgresql.Driver
@@ -29,6 +30,12 @@ type Postgres
        - client_cert: The client certificate to use or `Nothing` if not needed.
     @credentials Credentials.default_widget
     Server (host:Text=default_postgres_host) (port:Integer=default_postgres_port) (database:Text=default_postgres_database) (schema:Text="") (credentials:(Credentials|Nothing)=Nothing) (use_ssl:SSL_Mode=SSL_Mode.Prefer) (client_cert:(Client_Certificate|Nothing)=Nothing)
+
+    ## PRIVATE
+       Attempt to resolve the constructor.
+    resolve : Function -> Postgres | Nothing
+    resolve constructor =
+        Panic.catch Type_Error (constructor:Postgres) _->Nothing
 
     ## PRIVATE
        Build the Connection resource.

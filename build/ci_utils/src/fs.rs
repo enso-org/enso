@@ -3,8 +3,6 @@
 
 use crate::prelude::*;
 
-use async_compression::tokio::bufread::GzipEncoder;
-use async_compression::Level;
 use fs_extra::dir::CopyOptions;
 use fs_extra::error::ErrorKind;
 
@@ -82,19 +80,6 @@ pub async fn mirror_directory(source: impl AsRef<Path>, destination: impl AsRef<
     }
 }
 
-
-/// Get the size of a file after gzip compression.
-pub async fn compressed_size(path: impl AsRef<Path>) -> Result<byte_unit::Byte> {
-    // Read the file in chunks of 4MB. Our wasm files are usually way bigger than that, so this
-    // buffer gives very significant speedup over the default 8KB chunks.
-    const READER_CAPACITY: usize = 4096 * 1024;
-
-    let file = tokio::open(&path).await?;
-    let buf_file = ::tokio::io::BufReader::with_capacity(READER_CAPACITY, file);
-    let encoded_stream = GzipEncoder::with_quality(buf_file, Level::Best);
-    crate::io::read_length(encoded_stream).await.map(into)
-}
-
 /// Copy the file to the destination path, unless the file already exists and has the same content.
 ///
 /// If the directory is passed as the source, it will be copied recursively.
@@ -108,7 +93,7 @@ pub async fn copy_if_different(source: impl AsRef<Path>, target: impl AsRef<Path
     }
 
     let walkdir = walkdir::WalkDir::new(&source);
-    let entries = walkdir.into_iter().try_collect_vec()?;
+    let entries: Vec<_> = walkdir.into_iter().try_collect()?;
     for entry in entries.into_iter().filter(|e| e.file_type().is_file()) {
         let entry_path = entry.path();
         let relative_path = pathdiff::diff_paths(entry_path, &source)
@@ -125,7 +110,7 @@ pub async fn copy_if_different(source: impl AsRef<Path>, target: impl AsRef<Path
 pub fn symlink_auto(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> Result {
     create_parent_dir_if_missing(&dst)?;
     debug!("Creating symlink {} <= {}", src.as_ref().display(), dst.as_ref().display());
-    symlink::symlink_auto(&src, &dst).anyhow_err()
+    Ok(symlink::symlink_auto(&src, &dst)?)
 }
 
 /// Remove a symlink to a directory if it exists.
@@ -134,7 +119,7 @@ pub fn remove_symlink_dir_if_exists(path: impl AsRef<Path>) -> Result {
     let result = symlink::remove_symlink_dir(&path);
     match result {
         Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(()),
-        ret => ret.anyhow_err(),
+        ret => Ok(ret?),
     }
 }
 

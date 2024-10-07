@@ -1,105 +1,79 @@
-/**
- * @file
- *
- * A modal for adding a payment method.
- */
-import * as React from 'react'
+/** @file A modal for adding a payment method. */
+import { CardElement } from '@stripe/react-stripe-js'
+import type { PaymentMethod, Stripe, StripeCardElement, StripeElements } from '@stripe/stripe-js'
 
-import * as stripeReact from '@stripe/react-stripe-js'
-import type * as stripeJs from '@stripe/stripe-js'
-import * as reactQuery from '@tanstack/react-query'
+import { Form, useDialogContext, type FormInstance, type schema } from '#/components/AriaComponents'
+import { useText, type GetText } from '#/providers/TextProvider'
+import { useCreatePaymentMethodMutation } from '../api/createPaymentMethod'
 
-import * as text from '#/providers/TextProvider'
-
-import * as ariaComponents from '#/components/AriaComponents'
-
-/**
- * Props for {@link AddPaymentMethodForm}.
- */
+/** Props for an {@link AddPaymentMethodForm}. */
 export interface AddPaymentMethodFormProps<
-  Schema extends typeof ADD_PAYMENT_METHOD_FORM_SCHEMA = typeof ADD_PAYMENT_METHOD_FORM_SCHEMA,
+  Schema extends ReturnType<typeof createAddPaymentMethodFormSchema> = ReturnType<
+    typeof createAddPaymentMethodFormSchema
+  >,
 > {
-  readonly stripeInstance: stripeJs.Stripe
-  readonly elements: stripeJs.StripeElements
+  readonly stripeInstance: Stripe
+  readonly elements: StripeElements
   readonly submitText: string
-  readonly onSubmit?:
-    | ((paymentMethodId: stripeJs.PaymentMethod['id']) => Promise<void> | void)
-    | undefined
-  readonly form?: ariaComponents.FormInstance<Schema>
+  readonly onSubmit?: ((paymentMethodId: PaymentMethod['id']) => Promise<void> | void) | undefined
+  readonly form?: FormInstance<Schema>
 }
 
-export const ADD_PAYMENT_METHOD_FORM_SCHEMA = ariaComponents.Form.schema.object({
-  card: ariaComponents.Form.schema
-    .object(
-      {
-        complete: ariaComponents.Form.schema.boolean(),
-        error: ariaComponents.Form.schema
-          .object({ message: ariaComponents.Form.schema.string() })
-          .nullish(),
-      },
-      { message: 'This field is required' },
-    )
-    .nullable()
-    .refine(
-      (data) => data?.error == null,
-      (data) => ({ message: data?.error?.message ?? 'This field is required' }),
-    ),
-})
+/** The validation schema for this form. */
+export function createAddPaymentMethodFormSchema(z: typeof schema, getText: GetText) {
+  return z.object({
+    card: z
+      .object(
+        {
+          complete: z.boolean(),
+          error: z.object({ message: z.string() }).nullish(),
+        },
+        { message: getText('arbitraryFieldRequired') },
+      )
+      .nullable()
+      .refine(
+        (data) => data?.error == null,
+        (data) => ({ message: data?.error?.message ?? getText('arbitraryFieldRequired') }),
+      ),
+    cardElement: z.custom<StripeCardElement | null | undefined>(),
+    stripeInstance: z.custom<Stripe>(),
+  })
+}
 
 /**
  * A form for adding a payment method.
  */
 export function AddPaymentMethodForm<
-  Schema extends typeof ADD_PAYMENT_METHOD_FORM_SCHEMA = typeof ADD_PAYMENT_METHOD_FORM_SCHEMA,
+  Schema extends ReturnType<typeof createAddPaymentMethodFormSchema> = ReturnType<
+    typeof createAddPaymentMethodFormSchema
+  >,
 >(props: AddPaymentMethodFormProps<Schema>) {
-  const { stripeInstance, elements, onSubmit, submitText, form } = props
+  const { stripeInstance, onSubmit, submitText, form: formRaw } = props
+  const { getText } = useText()
+  const dialogContext = useDialogContext()
+  const createPaymentMethodMutation = useCreatePaymentMethodMutation()
 
-  const { getText } = text.useText()
-
-  const [cardElement, setCardElement] = React.useState<stripeJs.StripeCardElement | null>(() =>
-    elements.getElement(stripeReact.CardElement),
+  const form = Form.useForm(
+    formRaw ?? {
+      mode: 'onChange',
+      schema: (z) => createAddPaymentMethodFormSchema(z, getText),
+      onSubmit: ({ cardElement }) =>
+        createPaymentMethodMutation.mutateAsync({ stripeInstance, cardElement }),
+      onSubmitSuccess: ({ paymentMethod }) => onSubmit?.(paymentMethod.id),
+    },
   )
 
-  const dialogContext = ariaComponents.useDialogContext()
-
-  const createPaymentMethodMutation = reactQuery.useMutation({
-    mutationFn: async () => {
-      if (!cardElement) {
-        throw new Error('Unexpected error')
-      } else {
-        return stripeInstance
-          .createPaymentMethod({ type: 'card', card: cardElement })
-          .then((result) => {
-            if (result.error) {
-              throw new Error(result.error.message)
-            } else {
-              return result
-            }
-          })
-      }
-    },
-  })
-
-  // No idea if it's safe or not, but outside of the function everything is fine
-  // but for some reason ts fails to infer the `card` field from the schema (it should always be there)
-  // eslint-disable-next-line no-restricted-syntax
-  const formInstance = ariaComponents.Form.useForm(
-    form ?? { schema: ADD_PAYMENT_METHOD_FORM_SCHEMA },
-  ) as unknown as ariaComponents.FormInstance<typeof ADD_PAYMENT_METHOD_FORM_SCHEMA>
+  const cardElement =
+    // FIXME[sb]: I do not understand why `useWatch` is not sufficient for Playwright.
+    // (The value is always `undefined` with `useWatch` alone)
+    // It is worth noting that E2E tests previously worked without requiring this change - as of:
+    // 1500849c32f70f5f4d95240b7e31377c649dc25b
+    Form.useWatch({ control: form.control, name: 'cardElement' }) ?? form.getValues().cardElement
 
   return (
-    <ariaComponents.Form
-      method="dialog"
-      form={formInstance}
-      onSubmit={() =>
-        createPaymentMethodMutation.mutateAsync().then(async ({ paymentMethod }) => {
-          await onSubmit?.(paymentMethod.id)
-          cardElement?.clear()
-        })
-      }
-    >
-      <ariaComponents.Form.Field name="card" fullWidth label={getText('bankCardLabel')}>
-        <stripeReact.CardElement
+    <Form method="dialog" form={form}>
+      <Form.Field name="card" fullWidth label={getText('bankCardLabel')}>
+        <CardElement
           options={{
             classes: {
               base: 'border border-primary/15 rounded-2xl px-3 py-2 transition-[outline] w-full',
@@ -110,26 +84,25 @@ export function AddPaymentMethodForm<
           }}
           onEscape={() => dialogContext?.close()}
           onReady={(element) => {
-            setCardElement(element)
+            form.setValue('cardElement', element)
+            form.setValue('stripeInstance', stripeInstance)
           }}
           onChange={(event) => {
             if (event.error?.message != null) {
-              formInstance.setError('card', { message: event.error.message })
+              form.setError('card', { message: event.error.message })
               cardElement?.focus()
             } else {
-              formInstance.clearErrors('card')
+              form.clearErrors('card')
             }
-            formInstance.setValue('card', event)
+            form.setValue('card', event)
           }}
-          onBlur={() => formInstance.trigger('card')}
+          onBlur={() => form.trigger('card')}
         />
-      </ariaComponents.Form.Field>
+      </Form.Field>
 
-      <ariaComponents.Form.Submit loading={cardElement == null}>
-        {submitText}
-      </ariaComponents.Form.Submit>
+      <Form.Submit loading={cardElement == null}>{submitText}</Form.Submit>
 
-      <ariaComponents.Form.FormError />
-    </ariaComponents.Form>
+      <Form.FormError />
+    </Form>
   )
 }

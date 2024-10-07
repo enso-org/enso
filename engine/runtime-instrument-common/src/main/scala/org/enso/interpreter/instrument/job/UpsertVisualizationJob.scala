@@ -8,6 +8,7 @@ import org.enso.compiler.pass.analyse.{
   CachePreferenceAnalysis,
   DataflowAnalysis
 }
+import org.enso.compiler.refactoring.IRUtils
 import org.enso.interpreter.instrument.execution.{Executable, RuntimeContext}
 import org.enso.interpreter.instrument.job.UpsertVisualizationJob.{
   EvaluationFailed,
@@ -27,6 +28,7 @@ import org.enso.polyglot.runtime.Runtime.Api
 
 import java.util.UUID
 import java.util.logging.Level
+
 import scala.annotation.unused
 import scala.util.Try
 
@@ -156,6 +158,20 @@ class UpsertVisualizationJob(
 }
 
 object UpsertVisualizationJob {
+
+  /** Invalidate caches for a particular expression id. */
+  sealed private case class InvalidateCaches(
+    expressionId: Api.ExpressionId
+  )(implicit ctx: RuntimeContext)
+      extends Runnable {
+
+    override def run(): Unit = {
+      ctx.locking.withWriteCompilationLock(
+        classOf[UpsertVisualizationJob],
+        () => invalidateCaches(expressionId)
+      )
+    }
+  }
 
   /** The number of times to retry the expression evaluation. */
   private val MaxEvaluationRetryCount: Int = 5
@@ -494,10 +510,8 @@ object UpsertVisualizationJob {
         callback,
         arguments
       )
-    ctx.locking.withWriteCompilationLock(
-      this.getClass,
-      () => invalidateCaches(visualization)
-    )
+    setCacheWeights(visualization)
+    ctx.state.executionHooks.add(InvalidateCaches(expressionId))
     ctx.contextManager.upsertVisualization(
       visualizationConfig.executionContextId,
       visualization
@@ -550,9 +564,8 @@ object UpsertVisualizationJob {
 
   /** Update the caches. */
   private def invalidateCaches(
-    visualization: Visualization
+    expressionId: Api.ExpressionId
   )(implicit ctx: RuntimeContext): Unit = {
-    setCacheWeights(visualization)
     val stacks = ctx.contextManager.getAllContexts.values
     /* The invalidation of the first cached dependent node is required for
      * attaching the visualizations to sub-expressions. Consider the example
@@ -567,8 +580,8 @@ object UpsertVisualizationJob {
      * visualized expression is a sub-expression and invalidate the first parent
      * expression accordingly.
      */
-    if (!stacks.exists(isExpressionCached(visualization.expressionId, _))) {
-      invalidateFirstDependent(visualization.expressionId)
+    if (!stacks.exists(isExpressionCached(expressionId, _))) {
+      invalidateFirstDependent(expressionId)
     }
   }
 
@@ -616,8 +629,8 @@ object UpsertVisualizationJob {
           .getMetadata(DataflowAnalysis)
           .foreach { metadata =>
             val externalId = expressionId
-            module.getIr.preorder
-              .find(_.getExternalId.contains(externalId))
+            IRUtils
+              .findByExternalId(module.getIr, externalId)
               .map { ir =>
                 DataflowAnalysis.DependencyInfo.Type
                   .Static(ir.getId, ir.getExternalId)

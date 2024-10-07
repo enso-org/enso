@@ -1,10 +1,16 @@
 /** @file Test the organization settings tab. */
 import * as test from '@playwright/test'
 
+import { Plan } from 'enso-common/src/services/Backend'
 import * as actions from './actions'
 
 test.test('organization settings', async ({ page }) => {
-  const api = await actions.mockAllAndLoginAndExposeAPI({ page })
+  const api = await actions.mockAllAndLoginAndExposeAPI({
+    page,
+    setupAPI: (theApi) => {
+      theApi.setPlan(Plan.team)
+    },
+  })
   const localActions = actions.settings.organization
 
   // Setup
@@ -31,8 +37,8 @@ test.test('organization settings', async ({ page }) => {
   await test.test.step('Unset name (should fail)', async () => {
     await nameInput.fill('')
     await nameInput.press('Enter')
+    await test.expect(nameInput).toHaveValue('')
     test.expect(api.currentOrganization()?.name).toBe(newName)
-    await test.expect(nameInput).toHaveValue(newName)
   })
 
   const invalidEmail = 'invalid@email'
@@ -76,7 +82,12 @@ test.test('organization settings', async ({ page }) => {
 })
 
 test.test('upload organization profile picture', async ({ page }) => {
-  const api = await actions.mockAllAndLoginAndExposeAPI({ page })
+  const api = await actions.mockAllAndLoginAndExposeAPI({
+    page,
+    setupAPI: (theApi) => {
+      theApi.setPlan(Plan.team)
+    },
+  })
   const localActions = actions.settings.organizationProfilePicture
 
   await localActions.go(page)

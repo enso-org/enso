@@ -27,21 +27,20 @@ const MIN_DRAG_MOVE = 10
 const editingEdge: Interaction = {
   cancel: () => (graph.mouseEditedEdge = undefined),
   end: () => (graph.mouseEditedEdge = undefined),
-  pointerdown: (_e: PointerEvent, graphNavigator: GraphNavigator) =>
-    edgeInteractionClick(graphNavigator),
-  pointerup: (e: PointerEvent, graphNavigator: GraphNavigator) => {
+  pointerdown: edgeInteractionClick,
+  pointerup: (e: PointerEvent) => {
     const originEvent = graph.mouseEditedEdge?.event
     if (originEvent?.type === 'pointerdown') {
       const delta = new Vec2(e.screenX, e.screenY).sub(
         new Vec2(originEvent.screenX, originEvent.screenY),
       )
-      if (delta.lengthSquared() >= MIN_DRAG_MOVE ** 2) return edgeInteractionClick(graphNavigator)
+      if (delta.lengthSquared() >= MIN_DRAG_MOVE ** 2) return edgeInteractionClick()
     }
     return false
   },
 }
 
-function edgeInteractionClick(graphNavigator: GraphNavigator) {
+function edgeInteractionClick() {
   if (graph.mouseEditedEdge == null) return false
   let source: AstId | undefined
   let sourceNode: NodeId | undefined
@@ -54,12 +53,12 @@ function edgeInteractionClick(graphNavigator: GraphNavigator) {
   }
   const target = graph.mouseEditedEdge.target ?? selection?.hoveredPort
   const targetNode = target && graph.getPortNodeId(target)
-  graph.transact(() => {
+  graph.batchEdits(() => {
     if (source != null && sourceNode != targetNode) {
       if (target == null) {
         if (graph.mouseEditedEdge?.disconnectedEdgeTarget != null)
           disconnectEdge(graph.mouseEditedEdge.disconnectedEdgeTarget)
-        emits('createNodeFromEdge', source, graphNavigator.sceneMousePos ?? Vec2.Zero)
+        emits('createNodeFromEdge', source, props.navigator.sceneMousePos ?? Vec2.Zero)
       } else {
         createEdge(source, target)
       }
@@ -90,7 +89,7 @@ function createEdge(source: AstId, target: PortId) {
   const ident = graph.db.getOutputPortIdentifier(source)
   if (ident == null) return
 
-  const sourceNode = graph.db.getPatternExpressionNodeId(source)
+  const sourceNode = graph.getSourceNodeId(source)
   const targetNode = graph.getPortNodeId(target)
   if (sourceNode == null || targetNode == null) {
     return console.error(`Failed to connect edge, source or target node not found.`)

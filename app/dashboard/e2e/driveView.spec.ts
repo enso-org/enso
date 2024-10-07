@@ -33,11 +33,11 @@ test.test('drive view', ({ page }) =>
     // user that project creation may take a while. Previously opened projects are stopped when the
     // new project is created.
     .driveTable.withRows(async (rows) => {
-      await actions.locateStopProjectButton(rows.nth(0)).click()
+      await actions.locateStopProjectButton(rows.nth(1)).click()
     })
     // Project context menu
     .driveTable.rightClickRow(0)
-    .contextMenu.moveToTrash()
+    .contextMenu.moveNonFolderToTrash()
     .driveTable.withRows(async (rows) => {
       await test.expect(rows).toHaveCount(1)
     }),

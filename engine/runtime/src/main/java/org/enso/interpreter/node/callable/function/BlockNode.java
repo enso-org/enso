@@ -25,16 +25,23 @@ public class BlockNode extends ExpressionNode {
   }
 
   /**
-   * Creates an instance of this node.
+   * Creates an "root tagged" instance of block node.
    *
    * @param expressions the function body
    * @param returnExpr the return expression from the function
    * @return a node representing a block expression
    */
-  public static BlockNode build(ExpressionNode[] expressions, ExpressionNode returnExpr) {
-    return new BlockNode(expressions, returnExpr);
+  public static BlockNode buildRoot(ExpressionNode[] expressions, ExpressionNode returnExpr) {
+    return new Root(expressions, returnExpr);
   }
 
+  /**
+   * Creates a non-instrumented instance of block node.
+   *
+   * @param expressions the function body
+   * @param returnExpr the return expression from the function
+   * @return a node representing a block expression
+   */
   public static BlockNode buildSilent(ExpressionNode[] expressions, ExpressionNode returnExpr) {
     return new BlockNode(expressions, returnExpr);
   }
@@ -86,14 +93,17 @@ public class BlockNode extends ExpressionNode {
     return ss != null ? ss : getRootNode().getSourceSection();
   }
 
-  @Override
-  public boolean hasTag(Class<? extends Tag> tag) {
-    if (super.hasTag(tag)) {
-      return true;
+  private static final class Root extends BlockNode {
+    Root(ExpressionNode[] expressions, ExpressionNode returnExpr) {
+      super(expressions, returnExpr);
     }
-    if (tag == StandardTags.RootBodyTag.class || tag == StandardTags.RootTag.class) {
-      return true;
+
+    @Override
+    public boolean hasTag(Class<? extends Tag> tag) {
+      if (super.hasTag(tag)) {
+        return true;
+      }
+      return tag == StandardTags.RootBodyTag.class || tag == StandardTags.RootTag.class;
     }
-    return false;
   }
 }

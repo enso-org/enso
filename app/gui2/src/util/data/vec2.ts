@@ -10,6 +10,11 @@ export class Vec2 {
   ) {}
 
   static Zero: Vec2
+  static Infinity: Vec2
+
+  static FromTuple(point: [x: number, y: number]): Vec2 {
+    return new Vec2(point[0], point[1])
+  }
 
   static FromXY(point: Readonly<{ x: number; y: number }>): Vec2 {
     return new Vec2(point.x, point.y)
@@ -55,6 +60,10 @@ export class Vec2 {
 
   scale(scalar: number): Vec2 {
     return new Vec2(this.x * scalar, this.y * scalar)
+  }
+
+  scaleAround(scalar: number, pivotPoint: Vec2): Vec2 {
+    return this.sub(pivotPoint).scale(scalar).add(pivotPoint)
   }
 
   distanceSquared(other: Vec2): number {
@@ -130,3 +139,4 @@ export class Vec2 {
 }
 
 Vec2.Zero = new Vec2(0, 0)
+Vec2.Infinity = new Vec2(Infinity, Infinity)

@@ -19,6 +19,7 @@ import {
   MutableIdent,
   MutableModule,
   MutablePropertyAccess,
+  NegationApp,
   NumericLiteral,
   OprApp,
   PropertyAccess,
@@ -224,10 +225,22 @@ export function substituteQualifiedName(
  */
 export function tryNumberToEnso(value: number, module: MutableModule) {
   if (!Number.isFinite(value)) return
-  const literal = NumericLiteral.tryParse(value.toString(), module)
+  const literal = NumericLiteral.tryParse(Math.abs(value).toString(), module)
   if (!literal)
     console.warn(`Not implemented: Converting scientific-notation number to Enso value`, value)
-  return literal
+  if (literal && value < 0) {
+    return NegationApp.new(module, literal)
+  } else {
+    return literal
+  }
+}
+
+export function tryEnsoToNumber(ast: Ast) {
+  const [sign, literal] = ast instanceof NegationApp ? [-1, ast.argument] : [1, ast]
+  if (!(literal instanceof NumericLiteral)) return
+  // JS parsing is accidentally the same as our rules for literals: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number#number_coercion
+  // except `_` separators: https://stackoverflow.com/questions/72548282/why-does-number-constructor-fail-to-parse-numbers-with-separators
+  return sign * Number(literal.code().replace(/_/g, ''))
 }
 
 export function copyIntoNewModule<T extends Ast>(ast: T): Owned<Mutable<T>> {
