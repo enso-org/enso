@@ -1,8 +1,8 @@
 package org.enso.base.lookup;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.ServiceLoader;
 import java.util.function.Function;
@@ -34,22 +34,48 @@ public final class Lookup<T> implements Iterable<T> {
   }
 
   private List<ServiceLoader.Provider<T>> findAll() {
-    var arr = new ArrayList<ServiceLoader.Provider<T>>();
+    var serviceProviders = new LinkedHashMap<ServiceLoader.Provider<T>, ModuleLayer>();
     if (System.getProperties().get("enso.class.path") instanceof Collection<?> layers) {
       for (var obj : layers) {
         if (obj instanceof ModuleLayer layer) {
           factory.apply(layer).stream()
               .forEach(
                   (p) -> {
-                    arr.add(p);
+                    if (serviceProviders.containsKey(p)) {
+                      var prevLayer = serviceProviders.get(p);
+                      throw new IllegalStateException(
+                          "Error: Duplicate provider found: "
+                              + providerToString(p)
+                              + ". "
+                              + "Previous provider in layer '"
+                              + prevLayer
+                              + "'. "
+                              + "Current provider in layer '"
+                              + layer
+                              + "'.");
+                    }
+                    serviceProviders.put(p, layer);
                   });
         }
       }
     }
-    return arr;
+    return serviceProviders.keySet().stream().toList();
   }
 
   public static <S> Lookup<S> lookup(Function<ModuleLayer, ServiceLoader<S>> factory) {
     return new Lookup<>(factory);
+  }
+
+  private static <T> String providerToString(ServiceLoader.Provider<T> provider) {
+    var mod = provider.type().getModule();
+    var modLayer = mod.getLayer();
+    var tp = provider.type();
+    return "Provider[type='"
+        + tp
+        + "', module='"
+        + mod.getName()
+        + "', moduleLayer={"
+        + modLayer
+        + "}]";
   }
 }
