@@ -1544,6 +1544,7 @@ lazy val `aws-wrapper` = project
       "com.amazonaws"                    % "aws-java-sdk-core"       % awsJavaSdkV1Version,
       "com.amazonaws"                    % "aws-java-sdk-redshift"   % awsJavaSdkV1Version,
       "com.amazonaws"                    % "aws-java-sdk-sts"        % awsJavaSdkV1Version,
+      "software.amazon.awssdk"           % "aws-core"                % awsJavaSdkV2Version,
       "software.amazon.awssdk"           % "auth"                    % awsJavaSdkV2Version,
       "software.amazon.awssdk"           % "bom"                     % awsJavaSdkV2Version,
       "software.amazon.awssdk"           % "s3"                      % awsJavaSdkV2Version,
@@ -1552,24 +1553,45 @@ lazy val `aws-wrapper` = project
       "com.fasterxml.jackson.core"       % "jackson-databind"        % "2.12.7.1",
       "com.fasterxml.jackson.core"       % "jackson-annotations"     % "2.12.7",
       "com.fasterxml.jackson.core"       % "jackson-core"            % "2.12.7",
-      "com.fasterxml.jackson.dataformat" % "jackson-dataformat-cbor" % "2.12.6"
+      "com.fasterxml.jackson.dataformat" % "jackson-dataformat-cbor" % "2.12.6",
+      "org.slf4j"                        % "slf4j-api"               % slf4jVersion,
+      "commons-logging"                  % "commons-logging"         % "1.2",
+      "commons-codec"                    % "commons-codec"           % "1.15"
     ),
+    // Remove all the transitive dependencies of AWS SDK and leave only those that
+    // include `software.amazon.awssdk.*` classes.
     assembly / assemblyExcludedJars := {
-      val excludedJars = JPMSUtils.filterModulesFromUpdate(
-        update.value,
+      val excludedJars = JPMSUtils.filterModulesFromClasspath(
+        (Compile / dependencyClasspath).value,
         Seq(
-          "com.fasterxml.jackson.core"       % "jackson-databind"        % "2.12.7.1",
-          "com.fasterxml.jackson.core"       % "jackson-annotations"     % "2.12.7",
-          "com.fasterxml.jackson.core"       % "jackson-core"            % "2.12.7",
-          "com.fasterxml.jackson.dataformat" % "jackson-dataformat-cbor" % "2.12.6"
+          "com.fasterxml.jackson.core"       % "jackson-databind"                   % "2.12.7.1",
+          "com.fasterxml.jackson.core"       % "jackson-annotations"                % "2.12.7",
+          "com.fasterxml.jackson.core"       % "jackson-core"                       % "2.12.7",
+          "com.fasterxml.jackson.dataformat" % "jackson-dataformat-cbor"            % "2.12.6",
+          "org.slf4j"                        % "slf4j-api"                          % slf4jVersion,
+          "org.apache.httpcomponents"        % "httpclient"                         % "4.5.13",
+          "org.apache.httpcomponents"        % "httpcore"                           % "4.4.13",
+          "commons-logging"                  % "commons-logging"                    % "1.2",
+          "commons-codec"                    % "commons-codec"                      % "1.15",
+          "org.reactivestreams"              % "reactive-streams"                   % "1.0.4",
+          "joda-time"                        % "joda-time"                          % "2.8.1",
+          "io.netty"                         % "netty-common"                       % "4.1.108.Final",
+          "io.netty"                         % "netty-codec"                        % "4.1.108.Final",
+          "io.netty"                         % "netty-codec-http"                   % "4.1.108.Final",
+          "io.netty"                         % "netty-codec-http2"                  % "4.1.108.Final",
+          "io.netty"                         % "netty-buffer"                       % "4.1.108.Final",
+          "io.netty"                         % "netty-handler"                      % "4.1.108.Final",
+          "io.netty"                         % "netty-resolver"                     % "4.1.108.Final",
+          "io.netty"                         % "netty-transport"                    % "4.1.108.Final",
+          "io.netty"                         % "netty-transport-classes-epoll"      % "4.1.108.Final",
+          "io.netty"                         % "netty-transport-native-unix-common" % "4.1.108.Final"
         ),
         streams.value.log,
-        moduleName.value,
         scalaBinaryVersion.value,
+        moduleName.value,
         shouldContainAll = true
       )
       excludedJars
-        .map(Attributed.blank)
     },
     assembly / assemblyMergeStrategy := {
       case PathList("META-INF", "io.netty.versions.properties") =>
@@ -1589,7 +1611,13 @@ lazy val `aws-wrapper` = project
       val aws = JPMSUtils.filterModulesFromUpdate(
         update.value,
         Seq(
-          "software.amazon.awssdk" % "auth" % awsJavaSdkV2Version
+          "software.amazon.awssdk" % "auth"            % awsJavaSdkV2Version,
+          "software.amazon.awssdk" % "aws-core"        % awsJavaSdkV2Version,
+          "software.amazon.awssdk" % "sdk-core"        % awsJavaSdkV2Version,
+          "software.amazon.awssdk" % "profiles"        % awsJavaSdkV2Version,
+          "software.amazon.awssdk" % "regions"         % awsJavaSdkV2Version,
+          "software.amazon.awssdk" % "http-client-spi" % awsJavaSdkV2Version,
+          "software.amazon.awssdk" % "s3"              % awsJavaSdkV2Version
         ),
         streams.value.log,
         moduleName.value,
