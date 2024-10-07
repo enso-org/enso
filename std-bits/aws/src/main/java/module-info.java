@@ -10,6 +10,8 @@ module org.enso.std.aws {
   requires java.logging;
   requires org.enso.aws.wrapper;
 
+  exports org.enso.aws;
+
   provides FileSystemSPI with
       S3FileSystemSPI;
   provides DatabaseConnectionDetailsSPI with
