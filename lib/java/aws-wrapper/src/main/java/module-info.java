@@ -1,4 +1,4 @@
-module org.enso.wrapper.aws {
+module org.enso.aws.wrapper {
     exports software.amazon.awssdk.auth.credentials;
     exports software.amazon.awssdk.core.exception;
     exports software.amazon.awssdk.awscore.exception;
