@@ -15,8 +15,6 @@ from Standard.Database import all
 from Standard.Database.Errors import all
 
 from Standard.Microsoft import all
-import Standard.Microsoft.Internal.SQLServer_Dialect
-from Standard.Microsoft.Internal.SQLServer_Dialect import all
 
 from Standard.Test import all
 import Standard.Test.Test_Environment
