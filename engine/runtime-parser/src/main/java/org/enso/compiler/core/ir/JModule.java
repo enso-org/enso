@@ -10,6 +10,7 @@ import scala.collection.immutable.List;
 public abstract class JModule {
   @IRChild
   public abstract List<Import> imports();
+
   @IRChild
   public abstract List<Export> exports();
 }
