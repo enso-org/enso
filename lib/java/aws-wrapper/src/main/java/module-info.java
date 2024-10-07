@@ -11,4 +11,8 @@ module org.enso.aws.wrapper {
     exports software.amazon.awssdk.profiles;
     exports software.amazon.awssdk.regions;
     exports software.amazon.awssdk.regions.providers;
+
+    uses software.amazon.awssdk.http.SdkHttpService;
+    provides software.amazon.awssdk.http.SdkHttpService with
+        software.amazon.awssdk.http.apache.ApacheSdkHttpService;
 }

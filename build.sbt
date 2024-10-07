@@ -1623,6 +1623,7 @@ lazy val `aws-wrapper` = project
           "software.amazon.awssdk" % "profiles"        % awsJavaSdkV2Version,
           "software.amazon.awssdk" % "regions"         % awsJavaSdkV2Version,
           "software.amazon.awssdk" % "http-client-spi" % awsJavaSdkV2Version,
+          "software.amazon.awssdk" % "apache-client"   % awsJavaSdkV2Version,
           "software.amazon.awssdk" % "s3"              % awsJavaSdkV2Version
         ),
         streams.value.log,
