@@ -4770,6 +4770,12 @@ lazy val `std-aws` = project
       (`std-base` / Compile / exportedModule).value,
       (`std-database` / Compile / exportedModule).value
     ),
+    // This will cause `aws-wrapper-assembly.jar` to be copied into the
+    // `AWS/polyglot/java` directory.
+    Compile / unmanagedJars := {
+      val wrapperJar = (`aws-wrapper` / Compile / exportedModuleBin).value
+      Seq(Attributed.blank(wrapperJar))
+    },
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
       val _ = StdBits
