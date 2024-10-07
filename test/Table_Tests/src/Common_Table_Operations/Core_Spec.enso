@@ -9,6 +9,7 @@ import Standard.Table.Expression.Expression_Error
 from Standard.Database import all
 import Standard.Database.Internal.Internals_Access
 from Standard.Database.Errors import Integrity_Error
+import Standard.Database.Feature.Feature
 
 from Standard.Test import all
 
@@ -49,6 +50,9 @@ type Read_Data
         [t_big, t_small]
 
 add_specs suite_builder setup =
+    if setup.is_feature_supported Feature.Integration_Tests then (add_core_specs suite_builder setup)
+
+add_core_specs suite_builder setup =
     prefix = setup.prefix
     build_sorted_table = Util.build_sorted_table setup
     data = Data.setup build_sorted_table

@@ -7,6 +7,8 @@ from Standard.Table.Errors import all
 
 from Standard.Test import all
 
+import Standard.Database.Feature.Feature
+from Standard.Database.Errors import all
 
 from project.Common_Table_Operations.Util import run_default_backend
 
@@ -41,16 +43,22 @@ type Data
 type My_Type
     Foo x
 
-
 add_specs suite_builder setup =
+    if setup.is_feature_supported Feature.Sort then (add_order_specs suite_builder setup) else
+        suite_builder.group setup.prefix+"Table.sort" group_builder->
+            group_builder.specify "sort should report unsupported" <|
+                table_builder = setup.light_table_builder
+                t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", [100, 3, Nothing, 4, 12]], ["Y", [100, 4, 2, Nothing, 11]]]
+                table_2 = t.sort ["ix"]
+                table_2.should_fail_with (Unsupported_Database_Operation.Error "sort")
+
+add_order_specs suite_builder setup =
     prefix = setup.prefix
     create_connection_fn = setup.create_connection_func
     test_selection = setup.test_selection
-    sort_pending = if test_selection.order_by.not then
-        "ToDo: sort is not yet supported by this backend."
     pending_collation = "Need more reliable testing for collation locale support"
 
-    suite_builder.group prefix+"Table.sort" pending=sort_pending group_builder->
+    suite_builder.group prefix+"Table.sort" group_builder->
         data = Data.setup create_connection_fn setup.table_builder
 
         group_builder.teardown <|
