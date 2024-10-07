@@ -17,7 +17,7 @@ type Lazy_Ref
     Value ~get
 
 add_specs suite_builder setup =
-    if setup.is_feature_supported Feature.Integration_tests then (add_missing_value_specs suite_builder setup)
+    if setup.is_feature_supported Feature.Integration_Tests then (add_missing_value_specs suite_builder setup)
 
 add_missing_value_specs suite_builder setup =
     prefix = setup.prefix

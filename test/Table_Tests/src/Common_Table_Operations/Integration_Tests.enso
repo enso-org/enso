@@ -22,7 +22,7 @@ type Data
         self.connection.close
 
 add_specs suite_builder setup =
-    if setup.is_feature_supported Feature.Integration_tests then (add_integration_specs suite_builder setup)
+    if setup.is_feature_supported Feature.Integration_Tests then (add_integration_specs suite_builder setup)
 
 add_integration_specs suite_builder setup =
     create_connection_fn = setup.create_connection_func

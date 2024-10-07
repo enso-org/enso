@@ -87,7 +87,7 @@ add_specs suite_builder =
         connection_builder ->
             add_sqlserver_specs suite_builder connection_builder
             default_connection = Database.connect get_configured_connection_details
-            if default_connection.dialect.is_feature_supported Feature.Integration_tests then
+            if default_connection.dialect.is_feature_supported Feature.Integration_Tests then
                 suite_builder.group "[SQLServer] Info" group_builder->
                     data = SQLServer_Info_Data.setup default_connection
 

@@ -21,7 +21,7 @@ type Lazy_Ref
     Value ~get
 
 add_specs suite_builder detailed setup =
-    if setup.is_feature_supported Feature.Column_operations then (add_expression_specs suite_builder detailed setup)
+    if setup.is_feature_supported Feature.Column_Operations then (add_expression_specs suite_builder detailed setup)
 
 add_expression_specs suite_builder detailed setup =
     prefix = setup.prefix

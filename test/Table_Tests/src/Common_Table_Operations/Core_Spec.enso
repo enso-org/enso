@@ -50,7 +50,7 @@ type Read_Data
         [t_big, t_small]
 
 add_specs suite_builder setup =
-    if setup.is_feature_supported Feature.Integration_tests then (add_core_specs suite_builder setup)
+    if setup.is_feature_supported Feature.Integration_Tests then (add_core_specs suite_builder setup)
 
 add_core_specs suite_builder setup =
     prefix = setup.prefix

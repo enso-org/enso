@@ -19,7 +19,7 @@ type Lazy_Ref
     Value ~get
 
 add_specs suite_builder setup =
-    if setup.is_feature_supported Feature.Cross_join then (add_cross_join_specs suite_builder setup) else
+    if setup.is_feature_supported Feature.Cross_Join then (add_cross_join_specs suite_builder setup) else
         suite_builder.group setup.prefix+"Table.cross_join" group_builder->
             group_builder.specify "cross_join should report unsupported" <|
                 table_builder = setup.light_table_builder

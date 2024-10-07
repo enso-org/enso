@@ -4,23 +4,23 @@ from project.Errors import Unsupported_Database_Operation
 
 ## PRIVATE
 type Feature
-    Select_columns
+    Select_Columns
     Filter
     Aggregate
     Sort
     Join
     Union
     Distinct
-    Text_cleanse
-    Integration_tests
-    Add_row_number
-    Make_table_from
-    Column_operations
+    Text_Cleanse
+    Integration_Tests
+    Add_Row_Number
+    Make_Table_From
+    Column_Operations
     Set
     Sample
     Replace
     Merge
-    Cross_join
+    Cross_Join
 
     if_supported_else_throw self dialect:Any error_name:Text ~action = 
         if dialect.is_feature_supported self then action else

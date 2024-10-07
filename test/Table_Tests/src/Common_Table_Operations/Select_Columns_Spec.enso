@@ -76,7 +76,7 @@ type Rename_Columns_Data
         [table]
 
 add_specs suite_builder setup =
-    if setup.is_feature_supported Feature.Select_columns then (add_select_column_specs suite_builder setup) else
+    if setup.is_feature_supported Feature.Select_Columns then (add_select_column_specs suite_builder setup) else
         suite_builder.group setup.prefix+"Table.select_columns" group_builder->
             group_builder.specify "select_columns should report unsupported" <|
                 table_builder = Util.build_sorted_table setup

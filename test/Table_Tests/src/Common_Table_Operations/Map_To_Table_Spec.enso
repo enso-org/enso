@@ -22,7 +22,7 @@ type Data
         Data.Value (table_builder [['x', [1]]])
 
 add_specs suite_builder setup =
-    if setup.is_feature_supported Feature.Make_table_from then (add_map_to_table_specs suite_builder setup) else
+    if setup.is_feature_supported Feature.Make_Table_From then (add_map_to_table_specs suite_builder setup) else
         suite_builder.group setup.prefix+"Table.make_table_from_dictionary/vectors" group_builder->
             data = Data.setup setup.table_builder
             group_builder.specify "make_table_from_vectors should report unsupported" <|

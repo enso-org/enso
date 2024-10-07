@@ -23,7 +23,7 @@ type Data
         self.connection.close
 
 add_specs suite_builder setup =
-    if setup.is_feature_supported Feature.Integration_tests then (add_column_name_edge_cases_specs suite_builder setup)
+    if setup.is_feature_supported Feature.Integration_Tests then (add_column_name_edge_cases_specs suite_builder setup)
 
 add_column_name_edge_cases_specs suite_builder setup =
     materialize = setup.materialize
