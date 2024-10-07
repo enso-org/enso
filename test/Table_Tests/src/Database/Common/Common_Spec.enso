@@ -144,7 +144,7 @@ type Missing_Values_Data
         drop_table self.connection self.t4.name
 
 add_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connection_fn : (Nothing -> Any)) default_connection setup =
-    if setup.is_feature_supported Feature.Integration_tests then (add_commmon_specs suite_builder prefix create_connection_fn setup)
+    if setup.is_feature_supported Feature.Integration_tests then (add_commmon_specs suite_builder prefix create_connection_fn default_connection setup)
 
 ## Adds common database tests specs to the suite builder.
 
