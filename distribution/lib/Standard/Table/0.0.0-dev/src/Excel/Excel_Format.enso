@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Missing_Argument
+import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Metadata.Display
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
@@ -82,7 +83,7 @@ type Excel_Format
        Resolve an unresolved constructor to the actual type.
     resolve : Function -> Excel_Format | Nothing
     resolve constructor =
-        Panic.catch Any (constructor:Excel_Format) _->Nothing
+        Panic.catch Type_Error (constructor:Excel_Format) _->Nothing
 
     ## PRIVATE
        ADVANCED
