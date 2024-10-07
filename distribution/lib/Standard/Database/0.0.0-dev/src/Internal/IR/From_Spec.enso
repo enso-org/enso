@@ -122,6 +122,9 @@ type From_Spec_Comparator
             From_Spec.Table other_table_name _ _ ->
                 if table_name == other_table_name then Ordering.Equal else Nothing
             _ -> Nothing
+        From_Spec.Literal_Values _ _ _ -> case y of
+            From_Spec.Literal_Values _ _ _ ->
+                Nothing 
         _ -> Ordering.compare x y
 
     ## PRIVATE

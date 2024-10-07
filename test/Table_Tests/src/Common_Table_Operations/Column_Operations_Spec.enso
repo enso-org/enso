@@ -12,6 +12,7 @@ from Standard.Table import Bits, Value_Type, Column_Ref, Column
 from Standard.Table.Errors import all
 
 from Standard.Database.Errors import all
+import Standard.Database.Feature.Feature
 import Standard.Database.DB_Table.DB_Table
 
 from Standard.Test import all
@@ -145,6 +146,20 @@ type Connection_Data
         self.connection.close
 
 add_specs suite_builder setup =
+    if setup.is_feature_supported Feature.Filter then (add_column_operation_specs suite_builder setup) else
+        suite_builder.group setup.prefix+"(Column_Operations_Spec)" group_builder->
+            group_builder.specify "at should report unsupported" <|
+                table_builder = setup.light_table_builder
+                t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", [100, 3, Nothing, 4, 12]], ["Y", [100, 4, 2, Nothing, 11]]]
+                t2 = t.at "X"
+                t2.should_fail_with (Unsupported_Database_Operation.Error "at")
+            group_builder.specify "get should report unsupported" <|
+                table_builder = setup.light_table_builder
+                t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", [100, 3, Nothing, 4, 12]], ["Y", [100, 4, 2, Nothing, 11]]]
+                t2 = t.get "X"
+                t2.should_fail_with (Unsupported_Database_Operation.Error "get")
+
+add_column_operation_specs suite_builder setup =
     prefix = setup.prefix
     table_builder = setup.table_builder
     create_connection_fn = setup.create_connection_func

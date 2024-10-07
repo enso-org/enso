@@ -3,6 +3,8 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import Standard.Database.Extensions.Upload_Database_Table
 import Standard.Database.Extensions.Upload_In_Memory_Table
+import Standard.Database.Feature.Feature
+from Standard.Database.Errors import all
 
 from Standard.Table import Sort_Column, Aggregate_Column
 from Standard.Table.Errors import Missing_Input_Columns, Duplicate_Output_Column_Names, Floating_Point_Equality
@@ -27,8 +29,16 @@ type Data
     teardown self =
         self.connection.close
 
-
 add_specs suite_builder setup =
+    if setup.is_feature_supported Feature.Filter then (add_row_number_specs suite_builder setup) else
+        suite_builder.group setup.prefix+"Table.add_row_number" group_builder->
+            group_builder.specify "add_row_number should report unsupported" <|
+                table_builder = setup.light_table_builder
+                t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", [100, 3, Nothing, 4, 12]], ["Y", [100, 4, 2, Nothing, 11]]]
+                t2 = t.add_row_number
+                t2.should_fail_with (Unsupported_Database_Operation.Error "add_row_number")
+
+add_row_number_specs suite_builder setup =
     prefix = setup.prefix
     materialize = setup.materialize
     create_connection_fn = setup.create_connection_func

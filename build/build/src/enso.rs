@@ -266,7 +266,19 @@ impl BuiltEnso {
         if errors.is_empty() {
             Ok(())
         } else {
-            error!("{} test suit(s) failed.", errors.len());
+            let summary = errors
+                .as_slice()
+                .iter()
+                .map(|e| e.to_string())
+                .collect::<Vec<_>>()
+                .join(";\n")
+                .replace("\n", "%0A");
+            println!(
+                "::error title=Failed Standard Library Tests::{} test suite(s) failed: {}",
+                errors.len(),
+                summary
+            );
+            error!("{} test suite(s) failed.", errors.len());
             for error in &errors {
                 error!("{}", error);
             }
