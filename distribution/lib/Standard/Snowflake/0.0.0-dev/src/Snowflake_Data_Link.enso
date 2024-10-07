@@ -19,7 +19,7 @@ type Snowflake_Data_Link
     Table name:Text details:Snowflake_Details
 
     ## PRIVATE
-    parse json -> Snowflake_Data_Link =
+    parse json _ -> Snowflake_Data_Link =
         account = get_required_field "account" json expected_type=Text
         db_name = get_required_field "database_name" json expected_type=Text
         schema = get_optional_field "schema" json if_missing="SNOWFLAKE" expected_type=Text

@@ -21,7 +21,7 @@ type Enso_File_Data_Link
     private Value (path : Text) format_json
 
     ## PRIVATE
-    parse json -> Enso_File_Data_Link =
+    parse json _ -> Enso_File_Data_Link =
         path = get_required_field "path" json expected_type=Text
         format_json = get_optional_field "format" json
         Enso_File_Data_Link.Value path format_json

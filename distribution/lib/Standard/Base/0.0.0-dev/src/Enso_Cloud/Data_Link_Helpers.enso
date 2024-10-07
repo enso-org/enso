@@ -50,7 +50,16 @@ data_link_content_type = "application/x-enso-datalink"
 data_link_extension = ".datalink"
 
 ## PRIVATE
-interpret_json_as_data_link json =
+   Describes from where the data link is sourced.
+type Data_Link_Source_Metadata
+    ## A data link coming from Enso Cloud.
+    Cloud_Asset id:Text
+
+    ## No information is available about the source.
+    Unknown
+
+## PRIVATE
+interpret_json_as_data_link json source:Data_Link_Source_Metadata=..Unknown =
     typ = get_required_field "type" json expected_type=Text
     case DataLinkSPI.findDataLinkType typ of
         Nothing ->
@@ -60,30 +69,32 @@ interpret_json_as_data_link json =
             data_link_type.parse json
 
 ## PRIVATE
-read_data_link (file : File_Like) format (on_problems : Problem_Behavior) =
+read_and_interpret_data_link (file : File_Like) =
     json = Data_Link.read_config file
-    data_link_instance = interpret_json_as_data_link json
+    source = "TODO"
+    interpret_json_as_data_link json source
+
+## PRIVATE
+read_data_link (file : File_Like) format (on_problems : Problem_Behavior) =
+    data_link_instance = read_and_interpret_data_link file
     resolved_format = File_Format.resolve format
     data_link_instance.read resolved_format on_problems
 
 ## PRIVATE
 read_data_link_as_stream (file : File_Like) (open_options : Vector) (f : Input_Stream -> Any) =
-    json = Data_Link.read_config file
-    data_link_instance = interpret_json_as_data_link json
+    data_link_instance = read_and_interpret_data_link file
     data_link_with_input_stream = Data_Link_With_Input_Stream.find data_link_instance
     data_link_with_input_stream.with_input_stream open_options f
 
 ## PRIVATE
 write_data_link_as_stream (file : File_Like) (open_options : Vector) (f : Output_Stream -> Any) =
-    json = Data_Link.read_config file
-    data_link_instance = interpret_json_as_data_link json
+    data_link_instance = read_and_interpret_data_link file
     data_link_with_output_stream = Data_Link_With_Output_Stream.find data_link_instance
     data_link_with_output_stream.with_output_stream open_options f
 
 ## PRIVATE
 interpret_data_link_as_writable_file (file : File_Like) -> Writable_File =
-    json = Data_Link.read_config file
-    data_link_instance = interpret_json_as_data_link json
+    data_link_instance = read_and_interpret_data_link file
     ## We override the return value to return the original datalink, not the target.
        Ideally, we'd do this inside of the `as_writable_file` implementation,
        but there the data link does not know its 'origin', so it is impossible
