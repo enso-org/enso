@@ -1536,7 +1536,7 @@ Text.last_index_of self term="" start=-1 case_sensitivity=Case_Sensitivity.Sensi
          "7.6".parse_float
 @locale Locale.default_widget
 Text.parse_float : Locale | Nothing -> Float ! Number_Parse_Error
-Text.parse_float self locale=Nothing = Float.parse self locale
+Text.parse_float self locale=Locale.default = Float.parse self locale
 
 ## ALIAS integer from text, to_integer
    GROUP Conversions

@@ -75,6 +75,7 @@
 - [Extend the range of `floor`, `ceil`, `trunc` to values outside the `Long`
   range.][11135]
 - [Added `format` parameter to `Decimal.parse`.][11205]
+- [Added `format` parameter to `Float.parse`.][11229]
 
 [10614]: https://github.com/enso-org/enso/pull/10614
 [10660]: https://github.com/enso-org/enso/pull/10660
@@ -89,6 +90,7 @@
 [11120]: https://github.com/enso-org/enso/pull/11120
 [11135]: https://github.com/enso-org/enso/pull/11135
 [11205]: https://github.com/enso-org/enso/pull/11205
+[11229]: https://github.com/enso-org/enso/pull/11229
 
 #### Enso Language & Runtime
 
