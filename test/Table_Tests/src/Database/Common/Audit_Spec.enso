@@ -42,8 +42,7 @@ add_specs suite_builder prefix ~datalink_to_connection database_pending =
 
                 all_events = get_audit_log_events
                 relevant_events = all_events.filter e-> e.message.contains table_name
-                Test.with_clue ((relevant_events.map .to_text).join '\n' 'Found relevant events are:\n' '\n') <|
-
+                Test.with_clue ((all_events.map .to_text).join '\n' 'Found events are:\n' '\n') <|
                     create = relevant_events.find (e-> e.message.contains "CREATE")
                     create.should_succeed
                     create.user_email . should_equal Enso_User.current.email
