@@ -1554,12 +1554,6 @@ lazy val `aws-wrapper` = project
       "com.fasterxml.jackson.dataformat" % "jackson-dataformat-cbor" % "2.12.6"
     ),
     javaModuleName := "org.enso.aws.wrapper",
-    Compile / moduleDependencies ++= Seq(
-      "com.fasterxml.jackson.core"       % "jackson-databind"        % "2.12.7.1",
-      "com.fasterxml.jackson.core"       % "jackson-annotations"     % "2.12.7",
-      "com.fasterxml.jackson.core"       % "jackson-core"            % "2.12.7",
-      "com.fasterxml.jackson.dataformat" % "jackson-dataformat-cbor" % "2.12.6"
-    ),
     assembly / assemblyExcludedJars := {
       val excludedJars = JPMSUtils.filterModulesFromUpdate(
         update.value,
