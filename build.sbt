@@ -1531,6 +1531,84 @@ lazy val `zio-wrapper` = project
     }
   )
 
+/** JPMS module wrapper for AWS SDK.
+  */
+lazy val `aws-wrapper` = project
+  .in(file("lib/java/aws-wrapper"))
+  .enablePlugins(JPMSPlugin)
+  .settings(
+    modularFatJarWrapperSettings,
+    libraryDependencies ++= Seq(
+      "com.amazon.redshift"              % "redshift-jdbc42"         % redshiftVersion,
+      "com.amazonaws"                    % "aws-java-sdk-core"       % awsJavaSdkV1Version,
+      "com.amazonaws"                    % "aws-java-sdk-redshift"   % awsJavaSdkV1Version,
+      "com.amazonaws"                    % "aws-java-sdk-sts"        % awsJavaSdkV1Version,
+      "software.amazon.awssdk"           % "auth"                    % awsJavaSdkV2Version,
+      "software.amazon.awssdk"           % "bom"                     % awsJavaSdkV2Version,
+      "software.amazon.awssdk"           % "s3"                      % awsJavaSdkV2Version,
+      "software.amazon.awssdk"           % "sso"                     % awsJavaSdkV2Version,
+      "software.amazon.awssdk"           % "ssooidc"                 % awsJavaSdkV2Version,
+      "com.fasterxml.jackson.core"       % "jackson-databind"        % "2.12.7.1",
+      "com.fasterxml.jackson.core"       % "jackson-annotations"     % "2.12.7",
+      "com.fasterxml.jackson.core"       % "jackson-core"            % "2.12.7",
+      "com.fasterxml.jackson.dataformat" % "jackson-dataformat-cbor" % "2.12.6"
+    ),
+    javaModuleName := "org.enso.aws.wrapper",
+    Compile / moduleDependencies ++= Seq(
+      "com.fasterxml.jackson.core"       % "jackson-databind"        % "2.12.7.1",
+      "com.fasterxml.jackson.core"       % "jackson-annotations"     % "2.12.7",
+      "com.fasterxml.jackson.core"       % "jackson-core"            % "2.12.7",
+      "com.fasterxml.jackson.dataformat" % "jackson-dataformat-cbor" % "2.12.6"
+    ),
+    assembly / assemblyExcludedJars := {
+      val excludedJars = JPMSUtils.filterModulesFromUpdate(
+        update.value,
+        Seq(
+          "com.fasterxml.jackson.core"       % "jackson-databind"    % "2.12.7.1",
+          "com.fasterxml.jackson.core"       % "jackson-annotations" % "2.12.7",
+          "com.fasterxml.jackson.core"       % "jackson-core"        % "2.12.7",
+          "com.fasterxml.jackson.dataformat" % "jackson-cbor"        % "2.12.6"
+        ),
+        streams.value.log,
+        moduleName.value,
+        scalaBinaryVersion.value,
+        shouldContainAll = true
+      )
+      excludedJars
+        .map(Attributed.blank)
+    },
+    assembly / assemblyMergeStrategy := {
+      case PathList("META-INF", "io.netty.versions.properties") =>
+        MergeStrategy.first
+      case PathList("META-INF", "MANIFEST.MF")  => MergeStrategy.discard
+      case PathList("META-INF", "LICENSE")      => MergeStrategy.concat
+      case PathList("META-INF", "LICENSE.txt")  => MergeStrategy.concat
+      case PathList("META-INF", "NOTICE")       => MergeStrategy.concat
+      case PathList("META-INF", "NOTICE.txt")   => MergeStrategy.concat
+      case PathList("META-INF", "DEPENDENCIES") => MergeStrategy.discard
+      case PathList("META-INF", "INDEX.LIST")   => MergeStrategy.discard
+      case PathList("module-info.class")        => MergeStrategy.preferProject
+      case _                                    => MergeStrategy.deduplicate
+    },
+    autoScalaLibrary := false,
+    Compile / patchModules := {
+      val aws = JPMSUtils.filterModulesFromUpdate(
+        update.value,
+        scalaLibrary ++
+        Seq(
+          "com.amazonaws" % "aws-java-sdk-core" % awsJavaSdkV1Version
+        ),
+        streams.value.log,
+        moduleName.value,
+        scalaBinaryVersion.value,
+        shouldContainAll = true
+      )
+      Map(
+        javaModuleName.value -> aws
+      )
+    }
+  )
+
 lazy val cli = project
   .in(file("lib/scala/cli"))
   .enablePlugins(JPMSPlugin)
@@ -4664,29 +4742,11 @@ lazy val `std-aws` = project
     Compile / packageBin / artifactPath :=
       `std-aws-polyglot-root` / "std-aws.jar",
     libraryDependencies ++= Seq(
-      "com.amazon.redshift"    % "redshift-jdbc42"       % redshiftVersion,
-      "com.amazonaws"          % "aws-java-sdk-core"     % awsJavaSdkV1Version,
-      "com.amazonaws"          % "aws-java-sdk-redshift" % awsJavaSdkV1Version,
-      "com.amazonaws"          % "aws-java-sdk-sts"      % awsJavaSdkV1Version,
-      "software.amazon.awssdk" % "auth"                  % awsJavaSdkV2Version,
-      "software.amazon.awssdk" % "bom"                   % awsJavaSdkV2Version,
-      "software.amazon.awssdk" % "s3"                    % awsJavaSdkV2Version,
-      "software.amazon.awssdk" % "sso"                   % awsJavaSdkV2Version,
-      "software.amazon.awssdk" % "ssooidc"               % awsJavaSdkV2Version
     ),
     Compile / moduleDependencies ++= Seq(
-      "com.amazon.redshift"    % "redshift-jdbc42" % redshiftVersion,
-      "software.amazon.awssdk" % "auth"            % awsJavaSdkV2Version,
-      "software.amazon.awssdk" % "s3"              % awsJavaSdkV2Version,
-      "software.amazon.awssdk" % "sso"             % awsJavaSdkV2Version,
-      "software.amazon.awssdk" % "ssooidc"         % awsJavaSdkV2Version,
-      "software.amazon.awssdk" % "http-client-spi" % awsJavaSdkV2Version,
-      "software.amazon.awssdk" % "regions"         % awsJavaSdkV2Version,
-      "software.amazon.awssdk" % "sdk-core"        % awsJavaSdkV2Version,
-      "software.amazon.awssdk" % "profiles"        % awsJavaSdkV2Version,
-      "software.amazon.awssdk" % "aws-core"        % awsJavaSdkV2Version
     ),
     Compile / internalModuleDependencies := Seq(
+      (`aws-wrapper` / Compile / exportedModule).value,
       (`std-base` / Compile / exportedModule).value,
       (`std-database` / Compile / exportedModule).value
     ),
@@ -4702,6 +4762,7 @@ lazy val `std-aws` = project
       result
     }.value
   )
+  .dependsOn(`aws-wrapper`)
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
   .dependsOn(`std-database` % "provided")
