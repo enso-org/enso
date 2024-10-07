@@ -1596,7 +1596,7 @@ lazy val `aws-wrapper` = project
         update.value,
         scalaLibrary ++
         Seq(
-          "com.amazonaws" % "aws-java-sdk-core" % awsJavaSdkV1Version
+          "software.amazon.awssdk" % "auth" % awsJavaSdkV2Version
         ),
         streams.value.log,
         moduleName.value,
