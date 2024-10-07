@@ -8,7 +8,9 @@ module org.enso.aws.wrapper {
     requires commons.logging; // Automatic module (with derived name)
 
     exports software.amazon.awssdk.auth.credentials;
+    exports software.amazon.awssdk.core;
     exports software.amazon.awssdk.core.exception;
+    exports software.amazon.awssdk.core.sync;
     exports software.amazon.awssdk.awscore.exception;
     exports software.amazon.awssdk.http;
     exports software.amazon.awssdk.services.s3;
