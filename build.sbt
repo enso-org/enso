@@ -1604,6 +1604,8 @@ lazy val `aws-wrapper` = project
       case PathList("META-INF", "NOTICE.txt")   => MergeStrategy.concat
       case PathList("META-INF", "DEPENDENCIES") => MergeStrategy.discard
       case PathList("META-INF", "INDEX.LIST")   => MergeStrategy.discard
+      case PathList("META-INF", "SIGNER.RSA")   => MergeStrategy.discard
+      case PathList("META-INF", "SIGNER.SF")    => MergeStrategy.discard
       case PathList("module-info.class")        => MergeStrategy.preferProject
       case _                                    => MergeStrategy.deduplicate
     },
