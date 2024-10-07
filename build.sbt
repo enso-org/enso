@@ -686,6 +686,7 @@ lazy val componentModulesPaths =
   )
   val thirdPartyModFiles = thirdPartyMods.map(_.data)
   val ourMods = Seq(
+    (`aws-wrapper` / Compile / exportedModuleBin).value,
     (`common-polyglot-core-utils` / Compile / exportedModuleBin).value,
     (`engine-common` / Compile / exportedModuleBin).value,
     (`engine-runner` / Compile / exportedModuleBin).value,
