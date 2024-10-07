@@ -1,6 +1,7 @@
 package org.enso.base.enso_cloud;
 
 import java.io.IOException;
+import java.net.http.HttpHeaders;
 import java.net.URI;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -22,7 +23,31 @@ public class TransientHTTPResponseCache {
       RequestMaker requestMaker)
       throws IOException, InterruptedException {
     var cacheKey = makeHashKey(resolvedURI, resolvedHeaders);
-    return requestMaker.run();
+    var response = requestMaker.run();
+    System.out.println("AAA h "+response.headers());
+    System.out.println("AAA "+response.headers().firstValue("asdf"));
+    Integer maxAge = getMaxAge(response.headers());
+    System.out.println("AAA ma " + maxAge);
+    return response;
+  }
+
+  private Integer getMaxAge(HttpHeaders headers) {
+    var cacheControlMaybe = headers.firstValue("cache-control");
+    Integer maxAge = null;
+    if (cacheControlMaybe.isPresent()) {
+      var cacheControl = cacheControlMaybe.get();
+      var cacheControlEntries = cacheControl.split(",");
+      for (var entry : cacheControlEntries) {
+        if (entry.trim().toLowerCase().startsWith("max-age")) {
+          var maxAgeBinding = entry.split("=");
+          if (maxAgeBinding.length > 1) {
+            maxAge = Integer.parseInt(maxAgeBinding[1]);
+          }
+          break;
+        }
+      }
+    }
+    return maxAge;
   }
 
   private String makeHashKey(
