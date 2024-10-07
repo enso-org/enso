@@ -55,13 +55,13 @@ polyglot java import org.enso.database.JDBCUtils
 
 ## PRIVATE
    The dialect of SQL Server databases.
-sqlserver : SQLSever_Dialect
+sqlserver : SQLServer_Dialect
 sqlserver =
-    SQLSever_Dialect.Value make_dialect_operations
+    SQLServer_Dialect.Value make_dialect_operations
 
 ## PRIVATE
    The dialect of SQL Server databases.
-type SQLSever_Dialect
+type SQLServer_Dialect
     ## PRIVATE
        The dialect of SQL Server databases.
     Value dialect_operations
