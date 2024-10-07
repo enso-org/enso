@@ -6,7 +6,8 @@ from Standard.Table import all
 from Standard.Table.Errors import all
 
 from Standard.Database import all
-from Standard.Database.Errors import Unsupported_Database_Operation, Integrity_Error
+from Standard.Database.Errors import all
+import Standard.Database.Feature.Feature
 
 from Standard.Test import all
 
@@ -31,6 +32,16 @@ call_member_union tables =
     first.union rest ...
 
 add_specs suite_builder setup =
+    if setup.is_feature_supported Feature.Union then (add_union_specs suite_builder setup) else
+        suite_builder.group setup.prefix+"Table.union" group_builder->
+            group_builder.specify "union should report unsupported" <|
+                table_builder = setup.light_table_builder
+                t1 = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
+                t2 = table_builder [["Z", [2, 3, 2, 4]], ["W", [4, 5, 6, 7]]]
+                t3 = t1.union t2
+                t3.should_fail_with (Unsupported_Database_Operation.Error "union")
+
+add_union_specs suite_builder setup =
     prefix = setup.prefix
 
     suite_builder.group prefix+"Table.union" group_builder->

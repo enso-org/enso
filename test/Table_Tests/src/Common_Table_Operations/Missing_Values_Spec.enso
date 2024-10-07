@@ -4,6 +4,7 @@ from Standard.Table import Value_Type, Column_Ref, Previous_Value, Blank_Selecto
 from Standard.Table.Errors import all
 
 from Standard.Database.Errors import Unsupported_Database_Operation
+import Standard.Database.Feature.Feature
 
 from Standard.Test import all
 
@@ -16,6 +17,9 @@ type Lazy_Ref
     Value ~get
 
 add_specs suite_builder setup =
+    if setup.is_feature_supported Feature.Integration_Tests then (add_missing_value_specs suite_builder setup)
+
+add_missing_value_specs suite_builder setup =
     prefix = setup.prefix
     test_selection = setup.test_selection
     table_builder = build_sorted_table setup
