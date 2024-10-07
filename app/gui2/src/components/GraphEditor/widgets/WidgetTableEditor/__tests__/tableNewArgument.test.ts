@@ -11,6 +11,7 @@ import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { GetContextMenuItems, GetMainMenuItems } from 'ag-grid-enterprise'
 import { expect, test, vi } from 'vitest'
+import { m } from 'vitest/dist/reporters-yx5ZTtEV.js'
 
 function suggestionDbWithNothing() {
   const db = new SuggestionDb()
@@ -118,6 +119,35 @@ test.each([
   expect(tableNewCallMayBeHandled(ast)).toBeFalsy()
 })
 
+function tableEditFixture(code: string, expectedCode: string) {
+  const ast = Ast.parseBlock(code)
+  const inputAst = [...ast.statements()][0]
+  assert(inputAst != null)
+  const input = WidgetInput.FromAst(inputAst)
+  const startEdit = vi.fn(() => ast.module.edit())
+  const onUpdate = vi.fn((update) => {
+    const inputAst = [...update.edit.getVersion(ast).statements()][0]
+    expect(inputAst?.code()).toBe(expectedCode)
+  })
+  const addMissingImports = vi.fn((_, imports) => {
+    // the only import we're going to add is Nothing.
+    expect(imports).toEqual([
+      {
+        kind: 'Unqualified',
+        from: 'Standard.Base.Nothing',
+        import: 'Nothing',
+      },
+    ])
+  })
+  const tableNewArgs = useTableNewArgument(
+    input,
+    { startEdit, addMissingImports },
+    suggestionDbWithNothing(),
+    onUpdate,
+  )
+  return { tableNewArgs, startEdit, onUpdate, addMissingImports }
+}
+
 test.each([
   {
     code: "Table.new [['a', [1, 2, 3]], ['b', [4, 5, 6]]]",
@@ -211,29 +241,7 @@ test.each([
     expected: "Table.new [['a', [1, 5]], ['a', [3, 4]]]",
   },
 ])('Editing table $code: $description', ({ code, edit, expected, importExpected }) => {
-  const ast = Ast.parseBlock(code)
-  const inputAst = [...ast.statements()][0]
-  assert(inputAst != null)
-  const input = WidgetInput.FromAst(inputAst)
-  const onUpdate = vi.fn((update) => {
-    const inputAst = [...update.edit.getVersion(ast).statements()][0]
-    expect(inputAst?.code()).toBe(expected)
-  })
-  const addMissingImports = vi.fn((_, imports) => {
-    expect(imports).toEqual([
-      {
-        kind: 'Unqualified',
-        from: 'Standard.Base.Nothing',
-        import: 'Nothing',
-      },
-    ])
-  })
-  const tableNewArgs = useTableNewArgument(
-    input,
-    { startEdit: () => ast.module.edit(), addMissingImports },
-    suggestionDbWithNothing(),
-    onUpdate,
-  )
+  const { tableNewArgs, onUpdate, addMissingImports } = tableEditFixture(code, expected)
   const editedRow = tableNewArgs.rowData.value[edit.row]
   assert(editedRow != null)
   tableNewArgs.columnDefs.value[edit.column]?.valueSetter?.({
@@ -280,21 +288,8 @@ test.each([
     expected: "Table.new [['a', []], ['b', []]]",
   },
 ])('Removing $removedRowIndex row in $code', ({ code, removedRowIndex, expected }) => {
-  const ast = Ast.parseBlock(code)
-  const inputAst = [...ast.statements()][0]
-  assert(inputAst != null)
-  const addMissingImports = vi.fn()
-  const onUpdate = vi.fn((update) => {
-    const inputAst = [...update.edit.getVersion(ast).statements()][0]
-    expect(inputAst?.code()).toBe(expected)
-  })
-  const input = WidgetInput.FromAst(inputAst)
-  const tableNewArgs = useTableNewArgument(
-    input,
-    { startEdit: () => ast.module.edit(), addMissingImports },
-    new SuggestionDb(),
-    onUpdate,
-  )
+  const { tableNewArgs, onUpdate, addMissingImports } = tableEditFixture(code, expected)
+
   const removedRow = tableNewArgs.rowData.value[removedRowIndex]
   assert(removedRow != null)
   // Context menu of all cells in given row should work (even the "virtual" columns).
@@ -330,21 +325,7 @@ test.each([
     expected: 'Table.new []',
   },
 ])('Removing $removedColIndex column in $code', ({ code, removedColIndex, expected }) => {
-  const ast = Ast.parseBlock(code)
-  const inputAst = [...ast.statements()][0]
-  assert(inputAst != null)
-  const addMissingImports = vi.fn()
-  const onUpdate = vi.fn((update) => {
-    const inputAst = [...update.edit.getVersion(ast).statements()][0]
-    expect(inputAst?.code()).toBe(expected)
-  })
-  const input = WidgetInput.FromAst(inputAst)
-  const tableNewArgs = useTableNewArgument(
-    input,
-    { startEdit: () => ast.module.edit(), addMissingImports },
-    new SuggestionDb(),
-    onUpdate,
-  )
+  const { tableNewArgs, onUpdate, addMissingImports } = tableEditFixture(code, expected)
   const removedCol = tableNewArgs.columnDefs.value[removedColIndex]
   assert(removedCol != null)
   const removeAction = getCustomMenuItemByName('Remove Column', removedCol.mainMenuItems)
@@ -357,5 +338,58 @@ test.each([
   cellRemoveAction?.action({ node: { data: tableNewArgs.rowData.value[0] } })
   expect(onUpdate).toHaveBeenCalledOnce()
 
+  expect(addMissingImports).not.toHaveBeenCalled()
+})
+
+test.each([
+  {
+    code: "Table.new [['a', [1, 2]], ['b', [3, 4]], ['c', [5, 6]]]",
+    fromIndex: 1,
+    toIndex: 3,
+    expected: "Table.new [ ['b', [3, 4]], ['c', [5, 6]],['a', [1, 2]]]",
+  },
+  {
+    code: "Table.new [['a', [1, 2]], ['b', [3, 4]], ['c', [5, 6]]]",
+    fromIndex: 3,
+    toIndex: 2,
+    expected: "Table.new [['a', [1, 2]], ['c', [5, 6]], ['b', [3, 4]]]",
+  },
+])(
+  'Moving column $fromIndex to $toIndex in table $code',
+  ({ code, fromIndex, toIndex, expected }) => {
+    const { tableNewArgs, onUpdate, addMissingImports } = tableEditFixture(code, expected)
+    const movedColumnDef = tableNewArgs.columnDefs.value[fromIndex]
+    assert(movedColumnDef?.colId != null)
+    tableNewArgs.moveColumn(movedColumnDef.colId, toIndex)
+    expect(onUpdate).toHaveBeenCalledOnce()
+    expect(addMissingImports).not.toHaveBeenCalled()
+  },
+)
+
+test.each([
+  {
+    code: "Table.new [['a', [1, 2, 3]], ['b', [4, 5, 6]]]",
+    fromIndex: 1,
+    toIndex: 2,
+    expected: "Table.new [['a', [1, 3, 2]], ['b', [4, 6, 5]]]",
+  },
+  {
+    code: "Table.new [['a', [1, 2, 3]], ['b', [4, 5, 6]]]",
+    fromIndex: 2,
+    toIndex: 0,
+    expected: "Table.new [['a', [ 3,1, 2]], ['b', [ 6,4, 5]]]",
+  },
+  {
+    code: "Table.new [['a', [1, 2, 3]], ['b', [4, 5, 6]]]",
+    fromIndex: 1,
+    toIndex: -1,
+    expected: "Table.new [['a', [1, 2, 3]], ['b', [4, 5, 6]]]",
+  },
+])('Moving row $fromIndex to $toIndex in table $code', ({ code, fromIndex, toIndex, expected }) => {
+  const { tableNewArgs, onUpdate, addMissingImports } = tableEditFixture(code, expected)
+  tableNewArgs.moveRow(fromIndex, toIndex)
+  if (code !== expected) {
+    expect(onUpdate).toHaveBeenCalledOnce()
+  }
   expect(addMissingImports).not.toHaveBeenCalled()
 })

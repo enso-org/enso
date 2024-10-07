@@ -37,6 +37,7 @@ export interface ColumnDef extends ColDef<RowData> {
   valueSetter?: ({ data, newValue }: { data: RowData; newValue: any }) => boolean
   mainMenuItems: (string | MenuItem)[]
   contextMenuItems: (string | MenuItem)[]
+  rowDrag?: ({ data }: { data: RowData | undefined }) => boolean
 }
 
 namespace cellValueConversion {
@@ -284,6 +285,7 @@ export function useTableNewArgument(
     contextMenuItems: [removeRowMenuItem],
     cellStyle: { color: 'rgba(0, 0, 0, 0.4)' },
     lockPosition: 'left',
+    rowDrag: ({ data }) => data?.index != null && data.index < rowCount.value,
   }))
 
   const columnDefs = computed(() => {
@@ -376,15 +378,40 @@ export function useTableNewArgument(
   }
 
   function moveColumn(colId: string, toIndex: number) {
-    if (columnsAst.value.ok && columnsAst.value.value) {
-      const edit = graph.startEdit()
-      const columns = edit.getVersion(columnsAst.value.value)
-      const fromIndex = iterable.find(columns.enumerate(), ([, ast]) => ast?.id === colId)?.[0]
-      if (fromIndex != null) {
-        columns.move(fromIndex, toIndex - 1)
-        onUpdate({ edit })
-      }
+    if (!columnsAst.value.ok) {
+      columnsAst.value.error.log('Cannot reorder columns: The table AST is not available')
+      return
     }
+    if (!columnsAst.value.value) {
+      console.error('Cannot reorder columns on placeholders! This should not be possible in the UI')
+      return
+    }
+    const edit = graph.startEdit()
+    const columns = edit.getVersion(columnsAst.value.value)
+    const fromIndex = iterable.find(columns.enumerate(), ([, ast]) => ast?.id === colId)?.[0]
+    if (fromIndex != null) {
+      columns.move(fromIndex, toIndex - 1)
+      onUpdate({ edit })
+    }
+  }
+
+  function moveRow(rowIndex: number, overIndex: number) {
+    if (!columnsAst.value.ok) {
+      columnsAst.value.error.log('Cannot reorder rows: The table AST is not available')
+      return
+    }
+    if (!columnsAst.value.value) {
+      console.error('Cannot reorder rows on placeholders! This should not be possible in the UI')
+      return
+    }
+    // If dragged out of grid, we do nothing.
+    if (overIndex === -1) return
+    const edit = graph.startEdit()
+    for (const col of columns.value) {
+      const editedCol = edit.getVersion(col.data)
+      editedCol.move(rowIndex, overIndex)
+    }
+    onUpdate({ edit })
   }
 
   return {
@@ -395,10 +422,17 @@ export function useTableNewArgument(
      * The column definitions have proper getters for obtaining value from AST.
      */
     rowData,
-    /** Move column in AST. Do not change colunDefs, it is updated upon expected widgetInput change.
+    /** Move column in AST. Do not change colunDefs, they are updated upon expected widgetInput change.
      * @param colId the id of moved column (as got from `getColId()`)
      * @param toIndex the new index of column as in view (counting in the row index column).
      */
     moveColumn,
+    /**
+     * Move row in AST. Do not change rowData, its updated upon expected widgetInput change.
+     * @param rowIndex the index of moved row.
+     * @param overIndex the index of row over which this row was dropped, as in RowDragEndEvent's
+     * `overIndex` (the -1 case is handled)
+     */
+    moveRow,
   }
 }

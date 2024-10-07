@@ -22,6 +22,7 @@ import type {
   CellEditingStoppedEvent,
   Column,
   ColumnMovedEvent,
+  RowDragEndEvent,
 } from 'ag-grid-enterprise'
 import { computed, ref } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
@@ -31,7 +32,7 @@ const graph = useGraphStore()
 const suggestionDb = useSuggestionDbStore()
 const grid = ref<ComponentExposed<typeof AgGridTableView<RowData, any>>>()
 
-const { rowData, columnDefs, moveColumn } = useTableNewArgument(
+const { rowData, columnDefs, moveColumn, moveRow } = useTableNewArgument(
   () => props.input,
   graph,
   suggestionDb.entries,
@@ -148,11 +149,17 @@ const widgetStyle = computed(() => {
   }
 })
 
-// === Column Dragging ===
+// === Column and Row Dragging ===
 
 function onColumnMoved(event: ColumnMovedEvent<RowData>) {
   if (event.column && event.toIndex != null) {
     moveColumn(event.column.getColId(), event.toIndex)
+  }
+}
+
+function onRowDragEnd(event: RowDragEndEvent<RowData>) {
+  if (event.node.data != null) {
+    moveRow(event.node.data?.index, event.overIndex)
   }
 }
 
@@ -161,6 +168,7 @@ function onColumnMoved(event: ColumnMovedEvent<RowData>) {
 const defaultColDef = {
   editable: true,
   resizable: true,
+  sortable: false,
   headerComponentParams: {
     onHeaderEditingStarted: headerEditHandler.headerEditedInGrid.bind(headerEditHandler),
     onHeaderEditingStopped: headerEditHandler.headerEditingStoppedInGrid.bind(headerEditHandler),
@@ -214,6 +222,7 @@ export const widgetDefinition = defineWidget(
         @pointerdown.stop
         @click.stop
         @columnMoved="onColumnMoved"
+        @rowDragEnd="onRowDragEnd"
       />
     </Suspense>
     <ResizeHandles v-model="clientBounds" bottom right />
