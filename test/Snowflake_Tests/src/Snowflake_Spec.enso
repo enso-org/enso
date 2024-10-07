@@ -8,6 +8,7 @@ from Standard.Table.Errors import Invalid_Column_Names, Inexact_Type_Coercion, D
 
 import Standard.Database.DB_Column.DB_Column
 import Standard.Database.DB_Table.DB_Table
+import Standard.Database.Feature.Feature
 import Standard.Database.SQL_Type.SQL_Type
 import Standard.Database.Internal.Replace_Params.Replace_Params
 from Standard.Database import all
