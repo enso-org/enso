@@ -6,6 +6,7 @@ from Standard.Table.Errors import No_Such_Column, Name_Too_Long, Truncated_Colum
 from Standard.Database import all
 from Standard.Database.Dialect import Temp_Table_Style
 from Standard.Database.Errors import Table_Not_Found, Unsupported_Database_Operation
+import Standard.Database.Feature.Feature
 
 from Standard.Test import all
 from Standard.Test.Execution_Context_Helpers import run_with_and_without_output
@@ -22,7 +23,7 @@ type Data
     teardown self = self.connection.close
 
 
-add_specs suite_builder prefix create_connection_func =
+add_specs suite_builder prefix create_connection_func setup =
 
     suite_builder.group prefix+"Support for Long Column/Table names" group_builder->
         data = Data.setup create_connection_func
@@ -127,61 +128,62 @@ add_specs suite_builder prefix create_connection_func =
                 data.connection.query longer_name_with_same_prefix . should_fail_with Name_Too_Long
                 data.connection.query (SQL_Query.Table_Name longer_name_with_same_prefix) . should_fail_with Name_Too_Long
 
-        group_builder.specify "should be fine joining tables with long names" <|
-            ## If we know the maximum length, we choose a length that will be
-               just short enough to fit in the limit, but long enough that after
-               concatenating two of such names, the result will exceed the limit.
-               If we don't know the limit, we just choose a very long name.
-            name_length = case max_table_name_length of
-                Nothing -> big_name_length
-                max : Integer -> max
+        if setup.is_feature_supported Feature.Join then
+            group_builder.specify "should be fine joining tables with long names" <|
+                ## If we know the maximum length, we choose a length that will be
+                   just short enough to fit in the limit, but long enough that after
+                   concatenating two of such names, the result will exceed the limit.
+                   If we don't know the limit, we just choose a very long name.
+                name_length = case max_table_name_length of
+                    Nothing -> big_name_length
+                    max : Integer -> max
 
-            name_1 = ("x" * (name_length - 1)) + "1"
-            name_2 = ("x" * (name_length - 1)) + "2"
-            name_3 = ("x" * (name_length - 1)) + "3"
-            t1 = (Table.new [["X", [1, 2]]]).select_into_database_table data.connection name_1 temporary=True
-            t2 = (Table.new [["X", [1, 2]]]).select_into_database_table data.connection name_2 temporary=True
-            t3 = (Table.new [["X", [1, 2]]]).select_into_database_table data.connection name_3 temporary=True
+                name_1 = ("x" * (name_length - 1)) + "1"
+                name_2 = ("x" * (name_length - 1)) + "2"
+                name_3 = ("x" * (name_length - 1)) + "3"
+                t1 = (Table.new [["X", [1, 2]]]).select_into_database_table data.connection name_1 temporary=True
+                t2 = (Table.new [["X", [1, 2]]]).select_into_database_table data.connection name_2 temporary=True
+                t3 = (Table.new [["X", [1, 2]]]).select_into_database_table data.connection name_3 temporary=True
 
-            Test.with_clue "join: " <|
-                t12 = t1.join t2
-                t13 = t1.join t3
-                t1213 = t12.join t13
-                t1213.row_count . should_equal 2
-                t1213.at "X" . to_vector . should_equal_ignoring_order [1, 2]
-                Problems.expect_only_warning Duplicate_Output_Column_Names t1213
+                Test.with_clue "join: " <|
+                    t12 = t1.join t2
+                    t13 = t1.join t3
+                    t1213 = t12.join t13
+                    t1213.row_count . should_equal 2
+                    t1213.at "X" . to_vector . should_equal_ignoring_order [1, 2]
+                    Problems.expect_only_warning Duplicate_Output_Column_Names t1213
 
-                t11 = t1.join t1
-                t11.row_count . should_equal 2
-                t11.at "X" . to_vector . should_equal_ignoring_order [1, 2]
-                Problems.expect_only_warning Duplicate_Output_Column_Names t1213
+                    t11 = t1.join t1
+                    t11.row_count . should_equal 2
+                    t11.at "X" . to_vector . should_equal_ignoring_order [1, 2]
+                    Problems.expect_only_warning Duplicate_Output_Column_Names t1213
 
-            Test.with_clue "cross_join: " <|
-                t12 = t1.cross_join t2
-                t13 = t1.cross_join t3
-                t1213 = t12.cross_join t13
-                t1213.row_count . should_equal 16
-                t1213.at "X" . to_vector . distinct . should_equal_ignoring_order [1, 2]
-                Problems.expect_only_warning Duplicate_Output_Column_Names t1213
+                Test.with_clue "cross_join: " <|
+                    t12 = t1.cross_join t2
+                    t13 = t1.cross_join t3
+                    t1213 = t12.cross_join t13
+                    t1213.row_count . should_equal 16
+                    t1213.at "X" . to_vector . distinct . should_equal_ignoring_order [1, 2]
+                    Problems.expect_only_warning Duplicate_Output_Column_Names t1213
 
-                t11 = t1.cross_join t1
-                t11.row_count . should_equal 4
-                t11.at "X" . to_vector . should_equal_ignoring_order [1, 2, 1, 2]
-                Problems.expect_only_warning Duplicate_Output_Column_Names t1213
+                    t11 = t1.cross_join t1
+                    t11.row_count . should_equal 4
+                    t11.at "X" . to_vector . should_equal_ignoring_order [1, 2, 1, 2]
+                    Problems.expect_only_warning Duplicate_Output_Column_Names t1213
 
-            Test.with_clue "union: " <|
-                t12 = t1.union t2 # 4 rows
-                t13 = t1.union t3 # 4 rows
-                tx = t1.union [t12, t13] # 2 + 2*4 = 10 rows
-                ty = tx.union tx # 10 + 10 = 20 rows
-                ty.row_count . should_equal 20
-                ty.at "X" . to_vector . distinct . should_equal_ignoring_order [1, 2]
-                Problems.assume_no_problems ty
+                Test.with_clue "union: " <|
+                    t12 = t1.union t2 # 4 rows
+                    t13 = t1.union t3 # 4 rows
+                    tx = t1.union [t12, t13] # 2 + 2*4 = 10 rows
+                    ty = tx.union tx # 10 + 10 = 20 rows
+                    ty.row_count . should_equal 20
+                    ty.at "X" . to_vector . distinct . should_equal_ignoring_order [1, 2]
+                    Problems.assume_no_problems ty
 
-                t11 = t1.union t1
-                t11.row_count . should_equal 4
-                t11.at "X" . to_vector . should_equal_ignoring_order [1, 2, 1, 2]
-                Problems.assume_no_problems t11
+                    t11 = t1.union t1
+                    t11.row_count . should_equal 4
+                    t11.at "X" . to_vector . should_equal_ignoring_order [1, 2, 1, 2]
+                    Problems.assume_no_problems t11
 
         group_builder.specify "should be fine operating on columns with long names" <|
             ## If we know the maximum length, we choose a length that will be
