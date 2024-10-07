@@ -87,7 +87,7 @@ class OperatorToFunctionTest extends CompilerTest {
         opName,
         List(oprFnArg, rightArg),
         hasDefaultsSuspended = false,
-        identifiedLocation = null
+        identifiedLocation   = null
       )
 
       OperatorToFunction.runExpression(

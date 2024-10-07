@@ -234,14 +234,14 @@ class LambdaConsolidateTest extends CompilerTest {
                 .Literal("a", isMethod = false, identifiedLocation = null),
               None,
               None,
-              suspended = false,
+              suspended          = false,
               identifiedLocation = null
             ),
           DefinitionArgument.Specified(
             Name.Literal("b", isMethod = false, identifiedLocation = null),
             None,
             None,
-            suspended = false,
+            suspended          = false,
             identifiedLocation = null
           )
         ),
@@ -252,7 +252,7 @@ class LambdaConsolidateTest extends CompilerTest {
                 .Literal("c", isMethod = false, identifiedLocation = null),
               None,
               None,
-              suspended = false,
+              suspended          = false,
               identifiedLocation = null
             )
           ),
