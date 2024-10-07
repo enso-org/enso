@@ -11,7 +11,7 @@ from project.Common_Table_Operations.Util import run_default_backend
 main filter=Nothing = run_default_backend add_specs filter
 
 add_specs suite_builder setup =
-    if setup.is_feature_supported ..Cross_Join then (add_coalesce_specs suite_builder setup)
+    if setup.is_feature_supported ..Column_Operations then (add_coalesce_specs suite_builder setup)
 
 add_coalesce_specs suite_builder setup =
     prefix = setup.prefix
