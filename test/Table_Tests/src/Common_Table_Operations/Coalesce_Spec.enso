@@ -65,7 +65,7 @@ add_specs suite_builder setup =
                 False ->
                     result.to_vector . should_equal [1, 2, 4, Nothing]
                     result2.to_vector . should_equal [3, 2, 4, Nothing]
-        group_builder.specify "2 columns from length tables only works In-Memory" <|
+        group_builder.specify "2 columns from different length tables only works In-Memory" <|
             t1 = table_builder [["A", [1, 2, Nothing, Nothing, 3]], ["B", [Nothing, Nothing, Nothing, 99, 99]]]
             t2 = table_builder [["A", [99, Nothing, Nothing, Nothing]], ["B", [3, Nothing, 4, Nothing]]]
             colA = t1.get "A"
