@@ -1,11 +1,12 @@
 package org.enso.projectmanager.infrastructure.file
-import java.io.{File, FileNotFoundException, InputStream}
+
+import java.io.{File, FileNotFoundException, InputStream, OutputStream}
 import java.nio.file.{
   AccessDeniedException,
   NoSuchFileException,
   NotDirectoryException
 }
-import org.apache.commons.io.{FileExistsException, FileUtils}
+import org.apache.commons.io.{FileExistsException, FileUtils, IOUtils}
 import org.enso.projectmanager.control.effect.syntax._
 import org.enso.projectmanager.control.effect.{ErrorChannel, Sync}
 import org.enso.projectmanager.infrastructure.file.BlockingFileSystem.Encoding
@@ -22,16 +23,25 @@ class BlockingFileSystem[F[+_, +_]: Sync: ErrorChannel](
   ioTimeout: FiniteDuration
 ) extends FileSystem[F] {
 
-  /** Reads the contents of a textual file.
-    *
-    * @param file path to the file
-    * @return either [[FileSystemFailure]] or the content of a file as a String
-    */
-  override def readFile(file: File): F[FileSystemFailure, String] =
+  /** @inheritdoc */
+  override def readTextFile(file: File): F[FileSystemFailure, String] =
     Sync[F]
       .blockingOp { FileUtils.readFileToString(file, Encoding) }
       .mapError(toFsFailure)
       .timeoutFail(OperationTimeout)(ioTimeout)
+
+  /** @inheritdoc */
+  override def readFile(
+    file: File,
+    output: OutputStream
+  ): F[FileSystemFailure, Int] = {
+    Sync[F]
+      .blockingOp {
+        IOUtils.copy(java.nio.file.Files.newInputStream(file.toPath), output)
+      }
+      .mapError(toFsFailure)
+      .timeoutFail(OperationTimeout)(ioTimeout)
+  }
 
   /** Writes binary content to a file.
     *

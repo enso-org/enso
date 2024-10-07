@@ -149,10 +149,18 @@ pub enum Benchmarks {
 
 #[derive(Clone, Copy, Debug, Display, PartialEq, Eq, PartialOrd, Ord, clap::ValueEnum)]
 pub enum Tests {
+    /// Run the JVM tests.
     Jvm,
+
+    /// Run all Standard Library tests.
     #[clap(alias = "stdlib")]
     StandardLibrary,
+
+    /// Run the Snowflake tests.
     StdSnowflake,
+
+    /// Run a subset of Standard Library tests that deals with Cloud-related functionality.
+    StdCloudRelated,
 }
 
 impl Benchmarks {
