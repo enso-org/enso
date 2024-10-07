@@ -1,5 +1,6 @@
 module org.enso.aws.wrapper {
     requires org.slf4j;
+    requires org.reactivestreams; // Automatic module
 
     exports software.amazon.awssdk.auth.credentials;
     exports software.amazon.awssdk.core.exception;
