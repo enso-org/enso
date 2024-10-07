@@ -56,6 +56,8 @@ type Feature
        cross join two tables.
     Cross_Join
 
+    ## PRIVATE
+       Check if a feature is supported by a dialect, and throw an error if it is not.
     if_supported_else_throw self dialect:Any error_name:Text ~action = 
         if dialect.is_feature_supported self then action else
             Error.throw (Unsupported_Database_Operation.Error error_name)
