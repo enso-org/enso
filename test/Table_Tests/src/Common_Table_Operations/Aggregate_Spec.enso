@@ -6,7 +6,7 @@ import Standard.Table.Expression.Expression_Error
 from Standard.Table.Errors import all
 
 import Standard.Database.Feature.Feature
-from Standard.Database.Errors import all
+from Standard.Database.Errors import Unsupported_Database_Operation, Aggregagtion_Requires_Order
 
 from Standard.Test import all
 
