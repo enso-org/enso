@@ -1559,11 +1559,11 @@ lazy val `aws-wrapper` = project
       "commons-codec"                    % "commons-codec"           % "1.15"
     ),
     Compile / moduleDependencies := Seq(
-      "org.slf4j" % "slf4j-api" % slf4jVersion,
-      "org.reactivestreams"              % "reactive-streams"                   % "1.0.4",
-      "org.apache.httpcomponents" % "httpcore" % "4.4.13",
-      "org.apache.httpcomponents" % "httpclient" % "4.5.13",
-      "commons-logging"                  % "commons-logging"         % "1.2",
+      "org.slf4j"                 % "slf4j-api"        % slf4jVersion,
+      "org.reactivestreams"       % "reactive-streams" % "1.0.4",
+      "org.apache.httpcomponents" % "httpcore"         % "4.4.13",
+      "org.apache.httpcomponents" % "httpclient"       % "4.5.13",
+      "commons-logging"           % "commons-logging"  % "1.2"
     ),
     // Remove all the transitive dependencies of AWS SDK and leave only those that
     // include `software.amazon.awssdk.*` classes.
@@ -4780,7 +4780,7 @@ lazy val `std-aws` = project
     // This will cause `aws-wrapper-assembly.jar` and its dependencies to be copied into the
     // `AWS/polyglot/java` directory.
     Compile / unmanagedJars := {
-      val wrapperJar = (`aws-wrapper` / Compile / exportedModuleBin).value
+      val wrapperJar  = (`aws-wrapper` / Compile / exportedModuleBin).value
       val wrapperDeps = (`aws-wrapper` / Compile / modulePath).value
       Seq(Attributed.blank(wrapperJar)) ++ wrapperDeps.map(Attributed.blank)
     },
