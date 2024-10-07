@@ -5,6 +5,8 @@ from Standard.Table.Errors import all
 
 from Standard.Test import all
 
+from Standard.Database.Errors import all
+import Standard.Database.Feature.Feature
 
 from project.Common_Table_Operations.Util import run_default_backend
 
@@ -19,8 +21,16 @@ type Data
     teardown self =
         self.connection.close
 
-
 add_specs suite_builder setup =
+    if setup.is_feature_supported Feature.Distinct then (add_distinct_specs suite_builder setup) else
+        suite_builder.group setup.prefix+"Table.distinct" group_builder->
+            group_builder.specify "distinct should report unsupported" <|
+                table_builder = setup.light_table_builder
+                t1 = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
+                t2 = t1.distinct ["X"]
+                t2.should_fail_with (Unsupported_Database_Operation.Error "distinct")
+
+add_distinct_specs suite_builder setup =
     materialize = setup.materialize
     create_connection_fn = setup.create_connection_func
     suite_builder.group setup.prefix+"Table.distinct" group_builder->

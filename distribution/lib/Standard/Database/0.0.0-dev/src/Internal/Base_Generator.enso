@@ -43,8 +43,7 @@ type Dialect_Operations
 
     ## PRIVATE
        Checks if an operation is supported by the dialect.
-    is_supported : Text -> Boolean
-    is_supported self operation =
+    is_operation_supported self operation:Text -> Boolean =
         self.operations_dict.contains_key operation
 
 ## PRIVATE

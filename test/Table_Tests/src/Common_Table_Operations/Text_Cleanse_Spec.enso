@@ -9,7 +9,9 @@ import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Test.Extensions
 
-from Standard.Database.Errors import Unsupported_Database_Operation
+from Standard.Database.Errors import all
+import Standard.Database.Feature.Feature
+
 from Standard.Table import Column, Table, Value_Type, Auto, Bits
 from Standard.Table.Errors import Invalid_Value_Type, Invalid_Column_Names
 from project.Common_Table_Operations.Util import run_default_backend, build_sorted_table
@@ -22,6 +24,15 @@ type Lazy_Ref
 main filter=Nothing = run_default_backend add_specs filter
 
 add_specs suite_builder setup =
+    if setup.is_feature_supported Feature.Text_Cleanse then (add_text_cleanse_specs suite_builder setup) else
+        suite_builder.group setup.prefix+"Table.text_cleanse" group_builder->
+            group_builder.specify "text_cleanse should report unsupported" <|
+                table_builder = setup.light_table_builder
+                t1 = table_builder [["X", ["", "", ""]], ["Y", [4, 5, 6]]]
+                t2 = t1.text_cleanse ["X"] [..Leading_Whitespace]
+                t2.should_fail_with (Unsupported_Database_Operation.Error "text_cleanse")
+
+add_text_cleanse_specs suite_builder setup =
     prefix = setup.prefix
     materialize = setup.materialize
     suite_builder.group prefix+"Table Text Cleanse" group_builder->
