@@ -76,9 +76,7 @@ public interface IdExecutionService {
      */
     Object onFunctionReturn(Info info);
 
-    void setExecutionEnvironment(Info info);
-
-    void resetExecutionEnvironment(Info info);
+    Object getExecutionEnvironment(Info info);
   }
 
   /**

@@ -40,8 +40,6 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   private final Consumer<ExpressionCall> functionCallCallback;
   private final Consumer<ExecutedVisualization> onExecutedVisualizationCallback;
 
-  private ExecutionEnvironment originalExecutionEnvironment = null;
-
   /**
    * Creates callbacks instance.
    *
@@ -153,32 +151,9 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   }
 
   @Override
-  public void setExecutionEnvironment(IdExecutionService.Info info) {
-    ExecutionEnvironment nodeEnvironment = getExecutionEnvironment(info.getId());
-    if (nodeEnvironment != null && originalExecutionEnvironment == null) {
-      EnsoContext context = EnsoContext.get(info.getRootNode());
-      originalExecutionEnvironment = context.getExecutionEnvironment();
-      context.setExecutionEnvironment(nodeEnvironment);
-    }
-  }
-
-  @Override
-  public void resetExecutionEnvironment(IdExecutionService.Info info) {
-    if (originalExecutionEnvironment != null) {
-      setExpressionExecuted(info.getId());
-      EnsoContext.get(info.getRootNode()).setExecutionEnvironment(originalExecutionEnvironment);
-      originalExecutionEnvironment = null;
-    }
-  }
-
   @CompilerDirectives.TruffleBoundary
-  private void setExpressionExecuted(UUID expressionId) {
-    expressionExecutionState.setExpressionExecuted(expressionId);
-  }
-
-  @CompilerDirectives.TruffleBoundary
-  private ExecutionEnvironment getExecutionEnvironment(UUID expressionId) {
-    return expressionExecutionState.getExpressionExecutionEnvironment(expressionId);
+  public Object getExecutionEnvironment(IdExecutionService.Info info) {
+    return expressionExecutionState.getExpressionExecutionEnvironment(info.getId());
   }
 
   @CompilerDirectives.TruffleBoundary

@@ -38,6 +38,7 @@ import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.instrument.Timer;
+import org.enso.interpreter.runtime.state.ExecutionEnvironment;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
@@ -187,6 +188,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
 
       private final EventContext context;
       private long nanoTimeElapsed = 0;
+      private ExecutionEnvironment originalExecutionEnvironment = null;
 
       /**
        * Creates a new event node.
@@ -214,7 +216,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
         if (result != null) {
           throw context.createUnwind(result);
         }
-        callbacks.setExecutionEnvironment(info);
+        setExecutionEnvironment(info);
 
         nanoTimeElapsed = timer.getTime();
       }
@@ -257,7 +259,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
                   frame == null ? null : frame.materialize(),
                   node);
           callbacks.updateCachedResult(info);
-          callbacks.resetExecutionEnvironment(info);
+          resetExecutionEnvironment(info);
 
           if (info.isPanic()) {
             throw context.createUnwind(result);
@@ -270,7 +272,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
                   nanoTimeElapsed,
                   frame == null ? null : frame.materialize(),
                   node);
-          callbacks.resetExecutionEnvironment(info);
+          resetExecutionEnvironment(info);
         }
       }
 
@@ -328,6 +330,23 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
                       }
                     });
         return result == null;
+      }
+
+      private void setExecutionEnvironment(IdExecutionService.Info info) {
+        ExecutionEnvironment nodeEnvironment =
+            (ExecutionEnvironment) callbacks.getExecutionEnvironment(info);
+        if (nodeEnvironment != null && originalExecutionEnvironment == null) {
+          EnsoContext context = EnsoContext.get(info.getRootNode());
+          originalExecutionEnvironment = context.getExecutionEnvironment();
+          context.setExecutionEnvironment(nodeEnvironment);
+        }
+      }
+
+      private void resetExecutionEnvironment(IdExecutionService.Info info) {
+        if (originalExecutionEnvironment != null) {
+          EnsoContext.get(info.getRootNode()).setExecutionEnvironment(originalExecutionEnvironment);
+          originalExecutionEnvironment = null;
+        }
       }
     }
   }

@@ -519,6 +519,7 @@ object ProgramExecutionSupport {
       }
 
       syncState.setExpressionSync(expressionId)
+      ctx.state.expressionExecutionState.setExpressionExecuted(expressionId)
       if (methodCall.isDefined) {
         syncState.setMethodPointerSync(expressionId)
       }

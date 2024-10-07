@@ -122,8 +122,7 @@ final class Instrumentor implements EnsoObject, IdExecutionService.Callbacks {
   }
 
   @Override
-  public void setExecutionEnvironment(IdExecutionService.Info info) {}
-
-  @Override
-  public void resetExecutionEnvironment(IdExecutionService.Info info) {}
+  public Object getExecutionEnvironment(IdExecutionService.Info info) {
+    return null;
+  }
 }

@@ -637,7 +637,8 @@ class RuntimeAsyncCommandsTest
         Api.RecomputeContextRequest(
           contextId,
           Some(InvalidatedExpressions.Expressions(Vector(idOp1, idOp2))),
-          None
+          None,
+          Seq()
         )
       )
     )
