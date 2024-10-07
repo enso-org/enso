@@ -53,8 +53,11 @@ object JPMSUtils {
     val distinctModules = modules.distinct
 
     val ret = cp.filter(dep => {
-      val moduleID = dep.metadata.get(AttributeKey[ModuleID]("moduleID")).get
-      shouldFilterModule(distinctModules, scalaBinaryVersion)(moduleID)
+      dep.metadata.get(AttributeKey[ModuleID]("moduleID")) match {
+        case Some(moduleID) =>
+          shouldFilterModule(distinctModules, scalaBinaryVersion)(moduleID)
+        case None => false
+      }
     })
 
     if (shouldContainAll) {
