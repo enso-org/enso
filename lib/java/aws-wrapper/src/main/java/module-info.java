@@ -1,4 +1,6 @@
 module org.enso.aws.wrapper {
+    requires org.slf4j;
+
     exports software.amazon.awssdk.auth.credentials;
     exports software.amazon.awssdk.core.exception;
     exports software.amazon.awssdk.awscore.exception;

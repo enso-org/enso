@@ -1558,6 +1558,9 @@ lazy val `aws-wrapper` = project
       "commons-logging"                  % "commons-logging"         % "1.2",
       "commons-codec"                    % "commons-codec"           % "1.15"
     ),
+    Compile / moduleDependencies := Seq(
+      "org.slf4j" % "slf4j-api" % slf4jVersion
+    ),
     // Remove all the transitive dependencies of AWS SDK and leave only those that
     // include `software.amazon.awssdk.*` classes.
     assembly / assemblyExcludedJars := {
@@ -4773,7 +4776,17 @@ lazy val `std-aws` = project
     // `AWS/polyglot/java` directory.
     Compile / unmanagedJars := {
       val wrapperJar = (`aws-wrapper` / Compile / exportedModuleBin).value
-      Seq(Attributed.blank(wrapperJar))
+      val slf4jJar = JPMSUtils.filterModulesFromUpdate(
+        update.value,
+        Seq(
+          "org.slf4j" % "slf4j-api" % slf4jVersion
+        ),
+        streams.value.log,
+        scalaBinaryVersion.value,
+        moduleName.value,
+        shouldContainAll = true
+      )
+      Seq(Attributed.blank(wrapperJar)) ++ slf4jJar.map(Attributed.blank)
     },
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
