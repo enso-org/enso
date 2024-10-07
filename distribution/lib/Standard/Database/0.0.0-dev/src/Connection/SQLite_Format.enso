@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
 import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
@@ -21,7 +22,7 @@ type SQLite_Format
        Resolve an unresolved constructor to the actual type.
     resolve : Function -> SQLite_Format | Nothing
     resolve constructor =
-        Panic.catch Any (constructor:SQLite_Format) _->Nothing
+        Panic.catch Type_Error (constructor:SQLite_Format) _->Nothing
 
     ## PRIVATE
        If the File_Format supports reading from the file, return a configured instance.

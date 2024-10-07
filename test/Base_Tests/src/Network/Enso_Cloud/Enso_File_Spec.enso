@@ -177,7 +177,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
         Context.Output.with_disabled <|
             r = "ABC".write f
             r.should_fail_with Forbidden_Operation
-            r.catch.to_display_text . should_contain "Currently dry-run is not supported for Enso_File"
+            r.catch.to_display_text . should_contain "As writing is disabled, no action has been performed"
         # The file should not have been created
         f.exists . should_be_false
 
@@ -269,6 +269,21 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
         r = Enso_File.root / ".."
         r.should_fail_with Illegal_Argument
         r.catch.to_display_text . should_contain "Cannot move above root"
+
+    group_builder.specify "resolves ~ to user home" <|
+        Enso_File.new "enso://~" . should_equal Enso_File.home
+        Enso_File.new "enso://~/a/b/c" . should_equal (Enso_File.home / "a/b/c")
+
+        # It also works when resolving a path
+        (Enso_File.root / "~") . should_equal Enso_File.home
+        (Enso_File.root / "a/../~/b/c") . should_equal (Enso_File.home / "b/c")
+        Enso_File.new "enso://a/../~/b/c" . should_equal (Enso_File.home / "b/c")
+
+        # But a filename only containing ~ is not resolved
+        Enso_File.new "enso://~~~" . should_not_equal Enso_File.home
+
+        # If the `~` is not at the beginning, it is not resolved
+        Enso_File.new "enso://a/b/c/~" . should_not_equal Enso_File.home
 
     group_builder.specify "currently does not support metadata for directories" <|
         # TODO this test should be 'reversed' and merged with above once the metadata is implemented

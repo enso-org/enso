@@ -823,9 +823,9 @@ type File
     list_immediate_children self = Vector.from_polyglot_array (self.list_immediate_children_array)
 
     ## PRIVATE
-       Return the absolute path of this File
+       Return the path that this file represents.
     to_text : Text
-    to_text self = self.absolute . path
+    to_text self = self.path
 
     ## PRIVATE
        Convert to a display representation of this File.

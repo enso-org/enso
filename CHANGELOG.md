@@ -7,6 +7,13 @@
 
 [11151]: https://github.com/enso-org/enso/pull/11151
 
+#### Enso Standard Library
+
+- [The `enso://~` path now resolves to user's home directory in the
+  cloud.][11235]
+
+[11235]: https://github.com/enso-org/enso/pull/11235
+
 # Enso 2024.4
 
 #### Enso IDE

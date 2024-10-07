@@ -9,6 +9,8 @@ from Standard.Test import all
 import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
 from enso_dev.Base_Tests.Network.Enso_Cloud.Audit_Log_Spec import Audit_Log_Event, get_audit_log_events
 
+import project.Database.Postgres_Spec.Temporary_Data_Link_File
+from project.Database.Postgres_Spec import get_configured_connection_details
 from project.Util import all
 
 polyglot java import java.lang.Thread
@@ -34,7 +36,7 @@ add_specs suite_builder prefix ~datalink_to_connection database_pending =
 
             # Retrying is needed as there may be some delay before the background thread finishes processing the logs.
             Test.with_retries <|
-                Thread.sleep 500
+                Thread.sleep 1000
                 all_events = get_audit_log_events
                 relevant_events = all_events.filter e-> e.message.contains table_name
 
@@ -90,3 +92,11 @@ add_specs suite_builder prefix ~datalink_to_connection database_pending =
                3. switch to mock cloud (if wanted) and run some queries
                4. inspect logs and search for the asset id
             Error.throw "TODO"
+
+main filter=Nothing =
+    connection_details = get_configured_connection_details
+    pending = if connection_details.is_nothing then "PostgreSQL test database is not configured. See README.md for instructions."
+    data_link_file = Temporary_Data_Link_File.make connection_details
+    suite = Test.build suite_builder->
+        add_specs suite_builder "[PostgreSQL] " data_link_file.get database_pending=pending
+    suite.run_with_filter filter

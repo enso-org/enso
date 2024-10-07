@@ -63,4 +63,12 @@ type Enso_Path
 
 ## PRIVATE
 normalize segments =
-    Path_Helpers.normalize_segments segments (x->x)
+    after_resolving_dots = Path_Helpers.normalize_segments segments (x->x)
+    starts_with_tilde = after_resolving_dots.take 1 == ["~"]
+    if starts_with_tilde.not then after_resolving_dots else
+        # If after resolution our path starts with `~`, we replace that with a home directory.
+        home_path = Enso_File.home.enso_path
+        new_segments = home_path.path_segments + after_resolving_dots.drop 1
+        ## We need to call normalize again, because technically a path `enso://a/../~/../../~` is a valid path
+           that points to the user home and it should be correctly normalized, but requires numerous passes to do so.
+        @Tail_Call normalize new_segments

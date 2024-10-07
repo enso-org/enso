@@ -103,11 +103,11 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run backend test standard-library
+      - run: ./run backend test std-cloud-related
         env:
-          ENSO_CLOUD_COGNITO_REGION: ${{ secrets.ENSO_CLOUD_COGNITO_REGION }}
-          ENSO_CLOUD_COGNITO_USER_POOL_ID: ${{ secrets.ENSO_CLOUD_COGNITO_USER_POOL_ID }}
-          ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID: ${{ secrets.ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID }}
+          ENSO_CLOUD_COGNITO_REGION: ${{ vars.ENSO_CLOUD_COGNITO_REGION }}
+          ENSO_CLOUD_COGNITO_USER_POOL_ID: ${{ vars.ENSO_CLOUD_COGNITO_USER_POOL_ID }}
+          ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID: ${{ vars.ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID }}
           ENSO_CLOUD_TEST_ACCOUNT_PASSWORD: ${{ secrets.ENSO_CLOUD_TEST_ACCOUNT_PASSWORD }}
           ENSO_CLOUD_TEST_ACCOUNT_USERNAME: ${{ secrets.ENSO_CLOUD_TEST_ACCOUNT_USERNAME }}
           ENSO_LIB_S3_AWS_ACCESS_KEY_ID: ${{ secrets.ENSO_LIB_S3_AWS_ACCESS_KEY_ID }}

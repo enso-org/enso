@@ -26,7 +26,7 @@
     <rect y="7" width="16" height="2" fill="currentColor"></rect>
   </symbol>
 
-  <symbol id="add-to-graph_editor" viewBox="0 0 16 16" width="16" height="16" fill="none">
+  <symbol id="add_to_graph_editor" viewBox="0 0 16 16" width="16" height="16" fill="none">
     <path fill-rule="evenodd" clip-rule="evenodd" d="M2.5 0H4.5V12H16V16H0V12H2.5V0ZM11.5 2H9.5V5H6.5V7H9.5V10H11.5V7H14.5V5H11.5V2Z" fill="currentColor"></path>
   </symbol>
 

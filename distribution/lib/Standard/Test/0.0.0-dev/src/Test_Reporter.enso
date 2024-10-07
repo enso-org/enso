@@ -76,6 +76,7 @@ print_single_result (test_result : Test_Result) (config : Suite_Config) =
                 txt = "    - " + test_result.spec_name + " " + times_suffix
                 IO.println (maybe_green_text txt config)
         Spec_Result.Failure msg details ->
+            report_github_error_message test_result.spec_name msg
             IO.println ""
             txt = "    - [FAILED] " + test_result.spec_name + " " + times_suffix
             IO.println (maybe_red_text txt config)
@@ -87,6 +88,22 @@ print_single_result (test_result : Test_Result) (config : Suite_Config) =
             IO.println (maybe_grey_text ("    - [PENDING] " + test_result.spec_name) config)
             IO.println ("        Reason: " + reason)
 
+## PRIVATE
+   Reports an error message to show up as a note in GitHub Actions,
+   only if running in the GitHub Actions environment.
+report_github_error_message (title : Text) (message : Text) =
+    is_enabled = Environment.get "GITHUB_ACTIONS" == "true"
+    sanitize_message txt = txt.replace '\n' '%0A'
+    sanitize_parameter txt = txt . replace '\n' '%0A' . replace ',' '%2C'
+    if is_enabled then
+        location_match = Regex.compile "at ((?:[A-Za-z]:)?[^:]+):([0-9]+):" . match message
+        location_part = if location_match.is_nothing then "" else
+            repo_root = enso_project.root.parent.parent.absolute.normalize
+            path = File.new (location_match.get 1)
+            relative_path = repo_root.relativize path
+            line = location_match.get 2
+            ",file="+(sanitize_parameter relative_path.path)+",line="+(sanitize_parameter line)+""
+        IO.println "::error title="+(sanitize_parameter title)+location_part+"::"+(sanitize_message message)
 
 ## Prints all the results, optionally writing them to a jUnit XML output.
 
