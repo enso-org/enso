@@ -502,7 +502,11 @@ val helidon = Seq(
 
 val jacksonVersion = "2.15.2"
 
-// === JAXB ================================================================
+// == Resilience4J ============================================================
+
+val resilience4JVersion = "2.2.0"
+
+// === JAXB ===================================================================
 
 val jaxbVersion = "4.0.0"
 val jaxb = Seq(
@@ -4370,7 +4374,8 @@ lazy val `std-base` = project
     libraryDependencies ++= Seq(
       "org.graalvm.polyglot"       % "polyglot"                % graalMavenPackagesVersion,
       "org.netbeans.api"           % "org-openide-util-lookup" % netbeansApiVersion % "provided",
-      "com.fasterxml.jackson.core" % "jackson-databind"        % jacksonVersion
+      "com.fasterxml.jackson.core" % "jackson-databind"        % jacksonVersion,
+      "io.github.resilience4j"     % "resilience4j-retry"      % resilience4JVersion
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
