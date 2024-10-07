@@ -4762,10 +4762,6 @@ lazy val `std-aws` = project
       .value,
     Compile / packageBin / artifactPath :=
       `std-aws-polyglot-root` / "std-aws.jar",
-    libraryDependencies ++= Seq(
-    ),
-    Compile / moduleDependencies ++= Seq(
-    ),
     Compile / internalModuleDependencies := Seq(
       (`aws-wrapper` / Compile / exportedModule).value,
       (`std-base` / Compile / exportedModule).value,
