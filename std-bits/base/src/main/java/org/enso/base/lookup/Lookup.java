@@ -6,11 +6,14 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.ServiceLoader;
 import java.util.function.Function;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Stream;
 
 public final class Lookup<T> implements Iterable<T> {
   private final Function<ModuleLayer, ServiceLoader<T>> factory;
   private List<ServiceLoader.Provider<T>> found;
+  private static final Logger logger = Logger.getLogger(Lookup.class.getName());
 
   private Lookup(Function<ModuleLayer, ServiceLoader<T>> factory) {
     this.factory = factory;
@@ -43,16 +46,12 @@ public final class Lookup<T> implements Iterable<T> {
                   (p) -> {
                     if (serviceProviders.containsKey(p)) {
                       var prevLayer = serviceProviders.get(p);
-                      throw new IllegalStateException(
-                          "Error: Duplicate provider found: "
-                              + providerToString(p)
-                              + ". "
-                              + "Previous provider in layer '"
-                              + prevLayer
-                              + "'. "
-                              + "Current provider in layer '"
-                              + layer
-                              + "'.");
+                      logger.log(
+                          Level.WARNING,
+                          String.format(
+                              "Duplicate provider found: %s. Previous provider in layer '%s'."
+                                  + " Current provider in layer '%s'.",
+                              providerToString(p), prevLayer, layer));
                     }
                     serviceProviders.put(p, layer);
                   });
