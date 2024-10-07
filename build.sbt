@@ -1561,6 +1561,9 @@ lazy val `aws-wrapper` = project
     Compile / moduleDependencies := Seq(
       "org.slf4j" % "slf4j-api" % slf4jVersion,
       "org.reactivestreams"              % "reactive-streams"                   % "1.0.4",
+      "org.apache.httpcomponents" % "httpcore" % "4.4.13",
+      "org.apache.httpcomponents" % "httpclient" % "4.5.13",
+      "commons-logging"                  % "commons-logging"         % "1.2",
     ),
     // Remove all the transitive dependencies of AWS SDK and leave only those that
     // include `software.amazon.awssdk.*` classes.

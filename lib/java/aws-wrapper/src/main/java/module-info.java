@@ -1,6 +1,11 @@
 module org.enso.aws.wrapper {
+    // Class software.amazon.awssdk.protocols.query.unmarshall.XmlDomParser acesses javax.xml.stream.XMLInputFactory
+    requires java.xml;
     requires org.slf4j;
     requires org.reactivestreams; // Automatic module
+    requires org.apache.httpcomponents.httpcore; // Automatic module
+    requires org.apache.httpcomponents.httpclient; // Automatic module
+    requires commons.logging; // Automatic module (with derived name)
 
     exports software.amazon.awssdk.auth.credentials;
     exports software.amazon.awssdk.core.exception;
