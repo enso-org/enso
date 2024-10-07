@@ -38,7 +38,8 @@ process.env.PLAYWRIGHT_PORT = `${PORT}`
 export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  workers: process.env.PROD ? 8 : 1,
+  // TODO[ao]: from dashboard - why this way?
+  // workers: process.env.PROD ? 8 : 1,
   repeatEach: process.env.CI ? 3 : 1,
   ...(process.env.CI ? { workers: 1 } : {}),
   reporter: 'html',
@@ -82,12 +83,12 @@ export default defineConfig({
       },
       timeout: TIMEOUT_MS,
       use: {
-        baseURL: 'http://localhost:8080',
+        baseURL: `http://localhost:${PORT + 1}`,
       },
     },
     {
       name: 'Setup Tests for Project View',
-      testMatch: /e2e\/setup\.ts/,
+      testMatch: /e2e\/project-view\/setup\.ts/,
     },
     {
       name: 'Project View',
@@ -100,6 +101,7 @@ export default defineConfig({
       },
       use: {
         viewport: { width: 1920, height: 1750 },
+        baseURL: `http://localhost:${PORT}`,
       },
     },
   ],
@@ -119,8 +121,11 @@ export default defineConfig({
       reuseExistingServer: false,
     },
     {
-      command: `corepack pnpm run ${process.env.CI || process.env.PROD ? 'test-server:e2e:ci' : 'test-server:e2e'}`,
-      port: 8080,
+      command:
+        process.env.CI || process.env.PROD ?
+          `corepack pnpm exec vite -c vite.test.config.ts build && vite preview --port ${PORT + 1} --strictPort`
+        : `corepack pnpm exec vite -c vite.test.config.ts --port ${PORT + 1}`,
+      port: PORT + 1,
       reuseExistingServer: false,
     },
   ],

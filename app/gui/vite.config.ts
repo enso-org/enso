@@ -2,6 +2,7 @@
 
 import react from '@vitejs/plugin-react'
 import vue from '@vitejs/plugin-vue'
+import { COOP_COEP_CORP_HEADERS } from 'enso-common'
 import { getDefines, readEnvironmentFromFile } from 'enso-common/src/appConfig'
 import { fileURLToPath } from 'node:url'
 import postcssNesting from 'postcss-nesting'
@@ -52,10 +53,7 @@ export default defineConfig({
     entries: fileURLToPath(new URL('./index.html', import.meta.url)),
   },
   server: {
-    headers: {
-      'Cross-Origin-Opener-Policy': 'same-origin',
-      'Cross-Origin-Resource-Policy': 'same-origin',
-    },
+    headers: Object.fromEntries(COOP_COEP_CORP_HEADERS),
     ...(process.env.GUI_HOSTNAME ? { host: process.env.GUI_HOSTNAME } : {}),
   },
   resolve: {
