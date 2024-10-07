@@ -139,7 +139,7 @@ type DB_Table
     @selector Widget_Helpers.make_column_name_selector
     at : Integer | Text -> DB_Column ! No_Such_Column | Index_Out_Of_Bounds
     at self (selector:(Integer | Text)=0) = 
-        if self.connection.dialect.is_feature_supported Feature.Column_operations . not then Error.throw (Unsupported_Database_Operation.Error "at") else
+        Feature.Column_operations.if_supported_else_throw self.connection.dialect "at" <|
             case selector of
                 _ : Integer -> self.make_column (self.internal_columns.at selector)
                 _ -> self.get selector (Error.throw (No_Such_Column.Error selector))
@@ -153,7 +153,7 @@ type DB_Table
     @selector Widget_Helpers.make_column_name_selector
     get : Integer | Text -> Any -> DB_Column | Any
     get self (selector:(Integer | Text)=0) ~if_missing=Nothing =
-        if self.connection.dialect.is_feature_supported Feature.Column_operations . not then Error.throw (Unsupported_Database_Operation.Error "get") else
+        Feature.Column_operations.if_supported_else_throw self.connection.dialect "get" <|
             internal_column = case selector of
                 _ : Integer -> self.internal_columns.get selector if_missing=Nothing
                 _ : Text -> self.internal_columns.find (p -> p.name == selector) if_missing=Nothing
@@ -172,7 +172,7 @@ type DB_Table
     @if_missing (make_any_selector add_text=True add_regex=True add_number=True add_boolean=True add_named_pattern=True add_date=True add_time=True add_date_time=True add_nothing=True)
     get_value : Text | Integer -> Integer -> Any -> Any
     get_value self selector:(Text | Integer)=0 index:Integer=0 ~if_missing=Nothing =
-        if self.connection.dialect.is_feature_supported Feature.Column_operations . not then Error.throw (Unsupported_Database_Operation.Error "get_value") else
+        Feature.Column_operations.if_supported_else_throw self.connection.dialect "get_value" <|
             col = self.get selector if_missing=Nothing
             if Nothing == col then if_missing else col.get index if_missing
 
@@ -188,7 +188,7 @@ type DB_Table
        - if_missing: The value to use if the selector isn't present.
     get_row : Integer -> Any -> Any
     get_row self index:Integer=0 ~if_missing=Nothing =
-        if self.connection.dialect.is_feature_supported Feature.Sample . not then Error.throw (Unsupported_Database_Operation.Error "get_row") else
+        Feature.Sample.if_supported_else_throw self.connection.dialect "get_row" <|
             if index == -1 then self.last_row else
                 real_row = (if index < 0 then index + self.row_count else index)
                 if real_row < 0 then if_missing else
@@ -200,7 +200,7 @@ type DB_Table
        Gets the top left value from the table.
     first_value : Any ! Index_Out_Of_Bounds
     first_value self =
-        if self.connection.dialect.is_feature_supported Feature.Column_operations . not then Error.throw (Unsupported_Database_Operation.Error "first_value") else
+        Feature.Column_operations.if_supported_else_throw self.connection.dialect "first_value" <|
             self.at 0 . at 0
 
     ## ALIAS last cell
@@ -209,7 +209,7 @@ type DB_Table
        Gets the bottom right value from the table.
     last_value : Any ! Index_Out_Of_Bounds
     last_value self =
-        if self.connection.dialect.is_feature_supported Feature.Column_operations . not then Error.throw (Unsupported_Database_Operation.Error "last_value") else
+        Feature.Column_operations.if_supported_else_throw self.connection.dialect "last_value" <|
             self.last_row . at -1
 
     ## ALIAS first field
@@ -218,7 +218,7 @@ type DB_Table
        Gets the first column.
     first_column : DB_Column ! Index_Out_Of_Bounds
     first_column self = 
-        if self.connection.dialect.is_feature_supported Feature.Column_operations . not then Error.throw (Unsupported_Database_Operation.Error "first_column") else
+        Feature.Column_operations.if_supported_else_throw self.connection.dialect "first_column" <|
             self.at 0
 
     ## ALIAS last field
@@ -227,7 +227,7 @@ type DB_Table
        Gets the last column
     last_column : DB_Column ! Index_Out_Of_Bounds
     last_column self = 
-        if self.connection.dialect.is_feature_supported Feature.Column_operations . not then Error.throw (Unsupported_Database_Operation.Error "last_column") else
+        Feature.Column_operations.if_supported_else_throw self.connection.dialect "last_column" <|
             self.at -1
 
     ## ALIAS field count
@@ -298,7 +298,7 @@ type DB_Table
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     select_columns :  Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type -> Boolean -> Case_Sensitivity -> Boolean -> Problem_Behavior -> DB_Table ! No_Output_Columns | Missing_Input_Columns
     select_columns self (columns : (Vector | Text | Integer | Regex | By_Type) = [self.columns.first.name]) (reorder:Boolean=False) (case_sensitivity:Case_Sensitivity=..Default) (error_on_missing_columns:Boolean=True) (on_problems:Problem_Behavior=..Report_Warning) =
-        if self.connection.dialect.is_feature_supported Feature.Select_columns . not then Error.throw (Unsupported_Database_Operation.Error "select_columns") else
+        Feature.Select_columns.if_supported_else_throw self.connection.dialect "select_columns" <|
             new_columns = self.columns_helper.select_columns columns case_sensitivity reorder error_on_missing_columns on_problems
             self.updated_columns (new_columns.map _.as_internal)
 
@@ -317,7 +317,7 @@ type DB_Table
     @types Widget_Helpers.make_value_type_vector_selector
     select_columns_by_type : Vector Value_Type -> Boolean -> Table
     select_columns_by_type self types:Vector strict:Boolean=False =
-        if self.connection.dialect.is_feature_supported Feature.Select_columns . not then Error.throw (Unsupported_Database_Operation.Error "select_columns_by_type") else
+        Feature.Select_columns.if_supported_else_throw self.connection.dialect "select_columns_by_type" <|
             new_columns = self.columns_helper.select_by_type types strict
             result = self.updated_columns (new_columns.map _.as_internal)
             Warning.attach (Deprecated.Warning "Standard.Database.DB_Table.DB_Table" "select_columns_by_type" "Deprecated: use `select_columns` with a `By_Type` instead.") result
@@ -378,7 +378,7 @@ type DB_Table
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     remove_columns :  Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type -> Case_Sensitivity -> Boolean -> Problem_Behavior -> DB_Table ! No_Output_Columns | Missing_Input_Columns
     remove_columns self (columns : (Vector | Text | Integer | Regex | By_Type) = [self.columns.first.name]) (case_sensitivity:Case_Sensitivity=..Default) (error_on_missing_columns:Boolean=False) (on_problems:Problem_Behavior=..Report_Warning) =
-        if self.connection.dialect.is_feature_supported Feature.Select_columns . not then Error.throw (Unsupported_Database_Operation.Error "remove_columns") else
+        Feature.Select_columns.if_supported_else_throw self.connection.dialect "remove_columns" <|
             new_columns = self.columns_helper.remove_columns columns case_sensitivity error_on_missing_columns=error_on_missing_columns on_problems=on_problems
             self.updated_columns (new_columns.map _.as_internal)
 
@@ -397,7 +397,7 @@ type DB_Table
     @types Widget_Helpers.make_value_type_vector_selector
     remove_columns_by_type : Vector Value_Type -> Boolean -> Table
     remove_columns_by_type self types:Vector strict:Boolean=False =
-        if self.connection.dialect.is_feature_supported Feature.Select_columns . not then Error.throw (Unsupported_Database_Operation.Error "remove_columns_by_type") else
+        Feature.Select_columns.if_supported_else_throw self.connection.dialect "remove_columns_by_type" <|
             new_columns = self.columns_helper.remove_by_type types strict
             result = self.updated_columns (new_columns.map _.as_internal)
             Warning.attach (Deprecated.Warning "Standard.Database.DB_Table.DB_Table" "remove_columns_by_type" "Deprecated: use `remove_columns` with a `By_Type` instead.") result
@@ -425,7 +425,7 @@ type DB_Table
              table.select_blank_columns
     select_blank_columns : Blank_Selector -> Boolean -> DB_Table
     select_blank_columns self (when : Blank_Selector = ..All_Cells) treat_nans_as_blank:Boolean=False =
-        if self.connection.dialect.is_feature_supported Feature.Select_columns . not then Error.throw (Unsupported_Database_Operation.Error "select_blank_columns") else
+        Feature.Select_columns.if_supported_else_throw self.connection.dialect "select_blank_columns" <|
             new_columns = self.columns_helper.select_blank_columns_helper when treat_nans_as_blank
             self.updated_columns new_columns
 
@@ -452,7 +452,7 @@ type DB_Table
              table.remove_blank_columns
     remove_blank_columns : Blank_Selector -> Boolean -> DB_Table
     remove_blank_columns self (when : Blank_Selector = ..All_Cells) treat_nans_as_blank:Boolean=False =
-        if self.connection.dialect.is_feature_supported Feature.Select_columns . not then Error.throw (Unsupported_Database_Operation.Error "remove_blank_columns") else
+        Feature.Select_columns.if_supported_else_throw self.connection.dialect "remove_blank_columns" <|
             new_columns = self.columns_helper.select_blank_columns_helper when treat_nans_as_blank invert_selection=True
             self.updated_columns new_columns
 
@@ -508,7 +508,7 @@ type DB_Table
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     reorder_columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type -> Position -> Case_Sensitivity -> Boolean -> Problem_Behavior -> DB_Table ! Missing_Input_Columns
     reorder_columns self (columns : (Vector | Text | Integer | Regex | By_Type) = [self.columns.first.name]) (position:Position=..Before_Other_Columns) (case_sensitivity:Case_Sensitivity=..Default) (error_on_missing_columns:Boolean=False) (on_problems:Problem_Behavior=..Report_Warning) =
-        if self.connection.dialect.is_feature_supported Feature.Select_columns . not then Error.throw (Unsupported_Database_Operation.Error "reorder_columns") else
+        Feature.Select_columns.if_supported_else_throw self.connection.dialect "reorder_columns" <|
             new_columns = self.columns_helper.reorder_columns columns position case_sensitivity error_on_missing_columns on_problems
             self.updated_columns (new_columns.map _.as_internal)
 
@@ -538,7 +538,7 @@ type DB_Table
              table.reorder_columns Sort_Direction.Descending
     sort_columns : Sort_Direction -> Text_Ordering -> DB_Table
     sort_columns self order:Sort_Direction=..Ascending text_ordering:Text_Ordering=..Default =
-        if self.connection.dialect.is_feature_supported Feature.Select_columns . not then Error.throw (Unsupported_Database_Operation.Error "sort_columns") else
+        Feature.Select_columns.if_supported_else_throw self.connection.dialect "sort_columns" <|
             new_columns = Table_Helpers.sort_columns internal_columns=self.internal_columns order text_ordering
             self.updated_columns new_columns
 
@@ -610,7 +610,7 @@ type DB_Table
     @column_map Widget_Helpers.make_rename_name_vector_selector
     rename_columns : Table | Dictionary (Text | Integer | Regex) Text | Vector Text | Vector Vector -> Case_Sensitivity -> Boolean -> Problem_Behavior -> DB_Table ! Missing_Input_Columns | Ambiguous_Column_Rename | Too_Many_Column_Names_Provided | Invalid_Column_Names | Duplicate_Output_Column_Names
     rename_columns self (column_map:(Table | Dictionary | Vector)=["Column"]) (case_sensitivity:Case_Sensitivity=..Default) (error_on_missing_columns:Boolean=True) (on_problems:Problem_Behavior=..Report_Warning) =
-        if self.connection.dialect.is_feature_supported Feature.Select_columns . not then Error.throw (Unsupported_Database_Operation.Error "rename_columns") else
+        Feature.Select_columns.if_supported_else_throw self.connection.dialect "rename_columns" <|
             case column_map of
                 _ : Table ->
                     resolved = Table_Helpers.read_name_mapping_from_table column_map
@@ -656,7 +656,7 @@ type DB_Table
        as it comes from the same context.
     resolve : Text | DB_Column -> DB_Column
     resolve self column =
-        if self.connection.dialect.is_feature_supported Feature.Select_columns . not then Error.throw (Unsupported_Database_Operation.Error "resolve") else
+        Feature.Select_columns.if_supported_else_throw self.connection.dialect "resolve" <|
             case column of
                 _ : Text -> Panic.rethrow (self.at column)
                 _ ->
@@ -716,7 +716,7 @@ type DB_Table
     @filter Widget_Helpers.make_filter_condition_selector
     filter : (DB_Column | Text | Integer) -> (Filter_Condition | (Any -> Boolean)) -> Problem_Behavior -> DB_Table ! No_Such_Column | Index_Out_Of_Bounds | Invalid_Value_Type
     filter self column (filter : Filter_Condition | (Any -> Boolean) = Filter_Condition.Equal True) on_problems:Problem_Behavior=..Report_Warning = 
-        if self.connection.dialect.is_feature_supported Feature.Filter . not then Error.throw (Unsupported_Database_Operation.Error "filter") else
+        Feature.Filter.if_supported_else_throw self.connection.dialect "filter" <|
             case column of
                 _ : DB_Column ->
                     mask filter_column = case Helpers.check_integrity self filter_column of
@@ -775,7 +775,7 @@ type DB_Table
              people.filter_by_expression "[age] % 10 == 0"
     filter_by_expression : Text -> Problem_Behavior -> DB_Table ! No_Such_Column | Invalid_Value_Type | Expression_Error
     filter_by_expression self expression:Text on_problems:Problem_Behavior=..Report_Warning =
-        if self.connection.dialect.is_feature_supported Feature.Filter . not then Error.throw (Unsupported_Database_Operation.Error "filter_by_expression") else
+        Feature.Filter.if_supported_else_throw self.connection.dialect "filter_by_expression" <|
             column = self.evaluate_expression (Expression.Value expression) on_problems
             result = self.filter column Filter_Condition.Is_True
             Warning.attach (Deprecated.Warning "Standard.Database.DB_Table.DB_Table" "filter_by_expression" "Deprecated: use `filter` with an `Expression` instead.") result
@@ -810,7 +810,7 @@ type DB_Table
     @range Index_Sub_Range.default_widget
     take : (Index_Sub_Range | Range | Integer) -> DB_Table
     take self range:(Index_Sub_Range | Range | Integer)=..First =
-        if self.connection.dialect.is_feature_supported Feature.Sample . not then Error.throw (Unsupported_Database_Operation.Error "take") else
+        Feature.Sample.if_supported_else_throw self.connection.dialect "take" <|
             Take_Drop_Helpers.take_drop_helper Take_Drop.Take self range
 
     ## ALIAS remove, skip
@@ -843,14 +843,14 @@ type DB_Table
     @range Index_Sub_Range.default_widget
     drop : (Index_Sub_Range | Range | Integer) -> DB_Table
     drop self range:(Index_Sub_Range | Range | Integer)=..First =
-        if self.connection.dialect.is_feature_supported Feature.Sample . not then Error.throw (Unsupported_Database_Operation.Error "drop") else
+        Feature.Sample.if_supported_else_throw self.connection.dialect "drop" <|
             Take_Drop_Helpers.take_drop_helper Take_Drop.Drop self range
 
     ## PRIVATE
        Filter out all rows.
     remove_all_rows : DB_Table
     remove_all_rows self =
-        if self.connection.dialect.is_feature_supported Feature.Filter . not then Error.throw (Unsupported_Database_Operation.Error "remove_all_rows") else
+        Feature.Filter.if_supported_else_throw self.connection.dialect "remove_all_rows" <|
             self.filter (Expression.Value "0==1")
 
     ## ALIAS add index column, rank, record id
@@ -891,7 +891,7 @@ type DB_Table
     @order_by (Widget_Helpers.make_order_by_selector display=..When_Modified)
     add_row_number : Text -> Integer -> Integer -> Vector (Text | Integer | Regex) | Text | Integer | Regex -> Vector (Text | Sort_Column) | Text -> Problem_Behavior -> DB_Table
     add_row_number self (name:Text="Row") (from:Integer=0) (step:Integer=1) (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (on_problems:Problem_Behavior=..Report_Warning) =
-        if self.connection.dialect.is_feature_supported Feature.Add_row_number . not then Error.throw (Unsupported_Database_Operation.Error "add_row_number") else
+        Feature.Add_row_number.if_supported_else_throw self.connection.dialect "add_row_number" <|
             problem_builder = Problem_Builder.new error_on_missing_columns=True
             grouping_columns = self.columns_helper.select_columns_helper group_by Case_Sensitivity.Default True problem_builder
             grouping_columns.each column->
@@ -960,7 +960,7 @@ type DB_Table
              t2.read
     limit : Integer -> DB_Table
     limit self max_rows:Integer=1000 =
-        if self.connection.dialect.is_feature_supported Feature.Sample . not then Error.throw (Unsupported_Database_Operation.Error "limit") else
+        Feature.Sample.if_supported_else_throw self.connection.dialect "limit" <|
             new_ctx = self.context.set_limit max_rows
             self.updated_context new_ctx
 
@@ -1010,7 +1010,7 @@ type DB_Table
     @value Simple_Expression.default_widget
     set : DB_Column | Text | Expression | Array | Vector | Range | Date_Range | Constant_Column | Simple_Expression -> Text -> Set_Mode -> Problem_Behavior -> DB_Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error
     set self value:(DB_Column | Text | Expression | Array | Vector | Range | Date_Range | Constant_Column | Simple_Expression) (as : Text = "") (set_mode : Set_Mode = ..Add_Or_Update) (on_problems : Problem_Behavior = ..Report_Warning) =
-        if self.connection.dialect.is_feature_supported Feature.Set . not then Error.throw (Unsupported_Database_Operation.Error "set") else
+        Feature.Set.if_supported_else_throw self.connection.dialect "set" <|
             problem_builder = Problem_Builder.new
             unique = self.column_naming_helper.create_unique_name_strategy
             unique.mark_used self.column_names
@@ -1076,7 +1076,7 @@ type DB_Table
              an `Additional_Warnings`.
     evaluate_expression : Text | Expression -> Problem_Behavior -> DB_Column ! No_Such_Column | Invalid_Value_Type | Expression_Error
     evaluate_expression self expression:(Text | Expression) on_problems:Problem_Behavior=..Report_Warning =
-        if self.connection.dialect.is_feature_supported Feature.Set . not then Error.throw (Unsupported_Database_Operation.Error "evaluate_expression") else
+        Feature.Set.if_supported_else_throw self.connection.dialect "evaluate_expression" <|
             if expression.is_a Text then self.evaluate_expression (Expression.Value expression) on_problems else
                 get_column name = self.at name
                 make_constant_column value = case value of
@@ -1104,7 +1104,7 @@ type DB_Table
        - value_column_name: The name to use for the second column.
     make_table_from_dictionary : Dictionary Any Any -> Text -> Text -> Table
     make_table_from_dictionary self dict key_column_name value_column_name =
-        if self.connection.dialect.is_feature_supported Feature.Make_table_from . not then Error.throw (Unsupported_Database_Operation.Error "make_table_from_dictionary") else
+        Feature.Make_table_from.if_supported_else_throw self.connection.dialect "make_table_from_dictionary" <|
             total_size = dict.size * 2
 
             if dict.is_empty then Error.throw (Illegal_Argument.Error "Dictionary cannot be empty") else
@@ -1124,7 +1124,7 @@ type DB_Table
        - column_names: The names of the columns of the new table.
     make_table_from_vectors : Vector (Vector Any) -> Vector Text -> DB_Table
     make_table_from_vectors self column_vectors column_names =
-        if self.connection.dialect.is_feature_supported Feature.Make_table_from . not then Error.throw (Unsupported_Database_Operation.Error "make_table_from_vectors") else
+        Feature.Make_table_from.if_supported_else_throw self.connection.dialect "make_table_from_vectors" <|
             literal_table_name = self.connection.base_connection.table_naming_helper.generate_random_table_name "enso-literal-"
             make_literal_table self.connection column_vectors column_names literal_table_name
 
@@ -1133,7 +1133,7 @@ type DB_Table
        Create a constant column from a value.
     make_constant_column : Any -> DB_Column ! Illegal_Argument
     make_constant_column self value =
-        if self.connection.dialect.is_feature_supported Feature.Column_operations . not then Error.throw (Unsupported_Database_Operation.Error "make_constant_column") else
+        Feature.Column_operations.if_supported_else_throw self.connection.dialect "make_constant_column" <|
             if Table_Helpers.is_column value then Error.throw (Illegal_Argument.Error "A constant value may only be created from a scalar, not a DB_Column") else
                 type_mapping = self.connection.dialect.get_type_mapping
                 argument_value_type = Value_Type_Helpers.find_argument_type value
@@ -1176,7 +1176,7 @@ type DB_Table
        Returns the vector of columns contained in this table.
     columns : Vector DB_Column
     columns self =
-        if self.connection.dialect.is_feature_supported Feature.Column_operations . not then Error.throw (Unsupported_Database_Operation.Error "columns") else
+        Feature.Column_operations.if_supported_else_throw self.connection.dialect "columns" <|
             Vector.from_polyglot_array <|
                 Array_Proxy.new self.internal_columns.length i->
                     self.make_column (self.internal_columns.at i)
@@ -1289,7 +1289,7 @@ type DB_Table
     @columns Widget_Helpers.make_order_by_selector
     sort : Vector (Text | Sort_Column) | Text -> Text_Ordering -> Boolean -> Problem_Behavior -> DB_Table  ! Incomparable_Values | No_Input_Columns_Selected | Missing_Input_Columns
     sort self (columns = ([(Sort_Column.Name (self.columns.at 0 . name))])) text_ordering:Text_Ordering=..Default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning =
-        if self.connection.dialect.is_feature_supported Feature.Sort . not then Error.throw (Unsupported_Database_Operation.Error "sort") else
+        Feature.Sort.if_supported_else_throw self.connection.dialect "sort" <|
             problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns types_to_always_throw=[No_Input_Columns_Selected]
             columns_for_ordering = Table_Helpers.prepare_order_by self.columns columns problem_builder
             problem_builder.attach_problems_before on_problems <|
@@ -1380,7 +1380,7 @@ type DB_Table
     @columns Widget_Helpers.make_column_name_multi_selector
     distinct : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Case_Sensitivity -> Problem_Behavior -> DB_Table ! No_Output_Columns | Missing_Input_Columns | No_Input_Columns_Selected | Floating_Point_Equality
     distinct self columns=self.column_names case_sensitivity:Case_Sensitivity=..Default on_problems:Problem_Behavior=..Report_Warning =
-        if self.connection.dialect.is_feature_supported Feature.Distinct . not then Error.throw (Unsupported_Database_Operation.Error "distinct") else
+        Feature.Distinct.if_supported_else_throw self.connection.dialect "distinct" <|
             key_columns = self.columns_helper.select_columns columns Case_Sensitivity.Default reorder=True error_on_missing_columns=True on_problems=on_problems . catch No_Output_Columns _->
                 Error.throw No_Input_Columns_Selected
             key_columns.if_not_error <|
@@ -1499,7 +1499,7 @@ type DB_Table
     @on Widget_Helpers.make_join_condition_selector
     join : DB_Table -> Join_Kind -> Join_Condition | Text | Vector (Join_Condition | Text) -> Text -> Problem_Behavior -> DB_Table
     join self right (join_kind : Join_Kind = ..Left_Outer) (on : Join_Condition | Text | Vector (Join_Condition | Text) = (default_join_condition self join_kind)) (right_prefix:Text="Right ") (on_problems:Problem_Behavior=..Report_Warning) =
-        if self.connection.dialect.is_feature_supported Feature.Join . not then Error.throw (Unsupported_Database_Operation.Error "join") else
+        Feature.Join.if_supported_else_throw self.connection.dialect "join" <|
             self.join_or_cross_join right join_kind on right_prefix on_problems
 
     ## PRIVATE
@@ -1605,7 +1605,7 @@ type DB_Table
          The ordering of rows in the resulting table is not specified.
     cross_join : DB_Table -> Integer | Nothing -> Text -> Problem_Behavior -> DB_Table
     cross_join self right:DB_Table right_row_limit=100 right_prefix:Text="Right " on_problems:Problem_Behavior=..Report_Warning =
-        if self.connection.dialect.is_feature_supported Feature.Cross_join . not then Error.throw (Unsupported_Database_Operation.Error "cross_join") else
+        Feature.Cross_join.if_supported_else_throw self.connection.dialect "cross_join" <|
             limit_problems = case right_row_limit.is_nothing.not && (right.row_count > right_row_limit) of
                 True ->
                     [Cross_Join_Row_Limit_Exceeded.Error right_row_limit right.row_count]
@@ -1671,7 +1671,7 @@ type DB_Table
     @key_columns Widget_Helpers.make_column_name_multi_selector
     merge : DB_Table -> (Vector (Integer | Text | Regex) | Text | Integer | Regex) -> Boolean -> Boolean -> Problem_Behavior -> DB_Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
     merge self lookup_table:DB_Table key_columns:(Vector (Integer | Text | Regex) | Text | Integer | Regex) add_new_columns:Boolean=False allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=..Report_Warning =
-        if self.connection.dialect.is_feature_supported Feature.Merge . not then Error.throw (Unsupported_Database_Operation.Error "merge") else
+        Feature.Merge.if_supported_else_throw self.connection.dialect "merge" <|
             Helpers.ensure_same_connection "table" [self, lookup_table] <|
                 Lookup_Query_Helper.build_lookup_query self lookup_table key_columns add_new_columns allow_unmatched_rows on_problems
 
@@ -1756,7 +1756,7 @@ type DB_Table
     @to_column Widget.Text_Input
     replace : (DB_Table | Dictionary) -> Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type -> (Text | Integer | Nothing) -> (Text | Integer | Nothing) -> Boolean -> Problem_Behavior -> DB_Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
     replace self lookup_table:(DB_Table | Dictionary) columns:(Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type) from_column:(Text | Integer | Nothing)=Nothing to_column:(Text | Integer | Nothing)=Nothing allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=..Report_Warning =
-        if self.connection.dialect.is_feature_supported Feature.Replace . not then Error.throw (Unsupported_Database_Operation.Error "replace") else
+        Feature.Replace.if_supported_else_throw self.connection.dialect "replace" <|
             Replace_Helpers.replace self lookup_table columns from_column to_column allow_unmatched_rows on_problems
 
     ## ALIAS join by row position
@@ -1891,7 +1891,7 @@ type DB_Table
     @columns_to_keep Columns_To_Keep.default_widget
     union : (DB_Table | Vector DB_Table) -> Columns_To_Keep -> Match_Columns -> Problem_Behavior -> DB_Table
     union self tables:(DB_Table | Vector) (columns_to_keep : Columns_To_Keep = ..In_Any_Warn_On_Missing) (match_columns : Match_Columns = ..By_Name) (on_problems : Problem_Behavior = ..Report_Warning) =
-        if self.connection.dialect.is_feature_supported Feature.Union . not then Error.throw (Unsupported_Database_Operation.Error "union") else
+        Feature.Union.if_supported_else_throw self.connection.dialect "union" <|
             all_tables = case tables of
                 v : Vector -> [self] + (v.map t-> DB_Table.from t)
                 single_table -> [self, single_table]
@@ -2045,7 +2045,7 @@ type DB_Table
     @columns Widget_Helpers.make_aggregate_column_vector_selector
     aggregate : Vector (Integer | Text | Regex | Aggregate_Column) | Text | Integer | Regex -> Vector Aggregate_Column -> Boolean -> Problem_Behavior -> DB_Table ! No_Output_Columns | Invalid_Aggregate_Column | Invalid_Column_Names | Duplicate_Output_Column_Names | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
     aggregate self (group_by : Vector | Text | Integer | Regex = []) (columns : Vector = []) (error_on_missing_columns : Boolean = False) (on_problems : Problem_Behavior = ..Report_Warning) =
-        if self.connection.dialect.is_feature_supported Feature.Aggregate . not then Error.throw (Unsupported_Database_Operation.Error "aggregate") else
+        Feature.Aggregate.if_supported_else_throw self.connection.dialect "aggregate" <|
             Aggregate_Helper.aggregate self group_by columns error_on_missing_columns on_problems
 
     ## ALIAS pivot, unpivot
@@ -2972,7 +2972,7 @@ type DB_Table
     @remove make_data_cleanse_vector_selector
     text_cleanse : Vector (Integer | Text | Regex | By_Type) -> Vector Named_Pattern -> DB_Table
     text_cleanse self from:(Vector (Integer | Text | Regex | By_Type)) remove =
-        if self.connection.dialect.is_feature_supported Feature.Text_cleanse . not then Error.throw (Unsupported_Database_Operation.Error "text_cleanse") else
+        Feature.Text_cleanse.if_supported_else_throw self.connection.dialect "text_cleanse" <|
             transformer col = col.text_cleanse remove
             Table_Helpers.replace_columns_with_transformed_columns self from transformer
 
