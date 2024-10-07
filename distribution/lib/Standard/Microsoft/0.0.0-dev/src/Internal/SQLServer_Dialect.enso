@@ -241,24 +241,7 @@ type SQLSever_Dialect
        Checks if a feature is supported by the dialect.
     is_feature_supported self feature:Feature -> Boolean =
         case feature of
-            Feature.Select_columns -> False
-            Feature.Filter -> False
-            Feature.Aggregate -> False
-            Feature.Sort -> False
-            Feature.Join -> False
-            Feature.Union -> False
-            Feature.Distinct -> False
-            Feature.Text_cleanse -> False
-            Feature.Integration_tests -> False
-            Feature.Add_row_number -> False
-            Feature.Make_table_from -> False
-            Feature.Column_operations -> False
-            Feature.Set -> False
-            Feature.Sample -> False
-            Feature.Replace -> False
-            Feature.Merge -> False
-            Feature.Cross_join -> False
-            _ -> True
+            _ -> False
 
     ## PRIVATE
        The default table types to use when listing tables.
