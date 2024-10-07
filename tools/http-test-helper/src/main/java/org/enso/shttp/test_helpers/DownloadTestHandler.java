@@ -2,6 +2,7 @@ package org.enso.shttp.test_helpers;
 
 import com.sun.net.httpserver.HttpExchange;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.URI;
 import java.util.Arrays;
 import org.apache.http.client.utils.URIBuilder;
@@ -14,21 +15,21 @@ public class DownloadTestHandler extends SimpleHttpHandler {
     URI uri = exchange.getRequestURI();
     URIBuilder builder = new URIBuilder(uri);
 
-    long length = 10;
-    String ttl = null;
+    int length = 10;
+    String maxAge = null;
     for (var queryPair : builder.getQueryParams()) {
         if (queryPair.getName().equals("length")) {
-            length = Long.parseLong(queryPair.getValue());
-        } else if (queryPair.getName().equals("ttl")) {
-            ttl = queryPair.getValue();
+            length = Integer.parseInt(queryPair.getValue());
+        } else if (queryPair.getName().equals("max-age")) {
+            maxAge = queryPair.getValue();
         }
     }
 
     byte responseData[] = new byte[length];
-    Arrays.fill(responseData, 97);
+    Arrays.fill(responseData, (byte) 97);
 
-    if (ttl != null) {
-        exchange.getResponseHeaders().add("Cache-Control", "public,"+ttl);
+    if (maxAge != null) {
+        exchange.getResponseHeaders().add("Cache-Control", "public,max-age="+maxAge);
     }
 
     exchange.sendResponseHeaders(200, responseData.length);
@@ -37,11 +38,5 @@ public class DownloadTestHandler extends SimpleHttpHandler {
       os.write(responseData);
     }
     exchange.close();
-
-    String host = exchange.getRequesteaders().getFirst("Host");
-    String uri = "http://" + host + targetPath;
-    String content = dataLinkTemplate.replace("${URI}", uri);
-    String contentType = includeContentType ? "application/x-enso-datalink" : null;
-    sendResponse(200, content, exchange, contentType);
   }
 }
