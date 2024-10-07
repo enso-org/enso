@@ -8,7 +8,7 @@ module org.enso.std.aws {
   requires org.enso.std.base;
   requires org.enso.std.database;
   requires java.logging;
-  requires org.enso.wrapper.aws;
+  requires org.enso.aws.wrapper;
 
   provides FileSystemSPI with
       S3FileSystemSPI;
