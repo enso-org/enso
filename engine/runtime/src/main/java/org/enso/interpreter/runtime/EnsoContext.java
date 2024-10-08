@@ -578,9 +578,12 @@ public final class EnsoContext {
    */
   @TruffleBoundary
   public TruffleObject lookupJavaClass(Package<TruffleFile> pkg, String className) {
-    var binaryName = new StringBuilder(className);
-    var collectedExceptions = new ArrayList<Exception>();
     org.enso.interpreter.runtime.EnsoClassPath cp = findClassPath(pkg);
+    if (className == null) {
+      return null;
+    }
+    var collectedExceptions = new ArrayList<Exception>();
+    var binaryName = new StringBuilder(className);
     for (; ; ) {
       var fqn = binaryName.toString();
       try {

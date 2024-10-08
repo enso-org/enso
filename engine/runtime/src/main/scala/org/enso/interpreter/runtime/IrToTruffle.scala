@@ -240,7 +240,8 @@ class IrToTruffle(
     module: Module
   ): Unit =
     module.imports.foreach {
-      case poly @ imports.Polyglot(i: imports.Polyglot.Java, _, _, _) =>
+      case poly @ imports.Polyglot(i: imports.Polyglot.Java, _, _, _) => {
+        context.lookupJavaClass(p, null)
         this.scopeBuilder.registerPolyglotSymbol(
           poly.getVisibleName,
           () => {
@@ -248,6 +249,7 @@ class IrToTruffle(
             hostSymbol
           }
         )
+      }
       case _: Import.Module =>
       case _: Error         =>
     }

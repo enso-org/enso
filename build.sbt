@@ -4846,6 +4846,9 @@ lazy val `std-microsoft` = project
     libraryDependencies ++= Seq(
       "com.microsoft.sqlserver" % "mssql-jdbc" % mssqlserverJDBCVersion
     ),
+    Compile / moduleDependencies ++= Seq(
+      "com.microsoft.sqlserver" % "mssql-jdbc" % mssqlserverJDBCVersion
+    ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
       val _ = StdBits
