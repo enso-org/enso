@@ -1,38 +1,5 @@
 import { expect, type Locator, type Page } from '@playwright/test'
 import assert from 'assert'
-import cssEscape from 'css.escape'
-
-// ==============
-// === Filter ===
-// ==============
-
-class Filter {
-  constructor(public selector = '') {}
-
-  visible<T extends { selector: string }>(this: T): Omit<T, 'visible'> {
-    return new Filter(this.selector + ':visible') as any
-  }
-
-  first<T extends { selector: string }>(this: T): Omit<T, 'first' | 'last'> {
-    return new Filter(this.selector + ':first') as any
-  }
-
-  last<T extends { selector: string }>(this: T): Omit<T, 'first' | 'last'> {
-    return new Filter(this.selector + ':last') as any
-  }
-
-  id<T extends { selector: string }>(this: T, id: string): Omit<T, 'id'> {
-    return new Filter(this.selector + '#' + cssEscape(id)) as any
-  }
-
-  class(...classes: string[]) {
-    return new Filter(this.selector + '.' + classes.map(cssEscape).join('.'))
-  }
-
-  toString() {
-    return this.selector
-  }
-}
 
 // ================
 // === Locators ===
@@ -91,8 +58,8 @@ export function outputNode(page: Page | Locator): Node {
 // === Data locators ===
 
 function componentLocator(locatorStr: string) {
-  return (page: Locator | Page, filter?: (f: Filter) => { selector: string }) => {
-    return page.locator(`${locatorStr}${filter?.(new Filter()) ?? ''}`)
+  return (page: Locator | Page) => {
+    return page.locator(`${locatorStr}`)
   }
 }
 
@@ -107,22 +74,12 @@ export const nodeOutputPort = componentLocator('.outputPortHoverArea')
 export const smallPlusButton = componentLocator('.SmallPlusButton')
 export const lexicalContent = componentLocator('.LexicalContent')
 
-export function componentBrowserEntry(
-  page: Locator | Page,
-  filter?: (f: Filter) => { selector: string },
-) {
-  return page.locator(
-    `.ComponentBrowser .list-variant:not(.selected) .component${filter?.(new Filter()) ?? ''}`,
-  )
+export function componentBrowserEntry(page: Locator | Page) {
+  return page.locator(`.ComponentBrowser .list-variant:not(.selected) .component`)
 }
 
-export function componentBrowserSelectedEntry(
-  page: Locator | Page,
-  filter?: (f: Filter) => { selector: string },
-) {
-  return page.locator(
-    `.ComponentBrowser .list-variant.selected .component${filter?.(new Filter()) ?? ''}`,
-  )
+export function componentBrowserSelectedEntry(page: Locator | Page) {
+  return page.locator(`.ComponentBrowser .list-variant.selected .component`)
 }
 
 export function componentBrowserEntryByLabel(page: Locator | Page, label: string) {
@@ -149,9 +106,9 @@ function visualizationLocator(visSelector: string) {
   // Playwright pierces shadow roots, but not within a single XPath.
   // Locate the visualization content, then locate the descendant.
   const visLocator = componentLocator(visSelector)
-  return (page: Locator | Page, filter?: (f: Filter) => { selector: string }) => {
+  return (page: Locator | Page) => {
     const hostLocator = page.locator('.VisualizationHostContainer')
-    return visLocator(hostLocator, filter)
+    return visLocator(hostLocator)
   }
 }
 

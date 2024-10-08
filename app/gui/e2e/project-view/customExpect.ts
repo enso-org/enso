@@ -11,7 +11,7 @@ export const expect = baseExpect.extend({
     try {
       await expect(locator.first()).toBeVisible()
       pass = true
-    } catch (e: any) {
+    } catch (e) {
       console.log(e)
       pass = false
     }
@@ -34,7 +34,8 @@ export const expect = baseExpect.extend({
     try {
       await baseExpect(locator).toHaveClass(/(?<=^| )selected(?=$| )/, { timeout: 50 })
       pass = true
-    } catch (e: any) {
+    } catch {
+      // Do not log the error.
       pass = false
     }
 

@@ -27,8 +27,6 @@
     "lint": "eslint .",
     "format": "prettier --version && prettier --write src/ && eslint . --fix",
     "dev:vite": "vite",
-    "test-server:e2e": "vite -c vite.test.config.ts",
-    "test-server:e2e:ci": "vite -c vite.test.config.ts build && vite preview --port 8080 --strictPort",
     "test": "corepack pnpm run /^^^^test:.*/",
     "test:unit": "vitest run",
     "test-dev:unit": "vitest",

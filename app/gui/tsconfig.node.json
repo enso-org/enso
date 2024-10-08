@@ -2,6 +2,7 @@
   "extends": "./tsconfig.json",
   "include": [
     "vite.config.*",
+    "vite.test.config.*",
     "vitest.config.*",
     "project-manager-shim-middleware/*.ts",
     "playwright.config.*",
