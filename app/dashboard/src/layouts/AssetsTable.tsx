@@ -1262,6 +1262,9 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   const doMove = useEventCallback(async (newParentId: DirectoryId | null, asset: AnyAsset) => {
     try {
+      if (asset.id === driveStore.getState().assetPanelProps?.item?.item.id) {
+        setAssetPanelProps(null)
+      }
       await updateAssetMutation.mutateAsync([
         asset.id,
         { parentDirectoryId: newParentId ?? rootDirectoryId, description: null },
@@ -1273,6 +1276,9 @@ export default function AssetsTable(props: AssetsTableProps) {
   })
 
   const doDelete = useEventCallback(async (asset: AnyAsset, forever: boolean = false) => {
+    if (asset.id === driveStore.getState().assetPanelProps?.item?.item.id) {
+      setAssetPanelProps(null)
+    }
     if (asset.type === AssetType.directory) {
       dispatchAssetListEvent({
         type: AssetListEventType.closeFolder,
@@ -1298,6 +1304,9 @@ export default function AssetsTable(props: AssetsTableProps) {
   })
 
   const doDeleteById = useEventCallback(async (assetId: AssetId, forever: boolean = false) => {
+    if (assetId === driveStore.getState().assetPanelProps?.item?.item.id) {
+      setAssetPanelProps(null)
+    }
     const asset = nodeMapRef.current.get(assetId)?.item
 
     if (asset != null) {
@@ -2180,6 +2189,9 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   const doRestore = useEventCallback(async (asset: AnyAsset) => {
     try {
+      if (asset.id === driveStore.getState().assetPanelProps?.item?.item.id) {
+        setAssetPanelProps(null)
+      }
       await undoDeleteAssetMutation.mutateAsync([asset.id, asset.title])
     } catch (error) {
       toastAndLog('restoreAssetError', error, asset.title)

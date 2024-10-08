@@ -20,6 +20,7 @@ import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinn
 import { validateDatalink } from '#/data/datalinkValidator'
 import {
   backendMutationOptions,
+  useAssetPassiveListener,
   useAssetPassiveListenerStrict,
   useBackendQuery,
 } from '#/hooks/backendHooks'
@@ -67,8 +68,14 @@ export interface AssetPropertiesProps {
 
 /** Display and modify the properties of an asset. */
 export default function AssetProperties(props: AssetPropertiesProps) {
-  const { backend, item, category, spotlightOn } = props
-  const { isReadonly = false } = props
+  const { backend, item, category } = props
+  const asset = useAssetPassiveListener(backend.type, item.item.id, item.item.parentId, category)
+  return asset && <AssetPropertiesInternal {...props} />
+}
+
+/** Display and modify the properties of an asset. */
+function AssetPropertiesInternal(props: AssetPropertiesProps) {
+  const { backend, item, category, spotlightOn, isReadonly = false } = props
   const styles = ASSET_PROPERTIES_VARIANTS({})
 
   const asset = useAssetPassiveListenerStrict(
