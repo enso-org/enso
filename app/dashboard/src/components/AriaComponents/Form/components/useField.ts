@@ -3,22 +3,23 @@
  *
  * A hook for creating a field and field state for a form.
  */
-import * as reactHookForm from 'react-hook-form'
+import { useController } from 'react-hook-form'
 
-import * as formContext from './FormProvider'
-import type * as types from './types'
+import { useFormContext } from './FormProvider'
+import type { FieldPath, FieldValues, FormWithValueValidation, TSchema } from './types'
 
 /**
  * Options for {@link useField} hook.
  */
 export interface UseFieldOptions<
   BaseValueType,
-  Schema extends types.TSchema,
-  TFieldName extends types.FieldPath<Schema>,
-> extends types.FormWithValueValidation<BaseValueType, Schema, TFieldName> {
+  Schema extends TSchema,
+  TFieldName extends FieldPath<Schema, Constraint>,
+  Constraint,
+> extends FormWithValueValidation<BaseValueType, Schema, TFieldName, Constraint> {
   readonly name: TFieldName
   readonly isDisabled?: boolean | undefined
-  readonly defaultValue?: types.FieldValues<Schema>[TFieldName] | undefined
+  readonly defaultValue?: FieldValues<Schema>[TFieldName] | undefined
 }
 
 /**
@@ -26,14 +27,15 @@ export interface UseFieldOptions<
  */
 export function useField<
   BaseValueType,
-  Schema extends types.TSchema,
-  TFieldName extends types.FieldPath<Schema>,
->(options: UseFieldOptions<BaseValueType, Schema, TFieldName>) {
+  Schema extends TSchema,
+  TFieldName extends FieldPath<Schema, Constraint>,
+  Constraint,
+>(options: UseFieldOptions<BaseValueType, Schema, TFieldName, Constraint>) {
   const { name, defaultValue, isDisabled = false } = options
 
-  const formInstance = formContext.useFormContext(options.form)
+  const formInstance = useFormContext(options.form)
 
-  const { field, fieldState, formState } = reactHookForm.useController({
+  const { field, fieldState, formState } = useController({
     name,
     disabled: isDisabled,
     control: formInstance.control,
@@ -41,4 +43,17 @@ export function useField<
   })
 
   return { field, fieldState, formState, formInstance } as const
+}
+
+/**
+ * A hook that connects a field to a form state.
+ */
+export function makeUseField<Constraint>() {
+  return function useFieldWithConstraint<
+    BaseValueType,
+    Schema extends TSchema,
+    TFieldName extends FieldPath<Schema, Constraint>,
+  >(options: UseFieldOptions<BaseValueType, Schema, TFieldName, Constraint>) {
+    return useField(options)
+  }
 }

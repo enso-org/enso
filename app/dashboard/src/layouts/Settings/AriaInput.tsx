@@ -34,13 +34,13 @@ const SETTINGS_FIELD_STYLES = tv({
 /** Props for a {@link SettingsAriaInput}. */
 export interface SettingsAriaInputProps<
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema>,
+  TFieldName extends FieldPath<Schema, number | string>,
 > extends Omit<InputProps<Schema, TFieldName>, 'fieldVariants' | 'size' | 'variant' | 'variants'> {}
 
 /** A styled input for settings pages. */
 export default function SettingsAriaInput<
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema>,
+  TFieldName extends FieldPath<Schema, number | string>,
 >(props: SettingsAriaInputProps<Schema, TFieldName>) {
   return (
     <Input

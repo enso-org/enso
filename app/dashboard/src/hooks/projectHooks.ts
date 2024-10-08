@@ -11,7 +11,6 @@ import * as eventCallbacks from '#/hooks/eventCallbackHooks'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import {
-  TabType,
   useAddLaunchedProject,
   useProjectsStore,
   useRemoveLaunchedProject,
@@ -373,7 +372,7 @@ export function useCloseProject() {
     removeLaunchedProject(project.id)
 
     if (projectsStore.getState().page === project.id) {
-      setPage(TabType.drive)
+      setPage('drive')
     }
   })
 }

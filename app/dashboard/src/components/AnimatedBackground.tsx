@@ -65,7 +65,7 @@ interface AnimatedBackgroundItemProps extends PropsWithChildren {
  */
 AnimatedBackground.Item = function AnimatedBackgroundItem(props: AnimatedBackgroundItemProps) {
   const context = useContext(AnimatedBackgroundContext)
-  invariant(context, 'useAnimatedBackground must be used within an AnimatedBackgroundProvider')
+  invariant(context, '`useAnimatedBackground` must be used within an `AnimatedBackgroundProvider`')
 
   const { value, className, animationClassName, children } = props
   const { value: activeValue, transition, layoutId } = context

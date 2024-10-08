@@ -7,9 +7,9 @@ import * as React from 'react'
 
 import * as aria from '#/components/aria'
 
+import type { Path } from '#/utilities/objectPath'
 import { forwardRef } from '#/utilities/react'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
-import type { Path } from 'react-hook-form'
 import * as text from '../../Text'
 import { Form } from '../Form'
 import type * as types from './types'
@@ -21,7 +21,8 @@ export interface FieldComponentProps<Schema extends types.TSchema>
   extends VariantProps<typeof FIELD_STYLES>,
     types.FieldProps {
   readonly 'data-testid'?: string | undefined
-  readonly name: Path<types.FieldValues<Schema>>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  readonly name: Path<types.FieldValues<Schema>, any>
   readonly form?: types.FormInstance<Schema> | undefined
   readonly isInvalid?: boolean | undefined
   readonly className?: string | undefined
@@ -90,7 +91,9 @@ export const Field = forwardRef(function Field<Schema extends types.TSchema>(
   const descriptionId = React.useId()
   const errorId = React.useId()
 
-  const fieldState = Form.useFieldState(props)
+  // This is SAFE, we are just using a type with added constraint.
+  // eslint-disable-next-line no-restricted-syntax
+  const fieldState = Form.useFieldState(props as never)
 
   const invalid = isInvalid || fieldState.hasError
 

@@ -35,8 +35,16 @@ import { INPUT_STYLES } from '../variants'
 /**
  * Props for the Input component.
  */
-export interface InputProps<Schema extends TSchema, TFieldName extends FieldPath<Schema>>
-  extends FieldStateProps<Omit<aria.InputProps, 'children' | 'size'>, Schema, TFieldName>,
+export interface InputProps<
+  Schema extends TSchema,
+  TFieldName extends FieldPath<Schema, Constraint>,
+  Constraint extends number | string = number | string,
+> extends FieldStateProps<
+      Omit<aria.InputProps, 'children' | 'size'>,
+      Schema,
+      TFieldName,
+      Constraint
+    >,
     FieldProps,
     FieldVariantProps,
     Omit<VariantProps<typeof INPUT_STYLES>, 'disabled' | 'invalid'>,
@@ -58,8 +66,9 @@ export interface InputProps<Schema extends TSchema, TFieldName extends FieldPath
  */
 export const Input = forwardRef(function Input<
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema>,
->(props: InputProps<Schema, TFieldName>, ref: ForwardedRef<HTMLFieldSetElement>) {
+  TFieldName extends FieldPath<Schema, Constraint>,
+  Constraint extends number | string = number | string,
+>(props: InputProps<Schema, TFieldName, Constraint>, ref: ForwardedRef<HTMLFieldSetElement>) {
   const {
     name,
     description,
@@ -85,7 +94,8 @@ export const Input = forwardRef(function Input<
   const { fieldProps, formInstance } = Form.useFieldRegister<
     Omit<aria.InputProps, 'children' | 'size'>,
     Schema,
-    TFieldName
+    TFieldName,
+    Constraint
   >({
     ...props,
     form,

@@ -29,8 +29,13 @@ const CONTENT_EDITABLE_STYLES = tv({
  */
 export interface ResizableContentEditableInputProps<
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema>,
-> extends FieldStateProps<HTMLAttributes<HTMLDivElement> & { value: string }, Schema, TFieldName>,
+  TFieldName extends FieldPath<Schema, string>,
+> extends FieldStateProps<
+      HTMLAttributes<HTMLDivElement> & { value: string },
+      Schema,
+      TFieldName,
+      string
+    >,
     Pick<
       VariantProps<typeof INPUT_STYLES>,
       'disabled' | 'invalid' | 'rounded' | 'size' | 'variant'
@@ -59,7 +64,7 @@ export interface ResizableContentEditableInputProps<
  */
 export const ResizableContentEditableInput = forwardRef(function ResizableContentEditableInput<
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema>,
+  TFieldName extends FieldPath<Schema, string>,
 >(
   props: ResizableContentEditableInputProps<Schema, TFieldName>,
   ref: ForwardedRef<HTMLDivElement>,
@@ -93,7 +98,8 @@ export const ResizableContentEditableInput = forwardRef(function ResizableConten
     document.execCommand('insertHTML', false, text)
   })
 
-  const { field, fieldState, formInstance } = Form.useField({
+  const useStringField = Form.makeUseField<string>()
+  const { field, fieldState, formInstance } = useStringField({
     name,
     isDisabled,
     form,

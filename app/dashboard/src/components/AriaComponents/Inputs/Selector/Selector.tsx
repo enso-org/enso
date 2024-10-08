@@ -8,7 +8,6 @@ import {
   type FieldPath,
   type FieldProps,
   type FieldStateProps,
-  type FieldValues,
   type FieldVariantProps,
   type TSchema,
 } from '#/components/AriaComponents'
@@ -21,17 +20,18 @@ import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import { SelectorOption } from './SelectorOption'
 
 /** * Props for the Selector component. */
-export interface SelectorProps<Schema extends TSchema, TFieldName extends FieldPath<Schema>>
+export interface SelectorProps<Schema extends TSchema, TFieldName extends FieldPath<Schema, T>, T>
   extends FieldStateProps<
-      Omit<RadioGroupProps, 'children' | 'value'> & { value: FieldValues<Schema>[TFieldName] },
+      Omit<RadioGroupProps, 'children' | 'value'> & { value: T },
       Schema,
-      TFieldName
+      TFieldName,
+      T
     >,
     FieldProps,
     Omit<VariantProps<typeof SELECTOR_STYLES>, 'disabled' | 'invalid' | 'variants'>,
     FieldVariantProps {
-  readonly items: readonly FieldValues<Schema>[TFieldName][]
-  readonly children?: (item: FieldValues<Schema>[TFieldName]) => string
+  readonly items: readonly T[]
+  readonly children?: (item: T) => string
   readonly columns?: number
   readonly className?: string
   readonly style?: React.CSSProperties
@@ -81,8 +81,9 @@ export const SELECTOR_STYLES = tv({
  */
 export const Selector = forwardRef(function Selector<
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema>,
->(props: SelectorProps<Schema, TFieldName>, ref: React.ForwardedRef<HTMLFieldSetElement>) {
+  TFieldName extends FieldPath<Schema, T>,
+  T,
+>(props: SelectorProps<Schema, TFieldName, T>, ref: React.ForwardedRef<HTMLFieldSetElement>) {
   const {
     name,
     items,

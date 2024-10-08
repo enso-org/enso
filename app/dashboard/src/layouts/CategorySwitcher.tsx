@@ -29,7 +29,7 @@ import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import { TabType, useSetPage } from '#/providers/ProjectsProvider'
+import { useSetPage } from '#/providers/ProjectsProvider'
 import * as textProvider from '#/providers/TextProvider'
 import * as backend from '#/services/Backend'
 import { newDirectoryId } from '#/services/LocalBackend'
@@ -478,7 +478,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
               onPress={() => {
                 // eslint-disable-next-line @typescript-eslint/naming-convention
                 setSearchParams({ 'cloud-ide_SettingsTab': '"local"' })
-                setPage(TabType.settings)
+                setPage('settings')
               }}
             />
           </div>

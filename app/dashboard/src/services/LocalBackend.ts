@@ -721,6 +721,31 @@ export default class LocalBackend extends Backend {
   }
 
   /** Invalid operation. */
+  override createProjectExecution() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override updateProjectExecution() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override deleteProjectExecution() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override listProjectExecutions() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override syncProjectExecution() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
   override getFileContent() {
     return this.invalidOperation()
   }

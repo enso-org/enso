@@ -18,6 +18,7 @@
     "outDir": "../../node_modules/.cache/tsc",
     "paths": { "#/*": ["./src/*"] },
     "target": "ESNext",
-    "lib": ["ESNext", "DOM", "DOM.Iterable", "ES2023"]
+    "lib": ["ESNext", "DOM", "DOM.Iterable", "ES2023"],
+    "noFallthroughCasesInSwitch": false
   }
 }

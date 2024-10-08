@@ -10,6 +10,8 @@ import * as suspense from '#/components/Suspense'
 
 import * as mergeRefs from '#/utilities/mergeRefs'
 
+import { useDimensions } from '#/hooks/dimensionsHooks'
+import { motion } from '#/utilities/motion'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
 import * as dialogProvider from './DialogProvider'
@@ -21,12 +23,10 @@ import { DIALOG_BACKGROUND } from './variants'
 // =================
 // === Constants ===
 // =================
-/**
- * Props for the {@link Dialog} component.
- */
-export interface DialogProps
-  extends types.DialogProps,
-    Omit<VariantProps<typeof DIALOG_STYLES>, 'scrolledToTop'> {}
+
+// This is a JSX component, even though it does not contain function syntax.
+// eslint-disable-next-line no-restricted-syntax
+const MotionDialog = motion(aria.Dialog)
 
 const OVERLAY_STYLES = tv({
   base: 'fixed inset-0 isolate flex items-center justify-center bg-primary/20 z-tooltip',
@@ -124,6 +124,7 @@ const DIALOG_STYLES = tv({
     closeButton: 'col-start-1 col-end-1 mr-auto',
     heading: 'col-start-2 col-end-2 my-0 text-center',
     content: 'relative flex-auto overflow-y-auto max-h-[inherit]',
+    measuredContent: 'content',
   },
   compoundVariants: [
     { type: 'modal', size: 'small', class: 'max-w-sm' },
@@ -147,6 +148,13 @@ const DIALOG_STYLES = tv({
 // ==============
 // === Dialog ===
 // ==============
+
+/**
+ * Props for the {@link Dialog} component.
+ */
+export interface DialogProps
+  extends types.DialogProps,
+    Omit<VariantProps<typeof DIALOG_STYLES>, 'scrolledToTop'> {}
 
 /** A dialog is an overlay shown above other content in an application.
  * Can be used to display alerts, confirmations, or other content. */
@@ -189,6 +197,7 @@ export function Dialog(props: DialogProps) {
   const dialogId = aria.useId()
   const titleId = `${dialogId}-title`
 
+  const [contentDimensionsRef, { height: dialogHeight }] = useDimensions()
   const dialogRef = React.useRef<HTMLDivElement>(null)
   const overlayState = React.useRef<aria.OverlayTriggerState | null>(null)
   const root = portal.useStrictPortalContext()
@@ -250,8 +259,9 @@ export function Dialog(props: DialogProps) {
               id={dialogId}
               type={TYPE_TO_DIALOG_TYPE[type]}
             >
-              <aria.Dialog
+              <MotionDialog
                 id={dialogId}
+                animate={{ height: dialogHeight }}
                 ref={mergeRefs.mergeRefs(dialogRef, (element) => {
                   if (element) {
                     // This is a workaround for the `data-testid` attribute not being
@@ -271,52 +281,56 @@ export function Dialog(props: DialogProps) {
               >
                 {(opts) => {
                   return (
-                    <dialogProvider.DialogProvider value={{ close: opts.close, dialogId }}>
-                      {(closeButton !== 'none' || title != null) && (
-                        <aria.Header className={styles.header({ scrolledToTop: isScrolledToTop })}>
-                          {closeButton !== 'none' && (
-                            <ariaComponents.CloseButton
-                              className={styles.closeButton()}
-                              onPress={opts.close}
-                            />
-                          )}
-
-                          {title != null && (
-                            <ariaComponents.Text.Heading
-                              id={titleId}
-                              level={2}
-                              className={styles.heading()}
-                              weight="semibold"
-                            >
-                              {title}
-                            </ariaComponents.Text.Heading>
-                          )}
-                        </aria.Header>
-                      )}
-
-                      <div
-                        ref={(ref) => {
-                          if (ref) {
-                            handleScroll(ref.scrollTop)
-                          }
-                        }}
-                        className={styles.content()}
-                        onScroll={(event) => {
-                          handleScroll(event.currentTarget.scrollTop)
-                        }}
-                      >
-                        <errorBoundary.ErrorBoundary>
-                          <suspense.Suspense
-                            loaderProps={{ minHeight: type === 'fullscreen' ? 'full' : 'h32' }}
+                    <div className={styles.measuredContent()} ref={contentDimensionsRef}>
+                      <dialogProvider.DialogProvider value={{ close: opts.close, dialogId }}>
+                        {(closeButton !== 'none' || title != null) && (
+                          <aria.Header
+                            className={styles.header({ scrolledToTop: isScrolledToTop })}
                           >
-                            {typeof children === 'function' ? children(opts) : children}
-                          </suspense.Suspense>
-                        </errorBoundary.ErrorBoundary>
-                      </div>
-                    </dialogProvider.DialogProvider>
+                            {closeButton !== 'none' && (
+                              <ariaComponents.CloseButton
+                                className={styles.closeButton()}
+                                onPress={opts.close}
+                              />
+                            )}
+
+                            {title != null && (
+                              <ariaComponents.Text.Heading
+                                id={titleId}
+                                level={2}
+                                className={styles.heading()}
+                                weight="semibold"
+                              >
+                                {title}
+                              </ariaComponents.Text.Heading>
+                            )}
+                          </aria.Header>
+                        )}
+
+                        <div
+                          ref={(ref) => {
+                            if (ref) {
+                              handleScroll(ref.scrollTop)
+                            }
+                          }}
+                          className={styles.content()}
+                          onScroll={(event) => {
+                            handleScroll(event.currentTarget.scrollTop)
+                          }}
+                        >
+                          <errorBoundary.ErrorBoundary>
+                            <suspense.Suspense
+                              loaderProps={{ minHeight: type === 'fullscreen' ? 'full' : 'h32' }}
+                            >
+                              {typeof children === 'function' ? children(opts) : children}
+                            </suspense.Suspense>
+                          </errorBoundary.ErrorBoundary>
+                        </div>
+                      </dialogProvider.DialogProvider>
+                    </div>
                   )
                 }}
-              </aria.Dialog>
+              </MotionDialog>
             </dialogStackProvider.DialogStackRegistrar>
           </aria.Modal>
         )

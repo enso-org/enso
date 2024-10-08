@@ -1,5 +1,6 @@
 /** @file Utilities for manipulating and displaying dates and times. */
-import * as newtype from './newtype'
+import type { TextId } from '../../text'
+import { type Newtype, newtypeConstructor } from './newtype'
 
 // =================
 // === Constants ===
@@ -24,16 +25,36 @@ export const MONTH_NAMES = [
   'December',
 ]
 
+export const DAY_3_LETTER_TEXT_IDS = [
+  'monday3',
+  'tuesday3',
+  'wednesday3',
+  'thursday3',
+  'friday3',
+  'saturday3',
+  'sunday3',
+] satisfies TextId[]
+
+export const DAY_TEXT_IDS = [
+  'monday',
+  'tuesday',
+  'wednesday',
+  'thursday',
+  'friday',
+  'saturday',
+  'sunday',
+] satisfies TextId[]
+
 // ================
 // === DateTime ===
 // ================
 
 /** A string with date and time, following the RFC3339 specification. */
-export type Rfc3339DateTime = newtype.Newtype<string, 'Rfc3339DateTime'>
+export type Rfc3339DateTime = Newtype<string, 'Rfc3339DateTime'>
 /** Create a {@link Rfc3339DateTime}. */
 // This is a constructor function that constructs values of the type it is named after.
 // eslint-disable-next-line @typescript-eslint/no-redeclare
-export const Rfc3339DateTime = newtype.newtypeConstructor<Rfc3339DateTime>()
+export const Rfc3339DateTime = newtypeConstructor<Rfc3339DateTime>()
 
 /** Return a new {@link Date} with units below days (hours, minutes, seconds and milliseconds)
  * set to `0`. */

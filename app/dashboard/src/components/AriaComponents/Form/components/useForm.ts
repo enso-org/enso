@@ -10,6 +10,7 @@ import * as zodResolver from '@hookform/resolvers/zod'
 import * as reactHookForm from 'react-hook-form'
 import invariant from 'tiny-invariant'
 
+import { useDialogContext } from '#/components/AriaComponents/Dialog'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOffline, useOfflineChange } from '#/hooks/offlineHooks'
 import { useText } from '#/providers/TextProvider'
@@ -49,6 +50,7 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
 ): types.UseFormReturn<Schema> {
   const { getText } = useText()
   const [initialTypePassed] = React.useState(() => getArgsType(optionsOrFormInstance))
+  const dialogContext = useDialogContext()
 
   const argsType = getArgsType(optionsOrFormInstance)
 
@@ -64,6 +66,7 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
     return optionsOrFormInstance
   } else {
     const {
+      method,
       schema,
       onSubmit,
       canSubmitOffline = false,
@@ -149,7 +152,13 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
           // This is safe, because we transparently passing the result of the onSubmit function,
           // and the type of the result is the same as the type of the SubmitResult.
           // eslint-disable-next-line no-restricted-syntax
-          return (await onSubmit?.(fieldValues, form)) as SubmitResult
+          const result = (await onSubmit?.(fieldValues, form)) as SubmitResult
+
+          if (method === 'dialog') {
+            dialogContext?.close()
+          }
+
+          return result
         } catch (error) {
           const isJSError = errorUtils.isJSError(error)
 
@@ -221,6 +230,8 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
     const form: types.UseFormReturn<Schema> = {
       ...formInstance,
       submit,
+      // @ts-expect-error Our `UseFormRegister<Schema>` is the same as `react-hook-form`'s,
+      // just with an added constraint.
       control: { ...formInstance.control, register },
       register,
       schema: computedSchema,

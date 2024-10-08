@@ -6,22 +6,18 @@ import { Button, DialogTrigger } from '#/components/AriaComponents'
 import ProjectLogsModal from '#/modals/ProjectLogsModal'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
-import type { ProjectAsset, ProjectSession } from '#/services/Backend'
+import type { ProjectSession as BackendProjectSession, ProjectAsset } from '#/services/Backend'
 import { formatDateTime } from '#/utilities/dateTime'
 
-// ===========================
-// === AssetProjectSession ===
-// ===========================
-
-/** Props for a {@link AssetProjectSession}. */
-export interface AssetProjectSessionProps {
+/** Props for a {@link ProjectSession}. */
+export interface ProjectSessionProps {
   readonly backend: Backend
   readonly project: ProjectAsset
-  readonly projectSession: ProjectSession
+  readonly projectSession: BackendProjectSession
 }
 
 /** Displays information describing a specific version of an asset. */
-export default function AssetProjectSession(props: AssetProjectSessionProps) {
+export default function ProjectSession(props: ProjectSessionProps) {
   const { backend, project, projectSession } = props
   const { getText } = useText()
   const [isOpen, setIsOpen] = useState(false)
