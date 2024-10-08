@@ -167,6 +167,7 @@ class AuditLogApiAccess {
     var uri = URI.create(CloudAPI.getAPIRootURI() + "logs");
     var config = new RequestConfig(uri, AuthenticationProvider.getAccessToken());
     cachedRequestConfig = config;
+    System.out.println("Audit logger configured to URI " + uri);
     return config;
   }
 
@@ -234,5 +235,6 @@ class AuditLogApiAccess {
 
   void resetCache() {
     cachedRequestConfig = null;
+    System.out.println("Audit logger cache reset.");
   }
 }

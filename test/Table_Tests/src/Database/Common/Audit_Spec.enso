@@ -28,12 +28,15 @@ add_specs suite_builder prefix ~datalink_to_connection database_pending =
     cloud_setup = if always_run_on_mock then Cloud_Tests_Setup.prepare_mock_setup else Cloud_Tests_Setup.prepare
     suite_builder.group prefix+"Audit Logs" pending=(cloud_setup.pending.if_nothing database_pending) group_builder->
         group_builder.specify "should see Database operations performed on a table through the standard workflow" <| cloud_setup.with_prepared_environment <|
+            IO.println "STARTING AUDIT LOG TEST"
             audited_connection = datalink_to_connection.read
             table_name = "audited-table-"+Random.uuid
             mem_table = Table.new [["X", [1, 2]], ["Y", ["my_payload", "foo"]]]
             audited_table = mem_table.select_into_database_table audited_connection table_name temporary=True . should_succeed
             audited_table.read . should_equal mem_table
             audited_connection.drop_table table_name . should_succeed
+
+            IO.println "DB OPS COMPLETE"
 
             # We send a synchronous log to block the main thread until all pending async logs have been processed.
             Audit_Log.report_event "TestEvent" "test message to sync" async=False . should_succeed
@@ -42,7 +45,7 @@ add_specs suite_builder prefix ~datalink_to_connection database_pending =
             Test.with_retries <|
                 Thread.sleep 500
                 all_events = get_audit_log_events
-                IO.println "Got back "+all_events.length.to_text+" events"
+                IO.println "GOT BACK "+all_events.length.to_text+" EVENTS"
                 relevant_events = all_events.filter e-> e.message.contains table_name
                 Test.with_clue ((all_events.map .to_text).join '\n' 'Found events are:\n' '\n') <|
                     create = relevant_events.find (e-> e.message.contains "CREATE")
