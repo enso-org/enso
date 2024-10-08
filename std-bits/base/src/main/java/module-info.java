@@ -46,6 +46,7 @@ module org.enso.std.base {
 
   opens org.enso.base.numeric;
   opens org.enso.base.net;
+  opens org.enso.base.net.http;
   opens org.enso.base.polyglot;
   opens org.enso.base.random;
   opens org.enso.base.statistics;
