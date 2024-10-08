@@ -874,7 +874,8 @@ public final class EnsoContext {
   }
 
   public ExecutionEnvironment getExecutionEnvironment() {
-    return language.getThreadExecutionEnvironment();
+    ExecutionEnvironment env = language.getExecutionEnvironment();
+    return env == null ? getGlobalExecutionEnvironment() : env;
   }
 
   /** Set the runtime execution environment of this context. */
