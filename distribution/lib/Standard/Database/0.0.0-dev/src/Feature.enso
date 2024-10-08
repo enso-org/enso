@@ -41,9 +41,6 @@ type Feature
        currently blocks getting a DB_Column from a DB_Table, but will soon refine to operations on DB_Column.
     Column_Operations
     ## PRIVATE
-       set from expression operations on tables. Other set types should always be possible.
-    Set_From_Expression
-    ## PRIVATE
        get_row, take, drop, limit
     Sample
     ## PRIVATE
