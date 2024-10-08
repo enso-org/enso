@@ -53,7 +53,11 @@ public interface IR {
    */
   MetadataStorage passData();
 
-  /** The source location that the node corresponds to. */
+  /**
+   * The nullable source location that the node corresponds to.
+   *
+   * @return the node location or {@code null}
+   */
   IdentifiedLocation identifiedLocation();
 
   /** The source location that the node corresponds to. */
