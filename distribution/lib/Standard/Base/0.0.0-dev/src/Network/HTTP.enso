@@ -103,8 +103,8 @@ type HTTP
        - req: The HTTP request to send using `self` HTTP client.
        - error_on_failure_code: Whether or not to throw an error if the response
          code is not a success code.
-    request : Request -> Boolean -> Response ! Request_Error | HTTP_Error | Illegal_Argument
-    request self req error_on_failure_code=True =
+    request : Request -> Boolean -> Boolean -> Response ! Request_Error | HTTP_Error | Illegal_Argument
+    request self req error_on_failure_code=True (use_cache:Boolean=True) =
         # Prevent request if the method is a write-like method and output context is disabled.
         check_output_context ~action =
             if fetch_methods.contains req.method || Context.Output.is_enabled then action else
@@ -130,7 +130,7 @@ type HTTP
                     all_headers = headers + boundary_header_list
                     mapped_headers = all_headers.map on_problems=No_Wrap .to_java_pair
 
-                    response = Response.Value (EnsoSecretHelper.makeRequest self.internal_http_client builder req.uri.to_java_representation mapped_headers True)
+                    response = Response.Value (EnsoSecretHelper.makeRequest self.internal_http_client builder req.uri.to_java_representation mapped_headers use_cache)
                     if error_on_failure_code.not || response.code.is_success then response else
                         body = response.body.decode_as_text.catch Any _->""
                         message = if body.is_empty then Nothing else body
@@ -138,11 +138,11 @@ type HTTP
 
     ## PRIVATE
        Static helper for get-like methods
-    fetch : (URI | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> Response ! Request_Error | HTTP_Error
-    fetch (uri:(URI | Text)) (method:HTTP_Method=..Get) (headers:(Vector (Header | Pair Text Text))=[]) =
+    fetch : (URI | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Response ! Request_Error | HTTP_Error
+    fetch (uri:(URI | Text)) (method:HTTP_Method=..Get) (headers:(Vector (Header | Pair Text Text))=[]) (use_cache:Boolean=True) =
         check_method fetch_methods method <|
             request = Request.new method uri (parse_headers headers) Request_Body.Empty
-            HTTP.new.request request
+            HTTP.new.request request use_cache=use_cache
 
     ## PRIVATE
        Static helper for post-like methods
