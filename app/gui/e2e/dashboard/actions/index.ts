@@ -292,7 +292,7 @@ export function locateSamples(page: test.Locator | test.Page) {
 /** Find an editor container (if any) on the current page. */
 export function locateEditor(page: test.Page) {
   // Test ID of a placeholder editor component used during testing.
-  return page.getByTestId('gui-editor-root')
+  return page.locator('.App')
 }
 
 /** Find an assets table (if any) on the current page. */
