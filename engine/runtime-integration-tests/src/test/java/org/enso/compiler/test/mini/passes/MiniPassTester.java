@@ -22,10 +22,7 @@ import scala.Option;
  */
 public abstract class MiniPassTester {
   protected void compareModuleCompilation(
-      Module ir,
-      ModuleContext moduleContext,
-      IRPass megaPass,
-      MiniPassFactory<? extends MiniIRPass> miniPassFactory) {
+      Module ir, ModuleContext moduleContext, IRPass megaPass, MiniPassFactory miniPassFactory) {
     var miniPass = miniPassFactory.createForModuleCompilation(moduleContext);
     if (miniPass == null) {
       throw new IllegalArgumentException("Mini pass does not support module compilation");

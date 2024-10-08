@@ -8,7 +8,7 @@ import org.enso.compiler.context.ModuleContext;
  * only inline compilation, its {@link #createForModuleCompilation(ModuleContext)} method should
  * return null.
  */
-public interface MiniPassFactory<T extends MiniIRPass> {
+public interface MiniPassFactory {
   /**
    * Creates an instance of mini pass that is capable of transforming IR elements in the context of
    * a module.
@@ -16,7 +16,7 @@ public interface MiniPassFactory<T extends MiniIRPass> {
    * @param moduleContext A mini pass can optionally save reference to this module context.
    * @return May return null if module compilation is not supported.
    */
-  T createForModuleCompilation(ModuleContext moduleContext);
+  MiniIRPass createForModuleCompilation(ModuleContext moduleContext);
 
   /**
    * Creates an instance of mini pass that is capable of transforming IR elements in the context of
@@ -25,5 +25,5 @@ public interface MiniPassFactory<T extends MiniIRPass> {
    * @param inlineContext A mini pass can optionally save reference to this inline context.
    * @return Must not return null. Inline compilation should always be supported.
    */
-  T createForInlineCompilation(InlineContext inlineContext);
+  MiniIRPass createForInlineCompilation(InlineContext inlineContext);
 }

@@ -35,9 +35,7 @@ import org.enso.compiler.pass.resolve.{
   *
   * - A [[FreshNameSupply]]
   */
-case object LambdaShorthandToLambda
-    extends IRPass
-    with MiniPassFactory[LambdaShorthandToLambdaMini] {
+case object LambdaShorthandToLambda extends IRPass with MiniPassFactory {
   override type Metadata = IRPass.Metadata.Empty
   override type Config   = IRPass.Configuration.Default
 

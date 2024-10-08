@@ -43,7 +43,7 @@ import org.enso.compiler.pass.resolve.{ExpressionAnnotations, GlobalNames}
   *
   * - The tail position of its expression, where relevant.
   */
-case object TailCall extends IRPass with MiniPassFactory[TailCallMini] {
+case object TailCall extends IRPass with MiniPassFactory {
 
   /** The annotation metadata type associated with IR nodes by this pass. */
   override type Metadata = TailPosition

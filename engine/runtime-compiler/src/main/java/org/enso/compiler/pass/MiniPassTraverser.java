@@ -77,7 +77,7 @@ public final class MiniPassTraverser {
         newIr = ir;
       }
     }
-    var transformedIr = preparedMiniPass.transformIr((Expression) newIr);
+    var transformedIr = preparedMiniPass.transformIr(newIr);
     logTransform(newIr, preparedMiniPass, transformedIr);
     if (!preparedMiniPass.checkPostCondition(transformedIr)) {
       throw new CompilerError("Post condition failed after applying mini pass " + preparedMiniPass);

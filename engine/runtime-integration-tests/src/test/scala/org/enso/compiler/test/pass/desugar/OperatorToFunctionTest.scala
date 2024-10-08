@@ -19,6 +19,7 @@ class OperatorToFunctionTest extends CompilerTest {
 
   val ctx    = buildInlineContext()
   val modCtx = buildModuleContext()
+  System.setProperty("testing.mini.passes", "true")
 
   /** Generates an operator and its corresponding function.
     *

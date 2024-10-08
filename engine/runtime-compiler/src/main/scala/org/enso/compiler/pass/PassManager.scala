@@ -98,7 +98,13 @@ class PassManager(
             c.shouldWriteToContext = isLastRunOf(index, pass, passGroup)
           )
 
-        pass.runModule(intermediateIR, newContext)
+        if (pass.isInstanceOf[MiniPassFactory]) {
+          val miniFactory = pass.asInstanceOf[MiniPassFactory]
+          val miniPass    = miniFactory.createForModuleCompilation(newContext)
+          MiniPassTraverser.compileModuleWithMiniPass(intermediateIR, miniPass)
+        } else {
+          pass.runModule(intermediateIR, newContext)
+        }
       }
     }
   }
@@ -148,7 +154,14 @@ class PassManager(
             c.shouldWriteToContext = isLastRunOf(index, pass, passGroup)
           )
 
-        pass.runExpression(intermediateIR, newContext)
+        if (pass.isInstanceOf[MiniPassFactory]) {
+          val miniFactory = pass.asInstanceOf[MiniPassFactory]
+          val miniPass    = miniFactory.createForInlineCompilation(newContext)
+          MiniPassTraverser.compileInlineWithMiniPass(intermediateIR, miniPass)
+        } else {
+          pass.runExpression(intermediateIR, newContext)
+        }
+
       }
     }
   }

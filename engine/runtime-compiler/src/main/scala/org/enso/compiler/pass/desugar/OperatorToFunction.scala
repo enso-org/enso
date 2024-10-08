@@ -16,9 +16,7 @@ import org.enso.compiler.pass.analyse.{
   *
   * - Nothing
   */
-case object OperatorToFunction
-    extends IRPass
-    with MiniPassFactory[OperatorToFunctionMini] {
+case object OperatorToFunction extends IRPass with MiniPassFactory {
 
   /** A purely desugaring pass has no analysis output. */
   override type Metadata = IRPass.Metadata.Empty
@@ -46,6 +44,11 @@ case object OperatorToFunction
     ir: Module,
     moduleContext: ModuleContext
   ): Module = {
+    if (!java.lang.Boolean.getBoolean("testing.mini.passes")) {
+      throw new IllegalStateException(
+        "OperatorToFunction.runModule should no longer be used. This is a mini pass!"
+      )
+    }
     val new_bindings = ir.bindings.map { a =>
       a.mapExpressions(
         runExpression(
@@ -71,7 +74,12 @@ case object OperatorToFunction
   override def runExpression(
     ir: Expression,
     inlineContext: InlineContext
-  ): Expression =
+  ): Expression = {
+    if (!java.lang.Boolean.getBoolean("testing.mini.passes")) {
+      throw new IllegalStateException(
+        "OperatorToFunction.runExpression should no longer be used. This is a mini pass!"
+      )
+    }
     ir.transformExpressions { case operatorBinary: Operator.Binary =>
       new Application.Prefix(
         operatorBinary.operator,
@@ -85,6 +93,7 @@ case object OperatorToFunction
         operatorBinary.diagnostics
       )
     }
+  }
 
   override def createForModuleCompilation(
     moduleContext: ModuleContext
