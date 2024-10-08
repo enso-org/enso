@@ -264,7 +264,10 @@ public abstract class Atom implements EnsoObject {
 
   @TruffleBoundary
   private Function findMethod(String methodName) {
-    var matchedMethod = getInstanceMethods().stream().filter(method -> method.getName().equals(methodName)).findFirst();
+    var matchedMethod =
+        getInstanceMethods().stream()
+            .filter(method -> method.getName().equals(methodName))
+            .findFirst();
     return matchedMethod.orElse(null);
   }
 
