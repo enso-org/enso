@@ -70,7 +70,9 @@ class ExecuteJob(
           () => {
             val context = ctx.executionService.getContext
             val originalExecutionEnvironment =
-              executionEnvironment.map(_ => context.getGlobalExecutionEnvironment)
+              executionEnvironment.map(_ =>
+                context.getGlobalExecutionEnvironment
+              )
             executionEnvironment.foreach(env =>
               context.setExecutionEnvironment(
                 ExecutionEnvironment.forName(env.name)
