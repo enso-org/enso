@@ -1119,14 +1119,13 @@ test.each`
   expect(vector.code()).toBe(expected)
 })
 
-// TODO[ao]: Fix cases where expected spacing feels odd.
 test.each`
   initial            | predicate                                                 | expected
   ${'[1, 2, "Foo"]'} | ${(ast: Ast.Ast) => ast instanceof Ast.NumericLiteral}    | ${'[1, 2]'}
   ${'[1, "Foo", 3]'} | ${(ast: Ast.Ast) => ast instanceof Ast.NumericLiteral}    | ${'[1, 3]'}
-  ${'["Foo", 2, 3]'} | ${(ast: Ast.Ast) => ast instanceof Ast.NumericLiteral}    | ${'[ 2, 3]'}
-  ${'[1, 2, "Foo"]'} | ${(ast: Ast.Ast) => !(ast instanceof Ast.NumericLiteral)} | ${'[ "Foo"]'}
-  ${'[1, "Foo", 3]'} | ${(ast: Ast.Ast) => !(ast instanceof Ast.NumericLiteral)} | ${'[ "Foo"]'}
+  ${'["Foo", 2, 3]'} | ${(ast: Ast.Ast) => ast instanceof Ast.NumericLiteral}    | ${'[2, 3]'}
+  ${'[1, 2, "Foo"]'} | ${(ast: Ast.Ast) => !(ast instanceof Ast.NumericLiteral)} | ${'["Foo"]'}
+  ${'[1, "Foo", 3]'} | ${(ast: Ast.Ast) => !(ast instanceof Ast.NumericLiteral)} | ${'["Foo"]'}
   ${'["Foo", 2, 3]'} | ${(ast: Ast.Ast) => !(ast instanceof Ast.NumericLiteral)} | ${'["Foo"]'}
   ${'[]'}            | ${(ast: Ast.Ast) => ast instanceof Ast.NumericLiteral}    | ${'[]'}
   ${'[1, 2, 3]'}     | ${(ast: Ast.Ast) => ast.code() != '4'}                    | ${'[1, 2, 3]'}
@@ -1138,7 +1137,6 @@ test.each`
   expect(vector.code()).toBe(expected)
 })
 
-// TODO[ao]: Fix cases where expected spacing feels odd.
 test.each`
   initial        | expectedVector | expectedValue
   ${'[1, 2, 3]'} | ${'[1, 2]'}    | ${'3'}
@@ -1152,12 +1150,11 @@ test.each`
   expect(vector.code()).toBe(expectedVector)
 })
 
-// TODO[ao]: Fix cases where expected spacing feels odd.
 test.each`
   initial        | start | deletedCount | expectedVector
   ${'[1, 2, 3]'} | ${1}  | ${1}         | ${'[1, 3]'}
-  ${'[1, 2, 3]'} | ${0}  | ${1}         | ${'[ 2, 3]'}
-  ${'[1, 2, 3]'} | ${0}  | ${2}         | ${'[ 3]'}
+  ${'[1, 2, 3]'} | ${0}  | ${1}         | ${'[2, 3]'}
+  ${'[1, 2, 3]'} | ${0}  | ${2}         | ${'[3]'}
   ${'[1, 2, 3]'} | ${0}  | ${3}         | ${'[]'}
   ${'[3]'}       | ${0}  | ${1}         | ${'[]'}
   ${'[1, 2, 3]'} | ${2}  | ${1}         | ${'[1, 2]'}
@@ -1167,6 +1164,23 @@ test.each`
   vector.splice(start, deletedCount)
   expect(vector.code()).toBe(expectedVector)
 })
+
+test.each`
+  initial        | fromIndex | toIndex | expectedVector
+  ${'[1, 2, 3]'} | ${0}      | ${1}    | ${'[2, 1, 3]'}
+  ${'[1, 2, 3]'} | ${2}      | ${0}    | ${'[3, 1, 2]'}
+  ${'[1, 2, 3]'} | ${1}      | ${3}    | ${'[1, 3, 2]'}
+  ${'[1, 2, 3]'} | ${3}      | ${0}    | ${'[1, 2, 3]'}
+  ${'[]'}        | ${0}      | ${0}    | ${'[]'}
+`(
+  'Moving element in vector $initial -> $expectedVector',
+  ({ initial, fromIndex, toIndex, expectedVector }) => {
+    const vector = Ast.Vector.tryParse(initial)
+    assertDefined(vector)
+    vector.move(fromIndex, toIndex)
+    expect(vector.code()).toBe(expectedVector)
+  },
+)
 
 test.each`
   initial        | index | value  | expected

@@ -270,7 +270,7 @@ test.each([
   {
     code: "Table.new [['a', [1, 2, 3]], ['b', [4, 5, 6]]]",
     removedRowIndex: 0,
-    expected: "Table.new [['a', [ 2, 3]], ['b', [ 5, 6]]]",
+    expected: "Table.new [['a', [2, 3]], ['b', [5, 6]]]",
   },
   {
     code: "Table.new [['a', [1, 2, 3]], ['b', [4, 5, 6]]]",
@@ -307,7 +307,7 @@ test.each([
   {
     code: "Table.new [['a', [1, 2]], ['b', [3, 4]], ['c', [5, 6]]]",
     removedColIndex: 1,
-    expected: "Table.new [ ['b', [3, 4]], ['c', [5, 6]]]",
+    expected: "Table.new [['b', [3, 4]], ['c', [5, 6]]]",
   },
   {
     code: "Table.new [['a', [1, 2]], ['b', [3, 4]], ['c', [5, 6]]]",
@@ -346,7 +346,7 @@ test.each([
     code: "Table.new [['a', [1, 2]], ['b', [3, 4]], ['c', [5, 6]]]",
     fromIndex: 1,
     toIndex: 3,
-    expected: "Table.new [ ['b', [3, 4]], ['c', [5, 6]],['a', [1, 2]]]",
+    expected: "Table.new [['b', [3, 4]], ['c', [5, 6]], ['a', [1, 2]]]",
   },
   {
     code: "Table.new [['a', [1, 2]], ['b', [3, 4]], ['c', [5, 6]]]",
@@ -377,7 +377,7 @@ test.each([
     code: "Table.new [['a', [1, 2, 3]], ['b', [4, 5, 6]]]",
     fromIndex: 2,
     toIndex: 0,
-    expected: "Table.new [['a', [ 3,1, 2]], ['b', [ 6,4, 5]]]",
+    expected: "Table.new [['a', [3, 1, 2]], ['b', [6, 4, 5]]]",
   },
   {
     code: "Table.new [['a', [1, 2, 3]], ['b', [4, 5, 6]]]",

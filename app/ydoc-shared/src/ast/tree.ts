@@ -2496,31 +2496,60 @@ export class MutableVector extends Vector implements MutableAst {
 
   splice(start: number, deletedCount: number) {
     const elements = [...this.fields.get('elements')]
+    // Spacing around opening brackets should be preserved, as it's more natural (see tests).
+    const firstSpacing = elements[0]?.value?.whitespace
     elements.splice(start, deletedCount)
+    if (start === 0 && firstSpacing != null && elements[0]?.value != null) {
+      elements[0].value.whitespace = firstSpacing
+    }
     this.fields.set('elements', elements)
   }
 
   /**
    * Move an element inside vector.
-   * @param fromIndex index of moved element. If outside array's index range, no element will be
-   *  moved.
-   * @param toIndex new index of moved element. If outside array's index range, the element will
-   *  be placed at the end.
+   * @param fromIndex index of moved element.
+   * @param toIndex new index of moved element.
+   *
+   * If any index is outside array index range, it's interpreted same as in {@link Array.splice}.
    */
   move(fromIndex: number, toIndex: number) {
     const elements = [...this.fields.get('elements')]
+    const firstSpacing = elements[0]?.value?.whitespace
     const [element] = elements.splice(fromIndex, 1)
     if (element != null) {
       elements.splice(toIndex, 0, element)
+      // Restore/automate spacing to look make array look more natural.
+      // 1. Keep the spacing after opening bracket
+      if (
+        (toIndex === 0 || fromIndex === 0) &&
+        firstSpacing != null &&
+        elements[0]?.value != null
+      ) {
+        elements[0].value.whitespace = firstSpacing
+      }
+      // 2. If the first element was moved, automate the spacing (often from no-space to
+      // single-space)
+      if (fromIndex === 0 && toIndex !== 0 && elements[toIndex]?.value != null) {
+        elements[toIndex].value.whitespace = undefined
+      }
+      // 3. If the first element was shifted by inserting element before, also automate its spacing
+      if (toIndex === 0 && elements[1]?.value != null) {
+        elements[1].value.whitespace = undefined
+      }
       this.fields.set('elements', elements)
     }
   }
 
   keep(predicate: (ast: Ast) => boolean) {
     const elements = this.fields.get('elements')
+    // Spacing around opening brackets should be preserved, as it's more natural (see tests).
+    const firstSpacing = elements[0]?.value?.whitespace
     const filtered = elements.filter(
       element => element.value && predicate(this.module.get(element.value.node)),
     )
+    if (firstSpacing != null && filtered[0]?.value != null) {
+      filtered[0].value.whitespace = firstSpacing
+    }
     this.fields.set('elements', filtered)
   }
 }
