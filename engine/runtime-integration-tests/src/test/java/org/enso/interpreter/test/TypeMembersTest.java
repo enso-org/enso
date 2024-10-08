@@ -105,7 +105,7 @@ public class TypeMembersTest {
 
     var module = ctx.eval(src);
     var compileError = module.invokeMember("eval_expression", "v");
-    assertEquals("all members", compileError.getMemberKeys(), Set.of("to_display_text", "message"));
+    assertEquals("all members", Set.of("to_display_text", "message"), compileError.getMemberKeys());
   }
 
   private static void assertMembers(String msg, boolean invokeFails, Value v, String... keys) {
