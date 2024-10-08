@@ -612,8 +612,7 @@ public final class EnsoContext {
       if (findGuestJava() == null) {
         Class<?> clazz;
         if (loader == null) {
-          var baseModule = Object.class.getModule();
-          clazz = Class.forName(baseModule, fqn);
+          clazz = Class.forName(fqn);
         } else {
           clazz = loader.loadClass(fqn);
         }
