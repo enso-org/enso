@@ -69,7 +69,7 @@ export default function ManageLabelsModal<Asset extends AnyAsset = AnyAsset>(
 
   const formRef = useSyncRef(form)
   useEffect(() => {
-    formRef.current.setValue('labels', item.labels ?? [])
+    formRef.current.resetField('labels', { defaultValue: item.labels ?? [] })
   }, [formRef, item.labels])
 
   const query = Form.useWatch({ control: form.control, name: 'name' })
@@ -116,12 +116,12 @@ export default function ManageLabelsModal<Asset extends AnyAsset = AnyAsset>(
               {...innerProps}
             >
               <>
-                {(allLabels ?? [])
-                  .filter((label) => regex.test(label.value))
+                {allLabels
+                  ?.filter((label) => regex.test(label.value))
                   .map((label) => {
                     const isActive = labels.includes(label.value)
                     return (
-                      <Checkbox key={label.id} value={String(label.value)} isSelected={isActive}>
+                      <Checkbox key={label.id} value={String(label.value)}>
                         <Label active={isActive} color={label.color} onPress={() => {}}>
                           {label.value}
                         </Label>

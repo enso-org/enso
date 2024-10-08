@@ -286,11 +286,13 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                 <td className="flex w-full gap-1 p-0">
                   {asset.labels?.map((value) => {
                     const label = labels.find((otherLabel) => otherLabel.value === value)
-                    return label == null ? null : (
+                    return (
+                      label != null && (
                         <Label key={value} active isDisabled color={label.color} onPress={() => {}}>
                           {value}
                         </Label>
                       )
+                    )
                   })}
                 </td>
               </tr>
