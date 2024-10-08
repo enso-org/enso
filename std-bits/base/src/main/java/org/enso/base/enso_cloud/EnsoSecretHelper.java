@@ -1,7 +1,6 @@
 package org.enso.base.enso_cloud;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.http.HttpClient;
@@ -18,8 +17,6 @@ import org.graalvm.collections.Pair;
 
 /** Makes HTTP requests with secrets in either header or query string. */
 public final class EnsoSecretHelper extends SecretValueResolver {
-
-  private static final int MAX_RETRY_ATTEMPTS = 3;
 
   /** Gets a JDBC connection resolving EnsoKeyValuePair into the properties. */
   public static Connection getJDBCConnection(
@@ -61,8 +58,7 @@ public final class EnsoSecretHelper extends SecretValueResolver {
       HttpClient client,
       Builder builder,
       URIWithSecrets uri,
-      List<Pair<String, HideableValue>> headers,
-      Boolean withRetries)
+      List<Pair<String, HideableValue>> headers)
       throws IllegalArgumentException, IOException, InterruptedException {
 
     // Build a new URI with the query arguments.
@@ -92,30 +88,8 @@ public final class EnsoSecretHelper extends SecretValueResolver {
     // Build and Send the request.
     var httpRequest = builder.build();
     var bodyHandler = HttpResponse.BodyHandlers.ofInputStream();
+    var javaResponse = client.send(httpRequest, bodyHandler);
 
-    HttpResponse<InputStream> javaResponse = null;
-    var attempts = 0;
-    IOException failure = null;
-    while (attempts < MAX_RETRY_ATTEMPTS && javaResponse == null) {
-      try {
-        javaResponse = client.send(httpRequest, bodyHandler);
-      } catch (IOException ioe) {
-        if (withRetries) {
-          if (failure == null) {
-            failure = ioe;
-          }
-          attempts += 1;
-          Thread.sleep(Double.valueOf(Math.min(100 * Math.pow(2, attempts - 1), 5000)).longValue());
-        } else {
-          throw ioe;
-        }
-      }
-    }
-    if (attempts == MAX_RETRY_ATTEMPTS) {
-      throw failure;
-    }
-
-    assert javaResponse != null;
     // Extract parts of the response
     return new EnsoHttpResponse(
         renderedURI, javaResponse.headers(), javaResponse.body(), javaResponse.statusCode());
