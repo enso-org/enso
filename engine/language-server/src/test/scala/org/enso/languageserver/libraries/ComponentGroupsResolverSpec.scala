@@ -278,7 +278,7 @@ object ComponentGroupsResolverSpec {
       license              = "",
       authors              = Nil,
       maintainers          = Nil,
-      requires             = Array(),
+      requires             = List(),
       edition              = None,
       preferLocalLibraries = true,
       componentGroups      = Some(componentGroups)
@@ -297,7 +297,7 @@ object ComponentGroupsResolverSpec {
       license              = "",
       authors              = Nil,
       maintainers          = Nil,
-      requires             = Array(),
+      requires             = List(),
       edition              = None,
       preferLocalLibraries = true,
       componentGroups      = None
