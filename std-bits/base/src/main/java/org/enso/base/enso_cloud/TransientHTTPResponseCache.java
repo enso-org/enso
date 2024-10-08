@@ -66,6 +66,10 @@ public class TransientHTTPResponseCache {
 
     var response = requestMaker.run();
 
+    if (response.statusCode() != 200) {
+      return response;
+    }
+
     try {
       int ttl = calculateTTL(response.headers());
       LocalDateTime expiry = LocalDateTime.now().plus(Duration.ofSeconds(ttl));
