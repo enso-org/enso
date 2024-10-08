@@ -9,7 +9,6 @@ import org.enso.compiler.core.ir.{
   Expression,
   Function,
   IdentifiedLocation,
-  Location,
   Module,
   Name
 }
@@ -176,12 +175,10 @@ case object LambdaConsolidate extends IRPass {
         val newLocation = chainedLambdas.head.location match {
           case Some(location) =>
             Some(
-              IdentifiedLocation.create(
-                new Location(
-                  location.start,
-                  chainedLambdas.last.location.getOrElse(location).location.end
-                ),
-                location.id
+              new IdentifiedLocation(
+                location.start,
+                chainedLambdas.last.location.getOrElse(location).location.end,
+                location.uuid
               )
             )
           case None => None

@@ -13,12 +13,6 @@ public record IdentifiedLocation(int start, int end, UUID uuid) {
     this(location.start(), location.end(), null);
   }
 
-  /** Creates new location from an optional UUID. */
-  public static IdentifiedLocation create(Location location, Option<UUID> uuid) {
-    return new IdentifiedLocation(
-        location.start(), location.end(), uuid.isEmpty() ? null : uuid.get());
-  }
-
   /**
    * @return location of this identified location.
    */

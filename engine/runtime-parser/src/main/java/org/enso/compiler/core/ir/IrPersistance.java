@@ -76,30 +76,34 @@ public final class IrPersistance {
 
   @ServiceProvider(service = Persistance.class)
   public static final class PersistIdentifiedLocation extends Persistance<IdentifiedLocation> {
+
+    private static final int EMPTY_LOCATION = -1;
+
     public PersistIdentifiedLocation() {
-      super(IdentifiedLocation.class, false, 2);
+      super(IdentifiedLocation.class, false, 11259);
     }
 
     @Override
     protected void writeObject(IdentifiedLocation obj, Output out) throws IOException {
       if (obj == null) {
-        out.writeBoolean(false);
+        out.writeInt(EMPTY_LOCATION);
       } else {
-        out.writeBoolean(true);
-        out.writeInline(Location.class, obj.location());
-        out.writeInline(Option.class, obj.id());
+        out.writeInt(obj.start());
+        out.writeInt(obj.end());
+        out.writeInline(UUID.class, obj.uuid());
       }
     }
 
     @Override
     @SuppressWarnings("unchecked")
     protected IdentifiedLocation readObject(Input in) throws IOException, ClassNotFoundException {
-      if (in.readBoolean()) {
-        var obj = in.readInline(Location.class);
-        var id = in.readInline(Option.class);
-        return IdentifiedLocation.create((Location) obj, id);
-      } else {
+      var start = in.readInt();
+      if (start == EMPTY_LOCATION) {
         return null;
+      } else {
+        var end = in.readInt();
+        var uuid = in.readInline(UUID.class);
+        return new IdentifiedLocation(start, end, uuid);
       }
     }
   }

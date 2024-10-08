@@ -1040,9 +1040,9 @@ final class TreeToIr {
         if (last != null
             && last.location().isDefined()
             && last.location().get().end() != locationWithANewLine.end()) {
-          var patched =
-              new Location(last.location().get().start(), locationWithANewLine.end() - 1);
-          var id = IdentifiedLocation.create(patched, last.location().get().id());
+          int start = last.location().get().start();
+          int end = locationWithANewLine.end() - 1;
+          var id = new IdentifiedLocation(start, end, last.location().get().uuid());
           last = last.setLocation(Option.apply(id));
         }
         yield new Expression.Block(list, last, locationWithANewLine, false, meta());
@@ -1950,11 +1950,9 @@ final class TreeToIr {
     }
 
     if (encapsulating.start() > inner.start() || encapsulating.end() < inner.end()) {
-      var loc = new Location(
-          Math.min(encapsulating.start(), inner.start()),
-          Math.max(encapsulating.end(), inner.end())
-      );
-      return IdentifiedLocation.create(loc, encapsulating.id());
+      var start = Math.min(encapsulating.start(), inner.start());
+      var end = Math.max(encapsulating.end(), inner.end());
+      return new IdentifiedLocation(start, end, encapsulating.uuid());
     } else {
       return encapsulating;
     }
@@ -1977,8 +1975,8 @@ final class TreeToIr {
         var begin = castToInt(ast.getStartCode()) + b;
         var end = castToInt(ast.getEndCode()) + e;
         var location = new Location(begin, end);
-        var uuid = Option.apply(idMap.get(location)).orElse(() -> someId == null ? Option.apply(ast.uuid()) : someId);
-        yield IdentifiedLocation.create(location, uuid);
+        var uuid = idMap.getOrDefault(location, someId == null ? ast.uuid() : someId.getOrElse(() -> null));
+        yield new IdentifiedLocation(begin, end, uuid);
       }
     };
   }
@@ -2015,8 +2013,8 @@ final class TreeToIr {
     int end_ = castToInt(end);
 
     var location = new Location(begin_, end_);
-    var uuid = Option.apply(idMap.get(location));
-    return IdentifiedLocation.create(location, uuid);
+    var uuid = idMap.get(location);
+    return new IdentifiedLocation(begin_, end_, uuid);
   }
 
   private IdentifiedLocation getIdentifiedLocation(Token ast) {
