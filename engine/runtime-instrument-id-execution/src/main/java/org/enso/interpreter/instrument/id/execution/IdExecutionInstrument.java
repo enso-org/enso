@@ -254,20 +254,13 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
                   frame == null ? null : frame.materialize(),
                   node);
           callbacks.updateCachedResult(info);
-          resetExecutionEnvironment(info);
+          resetExecutionEnvironment();
 
           if (info.isPanic()) {
             throw context.createUnwind(result);
           }
-        } else if (node instanceof ExpressionNode expressionNode) {
-          Info info =
-              new NodeInfo(
-                  expressionNode.getId(),
-                  result,
-                  nanoTimeElapsed,
-                  frame == null ? null : frame.materialize(),
-                  node);
-          resetExecutionEnvironment(info);
+        } else if (node instanceof ExpressionNode) {
+          resetExecutionEnvironment();
         }
       }
 
@@ -337,7 +330,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
         }
       }
 
-      private void resetExecutionEnvironment(IdExecutionService.Info info) {
+      private void resetExecutionEnvironment() {
         if (originalExecutionEnvironment != null) {
           EnsoContext.get(this).setExecutionEnvironment(originalExecutionEnvironment);
           originalExecutionEnvironment = null;
