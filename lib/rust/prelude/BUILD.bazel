@@ -1,8 +1,6 @@
 load("@rules_rust//rust:defs.bzl", "rust_library")
 load("@crates//:defs.bzl", "aliases", "all_crate_deps")
 
-package(default_visibility = ["//visibility:public"])
-
 rust_library(
     name = "enso-prelude",
     srcs = glob(["src/**/*.rs"]),
@@ -15,4 +13,5 @@ rust_library(
         "//lib/rust/zst:enso-zst",
         "//lib/rust/reflect:enso-reflect",
     ],
+    visibility = ["//visibility:public"],
 )

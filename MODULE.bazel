@@ -15,14 +15,18 @@ node.toolchain(node_version = "20.11.1")
 
 ## Npm
 npm = use_extension("@aspect_rules_js//npm:extensions.bzl", "npm", dev_dependency = True)
-npm.npm_translate_lock(name = "npm", pnpm_lock = "//:pnpm-lock.yaml", verify_node_modules_ignored = "//:.bazelignore", npmrc="//:.npmrc")
+npm.npm_translate_lock(
+    name = "npm",
+    pnpm_lock = "//:pnpm-lock.yaml",
+    verify_node_modules_ignored = "//:.bazelignore",
+    npmrc = "//:.npmrc",
+)
 use_repo(npm, "npm")
 
 ## TypeScript
 rules_ts_ext = use_extension("@aspect_rules_ts//ts:extensions.bzl", "ext", dev_dependency = True)
 rules_ts_ext.deps()
 use_repo(rules_ts_ext, "npm_typescript")
-
 
 ############
 ### RUST ###
@@ -34,7 +38,7 @@ rust = use_extension("@rules_rust//rust:extensions.bzl", "rust")
 rust.toolchain(
     edition = "2021",
     versions = ["nightly/2024-08-08"],
-    extra_target_triples = ["wasm32-unknown-unknown"]
+    extra_target_triples = ["wasm32-unknown-unknown"],
 )
 use_repo(rust, "rust_toolchains")
 register_toolchains("@rust_toolchains//:all")
@@ -73,8 +77,7 @@ crate.from_cargo(
         "//:tools/language-server/logstat/Cargo.toml",
         "//:tools/language-server/wstest/Cargo.toml",
         "//app/rust-ffi:Cargo.toml",
-
-    ]
+    ],
 )
 use_repo(crate, "crates")
 
@@ -107,7 +110,7 @@ register_toolchains("//toolchains/dummy_cc:dummy_cc_wasm32_toolchain")
 ### JVM ###
 ###########
 bazel_dep(name = "rules_java", version = "7.6.1")
-bazel_dep(name = "rules_graalvm", version = "0.11.1") ## upgrade to 0.11.2 once available in bazel central
+bazel_dep(name = "rules_graalvm", version = "0.11.1")  ## upgrade to 0.11.2 once available in bazel central
 
 gvm = use_extension("@rules_graalvm//:extensions.bzl", "graalvm")
 
@@ -119,7 +122,7 @@ gvm.graalvm(
 )
 use_repo(gvm, "graalvm")
 register_toolchains("@graalvm//:jvm")
-register_toolchains("@graalvm//:sdk") ## Native-image
+register_toolchains("@graalvm//:sdk")  ## Native-image
 register_toolchains("@graalvm//:toolchain")
 
 bazel_dep(name = "rules_jvm_external", version = "6.0")
@@ -145,25 +148,26 @@ minimal_json_version = "0.9.5"
 ## https://github.com/bazeltools/bazel-deps
 ## The downside of the approach is that a number of other rules rely on it.
 maven = use_extension("@rules_jvm_external//:extensions.bzl", "maven")
+
 ## After updating a list of artifacts run
 ## > bazel run @unpinned_maven//:pin
 maven.install(
     artifacts = [
-      "com.typesafe.scala-logging:scala-logging_2.13:%s" % scala_logging_version,
-      "org.scalatest:scalatest_2.13:%s" % scalatest_version,
-      "org.typelevel:cats-core_2.13:%s" % cats_version,
-      "org.apache.commons:commons-text:%s" % commons_text_version,
-      "org.apache.httpcomponents:httpclient:%s" % http_components_version,
-      "com.fasterxml.jackson.core:jackson-databind:%s" % jackson_version,
-      "commons-io:commons-io:%s" % commons_io_version,
-      "org.apache.commons:commons-compress:%s" % commons_compress_version,
-      "org.apache.commons:commons-lang3:%s" % commons_lang_version,
-      "junit:junit:%s" % junit_version,
-      "org.hamcrest:hamcrest-all:%s" % hamcrest_version,
+        "com.typesafe.scala-logging:scala-logging_2.13:%s" % scala_logging_version,
+        "org.scalatest:scalatest_2.13:%s" % scalatest_version,
+        "org.typelevel:cats-core_2.13:%s" % cats_version,
+        "org.apache.commons:commons-text:%s" % commons_text_version,
+        "org.apache.httpcomponents:httpclient:%s" % http_components_version,
+        "com.fasterxml.jackson.core:jackson-databind:%s" % jackson_version,
+        "commons-io:commons-io:%s" % commons_io_version,
+        "org.apache.commons:commons-compress:%s" % commons_compress_version,
+        "org.apache.commons:commons-lang3:%s" % commons_lang_version,
+        "junit:junit:%s" % junit_version,
+        "org.hamcrest:hamcrest-all:%s" % hamcrest_version,
 
-      ## bazel-distribution dependencies
-      "info.picocli:picocli:%s" % picocli_version,
-      "com.eclipsesource.minimal-json:minimal-json:%s" % minimal_json_version,
+        ## bazel-distribution dependencies
+        "info.picocli:picocli:%s" % picocli_version,
+        "com.eclipsesource.minimal-json:minimal-json:%s" % minimal_json_version,
     ] + circe,
     fail_if_repin_required = True,
     lock_file = "//:maven_install.json",

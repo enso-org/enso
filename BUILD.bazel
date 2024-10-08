@@ -1,6 +1,6 @@
-load("@npm//:defs.bzl", "npm_link_all_packages")
-npm_link_all_packages(name = "node_modules")
 load("@aspect_bazel_lib//lib:write_source_files.bzl", "write_source_files")
+load("@npm//:defs.bzl", "npm_link_all_packages")
+npm_link_all_packages()
 
 write_source_files(
     name = "write_all",

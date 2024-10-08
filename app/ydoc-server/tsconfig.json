@@ -1,7 +1,6 @@
 {
   "extends": "../tsconfig.json",
   "include": ["src/**/*.ts"],
-  "references": [{ "path": "../ydoc-shared" }],
   "compilerOptions": {
     "composite": true,
     "noEmit": false,

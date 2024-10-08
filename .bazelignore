@@ -34,3 +34,4 @@ build-cache
 .dist
 target
 build
+.git

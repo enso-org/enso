@@ -1,5 +1,4 @@
 load("@rules_rust//rust:defs.bzl", "rust_shared_library")
-load("@aspect_rules_js//js:defs.bzl", "js_library")
 load("@aspect_rules_js//npm:defs.bzl", "npm_package")
 load("@rules_rust//wasm_bindgen:defs.bzl", "rust_wasm_bindgen")
 load("@crates//:defs.bzl", "aliases", "all_crate_deps")

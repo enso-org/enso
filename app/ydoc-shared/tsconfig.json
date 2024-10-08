@@ -7,7 +7,6 @@
     "noEmit": false,
     "rootDir": "src",
     "outDir": "dist",
-    "preserveConstEnums": true,
     "types": ["node", "vitest/importMeta"]
   }
 }

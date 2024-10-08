@@ -25,11 +25,7 @@
     "typecheck": "vue-tsc --noEmit -p tsconfig.app.json",
     "lint": "eslint .",
     "format": "prettier --version && prettier --write src/ && eslint . --fix",
-    "build-rust-ffi": "wasm-pack build ./rust-ffi --release --target web && wasm-pack build ./rust-ffi --out-dir node-pkg --target nodejs",
-    "preinstall": "corepack pnpm run generate-metadata && corepack pnpm run download-fonts",
-    "postinstall": "playwright install",
-    "generate-metadata": "node scripts/generateIconMetadata.js",
-    "download-fonts": "node scripts/downloadFonts.js"
+    "postinstall": "playwright install"
   },
   "//": [
     "'ag-grid-community' is required as a peer dependency of 'ag-grid-enterprise'."

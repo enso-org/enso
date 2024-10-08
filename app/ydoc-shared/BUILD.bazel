@@ -13,14 +13,18 @@ ts_config(
     visibility = ["//visibility:public"],
 )
 
+IGNORED_GENERATED_FILES = [
+    "src/ast/generated/*",
+]
+
 ts_project(
     name = "tsc",
     composite = True,
     tsconfig = ":tsconfig",
     out_dir = "dist",
     root_dir = "src",
-    srcs = glob(["src/**/*.ts"]),
-    deps = npm_link_targets() + [":generate_ast_typedefs"],
+    srcs = glob(["src/**/*.ts"], IGNORED_GENERATED_FILES) + [":generate_ast_typedefs"],
+    deps = npm_link_targets(),
     visibility = ["//visibility:public"],
 )
 

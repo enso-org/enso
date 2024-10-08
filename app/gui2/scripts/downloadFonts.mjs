@@ -12,9 +12,6 @@ import bz2 from 'unbzip2-stream'
 
 if (process.env.CI === '1') process.exit(0)
 
-const WARNING_MESSAGE =
-  '⚠️⚠️⚠️ Please use the buildscript (`./run`) to download fonts instead. ⚠️⚠️⚠️'
-let warningMessageAlreadyShown = false
 let exitCode = 0
 
 const ENSO_FONT_URL = 'https://github.com/enso-org/font/releases/download/1.0/enso-font-1.0.tar.gz'
@@ -86,9 +83,9 @@ const DEJAVU_FONT_VARIANTS = [
 ].map((variant) => ({ font: 'DejaVu Sans Mono', ...variant }))
 
 try {
-  await fs.access(`./src/assets/font-enso.css`)
+  await fs.access(`./src/assets/fonts/enso.css`)
   for (const { variant } of ENSO_FONT_VARIANTS) {
-    await fs.access(`./public/font-enso/Enso-${variant}.ttf`)
+    await fs.access(`./public/fonts/enso/Enso-${variant}.ttf`)
   }
   console.info('Enso font already downloaded, skipping...')
 } catch (error) {
@@ -97,16 +94,18 @@ try {
     console.error(error)
     exitCode = 1
   } else {
-    if (!warningMessageAlreadyShown) console.warn(WARNING_MESSAGE)
-    warningMessageAlreadyShown = true
     console.info('Downloading Enso font...')
-    await fs.rm('./public/font-enso/', { recursive: true, force: true })
-    await fs.mkdir('./public/font-enso/', { recursive: true })
+    try {
+      await fs.rm('./public/fonts/enso', { recursive: true })
+    } catch {
+      /* empty */
+    }
+    await fs.mkdir('./public/fonts/enso', { recursive: true })
     await new Promise((resolve, reject) => {
       get(ENSO_FONT_URL, (response) => {
         response.pipe(
           tar.extract({
-            cwd: './public/font-enso/',
+            cwd: './public/fonts/enso/',
             strip: 1,
             filter(path) {
               // Reject files starting with `.`.
@@ -124,17 +123,18 @@ try {
       css.push(`\
 @font-face {
   font-family: '${font}';
-  src: url('/font-enso/Enso-${variant}.ttf');
+  src: url('/fonts/enso/Enso-${variant}.ttf');
   font-weight: ${weight};
 }
 `)
     }
-    await fs.writeFile('./src/assets/font-enso.css', css.join('\n'))
+    await fs.mkdir('./src/assets/fonts', { recursive: true })
+    await fs.writeFile('./src/assets/fonts/enso.css', css.join('\n'))
   }
 }
 try {
-  await fs.access(`./src/assets/font-mplus1.css`)
-  await fs.access(`./public/font-mplus1/MPLUS1[wght].ttf`)
+  await fs.access(`./src/assets/fonts/mplus1.css`)
+  await fs.access(`./public/fonts/mplus1/MPLUS1[wght].ttf`)
   console.info('M PLUS 1 font already downloaded, skipping...')
 } catch (error) {
   if (!isFileNotFoundError(error)) {
@@ -142,14 +142,16 @@ try {
     console.error(error)
     exitCode = 1
   } else {
-    if (!warningMessageAlreadyShown) console.warn(WARNING_MESSAGE)
-    warningMessageAlreadyShown = true
     console.info('Downloading M PLUS 1 font...')
-    await fs.rm('./public/font-mplus1/', { recursive: true, force: true })
-    await fs.mkdir('./public/font-mplus1/', { recursive: true })
+    try {
+      await fs.rm('./public/fonts/mplus1', { recursive: true, force: true })
+    } catch {
+      /* empty */
+    }
+    await fs.mkdir('./public/fonts/mplus1/', { recursive: true })
     await new Promise((resolve, reject) => {
       get(MPLUS1_FONT_URL, (response) => {
-        response.pipe(fsSync.createWriteStream('./public/font-mplus1/MPLUS1[wght].ttf'))
+        response.pipe(fsSync.createWriteStream('./public/fonts/mplus1/MPLUS1[wght].ttf'))
         response.on('end', resolve)
         response.on('error', reject)
       })
@@ -157,16 +159,17 @@ try {
     const css = `\
 @font-face {
   font-family: 'M PLUS 1';
-  src: url('/font-mplus1/MPLUS1[wght].ttf');
+  src: url('/fonts/mplus1/MPLUS1[wght].ttf');
 }
 `
-    await fs.writeFile('./src/assets/font-mplus1.css', css)
+    await fs.mkdir('./src/assets/fonts', { recursive: true })
+    await fs.writeFile('./src/assets/fonts/mplus1.css', css)
   }
 }
 try {
-  await fs.access(`./src/assets/font-dejavu.css`)
+  await fs.access(`./src/assets/fonts/dejavu.css`)
   for (const variant of ['', '-Bold']) {
-    await fs.access(`./public/font-dejavu/DejaVuSansMono${variant}.ttf`)
+    await fs.access(`./public/fonts/dejavu/DejaVuSansMono${variant}.ttf`)
   }
   console.info('DejaVu Sans Mono font already downloaded, skipping...')
 } catch (error) {
@@ -175,16 +178,18 @@ try {
     console.error(error)
     exitCode = 1
   } else {
-    if (!warningMessageAlreadyShown) console.warn(WARNING_MESSAGE)
-    warningMessageAlreadyShown = true
     console.info('Downloading DejaVu Sans Mono font...')
-    await fs.rm('./public/font-dejavu/', { recursive: true, force: true })
-    await fs.mkdir('./public/font-dejavu/', { recursive: true })
+    try {
+      await fs.rm('./public/fonts/dejavu', { recursive: true, force: true })
+    } catch {
+      /* empty */
+    }
+    await fs.mkdir('./public/fonts/dejavu/', { recursive: true })
     await new Promise((resolve, reject) => {
       get(DEJAVU_SANS_MONO_FONT_URL, (response) => {
         response.pipe(bz2()).pipe(
           tar.extract({
-            cwd: './public/font-dejavu/',
+            cwd: './public/fonts/dejavu/',
             strip: 2,
             filter(path) {
               return /[\\/]DejaVuSansMono/.test(path) && !/Oblique[.]ttf$/.test(path)
@@ -201,13 +206,14 @@ try {
       css.push(`\
 @font-face {
   font-family: '${font}';
-  src: url('/font-dejavu/${variant}.ttf');
+  src: url('/fonts/dejavu/${variant}.ttf');
   font-weight: ${weight};
 }
 `)
     }
-    await fs.writeFile('./src/assets/font-dejavu.css', css.join('\n'))
+    await fs.mkdir('./src/assets/fonts', { recursive: true })
+    await fs.writeFile('./src/assets/fonts/dejavu.css', css.join('\n'))
   }
 }
 console.info('Done.')
-if (exitCode !== 0) process.exit(exitCode)
+process.exit(exitCode)

@@ -186,11 +186,11 @@ impl Processor {
     }
 
     #[tracing::instrument]
-    pub fn resolve_release_source<T: IsTarget>(
+    pub fn resolve_release_source<T: IsTarget>()
         &self,
         target: T,
         designator: String,
-    ) -> BoxFuture<'static, Result<ReleaseSource>> {
+     -> BoxFuture<'static, Result<ReleaseSource>> {
         let repository = self.remote_repo.clone();
         let release = self.resolve_release_designator(designator);
         async move {

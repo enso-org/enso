@@ -1,8 +1,9 @@
-@import url('./font-enso.css');
 @import url('./font-enso-prose.css');
 @import url('./font-enso-naming.css');
-@import url('./font-mplus1.css');
-@import url('./font-dejavu.css');
+/* Following fonts are downloaded by a script and are not present in the repo. */
+@import url('./fonts/enso.css');
+@import url('./fonts/mplus1.css');
+@import url('./fonts/dejavu.css');
 
 /*************************************************
  *** semantic color variables for this project ***

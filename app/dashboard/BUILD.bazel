@@ -25,7 +25,6 @@ ts_project(
 filegroup(
     name = "css_deps",
     srcs = glob(["src/**/*.ts", "src/**/*.tsx"]) + ["tailwind.config.js", "tailwind.config.d.ts"],
-    visibility = ["//visibility:public"],
 )
 
 npm_package(

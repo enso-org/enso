@@ -1,7 +1,7 @@
 load("@npm//:defs.bzl", "npm_link_all_packages", "npm_link_targets")
 load("@npm//app/gui2:vite/package_json.bzl", vite_bin = "bin")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_config")
-load("@aspect_rules_js//js:defs.bzl", "js_library")
+load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_run_binary")
 
 npm_link_all_packages(name = "node_modules")
 
@@ -11,16 +11,25 @@ ts_config(name = "tsconfig_app", src = "tsconfig.app.json", deps = [":tsconfig"]
 ts_config(name = "tsconfig_scripts", src = "tsconfig.scripts.json")
 ts_config(name = "tsconfig_app_vitest", src = "tsconfig.app.vitest.json", deps = [":tsconfig_app"])
 
+
+IGNORED_GENERATED_FILES = [
+    "src/assets/icons.svg",
+    "src/assets/fonts/**/*",
+    "public/fonts/**/*",
+]
+
 SRCS = [
     ":tsconfig",
     ":tsconfig_app",
     ":tsconfig_node",
     ":tsconfig_app_vitest",
     ":tsconfig_scripts",
+    ":icon_metadata",
+    ":fonts",
     "vite.config.ts",
     "package.json",
     "index.html",
-] + glob(["src/**", "public/**", "project-manager-shim-middleware/**"])
+] + glob(["src/**", "public/**", "project-manager-shim-middleware/**"], IGNORED_GENERATED_FILES)
 
 # BUILD_DEPS = [":node_modules/" + d for d in [
 #     "@vitejs/plugin-vue",
@@ -43,6 +52,38 @@ vite_bin.vite_binary(
     args = ["preview"],
     chdir = package_name(),
     data = [":vite_build", "vite.config.ts"],
+)
+
+js_binary(
+    name = "script_generate_icon_metadata",
+    entry_point = "scripts/generateIconMetadata.mjs",
+)
+
+js_run_binary(
+    name = "icon_metadata",
+    tool = ":script_generate_icon_metadata",
+    chdir = package_name(),
+    srcs = ["src/assets/icons.svg"],
+    outs = ["src/util/iconName.ts"],
+    visibility = ["//visibility:public"],
+)
+
+js_binary(
+    name = "script_download_fonts",
+    data = [":node_modules/tar", ":node_modules/unbzip2-stream"],
+    entry_point = "scripts/downloadFonts.mjs",
+)
+
+js_run_binary(
+    name = "fonts",
+    tool = ":script_download_fonts",
+    chdir = package_name(),
+    srcs = ["src/assets/icons.svg"],
+    out_dirs = [
+        "public/fonts",
+        "src/assets/fonts",
+    ],
+    visibility = ["//visibility:public"],
 )
 
 # vue_tsc_bin.vue_tsc_test(

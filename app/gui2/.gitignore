@@ -28,9 +28,5 @@ playwright-report/
 src/util/iconList.json
 src/util/iconName.ts
 src/stores/visualization/metadata.json
-public/font-dejavu/
-public/font-enso/
-public/font-mplus1/
-src/assets/font-dejavu.css
-src/assets/font-enso.css
-src/assets/font-mplus1.css
+public/fonts/
+src/assets/fonts/

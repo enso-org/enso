@@ -24,6 +24,8 @@ await readEnvironmentFromFile()
 
 const entrypoint = process.env.E2E === 'true' ? './src/e2e-entrypoint.ts' : './src/entrypoint.ts'
 
+console.log('public dir:', fileURLToPath(new URL('./public', import.meta.url)))
+
 // https://vitejs.dev/config/
 export default defineConfig({
   root: fileURLToPath(new URL('.', import.meta.url)),
@@ -87,6 +89,7 @@ export default defineConfig({
       plugins: [tailwindcssNesting(postcssNesting()), tailwindcss(tailwindConfig)],
     },
   },
+  logLevel: 'info',
   build: {
     // dashboard chunk size is larger than the default warning limit
     chunkSizeWarningLimit: 700,
