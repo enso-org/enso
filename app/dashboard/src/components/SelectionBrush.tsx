@@ -93,7 +93,8 @@ export default function SelectionBrush(props: SelectionBrushProps) {
         didMoveWhileDraggingRef.current = false
         lastMouseEvent.current = event
         const newAnchor = { left: event.pageX, top: event.pageY }
-        anchorRef.current = null
+        anchorRef.current = newAnchor
+        setAnchor(newAnchor)
         setLastSetAnchor(newAnchor)
         setPosition(newAnchor)
       }
