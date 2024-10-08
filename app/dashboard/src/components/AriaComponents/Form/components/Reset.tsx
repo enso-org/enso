@@ -42,14 +42,17 @@ export function Reset(props: ResetProps): React.JSX.Element {
     ...buttonProps
   } = props
 
-  const { formState } = formContext.useFormContext(props.form)
+  const form = formContext.useFormContext(props.form)
+  const { formState } = form
 
   return (
     <ariaComponents.Button
+      onPress={() => {
+        form.reset(formState.defaultValues)
+      }}
       /* This is safe because we are passing all props to the button */
       /* eslint-disable-next-line @typescript-eslint/no-explicit-any,no-restricted-syntax */
       {...(buttonProps as any)}
-      type="reset"
       variant={variant}
       size={size}
       isDisabled={formState.isSubmitting || !formState.isDirty}

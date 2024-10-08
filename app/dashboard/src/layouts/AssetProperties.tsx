@@ -323,7 +323,7 @@ function AssetPropertiesInternal(props: AssetPropertiesProps) {
           </Heading>
           <UpsertSecretModal
             noDialog
-            canReset={false}
+            canReset
             canCancel={false}
             id={asset.id}
             name={asset.title}
