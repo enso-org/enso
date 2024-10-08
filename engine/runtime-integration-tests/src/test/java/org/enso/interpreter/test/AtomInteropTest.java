@@ -124,10 +124,8 @@ public class AtomInteropTest {
 
         main = My_Type.Cons "a" "b"
         """);
-    assertThat(
-        "Method is a member of the atom", myTypeAtom.getMemberKeys(), hasItem("My_Type.method"));
-    assertThat(
-        "method is an invokable member", myTypeAtom.canInvokeMember("My_Type.method"), is(true));
+    assertThat("Method is a member of the atom", myTypeAtom.getMemberKeys(), hasItem("method"));
+    assertThat("method is an invokable member", myTypeAtom.canInvokeMember("method"), is(true));
   }
 
   @Test
@@ -145,8 +143,8 @@ public class AtomInteropTest {
     var atom = ContextUtils.unwrapValue(ctx, myTypeAtom);
     var interop = InteropLibrary.getUncached();
     assertThat("Atom has members", interop.hasMembers(atom), is(true));
-    assertThat("Method is readable", interop.isMemberReadable(atom, "My_Type.method"), is(true));
-    assertThat("Method is invocable", interop.isMemberInvocable(atom, "My_Type.method"), is(true));
+    assertThat("Method is readable", interop.isMemberReadable(atom, "method"), is(true));
+    assertThat("Method is invocable", interop.isMemberInvocable(atom, "method"), is(true));
     assertThat("Field is readable", interop.isMemberReadable(atom, "a"), is(true));
   }
 
@@ -166,7 +164,7 @@ public class AtomInteropTest {
   }
 
   @Test
-  public void fieldIsNotInvocable() {
+  public void fieldIsInvocable() {
     var myTypeAtom =
         ContextUtils.evalModule(
             ctx,
@@ -174,11 +172,40 @@ public class AtomInteropTest {
         type My_Type
             Cons a b
 
-        main = My_Type.Cons "a" "b"
+        main = My_Type.Cons 1 2
         """);
-    var atom = ContextUtils.unwrapValue(ctx, myTypeAtom);
-    var interop = InteropLibrary.getUncached();
-    assertThat("Field is not invocable", interop.isMemberInvocable(atom, "a"), is(false));
+    ContextUtils.executeInContext(
+        ctx,
+        () -> {
+          var atom = ContextUtils.unwrapValue(ctx, myTypeAtom);
+          var interop = InteropLibrary.getUncached();
+          assertThat("Field a is invocable", interop.isMemberInvocable(atom, "a"), is(true));
+          var aField = interop.invokeMember(atom, "a");
+          assertThat("Field is a number", interop.asInt(aField), is(1));
+          assertThat("Field b is invocable", interop.isMemberInvocable(atom, "b"), is(true));
+          return null;
+        });
+  }
+
+  @Test
+  public void fieldIsReadable() {
+    var myTypeAtom =
+        ContextUtils.evalModule(
+            ctx,
+            """
+        type My_Type
+            Cons a
+
+        main = My_Type.Cons 1
+        """);
+    ContextUtils.executeInContext(
+        ctx,
+        () -> {
+          var atom = ContextUtils.unwrapValue(ctx, myTypeAtom);
+          var interop = InteropLibrary.getUncached();
+          assertThat("Field a is readable", interop.isMemberReadable(atom, "a"), is(true));
+          return null;
+        });
   }
 
   @Test
