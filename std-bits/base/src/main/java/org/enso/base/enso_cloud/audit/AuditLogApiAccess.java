@@ -95,6 +95,7 @@ class AuditLogApiAccess {
         // The request config may only change in test scenarios which just must take this into
         // account.
         var requestConfig = pendingMessages.get(0).requestConfig();
+        System.out.println("Batch of " + pendingMessages.size() + " log messages to send: " + pendingMessages.stream().map(m -> m.requestConfig.apiUri).toList());
         var request = buildRequest(requestConfig, pendingMessages);
         System.out.println("Sending request with " + pendingMessages.size() + " log messages to " + request.uri());
         sendLogRequest(request, MAX_RETRIES);
