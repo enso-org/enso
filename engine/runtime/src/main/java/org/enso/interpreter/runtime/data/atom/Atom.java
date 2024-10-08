@@ -164,13 +164,20 @@ public abstract class Atom implements EnsoObject {
 
   /** Get all instance methods for this atom's type. */
   private Set<Function> getInstanceMethods() {
-    var allMethods = constructor.getDefinitionScope().getMethodsForType(constructor.getType());
-    if (allMethods != null) {
-      return allMethods.stream()
-          .filter(method -> !isFieldGetter(method))
-          .collect(Collectors.toUnmodifiableSet());
+    var methodsFromCtorScope =
+        constructor.getDefinitionScope().getMethodsForType(constructor.getType());
+    var methodsFromTypeScope =
+        constructor.getType().getDefinitionScope().getMethodsForType(constructor.getType());
+    var allMethods = new HashSet<Function>();
+    if (methodsFromCtorScope != null) {
+      allMethods.addAll(methodsFromCtorScope);
     }
-    return Set.of();
+    if (methodsFromTypeScope != null) {
+      allMethods.addAll(methodsFromTypeScope);
+    }
+    return allMethods.stream()
+        .filter(method -> !isFieldGetter(method))
+        .collect(Collectors.toUnmodifiableSet());
   }
 
   /** Get field getters for this atom's constructor. */
