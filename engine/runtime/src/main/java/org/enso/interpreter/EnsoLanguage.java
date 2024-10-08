@@ -88,29 +88,12 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
   private static final LanguageReference<EnsoLanguage> REFERENCE =
       LanguageReference.create(EnsoLanguage.class);
 
-  private final ContextThreadLocal<ExecutionEnvironmentReference> threadExecutionEnvironment =
+  private final ContextThreadLocal<ExecutionEnvironment[]> threadExecutionEnvironment =
       locals.createContextThreadLocal(
-          (ctx, thread) -> new ExecutionEnvironmentReference(ctx.getGlobalExecutionEnvironment()));
+          (ctx, thread) -> new ExecutionEnvironment[] { ctx.getGlobalExecutionEnvironment() });
 
   public static EnsoLanguage get(Node node) {
     return REFERENCE.get(node);
-  }
-
-  private static final class ExecutionEnvironmentReference {
-
-    private ExecutionEnvironment executionEnvironment;
-
-    ExecutionEnvironmentReference(ExecutionEnvironment executionEnvironment) {
-      this.executionEnvironment = executionEnvironment;
-    }
-
-    ExecutionEnvironment getExecutionEnvironment() {
-      return executionEnvironment;
-    }
-
-    void setExecutionEnvironment(ExecutionEnvironment executionEnvironment) {
-      this.executionEnvironment = executionEnvironment;
-    }
   }
 
   /**
@@ -395,10 +378,10 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
   }
 
   public ExecutionEnvironment getThreadExecutionEnvironment() {
-    return threadExecutionEnvironment.get().getExecutionEnvironment();
+    return threadExecutionEnvironment.get()[0];
   }
 
   public void setExecutionEnvironment(ExecutionEnvironment executionEnvironment) {
-    threadExecutionEnvironment.get().setExecutionEnvironment(executionEnvironment);
+    threadExecutionEnvironment.get()[0] = executionEnvironment;
   }
 }

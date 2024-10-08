@@ -108,7 +108,7 @@ public final class EnsoContext {
   private final AtomicLong clock = new AtomicLong();
 
   private final Shape rootStateShape = Shape.newBuilder().layout(State.Container.class).build();
-  private ExecutionEnvironment contextExecutionEnvironment;
+  private ExecutionEnvironment globalExecutionEnvironment;
 
   private final int warningsLimit;
 
@@ -144,7 +144,7 @@ public final class EnsoContext {
         getOption(RuntimeOptions.DISABLE_IR_CACHES_KEY) || isParallelismEnabled;
     this.isPrivateCheckDisabled = getOption(RuntimeOptions.DISABLE_PRIVATE_CHECK_KEY);
     this.isStaticTypeAnalysisEnabled = getOption(RuntimeOptions.ENABLE_STATIC_ANALYSIS_KEY);
-    this.contextExecutionEnvironment = getOption(EnsoLanguage.EXECUTION_ENVIRONMENT);
+    this.globalExecutionEnvironment = getOption(EnsoLanguage.EXECUTION_ENVIRONMENT);
     this.assertionsEnabled = shouldAssertionsBeEnabled();
     this.shouldWaitForPendingSerializationJobs =
         getOption(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS_KEY);
@@ -870,7 +870,7 @@ public final class EnsoContext {
   }
 
   public ExecutionEnvironment getGlobalExecutionEnvironment() {
-    return contextExecutionEnvironment;
+    return globalExecutionEnvironment;
   }
 
   public ExecutionEnvironment getExecutionEnvironment() {
@@ -879,7 +879,7 @@ public final class EnsoContext {
 
   /** Set the runtime execution environment of this context. */
   public void setExecutionEnvironment(ExecutionEnvironment executionEnvironment) {
-    this.contextExecutionEnvironment = executionEnvironment;
+    this.globalExecutionEnvironment = executionEnvironment;
     language.setExecutionEnvironment(executionEnvironment);
   }
 
@@ -891,7 +891,7 @@ public final class EnsoContext {
    * @return the execution environment version before modification
    */
   public ExecutionEnvironment enableExecutionEnvironment(Atom context, String environmentName) {
-    ExecutionEnvironment original = contextExecutionEnvironment;
+    ExecutionEnvironment original = globalExecutionEnvironment;
     if (original.getName().equals(environmentName)) {
       setExecutionEnvironment(original.withContextEnabled(context));
     }
@@ -906,7 +906,7 @@ public final class EnsoContext {
    * @return the execution environment version before modification
    */
   public ExecutionEnvironment disableExecutionEnvironment(Atom context, String environmentName) {
-    ExecutionEnvironment original = contextExecutionEnvironment;
+    ExecutionEnvironment original = globalExecutionEnvironment;
     if (original.getName().equals(environmentName)) {
       setExecutionEnvironment(original.withContextDisabled(context));
     }
