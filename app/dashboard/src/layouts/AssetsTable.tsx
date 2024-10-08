@@ -64,7 +64,11 @@ import useOnScroll from '#/hooks/useOnScroll'
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 import AssetsTableContextMenu from '#/layouts/AssetsTableContextMenu'
-import { isLocalCategory, type Category } from '#/layouts/CategorySwitcher/Category'
+import {
+  CATEGORY_TO_FILTER_BY,
+  isLocalCategory,
+  type Category,
+} from '#/layouts/CategorySwitcher/Category'
 import DragModal from '#/modals/DragModal'
 import DuplicateAssetsModal from '#/modals/DuplicateAssetsModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
@@ -111,7 +115,6 @@ import {
   extractProjectExtension,
   fileIsNotProject,
   fileIsProject,
-  FilterBy,
   getAssetPermissionName,
   Path,
   Plan,
@@ -274,21 +277,6 @@ interface DragSelectionInfo {
   readonly initialIndex: number
   readonly start: number
   readonly end: number
-}
-
-// =============================
-// === Category to filter by ===
-// =============================
-
-const CATEGORY_TO_FILTER_BY: Readonly<Record<Category['type'], FilterBy | null>> = {
-  cloud: FilterBy.active,
-  local: FilterBy.active,
-  recent: null,
-  trash: FilterBy.trashed,
-  user: FilterBy.active,
-  team: FilterBy.active,
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  'local-directory': FilterBy.active,
 }
 
 // ===================

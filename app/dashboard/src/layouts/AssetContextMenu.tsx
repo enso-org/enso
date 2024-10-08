@@ -399,6 +399,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                     setModal(
                       <ManagePermissionsModal
                         backend={backend}
+                        category={category}
                         item={asset}
                         self={self}
                         eventTarget={eventTarget}

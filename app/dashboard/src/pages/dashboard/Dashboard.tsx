@@ -260,6 +260,7 @@ function DashboardInner(props: DashboardProps) {
         setModal(
           <ManagePermissionsModal
             backend={backend}
+            category={category}
             item={asset}
             self={self}
             doRemoveSelf={() => {

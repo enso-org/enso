@@ -71,7 +71,12 @@ export default function AssetProperties(props: AssetPropertiesProps) {
   const { isReadonly = false } = props
   const styles = ASSET_PROPERTIES_VARIANTS({})
 
-  const asset = useAssetPassiveListenerStrict(backend.type, item.item.id, item.item.parentId)
+  const asset = useAssetPassiveListenerStrict(
+    backend.type,
+    item.item.id,
+    item.item.parentId,
+    category,
+  )
   const setAssetPanelProps = useSetAssetPanelProps()
   const closeSpotlight = useEventCallback(() => {
     const assetPanelProps = driveStore.getState().assetPanelProps

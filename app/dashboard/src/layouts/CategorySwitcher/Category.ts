@@ -1,7 +1,7 @@
 /** @file The categories available in the category switcher. */
 import * as z from 'zod'
 
-import type { DirectoryId, Path, UserGroupInfo } from '#/services/Backend'
+import { FilterBy, type DirectoryId, type Path, type UserGroupInfo } from '#/services/Backend'
 
 // ================
 // === Category ===
@@ -86,6 +86,17 @@ export type AnyLocalCategory = z.infer<typeof ANY_LOCAL_CATEGORY_SCHEMA>
 export const CATEGORY_SCHEMA = z.union([ANY_CLOUD_CATEGORY_SCHEMA, ANY_LOCAL_CATEGORY_SCHEMA])
 /** A category of an arbitrary type. */
 export type Category = z.infer<typeof CATEGORY_SCHEMA>
+
+export const CATEGORY_TO_FILTER_BY: Readonly<Record<Category['type'], FilterBy | null>> = {
+  cloud: FilterBy.active,
+  local: FilterBy.active,
+  recent: null,
+  trash: FilterBy.trashed,
+  user: FilterBy.active,
+  team: FilterBy.active,
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  'local-directory': FilterBy.active,
+}
 
 // =======================
 // === isCloudCategory ===

@@ -16,6 +16,7 @@ import FocusArea from '#/components/styled/FocusArea'
 import { backendMutationOptions, useAssetPassiveListenerStrict } from '#/hooks/backendHooks'
 import { usePaywall } from '#/hooks/billing'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
+import type { Category } from '#/layouts/CategorySwitcher/Category'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useRemoteBackendStrict } from '#/providers/BackendProvider'
 import { useSetModal } from '#/providers/ModalProvider'
@@ -51,6 +52,7 @@ const TYPE_SELECTOR_Y_OFFSET_PX = 32
 /** Props for a {@link ManagePermissionsModal}. */
 export interface ManagePermissionsModalProps<Asset extends AnyAsset = AnyAsset> {
   readonly backend: Backend
+  readonly category: Category
   readonly item: Pick<Asset, 'id' | 'parentId' | 'permissions' | 'type'>
   readonly self: AssetPermission
   /** Remove the current user's permissions from this asset. This MUST be a prop because it should
@@ -66,8 +68,8 @@ export interface ManagePermissionsModalProps<Asset extends AnyAsset = AnyAsset> 
 export default function ManagePermissionsModal<Asset extends AnyAsset = AnyAsset>(
   props: ManagePermissionsModalProps<Asset>,
 ) {
-  const { backend, item: itemRaw, self, doRemoveSelf, eventTarget } = props
-  const item = useAssetPassiveListenerStrict(backend.type, itemRaw.id, itemRaw.parentId)
+  const { backend, category, item: itemRaw, self, doRemoveSelf, eventTarget } = props
+  const item = useAssetPassiveListenerStrict(backend.type, itemRaw.id, itemRaw.parentId, category)
   const remoteBackend = useRemoteBackendStrict()
   const { user } = useFullUserSession()
   const { unsetModal } = useSetModal()

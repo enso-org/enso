@@ -17,6 +17,7 @@ import {
 } from 'enso-common/src/backendQuery'
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { CATEGORY_TO_FILTER_BY, type Category } from '#/layouts/CategorySwitcher/Category'
 import type Backend from '#/services/Backend'
 import {
   BackendType,
@@ -269,20 +270,29 @@ export function useAssetPassiveListener(
   backendType: BackendType,
   assetId: AssetId | null | undefined,
   parentId: DirectoryId | null | undefined,
+  category: Category,
 ) {
-  const queryClient = useQueryClient()
-  const listDirectoryQuery = queryClient.getQueryCache().find<
+  const listDirectoryQuery = useQuery<
     | {
         parentId: DirectoryId
         children: readonly AnyAsset<AssetType>[]
       }
     | undefined
   >({
-    queryKey: [backendType, 'listDirectory', parentId],
-    exact: false,
+    queryKey: [
+      backendType,
+      'listDirectory',
+      parentId,
+      {
+        parentId,
+        labels: null,
+        filterBy: CATEGORY_TO_FILTER_BY[category.type],
+        recentProjects: category.type === 'recent',
+      },
+    ],
+    initialData: undefined,
   })
-
-  return listDirectoryQuery?.state.data?.children.find((child) => child.id === assetId)
+  return listDirectoryQuery.data?.children.find((child) => child.id === assetId)
 }
 
 /** Data for a specific asset. */
@@ -290,20 +300,9 @@ export function useAssetPassiveListenerStrict(
   backendType: BackendType,
   assetId: AssetId | null | undefined,
   parentId: DirectoryId | null | undefined,
+  category: Category,
 ) {
-  const queryClient = useQueryClient()
-  const listDirectoryQuery = queryClient.getQueryCache().find<
-    | {
-        parentId: DirectoryId
-        children: readonly AnyAsset<AssetType>[]
-      }
-    | undefined
-  >({
-    queryKey: [backendType, 'listDirectory', parentId],
-    exact: false,
-  })
-
-  const asset = listDirectoryQuery?.state.data?.children.find((child) => child.id === assetId)
+  const asset = useAssetPassiveListener(backendType, assetId, parentId, category)
   invariant(asset, 'Asset not found')
   return asset
 }
