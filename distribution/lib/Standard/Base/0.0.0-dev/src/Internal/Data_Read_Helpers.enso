@@ -8,8 +8,6 @@ import project.Enso_Cloud.Data_Link_Helpers
 import project.Error.Error
 import project.Errors.Deprecated.Deprecated
 import project.Errors.Problem_Behavior.Problem_Behavior
-import project.IO
-import project.Math
 import project.Metadata.Display
 import project.Metadata.Widget
 import project.Network.HTTP.HTTP
@@ -39,14 +37,10 @@ fetch_following_data_links (uri:URI) (method:HTTP_Method = HTTP_Method.Get) (hea
 
     error_handler attempt =
         caught_error ->
-            case method of
-                HTTP_Method.Get ->
-                    if attempt > 2 then Error.throw caught_error else
-                        sleep_time = Math.min (100 * (2 ^ (attempt - 1))) 5000
-                        Thread.sleep sleep_time
-                        fetch_and_decode . catch HTTP_Error (error_handler (attempt + 1))
-                _ ->
-                    Error.throw caught_error.payload
+            if method != HTTP_Method.Get || attempt > 2 then Error.throw caught_error else
+                sleep_time = [100, 200, 400] . get attempt
+                Thread.sleep sleep_time
+                fetch_and_decode . catch HTTP_Error (error_handler (attempt + 1))
 
     fetch_and_decode . catch HTTP_Error (error_handler 0)
 
