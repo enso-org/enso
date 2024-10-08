@@ -151,7 +151,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   @Override
   @CompilerDirectives.TruffleBoundary
   public Object getExecutionEnvironment(IdExecutionService.Info info) {
-    return expressionExecutionState.getExpressionExecutionEnvironment(info.getId());
+    return expressionExecutionState.getExecutionEnvironment(info.getId());
   }
 
   @CompilerDirectives.TruffleBoundary

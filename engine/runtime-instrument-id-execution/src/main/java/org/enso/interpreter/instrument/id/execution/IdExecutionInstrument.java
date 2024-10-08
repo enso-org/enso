@@ -150,11 +150,6 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
       }
 
       @Override
-      public EnsoRootNode getRootNode() {
-        return ensoRootNode;
-      }
-
-      @Override
       public boolean isPanic() {
         return result instanceof AbstractTruffleException && !(result instanceof DataflowError);
       }
@@ -336,7 +331,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
         ExecutionEnvironment nodeEnvironment =
             (ExecutionEnvironment) callbacks.getExecutionEnvironment(info);
         if (nodeEnvironment != null && originalExecutionEnvironment == null) {
-          EnsoContext context = EnsoContext.get(info.getRootNode());
+          EnsoContext context = EnsoContext.get(this);
           originalExecutionEnvironment = context.getExecutionEnvironment();
           context.setExecutionEnvironment(nodeEnvironment);
         }
@@ -344,7 +339,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
 
       private void resetExecutionEnvironment(IdExecutionService.Info info) {
         if (originalExecutionEnvironment != null) {
-          EnsoContext.get(info.getRootNode()).setExecutionEnvironment(originalExecutionEnvironment);
+          EnsoContext.get(this).setExecutionEnvironment(originalExecutionEnvironment);
           originalExecutionEnvironment = null;
         }
       }
