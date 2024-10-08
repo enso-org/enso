@@ -25,7 +25,8 @@ interface SubmitButtonBaseProps {
   // We do not need to know the form fields.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly form?: FormInstance<any>
-  readonly cancel?: boolean
+  /** Defaults to `submit`. */
+  readonly action?: 'cancel' | 'submit'
 }
 
 /**
@@ -44,11 +45,11 @@ export function Submit(props: SubmitProps): JSX.Element {
 
   const {
     size = 'medium',
-    cancel = false,
+    action = 'submit',
     loading = false,
-    children = cancel ? getText('cancel') : getText('submit'),
-    variant = cancel ? 'outline' : 'submit',
-    testId = cancel ? 'form-cancel-button' : 'form-submit-button',
+    children = action === 'cancel' ? getText('cancel') : getText('submit'),
+    variant = action === 'cancel' ? 'outline' : 'submit',
+    testId = action === 'cancel' ? 'form-cancel-button' : 'form-submit-button',
     ...buttonProps
   } = props
 
@@ -56,8 +57,8 @@ export function Submit(props: SubmitProps): JSX.Element {
   const form = useFormContext(props.form)
   const { formState } = form
 
-  const isLoading = cancel ? false : loading || formState.isSubmitting
-  const type = cancel || isLoading ? 'button' : 'submit'
+  const isLoading = action === 'cancel' ? false : loading || formState.isSubmitting
+  const type = action === 'cancel' || isLoading ? 'button' : 'submit'
 
   return (
     <Button
@@ -70,7 +71,7 @@ export function Submit(props: SubmitProps): JSX.Element {
       loading={isLoading}
       testId={testId}
       onPress={() => {
-        if (cancel) {
+        if (action === 'cancel') {
           dialogContext?.close()
         }
       }}

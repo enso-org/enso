@@ -11,6 +11,7 @@ import { useText } from '#/providers/TextProvider'
 import { constantValueOfSchema, getSchemaName, lookupDef } from '#/utilities/jsonSchema'
 import { asObject, singletonObjectOrNull } from '#/utilities/object'
 import { twMerge } from '#/utilities/tailwindMerge'
+import { twJoin } from 'tailwind-merge'
 
 // =======================
 // === JSONSchemaInput ===
@@ -24,6 +25,7 @@ export interface JSONSchemaInputProps {
   readonly schema: object
   readonly path: string
   readonly getValidator: (path: string) => (value: unknown) => boolean
+  readonly noBorder?: boolean
   readonly isAbsent?: boolean
   readonly value: NonNullable<unknown> | null
   readonly onChange: (value: NonNullable<unknown> | null) => void
@@ -32,7 +34,7 @@ export interface JSONSchemaInputProps {
 /** A dynamic wizard for creating an arbitrary type of Datalink. */
 export default function JSONSchemaInput(props: JSONSchemaInputProps) {
   const { dropdownTitle, readOnly = false, defs, schema, path, getValidator } = props
-  const { isAbsent = false, value, onChange } = props
+  const { noBorder = false, isAbsent = false, value, onChange } = props
   // The functionality for inputting `enso-secret`s SHOULD be injected using a plugin,
   // but it is more convenient to avoid having plugin infrastructure.
   const remoteBackend = useRemoteBackendStrict()
@@ -41,6 +43,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
     typeof value === 'string' ? value : null,
   )
   const [selectedChildIndex, setSelectedChildIndex] = useState<number>(0)
+  const noChildBorder = dropdownTitle != null
   const isSecret =
     'type' in schema &&
     schema.type === 'string' &&
@@ -89,7 +92,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                   value={typeof value === 'string' ? value : ''}
                   size={1}
                   className={twMerge(
-                    'focus-child text w-full grow rounded-input border-0.5 bg-transparent px-input-x read-only:read-only',
+                    'focus-child h-6 w-full grow rounded-input border-0.5 bg-transparent px-2 read-only:read-only',
                     validityClassName,
                   )}
                   placeholder={getText('enterText')}
@@ -112,7 +115,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                 value={typeof value === 'number' ? value : ''}
                 size={1}
                 className={twMerge(
-                  'focus-child text w-full grow rounded-input border-0.5 bg-transparent px-input-x read-only:read-only',
+                  'focus-child h-6 w-full grow rounded-input border-0.5 bg-transparent px-2 read-only:read-only',
                   validityClassName,
                 )}
                 placeholder={getText('enterNumber')}
@@ -136,7 +139,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                 value={typeof value === 'number' ? value : ''}
                 size={1}
                 className={twMerge(
-                  'focus-child min-6- text40 w-full grow rounded-input border-0.5 bg-transparent px-input-x read-only:read-only',
+                  'focus-child h-6 w-full grow rounded-input border-0.5 bg-transparent px-2 read-only:read-only',
                   validityClassName,
                 )}
                 placeholder={getText('enterInteger')}
@@ -175,7 +178,12 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
           )
           if (constantValueOfSchema(defs, schema).length !== 1) {
             children.push(
-              <div className="gap-2 rounded-default border-0.5 border-primary/20 p-2">
+              <div
+                className={twJoin(
+                  'rounded-default',
+                  !noBorder && 'border-0.5 border-primary/20 p-2',
+                )}
+              >
                 {propertyDefinitions.map((definition) => {
                   const { key, schema: childSchema } = definition
                   const isOptional = !requiredProperties.includes(key)
@@ -223,6 +231,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                             path={`${path}/properties/${key}`}
                             getValidator={getValidator}
                             isAbsent={!isPresent}
+                            noBorder={noChildBorder}
                             // This is SAFE, as `value` is an untyped object.
                             // eslint-disable-next-line no-restricted-syntax
                             value={((value ?? {}) as Record<string, unknown>)[key] ?? null}
@@ -274,6 +283,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
             key={schema.$ref}
             schema={referencedSchema}
             path={schema.$ref}
+            noBorder={noBorder}
           />,
         )
       }
@@ -314,14 +324,18 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
       )
       children.push(
         <div
-          className={twMerge('flex flex-col gap-json-schema', childValue.length === 0 && 'w-full')}
+          className={twMerge(
+            'flex flex-col',
+            dropdownTitle == null && 'gap-1',
+            childValue.length === 0 && 'w-full',
+          )}
         >
-          {dropdownTitle != null ?
-            <div className="flex h-row items-center">
-              <div className="h-text w-json-schema-dropdown-title">{dropdownTitle}</div>
-              {dropdown}
-            </div>
-          : dropdown}
+          {dropdownTitle != null && (
+            <Text variant="body-sm" className="px-2">
+              {dropdownTitle}
+            </Text>
+          )}
+          {dropdown}
           {selectedChildSchema != null && (
             <JSONSchemaInput
               key={selectedChildIndex}
@@ -330,6 +344,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
               schema={selectedChildSchema}
               path={selectedChildPath}
               getValidator={getValidator}
+              noBorder={noChildBorder}
               value={value}
               onChange={onChange}
             />
@@ -347,6 +362,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
           schema={childSchema}
           path={`${path}/allOf/${i}`}
           getValidator={getValidator}
+          noBorder={noChildBorder}
           value={value}
           onChange={onChange}
         />
@@ -356,7 +372,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
     return (
       children.length === 0 ? null
       : children.length === 1 && children[0] != null ? children[0]
-      : <div className="flex flex-col gap-json-schema">{...children}</div>
+      : <div className="flex flex-col gap-1">{...children}</div>
     )
   }
 }

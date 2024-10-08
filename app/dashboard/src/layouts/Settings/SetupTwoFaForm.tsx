@@ -114,7 +114,7 @@ export function SetupTwoFaForm() {
 
                 <ButtonGroup>
                   <Form.Submit variant="delete">{getText('disable')}</Form.Submit>
-                  <Form.Submit cancel />
+                  <Form.Submit action="cancel" />
                 </ButtonGroup>
 
                 <Form.FormError />
