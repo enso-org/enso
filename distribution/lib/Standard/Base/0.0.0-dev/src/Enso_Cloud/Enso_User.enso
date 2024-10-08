@@ -66,7 +66,7 @@ type Enso_User
             self.organization_name + '/' + self.name
 
     ## PRIVATE
-       Convert to a display representation of this S3_File.
+       Convert to a display representation of this user.
     to_display_text : Text
     to_display_text self = "Enso_User {" + self.to_text + "}"
 
