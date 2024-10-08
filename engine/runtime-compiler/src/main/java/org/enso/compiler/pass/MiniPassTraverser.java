@@ -1,5 +1,6 @@
 package org.enso.compiler.pass;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import org.enso.compiler.context.ModuleContext;
 import org.enso.compiler.core.CompilerError;
@@ -39,26 +40,44 @@ public final class MiniPassTraverser {
     var preparedMiniPass = miniPass.prepare(ir);
     logPrepare(ir, miniPass, preparedMiniPass);
     IR newIr;
-    if (ir.children().isEmpty()) {
+    var childExpressions = new ArrayList<Expression>();
+    ir.mapExpressions(
+        (ch) -> {
+          childExpressions.add(ch);
+          return ch;
+        });
+    if (childExpressions.isEmpty()) {
       newIr = ir;
     } else {
-      var transformedChildren =
-          ir.children()
-              .map(
-                  child -> {
-                    var newChild = compileRecursively(child, preparedMiniPass);
-                    if (newChild == null) {
-                      throw new IllegalStateException("Mini pass returned null");
-                    }
-                    if (!preparedMiniPass.checkPostCondition(newChild)) {
-                      throw new CompilerError(
-                          "Post condition failed after applying mini pass " + preparedMiniPass);
-                    }
-                    return newChild;
-                  });
-      newIr = ir.withNewChildren(transformedChildren);
+      var changed = false;
+      for (var i = 0; i < childExpressions.size(); i++) {
+        var child = childExpressions.get(i);
+        var newChild = compileRecursively(child, preparedMiniPass);
+        if (child == newChild) {
+          continue;
+        }
+        changed = true;
+        if (!(newChild instanceof Expression)) {
+          throw new IllegalStateException("Mini pass must return Expression");
+        }
+        if (!preparedMiniPass.checkPostCondition(newChild)) {
+          throw new CompilerError(
+              "Post condition failed after applying mini pass " + preparedMiniPass);
+        }
+        childExpressions.set(i, (Expression) newChild);
+      }
+      if (changed) {
+        var index = new int[1];
+        newIr =
+            ir.mapExpressions(
+                (old) -> {
+                  return childExpressions.get(index[0]++);
+                });
+      } else {
+        newIr = ir;
+      }
     }
-    var transformedIr = preparedMiniPass.transformIr(newIr);
+    var transformedIr = preparedMiniPass.transformIr((Expression) newIr);
     logTransform(newIr, preparedMiniPass, transformedIr);
     if (!preparedMiniPass.checkPostCondition(transformedIr)) {
       throw new CompilerError("Post condition failed after applying mini pass " + preparedMiniPass);

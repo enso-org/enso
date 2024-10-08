@@ -155,23 +155,6 @@ object Name {
     override def children: List[IR] =
       typePointer.map(_ :: methodName :: Nil).getOrElse(methodName :: Nil)
 
-    override def withNewChildren(newChildren: List[IR]): IR = {
-      if (newChildren.length == 1) {
-        copy(
-          methodName = newChildren.head.asInstanceOf[Name]
-        )
-      } else if (newChildren.length == 2) {
-        copy(
-          typePointer = newChildren.headOption.map(_.asInstanceOf[Name]),
-          methodName  = newChildren(1).asInstanceOf[Name]
-        )
-      } else {
-        throw new IllegalArgumentException(
-          "MethodReference nodes can only have 1 or 2 children"
-        )
-      }
-    }
-
     /** @inheritdoc */
     override def showCode(indent: Int): String = {
       val tPointer = typePointer.map(_.showCode(indent) + ".").getOrElse("")
@@ -299,15 +282,6 @@ object Name {
 
     /** @inheritdoc */
     override def children: List[IR] = parts
-
-    override def withNewChildren(newChildren: List[IR]): IR = {
-      if (newChildren.length != parts.length) {
-        throw new IllegalArgumentException(
-          "Cannot replace children with a different number of children"
-        )
-      }
-      copy(parts = newChildren.map(_.asInstanceOf[Name]))
-    }
 
     /** @inheritdoc */
     override def showCode(indent: Int): String = name

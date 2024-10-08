@@ -216,36 +216,6 @@ object DefinitionArgument {
     override def children: List[IR] =
       name :: ascribedType.toList ++ defaultValue.toList
 
-    override def withNewChildren(newChildren: List[IR]): IR = {
-      if (newChildren.size == 1) {
-        val newName = newChildren(0).asInstanceOf[Name]
-        return copy(name = newName)
-      }
-      if (newChildren.size == 2) {
-        if (ascribedType.isDefined) {
-          return copy(
-            name         = newChildren(0).asInstanceOf[Name],
-            ascribedType = Some(newChildren(1).asInstanceOf[Expression])
-          )
-        } else if (defaultValue.isDefined) {
-          return copy(
-            name         = newChildren(0).asInstanceOf[Name],
-            defaultValue = Some(newChildren(1).asInstanceOf[Expression])
-          )
-        }
-      }
-      if (newChildren.size == 3) {
-        return copy(
-          name         = newChildren(0).asInstanceOf[Name],
-          ascribedType = Some(newChildren(1).asInstanceOf[Expression]),
-          defaultValue = Some(newChildren(2).asInstanceOf[Expression])
-        )
-      }
-      throw new IllegalArgumentException(
-        "Invalid number of children for DefinitionArgument.Specified"
-      )
-    }
-
     /** @inheritdoc */
     override def showCode(indent: Int): String = {
       val withoutLazy =

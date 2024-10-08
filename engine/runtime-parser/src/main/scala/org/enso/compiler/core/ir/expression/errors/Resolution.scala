@@ -106,15 +106,6 @@ sealed case class Resolution(
   /** @inheritdoc */
   override def children: List[IR] = List(originalName)
 
-  override def withNewChildren(newChildren: List[IR]): IR = {
-    if (newChildren.size != 1) {
-      throw new IllegalArgumentException(
-        "Resolution nodes can only have a single child"
-      )
-    }
-    copy(originalName = newChildren.head.asInstanceOf[Name])
-  }
-
   /** @inheritdoc */
   override def showCode(indent: Int): String = originalName.showCode(indent)
 

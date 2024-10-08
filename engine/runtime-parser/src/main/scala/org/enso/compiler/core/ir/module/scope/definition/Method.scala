@@ -194,21 +194,6 @@ object Method {
     /** @inheritdoc */
     override def children: List[IR] = List(methodReference, body)
 
-    override def withNewChildren(newChildren: List[IR]): IR = {
-      newChildren match {
-        case newMethodReference :: newBody :: Nil =>
-          copy(
-            methodReference =
-              newMethodReference.asInstanceOf[Name.MethodReference],
-            body = newBody.asInstanceOf[Expression]
-          )
-        case _ =>
-          throw new IllegalArgumentException(
-            "Method.Explicit expects exactly two children"
-          )
-      }
-    }
-
     /** @inheritdoc */
     override def showCode(indent: Int): String = {
       val exprStr = if (body.isInstanceOf[Expression.Block]) {
@@ -589,21 +574,6 @@ object Method {
     /** @inheritdoc */
     override def children: List[IR] =
       List(methodReference, sourceTypeName, body)
-
-    override def withNewChildren(newChildren: List[IR]): IR = {
-      newChildren match {
-        case (newMethodReference: Name.MethodReference) :: (newSourceTypeName: Expression) :: (newBody: Expression) :: Nil =>
-          copy(
-            methodReference = newMethodReference,
-            sourceTypeName  = newSourceTypeName,
-            body            = newBody
-          )
-        case _ =>
-          throw new IllegalArgumentException(
-            "Method.Conversion expects exactly three children"
-          )
-      }
-    }
 
     /** @inheritdoc */
     override def showCode(indent: Int): String = {

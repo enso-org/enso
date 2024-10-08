@@ -145,19 +145,6 @@ object Operator {
     override def children: List[IR] = List(left, operator, right)
 
     /** @inheritdoc */
-    override def withNewChildren(newChildren: List[IR]): IR = {
-      newChildren match {
-        case List(newLeft, newOperator, newRight) =>
-          copy(
-            left     = newLeft.asInstanceOf[CallArgument],
-            operator = newOperator.asInstanceOf[Name],
-            right    = newRight.asInstanceOf[CallArgument]
-          )
-        case _ => throw new IllegalArgumentException("Expected 3 children")
-      }
-    }
-
-    /** @inheritdoc */
     override def showCode(indent: Int): String = {
       val opStr = operator.showCode(indent)
 

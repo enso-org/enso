@@ -150,20 +150,6 @@ object Definition {
     /** @inheritdoc */
     override def children: List[IR] = name :: (params :++ members)
 
-    override def withNewChildren(newChildren: List[IR]): IR = {
-      val newName = newChildren.head.asInstanceOf[Name]
-      val newParams = newChildren
-        .slice(1, params.length + 1)
-        .map(_.asInstanceOf[DefinitionArgument])
-      val newMembers =
-        newChildren.drop(params.length + 1).map(_.asInstanceOf[Data])
-      copy(
-        name    = newName,
-        params  = newParams,
-        members = newMembers
-      )
-    }
-
     /** @inheritdoc */
     override def showCode(indent: Int): String = {
       val fields = members.map(_.showCode(indent)).mkString(" | ")

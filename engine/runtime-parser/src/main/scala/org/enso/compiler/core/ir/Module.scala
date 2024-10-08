@@ -148,7 +148,7 @@ final case class Module(
   /** @inheritdoc */
   override def children: List[IR] = imports ++ exports ++ bindings
 
-  override def withNewChildren(newChildren: List[IR]): IR = {
+  final def withNewChildren(newChildren: List[IR]): IR = {
     val newImports = newChildren.take(imports.size).map(_.asInstanceOf[Import])
     val newExports = newChildren
       .slice(imports.size, imports.size + exports.size)
