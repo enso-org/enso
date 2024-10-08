@@ -4,7 +4,6 @@ import { useMemo } from 'react'
 import {
   queryOptions,
   useQuery,
-  useQueryClient,
   type UseMutationOptions,
   type UseQueryOptions,
   type UseQueryResult,
@@ -16,7 +15,6 @@ import {
   type BackendMethods,
 } from 'enso-common/src/backendQuery'
 
-import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { CATEGORY_TO_FILTER_BY, type Category } from '#/layouts/CategorySwitcher/Category'
 import type Backend from '#/services/Backend'
 import {
@@ -305,30 +303,4 @@ export function useAssetPassiveListenerStrict(
   const asset = useAssetPassiveListener(backendType, assetId, parentId, category)
   invariant(asset, 'Asset not found')
   return asset
-}
-
-/** Return a hook to set data for a specific asset. */
-export function useSetAsset(backendType: BackendType) {
-  const queryClient = useQueryClient()
-  return useEventCallback((assetId: AssetId, asset: AnyAsset) => {
-    const listDirectoryQuery = queryClient.getQueryCache().find<
-      | {
-          parentId: DirectoryId
-          children: readonly AnyAsset<AssetType>[]
-        }
-      | undefined
-    >({
-      queryKey: [backendType, 'listDirectory', asset.parentId],
-      exact: false,
-    })
-
-    if (listDirectoryQuery?.state.data) {
-      listDirectoryQuery.setData({
-        ...listDirectoryQuery.state.data,
-        children: listDirectoryQuery.state.data.children.map((child) =>
-          child.id === assetId ? asset : child,
-        ),
-      })
-    }
-  })
 }
