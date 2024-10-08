@@ -332,7 +332,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
             <div className="grid place-items-center self-stretch">
               <StatelessSpinner size={48} state={statelessSpinner.SpinnerState.loadingMedium} />
             </div>
-          : <Form form={editDatalinkForm} className="flex w-full flex-col">
+          : <Form form={editDatalinkForm} className="w-full">
               <DatalinkFormInput
                 form={editDatalinkForm}
                 name="datalink"
