@@ -214,19 +214,11 @@ public abstract class Atom implements EnsoObject {
         && function.getCallTarget().getRootNode() instanceof GetFieldBaseNode;
   }
 
-  /** A member is invocable if it is a method on the Atom and it is public. */
+  /** A member is invocable if it is readable, i.e., if it is a field or a public method. */
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
   final boolean isMemberInvocable(String member) {
-    if (!isMemberReadable(member)) {
-      return false;
-    }
-    var publicMethodNames =
-        getInstanceMethods().stream()
-            .filter(method -> !method.getSchema().isProjectPrivate())
-            .map(Function::getName)
-            .collect(Collectors.toUnmodifiableSet());
-    return publicMethodNames.contains(member);
+    return isMemberReadable(member);
   }
 
   /** Readable members are fields of non-project-private constructors and public methods. */
