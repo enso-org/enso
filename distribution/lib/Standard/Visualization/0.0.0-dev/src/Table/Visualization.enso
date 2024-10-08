@@ -161,7 +161,7 @@ make_json_for_xml_element xml_element max_items type:Text="XML_Element" =
     map_vector = Warning.clear (attribs + children)
 
     data = ["data", [map_vector.map .first, map_vector.map .second, map_vector.map i-> i.at 2]]
-    get_child_node_fields = if type == "XML_Element" then [["get_child_node_action", "get"], ["get_child_node_link_name", "key"], ["link_value_type", "number"]] else []
+    get_child_node_fields = if type == "XML_Element" then [["get_child_node_action", "get"], ["get_child_node_link_name", "key"], ["link_value_type", "number"]] else [["get_child_node_action", "get_child_element"], ["get_child_node_link_name", "key"], ["link_value_type", "number"]]
     JS_Object.from_pairs <| [header, data, all_rows, ["type", type]] + get_child_node_fields
 
 ## PRIVATE
