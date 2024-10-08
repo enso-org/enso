@@ -152,7 +152,11 @@ public abstract class Atom implements EnsoObject {
     String[] publicMembers =
         allMembers.stream()
             .filter(method -> !method.getSchema().isProjectPrivate())
-            .map(Function::getName)
+            .map(
+                func -> {
+                  var funcNameItems = func.getName().split("\\.");
+                  return funcNameItems[funcNameItems.length - 1];
+                })
             .distinct()
             .toArray(String[]::new);
     return ArrayLikeHelpers.wrapStrings(publicMembers);
@@ -266,7 +270,11 @@ public abstract class Atom implements EnsoObject {
   private Function findMethod(String methodName) {
     var matchedMethod =
         getInstanceMethods().stream()
-            .filter(method -> method.getName().equals(methodName))
+            .filter(
+                method -> {
+                  var nameItems = method.getName().split("\\.");
+                  return nameItems[nameItems.length - 1].equals(methodName);
+                })
             .findFirst();
     return matchedMethod.orElse(null);
   }
