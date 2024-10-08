@@ -24,17 +24,20 @@ await readEnvironmentFromFile()
 
 const entrypoint = process.env.E2E === 'true' ? './src/e2e-entrypoint.ts' : './src/entrypoint.ts'
 
-console.log('public dir:', fileURLToPath(new URL('./public', import.meta.url)))
-
 // https://vitejs.dev/config/
 export default defineConfig({
-  root: fileURLToPath(new URL('.', import.meta.url)),
   cacheDir: fileURLToPath(new URL('../../node_modules/.cache/vite', import.meta.url)),
-  publicDir: fileURLToPath(new URL('./public', import.meta.url)),
-  envDir: fileURLToPath(new URL('.', import.meta.url)),
   plugins: [
     wasm(),
-    ...(process.env.NODE_ENV === 'development' ? [await VueDevTools()] : []),
+    ...(process.env.NODE_ENV === 'development' ?
+      [
+        await VueDevTools(),
+        react({
+          include: fileURLToPath(new URL('../dashboard/**/*.tsx', import.meta.url)),
+          babel: { plugins: ['@babel/plugin-syntax-import-attributes'] },
+        }),
+      ]
+    : []),
     vue({
       customElement: ['**/components/visualizations/**', '**/components/shared/**'],
       template: {
@@ -43,11 +46,7 @@ export default defineConfig({
         },
       },
     }),
-    react({
-      include: fileURLToPath(new URL('../dashboard/**/*.tsx', import.meta.url)),
-      babel: { plugins: ['@babel/plugin-syntax-import-attributes'] },
-    }),
-    ...[await projectManagerShim()],
+    await projectManagerShim(),
   ],
   optimizeDeps: {
     entries: fileURLToPath(new URL('./index.html', import.meta.url)),
