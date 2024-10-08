@@ -43,7 +43,7 @@ public class TransientHTTPResponseCache {
     removeStaleEntries();
 
     var cacheKey = makeHashKey(resolvedURI, resolvedHeaders);
-    System.out.println("AAA cache hit " + cache.containsKey(cacheKey));
+    System.out.println("AAA cache hit " + cacheKey + " " + cache.containsKey(cacheKey));
     if (cache.containsKey(cacheKey)) {
       return returnCachedResponse(cacheKey);
     } else {
@@ -168,11 +168,11 @@ public class TransientHTTPResponseCache {
     try {
       MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
       System.out.println("AAA uri " + resolvedURI.toString());
-      messageDigest.digest(resolvedURI.toString().getBytes());
+      messageDigest.update(resolvedURI.toString().getBytes());
       for (Pair<String, String> resolvedHeader : resolvedHeaders) {
         System.out.println("AAA header "+resolvedHeader.getLeft()+" "+resolvedHeader.getRight());
-        messageDigest.digest(resolvedHeader.getLeft().getBytes());
-        messageDigest.digest(resolvedHeader.getRight().getBytes());
+        messageDigest.update(resolvedHeader.getLeft().getBytes());
+        messageDigest.update(resolvedHeader.getRight().getBytes());
       }
       return toHexString(messageDigest.digest());
     } catch (NoSuchAlgorithmException ex) {

@@ -70,11 +70,10 @@ from project.System.File_Format import Auto_Detect, File_Format
 read : Text | URI | File -> File_Format -> Problem_Behavior -> Boolean | Nothing -> Any ! File_Error
 read path format=Auto_Detect (on_problems : Problem_Behavior = ..Report_Warning) (use_cache : Boolean | Nothing = Nothing) =
     if path.is_a File && use_cache != Nothing then Error.throw (Illegal_Argument.Error "Cannot specify `use_cache` in a call to `Data.read` with a `File` object.") else
-        use_cache_resolved = use_cache.if_nothing True
         case path of
-            _ : Text -> if Data_Read_Helpers.looks_like_uri path then Data_Read_Helpers.fetch_following_data_links path format=format use_cache=use_cache_resolved else
+            _ : Text -> if Data_Read_Helpers.looks_like_uri path then Data_Read_Helpers.fetch_following_data_links path format=format use_cache=use_cache else
                 read (File.new path) format on_problems use_cache=use_cache
-            uri : URI -> Data_Read_Helpers.fetch_following_data_links uri format=format use_cache=use_cache_resolved
+            uri : URI -> Data_Read_Helpers.fetch_following_data_links uri format=format use_cache=use_cache
             _ : File ->
                 file_obj = File.new path
                 if file_obj.is_directory then Error.throw (Illegal_Argument.Error "Cannot `read` a directory, use `Data.list`.") else
@@ -200,8 +199,8 @@ list (directory:(Text | File)=enso_project.root) (name_filter:Text="") recursive
 @uri Text_Input
 @format Data_Read_Helpers.format_widget_with_raw_response
 @headers Header.default_widget
-fetch : (URI | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> File_Format -> Boolean -> Any ! Request_Error | HTTP_Error
-fetch (uri:(URI | Text)) (method:HTTP_Method=..Get) (headers:(Vector (Header | Pair Text Text))=[]) (format = Auto_Detect) (use_cache:Boolean = True) =
+fetch : (URI | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> File_Format -> Boolean | Nothing -> Any ! Request_Error | HTTP_Error
+fetch (uri:(URI | Text)) (method:HTTP_Method=..Get) (headers:(Vector (Header | Pair Text Text))=[]) (format = Auto_Detect) (use_cache:(Boolean | Nothing) = Nothing) =
     Data_Read_Helpers.fetch_following_data_links uri method headers (Data_Read_Helpers.handle_legacy_format "fetch" "format" format) use_cache=use_cache
 
 ## ALIAS http post, upload
@@ -346,8 +345,8 @@ post (uri:(URI | Text)) (body:Request_Body=..Empty) (method:HTTP_Method=..Post) 
    - headers: The headers to send with the request. Defaults to an empty vector.
 @uri Text_Input
 @headers Header.default_widget
-download : (URI | Text) -> Writable_File -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> File ! Request_Error | HTTP_Error
-download (uri:(URI | Text)) file:Writable_File (method:HTTP_Method=..Get) (headers:(Vector (Header | Pair Text Text))=[]) (use_cache:Boolean = True) =
+download : (URI | Text) -> Writable_File -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean | Nothing -> File ! Request_Error | HTTP_Error
+download (uri:(URI | Text)) file:Writable_File (method:HTTP_Method=..Get) (headers:(Vector (Header | Pair Text Text))=[]) (use_cache:(Boolean | Nothing) = Nothing) =
     Context.Output.if_enabled disabled_message="As writing is disabled, cannot download to a file. Press the Write button ▶ to perform the operation." panic=False <|
         response = HTTP.fetch uri method headers use_cache=use_cache
         case Data_Link.is_data_link response.body.metadata of
