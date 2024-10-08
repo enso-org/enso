@@ -42,6 +42,7 @@ add_specs suite_builder prefix ~datalink_to_connection database_pending =
             Test.with_retries <|
                 Thread.sleep 500
                 all_events = get_audit_log_events
+                IO.println "Got back "+all_events.length.to_text+" events"
                 relevant_events = all_events.filter e-> e.message.contains table_name
                 Test.with_clue ((all_events.map .to_text).join '\n' 'Found events are:\n' '\n') <|
                     create = relevant_events.find (e-> e.message.contains "CREATE")

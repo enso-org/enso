@@ -20,6 +20,8 @@ public abstract class HandlerWithTokenAuth extends SimpleHttpHandler {
 
   @Override
   protected void doHandle(HttpExchange exchange) throws IOException {
+    System.out.println("HTTP request at " + exchange.getRequestURI());
+
     List<String> authHeaders = exchange.getRequestHeaders().get("Authorization");
     if (authHeaders == null || authHeaders.isEmpty()) {
       sendResponse(getNoTokenStatus(), "Not authorized.", exchange);
