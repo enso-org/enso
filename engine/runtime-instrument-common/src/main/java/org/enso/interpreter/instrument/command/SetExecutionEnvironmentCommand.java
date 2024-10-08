@@ -48,7 +48,7 @@ public class SetExecutionEnvironmentCommand extends AsynchronousCommand {
             this.getClass(),
             () -> {
               var oldEnvironmentName =
-                  ctx.executionService().getContext().getExecutionEnvironment().getName();
+                  ctx.executionService().getContext().getGlobalExecutionEnvironment().getName();
               if (!oldEnvironmentName.equals(executionEnvironment.name())) {
                 ctx.jobControlPlane()
                     .abortJobs(

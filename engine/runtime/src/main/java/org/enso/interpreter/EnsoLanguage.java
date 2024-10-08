@@ -90,7 +90,7 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
 
   private final ContextThreadLocal<ExecutionEnvironmentReference> threadExecutionEnvironment =
       locals.createContextThreadLocal(
-          (ctx, thread) -> new ExecutionEnvironmentReference(ctx.getExecutionEnvironment()));
+          (ctx, thread) -> new ExecutionEnvironmentReference(ctx.getGlobalExecutionEnvironment()));
 
   public static EnsoLanguage get(Node node) {
     return REFERENCE.get(node);

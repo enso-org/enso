@@ -332,7 +332,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
             (ExecutionEnvironment) callbacks.getExecutionEnvironment(info);
         if (nodeEnvironment != null && originalExecutionEnvironment == null) {
           EnsoContext context = EnsoContext.get(this);
-          originalExecutionEnvironment = context.getExecutionEnvironment();
+          originalExecutionEnvironment = context.getGlobalExecutionEnvironment();
           context.setExecutionEnvironment(nodeEnvironment);
         }
       }

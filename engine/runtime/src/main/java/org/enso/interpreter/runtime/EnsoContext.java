@@ -869,11 +869,11 @@ public final class EnsoContext {
     return clock.getAndIncrement();
   }
 
-  public ExecutionEnvironment getExecutionEnvironment() {
+  public ExecutionEnvironment getGlobalExecutionEnvironment() {
     return contextExecutionEnvironment;
   }
 
-  public ExecutionEnvironment getThreadExecutionEnvironment() {
+  public ExecutionEnvironment getExecutionEnvironment() {
     return language.getThreadExecutionEnvironment();
   }
 

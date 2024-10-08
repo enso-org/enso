@@ -323,7 +323,7 @@ class RuntimeRecomputeTest
     )
 
     // recompute
-    context.languageContext.getExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
+    context.languageContext.getGlobalExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
       .Design()
       .name
     context.send(
@@ -352,7 +352,7 @@ class RuntimeRecomputeTest
       context.Main.Update.mainZ(contextId, typeChanged = false),
       context.executionComplete(contextId)
     )
-    context.languageContext.getExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
+    context.languageContext.getGlobalExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
       .Design()
       .name
   }
