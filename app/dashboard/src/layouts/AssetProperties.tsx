@@ -315,7 +315,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
           </aria.Heading>
           <UpsertSecretModal
             noDialog
-            canReset
+            canReset={false}
             canCancel={false}
             id={item.item.id}
             name={item.item.title}
@@ -373,7 +373,6 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                     {canEditThisAsset && (
                       <ariaComponents.ButtonGroup>
                         <ariaComponents.Form.Submit action="update" />
-                        <ariaComponents.Form.Reset action="cancel" />
                       </ariaComponents.ButtonGroup>
                     )}
                   </>
