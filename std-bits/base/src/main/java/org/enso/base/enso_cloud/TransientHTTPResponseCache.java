@@ -43,6 +43,7 @@ public class TransientHTTPResponseCache {
     removeStaleEntries();
 
     var cacheKey = makeHashKey(resolvedURI, resolvedHeaders);
+    System.out.println("AAA cache hit " + cache.containsKey(cacheKey));
     if (cache.containsKey(cacheKey)) {
       return returnCachedResponse(cacheKey);
     } else {
