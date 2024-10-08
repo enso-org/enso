@@ -1,6 +1,6 @@
 package org.enso.projectmanager.service.filesystem
 
-import java.io.{File, InputStream}
+import java.io.{File, InputStream, OutputStream}
 
 trait FileSystemServiceApi[F[+_, +_]] {
 
@@ -44,10 +44,18 @@ trait FileSystemServiceApi[F[+_, +_]] {
     */
   def copy(from: File, to: File): F[FileSystemServiceFailure, Unit]
 
+  /** Read a file to the provided output.
+    *
+    * @param path the file path to write
+    * @param out the output consuming the file contents
+    * @return the number of bytes read
+    */
+  def read(path: File, out: OutputStream): F[FileSystemServiceFailure, Int]
+
   /** Writes a file
     *
     * @param path the file path to write
-    * @param bytes the file contents
+    * @param in the file contents
     */
   def write(path: File, in: InputStream): F[FileSystemServiceFailure, Unit]
 }

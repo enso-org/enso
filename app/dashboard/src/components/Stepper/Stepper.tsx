@@ -6,13 +6,13 @@
 import * as React from 'react'
 
 import { AnimatePresence, motion } from 'framer-motion'
-import * as tvw from 'tailwind-variants'
 
 import * as eventCallback from '#/hooks/eventCallbackHooks'
 
 import { ErrorBoundary } from '#/components/ErrorBoundary'
 import { Suspense } from '#/components/Suspense'
 
+import { tv } from '#/utilities/tailwindVariants'
 import { Step } from './Step'
 import { StepContent } from './StepContent'
 import * as stepperProvider from './StepperProvider'
@@ -37,7 +37,7 @@ export interface StepperProps {
     | undefined
 }
 
-const STEPPER_STYLES = tvw.tv({
+const STEPPER_STYLES = tv({
   base: 'flex flex-col items-center w-full gap-4',
   slots: {
     steps: 'flex items-center justify-between w-full',

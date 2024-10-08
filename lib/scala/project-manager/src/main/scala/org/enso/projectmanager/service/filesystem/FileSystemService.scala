@@ -13,7 +13,7 @@ import org.enso.projectmanager.infrastructure.repository.ProjectRepositoryFactor
 import org.enso.projectmanager.service.ProjectService
 import org.slf4j.LoggerFactory
 
-import java.io.{File, InputStream}
+import java.io.{File, InputStream, OutputStream}
 import java.nio.file.Files
 import java.nio.file.attribute.BasicFileAttributes
 
@@ -81,6 +81,18 @@ class FileSystemService[F[+_, +_]: Applicative: CovariantFlatMap: ErrorChannel](
       .mapError { error =>
         logger.warn("Failed to copy path", error)
         FileSystemServiceFailure.FileSystem("Failed to copy path")
+      }
+
+  /** @inheritdoc */
+  override def read(
+    path: File,
+    output: OutputStream
+  ): F[FileSystemServiceFailure, Int] =
+    fileSystem
+      .readFile(path, output)
+      .mapError { error =>
+        logger.warn("Failed to read path", error)
+        FileSystemServiceFailure.FileSystem("Failed to read path")
       }
 
   /** @inheritdoc */

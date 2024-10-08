@@ -106,7 +106,7 @@ type S3_File
                 response_body = translate_file_errors self <| S3.get_object self.s3_path.bucket self.s3_path.key self.credentials delimiter=S3_Path.delimiter
                 response_body.with_stream action
 
-    ## ALIAS load, open
+    ## ALIAS load, open, import
        GROUP Standard.Base.Input
        ICON data_input
 

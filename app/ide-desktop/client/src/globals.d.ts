@@ -191,6 +191,7 @@ declare global {
       // === Integration test variables ===
 
       readonly ENSO_TEST?: string
+      readonly ENSO_TEST_APP_ARGS?: string
       readonly ENSO_TEST_USER?: string
       readonly ENSO_TEST_USER_PASSWORD?: string
       ENSO_TEST_EXEC_PATH?: string

@@ -407,6 +407,15 @@ impl Processor {
                                 "Snowflake_Tests".to_string()
                             ]),
                         ),
+                        Tests::StdCloudRelated => config.add_standard_library_test_selection(
+                            StandardLibraryTestsSelection::Selected(vec![
+                                "Base_Tests".to_string(),
+                                // Table tests check integration of e.g. Postgres datalinks
+                                "Table_Tests".to_string(),
+                                // AWS tests check copying between Cloud and S3
+                                "AWS_Tests".to_string(),
+                            ]),
+                        ),
                     }
                 }
                 let context = self.prepare_backend_context(config);

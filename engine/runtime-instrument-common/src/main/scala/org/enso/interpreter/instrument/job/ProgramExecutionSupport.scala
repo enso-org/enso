@@ -390,27 +390,40 @@ object ProgramExecutionSupport {
     ) {
       val payload = value.getValue match {
         case sentinel: PanicSentinel =>
-          Api.ExpressionUpdate.Payload
-            .Panic(
-              ctx.executionService.getExceptionMessage(sentinel.getPanic),
-              ErrorResolver.getStackTrace(sentinel).flatMap(_.expressionId)
-            )
+          Some(
+            Api.ExpressionUpdate.Payload
+              .Panic(
+                ctx.executionService.getExceptionMessage(sentinel.getPanic),
+                ErrorResolver.getStackTrace(sentinel).flatMap(_.expressionId)
+              )
+          )
         case error: DataflowError =>
-          Api.ExpressionUpdate.Payload.DataflowError(
-            ErrorResolver.getStackTrace(error).flatMap(_.expressionId)
+          Some(
+            Api.ExpressionUpdate.Payload.DataflowError(
+              ErrorResolver.getStackTrace(error).flatMap(_.expressionId)
+            )
           )
         case panic: AbstractTruffleException =>
-          Api.ExpressionUpdate.Payload
-            .Panic(
-              VisualizationResult.findExceptionMessage(panic),
-              ErrorResolver.getStackTrace(panic).flatMap(_.expressionId)
+          if (!VisualizationResult.isInterruptedException(panic)) {
+            Some(
+              Api.ExpressionUpdate.Payload.Panic(
+                VisualizationResult.findExceptionMessage(panic),
+                ErrorResolver.getStackTrace(panic).flatMap(_.expressionId)
+              )
             )
+          } else {
+            ctx.executionService.getLogger
+              .log(Level.FINE, "computation of expression has been interrupted")
+            None
+          }
         case warnings: WithWarnings
             if warnings.getValue.isInstanceOf[DataflowError] =>
-          Api.ExpressionUpdate.Payload.DataflowError(
-            ErrorResolver
-              .getStackTrace(warnings.getValue.asInstanceOf[DataflowError])
-              .flatMap(_.expressionId)
+          Some(
+            Api.ExpressionUpdate.Payload.DataflowError(
+              ErrorResolver
+                .getStackTrace(warnings.getValue.asInstanceOf[DataflowError])
+                .flatMap(_.expressionId)
+            )
           )
         case _ =>
           val warnings =
@@ -475,28 +488,30 @@ object ProgramExecutionSupport {
               None
           }
 
-          Api.ExpressionUpdate.Payload.Value(warnings, schema)
+          Some(Api.ExpressionUpdate.Payload.Value(warnings, schema))
       }
-      ctx.endpoint.sendToClient(
-        Api.Response(
-          Api.ExpressionUpdates(
-            contextId,
-            Set(
-              Api.ExpressionUpdate(
-                value.getExpressionId,
-                Option(value.getType),
-                methodCall,
-                value.getProfilingInfo.map { case e: ExecutionTime =>
-                  Api.ProfilingInfo.ExecutionTime(e.getNanoTimeElapsed)
-                }.toVector,
-                value.wasCached(),
-                value.isTypeChanged || value.isFunctionCallChanged,
-                payload
+      payload.foreach { p =>
+        ctx.endpoint.sendToClient(
+          Api.Response(
+            Api.ExpressionUpdates(
+              contextId,
+              Set(
+                Api.ExpressionUpdate(
+                  value.getExpressionId,
+                  Option(value.getType),
+                  methodCall,
+                  value.getProfilingInfo.map { case e: ExecutionTime =>
+                    Api.ProfilingInfo.ExecutionTime(e.getNanoTimeElapsed)
+                  }.toVector,
+                  value.wasCached(),
+                  value.isTypeChanged || value.isFunctionCallChanged,
+                  p
+                )
               )
             )
           )
         )
-      )
+      }
 
       syncState.setExpressionSync(expressionId)
       if (methodCall.isDefined) {
@@ -530,7 +545,7 @@ object ProgramExecutionSupport {
         } else {
           runtimeCache.getAnyValue(visualization.expressionId)
         }
-        if (v != null) {
+        if (v != null && !VisualizationResult.isInterruptedException(v)) {
           executeAndSendVisualizationUpdate(
             contextId,
             runtimeCache,

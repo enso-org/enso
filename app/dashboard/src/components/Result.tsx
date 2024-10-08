@@ -1,14 +1,13 @@
 /** @file Display the result of an operation. */
 import * as React from 'react'
 
-import * as twv from 'tailwind-variants'
-
 import Success from '#/assets/check_mark.svg'
 import Error from '#/assets/cross.svg'
 
 import * as ariaComponents from '#/components/AriaComponents'
 import * as loader from '#/components/Loader'
 import SvgMask from '#/components/SvgMask'
+import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 
 // =================
 // === Constants ===
@@ -48,7 +47,7 @@ const STATUS_ICON_MAP: Readonly<Record<Status, StatusIcon>> = {
   },
 }
 
-const RESULT_STYLES = twv.tv({
+const RESULT_STYLES = tv({
   base: 'flex flex-col items-center justify-center max-w-full px-6 py-4 text-center h-[max-content]',
   variants: {
     centered: {
@@ -92,9 +91,7 @@ interface StatusIcon {
 // ==============
 
 /** Props for a {@link Result}. */
-export interface ResultProps
-  extends React.PropsWithChildren,
-    twv.VariantProps<typeof RESULT_STYLES> {
+export interface ResultProps extends React.PropsWithChildren, VariantProps<typeof RESULT_STYLES> {
   readonly className?: string
   readonly title?: React.JSX.Element | string
   readonly subtitle?: React.JSX.Element | string
