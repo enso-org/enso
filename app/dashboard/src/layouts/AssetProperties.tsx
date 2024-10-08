@@ -17,7 +17,7 @@ import * as textProvider from '#/providers/TextProvider'
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import SharedWithColumn from '#/components/dashboard/column/SharedWithColumn'
-import DatalinkInput from '#/components/dashboard/DatalinkInput'
+import { DatalinkFormInput } from '#/components/dashboard/DatalinkInput'
 import Label from '#/components/dashboard/Label'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
 
@@ -90,14 +90,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
   const [queuedDescription, setQueuedDescripion] = React.useState<string | null>(null)
   const [description, setDescription] = React.useState('')
   const [datalinkValue, setDatalinkValue] = React.useState<NonNullable<unknown> | null>(null)
-  const [editedDatalinkValue, setEditedDatalinkValue] = React.useState<NonNullable<unknown> | null>(
-    datalinkValue,
-  )
   const [isDatalinkFetched, setIsDatalinkFetched] = React.useState(false)
-  const isDatalinkSubmittable = React.useMemo(
-    () => datalinkValidator.validateDatalink(datalinkValue),
-    [datalinkValue],
-  )
   const driveStore = useDriveStore()
   const descriptionRef = React.useRef<HTMLDivElement>(null)
   const descriptionSpotlight = useSpotlight({
@@ -127,7 +120,6 @@ export default function AssetProperties(props: AssetPropertiesProps) {
     self?.permission === permissions.PermissionAction.edit
   const isSecret = item.type === backendModule.AssetType.secret
   const isDatalink = item.type === backendModule.AssetType.datalink
-  const isDatalinkDisabled = datalinkValue === editedDatalinkValue || !isDatalinkSubmittable
   const isCloud = backend.type === backendModule.BackendType.remote
   const pathRaw =
     category.type === 'recent' || category.type === 'trash' ? null
@@ -154,7 +146,6 @@ export default function AssetProperties(props: AssetPropertiesProps) {
       if (item.item.type === backendModule.AssetType.datalink) {
         const value = await getDatalink([item.item.id, item.item.title])
         setDatalinkValue(value)
-        setEditedDatalinkValue(value)
         setIsDatalinkFetched(true)
       }
     })()
@@ -352,52 +343,42 @@ export default function AssetProperties(props: AssetPropertiesProps) {
               <StatelessSpinner size={48} state={statelessSpinner.SpinnerState.loadingMedium} />
             </div>
           : <>
-              <DatalinkInput
-                readOnly={!canEditThisAsset}
-                dropdownTitle="Type"
-                value={editedDatalinkValue}
-                onChange={setEditedDatalinkValue}
-              />
-              {canEditThisAsset && (
-                <ariaComponents.ButtonGroup>
-                  <ariaComponents.Button
-                    variant="submit"
-                    isDisabled={isDatalinkDisabled}
-                    {...(isDatalinkDisabled ?
-                      { title: 'Edit the Datalink before updating it.' }
-                    : {})}
-                    onPress={async () => {
-                      const oldDatalinkValue = datalinkValue
-                      try {
-                        setDatalinkValue(editedDatalinkValue)
-                        await createDatalinkMutation.mutateAsync([
-                          {
-                            datalinkId: item.item.id,
-                            name: item.item.title,
-                            parentDirectoryId: null,
-                            value: editedDatalinkValue,
-                          },
-                        ])
-                      } catch (error) {
-                        toastAndLog(null, error)
-                        setDatalinkValue(oldDatalinkValue)
-                        setEditedDatalinkValue(oldDatalinkValue)
-                      }
-                    }}
-                  >
-                    {getText('update')}
-                  </ariaComponents.Button>
-                  <ariaComponents.Button
-                    variant="outline"
-                    isDisabled={isDatalinkDisabled}
-                    onPress={() => {
-                      setEditedDatalinkValue(datalinkValue)
-                    }}
-                  >
-                    {getText('cancel')}
-                  </ariaComponents.Button>
-                </ariaComponents.ButtonGroup>
-              )}
+              <ariaComponents.Form
+                schema={(z) =>
+                  z.object({
+                    value: z.unknown().refine(datalinkValidator.validateDatalink),
+                  })
+                }
+                defaultValues={{ value: datalinkValue }}
+                className="w-full"
+                onSubmit={async ({ value }) => {
+                  await createDatalinkMutation.mutateAsync([
+                    {
+                      datalinkId: item.item.id,
+                      name: item.item.title,
+                      parentDirectoryId: null,
+                      value: value,
+                    },
+                  ])
+                }}
+              >
+                {({ form }) => (
+                  <>
+                    <DatalinkFormInput
+                      form={form}
+                      name="value"
+                      readOnly={!canEditThisAsset}
+                      dropdownTitle={getText('type')}
+                    />
+                    {canEditThisAsset && (
+                      <ariaComponents.ButtonGroup>
+                        <ariaComponents.Form.Submit action="update" />
+                        <ariaComponents.Form.Reset action="cancel" />
+                      </ariaComponents.ButtonGroup>
+                    )}
+                  </>
+                )}
+              </ariaComponents.Form>
             </>
           }
         </div>
