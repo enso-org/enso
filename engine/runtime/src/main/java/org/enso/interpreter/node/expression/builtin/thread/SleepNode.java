@@ -47,6 +47,6 @@ public abstract class SleepNode extends Node {
     var builtins = EnsoContext.get(this).getBuiltins();
     var intType = builtins.number().getInteger();
     throw new PanicException(
-        builtins.error().makeTypeError(intType, timeInMilliseconds, "timef"), this);
+        builtins.error().makeTypeError(intType, timeInMilliseconds, "timeInMilliseconds"), this);
   }
 }
