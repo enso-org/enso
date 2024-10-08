@@ -110,7 +110,7 @@ case class Config(
   edition: Option[Editions.RawEdition],
   preferLocalLibraries: Boolean,
   componentGroups: Option[ComponentGroups],
-  requires: Array[String]
+  requires: List[String]
 ) {
 
   /** Converts the configuration into a YAML representation. */
@@ -238,7 +238,7 @@ object Config {
             edition,
             preferLocalLibraries,
             componentGroups,
-            requires.toArray
+            requires
           )
       }
     }

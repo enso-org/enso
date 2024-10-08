@@ -70,6 +70,7 @@ import org.enso.pkg.PackageManager;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.debugger.IdExecutionService;
 import org.graalvm.options.OptionKey;
+import scala.jdk.javaapi.CollectionConverters;
 import scala.jdk.javaapi.OptionConverters;
 
 /**
@@ -478,7 +479,7 @@ public final class EnsoContext {
           throw new NullPointerException("No polyglot dir for " + pkg);
         }
         var ch = polyDir.resolve("java");
-        var requires = Arrays.asList(pkg.getConfig().requires());
+        var requires = CollectionConverters.asJava(pkg.getConfig().requires());
         var parents =
             requires.stream()
                 .map(
