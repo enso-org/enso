@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Data.Numbers.Number_Parse_Error
 import Standard.Base.Errors.Common.Missing_Argument
+import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Metadata.Widget.Text_Input
 
@@ -28,7 +29,7 @@ type Snowflake_Details
        Attempt to resolve the constructor.
     resolve : Function -> Snowflake_Details | Nothing
     resolve constructor =
-        Panic.catch Any (constructor:Snowflake_Details) _->Nothing
+        Panic.catch Type_Error (constructor:Snowflake_Details) _->Nothing
 
     ## PRIVATE
        Build the Connection resource.

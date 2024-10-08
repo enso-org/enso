@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Data.Numbers.Number_Parse_Error
+import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
 import project.Connection.Client_Certificate.Client_Certificate
@@ -34,7 +35,7 @@ type Postgres
        Attempt to resolve the constructor.
     resolve : Function -> Postgres | Nothing
     resolve constructor =
-        Panic.catch Any (constructor:Postgres) _->Nothing
+        Panic.catch Type_Error (constructor:Postgres) _->Nothing
 
     ## PRIVATE
        Build the Connection resource.

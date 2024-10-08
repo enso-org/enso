@@ -1,5 +1,6 @@
 from Standard.Base import all
 
+polyglot java import java.math.BigInteger
 polyglot java import java.util.Random as Java_Random
 polyglot java import org.enso.base.Text_Utils
 
@@ -111,6 +112,38 @@ type Faker
     integer : Integer -> Integer -> Integer
     integer self minimum=0 maximum=100 =
         minimum + (self.generator.nextInt (maximum - minimum))
+
+    ## GROUP Standard.Base.Random
+       ICON random
+       Create a random large Integer value (represented internally as a Java
+       `BigInteger`.
+
+       The values provided by this method are selected from a sparse set within
+       the specified range. For example, with `bit_length=4`, the possible range
+       is -16 to 16, but the actual values only include 9, 11, 13 and 15.
+
+       Arguments
+       - bit_length: specifies the range of values to select from. The values
+         will be between -2^bit_length and 2^bit_length.
+    large_integer : Integer -> Integer -> Integer
+    large_integer self bit_length =
+        BigInteger.new bit_length 0 self.generator
+
+    ## GROUP Standard.Base.Random
+       ICON random
+       Create a random Decimal value (represented internally as a Java
+       `BigDecimal`.
+
+       This generator uses `large_integer` to generate an `Integer`, and then
+       adds a random `Float`. See `large_integer` for a description of the range
+       of values that this can return.
+
+       Arguments
+       - bit_length: specifies the range of values to select from. The values
+         will be between -2^bit_length and 2^bit_length.
+    decimal : Integer -> Integer -> Integer
+    decimal self bit_length =
+        (self.large_integer bit_length) + self.float
 
     ## GROUP Standard.Base.Random
        ICON random

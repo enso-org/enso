@@ -11,7 +11,8 @@ from Standard.Table.Errors import all
 import Standard.Table.Expression.Expression_Error
 
 import Standard.Database.Internal.IR.SQL_Expression.SQL_Expression
-from Standard.Database.Errors import SQL_Error
+import Standard.Database.Feature.Feature
+from Standard.Database.Errors import all
 
 from Standard.Test import all
 
@@ -21,12 +22,20 @@ from project.Common_Table_Operations.Util import run_default_backend
 
 main filter=Nothing = run_default_backend add_specs filter
 
+add_specs suite_builder setup =
+    if setup.is_feature_supported Feature.Filter then (add_filter_specs suite_builder setup) else
+        suite_builder.group setup.prefix+"Table.filter" group_builder->
+            group_builder.specify "filter should report unsupported" <|
+                table_builder = setup.light_table_builder
+                t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", [100, 3, Nothing, 4, 12]], ["Y", [100, 4, 2, Nothing, 11]]]
+                t2 = t.filter "X" (Filter_Condition.Less than=10)
+                t2.should_fail_with (Unsupported_Database_Operation.Error "filter")
 
 ## Currently these tests rely on filtering preserving the insertion ordering
    within tables. This is not necessarily guaranteed by RDBMS, so we may adapt
    this in the future. For now we implicitly assume the ordering is preserved,
    as that seems to be the case.
-add_specs suite_builder setup =
+add_filter_specs suite_builder setup =
     prefix = setup.prefix
     test_selection = setup.test_selection
     table_builder = setup.light_table_builder

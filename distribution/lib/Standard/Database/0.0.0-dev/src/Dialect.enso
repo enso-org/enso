@@ -28,6 +28,7 @@ import project.SQL_Statement.SQL_Statement
 import project.SQL_Type.SQL_Type
 from project.Dialect_Flags import all
 from project.Errors import SQL_Error, Unsupported_Database_Operation
+from project.Feature import Feature
 from project.Internal.JDBC_Connection import JDBC_Connection
 from project.Internal.Result_Set import result_set_to_table
 
@@ -201,9 +202,14 @@ type Dialect
 
     ## PRIVATE
        Checks if an operation is supported by the dialect.
-    is_supported : Text -> Boolean
-    is_supported self operation =
+    is_operation_supported self operation:Text -> Boolean =
         _ = operation
+        Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
+       Checks if a feature is supported by the dialect.
+    is_feature_supported self feature:Feature -> Boolean =
+        _ = feature
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE

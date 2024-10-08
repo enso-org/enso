@@ -16,6 +16,7 @@ import Standard.Database.Connection.Connection.Connection
 import Standard.Database.DB_Column.DB_Column
 import Standard.Database.DB_Table.DB_Table
 import Standard.Database.Dialect
+import Standard.Database.Feature.Feature
 import Standard.Database.Internal.Base_Generator
 import Standard.Database.Internal.Common.Database_Distinct_Helper
 import Standard.Database.Internal.Common.Database_Join_Helper
@@ -41,7 +42,7 @@ import Standard.Database.SQL_Type.SQL_Type
 from Standard.Database.Dialect import Temp_Table_Style
 from Standard.Database.Dialect_Flags import all
 from Standard.Database.Errors import SQL_Error, Unsupported_Database_Operation
-from  Standard.Database.Internal.Base_Generator import lift_binary_op
+from Standard.Database.Internal.Base_Generator import lift_binary_op
 from Standard.Database.Internal.IR.Operation_Metadata import Date_Period_Metadata
 from Standard.Database.Internal.JDBC_Connection import JDBC_Connection
 from Standard.Database.Internal.Statement_Setter import fill_hole_default
@@ -54,13 +55,13 @@ polyglot java import org.enso.database.JDBCUtils
 
 ## PRIVATE
    The dialect of SQL Server databases.
-sqlserver : SQLSever_Dialect
+sqlserver : SQLServer_Dialect
 sqlserver =
-    SQLSever_Dialect.Value make_dialect_operations
+    SQLServer_Dialect.Value make_dialect_operations
 
 ## PRIVATE
    The dialect of SQL Server databases.
-type SQLSever_Dialect
+type SQLServer_Dialect
     ## PRIVATE
        The dialect of SQL Server databases.
     Value dialect_operations
@@ -235,9 +236,14 @@ type SQLSever_Dialect
 
     ## PRIVATE
        Checks if an operation is supported by the dialect.
-    is_supported : Text -> Boolean
-    is_supported self operation =
-        self.dialect_operations.is_supported operation
+    is_operation_supported self operation:Text -> Boolean =
+        self.dialect_operations.is_operation_supported operation
+
+    ## PRIVATE
+       Checks if a feature is supported by the dialect.
+    is_feature_supported self feature:Feature -> Boolean =
+        case feature of
+            _ -> False
 
     ## PRIVATE
        The default table types to use when listing tables.
