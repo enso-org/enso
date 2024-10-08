@@ -2,6 +2,7 @@ package org.enso.interpreter.test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -123,8 +124,10 @@ public class AtomInteropTest {
 
         main = My_Type.Cons "a" "b"
         """);
-    assertThat("Method is a member of the atom", myTypeAtom.getMemberKeys(), hasItem("method"));
-    assertThat("method is an invokable member", myTypeAtom.canInvokeMember("method"), is(true));
+    assertThat(
+        "Method is a member of the atom", myTypeAtom.getMemberKeys(), hasItem("My_Type.method"));
+    assertThat(
+        "method is an invokable member", myTypeAtom.canInvokeMember("My_Type.method"), is(true));
   }
 
   @Test
@@ -142,8 +145,8 @@ public class AtomInteropTest {
     var atom = ContextUtils.unwrapValue(ctx, myTypeAtom);
     var interop = InteropLibrary.getUncached();
     assertThat("Atom has members", interop.hasMembers(atom), is(true));
-    assertThat("Method is readable", interop.isMemberReadable(atom, "method"), is(true));
-    assertThat("Method is invocable", interop.isMemberInvocable(atom, "method"), is(true));
+    assertThat("Method is readable", interop.isMemberReadable(atom, "My_Type.method"), is(true));
+    assertThat("Method is invocable", interop.isMemberInvocable(atom, "My_Type.method"), is(true));
     assertThat("Field is readable", interop.isMemberReadable(atom, "a"), is(true));
   }
 
@@ -193,7 +196,7 @@ public class AtomInteropTest {
     assertThat(
         "Static method is not atom member",
         myTypeAtom.getMemberKeys(),
-        not(hasItem("static_method")));
+        not(hasItem(containsString("static_method"))));
   }
 
   @Test
