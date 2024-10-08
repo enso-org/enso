@@ -5,13 +5,18 @@ import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Enso_Cloud.Data_Link.Data_Link
 import project.Enso_Cloud.Data_Link_Helpers
+import project.Error.Error
 import project.Errors.Deprecated.Deprecated
 import project.Errors.Problem_Behavior.Problem_Behavior
+import project.IO
+import project.Math
 import project.Metadata.Display
 import project.Metadata.Widget
 import project.Network.HTTP.HTTP
+import project.Network.HTTP.HTTP_Error.HTTP_Error
 import project.Network.HTTP.HTTP_Method.HTTP_Method
 import project.Network.URI.URI
+import project.Runtime.Thread
 import project.Warning.Warning
 from project.Data import Raw_Response
 from project.Data.Boolean import Boolean, False, True
@@ -28,8 +33,22 @@ looks_like_uri path:Text -> Boolean =
    A common implementation for fetching a resource and decoding it,
    following encountered data links.
 fetch_following_data_links (uri:URI) (method:HTTP_Method = HTTP_Method.Get) (headers:Vector = []) format =
-    response = HTTP.fetch uri method headers
-    decode_http_response_following_data_links response format
+    fetch_and_decode =
+        response = HTTP.fetch uri method headers
+        decode_http_response_following_data_links response format
+
+    error_handler attempt =
+        caught_error ->
+            case method of
+                HTTP_Method.Get ->
+                    if attempt > 2 then Error.throw caught_error else
+                        sleep_time = Math.min (100 * (2 ^ (attempt - 1))) 5000
+                        Thread.sleep sleep_time
+                        fetch_and_decode . catch HTTP_Error (error_handler (attempt + 1))
+                _ ->
+                    Error.throw caught_error.payload
+
+    fetch_and_decode . catch HTTP_Error (error_handler 0)
 
 ## PRIVATE
    Decodes a HTTP response, handling data link access.
