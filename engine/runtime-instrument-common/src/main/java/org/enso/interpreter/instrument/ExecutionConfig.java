@@ -25,9 +25,12 @@ public record ExecutionConfig(
 
   @SuppressWarnings("unchecked")
   public static ExecutionConfig create(
-      Option<Runtime$Api$ExecutionEnvironment> executionEnvironmentOption,
-      Seq<Runtime$Api$ExpressionConfig> expressionConfigs) {
+      Object executionEnvironmentOption1, Object expressionConfigs1) {
     Map<UUID, ExecutionEnvironment> expressionConfigsBuilder = new HashMap<>();
+    Option<Runtime$Api$ExecutionEnvironment> executionEnvironmentOption =
+        (Option<Runtime$Api$ExecutionEnvironment>) executionEnvironmentOption1;
+    Seq<Runtime$Api$ExpressionConfig> expressionConfigs =
+        (Seq<Runtime$Api$ExpressionConfig>) expressionConfigs1;
     expressionConfigs.foreach(
         expressionConfig -> {
           expressionConfig
