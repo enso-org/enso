@@ -34,7 +34,11 @@ import * as localBackend from '#/services/LocalBackend'
 import * as backendModule from '#/services/Backend'
 
 import { Text } from '#/components/AriaComponents'
-import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
+import {
+  backendMutationOptions,
+  backendQueryOptions,
+  type BackendMutation,
+} from '#/hooks/backendHooks'
 import { createGetProjectDetailsQuery } from '#/hooks/projectHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
@@ -49,7 +53,7 @@ import * as permissions from '#/utilities/permissions'
 import * as set from '#/utilities/set'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import Visibility from '#/utilities/Visibility'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useMutationState, useQuery, useQueryClient } from '@tanstack/react-query'
 
 // =================
 // === Constants ===
@@ -175,12 +179,21 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
     readonly parentKeys: Map<backendModule.AssetId, backendModule.DirectoryId>
   } | null>(null)
 
+  const isDeleted =
+    useMutationState({
+      filters: {
+        ...backendMutationOptions(backend, 'deleteAsset'),
+        predicate: (mutation: BackendMutation<'deleteAsset'>) =>
+          mutation.state.variables?.[0] === asset.id,
+      },
+      select: () => true,
+    }).length !== 0
   const outerVisibility = visibilities.get(item.key)
   const visibility =
     outerVisibility == null || outerVisibility === Visibility.visible ?
       insertionVisibility
     : outerVisibility
-  const hidden = hiddenRaw || visibility === Visibility.hidden
+  const hidden = isDeleted || hiddenRaw || visibility === Visibility.hidden
   const isCloud = isCloudCategory(category)
 
   const { data: projectState } = useQuery({

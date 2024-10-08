@@ -1289,7 +1289,6 @@ export default function AssetsTable(props: AssetsTableProps) {
       })
     }
     try {
-      dispatchAssetListEvent({ type: AssetListEventType.willDelete, key: asset.id })
       if (asset.type === AssetType.project && backend.type === BackendType.local) {
         try {
           await closeProjectMutation.mutateAsync([asset.id, asset.title])
@@ -2068,38 +2067,19 @@ export default function AssetsTable(props: AssetsTableProps) {
 
         break
       }
-      case AssetListEventType.willDelete: {
-        const { selectedKeys } = driveStore.getState()
-        if (selectedKeys.has(event.key)) {
-          const newSelectedKeys = new Set(selectedKeys)
-          newSelectedKeys.delete(event.key)
-          setSelectedKeys(newSelectedKeys)
-        }
-
-        deleteAsset(event.key)
-
-        break
-      }
       case AssetListEventType.copy: {
-        insertAssets(event.items, event.newParentId)
-
         for (const item of event.items) {
           void doCopyOnBackend(event.newParentId, item)
         }
         break
       }
       case AssetListEventType.move: {
-        deleteAsset(event.key)
-        insertAssets(event.items, event.newParentId)
-
         for (const item of event.items) {
           void doMove(event.newParentId, item)
         }
-
         break
       }
       case AssetListEventType.delete: {
-        deleteAsset(event.key)
         const asset = nodeMapRef.current.get(event.key)?.item
         if (asset) {
           void doDelete(asset, false)

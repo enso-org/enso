@@ -24,7 +24,6 @@ interface AssetListEvents {
   readonly closeFolder: AssetListCloseFolderEvent
   readonly copy: AssetListCopyEvent
   readonly move: AssetListMoveEvent
-  readonly willDelete: AssetListWillDeleteEvent
   readonly delete: AssetListDeleteEvent
   readonly emptyTrash: AssetListEmptyTrashEvent
   readonly removeSelf: AssetListRemoveSelfEvent
@@ -116,11 +115,6 @@ interface AssetListMoveEvent extends AssetListBaseEvent<AssetListEventType.move>
   readonly newParentKey: backend.DirectoryId
   readonly newParentId: backend.DirectoryId
   readonly items: backend.AnyAsset[]
-}
-
-/** A signal that a file has been deleted. */
-interface AssetListWillDeleteEvent extends AssetListBaseEvent<AssetListEventType.willDelete> {
-  readonly key: backend.AssetId
 }
 
 /** A signal that a file has been deleted. This must not be called before the request is

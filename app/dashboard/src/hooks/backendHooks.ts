@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import {
   queryOptions,
   useQuery,
+  type Mutation,
   type UseMutationOptions,
   type UseQueryOptions,
   type UseQueryResult,
@@ -185,6 +186,13 @@ const INVALIDATION_MAP: Partial<
   closeProject: ['listDirectory', 'listAssetVersions'],
   updateDirectory: ['listDirectory'],
 }
+
+/** The type of the corresponding mutation for the given backend method. */
+export type BackendMutation<Method extends MutationMethod> = Mutation<
+  Awaited<ReturnType<Backend[Method]>>,
+  Error,
+  Parameters<Backend[Method]>
+>
 
 export function backendMutationOptions<Method extends MutationMethod>(
   backend: Backend,
