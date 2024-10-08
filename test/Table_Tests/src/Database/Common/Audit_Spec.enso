@@ -26,6 +26,7 @@ add_specs suite_builder prefix ~datalink_to_connection database_pending =
        This can be used to verify that the mock logic is consistent with the real thing.
     always_run_on_mock = True
     cloud_setup = if always_run_on_mock then Cloud_Tests_Setup.prepare_mock_setup else Cloud_Tests_Setup.prepare
+    IO.println "Outside of tests, current user is "+Enso_User.current.to_text
     suite_builder.group prefix+"Audit Logs" pending=(cloud_setup.pending.if_nothing database_pending) group_builder->
         group_builder.specify "should see Database operations performed on a table through the standard workflow" <| cloud_setup.with_prepared_environment <|
             IO.println "STARTING AUDIT LOG TEST"
