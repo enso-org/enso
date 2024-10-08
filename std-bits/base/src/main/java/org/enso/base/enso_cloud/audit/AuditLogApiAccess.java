@@ -96,9 +96,12 @@ class AuditLogApiAccess {
         // account.
         var requestConfig = pendingMessages.get(0).requestConfig();
         var request = buildRequest(requestConfig, pendingMessages);
+        System.out.println("Sending request with " + pendingMessages.size() + " log messages.");
         sendLogRequest(request, MAX_RETRIES);
+        System.out.println("Request (" + pendingMessages.size() + " messages) sent successfully.");
         notifyJobsAboutSuccess(pendingMessages);
       } catch (RequestFailureException e) {
+        System.out.println("Request (" + pendingMessages.size() + " messages) sent failed: " + e);
         notifyJobsAboutFailure(pendingMessages, e);
       }
     }
