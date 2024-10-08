@@ -1014,12 +1014,12 @@ type DB_Table
 
         resolved = case value of
             _ : Text -> self.make_constant_column value
-            _ : Expression -> Feature.Set.if_supported_else_throw self.connection.dialect "set" <| self.evaluate_expression value on_problems
+            _ : Expression -> Feature.Set_From_Expression.if_supported_else_throw self.connection.dialect "set from expression" <| self.evaluate_expression value on_problems
             _ : DB_Column ->
                 if Helpers.check_integrity self value then value else
                     Error.throw (Integrity_Error.Error "Column "+value.name)
             _ : Constant_Column -> self.make_constant_column value
-            _ : Simple_Expression -> Feature.Set.if_supported_else_throw self.connection.dialect "set" <| value.evaluate self (set_mode==Set_Mode.Update && as=="") on_problems
+            _ : Simple_Expression -> Feature.Set_From_Expression.if_supported_else_throw self.connection.dialect "set from expression" <| value.evaluate self (set_mode==Set_Mode.Update && as=="") on_problems
             _ : Vector -> Error.throw (Unsupported_Database_Operation "`Vector` for `set`")
             _ : Array -> Error.throw (Unsupported_Database_Operation.Error "`Array` for `set`")
             _ : Range -> Error.throw (Unsupported_Database_Operation.Error "`Range` for `set`")
@@ -1073,7 +1073,7 @@ type DB_Table
              an `Additional_Warnings`.
     evaluate_expression : Text | Expression -> Problem_Behavior -> DB_Column ! No_Such_Column | Invalid_Value_Type | Expression_Error
     evaluate_expression self expression:(Text | Expression) on_problems:Problem_Behavior=..Report_Warning =
-        Feature.Set.if_supported_else_throw self.connection.dialect "evaluate_expression" <|
+        Feature.Set_From_Expression.if_supported_else_throw self.connection.dialect "evaluate_expression" <|
             if expression.is_a Text then self.evaluate_expression (Expression.Value expression) on_problems else
                 get_column name = self.at name
                 make_constant_column value = case value of
