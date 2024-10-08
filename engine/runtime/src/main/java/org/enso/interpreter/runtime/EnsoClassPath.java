@@ -4,6 +4,7 @@ import com.oracle.truffle.api.TruffleLogger;
 import java.lang.module.Configuration;
 import java.lang.module.FindException;
 import java.lang.module.ModuleFinder;
+import java.lang.module.ResolutionException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -46,7 +47,7 @@ public final class EnsoClassPath {
   static EnsoClassPath create(Path file, List<EnsoClassPath> parents, TruffleLogger log) {
     try {
       return createImpl(file, parents);
-    } catch (FindException e) {
+    } catch (FindException | ResolutionException e) {
       var sb = new StringBuilder();
       sb.append("Cannot instantiate modules at ").append(file);
       log.log(Level.FINE, sb.toString(), e);
