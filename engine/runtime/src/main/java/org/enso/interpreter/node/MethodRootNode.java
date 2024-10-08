@@ -148,11 +148,17 @@ public class MethodRootNode extends ClosureRootNode {
   /**
    * Computes the fully qualified name of this method.
    *
+   * <p>The name has a form of [method's module]::[qualified type name]::[method name].
+   *
    * @return the qualified name of this method.
    */
   @Override
   public String getQualifiedName() {
-    return type.getQualifiedName() + "." + methodName;
+    return getModuleScope().getModule().getName().toString()
+        + "::"
+        + type.getQualifiedName().toString()
+        + "::"
+        + methodName;
   }
 
   /**
