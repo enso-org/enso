@@ -203,15 +203,6 @@ public abstract class Atom implements EnsoObject {
         && function.getCallTarget().getRootNode() instanceof GetFieldBaseNode;
   }
 
-  protected boolean isMethodProjectPrivate(Type type, String methodName) {
-    Function method = constructor.getDefinitionScope().getMethodForType(type, methodName);
-    if (method != null) {
-      return method.getSchema().isProjectPrivate();
-    }
-    method = constructor.getType().getDefinitionScope().getMethodForType(type, methodName);
-    return method != null && method.getSchema().isProjectPrivate();
-  }
-
   /** A member is invocable if it is a method on the Atom and it is public. */
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
@@ -238,12 +229,8 @@ public abstract class Atom implements EnsoObject {
         }
       }
     }
-    var publicMethodNames =
-        getInstanceMethods().stream()
-            .filter(method -> !method.getSchema().isProjectPrivate())
-            .map(Function::getName)
-            .collect(Collectors.toUnmodifiableSet());
-    return publicMethodNames.contains(member);
+    var method = findMethod(member);
+    return method != null && !method.getSchema().isProjectPrivate();
   }
 
   /**
@@ -268,14 +255,17 @@ public abstract class Atom implements EnsoObject {
         }
       }
     }
-    var matchedMethod =
-        getInstanceMethods().stream().filter(method -> method.getName().equals(member)).findFirst();
-    if (matchedMethod.isPresent()) {
-      assert !matchedMethod.get().getSchema().isProjectPrivate()
-          : "This is checked in isMemberReadable";
-      return matchedMethod.get();
+    var method = findMethod(member);
+    if (method != null && method.getSchema().isProjectPrivate()) {
+      return method;
     }
     throw UnknownIdentifierException.create(member);
+  }
+
+  @TruffleBoundary
+  private Function findMethod(String methodName) {
+    var matchedMethod = getInstanceMethods().stream().filter(method -> method.getName().equals(methodName)).findFirst();
+    return matchedMethod.orElse(null);
   }
 
   /** Only public (non project-private) methods can be invoked. */
