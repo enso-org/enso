@@ -11,6 +11,8 @@ import { loadTestEnvironmentVariables } from 'enso-common/src/appConfig'
 
 loadTestEnvironmentVariables()
 
+// This configuration file is for dashboard tests only.
+process.env.CLOUD_BUILD = 'true'
 const CONFIG = (await import('./vite.config')).default
 
 export default mergeConfig(
