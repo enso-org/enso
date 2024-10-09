@@ -411,7 +411,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const [privateExpandedDirectoryIds, setExpandedDirectoryIds] = useState<DirectoryId[]>(() => [])
 
   const expandedDirectoryIds = useMemo(
-    () => privateExpandedDirectoryIds.concat(rootDirectoryId),
+    () => [rootDirectoryId].concat(privateExpandedDirectoryIds),
     [privateExpandedDirectoryIds, rootDirectoryId],
   )
 
@@ -442,17 +442,16 @@ export default function AssetsTable(props: AssetsTableProps) {
             queryKey: [
               backend.type,
               'listDirectory',
+              directoryId,
               {
-                parentId: directoryId,
                 labels: null,
                 filterBy: CATEGORY_TO_FILTER_BY[category.type],
                 recentProjects: category.type === 'recent',
               },
             ] as const,
-            queryFn: async ({ queryKey: [, , params] }) => {
-              const parentId = params.parentId
+            queryFn: async ({ queryKey: [, , parentId, params] }) => {
               try {
-                return { parentId, children: await backend.listDirectory(params, parentId) }
+                return await backend.listDirectory({ ...params, parentId }, parentId)
               } catch {
                 throw Object.assign(new Error(), { parentId })
               }
@@ -478,13 +477,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       ],
     ),
     combine: (results) => {
-      const rootQuery = results.find(
-        (directory) =>
-          directory.data?.parentId === rootDirectory.id ||
-          // eslint-disable-next-line no-restricted-syntax
-          (directory.error as unknown as { parentId: string } | null)?.parentId ===
-            rootDirectory.id,
-      )
+      const rootQuery = results[expandedDirectoryIds.indexOf(rootDirectory.id)]
 
       return {
         rootDirectory: {
@@ -494,8 +487,8 @@ export default function AssetsTable(props: AssetsTableProps) {
           data: rootQuery?.data,
         },
         directories: new Map(
-          results.map((res) => [
-            res.data?.parentId,
+          results.map((res, i) => [
+            expandedDirectoryIds[i],
             {
               isFetching: res.isFetching,
               isLoading: res.isLoading,
@@ -513,7 +506,7 @@ export default function AssetsTable(props: AssetsTableProps) {
    */
   type DirectoryQuery = typeof directories.rootDirectory.data
 
-  const rootDirectoryContent = directories.rootDirectory.data?.children
+  const rootDirectoryContent = directories.rootDirectory.data
   const isLoading = directories.rootDirectory.isLoading && !directories.rootDirectory.isError
 
   const assetTree = useMemo(() => {
@@ -567,7 +560,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         if (assetIsDirectory(item)) {
           const childrenAssetsQuery = directories.directories.get(item.id)
 
-          const nestedChildren = childrenAssetsQuery?.data?.children.map((child) =>
+          const nestedChildren = childrenAssetsQuery?.data?.map((child) =>
             AssetTreeNode.fromAsset(
               child,
               item.id,
@@ -1540,15 +1533,14 @@ export default function AssetsTable(props: AssetsTableProps) {
 
     if (asset) {
       const listDirectoryQuery = queryClient.getQueryCache().find<DirectoryQuery>({
-        queryKey: [backend.type, 'listDirectory', { parentId: asset.parentId }],
+        queryKey: [backend.type, 'listDirectory', asset.parentId],
         exact: false,
       })
 
       if (listDirectoryQuery?.state.data) {
-        listDirectoryQuery.setData({
-          ...listDirectoryQuery.state.data,
-          children: listDirectoryQuery.state.data.children.filter((child) => child.id !== assetId),
-        })
+        listDirectoryQuery.setData(
+          listDirectoryQuery.state.data.filter((child) => child.id !== assetId),
+        )
       }
     }
   })
@@ -1559,15 +1551,12 @@ export default function AssetsTable(props: AssetsTableProps) {
       const actualParentId = parentId ?? rootDirectoryId
 
       const listDirectoryQuery = queryClient.getQueryCache().find<DirectoryQuery>({
-        queryKey: [backend.type, 'listDirectory', { parentId: actualParentId }],
+        queryKey: [backend.type, 'listDirectory', actualParentId],
         exact: false,
       })
 
       if (listDirectoryQuery?.state.data) {
-        listDirectoryQuery.setData({
-          ...listDirectoryQuery.state.data,
-          children: [...listDirectoryQuery.state.data.children, ...assets],
-        })
+        listDirectoryQuery.setData([...listDirectoryQuery.state.data, ...assets])
       }
     },
   )
@@ -2640,17 +2629,14 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   const setAsset = useEventCallback((assetId: AssetId, asset: AnyAsset) => {
     const listDirectoryQuery = queryClient.getQueryCache().find<DirectoryQuery>({
-      queryKey: [backend.type, 'listDirectory', { parentId: asset.parentId }],
+      queryKey: [backend.type, 'listDirectory', asset.parentId],
       exact: false,
     })
 
     if (listDirectoryQuery?.state.data) {
-      listDirectoryQuery.setData({
-        ...listDirectoryQuery.state.data,
-        children: listDirectoryQuery.state.data.children.map((child) =>
-          child.id === assetId ? asset : child,
-        ),
-      })
+      listDirectoryQuery.setData(
+        listDirectoryQuery.state.data.map((child) => (child.id === assetId ? asset : child)),
+      )
     }
   })
 

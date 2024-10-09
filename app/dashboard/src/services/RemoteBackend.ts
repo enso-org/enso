@@ -494,6 +494,9 @@ export default class RemoteBackend extends Backend {
           object.merge(asset, {
             // eslint-disable-next-line no-restricted-syntax
             type: asset.id.match(/^(.+?)-/)?.[1] as backend.AssetType,
+            // `Users` and `Teams` folders are virtual, so their children incorrectly have
+            // the organization root id as their parent id.
+            parentId: query.parentId ?? asset.parentId,
           }),
         )
         .map((asset) =>

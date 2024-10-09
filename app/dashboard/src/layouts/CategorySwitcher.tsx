@@ -336,7 +336,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
       {
         parentId: USERS_DIRECTORY_ID,
         filterBy: backend.FilterBy.active,
-        labels: [],
+        labels: null,
         recentProjects: false,
       },
       'Users',
@@ -350,13 +350,14 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
       {
         parentId: TEAMS_DIRECTORY_ID,
         filterBy: backend.FilterBy.active,
-        labels: [],
+        labels: null,
         recentProjects: false,
       },
       'Teams',
     ],
     { enabled: hasUserAndTeamSpaces },
   )
+  console.log('tdq', teamsDirectoryQuery.data)
 
   return (
     <div className="flex flex-col gap-2 py-1">

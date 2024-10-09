@@ -281,19 +281,12 @@ export function useAssetPassiveListener(
   parentId: DirectoryId | null | undefined,
   category: Category,
 ) {
-  const listDirectoryQuery = useQuery<
-    | {
-        parentId: DirectoryId
-        children: readonly AnyAsset<AssetType>[]
-      }
-    | undefined
-  >({
+  const listDirectoryQuery = useQuery<readonly AnyAsset<AssetType>[] | undefined>({
     queryKey: [
       backendType,
       'listDirectory',
       parentId,
       {
-        parentId,
         labels: null,
         filterBy: CATEGORY_TO_FILTER_BY[category.type],
         recentProjects: category.type === 'recent',
@@ -301,39 +294,39 @@ export function useAssetPassiveListener(
     ],
     initialData: undefined,
   })
+  const asset = listDirectoryQuery.data?.find((child) => child.id === assetId)
+  if (asset || !assetId || !parentId) {
+    return asset
+  }
   switch (assetId) {
     case USERS_DIRECTORY_ID: {
-      return !assetId || !parentId ?
-          undefined
-        : ({
-            id: assetId,
-            parentId,
-            type: AssetType.directory,
-            projectState: null,
-            title: 'Users',
-            description: '',
-            modifiedAt: toRfc3339(new Date()),
-            permissions: [],
-            labels: [],
-          } satisfies DirectoryAsset)
+      return {
+        id: assetId,
+        parentId,
+        type: AssetType.directory,
+        projectState: null,
+        title: 'Users',
+        description: '',
+        modifiedAt: toRfc3339(new Date()),
+        permissions: [],
+        labels: [],
+      } satisfies DirectoryAsset
     }
     case TEAMS_DIRECTORY_ID: {
-      return !assetId || !parentId ?
-          undefined
-        : ({
-            id: assetId,
-            parentId,
-            type: AssetType.directory,
-            projectState: null,
-            title: 'Teams',
-            description: '',
-            modifiedAt: toRfc3339(new Date()),
-            permissions: [],
-            labels: [],
-          } satisfies DirectoryAsset)
+      return {
+        id: assetId,
+        parentId,
+        type: AssetType.directory,
+        projectState: null,
+        title: 'Teams',
+        description: '',
+        modifiedAt: toRfc3339(new Date()),
+        permissions: [],
+        labels: [],
+      } satisfies DirectoryAsset
     }
     default: {
-      return listDirectoryQuery.data?.children.find((child) => child.id === assetId)
+      return
     }
   }
 }
@@ -346,7 +339,6 @@ export function useAssetPassiveListenerStrict(
   category: Category,
 ) {
   const asset = useAssetPassiveListener(backendType, assetId, parentId, category)
-  console.log(':0', assetId, parentId, asset)
   invariant(asset, 'Asset not found')
   return asset
 }
