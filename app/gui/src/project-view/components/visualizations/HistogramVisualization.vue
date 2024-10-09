@@ -410,8 +410,8 @@ watchEffect(() => d3Brush.value.call(brush.value))
  * than the container.
  */
 const extremesAndDeltas = computed(() => {
-  let xMin = rawBins.value != null ? 0 : Math.min(...points.value)
-  let xMax = rawBins.value != null ? rawBins.value.length - 1 : Math.max(...points.value)
+  const xMin = rawBins.value != null ? 0 : Math.min(...points.value)
+  const xMax = rawBins.value != null ? rawBins.value.length - 1 : Math.max(...points.value)
   const dx = xMax - xMin
   const binCount_ = rawBins.value?.length || binCount.value
   const paddingX = Math.max(0.1 * dx, 1 / binCount_)
@@ -429,7 +429,7 @@ const xExtents = computed<[min: number, max: number]>(() => {
 watchEffect(() => {
   const focus_ = focus.value
   if (focus_?.x != null && focus_.zoom != null) {
-    let paddingX = extremesAndDeltas.value.dx / (2 * focus_.zoom)
+    const paddingX = extremesAndDeltas.value.dx / (2 * focus_.zoom)
     xDomain.value = [focus_.x - paddingX, focus_.x + paddingX]
   } else {
     xDomain.value = xExtents.value

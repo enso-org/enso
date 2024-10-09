@@ -46,7 +46,7 @@ function onFocus() {
 
 const cssFont = computed(() => {
   if (inputNode.value == null) return ''
-  let style = window.getComputedStyle(inputNode.value)
+  const style = window.getComputedStyle(inputNode.value)
   return style.font
 })
 

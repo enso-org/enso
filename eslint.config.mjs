@@ -242,7 +242,6 @@ export default [
       camelcase: ['warn', { ignoreDestructuring: true }],
 
       // TODO[ao]; off temporarily
-      'prefer-const': 'off',
       '@typescript-eslint/no-empty-object-type': 'off',
       '@typescript-eslint/no-explicit-any': 'off',
       'vue/html-self-closing': 'off',

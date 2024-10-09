@@ -103,7 +103,7 @@ function renderInterpolationParameter(theme: Theme, param: { enso_type: string; 
 
   const actualTypeColor = theme.getColorForType(actualType)
   const fgColor = actualTypeColor
-  let bgColor = replaceAlpha(fgColor, INTERPOLATION_BACKGROUND_OPACITY)
+  const bgColor = replaceAlpha(fgColor, INTERPOLATION_BACKGROUND_OPACITY)
 
   return renderRegularInterpolation(value, fgColor, bgColor)
 }

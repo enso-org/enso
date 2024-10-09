@@ -591,7 +591,7 @@ function getAstPatternFilterAndSort(
       Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('filter')!),
       makeFilterPattern(ast.module, xColName, minX, maxX),
     )
-    for (let s of series) {
+    for (const s of series) {
       pattern = Ast.OprApp.new(
         ast.module,
         pattern,

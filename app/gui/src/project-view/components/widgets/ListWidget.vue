@@ -284,7 +284,7 @@ function areaOnDrop(e: DragEvent) {
 function onDragEnd(event: DragEvent) {
   const effect = event.dataTransfer?.dropEffect
   if (effect !== 'none' && draggedIndex.value != null) {
-    let modelValue = props.modelValue.filter((_, i) => i !== draggedIndex.value)
+    const modelValue = props.modelValue.filter((_, i) => i !== draggedIndex.value)
     emit('update:modelValue', modelValue)
   }
   draggedIndex.value = undefined

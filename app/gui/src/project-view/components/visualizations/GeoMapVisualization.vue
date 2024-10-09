@@ -327,8 +327,8 @@ function centerPoint() {
     minY = Math.min(...ys)
     maxY = Math.max(...ys)
   }
-  let longitude = (minX + maxX) / 2
-  let latitude = (minY + maxY) / 2
+  const longitude = (minX + maxX) / 2
+  const latitude = (minY + maxY) / 2
   return { latitude, longitude, minX, maxX, minY, maxY }
 }
 
@@ -341,7 +341,7 @@ function extractVisualizationDataFromFullConfig(parsedData: RegularData | Layer)
   } else if ('layers' in parsedData) {
     parsedData.layers.forEach((layer) => {
       if (layer.type === SCATTERPLOT_LAYER) {
-        let dataPoints = layer.data ?? []
+        const dataPoints = layer.data ?? []
         pushPoints(dataPoints)
       } else {
         console.warn('Geo_Map: Currently unsupported deck.gl layer.')
@@ -400,13 +400,13 @@ function pushPoints(newPoints: Location[]) {
       typeof point.latitude === 'number' &&
       !Number.isNaN(point.latitude)
     ) {
-      let position: [number, number] = [point.longitude, point.latitude]
-      let radius =
+      const position: [number, number] = [point.longitude, point.latitude]
+      const radius =
         typeof point.radius === 'number' && !Number.isNaN(point.radius) ?
           point.radius
         : DEFAULT_POINT_RADIUS
-      let color = point.color ?? ACCENT_COLOR
-      let label = point.label ?? ''
+      const color = point.color ?? ACCENT_COLOR
+      const label = point.label ?? ''
       points.push({ position, color, radius, label })
     }
   }

@@ -454,7 +454,7 @@ watchEffect(() => {
     isTruncated.value = data_.all_rows_count !== data_.json.length
   } else if (data_.type === 'Object_Matrix') {
     columnDefs.value = [toLinkField(INDEX_FIELD_NAME, data_.get_child_node_action)]
-    let keys = new Set<string>()
+    const keys = new Set<string>()
     for (const val of data_.json) {
       if (val != null) {
         Object.keys(val).forEach((k) => {
