@@ -3834,6 +3834,7 @@ lazy val `bench-processor` = (project in file("lib/scala/bench-processor"))
       "org.graalvm.polyglot" % "polyglot"                 % graalMavenPackagesVersion % "provided",
       "junit"                % "junit"                    % junitVersion              % Test,
       "com.github.sbt"       % "junit-interface"          % junitIfVersion            % Test,
+      "org.graalvm.regex"    % "regex"                    % graalMavenPackagesVersion % Test,
       "org.graalvm.truffle"  % "truffle-api"              % graalMavenPackagesVersion % Test
     ),
     Compile / javacOptions := ((Compile / javacOptions).value ++
