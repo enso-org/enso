@@ -17,6 +17,7 @@ export interface LexicalPlugin {
   register: (editor: LexicalEditor) => void
 }
 
+/** TODO: Add docs */
 export function lexicalTheme(theme: Record<string, string>): EditorThemeClasses {
   interface EditorThemeShape extends Record<string, EditorThemeShape | string> {}
   const editorClasses: EditorThemeShape = {}
@@ -41,6 +42,7 @@ export function lexicalTheme(theme: Record<string, string>): EditorThemeClasses 
   return editorClasses
 }
 
+/** TODO: Add docs */
 export function useLexical(
   contentElement: Ref<MaybeElement>,
   namespace: string,

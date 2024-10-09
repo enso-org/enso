@@ -15,6 +15,7 @@ await fs.writeFile(
 // Please run \`npm run generate-metadata\` to regenerate this file whenever \`icons.svg\` is changed.
 import iconNames from '@/util/iconList.json'
 
+/** One of the possible icon names of SvgIcon component. */
 export type Icon =
 ${iconNames?.map((name) => `  | '${name}'`).join('\n')}
 
@@ -22,6 +23,7 @@ export { iconNames }
 
 const iconNamesSet = new Set(iconNames)
 
+/** Check if string is one of the valid icon names for SvgIcon. */
 export function isIconName(value: string): value is Icon {
   return iconNamesSet.has(value)
 }

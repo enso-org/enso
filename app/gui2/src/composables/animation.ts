@@ -22,7 +22,6 @@ const animTime = ref(0)
  * while the `active` watch source returns true value.
  *
  * For performing simple easing animations, see [`useApproach`].
- *
  * @param active As long as it returns true value, the `fn` callback will be called every frame.
  * @param fn The callback to call every animation frame.
  * @param priority When multiple callbacks are registered, the one with the lowest priority number
@@ -90,7 +89,6 @@ function runRaf() {
 /**
  * Animate value over time using exponential approach.
  * http://badladns.com/stories/exp-approach
- *
  * @param to Target value to approach.
  * @param timeHorizon Time at which the approach will be at 63% of the target value. Effectively
  * represents a speed of the approach. Lower values means faster animation.
@@ -115,7 +113,6 @@ export function useApproach(to: WatchSource<number>, timeHorizon: number = 100, 
 /**
  * Animate a vector value over time using exponential approach.
  * http://badladns.com/stories/exp-approach
- *
  * @param to Target vector value to approach.
  * @param timeHorizon Time at which the approach will be at 63% of the target value. Effectively
  * represents a speed of the approach. Lower values means faster animation.
@@ -159,6 +156,7 @@ function useApproachBase<T>(
   return readonly(proxyRefs({ value: current, skip }))
 }
 
+/** TODO: Add docs */
 export function useTransitioning(observedProperties?: Set<string>) {
   const hasActiveAnimations = ref(false)
   let numActiveTransitions = 0

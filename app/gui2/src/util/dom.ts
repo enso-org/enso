@@ -1,3 +1,4 @@
+/** TODO: Add docs */
 export function* elementHierarchy(element: Element, selectors: string) {
   for (;;) {
     const match = element.closest(selectors)
@@ -8,6 +9,7 @@ export function* elementHierarchy(element: Element, selectors: string) {
   }
 }
 
+/** TODO: Add docs */
 export function dataAttribute<T extends string = string>(
   element: Element,
   key: string,

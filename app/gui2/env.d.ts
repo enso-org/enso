@@ -12,7 +12,8 @@ interface Window {
   fileBrowserApi: FileBrowserApi
 }
 
-/** `window.fileBrowserApi` is a context bridge to the main process, when we're running in an
+/**
+ * `window.fileBrowserApi` is a context bridge to the main process, when we're running in an
  * Electron context.
  *
  * # Safety

@@ -21,8 +21,10 @@ export interface ExpressionInfo {
 
 /** This class holds the computed values that have been received from the language server. */
 export class VisualizationDataRegistry {
-  /** This map stores only keys representing attached visualization. The responses for
-   * executeExpression are handled by project store's `executeExpression` method. */
+  /**
+   * This map stores only keys representing attached visualization. The responses for
+   * executeExpression are handled by project store's `executeExpression` method.
+   */
   private visualizationValues: Map<Uuid, Result<string> | null>
   private dataServer: DataServer
   private executionContext: ExecutionContext
@@ -30,6 +32,7 @@ export class VisualizationDataRegistry {
   private dataHandler = this.visualizationUpdate.bind(this)
   private errorHandler = this.visualizationError.bind(this)
 
+  /** TODO: Add docs */
   constructor(executionContext: ExecutionContext, dataServer: DataServer) {
     this.executionContext = executionContext
     this.dataServer = dataServer
@@ -80,10 +83,12 @@ export class VisualizationDataRegistry {
     }
   }
 
+  /** TODO: Add docs */
   getRawData(visualizationId: Uuid): Result<string> | null {
     return this.visualizationValues.get(visualizationId) ?? null
   }
 
+  /** TODO: Add docs */
   dispose() {
     this.executionContext.off('visualizationsConfigured', this.reconfiguredHandler)
     this.dataServer.off(`${OutboundPayload.VISUALIZATION_UPDATE}`, this.dataHandler)

@@ -2,14 +2,16 @@
 import type { IHeaderParams } from 'ag-grid-community'
 import { ref, watch } from 'vue'
 
-/** Parameters recognized by this header component.
+/**
+ * Parameters recognized by this header component.
  *
  * They are set through `headerComponentParams` option in AGGrid column definition.
  */
 export interface HeaderParams {
   /** Setter called when column name is changed by the user. */
   nameSetter?: (newName: string) => void
-  /** Column is virtual if it is not represented in the AST. Such column might be used
+  /**
+   * Column is virtual if it is not represented in the AST. Such column might be used
    * to create new one.
    */
   virtualColumn?: boolean

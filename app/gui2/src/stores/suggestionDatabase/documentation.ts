@@ -44,6 +44,7 @@ export function getGroupIndex(
   return findIndexOpt(groups, (group) => `${group.project}.${group.name}` == normalized)
 }
 
+/** TODO: Add docs */
 export function documentationData(
   documentation: Opt<string>,
   definedIn: QualifiedName,

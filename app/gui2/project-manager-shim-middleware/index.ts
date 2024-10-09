@@ -1,5 +1,7 @@
-/** @file A HTTP server middleware which handles routes normally proxied through to
- * the Project Manager. */
+/**
+ * @file A HTTP server middleware which handles routes normally proxied through to
+ * the Project Manager.
+ */
 import * as fsSync from 'node:fs'
 import * as fs from 'node:fs/promises'
 import * as http from 'node:http'
@@ -34,11 +36,13 @@ interface ProjectMetadata {
   readonly namespace: string
   /** The project id. */
   readonly id: string
-  /** The Enso Engine version to use for the project, represented by a semver version
+  /**
+   * The Enso Engine version to use for the project, represented by a semver version
    * string.
    *
    * If the edition associated with the project could not be resolved, the
-   * engine version may be missing. */
+   * engine version may be missing.
+   */
   readonly engineVersion?: string
   /** The project creation time. */
   readonly created: string
@@ -406,8 +410,10 @@ export default function projectManagerShimMiddleware(
   }
 }
 
-/** Return a {@link ProjectMetadata} if the metadata is a valid metadata object,
- * else return `null`. */
+/**
+ * Return a {@link ProjectMetadata} if the metadata is a valid metadata object,
+ * else return `null`.
+ */
 function extractProjectMetadata(yamlObj: unknown, jsonObj: unknown): ProjectMetadata | null {
   if (
     typeof yamlObj !== 'object' ||

@@ -16,9 +16,11 @@ const STRING_TO_BOOLEAN: Record<string, boolean> = {
   0: false,
 }
 
-/** Parses the provided value as boolean. If it was a boolean value, it is left intact. If it was
+/**
+ * Parses the provided value as boolean. If it was a boolean value, it is left intact. If it was
  * a string 'true', 'false', '1', or '0', it is converted to a boolean value. Otherwise, null is
- * returned. */
+ * returned.
+ */
 function parseBoolean(value: unknown): boolean | null {
   return (
     typeof value === 'boolean' ? value
@@ -107,6 +109,7 @@ function loadGroup<T>(group: T): Group<T> {
   } satisfies Group<RawGroup> as any
 }
 
+/** TODO: Add docs */
 export function loadConfig<T>(config: T): Config<T> {
   if (typeof config !== 'object' || config == null) {
     return { options: {}, groups: {} } satisfies Config as any
@@ -123,12 +126,14 @@ export function loadConfig<T>(config: T): Config<T> {
   } satisfies Config as any
 }
 
+/** TODO: Add docs */
 export function optionValue<T extends Option<any>>(option: T): OptionValue<T> {
   return option.value as any
 }
 
 export type GroupValue<T extends Group<any> = Group> = ConfigValue<T>
 
+/** TODO: Add docs */
 export function groupValue<T extends Group<any>>(group: T): GroupValue<T> {
   return configValue(group)
 }
@@ -144,6 +149,7 @@ type ConfigGroupValues<T extends Config> = {
 export type ConfigValue<T extends Config<any> = Config> = ConfigOptionValues<T> &
   ConfigGroupValues<T>
 
+/** TODO: Add docs */
 export function configValue<T extends Config<any>>(config: T): ConfigValue<T> {
   return Object.fromEntries([
     ...Object.entries(config.options).map(([k, v]) => [k, optionValue(v as Option)]),
@@ -188,6 +194,7 @@ function mergeGroup<T extends Group<any>>(group: T, other: unknown, options: Mer
   return { ...newGroup, description: group.description }
 }
 
+/** TODO: Add docs */
 export function mergeConfig<T extends Config<any>>(
   config: T,
   other: StringConfig,

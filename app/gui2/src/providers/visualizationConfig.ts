@@ -36,6 +36,7 @@ const { provideFn, injectFn } = createContextStore(
 // The visualization config public API should not expose the `allowMissing` parameter. It should
 // look like an ordinary vue composable.
 
+/** TODO: Add docs */
 export function useVisualizationConfig() {
   return injectFn()
 }

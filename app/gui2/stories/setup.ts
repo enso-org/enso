@@ -19,6 +19,7 @@ import './story.css'
 const mockProjectId = random.uuidv4() as Uuid
 const standardBase = 'Standard.Base' as QualifiedName
 
+/** TODO: Add docs */
 export function placeholderGroups(): LibraryComponentGroup[] {
   return [
     { color: '#4D9A29', name: 'Input', library: standardBase, exports: [] },

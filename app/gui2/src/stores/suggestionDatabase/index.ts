@@ -17,6 +17,15 @@ import type { MethodPointer } from 'ydoc-shared/languageServerTypes'
 import * as lsTypes from 'ydoc-shared/languageServerTypes/suggestions'
 import { exponentialBackoff } from 'ydoc-shared/util/net'
 
+/**
+ * Suggestion Database.
+ *
+ * The entries are retrieved (and updated) from engine throug Language Server API. They represent
+ * all entities available in current project (from the project and all imported libraries).
+ *
+ * It is used for code completion/component browser suggestions (thence the name), but also for
+ * retrieving information about method/function in widgets, and many more.
+ */
 export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
   nameToId = new ReactiveIndex(this, (id, entry) => [[entryQn(entry), id]])
   childIdToParentId = new ReactiveIndex(this, (id, entry) => {
@@ -29,6 +38,7 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
   })
   conflictingNames = new ReactiveIndex(this, (id, entry) => [[entry.name, id]])
 
+  /** Get entry by its fully qualified name */
   getEntryByQualifiedName(name: QualifiedName): SuggestionEntry | undefined {
     const [id] = this.nameToId.lookup(name)
     if (id) {
@@ -36,6 +46,10 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
     }
   }
 
+  /**
+   * Get entry of method/function by MethodPointer structure (received through expression
+   * updates.
+   */
   findByMethodPointer(method: MethodPointer): SuggestionId | undefined {
     if (method == null) return
     const moduleName = tryQualifiedName(method.definedOnType)
@@ -47,6 +61,12 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
   }
 }
 
+/**
+ * Component Group.
+ *
+ * These are groups displayed in the Component Browser. Also, nodes being a call to method from
+ * given group will inherit its color.
+ */
 export interface Group {
   color?: string
   name: string
@@ -149,6 +169,7 @@ class Synchronizer {
   }
 }
 
+/** {@link useSuggestionDbStore} composable object */
 export type SuggestionDbStore = ReturnType<typeof useSuggestionDbStore>
 export const { provideFn: provideSuggestionDbStore, injectFn: useSuggestionDbStore } =
   createContextStore('suggestionDatabase', (projectStore: ProjectStore) => {
