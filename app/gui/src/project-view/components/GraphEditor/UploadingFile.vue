@@ -8,7 +8,7 @@ const props = defineProps<{
 }>()
 
 const transform = computed(() => {
-  let pos = props.file.position
+  const pos = props.file.position
   return `translate(${pos.x}px, ${pos.y}px)`
 })
 

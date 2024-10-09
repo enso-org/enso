@@ -270,14 +270,17 @@ const interactionBindingsHandler = interactionBindings.handler({
   cancel: () => interaction.handleCancel(),
 })
 
-useEvent(window, 'keydown', (event) => {
-  interactionBindingsHandler(event) ||
+useEvent(
+  window,
+  'keydown',
+  (event) =>
+    interactionBindingsHandler(event) ||
     (!keyboardBusyExceptIn(documentationEditorArea.value) && undoBindingsHandler(event)) ||
     (!keyboardBusy() && graphBindingsHandler(event)) ||
     (!keyboardBusyExceptIn(codeEditorArea.value) && codeEditorHandler(event)) ||
     (!keyboardBusyExceptIn(documentationEditorArea.value) && documentationEditorHandler(event)) ||
-    (!keyboardBusy() && graphNavigator.keyboardEvents.keydown(event))
-})
+    (!keyboardBusy() && graphNavigator.keyboardEvents.keydown(event)),
+)
 
 useEvent(window, 'pointerdown', (e) => interaction.handlePointerEvent(e, 'pointerdown'), {
   capture: true,
@@ -695,7 +698,7 @@ const showColorPicker = ref(false)
 
 const groupColors = computed(() => {
   const styles: { [key: string]: string } = {}
-  for (let group of suggestionDb.groups) {
+  for (const group of suggestionDb.groups) {
     styles[groupColorVar(group)] = group.color ?? colorFromString(group.name)
   }
   return styles

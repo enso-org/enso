@@ -42,7 +42,7 @@ test('MyMap with number[] keys', () => {
 })
 
 test('MappedSet', () => {
-  const set = new MappedSet<Object>(JSON.stringify)
+  const set = new MappedSet<object>(JSON.stringify)
 
   const key1 = { a: 1 }
   const key2 = { a: 2 }

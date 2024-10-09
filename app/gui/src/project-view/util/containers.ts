@@ -73,7 +73,7 @@ export class MappedKeyMap<Key, Value> {
  *
  * @template T The type of the values.
  */
-export class MappedSet<T extends Object> {
+export class MappedSet<T extends object> {
   /** The inner set that stores the keys. */
   private readonly set: Map<any, T>
 

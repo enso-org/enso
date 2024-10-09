@@ -393,6 +393,8 @@ export class ArgumentApplication {
   }
 
   *iterApplications(): IterableIterator<ArgumentApplication> {
+    // This is not an alias, as it's an iteration variable.
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     let current: typeof this.target = this
     while (current instanceof ArgumentApplication) {
       yield current

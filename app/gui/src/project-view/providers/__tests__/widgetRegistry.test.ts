@@ -102,7 +102,7 @@ describe('WidgetRegistry', () => {
       { input: someAst, nesting: 0 },
       new Set([widgetA.default, widgetC.default]),
     )
-    expect(selected).to.be.undefined
+    expect(selected).toBeUndefined()
   })
 
   test('prefers low priority perfect over good high priority', () => {

@@ -81,10 +81,10 @@ watch(selectedPosition, (newPos) => {
 })
 
 const highlightClipPath = computed(() => {
-  let height = animatedHighlightHeight.value
-  let position = animatedHighlightPosition.value
-  let top = position + ITEM_SIZE - height
-  let bottom = listContentHeight.value - position - ITEM_SIZE
+  const height = animatedHighlightHeight.value
+  const position = animatedHighlightPosition.value
+  const top = position + ITEM_SIZE - height
+  const bottom = listContentHeight.value - position - ITEM_SIZE
   return `inset(${top}px 0px ${bottom}px 0px round 16px)`
 })
 

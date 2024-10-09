@@ -223,7 +223,7 @@ export async function compile(path: string, projectRoot: Opt<Uuid>, data: DataSe
               // Required for 'compilation-result-response' handler above.
               moduleCache[event.data.path] = module
               moduleCache[event.data.path] = await module
-            } catch (e) {
+            } catch {
               delete moduleCache[event.data.path]
               // No error handling - the same Promise is awaited elsewhere.
             }

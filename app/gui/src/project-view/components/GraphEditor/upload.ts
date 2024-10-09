@@ -98,27 +98,24 @@ export class Uploader {
       stackItem: this.stackItem,
     })
     const remotePath: Path = { rootId: this.projectRootId, segments: [DATA_DIR_NAME, name.value] }
-    const uploader = this
     const cleanup = this.cleanup.bind(this, name.value)
     const writableStream = new WritableStream<Uint8Array>({
-      async write(chunk: Uint8Array) {
-        await uploader.binary.writeBytes(remotePath, uploader.uploadedBytes, false, chunk)
-        uploader.checksum.update(chunk)
-        uploader.uploadedBytes += BigInt(chunk.length)
-        const bytes = Number(uploader.uploadedBytes)
-        const sizePercentage = Math.round((bytes / uploader.file.size) * 100)
-        uploader.awareness.addOrUpdateUpload(name.value, {
+      write: async (chunk: Uint8Array) => {
+        await this.binary.writeBytes(remotePath, this.uploadedBytes, false, chunk)
+        this.checksum.update(chunk)
+        this.uploadedBytes += BigInt(chunk.length)
+        const bytes = Number(this.uploadedBytes)
+        const sizePercentage = Math.round((bytes / this.file.size) * 100)
+        this.awareness.addOrUpdateUpload(name.value, {
           sizePercentage,
-          position: uploader.position,
-          stackItem: uploader.stackItem,
+          position: this.position,
+          stackItem: this.stackItem,
         })
       },
-      async close() {
+      close: cleanup,
+      abort: async (reason: string) => {
         cleanup()
-      },
-      async abort(reason: string) {
-        cleanup()
-        await uploader.rpc.deleteFile(remotePath)
+        await this.rpc.deleteFile(remotePath)
         throw new Error(`Uploading process aborted. ${reason}`)
       },
     })

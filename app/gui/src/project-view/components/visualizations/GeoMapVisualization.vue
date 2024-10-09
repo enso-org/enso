@@ -83,7 +83,7 @@ interface DataFrame {
   df_label?: string[]
 }
 
-declare var deck: typeof import('deck.gl')
+declare const deck: typeof import('deck.gl')
 </script>
 
 <script setup lang="ts">
@@ -266,9 +266,9 @@ function updateDeckGl() {
     return
   }
   deckgl_.viewState = viewState.value
-  // @ts-expect-error
+  // @ts-expect-error TODO[ao]: linter need explanation. Perhaps some DeckGL problems, but @somebody1234 should know the answer.
   deckgl_.mapStyle = mapStyle.value
-  // @ts-expect-error
+  // @ts-expect-error TODO[ao]: linter need explanation. Perhaps some DeckGL problems, but @somebody1234 should know the answer.
   deckgl_.controller = controller.value
 }
 

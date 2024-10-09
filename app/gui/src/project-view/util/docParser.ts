@@ -1,7 +1,7 @@
-import { parse_doc_to_json } from 'ydoc-shared/ast/ffi'
+import { parse_doc_to_json as parseDocToJson } from 'ydoc-shared/ast/ffi'
 
 export function parseDocs(docs: string): Doc.Section[] {
-  const json = parse_doc_to_json(docs)
+  const json = parseDocToJson(docs)
   return JSON.parse(json)
 }
 
@@ -58,7 +58,7 @@ export namespace Doc {
 
     /** The section that starts with the key followed by the colon and the body. */
     export interface Keyed {
-      key: String
+      key: string
       body: HtmlString
     }
     /** The section that starts with the mark followed by the header and the body. */

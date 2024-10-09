@@ -46,7 +46,7 @@ const displacingWithArrows = useArrows(
 useEvent(window, 'keydown', displacingWithArrows.events.keydown)
 
 const uploadingFiles = computed<[FileName, File][]>(() => {
-  let uploads = [...projectStore.awareness.allUploads()]
+  const uploads = [...projectStore.awareness.allUploads()]
   if (uploads.length == 0) return []
   const currentStackItem = toRaw(projectStore.executionContext.getStackTop())
   return uploads.filter(([, file]) => stackItemsEqual(file.stackItem, currentStackItem))

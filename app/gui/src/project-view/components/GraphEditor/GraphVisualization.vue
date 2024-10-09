@@ -158,7 +158,7 @@ const clientBounds = computed({
   },
 })
 
-let resizing: BoundsSet = {}
+const resizing: BoundsSet = {}
 
 watch(containerContentSize, (newVal, oldVal) => {
   if (!resizing.left) return

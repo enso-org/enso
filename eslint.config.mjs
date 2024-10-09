@@ -225,7 +225,6 @@ export default [
       'no-inner-declarations': 'off',
       'vue/attribute-hyphenation': ['error', 'never'],
       'vue/v-on-event-hyphenation': ['error', 'never'],
-      'vue/max-attributes-per-line': ['warn', { singleline: { max: 4 } }],
       'vue/singleline-html-element-content-newline': 'off',
       '@typescript-eslint/no-unused-vars': [
         'warn',
@@ -234,11 +233,23 @@ export default [
           argsIgnorePattern: '^_',
         },
       ],
+      '@typescript-eslint/no-namespace': 'off',
+      '@typescript-eslint/no-empty-object-type': [
+        'error',
+        { allowInterfaces: 'with-single-extends' },
+      ],
       'no-unused-labels': 'off',
+      camelcase: ['warn', { ignoreDestructuring: true }],
 
       // TODO[ao]; off temporarily
-      'vue/html-self-closing': 'off',
+      'prefer-const': 'off',
+      '@typescript-eslint/no-empty-object-type': 'off',
       '@typescript-eslint/no-explicit-any': 'off',
+      'vue/html-self-closing': 'off',
+      'vue/singleline-html-element-content-newline': 'off',
+      'vue/html-indent': 'off',
+      'vue/html-closing-bracket-newline': 'off',
+      'vue/max-attributes-per-line': ['off', { singleline: { max: 4 } }],
     },
   },
   // {

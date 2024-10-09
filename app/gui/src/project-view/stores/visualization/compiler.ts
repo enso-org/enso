@@ -348,7 +348,7 @@ async function importTS(path: string) {
 async function importVue(path: string) {
   const dir = path.replace(/[^/\\]+$/, '')
   const raw = decoder.decode((await tryFetch(path)).contents)
-  const filename = path.match(/[^/\\]+$/)?.[0]!
+  const filename = path.match(/[^/\\]+$/)![0]!
   const parsed = parse(raw, { filename })
   const id = hash(raw)
   for (const style of parsed.descriptor.styles) {

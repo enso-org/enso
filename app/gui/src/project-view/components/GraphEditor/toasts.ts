@@ -18,8 +18,8 @@ export function useGraphEditorToasts(projectStore: ProjectStore) {
 
   projectStore.lsRpcConnection.client.onError((e) =>
     toastLspError.show(`Language server error: ${e}`),
-  ),
-    projectStore.executionContext.on('executionComplete', () => toastExecutionFailed.dismiss())
+  )
+  projectStore.executionContext.on('executionComplete', () => toastExecutionFailed.dismiss())
   projectStore.executionContext.on('executionFailed', (e) =>
     toastExecutionFailed.show(`Execution Failed: ${JSON.stringify(e)}`),
   )

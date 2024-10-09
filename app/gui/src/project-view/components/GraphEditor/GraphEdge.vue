@@ -128,7 +128,7 @@ const sourceMask = computed<NodeMask | undefined>(() => {
     startsInPort.value ?
       (sourceNode.value && graph.nodeHoverAnimations.get(sourceNode.value)) ?? 0
     : 0
-  let padding = animProgress * VISIBLE_PORT_MASK_PADDING
+  const padding = animProgress * VISIBLE_PORT_MASK_PADDING
   if (!props.maskSource && padding === 0) return
   const rect = nodeRect.expand(padding)
   const radius = 16 + padding
@@ -160,7 +160,7 @@ interface JunctionPoints {
 }
 
 function circleIntersection(x: number, r1: number, r2: number): number {
-  let xNorm = clamp(x, -r2, r1)
+  const xNorm = clamp(x, -r2, r1)
   return Math.sqrt(r1 * r1 + r2 * r2 - xNorm * xNorm)
 }
 
@@ -205,7 +205,7 @@ function circleIntersection(x: number, r1: number, r2: number): number {
  *  connecting them.
  */
 function junctionPoints(inputs: Inputs): JunctionPoints | null {
-  let halfSourceSize = inputs.sourceSize?.scale(0.5) ?? Vec2.Zero
+  const halfSourceSize = inputs.sourceSize?.scale(0.5) ?? Vec2.Zero
   // The maximum x-distance from the source (our local coordinate origin) for the point where the
   // edge will begin.
   const sourceMaxXOffset = Math.max(halfSourceSize.x - theme.node.corner_radius, 0)
@@ -438,7 +438,7 @@ function lengthTo(path: SVGPathElement, pos: Vec2): number {
   assert(best != null && bestDist != null)
   const precisionTarget = 0.5 / (navigator?.scale ?? 1)
   for (let precision = totalLength / 2; precision >= precisionTarget; precision /= 2) {
-    tryPos(best + precision) || tryPos(best - precision)
+    if (!tryPos(best + precision)) tryPos(best - precision)
   }
   return best
 }

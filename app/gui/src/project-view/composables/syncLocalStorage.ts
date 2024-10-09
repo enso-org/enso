@@ -43,7 +43,7 @@ export interface SyncLocalStorageOptions<StoredState> {
  * Synchronize local view state with `localStorage`. Supports saving and restoring multiple unique
  * states based on encoded identity key.
  */
-export function useSyncLocalStorage<StoredState extends Object>(
+export function useSyncLocalStorage<StoredState extends object>(
   options: SyncLocalStorageOptions<StoredState>,
 ) {
   const graphViewportStorageKey = computed(() => xxHash128(encoding.encode(options.mapKeyEncoder)))

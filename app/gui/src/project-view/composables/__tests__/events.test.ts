@@ -99,7 +99,7 @@ test.each`
       }
       await nextTick()
       expectedSequence.push(['start', [0, 0], [0, 0], keydownEvents[0]])
-      expect(arrows.moving.value).toBeTruthy
+      expect(arrows.moving.value).toBeTruthy()
 
       for (let i = 0; i < t.length - 1; ++i) {
         runFrame(t[i]!)

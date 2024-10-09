@@ -184,7 +184,7 @@ function updateSelectionHover(event: PointerEvent | undefined) {
   selectionHoverPos.value = event && eventScenePos(event)
 }
 
-let menuCloseTimeout = ref<ReturnType<typeof setTimeout>>()
+const menuCloseTimeout = ref<ReturnType<typeof setTimeout>>()
 const menuEnabledByHover = ref(false)
 watchEffect(() => {
   if (menuCloseTimeout.value != null) {

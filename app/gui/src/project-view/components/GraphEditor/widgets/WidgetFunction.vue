@@ -176,7 +176,7 @@ function handleArgUpdate(update: WidgetUpdate): boolean {
 
         // Traverse the application chain, starting from the outermost application and going
         // towards the innermost target.
-        for (let innerApp of applications) {
+        for (const innerApp of applications) {
           if (innerApp.appTree.id === argApp.appTree.id) {
             // Found the application with the argument to remove. Skip the argument and use the
             // application target's code. This is the final iteration of the loop.

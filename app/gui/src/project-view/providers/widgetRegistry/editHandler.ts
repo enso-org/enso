@@ -79,6 +79,8 @@ export abstract class WidgetEditHandlerParent {
 
   protected activeLeaf() {
     if (!this.isActive()) return
+    // This is not an alias, because it's a loop var.
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     let handler: WidgetEditHandlerParent = this
     while (handler?.activeChild.value) handler = handler.activeChild.value
     return handler

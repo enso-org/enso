@@ -50,9 +50,7 @@ class CellEditing {
       },
       suspend: () => {
         return {
-          resume: () => {
-            this.editedCell && grid.value?.gridApi?.startEditingCell(this.editedCell)
-          },
+          resume: () => this.editedCell && grid.value?.gridApi?.startEditingCell(this.editedCell),
         }
       },
     })
