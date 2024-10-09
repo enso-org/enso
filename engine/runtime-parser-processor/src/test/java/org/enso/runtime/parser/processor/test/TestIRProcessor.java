@@ -1,5 +1,8 @@
 package org.enso.runtime.parser.processor.test;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+
 import com.google.testing.compile.CompilationSubject;
 import com.google.testing.compile.Compiler;
 import com.google.testing.compile.JavaFileObjects;
@@ -68,5 +71,6 @@ public class TestIRProcessor {
     var compilation = compiler.compile(src);
     CompilationSubject.assertThat(compilation).succeeded();
     CompilationSubject.assertThat(compilation).generatedSourceFile("JNameGen").isNotNull();
+    assertThat("Generated just one source", compilation.generatedSourceFiles().size(), is(1));
   }
 }
