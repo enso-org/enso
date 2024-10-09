@@ -59,6 +59,12 @@ prepare_visualization y max_rows=1000 =
    Column Limit
 max_columns = 250
 
+##PRIVATE
+nothing_count : Column -> Integer
+nothing_count col =
+    filtered_to_nothing = col.to_vector.filter (c-> c==Nothing)
+    filtered_to_nothing.length
+
 ## PRIVATE
    Render Vector to JSON
 make_json_for_vector : Vector -> Integer -> JS_Object
@@ -177,12 +183,13 @@ make_json_for_table dataframe all_rows_count include_index_col =
     get_vector c = Warning.set (c.to_vector.map v-> make_json_for_value v) []
     columns     = dataframe.columns
     header      = ["header", columns.map .name]
+    number_of_nothing = ["number_of_nothing", columns.map c-> nothing_count c]
     value_type  = ["value_type", columns.map .value_type]
     data        = ["data",   columns.map get_vector]
     all_rows    = ["all_rows_count", all_rows_count]
     has_index_col = ["has_index_col", include_index_col]
     links       = ["get_child_node_action", "get_row"]
-    pairs       = [header, value_type, data, all_rows, has_index_col, links, ["type", "Table"]]
+    pairs       = [header, value_type, data, all_rows, has_index_col, links, number_of_nothing ,["type", "Table"]]
     JS_Object.from_pairs pairs
 
 ## PRIVATE
