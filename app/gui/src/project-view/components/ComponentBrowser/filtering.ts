@@ -238,6 +238,7 @@ export class Filtering {
   selfArg?: SelfArg
   currentModule?: QualifiedName
 
+  /** TODO: Add docs */
   constructor(filter: Filter, currentModule: Opt<QualifiedName> = undefined) {
     const { pattern, selfArg } = filter
     if (pattern) {
@@ -253,6 +254,7 @@ export class Filtering {
     else return entry.selfType != null
   }
 
+  /** TODO: Add docs */
   isMainView() {
     return this.pattern == null && this.selfArg == null
   }
@@ -268,6 +270,7 @@ export class Filtering {
     return this.currentModule != null && entry.definedIn === this.currentModule
   }
 
+  /** TODO: Add docs */
   filter(entry: SuggestionEntry): MatchResult | null {
     if (entry.isPrivate || entry.kind != SuggestionKind.Method || entry.memberOf == null)
       return null

@@ -87,6 +87,8 @@ export interface UseFormProps<Schema extends TSchema, SubmitResult = void>
    * Debug name for the form. Use it to identify the form in the tanstack query devtools.
    */
   readonly debugName?: string
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  readonly method?: 'dialog' | (string & {}) | undefined
 }
 
 /**
@@ -131,6 +133,7 @@ export interface UseFormReturn<Schema extends TSchema>
   readonly submit: (event?: FormEvent<HTMLFormElement> | null) => Promise<void>
   readonly schema: Schema
   readonly setFormError: (error: string) => void
+  readonly closeRef: React.MutableRefObject<() => void>
 }
 
 /**

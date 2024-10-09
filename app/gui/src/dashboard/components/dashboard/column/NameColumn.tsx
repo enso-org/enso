@@ -38,7 +38,8 @@ export default function AssetNameColumn(props: AssetNameColumnProps) {
       return <SecretNameColumn {...props} item={item} />
     }
     case backendModule.AssetType.specialLoading:
-    case backendModule.AssetType.specialEmpty: {
+    case backendModule.AssetType.specialEmpty:
+    case backendModule.AssetType.specialError: {
       // Special rows do not display columns at all.
       return <></>
     }

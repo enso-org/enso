@@ -16,9 +16,11 @@ import { Vec2 } from '@/util/data/vec2'
 import { computed, nextTick, onUnmounted, ref, toRef, watch, watchEffect } from 'vue'
 import { visIdentifierEquals, type VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
-/** The minimum width must be at least the total width of:
+/**
+ * The minimum width must be at least the total width of:
  * - both of toolbars that are always visible (32px + 60px), and
- * - the 4px flex gap between the toolbars. */
+ * - the 4px flex gap between the toolbars.
+ */
 const MIN_WIDTH_PX = 200
 const MIN_CONTENT_HEIGHT_PX = 32
 const DEFAULT_CONTENT_HEIGHT_PX = 150

@@ -17,6 +17,7 @@ export interface LexicalPlugin {
   register: (editor: LexicalEditor) => void
 }
 
+/** TODO: Add docs */
 export function lexicalTheme(theme: Record<string, string>): EditorThemeClasses {
   // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   interface EditorThemeShape extends Record<string, EditorThemeShape | string> {}
@@ -42,6 +43,7 @@ export function lexicalTheme(theme: Record<string, string>): EditorThemeClasses 
   return editorClasses
 }
 
+/** TODO: Add docs */
 export function useLexical(
   contentElement: Ref<MaybeElement>,
   namespace: string,

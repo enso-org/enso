@@ -193,7 +193,8 @@ final class ContextRegistry(
             client,
             contextId,
             expressions,
-            environment
+            environment,
+            expressionConfigs
           ) =>
         if (store.hasContext(client.clientId, contextId)) {
           val handler =
@@ -210,7 +211,8 @@ final class ContextRegistry(
             Api.RecomputeContextRequest(
               contextId,
               invalidatedExpressions,
-              environment.map(ExecutionEnvironments.toApi)
+              environment.map(ExecutionEnvironments.toApi),
+              expressionConfigs.map(_.toApi)
             )
           )
         } else {

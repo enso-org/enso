@@ -8,8 +8,10 @@ export interface RangeWithMatch {
   readonly isMatch: boolean
 }
 
-/** Return the included ranges, in addition to the ranges before, between,
- * and after the included ranges. */
+/**
+ * Return the included ranges, in addition to the ranges before, between,
+ * and after the included ranges.
+ */
 export function allRanges(ranges: Range[], end: number): Generator<RangeWithMatch>
 export function allRanges(ranges: Range[], start: number, end: number): Generator<RangeWithMatch>
 export function allRanges(
@@ -17,6 +19,7 @@ export function allRanges(
   startOrEnd: number,
   end?: number,
 ): Generator<RangeWithMatch>
+/** TODO: Add docs */
 export function* allRanges(
   ranges: Range[],
   start: number,
@@ -37,19 +40,24 @@ export function* allRanges(
   }
 }
 
+/** TODO: Add docs */
 export class Range {
+  /** TODO: Add docs */
   constructor(
     readonly start: number,
     readonly end: number,
   ) {}
 
-  /** Create the smallest possible {@link Range} that contains both {@link Range}s.
-   * It is not necessary for the two {@link Range}s to overlap. */
+  /**
+   * Create the smallest possible {@link Range} that contains both {@link Range}s.
+   * It is not necessary for the two {@link Range}s to overlap.
+   */
   merge(other: Range): Range {
     return new Range(Math.min(this.start, other.start), Math.max(this.end, other.end))
   }
 
-  /** Create a new {@link Range} representing *exactly* the sub-ranges that are present in this
+  /**
+   * Create a new {@link Range} representing *exactly* the sub-ranges that are present in this
    * {@link Range} but not the other.
    *
    * Specifically:
@@ -57,7 +65,8 @@ export class Range {
    *   of this {@link Range} that is not overlapped.
    * - If the other {@link Range} is fully within this range, return the two non-overlapped portions
    *   (both left and right) of this {@link Range}.
-   * - If the other {@link Range} fully contains this {@link Range}, return an empty array. */
+   * - If the other {@link Range} fully contains this {@link Range}, return an empty array.
+   */
   exclude(other: Range): Range[] {
     if (this.start < other.start) {
       const before = new Range(this.start, other.start)
@@ -67,14 +76,17 @@ export class Range {
     else return []
   }
 
+  /** TODO: Add docs */
   intersects(other: Range) {
     return this.start < other.end && this.end > other.start
   }
 
+  /** TODO: Add docs */
   expand(by: number) {
     return new Range(this.start - by, this.end + by)
   }
 
+  /** TODO: Add docs */
   shift(offset: number) {
     return new Range(this.start + offset, this.end + offset)
   }
@@ -85,16 +97,19 @@ export class MultiRange {
   // This MUST be readonly, otherwise a consumer may mutate it so that it is no longer sorted or
   // non-intersecting.
   readonly ranges: readonly Range[] = []
+  /** TODO: Add docs */
   constructor() {}
 
   private get _ranges(): Range[] {
     return this.ranges as Range[]
   }
 
+  /** TODO: Add docs */
   clear() {
     this._ranges.splice(0, this._ranges.length)
   }
 
+  /** TODO: Add docs */
   insert(range: Range, effectiveRange = range) {
     const start = partitionPoint(this._ranges, (r) => r.end < effectiveRange.start)
     const end = partitionPoint(this._ranges, (r) => r.start <= effectiveRange.end, start)
@@ -110,6 +125,7 @@ export class MultiRange {
     return this._ranges.splice(start, end - start, finalRange)[0]!
   }
 
+  /** TODO: Add docs */
   remove(range: Range, effectiveRange = range) {
     const start = partitionPoint(this._ranges, (r) => r.end < effectiveRange.start)
     const end = partitionPoint(this._ranges, (r) => r.start <= effectiveRange.end, start)

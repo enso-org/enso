@@ -79,8 +79,10 @@ function convertColorToRgba(color: RGBA) {
   return 'rgba(' + r + ',' + g + ',' + b + ',' + a + ')'
 }
 
-/** Replace the alpha component of a color (represented as a 4-element array),
- * returning a new color. */
+/**
+ * Replace the alpha component of a color (represented as a 4-element array),
+ * returning a new color.
+ */
 function replaceAlpha(color: RGBA, newAlpha: number) {
   return {
     red: color.red,

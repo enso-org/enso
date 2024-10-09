@@ -93,7 +93,8 @@ sealed case class Syntax(
     this
 
   /** @inheritdoc */
-  override val location: Option[IdentifiedLocation] = Option(at)
+  override def identifiedLocation: IdentifiedLocation =
+    at
 
   /** @inheritdoc */
   override def mapExpressions(

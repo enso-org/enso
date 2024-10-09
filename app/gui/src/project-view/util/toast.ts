@@ -15,6 +15,7 @@ export interface UseToastOptions extends ToastOptions {
   outliveScope?: boolean
 }
 
+/** TODO: Add docs */
 export function useToast(options: UseToastOptions = {}) {
   const id = makeToastId()
   if (options?.outliveScope !== true) {

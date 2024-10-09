@@ -41,7 +41,9 @@ const moduleCache: Record<string, unknown> = {
 // anywhere else.
 window.__visualizationModules = moduleCache
 
+/** TODO: Add docs */
 export class InvalidVisualizationModuleError extends TypeError {
+  /** TODO: Add docs */
   constructor(public path: string) {
     super(`The module '${path}' is not a visualization.`)
   }
@@ -54,14 +56,17 @@ const workerCallbacks = new Map<
   { resolve: (result: VisualizationModule) => void; reject: (error: Error) => void }
 >()
 
-/** A map from the path of the module to the code of the module.
- * This is used to prevent duplicated modules, at the cost of increased memory usage. */
+/**
+ * A map from the path of the module to the code of the module.
+ * This is used to prevent duplicated modules, at the cost of increased memory usage.
+ */
 const moduleCode = new Map<string, string>()
 
 function postMessage<T>(worker: Worker, message: T) {
   worker.postMessage(message)
 }
 
+/** TODO: Add docs */
 export async function compile(path: string, projectRoot: Opt<Uuid>, data: DataServer) {
   if (worker == null) {
     const worker_ = (worker = new Compiler())

@@ -161,7 +161,7 @@ trait CompilerTestSetup {
       runtime.Module.empty(QualifiedName.simpleName("Test_Module"), null)
     ModuleTestUtils.unsafeSetIr(
       mod,
-      Module(List(), List(), List(), false, None)
+      Module(List(), List(), List(), false, null)
         .updateMetadata(
           new MetadataPair(
             BindingAnalysis,

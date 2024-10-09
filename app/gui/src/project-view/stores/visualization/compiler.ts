@@ -25,7 +25,8 @@
  *     excluding the style and script compilation steps.
  * - (end `importVue`) An `AddUrlNotification` with path `/Viz.vue` is sent to the main
  *   thread.
- * - A `CompilationResultResponse` with id `1` and path `/Viz.vue` is sent to the main thread. */
+ * - A `CompilationResultResponse` with id `1` and path `/Viz.vue` is sent to the main thread.
+ */
 
 import { assertNever } from '@/util/assert'
 import { parse as babelParse } from '@babel/parser'
@@ -39,14 +40,16 @@ import { compileScript, compileStyle, parse } from 'vue/compiler-sfc'
 // === Requests (Main Thread to Worker) ===
 // ========================================
 
-/** A request to compile a visualization module. The Worker MUST reply with a
+/**
+ * A request to compile a visualization module. The Worker MUST reply with a
  * {@link CompilationResultResponse} when compilation is done, or a {@link CompilationErrorResponse}
  * when compilation fails. The `id` is an arbitrary number that uniquely identifies the request.
  * The `path` is either an absolute URL (`http://doma.in/path/to/TheScript.vue`), or a root-relative
  * URL (`/visualizations/TheScript.vue`). Relative URLs (`./TheScript.vue`) are NOT valid.
  *
  * Note that compiling files other than Vue files (TypeScript, SVG etc.) is currently NOT
- * supported. */
+ * supported.
+ */
 export interface CompileRequest {
   type: 'compile-request'
   id: number
@@ -55,8 +58,10 @@ export interface CompileRequest {
   recompile?: boolean
 }
 
-/** A request to mark modules as built-in, indicating that the compiler should re-write the imports
- * into object destructures. */
+/**
+ * A request to mark modules as built-in, indicating that the compiler should re-write the imports
+ * into object destructures.
+ */
 export interface RegisterBuiltinModulesRequest {
   type: 'register-builtin-modules-request'
   modules: string[]
@@ -68,19 +73,23 @@ export interface RegisterBuiltinModulesRequest {
 
 // These are messages sent in response to a query. They contain the `id` of the original query.
 
-/** Sent in response to a {@link CompileRequest}, with an `id` matching the `id` of the original
+/**
+ * Sent in response to a {@link CompileRequest}, with an `id` matching the `id` of the original
  * request. Contains only the `path` of the resulting file (which should have also been sent in the
  * {@link CompileRequest}).
- * The content itself will have been sent earlier as an {@link AddImportNotification}. */
+ * The content itself will have been sent earlier as an {@link AddImportNotification}.
+ */
 export interface CompilationResultResponse {
   type: 'compilation-result-response'
   id: number
   path: string
 }
 
-/** Sent in response to a {@link CompileRequest}, with an `id` matching the `id` of the original
+/**
+ * Sent in response to a {@link CompileRequest}, with an `id` matching the `id` of the original
  * request. Contains the `path` of the resulting file (which should have also been sent in the
- * {@link CompileRequest}), and the `error` thrown during compilation. */
+ * {@link CompileRequest}), and the `error` thrown during compilation.
+ */
 export interface CompilationErrorResponse {
   type: 'compilation-error-response'
   id: number
@@ -114,8 +123,10 @@ export interface FetchResultWorkerResponse {
 // === Worker Errors (Main Thread to Worker) ===
 // =============================================
 
-/** Sent when fetching a dependency failed. Currently, the worker will forward this back to the
- * main thread as a {@link FetchError}. */
+/**
+ * Sent when fetching a dependency failed. Currently, the worker will forward this back to the
+ * main thread as a {@link FetchError}.
+ */
 export interface FetchWorkerError {
   type: 'fetch-worker-error'
   path: string
@@ -128,30 +139,36 @@ export interface FetchWorkerError {
 
 // These are sent when a subtask successfully completes execution.
 
-/** Sent after compiling `<style>` and `<style scoped>` sections.
- * These should be attached to the DOM - placement does not matter. */
+/**
+ * Sent after compiling `<style>` and `<style scoped>` sections.
+ * These should be attached to the DOM - placement does not matter.
+ */
 export interface AddStyleNotification {
   type: 'add-style-notification'
   path: string
   code: string
 }
 
-/** Currently unused.
+/**
+ * Currently unused.
  *
  * Sent after compiling an import which does not result in a URL.
  *
- * Should be added to the cache using `cache[path] = value`. */
+ * Should be added to the cache using `cache[path] = value`.
+ */
 export interface AddRawImportNotification {
   type: 'add-raw-import-notification'
   path: string
   value: unknown
 }
 
-/** Sent after compiling an import which results in a URL as its default export.
+/**
+ * Sent after compiling an import which results in a URL as its default export.
  * This is usually the case for assets.
  *
  * Should be added to the cache using
- * `cache[path] = { default: URL.createObjectURL(new Blob([value], { type: mimeType })) }`. */
+ * `cache[path] = { default: URL.createObjectURL(new Blob([value], { type: mimeType })) }`.
+ */
 export interface AddURLImportNotification {
   type: 'add-url-import-notification'
   path: string
@@ -159,10 +176,12 @@ export interface AddURLImportNotification {
   value: BlobPart
 }
 
-/** Sent after compiling a JavaScript import.
+/**
+ * Sent after compiling a JavaScript import.
  *
  * Should be added to the cache using
- * `cache[path] = import(URL.createObjectURL(new Blob([code], { type: 'text/javascript' })))`. */
+ * `cache[path] = import(URL.createObjectURL(new Blob([code], { type: 'text/javascript' })))`.
+ */
 export interface AddImportNotification {
   type: 'add-import-notification'
   path: string
@@ -245,7 +264,8 @@ function toError(error: unknown) {
   return error instanceof Error ? error : new Error(String(error))
 }
 
-/** Extract the file extension from a URL. If no extension was found, it returns the empty string.
+/**
+  Extract the file extension from a URL. If no extension was found, it returns the empty string.
  */
 function extractExtension(path: string) {
   return path.match(/(?<=^|[.])[^.]+?(?=[#?]|$)/)?.[0] ?? ''
@@ -296,8 +316,10 @@ const fetchCallbacks = new Map<
   }
 >()
 
-/** Fetch on the main thread. This is useful because the main thread may have custom logic for
- * importing - for example, getting a custom visualization from the project directory. */
+/**
+ * Fetch on the main thread. This is useful because the main thread may have custom logic for
+ * importing - for example, getting a custom visualization from the project directory.
+ */
 function fetchOnMainThread(path: string) {
   return new Promise<FetchResponse>((resolve, reject) => {
     fetchCallbacks.set(path, { resolve, reject })

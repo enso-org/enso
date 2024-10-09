@@ -1,0 +1,60 @@
+from Standard.Base import all
+
+from project.Errors import Unsupported_Database_Operation
+
+## PRIVATE
+type Feature
+    ## PRIVATE
+       select, remove, reorder, and rename columns.
+    Select_Columns
+    ## PRIVATE
+       filter rows in a table.
+    Filter
+    ## PRIVATE
+       aggregate values in a table.
+    Aggregate
+    ## PRIVATE
+       sort rows in a table.
+    Sort
+    ## PRIVATE
+       join tables.
+    Join
+    ## PRIVATE
+       combine the results of two queries.
+    Union
+    ## PRIVATE
+       remove duplicate rows from a table.
+    Distinct
+    ## PRIVATE
+       cleanse text data.
+    Text_Cleanse
+    ## PRIVATE
+       Catch all for tests that haven't yet been categorized correctly or use multiple features.
+    Integration_Tests
+    ## PRIVATE
+       add a row number column to a table.
+    Add_Row_Number
+    ## PRIVATE
+       create a table from a dictionary or vectors.
+    Make_Table_From
+    ## PRIVATE
+       currently blocks getting a DB_Column from a DB_Table, but will soon refine to operations on DB_Column.
+    Column_Operations
+    ## PRIVATE
+       get_row, take, drop, limit
+    Sample
+    ## PRIVATE
+       replace values in a table.
+    Replace
+    ## PRIVATE
+       merge two tables.
+    Merge
+    ## PRIVATE
+       cross join two tables.
+    Cross_Join
+
+    ## PRIVATE
+       Check if a feature is supported by a dialect, and throw an error if it is not.
+    if_supported_else_throw self dialect:Any error_name:Text ~action = 
+        if dialect.is_feature_supported self then action else
+            Error.throw (Unsupported_Database_Operation.Error error_name)

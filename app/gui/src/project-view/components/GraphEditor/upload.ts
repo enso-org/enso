@@ -15,6 +15,7 @@ import { Err, Ok, withContext, type Result } from 'ydoc-shared/util/data/result'
 
 const DATA_DIR_NAME = 'data'
 
+/** @returns the expression for node reading an uploaded file. */
 export function uploadedExpression(result: UploadResult) {
   switch (result.source) {
     case 'Project': {
@@ -28,11 +29,20 @@ export function uploadedExpression(result: UploadResult) {
 
 // === Uploader ===
 
+/** Upload result, containing information about upload destination. */
 export interface UploadResult {
   source: 'FileSystemRoot' | 'Project'
   name: string
 }
 
+/**
+ * Uploader handles the uploading process of a single file to project directory.
+ *
+ * This will upload file chunks using binary protocol, updating information of progress in
+ * {@link Awareness} object. On error, the file will be deleted.
+ *
+ * Checking the checksum is not implemented yet because of https://github.com/enso-org/enso/issues/6691
+ */
 export class Uploader {
   private checksum: Hash<Keccak>
   private uploadedBytes: bigint
@@ -54,6 +64,7 @@ export class Uploader {
     this.stackItem = markRaw(toRaw(stackItem))
   }
 
+  /** Constructor */
   static Create(
     rpc: LanguageServer,
     binary: DataServer,
@@ -78,6 +89,7 @@ export class Uploader {
     )
   }
 
+  /** Start the upload process */
   async upload(): Promise<Result<UploadResult>> {
     // This non-standard property is defined in Electron.
     if (
@@ -192,9 +204,7 @@ export class Uploader {
   }
 }
 
-/**
- * Split filename into stem and (optional) extension.
- */
+/** Split filename into stem and (optional) extension. */
 function splitFilename(fileName: string): { stem: string; extension?: string } {
   const dotIndex = fileName.lastIndexOf('.')
   if (dotIndex !== -1 && dotIndex !== 0) {

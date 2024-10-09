@@ -47,6 +47,7 @@ import type { Diagnostic as LSDiagnostic } from 'ydoc-shared/languageServerTypes
 import { tryGetSoleValue } from 'ydoc-shared/util/data/iterable'
 import type { SourceRangeEdit } from 'ydoc-shared/util/data/text'
 
+/** TODO: Add docs */
 export function lsDiagnosticsToCMDiagnostics(
   source: string,
   diagnostics: LSDiagnostic[],
@@ -171,10 +172,12 @@ class EnsoLanguage extends Language {
 
 const ensoLanguage = new EnsoLanguage()
 
+/** TODO: Add docs */
 export function enso() {
   return new LanguageSupport(ensoLanguage)
 }
 
+/** TODO: Add docs */
 export function hoverTooltip(
   create: (
     ast: AstNode,
@@ -198,6 +201,7 @@ export function hoverTooltip(
   })
 }
 
+/** TODO: Add docs */
 export function textEditToChangeSpec({ range: [from, to], insert }: SourceRangeEdit): ChangeSpec {
   return { from, to, insert }
 }

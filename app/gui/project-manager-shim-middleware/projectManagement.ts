@@ -1,4 +1,5 @@
-/** @file This module contains functions for importing projects into the Project Manager.
+/**
+ * @file This module contains functions for importing projects into the Project Manager.
  *
  * Eventually this module should be replaced with a new Project Manager API that supports
  * importing projects.
@@ -6,7 +7,8 @@
  * - if the project is already in the Project Manager's location, we just open it;
  * - if the project is in a different location, we copy it to the Project Manager's location
  * and open it.
- * - if the project is a bundle, we extract it to the Project Manager's location and open it. */
+ * - if the project is a bundle, we extract it to the Project Manager's location and open it.
+ */
 import * as crypto from 'node:crypto'
 import * as fs from 'node:fs'
 import * as os from 'node:os'
@@ -64,8 +66,10 @@ export async function uploadBundle(
 
 /** The Project Manager's metadata associated with a project. */
 interface ProjectMetadata {
-  /** The ID of the project. It is only used in communication with project manager;
-   * it has no semantic meaning. */
+  /**
+   * The ID of the project. It is only used in communication with project manager;
+   * it has no semantic meaning.
+   */
   readonly id: string
   /** The project variant. This is currently always `UserProject`. */
   readonly kind: 'UserProject'
@@ -75,14 +79,16 @@ interface ProjectMetadata {
   readonly lastOpened: string
 }
 
-/** A type guard function to check if an object conforms to the {@link ProjectMetadata} interface.
+/**
+ * A type guard function to check if an object conforms to the {@link ProjectMetadata} interface.
  *
  * This function checks if the input object has the required properties and correct types
  * to match the {@link ProjectMetadata} interface. It can be used at runtime to validate that
  * a given object has the expected shape.
  * @param value - The object to check against the ProjectMetadata interface.
  * @returns A boolean value indicating whether the object matches
- * the {@link ProjectMetadata} interface. */
+ * the {@link ProjectMetadata} interface.
+ */
 function isProjectMetadata(value: unknown): value is ProjectMetadata {
   return typeof value === 'object' && value != null && 'id' in value && typeof value.id === 'string'
 }
@@ -132,10 +138,12 @@ function writeMetadata(projectRoot: string, metadata: ProjectMetadata): void {
   fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 4))
 }
 
-/** Update the project's metadata.
+/**
+ * Update the project's metadata.
  * If the provided updater does not return anything, the metadata file is left intact.
  *
- * Returns the metadata returned from the updater function. */
+ * Returns the metadata returned from the updater function.
+ */
 function updateMetadata(
   projectRoot: string,
   updater: (initialMetadata: ProjectMetadata) => ProjectMetadata,
@@ -150,8 +158,10 @@ function updateMetadata(
 // === Project Directory ===
 // =========================
 
-/** Check if the given path represents the root of an Enso project.
- * This is decided by the presence of the Project Manager's metadata. */
+/**
+ * Check if the given path represents the root of an Enso project.
+ * This is decided by the presence of the Project Manager's metadata.
+ */
 function isProjectRoot(candidatePath: string): boolean {
   const projectJsonPath = pathModule.join(candidatePath, PROJECT_METADATA_RELATIVE_PATH)
   try {
@@ -162,13 +172,15 @@ function isProjectRoot(candidatePath: string): boolean {
   }
 }
 
-/** Generate a name for a project using given base string. A suffix is added if there is a
+/**
+ * Generate a name for a project using given base string. A suffix is added if there is a
  * collision.
  *
  * For example `Name` will become `Name_1` if there's already a directory named `Name`.
  * If given a name like `Name_1` it will become `Name_2` if there is already a directory named
  * `Name_1`. If a path containing multiple components is given, only the last component is used
- * for the name. */
+ * for the name.
+ */
 function generateDirectoryName(name: string, directory = getProjectsDirectory()): string {
   // Use only the last path component.
   name = pathModule.parse(name).name
@@ -198,8 +210,10 @@ function generateDirectoryName(name: string, directory = getProjectsDirectory())
   return finalPath
 }
 
-/** Take a path to a file, presumably located in a project's subtree.Returns the path
- * to the project's root directory or `null` if the file is not located in a project. */
+/**
+ * Take a path to a file, presumably located in a project's subtree.Returns the path
+ * to the project's root directory or `null` if the file is not located in a project.
+ */
 export function getProjectRoot(subtreePath: string): string | null {
   let currentPath = subtreePath
   while (!isProjectRoot(currentPath)) {

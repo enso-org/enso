@@ -781,10 +781,12 @@ useEvent(document, 'auxclick', endBrushing)
 useEvent(document, 'contextmenu', endBrushing)
 useEvent(document, 'scroll', endBrushing)
 
-/** Zoom into the selected area of the plot.
+/**
+ * Zoom into the selected area of the plot.
  *
  * Based on https://www.d3-graph-gallery.com/graph/interactivity_brush.html
- * Section "Brushing for zooming". */
+ * Section "Brushing for zooming".
+ */
 function zoomToSelected(override?: boolean) {
   shouldAnimate.value = true
   focus.value = undefined

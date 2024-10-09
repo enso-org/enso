@@ -1,6 +1,8 @@
-/** @file ⚠️⚠️⚠️ THIS SCRIPT IS PROVIDED ONLY FOR CONVENIENCE. ⚠️⚠️⚠️
+/**
+ * @file ⚠️⚠️⚠️ THIS SCRIPT IS PROVIDED ONLY FOR CONVENIENCE. ⚠️⚠️⚠️
  * The sources of truth are at `build/build/src/project/gui.rs` and
- * `build/build/src/ide/web/fonts.rs`. */
+ * `build/build/src/ide/web/fonts.rs`.
+ */
 
 import * as fsSync from 'node:fs'
 import * as fs from 'node:fs/promises'
@@ -23,8 +25,10 @@ const MPLUS1_FONT_URL =
 const DEJAVU_SANS_MONO_FONT_URL =
   'https://sourceforge.net/projects/dejavu/files/dejavu/2.37/dejavu-fonts-ttf-2.37.tar.bz2'
 
-/** @param {string | https.RequestOptions | URL} options
- * @param {((res: import('node:http').IncomingMessage) => void) | undefined} [callback] */
+/**
+ * @param {string | https.RequestOptions | URL} options
+ * @param {((res: import('node:http').IncomingMessage) => void) | undefined} [callback]
+ */
 function get(options, callback) {
   const protocol =
     typeof options === 'string' ? new URL(options).protocol : options.protocol ?? 'https:'

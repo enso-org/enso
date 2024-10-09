@@ -242,6 +242,36 @@ export default [
       'vue/multi-word-component-names': 0,
     },
   },
+  // JsDoc lints for typescript - the recommended set with some modifications.
+  {
+    ignores: ['**/*.js'],
+    ...jsdoc.configs['flat/recommended-typescript'],
+    rules: {
+      ...jsdoc.configs['flat/recommended-typescript'].rules,
+      'jsdoc/check-param-names': [
+        'warn',
+        { checkDestructured: false, disableMissingParamChecks: true },
+      ],
+      'jsdoc/require-jsdoc': [
+        'warn',
+        {
+          publicOnly: true,
+          require: {
+            FunctionDeclaration: true,
+            MethodDefinition: true,
+            ClassDeclaration: true,
+            ArrowFunctionExpression: false,
+            FunctionExpression: true,
+          },
+        },
+      ],
+      'jsdoc/require-param': 'off',
+      'jsdoc/require-returns': 'off',
+      'jsdoc/require-yields': 'off',
+    },
+  },
+
+  // === Dashboard Rules ===
   {
     files: [
       'app/gui/src/dashboard/**/*.ts',

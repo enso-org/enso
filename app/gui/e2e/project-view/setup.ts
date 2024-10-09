@@ -9,6 +9,11 @@ import {
   type UTCDateTime,
 } from './projectManager'
 
+/**
+ * Setup for all E2E tests.
+ *
+ * It runs mocked project manager server.
+ */
 export default function setup() {
   const pm = new Server({
     transportConfigs: [

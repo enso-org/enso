@@ -12,6 +12,7 @@ function getTypesFromUnion(inputType: Opt<string>) {
 declare const visualizationIdBrand: unique symbol
 export type VisualizationId = string & { [visualizationIdBrand]: never }
 
+/** TODO: Add docs */
 export function toVisualizationId(meta: VisualizationIdentifier) {
   return JSON.stringify({
     // All fields MUST be explicitly written so that the order is consistent.
@@ -23,10 +24,12 @@ export function toVisualizationId(meta: VisualizationIdentifier) {
   }) as VisualizationId
 }
 
+/** TODO: Add docs */
 export function fromVisualizationId(key: VisualizationId): VisualizationIdentifier {
   return JSON.parse(key)
 }
 
+/** TODO: Add docs */
 export class VisualizationMetadataDb extends ReactiveDb<VisualizationId, VisualizationMetadata> {
   visualizationIdToType = new ReactiveIndex(this, (key, metadata) =>
     getTypesFromUnion(metadata.inputType).map((type) => [key, type]),

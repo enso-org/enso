@@ -3,6 +3,7 @@ from Standard.Base import all
 from Standard.Table import all
 
 import Standard.Database.DB_Column.DB_Column
+import Standard.Database.Feature.Feature
 
 from Standard.Test import Test
 import Standard.Test.Extensions
@@ -18,6 +19,9 @@ type Lazy_Ref
     Value ~get
 
 add_specs suite_builder setup =
+    if setup.is_feature_supported Feature.Sort then (add_nothing_specs suite_builder setup)
+    
+add_nothing_specs suite_builder setup =
     prefix = setup.prefix
 
     # We cannot create a column of Nothing/NULL in the database without casting it to a non-mixed type.

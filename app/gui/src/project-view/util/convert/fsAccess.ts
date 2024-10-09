@@ -7,6 +7,9 @@ function arrayIsSame(a: unknown[], b: unknown) {
   return Array.isArray(b) && a.length === b.length && a.every((item, i) => b[i] === item)
 }
 
+/**
+ * TODO: add docs here.
+ */
 export function mockFsFileHandle(
   contents: string | ArrayBuffer,
   name: string,
@@ -39,6 +42,7 @@ export function mockFsFileHandle(
   }
 }
 
+/** TODO: Add docs */
 export function mockFsDirectoryHandle(
   tree: FileTree,
   name: string,

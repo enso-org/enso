@@ -29,7 +29,7 @@ import type { Opt } from 'ydoc-shared/util/data/opt'
 import type { Result } from 'ydoc-shared/util/data/result'
 import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
-// Used for testing.
+/** Used for testing. */
 export type RawDataSource = { type: 'raw'; data: any }
 
 export interface UseVisualizationDataOptions {
@@ -38,6 +38,14 @@ export interface UseVisualizationDataOptions {
   dataSource: ToValue<VisualizationDataSource | RawDataSource | undefined>
 }
 
+/**
+ * Visualization data composable for Visualization component.
+ *
+ * This composable manages picking the proper visualization component, attaching engine's
+ * visualization to get input data, and updating the preprocessor if requested.
+ *
+ * TODO[ao]: Docs about returned refs and functions.
+ */
 export function useVisualizationData({
   selectedVis,
   dataSource,

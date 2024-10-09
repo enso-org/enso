@@ -368,8 +368,10 @@ function zoomed(event: d3.D3ZoomEvent<Element, unknown>) {
   }
 }
 
-/** Return the zoom value computed from the initial right-mouse-button event to the current
- * right-mouse event. */
+/**
+ * Return the zoom value computed from the initial right-mouse-button event to the current
+ * right-mouse event.
+ */
 function rmbZoomValue(event: MouseEvent | WheelEvent | undefined) {
   const dX = (event?.clientX ?? 0) - startClientX
   const dY = (event?.clientY ?? 0) - startClientY
@@ -521,10 +523,12 @@ function endBrushing() {
   d3Brush.value.call(brush.value.move, null)
 }
 
-/** Zoom into the selected area of the plot.
+/**
+ * Zoom into the selected area of the plot.
  *
  * Based on https://www.d3-graph-gallery.com/graph/interactivity_brush.html
- * Section "Brushing for zooming". */
+ * Section "Brushing for zooming".
+ */
 function zoomToSelected(override?: boolean) {
   const shouldZoomToSelected = override ?? isBrushing.value
   if (!shouldZoomToSelected) {

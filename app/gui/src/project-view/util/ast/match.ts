@@ -2,6 +2,7 @@ import { assert, assertDefined } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { zipLongest } from '@/util/data/iterable'
 
+/** TODO: Add docs */
 export class Pattern {
   private readonly template: Ast.Ast
   private readonly placeholders: Ast.AstId[]
@@ -13,13 +14,16 @@ export class Pattern {
     this.placeholder = placeholder
   }
 
-  /** Parse an expression template in which a specified identifier (by default `__`)
-   *  may match any arbitrary subtree. */
+  /**
+   * Parse an expression template in which a specified identifier (by default `__`)
+   *  may match any arbitrary subtree.
+   */
   static parse(template: string, placeholder: string = '__'): Pattern {
     const ast = Ast.parse(template)
     return new Pattern(ast, placeholder)
   }
 
+  /** TODO: Add docs */
   static new(f: (placeholder: Ast.Owned) => Ast.Owned, placeholder: string = '__'): Pattern {
     assert(Ast.isIdentifier(placeholder))
     const module = Ast.MutableModule.Transient()
@@ -55,6 +59,7 @@ export class Pattern {
     return template
   }
 
+  /** TODO: Add docs */
   instantiateCopied(subtrees: Ast.Ast[], edit?: Ast.MutableModule): Ast.Owned {
     const module = edit ?? Ast.MutableModule.Transient()
     return this.instantiate(
@@ -63,6 +68,7 @@ export class Pattern {
     )
   }
 
+  /** TODO: Add docs */
   compose(f: (pattern: Ast.Owned) => Ast.Owned): Pattern {
     const module = Ast.MutableModule.Transient()
     return new Pattern(f(module.copy(this.template)), this.placeholder)

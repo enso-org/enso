@@ -105,7 +105,7 @@ public class ExecutionEnvironment {
       case DESIGN_ENVIRONMENT_NAME:
         return DESIGN;
       default:
-        throw new RuntimeException("Unsupported Execution Environment `" + name + "`");
+        throw new IllegalArgumentException("Unsupported Execution Environment `" + name + "`");
     }
   }
 }

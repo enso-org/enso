@@ -5,7 +5,8 @@ import { computed, shallowRef, toValue } from 'vue'
 
 const SYNC_TAG = 'ENSO_SYNC'
 
-/** Enables two-way synchronization between the editor and a string model `content`.
+/**
+ * Enables two-way synchronization between the editor and a string model `content`.
  *
  * By default, the editor's text contents are synchronized with the string. A content getter and setter may be provided
  * to synchronize a different view of the state, e.g. to transform to an encoding that keeps rich text information.
@@ -20,6 +21,7 @@ export function useLexicalStringSync(
   })
 }
 
+/** TODO: Add docs */
 export function useLexicalSync<T>(
   editor: LexicalEditor,
   $read: () => T,
@@ -49,10 +51,12 @@ export function useLexicalSync<T>(
   }
 }
 
+/** TODO: Add docs */
 export function $getRootText() {
   return $getRoot().getTextContent()
 }
 
+/** TODO: Add docs */
 export function $setRootText(text: string) {
   const root = $getRoot()
   root.clear()

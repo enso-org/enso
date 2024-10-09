@@ -226,7 +226,6 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'modifiers-macos': 'var(--modifiers-macos-gap)',
         'side-panel': 'var(--side-panel-gap)',
         'side-panel-section': 'var(--side-panel-section-gap)',
-        'json-schema': 'var(--json-schema-gap)',
         'asset-search-bar': 'var(--asset-search-bar-gap)',
         'drive-bar': 'var(--drive-bar-gap)',
         'column-items': 'var(--column-items-gap)',
@@ -343,7 +342,8 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
       },
       zIndex: {
         1: '1',
-        tooltip: '2',
+        spotlight: '2',
+        tooltip: '3',
       },
       backdropBlur: {
         xs: '2px',

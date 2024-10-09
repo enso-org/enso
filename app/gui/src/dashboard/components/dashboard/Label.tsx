@@ -1,24 +1,20 @@
 /** @file An label that can be applied to an asset. */
-import * as React from 'react'
+import type { DragEvent, MouseEvent, PropsWithChildren } from 'react'
 
-import * as focusHooks from '#/hooks/focusHooks'
-
-import * as focusDirectionProvider from '#/providers/FocusDirectionProvider'
-
-import type * as aria from '#/components/aria'
-import * as ariaComponents from '#/components/AriaComponents'
+import type { PressEvent } from '#/components/aria'
+import { Text } from '#/components/AriaComponents'
 import FocusRing from '#/components/styled/FocusRing'
-
-import * as backend from '#/services/Backend'
-
-import * as tailwindMerge from '#/utilities/tailwindMerge'
+import { useHandleFocusMove } from '#/hooks/focusHooks'
+import { useFocusDirection } from '#/providers/FocusDirectionProvider'
+import { lChColorToCssColor, type LChColor } from '#/services/Backend'
+import { twMerge } from '#/utilities/tailwindMerge'
 
 // =============
 // === Label ===
 // =============
 
 /** Props for a {@link Label}. */
-interface InternalLabelProps extends Readonly<React.PropsWithChildren> {
+interface InternalLabelProps extends Readonly<PropsWithChildren> {
   readonly 'data-testid'?: string
   /** When true, the button is not faded out even when not hovered. */
   readonly active?: boolean
@@ -28,38 +24,27 @@ interface InternalLabelProps extends Readonly<React.PropsWithChildren> {
   /** When true, the button cannot be clicked. */
   readonly isDisabled?: boolean
   readonly draggable?: boolean
-  readonly color: backend.LChColor
+  readonly color: LChColor
   readonly title?: string
-  readonly className?: string
-  readonly onPress: (event: aria.PressEvent | React.MouseEvent<HTMLButtonElement>) => void
-  readonly onContextMenu?: (event: React.MouseEvent<HTMLElement>) => void
-  readonly onDragStart?: (event: React.DragEvent<HTMLElement>) => void
+  readonly onPress: (event: MouseEvent<HTMLButtonElement> | PressEvent) => void
+  readonly onContextMenu?: (event: MouseEvent<HTMLElement>) => void
+  readonly onDragStart?: (event: DragEvent<HTMLElement>) => void
 }
 
 /** An label that can be applied to an asset. */
 export default function Label(props: InternalLabelProps) {
   const { active = false, isDisabled = false, color, negated = false, draggable, title } = props
-  const { className = 'text-tag-text', onPress, onDragStart, onContextMenu } = props
+  const { onPress, onDragStart, onContextMenu } = props
   const { children: childrenRaw } = props
-  const focusDirection = focusDirectionProvider.useFocusDirection()
-  const handleFocusMove = focusHooks.useHandleFocusMove(focusDirection)
-  const textClass =
-    /\btext-/.test(className) ?
-      '' // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-    : color.lightness <= 50 ? 'text-tag-text'
-    : 'text-primary'
-
-  const children =
-    typeof childrenRaw !== 'string' ? childrenRaw : (
-      <ariaComponents.Text truncate="1" className="max-w-24" color="invert" variant="body">
-        {childrenRaw}
-      </ariaComponents.Text>
-    )
+  const focusDirection = useFocusDirection()
+  const handleFocusMove = useHandleFocusMove(focusDirection)
+  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+  const isLight = color.lightness > 50
 
   return (
     <FocusRing within placement="after">
       <div
-        className={tailwindMerge.twMerge(
+        className={twMerge(
           'relative rounded-full after:pointer-events-none after:absolute after:inset after:rounded-inherit',
           negated && 'after:!outline-offset-0',
         )}
@@ -72,14 +57,12 @@ export default function Label(props: InternalLabelProps) {
           draggable={draggable}
           title={title}
           disabled={isDisabled}
-          className={tailwindMerge.twMerge(
-            'focus-child relative flex items-center whitespace-nowrap rounded-inherit px-[7px] opacity-75 transition-all after:pointer-events-none after:absolute after:inset after:rounded-full hover:opacity-100 focus:opacity-100',
+          className={twMerge(
+            'focus-child relative flex h-6 items-center whitespace-nowrap rounded-inherit px-[7px] opacity-75 transition-all after:pointer-events-none after:absolute after:inset after:rounded-full hover:opacity-100 focus:opacity-100',
             active && 'active',
             negated && 'after:border-2 after:border-delete',
-            className,
-            textClass,
           )}
-          style={{ backgroundColor: backend.lChColorToCssColor(color) }}
+          style={{ backgroundColor: lChColorToCssColor(color) }}
           onClick={(event) => {
             event.stopPropagation()
             onPress(event)
@@ -90,7 +73,17 @@ export default function Label(props: InternalLabelProps) {
           onContextMenu={onContextMenu}
           onKeyDown={handleFocusMove}
         >
-          {children}
+          {typeof childrenRaw !== 'string' ?
+            childrenRaw
+          : <Text
+              truncate="1"
+              className="max-w-24"
+              color={isLight ? 'primary' : 'invert'}
+              variant="body"
+            >
+              {childrenRaw}
+            </Text>
+          }
         </button>
       </div>
     </FocusRing>

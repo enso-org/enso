@@ -614,7 +614,7 @@ case object AliasAnalysis extends IRPass {
           }
           arg
             .copy(
-              ascribedType = Some(Redefined.Arg(name, arg.location))
+              ascribedType = Some(Redefined.Arg(name, arg.identifiedLocation))
             )
             .updateMetadata(
               new MetadataPair(

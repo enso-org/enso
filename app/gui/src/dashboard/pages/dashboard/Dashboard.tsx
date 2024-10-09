@@ -7,8 +7,8 @@ import * as z from 'zod'
 import * as detect from 'enso-common/src/detect'
 
 import DriveIcon from '#/assets/drive.svg'
-import EditorIcon from '#/assets/network.svg'
 import SettingsIcon from '#/assets/settings.svg'
+import WorkspaceIcon from '#/assets/workspace.svg'
 
 import * as eventCallbacks from '#/hooks/eventCallbackHooks'
 import * as projectHooks from '#/hooks/projectHooks'
@@ -315,7 +315,7 @@ function DashboardInner(props: DashboardProps) {
                   // There is no shared enum type, but the other union member is the same type.
                   // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
                   isActive={page === project.id}
-                  icon={EditorIcon}
+                  icon={WorkspaceIcon}
                   labelId="editorPageName"
                   onClose={() => {
                     closeProject(project)

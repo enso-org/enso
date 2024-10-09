@@ -304,7 +304,8 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     settingsTab: SettingsTabType.billingAndPlans,
     icon: CreditCardIcon,
     organizationOnly: true,
-    visible: ({ organization }) => organization?.subscription != null,
+    visible: ({ user, organization }) =>
+      user.isOrganizationAdmin && organization?.subscription != null,
     sections: [],
     onPress: (context) =>
       context.queryClient

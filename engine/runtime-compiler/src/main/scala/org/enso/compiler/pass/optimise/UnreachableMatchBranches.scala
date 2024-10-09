@@ -5,7 +5,6 @@ import org.enso.compiler.core.Implicits.AsDiagnostics
 import org.enso.compiler.core.ir.{
   Expression,
   IdentifiedLocation,
-  Location,
   Module,
   Pattern
 }
@@ -146,9 +145,10 @@ case object UnreachableMatchBranches extends IRPass {
                     branch.location match {
                       case Some(branchLoc) =>
                         Some(
-                          IdentifiedLocation.create(
-                            new Location(loc.start, branchLoc.end),
-                            loc.id
+                          new IdentifiedLocation(
+                            loc.start,
+                            branchLoc.end,
+                            loc.uuid
                           )
                         )
                       case None => Some(loc)
@@ -158,7 +158,8 @@ case object UnreachableMatchBranches extends IRPass {
               }
             )
 
-          val diagnostic = warnings.Unreachable.Branches(unreachableLocation)
+          val diagnostic =
+            warnings.Unreachable.Branches(unreachableLocation.orNull)
 
           expr
             .copy(

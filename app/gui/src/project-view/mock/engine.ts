@@ -33,7 +33,7 @@ import mockDb from './mockSuggestions.json' assert { type: 'json' }
 const mockProjectId = random.uuidv4() as Uuid
 const standardBase = 'Standard.Base' as QualifiedName
 
-export function placeholderGroups(): LibraryComponentGroup[] {
+function placeholderGroups(): LibraryComponentGroup[] {
   return [
     { color: '#4D9A29', name: 'Input', library: standardBase, exports: [] },
     { color: '#B37923', name: 'Web', library: standardBase, exports: [] },
@@ -45,7 +45,7 @@ export function placeholderGroups(): LibraryComponentGroup[] {
   ]
 }
 
-let mainFile = `\
+const mainFile = `\
 ## Module documentation
 from Standard.Base import all
 
@@ -76,14 +76,6 @@ main =
     autoscoped = data.aggregate [..Group_By]
     selected = data.select_columns
 `
-
-export function getMainFile() {
-  return mainFile
-}
-
-export function setMainFile(newMainFile: string) {
-  return (mainFile = newMainFile)
-}
 
 const fileTree = {
   src: {

@@ -120,7 +120,7 @@ case object FullyQualifiedNames extends IRPass {
                           tpeName,
                           allStarting.head.getName.toString,
                           m,
-                          m.location
+                          m.identifiedLocation
                         )
                       )
                     case _ =>

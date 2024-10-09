@@ -1,9 +1,11 @@
 /** @file Playwright browser testing configuration. */
-/** Note that running Playwright in CI poses a number of issues:
+/**
+ * Note that running Playwright in CI poses a number of issues:
  * - `backdrop-filter: blur` is disabled, due to issues with Chromium's `--disable-gpu` flag
  * (see below).
  * - System validation dialogs are not reliable between computers, as they may have different
- * default fonts. */
+ * default fonts.
+ */
 import { defineConfig } from '@playwright/test'
 import net from 'net'
 

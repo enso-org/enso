@@ -1,6 +1,8 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
+import Standard.Database.Feature.Feature
+from Standard.Database.Errors import all
 from Standard.Table import Position, Value_Type, Bits, Table
 from Standard.Table.Errors import all
 
@@ -74,6 +76,15 @@ type Rename_Columns_Data
         [table]
 
 add_specs suite_builder setup =
+    if setup.is_feature_supported Feature.Select_Columns then (add_select_column_specs suite_builder setup) else
+        suite_builder.group setup.prefix+"Table.select_columns" group_builder->
+            group_builder.specify "select_columns should report unsupported" <|
+                table_builder = Util.build_sorted_table setup
+                data = Select_Columns_Data.setup table_builder
+                table_2 = data.table.select_columns ["bar", "foo"] reorder=True
+                table_2.should_fail_with (Unsupported_Database_Operation.Error "select_columns")
+
+add_select_column_specs suite_builder setup =
     prefix = setup.prefix
     table_builder = Util.build_sorted_table setup
     test_selection = setup.test_selection

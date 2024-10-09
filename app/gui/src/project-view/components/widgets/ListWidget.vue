@@ -14,19 +14,26 @@ const props = defineProps<{
   modelValue: T[]
   newItem: () => T | undefined
   getKey?: (item: T) => string | number | undefined
-  /** If present, a {@link DataTransferItem} is added with a MIME type of `text/plain`.
+  /**
+   * If present, a {@link DataTransferItem} is added with a MIME type of `text/plain`.
    * This is useful if the drag payload has a representation that can be pasted in terminals,
-   * search bars, and/or address bars. */
+   * search bars, and/or address bars.
+   */
   toPlainText?: (item: T) => string
-  /** The MIME type for the payload output added by `toDragPayload`.
+  /**
+   * The MIME type for the payload output added by `toDragPayload`.
    * Unused if `toDragPayload` is not also present.
    * When in doubt, this should be `application/json`.
-   * Defaults to `application/octet-stream`, meaning the payload is arbitrary binary data. */
+   * Defaults to `application/octet-stream`, meaning the payload is arbitrary binary data.
+   */
   dragMimeType?: string
-  /** Convert the list item to a drag payload stored under `dragMimeType`. When in doubt, this
-   * should be `JSON.stringify` of data describing the object. */
+  /**
+   * Convert the list item to a drag payload stored under `dragMimeType`. When in doubt, this
+   * should be `JSON.stringify` of data describing the object.
+   */
   toDragPayload: (item: T) => string
-  /** Convert payload created by `toDragPayload` back to the list item. This function can be called
+  /**
+   * Convert payload created by `toDragPayload` back to the list item. This function can be called
    * on the payload received from a different application instance (e.g. another browser), so it
    * should not rely on any local state.
    */

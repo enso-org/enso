@@ -38,6 +38,11 @@ export const LoadingAssetId = newtype.newtypeConstructor<LoadingAssetId>()
 export type EmptyAssetId = newtype.Newtype<string, 'EmptyAssetId'>
 export const EmptyAssetId = newtype.newtypeConstructor<EmptyAssetId>()
 
+/** Unique identifier for an asset representing the nonexistent children of a directory
+ * that failed to fetch. */
+export type ErrorAssetId = newtype.Newtype<string, 'ErrorAssetId'>
+export const ErrorAssetId = newtype.newtypeConstructor<ErrorAssetId>()
+
 /** Unique identifier for a user's project. */
 export type ProjectId = newtype.Newtype<string, 'ProjectId'>
 export const ProjectId = newtype.newtypeConstructor<ProjectId>()
@@ -709,8 +714,10 @@ export enum AssetType {
   /** A special {@link AssetType} representing the unknown items of a directory, before the
    * request to retrieve the items completes. */
   specialLoading = 'specialLoading',
-  /** A special {@link AssetType} representing the sole child of an empty directory. */
+  /** A special {@link AssetType} representing a directory listing that is empty. */
   specialEmpty = 'specialEmpty',
+  /** A special {@link AssetType} representing a directory listing that errored. */
+  specialError = 'specialError',
 }
 
 /** The corresponding ID newtype for each {@link AssetType}. */
@@ -722,12 +729,13 @@ export interface IdType {
   readonly [AssetType.directory]: DirectoryId
   readonly [AssetType.specialLoading]: LoadingAssetId
   readonly [AssetType.specialEmpty]: EmptyAssetId
+  readonly [AssetType.specialError]: ErrorAssetId
 }
 
 /** Integers (starting from 0) corresponding to the order in which each asset type should appear
  * in a directory listing. */
 export const ASSET_TYPE_ORDER: Readonly<Record<AssetType, number>> = {
-  // This is a sequence of numbers, not magic numbers. `999` and `1000` are arbitrary numbers
+  // This is a sequence of numbers, not magic numbers. `1000` is an arbitrary number
   // that are higher than the number of possible asset types.
   /* eslint-disable @typescript-eslint/no-magic-numbers */
   [AssetType.directory]: 0,
@@ -735,8 +743,9 @@ export const ASSET_TYPE_ORDER: Readonly<Record<AssetType, number>> = {
   [AssetType.file]: 2,
   [AssetType.datalink]: 3,
   [AssetType.secret]: 4,
-  [AssetType.specialLoading]: 999,
+  [AssetType.specialLoading]: 1000,
   [AssetType.specialEmpty]: 1000,
+  [AssetType.specialError]: 1000,
   /* eslint-enable @typescript-eslint/no-magic-numbers */
 }
 
@@ -786,6 +795,9 @@ export interface SpecialLoadingAsset extends Asset<AssetType.specialLoading> {}
 
 /** A convenience alias for {@link Asset}<{@link AssetType.specialEmpty}>. */
 export interface SpecialEmptyAsset extends Asset<AssetType.specialEmpty> {}
+
+/** A convenience alias for {@link Asset}<{@link AssetType.specialError}>. */
+export interface SpecialErrorAsset extends Asset<AssetType.specialError> {}
 
 /** Creates a {@link DirectoryAsset} representing the root directory for the organization,
  * with all irrelevant fields initialized to default values. */
@@ -880,6 +892,22 @@ export function createSpecialEmptyAsset(directoryId: DirectoryId): SpecialEmptyA
   }
 }
 
+/** Creates a {@link SpecialErrorAsset}, with all irrelevant fields initialized to default
+ * values. */
+export function createSpecialErrorAsset(directoryId: DirectoryId): SpecialErrorAsset {
+  return {
+    type: AssetType.specialError,
+    title: '',
+    id: ErrorAssetId(uniqueString.uniqueString()),
+    modifiedAt: dateTime.toRfc3339(new Date()),
+    parentId: directoryId,
+    permissions: [],
+    projectState: null,
+    labels: [],
+    description: null,
+  }
+}
+
 /** Any object with a `type` field matching the given `AssetType`. */
 interface HasType<Type extends AssetType> {
   readonly type: Type
@@ -893,6 +921,7 @@ export type AnyAsset<Type extends AssetType = AssetType> = Extract<
   | ProjectAsset
   | SecretAsset
   | SpecialEmptyAsset
+  | SpecialErrorAsset
   | SpecialLoadingAsset,
   HasType<Type>
 >
@@ -938,6 +967,10 @@ export function createPlaceholderAssetId<Type extends AssetType>(
     }
     case AssetType.specialEmpty: {
       result = EmptyAssetId(id)
+      break
+    }
+    case AssetType.specialError: {
+      result = ErrorAssetId(id)
       break
     }
   }
