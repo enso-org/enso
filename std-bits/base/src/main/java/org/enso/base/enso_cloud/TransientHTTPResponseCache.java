@@ -37,9 +37,9 @@ public class TransientHTTPResponseCache {
 
   private static final int DEFAULT_TTL_SECONDS = 31536000;
 
-  private final Map<String, CacheEntry> cache = new HashMap<>();
+  private static final Map<String, CacheEntry> cache = new HashMap<>();
 
-  EnsoHttpResponse makeRequest(
+  static EnsoHttpResponse makeRequest(
       URI resolvedURI,
       List<Pair<String, String>> resolvedHeaders,
       RequestMaker requestMaker)
@@ -55,13 +55,13 @@ public class TransientHTTPResponseCache {
     }
   }
 
-  private EnsoHttpResponse returnCachedResponse(String cacheKey) throws IOException {
+  private static EnsoHttpResponse returnCachedResponse(String cacheKey) throws IOException {
     return buildEnsoHttpResponseFromCacheEntry(cache.get(cacheKey));
   }
 
   // IOExceptions thrown by the HTTP request are propagated; IOExceptions thrown
   // while storing the data in the cache are caught.
-  private EnsoHttpResponse makeRequestAndCache(
+  private static EnsoHttpResponse makeRequestAndCache(
       URI resolvedURI,
       List<Pair<String, String>> resolvedHeaders,
       String cacheKey,
@@ -92,12 +92,12 @@ public class TransientHTTPResponseCache {
     }
   }
 
-  private EnsoHttpResponse buildEnsoHttpResponseFromCacheEntry(CacheEntry cacheEntry) throws IOException {
+  private static EnsoHttpResponse buildEnsoHttpResponseFromCacheEntry(CacheEntry cacheEntry) throws IOException {
     InputStream inputStream = new FileInputStream(cacheEntry.responseDataPath);
     return new EnsoHttpResponse(cacheEntry.uri(), cacheEntry.headers(), inputStream , cacheEntry.statusCode());
   }
 
-  private String downloadResponseData(EnsoHttpResponse response) throws IOException {
+  private static String downloadResponseData(EnsoHttpResponse response) throws IOException {
     File temp = File.createTempFile("TransientHTTPResponseCache", "");
     try {
       var outputStream = new FileOutputStream(temp);
@@ -111,18 +111,18 @@ public class TransientHTTPResponseCache {
   }
 
   /** Remove all cache entries (and their files) that have passed their TTL. */
-  private void removeStaleEntries() {
+  private static void removeStaleEntries() {
     var now = LocalDateTime.now();
     removeCacheEntries(e -> e.expiry().isBefore(now));
   }
 
   /** Remove all cache entries (and their files). */
-  void clear() {
+  public static void clear() {
     removeCacheEntries(e -> true);
   }
 
   /** Remove all cache entries (and their cache files) that match the predicate. */
-  private void removeCacheEntries(Predicate<CacheEntry> predicate) {
+  private static void removeCacheEntries(Predicate<CacheEntry> predicate) {
     for (Iterator<Map.Entry<String, CacheEntry>> it = cache.entrySet().iterator(); it.hasNext();) {
       var entry = it.next();
       var key = entry.getKey();
@@ -136,7 +136,7 @@ public class TransientHTTPResponseCache {
     System.out.println("AAA");
   }
 
-  private void removeCacheFile(String key, CacheEntry cacheEntry) {
+  private static void removeCacheFile(String key, CacheEntry cacheEntry) {
     File file = new File(cacheEntry.responseDataPath);
     boolean removed = file.delete();
     if (!removed) {
@@ -144,7 +144,7 @@ public class TransientHTTPResponseCache {
     }
   }
 
-  private int getNumEntries() {
+  public static int getNumEntries() {
     return cache.size();
   }
 
@@ -167,7 +167,7 @@ public class TransientHTTPResponseCache {
    * If only 'max-age' is present, we set TTL = max-age.
    * If neither are present, we use a default.
    */
-  private int calculateTTL(HttpHeaders headers) {
+  private static int calculateTTL(HttpHeaders headers) {
     System.out.println("AAA h "+headers.map());
     System.out.println("AAA "+headers.firstValue("asdf"));
     Integer maxAge = getMaxAge(headers);
@@ -179,7 +179,7 @@ public class TransientHTTPResponseCache {
     }
   }
 
-  private Integer getMaxAge(HttpHeaders headers) {
+  private static Integer getMaxAge(HttpHeaders headers) {
     var cacheControlMaybe = headers.firstValue("cache-control");
     Integer maxAge = null;
     if (cacheControlMaybe.isPresent()) {
@@ -198,7 +198,7 @@ public class TransientHTTPResponseCache {
     return maxAge;
   }
 
-  private String makeHashKey(
+  private static String makeHashKey(
       URI resolvedURI,
       List<Pair<String, String>> resolvedHeaders) {
     try {

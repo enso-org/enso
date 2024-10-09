@@ -99,25 +99,25 @@ add_specs suite_builder =
     suite_builder.group "Response caching" group_builder->
         # Returns true if the cache was used.
         # Does not clear the cache first.
-        used_cache uri method headers cache_policy=Cache_Policy.Default =
+        request_and_get_counts uri method headers cache_policy=Cache_Policy.Default =
             before_count = http_get_num_response_cache_entries
             response = Data.fetch uri method headers cache_policy=cache_policy
             response.code.is_success . should_be_true
             after_count = http_get_num_response_cache_entries
-            after_count >= before_count
+            [before_count, after_count]
 
         # Only use with GET.
         # Clears the cache first.
         with_and_without_caching uri headers =
             Data.clear_response_cache
-            used_cache uri HTTP_Method.Get headers . should_be_false
-            used_cache uri HTTP_Method.Get headers . should_be_true
+            request_and_get_counts uri HTTP_Method.Get headers . should_equal [0, 1]
+            request_and_get_counts uri HTTP_Method.Get headers . should_equal [1, 1]
             Data.clear_response_cache
-            used_cache uri HTTP_Method.Get headers cache_policy=..Cache_Responses . should_be_false
-            used_cache uri HTTP_Method.Get headers cache_policy=..Cache_Responses . should_be_true
+            request_and_get_counts uri HTTP_Method.Get headers cache_policy=..Cache_Responses . should_equal [0, 1]
+            request_and_get_counts uri HTTP_Method.Get headers cache_policy=..Cache_Responses . should_equal [1, 1]
             Data.clear_response_cache
-            used_cache uri HTTP_Method.Get headers cache_policy=..Dont_Cache_Responses . should_be_false
-            used_cache uri HTTP_Method.Get headers cache_policy=..Dont_Cache_Responses . should_be_false
+            request_and_get_counts uri HTTP_Method.Get headers cache_policy=..Dont_Cache_Responses . should_equal [0, 0]
+            request_and_get_counts uri HTTP_Method.Get headers cache_policy=..Dont_Cache_Responses . should_equal [0, 0]
 
         uri0 = 'http://localhost:8080/test_download?max-age=16&length=100'
         headers0 = [Header.new "A-Header" "a-header-value", Header.new "A-Header" "a-header-value"]

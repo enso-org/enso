@@ -21,8 +21,6 @@ import org.graalvm.collections.Pair;
 
 /** Makes HTTP requests with secrets in either header or query string. */
 public final class EnsoSecretHelper extends SecretValueResolver {
-  private static TransientHTTPResponseCache transientHTTPResponseCache = new TransientHTTPResponseCache();
-
   /** Gets a JDBC connection resolving EnsoKeyValuePair into the properties. */
   public static Connection getJDBCConnection(
       String url, List<Pair<String, HideableValue>> properties) throws SQLException {
@@ -80,7 +78,7 @@ public final class EnsoSecretHelper extends SecretValueResolver {
     if (!useCache) {
       return requestMaker.run();
     } else {
-      return transientHTTPResponseCache.makeRequest(resolvedURI, resolvedHeaders, requestMaker);
+      return TransientHTTPResponseCache.makeRequest(resolvedURI, resolvedHeaders, requestMaker);
     }
   }
 
@@ -125,9 +123,5 @@ public final class EnsoSecretHelper extends SecretValueResolver {
 
   public static void deleteSecretFromCache(String secretId) {
     EnsoSecretReader.removeFromCache(secretId);
-  }
-
-  public void clearCache() {
-    transientHTTPResponseCache.clear();
   }
 }

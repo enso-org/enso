@@ -199,12 +199,12 @@ type HTTP
 
     ## PRIVATE
     clear_response_cache : Nothing
-    clear_response_cache -> Nothing = EnsoSecretHelper.clear
+    clear_response_cache -> Nothing = TransientHTTPResponseCache.clear
 
 ## PRIVATE
    Returns the number of entries in the HTTP response cache. For testing only.
 http_get_num_response_cache_entries : Integer
-http_get_num_response_cache_entries -> Integer = TransientHTTPResponseCache
+http_get_num_response_cache_entries -> Integer = TransientHTTPResponseCache.getNumEntries
 
 ## PRIVATE
 parse_headers : Vector (Header | Pair Text Text) -> Vector Header
