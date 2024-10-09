@@ -21,9 +21,9 @@ import type Backend from '#/services/Backend'
 import {
   AssetType,
   BackendType,
-  DirectoryAsset,
   type AnyAsset,
   type AssetId,
+  type DirectoryAsset,
   type DirectoryId,
   type User,
   type UserGroupInfo,
