@@ -13,6 +13,7 @@ export project.Data.Numbers.Number
 export project.Data.Numbers.Integer
 export project.Data.Vector.Vector
 export project.Function.Function
+export project.Nothing.Nothing
 export project.Polyglot.Java
 export project.Polyglot.Polyglot
 export project.Runtime
