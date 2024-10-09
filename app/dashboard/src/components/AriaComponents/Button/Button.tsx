@@ -437,14 +437,12 @@ export const Button = forwardRef(function Button(
     }
   }
 
-  const { tooltip: visualTooltip, targetProps } =
-    !shouldUseVisualTooltip ?
-      { tooltip: null, targetProps: null }
-    : ariaComponents.useVisualTooltip({
-        targetRef: contentRef,
-        children: tooltipElement,
-        ...(tooltipPlacement && { overlayPositionProps: { placement: tooltipPlacement } }),
-      })
+  const { tooltip: visualTooltip, targetProps } = ariaComponents.useVisualTooltip({
+    targetRef: contentRef,
+    children: tooltipElement,
+    isDisabled: !shouldUseVisualTooltip,
+    ...(tooltipPlacement && { overlayPositionProps: { placement: tooltipPlacement } }),
+  })
 
   const button = (
     <Tag
