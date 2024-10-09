@@ -40,17 +40,17 @@ type Postgres_Data_Link
         details = Postgres.Server host=host port=port database=db_name schema=schema credentials=credentials
         case get_optional_field "table" json expected_type=Text of
             Nothing ->
-                Postgres_Data_Link.Connection details
+                Postgres_Data_Link.Connection details related_asset_id
             table_name : Text ->
-                Postgres_Data_Link.Table table_name details
+                Postgres_Data_Link.Table table_name details related_asset_id
 
     ## PRIVATE
     read self (format = Auto_Detect) (on_problems : Problem_Behavior) =
         _ = on_problems
         if format != Auto_Detect then Error.throw (Illegal_Argument.Error "Only Auto_Detect can be used with a Postgres Data Link, as it points to a database.") else
             audit_mode = if Enso_User.is_logged_in then "cloud" else "local"
-            default_options = Connection_Options.Value <|
-                [["enso.internal.audit", audit_mode]] + (if self.related_asset_id.is_nothing then [] else [["enso.internal.relatedAssetId", self.related_asset_id]])
+            options_vector = [["enso.internal.audit", audit_mode]] + (if self.related_asset_id.is_nothing then [] else [["enso.internal.relatedAssetId", self.related_asset_id]])
+            default_options = Connection_Options.Value options_vector
             connection = self.details.connect default_options allow_data_links=False
             case self of
                 Postgres_Data_Link.Connection _ _ -> connection
