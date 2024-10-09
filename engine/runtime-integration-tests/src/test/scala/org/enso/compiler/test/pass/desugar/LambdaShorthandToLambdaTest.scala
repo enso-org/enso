@@ -48,7 +48,7 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
       * @return [[ir]], with all lambda shorthand desugared
       */
     def desugar(implicit inlineContext: InlineContext): Expression = {
-      LambdaShorthandToLambda.runExpression(ir, inlineContext)
+      LambdaShorthandToLambdaMegaPass.runExpression(ir, inlineContext)
     }
 
     def desugarMini(implicit inlineContext: InlineContext): Expression = {
