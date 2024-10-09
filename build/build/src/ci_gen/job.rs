@@ -553,11 +553,7 @@ impl JobArchetype for PackageIde {
             // authenticated into Enso Cloud. We want to run tests as an authenticated
             // user only when we explicitly set that up, not randomly. So we clean the credentials
             // file.
-            let cloud_credentials_path = if target.0 == OS::Windows {
-                "%USERPROFILE%\\.enso\\credentials"
-            } else {
-                "$HOME/.enso/credentials"
-            };
+            let cloud_credentials_path = "$HOME/.enso/credentials";
             let cleanup_credentials_step = shell(format!("rm {cloud_credentials_path}"));
             steps.push(cleanup_credentials_step);
 
