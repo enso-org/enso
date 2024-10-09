@@ -134,6 +134,7 @@ import {
 import LocalBackend, { extractTypeAndId, newProjectId } from '#/services/LocalBackend'
 import { UUID } from '#/services/ProjectManager'
 import { isSpecialReadonlyDirectoryId } from '#/services/RemoteBackend'
+import { ROOT_PARENT_DIRECTORY_ID } from '#/services/remoteBackendPaths'
 import type { AssetQueryKey } from '#/utilities/AssetQuery'
 import AssetQuery from '#/utilities/AssetQuery'
 import type { AnyAssetTreeNode } from '#/utilities/AssetTreeNode'
@@ -396,7 +397,6 @@ export default function AssetsTable(props: AssetsTableProps) {
     return id
   }, [category, backend, user, organization, localRootDirectory])
 
-  const rootParentDirectoryId = DirectoryId('')
   const rootDirectory = useMemo(() => createRootDirectoryAsset(rootDirectoryId), [rootDirectoryId])
 
   const enableAssetsTableBackgroundRefresh = useFeatureFlag('enableAssetsTableBackgroundRefresh')
@@ -525,8 +525,8 @@ export default function AssetsTable(props: AssetsTableProps) {
       // eslint-disable-next-line no-restricted-syntax
       return AssetTreeNode.fromAsset(
         createRootDirectoryAsset(rootDirectoryId),
-        rootParentDirectoryId,
-        rootParentDirectoryId,
+        ROOT_PARENT_DIRECTORY_ID,
+        ROOT_PARENT_DIRECTORY_ID,
         -1,
         rootPath,
         null,
@@ -535,8 +535,8 @@ export default function AssetsTable(props: AssetsTableProps) {
       // eslint-disable-next-line no-restricted-syntax
       return AssetTreeNode.fromAsset(
         createRootDirectoryAsset(rootDirectoryId),
-        rootParentDirectoryId,
-        rootParentDirectoryId,
+        ROOT_PARENT_DIRECTORY_ID,
+        ROOT_PARENT_DIRECTORY_ID,
         -1,
         rootPath,
         null,
@@ -641,8 +641,8 @@ export default function AssetsTable(props: AssetsTableProps) {
 
     return new AssetTreeNode(
       rootDirectory,
-      rootParentDirectoryId,
-      rootParentDirectoryId,
+      ROOT_PARENT_DIRECTORY_ID,
+      ROOT_PARENT_DIRECTORY_ID,
       children,
       -1,
       rootPath,
@@ -657,7 +657,6 @@ export default function AssetsTable(props: AssetsTableProps) {
     directories.rootDirectory.isError,
     directories.directories,
     rootDirectory,
-    rootParentDirectoryId,
     rootDirectoryId,
   ])
 

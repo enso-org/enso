@@ -309,6 +309,7 @@ export function useAssetPassiveListenerStrict(
   category: Category,
 ) {
   const asset = useAssetPassiveListener(backendType, assetId, parentId, category)
+  console.log(':0', assetId, parentId, asset)
   invariant(asset, 'Asset not found')
   return asset
 }
