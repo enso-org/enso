@@ -126,4 +126,8 @@ public final class EnsoSecretHelper extends SecretValueResolver {
   public static void deleteSecretFromCache(String secretId) {
     EnsoSecretReader.removeFromCache(secretId);
   }
+
+  public void clearCache() {
+    transientHTTPResponseCache.clear();
+  }
 }

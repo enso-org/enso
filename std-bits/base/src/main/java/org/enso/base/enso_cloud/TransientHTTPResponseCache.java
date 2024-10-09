@@ -12,9 +12,13 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.function.Predicate;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import org.enso.base.enso_cloud.EnsoHttpResponse;
 import org.graalvm.collections.Pair;
 
@@ -106,10 +110,42 @@ public class TransientHTTPResponseCache {
     }
   }
 
+  /** Remove all cache entries (and their files) that have passed their TTL. */
   private void removeStaleEntries() {
     var now = LocalDateTime.now();
-    cache.entrySet().removeIf(e -> e.getValue().expiry().isBefore(now));
-    System.out.println("AAA ");
+    removeCacheEntries(e -> e.expiry().isBefore(now));
+  }
+
+  /** Remove all cache entries (and their files). */
+  void clear() {
+    removeCacheEntries(e -> true);
+  }
+
+  /** Remove all cache entries (and their cache files) that match the predicate. */
+  private void removeCacheEntries(Predicate<CacheEntry> predicate) {
+    for (Iterator<Map.Entry<String, CacheEntry>> it = cache.entrySet().iterator(); it.hasNext();) {
+      var entry = it.next();
+      var key = entry.getKey();
+      var cacheValue = entry.getValue();
+      boolean isStale = predicate.test(cacheValue);
+      if (isStale) {
+        it.remove();
+        removeCacheFile(key, cacheValue);
+      }
+    }
+    System.out.println("AAA");
+  }
+
+  private void removeCacheFile(String key, CacheEntry cacheEntry) {
+    File file = new File(cacheEntry.responseDataPath);
+    boolean removed = file.delete();
+    if (!removed) {
+      logger.log(Level.WARNING, "Unable to delete cache file for key {0}", key);
+    }
+  }
+
+  private int getNumEntries() {
+    return cache.size();
   }
 
   /**

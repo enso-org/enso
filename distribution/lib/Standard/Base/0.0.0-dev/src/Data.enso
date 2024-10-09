@@ -364,3 +364,17 @@ type Raw_Response
     ## PRIVATE
     get_dropdown_options : Vector Option
     get_dropdown_options = [Option "Raw HTTP Response" (Meta.get_qualified_type_name Raw_Response)]
+
+## ALIAS flush
+   GROUP Input
+   ICON data_input
+   Clear the HTTP request cache.
+
+   > Example
+     Clear the HTTP response cache.
+
+         import Standard.Base.Data
+
+         Data.clear_response_cache
+clear_response_cache : Nothing
+clear_response_cache -> Nothing = HTTP.clear_response_cache

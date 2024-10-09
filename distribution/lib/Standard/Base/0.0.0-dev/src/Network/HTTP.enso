@@ -1,6 +1,7 @@
 import project.Any.Any
 import project.Data.Dictionary.Dictionary
 import project.Data.Hashset.Hashset
+import project.Data.Numbers.Integer
 import project.Data.Pair.Pair
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
@@ -44,6 +45,7 @@ polyglot java import java.net.InetSocketAddress
 polyglot java import java.net.ProxySelector
 polyglot java import javax.net.ssl.SSLContext
 polyglot java import org.enso.base.enso_cloud.EnsoSecretHelper
+polyglot java import org.enso.base.enso_cloud.TransientHTTPResponseCache 
 polyglot java import org.enso.base.file_system.File_Utils
 polyglot java import org.enso.base.net.http.MultipartBodyBuilder
 polyglot java import org.enso.base.net.http.UrlencodedBodyBuilder
@@ -194,6 +196,15 @@ type HTTP
     set_custom_ssl_context : SSLContext -> HTTP
     set_custom_ssl_context self ssl_context =
         HTTP.Value self.timeout self.follow_redirects self.proxy self.version ssl_context
+
+    ## PRIVATE
+    clear_response_cache : Nothing
+    clear_response_cache -> Nothing = EnsoSecretHelper.clear
+
+## PRIVATE
+   Returns the number of entries in the HTTP response cache. For testing only.
+http_get_num_response_cache_entries : Integer
+http_get_num_response_cache_entries -> Integer = TransientHTTPResponseCache
 
 ## PRIVATE
 parse_headers : Vector (Header | Pair Text Text) -> Vector Header

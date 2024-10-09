@@ -8,7 +8,7 @@ import java.util.Arrays;
 import org.apache.http.client.utils.URIBuilder;
 import org.enso.shttp.SimpleHttpHandler;
 
-/** A handler that generates a Data Link pointing to a file on this server. */
+/** A handler that generates a data response, with optional max-age and Age headers. */
 public class DownloadTestHandler extends SimpleHttpHandler {
   @Override
   protected void doHandle(HttpExchange exchange) throws IOException {
