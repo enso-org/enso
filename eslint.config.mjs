@@ -206,6 +206,7 @@ export default [
       parserOptions: {
         tsconfigRootDir: DIR_NAME,
         ecmaVersion: 'latest',
+        extraFileExtensions: ['.vue'],
         project: [
           // './**/tsconfig.json',
           './app/gui/tsconfig.app.json',
@@ -213,7 +214,6 @@ export default [
           './app/gui/tsconfig.app.vitest.json',
           './app/gui/tsconfig.scripts.json',
         ],
-        // projectService: true,
       },
     },
     rules: {
@@ -245,6 +245,12 @@ export default [
       'vue/html-indent': 'off',
       'vue/html-closing-bracket-newline': 'off',
       'vue/max-attributes-per-line': ['off', { singleline: { max: 4 } }],
+    },
+  },
+  {
+    files: ['app/gui/templates/*.vue'],
+    rules: {
+      'vue/multi-word-component-names': 0,
     },
   },
   {
