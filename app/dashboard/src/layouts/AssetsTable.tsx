@@ -158,8 +158,8 @@ import type { SortInfo } from '#/utilities/sorting'
 import { SortDirection } from '#/utilities/sorting'
 import { regexEscape } from '#/utilities/string'
 import { twJoin, twMerge } from '#/utilities/tailwindMerge'
-import { uniqueString } from '#/utilities/uniqueString'
 import Visibility from '#/utilities/Visibility'
+import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 
 // ============================
 // === Global configuration ===

@@ -26,7 +26,7 @@ import type * as assetTreeNode from '#/utilities/AssetTreeNode'
 import type * as pasteDataModule from '#/utilities/pasteData'
 import * as permissions from '#/utilities/permissions'
 import { EMPTY_SET } from '#/utilities/set'
-import * as uniqueString from '#/utilities/uniqueString'
+import * as uniqueString from 'enso-common/src/utilities/uniqueString'
 
 // =================
 // === Constants ===
@@ -113,9 +113,9 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   }
 
   if (category.type === 'trash') {
-    return selectedKeys.size === 0 ?
-        null
-      : <ContextMenus key={uniqueString.uniqueString()} hidden={hidden} event={event}>
+    return (
+      selectedKeys.size !== 0 && (
+        <ContextMenus hidden={hidden} event={event}>
           <ContextMenu aria-label={getText('assetsTableContextMenuLabel')} hidden={hidden}>
             <ContextMenuEntry
               hidden={hidden}
@@ -159,6 +159,8 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
             )}
           </ContextMenu>
         </ContextMenus>
+      )
+    )
   } else if (category.type === 'recent') {
     return null
   } else {
