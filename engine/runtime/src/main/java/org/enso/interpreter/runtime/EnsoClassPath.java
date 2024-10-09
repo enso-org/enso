@@ -28,7 +28,6 @@ public final class EnsoClassPath {
     if (cntrl != null) {
       // cannot be null
       layer.getClass();
-      loader.getClass();
     }
     this.cntrl = cntrl;
     this.layer = layer;
@@ -100,6 +99,10 @@ public final class EnsoClassPath {
           }
           parentLayers.add(cp.layer);
           parentCfgs.add(cp.layer.configuration());
+        }
+        if (parentLayers.isEmpty()) {
+          parentLayers.add(ModuleLayer.boot());
+          parentCfgs.add(ModuleLayer.boot().configuration());
         }
         var parentLoader = bootLayer().findLoader("java.base");
         var cfg =
