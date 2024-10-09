@@ -35,7 +35,7 @@ import { useDriveStore, useSetAssetPanelProps } from '#/providers/DriveProvider'
 import { useFeatureFlags } from '#/providers/FeatureFlagsProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
-import { AssetType, BackendType, type DatalinkId } from '#/services/Backend'
+import { AssetType, BackendType, Plan, type DatalinkId } from '#/services/Backend'
 import { extractTypeAndId } from '#/services/LocalBackend'
 import type { AnyAssetTreeNode } from '#/utilities/AssetTreeNode'
 import { normalizePath } from '#/utilities/fileInfo'
@@ -68,13 +68,6 @@ export interface AssetPropertiesProps {
 
 /** Display and modify the properties of an asset. */
 export default function AssetProperties(props: AssetPropertiesProps) {
-  const { backend, item, category } = props
-  const asset = useAssetPassiveListener(backend.type, item.item.id, item.item.parentId, category)
-  return asset && <AssetPropertiesInternal {...props} />
-}
-
-/** Display and modify the properties of an asset. */
-function AssetPropertiesInternal(props: AssetPropertiesProps) {
   const { backend, item, category, spotlightOn, isReadonly = false } = props
   const styles = ASSET_PROPERTIES_VARIANTS({})
 
@@ -94,6 +87,7 @@ function AssetPropertiesInternal(props: AssetPropertiesProps) {
     }
   })
   const { user } = useFullUserSession()
+  const isEnterprise = user.plan === Plan.enterprise
   const { getText } = useText()
   const localBackend = useLocalBackend()
   const [isEditingDescriptionRaw, setIsEditingDescriptionRaw] = React.useState(false)
@@ -279,7 +273,7 @@ function AssetPropertiesInternal(props: AssetPropertiesProps) {
                   </td>
                 </tr>
               )}
-              <tr data-testid="asset-panel-permissions" className="h-row">
+              {isEnterprise && <tr data-testid="asset-panel-permissions" className="h-row">
                 <td className="text my-auto min-w-side-panel-label p-0">
                   <Text className="text inline-block">{getText('sharedWith')}</Text>
                 </td>
@@ -290,7 +284,7 @@ function AssetPropertiesInternal(props: AssetPropertiesProps) {
                     state={{ backend, category, setQuery: () => {} }}
                   />
                 </td>
-              </tr>
+              </tr>}
               <tr data-testid="asset-panel-labels" className="h-row">
                 <td className="text my-auto min-w-side-panel-label p-0">
                   <Text className="text inline-block">{getText('labels')}</Text>
