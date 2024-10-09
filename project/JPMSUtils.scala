@@ -24,13 +24,13 @@ object JPMSUtils {
 
   /** The list of modules that are included in the `component` directory in engine distribution.
     * When invoking the `java` command, these modules need to be put on the module-path.
+    *    val componentModulesWithoutLangs: Seq[ModuleID] =
+    *      GraalVM.modules ++ /*GraalVM.langsPkgs ++*/ GraalVM.toolsPkgs ++ Seq(
+    *        "org.slf4j"      % "slf4j-api"       % slf4jVersion,
+    *        "ch.qos.logback" % "logback-classic" % logbackClassicVersion,
+    *        "ch.qos.logback" % "logback-core"    % logbackClassicVersion
+    *        )
     */
-  val componentModules: Seq[ModuleID] =
-    GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.toolsPkgs ++ Seq(
-      "org.slf4j"      % "slf4j-api"       % slf4jVersion,
-      "ch.qos.logback" % "logback-classic" % logbackClassicVersion,
-      "ch.qos.logback" % "logback-core"    % logbackClassicVersion
-    )
 
   /** Filters modules by their IDs from the given classpath.
     *

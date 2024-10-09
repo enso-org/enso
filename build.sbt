@@ -2649,7 +2649,7 @@ lazy val runtime = (project in file("engine/runtime"))
     version := ensoVersion,
     commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
-    libraryDependencies ++= GraalVM.langsPkgs ++ Seq(
+    libraryDependencies ++= Seq(
       "org.apache.commons"   % "commons-lang3"           % commonsLangVersion,
       "org.apache.tika"      % "tika-core"               % tikaVersion,
       "com.lihaoyi"         %% "fansi"                   % fansiVersion,
@@ -3675,8 +3675,7 @@ lazy val launcher = project
           "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
           "-H:IncludeResources=.*Main.enso$"
         ),
-        includeRuntime = false,
-        mainClass      = Some("org.enso.launcher.cli.Main")
+        mainClass = Some("org.enso.launcher.cli.Main")
       )
       .dependsOn(assembly)
       .dependsOn(VerifyReflectionSetup.run)
