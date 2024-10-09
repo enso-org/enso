@@ -4967,7 +4967,7 @@ lazy val `std-tableau` = project
       `std-tableau-polyglot-root` / "std-tableau.jar",
     libraryDependencies ++= Seq(
       "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided",
-      "net.java.dev.jna" % "jna-platform"            % jnaVersion
+      "net.java.dev.jna" % "jna-platform"            % jnaVersion         % "provided"
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value

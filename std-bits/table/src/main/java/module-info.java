@@ -28,14 +28,18 @@ module org.enso.std.table {
   opens org.enso.table.expressions;
   opens org.enso.table.formatting;
   opens org.enso.table.excel;
-  opens org.enso.table.problems;
+
+  exports org.enso.table.problems;
+
   opens org.enso.table.parsing;
   opens org.enso.table.parsing.problems;
 
   exports org.enso.table.data.column.storage;
 
   opens org.enso.table.data.column.storage.numeric;
-  opens org.enso.table.data.column.builder;
+
+  exports org.enso.table.data.column.builder;
+
   opens org.enso.table.data.column.operation;
   opens org.enso.table.data.column.operation.cast;
 
