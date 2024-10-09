@@ -1,0 +1,9 @@
+type Cache_Policy
+    ## Use the default policy for the HTTP method of the request.
+    Default
+
+    ## Use the response cache.
+    Cache_Responses
+
+    ## Don't use the response cache.
+    Dont_Cache_Responses
