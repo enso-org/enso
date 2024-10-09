@@ -34,14 +34,14 @@ object Case {
     * @param scrutinee the expression whose value is being matched on
     * @param branches the branches of the case expression
     * @param isNested if true, the flag indicates that the expr represents a desugared nested case
-    * @param location the source location that the node corresponds to
+    * @param identifiedLocation the source location that the node corresponds to
     * @param passData the pass metadata associated with this node
     */
   sealed case class Expr(
     scrutinee: Expression,
     branches: Seq[Branch],
     isNested: Boolean,
-    override val location: Option[IdentifiedLocation],
+    override val identifiedLocation: IdentifiedLocation,
     override val passData: MetadataStorage = new MetadataStorage()
   ) extends Case
       with IRKind.Primitive
@@ -77,7 +77,7 @@ object Case {
         || diagnostics != this.diagnostics
         || id != this.id
       ) {
-        val res = Expr(scrutinee, branches, isNested, location, passData)
+        val res = Expr(scrutinee, branches, isNested, location.orNull, passData)
         res.diagnostics = diagnostics
         res.id          = id
         res
@@ -159,17 +159,17 @@ object Case {
 
   /** A branch in a case statement.
     *
-    * @param pattern        the pattern that attempts to match against the scrutinee
-    * @param expression     the expression that is executed if the pattern matches
+    * @param pattern the pattern that attempts to match against the scrutinee
+    * @param expression the expression that is executed if the pattern matches
     * @param terminalBranch the flag indicating whether the branch represents the final pattern to be checked
-    * @param location       the source location that the node corresponds to
-    * @param passData       the pass metadata associated with this node
+    * @param identifiedLocation the source location that the node corresponds to
+    * @param passData the pass metadata associated with this node
     */
   sealed case class Branch(
     pattern: Pattern,
     expression: Expression,
     terminalBranch: Boolean,
-    override val location: Option[IdentifiedLocation],
+    override val identifiedLocation: IdentifiedLocation,
     override val passData: MetadataStorage = new MetadataStorage()
   ) extends Case
       with IRKind.Primitive
@@ -208,7 +208,7 @@ object Case {
           pattern,
           expression,
           terminalBranch,
-          location,
+          identifiedLocation,
           passData
         )
         res.diagnostics = diagnostics

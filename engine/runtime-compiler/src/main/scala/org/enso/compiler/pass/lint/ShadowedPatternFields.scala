@@ -147,7 +147,7 @@ case object ShadowedPatternFields extends IRPass {
             lastSeen(name.name) = named
             named
               .copy(
-                name = Name.Blank(location = name.location)
+                name = Name.Blank(name.identifiedLocation())
               )
               .addDiagnostic(warning)
           } else if (!name.isInstanceOf[Name.Blank]) {
@@ -173,7 +173,7 @@ case object ShadowedPatternFields extends IRPass {
             lastSeen(name.name) = typed
             typed
               .copy(
-                name = Name.Blank(location = name.location)
+                name = Name.Blank(name.identifiedLocation())
               )
               .addDiagnostic(warning)
           } else if (!name.isInstanceOf[Name.Blank]) {

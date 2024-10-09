@@ -3,18 +3,16 @@ package expression
 package warnings
 
 /** Warnings for unreachable code. */
-sealed trait Unreachable extends Warning {
-  val location: Option[IdentifiedLocation]
-}
+sealed trait Unreachable extends Warning
 
 object Unreachable {
 
   /** A warning for unreachable branches in a case expression.
     *
-    * @param location the location of the unreachable branches
+    * @param identifiedLocation the location of the unreachable branches
     */
   sealed case class Branches(
-    override val location: Option[IdentifiedLocation]
+    override val identifiedLocation: IdentifiedLocation
   ) extends Unreachable {
     val atLocation =
       if (location.isDefined) {

@@ -101,7 +101,8 @@ sealed case class Conversion(
   override def diagnosticKeys(): Array[Any] = Array(reason.explain)
 
   /** @inheritdoc */
-  override val location: Option[IdentifiedLocation] = storedIr.location
+  override def identifiedLocation: IdentifiedLocation =
+    storedIr.identifiedLocation()
 }
 
 object Conversion {

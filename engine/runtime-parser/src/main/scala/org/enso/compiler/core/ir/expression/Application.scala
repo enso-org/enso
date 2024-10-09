@@ -18,14 +18,14 @@ object Application {
     * @param arguments the arguments to the function being called
     * @param hasDefaultsSuspended whether the function application has any
     * argument defaults in `function` suspended
-    * @param location the source location that the node corresponds to
+    * @param identifiedLocation the source location that the node corresponds to
     * @param passData the pass metadata associated with this node
     */
   sealed case class Prefix(
     function: Expression,
     arguments: List[CallArgument],
     hasDefaultsSuspended: Boolean,
-    override val location: Option[IdentifiedLocation],
+    override val identifiedLocation: IdentifiedLocation,
     override val passData: MetadataStorage = new MetadataStorage()
   ) extends Application
       with IRKind.Primitive
@@ -38,7 +38,7 @@ object Application {
       * @param arguments the arguments to the function being called
       * @param hasDefaultsSuspended whether the function application has any
       * argument defaults in `function` suspended
-      * @param location the source location that the node corresponds to
+      * @param identifiedLocation the source location that the node corresponds to
       * @param passData the pass metadata associated with this node
       * @param diagnostics the compiler diagnostics
       */
@@ -46,7 +46,7 @@ object Application {
       function: Expression,
       arguments: List[CallArgument],
       hasDefaultsSuspended: Boolean,
-      location: Option[IdentifiedLocation],
+      identifiedLocation: IdentifiedLocation,
       passData: MetadataStorage,
       diagnostics: DiagnosticStorage
     ) = {
@@ -54,7 +54,7 @@ object Application {
         function,
         arguments,
         hasDefaultsSuspended,
-        location,
+        identifiedLocation,
         passData
       )
       this.diagnostics = diagnostics
@@ -95,7 +95,7 @@ object Application {
             function,
             arguments,
             hasDefaultsSuspended,
-            location,
+            location.orNull,
             passData
           )
         res.diagnostics = diagnostics
@@ -172,12 +172,12 @@ object Application {
   /** A representation of a term that is explicitly forced.
     *
     * @param target the expression being forced
-    * @param location the source location that the node corresponds to
+    * @param identifiedLocation the source location that the node corresponds to
     * @param passData the pass metadata associated with this node
     */
   sealed case class Force(
     target: Expression,
-    override val location: Option[IdentifiedLocation],
+    override val identifiedLocation: IdentifiedLocation,
     override val passData: MetadataStorage = new MetadataStorage()
   ) extends Application
       with IRKind.Primitive
@@ -207,7 +207,7 @@ object Application {
         || diagnostics != this.diagnostics
         || id != this.id
       ) {
-        val res = Force(target, location, passData)
+        val res = Force(target, location.orNull, passData)
         res.diagnostics = diagnostics
         res.id          = id
         res
@@ -291,12 +291,12 @@ object Application {
     * These are necessary as they delimit pattern contexts.
     *
     * @param expression the expression of the typeset body
-    * @param location the source location that the node corresponds to
+    * @param identifiedLocation the source location that the node corresponds to
     * @param passData the pass metadata associated with this node
     */
   sealed case class Typeset(
     expression: Option[Expression],
-    override val location: Option[IdentifiedLocation],
+    override val identifiedLocation: IdentifiedLocation,
     override val passData: MetadataStorage = new MetadataStorage()
   ) extends Literal
       with IRKind.Primitive
@@ -331,7 +331,7 @@ object Application {
         || diagnostics != this.diagnostics
         || id != this.id
       ) {
-        val res = Typeset(expression, location, passData)
+        val res = Typeset(expression, location.orNull, passData)
         res.diagnostics = diagnostics
         res.id          = id
         res
@@ -394,12 +394,12 @@ object Application {
   /** A representation of a vector literal.
     *
     * @param items the items being put in the vector
-    * @param location the source location that the node corresponds to
+    * @param identifiedLocation the source location that the node corresponds to
     * @param passData the pass metadata associated with this node
     */
   sealed case class Sequence(
     items: List[Expression],
-    override val location: Option[IdentifiedLocation],
+    override val identifiedLocation: IdentifiedLocation,
     override val passData: MetadataStorage = new MetadataStorage()
   ) extends Literal
       with IRKind.Primitive
@@ -434,7 +434,7 @@ object Application {
         || diagnostics != this.diagnostics
         || id != this.id
       ) {
-        val res = Sequence(items, location, passData)
+        val res = Sequence(items, location.orNull, passData)
         res.diagnostics = diagnostics
         res.id          = id
         res

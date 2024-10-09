@@ -220,9 +220,12 @@ case object GlobalNames extends IRPass {
                       )
                       val app = Application.Prefix(
                         fun,
-                        List(CallArgument.Specified(None, self, None)),
+                        List(
+                          CallArgument
+                            .Specified(None, self, identifiedLocation = null)
+                        ),
                         hasDefaultsSuspended = false,
-                        lit.location
+                        lit.identifiedLocation
                       )
                       fun
                         .getMetadata(ExpressionAnnotations)
@@ -341,7 +344,8 @@ case object GlobalNames extends IRPass {
               )
             )
           )
-        val selfArg = CallArgument.Specified(None, self, None)
+        val selfArg =
+          CallArgument.Specified(None, self, identifiedLocation = null)
         processedFun.passData.remove(this) // Necessary for IrToTruffle
         app.copy(function = processedFun, arguments = selfArg :: processedArgs)
       case _ =>

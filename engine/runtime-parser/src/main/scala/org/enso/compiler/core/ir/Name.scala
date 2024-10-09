@@ -38,14 +38,14 @@ object Name {
   /** A representation of a method reference of the form `Type_Path.method`.
     *
     * @param typePointer the type name
-    * @param methodName  the method on `typeName`
-    * @param location    the source location that the node corresponds to
-    * @param passData    the pass metadata associated with this node
+    * @param methodName the method on `typeName`
+    * @param identifiedLocation the source location that the node corresponds to
+    * @param passData the pass metadata associated with this node
     */
   final case class MethodReference(
     typePointer: Option[Name],
     methodName: Name,
-    location: Option[IdentifiedLocation],
+    identifiedLocation: IdentifiedLocation,
     passData: MetadataStorage = new MetadataStorage()
   ) extends Name
       with IRKind.Sugar
@@ -84,7 +84,7 @@ object Name {
           MethodReference(
             typePointer,
             methodName,
-            location,
+            location.orNull,
             passData
           )
         res.diagnostics = diagnostics
@@ -205,13 +205,13 @@ object Name {
   /** A representation of a qualified (multi-part) name.
     *
     * @param parts the segments of the name
-    * @param location the source location that the node corresponds to
+    * @param identifiedLocation the source location that the node corresponds to
     * @param passData the pass metadata associated with this node
     * @return a copy of `this`, updated with the specified values
     */
   final case class Qualified(
     parts: List[Name],
-    location: Option[IdentifiedLocation],
+    identifiedLocation: IdentifiedLocation,
     passData: MetadataStorage = new MetadataStorage()
   ) extends Name
       with IRKind.Primitive
@@ -250,7 +250,7 @@ object Name {
         || diagnostics != this.diagnostics
         || id != this.id
       ) {
-        val res = Qualified(parts, location, passData)
+        val res = Qualified(parts, location.orNull, passData)
         res.diagnostics = diagnostics
         res.id          = id
         res
@@ -289,16 +289,17 @@ object Name {
 
   /** Represents occurrences of blank (`_`) expressions.
     *
-    * @param location    the source location that the node corresponds to.
-    * @param passData    the pass metadata associated with this node
+    * @param identifiedLocation the source location that the node corresponds to.
+    * @param passData the pass metadata associated with this node
     */
   sealed case class Blank(
-    location: Option[IdentifiedLocation],
+    identifiedLocation: IdentifiedLocation,
     passData: MetadataStorage = new MetadataStorage()
   ) extends Name
       with IRKind.Sugar
       with LazyDiagnosticStorage
       with LazyId {
+
     override val name: String = "_"
 
     /** Creates a copy of `this`.
@@ -321,7 +322,7 @@ object Name {
         || diagnostics != this.diagnostics
         || id != this.id
       ) {
-        val res = Blank(location, passData)
+        val res = Blank(location.orNull, passData)
         res.diagnostics = diagnostics
         res.id          = id
         res
@@ -373,8 +374,8 @@ object Name {
 
   sealed case class Special(
     specialName: Special.Ident,
-    location: Option[IdentifiedLocation],
-    passData: MetadataStorage = new MetadataStorage()
+    override val identifiedLocation: IdentifiedLocation,
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends Name
       with IRKind.Sugar
       with LazyDiagnosticStorage
@@ -403,7 +404,7 @@ object Name {
         || diagnostics != this.diagnostics
         || id != this.id
       ) {
-        val res = Special(specialName, location, passData)
+        val res = Special(specialName, location.orNull, passData)
         res.diagnostics = diagnostics
         res.id          = id
         res
@@ -464,18 +465,18 @@ object Name {
 
   /** The representation of a literal name.
     *
-    * @param name        the literal text of the name
-    * @param isMethod    is this a method call name
-    * @param location    the source location that the node corresponds to
+    * @param name the literal text of the name
+    * @param isMethod is this a method call name
+    * @param identifiedLocation the source location that the node corresponds to
     * @param originalName the name which this literal has replaced, if any
-    * @param passData    the pass metadata associated with this node
+    * @param passData the pass metadata associated with this node
     */
   sealed case class Literal(
     override val name: String,
     override val isMethod: Boolean,
-    location: Option[IdentifiedLocation],
-    originalName: Option[Name] = None,
-    passData: MetadataStorage  = new MetadataStorage()
+    override val identifiedLocation: IdentifiedLocation,
+    originalName: Option[Name]             = None,
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends Name
       with LazyDiagnosticStorage
       with LazyId {
@@ -509,7 +510,8 @@ object Name {
         || diagnostics != this.diagnostics
         || id != this.id
       ) {
-        val res = Literal(name, isMethod, location, originalName, passData)
+        val res =
+          Literal(name, isMethod, location.orNull, originalName, passData)
         res.diagnostics = diagnostics
         res.id          = id
         res
@@ -582,14 +584,14 @@ object Name {
 
   /** The representation of builtin annotation.
     *
-    * @param name        the annotation text of the name
-    * @param location    the source location that the node corresponds to
-    * @param passData    the pass metadata associated with this node
+    * @param name the annotation text of the name
+    * @param identifiedLocation the source location that the node corresponds to
+    * @param passData the pass metadata associated with this node
     */
   sealed case class BuiltinAnnotation(
     override val name: String,
-    location: Option[IdentifiedLocation],
-    passData: MetadataStorage = new MetadataStorage()
+    override val identifiedLocation: IdentifiedLocation,
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends Annotation
       with IRKind.Primitive
       with LazyDiagnosticStorage
@@ -618,7 +620,7 @@ object Name {
         || diagnostics != this.diagnostics
         || id != this.id
       ) {
-        val res = BuiltinAnnotation(name, location, passData)
+        val res = BuiltinAnnotation(name, location.orNull, passData)
         res.diagnostics = diagnostics
         res.id          = id
         res
@@ -675,14 +677,14 @@ object Name {
     *
     * @param name the annotation text of the name
     * @param expression the annotation expression
-    * @param location the source location that the node corresponds to
+    * @param identifiedLocation the source location that the node corresponds to
     * @param passData the pass metadata associated with this node
     */
   sealed case class GenericAnnotation(
     override val name: String,
     expression: Expression,
-    location: Option[IdentifiedLocation],
-    passData: MetadataStorage = new MetadataStorage()
+    override val identifiedLocation: IdentifiedLocation,
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends Annotation
       with LazyDiagnosticStorage
       with LazyId {
@@ -714,7 +716,7 @@ object Name {
         || id != this.id
       ) {
         val res =
-          GenericAnnotation(name, expression, location, passData)
+          GenericAnnotation(name, expression, location.orNull, passData)
         res.diagnostics = diagnostics
         res.id          = id
         res
@@ -771,14 +773,14 @@ object Name {
 
   /** A representation of the name `self`, used to refer to the current type.
     *
-    * @param location the source location that the node corresponds to
+    * @param identifiedLocation the source location that the node corresponds to
     * @param synthetic the flag indicating that the name was generated
     * @param passData the pass metadata associated with this node
     */
   sealed case class Self(
-    location: Option[IdentifiedLocation],
-    synthetic: Boolean        = false,
-    passData: MetadataStorage = new MetadataStorage()
+    override val identifiedLocation: IdentifiedLocation,
+    synthetic: Boolean                     = false,
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends Name
       with LazyDiagnosticStorage
       with LazyId {
@@ -796,7 +798,7 @@ object Name {
       passData: MetadataStorage,
       diagnostics: DiagnosticStorage
     ) = {
-      this(location, synthetic, passData)
+      this(location.orNull, synthetic, passData)
       this.diagnostics = diagnostics
     }
 
@@ -824,7 +826,7 @@ object Name {
         || diagnostics != this.diagnostics
         || id != this.id
       ) {
-        val res = Self(location, synthetic, passData)
+        val res = Self(location.orNull, synthetic, passData)
         res.diagnostics = diagnostics
         res.id          = id
         res
@@ -876,11 +878,11 @@ object Name {
 
   /** A representation of the name `Self`, used to refer to the current type.
     *
-    * @param location the source location that the node corresponds to
+    * @param identifiedLocation the source location that the node corresponds to
     * @param passData the pass metadata associated with this node
     */
   sealed case class SelfType(
-    location: Option[IdentifiedLocation],
+    identifiedLocation: IdentifiedLocation,
     passData: MetadataStorage = new MetadataStorage()
   ) extends Name
       with LazyDiagnosticStorage
@@ -897,7 +899,7 @@ object Name {
       passData: MetadataStorage,
       diagnostics: DiagnosticStorage
     ) = {
-      this(location, passData)
+      this(location.orNull, passData)
       this.diagnostics = diagnostics
     }
 
@@ -923,7 +925,7 @@ object Name {
         || diagnostics != this.diagnostics
         || id != this.id
       ) {
-        val res = SelfType(location, passData)
+        val res = SelfType(location.orNull, passData)
         res.diagnostics = diagnostics
         res.id          = id
         res

@@ -128,9 +128,14 @@ case object TypeFunctions extends IRPass {
         fn match {
           case name: Name if name.name == `type`.Set.Union.name =>
             val members = flattenUnion(app).map(resolveExpression)
-            `type`.Set.Union(members, app.location)
+            `type`.Set.Union(members, app.identifiedLocation())
           case name: Name if knownTypingFunctions.contains(name.name) =>
-            resolveKnownFunction(name, pre.arguments, pre.location, pre)
+            resolveKnownFunction(
+              name,
+              pre.arguments,
+              pre.identifiedLocation,
+              pre
+            )
           case _ =>
             pre.copy(
               function  = resolveExpression(fn),
@@ -174,7 +179,7 @@ case object TypeFunctions extends IRPass {
   private def resolveKnownFunction(
     name: Name,
     arguments: List[CallArgument],
-    location: Option[IdentifiedLocation],
+    location: IdentifiedLocation,
     originalIR: IR
   ): Expression = {
     val expectedNumArgs = 2

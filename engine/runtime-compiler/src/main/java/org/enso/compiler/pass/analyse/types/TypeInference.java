@@ -81,7 +81,7 @@ public final class TypeInference implements IRPass {
               .getDiagnostics()
               .add(
                   new Warning.TypeMismatch(
-                      relatedIr.location(), expected.toString(), provided.toString()));
+                      relatedIr.identifiedLocation(), expected.toString(), provided.toString()));
         }
 
         @Override
@@ -89,7 +89,7 @@ public final class TypeInference implements IRPass {
             IR relatedIr, TypeRepresentation type) {
           relatedIr
               .getDiagnostics()
-              .add(new Warning.NotInvokable(relatedIr.location(), type.toString()));
+              .add(new Warning.NotInvokable(relatedIr.identifiedLocation(), type.toString()));
         }
       };
   private UUID uuid;
