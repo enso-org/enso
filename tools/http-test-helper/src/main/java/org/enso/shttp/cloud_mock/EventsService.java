@@ -14,7 +14,6 @@ public class EventsService {
       String projectId) {}
 
   public void recordEvent(LogEvent event) {
-    System.out.println("Received event: " + event);
     events.add(event);
   }
 

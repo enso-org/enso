@@ -98,7 +98,6 @@ http_request (method : HTTP_Method) (url : URI) (body : Request_Body = ..Empty) 
     response = HTTP.new.request (Request.new method url headers=all_headers body=body) error_on_failure_code=False
         . catch HTTP_Error as_connection_error
         . catch Request_Error as_connection_error
-    Standard.Base.IO.println method.to_text+" "+url.to_text+" "+body.to_text+" --> "+response.code.to_text
     if response.is_error && (retries > 0) then http_request method url body additional_headers error_handlers (retries - 1) else
         if response.code.is_success then response else
             is_unauthorized = response.code == HTTP_Status_Code.unauthorized

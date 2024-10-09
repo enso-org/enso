@@ -26,10 +26,8 @@ add_specs suite_builder prefix ~datalink_to_connection database_pending =
        This can be used to verify that the mock logic is consistent with the real thing.
     always_run_on_mock = True
     cloud_setup = if always_run_on_mock then Cloud_Tests_Setup.prepare_mock_setup else Cloud_Tests_Setup.prepare
-    IO.println "Outside of tests, current user is "+Enso_User.current.to_text
     suite_builder.group prefix+"Audit Logs" pending=(cloud_setup.pending.if_nothing database_pending) group_builder->
         group_builder.specify "should see Database operations performed on a table through the standard workflow" <| cloud_setup.with_prepared_environment <|
-            IO.println "STARTING AUDIT LOG TEST"
             audited_connection = datalink_to_connection.read
             table_name = "audited-table-"+Random.uuid
             mem_table = Table.new [["X", [1, 2]], ["Y", ["my_payload", "foo"]]]
@@ -37,18 +35,15 @@ add_specs suite_builder prefix ~datalink_to_connection database_pending =
             audited_table.read . should_equal mem_table
             audited_connection.drop_table table_name . should_succeed
 
-            IO.println "DB OPS COMPLETE"
-
-            # We send a synchronous log to block the main thread until all pending async logs have been processed.
-            Audit_Log.report_event "TestEvent" "test message to sync" async=False . should_succeed
-
             # Retrying is needed as there may be some delay before the background thread finishes processing the logs.
             Test.with_retries <|
-                Thread.sleep 500
+                # We send a synchronous log to block the main thread until all pending async logs have been processed.
+                Audit_Log.report_event "TestEvent" "test message to sync" async=False . should_succeed
+
                 all_events = get_audit_log_events
-                IO.println "GOT BACK "+all_events.length.to_text+" EVENTS"
                 relevant_events = all_events.filter e-> e.message.contains table_name
-                Test.with_clue ((all_events.map .to_text).join '\n' 'Found events are:\n' '\n') <|
+                Test.with_clue ((relevant_events.map .to_text).join '\n' 'Found relevant events are:\n' '\n') <|
+
                     create = relevant_events.find (e-> e.message.contains "CREATE")
                     create.should_succeed
                     create.user_email . should_equal Enso_User.current.email

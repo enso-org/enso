@@ -95,14 +95,10 @@ class AuditLogApiAccess {
         // The request config may only change in test scenarios which just must take this into
         // account.
         var requestConfig = pendingMessages.get(0).requestConfig();
-        System.out.println("Batch of " + pendingMessages.size() + " log messages to send: " + pendingMessages.stream().map(m -> m.requestConfig.apiUri).toList());
         var request = buildRequest(requestConfig, pendingMessages);
-        System.out.println("Sending request with " + pendingMessages.size() + " log messages to " + request.uri());
         sendLogRequest(request, MAX_RETRIES);
-        System.out.println("Request (" + pendingMessages.size() + " messages) sent successfully.");
         notifyJobsAboutSuccess(pendingMessages);
       } catch (RequestFailureException e) {
-        System.out.println("Request (" + pendingMessages.size() + " messages) sent failed: " + e);
         notifyJobsAboutFailure(pendingMessages, e);
       }
     }
@@ -113,7 +109,6 @@ class AuditLogApiAccess {
       if (job.completionNotification() != null) {
         job.completionNotification().complete(null);
       }
-      System.out.println("Log message sent successfully: " + job.message().payload());
     }
   }
 
@@ -122,7 +117,6 @@ class AuditLogApiAccess {
       if (job.completionNotification() != null) {
         job.completionNotification().completeExceptionally(e);
       }
-      System.out.println("Failed to send log message: " + job.message().payload() + " - " + e);
     }
   }
 
@@ -168,7 +162,6 @@ class AuditLogApiAccess {
     var uri = URI.create(CloudAPI.getAPIRootURI() + "logs");
     var config = new RequestConfig(uri, AuthenticationProvider.getAccessToken());
     cachedRequestConfig = config;
-    System.out.println("Audit logger configured to URI " + uri);
     return config;
   }
 
@@ -236,6 +229,5 @@ class AuditLogApiAccess {
 
   void resetCache() {
     cachedRequestConfig = null;
-    System.out.println("Audit logger cache reset.");
   }
 }

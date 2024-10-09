@@ -47,9 +47,15 @@ public class PostLogHandler implements CloudHandler {
       return;
     }
 
+    try {
+      // Delay recording the event to simulate network conditions
+      Thread.sleep(100);
+    } catch (InterruptedException e) {
+      // ignore the interruption
+    }
+
     JsonNode root = jsonMapper.readTree(exchange.decodeBodyAsText());
     var incomingEvents = decodeLogEvents(root);
-    System.out.println("Received a batch of " + incomingEvents.size() + " audit log messages.");
     if (batchingTestModeEnabled) {
       System.out.println("Received a batch of " + incomingEvents.size() + " audit log messages.");
       try {
