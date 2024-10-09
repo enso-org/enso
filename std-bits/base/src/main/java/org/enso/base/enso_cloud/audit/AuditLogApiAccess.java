@@ -1,8 +1,5 @@
 package org.enso.base.enso_cloud.audit;
 
-import org.enso.base.enso_cloud.AuthenticationProvider;
-import org.enso.base.enso_cloud.CloudAPI;
-
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -19,6 +16,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
+import org.enso.base.enso_cloud.AuthenticationProvider;
+import org.enso.base.enso_cloud.CloudAPI;
 
 /**
  * Gives access to the low-level log event API in the Cloud and manages asynchronously submitting
@@ -103,12 +102,13 @@ class AuditLogApiAccess {
 
   /**
    * Sends a batch of log messages.
-   * <p>
-   * The batch must not be empty and all messages must share the same request config.
+   *
+   * <p>The batch must not be empty and all messages must share the same request config.
    */
   private void sendBatch(List<LogJob> batch) {
     assert !batch.isEmpty() : "The batch must not be empty.";
-    // We use the request config from the first message - all messages in the batch should have the same request config.
+    // We use the request config from the first message - all messages in the batch should have the
+    // same request config.
     var requestConfig = batch.get(0).requestConfig();
     assert requestConfig != null
         : "The request configuration must be set before building a request.";
@@ -125,8 +125,9 @@ class AuditLogApiAccess {
   }
 
   /**
-   * Only during testing, it is possible to encounter pending messages with different request configs (when the config changes between tests).
-   * To send each message where it is intended, we split up the batch by the config.
+   * Only during testing, it is possible to encounter pending messages with different request
+   * configs (when the config changes between tests). To send each message where it is intended, we
+   * split up the batch by the config.
    */
   Collection<List<LogJob>> splitMessagesByConfig(List<LogJob> messages) {
     HashMap<RequestConfig, List<LogJob>> hashMap = new HashMap<>();
