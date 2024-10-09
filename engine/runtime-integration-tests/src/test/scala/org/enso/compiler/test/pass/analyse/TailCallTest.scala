@@ -71,7 +71,7 @@ class TailCallTest extends CompilerTest {
       * @return [[ir]], with tail call analysis metadata attached
       */
     def analyse(implicit context: ModuleContext) = {
-      TailCall.runModule(ir, context)
+      TailCallMegaPass.runModule(ir, context)
     }
 
     def analyseMini(implicit context: ModuleContext) = {
@@ -93,7 +93,7 @@ class TailCallTest extends CompilerTest {
       * @return [[ir]], with tail call analysis metadata attached
       */
     def analyse(implicit context: InlineContext): Expression = {
-      TailCall.runExpression(ir, context)
+      TailCallMegaPass.runExpression(ir, context)
     }
 
     def analyseMini(implicit context: InlineContext) = {
@@ -150,7 +150,7 @@ class TailCallTest extends CompilerTest {
 
     "mark methods as tail" in {
       val megaIr = analyseWithMegaPass(code)
-      megaIr.bindings.head.getMetadata(TailCall) shouldEqual Some(
+      megaIr.bindings.head.getMetadata(TailCallMegaPass) shouldEqual Some(
         TailPosition.Tail
       )
       val miniIr = analyseWithMiniPass(code)
@@ -162,7 +162,7 @@ class TailCallTest extends CompilerTest {
     "mark atoms as tail" in {
       val megaIr = analyseWithMegaPass(code)
       val miniIr = analyseWithMiniPass(code)
-      megaIr.bindings(1).getMetadata(TailCall) shouldEqual Some(
+      megaIr.bindings(1).getMetadata(TailCallMegaPass) shouldEqual Some(
         TailPosition.Tail
       )
       miniIr.bindings(1).getMetadata(TailCall) shouldEqual Some(
@@ -173,7 +173,7 @@ class TailCallTest extends CompilerTest {
     "mark conversions as tail" in {
       val megaIr = analyseWithMegaPass(code)
       val miniIr = analyseWithMiniPass(code)
-      megaIr.bindings(2).getMetadata(TailCall) shouldEqual Some(
+      megaIr.bindings(2).getMetadata(TailCallMegaPass) shouldEqual Some(
         TailPosition.Tail
       )
       miniIr.bindings(2).getMetadata(TailCall) shouldEqual Some(
@@ -192,14 +192,14 @@ class TailCallTest extends CompilerTest {
       implicit val ctx: InlineContext = mkTailContext
       val ir                          = code.preprocessExpression.get.analyse
 
-      ir.getMetadata(TailCall) shouldEqual Some(TailPosition.Tail)
+      ir.getMetadata(TailCallMegaPass) shouldEqual Some(TailPosition.Tail)
     }
 
     "not mark the expression as tail if the context doesn't require it" in {
       implicit val ctx: InlineContext = mkNoTailContext
       val ir                          = code.preprocessExpression.get.analyse
 
-      ir.getMetadata(TailCall) shouldEqual Some(TailPosition.NotTail)
+      ir.getMetadata(TailCallMegaPass) shouldEqual Some(TailPosition.NotTail)
     }
 
     "mark the value of a tail assignment as non-tail" in {
@@ -209,8 +209,8 @@ class TailCallTest extends CompilerTest {
           |foo = a b
           |""".stripMargin.preprocessExpression.get.analyse
           .asInstanceOf[Expression.Binding]
-      binding.getMetadata(TailCall) shouldEqual Some(TailPosition.Tail)
-      binding.expression.getMetadata(TailCall) shouldEqual Some(
+      binding.getMetadata(TailCallMegaPass) shouldEqual Some(TailPosition.Tail)
+      binding.expression.getMetadata(TailCallMegaPass) shouldEqual Some(
         TailPosition.NotTail
       )
     }
@@ -222,8 +222,8 @@ class TailCallTest extends CompilerTest {
           |foo = a b
           |""".stripMargin.preprocessExpression.get.analyseMini
           .asInstanceOf[Expression.Binding]
-      binding.getMetadata(TailCall) shouldEqual Some(TailPosition.Tail)
-      binding.expression.getMetadata(TailCall) shouldEqual Some(
+      binding.getMetadata(TailCallMegaPass) shouldEqual Some(TailPosition.Tail)
+      binding.expression.getMetadata(TailCallMegaPass) shouldEqual Some(
         TailPosition.NotTail
       )
 
@@ -245,7 +245,7 @@ class TailCallTest extends CompilerTest {
     val fnBodyMini = miniIr.body.asInstanceOf[Expression.Block]
 
     "mark the last expression of the function as tail" in {
-      fnBodyMega.returnValue.getMetadata(TailCall) shouldEqual Some(
+      fnBodyMega.returnValue.getMetadata(TailCallMegaPass) shouldEqual Some(
         TailPosition.Tail
       )
       fnBodyMini.returnValue.getMetadata(TailCall) shouldEqual Some(
@@ -255,7 +255,7 @@ class TailCallTest extends CompilerTest {
 
     "mark the other expressions in the function as not tail" in {
       fnBodyMega.expressions.foreach(expr =>
-        expr.getMetadata(TailCall) shouldEqual Some(
+        expr.getMetadata(TailCallMegaPass) shouldEqual Some(
           TailPosition.NotTail
         )
       )
@@ -351,14 +351,14 @@ class TailCallTest extends CompilerTest {
         .returnValue
         .asInstanceOf[Case.Expr]
 
-      caseExpr.getMetadata(TailCall) shouldEqual Some(
+      caseExpr.getMetadata(TailCallMegaPass) shouldEqual Some(
         TailPosition.NotTail
       )
       caseExpr.branches.foreach(branch => {
         val branchExpression =
           branch.expression.asInstanceOf[Application.Prefix]
 
-        branchExpression.getMetadata(TailCall) shouldEqual Some(
+        branchExpression.getMetadata(TailCallMegaPass) shouldEqual Some(
           TailPosition.NotTail
         )
       })
@@ -385,14 +385,14 @@ class TailCallTest extends CompilerTest {
         .returnValue
         .asInstanceOf[Case.Expr]
 
-      caseExpr.getMetadata(TailCall) shouldEqual Some(
+      caseExpr.getMetadata(TailCallMegaPass) shouldEqual Some(
         TailPosition.Tail
       )
       caseExpr.branches.foreach(branch => {
         val branchExpression =
           branch.expression.asInstanceOf[Application.Prefix]
 
-        branchExpression.getMetadata(TailCall) shouldEqual Some(
+        branchExpression.getMetadata(TailCallMegaPass) shouldEqual Some(
           TailPosition.Tail
         )
       })
@@ -414,16 +414,18 @@ class TailCallTest extends CompilerTest {
       val pattern            = caseBranch.pattern.asInstanceOf[Pattern.Constructor]
       val patternConstructor = pattern.constructor
 
-      pattern.getMetadata(TailCall) shouldEqual Some(TailPosition.NotTail)
-      patternConstructor.getMetadata(TailCall) shouldEqual Some(
+      pattern.getMetadata(TailCallMegaPass) shouldEqual Some(
+        TailPosition.NotTail
+      )
+      patternConstructor.getMetadata(TailCallMegaPass) shouldEqual Some(
         TailPosition.NotTail
       )
       pattern.fields.foreach(f => {
-        f.getMetadata(TailCall) shouldEqual Some(TailPosition.NotTail)
+        f.getMetadata(TailCallMegaPass) shouldEqual Some(TailPosition.NotTail)
 
         f.asInstanceOf[Pattern.Name]
           .name
-          .getMetadata(TailCall) shouldEqual Some(TailPosition.NotTail)
+          .getMetadata(TailCallMegaPass) shouldEqual Some(TailPosition.NotTail)
       })
     }
   }
@@ -470,14 +472,14 @@ class TailCallTest extends CompilerTest {
         .asInstanceOf[Application.Prefix]
         .arguments
         .foreach(arg =>
-          arg.getMetadata(TailCall) shouldEqual Some(
+          arg.getMetadata(TailCallMegaPass) shouldEqual Some(
             TailPosition.Tail
           )
         )
     }
 
     "mark the function call as tail if it is in a tail position" in {
-      tailCallBody.returnValue.getMetadata(TailCall) shouldEqual Some(
+      tailCallBody.returnValue.getMetadata(TailCallMegaPass) shouldEqual Some(
         TailPosition.Tail
       )
     }
@@ -486,7 +488,7 @@ class TailCallTest extends CompilerTest {
       nonTailCallBody.expressions.head
         .asInstanceOf[Expression.Binding]
         .expression
-        .getMetadata(TailCall) shouldEqual Some(TailPosition.NotTail)
+        .getMetadata(TailCallMegaPass) shouldEqual Some(TailPosition.NotTail)
     }
   }
 
@@ -514,25 +516,25 @@ class TailCallTest extends CompilerTest {
         .expression
         .asInstanceOf[Function.Lambda]
         .body
-        .getMetadata(TailCall) shouldEqual Some(TailPosition.Tail)
+        .getMetadata(TailCallMegaPass) shouldEqual Some(TailPosition.Tail)
     }
 
     "mark the block expressions as not tail" in {
       block.expressions.foreach(expr =>
-        expr.getMetadata(TailCall) shouldEqual Some(
+        expr.getMetadata(TailCallMegaPass) shouldEqual Some(
           TailPosition.NotTail
         )
       )
     }
 
     "mark the final expression of the block as tail" in {
-      block.returnValue.getMetadata(TailCall) shouldEqual Some(
+      block.returnValue.getMetadata(TailCallMegaPass) shouldEqual Some(
         TailPosition.Tail
       )
     }
 
     "mark the block as tail if it is in a tail position" in {
-      block.getMetadata(TailCall) shouldEqual Some(TailPosition.Tail)
+      block.getMetadata(TailCallMegaPass) shouldEqual Some(TailPosition.Tail)
     }
   }
 }
