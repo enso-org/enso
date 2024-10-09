@@ -381,8 +381,7 @@ type Enso_File
             Enso_Asset_Type.Project -> Error.throw (Illegal_Argument.Error "Projects cannot be read within Enso code. Open using the IDE.")
             Enso_Asset_Type.Secret -> Error.throw (Illegal_Argument.Error "Secrets cannot be read directly.")
             Enso_Asset_Type.Data_Link ->
-                json = Utils.http_request_as_json HTTP_Method.Get asset.internal_uri
-                datalink = Data_Link_Helpers.interpret_json_as_data_link json
+                datalink = Data_Link_Helpers.interpret_existing_asset_as_data_link asset
                 datalink.read format on_problems
             Enso_Asset_Type.Directory -> Error.throw (Illegal_Argument.Error "Cannot `read` a directory, use `list`.")
             Enso_Asset_Type.File ->

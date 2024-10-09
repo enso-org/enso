@@ -6,8 +6,12 @@ import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Enso_Cloud.Data_Link.Data_Link
+import project.Enso_Cloud.Enso_File.Enso_Asset_Type
+import project.Enso_Cloud.Enso_File.Enso_File
 import project.Enso_Cloud.Enso_Secret.Enso_Secret
 import project.Enso_Cloud.Errors.Missing_Data_Link_Library
+import project.Enso_Cloud.Internal.Existing_Enso_Asset.Existing_Enso_Asset
+import project.Enso_Cloud.Internal.Utils
 import project.Error.Error
 import project.Errors.Common.No_Such_Conversion
 import project.Errors.Illegal_Argument.Illegal_Argument
@@ -15,8 +19,10 @@ import project.Errors.Illegal_State.Illegal_State
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Errors.Unimplemented.Unimplemented
 import project.Meta
+import project.Network.HTTP.HTTP_Method.HTTP_Method
 import project.Nothing.Nothing
 import project.Panic.Panic
+import project.Runtime
 import project.System.File.Data_Link_Access.Data_Link_Access
 import project.System.File.File
 import project.System.File.File_Access.File_Access
@@ -66,12 +72,28 @@ interpret_json_as_data_link json source:Data_Link_Source_Metadata=..Unknown =
             library_name = get_required_field "libraryName" json expected_type=Text
             Error.throw (Missing_Data_Link_Library.Error library_name typ)
         data_link_type ->
-            data_link_type.parse json
+            data_link_type.parse json source
 
 ## PRIVATE
 read_and_interpret_data_link (file : File_Like) =
-    json = Data_Link.read_config file
-    source = "TODO"
+    case file.underlying of
+        ## We have special handling of Cloud files, because for them we want to correlate the asset id of the data link to be used in the audit logs.
+           Only the Cloud-backed files have this special handling. All other backends behave uniformly.
+        cloud_file : Enso_File ->
+            asset = Existing_Enso_Asset.get_asset_reference_for cloud_file
+            if asset.asset_type != Enso_Asset_Type.Data_Link then Error.throw (Illegal_Argument.Error "Cannot interpret file "+cloud_file.to_text+" as a data link, because it is "+asset.asset_type.to_text+".") else
+                interpret_existing_asset_as_data_link asset
+        _ ->
+            json = Data_Link.read_config file
+            ## We don't register the source for other backends - we are not interested in Filesystem path or S3 URI - only Cloud asset id is important in the audit logs.
+            interpret_json_as_data_link json source=..Unknown
+
+## PRIVATE
+   This method should only be called on an asset that is known to be a data link.
+interpret_existing_asset_as_data_link asset:Existing_Enso_Asset =
+    Runtime.assert (asset.asset_type == Enso_Asset_Type.Data_Link)
+    source = Data_Link_Source_Metadata.Cloud_Asset asset.id
+    json = Utils.http_request_as_json HTTP_Method.Get asset.internal_uri
     interpret_json_as_data_link json source
 
 ## PRIVATE
