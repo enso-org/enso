@@ -65,7 +65,7 @@ function useSetProjectAsset() {
           }
         | undefined
       >({
-        queryKey: [backendType, 'listDirectory', parentId],
+        queryKey: [backendType, 'listDirectory', { parentId }],
         exact: false,
       })
 
@@ -189,11 +189,11 @@ export function useOpenProjectMutation() {
     },
     onSuccess: async (_, { type, id, parentId }) => {
       await client.resetQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
-      await client.invalidateQueries({ queryKey: [type, 'listDirectory', parentId] })
+      await client.invalidateQueries({ queryKey: [type, 'listDirectory', { parentId }] })
     },
     onError: async (_, { type, id, parentId }) => {
       await client.invalidateQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
-      await client.invalidateQueries({ queryKey: [type, 'listDirectory', parentId] })
+      await client.invalidateQueries({ queryKey: [type, 'listDirectory', { parentId }] })
     },
   })
 }
@@ -238,7 +238,7 @@ export function useCloseProjectMutation() {
     },
     onError: async (_, { type, id, parentId }) => {
       await client.invalidateQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
-      await client.invalidateQueries({ queryKey: [type, 'listDirectory', parentId] })
+      await client.invalidateQueries({ queryKey: [type, 'listDirectory', { parentId }] })
     },
   })
 }

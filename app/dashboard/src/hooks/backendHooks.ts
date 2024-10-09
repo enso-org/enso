@@ -19,14 +19,17 @@ import {
 import { CATEGORY_TO_FILTER_BY, type Category } from '#/layouts/CategorySwitcher/Category'
 import type Backend from '#/services/Backend'
 import {
+  AssetType,
   BackendType,
+  DirectoryAsset,
   type AnyAsset,
   type AssetId,
-  type AssetType,
   type DirectoryId,
   type User,
   type UserGroupInfo,
 } from '#/services/Backend'
+import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from '#/services/remoteBackendPaths'
+import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 
 // ============================
 // === DefineBackendMethods ===
@@ -298,7 +301,41 @@ export function useAssetPassiveListener(
     ],
     initialData: undefined,
   })
-  return listDirectoryQuery.data?.children.find((child) => child.id === assetId)
+  switch (assetId) {
+    case USERS_DIRECTORY_ID: {
+      return !assetId || !parentId ?
+          undefined
+        : ({
+            id: assetId,
+            parentId,
+            type: AssetType.directory,
+            projectState: null,
+            title: 'Users',
+            description: '',
+            modifiedAt: toRfc3339(new Date()),
+            permissions: [],
+            labels: [],
+          } satisfies DirectoryAsset)
+    }
+    case TEAMS_DIRECTORY_ID: {
+      return !assetId || !parentId ?
+          undefined
+        : ({
+            id: assetId,
+            parentId,
+            type: AssetType.directory,
+            projectState: null,
+            title: 'Teams',
+            description: '',
+            modifiedAt: toRfc3339(new Date()),
+            permissions: [],
+            labels: [],
+          } satisfies DirectoryAsset)
+    }
+    default: {
+      return listDirectoryQuery.data?.children.find((child) => child.id === assetId)
+    }
+  }
 }
 
 /** Data for a specific asset. */

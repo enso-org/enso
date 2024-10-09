@@ -442,7 +442,6 @@ export default function AssetsTable(props: AssetsTableProps) {
             queryKey: [
               backend.type,
               'listDirectory',
-              directoryId,
               {
                 parentId: directoryId,
                 labels: null,
@@ -450,7 +449,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                 recentProjects: category.type === 'recent',
               },
             ] as const,
-            queryFn: async ({ queryKey: [, , parentId, params] }) => {
+            queryFn: async ({ queryKey: [, , params] }) => {
+              const parentId = params.parentId
               try {
                 return { parentId, children: await backend.listDirectory(params, parentId) }
               } catch {
@@ -1540,7 +1540,7 @@ export default function AssetsTable(props: AssetsTableProps) {
 
     if (asset) {
       const listDirectoryQuery = queryClient.getQueryCache().find<DirectoryQuery>({
-        queryKey: [backend.type, 'listDirectory', asset.parentId],
+        queryKey: [backend.type, 'listDirectory', { parentId: asset.parentId }],
         exact: false,
       })
 
@@ -1559,7 +1559,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       const actualParentId = parentId ?? rootDirectoryId
 
       const listDirectoryQuery = queryClient.getQueryCache().find<DirectoryQuery>({
-        queryKey: [backend.type, 'listDirectory', actualParentId],
+        queryKey: [backend.type, 'listDirectory', { parentId: actualParentId }],
         exact: false,
       })
 
@@ -2640,7 +2640,7 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   const setAsset = useEventCallback((assetId: AssetId, asset: AnyAsset) => {
     const listDirectoryQuery = queryClient.getQueryCache().find<DirectoryQuery>({
-      queryKey: [backend.type, 'listDirectory', asset.parentId],
+      queryKey: [backend.type, 'listDirectory', { parentId: asset.parentId }],
       exact: false,
     })
 

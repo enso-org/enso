@@ -334,7 +334,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
     'listDirectory',
     [
       {
-        parentId: backend.DirectoryId(USERS_DIRECTORY_ID),
+        parentId: USERS_DIRECTORY_ID,
         filterBy: backend.FilterBy.active,
         labels: [],
         recentProjects: false,
@@ -348,7 +348,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
     'listDirectory',
     [
       {
-        parentId: backend.DirectoryId(TEAMS_DIRECTORY_ID),
+        parentId: TEAMS_DIRECTORY_ID,
         filterBy: backend.FilterBy.active,
         labels: [],
         recentProjects: false,
