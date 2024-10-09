@@ -1,16 +1,16 @@
 package org.enso.compiler.core.ir;
 
-import org.enso.compiler.core.ir.module.scope.Export;
-import org.enso.compiler.core.ir.module.scope.Import;
+import java.util.List;
+import org.enso.compiler.core.ir.module.scope.JExport;
+import org.enso.compiler.core.ir.module.scope.JImport;
 import org.enso.runtime.parser.dsl.IRChild;
 import org.enso.runtime.parser.dsl.IRNode;
-import scala.collection.immutable.List;
 
-@IRNode(name = "Module")
-public abstract class JModule {
+@IRNode
+public interface JModule {
   @IRChild
-  public abstract List<Import> imports();
+  List<JImport> imports();
 
   @IRChild
-  public abstract List<Export> exports();
+  List<JExport> exports();
 }
