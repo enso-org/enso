@@ -2771,6 +2771,7 @@ lazy val `runtime-integration-tests` =
         "junit"                % "junit"                        % junitVersion              % Test,
         "com.github.sbt"       % "junit-interface"              % junitIfVersion            % Test,
         "org.hamcrest"         % "hamcrest-all"                 % hamcrestVersion           % Test,
+        "org.yaml"             % "snakeyaml"                    % snakeyamlVersion,
         "org.slf4j"            % "slf4j-api"                    % slf4jVersion
       ),
       Test / fork := true,
