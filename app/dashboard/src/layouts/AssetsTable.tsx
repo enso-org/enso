@@ -52,7 +52,7 @@ import FocusArea from '#/components/styled/FocusArea'
 import SvgMask from '#/components/SvgMask'
 import { ASSETS_MIME_TYPE } from '#/data/mimeTypes'
 import AssetEventType from '#/events/AssetEventType'
-import type { AssetListEvent } from '#/events/assetListEvent'
+import { useCutAndPaste, type AssetListEvent } from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
 import { useAutoScroll } from '#/hooks/autoScrollHooks'
 import { backendMutationOptions, backendQueryOptions, useBackendQuery } from '#/hooks/backendHooks'
@@ -2137,6 +2137,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     setSelectedKeys(EMPTY_SET)
   })
 
+  const cutAndPaste = useCutAndPaste()
   const doPaste = useEventCallback((newParentKey: DirectoryId, newParentId: DirectoryId) => {
     unsetModal()
     if (pasteData != null) {
@@ -2155,12 +2156,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             newParentKey,
           })
         } else {
-          dispatchAssetEvent({
-            type: AssetEventType.move,
-            ids: pasteData.data,
-            newParentKey,
-            newParentId,
-          })
+          cutAndPaste(newParentKey, newParentId, [...pasteData.data], nodeMapRef.current)
         }
         setPasteData(null)
       }

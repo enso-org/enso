@@ -1,7 +1,15 @@
 /** @file Events related to changes in the asset list. */
-import type AssetListEventType from '#/events/AssetListEventType'
+import AssetEventType from '#/events/AssetEventType'
+import AssetListEventType from '#/events/AssetListEventType'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import {
+  useDispatchAssetEvent,
+  useDispatchAssetListEvent,
+} from '#/layouts/AssetsTable/EventListProvider'
 
 import type * as backend from '#/services/Backend'
+import type { AnyAssetTreeNode } from '#/utilities/AssetTreeNode'
+import { isTeamPath, isUserPath } from '#/utilities/permissions'
 
 // ======================
 // === AssetListEvent ===
@@ -133,3 +141,50 @@ interface AssetListRemoveSelfEvent extends AssetListBaseEvent<AssetListEventType
 
 /** Every possible type of asset list event. */
 export type AssetListEvent = AssetListEvents[keyof AssetListEvents]
+
+/** A hook to copy or move assets as appropriate. Assets are moved, except when performing
+ * a cut and paste between the Team Space and the User Space, in which case the asset is copied.
+ */
+export function useCutAndPaste() {
+  const dispatchAssetListEvent = useDispatchAssetListEvent()
+  const dispatchAssetEvent = useDispatchAssetEvent()
+  return useEventCallback(
+    (
+      newParentKey: backend.DirectoryId,
+      newParentId: backend.DirectoryId,
+      ids: readonly backend.AssetId[],
+      nodeMap: ReadonlyMap<backend.AssetId, AnyAssetTreeNode>,
+    ) => {
+      const nodes = ids.flatMap((id) => {
+        const item = nodeMap.get(id)
+        return item == null ? [] : [item]
+      })
+      const newParent = nodeMap.get(newParentKey)
+      const isMovingToUserSpace = newParent?.path != null && isUserPath(newParent.path)
+      const teamToUserItems =
+        isMovingToUserSpace ?
+          nodes.filter((node) => isTeamPath(node.path)).map((otherItem) => otherItem.item)
+        : []
+      const nonTeamToUserIds =
+        isMovingToUserSpace ?
+          nodes.filter((node) => !isTeamPath(node.path)).map((otherItem) => otherItem.item.id)
+        : ids
+      if (teamToUserItems.length !== 0) {
+        dispatchAssetListEvent({
+          type: AssetListEventType.copy,
+          newParentKey,
+          newParentId,
+          items: teamToUserItems,
+        })
+      }
+      if (nonTeamToUserIds.length !== 0) {
+        dispatchAssetEvent({
+          type: AssetEventType.move,
+          newParentKey,
+          newParentId,
+          ids: new Set(nonTeamToUserIds),
+        })
+      }
+    },
+  )
+}

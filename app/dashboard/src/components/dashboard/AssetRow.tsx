@@ -34,6 +34,7 @@ import * as localBackend from '#/services/LocalBackend'
 import * as backendModule from '#/services/Backend'
 
 import { Text } from '#/components/AriaComponents'
+import { useCutAndPaste } from '#/events/assetListEvent'
 import {
   backendMutationOptions,
   backendQueryOptions,
@@ -154,8 +155,8 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
   const draggableProps = dragAndDropHooks.useDraggable()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
-  const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
+  const cutAndPaste = useCutAndPaste()
   const [isDraggedOver, setIsDraggedOver] = React.useState(false)
   const rootRef = React.useRef<HTMLElement | null>(null)
   const dragOverTimeoutHandle = React.useRef<number | null>(null)
@@ -762,41 +763,7 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
                       const ids = payload
                         .filter((payloadItem) => payloadItem.asset.parentId !== directoryId)
                         .map((dragItem) => dragItem.key)
-                      const nodes = ids.flatMap((id) => {
-                        const otherItem = nodeMap.current.get(id)
-                        return otherItem == null ? [] : [otherItem]
-                      })
-                      const newParent = nodeMap.current.get(directoryKey)
-                      const isMovingToUserSpace =
-                        newParent?.path != null && permissions.isUserPath(newParent.path)
-                      const teamToUserItems =
-                        isMovingToUserSpace ?
-                          nodes
-                            .filter((node) => permissions.isTeamPath(node.path))
-                            .map((otherItem) => otherItem.item)
-                        : []
-                      const nonTeamToUserIds =
-                        isMovingToUserSpace ?
-                          nodes
-                            .filter((node) => !permissions.isTeamPath(node.path))
-                            .map((otherItem) => otherItem.item.id)
-                        : ids
-                      if (teamToUserItems.length !== 0) {
-                        dispatchAssetListEvent({
-                          type: AssetListEventType.copy,
-                          newParentKey: directoryKey,
-                          newParentId: directoryId,
-                          items: teamToUserItems,
-                        })
-                      }
-                      if (nonTeamToUserIds.length !== 0) {
-                        dispatchAssetEvent({
-                          type: AssetEventType.move,
-                          newParentKey: directoryKey,
-                          newParentId: directoryId,
-                          ids: new Set(nonTeamToUserIds),
-                        })
-                      }
+                      cutAndPaste(directoryKey, directoryId, ids, nodeMap.current)
                     } else if (event.dataTransfer.types.includes('Files')) {
                       event.preventDefault()
                       event.stopPropagation()
