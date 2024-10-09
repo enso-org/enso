@@ -6,6 +6,8 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Table import Value_Type
 
 from Standard.Database.DB_Table import MAX_LITERAL_ELEMENT_COUNT
+from Standard.Database.Errors import all
+import Standard.Database.Feature.Feature
 
 from Standard.Test import all
 
@@ -20,6 +22,19 @@ type Data
         Data.Value (table_builder [['x', [1]]])
 
 add_specs suite_builder setup =
+    if setup.is_feature_supported Feature.Make_Table_From then (add_map_to_table_specs suite_builder setup) else
+        suite_builder.group setup.prefix+"Table.make_table_from_dictionary/vectors" group_builder->
+            data = Data.setup setup.table_builder
+            group_builder.specify "make_table_from_vectors should report unsupported" <|
+                vecs = [[0], [3.5], ['ABC']]
+                t = data.dummy_table.make_table_from_vectors vecs ['x', 'y', 'z']
+                t.should_fail_with (Unsupported_Database_Operation.Error "make_table_from_vectors")
+            group_builder.specify "make_table_from_dictionary should report unsupported" <|
+                map = Dictionary.from_vector [['x', 1], ['y', 2], ['z', 3]]
+                t = data.dummy_table.make_table_from_dictionary map 'k' 'v' . sort 'v'
+                t.should_fail_with (Unsupported_Database_Operation.Error "make_table_from_dictionary")
+
+add_map_to_table_specs suite_builder setup =
     prefix = setup.prefix
     suite_builder.group prefix+"Table.make_table_from_dictionary/vectors" group_builder->
         data = Data.setup setup.table_builder
