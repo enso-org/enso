@@ -9,6 +9,11 @@ import {
 } from '../mock/projectManager'
 import pmSpec from './pm-openrpc.json' assert { type: 'json' }
 
+/**
+ * Setup for all E2E tests.
+ *
+ * It runs mocked project manager server.
+ */
 export default function setup() {
   const pm = new Server({
     transportConfigs: [

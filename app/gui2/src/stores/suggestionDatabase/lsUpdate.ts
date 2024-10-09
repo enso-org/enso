@@ -122,6 +122,7 @@ function setLsDocumentation(
   if (data.iconName == null) delete entry.iconName
 }
 
+/** TODO: Add docs */
 export function entryFromLs(
   lsEntry: lsTypes.SuggestionEntry,
   groups: Group[],
@@ -319,6 +320,7 @@ function applyArgumentsUpdate(
   }
 }
 
+/** TODO: Add docs */
 export function applyUpdate(
   entries: SuggestionDb,
   update: lsTypes.SuggestionsDatabaseUpdate,
@@ -394,6 +396,7 @@ export function applyUpdate(
   }
 }
 
+/** TODO: Add docs */
 export function applyUpdates(
   entries: SuggestionDb,
   updates: lsTypes.SuggestionsDatabaseUpdate[],

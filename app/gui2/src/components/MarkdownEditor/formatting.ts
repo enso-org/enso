@@ -34,6 +34,7 @@ import {
 } from 'lexical'
 import { ref } from 'vue'
 
+/** TODO: Add docs */
 export function useFormatting(editor: LexicalEditor) {
   const selectionReaders = new Array<(selection: RangeSelection) => void>()
   function onReadSelection(reader: (selection: RangeSelection) => void) {
@@ -162,6 +163,7 @@ function isBlockType(value: string): value is BlockType {
   return value in blockTypeToBlockName
 }
 
+/** TODO: Add docs */
 export function normalizeHeadingLevel(heading: HeadingTagType): HeadingTagType & BlockType {
   return isBlockType(heading) ? heading : smallestEnabledHeading
 }
@@ -237,6 +239,7 @@ function useBlockType(
   }
 }
 
+/** TODO: Add docs */
 export function lexicalRichTextTheme(themeCss: Record<string, string>): EditorThemeClasses {
   const theme = lexicalTheme(themeCss)
   if (theme.heading) {

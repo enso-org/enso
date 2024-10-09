@@ -29,6 +29,7 @@ import {
 } from 'ydoc-shared/ast'
 export * from 'ydoc-shared/ast'
 
+/** TODO: Add docs */
 export function deserialize(serialized: string): Owned {
   const parsed: SerializedPrintedSource = JSON.parse(serialized)
   // Not implemented: restoring serialized external IDs. This is not the best approach anyway;
@@ -46,11 +47,13 @@ interface SerializedPrintedSource {
   code: string
 }
 
+/** TODO: Add docs */
 export function serialize(ast: Ast): string {
   return JSON.stringify(print(ast))
 }
 
 export type TokenTree = (TokenTree | string)[]
+/** TODO: Add docs */
 export function tokenTree(root: Ast): TokenTree {
   const module = root.module
   return Array.from(root.concreteChildren(), (child) => {
@@ -63,6 +66,7 @@ export function tokenTree(root: Ast): TokenTree {
   })
 }
 
+/** TODO: Add docs */
 export function tokenTreeWithIds(root: Ast): TokenTree {
   const module = root.module
   return [
@@ -78,6 +82,7 @@ export function tokenTreeWithIds(root: Ast): TokenTree {
   ]
 }
 
+/** TODO: Add docs */
 export function moduleMethodNames(topLevel: BodyBlock): Set<string> {
   const result = new Set<string>()
   for (const statement of topLevel.statements()) {
@@ -90,6 +95,7 @@ export function moduleMethodNames(topLevel: BodyBlock): Set<string> {
 }
 
 // FIXME: We should use alias analysis to handle ambiguous names correctly.
+/** TODO: Add docs */
 export function findModuleMethod(topLevel: BodyBlock, name: string): Function | undefined {
   for (const statement of topLevel.statements()) {
     const inner = statement.innerExpression()
@@ -100,19 +106,22 @@ export function findModuleMethod(topLevel: BodyBlock, name: string): Function | 
   return undefined
 }
 
+/** TODO: Add docs */
 export function functionBlock(topLevel: BodyBlock, name: string) {
   const func = findModuleMethod(topLevel, name)
   if (!(func?.body instanceof BodyBlock)) return undefined
   return func.body
 }
 
+/** TODO: Add docs */
 export function deleteFromParentBlock(ast: MutableAst) {
   const parent = ast.mutableParent()
   if (parent instanceof MutableBodyBlock)
     parent.updateLines((lines) => lines.filter((line) => line.expression?.node.id !== ast.id))
 }
 
-/** If the input is a chain of applications of the given left-associative operator, and all the leaves of the
+/**
+ * If the input is a chain of applications of the given left-associative operator, and all the leaves of the
  *  operator-application tree are identifier expressions, return the identifiers from left to right.
  *  This is analogous to `ast.code().split(operator)`, but type-enforcing.
  */
@@ -136,7 +145,8 @@ export function unrollOprChain(
   return idents
 }
 
-/** If the input is a chain of property accesses (uses of the `.` operator with a syntactic identifier on the RHS), and
+/**
+ * If the input is a chain of property accesses (uses of the `.` operator with a syntactic identifier on the RHS), and
  *  the value at the beginning of the sequence is an identifier expression, return all the identifiers from left to
  *  right. This is analogous to `ast.code().split('.')`, but type-enforcing.
  */
@@ -152,6 +162,7 @@ export function unrollPropertyAccess(ast: Ast): IdentifierOrOperatorIdentifier[]
   return idents
 }
 
+/** TODO: Add docs */
 export function parseIdent(ast: Ast): IdentifierOrOperatorIdentifier | null {
   if (ast instanceof Ident) {
     return ast.code()
@@ -160,17 +171,21 @@ export function parseIdent(ast: Ast): IdentifierOrOperatorIdentifier | null {
   }
 }
 
+/** TODO: Add docs */
 export function parseIdents(ast: Ast): IdentifierOrOperatorIdentifier[] | null {
   return unrollOprChain(ast, ',')
 }
 
+/** TODO: Add docs */
 export function parseQualifiedName(ast: Ast): QualifiedName | null {
   const idents = unrollPropertyAccess(ast)
   return idents && normalizeQualifiedName(qnFromSegments(idents))
 }
 
-/** Substitute `pattern` inside `expression` with `to`.
- * Will only replace the first item in the property acccess chain. */
+/**
+ * Substitute `pattern` inside `expression` with `to`.
+ * Will only replace the first item in the property acccess chain.
+ */
 export function substituteIdentifier(
   expr: MutableAst,
   pattern: IdentifierOrOperatorIdentifier,
@@ -192,8 +207,10 @@ export function substituteIdentifier(
   }
 }
 
-/** Substitute `pattern` inside `expression` with `to`.
- * Replaces identifier, the whole qualified name, or the beginning of the qualified name (first segments of property access chain). */
+/**
+ * Substitute `pattern` inside `expression` with `to`.
+ * Replaces identifier, the whole qualified name, or the beginning of the qualified name (first segments of property access chain).
+ */
 export function substituteQualifiedName(
   expr: MutableAst,
   pattern: QualifiedName | IdentifierOrOperatorIdentifier,
@@ -218,7 +235,8 @@ export function substituteQualifiedName(
   }
 }
 
-/** Try to convert the number to an Enso value.
+/**
+ * Try to convert the number to an Enso value.
  *
  *  Returns `undefined` if the input is not a real number. NOTE: The current implementation doesn't support numbers that
  *  JS prints in scientific notation.
@@ -235,6 +253,7 @@ export function tryNumberToEnso(value: number, module: MutableModule) {
   }
 }
 
+/** TODO: Add docs */
 export function tryEnsoToNumber(ast: Ast) {
   const [sign, literal] = ast instanceof NegationApp ? [-1, ast.argument] : [1, ast]
   if (!(literal instanceof NumericLiteral)) return
@@ -243,6 +262,7 @@ export function tryEnsoToNumber(ast: Ast) {
   return sign * Number(literal.code().replace(/_/g, ''))
 }
 
+/** TODO: Add docs */
 export function copyIntoNewModule<T extends Ast>(ast: T): Owned<Mutable<T>> {
   const module = MutableModule.Transient()
   module.importCopy(ast)

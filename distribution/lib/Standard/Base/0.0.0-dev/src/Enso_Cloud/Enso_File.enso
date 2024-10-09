@@ -56,7 +56,8 @@ type Enso_File
        - path: The `enso://` path to a file or directory.
     new : Text -> Enso_File ! Not_Found
     new (path : Text) =
-        Enso_File.Value (Enso_Path.parse path)
+        resolved_path = Enso_Path.parse path
+        resolved_path.if_not_error <| Enso_File.Value resolved_path
 
     ## PRIVATE
     private Value (enso_path : Enso_Path)
@@ -66,7 +67,6 @@ type Enso_File
     home : Enso_File
     home -> Enso_File =
         Enso_File.root / "Users" / Enso_User.current.name
-
 
     ## ICON folder
        Represents the root folder of the organization.

@@ -90,6 +90,7 @@ abstract class Argument {
 export class ArgumentPlaceholder extends Argument {
   public declare index: number
   public declare argInfo: SuggestionEntryArgument
+  /** TODO: Add docs */
   constructor(
     callId: string,
     kind: ApplicationKind,
@@ -101,20 +102,25 @@ export class ArgumentPlaceholder extends Argument {
     super(callId, kind, dynamicConfig, index, argInfo)
   }
 
+  /** TODO: Add docs */
   get portId(): PortId {
     return `${this.callId}[${this.index}]` as PortId
   }
 
+  /** TODO: Add docs */
   get value(): WidgetInputValue {
     return this.argInfo.defaultValue
   }
 
+  /** TODO: Add docs */
   override get hideByDefault(): boolean {
     return this.argInfo.hasDefault && this.dynamicConfig?.display !== DisplayMode.Always
   }
 }
 
+/** TODO: Add docs */
 export class ArgumentAst extends Argument {
+  /** TODO: Add docs */
   constructor(
     callId: string,
     kind: ApplicationKind,
@@ -126,10 +132,12 @@ export class ArgumentAst extends Argument {
     super(callId, kind, dynamicConfig, index, argInfo)
   }
 
+  /** TODO: Add docs */
   get portId(): PortId {
     return this.ast.id
   }
 
+  /** TODO: Add docs */
   get value() {
     return this.ast
   }
@@ -157,6 +165,7 @@ interface FoundApplication {
   argName: string | undefined
 }
 
+/** TODO: Add docs */
 export function interpretCall(callRoot: Ast.Ast): InterpretedCall {
   if (callRoot instanceof Ast.OprApp) {
     // Infix chains are handled one level at a time. Each application may have at most 2 arguments.
@@ -197,6 +206,7 @@ interface CallInfo {
   subjectAsSelf?: boolean | undefined
 }
 
+/** TODO: Add docs */
 export class ArgumentApplication {
   private constructor(
     public appTree: Ast.Ast,
@@ -381,6 +391,7 @@ export class ArgumentApplication {
     )
   }
 
+  /** TODO: Add docs */
   static FromInterpretedWithInfo(
     interpreted: InterpretedCall,
     callInfo: CallInfo = {},
@@ -392,6 +403,7 @@ export class ArgumentApplication {
     }
   }
 
+  /** TODO: Add docs */
   *iterApplications(): IterableIterator<ArgumentApplication> {
     let current: typeof this.target = this
     while (current instanceof ArgumentApplication) {
@@ -400,6 +412,7 @@ export class ArgumentApplication {
     }
   }
 
+  /** TODO: Add docs */
   toWidgetInput(): WidgetInput {
     return {
       portId:
@@ -411,6 +424,7 @@ export class ArgumentApplication {
     }
   }
 
+  /** TODO: Add docs */
   static collectArgumentNamesAndUuids(
     value: InterpretedCall,
     mci: MethodCallInfo | undefined,
@@ -470,16 +484,19 @@ const unknownArgInfoNamed = (name: string) => ({
   hasDefault: false,
 })
 
+/** TODO: Add docs */
 export function getAccessOprSubject(app: Ast.Ast): Ast.Ast | undefined {
   if (app instanceof Ast.PropertyAccess) return app.lhs
 }
 
-/** Same as {@link GraphDb.getMethodCallInfo} but with a special handling for nested Applications.
+/**
+ * Same as {@link GraphDb.getMethodCallInfo} but with a special handling for nested Applications.
  * Sometimes we receive MethodCallInfo for inner sub-applications of the expression,
  * and we want to reuse it for outer application expressions when adding new arguments to the call.
  * It requires adjusting `notAppliedArguments` array, but otherwise is a straightforward recursive call.
  * We stop recursion at any not-application AST. We expect that a subexpression’s info is only valid if it is a part of the prefix application chain.
- * We also don’t consider infix applications here, as using them inside a prefix chain would require additional syntax (like parenthesis). */
+ * We also don’t consider infix applications here, as using them inside a prefix chain would require additional syntax (like parenthesis).
+ */
 export function getMethodCallInfoRecursively(
   ast: Ast.Ast,
   graphDb: { getMethodCallInfo(id: AstId): MethodCallInfo | undefined },

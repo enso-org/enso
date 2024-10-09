@@ -31,9 +31,11 @@ const ZOOM_LEVELS = [
 ]
 const DEFAULT_SCALE_RANGE: ScaleRange = [Math.min(...ZOOM_LEVELS), Math.max(...ZOOM_LEVELS)]
 const ZOOM_LEVELS_REVERSED = [...ZOOM_LEVELS].reverse()
-/** The fraction of the next zoom level.
+/**
+ * The fraction of the next zoom level.
  * If we are that close to next zoom level, we should choose the next one instead
- * to avoid small unnoticeable changes to zoom. */
+ * to avoid small unnoticeable changes to zoom.
+ */
 const ZOOM_SKIP_THRESHOLD = 0.05
 const WHEEL_CAPTURE_DURATION_MS = 250
 const LONGPRESS_TIMEOUT = 500
@@ -51,6 +53,7 @@ export interface NavigatorOptions {
 }
 
 export type NavigatorComposable = ReturnType<typeof useNavigator>
+/** TODO: Add docs */
 export function useNavigator(
   viewportNode: Ref<HTMLElement | undefined>,
   keyboard: KeyboardComposable,
@@ -269,7 +272,8 @@ export function useNavigator(
     }
   })
 
-  /** As `panTo`, but also follow the points if the viewport size is changing.
+  /**
+   * As `panTo`, but also follow the points if the viewport size is changing.
    *
    * The following is working until manual panning by user input or until the next call to any `pan…` function.
    */
@@ -278,7 +282,8 @@ export function useNavigator(
     panToImpl(points)
   }
 
-  /** Pan to include the given prioritized list of coordinates.
+  /**
+   * Pan to include the given prioritized list of coordinates.
    *
    *  The view will be offset to include each coordinate, unless the coordinate cannot be fit in the viewport without
    *  losing a previous (higher-priority) coordinate; in that case, shift the viewport as close as possible to the
@@ -353,8 +358,10 @@ export function useNavigator(
     eventMousePos.value ? clientToScenePos(eventMousePos.value) : null,
   )
 
-  /** Clamp the value to the given bounds, except if it is already outside the bounds allow the new value to be less
-   *  outside the bounds. */
+  /**
+   * Clamp the value to the given bounds, except if it is already outside the bounds allow the new value to be less
+   *  outside the bounds.
+   */
   function directedClamp(oldValue: number, newValue: number, [min, max]: ScaleRange): number {
     if (!Number.isFinite(newValue)) return oldValue
     else if (!Number.isFinite(oldValue)) return Math.max(min, Math.min(newValue, max))
@@ -368,9 +375,11 @@ export function useNavigator(
     scale.skip()
   }
 
-  /** Step to the next level from {@link ZOOM_LEVELS}.
+  /**
+   * Step to the next level from {@link ZOOM_LEVELS}.
    * @param zoomStepDelta step direction. If positive select larger zoom level; if negative  select smaller.
-   * If 0, resets zoom level to 1.0. */
+   * If 0, resets zoom level to 1.0.
+   */
   function stepZoom(zoomStepDelta: number) {
     const oldValue = targetScale.value
     const insideThreshold = (level: number) =>

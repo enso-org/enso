@@ -10,6 +10,7 @@ export type TestCase<T extends StringsWithTypeValues> = {
   module: Ast.Module
 }
 
+/** TODO: Add docs */
 export function testCase<T extends StringsWithTypeValues>(spec: T): TestCase<T> {
   let code = ''
   for (const lineCode of Object.keys(spec)) {
@@ -46,6 +47,7 @@ export function testCase<T extends StringsWithTypeValues>(spec: T): TestCase<T> 
   return { statements: result as any, module: parsed.module }
 }
 
+/** TODO: Add docs */
 export function tryFindExpressions<T extends StringsWithTypeValues>(
   root: Ast.Ast,
   expressions: T,
@@ -64,6 +66,7 @@ export function tryFindExpressions<T extends StringsWithTypeValues>(
   return result
 }
 
+/** TODO: Add docs */
 export function findExpressions<T extends StringsWithTypeValues>(
   root: Ast.Ast,
   expressions: T,

@@ -1,9 +1,13 @@
-/** @file A Vue composable that calls one of two given callbacks, depending on whether a click is
- * a single click or a double click. */
+/**
+ * @file A Vue composable that calls one of two given callbacks, depending on whether a click is
+ * a single click or a double click.
+ */
 
-/** Calls {@link onClick} if a click is a single click, or {@link onDoubleClick} if a click is
+/**
+ * Calls {@link onClick} if a click is a single click, or {@link onDoubleClick} if a click is
  * a double click. For this function, a double click is defined as a second click that occurs within
- * 200ms of the first click. The click count is reset to 0 upon double click, or after 200ms. */
+ * 200ms of the first click. The click count is reset to 0 upon double click, or after 200ms.
+ */
 export function useDoubleClick<Args extends any[]>(
   onClick: (...args: Args) => void,
   onDoubleClick: (...args: Args) => void,

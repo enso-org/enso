@@ -26,6 +26,7 @@ export function nodeRootExpr(ast: Ast.Ast): {
   }
 }
 
+/** TODO: Add docs */
 export function inputNodeFromAst(ast: Ast.Ast, argIndex: number): NodeDataFromAst {
   return {
     type: 'input',
@@ -62,7 +63,8 @@ export function nodeFromAst(ast: Ast.Ast, isOutput: boolean): NodeDataFromAst | 
   }
 }
 
-/** Given a node root, find a child AST that is the root of the access chain that is the subject of the primary
+/**
+ * Given a node root, find a child AST that is the root of the access chain that is the subject of the primary
  *  application.
  */
 export function primaryApplicationSubject(

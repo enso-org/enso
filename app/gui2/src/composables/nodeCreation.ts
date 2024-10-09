@@ -53,6 +53,7 @@ export interface NodeCreationOptions<Placement extends PlacementStrategy = Place
   requiredImports?: RequiredImport[] | undefined
 }
 
+/** TODO: Add docs */
 export function useNodeCreation(
   graphStore: GraphStore,
   viewport: ToValue<GraphNavigator['viewport']>,
@@ -240,7 +241,8 @@ function inferPrefixFromAst(expr: Ast.Ast): string | undefined {
   return undefined
 }
 
-/** Convert Typename into short binding prefix.
+/**
+ * Convert Typename into short binding prefix.
  * In general, we want to use the last segment of the qualified name.
  * In case of generic types, we want to discard any type parameters.
  */
@@ -254,13 +256,16 @@ function typeToPrefix(type: Typename): string {
   }
 }
 
-/** Strip number suffix from binding name, effectively returning a valid prefix.
- * The reverse of graphStore.generateLocallyUniqueIdent */
+/**
+ * Strip number suffix from binding name, effectively returning a valid prefix.
+ * The reverse of graphStore.generateLocallyUniqueIdent
+ */
 function existingNameToPrefix(name: string): string {
   return name.replace(/\d+$/, '')
 }
 
-/** Insert the given statements into the given block, at a location appropriate for new nodes.
+/**
+ * Insert the given statements into the given block, at a location appropriate for new nodes.
  *
  * The location will be after any statements in the block that bind identifiers; if the block ends in an expression
  * statement, the location will be before it so that the value of the block will not be affected.

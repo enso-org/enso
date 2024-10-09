@@ -121,7 +121,8 @@ export function addImports(scope: Ast.MutableBodyBlock, importsToAdd: RequiredIm
   scope.insert(position, ...imports)
 }
 
-/** Return a suitable location in the given block to insert an import statement.
+/**
+ * Return a suitable location in the given block to insert an import statement.
  *
  *  The location chosen will be before the first non-import line, and after all preexisting imports.
  *  If there are any blank lines in that range, it will be before them.
@@ -142,8 +143,9 @@ function newImportsLocation(scope: Ast.BodyBlock): number {
   return lastImport === undefined ? 0 : lastImport + 1
 }
 
-/** Create an AST representing the required import statement.
- * @internal */
+/**
+ * Create an AST representing the required import statement.
+  @internal */
 export function requiredImportToAst(value: RequiredImport, module?: MutableModule) {
   const module_ = module ?? MutableModule.Transient()
   switch (value.kind) {
@@ -210,6 +212,7 @@ export function requiredImports(
   }
 }
 
+/** TODO: Add docs */
 export function requiredImportsByFQN(
   db: SuggestionDb,
   fqn: QualifiedName,
@@ -238,6 +241,7 @@ function entryFQNFromRequiredImport(importStatement: RequiredImport): QualifiedN
   }
 }
 
+/** TODO: Add docs */
 export function requiredImportEquals(left: RequiredImport, right: RequiredImport): boolean {
   if (left.kind != right.kind) return false
   switch (left.kind) {
@@ -274,6 +278,7 @@ export function covers(existing: Import, required: RequiredImport): boolean {
   return directlyImported || importedInList || importedWithAll
 }
 
+/** TODO: Add docs */
 export function filterOutRedundantImports(
   existing: Import[],
   required: RequiredImport[],
@@ -294,6 +299,7 @@ export interface DetectedConflict {
 export type ConflictInfo = DetectedConflict | undefined
 
 /* Detect possible name clash when adding `importsForEntry` with `existingImports` present. */
+/** TODO: Add docs */
 export function detectImportConflicts(
   suggestionDb: SuggestionDb,
   existingImports: Import[],

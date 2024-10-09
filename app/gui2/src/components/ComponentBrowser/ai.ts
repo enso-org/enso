@@ -8,6 +8,10 @@ import type { ExternalId } from 'ydoc-shared/yjsModel'
 const AI_GOAL_PLACEHOLDER = '__$$GOAL$$__'
 const AI_STOP_SEQUENCE = '`'
 
+/**
+ * A Composable for using AI prompts in Component Browser. Use `query` function to get AI result
+ * for given query.
+ */
 export function useAI(
   graphDb: GraphDb = useGraphStore().db,
   project: {

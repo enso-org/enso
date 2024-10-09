@@ -1,8 +1,10 @@
 import type { Pattern } from '@/util/ast/match'
 
 interface AllNodeCreationOptions {
-  /** If false, the Component Browser will be opened to edit the node.
-   *  If true, the node will be created without further interaction. */
+  /**
+   * If false, the Component Browser will be opened to edit the node.
+   *  If true, the node will be created without further interaction.
+   */
   commit: boolean
   /** The content of the node. If unspecified, it will be determined based on the source node. */
   content?: Pattern | undefined
