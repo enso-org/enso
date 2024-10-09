@@ -229,6 +229,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                               value={(value as Record<string, unknown>)[key] ?? null}
                               onChange={(newValue) => {
                                 if (typeof newValue === 'function') {
+                                  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
                                   const unsafeValue: unknown = newValue(
                                     // This is SAFE; but there is no way to tell TypeScript that an object
                                     // has an index signature.

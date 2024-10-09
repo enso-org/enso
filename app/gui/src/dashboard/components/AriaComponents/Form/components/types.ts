@@ -128,7 +128,7 @@ export interface UseFormReturn<Schema extends TSchema>
     'onSubmit' | 'resetOptions' | 'resolver'
   > {
   readonly register: UseFormRegister<Schema>
-  readonly submit: (event?: FormEvent<HTMLFormElement> | null | undefined) => Promise<void>
+  readonly submit: (event?: FormEvent<HTMLFormElement> | null) => Promise<void>
   readonly schema: Schema
   readonly setFormError: (error: string) => void
 }
@@ -175,8 +175,8 @@ export interface FormWithValueValidation<
 export type FormInstanceValidated<
   Schema extends TSchema,
   // We use any here because we want to bypass the type check for Error type as it won't be a case here
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any,@typescript-eslint/ban-types
-> = FormInstance<Schema> | (any[] & {})
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+> = FormInstance<Schema> | (any[] & NonNullable<unknown>)
 
 /**
  * Props for the Field component.

@@ -341,7 +341,7 @@ export default class ProjectManager {
           justErrored = true
           if (Number(new Date()) - firstConnectionStartMs > MAXIMUM_DELAY_MS) {
             document.dispatchEvent(new Event(ProjectManagerEvents.loadingFailed))
-            reject()
+            reject(new Error())
           } else {
             const delay = RETRY_INTERVAL_MS - (Number(new Date()) - lastConnectionStartMs)
             window.setTimeout(
@@ -701,6 +701,7 @@ export default class ProjectManager {
       })
       this.rejecters.set(id, (value) => {
         this.cleanup(id)
+        // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
         reject(value)
       })
     })

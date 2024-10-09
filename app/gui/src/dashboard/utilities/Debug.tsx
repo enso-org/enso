@@ -77,6 +77,7 @@ export default function Debug(props: DebugProps) {
           typeof value !== 'function' ? value : (
             (...args: unknown[]) => {
               console.group(`[Debug(${typeName})] Prop '${key}' called with args: [`, ...args, ']')
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-call
               const result: unknown = value(...args)
               console.log('Returned', result)
               console.groupEnd()

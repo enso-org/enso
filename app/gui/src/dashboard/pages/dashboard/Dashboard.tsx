@@ -151,6 +151,8 @@ function DashboardInner(props: DashboardProps) {
   const projectsStore = useProjectsStore()
   const page = usePage()
   const launchedProjects = useLaunchedProjects()
+  // There is no shared enum type, but the other union member is the same type.
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
   const selectedProject = launchedProjects.find((p) => p.id === page) ?? null
 
   const setPage = useSetPage()
@@ -310,6 +312,8 @@ function DashboardInner(props: DashboardProps) {
                   id={project.id}
                   project={project}
                   key={project.id}
+                  // There is no shared enum type, but the other union member is the same type.
+                  // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
                   isActive={page === project.id}
                   icon={EditorIcon}
                   labelId="editorPageName"
@@ -369,6 +373,8 @@ function DashboardInner(props: DashboardProps) {
                 className="flex min-h-0 grow [&[data-inert]]:hidden"
               >
                 <Editor
+                  // There is no shared enum type, but the other union member is the same type.
+                  // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
                   hidden={page !== project.id}
                   ydocUrl={ydocUrl}
                   project={project}

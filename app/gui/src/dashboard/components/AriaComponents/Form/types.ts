@@ -51,8 +51,7 @@ interface BaseFormProps<Schema extends components.TSchema>
   /**
    * When set to `dialog`, form submission will close the parent dialog on successful submission.
    */
-  // eslint-disable-next-line @typescript-eslint/ban-types,no-restricted-syntax
-  readonly method?: 'dialog' | (string & {})
+  readonly method?: 'dialog' | (NonNullable<unknown> & string)
 
   readonly canSubmitOffline?: boolean
 }

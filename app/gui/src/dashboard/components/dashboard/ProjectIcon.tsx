@@ -130,7 +130,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
   }
 
   switch (state) {
-    case null:
     case backendModule.ProjectState.new:
     case backendModule.ProjectState.closing:
     case backendModule.ProjectState.closed:

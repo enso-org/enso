@@ -101,7 +101,7 @@ export class Cognito {
       const date = Math.floor(Number(new Date()) / SEC_MS)
       const expirationDate = date + TEN_HOURS_S
       if (!this.isSignedIn) {
-        throw 'No current user'
+        throw new Error('No current user')
       } else {
         return Promise.resolve<cognito.CognitoUserSession>({
           isValid: () => true,

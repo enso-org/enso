@@ -40,7 +40,7 @@ export function FormProvider<Schema extends types.TSchema>(
  * Returns the form instance from the context.
  */
 export function useFormContext<Schema extends types.TSchema>(
-  form?: FormInstanceValidated<Schema> | undefined,
+  form?: FormInstanceValidated<Schema>,
 ): FormInstance<Schema> {
   if (form != null && 'control' in form) {
     return form

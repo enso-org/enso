@@ -372,6 +372,8 @@ export function useCloseProject() {
       })
     removeLaunchedProject(project.id)
 
+    // There is no shared enum type, but the other union member is the same type.
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
     if (projectsStore.getState().page === project.id) {
       setPage(TabType.drive)
     }
