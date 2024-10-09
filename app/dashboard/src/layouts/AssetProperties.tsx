@@ -20,7 +20,6 @@ import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinn
 import { validateDatalink } from '#/data/datalinkValidator'
 import {
   backendMutationOptions,
-  useAssetPassiveListener,
   useAssetPassiveListenerStrict,
   useBackendQuery,
 } from '#/hooks/backendHooks'
@@ -273,18 +272,20 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                   </td>
                 </tr>
               )}
-              {isEnterprise && <tr data-testid="asset-panel-permissions" className="h-row">
-                <td className="text my-auto min-w-side-panel-label p-0">
-                  <Text className="text inline-block">{getText('sharedWith')}</Text>
-                </td>
-                <td className="flex w-full gap-1 p-0">
-                  <SharedWithColumn
-                    isReadonly={isReadonly}
-                    item={item}
-                    state={{ backend, category, setQuery: () => {} }}
-                  />
-                </td>
-              </tr>}
+              {isEnterprise && (
+                <tr data-testid="asset-panel-permissions" className="h-row">
+                  <td className="text my-auto min-w-side-panel-label p-0">
+                    <Text className="text inline-block">{getText('sharedWith')}</Text>
+                  </td>
+                  <td className="flex w-full gap-1 p-0">
+                    <SharedWithColumn
+                      isReadonly={isReadonly}
+                      item={item}
+                      state={{ backend, category, setQuery: () => {} }}
+                    />
+                  </td>
+                </tr>
+              )}
               <tr data-testid="asset-panel-labels" className="h-row">
                 <td className="text my-auto min-w-side-panel-label p-0">
                   <Text className="text inline-block">{getText('labels')}</Text>
