@@ -146,19 +146,18 @@ class EnsoParser extends Parser {
   cachedCode: string | undefined
   cachedTree: Tree | undefined
   createParse(input: Input): PartialParse {
-    const self = this
     return {
       parsedPos: input.length,
-      stopAt() {},
+      stopAt: () => {},
       stoppedAt: null,
-      advance() {
+      advance: () => {
         const code = input.read(0, input.length)
-        if (code !== self.cachedCode || self.cachedTree == null) {
-          self.cachedCode = code
+        if (code !== this.cachedCode || this.cachedTree == null) {
+          this.cachedCode = code
           const ast = RawAstExtended.parse(code)
-          self.cachedTree = astToCodeMirrorTree(self.nodeSet, ast, [[languageDataProp, facet]])
+          this.cachedTree = astToCodeMirrorTree(this.nodeSet, ast, [[languageDataProp, facet]])
         }
-        return self.cachedTree
+        return this.cachedTree
       },
     }
   }

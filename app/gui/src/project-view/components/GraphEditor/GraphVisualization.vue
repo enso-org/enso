@@ -179,9 +179,7 @@ const fullscreenAnimating = ref(false)
 
 watch(
   () => isFullscreen,
-  (f) => {
-    f && nextTick(() => panelElement.value?.focus())
-  },
+  (f) => f && nextTick(() => panelElement.value?.focus()),
 )
 </script>
 

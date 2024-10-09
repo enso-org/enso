@@ -433,7 +433,8 @@ function lengthTo(path: SVGPathElement, pos: Vec2): number {
     return false
   }
 
-  tryPos(0), tryPos(totalLength)
+  tryPos(0)
+  tryPos(totalLength)
   assert(best != null && bestDist != null)
   const precisionTarget = 0.5 / (navigator?.scale ?? 1)
   for (let precision = totalLength / 2; precision >= precisionTarget; precision /= 2) {

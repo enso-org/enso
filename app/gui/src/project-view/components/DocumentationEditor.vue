@@ -11,7 +11,6 @@ import type { Path } from 'ydoc-shared/languageServerTypes'
 import { Err, Ok, mapOk, withContext, type Result } from 'ydoc-shared/util/data/result'
 
 const documentation = defineModel<string>({ required: true })
-const _props = defineProps<{}>()
 const emit = defineEmits<{
   'update:fullscreen': [boolean]
 }>()

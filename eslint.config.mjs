@@ -226,6 +226,7 @@ export default [
       'vue/attribute-hyphenation': ['error', 'never'],
       'vue/v-on-event-hyphenation': ['error', 'never'],
       'vue/max-attributes-per-line': ['warn', { singleline: { max: 4 } }],
+      'vue/singleline-html-element-content-newline': 'off',
       '@typescript-eslint/no-unused-vars': [
         'warn',
         {
