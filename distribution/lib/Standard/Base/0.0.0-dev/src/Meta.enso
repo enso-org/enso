@@ -13,7 +13,6 @@ import project.Error.Error as Base_Error
 import project.Errors.Common.Not_Found
 import project.Function.Function
 import project.Nothing.Nothing
-import project.Polyglot.Java
 from project.Data.Boolean import Boolean, False, True
 from project.Runtime.Managed_Resource import Managed_Resource
 
@@ -445,7 +444,7 @@ is_a value typ = @Builtin_Method "Meta.is_a"
 java_instance_check value typ =
     val_java = get_polyglot_language value == "java"
     typ_java = get_polyglot_language typ == "java"
-    val_java && typ_java && Java.is_instance value typ
+    val_java && typ_java && typ.class.isInstance value
 
 ## PRIVATE
    ADVANCED

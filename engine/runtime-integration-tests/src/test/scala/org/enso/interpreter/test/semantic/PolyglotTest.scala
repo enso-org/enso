@@ -17,9 +17,10 @@ class PolyglotTest extends InterpreterTest {
       val code =
         """from Standard.Base import all
           |import Standard.Base.Data.Array.Array
+          |polyglot java import org.enso.example.TestClass
           |
           |main =
-          |    class = Java.lookup_class "org.enso.example.TestClass"
+          |    class = TestClass
           |    method = Polyglot.get_member class "add"
           |    Polyglot.execute method ([1, 2].to_array)
           |""".stripMargin
@@ -60,9 +61,10 @@ class PolyglotTest extends InterpreterTest {
     "allow instantiating objects and calling methods on them" in {
       val code =
         """from Standard.Base import all
+          |polyglot java import org.enso.example.TestClass
           |
           |main =
-          |    class = Java.lookup_class "org.enso.example.TestClass"
+          |    class = TestClass
           |    instance = Polyglot.new class [x -> x * 2]
           |    Polyglot.invoke instance "callFunctionAndIncrement" [10]
           |""".stripMargin
@@ -72,9 +74,10 @@ class PolyglotTest extends InterpreterTest {
     "allow listing available members of an object" in {
       val code =
         """from Standard.Base import all
+          |polyglot java import org.enso.example.TestClass
           |
           |main =
-          |    class = Java.lookup_class "org.enso.example.TestClass"
+          |    class = TestClass
           |    instance = Polyglot.new class []
           |    members = Polyglot.get_members instance
           |    IO.println members.length
