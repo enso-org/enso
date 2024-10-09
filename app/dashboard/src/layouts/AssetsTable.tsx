@@ -145,7 +145,6 @@ import { fileExtension } from '#/utilities/fileInfo'
 import type { DetailedRectangle } from '#/utilities/geometry'
 import { DEFAULT_HANDLER } from '#/utilities/inputBindings'
 import LocalStorage from '#/utilities/LocalStorage'
-import PasteType from '#/utilities/PasteType'
 import {
   canPermissionModifyDirectoryContents,
   PermissionAction,
@@ -312,7 +311,6 @@ export interface AssetsTableState {
 
 /** Data associated with a {@link AssetRow}, used for rendering. */
 export interface AssetRowState {
-  readonly setVisibility: (visibility: Visibility) => void
   readonly isEditingName: boolean
   readonly temporarilyAddedLabels: ReadonlySet<LabelName>
   readonly temporarilyRemovedLabels: ReadonlySet<LabelName>
@@ -2117,7 +2115,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const doCopy = useEventCallback(() => {
     unsetModal()
     const { selectedKeys } = driveStore.getState()
-    setPasteData({ type: PasteType.copy, data: selectedKeys })
+    setPasteData({ type: 'copy', data: selectedKeys })
   })
 
   const doCut = useEventCallback(() => {
@@ -2127,7 +2125,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       dispatchAssetEvent({ type: AssetEventType.cancelCut, ids: pasteData.data })
     }
     const { selectedKeys } = driveStore.getState()
-    setPasteData({ type: PasteType.move, data: selectedKeys })
+    setPasteData({ type: 'move', data: selectedKeys })
     dispatchAssetEvent({ type: AssetEventType.cut, ids: selectedKeys })
     setSelectedKeys(EMPTY_SET)
   })
@@ -2141,18 +2139,23 @@ export default function AssetsTable(props: AssetsTableProps) {
         toast.error('Cannot paste a folder into itself.')
       } else {
         doToggleDirectoryExpansion(newParentId, newParentKey, true)
-        if (pasteData.type === PasteType.copy) {
-          const assets = Array.from(pasteData.data, (id) => nodeMapRef.current.get(id)).flatMap(
-            (asset) => (asset ? [asset.item] : []),
-          )
-          dispatchAssetListEvent({
-            type: AssetListEventType.copy,
-            items: assets,
-            newParentId,
-            newParentKey,
-          })
-        } else {
-          cutAndPaste(newParentKey, newParentId, [...pasteData.data], nodeMapRef.current)
+        switch (pasteData.type) {
+          case 'copy': {
+            const assets = Array.from(pasteData.data, (id) => nodeMapRef.current.get(id)).flatMap(
+              (asset) => (asset ? [asset.item] : []),
+            )
+            dispatchAssetListEvent({
+              type: AssetListEventType.copy,
+              items: assets,
+              newParentId,
+              newParentKey,
+            })
+            break
+          }
+          case 'move': {
+            cutAndPaste(newParentKey, newParentId, [...pasteData.data], nodeMapRef.current)
+            break
+          }
         }
         setPasteData(null)
       }

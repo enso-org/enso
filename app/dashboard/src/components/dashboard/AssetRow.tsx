@@ -163,9 +163,8 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
   const setIsAssetPanelTemporarilyVisible = useSetIsAssetPanelTemporarilyVisible()
   const grabKeyboardFocusRef = useSyncRef(grabKeyboardFocus)
   const asset = item.item
-  const [insertionVisibility, setInsertionVisibility] = React.useState(Visibility.visible)
-  const [innerRowState, setRowState] = React.useState<assetsTable.AssetRowState>(() =>
-    object.merge(assetRowUtils.INITIAL_ROW_STATE, { setVisibility: setInsertionVisibility }),
+  const [innerRowState, setRowState] = React.useState<assetsTable.AssetRowState>(
+    assetRowUtils.INITIAL_ROW_STATE,
   )
 
   const isNewlyCreated = useStore(driveStore, ({ newestFolderId }) => newestFolderId === asset.id)
@@ -189,12 +188,6 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
       },
       select: () => true,
     }).length !== 0
-  const outerVisibility = visibilities.get(item.key)
-  const visibility =
-    outerVisibility == null || outerVisibility === Visibility.visible ?
-      insertionVisibility
-    : outerVisibility
-  const hidden = isDeleted || hiddenRaw || visibility === Visibility.hidden
   const isCloud = isCloudCategory(category)
 
   const { data: projectState } = useQuery({
@@ -209,6 +202,23 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
 
   const createPermissionMutation = useMutation(backendMutationOptions(backend, 'createPermission'))
   const associateTagMutation = useMutation(backendMutationOptions(backend, 'associateTag'))
+
+  const outerVisibility = visibilities.get(item.key)
+  const insertionVisibility = useStore(driveStore, (driveState) =>
+    driveState.pasteData?.type === 'move' && driveState.pasteData.data.has(item.key) === true ?
+      Visibility.faded
+    : Visibility.visible,
+  )
+  const createPermissionVariables = createPermissionMutation.variables?.[0]
+  const isRemovingSelf =
+    createPermissionVariables != null &&
+    createPermissionVariables.action == null &&
+    createPermissionVariables.actorsIds[0] === user.userId
+  const visibility =
+    isRemovingSelf ? Visibility.hidden
+    : outerVisibility === Visibility.visible ? insertionVisibility
+    : outerVisibility ?? insertionVisibility
+  const hidden = isDeleted || hiddenRaw || visibility === Visibility.hidden
 
   const setSelected = useEventCallback((newSelected: boolean) => {
     const { selectedKeys } = driveStore.getState()
@@ -351,21 +361,8 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
       }
     } else {
       switch (event.type) {
-        case AssetEventType.cut: {
-          if (event.ids.has(item.key)) {
-            setInsertionVisibility(Visibility.faded)
-          }
-          break
-        }
-        case AssetEventType.cancelCut: {
-          if (event.ids.has(item.key)) {
-            setInsertionVisibility(Visibility.visible)
-          }
-          break
-        }
         case AssetEventType.move: {
           if (event.ids.has(item.key)) {
-            setInsertionVisibility(Visibility.visible)
             await doMove(event.newParentKey, item.item)
           }
           break
@@ -470,7 +467,6 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
         case AssetEventType.removeSelf: {
           // This is not triggered from the asset list, so it uses `item.id` instead of `key`.
           if (event.id === asset.id && user.isEnabled) {
-            setInsertionVisibility(Visibility.hidden)
             try {
               await createPermissionMutation.mutateAsync([
                 {
@@ -481,7 +477,6 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
               ])
               dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
             } catch (error) {
-              setInsertionVisibility(Visibility.visible)
               toastAndLog(null, error)
             }
           }
