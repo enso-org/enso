@@ -37,8 +37,9 @@ fetch_following_data_links (uri:URI) (method:HTTP_Method = HTTP_Method.Get) (hea
 
     error_handler attempt =
         caught_error ->
-            if method != HTTP_Method.Get || attempt > 2 then Error.throw caught_error else
-                sleep_time = [100, 200, 400] . get attempt
+            exponential_backoff = [100, 200, 400]
+            if method != HTTP_Method.Get || attempt >= exponential_backoff.length then Error.throw caught_error else
+                sleep_time = exponential_backoff . get attempt
                 Thread.sleep sleep_time
                 fetch_and_decode . catch HTTP_Error (error_handler (attempt + 1))
 

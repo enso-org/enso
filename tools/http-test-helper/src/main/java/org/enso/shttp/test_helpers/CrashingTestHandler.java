@@ -39,9 +39,11 @@ public class CrashingTestHandler extends SimpleHttpHandler {
       requests = 0;
     }
 
+    boolean shouldSucceed = successEvery == (requests + 1);
+
     switch (crashType) {
       case RUNTIME:
-        if (successEvery == (requests + 1)) {
+        if (shouldSucceed) {
           // return OK, reset
           requests = 0;
           exchange.sendResponseHeaders(200, -1);
@@ -56,7 +58,7 @@ public class CrashingTestHandler extends SimpleHttpHandler {
         byte[] responseData = "Crash and Burn".getBytes();
         exchange.sendResponseHeaders(200, responseData.length);
         try {
-          if (successEvery == (requests + 1)) {
+          if (shouldSucceed) {
             requests = 0;
             // return OK, reset
             try (OutputStream os = exchange.getResponseBody()) {
@@ -76,7 +78,7 @@ public class CrashingTestHandler extends SimpleHttpHandler {
   }
 
   enum CrashType {
-    RUNTIME,
-    STREAM
+    RUNTIME, // Simulate an internal server crash
+    STREAM // Simulate a crash by abruptly closing response's body stream
   }
 }

@@ -19,7 +19,7 @@ import project.Data.Numbers.Integer
 
          Thread.with_interrupt_handler (1 + 1) <| IO.println "I died!"
 with_interrupt_handler : Any -> Any -> Any
-with_interrupt_handler ~action ~interrupt_handler = @Builtin_Method "Thread.with_interrupt_handler"
+private with_interrupt_handler ~action ~interrupt_handler = @Builtin_Method "Thread.with_interrupt_handler"
 
 ## PRIVATE
    ADVANCED
@@ -33,5 +33,5 @@ with_interrupt_handler ~action ~interrupt_handler = @Builtin_Method "Thread.with
 
          Thread.sleep 1000 <| IO.println "I continue!"
 sleep : Integer
-sleep time_in_milliseconds = @Builtin_Method "Thread.sleep"
+private sleep time_in_milliseconds = @Builtin_Method "Thread.sleep"
 
