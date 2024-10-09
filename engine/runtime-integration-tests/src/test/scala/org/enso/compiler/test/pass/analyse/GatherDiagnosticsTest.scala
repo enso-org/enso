@@ -22,28 +22,28 @@ class GatherDiagnosticsTest extends CompilerTest {
 
   "Error Gathering" should {
     val error1 = errors.Syntax(null, errors.Syntax.UnrecognizedToken)
-    val plusOp = Name.Literal("+", isMethod = true, None)
+    val plusOp = Name.Literal("+", isMethod = true, identifiedLocation = null)
     val plusApp = Application.Prefix(
       plusOp,
       List(
-        CallArgument.Specified(None, error1, None)
+        CallArgument.Specified(None, error1, identifiedLocation = null)
       ),
       hasDefaultsSuspended = false,
-      None
+      identifiedLocation   = null
     )
     val lam = new Function.Lambda(
       List(
         DefinitionArgument
           .Specified(
-            Name.Literal("bar", isMethod = false, None),
+            Name.Literal("bar", isMethod = false, identifiedLocation = null),
             None,
             None,
-            suspended = false,
-            None
+            suspended          = false,
+            identifiedLocation = null
           )
       ),
       plusApp,
-      None
+      identifiedLocation = null
     )
 
     "work with expression flow" in {
@@ -60,25 +60,25 @@ class GatherDiagnosticsTest extends CompilerTest {
       val error3 = errors.Syntax(null, errors.Syntax.AmbiguousExpression)
 
       val typeName =
-        Name.Literal("Foo", isMethod = false, None)
+        Name.Literal("Foo", isMethod = false, identifiedLocation = null)
       val method1Name =
-        Name.Literal("bar", isMethod = false, None)
+        Name.Literal("bar", isMethod = false, identifiedLocation = null)
       val method2Name =
-        Name.Literal("baz", isMethod = false, None)
+        Name.Literal("baz", isMethod = false, identifiedLocation = null)
       val fooName =
-        Name.Literal("foo", isMethod = false, None)
+        Name.Literal("foo", isMethod = false, identifiedLocation = null)
 
       val method1Ref =
         Name.MethodReference(
-          Some(Name.Qualified(List(typeName), None)),
+          Some(Name.Qualified(List(typeName), identifiedLocation = null)),
           method1Name,
-          None
+          identifiedLocation = null
         )
       val method2Ref =
         Name.MethodReference(
-          Some(Name.Qualified(List(typeName), None)),
+          Some(Name.Qualified(List(typeName), identifiedLocation = null)),
           method2Name,
-          None
+          identifiedLocation = null
         )
 
       val module = Module(
@@ -89,22 +89,35 @@ class GatherDiagnosticsTest extends CompilerTest {
             typeName,
             List(
               DefinitionArgument
-                .Specified(fooName, None, Some(error2), suspended = false, None)
+                .Specified(
+                  fooName,
+                  None,
+                  Some(error2),
+                  suspended          = false,
+                  identifiedLocation = null
+                )
             ),
             List(),
-            None
+            identifiedLocation = null
           ),
           new definition.Method.Explicit(
-            definition.Method.Binding(method1Ref, Nil, false, lam, None),
+            definition.Method
+              .Binding(method1Ref, Nil, false, lam, identifiedLocation = null),
             lam
           ),
           new definition.Method.Explicit(
-            definition.Method.Binding(method2Ref, Nil, false, error3, None),
+            definition.Method.Binding(
+              method2Ref,
+              Nil,
+              false,
+              error3,
+              identifiedLocation = null
+            ),
             lam.copy(body = error3)
           )
         ),
         false,
-        None
+        identifiedLocation = null
       )
 
       val result = GatherDiagnostics.runModule(module, buildModuleContext())

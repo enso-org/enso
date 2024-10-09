@@ -212,7 +212,7 @@ case object ComplexType extends IRPass {
       typ.name,
       typ.arguments,
       atomDefs,
-      typ.location
+      typ.identifiedLocation
     )
 
     val withAnnotations = annotations
@@ -304,7 +304,7 @@ case object ComplexType extends IRPass {
     * @param name the method being defined
     * @param args the definition arguments to the method
     * @param body the body of the method
-    * @param location the source location of the method
+    * @param identifiedLocation the source location of the method
     * @param signature the method's type signature, if it exists
     * @return a top-level method definition
     */
@@ -314,15 +314,15 @@ case object ComplexType extends IRPass {
     args: List[DefinitionArgument],
     body: Expression,
     isPrivate: Boolean,
-    location: Option[IdentifiedLocation],
+    identifiedLocation: IdentifiedLocation,
     passData: MetadataStorage,
     diagnostics: DiagnosticStorage,
     signature: Option[Type.Ascription]
   ): List[Definition] = {
     val methodRef = Name.MethodReference(
-      Some(Name.Qualified(List(typeName), typeName.location)),
+      Some(Name.Qualified(List(typeName), typeName.identifiedLocation())),
       name,
-      Name.MethodReference.genLocation(List(typeName, name))
+      Name.MethodReference.genLocation(List(typeName, name)).orNull
     )
 
     val newSig =
@@ -333,7 +333,7 @@ case object ComplexType extends IRPass {
       args.map(_.duplicate()),
       isPrivate,
       body.duplicate(),
-      location,
+      identifiedLocation,
       passData.duplicate,
       diagnostics
     )

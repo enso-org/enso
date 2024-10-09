@@ -4,6 +4,7 @@
  * Barrel export file for Inputs
  */
 
+export * from './ComboBox'
 export * from './DatePicker'
 export * from './Dropdown'
 export * from './Input'

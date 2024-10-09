@@ -54,11 +54,13 @@ function useTabBarContext() {
 // ==============
 
 /** Props for a {@link TabBar}. */
-export interface TabBarProps extends Readonly<React.PropsWithChildren> {}
+export interface TabBarProps extends Readonly<React.PropsWithChildren> {
+  readonly className?: string
+}
 
 /** Switcher to choose the currently visible full-screen page. */
 export default function TabBar(props: TabBarProps) {
-  const { children } = props
+  const { children, className } = props
   const cleanupResizeObserverRef = React.useRef(() => {})
   const backgroundRef = React.useRef<HTMLDivElement | null>(null)
   const selectedTabRef = React.useRef<HTMLElement | null>(null)
@@ -123,7 +125,7 @@ export default function TabBar(props: TabBarProps) {
   return (
     <FocusArea direction="horizontal">
       {(innerProps) => (
-        <div className="relative flex grow" {...innerProps}>
+        <div className={tailwindMerge.twMerge('relative flex grow', className)} {...innerProps}>
           <TabBarContext.Provider value={{ setSelectedTab }}>
             <aria.TabList className="flex h-12 shrink-0 grow transition-[clip-path] duration-300">
               <aria.Tab isDisabled>
@@ -158,7 +160,7 @@ interface InternalTabProps extends Readonly<React.PropsWithChildren> {
   readonly project?: LaunchedProject
   readonly isActive: boolean
   readonly isHidden?: boolean
-  readonly icon: string
+  readonly icon: string | null
   readonly labelId: text.TextId
   readonly onClose?: () => void
   readonly onLoadEnd?: () => void
@@ -247,17 +249,17 @@ export function Tab(props: InternalTabProps) {
         isHidden && 'hidden',
       )}
     >
-      {isLoading ?
-        <StatelessSpinner
-          state={spinnerModule.SpinnerState.loadingMedium}
-          size={16}
-          className={tailwindMerge.twMerge(onClose && 'group-hover:hidden focus-visible:hidden')}
-        />
-      : <SvgMask
-          src={icon}
-          className={tailwindMerge.twMerge(onClose && 'group-hover:hidden focus-visible:hidden')}
-        />
-      }
+      {icon != null &&
+        (isLoading ?
+          <StatelessSpinner
+            state={spinnerModule.SpinnerState.loadingMedium}
+            size={16}
+            className={tailwindMerge.twMerge(onClose && 'group-hover:hidden focus-visible:hidden')}
+          />
+        : <SvgMask
+            src={icon}
+            className={tailwindMerge.twMerge(onClose && 'group-hover:hidden focus-visible:hidden')}
+          />)}
       {data?.name ?? children}
       {onClose && (
         <div className="flex">

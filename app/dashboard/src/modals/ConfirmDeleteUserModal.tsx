@@ -19,7 +19,7 @@ export default function ConfirmDeleteUserModal(props: ConfirmDeleteUserModalProp
   const { getText } = useText()
 
   return (
-    <Dialog title={getText('areYouSure')} className="items-center">
+    <Dialog title={getText('areYouSure')} role="alertdialog" className="items-center">
       <Form
         schema={z.object({})}
         method="dialog"

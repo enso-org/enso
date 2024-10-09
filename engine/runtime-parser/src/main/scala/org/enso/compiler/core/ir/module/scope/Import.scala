@@ -40,14 +40,14 @@ object Import {
 
   /** An import statement.
     *
-    * @param name        the full path representing the import
-    * @param rename      the name this import is visible as
-    * @param isAll       is this importing exported names
-    * @param onlyNames   exported names selected from the imported module
+    * @param name the full path representing the import
+    * @param rename the name this import is visible as
+    * @param isAll is this importing exported names
+    * @param onlyNames exported names selected from the imported module
     * @param hiddenNames exported names hidden from the imported module
-    * @param location    the source location that the node corresponds to
+    * @param identifiedLocation the source location that the node corresponds to
     * @param isSynthetic is this import compiler-generated
-    * @param passData    the pass metadata associated with this node
+    * @param passData the pass metadata associated with this node
     */
   sealed case class Module(
     name: Name.Qualified,
@@ -55,7 +55,7 @@ object Import {
     isAll: Boolean,
     onlyNames: Option[List[Name.Literal]],
     hiddenNames: Option[List[Name.Literal]],
-    override val location: Option[IdentifiedLocation],
+    override val identifiedLocation: IdentifiedLocation,
     isSynthetic: Boolean                   = false,
     override val passData: MetadataStorage = new MetadataStorage()
   ) extends Import
@@ -107,7 +107,7 @@ object Import {
           isAll,
           onlyNames,
           hiddenNames,
-          location,
+          location.orNull,
           isSynthetic,
           passData
         )

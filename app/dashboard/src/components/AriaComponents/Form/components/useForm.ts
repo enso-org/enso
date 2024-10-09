@@ -49,6 +49,7 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
 ): types.UseFormReturn<Schema> {
   const { getText } = useText()
   const [initialTypePassed] = React.useState(() => getArgsType(optionsOrFormInstance))
+  const closeRef = React.useRef(() => {})
 
   const argsType = getArgsType(optionsOrFormInstance)
 
@@ -71,6 +72,7 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
       onSubmitted,
       onSubmitSuccess,
       debugName,
+      method,
       ...options
     } = optionsOrFormInstance
 
@@ -149,7 +151,13 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
           // This is safe, because we transparently passing the result of the onSubmit function,
           // and the type of the result is the same as the type of the SubmitResult.
           // eslint-disable-next-line no-restricted-syntax
-          return (await onSubmit?.(fieldValues, form)) as SubmitResult
+          const result = (await onSubmit?.(fieldValues, form)) as SubmitResult
+
+          if (method === 'dialog') {
+            closeRef.current()
+          }
+
+          return result
         } catch (error) {
           const isJSError = errorUtils.isJSError(error)
 
@@ -226,6 +234,7 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
       schema: computedSchema,
       setFormError,
       handleSubmit: formInstance.handleSubmit,
+      closeRef,
     }
 
     return form

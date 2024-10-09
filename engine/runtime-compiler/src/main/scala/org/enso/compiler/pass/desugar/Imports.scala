@@ -23,11 +23,11 @@ case object Imports extends IRPass {
   /** The passes that are invalidated by running this pass. */
   override lazy val invalidatedPasses: Seq[IRPass] = Seq()
 
-  val mainModuleName =
+  val mainModuleName: Name.Literal =
     Name.Literal(
       "Main",
-      isMethod = false,
-      location = None
+      isMethod           = false,
+      identifiedLocation = null
     )
 
   /** Executes the pass on the provided `ir`, and returns a possibly transformed
@@ -127,14 +127,14 @@ case object Imports extends IRPass {
         pkg.map { pkg =>
           val namespace = Name.Literal(
             pkg.namespace,
-            isMethod = false,
-            location = None
+            isMethod           = false,
+            identifiedLocation = null
           )
           val pkgName =
             Name.Literal(
               pkg.normalizedName,
-              isMethod = false,
-              location = None
+              isMethod           = false,
+              identifiedLocation = null
             )
           name.copy(parts = namespace :: pkgName :: name.parts.tail)
         }

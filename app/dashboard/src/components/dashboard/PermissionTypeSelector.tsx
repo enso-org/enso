@@ -20,9 +20,10 @@ const CAPITALIZED_ASSET_TYPE: Readonly<Record<backend.AssetType, string>> = {
   [backend.AssetType.file]: 'File',
   [backend.AssetType.datalink]: 'Datalink',
   [backend.AssetType.secret]: 'Secret',
-  // These assets should never be visible, since they don't have columns.
-  [backend.AssetType.specialEmpty]: 'Empty asset',
-  [backend.AssetType.specialLoading]: 'Loading asset',
+  // These assets should never be visible, since they don't appear in the UI at all.
+  [backend.AssetType.specialEmpty]: '',
+  [backend.AssetType.specialError]: '',
+  [backend.AssetType.specialLoading]: '',
 }
 
 /** Data needed to display a single permission type. */

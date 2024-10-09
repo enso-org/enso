@@ -363,7 +363,7 @@ case object AmbiguousImportsAnalysis extends IRPass {
     duplicatedSymbol: String
   ): Warning = {
     Warning.DuplicatedImport(
-      duplicatingImport.location,
+      duplicatingImport.identifiedLocation(),
       originalImport,
       duplicatedSymbol
     )

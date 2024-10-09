@@ -79,6 +79,9 @@ export const Form = forwardRef(function Form<
   )
 
   React.useImperativeHandle(formRef, () => innerForm, [innerForm])
+  React.useImperativeHandle(form?.closeRef, () => dialogContext?.close ?? (() => {}), [
+    dialogContext?.close,
+  ])
 
   const base = styles.FORM_STYLES({
     className: typeof className === 'function' ? className(innerForm) : className,
