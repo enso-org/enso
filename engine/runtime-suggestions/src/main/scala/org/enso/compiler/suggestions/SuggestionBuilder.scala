@@ -418,11 +418,11 @@ final class SuggestionBuilder[A: IndexedSource](
   ): Suggestion = {
     val getterName = argument.name.name
     val thisArg = DefinitionArgument.Specified(
-      name         = Name.Self(None),
-      ascribedType = None,
-      defaultValue = None,
-      suspended    = false,
-      location     = None
+      name               = Name.Self(identifiedLocation = null),
+      ascribedType       = None,
+      defaultValue       = None,
+      suspended          = false,
+      identifiedLocation = null
     )
     buildMethod(
       externalId         = None,

@@ -4,7 +4,7 @@ import * as React from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import BurgerMenuIcon from '#/assets/burger_menu.svg'
-import { MenuTrigger } from '#/components/aria'
+import { Heading, MenuTrigger } from '#/components/aria'
 import { Button, Popover, Text } from '#/components/AriaComponents'
 import { useStrictPortalContext } from '#/components/Portal'
 import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
@@ -185,7 +185,7 @@ export default function Settings() {
 
   return (
     <div className="flex flex-1 flex-col gap-4 overflow-hidden pl-page-x pt-4">
-      <Text.Heading level={1} className="flex items-center px-heading-x">
+      <Heading level={1} className="flex items-center px-heading-x">
         <MenuTrigger isOpen={isSidebarPopoverOpen} onOpenChange={setIsSidebarPopoverOpen}>
           <Button size="custom" variant="custom" icon={BurgerMenuIcon} className="mr-3 sm:hidden" />
           <Popover UNSTABLE_portalContainer={root}>
@@ -214,7 +214,8 @@ export default function Settings() {
         >
           {data.organizationOnly === true ? organization?.name ?? 'your organization' : user.name}
         </Text>
-
+      </Heading>
+      <div className="sm:ml-[14rem]">
         <SearchBar
           data-testid="settings-search-bar"
           query={query}
@@ -222,7 +223,7 @@ export default function Settings() {
           label={getText('settingsSearchBarLabel')}
           placeholder={getText('settingsSearchBarPlaceholder')}
         />
-      </Text.Heading>
+      </div>
       <div className="flex sm:ml-[222px]" />
       <div className="flex flex-1 gap-4 overflow-hidden">
         <aside className="hidden h-full shrink-0 basis-[206px] flex-col overflow-y-auto overflow-x-hidden pb-12 sm:flex">

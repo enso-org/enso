@@ -73,7 +73,9 @@ export interface NodeEditInfo {
   initialCursorPos: number
 }
 
+/** TODO: Add docs */
 export class PortViewInstance {
+  /** TODO: Add docs */
   constructor(
     public rect: ShallowRef<Rect | undefined>,
     public nodeId: NodeId,
@@ -222,10 +224,11 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       return Ok(method)
     }
 
-    /** Generate unique identifier from `prefix` and some numeric suffix.
+    /**
+     * Generate unique identifier from `prefix` and some numeric suffix.
      * @param prefix - of the identifier
      * @param ignore - a list of identifiers to consider as unavailable. Useful when creating multiple identifiers in a batch.
-     * */
+     */
     function generateLocallyUniqueIdent(
       prefix?: string | undefined,
       ignore: Set<Identifier> = new Set(),
@@ -524,8 +527,10 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       return getPortRelativeRect(id) != null
     }
 
-    /** Return the node ID that has the given `id` as its pattern or primary port.
-     * Technically this is either a component or the input node, as input nodes do not have patterns. */
+    /**
+     * Return the node ID that has the given `id` as its pattern or primary port.
+     * Technically this is either a component or the input node, as input nodes do not have patterns.
+     */
     function getSourceNodeId(id: AstId): NodeId | undefined {
       return db.getPatternExpressionNodeId(id) || getPortPrimaryInstance(id)?.nodeId
     }
@@ -556,8 +561,8 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       return syncModule.value!.edit()
     }
 
-    /** Apply the given `edit` to the state.
-     *
+    /**
+     * Apply the given `edit` to the state.
      *  @param skipTreeRepair - If the edit is known not to require any parenthesis insertion, this may be set to `true`
      *  for better performance.
      */
@@ -575,10 +580,10 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       syncModule.value!.applyEdit(edit, origin)
     }
 
-    /** Edit the AST module.
+    /**
+     * Edit the AST module.
      *
-     *  Optimization options: These are safe to use for metadata-only edits; otherwise, they require extreme caution.
-     *
+     * Optimization options: These are safe to use for metadata-only edits; otherwise, they require extreme caution.
      *  @param skipTreeRepair - If the edit is certain not to produce incorrect or non-canonical syntax, this may be set
      *  to `true` for better performance.
      */
@@ -598,7 +603,8 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       return result!
     }
 
-    /** Obtain a version of the given `Ast` for direct mutation. The `ast` must exist in the current module.
+    /**
+     * Obtain a version of the given `Ast` for direct mutation. The `ast` must exist in the current module.
      *  This can be more efficient than creating and committing an edit, but skips tree-repair and cannot be aborted.
      */
     function getMutable<T extends Ast.Ast>(ast: T): Ast.Mutable<T> {
@@ -799,6 +805,7 @@ export interface ConnectedEdge {
   target: PortId
 }
 
+/** TODO: Add docs */
 export function isConnected(edge: Edge): edge is ConnectedEdge {
   return edge.source != null && edge.target != null
 }

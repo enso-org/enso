@@ -765,12 +765,12 @@ public class TypeInferenceTest extends CompilerTests {
 
     var x1 = findAssignment(foo, "x1");
     assertEquals(
-        List.of(new Warning.NotInvokable(x1.expression().location(), "Integer")),
+        List.of(new Warning.NotInvokable(x1.expression().identifiedLocation(), "Integer")),
         getImmediateDiagnostics(x1.expression()));
 
     var x2 = findAssignment(foo, "x2");
     assertEquals(
-        List.of(new Warning.NotInvokable(x2.expression().location(), "Text")),
+        List.of(new Warning.NotInvokable(x2.expression().identifiedLocation(), "Text")),
         getImmediateDiagnostics(x2.expression()));
 
     var x3 = findAssignment(foo, "x3");
@@ -834,7 +834,8 @@ public class TypeInferenceTest extends CompilerTests {
     var foo = findStaticMethod(module, "foo");
 
     var y = findAssignment(foo, "y");
-    var typeError = new Warning.TypeMismatch(y.expression().location(), "Other_Type", "My_Type");
+    var typeError =
+        new Warning.TypeMismatch(y.expression().identifiedLocation(), "Other_Type", "My_Type");
     assertEquals(List.of(typeError), getDescendantsDiagnostics(y.expression()));
   }
 
@@ -895,12 +896,14 @@ public class TypeInferenceTest extends CompilerTests {
     var foo = findStaticMethod(module, "foo");
 
     var y = findAssignment(foo, "y");
-    var typeError1 = new Warning.TypeMismatch(y.expression().location(), "My_Type", "(Any -> Any)");
+    var typeError1 =
+        new Warning.TypeMismatch(y.expression().identifiedLocation(), "My_Type", "(Any -> Any)");
     assertEquals(List.of(typeError1), getDescendantsDiagnostics(y.expression()));
 
     var z = findAssignment(foo, "z");
     var typeError2 =
-        new Warning.TypeMismatch(z.expression().location(), "My_Type", "(My_Type -> My_Type)");
+        new Warning.TypeMismatch(
+            z.expression().identifiedLocation(), "My_Type", "(My_Type -> My_Type)");
     assertEquals(List.of(typeError2), getDescendantsDiagnostics(z.expression()));
   }
 
@@ -936,7 +939,7 @@ public class TypeInferenceTest extends CompilerTests {
           default -> throw new AssertionError(
               "Expected " + z.showCode() + " to be an application expression.");
         };
-    var typeError = new Warning.TypeMismatch(arg.location(), "Other_Type", "My_Type");
+    var typeError = new Warning.TypeMismatch(arg.identifiedLocation(), "Other_Type", "My_Type");
     assertEquals(List.of(typeError), getImmediateDiagnostics(arg));
   }
 
@@ -962,7 +965,8 @@ public class TypeInferenceTest extends CompilerTests {
     var foo = findStaticMethod(module, "foo");
 
     var x = findAssignment(foo, "x");
-    var typeError = new Warning.TypeMismatch(x.expression().location(), "My_Type", "Integer");
+    var typeError =
+        new Warning.TypeMismatch(x.expression().identifiedLocation(), "My_Type", "Integer");
     assertEquals(List.of(typeError), getDescendantsDiagnostics(x.expression()));
   }
 

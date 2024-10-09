@@ -138,6 +138,7 @@ interface PlaceholderOverrides {
   readonly organizationNameSettingsInputDescription: [howLong: number]
   readonly trialDescription: [days: number]
   readonly groupNameSettingsInputDescription: [howLong: number]
+  readonly xIsUsingTheProject: [userName: string]
 
   readonly arbitraryFieldTooLarge: [maxSize: string]
   readonly arbitraryFieldTooSmall: [minSize: string]

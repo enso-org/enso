@@ -46,7 +46,7 @@ export interface InputProps<Schema extends TSchema, TFieldName extends FieldPath
   readonly inputRef?: Ref<HTMLInputElement>
   readonly addonStart?: ReactNode
   readonly addonEnd?: ReactNode
-  readonly placeholder?: string
+  readonly placeholder?: string | undefined
   /** The icon to display in the input. */
   readonly icon?: ReactElement | string | null
   readonly variants?: ExtractFunction<typeof INPUT_STYLES> | undefined

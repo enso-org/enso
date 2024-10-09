@@ -6,6 +6,7 @@ import { watchEffect } from 'vue'
 import type { AstId } from 'ydoc-shared/ast'
 import { IdMap, type ExternalId, type SourceRange } from 'ydoc-shared/yjsModel'
 
+/** TODO: Add docs */
 export function parseWithSpans<T extends Record<string, SourceRange>>(code: string, spans: T) {
   const nameToEid = new Map<keyof T, ExternalId>()
   const eid = (name: keyof T) => nameToEid.get(name)!

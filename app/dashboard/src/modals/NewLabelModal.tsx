@@ -90,9 +90,7 @@ export default function NewLabelModal(props: NewLabelModalProps) {
             </FocusArea>
             <ButtonGroup className="relative">
               <Form.Submit>{getText('create')}</Form.Submit>
-              <Form.Submit formnovalidate variant="outline">
-                {getText('cancel')}
-              </Form.Submit>
+              <Form.Submit action="cancel" />
             </ButtonGroup>
             <Form.FormError />
           </>

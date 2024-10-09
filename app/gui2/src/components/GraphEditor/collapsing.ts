@@ -31,7 +31,8 @@ interface ExtractedInfo {
 
 /** The information about the output value of the extracted function. */
 interface Output {
-  /** The id of the node the expression of which should be replaced by the function call.
+  /**
+   * The id of the node the expression of which should be replaced by the function call.
    * This node is also included into `ids` of the {@link ExtractedInfo} and must be moved into the extracted function.
    */
   node: NodeId
@@ -51,7 +52,8 @@ interface RefactoredInfo {
 
 // === prepareCollapsedInfo ===
 
-/** Prepare the information necessary for collapsing nodes.
+/**
+ * Prepare the information necessary for collapsing nodes.
  * @throws errors in case of failures, but it should not happen in normal execution.
  */
 export function prepareCollapsedInfo(
@@ -153,7 +155,8 @@ interface CollapsingResult {
   /** The ID of the node refactored to the collapsed function call. */
   refactoredNodeId: NodeId
   refactoredExpressionAstId: Ast.AstId
-  /** IDs of nodes inside the collapsed function, except the output node.
+  /**
+   * IDs of nodes inside the collapsed function, except the output node.
    * The order of these IDs is reversed comparing to the order of nodes in the source code.
    */
   collapsedNodeIds: NodeId[]

@@ -35,14 +35,14 @@ object Set {
     * @param label the member's label, if given
     * @param memberType the member's type, if given
     * @param value the member's value, if given
-    * @param location the source location that the node corresponds to
+    * @param identifiedLocation the source location that the node corresponds to
     * @param passData the pass metadata associated with this node
     */
   sealed case class Member(
     label: Name,
     memberType: Expression,
     value: Expression,
-    override val location: Option[IdentifiedLocation],
+    override val identifiedLocation: IdentifiedLocation,
     override val passData: MetadataStorage = new MetadataStorage()
   ) extends Set
       with IRKind.Primitive
@@ -78,7 +78,7 @@ object Set {
         || diagnostics != this.diagnostics
         || id != this.id
       ) {
-        val res = Member(label, memberType, value, location, passData)
+        val res = Member(label, memberType, value, location.orNull, passData)
         res.diagnostics = diagnostics
         res.id          = id
         res
@@ -167,13 +167,13 @@ object Set {
     *
     * @param left the left operand
     * @param right the right operand
-    * @param location the source location that the node corresponds to
+    * @param identifiedLocation the source location that the node corresponds to
     * @param passData the pass metadata associated with this node
     */
   sealed case class Subsumption(
     left: Expression,
     right: Expression,
-    override val location: Option[IdentifiedLocation],
+    override val identifiedLocation: IdentifiedLocation,
     override val passData: MetadataStorage = new MetadataStorage()
   ) extends Set
       with IRKind.Primitive
@@ -206,7 +206,7 @@ object Set {
         || diagnostics != this.diagnostics
         || id != this.id
       ) {
-        val res = Subsumption(left, right, location, passData)
+        val res = Subsumption(left, right, location.orNull, passData)
         res.diagnostics = diagnostics
         res.id          = id
         res
@@ -280,13 +280,13 @@ object Set {
     *
     * @param left the left operand
     * @param right the right operand
-    * @param location the source location that the node corresponds to
+    * @param identifiedLocation the source location that the node corresponds to
     * @param passData the pass metadata associated with this node
     */
   sealed case class Equality(
     left: Expression,
     right: Expression,
-    override val location: Option[IdentifiedLocation],
+    override val identifiedLocation: IdentifiedLocation,
     override val passData: MetadataStorage = new MetadataStorage()
   ) extends Set
       with IRKind.Primitive
@@ -319,7 +319,7 @@ object Set {
         || diagnostics != this.diagnostics
         || id != this.id
       ) {
-        val res = Equality(left, right, location, passData)
+        val res = Equality(left, right, location.orNull, passData)
         res.diagnostics = diagnostics
         res.id          = id
         res
@@ -391,15 +391,15 @@ object Set {
 
   /** The typeset concatenation operator `,`.
     *
-    * @param left        the left operand
-    * @param right       the right operand
-    * @param location    the source location that the node corresponds to
-    * @param passData    the pass metadata associated with this node
+    * @param left the left operand
+    * @param right the right operand
+    * @param identifiedLocation the source location that the node corresponds to
+    * @param passData the pass metadata associated with this node
     */
   sealed case class Concat(
     left: Expression,
     right: Expression,
-    override val location: Option[IdentifiedLocation],
+    override val identifiedLocation: IdentifiedLocation,
     override val passData: MetadataStorage = new MetadataStorage()
   ) extends Set
       with IRKind.Primitive
@@ -432,7 +432,7 @@ object Set {
         || diagnostics != this.diagnostics
         || id != this.id
       ) {
-        val res = Concat(left, right, location, passData)
+        val res = Concat(left, right, location.orNull, passData)
         res.diagnostics = diagnostics
         res.id          = id
         res
@@ -504,12 +504,12 @@ object Set {
   /** The typeset union operator `|`.
     *
     * @param operands the operands
-    * @param location the source location that the node corresponds to
+    * @param identifiedLocation the source location that the node corresponds to
     * @param passData the pass metadata associated with this node
     */
   sealed case class Union(
     operands: List[Expression],
-    override val location: Option[IdentifiedLocation],
+    override val identifiedLocation: IdentifiedLocation,
     override val passData: MetadataStorage = new MetadataStorage()
   ) extends Set
       with IRKind.Primitive
@@ -539,7 +539,7 @@ object Set {
         || diagnostics != this.diagnostics
         || id != this.id
       ) {
-        val res = Union(operands, location, passData)
+        val res = Union(operands, location.orNull, passData)
         res.diagnostics = diagnostics
         res.id          = id
         res
@@ -607,13 +607,13 @@ object Set {
     *
     * @param left the left operand
     * @param right the right operand
-    * @param location the source location that the node corresponds to
+    * @param identifiedLocation the source location that the node corresponds to
     * @param passData the pass metadata associated with this node
     */
   sealed case class Intersection(
     left: Expression,
     right: Expression,
-    override val location: Option[IdentifiedLocation],
+    override val identifiedLocation: IdentifiedLocation,
     override val passData: MetadataStorage = new MetadataStorage()
   ) extends Set
       with IRKind.Primitive
@@ -646,7 +646,7 @@ object Set {
         || diagnostics != this.diagnostics
         || id != this.id
       ) {
-        val res = Intersection(left, right, location, passData)
+        val res = Intersection(left, right, location.orNull, passData)
         res.diagnostics = diagnostics
         res.id          = id
         res

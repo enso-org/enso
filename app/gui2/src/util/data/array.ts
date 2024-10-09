@@ -14,7 +14,8 @@ export function findIndexOpt<T>(
   return index >= 0 ? index : null
 }
 
-/** Returns the index of the partition point according to the given predicate
+/**
+ * Returns the index of the partition point according to the given predicate
  * (the index of the first element of the second partition).
  *
  * The array is assumed to be partitioned according to the given predicate.
@@ -25,8 +26,8 @@ export function findIndexOpt<T>(
  *
  * If this array is not partitioned, the returned result is unspecified and meaningless,
  * as this method performs a kind of binary search.
- *
- * @see The original docs for the equivalent function in Rust: {@link https://doc.rust-lang.org/std/primitive.slice.html#method.partition_point} */
+ * @see The original docs for the equivalent function in Rust: {@link https://doc.rust-lang.org/std/primitive.slice.html#method.partition_point}
+ */
 export function partitionPoint<T>(
   array: T[],
   pred: (elem: T) => boolean,
@@ -55,6 +56,7 @@ export function byteArraysEqual(a: Opt<Uint8Array>, b: Opt<Uint8Array>): boolean
   return a === b || (a != null && b != null && indexedDB.cmp(a, b) === 0)
 }
 
+/** TODO: Add docs */
 export function arrayEquals<T>(a: T[], b: T[]): boolean {
   return a === b || (a.length === b.length && a.every((v, i) => v === b[i]))
 }

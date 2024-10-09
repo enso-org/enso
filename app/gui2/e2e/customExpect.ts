@@ -1,8 +1,10 @@
 import { expect as baseExpect, type Locator } from 'playwright/test'
 
 export const expect = baseExpect.extend({
-  /** Ensures that at least one of the elements that the Locator points to,
-   * is an attached and visible DOM node. */
+  /**
+   * Ensures that at least one of the elements that the Locator points to,
+   * is an attached and visible DOM node.
+   */
   async toExist(locator: Locator) {
     // Counter-intuitive, but correct:
     // https://playwright.dev/docs/api/class-locatorassertions#locator-assertions-to-be-visible

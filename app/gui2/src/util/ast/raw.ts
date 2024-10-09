@@ -11,7 +11,8 @@ export { parseEnso, RawAst }
 
 export type HasAstRange = SourceRange | RawAst.Tree | RawAst.Token
 
-/** Read a single line of code
+/**
+ * Read a single line of code
  *
  * Is meant to be a helper for tests. If the code is multiline, an exception is raised.
  */
@@ -65,6 +66,7 @@ export function childrenAstNodes(obj: LazyObject): RawAst.Tree[] {
   obj.visitChildren(visitor)
   return children
 }
+/** TODO: Add docs */
 export function childrenAstNodesOrTokens(obj: LazyObject): (RawAst.Tree | RawAst.Token)[] {
   const children: (RawAst.Tree | RawAst.Token)[] = []
   const visitor = (obj: LazyObject) => {
@@ -87,8 +89,10 @@ export function astContainingChar(charIndex: number, root: RawAst.Tree): RawAst.
   }).reverse()
 }
 
-/** Given a predicate, return a path from the root down the tree containing the
- *  first node at each level found to satisfy the predicate. */
+/**
+ * Given a predicate, return a path from the root down the tree containing the
+ *  first node at each level found to satisfy the predicate.
+ */
 function treePath(obj: LazyObject, pred: (node: RawAst.Tree) => boolean): RawAst.Tree[] {
   const path: RawAst.Tree[] = []
   const visitor = (obj: LazyObject) => {
@@ -104,6 +108,7 @@ function treePath(obj: LazyObject, pred: (node: RawAst.Tree) => boolean): RawAst
   return path
 }
 
+/** TODO: Add docs */
 export function findAstWithRange(
   root: RawAst.Tree | RawAst.Token,
   range: SourceRange,
@@ -115,6 +120,7 @@ export function findAstWithRange(
   }
 }
 
+/** TODO: Add docs */
 export function* walkRecursive(
   node: RawAst.Tree | RawAst.Token,
 ): Generator<RawAst.Tree | RawAst.Token, void, boolean | void> {
@@ -127,6 +133,7 @@ export function* walkRecursive(
   }
 }
 
+/** TODO: Add docs */
 export function visitGenerator<T, N, R>(generator: Generator<T, R, N>, visit: (value: T) => N): R {
   let next = generator.next()
   while (!next.done) next = generator.next(visit(next.value))
@@ -136,7 +143,6 @@ export function visitGenerator<T, N, R>(generator: Generator<T, R, N>, visit: (v
 /**
  * Recursively visit AST nodes in depth-first order. The children of a node will be skipped when
  * `visit` callback returns `false`.
- *
  * @param node Root node of the tree to walk. It will be visited first.
  * @param visit Callback that is called for each node. If it returns `false`, the children of that
  * node will be skipped, and the walk will continue to the next sibling.
@@ -151,7 +157,6 @@ export function visitRecursive(
 /**
  * Read ast span information in `String.substring` compatible way. The returned span does not
  * include left whitespace offset.
- *
  * @returns Object with `start` and `end` properties; index of first character in the `node`
  *   and first character _not_ being in the `node`.
  */
@@ -161,18 +166,21 @@ export function parsedTreeRange(tree: RawAst.Tree): SourceRange {
   return [start, end]
 }
 
+/** TODO: Add docs */
 export function parsedTokenRange(token: RawAst.Token): SourceRange {
   const start = token.startInCodeBuffer
   const end = start + token.lengthInCodeBuffer
   return [start, end]
 }
 
+/** TODO: Add docs */
 export function parsedTreeOrTokenRange(node: HasAstRange): SourceRange {
   if (RawAst.Tree.isInstance(node)) return parsedTreeRange(node)
   else if (RawAst.Token.isInstance(node)) return parsedTokenRange(node)
   else return node
 }
 
+/** TODO: Add docs */
 export function astPrettyPrintType(obj: unknown): string | undefined {
   if (obj instanceof LazyObject && Object.hasOwnProperty.call(obj, 'type')) {
     const proto = Object.getPrototypeOf(obj)
@@ -180,6 +188,7 @@ export function astPrettyPrintType(obj: unknown): string | undefined {
   }
 }
 
+/** TODO: Add docs */
 export function debugAst(obj: unknown): unknown {
   if (obj instanceof LazyObject) {
     const fields = Object.fromEntries(

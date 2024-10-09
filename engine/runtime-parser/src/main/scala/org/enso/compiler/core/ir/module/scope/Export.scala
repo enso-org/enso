@@ -40,18 +40,18 @@ object Export {
 
   /** An export statement.
     *
-    * @param name        the full path representing the export
-    * @param rename      the name this export is visible as
-    * @param onlyNames   exported names selected from the exported module
-    * @param location    the source location that the node corresponds to
+    * @param name the full path representing the export
+    * @param rename the name this export is visible as
+    * @param onlyNames exported names selected from the exported module
+    * @param identifiedLocation the source location that the node corresponds to
     * @param isSynthetic is this export compiler-generated
-    * @param passData    the pass metadata associated with this node
+    * @param passData the pass metadata associated with this node
     */
   sealed case class Module(
     name: Name.Qualified,
     rename: Option[Name.Literal],
     onlyNames: Option[List[Name.Literal]],
-    override val location: Option[IdentifiedLocation],
+    override val identifiedLocation: IdentifiedLocation,
     isSynthetic: Boolean                   = false,
     override val passData: MetadataStorage = new MetadataStorage()
   ) extends IR
@@ -96,7 +96,7 @@ object Export {
           name,
           rename,
           onlyNames,
-          location,
+          location.orNull,
           isSynthetic,
           passData
         )

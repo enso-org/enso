@@ -37,13 +37,13 @@ object CallArgument {
     *
     * @param name the name of the argument being called, if present
     * @param value the expression being passed as the argument's value
-    * @param location the source location that the node corresponds to
+    * @param identifiedLocation the source location that the node corresponds to
     * @param passData the pass metadata associated with this node
     */
   sealed case class Specified(
     override val name: Option[Name],
     override val value: Expression,
-    location: Option[IdentifiedLocation],
+    identifiedLocation: IdentifiedLocation,
     passData: MetadataStorage = new MetadataStorage()
   ) extends CallArgument
       with IRKind.Primitive
@@ -76,7 +76,7 @@ object CallArgument {
         || diagnostics != this.diagnostics
         || id != this.id
       ) {
-        val res = Specified(name, value, location, passData)
+        val res = Specified(name, value, location.orNull, passData)
         res.diagnostics = diagnostics
         res.id          = id
         res

@@ -43,12 +43,12 @@ object Method {
   /** The definition of a method for a given constructor.
     *
     * @param methodReference a reference to the method being defined
-    * @param bodyReference   the body of the method
-    * @param isStatic        true if this method is static, false otherwise
-    * @param isPrivate       true if this method is private, false otherwise
+    * @param bodyReference the body of the method
+    * @param isStatic true if this method is static, false otherwise
+    * @param isPrivate true if this method is private, false otherwise
     * @param isStaticWrapperForInstanceMethod true if this method represents a static wrapper for instance method, false otherwise
-    * @param location        the source location that the node corresponds to
-    * @param passData        the pass metadata associated with this node
+    * @param identifiedLocation the source location that the node corresponds to
+    * @param passData the pass metadata associated with this node
     */
   sealed case class Explicit(
     methodReference: Name.MethodReference,
@@ -56,7 +56,7 @@ object Method {
     isStatic: Boolean,
     override val isPrivate: Boolean,
     isStaticWrapperForInstanceMethod: Boolean,
-    override val location: Option[IdentifiedLocation],
+    override val identifiedLocation: IdentifiedLocation,
     override val passData: MetadataStorage
   ) extends Method
       with IRKind.Primitive
@@ -75,7 +75,7 @@ object Method {
         Explicit.computeIsStatic(body),
         ir.isPrivate,
         Explicit.computeIsStaticWrapperForInstanceMethod(body),
-        ir.location,
+        ir.identifiedLocation,
         ir.passData
       )
       diagnostics = ir.diagnostics
@@ -125,7 +125,7 @@ object Method {
           isStatic,
           isPrivate,
           isStaticWrapperForInstanceMethod,
-          location,
+          location.orNull,
           passData
         )
         res.diagnostics = diagnostics
@@ -245,19 +245,18 @@ object Method {
     * syntax.
     *
     * @param methodReference a reference to the method being defined
-    * @param arguments       the arguments to the method
-    * @param isPrivate        if the method is declared as private (project-private).
-    *                         i.e. with prepended `private` keyword.
-    * @param body            the body of the method
-    * @param location        the source location that the node corresponds to
-    * @param passData        the pass metadata associated with this node
+    * @param arguments the arguments to the method
+    * @param isPrivate if the method is declared as private (project-private). i.e. with prepended `private` keyword.
+    * @param body the body of the method
+    * @param identifiedLocation the source location that the node corresponds to
+    * @param passData the pass metadata associated with this node
     */
   sealed case class Binding(
     override val methodReference: Name.MethodReference,
     arguments: List[DefinitionArgument],
     isPrivate: Boolean,
     override val body: Expression,
-    override val location: Option[IdentifiedLocation],
+    override val identifiedLocation: IdentifiedLocation,
     override val passData: MetadataStorage = new MetadataStorage()
   ) extends Method
       with IRKind.Sugar
@@ -271,7 +270,7 @@ object Method {
       * @param isPrivate if the method is declared as private (project-private).
       * i.e. with prepended `private` keyword.
       * @param body the body of the method
-      * @param location the source location that the node corresponds to
+      * @param identifiedLocation the source location that the node corresponds to
       * @param passData the pass metadata associated with this node
       * @param diagnostics the compiler diagnostics
       */
@@ -280,7 +279,7 @@ object Method {
       arguments: List[DefinitionArgument],
       isPrivate: Boolean,
       body: Expression,
-      location: Option[IdentifiedLocation],
+      identifiedLocation: IdentifiedLocation,
       passData: MetadataStorage,
       diagnostics: DiagnosticStorage
     ) = {
@@ -289,7 +288,7 @@ object Method {
         arguments,
         isPrivate,
         body,
-        location,
+        identifiedLocation,
         passData
       )
       this.diagnostics = diagnostics
@@ -331,7 +330,7 @@ object Method {
           arguments,
           isPrivate,
           body,
-          location,
+          location.orNull,
           passData
         )
         res.diagnostics = diagnostics
@@ -426,19 +425,17 @@ object Method {
 
   /** A method that represents a conversion from one type to another.
     *
-    * @param methodReference a reference to the type on which the
-    *                        conversion is being defined
-    * @param sourceTypeName  the type of the source value for this
-    *                        conversion
-    * @param body            the body of the method
-    * @param location        the source location that the node corresponds to
-    * @param passData        the pass metadata associated with this node
+    * @param methodReference a reference to the type on which the conversion is being defined
+    * @param sourceTypeName the type of the source value for this conversion
+    * @param body the body of the method
+    * @param identifiedLocation the source location that the node corresponds to
+    * @param passData the pass metadata associated with this node
     */
   sealed case class Conversion(
     override val methodReference: Name.MethodReference,
     sourceTypeName: Expression,
     override val body: Expression,
-    override val location: Option[IdentifiedLocation],
+    override val identifiedLocation: IdentifiedLocation,
     override val passData: MetadataStorage = new MetadataStorage()
   ) extends Method
       with IRKind.Primitive
@@ -456,7 +453,13 @@ object Method {
       sourceTypeName: Expression,
       body: Expression
     ) = {
-      this(ir.methodReference, sourceTypeName, body, ir.location, ir.passData)
+      this(
+        ir.methodReference,
+        sourceTypeName,
+        body,
+        ir.identifiedLocation,
+        ir.passData
+      )
       diagnostics = ir.diagnostics
     }
 
@@ -498,7 +501,7 @@ object Method {
           methodReference,
           sourceTypeName,
           body,
-          location,
+          location.orNull,
           passData
         )
         res.diagnostics = diagnostics

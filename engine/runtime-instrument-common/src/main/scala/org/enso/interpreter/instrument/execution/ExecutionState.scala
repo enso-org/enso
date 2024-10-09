@@ -1,5 +1,7 @@
 package org.enso.interpreter.instrument.execution
 
+import org.enso.interpreter.instrument.ExpressionExecutionState
+
 /** The state of the runtime */
 final class ExecutionState {
 
@@ -7,6 +9,8 @@ final class ExecutionState {
   val pendingEdits: PendingEdits = new PendingFileEdits()
 
   val executionHooks: ExecutionHooks = new RuntimeExecutionHooks
+
+  val expressionExecutionState = new ExpressionExecutionState()
 
   val suggestions: ModuleIndexing = ModuleIndexing.createInstance()
 }

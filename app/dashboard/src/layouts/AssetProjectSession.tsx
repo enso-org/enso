@@ -33,7 +33,7 @@ export default function AssetProjectSession(props: AssetProjectSessionProps) {
       </div>
       <div className="flex items-center gap-1">
         <DialogTrigger isOpen={isOpen} onOpenChange={setIsOpen}>
-          <Button isActive icon={LogsIcon} aria-label={getText('showLogs')} />
+          <Button variant="icon" isActive icon={LogsIcon} aria-label={getText('showLogs')} />
 
           <ProjectLogsModal
             isOpen={isOpen}
