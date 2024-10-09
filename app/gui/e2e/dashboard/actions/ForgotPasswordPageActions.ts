@@ -15,7 +15,7 @@ export default class ForgotPasswordPageActions extends BaseActions {
   get goToPage() {
     return {
       login: (): LoginPageActions =>
-        this.step("Go to 'login' page", async page =>
+        this.step("Go to 'login' page", async (page) =>
           page.getByRole('link', { name: TEXT.goBackToLogin, exact: true }).click(),
         ).into(LoginPageActions),
     }
@@ -30,14 +30,14 @@ export default class ForgotPasswordPageActions extends BaseActions {
 
   /** Fill the email input. */
   fillEmail(email: string) {
-    return this.step(`Fill email with '${email}'`, page =>
+    return this.step(`Fill email with '${email}'`, (page) =>
       page.getByPlaceholder(TEXT.emailPlaceholder).fill(email),
     )
   }
 
   /** Interact with the email input. */
   withEmailInput(callback: LocatorCallback) {
-    return this.step('Interact with email input', async page => {
+    return this.step('Interact with email input', async (page) => {
       await callback(page.getByPlaceholder(TEXT.emailPlaceholder))
     })
   }

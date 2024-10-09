@@ -30,7 +30,7 @@ export default class NewDataLinkModalActions extends BaseActions {
 
   /** Interact with the "name" input - for example, to set the name using `.fill("")`. */
   withNameInput(callback: baseActions.LocatorCallback) {
-    return this.step('Interact with "name" input', async page => {
+    return this.step('Interact with "name" input', async (page) => {
       const locator = locateNewDataLinkModal(page).getByPlaceholder(TEXT.datalinkNamePlaceholder)
       await callback(locator)
     })

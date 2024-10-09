@@ -14,7 +14,7 @@ import SetupOrganizationPageActions from './SetupOrganizationPageActions'
 export default class SetupPlanPageActions extends BaseActions {
   /** Select a plan. */
   selectSoloPlan() {
-    return this.step(`Select 'solo' plan`, async page => {
+    return this.step(`Select 'solo' plan`, async (page) => {
       await page.getByLabel(TEXT[PLAN_TO_UPGRADE_LABEL_ID[Plan.solo]]).click()
       await page
         .getByRole('group', { name: TEXT.licenseAgreementCheckbox })
@@ -27,7 +27,7 @@ export default class SetupPlanPageActions extends BaseActions {
   /** Select a plan that has teams. */
   // eslint-disable-next-line @typescript-eslint/no-magic-numbers
   selectTeamPlan(plan: Plan.enterprise | Plan.team, seats = 1, duration: 12 | 36 = 12) {
-    return this.step(`Select '${plan}' plan`, async page => {
+    return this.step(`Select '${plan}' plan`, async (page) => {
       await page.getByLabel(TEXT[PLAN_TO_UPGRADE_LABEL_ID[plan]]).click()
       await page
         .getByRole('group', { name: TEXT.licenseAgreementCheckbox })
@@ -45,14 +45,14 @@ export default class SetupPlanPageActions extends BaseActions {
 
   /** Stay on the current (free) plan. */
   stayOnFreePlan() {
-    return this.step(`Stay on current plan`, async page => {
+    return this.step(`Stay on current plan`, async (page) => {
       await page.getByText(TEXT.skip).click()
     }).into(SetupDonePageActions)
   }
 
   /** Stay on the current (paid) plan. */
   stayOnPaidPlan() {
-    return this.step(`Stay on current plan`, async page => {
+    return this.step(`Stay on current plan`, async (page) => {
       await page.getByText(TEXT.skip).click()
     }).into(SetupOrganizationPageActions)
   }

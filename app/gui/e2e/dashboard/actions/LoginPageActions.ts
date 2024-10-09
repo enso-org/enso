@@ -18,11 +18,11 @@ export default class LoginPageActions extends BaseActions {
   get goToPage() {
     return {
       register: (): RegisterPageActions =>
-        this.step("Go to 'register' page", async page =>
+        this.step("Go to 'register' page", async (page) =>
           page.getByRole('link', { name: TEXT.dontHaveAnAccount, exact: true }).click(),
         ).into(RegisterPageActions),
       forgotPassword: (): ForgotPasswordPageActions =>
-        this.step("Go to 'forgot password' page", async page =>
+        this.step("Go to 'forgot password' page", async (page) =>
           page.getByRole('link', { name: TEXT.forgotYourPassword, exact: true }).click(),
         ).into(ForgotPasswordPageActions),
     }
@@ -35,7 +35,7 @@ export default class LoginPageActions extends BaseActions {
 
   /** Perform a login as a new user (a user that does not yet have a username). */
   loginAsNewUser(email = VALID_EMAIL, password = VALID_PASSWORD) {
-    return this.step('Login (as new user)', async page => {
+    return this.step('Login (as new user)', async (page) => {
       await this.loginInternal(email, password)
       await passAgreementsDialog({ page })
     }).into(SetupUsernamePageActions)
@@ -62,11 +62,11 @@ export default class LoginPageActions extends BaseActions {
     if (formError === undefined) {
       return next
     } else if (formError != null) {
-      return next.step(`Expect form error to be '${formError}'`, async page => {
+      return next.step(`Expect form error to be '${formError}'`, async (page) => {
         await test.expect(page.getByTestId('form-submit-error')).toHaveText(formError)
       })
     } else {
-      return next.step('Expect no form error', async page => {
+      return next.step('Expect no form error', async (page) => {
         await test.expect(page.getByTestId('form-submit-error')).not.toBeVisible()
       })
     }
@@ -74,14 +74,14 @@ export default class LoginPageActions extends BaseActions {
 
   /** Fill the email input. */
   fillEmail(email: string) {
-    return this.step(`Fill email with '${email}'`, page =>
+    return this.step(`Fill email with '${email}'`, (page) =>
       page.getByPlaceholder(TEXT.emailPlaceholder).fill(email),
     )
   }
 
   /** Interact with the email input. */
   withEmailInput(callback: LocatorCallback) {
-    return this.step('Interact with email input', async page => {
+    return this.step('Interact with email input', async (page) => {
       await callback(page.getByPlaceholder(TEXT.emailPlaceholder))
     })
   }

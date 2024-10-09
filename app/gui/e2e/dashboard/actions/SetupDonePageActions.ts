@@ -13,7 +13,7 @@ export default class SetupDonePageActions extends BaseActions {
   get goToPage() {
     return {
       drive: () =>
-        this.step("Finish setup and go to 'drive' page", async page => {
+        this.step("Finish setup and go to 'drive' page", async (page) => {
           await page.getByText(TEXT.goToDashboard).click()
         }).into(DrivePageActions),
     }

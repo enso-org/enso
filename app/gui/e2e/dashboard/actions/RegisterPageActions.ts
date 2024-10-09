@@ -15,7 +15,7 @@ export default class RegisterPageActions extends BaseActions {
   get goToPage() {
     return {
       login: (): LoginPageActions =>
-        this.step("Go to 'login' page", async page =>
+        this.step("Go to 'login' page", async (page) =>
           page.getByRole('link', { name: TEXT.alreadyHaveAnAccount, exact: true }).click(),
         ).into(LoginPageActions),
     }
@@ -54,11 +54,11 @@ export default class RegisterPageActions extends BaseActions {
     if (formError === undefined) {
       return next
     } else if (formError != null) {
-      return next.step(`Expect form error to be '${formError}'`, async page => {
+      return next.step(`Expect form error to be '${formError}'`, async (page) => {
         await test.expect(page.getByTestId('form-submit-error')).toHaveText(formError)
       })
     } else {
-      return next.step('Expect no form error', async page => {
+      return next.step('Expect no form error', async (page) => {
         await test.expect(page.getByTestId('form-submit-error')).not.toBeVisible()
       })
     }
@@ -66,14 +66,14 @@ export default class RegisterPageActions extends BaseActions {
 
   /** Fill the email input. */
   fillEmail(email: string) {
-    return this.step(`Fill email with '${email}'`, page =>
+    return this.step(`Fill email with '${email}'`, (page) =>
       page.getByPlaceholder(TEXT.emailPlaceholder).fill(email),
     )
   }
 
   /** Interact with the email input. */
   withEmailInput(callback: LocatorCallback) {
-    return this.step('Interact with email input', async page => {
+    return this.step('Interact with email input', async (page) => {
       await callback(page.getByPlaceholder(TEXT.emailPlaceholder))
     })
   }

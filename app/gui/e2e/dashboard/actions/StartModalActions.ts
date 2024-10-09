@@ -12,14 +12,14 @@ import EditorPageActions from './EditorPageActions'
 export default class StartModalActions extends BaseActions {
   /** Close this modal and go back to the Drive page. */
   close() {
-    return this.step('Close "start" modal', page => page.getByLabel('Close').click()).into(
+    return this.step('Close "start" modal', (page) => page.getByLabel('Close').click()).into(
       DrivePageActions,
     )
   }
 
   /** Create a project from the template at the given index. */
   createProjectFromTemplate(index: number) {
-    return this.step(`Create project from template #${index}`, page =>
+    return this.step(`Create project from template #${index}`, (page) =>
       actions
         .locateSamples(page)
         .nth(index + 1)

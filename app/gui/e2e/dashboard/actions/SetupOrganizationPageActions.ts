@@ -11,7 +11,7 @@ import SetupInvitePageActions from './SetupInvitePageActions'
 export default class SetupOrganizationPageActions extends BaseActions {
   /** Set the organization name for this organization. */
   setOrganizationName(organizationName: string) {
-    return this.step(`Set organization name to '${organizationName}'`, async page => {
+    return this.step(`Set organization name to '${organizationName}'`, async (page) => {
       await page
         .getByLabel(TEXT.organizationNameSettingsInput)
         .and(page.getByRole('textbox'))

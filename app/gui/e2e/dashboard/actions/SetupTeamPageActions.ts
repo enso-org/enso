@@ -11,7 +11,7 @@ import SetupDonePageActions from './SetupDonePageActions'
 export default class SetupTeamNamePagePageActions extends BaseActions {
   /** Set the username for a new user that does not yet have a username. */
   setTeamName(teamName: string) {
-    return this.step(`Set team name to '${teamName}'`, async page => {
+    return this.step(`Set team name to '${teamName}'`, async (page) => {
       await page
         .getByLabel(TEXT.groupNameSettingsInput)
         .and(page.getByRole('textbox'))

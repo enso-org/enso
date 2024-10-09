@@ -11,7 +11,7 @@ import type { PageCallback } from './BaseActions'
 export function openUserMenuAction<T extends BaseActions>(
   step: (name: string, callback: PageCallback) => T,
 ) {
-  return step('Open user menu', page =>
+  return step('Open user menu', (page) =>
     page.getByLabel(TEXT.userMenuLabel).locator('visible=true').click(),
   )
 }

@@ -140,10 +140,10 @@ watch(selectedFilePath, (path) => {
         </template>
       </TransitionGroup>
     </div>
-    <div v-if="isBusy" class="contents centerContent"><LoadingSpinner /></div>
-    <div v-else-if="anyError" class="contents centerContent">Error: {{ anyError }}</div>
-    <div v-else-if="isEmpty" class="contents centerContent">Directory is empty</div>
-    <div v-else :key="currentDirectory.id ?? 'root'" class="contents listing">
+    <div v-if="isBusy" class="centerContent contents"><LoadingSpinner /></div>
+    <div v-else-if="anyError" class="centerContent contents">Error: {{ anyError }}</div>
+    <div v-else-if="isEmpty" class="centerContent contents">Directory is empty</div>
+    <div v-else :key="currentDirectory.id ?? 'root'" class="listing contents">
       <TransitionGroup>
         <div v-for="entry in directories" :key="entry.id">
           <SvgButton :label="entry.title" name="folder" class="entry" @click="enterDir(entry)" />

@@ -176,7 +176,7 @@ const { AgGridVue } = await import('ag-grid-vue3')
   <AgGridVue
     v-bind="$attrs"
     ref="grid"
-    class="grid ag-theme-alpine"
+    class="ag-theme-alpine grid"
     :headerHeight="26"
     :getRowHeight="getRowHeight"
     :rowData="rowData"
