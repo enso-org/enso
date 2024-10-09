@@ -83,7 +83,7 @@ export default function ManageLabelsModal<Asset extends AnyAsset = AnyAsset>(
   const canCreateNewLabel = canSelectColor
 
   return (
-    <Popover overlay size="xsmall" {...(triggerRef ? { triggerRef } : {})}>
+    <Popover size="xsmall" {...(triggerRef ? { triggerRef } : {})}>
       <Form form={form} className="relative flex flex-col gap-modal rounded-default p-modal">
         <Text.Heading slot="title" level={2} variant="subtitle">
           {getText('labels')}

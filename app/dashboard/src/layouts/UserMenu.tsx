@@ -46,7 +46,7 @@ export default function UserMenu(props: UserMenuProps) {
   )
 
   return (
-    <Popover overlay {...(!hidden ? { testId: 'user-menu' } : {})} size="xxsmall">
+    <Popover {...(!hidden ? { testId: 'user-menu' } : {})} size="xxsmall">
       <div className="mb-2 flex items-center gap-icons overflow-hidden px-menu-entry transition-all duration-user-menu">
         <div className="flex size-row-h shrink-0 items-center overflow-clip rounded-full">
           <img

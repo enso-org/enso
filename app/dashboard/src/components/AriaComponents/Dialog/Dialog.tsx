@@ -28,7 +28,7 @@ export interface DialogProps
   extends types.DialogProps,
     Omit<VariantProps<typeof DIALOG_STYLES>, 'scrolledToTop'> {}
 
-export const OVERLAY_STYLES = tv({
+const OVERLAY_STYLES = tv({
   base: 'fixed inset-0 isolate flex items-center justify-center bg-primary/20',
   variants: {
     isEntering: { true: 'animate-in fade-in duration-200 ease-out' },
