@@ -75,6 +75,7 @@ tools/performance/engine-benchmarks/generated_site
 *.tsbuildinfo
 vite.config.ts.timestamp-*.mjs
 vitest.config.ts.timestamp-*.mjs
+.LCK*~
 
 ############################
 ## Rendered Documentation ##
