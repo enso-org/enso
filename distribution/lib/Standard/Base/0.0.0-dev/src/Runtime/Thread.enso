@@ -19,19 +19,4 @@ import project.Data.Numbers.Integer
 
          Thread.with_interrupt_handler (1 + 1) <| IO.println "I died!"
 with_interrupt_handler : Any -> Any -> Any
-private with_interrupt_handler ~action ~interrupt_handler = @Builtin_Method "Thread.with_interrupt_handler"
-
-## PRIVATE
-   ADVANCED
-   Temporarily cease execution of the current thread.
-
-   Arguments:
-   - time: amount of milliseconds to sleep
-
-   > Example
-     Sleep the current thread for 1 second.
-
-         Thread.sleep 1000 <| IO.println "I continue!"
-sleep : Integer
-private sleep time_in_milliseconds = @Builtin_Method "Thread.sleep"
-
+with_interrupt_handler ~action ~interrupt_handler = @Builtin_Method "Thread.with_interrupt_handler"
