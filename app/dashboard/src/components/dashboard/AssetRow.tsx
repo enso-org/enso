@@ -186,7 +186,6 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
         predicate: (mutation: BackendMutation<'deleteAsset'>) =>
           mutation.state.variables?.[0] === asset.id,
       },
-      select: () => true,
     }).length !== 0
   const isCloud = isCloudCategory(category)
 

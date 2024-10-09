@@ -18,6 +18,7 @@ import {
   type FieldStateProps,
   type TSchema,
 } from '#/components/AriaComponents'
+import { useAutoFocus } from '#/hooks/autoFocusHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { mergeRefs } from '#/utilities/mergeRefs'
 import { forwardRef } from '#/utilities/react'
@@ -118,11 +119,7 @@ export const ResizableContentEditableInput = forwardRef(function ResizableConten
     size,
   })
 
-  useEffect(() => {
-    if (autoFocus && inputRef.current) {
-      inputRef.current.focus()
-    }
-  }, [autoFocus])
+  useAutoFocus({ ref: inputRef, disabled: !autoFocus })
 
   useEffect(() => {
     if (inputRef.current) {
