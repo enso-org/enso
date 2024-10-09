@@ -33,8 +33,10 @@ in_memory_setup =
         Table.new columns
     create_connection_func _ =
         Dummy_Connection.Value
+    is_feature_supported_fn _ =
+        True
 
-    Common_Table_Operations.Main.Test_Setup.Config "[In-Memory] " agg_table_fn empty_table_fn table_builder materialize is_database=False test_selection=selection aggregate_test_selection=aggregate_selection create_connection_func=create_connection_func light_table_builder=light_table_builder
+    Common_Table_Operations.Main.Test_Setup.Config "[In-Memory] " agg_table_fn empty_table_fn table_builder materialize is_database=False test_selection=selection aggregate_test_selection=aggregate_selection create_connection_func=create_connection_func light_table_builder=light_table_builder is_feature_supported=is_feature_supported_fn
 
 add_specs suite_builder =
     Common_Table_Operations.Main.add_specs suite_builder in_memory_setup

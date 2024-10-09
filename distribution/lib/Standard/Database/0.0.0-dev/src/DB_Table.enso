@@ -47,6 +47,7 @@ from Standard.Table.Table import make_fill_nothing_default_widget
 
 import project.Connection.Connection.Connection
 import project.DB_Column.DB_Column
+import project.Feature.Feature
 import project.Internal.Aggregate_Helper
 import project.Internal.Base_Generator
 import project.Internal.Common.Database_Join_Helper
@@ -137,9 +138,10 @@ type DB_Table
        - selector: The name or index of the column to get.
     @selector Widget_Helpers.make_column_name_selector
     at : Integer | Text -> DB_Column ! No_Such_Column | Index_Out_Of_Bounds
-    at self (selector:(Integer | Text)=0) = case selector of
-        _ : Integer -> self.make_column (self.internal_columns.at selector)
-        _ -> self.get selector (Error.throw (No_Such_Column.Error selector))
+    at self (selector:(Integer | Text)=0) = 
+        case selector of
+            _ : Integer -> self.make_column (self.internal_columns.at selector)
+            _ -> self.get selector (Error.throw (No_Such_Column.Error selector))
 
     ## ICON select_column
        Returns the column with the given name or index.
@@ -168,8 +170,9 @@ type DB_Table
     @if_missing (make_any_selector add_text=True add_regex=True add_number=True add_boolean=True add_named_pattern=True add_date=True add_time=True add_date_time=True add_nothing=True)
     get_value : Text | Integer -> Integer -> Any -> Any
     get_value self selector:(Text | Integer)=0 index:Integer=0 ~if_missing=Nothing =
-        col = self.get selector if_missing=Nothing
-        if Nothing == col then if_missing else col.get index if_missing
+        Feature.Column_Operations.if_supported_else_throw self.connection.dialect "get_value" <|
+            col = self.get selector if_missing=Nothing
+            if Nothing == col then if_missing else col.get index if_missing
 
     ## ALIAS row
        GROUP Standard.Base.Selections
@@ -183,38 +186,47 @@ type DB_Table
        - if_missing: The value to use if the selector isn't present.
     get_row : Integer -> Any -> Any
     get_row self index:Integer=0 ~if_missing=Nothing =
-        if index == -1 then self.last_row else
-            real_row = (if index < 0 then index + self.row_count else index)
-            if real_row < 0 then if_missing else
-                self.rows real_row+1 . get real_row if_missing
+        Feature.Sample.if_supported_else_throw self.connection.dialect "get_row" <|
+            if index == -1 then self.last_row else
+                real_row = (if index < 0 then index + self.row_count else index)
+                if real_row < 0 then if_missing else
+                    self.rows real_row+1 . get real_row if_missing
 
     ## ALIAS first cell
        GROUP Standard.Base.Selections
        ICON local_scope4
        Gets the top left value from the table.
     first_value : Any ! Index_Out_Of_Bounds
-    first_value self = self.at 0 . at 0
+    first_value self =
+        Feature.Column_Operations.if_supported_else_throw self.connection.dialect "first_value" <|
+            self.at 0 . at 0
 
     ## ALIAS last cell
        GROUP Standard.Base.Selections
        ICON local_scope4
        Gets the bottom right value from the table.
     last_value : Any ! Index_Out_Of_Bounds
-    last_value self = self.last_row . at -1
+    last_value self =
+        Feature.Column_Operations.if_supported_else_throw self.connection.dialect "last_value" <|
+            self.last_row . at -1
 
     ## ALIAS first field
        GROUP Standard.Base.Selections
        ICON select_column
        Gets the first column.
     first_column : DB_Column ! Index_Out_Of_Bounds
-    first_column self = self.at 0
+    first_column self = 
+        Feature.Column_Operations.if_supported_else_throw self.connection.dialect "first_column" <|
+            self.at 0
 
     ## ALIAS last field
        GROUP Standard.Base.Selections
        ICON select_column
        Gets the last column
     last_column : DB_Column ! Index_Out_Of_Bounds
-    last_column self = self.at -1
+    last_column self = 
+        Feature.Column_Operations.if_supported_else_throw self.connection.dialect "last_column" <|
+            self.at -1
 
     ## ALIAS field count
        GROUP Standard.Base.Metadata
@@ -284,8 +296,9 @@ type DB_Table
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     select_columns :  Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type -> Boolean -> Case_Sensitivity -> Boolean -> Problem_Behavior -> DB_Table ! No_Output_Columns | Missing_Input_Columns
     select_columns self (columns : (Vector | Text | Integer | Regex | By_Type) = [self.columns.first.name]) (reorder:Boolean=False) (case_sensitivity:Case_Sensitivity=..Default) (error_on_missing_columns:Boolean=True) (on_problems:Problem_Behavior=..Report_Warning) =
-        new_columns = self.columns_helper.select_columns columns case_sensitivity reorder error_on_missing_columns on_problems
-        self.updated_columns (new_columns.map _.as_internal)
+        Feature.Select_Columns.if_supported_else_throw self.connection.dialect "select_columns" <|
+            new_columns = self.columns_helper.select_columns columns case_sensitivity reorder error_on_missing_columns on_problems
+            self.updated_columns (new_columns.map _.as_internal)
 
     ## PRIVATE
        ALIAS select fields by type
@@ -302,9 +315,10 @@ type DB_Table
     @types Widget_Helpers.make_value_type_vector_selector
     select_columns_by_type : Vector Value_Type -> Boolean -> Table
     select_columns_by_type self types:Vector strict:Boolean=False =
-        new_columns = self.columns_helper.select_by_type types strict
-        result = self.updated_columns (new_columns.map _.as_internal)
-        Warning.attach (Deprecated.Warning "Standard.Database.DB_Table.DB_Table" "select_columns_by_type" "Deprecated: use `select_columns` with a `By_Type` instead.") result
+        Feature.Select_Columns.if_supported_else_throw self.connection.dialect "select_columns_by_type" <|
+            new_columns = self.columns_helper.select_by_type types strict
+            result = self.updated_columns (new_columns.map _.as_internal)
+            Warning.attach (Deprecated.Warning "Standard.Database.DB_Table.DB_Table" "select_columns_by_type" "Deprecated: use `select_columns` with a `By_Type` instead.") result
 
     ## ALIAS drop fields, drop_columns, remove fields, select columns, select fields
        GROUP Standard.Base.Selections
@@ -362,8 +376,9 @@ type DB_Table
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     remove_columns :  Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type -> Case_Sensitivity -> Boolean -> Problem_Behavior -> DB_Table ! No_Output_Columns | Missing_Input_Columns
     remove_columns self (columns : (Vector | Text | Integer | Regex | By_Type) = [self.columns.first.name]) (case_sensitivity:Case_Sensitivity=..Default) (error_on_missing_columns:Boolean=False) (on_problems:Problem_Behavior=..Report_Warning) =
-        new_columns = self.columns_helper.remove_columns columns case_sensitivity error_on_missing_columns=error_on_missing_columns on_problems=on_problems
-        self.updated_columns (new_columns.map _.as_internal)
+        Feature.Select_Columns.if_supported_else_throw self.connection.dialect "remove_columns" <|
+            new_columns = self.columns_helper.remove_columns columns case_sensitivity error_on_missing_columns=error_on_missing_columns on_problems=on_problems
+            self.updated_columns (new_columns.map _.as_internal)
 
     ## PRIVATE
        ALIAS remove fields by type, select columns by type, select fields by type
@@ -380,9 +395,10 @@ type DB_Table
     @types Widget_Helpers.make_value_type_vector_selector
     remove_columns_by_type : Vector Value_Type -> Boolean -> Table
     remove_columns_by_type self types:Vector strict:Boolean=False =
-        new_columns = self.columns_helper.remove_by_type types strict
-        result = self.updated_columns (new_columns.map _.as_internal)
-        Warning.attach (Deprecated.Warning "Standard.Database.DB_Table.DB_Table" "remove_columns_by_type" "Deprecated: use `remove_columns` with a `By_Type` instead.") result
+        Feature.Select_Columns.if_supported_else_throw self.connection.dialect "remove_columns_by_type" <|
+            new_columns = self.columns_helper.remove_by_type types strict
+            result = self.updated_columns (new_columns.map _.as_internal)
+            Warning.attach (Deprecated.Warning "Standard.Database.DB_Table.DB_Table" "remove_columns_by_type" "Deprecated: use `remove_columns` with a `By_Type` instead.") result
 
     ## ALIAS select_blank_fields, select_missing_columns, select_na
        GROUP Standard.Base.Selections
@@ -407,8 +423,9 @@ type DB_Table
              table.select_blank_columns
     select_blank_columns : Blank_Selector -> Boolean -> DB_Table
     select_blank_columns self (when : Blank_Selector = ..All_Cells) treat_nans_as_blank:Boolean=False =
-        new_columns = self.columns_helper.select_blank_columns_helper when treat_nans_as_blank
-        self.updated_columns new_columns
+        Feature.Select_Columns.if_supported_else_throw self.connection.dialect "select_blank_columns" <|
+            new_columns = self.columns_helper.select_blank_columns_helper when treat_nans_as_blank
+            self.updated_columns new_columns
 
     ## ALIAS drop_missing_columns, drop_na, select_blank_columns, select_blank_fields, select_missing_columns, select_na
        GROUP Standard.Base.Selections
@@ -433,8 +450,9 @@ type DB_Table
              table.remove_blank_columns
     remove_blank_columns : Blank_Selector -> Boolean -> DB_Table
     remove_blank_columns self (when : Blank_Selector = ..All_Cells) treat_nans_as_blank:Boolean=False =
-        new_columns = self.columns_helper.select_blank_columns_helper when treat_nans_as_blank invert_selection=True
-        self.updated_columns new_columns
+        Feature.Select_Columns.if_supported_else_throw self.connection.dialect "remove_blank_columns" <|
+            new_columns = self.columns_helper.select_blank_columns_helper when treat_nans_as_blank invert_selection=True
+            self.updated_columns new_columns
 
     ## GROUP Standard.Base.Selections
        ICON select_column
@@ -488,8 +506,9 @@ type DB_Table
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     reorder_columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type -> Position -> Case_Sensitivity -> Boolean -> Problem_Behavior -> DB_Table ! Missing_Input_Columns
     reorder_columns self (columns : (Vector | Text | Integer | Regex | By_Type) = [self.columns.first.name]) (position:Position=..Before_Other_Columns) (case_sensitivity:Case_Sensitivity=..Default) (error_on_missing_columns:Boolean=False) (on_problems:Problem_Behavior=..Report_Warning) =
-        new_columns = self.columns_helper.reorder_columns columns position case_sensitivity error_on_missing_columns on_problems
-        self.updated_columns (new_columns.map _.as_internal)
+        Feature.Select_Columns.if_supported_else_throw self.connection.dialect "reorder_columns" <|
+            new_columns = self.columns_helper.reorder_columns columns position case_sensitivity error_on_missing_columns on_problems
+            self.updated_columns (new_columns.map _.as_internal)
 
     ## GROUP Standard.Base.Selections
        ICON select_column
@@ -517,8 +536,9 @@ type DB_Table
              table.reorder_columns Sort_Direction.Descending
     sort_columns : Sort_Direction -> Text_Ordering -> DB_Table
     sort_columns self order:Sort_Direction=..Ascending text_ordering:Text_Ordering=..Default =
-        new_columns = Table_Helpers.sort_columns internal_columns=self.internal_columns order text_ordering
-        self.updated_columns new_columns
+        Feature.Select_Columns.if_supported_else_throw self.connection.dialect "sort_columns" <|
+            new_columns = Table_Helpers.sort_columns internal_columns=self.internal_columns order text_ordering
+            self.updated_columns new_columns
 
     ## GROUP Standard.Base.Metadata
        ICON table_edit
@@ -587,14 +607,16 @@ type DB_Table
               table.rename_columns (Dictionary.from_vector [["name=(.*)".to_regex, "key:$1"]])
     @column_map Widget_Helpers.make_rename_name_vector_selector
     rename_columns : Table | Dictionary (Text | Integer | Regex) Text | Vector Text | Vector Vector -> Case_Sensitivity -> Boolean -> Problem_Behavior -> DB_Table ! Missing_Input_Columns | Ambiguous_Column_Rename | Too_Many_Column_Names_Provided | Invalid_Column_Names | Duplicate_Output_Column_Names
-    rename_columns self (column_map:(Table | Dictionary | Vector)=["Column"]) (case_sensitivity:Case_Sensitivity=..Default) (error_on_missing_columns:Boolean=True) (on_problems:Problem_Behavior=..Report_Warning) = case column_map of
-        _ : Table ->
-            resolved = Table_Helpers.read_name_mapping_from_table column_map
-            self.rename_columns resolved case_sensitivity error_on_missing_columns on_problems
-        _ ->
-            new_names = Table_Helpers.rename_columns self.column_naming_helper self.internal_columns column_map case_sensitivity error_on_missing_columns on_problems
-            Warning.with_suspended new_names names->
-                self.updated_columns (self.internal_columns.map c-> c.rename (names.at c.name))
+    rename_columns self (column_map:(Table | Dictionary | Vector)=["Column"]) (case_sensitivity:Case_Sensitivity=..Default) (error_on_missing_columns:Boolean=True) (on_problems:Problem_Behavior=..Report_Warning) =
+        Feature.Select_Columns.if_supported_else_throw self.connection.dialect "rename_columns" <|
+            case column_map of
+                _ : Table ->
+                    resolved = Table_Helpers.read_name_mapping_from_table column_map
+                    self.rename_columns resolved case_sensitivity error_on_missing_columns on_problems
+                _ ->
+                    new_names = Table_Helpers.rename_columns self.column_naming_helper self.internal_columns column_map case_sensitivity error_on_missing_columns on_problems
+                    Warning.with_suspended new_names names->
+                        self.updated_columns (self.internal_columns.map c-> c.rename (names.at c.name))
 
     ## ALIAS rename, header
        GROUP Standard.Base.Metadata
@@ -631,11 +653,13 @@ type DB_Table
        If instead of a name, a column is provided, it is returned as-is as long
        as it comes from the same context.
     resolve : Text | DB_Column -> DB_Column
-    resolve self column = case column of
-        _ : Text -> Panic.rethrow (self.at column)
-        _ ->
-            if Helpers.check_integrity self column then column else
-                Panic.throw (Integrity_Error.Error "DB_Column "+column.name)
+    resolve self column =
+        Feature.Select_Columns.if_supported_else_throw self.connection.dialect "resolve" <|
+            case column of
+                _ : Text -> Panic.rethrow (self.at column)
+                _ ->
+                    if Helpers.check_integrity self column then column else
+                        Panic.throw (Integrity_Error.Error "DB_Column "+column.name)
 
     ## ALIAS filter rows, where
        GROUP Standard.Base.Selections
@@ -689,27 +713,29 @@ type DB_Table
     @column (Widget_Helpers.make_column_name_selector add_expression=True)
     @filter Widget_Helpers.make_filter_condition_selector
     filter : (DB_Column | Text | Integer) -> (Filter_Condition | (Any -> Boolean)) -> Problem_Behavior -> DB_Table ! No_Such_Column | Index_Out_Of_Bounds | Invalid_Value_Type
-    filter self column (filter : Filter_Condition | (Any -> Boolean) = Filter_Condition.Equal True) on_problems:Problem_Behavior=..Report_Warning = case column of
-        _ : DB_Column ->
-            mask filter_column = case Helpers.check_integrity self filter_column of
-                False ->
-                    Error.throw (Integrity_Error.Error "DB_Column "+filter_column.name)
-                True ->
-                    new_filters = self.context.where_filters + [filter_column.expression]
-                    new_ctx = self.context.set_where_filters new_filters
-                    self.updated_context new_ctx
+    filter self column (filter : Filter_Condition | (Any -> Boolean) = Filter_Condition.Equal True) on_problems:Problem_Behavior=..Report_Warning = 
+        Feature.Filter.if_supported_else_throw self.connection.dialect "filter" <|
+            case column of
+                _ : DB_Column ->
+                    mask filter_column = case Helpers.check_integrity self filter_column of
+                        False ->
+                            Error.throw (Integrity_Error.Error "DB_Column "+filter_column.name)
+                        True ->
+                            new_filters = self.context.where_filters + [filter_column.expression]
+                            new_ctx = self.context.set_where_filters new_filters
+                            self.updated_context new_ctx
 
-            filter_condition = Filter_Condition.resolve_auto_scoped filter
-            case filter_condition of
-                _ : Filter_Condition ->
-                    resolved = (self:Table_Ref).resolve_condition filter_condition
-                    mask (make_filter_column column resolved on_problems)
-                _ : Function ->
-                    Error.throw (Unsupported_Database_Operation.Error "Filtering with a custom predicate")
-        _ : Expression -> self.filter (self.evaluate_expression column on_problems) filter on_problems
-        _ ->
-            table_at = self.at column
-            self.filter table_at filter on_problems
+                    filter_condition = Filter_Condition.resolve_auto_scoped filter
+                    case filter_condition of
+                        _ : Filter_Condition ->
+                            resolved = (self:Table_Ref).resolve_condition filter_condition
+                            mask (make_filter_column column resolved on_problems)
+                        _ : Function ->
+                            Error.throw (Unsupported_Database_Operation.Error "Filtering with a custom predicate")
+                _ : Expression -> self.filter (self.evaluate_expression column on_problems) filter on_problems
+                _ ->
+                    table_at = self.at column
+                    self.filter table_at filter on_problems
 
     ## PRIVATE
        ALIAS filter rows
@@ -747,9 +773,10 @@ type DB_Table
              people.filter_by_expression "[age] % 10 == 0"
     filter_by_expression : Text -> Problem_Behavior -> DB_Table ! No_Such_Column | Invalid_Value_Type | Expression_Error
     filter_by_expression self expression:Text on_problems:Problem_Behavior=..Report_Warning =
-        column = self.evaluate_expression (Expression.Value expression) on_problems
-        result = self.filter column Filter_Condition.Is_True
-        Warning.attach (Deprecated.Warning "Standard.Database.DB_Table.DB_Table" "filter_by_expression" "Deprecated: use `filter` with an `Expression` instead.") result
+        Feature.Filter.if_supported_else_throw self.connection.dialect "filter_by_expression" <|
+            column = self.evaluate_expression (Expression.Value expression) on_problems
+            result = self.filter column Filter_Condition.Is_True
+            Warning.attach (Deprecated.Warning "Standard.Database.DB_Table.DB_Table" "filter_by_expression" "Deprecated: use `filter` with an `Expression` instead.") result
 
     ## ALIAS first, head, keep, last, limit, sample, slice, tail, top
        GROUP Standard.Base.Selections
@@ -781,7 +808,8 @@ type DB_Table
     @range Index_Sub_Range.default_widget
     take : (Index_Sub_Range | Range | Integer) -> DB_Table
     take self range:(Index_Sub_Range | Range | Integer)=..First =
-        Take_Drop_Helpers.take_drop_helper Take_Drop.Take self range
+        Feature.Sample.if_supported_else_throw self.connection.dialect "take" <|
+            Take_Drop_Helpers.take_drop_helper Take_Drop.Take self range
 
     ## ALIAS remove, skip
        GROUP Standard.Base.Selections
@@ -813,12 +841,15 @@ type DB_Table
     @range Index_Sub_Range.default_widget
     drop : (Index_Sub_Range | Range | Integer) -> DB_Table
     drop self range:(Index_Sub_Range | Range | Integer)=..First =
-        Take_Drop_Helpers.take_drop_helper Take_Drop.Drop self range
+        Feature.Sample.if_supported_else_throw self.connection.dialect "drop" <|
+            Take_Drop_Helpers.take_drop_helper Take_Drop.Drop self range
 
     ## PRIVATE
        Filter out all rows.
     remove_all_rows : DB_Table
-    remove_all_rows self = self.filter (Expression.Value "0==1")
+    remove_all_rows self =
+        Feature.Filter.if_supported_else_throw self.connection.dialect "remove_all_rows" <|
+            self.filter (Expression.Value "0==1")
 
     ## ALIAS add index column, rank, record id
        GROUP Standard.Base.Values
@@ -858,37 +889,38 @@ type DB_Table
     @order_by (Widget_Helpers.make_order_by_selector display=..When_Modified)
     add_row_number : Text -> Integer -> Integer -> Vector (Text | Integer | Regex) | Text | Integer | Regex -> Vector (Text | Sort_Column) | Text -> Problem_Behavior -> DB_Table
     add_row_number self (name:Text="Row") (from:Integer=0) (step:Integer=1) (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (on_problems:Problem_Behavior=..Report_Warning) =
-        problem_builder = Problem_Builder.new error_on_missing_columns=True
-        grouping_columns = self.columns_helper.select_columns_helper group_by Case_Sensitivity.Default True problem_builder
-        grouping_columns.each column->
-            if column.value_type.is_floating_point then
-                problem_builder.report_other_warning (Floating_Point_Equality.Error column.name)
-        ordering = Table_Helpers.resolve_order_by self.columns order_by problem_builder
-        problem_builder.attach_problems_before on_problems <|
-            order_descriptors = case ordering.is_empty of
-                False -> ordering.map element->
-                    column = element.column
-                    associated_selector = element.associated_selector
-                    self.connection.dialect.prepare_order_descriptor column associated_selector.direction text_ordering=Nothing
-                True -> case self.default_ordering of
-                    Nothing -> Error.throw (Illegal_Argument.Error "No `order_by` is specified and the table has no existing ordering (e.g. from an `order_by` operation or a primary key). Some ordering is required for `add_row_number` in Database tables.")
-                    descriptors -> descriptors
-            grouping_expressions = (grouping_columns.map _.as_internal).map .expression
+        Feature.Add_Row_Number.if_supported_else_throw self.connection.dialect "add_row_number" <|
+            problem_builder = Problem_Builder.new error_on_missing_columns=True
+            grouping_columns = self.columns_helper.select_columns_helper group_by Case_Sensitivity.Default True problem_builder
+            grouping_columns.each column->
+                if column.value_type.is_floating_point then
+                    problem_builder.report_other_warning (Floating_Point_Equality.Error column.name)
+            ordering = Table_Helpers.resolve_order_by self.columns order_by problem_builder
+            problem_builder.attach_problems_before on_problems <|
+                order_descriptors = case ordering.is_empty of
+                    False -> ordering.map element->
+                        column = element.column
+                        associated_selector = element.associated_selector
+                        self.connection.dialect.prepare_order_descriptor column associated_selector.direction text_ordering=Nothing
+                    True -> case self.default_ordering of
+                        Nothing -> Error.throw (Illegal_Argument.Error "No `order_by` is specified and the table has no existing ordering (e.g. from an `order_by` operation or a primary key). Some ordering is required for `add_row_number` in Database tables.")
+                        descriptors -> descriptors
+                grouping_expressions = (grouping_columns.map _.as_internal).map .expression
 
-            new_expr = Row_Number_Helpers.make_row_number from step order_descriptors grouping_expressions
+                new_expr = Row_Number_Helpers.make_row_number from step order_descriptors grouping_expressions
 
-            type_mapping = self.connection.dialect.get_type_mapping
-            infer_from_database_callback expression =
-                SQL_Type_Reference.new self.connection self.context expression
-            new_type_ref = type_mapping.infer_return_type infer_from_database_callback "ROW_NUMBER" [] new_expr
+                type_mapping = self.connection.dialect.get_type_mapping
+                infer_from_database_callback expression =
+                    SQL_Type_Reference.new self.connection self.context expression
+                new_type_ref = type_mapping.infer_return_type infer_from_database_callback "ROW_NUMBER" [] new_expr
 
-            new_column = Internal_Column.Value name new_type_ref new_expr
+                new_column = Internal_Column.Value name new_type_ref new_expr
 
-            rebuild_table columns =
-                self.updated_columns (columns.map .as_internal)
-            renamed_table = Add_Row_Number.rename_columns_if_needed self name on_problems rebuild_table
-            updated_table = renamed_table.updated_columns (renamed_table.internal_columns + [new_column])
-            updated_table.as_subquery
+                rebuild_table columns =
+                    self.updated_columns (columns.map .as_internal)
+                renamed_table = Add_Row_Number.rename_columns_if_needed self name on_problems rebuild_table
+                updated_table = renamed_table.updated_columns (renamed_table.internal_columns + [new_column])
+                updated_table.as_subquery
 
 
     ## ALIAS order_by
@@ -926,8 +958,9 @@ type DB_Table
              t2.read
     limit : Integer -> DB_Table
     limit self max_rows:Integer=1000 =
-        new_ctx = self.context.set_limit max_rows
-        self.updated_context new_ctx
+        Feature.Sample.if_supported_else_throw self.connection.dialect "limit" <|
+            new_ctx = self.context.set_limit max_rows
+            self.updated_context new_ctx
 
     ## ALIAS add column, expression, formula, new column, update column
        GROUP Standard.Base.Values
@@ -994,9 +1027,9 @@ type DB_Table
             _ -> Error.throw (Illegal_Argument.Error "Unsupported type for `DB_Table.set`.")
 
         ## If `as` was specified, use that. Otherwise, if `value` is a
-           `DB_Column`, use its name. In these two cases, do not make it unique.
-           Otherwise, make it unique. If set_mode is Update, however, do not
-           make it unique.
+          `DB_Column`, use its name. In these two cases, do not make it unique.
+          Otherwise, make it unique. If set_mode is Update, however, do not
+          make it unique.
         new_column_name = if as != "" then as else
             if value.is_a DB_Column || set_mode==Set_Mode.Update || set_mode==Set_Mode.Add_Or_Update then resolved.name else unique.make_unique resolved.name
         renamed = resolved.rename new_column_name
@@ -1039,16 +1072,17 @@ type DB_Table
            - If more than 10 rows encounter computation issues,
              an `Additional_Warnings`.
     evaluate_expression : Text | Expression -> Problem_Behavior -> DB_Column ! No_Such_Column | Invalid_Value_Type | Expression_Error
-    evaluate_expression self expression:(Text | Expression) on_problems:Problem_Behavior=..Report_Warning = if expression.is_a Text then self.evaluate_expression (Expression.Value expression) on_problems else
-        get_column name = self.at name
-        make_constant_column value = case value of
-            _ : DB_Column -> value
-            _ -> self.make_constant_column value
-        new_column = Expression.evaluate expression get_column make_constant_column "Standard.Database.DB_Column" "DB_Column" DB_Column.var_args_functions
-        problems = Warning.get_all new_column . map .value
-        result = new_column.rename (self.connection.base_connection.column_naming_helper.sanitize_name expression.expression)
-        on_problems.attach_problems_before problems <|
-            Warning.set result []
+    evaluate_expression self expression:(Text | Expression) on_problems:Problem_Behavior=..Report_Warning =
+        if expression.is_a Text then self.evaluate_expression (Expression.Value expression) on_problems else
+            get_column name = self.at name
+            make_constant_column value = case value of
+                _ : DB_Column -> value
+                _ -> self.make_constant_column value
+            new_column = Expression.evaluate expression get_column make_constant_column "Standard.Database.DB_Column" "DB_Column" DB_Column.var_args_functions
+            problems = Warning.get_all new_column . map .value
+            result = new_column.rename (self.connection.base_connection.column_naming_helper.sanitize_name expression.expression)
+            on_problems.attach_problems_before problems <|
+                Warning.set result []
 
     ## PRIVATE
        A helper that creates a two-column table from a Dictionary.
@@ -1066,12 +1100,13 @@ type DB_Table
        - value_column_name: The name to use for the second column.
     make_table_from_dictionary : Dictionary Any Any -> Text -> Text -> Table
     make_table_from_dictionary self dict key_column_name value_column_name =
-        total_size = dict.size * 2
+        Feature.Make_Table_From.if_supported_else_throw self.connection.dialect "make_table_from_dictionary" <|
+            total_size = dict.size * 2
 
-        if dict.is_empty then Error.throw (Illegal_Argument.Error "Dictionary cannot be empty") else
-            if total_size > MAX_LITERAL_ELEMENT_COUNT then Error.throw (Illegal_Argument.Error "Dictionary is too large ("+dict.size.to_text+" entries): materialize a table into the database instead") else
-                keys_and_values = dict.to_vector
-                self.make_table_from_vectors [keys_and_values.map .first, keys_and_values.map .second] [key_column_name, value_column_name]
+            if dict.is_empty then Error.throw (Illegal_Argument.Error "Dictionary cannot be empty") else
+                if total_size > MAX_LITERAL_ELEMENT_COUNT then Error.throw (Illegal_Argument.Error "Dictionary is too large ("+dict.size.to_text+" entries): materialize a table into the database instead") else
+                    keys_and_values = dict.to_vector
+                    self.make_table_from_vectors [keys_and_values.map .first, keys_and_values.map .second] [key_column_name, value_column_name]
 
     ## PRIVATE
        A helper that creates a literal table from `Vector`s.
@@ -1085,29 +1120,31 @@ type DB_Table
        - column_names: The names of the columns of the new table.
     make_table_from_vectors : Vector (Vector Any) -> Vector Text -> DB_Table
     make_table_from_vectors self column_vectors column_names =
-        literal_table_name = self.connection.base_connection.table_naming_helper.generate_random_table_name "enso-literal-"
-        make_literal_table self.connection column_vectors column_names literal_table_name
+        Feature.Make_Table_From.if_supported_else_throw self.connection.dialect "make_table_from_vectors" <|
+            literal_table_name = self.connection.base_connection.table_naming_helper.generate_random_table_name "enso-literal-"
+            make_literal_table self.connection column_vectors column_names literal_table_name
 
     ## PRIVATE
 
        Create a constant column from a value.
     make_constant_column : Any -> DB_Column ! Illegal_Argument
     make_constant_column self value =
-        if Table_Helpers.is_column value then Error.throw (Illegal_Argument.Error "A constant value may only be created from a scalar, not a DB_Column") else
-            type_mapping = self.connection.dialect.get_type_mapping
-            argument_value_type = Value_Type_Helpers.find_argument_type value
-            sql_type = case argument_value_type of
-                Nothing -> SQL_Type.null
-                _ -> type_mapping.value_type_to_sql argument_value_type Problem_Behavior.Ignore
-            expr = SQL_Expression.Constant value
-            new_type_ref = SQL_Type_Reference.from_constant sql_type
-            base_column = Internal_Column.Value value.pretty new_type_ref expr
-            needs_cast = argument_value_type.is_nothing.not && self.connection.dialect.needs_literal_table_cast argument_value_type
-            result_internal_column = if needs_cast.not then base_column else
-                infer_type_from_database new_expression =
-                    SQL_Type_Reference.new self.connection self.context new_expression
-                self.connection.dialect.make_cast base_column sql_type infer_type_from_database
-            self.make_column result_internal_column
+        Feature.Column_Operations.if_supported_else_throw self.connection.dialect "make_constant_column" <|
+            if Table_Helpers.is_column value then Error.throw (Illegal_Argument.Error "A constant value may only be created from a scalar, not a DB_Column") else
+                type_mapping = self.connection.dialect.get_type_mapping
+                argument_value_type = Value_Type_Helpers.find_argument_type value
+                sql_type = case argument_value_type of
+                    Nothing -> SQL_Type.null
+                    _ -> type_mapping.value_type_to_sql argument_value_type Problem_Behavior.Ignore
+                expr = SQL_Expression.Constant value
+                new_type_ref = SQL_Type_Reference.from_constant sql_type
+                base_column = Internal_Column.Value value.pretty new_type_ref expr
+                needs_cast = argument_value_type.is_nothing.not && self.connection.dialect.needs_literal_table_cast argument_value_type
+                result_internal_column = if needs_cast.not then base_column else
+                    infer_type_from_database new_expression =
+                        SQL_Type_Reference.new self.connection self.context new_expression
+                    self.connection.dialect.make_cast base_column sql_type infer_type_from_database
+                self.make_column result_internal_column
 
     ## PRIVATE
        Create a unique temporary column name.
@@ -1134,9 +1171,10 @@ type DB_Table
     ## ICON convert
        Returns the vector of columns contained in this table.
     columns : Vector DB_Column
-    columns self = Vector.from_polyglot_array <|
-        Array_Proxy.new self.internal_columns.length i->
-            self.make_column (self.internal_columns.at i)
+    columns self =
+        Vector.from_polyglot_array <|
+            Array_Proxy.new self.internal_columns.length i->
+                self.make_column (self.internal_columns.at i)
 
     ## GROUP Standard.Base.Metadata
        ICON metadata
@@ -1246,16 +1284,17 @@ type DB_Table
     @columns Widget_Helpers.make_order_by_selector
     sort : Vector (Text | Sort_Column) | Text -> Text_Ordering -> Boolean -> Problem_Behavior -> DB_Table  ! Incomparable_Values | No_Input_Columns_Selected | Missing_Input_Columns
     sort self (columns = ([(Sort_Column.Name (self.columns.at 0 . name))])) text_ordering:Text_Ordering=..Default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning =
-        problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns types_to_always_throw=[No_Input_Columns_Selected]
-        columns_for_ordering = Table_Helpers.prepare_order_by self.columns columns problem_builder
-        problem_builder.attach_problems_before on_problems <|
-            new_order_descriptors = columns_for_ordering.map selected_column->
-                column = selected_column.column
-                associated_selector = selected_column.associated_selector
-                effective_text_ordering = if column.value_type.is_text then text_ordering else Nothing
-                self.connection.dialect.prepare_order_descriptor column associated_selector.direction effective_text_ordering
-            new_ctx = self.context.add_orders new_order_descriptors
-            self.updated_context new_ctx
+        Feature.Sort.if_supported_else_throw self.connection.dialect "sort" <|
+            problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns types_to_always_throw=[No_Input_Columns_Selected]
+            columns_for_ordering = Table_Helpers.prepare_order_by self.columns columns problem_builder
+            problem_builder.attach_problems_before on_problems <|
+                new_order_descriptors = columns_for_ordering.map selected_column->
+                    column = selected_column.column
+                    associated_selector = selected_column.associated_selector
+                    effective_text_ordering = if column.value_type.is_text then text_ordering else Nothing
+                    self.connection.dialect.prepare_order_descriptor column associated_selector.direction effective_text_ordering
+                new_ctx = self.context.add_orders new_order_descriptors
+                self.updated_context new_ctx
 
     ## PRIVATE
        GROUP Standard.Base.Selections
@@ -1336,12 +1375,13 @@ type DB_Table
     @columns Widget_Helpers.make_column_name_multi_selector
     distinct : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Case_Sensitivity -> Problem_Behavior -> DB_Table ! No_Output_Columns | Missing_Input_Columns | No_Input_Columns_Selected | Floating_Point_Equality
     distinct self columns=self.column_names case_sensitivity:Case_Sensitivity=..Default on_problems:Problem_Behavior=..Report_Warning =
-        key_columns = self.columns_helper.select_columns columns Case_Sensitivity.Default reorder=True error_on_missing_columns=True on_problems=on_problems . catch No_Output_Columns _->
-            Error.throw No_Input_Columns_Selected
-        key_columns.if_not_error <|
-            problem_builder = Problem_Builder.new
-            new_table = self.connection.dialect.prepare_distinct self key_columns case_sensitivity problem_builder
-            problem_builder.attach_problems_before on_problems new_table
+        Feature.Distinct.if_supported_else_throw self.connection.dialect "distinct" <|
+            key_columns = self.columns_helper.select_columns columns Case_Sensitivity.Default reorder=True error_on_missing_columns=True on_problems=on_problems . catch No_Output_Columns _->
+                Error.throw No_Input_Columns_Selected
+            key_columns.if_not_error <|
+                problem_builder = Problem_Builder.new
+                new_table = self.connection.dialect.prepare_distinct self key_columns case_sensitivity problem_builder
+                problem_builder.attach_problems_before on_problems new_table
 
     ## GROUP Standard.Base.Selections
        ICON preparation
@@ -1454,7 +1494,8 @@ type DB_Table
     @on Widget_Helpers.make_join_condition_selector
     join : DB_Table -> Join_Kind -> Join_Condition | Text | Vector (Join_Condition | Text) -> Text -> Problem_Behavior -> DB_Table
     join self right (join_kind : Join_Kind = ..Left_Outer) (on : Join_Condition | Text | Vector (Join_Condition | Text) = (default_join_condition self join_kind)) (right_prefix:Text="Right ") (on_problems:Problem_Behavior=..Report_Warning) =
-        self.join_or_cross_join right join_kind on right_prefix on_problems
+        Feature.Join.if_supported_else_throw self.connection.dialect "join" <|
+            self.join_or_cross_join right join_kind on right_prefix on_problems
 
     ## PRIVATE
        Implementation of both `join` and `cross_join`.
@@ -1559,12 +1600,13 @@ type DB_Table
          The ordering of rows in the resulting table is not specified.
     cross_join : DB_Table -> Integer | Nothing -> Text -> Problem_Behavior -> DB_Table
     cross_join self right:DB_Table right_row_limit=100 right_prefix:Text="Right " on_problems:Problem_Behavior=..Report_Warning =
-        limit_problems = case right_row_limit.is_nothing.not && (right.row_count > right_row_limit) of
-            True ->
-                [Cross_Join_Row_Limit_Exceeded.Error right_row_limit right.row_count]
-            False -> []
-        on_problems.attach_problems_before limit_problems <|
-            self.join_or_cross_join right join_kind=Join_Kind_Cross on=[] right_prefix on_problems
+        Feature.Cross_Join.if_supported_else_throw self.connection.dialect "cross_join" <|
+            limit_problems = case right_row_limit.is_nothing.not && (right.row_count > right_row_limit) of
+                True ->
+                    [Cross_Join_Row_Limit_Exceeded.Error right_row_limit right.row_count]
+                False -> []
+            on_problems.attach_problems_before limit_problems <|
+                self.join_or_cross_join right join_kind=Join_Kind_Cross on=[] right_prefix on_problems
 
     ## ALIAS lookup
        GROUP Standard.Base.Calculations
@@ -1624,8 +1666,9 @@ type DB_Table
     @key_columns Widget_Helpers.make_column_name_multi_selector
     merge : DB_Table -> (Vector (Integer | Text | Regex) | Text | Integer | Regex) -> Boolean -> Boolean -> Problem_Behavior -> DB_Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
     merge self lookup_table:DB_Table key_columns:(Vector (Integer | Text | Regex) | Text | Integer | Regex) add_new_columns:Boolean=False allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=..Report_Warning =
-        Helpers.ensure_same_connection "table" [self, lookup_table] <|
-            Lookup_Query_Helper.build_lookup_query self lookup_table key_columns add_new_columns allow_unmatched_rows on_problems
+        Feature.Merge.if_supported_else_throw self.connection.dialect "merge" <|
+            Helpers.ensure_same_connection "table" [self, lookup_table] <|
+                Lookup_Query_Helper.build_lookup_query self lookup_table key_columns add_new_columns allow_unmatched_rows on_problems
 
     ## ALIAS find replace
        GROUP Standard.Base.Text
@@ -1708,7 +1751,8 @@ type DB_Table
     @to_column Widget.Text_Input
     replace : (DB_Table | Dictionary) -> Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type -> (Text | Integer | Nothing) -> (Text | Integer | Nothing) -> Boolean -> Problem_Behavior -> DB_Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
     replace self lookup_table:(DB_Table | Dictionary) columns:(Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type) from_column:(Text | Integer | Nothing)=Nothing to_column:(Text | Integer | Nothing)=Nothing allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=..Report_Warning =
-        Replace_Helpers.replace self lookup_table columns from_column to_column allow_unmatched_rows on_problems
+        Feature.Replace.if_supported_else_throw self.connection.dialect "replace" <|
+            Replace_Helpers.replace self lookup_table columns from_column to_column allow_unmatched_rows on_problems
 
     ## ALIAS join by row position
        GROUP Standard.Base.Calculations
@@ -1842,86 +1886,87 @@ type DB_Table
     @columns_to_keep Columns_To_Keep.default_widget
     union : (DB_Table | Vector DB_Table) -> Columns_To_Keep -> Match_Columns -> Problem_Behavior -> DB_Table
     union self tables:(DB_Table | Vector) (columns_to_keep : Columns_To_Keep = ..In_Any_Warn_On_Missing) (match_columns : Match_Columns = ..By_Name) (on_problems : Problem_Behavior = ..Report_Warning) =
-        all_tables = case tables of
-            v : Vector -> [self] + (v.map t-> DB_Table.from t)
-            single_table -> [self, single_table]
-        Helpers.ensure_same_connection "table" all_tables <|
-            ## We keep separate problem builders, because if we are reporting `No_Output_Columns`,
-               we only want to add a cause coming from unification; matching reports problems that would not fit this error.
-            problem_builder_for_matching = Problem_Builder.new
-            problem_builder_for_unification = Problem_Builder.new
-            matched_column_sets = Match_Columns_Helpers.match_columns all_tables match_columns columns_to_keep problem_builder_for_matching
-            dialect = self.connection.dialect
-            type_mapping = dialect.get_type_mapping
-            merged_columns = matched_column_sets.map column_set->
-                sql_type_from_value_type value_type =
-                    type_mapping.value_type_to_sql value_type Problem_Behavior.Report_Error . catch Inexact_Type_Coercion error->
-                        Panic.throw <|
-                            Illegal_State.Error "Unexpected inexact type coercion in Union. The union logic should only operate in types supported by the given backend. This is a bug in the Database library. The coercion was: "+error.to_display_text cause=error
-                case Table_Helpers.unify_result_type_for_union column_set all_tables problem_builder_for_unification of
-                    Union_Result_Type.Common_Type common_type ->
-                        [column_set, sql_type_from_value_type common_type, common_type]
-                    Union_Result_Type.Fallback_To_Text ->
-                        [column_set, sql_type_from_value_type Value_Type.Char, Value_Type.Char]
-                    Union_Result_Type.No_Types_To_Unify ->
-                        ## If the column is all nulls, we still need to give it some type.
-                           For DB `Mixed` is not available, so a portable type to use is `Char`.
-                        [column_set, SQL_Type.null, Value_Type.Char]
+        Feature.Union.if_supported_else_throw self.connection.dialect "union" <|
+            all_tables = case tables of
+                v : Vector -> [self] + (v.map t-> DB_Table.from t)
+                single_table -> [self, single_table]
+            Helpers.ensure_same_connection "table" all_tables <|
+                ## We keep separate problem builders, because if we are reporting `No_Output_Columns`,
+                  we only want to add a cause coming from unification; matching reports problems that would not fit this error.
+                problem_builder_for_matching = Problem_Builder.new
+                problem_builder_for_unification = Problem_Builder.new
+                matched_column_sets = Match_Columns_Helpers.match_columns all_tables match_columns columns_to_keep problem_builder_for_matching
+                dialect = self.connection.dialect
+                type_mapping = dialect.get_type_mapping
+                merged_columns = matched_column_sets.map column_set->
+                    sql_type_from_value_type value_type =
+                        type_mapping.value_type_to_sql value_type Problem_Behavior.Report_Error . catch Inexact_Type_Coercion error->
+                            Panic.throw <|
+                                Illegal_State.Error "Unexpected inexact type coercion in Union. The union logic should only operate in types supported by the given backend. This is a bug in the Database library. The coercion was: "+error.to_display_text cause=error
+                    case Table_Helpers.unify_result_type_for_union column_set all_tables problem_builder_for_unification of
+                        Union_Result_Type.Common_Type common_type ->
+                            [column_set, sql_type_from_value_type common_type, common_type]
+                        Union_Result_Type.Fallback_To_Text ->
+                            [column_set, sql_type_from_value_type Value_Type.Char, Value_Type.Char]
+                        Union_Result_Type.No_Types_To_Unify ->
+                            ## If the column is all nulls, we still need to give it some type.
+                              For DB `Mixed` is not available, so a portable type to use is `Char`.
+                            [column_set, SQL_Type.null, Value_Type.Char]
 
-            problem_builder_for_matching.attach_problems_before on_problems <| problem_builder_for_unification.attach_problems_before on_problems <|
-                if merged_columns.is_empty then problem_builder_for_unification.raise_no_output_columns_with_cause else
-                    queries = all_tables.map_with_index i-> t->
-                        columns_to_select = merged_columns.map description->
-                            column_set  = description.at 0
-                            sql_type    = description.at 1
+                problem_builder_for_matching.attach_problems_before on_problems <| problem_builder_for_unification.attach_problems_before on_problems <|
+                    if merged_columns.is_empty then problem_builder_for_unification.raise_no_output_columns_with_cause else
+                        queries = all_tables.map_with_index i-> t->
+                            columns_to_select = merged_columns.map description->
+                                column_set  = description.at 0
+                                sql_type    = description.at 1
+                                result_type = description.at 2
+                                column_name = column_set.name
+                                ## We assume that the type for this expression will never be queried - it is
+                                  just used internally to build the Union operation and never exposed externally.
+                                infer_return_type _ = SQL_Type_Reference.null
+                                case column_set.column_indices.at i of
+                                    corresponding_column_index : Integer ->
+                                        column = t.at corresponding_column_index
+                                        internal_named_column = column.as_internal.rename column_name
+                                        ## We cast if the result type is different.
+                                          This is a bit on the safe side. In some cases the cast is not needed
+                                          (for example, most databases will allow union of int2 and int4 without casts; or SQLite does not need casts at all).
+                                          However, we do this for simplicity as determining the rules when the cast is needed or not is adding a lot of complication.
+                                          This is a possible future improvement to make queries lighter, but the benefit is unlikely to be worth it.
+                                        needs_cast = column.value_type != result_type
+                                        if needs_cast.not then internal_named_column else
+                                            dialect.make_cast internal_named_column sql_type infer_return_type
+                                    Nothing ->
+                                        typ = SQL_Type_Reference.from_constant SQL_Type.null
+                                        expr = SQL_Expression.Literal "NULL"
+                                        null_column = Internal_Column.Value column_name typ expr
+                                        if sql_type == SQL_Type.null then null_column else
+                                            dialect.make_cast null_column sql_type infer_return_type
+                            pairs = columns_to_select.map c->
+                                [c.name, c.expression]
+                            Query.Select pairs t.context
+
+                        table_name_deduplicator = self.connection.base_connection.table_naming_helper.create_unique_name_strategy
+                        table_name_deduplicator.mark_used (all_tables.map .name)
+                        union_alias = table_name_deduplicator.make_unique <|
+                            all_tables.map .name . join "_"
+                        new_from = From_Spec.Union queries union_alias
+                        new_ctx = Context.for_subquery new_from
+                        ## TODO [RW] The result type is currently fetched
+                          independently for each column, instead we should fetch it
+                          for all columns at once.
+                          See #6118.
+                        infer_return_type expression =
+                            SQL_Type_Reference.new self.connection new_ctx expression
+                        new_columns = merged_columns.map description->
+                            column_set = description.first
                             result_type = description.at 2
-                            column_name = column_set.name
-                            ## We assume that the type for this expression will never be queried - it is
-                               just used internally to build the Union operation and never exposed externally.
-                            infer_return_type _ = SQL_Type_Reference.null
-                            case column_set.column_indices.at i of
-                                corresponding_column_index : Integer ->
-                                    column = t.at corresponding_column_index
-                                    internal_named_column = column.as_internal.rename column_name
-                                    ## We cast if the result type is different.
-                                       This is a bit on the safe side. In some cases the cast is not needed
-                                       (for example, most databases will allow union of int2 and int4 without casts; or SQLite does not need casts at all).
-                                       However, we do this for simplicity as determining the rules when the cast is needed or not is adding a lot of complication.
-                                       This is a possible future improvement to make queries lighter, but the benefit is unlikely to be worth it.
-                                    needs_cast = column.value_type != result_type
-                                    if needs_cast.not then internal_named_column else
-                                        dialect.make_cast internal_named_column sql_type infer_return_type
-                                Nothing ->
-                                    typ = SQL_Type_Reference.from_constant SQL_Type.null
-                                    expr = SQL_Expression.Literal "NULL"
-                                    null_column = Internal_Column.Value column_name typ expr
-                                    if sql_type == SQL_Type.null then null_column else
-                                        dialect.make_cast null_column sql_type infer_return_type
-                        pairs = columns_to_select.map c->
-                            [c.name, c.expression]
-                        Query.Select pairs t.context
+                            name = column_set.name
+                            expression = SQL_Expression.Column union_alias name
+                            input_column = Internal_Column.Value name (infer_return_type expression) expression
+                            dialect.adapt_unified_column input_column result_type infer_return_type
 
-                    table_name_deduplicator = self.connection.base_connection.table_naming_helper.create_unique_name_strategy
-                    table_name_deduplicator.mark_used (all_tables.map .name)
-                    union_alias = table_name_deduplicator.make_unique <|
-                        all_tables.map .name . join "_"
-                    new_from = From_Spec.Union queries union_alias
-                    new_ctx = Context.for_subquery new_from
-                    ## TODO [RW] The result type is currently fetched
-                       independently for each column, instead we should fetch it
-                       for all columns at once.
-                       See #6118.
-                    infer_return_type expression =
-                        SQL_Type_Reference.new self.connection new_ctx expression
-                    new_columns = merged_columns.map description->
-                        column_set = description.first
-                        result_type = description.at 2
-                        name = column_set.name
-                        expression = SQL_Expression.Column union_alias name
-                        input_column = Internal_Column.Value name (infer_return_type expression) expression
-                        dialect.adapt_unified_column input_column result_type infer_return_type
-
-                    DB_Table.Value union_alias self.connection new_columns new_ctx
+                        DB_Table.Value union_alias self.connection new_columns new_ctx
 
     ## ALIAS group by, summarize, count, count distinct, sum, average, mean, median, percentile, mode, standard deviation, variance, minimum, maximum, first, last, shortest, longest
        GROUP Standard.Base.Calculations
@@ -1995,7 +2040,8 @@ type DB_Table
     @columns Widget_Helpers.make_aggregate_column_vector_selector
     aggregate : Vector (Integer | Text | Regex | Aggregate_Column) | Text | Integer | Regex -> Vector Aggregate_Column -> Boolean -> Problem_Behavior -> DB_Table ! No_Output_Columns | Invalid_Aggregate_Column | Invalid_Column_Names | Duplicate_Output_Column_Names | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
     aggregate self (group_by : Vector | Text | Integer | Regex = []) (columns : Vector = []) (error_on_missing_columns : Boolean = False) (on_problems : Problem_Behavior = ..Report_Warning) =
-        Aggregate_Helper.aggregate self group_by columns error_on_missing_columns on_problems
+        Feature.Aggregate.if_supported_else_throw self.connection.dialect "aggregate" <|
+            Aggregate_Helper.aggregate self group_by columns error_on_missing_columns on_problems
 
     ## ALIAS pivot, unpivot
        GROUP Standard.Base.Calculations
@@ -2921,8 +2967,9 @@ type DB_Table
     @remove make_data_cleanse_vector_selector
     text_cleanse : Vector (Integer | Text | Regex | By_Type) -> Vector Named_Pattern -> DB_Table
     text_cleanse self from:(Vector (Integer | Text | Regex | By_Type)) remove =
-        transformer col = col.text_cleanse remove
-        Table_Helpers.replace_columns_with_transformed_columns self from transformer
+        Feature.Text_Cleanse.if_supported_else_throw self.connection.dialect "text_cleanse" <|
+            transformer col = col.text_cleanse remove
+            Table_Helpers.replace_columns_with_transformed_columns self from transformer
 
     ## ALIAS cumulative, count, sum, total, minimum, maximum, sum, mean, product, variance, standard deviation
        GROUP Standard.Base.Values

@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Missing_Argument
+import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Metadata.Widget.Text_Input
 
 import Standard.Database.Connection.Client_Certificate.Client_Certificate
@@ -36,7 +37,7 @@ type Redshift_Details
        Attempt to resolve the constructor.
     resolve : Function -> Redshift_Details | Nothing
     resolve constructor =
-        Panic.catch Any (constructor:Redshift_Details) _->Nothing
+        Panic.catch Type_Error (constructor:Redshift_Details) _->Nothing
 
     ## PRIVATE
        Build the Connection resource.

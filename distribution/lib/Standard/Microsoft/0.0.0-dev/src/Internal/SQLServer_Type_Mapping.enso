@@ -145,6 +145,13 @@ type SQLServer_Type_Mapping
     should_warn_on_materialize (db_type : Value_Type) (in_memory_type : Value_Type) -> Boolean =
         SQL_Type_Mapping.default_should_warn_on_materialize db_type in_memory_type
 
+    ## PRIVATE
+    is_integer_type (value_type : Value_Type) -> Boolean = value_type.is_integer
+
+    ## PRIVATE
+    is_same_type (value_type1 : Value_Type) (value_type2 : Value_Type) -> Boolean =
+        value_type1.is_same_type value_type2
+
 ## PRIVATE
 on_unknown_type sql_type =
     Value_Type.Unsupported_Data_Type sql_type.name sql_type

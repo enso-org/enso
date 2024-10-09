@@ -43,9 +43,13 @@ public final class VisualizationResult {
     }
   }
 
-  public static boolean isInterruptedException(Throwable ex) {
-    var iop = InteropLibrary.getUncached();
-    return isInterruptedException(ex, iop);
+  public static boolean isInterruptedException(Object object) {
+    if (object instanceof Throwable ex) {
+      var iop = InteropLibrary.getUncached();
+      return isInterruptedException(ex, iop);
+    } else {
+      return false;
+    }
   }
 
   private static boolean isInterruptedException(Object ex, InteropLibrary iop) {

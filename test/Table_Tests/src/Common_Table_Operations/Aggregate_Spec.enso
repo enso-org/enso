@@ -5,6 +5,7 @@ from Standard.Table.Aggregate_Column.Aggregate_Column import all
 import Standard.Table.Expression.Expression_Error
 from Standard.Table.Errors import all
 
+import Standard.Database.Feature.Feature
 from Standard.Database.Errors import Unsupported_Database_Operation, Aggregagtion_Requires_Order
 
 from Standard.Test import all
@@ -35,8 +36,17 @@ type Data
 type Lazy_Ref
     Value ~get
 
-## Runs the common aggregate tests.
 add_specs suite_builder setup =
+    if setup.is_feature_supported Feature.Aggregate then (add_aggregate_specs suite_builder setup) else
+        suite_builder.group setup.prefix+"Table.select_columns" group_builder->
+            group_builder.specify "aggregate should report unsupported" <|
+                table_builder = setup.light_table_builder
+                t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", [100, 3, Nothing, 4, 12]], ["Y", [100, 4, 2, Nothing, 11]]]
+                grouped = t.aggregate columns=[Count]
+                grouped.should_fail_with (Unsupported_Database_Operation.Error "aggregate")
+
+## Runs the common aggregate tests.
+add_aggregate_specs suite_builder setup =
     prefix = setup.prefix
     table_fn = setup.table_fn
     empty_table_fn = setup.empty_table_fn
