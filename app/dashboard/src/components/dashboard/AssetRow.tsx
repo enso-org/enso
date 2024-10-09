@@ -292,7 +292,7 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
       payload != null && payload.every((innerItem) => innerItem.key !== directoryKey)
     const canPaste = (() => {
       if (!isPayloadMatch) {
-        return true
+        return false
       } else {
         if (nodeMap.current !== nodeParentKeysRef.current?.nodeMap.deref()) {
           const parentKeys = new Map(
@@ -303,12 +303,21 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
           )
           nodeParentKeysRef.current = { nodeMap: new WeakRef(nodeMap.current), parentKeys }
         }
-        return !payload.some((payloadItem) => {
+        return payload.every((payloadItem) => {
           const parentKey = nodeParentKeysRef.current?.parentKeys.get(payloadItem.key)
           const parent = parentKey == null ? null : nodeMap.current.get(parentKey)
-          return !parent ? true : (
-              permissions.isTeamPath(parent.path) && permissions.isUserPath(item.path)
+          if (!parent) {
+            return false
+          } else if (permissions.isTeamPath(parent.path)) {
+            return true
+          } else {
+            // Assume user path; check permissions
+            const permission = permissions.tryFindSelfPermission(user, item.item.permissions)
+            return (
+              permission != null &&
+              permissions.canPermissionModifyDirectoryContents(permission.permission)
             )
+          }
         })
       }
     })()
@@ -753,12 +762,41 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
                       const ids = payload
                         .filter((payloadItem) => payloadItem.asset.parentId !== directoryId)
                         .map((dragItem) => dragItem.key)
-                      dispatchAssetEvent({
-                        type: AssetEventType.move,
-                        newParentKey: directoryKey,
-                        newParentId: directoryId,
-                        ids: new Set(ids),
+                      const nodes = ids.flatMap((id) => {
+                        const otherItem = nodeMap.current.get(id)
+                        return otherItem == null ? [] : [otherItem]
                       })
+                      const newParent = nodeMap.current.get(directoryKey)
+                      const isMovingToUserSpace =
+                        newParent?.path != null && permissions.isUserPath(newParent.path)
+                      const teamToUserItems =
+                        isMovingToUserSpace ?
+                          nodes
+                            .filter((node) => permissions.isTeamPath(node.path))
+                            .map((otherItem) => otherItem.item)
+                        : []
+                      const nonTeamToUserIds =
+                        isMovingToUserSpace ?
+                          nodes
+                            .filter((node) => !permissions.isTeamPath(node.path))
+                            .map((otherItem) => otherItem.item.id)
+                        : ids
+                      if (teamToUserItems.length !== 0) {
+                        dispatchAssetListEvent({
+                          type: AssetListEventType.copy,
+                          newParentKey: directoryKey,
+                          newParentId: directoryId,
+                          items: teamToUserItems,
+                        })
+                      }
+                      if (nonTeamToUserIds.length !== 0) {
+                        dispatchAssetEvent({
+                          type: AssetEventType.move,
+                          newParentKey: directoryKey,
+                          newParentId: directoryId,
+                          ids: new Set(nonTeamToUserIds),
+                        })
+                      }
                     } else if (event.dataTransfer.types.includes('Files')) {
                       event.preventDefault()
                       event.stopPropagation()
