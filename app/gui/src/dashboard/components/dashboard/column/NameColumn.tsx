@@ -15,7 +15,7 @@ import * as backendModule from '#/services/Backend'
 // =================
 
 /** Props for a {@link AssetNameColumn}. */
-export interface AssetNameColumnProps extends column.AssetColumnProps {}
+export type AssetNameColumnProps = column.AssetColumnProps
 
 /** The icon and name of an {@link backendModule.Asset}. */
 export default function AssetNameColumn(props: AssetNameColumnProps) {

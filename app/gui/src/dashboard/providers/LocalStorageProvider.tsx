@@ -20,7 +20,7 @@ export interface LocalStorageContextType {
 const LocalStorageContext = React.createContext<LocalStorageContextType>(null)
 
 /** Props for a {@link LocalStorageProvider}. */
-export interface LocalStorageProviderProps extends Readonly<React.PropsWithChildren> {}
+export type LocalStorageProviderProps = Readonly<React.PropsWithChildren>
 
 // ============================
 // === LocalStorageProvider ===

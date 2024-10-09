@@ -130,7 +130,7 @@ interface AssetListDeleteEvent extends AssetListBaseEvent<AssetListEventType.del
 }
 
 /** A signal to permanently delete all files in Trash. */
-interface AssetListEmptyTrashEvent extends AssetListBaseEvent<AssetListEventType.emptyTrash> {}
+type AssetListEmptyTrashEvent = AssetListBaseEvent<AssetListEventType.emptyTrash>
 
 /** A signal for a file to remove itself from the asset list, without being deleted. */
 interface AssetListRemoveSelfEvent extends AssetListBaseEvent<AssetListEventType.removeSelf> {

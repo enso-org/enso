@@ -58,8 +58,10 @@ interface CheckboxGroupCheckboxProps extends AriaCheckboxProps {
 /**
  * Props for the {@link Checkbox} component when used outside of a {@link CheckboxGroup}.
  */
-interface StandaloneCheckboxProps<Schema extends TSchema, TFieldName extends FieldPath<Schema>>
-  extends FieldStateProps<AriaCheckboxProps, Schema, TFieldName> {}
+type StandaloneCheckboxProps<
+  Schema extends TSchema,
+  TFieldName extends FieldPath<Schema>,
+> = FieldStateProps<AriaCheckboxProps, Schema, TFieldName>
 
 export const CHECKBOX_STYLES = tv({
   base: 'group flex gap-2 items-center cursor-pointer select-none',
@@ -144,7 +146,7 @@ export const Checkbox = forwardRef(function Checkbox<
 
   const { store, removeSelected, addSelected } = useCheckboxContext()
 
-  // eslint-disable-next-line react-hooks/rules-of-hooks,no-restricted-syntax
+  // eslint-disable-next-line react-hooks/rules-of-hooks, no-restricted-syntax
   const formInstance = form ?? Form.useFormContext()
 
   const { isSelected, field, onChange, name } = useStore(store, (state) => {

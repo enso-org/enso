@@ -133,7 +133,7 @@ export default function MembersSettingsSection() {
                     <ariaComponents.ButtonGroup gap="small" className="mt-0.5">
                       <ariaComponents.CopyButton
                         size="custom"
-                        // eslint-disable-next-line @typescript-eslint/naming-convention
+                        // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
                         copyText={`enso://auth/registration?=${new URLSearchParams({ organization_id: invitation.organizationId }).toString()}`}
                         aria-label={getText('copyInviteLink')}
                         copyIcon={false}

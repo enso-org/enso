@@ -252,6 +252,14 @@ export default [
     },
   },
   // {
+  //   files: [
+  //     'app/gui/src/dashboard/**/*.ts',
+  //     'app/gui/src/dashboard/**/*.mts',
+  //     'app/gui/src/dashboard/**/*.cts',
+  //     'app/gui/src/dashboard/**/*.tsx',
+  //     'app/gui/src/dashboard/**/*.mtsx',
+  //     'app/gui/src/dashboard/**/*.ctsx',
+  //   ],
   //   settings: {
   //     react: {
   //       version: '18.2',

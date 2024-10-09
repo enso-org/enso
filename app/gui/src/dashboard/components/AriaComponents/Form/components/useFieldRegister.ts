@@ -66,7 +66,7 @@ export function useFieldRegister<
  * Tried to extract validation details from the schema.
  */
 // This name is intentional to highlight that this function is unsafe and should be used with caution.
-// eslint-disable-next-line @typescript-eslint/naming-convention
+// eslint-disable-next-line camelcase, @typescript-eslint/naming-convention
 function unsafe__extractValidationDetailsFromSchema<
   Schema extends TSchema,
   TFieldName extends FieldPath<Schema>,

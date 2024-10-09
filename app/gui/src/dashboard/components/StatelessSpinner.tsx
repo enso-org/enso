@@ -12,7 +12,7 @@ import Spinner, * as spinner from '#/components/Spinner'
 export { SpinnerState } from './Spinner'
 
 /** Props for a {@link StatelessSpinner}. */
-export interface StatelessSpinnerProps extends spinner.SpinnerProps {}
+export type StatelessSpinnerProps = spinner.SpinnerProps
 
 /** A spinner that does not expose its {@link spinner.SpinnerState}. Instead, it begins at
  * {@link spinner.SpinnerState.initial} and immediately changes to the given state. */

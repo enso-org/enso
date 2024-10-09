@@ -134,6 +134,7 @@ export function PlanSelector(props: PlanSelectorProps) {
 
                       const startEpochMs = Number(new Date())
 
+                      // eslint-disable-next-line no-constant-condition
                       while (true) {
                         const { data: session } = await refetchSession()
                         if (session && 'user' in session && session.user.plan === newPlan) {

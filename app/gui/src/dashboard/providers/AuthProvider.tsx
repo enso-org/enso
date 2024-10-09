@@ -462,7 +462,7 @@ export default function AuthProvider(props: AuthProviderProps) {
         id: userData.user.userId,
         email: userData.email,
         username: userData.user.name,
-        // eslint-disable-next-line @typescript-eslint/naming-convention
+        // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
         ip_address: '{{auto}}',
       })
     }

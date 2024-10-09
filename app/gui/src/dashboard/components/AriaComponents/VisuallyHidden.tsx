@@ -11,7 +11,7 @@ import * as twv from '#/utilities/tailwindVariants'
 /**
  * Props for the {@link VisuallyHidden} component.
  */
-export interface VisuallyHiddenProps extends React.HTMLProps<HTMLElement> {}
+export type VisuallyHiddenProps = React.HTMLProps<HTMLElement>
 
 export const VISUALLY_HIDDEN_STYLES = twv.tv({ base: 'sr-only' })
 

@@ -101,12 +101,12 @@ interface ProjectsStore {
 // =======================
 
 /** State contained in a `ProjectsContext`. */
-export interface ProjectsContextType extends zustand.StoreApi<ProjectsStore> {}
+export type ProjectsContextType = zustand.StoreApi<ProjectsStore>
 
 const ProjectsContext = React.createContext<ProjectsContextType | null>(null)
 
 /** Props for a {@link ProjectsProvider}. */
-export interface ProjectsProviderProps extends Readonly<React.PropsWithChildren> {}
+export type ProjectsProviderProps = Readonly<React.PropsWithChildren>
 
 const STORE = zustand.createStore<ProjectsStore>((set) => ({
   page: TabType.drive,

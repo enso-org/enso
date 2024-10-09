@@ -40,7 +40,7 @@ const TextContext = React.createContext<TextContextType>({
 })
 
 /** Props for a {@link TextProvider}. */
-export interface TextProviderProps extends Readonly<React.PropsWithChildren> {}
+export type TextProviderProps = Readonly<React.PropsWithChildren>
 
 // ====================
 // === TextProvider ===

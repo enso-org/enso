@@ -9,12 +9,7 @@ import type {
 import { createContext, useContext, useEffect, useState } from 'react'
 
 /** */
-type ElementsContextValue_ = Parameters<Parameters<typeof StripeElementConsumer>[0]['children']>[0]
-
-/** */
-interface ElementsContextValue extends ElementsContextValue_ {
-  //
-}
+type ElementsContextValue = Parameters<Parameters<typeof StripeElementConsumer>[0]['children']>[0]
 
 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 const ElementsContext = createContext<ElementsContextValue>(null!)

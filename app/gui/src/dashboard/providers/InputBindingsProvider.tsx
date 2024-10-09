@@ -9,7 +9,7 @@ import * as inputBindingsModule from '#/configurations/inputBindings'
 // ============================
 
 /** State contained in a `ShortcutsContext`. */
-export interface InputBindingsContextType extends inputBindingsModule.DashboardBindingNamespace {}
+export type InputBindingsContextType = inputBindingsModule.DashboardBindingNamespace
 
 const InputBindingsContext = React.createContext<InputBindingsContextType>(
   inputBindingsModule.createBindings(),

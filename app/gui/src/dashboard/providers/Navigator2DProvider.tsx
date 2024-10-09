@@ -9,12 +9,12 @@ import Navigator2D from '#/utilities/Navigator2D'
 // ==========================
 
 /** State contained in a `ShortcutsContext`. */
-export interface Navigator2DContextType extends Navigator2D {}
+export type Navigator2DContextType = Navigator2D
 
 const Navigator2DContext = React.createContext<Navigator2DContextType>(new Navigator2D())
 
 /** Props for a {@link Navigator2DProvider}. */
-export interface Navigator2DProviderProps extends Readonly<React.PropsWithChildren> {}
+export type Navigator2DProviderProps = Readonly<React.PropsWithChildren>
 
 // ===========================
 // === Navigator2DProvider ===

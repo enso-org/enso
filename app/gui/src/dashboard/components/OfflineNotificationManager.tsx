@@ -17,7 +17,7 @@ import * as textProvider from '#/providers/TextProvider'
 /**
  * Props for {@link OfflineNotificationManager}
  */
-export interface OfflineNotificationManagerProps extends React.PropsWithChildren {}
+export type OfflineNotificationManagerProps = Readonly<React.PropsWithChildren>
 
 /**
  * Context props for {@link OfflineNotificationManager}

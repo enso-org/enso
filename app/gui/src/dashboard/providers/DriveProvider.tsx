@@ -45,12 +45,12 @@ interface DriveStore {
 // =======================
 
 /** State contained in a `ProjectsContext`. */
-export interface ProjectsContextType extends zustand.StoreApi<DriveStore> {}
+export type ProjectsContextType = zustand.StoreApi<DriveStore>
 
 const DriveContext = React.createContext<ProjectsContextType | null>(null)
 
 /** Props for a {@link DriveProvider}. */
-export interface ProjectsProviderProps extends Readonly<React.PropsWithChildren> {}
+export type ProjectsProviderProps = Readonly<React.PropsWithChildren>
 
 // ========================
 // === ProjectsProvider ===

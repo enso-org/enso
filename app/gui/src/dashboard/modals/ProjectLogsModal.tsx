@@ -36,15 +36,8 @@ export default function ProjectLogsModal(props: ProjectLogsModalProps) {
   )
 }
 
-// ================================
-// === ProjectLogsModalInternal ===
-// ================================
-
-/** Props for a {@link ProjectLogsModalInternal}. */
-interface ProjectLogsModalInternalProps extends ProjectLogsModalProps {}
-
 /** A modal for showing logs for a project. */
-function ProjectLogsModalInternal(props: ProjectLogsModalInternalProps) {
+function ProjectLogsModalInternal(props: ProjectLogsModalProps) {
   const { backend, projectSessionId, projectTitle } = props
   const { getText } = textProvider.useText()
   const logsQuery = reactQuery.useSuspenseQuery({

@@ -8,19 +8,18 @@ import * as backendModule from '#/services/Backend'
 // =====================
 
 /** An {@link AssetTreeNode}, but excluding its methods. */
-export interface AssetTreeNodeData
-  extends Pick<
-    AssetTreeNode,
-    | 'children'
-    | 'createdAt'
-    | 'depth'
-    | 'directoryId'
-    | 'directoryKey'
-    | 'initialAssetEvents'
-    | 'item'
-    | 'key'
-    | 'path'
-  > {}
+export type AssetTreeNodeData = Pick<
+  AssetTreeNode,
+  | 'children'
+  | 'createdAt'
+  | 'depth'
+  | 'directoryId'
+  | 'directoryKey'
+  | 'initialAssetEvents'
+  | 'item'
+  | 'key'
+  | 'path'
+>
 
 /** All possible variants of {@link AssetTreeNode}s. */
 // The `Item extends Item` is required to trigger distributive conditional types:

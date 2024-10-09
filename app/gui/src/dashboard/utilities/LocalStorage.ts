@@ -39,6 +39,7 @@ export interface LocalStorageKeyMetadata<K extends LocalStorageKey> {
 
 /** The data that can be stored in a {@link LocalStorage}.
  * Declaration merge into this interface to add a new key. */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface LocalStorageData {}
 
 // =======================

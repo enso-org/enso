@@ -54,7 +54,7 @@ function useTabBarContext() {
 // ==============
 
 /** Props for a {@link TabBar}. */
-export interface TabBarProps extends Readonly<React.PropsWithChildren> {}
+export type TabBarProps = Readonly<React.PropsWithChildren>
 
 /** Switcher to choose the currently visible full-screen page. */
 export default function TabBar(props: TabBarProps) {

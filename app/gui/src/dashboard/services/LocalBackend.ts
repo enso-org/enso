@@ -194,7 +194,7 @@ export default class LocalBackend extends Backend {
           }
         })
         .sort(backend.compareAssets)
-    } catch (error) {
+    } catch {
       // Failed so check if exists
       if (!(await this.projectManager.exists(parentIdRaw))) {
         if (parentIdRaw === this.projectManager.rootDirectory) {
@@ -495,7 +495,7 @@ export default class LocalBackend extends Backend {
         lifecycle: backend.detectVersionLifecycle(version.version),
       },
       // The names come from a third-party API and cannot be changed.
-      // eslint-disable-next-line @typescript-eslint/naming-convention
+      // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
       version_type: params.versionType,
     })
     return engineVersions.versions.map(engineVersionToVersion)

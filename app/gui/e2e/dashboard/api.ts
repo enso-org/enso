@@ -58,7 +58,7 @@ export interface SetupAPI {
 }
 
 /** The return type of {@link mockApi}. */
-export interface MockApi extends Awaited<ReturnType<typeof mockApiInternal>> {}
+export type MockApi = Awaited<ReturnType<typeof mockApiInternal>>
 
 // This is a function, even though it does not contain function syntax.
 // eslint-disable-next-line no-restricted-syntax
@@ -582,7 +582,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
               'Development' satisfies `${backend.VersionLifecycle.development}` as backend.VersionLifecycle.development,
             value: '2023.2.1-dev',
           },
-          // eslint-disable-next-line @typescript-eslint/naming-convention, no-restricted-syntax
+          // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase, no-restricted-syntax
           version_type: (new URL(request.url()).searchParams.get('version_type') ??
             '') as backend.VersionType,
         } satisfies backend.Version,
@@ -603,9 +603,9 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
           name: 'example project name',
           state: project.projectState,
           packageName: 'Project_root',
-          // eslint-disable-next-line @typescript-eslint/naming-convention
+          // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
           ide_version: null,
-          // eslint-disable-next-line @typescript-eslint/naming-convention
+          // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
           engine_version: {
             value: '2023.2.1-nightly.2023.9.29',
             lifecycle: backend.VersionLifecycle.development,

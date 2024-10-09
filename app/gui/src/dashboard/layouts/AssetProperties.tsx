@@ -112,7 +112,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
           { parentDirectoryId: null, description },
           item.item.title,
         ])
-      } catch (error) {
+      } catch {
         toastAndLog('editDescriptionError')
         setItem((oldItem) =>
           oldItem.with({ item: object.merge(oldItem.item, { description: oldDescription }) }),

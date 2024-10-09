@@ -9,8 +9,7 @@ import MenuEntry from '#/components/MenuEntry'
 // ========================
 
 /** Props for a {@link ContextMenuEntry}. */
-export interface ContextMenuEntryProps
-  extends Omit<menuEntry.MenuEntryProps, 'isContextMenuEntry'> {}
+export type ContextMenuEntryProps = Omit<menuEntry.MenuEntryProps, 'isContextMenuEntry'>
 
 /** An item in a menu. */
 export default function ContextMenuEntry(props: ContextMenuEntryProps) {

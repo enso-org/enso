@@ -34,15 +34,8 @@ export default function AssetProjectSessions(props: AssetProjectSessionsProps) {
   )
 }
 
-// ====================================
-// === AssetProjectSessionsInternal ===
-// ====================================
-
-/** Props for a {@link AssetProjectSessionsInternal}. */
-interface AssetProjectSessionsInternalProps extends AssetProjectSessionsProps {}
-
 /** A list of previous versions of an asset. */
-function AssetProjectSessionsInternal(props: AssetProjectSessionsInternalProps) {
+function AssetProjectSessionsInternal(props: AssetProjectSessionsProps) {
   const { backend, item } = props
 
   const projectSessionsQuery = reactQuery.useSuspenseQuery({

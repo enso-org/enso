@@ -413,7 +413,7 @@ function ActivityLogHeaderCell(props: ActivityLogHeaderCellProps) {
 // ============================
 
 /** Props for a {@link ActivityLogTableCell}. */
-export interface ActivityLogTableCellProps extends Readonly<React.PropsWithChildren> {}
+export type ActivityLogTableCellProps = Readonly<React.PropsWithChildren>
 
 /** A styled table cell for an {@link ActivityLogSettingsSection}. */
 function ActivityLogTableCell(props: ActivityLogTableCellProps) {

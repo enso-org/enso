@@ -9,8 +9,11 @@
     "eslint.config.js",
     "tailwind.config.js",
     "e2e/**/*",
+    "src/dashboard/hooks/eventCallbackHooks.ts",
+    "src/dashboard/services/Backend.ts",
+    "src/dashboard/services/RemoteBackend.ts",
     "src/dashboard/utilities/**/*",
-    "node.env.d.ts",
+    "node.env.d.ts"
   ],
   "compilerOptions": {
     "baseUrl": ".",

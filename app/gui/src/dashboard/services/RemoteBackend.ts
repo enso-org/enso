@@ -338,9 +338,8 @@ export default class RemoteBackend extends Backend {
     file: Blob,
   ): Promise<backend.User> {
     const paramsString = new URLSearchParams({
-      /* eslint-disable @typescript-eslint/naming-convention */
+      // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
       ...(params.fileName != null ? { file_name: params.fileName } : {}),
-      /* eslint-enable @typescript-eslint/naming-convention */
     }).toString()
     const path = `${remoteBackendPaths.UPLOAD_USER_PICTURE_PATH}?${paramsString}`
     const response = await this.putBinary<backend.User>(path, file)
@@ -405,9 +404,8 @@ export default class RemoteBackend extends Backend {
     file: Blob,
   ): Promise<backend.OrganizationInfo> {
     const paramsString = new URLSearchParams({
-      /* eslint-disable @typescript-eslint/naming-convention */
+      // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
       ...(params.fileName != null ? { file_name: params.fileName } : {}),
-      /* eslint-enable @typescript-eslint/naming-convention */
     }).toString()
     const path = `${remoteBackendPaths.UPLOAD_ORGANIZATION_PICTURE_PATH}?${paramsString}`
     const response = await this.putBinary<backend.OrganizationInfo>(path, file)
@@ -843,11 +841,12 @@ export default class RemoteBackend extends Backend {
     file: Blob,
   ): Promise<backend.FileInfo> {
     const paramsString = new URLSearchParams({
-      /* eslint-disable @typescript-eslint/naming-convention */
+      // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
       file_name: params.fileName,
+      // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
       ...(params.fileId != null ? { file_id: params.fileId } : {}),
+      // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
       ...(params.parentDirectoryId ? { parent_directory_id: params.parentDirectoryId } : {}),
-      /* eslint-enable @typescript-eslint/naming-convention */
     }).toString()
     const path = `${remoteBackendPaths.UPLOAD_FILE_PATH}?${paramsString}`
     const response = await this.postBinary<backend.FileInfo>(path, file)
@@ -1067,7 +1066,7 @@ export default class RemoteBackend extends Backend {
     params: backend.ListVersionsRequestParams,
   ): Promise<readonly backend.Version[]> {
     const paramsString = new URLSearchParams({
-      // eslint-disable-next-line @typescript-eslint/naming-convention
+      // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
       version_type: params.versionType,
       default: String(params.default),
     }).toString()

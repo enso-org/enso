@@ -101,7 +101,6 @@ export class Cognito {
       const date = Math.floor(Number(new Date()) / SEC_MS)
       const expirationDate = date + TEN_HOURS_S
       if (!this.isSignedIn) {
-        // eslint-disable-next-line @typescript-eslint/no-throw-literal
         throw 'No current user'
       } else {
         return Promise.resolve<cognito.CognitoUserSession>({
@@ -127,7 +126,7 @@ export class Cognito {
             getJwtToken: () =>
               `.${window.btoa(
                 JSON.stringify({
-                  /* eslint-disable @typescript-eslint/naming-convention */
+                  /* eslint-disable @typescript-eslint/naming-convention, camelcase */
                   sub: '62bdf414-c47f-4c76-a333-c564f841c256',
                   iss: 'https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_9Kycu2SbD',
                   client_id: '4j9bfs8e7415erf82l129v0qhe',
@@ -140,7 +139,7 @@ export class Cognito {
                   iat: date,
                   jti: '5ab178b7-97a6-4956-8913-1cffee4a0da1',
                   username: mockEmail,
-                  /* eslint-enable @typescript-eslint/naming-convention */
+                  /* eslint-enable @typescript-eslint/naming-convention, camelcase */
                 }),
               )}.`,
           }),

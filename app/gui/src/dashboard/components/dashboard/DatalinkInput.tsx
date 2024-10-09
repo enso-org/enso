@@ -31,8 +31,10 @@ function getValidator(path: string) {
 // =====================
 
 /** Props for a {@link DatalinkInput}. */
-export interface DatalinkInputProps
-  extends Omit<jsonSchemaInput.JSONSchemaInputProps, 'defs' | 'getValidator' | 'path' | 'schema'> {}
+export type DatalinkInputProps = Omit<
+  jsonSchemaInput.JSONSchemaInputProps,
+  'defs' | 'getValidator' | 'path' | 'schema'
+>
 
 /** A dynamic wizard for creating an arbitrary type of Datalink. */
 export default function DatalinkInput(props: DatalinkInputProps) {

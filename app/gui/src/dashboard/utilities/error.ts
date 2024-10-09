@@ -22,8 +22,10 @@ type MustBeAny<T> =
 /** Enforces that a parameter must not have a known type. This means the only types allowed are
  * `{}`, `object`, `unknown` and `any`. */
 export type MustNotBeKnown<T> =
-  // eslint-disable-next-line @typescript-eslint/ban-types, no-restricted-syntax
-  MustBe<T, {}> | MustBe<T, object> | MustBe<T, unknown> | MustBeAny<T>
+  | MustBe<T, NonNullable<unknown>>
+  | MustBe<T, object>
+  | MustBe<T, unknown>
+  | MustBeAny<T>
 
 /** Extracts the `message` property of a value if it is a string. Intended to be used on
  * {@link Error}s. */

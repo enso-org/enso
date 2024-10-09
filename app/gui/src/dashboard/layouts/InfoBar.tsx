@@ -31,7 +31,7 @@ export default function InfoBar(props: InfoBarProps) {
         >
           {/* FIXME [sb]: https://github.com/enso-org/cloud-v2/issues/1227
            * Make help chat work even when signed out. */}
-          {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition */}
+          {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, no-constant-binary-expression */}
           {false && (
             <Button
               size="custom"

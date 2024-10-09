@@ -41,7 +41,7 @@ export type * from '#/utilities/inputBindings'
 // ======================
 
 /** The type of the keybind and mousebind namespace for the dashboard. */
-export interface DashboardBindingNamespace extends ReturnType<typeof createBindings> {}
+export type DashboardBindingNamespace = ReturnType<typeof createBindings>
 
 /** The nameof a dashboard binding */
 export type DashboardBindingKey = keyof typeof BINDINGS

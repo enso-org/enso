@@ -32,10 +32,10 @@ const SETTINGS_FIELD_STYLES = tv({
 // =========================
 
 /** Props for a {@link SettingsAriaInput}. */
-export interface SettingsAriaInputProps<
+export type SettingsAriaInputProps<
   Schema extends TSchema,
   TFieldName extends FieldPath<Schema>,
-> extends Omit<InputProps<Schema, TFieldName>, 'fieldVariants' | 'size' | 'variant' | 'variants'> {}
+> = Omit<InputProps<Schema, TFieldName>, 'fieldVariants' | 'size' | 'variant' | 'variants'>
 
 /** A styled input for settings pages. */
 export default function SettingsAriaInput<

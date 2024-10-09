@@ -34,7 +34,7 @@ const ModalStaticContext = React.createContext<ModalStaticContextType>({
 })
 
 /** Props for a {@link ModalProvider}. */
-export interface ModalProviderProps extends Readonly<React.PropsWithChildren> {}
+export type ModalProviderProps = Readonly<React.PropsWithChildren>
 
 /** A React provider containing the currently active modal. */
 export default function ModalProvider(props: ModalProviderProps) {

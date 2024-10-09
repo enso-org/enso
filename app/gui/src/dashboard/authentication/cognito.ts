@@ -587,12 +587,12 @@ function extractRefreshUrlFromSession(session: cognito.CognitoUserSession): stri
   const { iss } = session.getAccessToken().payload
 
   if (typeof iss !== 'string') {
-    throw new Error('Payload does not have an iss field.')
+    throw new Error('Payload does not have an `iss` field.')
   } else {
     try {
       return new URL(iss).toString()
-    } catch (e) {
-      throw new Error('iss field is not a valid URL')
+    } catch {
+      throw new Error('`iss` field is not a valid URL')
     }
   }
 }

@@ -10,7 +10,7 @@ export const loadStripe = (): Promise<Stripe> =>
         paymentMethod: {
           id: '',
           object: 'payment_method',
-          // eslint-disable-next-line @typescript-eslint/naming-convention
+          // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
           billing_details: {
             address: null,
             email: null,

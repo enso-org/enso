@@ -72,7 +72,7 @@ function InviteUsersModalContent(props: InviteUsersModalContentProps) {
   )
 
   const invitationParams = new URLSearchParams({
-    // eslint-disable-next-line @typescript-eslint/naming-convention
+    // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
     organization_id: organizationId,
   }).toString()
   const invitationLink = `enso://auth/registration?${invitationParams}`

@@ -24,12 +24,12 @@ interface EventListStore {
 // ========================
 
 /** State contained in a `EventListContext`. */
-export interface EventListContextType extends zustand.StoreApi<EventListStore> {}
+export type EventListContextType = zustand.StoreApi<EventListStore>
 
 const EventListContext = React.createContext<EventListContextType | null>(null)
 
 /** Props for a {@link EventListProvider}. */
-export interface EventListProviderProps extends Readonly<React.PropsWithChildren> {}
+export type EventListProviderProps = Readonly<React.PropsWithChildren>
 
 // =========================
 // === EventListProvider ===
