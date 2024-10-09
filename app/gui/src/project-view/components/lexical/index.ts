@@ -18,6 +18,7 @@ export interface LexicalPlugin {
 }
 
 export function lexicalTheme(theme: Record<string, string>): EditorThemeClasses {
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   interface EditorThemeShape extends Record<string, EditorThemeShape | string> {}
   const editorClasses: EditorThemeShape = {}
   for (const [classPath, className] of Object.entries(theme)) {

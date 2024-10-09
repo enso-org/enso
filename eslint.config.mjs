@@ -9,7 +9,6 @@ import * as url from 'node:url'
 /* eslint-disable no-restricted-syntax */
 import eslintJs from '@eslint/js'
 import tsEslint from '@typescript-eslint/eslint-plugin'
-import tsEslintParser from '@typescript-eslint/parser'
 import vueTsEslintConfig from '@vue/eslint-config-typescript'
 import jsdoc from 'eslint-plugin-jsdoc'
 import react from 'eslint-plugin-react'
@@ -207,13 +206,7 @@ export default [
         tsconfigRootDir: DIR_NAME,
         ecmaVersion: 'latest',
         extraFileExtensions: ['.vue'],
-        project: [
-          // './**/tsconfig.json',
-          './app/gui/tsconfig.app.json',
-          './app/gui/tsconfig.node.json',
-          './app/gui/tsconfig.app.vitest.json',
-          './app/gui/tsconfig.scripts.json',
-        ],
+        projectService: true,
       },
     },
     rules: {
@@ -230,21 +223,17 @@ export default [
         },
       ],
       '@typescript-eslint/no-namespace': 'off',
-      '@typescript-eslint/no-empty-object-type': [
-        'error',
-        { allowInterfaces: 'with-single-extends' },
-      ],
+      '@typescript-eslint/no-empty-object-type': ['error'],
       'no-unused-labels': 'off',
       camelcase: ['warn', { ignoreDestructuring: true }],
-
-      // TODO[ao]; off temporarily
-      '@typescript-eslint/no-empty-object-type': 'off',
-      '@typescript-eslint/no-explicit-any': 'off',
-      'vue/html-self-closing': 'off',
-      'vue/singleline-html-element-content-newline': 'off',
+      // Taken care of by prettier
+      'vue/max-attributes-per-line': 'off',
       'vue/html-indent': 'off',
       'vue/html-closing-bracket-newline': 'off',
-      'vue/max-attributes-per-line': ['off', { singleline: { max: 4 } }],
+
+      // TODO[ao]; off temporarily
+      '@typescript-eslint/no-explicit-any': 'off',
+      'vue/html-self-closing': 'off',
     },
   },
   {

@@ -3,8 +3,7 @@ import type { Opt } from '@/util/data/opt'
 import { ReactiveDb, ReactiveIndex } from '@/util/database/reactiveDb'
 import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
-export interface VisualizationMetadata
-  extends Pick<VisualizationModule, 'name' | 'inputType' | 'icon'> {}
+export type VisualizationMetadata = Pick<VisualizationModule, 'name' | 'inputType' | 'icon'>
 
 function getTypesFromUnion(inputType: Opt<string>) {
   return inputType?.split('|').map((type) => type.trim()) ?? ['Any']

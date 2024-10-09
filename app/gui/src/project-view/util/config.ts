@@ -71,10 +71,10 @@ export interface Group<T = Required<RawGroup>> extends Config<T> {
 export interface Config<T = Required<RawConfig>> {
   options: T extends { options: infer Options extends object } ?
     { [K in keyof Options]: Option<Options[K]> }
-  : {}
+  : object
   groups: T extends { groups: infer Groups extends object } ?
     { [K in keyof Groups]: Group<Groups[K]> }
-  : {}
+  : object
 }
 
 function loadOption<T>(option: T): Option<T> {
