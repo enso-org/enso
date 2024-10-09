@@ -24,7 +24,7 @@
     "build": "vite build",
     "build-cloud": "cross-env CLOUD_BUILD=true corepack pnpm run build",
     "preview": "vite preview",
-    "lint": "eslint .",
+    "lint": "cross-env NODE_OPTIONS=--max-old-space-size=4096 eslint .",
     "format": "prettier --version && prettier --write src/ && eslint . --fix",
     "dev:vite": "vite",
     "test": "corepack pnpm run /^^^^test:.*/",
