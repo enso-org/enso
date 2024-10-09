@@ -56,8 +56,9 @@ interface Data {
   data: Point[]
   isTimeSeries: boolean
   x_value_type: string
-  is_multi_series?: boolean
+  is_multi_series: boolean
   get_row_method: string
+  error_message: string
 }
 
 interface Focus {
@@ -196,6 +197,8 @@ const data = computed<Data>(() => {
   const is_multi_series: boolean = !!rawData.is_multi_series
   // eslint-disable-next-line camelcase
   const get_row_method: string = rawData.get_row_method || 'get_row'
+  // eslint-disable-next-line camelcase
+  const error_message: string = rawData.error_message || ''
   return {
     axis,
     points,
@@ -207,6 +210,8 @@ const data = computed<Data>(() => {
     x_value_type: rawData.x_value_type || '',
     // eslint-disable-next-line camelcase
     get_row_method,
+    // eslint-disable-next-line camelcase
+    error_message,
     isTimeSeries,
   }
 })
@@ -255,8 +260,8 @@ const symbol: d3.Symbol<unknown, Point> = d3.symbol()
 
 const animationDuration = computed(() => (shouldAnimate.value ? ANIMATION_DURATION_MS : 0))
 const margin = computed(() => {
-  const xLabel = data.value.axis.x.label
-  const yLabel = data.value.axis.y.label
+  const xLabel = data.value.axis.x?.label
+  const yLabel = data.value.axis.y?.label
   if (xLabel == null && yLabel === null) {
     return { top: 20, right: 20, bottom: 20, left: 45 }
   } else if (yLabel == null) {
@@ -578,6 +583,9 @@ const makeFilterPattern = (
     Ast.tryNumberToEnso(max, module)!,
   ])
 }
+
+const errorMessage = computed(() => data.value.error_message)
+
 function getAstPatternFilterAndSort(
   series: string[],
   xColName: string,
@@ -859,39 +867,44 @@ config.setToolbar([
 </script>
 
 <template>
-  <div ref="containerNode" class="ScatterplotVisualization">
-    <svg :width="width" :height="height">
-      <g ref="legendNode"></g>
-      <g :transform="`translate(${margin.left}, ${margin.top})`">
-        <defs>
-          <clipPath id="clip">
-            <rect :width="boxWidth" :height="boxHeight"></rect>
-          </clipPath>
-        </defs>
-        <g ref="xAxisNode" class="axis-x" :transform="`translate(0, ${boxHeight})`"></g>
-        <g ref="yAxisNode" class="axis-y"></g>
-        <text
-          v-if="data.axis.x.label"
-          class="label label-x"
-          text-anchor="end"
-          :x="xLabelLeft"
-          :y="xLabelTop"
-          v-text="data.axis.x.label"
-        ></text>
-        <text
-          v-if="showYLabelText"
-          class="label label-y"
-          text-anchor="end"
-          :x="yLabelLeft"
-          :y="yLabelTop"
-          v-text="data.axis.y.label"
-        ></text>
-        <g ref="pointsNode" clip-path="url(#clip)"></g>
-        <g ref="zoomNode" class="zoom" :width="boxWidth" :height="boxHeight" fill="none">
-          <g ref="brushNode" class="brush"></g>
+  <div v-if="errorMessage && errorMessage.length > 0">
+    <div class="WarningsScatterplotVisualization">{{ errorMessage }}</div>
+  </div>
+  <div v-else>
+    <div ref="containerNode" class="ScatterplotVisualization">
+      <svg :width="width" :height="height">
+        <g ref="legendNode"></g>
+        <g :transform="`translate(${margin.left}, ${margin.top})`">
+          <defs>
+            <clipPath id="clip">
+              <rect :width="boxWidth" :height="boxHeight"></rect>
+            </clipPath>
+          </defs>
+          <g ref="xAxisNode" class="axis-x" :transform="`translate(0, ${boxHeight})`"></g>
+          <g ref="yAxisNode" class="axis-y"></g>
+          <text
+            v-if="data.axis.x.label"
+            class="label label-x"
+            text-anchor="end"
+            :x="xLabelLeft"
+            :y="xLabelTop"
+            v-text="data.axis.x.label"
+          ></text>
+          <text
+            v-if="showYLabelText"
+            class="label label-y"
+            text-anchor="end"
+            :x="yLabelLeft"
+            :y="yLabelTop"
+            v-text="data.axis.y.label"
+          ></text>
+          <g ref="pointsNode" clip-path="url(#clip)"></g>
+          <g ref="zoomNode" class="zoom" :width="boxWidth" :height="boxHeight" fill="none">
+            <g ref="brushNode" class="brush"></g>
+          </g>
         </g>
-      </g>
-    </svg>
+      </svg>
+    </div>
   </div>
 </template>
 
@@ -900,6 +913,10 @@ config.setToolbar([
   user-select: none;
   display: flex;
   flex-direction: column;
+}
+
+.WarningsScatterplotVisualization {
+  padding: 18px;
 }
 
 .ScatterplotVisualization .selection {
