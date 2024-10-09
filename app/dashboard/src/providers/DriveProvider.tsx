@@ -8,6 +8,7 @@ import type { AssetPanelContextProps } from '#/layouts/AssetPanel'
 import type { Suggestion } from '#/layouts/AssetSearchBar'
 import { useLocalStorage } from '#/providers/LocalStorageProvider'
 import type AssetTreeNode from '#/utilities/AssetTreeNode'
+import type { PasteData } from '#/utilities/pasteData'
 import { EMPTY_SET } from '#/utilities/set'
 import type { AssetId, DirectoryAsset, DirectoryId } from 'enso-common/src/services/Backend'
 import { EMPTY_ARRAY } from 'enso-common/src/utilities/data/array'
@@ -28,6 +29,8 @@ interface DriveStore {
   readonly setCanDownload: (canDownload: boolean) => void
   readonly selectedKeys: ReadonlySet<AssetId>
   readonly setSelectedKeys: (selectedKeys: ReadonlySet<AssetId>) => void
+  readonly pasteData: PasteData<ReadonlySet<AssetId>> | null
+  readonly setPasteData: (pasteData: PasteData<ReadonlySet<AssetId>> | null) => void
   readonly visuallySelectedKeys: ReadonlySet<AssetId> | null
   readonly setVisuallySelectedKeys: (visuallySelectedKeys: ReadonlySet<AssetId> | null) => void
   readonly isAssetPanelPermanentlyVisible: boolean
@@ -90,6 +93,15 @@ export default function DriveProvider(props: ProjectsProviderProps) {
           (selectedKeys.size !== 0 || get().selectedKeys.size !== 0)
         ) {
           set({ selectedKeys })
+        }
+      },
+      pasteData: null,
+      setPasteData: (pasteData) => {
+        if (
+          get().pasteData !== pasteData &&
+          (pasteData?.data.size !== 0 || get().pasteData?.data.size !== 0)
+        ) {
+          set({ pasteData })
         }
       },
       visuallySelectedKeys: null,
@@ -202,6 +214,18 @@ export function useSelectedKeys() {
 export function useSetSelectedKeys() {
   const store = useDriveStore()
   return zustand.useStore(store, (state) => state.setSelectedKeys)
+}
+
+/** The paste data in the Asset Table. */
+export function usePasteData() {
+  const store = useDriveStore()
+  return zustand.useStore(store, (state) => state.pasteData)
+}
+
+/** A function to set the paste data of the Asset Table. */
+export function useSetPasteData() {
+  const store = useDriveStore()
+  return zustand.useStore(store, (state) => state.setPasteData)
 }
 
 /** The visually selected keys in the Asset Table. */

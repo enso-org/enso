@@ -36,6 +36,7 @@ import * as backendModule from '#/services/Backend'
 import * as localBackendModule from '#/services/LocalBackend'
 
 import {
+  usePasteData,
   useSetAssetPanelProps,
   useSetIsAssetPanelTemporarilyVisible,
 } from '#/providers/DriveProvider'
@@ -70,7 +71,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const { innerProps, rootDirectoryId, event, eventTarget, hidden = false, triggerRef } = props
   const { doCopy, doCut, doPaste, doDelete } = props
   const { item, setItem, state, setRowState } = innerProps
-  const { backend, category, hasPasteData, pasteData, nodeMap } = state
+  const { backend, category, nodeMap } = state
 
   const { user } = authProvider.useFullUserSession()
   const { setModal } = modalProvider.useSetModal()
@@ -84,6 +85,8 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const setAssetPanelProps = useSetAssetPanelProps()
   const openProject = projectHooks.useOpenProject()
   const closeProject = projectHooks.useCloseProject()
+  const pasteData = usePasteData()
+  const hasPasteData = pasteData != null
   const openProjectMutation = projectHooks.useOpenProjectMutation()
   const asset = item.item
   const self = permissions.tryFindSelfPermission(user, asset.permissions)
@@ -113,7 +116,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     asset.type === backendModule.AssetType.directory &&
     canEditThisAsset
   const pasteDataParentKeys =
-    !pasteData.current ? null : (
+    !pasteData ? null : (
       new Map(
         Array.from(nodeMap.current.entries()).map(([id, otherAsset]) => [
           id,
@@ -122,9 +125,9 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
       )
     )
   const canPaste =
-    !pasteData.current || !pasteDataParentKeys || !isCloud ?
+    !pasteData || !pasteDataParentKeys || !isCloud ?
       true
-    : !Array.from(pasteData.current.data).some((assetId) => {
+    : !Array.from(pasteData.data).some((assetId) => {
         const parentKey = pasteDataParentKeys.get(assetId)
         const parent = parentKey == null ? null : nodeMap.current.get(parentKey)
         return !parent ? true : (
@@ -484,7 +487,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           <GlobalContextMenu
             hidden={hidden}
             backend={backend}
-            hasPasteData={hasPasteData}
             rootDirectoryId={rootDirectoryId}
             directoryKey={
               // This is SAFE, as both branches are guaranteed to be `DirectoryId`s

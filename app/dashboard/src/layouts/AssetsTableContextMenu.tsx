@@ -3,7 +3,7 @@
 import * as React from 'react'
 
 import * as authProvider from '#/providers/AuthProvider'
-import { useSelectedKeys, useSetSelectedKeys } from '#/providers/DriveProvider'
+import { usePasteData, useSelectedKeys, useSetSelectedKeys } from '#/providers/DriveProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -23,10 +23,9 @@ import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 
 import type * as assetTreeNode from '#/utilities/AssetTreeNode'
-import type * as pasteDataModule from '#/utilities/pasteData'
 import * as permissions from '#/utilities/permissions'
 import { EMPTY_SET } from '#/utilities/set'
-import * as uniqueString from 'enso-common/src/utilities/uniqueString'
+import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 
 // =================
 // === Constants ===
@@ -38,7 +37,6 @@ export interface AssetsTableContextMenuProps {
   readonly backend: Backend
   readonly category: Category
   readonly rootDirectoryId: backendModule.DirectoryId
-  readonly pasteData: pasteDataModule.PasteData<ReadonlySet<backendModule.AssetId>> | null
   readonly nodeMapRef: React.MutableRefObject<
     ReadonlyMap<backendModule.AssetId, assetTreeNode.AnyAssetTreeNode>
   >
@@ -55,9 +53,10 @@ export interface AssetsTableContextMenuProps {
 /** A context menu for an `AssetsTable`, when no row is selected, or multiple rows
  * are selected. */
 export default function AssetsTableContextMenu(props: AssetsTableContextMenuProps) {
-  const { hidden = false, backend, category, pasteData } = props
+  const { hidden = false, backend, category } = props
   const { nodeMapRef, event, rootDirectoryId } = props
   const { doCopy, doCut, doPaste, doDelete } = props
+  const pasteData = usePasteData()
   const { user } = authProvider.useFullUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
@@ -115,7 +114,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   if (category.type === 'trash') {
     return (
       selectedKeys.size !== 0 && (
-        <ContextMenus hidden={hidden} event={event}>
+        <ContextMenus key={uniqueString()} hidden={hidden} event={event}>
           <ContextMenu aria-label={getText('assetsTableContextMenuLabel')} hidden={hidden}>
             <ContextMenuEntry
               hidden={hidden}
@@ -165,7 +164,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
     return null
   } else {
     return (
-      <ContextMenus key={uniqueString.uniqueString()} hidden={hidden} event={event}>
+      <ContextMenus key={uniqueString()} hidden={hidden} event={event}>
         {selectedKeys.size !== 0 && (
           <ContextMenu aria-label={getText('assetsTableContextMenuLabel')} hidden={hidden}>
             {ownsAllSelectedAssets && (
@@ -219,7 +218,6 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
           <GlobalContextMenu
             hidden={hidden}
             backend={backend}
-            hasPasteData={pasteData != null}
             rootDirectoryId={rootDirectoryId}
             directoryKey={null}
             directoryId={null}
