@@ -24,6 +24,8 @@ export interface ResetProps extends Omit<ariaComponents.ButtonProps, 'loading'> 
   // We do not need to know the form fields.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly form?: types.FormInstance<any>
+  /** Defaults to `reset`. */
+  readonly action?: 'cancel' | 'reset'
 }
 
 /**
@@ -32,10 +34,11 @@ export interface ResetProps extends Omit<ariaComponents.ButtonProps, 'loading'> 
 export function Reset(props: ResetProps): React.JSX.Element {
   const { getText } = useText()
   const {
-    variant = 'ghost-fading',
+    variant = 'outline',
     size = 'medium',
     testId = 'form-reset-button',
-    children = getText('reset'),
+    action = 'reset',
+    children = action === 'cancel' ? getText('cancel') : getText('reset'),
     ...buttonProps
   } = props
 

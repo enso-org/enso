@@ -80,7 +80,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
         // A rectangle covering the entire screen
         'path(evenodd, "M0 0L3840 0 3840 2160 0 2160Z' +
         // Move to top left of label
-        `M${originalLeft + LABEL_BORDER_RADIUS_PX} ${originalTop + LABEL_CLIP_Y_OFFSET_PX}` +
+        `M${originalLeft + r} ${originalTop + LABEL_CLIP_Y_OFFSET_PX}` +
         // Top straight edge of label
         `h${LABEL_STRAIGHT_WIDTH_PX}` +
         // Right semicircle of label

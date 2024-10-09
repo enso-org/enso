@@ -39,7 +39,8 @@ export default function AssetIcon(props: AssetIconProps) {
       return <SvgMask src={KeyIcon} className={className} />
     }
     case backend.AssetType.specialLoading:
-    case backend.AssetType.specialEmpty: {
+    case backend.AssetType.specialEmpty:
+    case backend.AssetType.specialError: {
       // It should not be possible for these to be displayed, but return something anyway.
       return <SvgMask src={BlankIcon} className={className} />
     }

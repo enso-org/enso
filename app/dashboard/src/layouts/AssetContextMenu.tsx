@@ -32,11 +32,14 @@ import Separator from '#/components/styled/Separator'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import ManageLabelsModal from '#/modals/ManageLabelsModal'
 import ManagePermissionsModal from '#/modals/ManagePermissionsModal'
-import UpsertSecretModal from '#/modals/UpsertSecretModal'
 
 import * as backendModule from '#/services/Backend'
 import * as localBackendModule from '#/services/LocalBackend'
 
+import {
+  useSetAssetPanelProps,
+  useSetIsAssetPanelTemporarilyVisible,
+} from '#/providers/DriveProvider'
 import { normalizePath } from '#/utilities/fileInfo'
 import { mapNonNullish } from '#/utilities/nullable'
 import * as object from '#/utilities/object'
@@ -56,7 +59,6 @@ export interface AssetContextMenuProps {
   readonly doDelete: () => void
   readonly doCopy: () => void
   readonly doCut: () => void
-  readonly doTriggerDescriptionEdit: () => void
   readonly doPaste: (
     newParentKey: backendModule.DirectoryId,
     newParentId: backendModule.DirectoryId,
@@ -66,30 +68,36 @@ export interface AssetContextMenuProps {
 /** The context menu for an arbitrary {@link backendModule.Asset}. */
 export default function AssetContextMenu(props: AssetContextMenuProps) {
   const { innerProps, rootDirectoryId, event, eventTarget, hidden = false } = props
-  const { doTriggerDescriptionEdit, doCopy, doCut, doPaste, doDelete } = props
+  const { doCopy, doCut, doPaste, doDelete } = props
   const { item, setItem, state, setRowState } = innerProps
   const { backend, category, hasPasteData, pasteData, nodeMap } = state
 
   const { user } = authProvider.useFullUserSession()
-  const { setModal, unsetModal } = modalProvider.useSetModal()
+  const { setModal } = modalProvider.useSetModal()
   const remoteBackend = backendProvider.useRemoteBackend()
   const localBackend = backendProvider.useLocalBackend()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
+  const setIsAssetPanelTemporarilyVisible = useSetIsAssetPanelTemporarilyVisible()
+  const setAssetPanelProps = useSetAssetPanelProps()
   const openProject = projectHooks.useOpenProject()
   const closeProject = projectHooks.useCloseProject()
   const openProjectMutation = projectHooks.useOpenProjectMutation()
   const asset = item.item
   const self = permissions.tryFindSelfPermission(user, asset.permissions)
   const isCloud = categoryModule.isCloudCategory(category)
-  const path =
+  const pathRaw =
     category.type === 'recent' || category.type === 'trash' ? null
     : isCloud ? `${item.path}${item.type === backendModule.AssetType.datalink ? '.datalink' : ''}`
     : asset.type === backendModule.AssetType.project ?
       mapNonNullish(localBackend?.getProjectPath(asset.id) ?? null, normalizePath)
     : normalizePath(localBackendModule.extractTypeAndId(asset.id).id)
+  const path =
+    pathRaw == null ? null
+    : isCloud ? encodeURI(pathRaw)
+    : pathRaw
   const copyMutation = copyHooks.useCopy({ copyText: path ?? '' })
 
   const { isFeatureUnderPaywall } = billingHooks.usePaywall({ plan: user.plan })
@@ -158,7 +166,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               action="undelete"
               label={getText('restoreFromTrashShortcut')}
               doAction={() => {
-                unsetModal()
                 dispatchAssetEvent({ type: AssetEventType.restore, ids: new Set([asset.id]) })
               }}
             />
@@ -188,7 +195,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               hidden={hidden}
               action="useInNewProject"
               doAction={() => {
-                unsetModal()
                 dispatchAssetListEvent({
                   type: AssetListEventType.newProject,
                   parentId: item.directoryId,
@@ -208,7 +214,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 hidden={hidden}
                 action="open"
                 doAction={() => {
-                  unsetModal()
                   openProject({
                     id: asset.id,
                     title: asset.title,
@@ -223,7 +228,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               hidden={hidden}
               action="run"
               doAction={() => {
-                unsetModal()
                 openProjectMutation.mutate({
                   id: asset.id,
                   title: asset.title,
@@ -239,7 +243,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               hidden={hidden}
               action="openInFileBrowser"
               doAction={() => {
-                unsetModal()
                 systemApi.showItemInFolder(path)
               }}
             />
@@ -252,7 +255,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 hidden={hidden}
                 action="close"
                 doAction={() => {
-                  unsetModal()
                   closeProject({
                     id: asset.id,
                     title: asset.title,
@@ -267,7 +269,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               hidden={hidden}
               action="uploadToCloud"
               doAction={async () => {
-                unsetModal()
                 if (remoteBackend == null) {
                   toastAndLog('offlineUploadFilesError')
                 } else {
@@ -307,31 +308,29 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 action="rename"
                 doAction={() => {
                   setRowState(object.merger({ isEditingName: true }))
-                  unsetModal()
                 }}
               />
             )}
-          {asset.type === backendModule.AssetType.secret &&
+          {(asset.type === backendModule.AssetType.secret ||
+            asset.type === backendModule.AssetType.datalink) &&
             canEditThisAsset &&
             remoteBackend != null && (
               <ContextMenuEntry
                 hidden={hidden}
                 action="edit"
                 doAction={() => {
-                  setModal(
-                    <UpsertSecretModal
-                      defaultOpen
-                      id={asset.id}
-                      name={asset.title}
-                      doCreate={async (_name, value) => {
-                        try {
-                          await remoteBackend.updateSecret(asset.id, { value }, asset.title)
-                        } catch (error) {
-                          toastAndLog(null, error)
-                        }
-                      }}
-                    />,
-                  )
+                  setIsAssetPanelTemporarilyVisible(true)
+                  const assetPanelProps = { backend, item, setItem }
+                  switch (asset.type) {
+                    case backendModule.AssetType.secret: {
+                      setAssetPanelProps({ ...assetPanelProps, spotlightOn: 'secret' })
+                      break
+                    }
+                    case backendModule.AssetType.datalink: {
+                      setAssetPanelProps({ ...assetPanelProps, spotlightOn: 'datalink' })
+                      break
+                    }
+                  }
                 }}
               />
             )}
@@ -341,7 +340,8 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               action="editDescription"
               label={getText('editDescriptionShortcut')}
               doAction={() => {
-                doTriggerDescriptionEdit()
+                setIsAssetPanelTemporarilyVisible(true)
+                setAssetPanelProps({ backend, item, setItem, spotlightOn: 'description' })
               }}
             />
           )}
@@ -371,7 +371,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                       />,
                     )
                   } else {
-                    unsetModal()
                     doDelete()
                   }
                 } else {
@@ -425,12 +424,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               action="label"
               doAction={() => {
                 setModal(
-                  <ManageLabelsModal
-                    backend={backend}
-                    item={asset}
-                    setItem={setAsset}
-                    eventTarget={eventTarget}
-                  />,
+                  <ManageLabelsModal backend={backend} item={asset} eventTarget={eventTarget} />,
                 )
               }}
             />
@@ -441,7 +435,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               hidden={hidden}
               action="duplicate"
               doAction={() => {
-                unsetModal()
                 dispatchAssetListEvent({
                   type: AssetListEventType.copy,
                   newParentId: item.directoryId,
@@ -456,10 +449,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             <ContextMenuEntry
               hidden={hidden}
               action="copyAsPath"
-              doAction={() => {
-                unsetModal()
-                copyMutation.mutate()
-              }}
+              doAction={copyMutation.mutateAsync}
             />
           )}
           {!isRunningProject && !isOtherUserUsingProject && (
@@ -473,11 +463,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               isDisabled={asset.type === backendModule.AssetType.secret}
               action="download"
               doAction={() => {
-                unsetModal()
-                dispatchAssetEvent({
-                  type: AssetEventType.download,
-                  ids: new Set([asset.id]),
-                })
+                dispatchAssetEvent({ type: AssetEventType.download, ids: new Set([asset.id]) })
               }}
             />
           )}

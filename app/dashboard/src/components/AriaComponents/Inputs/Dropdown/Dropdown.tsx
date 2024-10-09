@@ -16,7 +16,6 @@ import { useSyncRef } from '#/hooks/syncRefHooks'
 import { mergeRefs } from '#/utilities/mergeRefs'
 import { forwardRef } from '#/utilities/react'
 import { tv } from '#/utilities/tailwindVariants'
-import { DIALOG_BACKGROUND } from '../../Dialog'
 
 const DROPDOWN_STYLES = tv({
   base: 'focus-child group relative flex w-max cursor-pointer flex-col items-start whitespace-nowrap rounded-input leading-cozy',
@@ -48,12 +47,10 @@ const DROPDOWN_STYLES = tv({
   slots: {
     container: 'absolute left-0 h-full w-full min-w-max',
     options:
-      'relative before:absolute before:top before:w-full before:rounded-input before:border-0.5 before:border-primary/20 before:transition-colors',
+      'relative backdrop-blur-md before:absolute before:top before:w-full before:rounded-input before:border-0.5 before:border-primary/20 before:transition-colors',
     optionsSpacing: 'padding relative h-6',
-    optionsContainer: DIALOG_BACKGROUND({
-      className:
-        'relative grid max-h-dropdown-items w-full overflow-auto rounded-input transition-grid-template-rows',
-    }),
+    optionsContainer:
+      'relative grid max-h-dropdown-items w-full overflow-auto rounded-input transition-grid-template-rows',
     optionsList: 'overflow-hidden',
     optionsItem:
       'flex h-6 items-center gap-dropdown-arrow rounded-input px-input-x transition-colors focus:cursor-default focus:bg-frame focus:font-bold focus:focus-ring not-focus:hover:bg-hover-bg not-selected:hover:bg-hover-bg',

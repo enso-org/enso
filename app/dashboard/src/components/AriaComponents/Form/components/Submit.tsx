@@ -4,20 +4,18 @@
  * Submit button for forms.
  * Manages the form state and displays a loading spinner when the form is submitting.
  */
-import * as React from 'react'
+import type { JSX } from 'react'
 
-import * as textProvider from '#/providers/TextProvider'
-
-import * as ariaComponents from '#/components/AriaComponents'
-
-import * as formContext from './FormProvider'
-import type * as types from './types'
+import { Button, useDialogContext, type ButtonProps } from '#/components/AriaComponents'
+import { useText } from '#/providers/TextProvider'
+import { useFormContext } from './FormProvider'
+import type { FormInstance } from './types'
 
 /**
  * Additional props for the Submit component.
  */
 interface SubmitButtonBaseProps {
-  readonly variant?: ariaComponents.ButtonProps['variant']
+  readonly variant?: ButtonProps['variant']
   /**
    * Connects the submit button to a form.
    * If not provided, the button will use the nearest form context.
@@ -26,20 +24,15 @@ interface SubmitButtonBaseProps {
    */
   // We do not need to know the form fields.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  readonly form?: types.FormInstance<any>
-  /**
-   * Prop that allows to close the parent dialog without submitting the form.
-   *
-   * This looks tricky, but it's recommended by MDN as a receipt for closing the dialog without submitting the form.
-   * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/dialog#closing_a_dialog_with_a_required_form_input
-   */
-  readonly formnovalidate?: boolean
+  readonly form?: FormInstance<any>
+  /** Defaults to `submit`. */
+  readonly action?: 'cancel' | 'submit' | 'update'
 }
 
 /**
  * Props for the Submit component.
  */
-export type SubmitProps = Omit<ariaComponents.ButtonProps, 'href' | 'variant'> &
+export type SubmitProps = Omit<ButtonProps, 'formnovalidate' | 'href' | 'variant'> &
   SubmitButtonBaseProps
 
 /**
@@ -47,28 +40,30 @@ export type SubmitProps = Omit<ariaComponents.ButtonProps, 'href' | 'variant'> &
  *
  * Manages the form state and displays a loading spinner when the form is submitting.
  */
-export function Submit(props: SubmitProps): React.JSX.Element {
-  const { getText } = textProvider.useText()
+export function Submit(props: SubmitProps): JSX.Element {
+  const { getText } = useText()
 
   const {
     size = 'medium',
-    formnovalidate = false,
+    action = 'submit',
     loading = false,
-    children = formnovalidate ? getText('cancel') : getText('submit'),
-    variant = formnovalidate ? 'ghost-fading' : 'submit',
-    testId = formnovalidate ? 'form-cancel-button' : 'form-submit-button',
+    children = action === 'cancel' ? getText('cancel')
+    : action === 'update' ? getText('update')
+    : getText('submit'),
+    variant = action === 'cancel' ? 'outline' : 'submit',
+    testId = action === 'cancel' ? 'form-cancel-button' : 'form-submit-button',
     ...buttonProps
   } = props
 
-  const dialogContext = ariaComponents.useDialogContext()
-  const form = formContext.useFormContext(props.form)
+  const dialogContext = useDialogContext()
+  const form = useFormContext(props.form)
   const { formState } = form
 
-  const isLoading = formnovalidate ? false : loading || formState.isSubmitting
-  const type = formnovalidate || isLoading ? 'button' : 'submit'
+  const isLoading = action === 'cancel' ? false : loading || formState.isSubmitting
+  const type = action === 'cancel' || isLoading ? 'button' : 'submit'
 
   return (
-    <ariaComponents.Button
+    <Button
       /* This is safe because we are passing all props to the button */
       /* eslint-disable-next-line @typescript-eslint/no-explicit-any,no-restricted-syntax */
       {...(buttonProps as any)}
@@ -78,12 +73,12 @@ export function Submit(props: SubmitProps): React.JSX.Element {
       loading={isLoading}
       testId={testId}
       onPress={() => {
-        if (formnovalidate) {
+        if (action === 'cancel') {
           dialogContext?.close()
         }
       }}
     >
       {children}
-    </ariaComponents.Button>
+    </Button>
   )
 }

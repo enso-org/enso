@@ -17,7 +17,9 @@ import StatelessSpinner, * as spinner from '#/components/StatelessSpinner'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 
+import { useBackendQuery } from '#/hooks/backendHooks'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
+import { useMemo } from 'react'
 
 // =================
 // === Constants ===
@@ -89,6 +91,18 @@ export default function ProjectIcon(props: ProjectIconProps) {
 
   const isOtherUserUsingProject =
     isCloud && itemProjectState.openedBy != null && itemProjectState.openedBy !== user.email
+  const { data: users } = useBackendQuery(backend, 'listUsers', [], {
+    enabled: isOtherUserUsingProject,
+  })
+  const userOpeningProject = useMemo(
+    () =>
+      !isOtherUserUsingProject ? null : (
+        users?.find((otherUser) => otherUser.email === itemProjectState.openedBy)
+      ),
+    [isOtherUserUsingProject, itemProjectState.openedBy, users],
+  )
+  const userOpeningProjectTooltip =
+    userOpeningProject == null ? null : getText('xIsUsingTheProject', userOpeningProject.name)
 
   const state = (() => {
     // Project is closed, show open button
@@ -159,7 +173,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
             extraClickZone="xsmall"
             isDisabled={isDisabled || isOtherUserUsingProject}
             icon={StopIcon}
-            aria-label={getText('stopExecution')}
+            aria-label={userOpeningProjectTooltip ?? getText('stopExecution')}
             tooltipPlacement="left"
             className={tailwindMerge.twJoin(isRunningInBackground && 'text-green')}
             {...(isOtherUserUsingProject ? { title: getText('otherUserIsUsingProjectError') } : {})}
@@ -184,7 +198,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
               extraClickZone="xsmall"
               isDisabled={isDisabled || isOtherUserUsingProject}
               icon={StopIcon}
-              aria-label={getText('stopExecution')}
+              aria-label={userOpeningProjectTooltip ?? getText('stopExecution')}
               tooltipPlacement="left"
               className={tailwindMerge.twMerge(isRunningInBackground && 'text-green')}
               onPress={doCloseProject}
@@ -204,7 +218,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
               variant="icon"
               extraClickZone="xsmall"
               icon={ArrowUpIcon}
-              aria-label={getText('openInEditor')}
+              aria-label={userOpeningProjectTooltip ?? getText('openInEditor')}
               isDisabled={isDisabled}
               tooltipPlacement="right"
               onPress={doOpenProjectTab}
