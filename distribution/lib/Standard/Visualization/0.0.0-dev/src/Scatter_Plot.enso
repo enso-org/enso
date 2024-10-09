@@ -244,7 +244,7 @@ json_from_table table bounds limit =
 json_from_vector : Vector Any -> Vector Integer | Nothing -> Integer | Nothing -> Text
 json_from_vector vec bounds limit =
     data = vec.point_data |> bound_data bounds |> limit_data limit
-    JS_Object.from_pairs [[data_field, data], [axis_field, Nothing], ["is_multi_series", False], ["get_row_method", "at"], ["x_value_type", Value_Type.Integer.to_name]] . to_json
+    JS_Object.from_pairs [[data_field, data], [axis_field, Nothing], ["is_multi_series", False], ["get_row_method", "at"], ["x_value_type", Value_Type.Integer.to_name], ["error_message", Nothing]] . to_json
 
 ## PRIVATE
 
