@@ -137,9 +137,21 @@ object FrgaalJavaCompiler {
       }
       ap
     }
+    val moduleInfoAndSources =
+      sources0.partition(_.toString().endsWith("module-info.java"))
+    val sourcesNoModuleInfo = moduleInfoAndSources._2
+    val out                 = output.getSingleOutputAsPath().get()
+    val shared              = sources0.fold(out)(asCommon).asInstanceOf[Path]
 
-    val out    = output.getSingleOutputAsPath().get()
-    val shared = sources0.fold(out)(asCommon).asInstanceOf[Path]
+    log.debug(
+      s"[FrgaalJavaCompiler] sources0: ${sources0}"
+    )
+    log.debug(
+      s"[FrgaalJavaCompiler] sourcesNoModuleInfo: ${sourcesNoModuleInfo}"
+    )
+    log.debug(
+      s"[FrgaalJavaCompiler] shared: ${shared}"
+    )
 
     val allSources = if (shouldCompileModuleInfo) {
       val moduleInfo = javaSourceDir.toPath.resolve("module-info.java").toFile
@@ -197,17 +209,28 @@ object FrgaalJavaCompiler {
       inATargetDir
     }
 
-    val (withTarget, noTarget) = sources0.partition(checkTarget)
+    val (withTarget, noTarget) = sourcesNoModuleInfo
+      .partition(checkTarget)
+    log.debug(
+      s"[FrgaalJavaCompiler] withTarget: ${withTarget}"
+    )
+    log.debug(
+      s"[FrgaalJavaCompiler] noTarget: ${noTarget}"
+    )
     val in = if (noTarget.isEmpty) {
-      None
+      log.debug(s"No target. Using location of ${moduleInfoAndSources._1}")
+      moduleInfoAndSources._1.map(asPath(_).getParent()).headOption
     } else {
       Some(
         findUnder(
-          1,
+          3,
           noTarget.tail.fold(asPath(noTarget.head))(asCommon).asInstanceOf[Path]
         )
       )
     }
+    log.debug(
+      s"[FrgaalJavaCompiler] input sources are at: ${in}"
+    )
     val generated = if (withTarget.isEmpty) {
       None
     } else {
@@ -220,12 +243,18 @@ object FrgaalJavaCompiler {
         )
       )
     }
+    log.debug(
+      s"[FrgaalJavaCompiler] generated code is at ${generated}"
+    )
 
     if (shared.toFile().exists()) {
       val ensoMarker = new File(shared.toFile(), ENSO_SOURCES)
       val ensoConfig = new File(
         shared.toFile(),
         ENSO_SOURCES + "-" + out.getFileName().toString()
+      )
+      log.debug(
+        s"[FrgaalJavaCompiler] writing compiler configuration into ${ensoConfig}"
       )
       val ensoProperties = new java.util.Properties()
 
@@ -302,7 +331,9 @@ object FrgaalJavaCompiler {
           " You should attach the debugger now."
         )
       }
-      log.debug("[frgaal] Running " + (exe +: forkArgs).mkString(" "))
+      log.debug(
+        "[FrgaalJavaCompiler] Running " + (exe +: forkArgs).mkString(" ")
+      )
       try {
         exitCode = Process(exe +: forkArgs, cwd) ! javacLogger
       } finally {

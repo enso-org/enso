@@ -129,7 +129,7 @@ type Asset_Cache
 
 ## PRIVATE
    Returns the cached reference or fetches it from the cloud.
-fetch_asset_reference (file : Enso_File) -> Existing_Enso_Asset ! File_Error =
+fetch_asset_reference (file : Enso_File) -> Existing_Enso_Asset ! File_Error = file.if_not_error <|
     path = file.enso_path.to_text
     Utils.get_cached (Asset_Cache.asset_key file) cache_duration=Cloud_Caching_Settings.get_file_cache_ttl <|
         Existing_Enso_Asset.resolve_path path if_not_found=(Error.throw (File_Error.Not_Found file))

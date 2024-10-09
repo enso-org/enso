@@ -53,22 +53,10 @@ type Enso_File
 
        Arguments:
        - path: The `enso://` path to a file or directory.
-
-       ? Enso Cloud Paths
-
-         The paths consist of the organization (user) name followed by a path to
-         the file/directory delimited by `/`.
-         For example `enso://my_org/some_dir/some-file.txt`.
-
-       ! Work in progress - only existing resources
-
-         Currently the API is only able to resolve paths to existing files or
-         directories. This is a temporary limitation and it will be improved in
-         the future, alongside with implementing the capabilities to write new
-         files.
     new : Text -> Enso_File ! Not_Found
     new (path : Text) =
-        Enso_File.Value (Enso_Path.parse path)
+        resolved_path = Enso_Path.parse path
+        resolved_path.if_not_error <| Enso_File.Value resolved_path
 
     ## PRIVATE
     private Value (enso_path : Enso_Path)
@@ -77,8 +65,7 @@ type Enso_File
        Represents the current user's home directory.
     home : Enso_File
     home -> Enso_File =
-        Enso_File.root /  "Users" / Enso_User.current.name
-
+        Enso_File.root / "Users" / Enso_User.current.name
 
     ## ICON folder
        Represents the root folder of the organization.
@@ -256,7 +243,7 @@ type Enso_File
                         Error.throw (Illegal_Argument.Error "Only files can be opened as a stream.")
                 response.if_not_error <| response.body.with_stream action
 
-    ## ALIAS load, open
+    ## ALIAS load, open, import
        GROUP Input
        ICON data_input
        Read a file using the specified file format

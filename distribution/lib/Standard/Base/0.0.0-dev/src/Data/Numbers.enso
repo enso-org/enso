@@ -750,23 +750,57 @@ type Float
        GROUP Conversions
        ICON convert
 
-       Parses a textual representation of a float into a float number, returning
-       a `Number_Parse_Error` if the text does not represent a valid float.
+       Parses a string into a `Float`, returning a `Number_Parse_Error` if the
+       text does not represent a valid `Float`.
 
        Arguments:
-       - text: The text to parse into a float.
-       - locale: The locale that specifies the format to use when parsing
+       - text: The text to parse into a `Float`.
+       - locale: The locale that specifies the format to use when parsing.
+       - format: The Java-style format to use to parse the string.
+
+       ! Error Conditions
+
+         - If `text` is incorrectly formatted, a `Number_Parse_Error` is thrown.
+         - If `format` is incorrectly formatted (or uses digit separators that
+           differ from the ones specified by the locale), an `Illegal_Argument`
+           is thrown.
 
        > Example
-         Parse the text "7.6" into a float number.
+         Parse a `Float` with no locale specifier.
 
-             Float.parse "7.6"
-    parse : Text -> Locale | Nothing -> Float ! Number_Parse_Error
-    parse text locale=Nothing = case locale of
-        Nothing -> Panic.catch NumberFormatException (Double.parseDouble text) _->
-            Error.throw (Number_Parse_Error.Error text)
-        Locale.Value java_locale -> Panic.catch ParseException ((NumberFormat.getInstance java_locale).parse text) _->
-            Error.throw (Number_Parse_Error.Error text)
+             Float.parse "123456789.87654"
+             # => 123456789.87654
+
+       > Example
+         Parse a `Float` with the default locale.
+
+             Float.parse "123,456,789.87654" locale=Locale.default
+             # => 123456789.87654
+
+       > Example
+         Parse a `Float` with the US locale.
+
+             Float.parse "123,456,789.87654" locale=Locale.us
+             # => 123456789.87654
+
+       > Example
+         Parse a `Float` with the Italy locale.
+
+             Float.parse "123.456.789,87654" locale=Locale.italy
+             # => 123456789.87654
+       > Example
+         Parse a `Float` with an explicit negative number format.
+
+             Float.parse "(123,456,789.654)" format="###,###.##;(###,###.##)"
+             # => -123456789.654
+    parse : Text -> Locale | Nothing -> Float ! Number_Parse_Error ! Illegal_Argument
+    parse text locale:Locale=Locale.default format:Text="" -> Float ! Number_Parse_Error ! Illegal_Argument =
+        Illegal_Argument.handle_java_exception <|
+            # `getInstance` returns `DecimalFormat` or a subclass of `DecimalFormat`.
+            decimal_format = NumberFormat.getInstance locale.java_locale
+            decimal_format.applyLocalizedPattern format
+            Panic.catch ParseException (decimal_format.parse text) _->
+                Error.throw (Number_Parse_Error.Error text)
 
     ## ICON input_number
 

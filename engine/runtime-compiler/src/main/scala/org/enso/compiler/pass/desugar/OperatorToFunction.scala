@@ -78,7 +78,7 @@ case object OperatorToFunction extends IRPass {
           operatorBinary.right.mapExpressions(runExpression(_, inlineContext))
         ),
         hasDefaultsSuspended = false,
-        operatorBinary.location,
+        operatorBinary.identifiedLocation,
         operatorBinary.passData,
         operatorBinary.diagnostics
       )

@@ -52,7 +52,8 @@ export const FunctionName: unique symbol = Symbol.for('WidgetInput:FunctionName'
 declare module '@/providers/widgetRegistry' {
   export interface WidgetInput {
     [FunctionName]?: {
-      /** Id of expression which is accepted by Language Server's
+      /**
+       * Id of expression which is accepted by Language Server's
        * [`refactoring/renameSymbol` method](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#refactoringrenamesymbol)
        */
       editableName: ExpressionId

@@ -81,11 +81,15 @@ const builtinVisualizationsByName = Object.fromEntries(
 export const { provideFn: provideVisualizationStore, injectFn: useVisualizationStore } =
   createContextStore('visualization', (proj: ProjectStore) => {
     const cache = reactive(new Map<VisualizationId, Promise<VisualizationModule>>())
-    /** A map from file path to {@link AbortController}, so that a file change event can stop previous
-     * file change event handlers for the same path. */
+    /**
+     * A map from file path to {@link AbortController}, so that a file change event can stop previous
+     * file change event handlers for the same path.
+     */
     const compilationAbortControllers = reactive(new Map<string, AbortController>())
-    /** A map from file path in the current project, to visualization name. This is required so that
-     * file delete events can remove the cached visualization. */
+    /**
+     * A map from file path in the current project, to visualization name. This is required so that
+     * file delete events can remove the cached visualization.
+     */
     const currentProjectVisualizationsByPath = new Map<string, string>()
     const metadata = new VisualizationMetadataDb()
     const projectRoot = proj.projectRootId

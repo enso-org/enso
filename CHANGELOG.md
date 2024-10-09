@@ -7,6 +7,13 @@
 
 [11151]: https://github.com/enso-org/enso/pull/11151
 
+#### Enso Standard Library
+
+- [The `enso://~` path now resolves to user's home directory in the
+  cloud.][11235]
+
+[11235]: https://github.com/enso-org/enso/pull/11235
+
 # Enso 2024.4
 
 #### Enso IDE
@@ -27,6 +34,8 @@
 - [Fixed issue where drag'n'dropped files were not uploaded in cloud
   projects.][11014]
 - [Fixed files associations not properly registered on Windows][11030]
+- [Input components corresponding to function arguments are now
+  displayed.][11165]
 - [Fixed "rename project" button being broken after not changing project
   name][11103]
 - [Numbers starting with dot (`.5`) are accepted in Numeric Widget][11108]
@@ -41,6 +50,7 @@
 [11001]: https://github.com/enso-org/enso/pull/11001
 [11014]: https://github.com/enso-org/enso/pull/11014
 [11030]: https://github.com/enso-org/enso/pull/11030
+[11165]: https://github.com/enso-org/enso/pull/11165
 [11103]: https://github.com/enso-org/enso/pull/11103
 [11108]: https://github.com/enso-org/enso/pull/11108
 [11056]: https://github.com/enso-org/enso/pull/11056
@@ -58,10 +68,14 @@
 - [Support for creating Atoms in expressions.][10820]
 - [IO.print without new line][10858]
 - [Add `Text.to_decimal`.][10874]
-- [Added .floor, .ceil, .trunc to the in-memory `Decimal` column.][10887]
+- [Added `floor`, `ceil`, `trunc` to the in-memory `Decimal` column.][10887]
 - [Added vectorized .round to the in-memory `Decimal` column.][10912]
 - [`select_into_database_table` no longer defaults the primary key to the first
-  column][11120]
+  column.][11120]
+- [Extend the range of `floor`, `ceil`, `trunc` to values outside the `Long`
+  range.][11135]
+- [Added `format` parameter to `Decimal.parse`.][11205]
+- [Added `format` parameter to `Float.parse`.][11229]
 
 [10614]: https://github.com/enso-org/enso/pull/10614
 [10660]: https://github.com/enso-org/enso/pull/10660
@@ -74,6 +88,9 @@
 [10887]: https://github.com/enso-org/enso/pull/10887
 [10912]: https://github.com/enso-org/enso/pull/10912
 [11120]: https://github.com/enso-org/enso/pull/11120
+[11135]: https://github.com/enso-org/enso/pull/11135
+[11205]: https://github.com/enso-org/enso/pull/11205
+[11229]: https://github.com/enso-org/enso/pull/11229
 
 #### Enso Language & Runtime
 

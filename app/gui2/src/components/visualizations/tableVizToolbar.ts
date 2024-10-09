@@ -140,7 +140,7 @@ function useSortFilterNodesButton({
   }
 
   const createNodesButton: ToolbarItem = {
-    icon: 'add',
+    icon: 'add_to_graph_editor',
     title:
       "Create new component(s) with the current grid's sort and filters applied to the workflow",
     disabled: isDisabled,
@@ -183,6 +183,7 @@ function createFormatMenu({ textFormatterSelected }: FormatMenuOptions): Toolbar
   }
 }
 
+/** TODO: Add docs */
 export function useTableVizToolbar(options: Options): ComputedRef<ToolbarItem[]> {
   const createNodesButton = useSortFilterNodesButton(options)
   const formatMenu = createFormatMenu(options)

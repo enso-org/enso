@@ -7,6 +7,7 @@ const { provideFn, injectFn: injectAppClassSet } = createContextStore('App Class
   return reactive(new Map<string, number>())
 })
 
+/** TODO: Add docs */
 export function useAppClass(watchSource: WatchSource<Opt<Record<string, boolean>>>) {
   const classSet = injectAppClassSet(true)
   if (classSet == null) return

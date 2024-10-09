@@ -1,3 +1,4 @@
+/** Set "drag image" in given event Drag to blank image. */
 export function setDragImageToBlank(event: DragEvent) {
   const image = new Image()
   // Blank GIF

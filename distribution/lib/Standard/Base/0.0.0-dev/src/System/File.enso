@@ -262,7 +262,7 @@ type File
                 just_file_options = open_options.filter opt-> opt.is_a File_Access
                 Managed_Resource.bracket (new_input_stream self just_file_options) (_.close) action
 
-    ## ALIAS load, open
+    ## ALIAS load, open, import
        GROUP Input
        ICON data_input
        Read a file using the specified file format
@@ -823,9 +823,9 @@ type File
     list_immediate_children self = Vector.from_polyglot_array (self.list_immediate_children_array)
 
     ## PRIVATE
-       Return the absolute path of this File
+       Return the path that this file represents.
     to_text : Text
-    to_text self = self.absolute . path
+    to_text self = self.path
 
     ## PRIVATE
        Convert to a display representation of this File.

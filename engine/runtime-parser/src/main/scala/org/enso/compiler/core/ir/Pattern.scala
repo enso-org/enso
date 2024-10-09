@@ -36,12 +36,12 @@ object Pattern {
     * `_ -> ...` or `a -> ...`).
     *
     * @param name the name that constitutes the pattern
-    * @param location the source location for this IR node
+    * @param identifiedLocation the source location for this IR node
     * @param passData any pass metadata associated with the node
     */
   sealed case class Name(
     name: IRName,
-    override val location: Option[IdentifiedLocation],
+    override val identifiedLocation: IdentifiedLocation,
     override val passData: MetadataStorage = new MetadataStorage()
   ) extends Pattern
       with LazyDiagnosticStorage
@@ -70,7 +70,7 @@ object Pattern {
         || diagnostics != this.diagnostics
         || id != this.id
       ) {
-        val res = Name(name, location, passData)
+        val res = Name(name, location.orNull, passData)
         res.diagnostics = diagnostics
         res.id          = id
         res
@@ -130,18 +130,18 @@ object Pattern {
 
   /** A pattern that destructures a constructor application.
     *
-    * The first part of the pattern must be a refferent name. The fields of
+    * The first part of the pattern must be a referent name. The fields of
     * the constructor may be any available kind of pattern.
     *
     * @param constructor the constructor being matched on
-    * @param fields      the asserted fields of the constructor
-    * @param location    the source location for this IR node
-    * @param passData    any pass metadata associated with this node
+    * @param fields the asserted fields of the constructor
+    * @param identifiedLocation the source location for this IR node
+    * @param passData any pass metadata associated with this node
     */
   sealed case class Constructor(
     constructor: IRName,
     fields: List[Pattern],
-    override val location: Option[IdentifiedLocation],
+    override val identifiedLocation: IdentifiedLocation,
     override val passData: MetadataStorage = new MetadataStorage()
   ) extends Pattern
       with LazyDiagnosticStorage
@@ -173,7 +173,7 @@ object Pattern {
         || diagnostics != this.diagnostics
         || id != this.id
       ) {
-        val res = Constructor(constructor, fields, location, passData)
+        val res = Constructor(constructor, fields, location.orNull, passData)
         res.diagnostics = diagnostics
         res.id          = id
         res
@@ -294,12 +294,12 @@ object Pattern {
     * A literal pattern matches on constants.
     *
     * @param literal the literal representing the pattern
-    * @param location the source location for this IR node
+    * @param identifiedLocation the source location for this IR node
     * @param passData any pass metadata associated with the node
     */
   sealed case class Literal(
     literal: IRLiteral,
-    override val location: Option[IdentifiedLocation],
+    override val identifiedLocation: IdentifiedLocation,
     override val passData: MetadataStorage = new MetadataStorage()
   ) extends Pattern
       with LazyDiagnosticStorage
@@ -328,7 +328,7 @@ object Pattern {
         || diagnostics != this.diagnostics
         || id != this.id
       ) {
-        val res = Literal(literal, location, passData)
+        val res = Literal(literal, location.orNull, passData)
         res.diagnostics = diagnostics
         res.id          = id
         res
@@ -395,13 +395,13 @@ object Pattern {
     *
     * @param name the name of the bound variable, or wildcard
     * @param tpe the name of the type to match on
-    * @param location the source location for this IR node
+    * @param identifiedLocation the source location for this IR node
     * @param passData any pass metadata associated with the node
     */
   sealed case class Type(
     name: IRName,
     tpe: IRName,
-    override val location: Option[IdentifiedLocation],
+    override val identifiedLocation: IdentifiedLocation,
     override val passData: MetadataStorage = new MetadataStorage()
   ) extends Pattern
       with LazyDiagnosticStorage
@@ -433,7 +433,7 @@ object Pattern {
         || diagnostics != this.diagnostics
         || id != this.id
       ) {
-        val res = Type(name, tpe, location, passData)
+        val res = Type(name, tpe, location.orNull, passData)
         res.diagnostics = diagnostics
         res.id          = id
         res
@@ -507,12 +507,12 @@ object Pattern {
     * being empty.
     *
     * @param doc the documentation entity
-    * @param location the source location that the node corresponds to
+    * @param identifiedLocation the source location that the node corresponds to
     * @param passData the pass metadata associated with this node
     */
   final case class Documentation(
     doc: String,
-    override val location: Option[IdentifiedLocation],
+    override val identifiedLocation: IdentifiedLocation,
     override val passData: MetadataStorage = new MetadataStorage()
   ) extends Pattern
       with LazyDiagnosticStorage
@@ -553,7 +553,7 @@ object Pattern {
         || diagnostics != this.diagnostics
         || id != this.id
       ) {
-        val res = Documentation(doc, location, passData)
+        val res = Documentation(doc, location.orNull, passData)
         res.diagnostics = diagnostics
         res.id          = id
         res

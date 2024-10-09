@@ -30,6 +30,7 @@ export class ComputedValueRegistry {
     markRaw(this)
   }
 
+  /** TODO: Add docs */
   static WithExecutionContext(executionContext: ExecutionContext): ComputedValueRegistry {
     const self = new ComputedValueRegistry()
     self.executionContext = executionContext
@@ -37,10 +38,12 @@ export class ComputedValueRegistry {
     return self
   }
 
+  /** TODO: Add docs */
   static Mock(): ComputedValueRegistry {
     return new ComputedValueRegistry()
   }
 
+  /** TODO: Add docs */
   processUpdates(updates: ExpressionUpdate[]) {
     for (const update of updates) {
       const info = this.db.get(update.expressionId)
@@ -49,10 +52,12 @@ export class ComputedValueRegistry {
     }
   }
 
+  /** TODO: Add docs */
   getExpressionInfo(exprId: ExpressionId): ExpressionInfo | undefined {
     return this.db.get(exprId)
   }
 
+  /** TODO: Add docs */
   dispose() {
     this.executionContext?.off('expressionUpdates', this._updateHandler)
   }

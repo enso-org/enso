@@ -66,7 +66,7 @@ type Hyper_File
                 _ -> HyperReader.listTables self.file.path schema
             array.map t-> Hyper_Table.Value self t.schema t.name
 
-    ## ALIAS get, sheet
+    ## ALIAS get, sheet, load, open, import
        GROUP Standard.Base.Input
        ICON data_input
        Read a table from the Hyper_File into a Table.
