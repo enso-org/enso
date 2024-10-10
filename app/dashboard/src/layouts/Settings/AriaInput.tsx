@@ -3,6 +3,7 @@ import {
   Form,
   INPUT_STYLES,
   Input,
+  TEXT_STYLE,
   type FieldPath,
   type InputProps,
   type TSchema,
@@ -17,8 +18,9 @@ const SETTINGS_INPUT_STYLES = tv({
     },
   },
   slots: {
-    base: 'p-0',
-    textArea: 'rounded-2xl border-0.5 border-primary/20 px-1',
+    base: 'p-0 transition-[border-color,outline] outline-offset-2 focus-within:border-primary/50 focus-within:outline focus-within:outline-2 focus-within:outline-offset-0 focus-within:outline-primary',
+    inputContainer: TEXT_STYLE({ disableLineHeightCompensation: true }),
+    textArea: 'h-6 rounded-full border-0.5 border-primary/20 px-1',
   },
 })
 
@@ -27,7 +29,10 @@ const SETTINGS_FIELD_STYLES = tv({
   slots: {
     base: 'flex-row flex-wrap',
     labelContainer: 'flex min-h-row items-center gap-5 w-full',
-    label: 'text mb-auto w-40 shrink-0',
+    label: TEXT_STYLE({
+      className: 'text mb-auto w-40 shrink-0',
+      variant: 'body',
+    }),
     error: 'ml-[180px]',
   },
 })
