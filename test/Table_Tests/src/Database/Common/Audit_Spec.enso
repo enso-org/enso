@@ -119,7 +119,7 @@ add_specs suite_builder prefix ~datalink_to_connection database_pending =
                     create.metadata.get "connectionUri" . should_contain "jdbc:"
                     # Verify that it contains an asset id field:
                     asset_id = create.metadata.get "dataLinkAssetId"
-                    IO.println asset_id
+                    # We cannot really assume too much about the ID other than that it is a string:
                     asset_id.should_be_a Text
 
 main filter=Nothing =
