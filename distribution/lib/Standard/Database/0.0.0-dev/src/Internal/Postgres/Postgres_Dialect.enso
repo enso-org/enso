@@ -10,8 +10,6 @@ from Standard.Table.Aggregate_Column.Aggregate_Column import all
 from Standard.Table.Errors import Inexact_Type_Coercion
 from Standard.Table.Internal.Storage import get_storage_for_column
 
-from Standard.Database.Dialect_Flags import all
-
 import project.Connection.Connection.Connection
 import project.DB_Column.DB_Column
 import project.DB_Table.DB_Table
@@ -35,7 +33,7 @@ import project.Internal.Replace_Params.Replace_Params
 import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.Statement_Setter.Statement_Setter
-import project.Property.Property
+import project.Dialect_Flag.Dialect_Flag
 import project.SQL.SQL_Builder
 import project.SQL.SQL_Fragment
 import project.SQL_Statement.SQL_Statement
@@ -256,16 +254,16 @@ type Postgres_Dialect
         True
 
     ## PRIVATE
-       Gets a dialect property
-    property self checked_property:Property -> Boolean =
-        case checked_property of
-            Property.Supports_Negative_Decimal_Places -> True
-            Property.Supports_Float_Decimal_Places -> False
-            Property.Use_Builtin_Bankers -> False
-            Property.Primary_Key_Allows_Nulls -> False
-            Property.Supports_Separate_NaN -> True
-            Property.Supports_Nested_With_Clause -> True
-            Property.Supports_Case_Sensitive_Columns -> True
+       Checks a dialect flag
+    flagged self flag:Dialect_Flag -> Boolean =
+        case flag of
+            Dialect_Flag.Supports_Negative_Decimal_Places -> True
+            Dialect_Flag.Supports_Float_Decimal_Places -> False
+            Dialect_Flag.Use_Builtin_Bankers -> False
+            Dialect_Flag.Primary_Key_Allows_Nulls -> False
+            Dialect_Flag.Supports_Separate_NaN -> True
+            Dialect_Flag.Supports_Nested_With_Clause -> True
+            Dialect_Flag.Supports_Case_Sensitive_Columns -> True
 
     ## PRIVATE
        The default table types to use when listing tables.

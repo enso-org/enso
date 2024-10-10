@@ -35,13 +35,12 @@ import Standard.Database.Internal.Replace_Params.Replace_Params
 import Standard.Database.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import Standard.Database.Internal.SQL_Type_Reference.SQL_Type_Reference
 import Standard.Database.Internal.Statement_Setter.Statement_Setter
-import Standard.Database.Property.Property
+import Standard.Database.Dialect_Flag.Dialect_Flag
 import Standard.Database.SQL.SQL_Builder
 import Standard.Database.SQL.SQL_Fragment
 import Standard.Database.SQL_Statement.SQL_Statement
 import Standard.Database.SQL_Type.SQL_Type
 from Standard.Database.Dialect import Temp_Table_Style
-from Standard.Database.Dialect_Flags import all
 from Standard.Database.Errors import SQL_Error, Unsupported_Database_Operation
 from Standard.Database.Internal.Base_Generator import lift_binary_op
 from Standard.Database.Internal.IR.Operation_Metadata import Date_Period_Metadata
@@ -231,16 +230,16 @@ type SQLServer_Dialect
             _ -> False
 
     ## PRIVATE
-       Gets a dialect property
-    property self checked_property:Property -> Boolean =
-        case checked_property of
-            Property.Supports_Negative_Decimal_Places -> True
-            Property.Supports_Float_Decimal_Places -> True
-            Property.Use_Builtin_Bankers -> False
-            Property.Primary_Key_Allows_Nulls -> False
-            Property.Supports_Separate_NaN -> False
-            Property.Supports_Nested_With_Clause -> True
-            Property.Supports_Case_Sensitive_Columns -> False
+       Checks a dialect flag
+    flagged self flag:Dialect_Flag -> Boolean =
+        case flag of
+            Dialect_Flag.Supports_Negative_Decimal_Places -> True
+            Dialect_Flag.Supports_Float_Decimal_Places -> True
+            Dialect_Flag.Use_Builtin_Bankers -> False
+            Dialect_Flag.Primary_Key_Allows_Nulls -> False
+            Dialect_Flag.Supports_Separate_NaN -> False
+            Dialect_Flag.Supports_Nested_With_Clause -> True
+            Dialect_Flag.Supports_Case_Sensitive_Columns -> False
 
     ## PRIVATE
        The default table types to use when listing tables.

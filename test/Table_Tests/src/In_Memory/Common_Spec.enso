@@ -4,7 +4,7 @@ from Standard.Table import Table
 
 from Standard.Test import Test
 
-import Standard.Database.Property.Property
+import Standard.Database.Dialect_Flag.Dialect_Flag
 
 import project.Common_Table_Operations
 
@@ -37,11 +37,11 @@ in_memory_setup =
         Dummy_Connection.Value
     is_feature_supported_fn _ =
         True
-    property_fn checked_property:Property =
-        case checked_property of
-            Property.Supports_Case_Sensitive_Columns -> True
+    flagged_fn flag:Dialect_Flag =
+        case flag of
+            Dialect_Flag.Supports_Case_Sensitive_Columns -> True
 
-    Common_Table_Operations.Main.Test_Setup.Config "[In-Memory] " agg_table_fn empty_table_fn table_builder materialize is_database=False test_selection=selection aggregate_test_selection=aggregate_selection create_connection_func=create_connection_func light_table_builder=light_table_builder is_feature_supported=is_feature_supported_fn property=property_fn
+    Common_Table_Operations.Main.Test_Setup.Config "[In-Memory] " agg_table_fn empty_table_fn table_builder materialize is_database=False test_selection=selection aggregate_test_selection=aggregate_selection create_connection_func=create_connection_func light_table_builder=light_table_builder is_feature_supported=is_feature_supported_fn flagged=flagged_fn
 
 add_specs suite_builder =
     Common_Table_Operations.Main.add_specs suite_builder in_memory_setup

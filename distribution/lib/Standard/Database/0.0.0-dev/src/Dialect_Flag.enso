@@ -1,7 +1,7 @@
 from Standard.Base import all
 
 ## PRIVATE
-type Property
+type Dialect_Flag
     ## PRIVATE
     Supports_Negative_Decimal_Places
     ## PRIVATE

@@ -23,11 +23,10 @@ import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.SQLite.SQLite_Dialect
 import project.Internal.Statement_Setter.Statement_Setter
-import project.Property.Property
+import project.Dialect_Flag.Dialect_Flag
 import project.SQL.SQL_Builder
 import project.SQL_Statement.SQL_Statement
 import project.SQL_Type.SQL_Type
-from project.Dialect_Flags import all
 from project.Errors import SQL_Error, Unsupported_Database_Operation
 from project.Feature import Feature
 from project.Internal.JDBC_Connection import JDBC_Connection
@@ -140,12 +139,6 @@ type Dialect
         _ = statement
         Unimplemented.throw "This is an interface only."
 
-    ## PRIVAITE
-       Specifies implementation details flags.
-    dialect_flags : Dialect_Flags
-    dialect_flags -> Dialect_Flags =
-        Unimplemented.throw "This is an interface only."
-
     ## PRIVATE
        Specifies how the database creates temp tables.
     temp_table_style : Temp_Table_Style
@@ -200,9 +193,9 @@ type Dialect
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
-       Gets a dialect property
-    property self checked_property:Property -> Boolean =
-        _ = checked_property
+       Checks a dialect flag
+    flagged self flag:Dialect_Flag -> Boolean =
+        _ = flag
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
