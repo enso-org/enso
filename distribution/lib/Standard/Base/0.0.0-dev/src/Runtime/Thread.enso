@@ -2,6 +2,7 @@
    Internal threading utilities used for working with threads.
 
 import project.Any.Any
+import project.Data.Numbers.Integer
 
 ## PRIVATE
    ADVANCED

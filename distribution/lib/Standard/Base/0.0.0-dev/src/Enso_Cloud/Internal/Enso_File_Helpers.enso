@@ -1,10 +1,13 @@
 private
 
 import project.Any.Any
+import project.Data.Color.Color
 import project.Data.Dictionary.Dictionary
+import project.Data.Hashset.Hashset
 import project.Data.Json.Invalid_JSON
 import project.Data.Json.JS_Object
 import project.Data.Text.Text
+import project.Data.Vector.Vector
 import project.Enso_Cloud.Enso_File.Enso_Asset_Type
 import project.Enso_Cloud.Enso_File.Enso_File
 import project.Enso_Cloud.Errors.Enso_Cloud_Error
@@ -19,6 +22,7 @@ import project.Network.HTTP.HTTP_Method.HTTP_Method
 import project.Network.HTTP.Request_Error
 import project.Network.URI.URI
 import project.Nothing.Nothing
+import project.Random.Random
 import project.System.File.File
 import project.System.Output_Stream.Output_Stream
 from project.Data.Boolean import Boolean, False, True
@@ -87,7 +91,7 @@ perform_upload (destination : Enso_File) (allow_existing : Boolean) (~generate_r
             response = Utils.http_request_as_json HTTP_Method.Post full_uri pair.first error_handlers=error_handlers
             response.if_not_error <|
                 id = get_required_field "id" response expected_type=Text
-                Asset_Cache.update destination (Existing_Enso_Asset.from_id_and_title id file_name) . if_not_error <|
+                Asset_Cache.update destination (Existing_Enso_Asset.new id file_name) . if_not_error <|
                     pair.second
 
 ## PRIVATE
@@ -103,7 +107,9 @@ create_directory_with_parents (target : Enso_File) -> Existing_Enso_Asset =
         body = JS_Object.from_pairs [["title", target.name], ["parentId", parent_asset.id]]
         Asset_Cache.invalidate target
         response = Utils.http_request_as_json HTTP_Method.Post Utils.directory_api body
-        created_asset = Existing_Enso_Asset.from_json response
+        id = get_required_field "id" response expected_type=Text
+        title = get_required_field "title" response expected_type=Text
+        created_asset = Existing_Enso_Asset.new id title
         created_asset.if_not_error <|
             Asset_Cache.update target created_asset
             created_asset
@@ -129,5 +135,64 @@ create_datalink_from_stream_action (destination : Enso_File) (allow_existing : B
                     response = Utils.http_request_as_json HTTP_Method.Post Utils.datalinks_api payload error_handlers=error_handlers
                     response.if_not_error <|
                         id = get_required_field "id" response expected_type=Text
-                        Asset_Cache.update destination (Existing_Enso_Asset.from_id_and_title id title) . if_not_error <|
+                        Asset_Cache.update destination (Existing_Enso_Asset.new id title) . if_not_error <|
                             action_result
+
+## PRIVATE
+update_asset_description (asset : Enso_File) (description : Text) =
+    existing_asset = Existing_Enso_Asset.get_asset_reference_for asset
+    payload = JS_Object.from_pairs [["description", description]]
+    Asset_Cache.invalidate asset
+    Utils.http_request HTTP_Method.Patch existing_asset.asset_uri payload
+
+## PRIVATE
+update_asset_labels (asset : Enso_File) (new_labels : Vector Text) =
+    existing_asset = Existing_Enso_Asset.get_asset_reference_for asset
+    payload = JS_Object.from_pairs [["labels", new_labels]]
+    Asset_Cache.invalidate asset
+    Utils.http_request HTTP_Method.Patch existing_asset.asset_uri+"/labels" payload
+
+## PRIVATE
+create_tag (name : Text) (color : Color) =
+    color_as_json = JS_Object.from_pairs <| case color of
+        Color.HCL h c l -> [["lightness", l], ["chroma", c], ["hue", h]]
+        _ -> Error.throw (Illegal_Argument.Error "Only colors expressed in HCL color-space are supported when creating labels.")
+    payload = JS_Object.from_pairs <|
+        [["value", name], ["color", color_as_json]]
+    Utils.http_request_as_json HTTP_Method.Post Utils.tags_api payload
+
+## PRIVATE
+   Returns a list of known tags.
+list_tags -> Vector Tag =
+    response = Utils.http_request_as_json HTTP_Method.Get Utils.tags_api
+    tags = get_required_field "tags" response expected_type=Vector
+    tags.map tag_json->
+        id = get_required_field "id" tag_json expected_type=Text
+        value = get_required_field "value" tag_json expected_type=Text
+        Tag.Value value id
+
+## PRIVATE
+type Tag
+    ## PRIVATE
+       We are not including the color, as we are not using it yet.
+       Once needed, it should be added.
+    Value value:Text id:Text
+
+## PRIVATE
+random_tag_color -> Color =
+    lightness = 50
+    chroma = 66
+    hue = Random.integer 0 360
+    Color.HCL hue chroma lightness
+
+## PRIVATE
+does_tag_exist (name : Text) -> Boolean =
+    existing_tags = Hashset.from_vector <| list_tags.map .value
+    existing_tags.contains name
+
+## PRIVATE
+create_tags_if_not_exist (names : Vector Text) =
+    existing_tags = Hashset.from_vector <| list_tags.map .value
+    tags_to_create = (Hashset.from_vector names).difference existing_tags . to_vector
+    tags_to_create.each name->
+        create_tag name random_tag_color

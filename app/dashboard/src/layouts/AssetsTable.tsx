@@ -1747,7 +1747,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                       backendQueryOptions(backend, 'getProjectDetails', [
                         projectId,
                         asset.parentId,
-                        file.name,
+                        asset.title,
                       ]),
                     )
                     .catch((error) => {
@@ -1866,13 +1866,7 @@ export default function AssetsTable(props: AssetsTableProps) {
 
                   const asset = isUpdating ? conflict.current : conflict.new
 
-                  fileMap.set(
-                    asset.id,
-                    new File([conflict.file], asset.title, {
-                      type: conflict.file.type,
-                      lastModified: conflict.file.lastModified,
-                    }),
-                  )
+                  fileMap.set(asset.id, conflict.file)
 
                   insertAssets([asset], event.parentId)
                   void doUploadFile(asset, isUpdating ? 'update' : 'new')

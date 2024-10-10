@@ -19,7 +19,8 @@ type S3_Data_Link
     Value (uri : Text) format_json (credentials : AWS_Credential)
 
     ## PRIVATE
-    parse json -> S3_Data_Link =
+    parse json source -> S3_Data_Link =
+        _ = source
         uri = get_required_field "uri" json expected_type=Text
         auth = decode_aws_credential (get_required_field "auth" json)
         format_json = get_optional_field "format" json
