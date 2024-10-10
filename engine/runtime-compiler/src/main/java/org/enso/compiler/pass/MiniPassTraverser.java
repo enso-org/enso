@@ -27,6 +27,7 @@ public final class MiniPassTraverser {
     logPrepare(moduleIr, miniPass, preparedMiniPass);
     var newChildren = new ArrayList<Expression>();
     boolean[] childrenChanged = {false};
+    Module newModuleIr;
     moduleIr.mapExpressions(
         (ch) -> {
           var newChild = compileRecursively(ch, preparedMiniPass);
@@ -38,10 +39,11 @@ public final class MiniPassTraverser {
         });
     if (childrenChanged[0]) {
       var index = new int[1];
-      moduleIr.mapExpressions((old) -> newChildren.get(index[0]++));
+      newModuleIr = moduleIr.mapExpressions((old) -> newChildren.get(index[0]++));
+    } else {
+      newModuleIr = moduleIr;
     }
-    var newModuleIr = miniPass.transformModule(moduleIr);
-    return newModuleIr;
+    return miniPass.transformModule(newModuleIr);
   }
 
   public static Expression compileInlineWithMiniPass(Expression exprIr, MiniIRPass miniPass) {
