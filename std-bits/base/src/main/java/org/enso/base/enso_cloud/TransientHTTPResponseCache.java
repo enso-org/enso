@@ -37,6 +37,12 @@ public class TransientHTTPResponseCache {
 
   private static final int DEFAULT_TTL_SECONDS = 31536000;
 
+  /**
+   * This value is added to the current time when deciding if a cache entry is
+   * stale.
+   */
+  private static int advanceSecsTestOnly = 0;
+
   private static final Map<String, CacheEntry> cache = new HashMap<>();
 
   static EnsoHttpResponse makeRequest(
@@ -112,7 +118,8 @@ public class TransientHTTPResponseCache {
 
   /** Remove all cache entries (and their files) that have passed their TTL. */
   private static void removeStaleEntries() {
-    var now = LocalDateTime.now();
+    // The 'advanceSecsTestOnly' field is used for testing TTL expiration logic.
+    var now = LocalDateTime.now().plus(Duration.ofSeconds(advanceSecsTestOnly));
     removeCacheEntries(e -> e.expiry().isBefore(now));
   }
 
@@ -146,6 +153,10 @@ public class TransientHTTPResponseCache {
 
   public static int getNumEntries() {
     return cache.size();
+  }
+
+  public static void setTimeAdvanceTestOnly(int advanceSecs) {
+    advanceSecsTestOnly = advanceSecs;
   }
 
   /**

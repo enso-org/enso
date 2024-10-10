@@ -207,6 +207,11 @@ http_get_num_response_cache_entries : Integer
 http_get_num_response_cache_entries -> Integer = TransientHTTPResponseCache.getNumEntries
 
 ## PRIVATE
+   Adjust the value of the current time for testing the TTL logic
+http_set_time_advance_test_only : Nothing
+http_set_time_advance_test_only advance_secs = TransientHTTPResponseCache.setTimeAdvanceTestOnly advance_secs 
+
+## PRIVATE
 parse_headers : Vector (Header | Pair Text Text) -> Vector Header
 parse_headers headers =
     headers . map on_problems=No_Wrap h-> case h of

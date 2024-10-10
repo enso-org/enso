@@ -6,7 +6,7 @@ import Standard.Base.Network.HTTP.Request.Request
 import Standard.Base.Network.HTTP.Request_Body.Request_Body
 import Standard.Base.Network.HTTP.Response.Response
 import Standard.Base.Runtime.Context
-from Standard.Base.Network.HTTP import http_get_num_response_cache_entries 
+from Standard.Base.Network.HTTP import http_get_num_response_cache_entries, http_set_time_advance_test_only
 
 from Standard.Table import all
 import Standard.Table.Errors.Invalid_JSON_Format
@@ -280,8 +280,44 @@ add_specs suite_builder =
                 Data.fetch uri0 headers=headers0
                 Data.fetch uri0 headers=headers1
 
+        group_builder.specify "The cache should expire stale entries" pending=pending_has_url <| Test.with_retries <|
+            Data.clear_response_cache
+
+            # Will fetch this repeatly to trigger the cleanup
+            trigger_uri = base_url_with_slash+'test_download?max-age=10000&length=50'
+            Data.fetch trigger_uri
+
+            Data.fetch base_url_with_slash+'test_download?max-age=100&length=50'
+            Data.fetch base_url_with_slash+'test_download?max-age=200&length=50'
+            Data.fetch base_url_with_slash+'test_download?max-age=200&length=51'
+            Data.fetch base_url_with_slash+'test_download?max-age=300&length=50'
+            http_get_num_response_cache_entries . should_equal 5
+
+            http_set_time_advance_test_only 90
+            Data.fetch trigger_uri
+            http_get_num_response_cache_entries . should_equal 5
+
+            http_set_time_advance_test_only 110
+            Data.fetch trigger_uri
+            http_get_num_response_cache_entries . should_equal 4
+
+            http_set_time_advance_test_only 190
+            Data.fetch trigger_uri
+            http_get_num_response_cache_entries . should_equal 4
+
+            http_set_time_advance_test_only 202
+            Data.fetch trigger_uri
+            http_get_num_response_cache_entries . should_equal 2
+
+            http_set_time_advance_test_only 292
+            Data.fetch trigger_uri
+            http_get_num_response_cache_entries . should_equal 2
+
+            http_set_time_advance_test_only 301
+            Data.fetch trigger_uri
+            http_get_num_response_cache_entries . should_equal 1
+
         ##
-            group_builder.specify "The cache should expire stale entries" pending=pending_has_url <| Test.with_retries <|
             group_builder.specify "The cache should use the Age response header" pending=pending_has_url <| Test.with_retries <|
             group_builder.specify "Should not cache if the request fails" pending=pending_has_url <| Test.with_retries <|
             group_builder.specify "Should work with secrets in the URI" pending=pending_has_url <| Test.with_retries <|
