@@ -372,7 +372,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                     />
                     {canEditThisAsset && (
                       <ariaComponents.ButtonGroup>
-                        <ariaComponents.Form.Submit action="update" />
+                        <ariaComponents.Form.Submit>{getText('update')}</ariaComponents.Form.Submit>
                       </ariaComponents.ButtonGroup>
                     )}
                   </>

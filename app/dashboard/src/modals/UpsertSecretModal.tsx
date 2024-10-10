@@ -89,8 +89,8 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
       />
       <ButtonGroup className="mt-2">
         <Form.Submit>{isCreatingSecret ? getText('create') : getText('update')}</Form.Submit>
-        {canCancel && <Form.Submit action="cancel" />}
-        {canReset && <Form.Reset action="cancel" />}
+        {canCancel && <Form.Cancel />}
+        {canReset && <Form.Reset>{getText('cancel')}</Form.Reset>}
       </ButtonGroup>
     </Form>
   )

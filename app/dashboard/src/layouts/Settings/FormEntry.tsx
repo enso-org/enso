@@ -43,8 +43,8 @@ export function SettingsFormEntry<T extends Record<keyof T, string>>(
           <SettingsInput key={input.name} context={context} data={input} />
         ))}
       <ButtonGroup>
-        <Form.Submit action="save" />
-        <Form.Reset action="cancel" />
+        <Form.Submit>{getText('save')}</Form.Submit>
+        <Form.Reset>{getText('cancel')}</Form.Reset>
       </ButtonGroup>
       <Form.FormError />
     </Form>
