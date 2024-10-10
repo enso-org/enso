@@ -34,7 +34,6 @@ export interface ResetProps extends Omit<ariaComponents.ButtonProps, 'loading'> 
 export function Reset(props: ResetProps): React.JSX.Element {
   const { getText } = useText()
   const {
-    form = formContext.useFormContext(),
     variant = 'outline',
     size = 'medium',
     testId = 'form-reset-button',
@@ -43,7 +42,8 @@ export function Reset(props: ResetProps): React.JSX.Element {
     ...buttonProps
   } = props
 
-  const { formState } = formContext.useFormContext(form)
+  const form = formContext.useFormContext(props.form)
+  const { formState } = form
 
   return (
     <ariaComponents.Button
