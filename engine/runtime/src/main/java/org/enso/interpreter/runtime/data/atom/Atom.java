@@ -259,7 +259,7 @@ public abstract class Atom implements EnsoObject {
       }
     }
     var method = findMethod(member);
-    if (method != null && method.getSchema().isProjectPrivate()) {
+    if (method != null && !method.getSchema().isProjectPrivate()) {
       return method;
     }
     throw UnknownIdentifierException.create(member);
