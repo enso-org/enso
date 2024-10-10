@@ -199,7 +199,7 @@ type Enso_File
         Context.Output.if_enabled disabled_message="Cannot add a label when writing is disabled. Press the Write button ▶ to perform the operation." panic=False <|
             labels = self.labels
             if labels.contains label then self else
-                ensure_tags_exist [label] . if_not_error <|
+                create_tags_if_not_exist [label] . if_not_error <|
                     new_labels = labels+[label]
                     update_asset_labels self new_labels . if_not_error self
 
@@ -242,7 +242,7 @@ type Enso_File
     set_labels : Vector Text -> Enso_File
     set_labels self (labels : Vector Text) -> Enso_File =
         Context.Output.if_enabled disabled_message="Cannot update labels when writing is disabled. Press the Write button ▶ to perform the operation." panic=False <|
-            ensure_tags_exist labels . if_not_error <|
+            create_tags_if_not_exist labels . if_not_error <|
                 update_asset_labels self labels . if_not_error self
 
     ## GROUP Metadata
