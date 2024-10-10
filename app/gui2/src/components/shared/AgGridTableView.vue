@@ -39,6 +39,7 @@ const _props = defineProps<{
   singleClickEdit?: boolean
   stopEditingWhenCellsLoseFocus?: boolean
   textFormatOption?: TextFormatOptions
+  pinnedTopRowData?: any
 }>()
 const emit = defineEmits<{
   cellEditingStarted: [event: CellEditingStartedEvent]
@@ -190,6 +191,7 @@ const { AgGridVue } = await import('ag-grid-vue3')
     :components="components"
     :singleClickEdit="singleClickEdit"
     :stopEditingWhenCellsLoseFocus="stopEditingWhenCellsLoseFocus"
+    :pinnedTopRowData="pinnedTopRowData"
     @gridReady="onGridReady"
     @firstDataRendered="updateColumnWidths"
     @rowDataUpdated="updateColumnWidths($event), emit('rowDataUpdated', $event)"

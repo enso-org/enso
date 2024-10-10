@@ -79,6 +79,11 @@ interface UnknownTable {
   get_child_node_action: string
   get_child_node_link_name: string
   link_value_type: string
+  data_quality_pairs: DataQualityPairs
+}
+
+interface DataQualityPairs {
+  number_of_nothing: number[]
 }
 
 export type TextFormatOptions = 'full' | 'partial' | 'off'
@@ -139,6 +144,16 @@ const selectableRowLimits = computed(() => {
     defaults.push(rowLimit.value)
   }
   return defaults
+})
+
+const pinnedTopRowData = computed(() => {
+  const headers = props.data.header
+  const numberOfNothig = props.data.data_quality_pairs.number_of_nothing
+  const pairs: Record<string, string> = headers.reduce((obj, key, index) => {
+    obj[key] = numberOfNothig[index]
+    return obj
+  }, {})
+  return [pairs]
 })
 
 const newNodeSelectorValues = computed(() => {
@@ -638,6 +653,7 @@ config.setToolbar(
         :rowData="rowData"
         :defaultColDef="defaultColDef"
         :textFormatOption="textFormatterSelected"
+        :pinnedTopRowData="pinnedTopRowData"
         @sortOrFilterUpdated="(e) => checkSortAndFilter(e)"
       />
     </Suspense>
