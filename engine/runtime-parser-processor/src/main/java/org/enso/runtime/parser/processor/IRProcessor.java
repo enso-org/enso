@@ -12,7 +12,6 @@ import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.TypeMirror;
-import javax.tools.Diagnostic.Kind;
 import javax.tools.JavaFileObject;
 import org.enso.runtime.parser.dsl.IRChild;
 import org.enso.runtime.parser.dsl.IRNode;
@@ -62,7 +61,7 @@ public class IRProcessor extends AbstractProcessor {
       printError("Failed to create source file for IRNode", irNodeElem);
     }
     assert srcGen != null;
-    var irNodeElement = new IRNodeElement(processingEnv, irNodeTypeElem);
+    var irNodeElement = new IRNodeElement(processingEnv, irNodeTypeElem, newRecordName);
     try {
       try (var lineWriter = new PrintWriter(srcGen.openWriter())) {
         var code =
@@ -70,15 +69,24 @@ public class IRProcessor extends AbstractProcessor {
             $imports
 
             public record $recordName (
-              String field
+              $fields
             ) implements $interfaceName {
+
+              public static Builder builder() {
+                return new Builder();
+              }
+
               $overrideIRMethods
+
+              $builder
             }
             """
-                .replace("$imports", IRNodeElement.IMPORTS)
+                .replace("$imports", irNodeElement.imports())
+                .replace("$fields", irNodeElement.fields())
                 .replace("$recordName", newRecordName)
                 .replace("$interfaceName", irNodeInterfaceName)
-                .replace("$overrideIRMethods", irNodeElement.overrideIRMethods());
+                .replace("$overrideIRMethods", irNodeElement.overrideIRMethods())
+                .replace("$builder", irNodeElement.builder());
         lineWriter.println(code);
         lineWriter.println();
       }
@@ -96,9 +104,7 @@ public class IRProcessor extends AbstractProcessor {
   }
 
   private boolean isSubtypeOfIR(TypeMirror type) {
-    var irType =
-        processingEnv.getElementUtils().getTypeElement("org.enso.compiler.core.IR").asType();
-    return processingEnv.getTypeUtils().isAssignable(type, irType);
+    return Utils.isSubtypeOfIR(type, processingEnv);
   }
 
   private Set<Element> findChildElements(Element irNodeElem) {
@@ -108,6 +114,6 @@ public class IRProcessor extends AbstractProcessor {
   }
 
   private void printError(String msg, Element elem) {
-    processingEnv.getMessager().printMessage(Kind.ERROR, msg, elem);
+    Utils.printError(msg, elem, processingEnv.getMessager());
   }
 }
