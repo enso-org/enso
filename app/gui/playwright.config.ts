@@ -99,6 +99,7 @@ export default defineConfig({
       timeout: TIMEOUT_MS,
       use: {
         baseURL: `http://localhost:${ports.dashboard}`,
+        actionTimeout: TIMEOUT_MS,
       },
     },
     {
