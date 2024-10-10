@@ -26,10 +26,11 @@
         font-mplus1/:
         font-dejavu/:
       src/:
-        assets/:
-          font-enso.css:
-          font-mplus1.css:
-          font-dejavu.css:
+        project-view/:
+          assets/:
+            font-enso.css:
+            font-mplus1.css:
+            font-dejavu.css:
     ide-desktop/:
       client/:
       common/:

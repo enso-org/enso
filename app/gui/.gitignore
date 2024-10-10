@@ -28,8 +28,8 @@ playwright-report/
 public/font-dejavu/
 public/font-enso/
 public/font-mplus1/
-src/assets/font-dejavu.css
-src/assets/font-enso.css
-src/assets/font-mplus1.css
+src/project-view/assets/font-dejavu.css
+src/project-view/assets/font-enso.css
+src/project-view/assets/font-mplus1.css
 src/project-view/util/iconList.json
 src/project-view/util/iconName.ts

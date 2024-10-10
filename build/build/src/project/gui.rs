@@ -71,7 +71,7 @@ impl IsTarget for Gui {
                 "M PLUS 1",
                 "/font-mplus1",
                 &repo_root.app.gui.public.font_mplus_1,
-                &repo_root.app.gui.src.assets.font_mplus_1_css,
+                &repo_root.app.gui.src.project_view.assets.font_mplus_1_css,
             )
             .await?;
             crate::ide::web::dejavu_font::install_sans_mono_with_css(
@@ -79,7 +79,7 @@ impl IsTarget for Gui {
                 &context.octocrab,
                 "/font-dejavu",
                 &repo_root.app.gui.public.font_dejavu,
-                &repo_root.app.gui.src.assets.font_dejavu_css,
+                &repo_root.app.gui.src.project_view.assets.font_dejavu_css,
             )
             .await?;
             crate::ide::web::enso_font::install_with_css(
@@ -87,7 +87,7 @@ impl IsTarget for Gui {
                 &context.octocrab,
                 "/font-enso",
                 &repo_root.app.gui.public.font_enso,
-                &repo_root.app.gui.src.assets.font_enso_css,
+                &repo_root.app.gui.src.project_view.assets.font_enso_css,
             )
             .await?;
             crate::web::install(repo_root).await?;
