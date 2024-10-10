@@ -129,11 +129,9 @@ export function omit<T, Ks extends readonly [string & keyof T, ...(string & keyo
   const keysSet = new Set<string>(keys)
   // eslint-disable-next-line no-restricted-syntax
   return Object.fromEntries(
-    // This is SAFE, as it is a reaonly upcast.
+    // This is SAFE, as it is a readonly upcast.
     // eslint-disable-next-line no-restricted-syntax
-    Object.entries(object as Readonly<Record<string, unknown>>).flatMap(kv =>
-      !keysSet.has(kv[0]) ? [kv] : [],
-    ),
+    Object.entries(object as Readonly<Record<string, unknown>>).filter(([k]) => !keysSet.has(k)),
   ) as Omit<T, Ks[number]>
 }
 
@@ -149,11 +147,9 @@ export function pick<T, Ks extends readonly [string & keyof T, ...(string & keyo
   const keysSet = new Set<string>(keys)
   // eslint-disable-next-line no-restricted-syntax
   return Object.fromEntries(
-    // This is SAFE, as it is a reaonly upcast.
+    // This is SAFE, as it is a readonly upcast.
     // eslint-disable-next-line no-restricted-syntax
-    Object.entries(object as Readonly<Record<string, unknown>>).flatMap(kv =>
-      keysSet.has(kv[0]) ? [kv] : [],
-    ),
+    Object.entries(object as Readonly<Record<string, unknown>>).filter(([k]) => keysSet.has(k)),
   ) as Pick<T, Ks[number]>
 }
 
