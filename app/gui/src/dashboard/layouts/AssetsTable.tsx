@@ -1777,7 +1777,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                   addIdToSelection(projectId)
 
                   await getProjectDetailsMutation
-                    .mutateAsync([projectId, asset.parentId, file.name])
+                    .mutateAsync([projectId, asset.parentId, asset.title])
                     .catch((error) => {
                       deleteAsset(projectId)
                       toastAndLog('uploadProjectError', error)
@@ -1894,13 +1894,7 @@ export default function AssetsTable(props: AssetsTableProps) {
 
                   const asset = isUpdating ? conflict.current : conflict.new
 
-                  fileMap.set(
-                    asset.id,
-                    new File([conflict.file], asset.title, {
-                      type: conflict.file.type,
-                      lastModified: conflict.file.lastModified,
-                    }),
-                  )
+                  fileMap.set(asset.id, conflict.file)
 
                   insertAssets([asset], event.parentId)
                   void doUploadFile(asset, isUpdating ? 'update' : 'new')
