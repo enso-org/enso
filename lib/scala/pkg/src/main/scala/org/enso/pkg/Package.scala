@@ -326,19 +326,16 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
     */
   def loadPackage(root: F): Try[Package[F]] = {
     val result =
-      if (!root.exists) Failure(PackageManager.PackageNotFound())
+      if (!root.exists) Failure(PackageManager.PackageNotFound("root"))
       else {
-        def readConfig(file: F): Try[Config] =
-          if (file.exists)
-            Using(file.newBufferedReader)(Config.fromYaml).flatten
-          else Failure(PackageManager.PackageNotFound())
-
         val configFile = root.getChild(Package.configFileName)
         if (configFile.exists) {
           for {
-            result <- readConfig(configFile)
+            result <- Using(configFile.newBufferedReader)(
+              Config.fromYaml
+            ).flatten
           } yield new Package(root, result, fileSystem)
-        } else Failure(PackageManager.PackageNotFound())
+        } else Failure(PackageManager.PackageNotFound("config"))
       }
     result.recoverWith {
       case packageLoadingException: PackageManager.PackageLoadingException =>
@@ -570,8 +567,11 @@ object PackageManager {
   }
 
   /** The error indicating that the requested package does not exist. */
-  case class PackageNotFound()
-      extends PackageLoadingException(s"The package file does not exist.", null)
+  case class PackageNotFound(kind: String)
+      extends PackageLoadingException(
+        s"The $kind package file does not exist.",
+        null
+      )
 
   /** The error indicating that the package exists, but cannot be loaded. */
   case class PackageLoadingFailure(message: String, cause: Throwable)

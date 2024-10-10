@@ -547,6 +547,16 @@ impl JobArchetype for PackageIde {
                     "ENSO_TEST_USER_PASSWORD",
                 );
             steps.push(test_step);
+
+            // After the E2E tests run, they create a credentials file in user home directory.
+            // If that file is not cleaned up, future runs of our tests may randomly get
+            // authenticated into Enso Cloud. We want to run tests as an authenticated
+            // user only when we explicitly set that up, not randomly. So we clean the credentials
+            // file.
+            let cloud_credentials_path = "$HOME/.enso/credentials";
+            let cleanup_credentials_step = shell(format!("rm {cloud_credentials_path}"));
+            steps.push(cleanup_credentials_step);
+
             steps
         })
         .build_job("Package New IDE", target)
