@@ -1,6 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-from Standard.Base.Enso_Cloud.Data_Link_Helpers import parse_secure_value
+from Standard.Base.Enso_Cloud.Data_Link_Helpers import Data_Link_Source_Metadata, parse_secure_value
 from Standard.Base.Enso_Cloud.Public_Utils import get_optional_field, get_required_field
 
 import Standard.Database.Connection.Connection_Options.Connection_Options
@@ -12,15 +12,14 @@ import project.Connection.Snowflake_Details.Snowflake_Details
 type Snowflake_Data_Link
     ## PRIVATE
        A data-link returning a connection to the specified database.
-    Connection details:Snowflake_Details
+    Connection details:Snowflake_Details related_asset_id:Text|Nothing
 
     ## PRIVATE
        A data-link returning a query to a specific table within a database.
-    Table name:Text details:Snowflake_Details
+    Table name:Text details:Snowflake_Details related_asset_id:Text|Nothing
 
     ## PRIVATE
     parse json source -> Snowflake_Data_Link =
-        _ = source
         account = get_required_field "account" json expected_type=Text
         db_name = get_required_field "database_name" json expected_type=Text
         schema = get_optional_field "schema" json if_missing="SNOWFLAKE" expected_type=Text
@@ -31,6 +30,9 @@ type Snowflake_Data_Link
         password = get_required_field "password" credentials_json |> parse_secure_value
         credentials = Credentials.Username_And_Password username password
 
+        related_asset_id = case source of
+            Data_Link_Source_Metadata.Cloud_Asset id -> id
+            _ -> Nothing
         details = Snowflake_Details.Snowflake account=account database=db_name schema=schema warehouse=warehouse credentials=credentials
         case get_optional_field "table" json expected_type=Text of
             Nothing ->
@@ -42,9 +44,11 @@ type Snowflake_Data_Link
     read self (format = Auto_Detect) (on_problems : Problem_Behavior) =
         _ = on_problems
         if format != Auto_Detect then Error.throw (Illegal_Argument.Error "Only Auto_Detect can be used with a Snowflake Data Link, as it points to a database.") else
-            default_options = Connection_Options.Value
-            connection = self.details.connect default_options
+            audit_mode = if Enso_User.is_logged_in then "cloud" else "local"
+            options_vector = [["enso.internal.audit", audit_mode]] + (if self.related_asset_id.is_nothing then [] else [["enso.internal.relatedAssetId", self.related_asset_id]])
+            default_options = Connection_Options.Value options_vector
+            connection = self.details.connect default_options allow_data_links=False
             case self of
-                Snowflake_Data_Link.Connection _ -> connection
-                Snowflake_Data_Link.Table table_name _ ->
+                Snowflake_Data_Link.Connection _ _ -> connection
+                Snowflake_Data_Link.Table table_name _ _ ->
                     connection.query table_name
