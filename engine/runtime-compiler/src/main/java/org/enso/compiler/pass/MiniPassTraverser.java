@@ -101,7 +101,7 @@ public final class MiniPassTraverser {
     if (!logger.isTraceEnabled()) {
       return;
     }
-    var irName = minifiedClassName(ir);
+    var irName = irToSimpleString(ir);
     var passName = pass.toString();
     if (preparedPass == pass) {
       logger.trace("Prepare({}, {})", passName, irName);
@@ -116,7 +116,7 @@ public final class MiniPassTraverser {
       return;
     }
     var passName = pass.toString();
-    var irName = minifiedClassName(ir);
+    var irName = irToSimpleString(ir);
     if (newIr == ir && newIr.passData().size() == ir.passData().size()) {
       logger.trace("Transform({}, {})", passName, irName);
     } else {
@@ -125,18 +125,29 @@ public final class MiniPassTraverser {
     }
   }
 
-  private static String minifiedClassName(Object obj) {
+  /**
+   * Roughly corresponds to what {@link org.enso.compiler.dump.IRDumper} dumps as node names - class
+   * name with hex-formatted hashcode of the ir object.
+   *
+   * @return A simple string representation of {@code ir} suitable for logging. Note that the
+   *     default {@link IR#toString()} is too verbose.
+   */
+  private static String irToSimpleString(IR ir) {
     // How many trailing names should be displayed in full.
     var lastLongNames = 2;
-    var nameItems = Arrays.asList(obj.getClass().getName().split("\\."));
+    var nameItems = Arrays.asList(ir.getClass().getName().split("\\."));
+    String simplifiedClassName;
     if (nameItems.size() > lastLongNames) {
       var shortNames = nameItems.stream().map(nm -> nm.substring(0, 1)).toList();
       var shortNamesCount = nameItems.size() - lastLongNames;
-      return String.join(".", shortNames.subList(0, shortNamesCount))
-          + "."
-          + String.join(".", nameItems.subList(shortNamesCount, nameItems.size()));
+      simplifiedClassName =
+          String.join(".", shortNames.subList(0, shortNamesCount))
+              + "."
+              + String.join(".", nameItems.subList(shortNamesCount, nameItems.size()));
     } else {
-      return obj.getClass().getName();
+      simplifiedClassName = ir.getClass().getName();
     }
+    var hash = Integer.toHexString(System.identityHashCode(ir));
+    return simplifiedClassName + "_" + hash;
   }
 }
