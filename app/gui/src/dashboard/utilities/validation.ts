@@ -4,7 +4,8 @@
 // === Validation ===
 // ==================
 
-/** Regex pattern for valid AWS Cognito passwords.
+/**
+ * Regex pattern for valid AWS Cognito passwords.
  * A fully correct regex is here: https://stackoverflow.com/a/58767981/3323231.
  * Official documentation is here: https://docs.aws.amazon.com/cognito/latest/developerguide/user-pool-settings-policies.html.
  * However, non-ASCII passwords are allowed, contrary to the official documentation. Further

@@ -1,13 +1,10 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    // "noEmit": false,
     "lib": ["DOM", "es2023"],
     "allowJs": false,
     "checkJs": false,
     "skipLibCheck": false,
-    // "rootDir": "src",
-    // "outDir": "dist"
   },
   "include": ["./src/", "./src/text/english.json", "../types/"]
 }

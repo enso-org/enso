@@ -1,5 +1,6 @@
 packages:
   - app/ide-desktop/*
+  - app/common
   - app/gui
   - app/rust-ffi
   - app/ydoc-server
