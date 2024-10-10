@@ -236,6 +236,23 @@ public class IRDumper {
           createEdge(type, member, "member[" + i + "]");
         }
       }
+      case Definition.SugaredType sugaredType -> {
+        var sugaredTypeNode =
+            GraphVizNode.Builder.fromIr(sugaredType)
+                .addLabelLine("name: " + sugaredType.name().name())
+                .build();
+        addNode(sugaredTypeNode);
+        for (int i = 0; i < sugaredType.arguments().size(); i++) {
+          var arg = sugaredType.arguments().apply(i);
+          createIRGraph(arg);
+          createEdge(sugaredType, arg, "arg[" + i + "]");
+        }
+        for (int i = 0; i < sugaredType.body().size(); i++) {
+          var bodyElem = sugaredType.body().apply(i);
+          createIRGraph(bodyElem);
+          createEdge(sugaredType, bodyElem, "body[" + i + "]");
+        }
+      }
       case Name.GenericAnnotation genericAnnotation -> {
         var bldr =
             GraphVizNode.Builder.fromIr(genericAnnotation)
