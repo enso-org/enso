@@ -280,6 +280,9 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
         nested_file.set_description "" . should_equal nested_file
         nested_file.description . should_equal ""
 
+        Context.Output.with_disabled <|
+            nested_file.set_description "ABC" . should_fail_with Forbidden_Operation
+
     group_builder.specify "should be able to get and modify labels on assets" <|
         f = test_root.get / "test_file.json"
         f.labels . should_equal []
@@ -300,8 +303,18 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
         f.remove_label "B" . should_equal False
         f.labels . should_equal_ignoring_order ["A", "D", "E"]
 
-        f.set_labels [] . should_equal f
-        f.labels . should_equal []
+        Context.Output.with_disabled <|
+            # Adding new label with disabled context fails
+            f.add_label "new" . should_fail_with Forbidden_Operation
+
+            # Removing a label that is there also fails
+            f.remove_label "A" . should_fail_with Forbidden_Operation
+
+            f.labels . should_equal_ignoring_order ["A", "D", "E"]
+
+            # But adding a label that is already there or removing one that is not (so no effective change), succeeds:
+            f.add_label "A" . should_equal f
+            f.remove_label "non-existent" . should_equal False
 
     group_builder.specify "can get and set metadata on just-created asset" <|
         ## This is a bit of a white-box test - we know that just-created assets are cached without metadata,
