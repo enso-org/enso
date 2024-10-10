@@ -132,11 +132,11 @@ class AuditLogApiAccess {
   Collection<List<LogJob>> splitMessagesByConfig(List<LogJob> messages) {
     HashMap<RequestConfig, List<LogJob>> hashMap = new HashMap<>();
     for (var message : messages) {
-      var list = hashMap.getOrDefault(message.requestConfig(), new ArrayList<>());
+      var list = hashMap.computeIfAbsent(message.requestConfig(), k -> new ArrayList<>());
       list.add(message);
     }
 
-    return new ArrayList<>(hashMap.values());
+    return hashMap.values();
   }
 
   private void notifyJobsAboutSuccess(List<LogJob> jobs) {
