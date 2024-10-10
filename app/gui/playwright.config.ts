@@ -53,8 +53,6 @@ process.env.PLAYWRIGHT_PORT_PV = `${ports.projectView}`
 export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  // TODO[ao]: from dashboard - why this way?
-  // workers: process.env.PROD ? 8 : 1,
   repeatEach: process.env.CI ? 3 : 1,
   ...(process.env.CI ? { workers: 1 } : {}),
   reporter: 'html',
