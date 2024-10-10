@@ -144,6 +144,7 @@ class AuditLogApiAccess {
       if (job.completionNotification() != null) {
         job.completionNotification().complete(null);
       }
+      System.out.println("Log sent successfully: " + job.message().payload() + " to " + job.requestConfig().apiUri);
     }
   }
 
@@ -152,6 +153,7 @@ class AuditLogApiAccess {
       if (job.completionNotification() != null) {
         job.completionNotification().completeExceptionally(e);
       }
+      System.out.println("Failed to send log: " + job.message().payload() + " to " + job.requestConfig().apiUri + " because of " + e + " - " + e.getMessage());
     }
   }
 
