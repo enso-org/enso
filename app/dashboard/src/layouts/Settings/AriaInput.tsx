@@ -33,7 +33,7 @@ const SETTINGS_FIELD_STYLES = tv({
     base: 'flex-row flex-wrap',
     labelContainer: 'flex min-h-row items-center gap-5 w-full',
     label: TEXT_STYLE({
-      className: 'text mb-auto w-40 shrink-0',
+      className: 'text self-start w-40 shrink-0',
       variant: 'body',
     }),
     error: 'ml-[180px]',
