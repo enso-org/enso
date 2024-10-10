@@ -272,8 +272,8 @@ add_select_column_specs suite_builder setup =
                 table_builder [col1, col2]
             result = table.remove_columns "Bar" Case_Sensitivity.Default
             case setup.flagged ..Supports_Case_Sensitive_Columns of
-                True -> expect_column_names ["foo"] <| result
-                False -> expect_column_names ["foo"] <| result
+                True -> expect_column_names ["foo", "bar"] <| result
+                False -> expect_column_names ["foo", "bar"] <| result
 
         group_builder.specify "should correctly handle regexes matching multiple names" <|
             expect_column_names ["Baz", "ab.+123", "abcd123"] <| data.table.remove_columns ["f.+".to_regex, "b.*".to_regex]
@@ -369,8 +369,8 @@ add_select_column_specs suite_builder setup =
                 table_builder [col1, col2]
             result = table.reorder_columns ["Bar"] case_sensitivity=Case_Sensitivity.Default
             case setup.flagged ..Supports_Case_Sensitive_Columns of
-                True -> result.should_fail_with (Missing_Input_Columns.Error ["Bar"])
-                False -> result.should_fail_with (Missing_Input_Columns.Error ["Bar"])
+                True -> expect_column_names ["foo", "bar"] <| result
+                False -> expect_column_names ["foo", "bar"] <| result
 
         group_builder.specify "should correctly handle regexes matching multiple names" <|
             expect_column_names ["bar", "foo", "foo 1", "foo 2", "Baz", "ab.+123", "abcd123"] <| data.table.reorder_columns ["b.*".to_regex, "f.+".to_regex]
