@@ -65,6 +65,12 @@ nothing_count col =
     filtered_to_nothing = col.to_vector.filter (c-> c==Nothing)
     filtered_to_nothing.length
 
+##PRIVATE
+nothing_count_vector : Vector -> Integer
+nothing_count_vector col =
+    filtered_to_nothing = col.filter (c-> c==Nothing)
+    filtered_to_nothing.length
+
 ## PRIVATE
    Render Vector to JSON
 make_json_for_vector : Vector -> Integer -> JS_Object
@@ -72,13 +78,15 @@ make_json_for_vector vector max_rows =
     all_rows = ["all_rows_count", vector.length]
     get_child_node_action = ["get_child_node_action", "at"]
     truncated = vector.take max_rows
+    number_of_nothing = nothing_count_vector vector
+    data_quality_pairs = JS_Object.from_pairs [["number_of_nothing", [number_of_nothing]]]
     some_values = truncated.any (v->v.is_nothing.not)
     if some_values.not then JS_Object.from_pairs [["type", "Vector"], all_rows, ["json", truncated.map make_json_for_value], get_child_node_action] else
         matrix = make_json_for_matrix (Builder.new truncated.length) truncated
         if matrix.is_nothing.not then JS_Object.from_pairs [["type", "Matrix"], all_rows, ["json", matrix], ["column_count", matrix.fold 0 c->v-> if v.is_nothing then c else c.max v.length], get_child_node_action] else
             object_matrix = make_json_for_object_matrix (Builder.new truncated.length) truncated
             if object_matrix.is_nothing.not then JS_Object.from_pairs [["type", "Object_Matrix"], all_rows, ["json", object_matrix], get_child_node_action] else
-                JS_Object.from_pairs [["type", "Vector"], all_rows, ["json", truncated.map make_json_for_value], get_child_node_action]
+                JS_Object.from_pairs [["type", "Vector"], all_rows, ["json", truncated.map make_json_for_value], get_child_node_action, ["data_quality_pairs", data_quality_pairs]]
 
 ## PRIVATE
    Render Vector of Vector / Array to JSON

@@ -148,12 +148,21 @@ const selectableRowLimits = computed(() => {
 
 const pinnedTopRowData = computed(() => {
   const headers = props.data.header
-  const numberOfNothig = props.data.data_quality_pairs.number_of_nothing
-  const pairs: Record<string, string> = headers.reduce((obj, key, index) => {
-    obj[key] = numberOfNothig[index]
-    return obj
-  }, {})
-  return [{ [INDEX_FIELD_NAME]: 'Data Quality', ...pairs }]
+  console.log(props.data)
+  if (headers) {
+    const numberOfNothig = props.data.data_quality_pairs.number_of_nothing
+    const pairs: Record<string, string> = headers.reduce((obj, key, index) => {
+      obj[key] = numberOfNothig[index]
+      return obj
+    }, {})
+    return [{ [INDEX_FIELD_NAME]: 'Data Quality', ...pairs }]
+  }
+  return [
+    {
+      [INDEX_FIELD_NAME]: 'Data Quality',
+      Value: props.data.data_quality_pairs.number_of_nothing[0],
+    },
+  ]
 })
 
 const newNodeSelectorValues = computed(() => {
