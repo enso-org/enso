@@ -1,6 +1,7 @@
 package org.enso.compiler.test.pass.desugar
 
-import org.enso.compiler.context.{InlineContext, ModuleContext}
+import org.enso.compiler.Passes
+import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.ir.Module
 import org.enso.compiler.core.ir.{
   CallArgument,
@@ -16,15 +17,32 @@ import org.enso.compiler.pass.analyse.{
   DataflowAnalysis,
   DemandAnalysis
 }
-import org.enso.compiler.pass.{IRPass, MiniPassTraverser}
+import org.enso.compiler.pass.{
+  IRPass,
+  MiniPassFactory,
+  MiniPassTraverser,
+  PassConfiguration,
+  PassManager
+}
 import org.enso.compiler.pass.desugar.{
   GenerateMethodBodies,
   OperatorToFunction,
   SectionsToBinOp
 }
-import org.enso.compiler.test.CompilerTest
+import org.enso.compiler.test.MiniPassTest
 
-class OperatorToFunctionTest extends CompilerTest {
+class OperatorToFunctionTest extends MiniPassTest {
+  override def testName: String = "OperatorToFunction"
+
+  override def miniPassFactory: MiniPassFactory = OperatorToFunction
+
+  override def megaPass: IRPass = OperatorToFunctionTestPass
+
+  override def megaPassManager: PassManager = {
+    val passes     = new Passes(defaultConfig)
+    val precursors = passes.getPrecursors(OperatorToFunction).get
+    new PassManager(List(precursors), PassConfiguration())
+  }
 
   // === Utilities ============================================================
 
@@ -80,14 +98,7 @@ class OperatorToFunctionTest extends CompilerTest {
       ) shouldEqual operatorFn
     }
 
-//    "be translated in module contexts" in {
-//      val moduleInput  = operator.asModuleDefs
-//      val moduleOutput = operatorFn.asModuleDefs
-//
-//      OperatorToFunctionTestPass.runModule(moduleInput, modCtx) shouldEqual moduleOutput
-//    }
-
-    "be translated recursively" in {
+    "be translated recursively in synthetic IR" in {
       val recursiveIR =
         Operator.Binary(oprArg, opName, rightArg, None)
       val recursiveIRResult = Application.Prefix(
@@ -101,6 +112,29 @@ class OperatorToFunctionTest extends CompilerTest {
         recursiveIR,
         ctx
       ) shouldEqual recursiveIRResult
+    }
+
+    "be translated recursively" in {
+      val code =
+        """
+          |main =
+          |    a = 1 + 2
+          |    nested_method x y = x + y
+          |    nested_method (3 * 4) a
+          |""".stripMargin
+      testModuleCompilation(
+        code,
+        () =>
+          buildModuleContext(
+            freshNameSupply = Some(new FreshNameSupply())
+          ),
+        ir => {
+          ir.preorder().foreach {
+            case _: Operator.Binary => fail("Operator.Binary found")
+            case _                  =>
+          }
+        }
+      )
     }
   }
 
