@@ -8,13 +8,13 @@ import org.enso.compiler.core.ir.expression.{
   Comment,
   Foreign
 }
-import org.enso.compiler.core.ir.module.scope.{definition, Definition}
 import org.enso.compiler.core.ir.{
   CallArgument,
   DefinitionArgument,
   Empty,
   Expression,
   Function,
+  Module,
   Name,
   Pattern,
   Type,
@@ -44,45 +44,69 @@ class TailCallMini(
   private val notTails: IdentityHashMap[IR, Boolean] =
     new IdentityHashMap[IR, Boolean]()
 ) extends MiniIRPass {
+
+  private val tailMeta    = new MetadataPair(this, TailPosition.Tail)
+  private val notTailMeta = new MetadataPair(this, TailPosition.NotTail)
+
   override type Metadata = TailCall.TailPosition
 
-  override def prepare(current: IR): MiniIRPass = {
-    if (tails.containsKey(current)) {
-      tails.remove(current)
+  override def transformModule(moduleIr: Module): Module = {
+    val newBindings = moduleIr.bindings.map { binding =>
+      binding.updateMetadata(tailMeta)
+    }
+    moduleIr.copy(
+      bindings = newBindings
+    )
+  }
+
+  override def prepare(expr: Expression): MiniIRPass = {
+    if (tails.containsKey(expr)) {
+      tails.remove(expr)
       return new TailCallMini(true, tails, notTails)
     }
-    if (notTails.containsKey(current)) {
-      notTails.remove(current)
+    if (notTails.containsKey(expr)) {
+      notTails.remove(expr)
       return new TailCallMini(false, tails, notTails)
     }
 
-    current match {
+    expr match {
       case binding: Expression.Binding =>
         notTails.put(binding.expression, true)
       case block: Expression.Block =>
         block.expressions.foreach { bodyExpr =>
           notTails.put(bodyExpr, true)
         }
-      case Application.Prefix(fn, _, _, _, _) if current eq fn =>
+      case Application.Prefix(fn, args, _, _, _) =>
         notTails.put(fn, true)
+        // Note [Call Argument Tail Position]
+        args.foreach { case CallArgument.Specified(_, value, _, _) =>
+          tails.put(value, true)
+        }
       case seq: Application.Sequence =>
         seq.items.foreach { item =>
           notTails.put(item, true)
         }
       case tpSet: Application.Typeset =>
         tpSet.expression.map(notTails.put(_, true))
-      case Function.Lambda(_, body, _, canBeTCO, _, _) if current eq body =>
+      case Function.Lambda(args, body, _, canBeTCO, _, _) =>
         val markAsTail = (!canBeTCO && isInTailPosition) || canBeTCO
         if (markAsTail) {
           tails.put(body, true)
         } else {
           notTails.put(body, true)
         }
-      // Note [Call Argument Tail Position]
-      case CallArgument.Specified(_, value, _, _) =>
-        tails.put(value, true)
-      case DefinitionArgument.Specified(_, _, Some(defaultValue), _, _, _) =>
-        notTails.put(defaultValue, true)
+        args.foreach {
+          case DefinitionArgument.Specified(
+                _,
+                _,
+                Some(defaultValue),
+                _,
+                _,
+                _
+              ) =>
+            notTails.put(defaultValue, true)
+          case _ => ()
+        }
       case tp: Type =>
         tp.children().foreach { tpChild =>
           notTails.put(tpChild, true)
@@ -98,20 +122,22 @@ class TailCallMini(
     this
   }
 
-  override def transformIr(ir: IR): IR = {
-    val tailMeta    = new MetadataPair(this, TailPosition.Tail)
-    val notTailMeta = new MetadataPair(this, TailPosition.NotTail)
-    ir match {
-      case _: CallArgument.Specified =>
-        ir.updateMetadata(tailMeta)
-      case _: DefinitionArgument.Specified =>
-        ir.updateMetadata(notTailMeta)
-      case _: definition.Method.Conversion =>
-        ir.updateMetadata(tailMeta)
-      case _: definition.Method.Explicit =>
-        ir.updateMetadata(tailMeta)
-      case _: Definition.Type =>
-        ir.updateMetadata(tailMeta)
+  override def transformExpression(ir: Expression): Expression = {
+    val irWithUpdatedChildren = ir match {
+      case app @ Application.Prefix(_, args, _, _, _) =>
+        args.foreach { arg =>
+          arg.updateMetadata(tailMeta)
+        }
+        app
+      case lambda @ Function.Lambda(args, _, _, _, _, _) =>
+        args.foreach { arg =>
+          arg.updateMetadata(notTailMeta)
+        }
+        lambda
+      case _ => ir
+    }
+
+    irWithUpdatedChildren match {
       case _: Name.GenericAnnotation =>
         ir.updateMetadata(tailMeta)
       case _: Pattern =>
@@ -146,8 +172,6 @@ class TailCallMini(
   def analyseExpression(
     expression: Expression
   ): Expression = {
-    val tailMeta    = new MetadataPair(this, TailPosition.Tail)
-    val notTailMeta = new MetadataPair(this, TailPosition.NotTail)
     val expressionWithWarning =
       if (isTailAnnotated(expression) && !isInTailPosition)
         expression.addDiagnostic(Warning.WrongTco(expression.location))
