@@ -153,7 +153,7 @@ const pinnedTopRowData = computed(() => {
     obj[key] = numberOfNothig[index]
     return obj
   }, {})
-  return [pairs]
+  return [{ [INDEX_FIELD_NAME]: 'Data Quality', ...pairs }]
 })
 
 const newNodeSelectorValues = computed(() => {
