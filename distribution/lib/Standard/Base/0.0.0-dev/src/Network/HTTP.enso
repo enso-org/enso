@@ -208,8 +208,8 @@ http_get_num_response_cache_entries -> Integer = TransientHTTPResponseCache.getN
 
 ## PRIVATE
    Adjust the value of the current time for testing the TTL logic
-http_set_time_advance_test_only : Nothing
-http_set_time_advance_test_only advance_secs = TransientHTTPResponseCache.setTimeAdvanceTestOnly advance_secs 
+http_set_now_override_test_only : Nothing
+http_set_now_override_test_only now_override = TransientHTTPResponseCache.setNowOverrideTestOnly now_override
 
 ## PRIVATE
 parse_headers : Vector (Header | Pair Text Text) -> Vector Header

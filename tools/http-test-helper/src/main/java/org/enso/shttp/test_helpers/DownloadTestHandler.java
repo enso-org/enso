@@ -4,7 +4,10 @@ import com.sun.net.httpserver.HttpExchange;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.apache.http.client.utils.URIBuilder;
 import org.enso.shttp.SimpleHttpHandler;
 
@@ -17,19 +20,40 @@ public class DownloadTestHandler extends SimpleHttpHandler {
 
     int length = 10;
     String maxAge = null;
+    String age = null;
     for (var queryPair : builder.getQueryParams()) {
         if (queryPair.getName().equals("length")) {
             length = Integer.parseInt(queryPair.getValue());
         } else if (queryPair.getName().equals("max-age")) {
             maxAge = queryPair.getValue();
+        } else if (queryPair.getName().equals("age")) {
+            age = queryPair.getValue();
         }
     }
 
     byte responseData[] = new byte[length];
     Arrays.fill(responseData, (byte) 97);
 
+    /*
+    List<String> ccHeaders = new ArrayList<>();
     if (maxAge != null) {
-        exchange.getResponseHeaders().add("Cache-Control", "public,max-age="+maxAge);
+      ccHeaders.add("max-age="+maxAge);
+    }
+    if (age != null) {
+      ccHeaders.add("Age="+age);
+    }
+    if (ccHeaders.size() > 0) {
+      String ccString = ccHeaders.stream().collect(Collectors.joining(","));
+      exchange.getResponseHeaders().add("Cache-Control", ccString);
+    }
+    */
+
+    if (maxAge != null) {
+      exchange.getResponseHeaders().add("Cache-Control", "max-age="+maxAge);
+    }
+
+    if (age != null) {
+      exchange.getResponseHeaders().add("Age", age.toString());
     }
 
     exchange.sendResponseHeaders(200, responseData.length);

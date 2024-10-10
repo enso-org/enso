@@ -10,7 +10,7 @@ import java.net.URI;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.function.Predicate;
@@ -38,10 +38,10 @@ public class TransientHTTPResponseCache {
   private static final int DEFAULT_TTL_SECONDS = 31536000;
 
   /**
-   * This value is added to the current time when deciding if a cache entry is
+   * This value is used for the current time when deciding if a cache entry is
    * stale.
    */
-  private static int advanceSecsTestOnly = 0;
+  private static ZonedDateTime nowOverrideTestOnly = null;
 
   private static final Map<String, CacheEntry> cache = new HashMap<>();
 
@@ -53,7 +53,7 @@ public class TransientHTTPResponseCache {
     removeStaleEntries();
 
     var cacheKey = makeHashKey(resolvedURI, resolvedHeaders);
-    System.out.println("AAA cache hit " + cacheKey + " " + cache.containsKey(cacheKey));
+    //System.out.println("AAA cache hit " + cacheKey + " " + cache.containsKey(cacheKey));
     if (cache.containsKey(cacheKey)) {
       return returnCachedResponse(cacheKey);
     } else {
@@ -82,7 +82,7 @@ public class TransientHTTPResponseCache {
 
     try {
       int ttl = calculateTTL(response.headers());
-      LocalDateTime expiry = LocalDateTime.now().plus(Duration.ofSeconds(ttl));
+      ZonedDateTime expiry = getNow().plus(Duration.ofSeconds(ttl));
       int statusCode = response.statusCode();
       var headers = response.headers();
       String responseDataPath = downloadResponseData(response);
@@ -118,9 +118,24 @@ public class TransientHTTPResponseCache {
 
   /** Remove all cache entries (and their files) that have passed their TTL. */
   private static void removeStaleEntries() {
-    // The 'advanceSecsTestOnly' field is used for testing TTL expiration logic.
-    var now = LocalDateTime.now().plus(Duration.ofSeconds(advanceSecsTestOnly));
-    removeCacheEntries(e -> e.expiry().isBefore(now));
+    var now = getNow();
+    System.out.println("AAA cleanup " + nowOverrideTestOnly);
+    //System.out.println("AAA cleanup " + cache);
+    if (nowOverrideTestOnly != null) {
+      for (var ce : cache.values()) {
+        var ex = ce.expiry();
+        //System.out.println("AAA ce " + ex + " / " + Duration.between(ex, nowOverrAideTestOnly));
+      }
+    }
+    //removeCacheEntries(e -> e.expiry().isBefore(now));
+    removeCacheEntries(e -> {
+      var stale = e.expiry().isBefore(now);
+      var ex = e.expiry();
+      if (nowOverrideTestOnly != null) {
+        System.out.println("AAA check stale " + stale + " " + Duration.between(nowOverrideTestOnly, ex) + " " + nowOverrideTestOnly + " " + ex);
+      }
+      return stale;
+    });
   }
 
   /** Remove all cache entries (and their files). */
@@ -134,13 +149,14 @@ public class TransientHTTPResponseCache {
       var entry = it.next();
       var key = entry.getKey();
       var cacheValue = entry.getValue();
-      boolean isStale = predicate.test(cacheValue);
-      if (isStale) {
+      boolean shouldRemove = predicate.test(cacheValue);
+      if (shouldRemove) {
+        System.out.println("AAA removing " + cacheValue);
         it.remove();
         removeCacheFile(key, cacheValue);
       }
     }
-    System.out.println("AAA");
+    //System.out.println("AAA");
   }
 
   private static void removeCacheFile(String key, CacheEntry cacheEntry) {
@@ -155,8 +171,18 @@ public class TransientHTTPResponseCache {
     return cache.size();
   }
 
-  public static void setTimeAdvanceTestOnly(int advanceSecs) {
-    advanceSecsTestOnly = advanceSecs;
+  public static void setNowOverrideTestOnly(ZonedDateTime nowOverride) {
+    //System.out.println("AAA zdt " + nowOverride);
+    nowOverrideTestOnly = nowOverride;
+  }
+
+  private static ZonedDateTime getNow() {
+    // The 'nowOverrideTestOnly ' field is used for testing TTL expiration logic.
+    if (nowOverrideTestOnly != null) {
+      return nowOverrideTestOnly;
+    } else {
+      return ZonedDateTime.now();
+    }
   }
 
   /**
@@ -179,13 +205,14 @@ public class TransientHTTPResponseCache {
    * If neither are present, we use a default.
    */
   private static int calculateTTL(HttpHeaders headers) {
-    System.out.println("AAA h "+headers.map());
-    System.out.println("AAA "+headers.firstValue("asdf"));
+    //System.out.println("AAA h "+headers.map());
+    //System.out.println("AAA "+headers.firstValue("asdf"));
     Integer maxAge = getMaxAge(headers);
     if (maxAge == null) {
       return DEFAULT_TTL_SECONDS;
     } else {
       int age = headers.firstValue("age").map(Integer::parseInt).orElse(0);
+      System.out.println("AAA calculateTTL " + maxAge + " " + age);
       return maxAge - age;
     }
   }
@@ -214,7 +241,7 @@ public class TransientHTTPResponseCache {
       List<Pair<String, String>> resolvedHeaders) {
     try {
       MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
-      System.out.println("AAA uri " + resolvedURI.toString());
+      //System.out.println("AAA uri " + resolvedURI.toString());
       messageDigest.update(resolvedURI.toString().getBytes());
       for (Pair<String, String> resolvedHeader : resolvedHeaders) {
         System.out.println("AAA header "+resolvedHeader.getLeft()+" "+resolvedHeader.getRight());
@@ -247,5 +274,5 @@ public class TransientHTTPResponseCache {
     throw (E) ex;
   }
 
-  private record CacheEntry(URI uri, HttpHeaders headers, String responseDataPath, int statusCode, LocalDateTime expiry) {}
+  private record CacheEntry(URI uri, HttpHeaders headers, String responseDataPath, int statusCode, ZonedDateTime expiry) {}
 }
