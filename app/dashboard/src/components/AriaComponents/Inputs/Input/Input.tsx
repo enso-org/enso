@@ -78,12 +78,8 @@ export const Input = forwardRef(function Input<
     autoFocus = false,
     ...inputProps
   } = props
-  const formFromContext = Form.useFormContext()
-  // eslint-disable-next-line no-restricted-syntax
-  const form = (formRaw ?? formFromContext) as FormInstance<Schema>
-
+  const form = Form.useFormContext(formRaw)
   const testId = props.testId ?? props['data-testid']
-
   const privateInputRef = useRef<HTMLInputElement>(null)
 
   const { fieldProps, formInstance } = Form.useFieldRegister<
