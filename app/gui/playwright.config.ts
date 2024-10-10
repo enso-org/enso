@@ -30,12 +30,25 @@ function checkAvailablePort(port: number) {
   })
 }
 
-const portFromEnv = parseInt(process.env.PLAYWRIGHT_PORT ?? '', 10)
-const PORT = Number.isFinite(portFromEnv) ? portFromEnv : await findFreePortInRange(4300, 4999)
-console.log(`Selected playwright server port: ${PORT}`)
+const portsFromEnv = {
+  projectView: parseInt(process.env.PLAYWRIGHT_PORT_PV ?? '', 10),
+  dashboard: parseInt(process.env.PLAYWRIGHT_PORT ?? '', 10),
+}
+const ports = {
+  projectView:
+    Number.isFinite(portsFromEnv.projectView) ?
+      portsFromEnv.projectView
+    : await findFreePortInRange(4300, 4999),
+  dashboard:
+    Number.isFinite(portsFromEnv.dashboard) ?
+      portsFromEnv.dashboard
+    : await findFreePortInRange(4300, 4999),
+}
+console.log(`Selected playwright servers' ports: ${ports.projectView} and ${ports.dashboard}`)
 // Make sure to set the env to actual port that is being used. This is necessary for workers to
 // pick up the same configuration.
-process.env.PLAYWRIGHT_PORT = `${PORT}`
+process.env.PLAYWRIGHT_PORT = `${ports.dashboard}`
+process.env.PLAYWRIGHT_PORT_PV = `${ports.projectView}`
 
 export default defineConfig({
   fullyParallel: true,
@@ -85,7 +98,7 @@ export default defineConfig({
       },
       timeout: TIMEOUT_MS,
       use: {
-        baseURL: `http://localhost:${PORT + 1}`,
+        baseURL: `http://localhost:${ports.dashboard}`,
       },
     },
     {
@@ -103,7 +116,7 @@ export default defineConfig({
       },
       use: {
         viewport: { width: 1920, height: 1750 },
-        baseURL: `http://localhost:${PORT}`,
+        baseURL: `http://localhost:${ports.projectView}`,
       },
     },
   ],
@@ -114,20 +127,20 @@ export default defineConfig({
       },
       command:
         process.env.CI || process.env.PROD ?
-          `corepack pnpm build && corepack pnpm exec vite preview --port ${PORT} --strictPort`
-        : `corepack pnpm exec vite dev --port ${PORT}`,
+          `corepack pnpm build && corepack pnpm exec vite preview --port ${ports.projectView} --strictPort`
+        : `corepack pnpm exec vite dev --port ${ports.projectView}`,
       // Build from scratch apparently can take a while on CI machines.
       timeout: 240 * 1000,
-      port: PORT,
+      port: ports.projectView,
       // We use our special, mocked version of server, thus do not want to re-use user's one.
       reuseExistingServer: false,
     },
     {
       command:
         process.env.CI || process.env.PROD ?
-          `corepack pnpm exec vite -c vite.test.config.ts build && vite preview --port ${PORT + 1} --strictPort`
-        : `corepack pnpm exec vite -c vite.test.config.ts --port ${PORT + 1}`,
-      port: PORT + 1,
+          `corepack pnpm exec vite -c vite.test.config.ts build && vite preview --port ${ports.dashboard} --strictPort`
+        : `corepack pnpm exec vite -c vite.test.config.ts --port ${ports.dashboard}`,
+      port: ports.dashboard,
       reuseExistingServer: false,
     },
   ],
