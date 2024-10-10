@@ -6,6 +6,7 @@ import * as zustand from 'zustand'
 
 import type { AssetPanelContextProps } from '#/layouts/AssetPanel'
 import type { Suggestion } from '#/layouts/AssetSearchBar'
+import type { Category } from '#/layouts/CategorySwitcher/Category'
 import { useLocalStorage } from '#/providers/LocalStorageProvider'
 import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import { EMPTY_SET } from '#/utilities/set'
@@ -18,6 +19,8 @@ import { EMPTY_ARRAY } from 'enso-common/src/utilities/data/array'
 
 /** The state of this zustand store. */
 interface DriveStore {
+  readonly category: Category
+  readonly setCategory: (category: Category) => void
   readonly targetDirectory: AssetTreeNode<DirectoryAsset> | null
   readonly setTargetDirectory: (targetDirectory: AssetTreeNode<DirectoryAsset> | null) => void
   readonly newestFolderId: DirectoryId | null
@@ -63,13 +66,28 @@ export default function DriveProvider(props: ProjectsProviderProps) {
   const { localStorage } = useLocalStorage()
   const [store] = React.useState(() =>
     zustand.createStore<DriveStore>((set, get) => ({
+      category: { type: 'cloud' },
+      setCategory: (category) => {
+        if (get().category !== category) {
+          set({
+            category,
+            targetDirectory: null,
+            selectedKeys: EMPTY_SET,
+            visuallySelectedKeys: null,
+          })
+        }
+      },
       targetDirectory: null,
       setTargetDirectory: (targetDirectory) => {
-        set({ targetDirectory })
+        if (get().targetDirectory !== targetDirectory) {
+          set({ targetDirectory })
+        }
       },
       newestFolderId: null,
       setNewestFolderId: (newestFolderId) => {
-        set({ newestFolderId })
+        if (get().newestFolderId !== newestFolderId) {
+          set({ newestFolderId })
+        }
       },
       canCreateAssets: true,
       setCanCreateAssets: (canCreateAssets) => {
@@ -142,6 +160,18 @@ export function useDriveStore() {
   invariant(store, 'Drive store can only be used inside an `DriveProvider`.')
 
   return store
+}
+
+/** Get the category of the Asset Table. */
+export function useCategory() {
+  const store = useDriveStore()
+  return zustand.useStore(store, (state) => state.category)
+}
+
+/** A function to set the category of the Asset Table. */
+export function useSetCategory() {
+  const store = useDriveStore()
+  return zustand.useStore(store, (state) => state.setCategory)
 }
 
 /** Get the target directory of the Asset Table selection. */

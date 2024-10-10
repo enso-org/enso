@@ -55,6 +55,7 @@ import * as backendModule from '#/services/Backend'
 import * as localBackendModule from '#/services/LocalBackend'
 import * as projectManager from '#/services/ProjectManager'
 
+import { useSetCategory } from '#/providers/DriveProvider'
 import { baseName } from '#/utilities/fileInfo'
 import LocalStorage from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
@@ -141,12 +142,24 @@ function DashboardInner(props: DashboardProps) {
     initialProjectNameRaw != null ? fileURLToPath(initialProjectNameRaw) : null
   const initialProjectName = initialLocalProjectPath != null ? null : initialProjectNameRaw
 
-  const [category, setCategory] = searchParamsState.useSearchParamsState<categoryModule.Category>(
-    'driveCategory',
-    () => (localBackend != null ? { type: 'local' } : { type: 'cloud' }),
-    (value): value is categoryModule.Category =>
-      categoryModule.CATEGORY_SCHEMA.safeParse(value).success,
-  )
+  const [category, setCategoryRaw] =
+    searchParamsState.useSearchParamsState<categoryModule.Category>(
+      'driveCategory',
+      () => (localBackend != null ? { type: 'local' } : { type: 'cloud' }),
+      (value): value is categoryModule.Category =>
+        categoryModule.CATEGORY_SCHEMA.safeParse(value).success,
+    )
+
+  const initialCategory = React.useRef(category)
+  const setStoreCategory = useSetCategory()
+  React.useEffect(() => {
+    setStoreCategory(initialCategory.current)
+  }, [setStoreCategory])
+
+  const setCategory = eventCallbacks.useEventCallback((newCategory: categoryModule.Category) => {
+    setCategoryRaw(newCategory)
+    setStoreCategory(newCategory)
+  })
 
   const projectsStore = useProjectsStore()
   const page = usePage()
