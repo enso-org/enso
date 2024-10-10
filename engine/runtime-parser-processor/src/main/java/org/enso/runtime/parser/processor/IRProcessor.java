@@ -62,16 +62,23 @@ public class IRProcessor extends AbstractProcessor {
       printError("Failed to create source file for IRNode", irNodeElem);
     }
     assert srcGen != null;
+    var irNodeElement = new IRNodeElement(processingEnv, irNodeTypeElem);
     try {
       try (var lineWriter = new PrintWriter(srcGen.openWriter())) {
         var code =
             """
+            $imports
+
             public record $recordName (
               String field
-            ) implements $interfaceName { }
+            ) implements $interfaceName {
+              $overrideIRMethods
+            }
             """
+                .replace("$imports", IRNodeElement.IMPORTS)
                 .replace("$recordName", newRecordName)
-                .replace("$interfaceName", irNodeInterfaceName);
+                .replace("$interfaceName", irNodeInterfaceName)
+                .replace("$overrideIRMethods", irNodeElement.overrideIRMethods());
         lineWriter.println(code);
         lineWriter.println();
       }
