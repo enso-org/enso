@@ -72,7 +72,6 @@ object Ydoc {
       ydocShared * ("*.ts" || "*.json") +++
       (ydocShared / "src") ** "*.ts" +++
       (ydocShared / "parser-codegen") ** "*.ts"
-      // TODO: ????
     val sharedSrc  = (base / "app" / "gui2" / "shared") ** "*.ts"
     val inputFiles = ydocServerPolyglotSrc +++ sharedSrc
 
