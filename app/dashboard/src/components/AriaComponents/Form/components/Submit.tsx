@@ -26,7 +26,7 @@ interface SubmitButtonBaseProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly form?: FormInstance<any>
   /** Defaults to `submit`. */
-  readonly action?: 'cancel' | 'submit' | 'update'
+  readonly action?: 'cancel' | 'save' | 'submit' | 'update'
 }
 
 /**
@@ -49,6 +49,7 @@ export function Submit(props: SubmitProps): JSX.Element {
     loading = false,
     children = action === 'cancel' ? getText('cancel')
     : action === 'update' ? getText('update')
+    : action === 'save' ? getText('save')
     : getText('submit'),
     variant = action === 'cancel' ? 'outline' : 'submit',
     testId = action === 'cancel' ? 'form-cancel-button' : 'form-submit-button',

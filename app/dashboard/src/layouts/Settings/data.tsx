@@ -30,7 +30,7 @@ import {
 import type LocalBackend from '#/services/LocalBackend'
 import type RemoteBackend from '#/services/RemoteBackend'
 import { normalizePath } from '#/utilities/fileInfo'
-import { unsafeEntries } from '#/utilities/object'
+import { pick, unsafeEntries } from '#/utilities/object'
 import ActivityLogSettingsSection from './ActivityLogSettingsSection'
 import ChangePasswordForm from './ChangePasswordForm'
 import DeleteUserAccountSettingsSection from './DeleteUserAccountSettingsSection'
@@ -79,7 +79,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
               name: z.string().regex(/.*\S.*/),
               email: z.string().email(),
             }),
-            getValue: (context) => context.user,
+            getValue: (context) => pick(context.user, 'name', 'email'),
             onSubmit: async (context, { name }) => {
               const oldName = context.user.name
               if (name !== oldName) {

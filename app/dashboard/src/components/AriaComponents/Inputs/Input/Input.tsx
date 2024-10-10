@@ -122,7 +122,7 @@ export const Input = forwardRef(function Input<
 
   return (
     <Form.Field
-      {...aria.mergeProps<FieldComponentProps<Schema>>()(inputProps, omit(fieldProps), {
+      {...aria.mergeProps<FieldComponentProps<Schema>>()(inputProps, fieldProps, {
         isHidden: props.hidden,
         fullWidth: true,
         variants: fieldVariants,
@@ -144,8 +144,8 @@ export const Input = forwardRef(function Input<
           <div className={classes.inputContainer()}>
             <aria.Input
               {...aria.mergeProps<aria.InputProps>()(
-                inputProps,
                 { className: classes.textArea(), type, name },
+                omit(inputProps, 'isInvalid', 'isRequired', 'isDisabled'),
                 omit(fieldProps, 'isInvalid', 'isRequired', 'isDisabled', 'invalid'),
               )}
               ref={mergeRefs(inputRef, privateInputRef, fieldProps.ref)}

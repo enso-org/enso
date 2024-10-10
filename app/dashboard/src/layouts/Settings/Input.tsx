@@ -1,7 +1,7 @@
 /** @file Rendering for an {@link SettingsInputData}. */
-import SettingsAriaInput from '#/layouts/Settings/AriaInput'
-import type { SettingsContext, SettingsInputData } from '#/layouts/Settings/data'
 import { useText } from '#/providers/TextProvider'
+import SettingsAriaInput from './AriaInput'
+import type { SettingsContext, SettingsInputData } from './data'
 
 // =====================
 // === SettingsInput ===
@@ -22,5 +22,5 @@ export default function SettingsInput<T extends Record<keyof T, string>>(
   const { getText } = useText()
   const isEditable = typeof editable === 'function' ? editable(context) : editable ?? true
 
-  return <SettingsAriaInput isDisabled={!isEditable} label={getText(nameId)} name={name} />
+  return <SettingsAriaInput readOnly={!isEditable} label={getText(nameId)} name={name} />
 }

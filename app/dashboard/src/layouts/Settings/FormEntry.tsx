@@ -1,9 +1,9 @@
 /** @file Rendering for an {@link SettingsFormEntryData}. */
 import { ButtonGroup, Form } from '#/components/AriaComponents'
-import SettingsInput from '#/layouts/Settings/Input'
-import type { SettingsContext, SettingsFormEntryData } from '#/layouts/Settings/data'
 import { useText } from '#/providers/TextProvider'
 import { useMemo } from 'react'
+import SettingsInput from './Input'
+import type { SettingsContext, SettingsFormEntryData } from './data'
 
 // =========================
 // === SettingsFormEntry ===
@@ -43,8 +43,8 @@ export function SettingsFormEntry<T extends Record<keyof T, string>>(
           <SettingsInput key={input.name} context={context} data={input} />
         ))}
       <ButtonGroup>
-        <Form.Submit>{getText('save')}</Form.Submit>
-        <Form.Reset>{getText('cancel')}</Form.Reset>
+        <Form.Submit action="save" />
+        <Form.Reset action="cancel" />
       </ButtonGroup>
       <Form.FormError />
     </Form>

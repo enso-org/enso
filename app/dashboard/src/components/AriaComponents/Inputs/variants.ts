@@ -9,17 +9,18 @@ import { TEXT_STYLE } from '../Text'
 export const INPUT_STYLES = tv({
   base: 'block w-full overflow-hidden bg-transparent transition-[border-color,outline] duration-200',
   variants: {
+    // All variants SHOULD use objects, otherwise extending from them does not work.
     disabled: {
       true: { base: 'cursor-default opacity-50', textArea: 'cursor-default' },
       false: { base: 'cursor-text', textArea: 'cursor-text' },
     },
     invalid: {
       // Specified in compoundVariants. Real classes depend on Variants
-      true: '',
+      true: { base: '' },
     },
     readOnly: {
-      true: 'cursor-default',
-      false: 'cursor-text',
+      true: { base: 'cursor-default' },
+      false: { base: 'cursor-text' },
     },
     size: {
       medium: { base: 'px-[11px] pb-[6.5px] pt-[8.5px]', icon: 'size-4' },
@@ -27,14 +28,14 @@ export const INPUT_STYLES = tv({
       custom: {},
     },
     rounded: {
-      none: 'rounded-none',
-      small: 'rounded-sm',
-      medium: 'rounded-md',
-      large: 'rounded-lg',
-      xlarge: 'rounded-xl',
-      xxlarge: 'rounded-2xl',
-      xxxlarge: 'rounded-3xl',
-      full: 'rounded-full',
+      none: { base: 'rounded-none' },
+      small: { base: 'rounded-sm' },
+      medium: { base: 'rounded-md' },
+      large: { base: 'rounded-lg' },
+      xlarge: { base: 'rounded-xl' },
+      xxlarge: { base: 'rounded-2xl' },
+      xxxlarge: { base: 'rounded-3xl' },
+      full: { base: 'rounded-full' },
     },
     variant: {
       custom: {},

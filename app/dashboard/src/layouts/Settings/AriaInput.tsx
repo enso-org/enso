@@ -12,7 +12,7 @@ import { tv } from '#/utilities/tailwindVariants'
 const SETTINGS_INPUT_STYLES = tv({
   extend: INPUT_STYLES,
   variants: {
-    disabled: {
+    readOnly: {
       true: { base: 'opacity-100', textArea: 'border-transparent' },
     },
   },
