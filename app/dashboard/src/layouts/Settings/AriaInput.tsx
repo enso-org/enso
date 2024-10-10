@@ -14,7 +14,9 @@ const SETTINGS_INPUT_STYLES = tv({
   extend: INPUT_STYLES,
   variants: {
     readOnly: {
-      true: { base: 'opacity-100 focus-within:outline-0', textArea: 'border-transparent' },
+      true: {
+        base: 'opacity-100 focus-within:outline-0 border-transparent focus-within:border-transparent',
+      },
     },
   },
   slots: {
