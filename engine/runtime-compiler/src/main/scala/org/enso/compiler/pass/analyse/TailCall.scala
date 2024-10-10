@@ -210,6 +210,7 @@ case object TailCall extends IRPass {
             )
         )
       case err: Diagnostic => updateMetaIfInTailPosition(isInTailPosition, err)
+      case _ => expressionWithWarning
     }
   }
 
