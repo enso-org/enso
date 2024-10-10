@@ -6,6 +6,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -62,15 +63,18 @@ public class IRDumper {
   public static final String SYSTEM_PROP = "enso.compiler.dumpIr";
 
   private final OutputStream out;
+  private final Path path;
   private final Set<GraphVizNode> nodes = new HashSet<>();
   private final Set<GraphVizEdge> edges = new HashSet<>();
 
   /**
    * @param out the output stream to write the Graphviz file to.
+   * @param path Nullable path to the output stream
    */
-  private IRDumper(OutputStream out) {
+  private IRDumper(OutputStream out, Path path) {
     Objects.requireNonNull(out);
     this.out = out;
+    this.path = path;
   }
 
   /**
@@ -90,7 +94,7 @@ public class IRDumper {
     } catch (IOException e) {
       throw new IllegalStateException(e);
     }
-    return new IRDumper(out);
+    return new IRDumper(out, path);
   }
 
   /**
@@ -99,7 +103,7 @@ public class IRDumper {
    * @param out the output stream to write the Graphviz file to.
    */
   public static IRDumper fromOut(OutputStream out) {
-    return new IRDumper(out);
+    return new IRDumper(out, null);
   }
 
   /**
@@ -115,6 +119,30 @@ public class IRDumper {
       out.flush();
     } catch (IOException e) {
       throw new IllegalStateException(e);
+    }
+  }
+
+  /**
+   * Dumps the given IR into the GraphViz file, and then converts this file directly into SVG format
+   * with the {@code dot} program.
+   *
+   * @param ir The IR to dump and display in SVG
+   */
+  public void dumpWithSvg(IR ir) {
+    if (path == null) {
+      throw new IllegalArgumentException("Cannot dump to SVG without a path");
+    }
+    dump(ir);
+    var cmd = List.of("/usr/bin/dot", "-O", "-Tsvg", path.toAbsolutePath().toString());
+    int retCode = 1;
+    try {
+      var process = new ProcessBuilder(cmd).start();
+      retCode = process.waitFor();
+    } catch (IOException | InterruptedException e) {
+      throw new IllegalStateException("dot program failed to generate SVG file from " + path, e);
+    }
+    if (retCode != 0) {
+      throw new IllegalStateException("dot program failed to generate SVG file from " + path);
     }
   }
 
