@@ -1,6 +1,8 @@
 from Standard.Base import all
 import Standard.Base.Data.Base_64.Base_64
 import Standard.Base.Errors.File_Error.File_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Network.HTTP.Request.Request
 import Standard.Base.Network.HTTP.Request_Body.Request_Body
 import Standard.Base.Network.HTTP.Response.Response
 import Standard.Base.Runtime.Context
@@ -139,8 +141,11 @@ add_specs suite_builder =
                 Data.post url_post (Request_Body.Text "hello world")
             counts . should_equal [0, 0]
 
+        group_builder.specify "Should not allow a cache policy for methods other than GET" pending=pending_has_url <| Test.with_retries <|
+            request = Request.new HTTP_Method.Post url_post [] Request_Body.Empty
+            HTTP.new.request request cache_policy=Cache_Policy.Cache_Responses . should_fail_with Illegal_Argument
+
         ##
-            group_builder.specify "Should not allow a cache policy for methods other than GET" pending=pending_has_url <| Test.with_retries <|
             group_builder.specify "Should be able to clear caches" pending=pending_has_url <| Test.with_retries <|
             group_builder.specify "Cache key should depend on the URI" pending=pending_has_url <| Test.with_retries <|
             group_builder.specify "Cache key should depend on the headers" pending=pending_has_url <| Test.with_retries <|
