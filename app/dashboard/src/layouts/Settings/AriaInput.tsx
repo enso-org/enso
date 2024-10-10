@@ -18,9 +18,12 @@ const SETTINGS_INPUT_STYLES = tv({
     },
   },
   slots: {
-    base: 'p-0 transition-[border-color,outline] outline-offset-2 focus-within:border-primary/50 focus-within:outline focus-within:outline-2 focus-within:outline-offset-0 focus-within:outline-primary',
+    base: 'p-0 transition-[border-color,outline] outline-offset-2 focus-within:border-primary/50 focus-within:outline focus-within:outline-2 focus-within:outline-offset-0 focus-within:outline-primary border-0.5 border-primary/20 rounded-2xl',
     inputContainer: TEXT_STYLE({ disableLineHeightCompensation: true }),
-    textArea: 'h-6 rounded-full border-0.5 border-primary/20 px-1',
+    addonStart: 'px-1',
+    textArea: 'h-6 rounded-full px-1',
+    addonEnd: 'px-1',
+    description: 'px-1',
   },
 })
 
