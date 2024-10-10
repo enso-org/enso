@@ -19,16 +19,20 @@ import * as button from './Button'
 export interface CopyButtonProps extends Omit<button.ButtonProps, 'icon' | 'loading' | 'onPress'> {
   /** The text to copy to the clipboard. */
   readonly copyText: string
-  /** Custom icon
-   * If `false` is provided, no icon will be shown. */
+  /**
+   * Custom icon
+   * If `false` is provided, no icon will be shown.
+   */
   readonly copyIcon?: string | false
   readonly errorIcon?: string
   readonly successIcon?: string
   readonly onCopy?: () => void
-  /** Show a toast message when the copy is successful.
+  /**
+   * Show a toast message when the copy is successful.
    * If a string is provided, it will be used as the toast message.
    * If `true` is provided, a default toast message will be shown with the text "Copied to clipboard".
-   * If `false` is provided, no toast message will be shown. */
+   * If `false` is provided, no toast message will be shown.
+   */
   readonly successToastMessage?: boolean | string
 }
 

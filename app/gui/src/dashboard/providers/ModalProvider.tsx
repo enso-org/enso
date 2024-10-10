@@ -1,5 +1,7 @@
-/** @file The React provider for modals, along with hooks to use the provider via
- * the shared React context. */
+/**
+ * @file The React provider for modals, along with hooks to use the provider via
+ * the shared React context.
+ */
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import * as React from 'react'
@@ -97,7 +99,8 @@ export function useModal() {
 // === useModalRef ===
 // ===================
 
-/** A React context hook exposing the currently active modal (if one is currently visible) as a ref.
+/**
+ * A React context hook exposing the currently active modal (if one is currently visible) as a ref.
  */
 export function useModalRef() {
   const { modalRef } = React.useContext(ModalStaticContext)

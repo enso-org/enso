@@ -15,8 +15,10 @@ import * as tailwindMerge from '#/utilities/tailwindMerge'
 // === Constants ===
 // =================
 
-/** Controls the speed of animation of the {@link SelectionBrush} when the
- * mouse is released and the selection brush collapses back to zero size. */
+/**
+ * Controls the speed of animation of the {@link SelectionBrush} when the
+ * mouse is released and the selection brush collapses back to zero size.
+ */
 const ANIMATION_TIME_HORIZON = 60
 
 // ======================

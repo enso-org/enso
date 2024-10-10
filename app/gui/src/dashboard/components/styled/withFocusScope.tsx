@@ -7,8 +7,10 @@ import * as aria from '#/components/aria'
 // === withFocusScope ===
 // ======================
 
-/** Wrap a component in a {@link aria.FocusScope}. This allows {@link aria.useFocusManager} to be
- * used in the component. */
+/**
+ * Wrap a component in a {@link aria.FocusScope}. This allows {@link aria.useFocusManager} to be
+ * used in the component.
+ */
 // This is not a React component, even though it contains JSX.
 // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-explicit-any
 export function withFocusScope<ComponentType extends (props: any) => React.ReactNode>(

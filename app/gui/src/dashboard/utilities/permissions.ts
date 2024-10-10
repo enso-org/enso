@@ -29,8 +29,10 @@ export const EXEC_CLASS_NAME = 'text-tag-text bg-permission-exec'
 // === tryCreateOwnerPermission ===
 // ================================
 
-/** Return an array containing the owner permission if `owner` is not `null`,
- * else return an empty array (`[]`). */
+/**
+ * Return an array containing the owner permission if `owner` is not `null`,
+ * else return an empty array (`[]`).
+ */
 export function tryCreateOwnerPermission(
   path: string,
   category: Category,

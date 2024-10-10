@@ -14,8 +14,10 @@ export { SpinnerState } from './Spinner'
 /** Props for a {@link StatelessSpinner}. */
 export type StatelessSpinnerProps = spinner.SpinnerProps
 
-/** A spinner that does not expose its {@link spinner.SpinnerState}. Instead, it begins at
- * {@link spinner.SpinnerState.initial} and immediately changes to the given state. */
+/**
+ * A spinner that does not expose its {@link spinner.SpinnerState}. Instead, it begins at
+ * {@link spinner.SpinnerState.initial} and immediately changes to the given state.
+ */
 export default function StatelessSpinner(props: StatelessSpinnerProps) {
   const { size, state: rawState, ...spinnerProps } = props
   const [, startTransition] = React.useTransition()

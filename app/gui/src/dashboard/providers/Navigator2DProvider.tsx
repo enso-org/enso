@@ -1,5 +1,7 @@
-/** @file The React provider for 2D navigation, along with hooks to use the provider via
- * the shared React context. */
+/**
+ * @file The React provider for 2D navigation, along with hooks to use the provider via
+ * the shared React context.
+ */
 import * as React from 'react'
 
 import Navigator2D from '#/utilities/Navigator2D'

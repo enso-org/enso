@@ -17,8 +17,10 @@ export function isDoubleClick(event: React.MouseEvent) {
   return event.detail === 2
 }
 
-/** Returns `true` if and only if the event has the modifier key set
- * (`Ctrl` on Windows/Linux; `Cmd` on macOS). */
+/**
+ * Returns `true` if and only if the event has the modifier key set
+ * (`Ctrl` on Windows/Linux; `Cmd` on macOS).
+ */
 export function isModKey(event: React.KeyboardEvent | React.MouseEvent) {
   return detect.isOnMacOS() ? event.metaKey : event.ctrlKey
 }
@@ -27,8 +29,10 @@ export function isModKey(event: React.KeyboardEvent | React.MouseEvent) {
 // === Keyboard event utilities ===
 // ================================
 
-/** A {@link RegExp} that matches {@link KeyboardEvent.code}s corresponding to non-printable
- * keys. */
+/**
+ * A {@link RegExp} that matches {@link KeyboardEvent.code}s corresponding to non-printable
+ * keys.
+ */
 const SPECIAL_CHARACTER_KEYCODE_REGEX = /^[A-Z][a-z]/
 
 /** Whether `event` may trigger a shortcut. */

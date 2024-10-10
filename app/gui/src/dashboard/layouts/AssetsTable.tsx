@@ -177,16 +177,22 @@ LocalStorage.registerKey('enabledColumns', {
 // === Constants ===
 // =================
 
-/** If the ratio of intersection between the main dropzone that should be visible, and the
- * scrollable container, is below this value, then the backup dropzone will be shown. */
+/**
+ * If the ratio of intersection between the main dropzone that should be visible, and the
+ * scrollable container, is below this value, then the backup dropzone will be shown.
+ */
 const MINIMUM_DROPZONE_INTERSECTION_RATIO = 0.5
-/** The height of each row in the table body. MUST be identical to the value as set by the
- * Tailwind styling. */
+/**
+ * The height of each row in the table body. MUST be identical to the value as set by the
+ * Tailwind styling.
+ */
 const ROW_HEIGHT_PX = 38
 /** The size of the loading spinner. */
 const LOADING_SPINNER_SIZE_PX = 36
-/** The number of pixels the header bar should shrink when the column selector is visible,
- * assuming 0 icons are visible in the column selector. */
+/**
+ * The number of pixels the header bar should shrink when the column selector is visible,
+ * assuming 0 icons are visible in the column selector.
+ */
 const COLUMNS_SELECTOR_BASE_WIDTH_PX = 4
 /** The number of pixels the header bar should shrink per collapsed column. */
 const COLUMNS_SELECTOR_ICON_WIDTH_PX = 28
@@ -2349,7 +2355,8 @@ export default function AssetsTable(props: AssetsTableProps) {
           selectAdditional: () => {},
           selectAdditionalRange: () => {},
           [DEFAULT_HANDLER]: (event) => {
-            /** When the document is clicked, deselect the keys, but only if the clicked element
+            /**
+             * When the document is clicked, deselect the keys, but only if the clicked element
              * is not inside a `Dialog`. To detect whether an element is a `Dialog`,
              * we check whether it is inside the `portal-root` where all the `Dialog`s are mounted.
              * If this check is omitted, when the user clicks inside a Datalink dialog,

@@ -6,7 +6,8 @@ import * as reactDom from 'react-dom'
 import type * as types from './types'
 import * as usePortal from './usePortal'
 
-/** This component renders its children outside the current DOM hierarchy.
+/**
+ * This component renders its children outside the current DOM hierarchy.
  *
  * React [doesn't support](https://github.com/facebook/react/issues/13097) portal API in SSR, so, if you want to
  * render a Portal in SSR, use prop `disabled`.

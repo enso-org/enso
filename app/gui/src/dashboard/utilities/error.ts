@@ -10,8 +10,10 @@ import type * as toastify from 'react-toastify'
 type MustBe<T, Expected> =
   (<U>() => U extends T ? 1 : 2) extends <U>() => U extends Expected ? 1 : 2 ? T : never
 
-/** Used to enforce a parameter must be `any`. This is useful to verify that the value comes
- * from an API that returns `any`. */
+/**
+ * Used to enforce a parameter must be `any`. This is useful to verify that the value comes
+ * from an API that returns `any`.
+ */
 type MustBeAny<T> =
   never extends T ?
     0 extends T & 1 ?
@@ -19,16 +21,20 @@ type MustBeAny<T> =
     : never
   : never
 
-/** Enforces that a parameter must not have a known type. This means the only types allowed are
- * `{}`, `object`, `unknown` and `any`. */
+/**
+ * Enforces that a parameter must not have a known type. This means the only types allowed are
+ * `{}`, `object`, `unknown` and `any`.
+ */
 export type MustNotBeKnown<T> =
   | MustBe<T, NonNullable<unknown>>
   | MustBe<T, object>
   | MustBe<T, unknown>
   | MustBeAny<T>
 
-/** Extracts the `message` property of a value if it is a string. Intended to be used on
- * {@link Error}s. */
+/**
+ * Extracts the `message` property of a value if it is a string. Intended to be used on
+ * {@link Error}s.
+ */
 export function tryGetMessage<T, DefaultMessage extends string | null = null>(
   error: MustNotBeKnown<T>,
   // eslint-disable-next-line no-restricted-syntax
@@ -77,8 +83,10 @@ export function tryGetStack<T, DefaultMessage extends string | null = null>(
     : defaultMessage
 }
 
-/** Like {@link tryGetMessage} but return the string representation of the value if it is not an
- * {@link Error}. */
+/**
+ * Like {@link tryGetMessage} but return the string representation of the value if it is not an
+ * {@link Error}.
+ */
 export function getMessageOrToString<T>(error: MustNotBeKnown<T>) {
   return tryGetMessage(error) ?? String(error)
 }
@@ -93,23 +101,29 @@ export function render(f: (message: string) => string): toastify.UpdateOptions {
 // === UnreachableCaseError ===
 // ============================
 
-/** An error used to indicate when an unreachable case is hit in a `switch` or `if` statement.
+/**
+ * An error used to indicate when an unreachable case is hit in a `switch` or `if` statement.
  *
  * TypeScript is sometimes unable to determine if we're exhaustively matching in a `switch` or `if`
  * statement, so we introduce this error in the `default` case (or equivalent) to ensure that we at
  * least find out at runtime if we've missed a case, or forgotten to update the code when we add a
- * new case. */
+ * new case.
+ */
 export class UnreachableCaseError extends Error {
-  /** Creates an `UnreachableCaseError`.
-   * The parameter should be `never` since it is unreachable assuming all logic is sound. */
+  /**
+   * Creates an `UnreachableCaseError`.
+   * The parameter should be `never` since it is unreachable assuming all logic is sound.
+   */
   constructor(value: never) {
     super(`Unreachable case: ${JSON.stringify(value)}`)
   }
 }
 
-/** A function that throws an {@link UnreachableCaseError} so that it can be used
+/**
+ * A function that throws an {@link UnreachableCaseError} so that it can be used
  * in an expression.
- * @throws {UnreachableCaseError} Always. */
+ * @throws {UnreachableCaseError} Always.
+ */
 export function unreachable(value: never): never {
   throw new UnreachableCaseError(value)
 }
@@ -118,8 +132,10 @@ export function unreachable(value: never): never {
 // === assert ===
 // ==============
 
-/** Assert that a value is truthy.
- * @throws {Error} when the value is not truthy. */
+/**
+ * Assert that a value is truthy.
+ * @throws {Error} when the value is not truthy.
+ */
 // These literals are REQUIRED, as they are falsy.
 // eslint-disable-next-line @typescript-eslint/no-magic-numbers, no-restricted-syntax
 export function assert<T>(makeValue: () => T | '' | 0 | 0n | false | null | undefined): T {

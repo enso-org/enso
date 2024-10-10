@@ -32,8 +32,10 @@ import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 /** The reason behind a new query. */
 enum QuerySource {
-  /** A query change initiated by tabbing. While *technically* internal, it is semantically
-   * different in that tabbing does not update the base query. */
+  /**
+   * A query change initiated by tabbing. While *technically* internal, it is semantically
+   * different in that tabbing does not update the base query.
+   */
   tabbing = 'tabbing',
   /** A query change initiated from code in this component. */
   internal = 'internal',

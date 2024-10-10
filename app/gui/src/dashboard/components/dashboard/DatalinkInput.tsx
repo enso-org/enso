@@ -20,8 +20,10 @@ const DEFS: Record<string, object> = SCHEMA.$defs
 // === getValidator ===
 // ====================
 
-/** Get a known schema using a path.
- * @throws {Error} when there is no schema present at the given path. */
+/**
+ * Get a known schema using a path.
+ * @throws {Error} when there is no schema present at the given path.
+ */
 function getValidator(path: string) {
   return error.assert<(value: unknown) => boolean>(() => datalinkValidator.AJV.getSchema(path))
 }

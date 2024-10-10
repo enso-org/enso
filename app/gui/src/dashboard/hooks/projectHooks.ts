@@ -31,11 +31,15 @@ import type RemoteBackend from '#/services/RemoteBackend'
 // ====================================
 /** Default interval for refetching project status when the project is opened. */
 const OPENED_INTERVAL_MS = 30_000
-/** Interval when we open a cloud project.
- * Since opening a cloud project is a long operation, we want to check the status less often. */
+/**
+ * Interval when we open a cloud project.
+ * Since opening a cloud project is a long operation, we want to check the status less often.
+ */
 const CLOUD_OPENING_INTERVAL_MS = 5_000
-/** Interval when we open a local project or when we want to sync the project status as soon as
- * possible. */
+/**
+ * Interval when we open a local project or when we want to sync the project status as soon as
+ * possible.
+ */
 const ACTIVE_SYNC_INTERVAL_MS = 100
 
 /** Options for {@link createGetProjectDetailsQuery}. */

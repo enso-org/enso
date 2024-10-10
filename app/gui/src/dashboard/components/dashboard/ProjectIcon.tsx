@@ -27,8 +27,10 @@ import { useMemo } from 'react'
 
 export const CLOSED_PROJECT_STATE = { type: backendModule.ProjectState.closed } as const
 
-/** The corresponding {@link spinner.SpinnerState} for each {@link backendModule.ProjectState},
- * when using the remote backend. */
+/**
+ * The corresponding {@link spinner.SpinnerState} for each {@link backendModule.ProjectState},
+ * when using the remote backend.
+ */
 const REMOTE_SPINNER_STATE: Readonly<Record<backendModule.ProjectState, spinner.SpinnerState>> = {
   [backendModule.ProjectState.closed]: spinner.SpinnerState.loadingSlow,
   [backendModule.ProjectState.closing]: spinner.SpinnerState.loadingMedium,
@@ -40,8 +42,10 @@ const REMOTE_SPINNER_STATE: Readonly<Record<backendModule.ProjectState, spinner.
   [backendModule.ProjectState.scheduled]: spinner.SpinnerState.loadingSlow,
   [backendModule.ProjectState.opened]: spinner.SpinnerState.done,
 }
-/** The corresponding {@link spinner.SpinnerState} for each {@link backendModule.ProjectState},
- * when using the local backend. */
+/**
+ * The corresponding {@link spinner.SpinnerState} for each {@link backendModule.ProjectState},
+ * when using the local backend.
+ */
 const LOCAL_SPINNER_STATE: Readonly<Record<backendModule.ProjectState, spinner.SpinnerState>> = {
   [backendModule.ProjectState.closed]: spinner.SpinnerState.loadingSlow,
   [backendModule.ProjectState.closing]: spinner.SpinnerState.loadingMedium,

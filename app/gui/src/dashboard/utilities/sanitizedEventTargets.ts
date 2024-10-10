@@ -1,5 +1,7 @@
-/** @file Various common {@link EventTarget}s, without the unsafe catch-all overload
- * that accepts a `string` event name. */
+/**
+ * @file Various common {@link EventTarget}s, without the unsafe catch-all overload
+ * that accepts a `string` event name.
+ */
 
 /** An arbitrary {@link HTMLElement} without the unsafe {@link EventTarget} overloads. */
 interface SanitizedHTMLElementEventTarget

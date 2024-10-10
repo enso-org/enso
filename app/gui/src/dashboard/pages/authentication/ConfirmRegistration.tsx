@@ -1,5 +1,7 @@
-/** @file Registration confirmation page for when a user clicks the confirmation link set to their
- * email address. */
+/**
+ * @file Registration confirmation page for when a user clicks the confirmation link set to their
+ * email address.
+ */
 
 import * as router from 'react-router-dom'
 

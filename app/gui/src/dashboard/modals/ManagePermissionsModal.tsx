@@ -32,8 +32,10 @@ import * as permissionsModule from '#/utilities/permissions'
 // === Constants ===
 // =================
 
-/** The vertical offset of the `PermissionTypeSelector` from its parent element, for the
- * input to invite new users. */
+/**
+ * The vertical offset of the `PermissionTypeSelector` from its parent element, for the
+ * input to invite new users.
+ */
 const TYPE_SELECTOR_Y_OFFSET_PX = 32
 
 // ==============================
@@ -47,16 +49,20 @@ export interface ManagePermissionsModalProps<
   readonly item: Pick<Asset, 'id' | 'permissions' | 'type'>
   readonly setItem: React.Dispatch<React.SetStateAction<Asset>>
   readonly self: backendModule.AssetPermission
-  /** Remove the current user's permissions from this asset. This MUST be a prop because it should
-   * change the assets list. */
+  /**
+   * Remove the current user's permissions from this asset. This MUST be a prop because it should
+   * change the assets list.
+   */
   readonly doRemoveSelf: () => void
   /** If this is `null`, this modal will be centered. */
   readonly eventTarget: HTMLElement | null
 }
 
-/** A modal with inputs for user email and permission level.
+/**
+ * A modal with inputs for user email and permission level.
  * @throws {Error} when the current backend is the local backend, or when the user is offline.
- * This should never happen, as this modal should not be accessible in either case. */
+ * This should never happen, as this modal should not be accessible in either case.
+ */
 export default function ManagePermissionsModal<
   Asset extends backendModule.AnyAsset = backendModule.AnyAsset,
 >(props: ManagePermissionsModalProps<Asset>) {

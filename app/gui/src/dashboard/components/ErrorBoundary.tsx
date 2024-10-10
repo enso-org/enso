@@ -25,9 +25,11 @@ export interface ErrorBoundaryProps
   extends Readonly<React.PropsWithChildren>,
     Readonly<Pick<errorBoundary.ErrorBoundaryProps, 'FallbackComponent' | 'onError' | 'onReset'>> {}
 
-/** Catches errors in child components
+/**
+ * Catches errors in child components
  * Shows a fallback UI when there is an error.
- * The error can also be logged to an error reporting service. */
+ * The error can also be logged to an error reporting service.
+ */
 export function ErrorBoundary(props: ErrorBoundaryProps) {
   const {
     FallbackComponent = ErrorDisplay,

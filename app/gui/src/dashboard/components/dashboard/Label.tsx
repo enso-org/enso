@@ -18,8 +18,10 @@ interface InternalLabelProps extends Readonly<PropsWithChildren> {
   readonly 'data-testid'?: string
   /** When true, the button is not faded out even when not hovered. */
   readonly active?: boolean
-  /** When true, the button has a red border signifying that it will be deleted,
-   * or that it is excluded from search. */
+  /**
+   * When true, the button has a red border signifying that it will be deleted,
+   * or that it is excluded from search.
+   */
   readonly negated?: boolean
   /** When true, the button cannot be clicked. */
   readonly isDisabled?: boolean

@@ -20,8 +20,10 @@ import * as tailwindMerge from '#/utilities/tailwindMerge'
 const TYPE_SELECTOR_X_OFFSET_PX = -8
 /** The vertical offset of the {@link PermissionTypeSelector} from its parent element. */
 const TYPE_SELECTOR_Y_OFFSET_PX = 28
-/** The vertical offset of the label's clip path from its parent element.
- * Optimized for 100% zoom. */
+/**
+ * The vertical offset of the label's clip path from its parent element.
+ * Optimized for 100% zoom.
+ */
 const LABEL_CLIP_Y_OFFSET_PX = 0.5
 /** The border radius of the permission label. */
 const LABEL_BORDER_RADIUS_PX = 12

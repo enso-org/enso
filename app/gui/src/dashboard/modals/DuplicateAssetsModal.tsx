@@ -18,8 +18,10 @@ import * as object from '#/utilities/object'
 // === Types ===
 // =============
 
-/** An object containing the current asset, and the asset that is about to be uploaded,
- * that will conflict with the existing asset. */
+/**
+ * An object containing the current asset, and the asset that is about to be uploaded,
+ * that will conflict with the existing asset.
+ */
 export interface ConflictingAsset<
   Asset extends backendModule.FileAsset | backendModule.ProjectAsset =
     | backendModule.FileAsset

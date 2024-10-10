@@ -1,5 +1,7 @@
-/** @file A dialog is an overlay shown above other content in an application.
- * Can be used to display alerts, confirmations, or other content. */
+/**
+ * @file A dialog is an overlay shown above other content in an application.
+ * Can be used to display alerts, confirmations, or other content.
+ */
 import * as React from 'react'
 
 import * as aria from '#/components/aria'
@@ -148,8 +150,10 @@ const DIALOG_STYLES = tv({
 // === Dialog ===
 // ==============
 
-/** A dialog is an overlay shown above other content in an application.
- * Can be used to display alerts, confirmations, or other content. */
+/**
+ * A dialog is an overlay shown above other content in an application.
+ * Can be used to display alerts, confirmations, or other content.
+ */
 export function Dialog(props: DialogProps) {
   const {
     children,

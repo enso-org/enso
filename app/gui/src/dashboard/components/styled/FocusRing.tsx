@@ -14,8 +14,10 @@ export type FocusRingPlacement = 'after' | 'before' | 'outset'
 export interface FocusRingProps extends Readonly<Pick<aria.FocusRingProps, 'children'>> {
   /** Whether to show the focus ring on `:focus-within` instead of `:focus`. */
   readonly within?: boolean
-  /** Which pseudo-element to place the focus ring on (if any).
-   * Defaults to placement on the actual element. */
+  /**
+   * Which pseudo-element to place the focus ring on (if any).
+   * Defaults to placement on the actual element.
+   */
   readonly placement?: FocusRingPlacement
 }
 

@@ -28,9 +28,11 @@ export interface FileNameColumnProps extends column.AssetColumnProps {
   readonly item: AssetTreeNode<backendModule.FileAsset>
 }
 
-/** The icon and name of a {@link backendModule.FileAsset}.
+/**
+ * The icon and name of a {@link backendModule.FileAsset}.
  * @throws {Error} when the asset is not a {@link backendModule.FileAsset}.
- * This should never happen. */
+ * This should never happen.
+ */
 export default function FileNameColumn(props: FileNameColumnProps) {
   const { item, setItem, selected, state, rowState, setRowState, isEditable } = props
   const { backend, nodeMap } = state

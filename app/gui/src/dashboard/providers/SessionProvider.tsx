@@ -1,5 +1,7 @@
-/** @file Provider for the {@link SessionContextType}, which contains information about the
- * currently authenticated user's session. */
+/**
+ * @file Provider for the {@link SessionContextType}, which contains information about the
+ * currently authenticated user's session.
+ */
 import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
@@ -32,7 +34,8 @@ const SessionContext = React.createContext<SessionContextType | null>(null)
 
 /** Props for a {@link SessionProvider}. */
 export interface SessionProviderProps {
-  /** The URL that the content of the app is served at, by Electron.
+  /**
+   * The URL that the content of the app is served at, by Electron.
    *
    * This **must** be the actual page that the content is served at, otherwise the OAuth flow will
    * not work and will redirect the user to a blank page. If this is the correct URL, no redirect
@@ -42,7 +45,8 @@ export interface SessionProviderProps {
    * known ahead of time, since the content may be served on any free port. Thus, the URL is
    * obtained by reading the window location at the time that authentication is instantiated. This
    * is guaranteed to be the correct location, since authentication is instantiated when the content
-   * is initially served. */
+   * is initially served.
+   */
   readonly mainPageUrl: URL
   readonly registerAuthEventListener: listen.ListenFunction | null
   readonly userSession: (() => Promise<cognito.UserSession | null>) | null
@@ -172,8 +176,10 @@ export default function SessionProvider(props: SessionProviderProps) {
 // === useSession ===
 // ==================
 
-/** React context hook returning the session of the authenticated user.
- * @throws {Error} when used outside a {@link SessionProvider}. */
+/**
+ * React context hook returning the session of the authenticated user.
+ * @throws {Error} when used outside a {@link SessionProvider}.
+ */
 export function useSession() {
   const context = React.useContext(SessionContext)
 

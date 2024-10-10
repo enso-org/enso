@@ -1,4 +1,5 @@
-/** @file File containing the {@link App} React component, which is the entrypoint into our React
+/**
+ * @file File containing the {@link App} React component, which is the entrypoint into our React
  * application.
  *
  * # Providers
@@ -32,7 +33,8 @@
  * authenticated users (c.f. {@link authProvider.PartialUserSession}). That is, users who have
  * signed up but who have not completed email verification or set a username. The remaining
  * {@link router.Route}s require fully authenticated users (c.f.
- * {@link authProvider.FullUserSession}). */
+ * {@link authProvider.FullUserSession}).
+ */
 import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
@@ -146,8 +148,10 @@ export interface AppProps {
   readonly supportsLocalBackend: boolean
   /** If true, the app can only be used in offline mode. */
   readonly isAuthenticationDisabled: boolean
-  /** Whether the application supports deep links. This is only true when using
-   * the installed app on macOS and Windows. */
+  /**
+   * Whether the application supports deep links. This is only true when using
+   * the installed app on macOS and Windows.
+   */
   readonly supportsDeepLinks: boolean
   /** Whether the dashboard should be rendered. */
   readonly shouldShowDashboard: boolean
@@ -160,11 +164,13 @@ export interface AppProps {
   readonly queryClient: reactQuery.QueryClient
 }
 
-/** Component called by the parent module, returning the root React component for this
+/**
+ * Component called by the parent module, returning the root React component for this
  * package.
  *
  * This component handles all the initialization and rendering of the app, and manages the app's
- * routes. It also initializes an `AuthProvider` that will be used by the rest of the app. */
+ * routes. It also initializes an `AuthProvider` that will be used by the rest of the app.
+ */
 export default function App(props: AppProps) {
   const {
     data: { projectManagerRootDirectory, projectManagerInstance },
@@ -248,11 +254,13 @@ export interface AppRouterProps extends AppProps {
   readonly projectManagerInstance: ProjectManager | null
 }
 
-/** Router definition for the app.
+/**
+ * Router definition for the app.
  *
  * The only reason the {@link AppRouter} component is separate from the {@link App} component is
  * because the {@link AppRouter} relies on React hooks, which can't be used in the same React
- * component as the component that defines the provider. */
+ * component as the component that defines the provider.
+ */
 function AppRouter(props: AppRouterProps) {
   const { isAuthenticationDisabled, shouldShowDashboard } = props
   const { onAuthenticated, projectManagerInstance } = props

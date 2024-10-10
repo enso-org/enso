@@ -9,8 +9,10 @@ import invariant from 'tiny-invariant'
 
 const KEY_DEFINITION_STACK_TRACES = new Map<string, string>()
 
-/** Whether the source location for `LocalStorage.register(key)` is different to the previous
- * known source location. */
+/**
+ * Whether the source location for `LocalStorage.register(key)` is different to the previous
+ * known source location.
+ */
 function isSourceChanged(key: string) {
   const stack = (new Error().stack ?? '').replace(/[?]t=\d+:\d+:\d+/g, '')
   const isChanged = stack !== KEY_DEFINITION_STACK_TRACES.get(key)
@@ -37,8 +39,10 @@ export interface LocalStorageKeyMetadata<K extends LocalStorageKey> {
 // === LocalStorageData ===
 // ========================
 
-/** The data that can be stored in a {@link LocalStorage}.
- * Declaration merge into this interface to add a new key. */
+/**
+ * The data that can be stored in a {@link LocalStorage}.
+ * Declaration merge into this interface to add a new key.
+ */
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface LocalStorageData {}
 

@@ -29,8 +29,10 @@ export function fileExtension(fileNameOrPath: string) {
   return fileNameOrPath.match(/[.]([^.]+?)$/)?.[1] ?? ''
 }
 
-/** Return both the name and extension of the file name (if any).
- * Otherwise, returns the entire name as the basename. */
+/**
+ * Return both the name and extension of the file name (if any).
+ * Otherwise, returns the entire name as the basename.
+ */
 export function basenameAndExtension(name: string) {
   const [, basename, extension] = name.match(/^([^.]*)[.](.+)$/) ?? []
   return { basename: basename ?? name, extension: extension ?? '' }

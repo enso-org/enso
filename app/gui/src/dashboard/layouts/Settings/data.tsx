@@ -541,8 +541,10 @@ export interface SettingsTabData {
   readonly icon: string
   readonly visible?: (context: SettingsContext) => boolean
   readonly organizationOnly?: true
-  /** The feature behind which this settings tab is locked. If the user cannot access the feature,
-   * a paywall is shown instead of the settings tab. */
+  /**
+   * The feature behind which this settings tab is locked. If the user cannot access the feature,
+   * a paywall is shown instead of the settings tab.
+   */
   readonly feature?: PaywallFeatureName
   readonly sections: readonly SettingsSectionData[]
   readonly onPress?: (context: SettingsContext) => Promise<void> | void

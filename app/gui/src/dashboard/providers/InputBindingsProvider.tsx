@@ -1,5 +1,7 @@
-/** @file The React provider for keyboard and mouse shortcuts, along with hooks to use the provider
- * via the shared React context. */
+/**
+ * @file The React provider for keyboard and mouse shortcuts, along with hooks to use the provider
+ * via the shared React context.
+ */
 import * as React from 'react'
 
 import * as inputBindingsModule from '#/configurations/inputBindings'
@@ -47,8 +49,10 @@ export default function InputBindingsProvider(props: InputBindingsProviderProps)
   )
 }
 
-/** Exposes a property to get the input bindings namespace.
- * @throws {Error} when used outside of its context. */
+/**
+ * Exposes a property to get the input bindings namespace.
+ * @throws {Error} when used outside of its context.
+ */
 export function useInputBindings() {
   return React.useContext(InputBindingsContext)
 }

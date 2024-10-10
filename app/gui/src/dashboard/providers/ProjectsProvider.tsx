@@ -134,8 +134,10 @@ const STORE = zustand.createStore<ProjectsStore>((set) => ({
 // === ProjectsProvider ===
 // ========================
 
-/** A React provider (and associated hooks) for determining whether the current area
- * containing the current element is focused. */
+/**
+ * A React provider (and associated hooks) for determining whether the current area
+ * containing the current element is focused.
+ */
 export default function ProjectsProvider(props: ProjectsProviderProps) {
   const { children } = props
   const { localStorage } = localStorageProvider.useLocalStorage()

@@ -1,5 +1,7 @@
-/** @file The React provider (and associated hooks) for determining whether the current focus
- * context is vertical or horizontal. */
+/**
+ * @file The React provider (and associated hooks) for determining whether the current focus
+ * context is vertical or horizontal.
+ */
 import * as React from 'react'
 
 // =============================
@@ -27,8 +29,10 @@ export interface FocusDirectionProviderProps
 // === FocusDirectionProvider ===
 // ==============================
 
-/** A React provider (and associated hooks) for determining whether the current focus contex
- * is vertical or horizontal. */
+/**
+ * A React provider (and associated hooks) for determining whether the current focus contex
+ * is vertical or horizontal.
+ */
 export default function FocusDirectionProvider(props: FocusDirectionProviderProps) {
   const { direction, children } = props
   return (

@@ -1,5 +1,7 @@
-/** @file The React provider for the project manager `Backend`, along with hooks to use the
- * provider via the shared React context. */
+/**
+ * @file The React provider for the project manager `Backend`, along with hooks to use the
+ * provider via the shared React context.
+ */
 import * as React from 'react'
 
 import invariant from 'tiny-invariant'
@@ -121,9 +123,11 @@ export function useLocalBackend() {
 // === useBackend ===
 // ==================
 
-/** Get the corresponding backend for the given property.
+/**
+ * Get the corresponding backend for the given property.
  * @throws {Error} when neither the Remote Backend nor the Local Backend are supported.
- * This should never happen unless the build is misconfigured. */
+ * This should never happen unless the build is misconfigured.
+ */
 export function useBackend(category: Category) {
   const remoteBackend = useRemoteBackendStrict()
   const localBackend = useLocalBackend()

@@ -123,8 +123,10 @@ interface AssetListWillDeleteEvent extends AssetListBaseEvent<AssetListEventType
   readonly key: backend.AssetId
 }
 
-/** A signal that a file has been deleted. This must not be called before the request is
- * finished. */
+/**
+ * A signal that a file has been deleted. This must not be called before the request is
+ * finished.
+ */
 interface AssetListDeleteEvent extends AssetListBaseEvent<AssetListEventType.delete> {
   readonly key: backend.AssetId
 }

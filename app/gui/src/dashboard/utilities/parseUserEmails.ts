@@ -10,12 +10,14 @@ export interface ParseUserEmailsEntry {
   readonly email: string
 }
 
-/** Parses emails separated by commas, semicolons, spaces or newlines, also removing any leading/trailing whitespaces and
+/**
+ * Parses emails separated by commas, semicolons, spaces or newlines, also removing any leading/trailing whitespaces and
  * removing any empty strings and should support emails copied from gmail, outlook, apple mail.
  * Supports emails in the following formats:
  *
  * ***NOTE*** This function does not validate the email addresses, it only parses them.
- * @returns an object with the parsed entries and any errors that occurred during parsing. */
+ * @returns an object with the parsed entries and any errors that occurred during parsing.
+ */
 export function parseUserEmails(emailsString: string): ParseUserEmailsResult {
   const entries = emailsString
     .split(/[,;\s\n]+/)

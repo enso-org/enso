@@ -12,14 +12,16 @@ interface UseStickyTableHeaderOnScrollOptions {
   readonly trackShadowClass?: boolean
 }
 
-/** Properly clip the table body to avoid the table header on scroll.
+/**
+ * Properly clip the table body to avoid the table header on scroll.
  * This is required to prevent the table body from overlapping the table header,
  * because the table header is transparent.
  *
  * NOTE: The returned event handler should be attached to the scroll container
  * (the closest ancestor element with `overflow-y-auto`).
  * @param rootRef - a {@link React.useRef} to the scroll container
- * @param bodyRef - a {@link React.useRef} to the `tbody` element that needs to be clipped. */
+ * @param bodyRef - a {@link React.useRef} to the `tbody` element that needs to be clipped.
+ */
 export function useStickyTableHeaderOnScroll(
   rootRef: React.MutableRefObject<HTMLDivElement | null>,
   bodyRef: React.RefObject<HTMLTableSectionElement>,

@@ -1,4 +1,5 @@
-/** @file Provides {@link Cognito} class which is the entrypoint into the AWS Amplify library.
+/**
+ * @file Provides {@link Cognito} class which is the entrypoint into the AWS Amplify library.
  *
  * All of the functions used for authentication are provided by the AWS Amplify library, but we
  * provide a thin wrapper around them to make them easier to use. Mainly, we perform some error
@@ -28,7 +29,8 @@
  *
  * Amplify reuses some codes for multiple kinds of errors. In the case of ambiguous errors, the
  * `kind` field provides a unique string that can be used to brand the error in place of the
- * `internalCode`, when rethrowing the error. */
+ * `internalCode`, when rethrowing the error.
+ */
 import type * as amplify from '@aws-amplify/auth'
 import type * as cognito from 'amazon-cognito-identity-js'
 import * as results from 'ts-results'
@@ -69,9 +71,11 @@ const MOCK_EMAIL_KEY = 'mock_email'
 let mockOrganizationId = localStorage.getItem(MOCK_ORGANIZATION_ID_KEY)
 let mockEmail = localStorage.getItem(MOCK_EMAIL_KEY)
 
-/** Thin wrapper around Cognito endpoints from the AWS Amplify library with error handling added.
+/**
+ * Thin wrapper around Cognito endpoints from the AWS Amplify library with error handling added.
  * This way, the methods don't throw all errors, but define exactly which errors they return.
- * The caller can then handle them via pattern matching on the {@link results.Result} type. */
+ * The caller can then handle them via pattern matching on the {@link results.Result} type.
+ */
 export class Cognito {
   isSignedIn = false
 
@@ -93,9 +97,11 @@ export class Cognito {
     // Ignored.
   }
 
-  /** Return the current {@link UserSession}, or `None` if the user is not logged in.
+  /**
+   * Return the current {@link UserSession}, or `None` if the user is not logged in.
    *
-   * Will refresh the {@link UserSession} if it has expired. */
+   * Will refresh the {@link UserSession} if it has expired.
+   */
   async userSession() {
     const currentSession = await results.Result.wrapAsync(() => {
       const date = Math.floor(Number(new Date()) / SEC_MS)
@@ -150,15 +156,19 @@ export class Cognito {
     return amplifySession.map(parseUserSession).unwrapOr(null)
   }
 
-  /** Returns the associated organization ID of the current user, which is passed during signup,
-   * or `null` if the user is not associated with an existing organization. */
+  /**
+   * Returns the associated organization ID of the current user, which is passed during signup,
+   * or `null` if the user is not associated with an existing organization.
+   */
   async organizationId() {
     return Promise.resolve(mockOrganizationId)
   }
 
-  /** Sign up with username and password.
+  /**
+   * Sign up with username and password.
    *
-   * Does not rely on federated identity providers (e.g., Google or GitHub). */
+   * Does not rely on federated identity providers (e.g., Google or GitHub).
+   */
   signUp(username: string, password: string, organizationId: string | null) {
     mockOrganizationId = organizationId
     if (organizationId != null) {
@@ -169,34 +179,40 @@ export class Cognito {
     return signUp(this.supportsDeepLinks, username, password, organizationId)
   }
 
-  /** Send the email address verification code.
+  /**
+   * Send the email address verification code.
    *
    * The user will receive a link in their email. The user must click the link to go to the email
    * verification page. The email verification page will parse the verification code from the URL.
    * If the verification code matches, the email address is marked as verified. Once the email
-   * address is verified, the user can sign in. */
+   * address is verified, the user can sign in.
+   */
   confirmSignUp(email: string, code: string) {
     mockEmail = email
     localStorage.setItem(MOCK_EMAIL_KEY, email)
     return confirmSignUp(email, code)
   }
 
-  /** Sign in via the Google federated identity provider.
+  /**
+   * Sign in via the Google federated identity provider.
    *
    * This function will open the Google authentication page in the user's browser. The user will
    * be asked to log in to their Google account, and then to grant access to the application.
-   * After the user has granted access, the browser will be redirected to the application. */
+   * After the user has granted access, the browser will be redirected to the application.
+   */
   async signInWithGoogle() {
     this.isSignedIn = true
     listen.authEventListener?.(listen.AuthEvent.signIn)
     await Promise.resolve()
   }
 
-  /** Sign in via the GitHub federated identity provider.
+  /**
+   * Sign in via the GitHub federated identity provider.
    *
    * This function will open the GitHub authentication page in the user's browser. The user will
    * be asked to log in to their GitHub account, and then to grant access to the application.
-   * After the user has granted access, the browser will be redirected to the application. */
+   * After the user has granted access, the browser will be redirected to the application.
+   */
   signInWithGitHub() {
     this.isSignedIn = true
     listen.authEventListener?.(listen.AuthEvent.signIn)
@@ -210,9 +226,11 @@ export class Cognito {
     })
   }
 
-  /** Sign in with the given username and password.
+  /**
+   * Sign in with the given username and password.
    *
-   * Does not rely on external identity providers (e.g., Google or GitHub). */
+   * Does not rely on external identity providers (e.g., Google or GitHub).
+   */
   async signInWithPassword(username: string, _password: string) {
     this.isSignedIn = true
     mockEmail = username
@@ -233,11 +251,13 @@ export class Cognito {
     return Promise.resolve(null)
   }
 
-  /** Send a password reset email.
+  /**
+   * Send a password reset email.
    *
    * The user will be able to reset their password by following the link in the email, which takes
    * them to the "reset password" page of the application. The verification code will be filled in
-   * automatically. */
+   * automatically.
+   */
   async forgotPassword(_email: string) {
     const result = await results.Result.wrapAsync(async () => {
       // Ignored.
@@ -247,11 +267,13 @@ export class Cognito {
       .mapErr(original.intoForgotPasswordErrorOrThrow)
   }
 
-  /** Submit a new password for the given email address.
+  /**
+   * Submit a new password for the given email address.
    *
    * The user will have received a verification code in an email, which they will have entered on
    * the "reset password" page of the application. This function will submit the new password
-   * along with the verification code, changing the user's password. */
+   * along with the verification code, changing the user's password.
+   */
   async forgotPasswordSubmit(_email: string, _code: string, _password: string) {
     const result = await results.Result.wrapAsync(async () => {
       // Ignored.
@@ -259,12 +281,14 @@ export class Cognito {
     return result.mapErr(original.intoForgotPasswordSubmitErrorOrThrow)
   }
 
-  /** Change a password for current authenticated user.
+  /**
+   * Change a password for current authenticated user.
    *
    * Allow users to independently modify their passwords. The user needs to provide the old
    * password, new password, and repeat new password to change their old password to the new
    * one. The validation of the repeated new password is handled by the `changePasswordModel`
-   * component. */
+   * component.
+   */
   async changePassword(oldPassword: string, newPassword: string) {
     const cognitoUserResult = await currentAuthenticatedUser()
     if (cognitoUserResult.ok) {
@@ -301,13 +325,15 @@ export class Cognito {
 
 /** User's session, provides information for identifying and authenticating the user. */
 export interface UserSession {
-  /** User's email address, used to uniquely identify the user.
+  /**
+   * User's email address, used to uniquely identify the user.
    *
    * Provided by the identity provider the user used to log in. One of:
    *
    * - GitHub,
    * - Google, or
-   * - Email. */
+   * - Email.
+   */
   readonly email: string
   /** User's access token, used to authenticate the user (e.g., when making API calls). */
   readonly accessToken: string
@@ -315,8 +341,10 @@ export interface UserSession {
   readonly clientId?: string
 }
 
-/** Parse a {@link cognito.CognitoUserSession} into a {@link UserSession}.
- * @throws If the `email` field of the payload is not a string. */
+/**
+ * Parse a {@link cognito.CognitoUserSession} into a {@link UserSession}.
+ * @throws If the `email` field of the payload is not a string.
+ */
 function parseUserSession(session: cognito.CognitoUserSession): UserSession {
   const payload: Readonly<Record<string, unknown>> = session.getIdToken().payload
   const email = payload.email
@@ -333,8 +361,10 @@ function parseUserSession(session: cognito.CognitoUserSession): UserSession {
 // === SignUp ===
 // ==============
 
-/** A wrapper around the Amplify "sign up" endpoint that converts known errors
- * to `SignUpError`s. */
+/**
+ * A wrapper around the Amplify "sign up" endpoint that converts known errors
+ * to `SignUpError`s.
+ */
 async function signUp(
   _supportsDeepLinks: boolean,
   _username: string,
@@ -351,8 +381,10 @@ async function signUp(
 // === ConfirmSignUp ===
 // =====================
 
-/** A wrapper around the Amplify "confirm sign up" endpoint that converts known errors
- * to `ConfirmSignUpError`s. */
+/**
+ * A wrapper around the Amplify "confirm sign up" endpoint that converts known errors
+ * to `ConfirmSignUpError`s.
+ */
 async function confirmSignUp(_email: string, _code: string) {
   return results.Result.wrapAsync(async () => {
     // Ignored.
@@ -365,8 +397,10 @@ async function confirmSignUp(_email: string, _code: string) {
 // === ChangePassword ===
 // ======================
 
-/** A wrapper around the Amplify "current authenticated user" endpoint that converts known errors
- * to `AmplifyError`s. */
+/**
+ * A wrapper around the Amplify "current authenticated user" endpoint that converts known errors
+ * to `AmplifyError`s.
+ */
 async function currentAuthenticatedUser() {
   const result = await results.Result.wrapAsync(
     // The methods are not needed.

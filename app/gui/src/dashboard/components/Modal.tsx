@@ -36,9 +36,11 @@ export interface ModalProps
   readonly onContextMenu?: React.MouseEventHandler<HTMLDivElement>
 }
 
-/** A fullscreen modal with content at the center. The background is fully opaque by default;
+/**
+ * A fullscreen modal with content at the center. The background is fully opaque by default;
  * background transparency can be enabled with Tailwind's `bg-opacity` classes, like
- * `className="bg-opacity-50"`. */
+ * `className="bg-opacity-50"`.
+ */
 export default function Modal(props: ModalProps) {
   const { hidden = false, children, style, onClick, onContextMenu, ...variantProps } = props
   const { unsetModal } = modalProvider.useSetModal()

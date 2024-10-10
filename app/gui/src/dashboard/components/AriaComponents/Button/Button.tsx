@@ -65,8 +65,10 @@ export interface BaseButtonProps<Render>
   readonly testId?: string
   readonly isDisabled?: boolean
   readonly formnovalidate?: boolean
-  /** Defaults to `full`. When `full`, the entire button will be replaced with the loader.
-   * When `icon`, only the icon will be replaced with the loader. */
+  /**
+   * Defaults to `full`. When `full`, the entire button will be replaced with the loader.
+   * When `icon`, only the icon will be replaced with the loader.
+   */
   readonly loaderPosition?: 'full' | 'icon'
   readonly styles?: ExtractFunction<typeof BUTTON_STYLES> | undefined
 }

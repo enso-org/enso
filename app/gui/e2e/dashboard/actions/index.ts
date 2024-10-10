@@ -315,16 +315,20 @@ export function locateAssetName(locator: test.Locator) {
   return locator.locator('> :nth-child(1)')
 }
 
-/** Find assets table rows that represent directories that can be expanded (if any)
- * on the current page. */
+/**
+ * Find assets table rows that represent directories that can be expanded (if any)
+ * on the current page.
+ */
 export function locateExpandableDirectories(page: test.Page) {
   // The icon is hidden when not hovered so `getByLabel` will not work.
   // eslint-disable-next-line no-restricted-properties
   return locateAssetRows(page).filter({ has: page.locator('[aria-label=Expand]') })
 }
 
-/** Find assets table rows that represent directories that can be collapsed (if any)
- * on the current page. */
+/**
+ * Find assets table rows that represent directories that can be collapsed (if any)
+ * on the current page.
+ */
 export function locateCollapsibleDirectories(page: test.Page) {
   // The icon is hidden when not hovered so `getByLabel` will not work.
   // eslint-disable-next-line no-restricted-properties
@@ -390,9 +394,11 @@ export function locateExtraColumns(page: test.Page) {
   return page.getByTestId('extra-columns')
 }
 
-/** Find a root directory dropzone (if any) on the current page.
+/**
+ * Find a root directory dropzone (if any) on the current page.
  * This is the empty space below the assets table, if it doesn't take up the whole screen
- * vertically. */
+ * vertically.
+ */
 export function locateRootDirectoryDropzone(page: test.Page) {
   // This has no identifying features.
   return page.getByTestId('root-directory-dropzone')
@@ -591,9 +597,11 @@ export namespace settings {
 // === Visual layout utilities ===
 // ===============================
 
-/** Get the left side of the bounding box of an asset row. The locator MUST be for an asset row.
+/**
+ * Get the left side of the bounding box of an asset row. The locator MUST be for an asset row.
  * DO NOT assume the left side of the outer container will change. This means that it is NOT SAFE
- * to do anything with the returned values other than comparing them. */
+ * to do anything with the returned values other than comparing them.
+ */
 export function getAssetRowLeftPx(locator: test.Locator) {
   return locator.evaluate((el) => el.children[0]?.children[0]?.getBoundingClientRect().left ?? 0)
 }
@@ -688,8 +696,10 @@ export async function modModifier(page: test.Page) {
   return /\bMac OS\b/i.test(userAgent) ? 'Meta' : 'Control'
 }
 
-/** Press a key, replacing the text `Mod` with `Meta` (`Cmd`) on macOS, and `Control`
- * on all other platforms. */
+/**
+ * Press a key, replacing the text `Mod` with `Meta` (`Cmd`) on macOS, and `Control`
+ * on all other platforms.
+ */
 export async function press(page: test.Page, keyOrShortcut: string) {
   await test.test.step(`Press '${keyOrShortcut}'`, async () => {
     if (/\bMod\b|\bDelete\b/.test(keyOrShortcut)) {
@@ -837,8 +847,10 @@ export function mockAllAndLogin({ page, setupAPI }: MockParams) {
     .do((thePage) => login({ page: thePage, setupAPI }))
 }
 
-/** Set up all mocks, and log in with dummy credentials.
- * @deprecated Prefer {@link mockAllAndLogin}. */
+/**
+ * Set up all mocks, and log in with dummy credentials.
+ * @deprecated Prefer {@link mockAllAndLogin}.
+ */
 // This syntax is required for Playwright to work properly.
 // eslint-disable-next-line no-restricted-syntax
 export async function mockAllAndLoginAndExposeAPI({ page, setupAPI }: MockParams) {

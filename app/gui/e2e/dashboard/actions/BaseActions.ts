@@ -27,7 +27,8 @@ export interface LocatorCallback {
 // === BaseActions ===
 // ===================
 
-/** The base class from which all `Actions` classes are derived.
+/**
+ * The base class from which all `Actions` classes are derived.
  * It contains method common to all `Actions` subclasses.
  * This is a [`thenable`], so it can be used as if it was a {@link Promise}.
  *
@@ -40,14 +41,18 @@ export default class BaseActions implements Promise<void> {
     private readonly promise = Promise.resolve(),
   ) {}
 
-  /** Get the string name of the class of this instance. Required for this class to implement
-   * {@link Promise}. */
+  /**
+   * Get the string name of the class of this instance. Required for this class to implement
+   * {@link Promise}.
+   */
   get [Symbol.toStringTag]() {
     return this.constructor.name
   }
 
-  /** Press a key, replacing the text `Mod` with `Meta` (`Cmd`) on macOS, and `Control`
-   * on all other platforms. */
+  /**
+   * Press a key, replacing the text `Mod` with `Meta` (`Cmd`) on macOS, and `Control`
+   * on all other platforms.
+   */
   static press(page: test.Page, keyOrShortcut: string): Promise<void> {
     return test.test.step(`Press '${keyOrShortcut}'`, async () => {
       if (/\bMod\b|\bDelete\b/.test(keyOrShortcut)) {
@@ -77,18 +82,22 @@ export default class BaseActions implements Promise<void> {
     return await this.promise.then(onfulfilled, onrejected)
   }
 
-  /** Proxies the `catch` method of the internal {@link Promise}.
+  /**
+   * Proxies the `catch` method of the internal {@link Promise}.
    * This method is not required for this to be a `thenable`, but it is still useful
-   * to treat this class as a {@link Promise}. */
+   * to treat this class as a {@link Promise}.
+   */
   // The following types are copied almost verbatim from the type definitions for `Promise`.
   // eslint-disable-next-line no-restricted-syntax
   async catch<T>(onrejected?: ((reason: unknown) => PromiseLike<T> | T) | null | undefined) {
     return await this.promise.catch(onrejected)
   }
 
-  /** Proxies the `catch` method of the internal {@link Promise}.
+  /**
+   * Proxies the `catch` method of the internal {@link Promise}.
    * This method is not required for this to be a `thenable`, but it is still useful
-   * to treat this class as a {@link Promise}. */
+   * to treat this class as a {@link Promise}.
+   */
   async finally(onfinally?: (() => void) | null | undefined): Promise<void> {
     await this.promise.finally(onfinally)
   }
@@ -101,9 +110,11 @@ export default class BaseActions implements Promise<void> {
     return new clazz(this.page, this.promise, ...args)
   }
 
-  /** Perform an action on the current page. This should generally be avoided in favor of using
+  /**
+   * Perform an action on the current page. This should generally be avoided in favor of using
    * specific methods; this is more or less an escape hatch used ONLY when the methods do not
-   * support desired functionality. */
+   * support desired functionality.
+   */
   do(callback: PageCallback): this {
     // @ts-expect-error This is SAFE, but only when the constructor of this class has the exact
     // same parameters as `BaseActions`.
@@ -119,8 +130,10 @@ export default class BaseActions implements Promise<void> {
     return this.do(() => test.test.step(name, () => callback(this.page)))
   }
 
-  /** Press a key, replacing the text `Mod` with `Meta` (`Cmd`) on macOS, and `Control`
-   * on all other platforms. */
+  /**
+   * Press a key, replacing the text `Mod` with `Meta` (`Cmd`) on macOS, and `Control`
+   * on all other platforms.
+   */
   press<Key extends string>(keyOrShortcut: inputBindings.AutocompleteKeybind<Key>) {
     return this.do((page) => BaseActions.press(page, keyOrShortcut))
   }
@@ -157,8 +170,10 @@ export default class BaseActions implements Promise<void> {
     })
   }
 
-  /** Expect an input to have an error (or no error if the expected value is `null`).
-   * If the expected value is `undefined`, the assertion is skipped. */
+  /**
+   * Expect an input to have an error (or no error if the expected value is `null`).
+   * If the expected value is `undefined`, the assertion is skipped.
+   */
   expectInputError(testId: string, description: string, expected: string | null | undefined) {
     if (expected === undefined) {
       return this

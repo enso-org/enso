@@ -21,10 +21,12 @@ export function useIntersectionRatio<T>(
   // eslint-disable-next-line no-restricted-syntax
   initialValue: Exclude<T, undefined>,
 ): T
-/** Track changes in intersection ratio between an element and one of its ancestors.
+/**
+ * Track changes in intersection ratio between an element and one of its ancestors.
  *
  * Note that if `threshold` is an array, it MUST be memoized.
- * Similarly, `rootRef` and `targetRef` MUST be stable across renders. */
+ * Similarly, `rootRef` and `targetRef` MUST be stable across renders.
+ */
 export function useIntersectionRatio<T>(
   rootRef: Readonly<React.MutableRefObject<HTMLDivElement | null>> | null,
   targetRef: Readonly<React.MutableRefObject<HTMLElement | SVGElement | null>>,

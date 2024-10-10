@@ -3,12 +3,14 @@ import * as React from 'react'
 
 import * as eventModule from '#/utilities/event'
 
-/** Whether an element is actually draggable. This should be used on ALL
+/**
+ * Whether an element is actually draggable. This should be used on ALL
  * elements that are parents of text inputs.
  *
  * This is required to work around a Firefox bug:
  * https://bugzilla.mozilla.org/show_bug.cgi?id=800050
- * @returns An object that should be merged into the element's props. */
+ * @returns An object that should be merged into the element's props.
+ */
 export function useDraggable() {
   const [isDraggable, setIsDraggable] = React.useState(true)
 

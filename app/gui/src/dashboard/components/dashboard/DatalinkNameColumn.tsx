@@ -24,9 +24,11 @@ export interface DatalinkNameColumnProps extends column.AssetColumnProps {
   readonly item: AssetTreeNode<backendModule.DatalinkAsset>
 }
 
-/** The icon and name of a {@link backendModule.DatalinkAsset}.
+/**
+ * The icon and name of a {@link backendModule.DatalinkAsset}.
  * @throws {Error} when the asset is not a {@link backendModule.DatalinkAsset}.
- * This should never happen. */
+ * This should never happen.
+ */
 export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
   const { item, setItem, selected, rowState, setRowState, isEditable } = props
   const setIsAssetPanelTemporarilyVisible = useSetIsAssetPanelTemporarilyVisible()

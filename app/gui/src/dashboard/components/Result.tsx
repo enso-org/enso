@@ -95,8 +95,10 @@ export interface ResultProps extends React.PropsWithChildren, VariantProps<typeo
   readonly className?: string
   readonly title?: React.JSX.Element | string
   readonly subtitle?: React.JSX.Element | string
-  /** The status of the result.
-   * @default 'success' */
+  /**
+   * The status of the result.
+   * @default 'success'
+   */
   readonly status?: React.ReactElement | Status
   readonly icon?: string | false
   readonly testId?: string

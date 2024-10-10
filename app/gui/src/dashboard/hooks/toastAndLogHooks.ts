@@ -21,8 +21,10 @@ export type ToastAndLogCallback = ReturnType<typeof useToastAndLog>
 // === useToastAndLog ===
 // ======================
 
-/** Return a function to send a toast with rendered error message. The same message is also logged
- * as an error. */
+/**
+ * Return a function to send a toast with rendered error message. The same message is also logged
+ * as an error.
+ */
 export function useToastAndLog() {
   const { getText } = textProvider.useText()
   const logger = loggerProvider.useLogger()

@@ -1,5 +1,7 @@
-/** @file Header menubar for the directory listing, containing information about
- * the current directory and some configuration options. */
+/**
+ * @file Header menubar for the directory listing, containing information about
+ * the current directory and some configuration options.
+ */
 import * as React from 'react'
 
 import { skipToken, useQuery } from '@tanstack/react-query'
@@ -63,8 +65,10 @@ export interface DriveBarProps {
   readonly doUploadFiles: (files: File[]) => void
 }
 
-/** Displays the current directory path and permissions, upload and download buttons,
- * and a column display mode switcher. */
+/**
+ * Displays the current directory path and permissions, upload and download buttons,
+ * and a column display mode switcher.
+ */
 export default function DriveBar(props: DriveBarProps) {
   const { backend, query, setQuery, category } = props
   const { doEmptyTrash, doCreateProject, doCreateDirectory } = props

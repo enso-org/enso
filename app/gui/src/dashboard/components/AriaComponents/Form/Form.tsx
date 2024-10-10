@@ -12,9 +12,11 @@ import * as components from './components'
 import * as styles from './styles'
 import type * as types from './types'
 
-/** Form component. It wraps a `form` and provides form context.
+/**
+ * Form component. It wraps a `form` and provides form context.
  * It also handles form submission.
- * Provides better error handling and form state management and better UX out of the box. */
+ * Provides better error handling and form state management and better UX out of the box.
+ */
 // There is no way to avoid type casting here
 // eslint-disable-next-line no-restricted-syntax
 export const Form = forwardRef(function Form<

@@ -1,6 +1,8 @@
-/** @file This module defines the Project Manager endpoint.
+/**
+ * @file This module defines the Project Manager endpoint.
  * @see
- * https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-project-manager.md */
+ * https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-project-manager.md
+ */
 import invariant from 'tiny-invariant'
 
 import * as backend from '#/services/Backend'
@@ -74,8 +76,10 @@ export const DirectoryId = newtype.newtypeConstructor<DirectoryId>()
 export type ProjectName = newtype.Newtype<string, 'ProjectName'>
 /** Create a {@link ProjectName}. */
 export const ProjectName = newtype.newtypeConstructor<ProjectName>()
-/** The newtype's `TypeName` is intentionally different from the name of this type alias,
- * to match the backend's newtype. */
+/**
+ * The newtype's `TypeName` is intentionally different from the name of this type alias,
+ * to match the backend's newtype.
+ */
 export type UTCDateTime = dateTime.Rfc3339DateTime
 /** Create a {@link UTCDateTime}. */
 export const UTCDateTime = newtype.newtypeConstructor<UTCDateTime>()
@@ -90,11 +94,13 @@ interface ProjectMetadata {
   readonly namespace: string
   /** The project id. */
   readonly id: UUID
-  /** The Enso Engine version to use for the project, represented by a semver version
+  /**
+   * The Enso Engine version to use for the project, represented by a semver version
    * string.
    *
    * If the edition associated with the project could not be resolved, the
-   * engine version may be missing. */
+   * engine version may be missing.
+   */
   readonly engineVersion?: string
   /** The project creation time. */
   readonly created: dateTime.Rfc3339DateTime
@@ -204,8 +210,10 @@ interface OpenedProjectState {
   readonly data: OpenProject
 }
 
-/** Possible states and associated metadata of a project.
- * The "closed" state is omitted as it is the default state. */
+/**
+ * Possible states and associated metadata of a project.
+ * The "closed" state is omitted as it is the default state.
+ */
 type ProjectState = OpenedProjectState | OpenInProgressProjectState
 
 // ================================
@@ -268,10 +276,12 @@ export enum ProjectManagerEvents {
   loadingFailed = 'project-manager-loading-failed',
 }
 
-/** A {@link WebSocket} endpoint to the project manager.
+/**
+ * A {@link WebSocket} endpoint to the project manager.
  *
  * It should always be in sync with the Rust interface at
- * `app/gui/controller/engine-protocol/src/project_manager.rs`. */
+ * `app/gui/controller/engine-protocol/src/project_manager.rs`.
+ */
 export default class ProjectManager {
   private readonly initialRootDirectory: Path
   // This is required so that projects get recursively updated (deleted, renamed or moved).

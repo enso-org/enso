@@ -120,8 +120,10 @@ export default class DrivePageActions extends PageActions {
           locateAssetRows(page).nth(index).click({ position: ASSET_ROW_SAFE_POSITION }),
         )
       },
-      /** Right click a specific row to bring up its context menu, or the context menu for multiple
-       * assets when right clicking on a selected asset when multiple assets are selected. */
+      /**
+       * Right click a specific row to bring up its context menu, or the context menu for multiple
+       * assets when right clicking on a selected asset when multiple assets are selected.
+       */
       rightClickRow(index: number) {
         return self.step(`Right click drive table row #${index}`, (page) =>
           locateAssetRows(page)
@@ -164,8 +166,10 @@ export default class DrivePageActions extends PageActions {
             }),
         )
       },
-      /** A test assertion to confirm that there is only one row visible, and that row is the
-       * placeholder row displayed when there are no assets to show. */
+      /**
+       * A test assertion to confirm that there is only one row visible, and that row is the
+       * placeholder row displayed when there are no assets to show.
+       */
       expectPlaceholderRow() {
         return self.step('Expect placeholder row', async (page) => {
           await test.expect(locateAssetRows(page)).toHaveCount(0)
@@ -174,8 +178,10 @@ export default class DrivePageActions extends PageActions {
           await test.expect(nonAssetRows).toHaveText(/This folder is empty/)
         })
       },
-      /** A test assertion to confirm that there is only one row visible, and that row is the
-       * placeholder row displayed when there are no assets in Trash. */
+      /**
+       * A test assertion to confirm that there is only one row visible, and that row is the
+       * placeholder row displayed when there are no assets in Trash.
+       */
       expectTrashPlaceholderRow() {
         return self.step('Expect trash placeholder row', async (page) => {
           await test.expect(locateAssetRows(page)).toHaveCount(0)

@@ -31,9 +31,11 @@ export interface SecretNameColumnProps extends column.AssetColumnProps {
   readonly item: AssetTreeNode<backendModule.SecretAsset>
 }
 
-/** The icon and name of a {@link backendModule.SecretAsset}.
+/**
+ * The icon and name of a {@link backendModule.SecretAsset}.
  * @throws {Error} when the asset is not a {@link backendModule.SecretAsset}.
- * This should never happen. */
+ * This should never happen.
+ */
 export default function SecretNameColumn(props: SecretNameColumnProps) {
   const { item, selected, state, rowState, setRowState, isEditable } = props
   const { backend } = state

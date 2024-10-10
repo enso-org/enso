@@ -1,5 +1,7 @@
-/** @file The React provider for localStorage, along with hooks to use the provider
- * via the shared React context. */
+/**
+ * @file The React provider for localStorage, along with hooks to use the provider
+ * via the shared React context.
+ */
 import * as React from 'react'
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'

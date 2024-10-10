@@ -1,8 +1,10 @@
-/** @file Module containing the API client for the local backend API.
+/**
+ * @file Module containing the API client for the local backend API.
  *
  * Each exported function in the {@link LocalBackend} in this module corresponds to an API endpoint.
  * The functions are asynchronous and return a {@link Promise} that resolves to the response from
- * the API. */
+ * the API.
+ */
 import Backend, * as backend from '#/services/Backend'
 import type ProjectManager from '#/services/ProjectManager'
 import * as projectManager from '#/services/ProjectManager'
@@ -66,8 +68,10 @@ type AssetTypeAndId<Id extends backend.AssetId = backend.AssetId> =
   | (backend.ProjectId extends Id ? ProjectTypeAndId : never)
 
 export function extractTypeAndId<Id extends backend.AssetId>(id: Id): AssetTypeAndId<Id>
-/** Extracts the asset type and its corresponding internal ID from a {@link backend.AssetId}.
- * @throws {Error} if the id has an unknown type. */
+/**
+ * Extracts the asset type and its corresponding internal ID from a {@link backend.AssetId}.
+ * @throws {Error} if the id has an unknown type.
+ */
 export function extractTypeAndId<Id extends backend.AssetId>(id: Id): AssetTypeAndId {
   const [, typeRaw, idRaw = ''] = id.match(/(.+?)-(.+)/) ?? []
   switch (typeRaw) {
@@ -90,8 +94,10 @@ export function extractTypeAndId<Id extends backend.AssetId>(id: Id): AssetTypeA
 // === LocalBackend ===
 // ====================
 
-/** Class for sending requests to the Project Manager API endpoints.
- * This is used instead of the cloud backend API when managing local projects from the dashboard. */
+/**
+ * Class for sending requests to the Project Manager API endpoints.
+ * This is used instead of the cloud backend API when managing local projects from the dashboard.
+ */
 export default class LocalBackend extends Backend {
   readonly type = backend.BackendType.local
   private readonly projectManager: ProjectManager
@@ -132,8 +138,10 @@ export default class LocalBackend extends Backend {
     return newDirectoryId(rootDirectory ?? this.projectManager.rootDirectory)
   }
 
-  /** Return a list of assets in a directory.
-   * @throws An error if the JSON-RPC call fails. */
+  /**
+   * Return a list of assets in a directory.
+   * @throws An error if the JSON-RPC call fails.
+   */
   override async listDirectory(
     query: backend.ListDirectoryRequestParams,
   ): Promise<readonly backend.AnyAsset[]> {
@@ -211,8 +219,10 @@ export default class LocalBackend extends Backend {
     return result
   }
 
-  /** Return a list of projects belonging to the current user.
-   * @throws An error if the JSON-RPC call fails. */
+  /**
+   * Return a list of projects belonging to the current user.
+   * @throws An error if the JSON-RPC call fails.
+   */
   override async listProjects(): Promise<readonly backend.ListedProject[]> {
     const result = await this.projectManager.listProjects({})
     return result.projects.map((project) => ({
@@ -230,8 +240,10 @@ export default class LocalBackend extends Backend {
     }))
   }
 
-  /** Create a project.
-   * @throws An error if the JSON-RPC call fails. */
+  /**
+   * Create a project.
+   * @throws An error if the JSON-RPC call fails.
+   */
   override async createProject(
     body: backend.CreateProjectRequestBody,
   ): Promise<backend.CreatedProject> {
@@ -252,8 +264,10 @@ export default class LocalBackend extends Backend {
     }
   }
 
-  /** Close the project identified by the given project ID.
-   * @throws An error if the JSON-RPC call fails. */
+  /**
+   * Close the project identified by the given project ID.
+   * @throws An error if the JSON-RPC call fails.
+   */
   override async closeProject(projectId: backend.ProjectId, title: string | null): Promise<void> {
     const { id } = extractTypeAndId(projectId)
     try {
@@ -277,8 +291,10 @@ export default class LocalBackend extends Backend {
     }
   }
 
-  /** Close the project identified by the given project ID.
-   * @throws An error if the JSON-RPC call fails. */
+  /**
+   * Close the project identified by the given project ID.
+   * @throws An error if the JSON-RPC call fails.
+   */
   override async getProjectDetails(
     projectId: backend.ProjectId,
     directory: backend.DirectoryId | null,
@@ -343,8 +359,10 @@ export default class LocalBackend extends Backend {
     }
   }
 
-  /** Prepare a project for execution.
-   * @throws An error if the JSON-RPC call fails. */
+  /**
+   * Prepare a project for execution.
+   * @throws An error if the JSON-RPC call fails.
+   */
   override async openProject(
     projectId: backend.ProjectId,
     body: backend.OpenProjectRequestBody | null,
@@ -369,8 +387,10 @@ export default class LocalBackend extends Backend {
     }
   }
 
-  /** Change the name of a project.
-   * @throws An error if the JSON-RPC call fails. */
+  /**
+   * Change the name of a project.
+   * @throws An error if the JSON-RPC call fails.
+   */
   override async updateProject(
     projectId: backend.ProjectId,
     body: backend.UpdateProjectRequestBody,
@@ -430,8 +450,10 @@ export default class LocalBackend extends Backend {
     }
   }
 
-  /** Delete an arbitrary asset.
-   * @throws An error if the JSON-RPC call fails. */
+  /**
+   * Delete an arbitrary asset.
+   * @throws An error if the JSON-RPC call fails.
+   */
   override async deleteAsset(
     assetId: backend.AssetId,
     _body: backend.DeleteAssetRequestBody,
@@ -503,9 +525,11 @@ export default class LocalBackend extends Backend {
 
   // === Endpoints that intentionally do not work on the Local Backend ===
 
-  /** Called for any function that does not make sense in the Local Backend.
+  /**
+   * Called for any function that does not make sense in the Local Backend.
    * @throws An error stating that the operation is intentionally unavailable on the local
-   * backend. */
+   * backend.
+   */
   invalidOperation(): never {
     throw new Error('Cannot manage users, folders, files, tags, and secrets on the local backend.')
   }
@@ -555,8 +579,10 @@ export default class LocalBackend extends Backend {
     return this.invalidOperation()
   }
 
-  /** Get the current organization. Returns `null` because organizations do not exist on the
-   * Local Backend. This is required for `rootDiretoryId` to work. */
+  /**
+   * Get the current organization. Returns `null` because organizations do not exist on the
+   * Local Backend. This is required for `rootDiretoryId` to work.
+   */
   override async getOrganization(): Promise<backend.OrganizationInfo | null> {
     return Promise.resolve(null)
   }
@@ -601,8 +627,10 @@ export default class LocalBackend extends Backend {
     }
   }
 
-  /** Change the parent directory of an asset.
-   * Changing the description is NOT supported. */
+  /**
+   * Change the parent directory of an asset.
+   * Changing the description is NOT supported.
+   */
   override async updateAsset(
     assetId: backend.AssetId,
     body: backend.UpdateAssetRequestBody,
@@ -765,8 +793,10 @@ export default class LocalBackend extends Backend {
     return this.invalidOperation()
   }
 
-  /** Return an empty array. This function is required to be implemented as it is unconditionally
-   * called, but its result should never need to be used. */
+  /**
+   * Return an empty array. This function is required to be implemented as it is unconditionally
+   * called, but its result should never need to be used.
+   */
   override listTags() {
     return Promise.resolve([])
   }

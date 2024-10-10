@@ -19,8 +19,10 @@ export interface TwemojiProps {
 }
 
 // Only accepts strings that are two code points - for example, emojis.
-/** Returns the input type if it consists of two codepoints. Otherwise, it returns
- * an error message. */
+/**
+ * Returns the input type if it consists of two codepoints. Otherwise, it returns
+ * an error message.
+ */
 type MustBeLength2String<T extends string> =
   T extends `${string}${string}${infer Rest}` ?
     Rest extends '' ?

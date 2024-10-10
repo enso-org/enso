@@ -7,8 +7,10 @@ import * as gtag from 'enso-common/src/gtag'
 // === useGtagEvent ===
 // ====================
 
-/** A hook that returns a no-op if the user is offline, otherwise it returns
- * a transparent wrapper around `gtag.event`. */
+/**
+ * A hook that returns a no-op if the user is offline, otherwise it returns
+ * a transparent wrapper around `gtag.event`.
+ */
 export function useGtagEvent() {
   return React.useCallback((name: string, params?: object) => {
     gtag.event(name, params)
@@ -19,10 +21,12 @@ export function useGtagEvent() {
 // === gtagOpenCloseCallback ===
 // =============================
 
-/** Send an event indicating that something has been opened, and return a cleanup function
+/**
+ * Send an event indicating that something has been opened, and return a cleanup function
  * sending an event indicating that it has been closed.
  *
- * Also sends the close event when the window is unloaded. */
+ * Also sends the close event when the window is unloaded.
+ */
 export function gtagOpenCloseCallback(
   gtagEvent: ReturnType<typeof useGtagEvent>,
   openEvent: string,

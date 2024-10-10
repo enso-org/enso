@@ -1,5 +1,7 @@
-/** @file Utility functions for manipulating {@link Set}s, and constants
- * related to {@link Set}s. */
+/**
+ * @file Utility functions for manipulating {@link Set}s, and constants
+ * related to {@link Set}s.
+ */
 
 // =================
 // === Constants ===
@@ -7,9 +9,11 @@
 
 export const EMPTY_SET: ReadonlySet<never> = new Set<never>()
 
-/** Adds the value if `presence` is `true`; deletes the value if `presence` is `false`.
+/**
+ * Adds the value if `presence` is `true`; deletes the value if `presence` is `false`.
  *
- * Mutates and returns the given {@link Set}. */
+ * Mutates and returns the given {@link Set}.
+ */
 export function setPresence<T>(set: Set<T>, value: T, presence: boolean) {
   if (presence) {
     set.add(value)
@@ -19,10 +23,12 @@ export function setPresence<T>(set: Set<T>, value: T, presence: boolean) {
   return set
 }
 
-/** Adds the value if `presence` is `true`; deletes the value if `presence` is `false`.
+/**
+ * Adds the value if `presence` is `true`; deletes the value if `presence` is `false`.
  *
  * This is an immutable version of {@link setPresence}, so it returns a new set if the old set
- * would have been mutated, and returns the original set if it would not have been mutated. */
+ * would have been mutated, and returns the original set if it would not have been mutated.
+ */
 export function withPresence<T>(set: ReadonlySet<T>, value: T, presence: boolean) {
   if (presence === set.has(value)) {
     return set

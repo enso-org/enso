@@ -1,5 +1,7 @@
-/** @file A spinning arc that animates using the `dasharray-<percentage>` custom Tailwind
- * classes. */
+/**
+ * @file A spinning arc that animates using the `dasharray-<percentage>` custom Tailwind
+ * classes.
+ */
 import * as React from 'react'
 
 import * as tailwindMerge from '#/utilities/tailwindMerge'

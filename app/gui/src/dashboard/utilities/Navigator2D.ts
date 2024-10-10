@@ -28,8 +28,10 @@ export enum Direction {
 }
 const DIRECTIONS = Object.values(Direction)
 
-/** Return an object that is a mapping from every {@link Direction} to a specific value,
- * using the given mapping function. */
+/**
+ * Return an object that is a mapping from every {@link Direction} to a specific value,
+ * using the given mapping function.
+ */
 function mapDirections<T>(map: (direction: Direction) => T): Readonly<Record<Direction, T>> {
   return {
     [Direction.left]: map(Direction.left),
@@ -64,11 +66,15 @@ interface ElementData extends Omit<Required<Navigator2DElementOptions>, 'focusPr
 interface Navigator2DElementOptions {
   /** A function that returns whether navigation is currently enabled. */
   readonly allowNavigation?: () => boolean
-  /** The child that should be focused instead of the parent (if any).
-   * Used as the fallback . */
+  /**
+   * The child that should be focused instead of the parent (if any).
+   * Used as the fallback .
+   */
   readonly focusPrimaryChild?: () => void
-  /** The child that should be focused instead of the parent (if any),
-   * when entering this element from the given direction. */
+  /**
+   * The child that should be focused instead of the parent (if any),
+   * when entering this element from the given direction.
+   */
   readonly focusWhenPressed?: Partial<Record<Direction, (() => void) | null>>
 }
 
@@ -176,8 +182,10 @@ export default class Navigator2D {
     }
   }
 
-  /** Pop a focus root, *and all focus roots after it*, if it exists in the stack of focus roots.
-   * Does nothing if it is not in the stack. */
+  /**
+   * Pop a focus root, *and all focus roots after it*, if it exists in the stack of focus roots.
+   * Does nothing if it is not in the stack.
+   */
   popFocusRoot(focusRoot: Element) {
     const index = this.focusRoots.indexOf(focusRoot)
     if (index !== -1) {
@@ -185,9 +193,11 @@ export default class Navigator2D {
     }
   }
 
-  /** Recomputes the neighbors of all elements.
+  /**
+   * Recomputes the neighbors of all elements.
    *
-   * Full layout recomputations are expensive, but should amortize the cost of sorting the arrays. */
+   * Full layout recomputations are expensive, but should amortize the cost of sorting the arrays.
+   */
   recomputeLayout() {
     this.isLayoutDirty = false
     const datas = Array.from(this.elements.entries(), (entry) => {
@@ -253,8 +263,10 @@ export default class Navigator2D {
     }
   }
 
-  /** Keydown handler. Should only be declared once per focus root (including the global one on
-   * `document`). MUST be bound to this `Navigator2D` first using `.bind(navigator)`. */
+  /**
+   * Keydown handler. Should only be declared once per focus root (including the global one on
+   * `document`). MUST be bound to this `Navigator2D` first using `.bind(navigator)`.
+   */
   onKeyDown(event: KeyboardEvent | React.KeyboardEvent) {
     if (event.defaultPrevented) {
       // eslint-disable-next-line no-restricted-syntax
@@ -320,9 +332,11 @@ export default class Navigator2D {
     }
   }
 
-  /** Watch for layout changes on an element.
+  /**
+   * Watch for layout changes on an element.
    * It is preferred to register a scroll container instead of its child, when possible,
-   * because the scroll container resizes less often. */
+   * because the scroll container resizes less often.
+   */
   register(element: Element, options: Navigator2DElementOptions = {}) {
     if (element.contains(document.activeElement)) {
       this.focusedElements.add(element)
@@ -389,8 +403,10 @@ export default class Navigator2D {
     this.elements.get(element)?.dispose()
   }
 
-  /** Keydown handler. Should only be declared once, globally.
-   * MUST be bound to this `Navigator2D` first using `.bind(navigator)`. */
+  /**
+   * Keydown handler. Should only be declared once, globally.
+   * MUST be bound to this `Navigator2D` first using `.bind(navigator)`.
+   */
   private neighborInDirection(element: Element, direction: Direction) {
     let nearestFocusedParent: Element | null = element
     while (nearestFocusedParent != null && !this.focusedElements.has(nearestFocusedParent)) {

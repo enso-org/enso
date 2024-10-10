@@ -1,6 +1,8 @@
-/** @file A styled authentication page.
+/**
+ * @file A styled authentication page.
  * This is a component, NOT a page, but it is here because it is related to the authentication pages
- * and nothing else. */
+ * and nothing else.
+ */
 import type { ReactNode } from 'react'
 
 import {

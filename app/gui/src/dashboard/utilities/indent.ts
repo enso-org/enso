@@ -4,8 +4,10 @@
 // === Constants ===
 // =================
 
-/** An explicit list of classes  used for indentation. This is required so that Tailwind includes
- * the classes in the final CSS file. */
+/**
+ * An explicit list of classes  used for indentation. This is required so that Tailwind includes
+ * the classes in the final CSS file.
+ */
 const INDENT_CLASSES = [
   '',
   'ml-indent-1',

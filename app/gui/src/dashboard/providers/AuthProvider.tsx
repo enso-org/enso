@@ -1,8 +1,10 @@
-/** @file Module for authenticating users with AWS Cognito.
+/**
+ * @file Module for authenticating users with AWS Cognito.
  *
  * Provides an `AuthProvider` component that wraps the entire application, and a `useAuth` hook that
  * can be used from any React component to access the currently logged-in user's session data. The
- * hook also provides methods for registering a user, logging in, logging out, etc. */
+ * hook also provides methods for registering a user, logging in, logging out, etc.
+ */
 import * as React from 'react'
 
 import * as sentry from '@sentry/react'
@@ -53,12 +55,14 @@ interface BaseUserSession extends cognitoModule.UserSession {
   readonly type: UserSessionType
 }
 
-/** Object containing the currently signed-in user's session data, if the user has not yet set their
+/**
+ * Object containing the currently signed-in user's session data, if the user has not yet set their
  * username.
  *
  * If a user has not yet set their username, they do not yet have an organization associated with
  * their account. Otherwise, this type is identical to the `Session` type. This type should ONLY be
- * used by the `SetUsername` component. */
+ * used by the `SetUsername` component.
+ */
 export interface PartialUserSession extends BaseUserSession {
   readonly type: UserSessionType.partial
 }
@@ -70,21 +74,25 @@ export interface FullUserSession extends BaseUserSession {
   readonly user: backendModule.User
 }
 
-/** A user session for a user that may be either fully registered,
- * or in the process of registering. */
+/**
+ * A user session for a user that may be either fully registered,
+ * or in the process of registering.
+ */
 export type UserSession = FullUserSession | PartialUserSession
 
 // ===================
 // === AuthContext ===
 // ===================
 
-/** Interface returned by the `useAuth` hook.
+/**
+ * Interface returned by the `useAuth` hook.
  *
  * Contains the currently authenticated user's session data, as well as methods for signing in,
  * signing out, etc. All interactions with the authentication API should be done through this
  * interface.
  *
- * See `Cognito` for details on each of the authentication functions. */
+ * See `Cognito` for details on each of the authentication functions.
+ */
 interface AuthContextType {
   readonly signUp: (email: string, password: string, organizationId: string | null) => Promise<void>
   readonly authQueryKey: reactQuery.QueryKey
@@ -112,9 +120,11 @@ interface AuthContextType {
   readonly refetchSession: (
     options?: reactQuery.RefetchOptions,
   ) => Promise<reactQuery.QueryObserverResult<UserSession | null>>
-  /** Session containing the currently authenticated user's authentication information.
+  /**
+   * Session containing the currently authenticated user's authentication information.
    *
-   * If the user has not signed in, the session will be `null`. */
+   * If the user has not signed in, the session will be `null`.
+   */
   readonly session: UserSession | null
   /** Return `true` if the user is marked for deletion. */
   readonly isUserMarkedForDeletion: () => boolean
@@ -251,8 +261,10 @@ export default function AuthProvider(props: AuthProviderProps) {
     meta: { invalidates: [usersMeQueryOptions.queryKey], awaitInvalidates: true },
   })
 
-  /** Wrap a function returning a {@link Promise} to display a loading toast notification
-   * until the returned {@link Promise} finishes loading. */
+  /**
+   * Wrap a function returning a {@link Promise} to display a loading toast notification
+   * until the returned {@link Promise} finishes loading.
+   */
   const withLoadingToast =
     <T extends unknown[], R>(action: (...args: T) => Promise<R>) =>
     async (...args: T) => {
@@ -549,11 +561,13 @@ export default function AuthProvider(props: AuthProviderProps) {
 // === useAuth ===
 // ===============
 
-/** A React hook that provides access to the authentication context.
+/**
+ * A React hook that provides access to the authentication context.
  *
  * Only the hook is exported, and not the context, because we only want to use the hook directly and
  * never the context component.
- * @throws {Error} when used outside a {@link AuthProvider}. */
+ * @throws {Error} when used outside a {@link AuthProvider}.
+ */
 export function useAuth() {
   const context = React.useContext(AuthContext)
 
@@ -583,8 +597,10 @@ export function ProtectedLayout() {
 // === SemiProtectedLayout ===
 // ===========================
 
-/** A React Router layout route containing routes only accessible by users that are
- * in the process of registering. */
+/**
+ * A React Router layout route containing routes only accessible by users that are
+ * in the process of registering.
+ */
 export function SemiProtectedLayout() {
   const { session } = useAuth()
   const { localStorage } = localStorageProvider.useLocalStorage()
@@ -606,8 +622,10 @@ export function SemiProtectedLayout() {
 // === GuestLayout ===
 // ===================
 
-/** A React Router layout route containing routes only accessible by users that are
- * not logged in. */
+/**
+ * A React Router layout route containing routes only accessible by users that are
+ * not logged in.
+ */
 export function GuestLayout() {
   const { session } = useAuth()
   const { localStorage } = localStorageProvider.useLocalStorage()
@@ -660,8 +678,10 @@ export function SoftDeletedUserLayout() {
 // === usePartialUserSession ===
 // =============================
 
-/** A React context hook returning the user session
- * for a user that has not yet completed registration. */
+/**
+ * A React context hook returning the user session
+ * for a user that has not yet completed registration.
+ */
 export function usePartialUserSession() {
   const { session } = useAuth()
 

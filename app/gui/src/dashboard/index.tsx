@@ -1,6 +1,8 @@
-/** @file Authentication module used by Enso IDE & Cloud.
+/**
+ * @file Authentication module used by Enso IDE & Cloud.
  *
- * This module declares the main DOM structure for the authentication/dashboard app. */
+ * This module declares the main DOM structure for the authentication/dashboard app.
+ */
 import * as React from 'react'
 
 import * as sentry from '@sentry/react'
@@ -51,11 +53,13 @@ export interface DashboardProps extends app.AppProps {
 // === run ===
 // ===========
 
-/** Entrypoint for the authentication/dashboard app.
+/**
+ * Entrypoint for the authentication/dashboard app.
  *
  * Running this function finds a `div` element with the ID `dashboard`, and renders the
  * authentication/dashboard UI using React. It also handles routing and other interactions (e.g.,
- * for redirecting the user to/from the login page). */
+ * for redirecting the user to/from the login page).
+ */
 export // This export declaration must be broken up to satisfy the `require-jsdoc` rule.
 // This is not a React component even though it contains JSX.
 // eslint-disable-next-line no-restricted-syntax

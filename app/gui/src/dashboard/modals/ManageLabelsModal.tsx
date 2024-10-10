@@ -30,9 +30,11 @@ export interface ManageLabelsModalProps<Asset extends AnyAsset = AnyAsset> {
   readonly eventTarget: HTMLElement | null
 }
 
-/** A modal to select labels for an asset.
+/**
+ * A modal to select labels for an asset.
  * @throws {Error} when the current backend is the local backend, or when the user is offline.
- * This should never happen, as this modal should not be accessible in either case. */
+ * This should never happen, as this modal should not be accessible in either case.
+ */
 export default function ManageLabelsModal<Asset extends AnyAsset = AnyAsset>(
   props: ManageLabelsModalProps<Asset>,
 ) {

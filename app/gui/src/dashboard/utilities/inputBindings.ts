@@ -1,5 +1,7 @@
-/** @file Exports `defineKeybinds`, a function to define a namespace containing keyboard and mouse
- * shortcuts. */
+/**
+ * @file Exports `defineKeybinds`, a function to define a namespace containing keyboard and mouse
+ * shortcuts.
+ */
 import * as detect from 'enso-common/src/detect'
 
 import * as eventModule from '#/utilities/event'
@@ -46,8 +48,10 @@ export interface InputEventTarget<
   readonly removeEventListener: (eventName: EventName, handler: (event: Event) => void) => void
 }
 
-/** An intermediate representation of a keybind, in which all segments have been tokenized but
- * before converting into either a {@link Keybind} or a {@link Mousebind}. */
+/**
+ * An intermediate representation of a keybind, in which all segments have been tokenized but
+ * before converting into either a {@link Keybind} or a {@link Mousebind}.
+ */
 interface ModifierStringDecomposition {
   readonly key: string
   readonly modifiers: Modifier[]
@@ -124,8 +128,10 @@ export function compareModifiers(a: Modifier, b: Modifier): number {
   return ALL_MODIFIERS.indexOf(a as never) - ALL_MODIFIERS.indexOf(b as never)
 }
 
-/** Any event that contains modifier keys. {@link KeyboardEvent}s and {@link MouseEvent}s fall into
- * this category. */
+/**
+ * Any event that contains modifier keys. {@link KeyboardEvent}s and {@link MouseEvent}s fall into
+ * this category.
+ */
 interface EventWithModifiers {
   readonly ctrlKey: boolean
   readonly altKey: boolean
@@ -145,8 +151,10 @@ export function modifierFlagsForEvent(event: EventWithModifiers): ModifierFlags 
 }
 
 /* eslint-disable @typescript-eslint/naming-convention */
-/** These values MUST match the flags on `MouseEvent#button`.
- * See https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/buttons */
+/**
+ * These values MUST match the flags on `MouseEvent#button`.
+ * See https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/buttons
+ */
 const POINTER_BUTTON_FLAG: Readonly<Record<Pointer, PointerButtonFlags>> = {
   PointerMain: PointerButtonFlags(1 << 0),
   PointerSecondary: PointerButtonFlags(1 << 1),
@@ -315,8 +323,10 @@ export const normalizedKeyboardSegmentLookup = Object.fromEntries<string>(
 normalizedKeyboardSegmentLookup[''] = '+'
 normalizedKeyboardSegmentLookup['space'] = ' '
 normalizedKeyboardSegmentLookup['osdelete'] = detect.isOnMacOS() ? 'Backspace' : 'Delete'
-/** A mapping between the lowercased segment of a keyboard shortcut to its properly capitalized
- * normalized form. */
+/**
+ * A mapping between the lowercased segment of a keyboard shortcut to its properly capitalized
+ * normalized form.
+ */
 type NormalizeKeybindSegment = {
   [K in KeybindSegment as Lowercase<K>]: K
 }
@@ -340,7 +350,8 @@ export type AutocompleteKeybind<T extends string, FoundKeyName extends string = 
   : [FoundKeyName] extends [never] ? SuggestedKeybindSegment
   : FoundKeyName
 
-/** A helper type used to autocomplete and validate an array of keyboard shortcuts in the editor.
+/**
+ * A helper type used to autocomplete and validate an array of keyboard shortcuts in the editor.
  */
 type AutocompleteKeybinds<T extends readonly string[]> = {
   [K in keyof T]: AutocompleteKeybind<T[K]>
@@ -357,11 +368,13 @@ export interface KeybindsWithMetadata {
   readonly rebindable?: boolean
 }
 
-/** A helper type used to autocomplete and validate an array of keyboard shortcuts (and its
+/**
+ * A helper type used to autocomplete and validate an array of keyboard shortcuts (and its
  * associated metadata) in the editor.
  *
  * This type SHOULD NOT be explicitly written - it is only exported to suppress TypeScript
- * errors. */
+ * errors.
+ */
 export interface AutocompleteKeybindsWithMetadata<T extends KeybindsWithMetadata> {
   readonly name: string
   readonly bindings: AutocompleteKeybinds<T['bindings']>
@@ -375,8 +388,10 @@ export interface AutocompleteKeybindsWithMetadata<T extends KeybindsWithMetadata
 /** All the corresponding value for an arbitrary key of a {@link Keybinds}. */
 type KeybindValue = KeybindsWithMetadata | readonly [] | readonly string[]
 
-/** A helper type used to autocomplete and validate an object containing actions and their
- * corresponding keyboard shortcuts. */
+/**
+ * A helper type used to autocomplete and validate an object containing actions and their
+ * corresponding keyboard shortcuts.
+ */
 // `never extends T ? Result : InferenceSource` is a trick to unify `T` with the actual type of the
 // argument.
 type Keybinds<T extends Record<keyof T, KeybindValue>> =
@@ -397,7 +412,8 @@ const DEFINED_NAMESPACES = new Map<
 
 export const DEFAULT_HANDLER = Symbol('default handler')
 
-/** Define key bindings for the given namespace.
+/**
+ * Define key bindings for the given namespace.
  *
  * This function takes list of actions with default bindings, and returns an object which allows
  * making event handler which in turn may be added as an appropriate event listener. It may handle
@@ -641,8 +657,10 @@ export function defineBindingNamespace<T extends Record<keyof T, KeybindValue>>(
   const result = {
     /** Return an event handler that handles a native keyboard, mouse or pointer event. */
     handler,
-    /** Attach an event listener to an {@link EventTarget} and return a function to detach the
-     * listener. */
+    /**
+     * Attach an event listener to an {@link EventTarget} and return a function to detach the
+     * listener.
+     */
     attach,
     /** Reset the entire list of bindings for a specific action to its default value. */
     reset,
@@ -680,8 +698,10 @@ export function defineBindingNamespace<T extends Record<keyof T, KeybindValue>>(
   return result
 }
 
-/** A function to define a bindings object that can be passed to {@link defineBindingNamespace}.
- * Useful when wanting to create reusable keybind definitions, or non-global keybind definitions. */
+/**
+ * A function to define a bindings object that can be passed to {@link defineBindingNamespace}.
+ * Useful when wanting to create reusable keybind definitions, or non-global keybind definitions.
+ */
 export function defineBindings<T extends Record<keyof T, KeybindValue>>(bindings: Keybinds<T>) {
   return bindings
 }
@@ -699,11 +719,13 @@ const isModifier = includesPredicate(ALL_MODIFIERS)
 // eslint-disable-next-line no-restricted-syntax
 const isPointer = includesPredicate(ALL_POINTERS)
 
-/** Convert a keybind string to an intermediate form containing both the key and its modifiers
+/**
+ * Convert a keybind string to an intermediate form containing both the key and its modifiers
  * (if any).
  *
  * Although this is exported, it should ONLY be used for testing, as it is an implementation
- * detail. */
+ * detail.
+ */
 export function decomposeKeybindString(keybindString: string): ModifierStringDecomposition {
   const trimmed = keybindString.trim()
   const parts =
@@ -717,8 +739,10 @@ export function decomposeKeybindString(keybindString: string): ModifierStringDec
   return { key: key ?? '', modifiers }
 }
 
-/** Parse a keybind string into a {@link Mousebind} if the key name describes a mouse button,
- * otherwise parse it into a {@link Keybind}. */
+/**
+ * Parse a keybind string into a {@link Mousebind} if the key name describes a mouse button,
+ * otherwise parse it into a {@link Keybind}.
+ */
 export function parseKeybindString(keybindS: string): Keybind | Mousebind {
   const decomposed = decomposeKeybindString(keybindS)
   if (isPointer(decomposed.key)) {

@@ -35,8 +35,10 @@ export type EventListProviderProps = Readonly<React.PropsWithChildren>
 // === EventListProvider ===
 // =========================
 
-/** A React provider (and associated hooks) for determining whether the current area
- * containing the current element is focused. */
+/**
+ * A React provider (and associated hooks) for determining whether the current area
+ * containing the current element is focused.
+ */
 export default function EventListProvider(props: EventListProviderProps) {
   const { children } = props
   const [store] = React.useState(() =>

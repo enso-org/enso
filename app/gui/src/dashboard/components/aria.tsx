@@ -15,12 +15,14 @@ export { useTooltipTriggerState, type OverlayTriggerState } from 'react-stately'
 // === mergeProps ===
 // ==================
 
-/** Merges multiple props objects together.
+/**
+ * Merges multiple props objects together.
  * Event handlers are chained, classNames are combined, and ids are deduplicated -
  * different ids will trigger a side-effect and re-render components hooked up with `useId`.
  * For all other props, the last prop object overrides all previous ones.
  *
- * The constraint is defaulted to `never` to make an explicit constraint mandatory. */
+ * The constraint is defaulted to `never` to make an explicit constraint mandatory.
+ */
 export function mergeProps<Constraint extends object = never>() {
   return <const T extends readonly (Partial<Constraint> | null | undefined)[]>(
     ...args: T & { [K in keyof T]: Pick<T[K], keyof Constraint & keyof T[K]> }

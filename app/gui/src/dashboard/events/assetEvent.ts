@@ -86,8 +86,10 @@ export interface AssetNewSecretEvent extends AssetBaseEvent<AssetEventType.newSe
   readonly value: string
 }
 
-/** A signal that multiple assets should be copied. `ids` are the `Id`s of the newly created
- * placeholder items. */
+/**
+ * A signal that multiple assets should be copied. `ids` are the `Id`s of the newly created
+ * placeholder items.
+ */
 export interface AssetCopyEvent extends AssetBaseEvent<AssetEventType.copy> {
   readonly ids: ReadonlySet<backend.AssetId>
   readonly newParentKey: backend.AssetId
@@ -176,8 +178,10 @@ export interface AssetSetItemEvent extends AssetBaseEvent<AssetEventType.setItem
   readonly valueOrUpdater: React.SetStateAction<backend.AnyAsset>
 }
 
-/** A signal that a project was closed. In this case, the consumer should not fire a
- * "close project" request to the backend. */
+/**
+ * A signal that a project was closed. In this case, the consumer should not fire a
+ * "close project" request to the backend.
+ */
 export interface AssetProjectClosedEvent extends AssetBaseEvent<AssetEventType.projectClosed> {
   readonly id: backend.AssetId
 }

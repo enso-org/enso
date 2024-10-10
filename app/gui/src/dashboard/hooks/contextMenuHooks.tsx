@@ -11,8 +11,10 @@ import { useSyncRef } from '#/hooks/syncRefHooks'
 // === contextMenuRef ===
 // ======================
 
-/** Return a ref that attaches a context menu event listener.
- * Should be used ONLY if the element does not expose an `onContextMenu` prop. */
+/**
+ * Return a ref that attaches a context menu event listener.
+ * Should be used ONLY if the element does not expose an `onContextMenu` prop.
+ */
 export function useContextMenuRef(
   key: string,
   label: string,

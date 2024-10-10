@@ -10,8 +10,10 @@ import * as aria from '#/components/aria'
 // === useHandleFocusMove ===
 // ==========================
 
-/** The type of `react-aria` keyboard events. It must be extracted out of this type as it is not
- * exposed from the library itself. */
+/**
+ * The type of `react-aria` keyboard events. It must be extracted out of this type as it is not
+ * exposed from the library itself.
+ */
 // eslint-disable-next-line @typescript-eslint/no-magic-numbers
 type AriaKeyboardEvent = Parameters<NonNullable<aria.KeyboardEvents['onKeyUp']>>[0]
 
@@ -65,8 +67,10 @@ export function useHandleFocusMove(direction: 'horizontal' | 'vertical') {
 // === useSoleFocusChild ===
 // =========================
 
-/** Return JSX props to make a child focusable by `Navigator2D`. DOES NOT handle arrow keys,
- * because this hook assumes the child is the only focus child. */
+/**
+ * Return JSX props to make a child focusable by `Navigator2D`. DOES NOT handle arrow keys,
+ * because this hook assumes the child is the only focus child.
+ */
 export function useSoleFocusChild() {
   const { focusChildClass } = focusClassProvider.useFocusClasses()
 
@@ -79,8 +83,10 @@ export function useSoleFocusChild() {
 // === useFocusChild ===
 // =====================
 
-/** Return JSX props to make a child focusable by `Navigator2D`, and make the child handle arrow
- * keys to navigate to siblings. */
+/**
+ * Return JSX props to make a child focusable by `Navigator2D`, and make the child handle arrow
+ * keys to navigate to siblings.
+ */
 export function useFocusChild() {
   const focusDirection = focusDirectionProvider.useFocusDirection()
   const handleFocusMove = useHandleFocusMove(focusDirection)

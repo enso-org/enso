@@ -28,8 +28,10 @@ const PLANS_TO_SPECIFY_ORG_NAME = [backendModule.Plan.team, backendModule.Plan.e
 // === SetOrganizationNameModal ===
 // ================================
 
-/** Modal for setting the organization name.
- * Shows up when the user is on the team plan and the organization name is the default. */
+/**
+ * Modal for setting the organization name.
+ * Shows up when the user is on the team plan and the organization name is the default.
+ */
 export function SetupOrganizationAfterSubscribe() {
   const { getText } = textProvider.useText()
 

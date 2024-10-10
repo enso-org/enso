@@ -1,6 +1,8 @@
-/** @file Provides an {@link AuthService} which consists of an underyling `Cognito` API
+/**
+ * @file Provides an {@link AuthService} which consists of an underyling `Cognito` API
  * wrapper, along with some convenience callbacks to make URL redirects for the authentication flows
- * work with Electron. */
+ * work with Electron.
+ */
 import * as React from 'react'
 
 import * as amplify from '@aws-amplify/auth'
@@ -22,11 +24,13 @@ import * as listen from '#/authentication/listen'
 // === AmplifyConfig ===
 // =====================
 
-/** Configuration for the AWS Amplify library.
+/**
+ * Configuration for the AWS Amplify library.
  *
  * This details user pools, federated identity providers, etc. that are used to authenticate users.
  * The values in this object are not secret, and can be swapped out for testing values to avoid
- * creating authenticated users in the production environment. */
+ * creating authenticated users in the production environment.
+ */
 export interface AmplifyConfig {
   readonly region: string
   readonly userPoolId: string
@@ -67,10 +71,12 @@ export interface NestedAmplifyConfig {
   readonly oauth: OauthAmplifyConfig
 }
 
-/** Convert the flattened `AmplifyConfig` struct to a form recognizable to the AWS Amplify library.
+/**
+ * Convert the flattened `AmplifyConfig` struct to a form recognizable to the AWS Amplify library.
  *
  * We use a flattened form of the config for easier object manipulation, but the AWS Amplify library
- * expects a nested form. */
+ * expects a nested form.
+ */
 export function toNestedAmplifyConfig(config: AmplifyConfig): NestedAmplifyConfig {
   return {
     region: config.region,
@@ -93,8 +99,10 @@ export function toNestedAmplifyConfig(config: AmplifyConfig): NestedAmplifyConfi
 
 /** Configuration for the authentication service. */
 export interface AuthConfig {
-  /** Whether the application supports deep links. This is only true when using
-   * the installed app on macOS and Windows. */
+  /**
+   * Whether the application supports deep links. This is only true when using
+   * the installed app on macOS and Windows.
+   */
   readonly supportsDeepLinks: boolean
 }
 
@@ -110,12 +118,14 @@ export interface AuthService {
   readonly registerAuthEventListener: listen.ListenFunction
 }
 
-/** Create an instance of the authentication service.
+/**
+ * Create an instance of the authentication service.
  *
  * # Warning
  *
  * This hook should only be called in a single place, as it performs global configuration of the
- * Amplify library. */
+ * Amplify library.
+ */
 export function useInitAuthService(authConfig: AuthConfig): AuthService {
   const { supportsDeepLinks } = authConfig
 
@@ -186,7 +196,8 @@ function loadAmplifyConfig(
   }
 }
 
-/** Set the callback that will be invoked when a deep link to the application is opened.
+/**
+ * Set the callback that will be invoked when a deep link to the application is opened.
  *
  * Typically this callback is invoked when the user is redirected back to the app after:
  *
@@ -202,7 +213,8 @@ function loadAmplifyConfig(
  * because it's a deep link into the app, and Amplify doesn't handle deep links.
  *
  * All URLs that don't have a pathname that starts with `AUTHENTICATION_PATHNAME_BASE` will be
- * ignored by this handler. */
+ * ignored by this handler.
+ */
 function setDeepLinkHandler(logger: Logger, navigate: (url: string) => void) {
   window.authenticationApi.setDeepLinkHandler((urlString: string) => {
     const url = new URL(urlString)

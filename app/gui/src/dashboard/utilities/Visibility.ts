@@ -8,8 +8,10 @@
 enum Visibility {
   /** The item is present. */
   visible = 'visibility-visible',
-  /** The item will be inserted, but the backend request has not yet finished,
-   * or the item has been cut and will potentially be moved in the future. */
+  /**
+   * The item will be inserted, but the backend request has not yet finished,
+   * or the item has been cut and will potentially be moved in the future.
+   */
   faded = 'visibility-faded',
   /** The item will be deleted, but the backend request has not yet finished. */
   hidden = 'visibility-hidden',

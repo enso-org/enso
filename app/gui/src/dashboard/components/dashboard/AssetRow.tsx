@@ -57,8 +57,10 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 
 /** The height of the header row. */
 const HEADER_HEIGHT_PX = 40
-/** The amount of time (in milliseconds) the drag item must be held over this component
- * to make a directory row expand. */
+/**
+ * The amount of time (in milliseconds) the drag item must be held over this component
+ * to make a directory row expand.
+ */
 const DRAG_EXPAND_DELAY_MS = 500
 
 // ================

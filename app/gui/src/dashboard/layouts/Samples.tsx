@@ -24,8 +24,10 @@ import { Button, Text } from '#/components/AriaComponents'
 /** Template metadata. */
 export interface Sample {
   readonly title: string
-  /** These should ideally be localized, however, as this is planned to be user-generated, it is
-   * unlikely that this will be feasible. */
+  /**
+   * These should ideally be localized, however, as this is planned to be user-generated, it is
+   * unlikely that this will be feasible.
+   */
   readonly description: string
   readonly id: string
   readonly background?: string

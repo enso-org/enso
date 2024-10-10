@@ -25,8 +25,10 @@ const SHOULD_SHOW_CHAT_BUTTON: boolean = false
 
 /** Props for a {@link UserBar}. */
 export interface UserBarProps {
-  /** When `true`, the element occupies space in the layout but is not visible.
-   * Defaults to `false`. */
+  /**
+   * When `true`, the element occupies space in the layout but is not visible.
+   * Defaults to `false`.
+   */
   readonly invisible?: boolean
   readonly setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
   readonly goToSettingsPage: () => void

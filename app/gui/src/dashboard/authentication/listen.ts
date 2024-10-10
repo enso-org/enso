@@ -1,8 +1,10 @@
-/** @file Module for listening to authentication events emitted by Amplify.
+/**
+ * @file Module for listening to authentication events emitted by Amplify.
  *
  * Listening to authentication events is necessary to update the authentication state of the
  * application. For example, if the user signs out, we want to clear the authentication state so
- * that the login screen is rendered. */
+ * that the login screen is rendered.
+ */
 import * as amplify from '@aws-amplify/core'
 
 // =================
@@ -16,10 +18,12 @@ const AUTHENTICATION_HUB = 'auth'
 // === AuthEvent ===
 // =================
 
-/** Authentication state change events.
+/**
+ * Authentication state change events.
  *
  * These are issues by AWS Amplify when it detects a change in authentication state. For example,
- * when the user signs in or signs out by accessing a page like `enso://auth?code=...&state=...`. */
+ * when the user signs in or signs out by accessing a page like `enso://auth?code=...&state=...`.
+ */
 export enum AuthEvent {
   /** Issued when the user has passed custom OAuth state parameters to some other auth event. */
   customOAuthState = 'customOAuthState',
@@ -40,18 +44,24 @@ function isAuthEvent(value: string): value is AuthEvent {
 // === RegisterAuthEventListener ===
 // =================================
 
-/** Callback called in response to authentication state changes.
- * @see {@link amplify.Hub.listen}. */
+/**
+ * Callback called in response to authentication state changes.
+ * @see {@link amplify.Hub.listen}.
+ */
 export type ListenerCallback = (event: AuthEvent, data?: unknown) => void
 
-/** Unsubscribe the {@link ListenerCallback} from authentication state changes.
- * @see {@link amplify.Hub.listen}. */
+/**
+ * Unsubscribe the {@link ListenerCallback} from authentication state changes.
+ * @see {@link amplify.Hub.listen}.
+ */
 type UnsubscribeFunction = () => void
 
-/** Used to subscribe to {@link AuthEvent}s.
+/**
+ * Used to subscribe to {@link AuthEvent}s.
  *
  * Returns a function that MUST be called before re-subscribing,
- * to avoid memory leaks or duplicate event handlers. */
+ * to avoid memory leaks or duplicate event handlers.
+ */
 export type ListenFunction = (listener: ListenerCallback) => UnsubscribeFunction
 
 /** Listen to authentication state changes. */

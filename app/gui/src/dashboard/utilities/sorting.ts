@@ -10,8 +10,10 @@ export enum SortDirection {
   descending = 'descending',
 }
 
-/** The next {@link SortDirection}, in the order they are cycled through when clicking a column
- * header. */
+/**
+ * The next {@link SortDirection}, in the order they are cycled through when clicking a column
+ * header.
+ */
 export function nextSortDirection(sortDirection: SortDirection | null) {
   switch (sortDirection) {
     case null: {

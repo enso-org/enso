@@ -48,10 +48,12 @@ export interface HttpClientRequestOptions {
 export default class HttpClient {
   /** Create a new HTTP client with the specified headers to be sent on every request. */
   constructor(
-    /** A map of default headers that are included in every HTTP request sent by this client.
+    /**
+     * A map of default headers that are included in every HTTP request sent by this client.
      *
      * This is useful for setting headers that are required for every request, like
-     * authentication tokens. */
+     * authentication tokens.
+     */
     public defaultHeaders: Record<string, string> = {},
   ) {}
 
@@ -131,8 +133,10 @@ export default class HttpClient {
     }
   }
 
-  /** Execute an HTTP request to the specified URL, with the given HTTP method.
-   * @throws {Error} if the HTTP request fails. */
+  /**
+   * Execute an HTTP request to the specified URL, with the given HTTP method.
+   * @throws {Error} if the HTTP request fails.
+   */
   private async request<T = void>(options: HttpClientRequestOptions) {
     const headers = new Headers(this.defaultHeaders)
     let payload = options.payload

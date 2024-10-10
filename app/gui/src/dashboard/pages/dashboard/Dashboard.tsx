@@ -1,5 +1,7 @@
-/** @file Main dashboard component, responsible for listing user's projects as well as other
- * interactive components. */
+/**
+ * @file Main dashboard component, responsible for listing user's projects as well as other
+ * interactive components.
+ */
 import * as React from 'react'
 
 import * as z from 'zod'

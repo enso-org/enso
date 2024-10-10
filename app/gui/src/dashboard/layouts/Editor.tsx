@@ -48,8 +48,10 @@ export interface GraphEditorProps {
 // === GraphEditorRunner ===
 // =========================
 
-/** The value passed from the entrypoint to the dashboard, which enables the dashboard to
- * open a new IDE instance. */
+/**
+ * The value passed from the entrypoint to the dashboard, which enables the dashboard to
+ * open a new IDE instance.
+ */
 export type GraphEditorRunner = React.ComponentType<GraphEditorProps>
 
 // =================

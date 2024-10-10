@@ -1,8 +1,10 @@
-/** @file Module containing the API client for the Cloud backend API.
+/**
+ * @file Module containing the API client for the Cloud backend API.
  *
  * Each exported function in the {@link RemoteBackend} in this module corresponds to
  * an API endpoint. The functions are asynchronous and return a {@link Promise} that resolves to
- * the response from the API. */
+ * the response from the API.
+ */
 import * as detect from 'enso-common/src/detect'
 import type * as text from 'enso-common/src/text'
 
@@ -111,8 +113,10 @@ export interface ListVersionsResponseBody {
 // === RemoteBackend ===
 // =====================
 
-/** A function that turns a text ID (and a list of replacements, if required) to
- * human-readable text. */
+/**
+ * A function that turns a text ID (and a list of replacements, if required) to
+ * human-readable text.
+ */
 type GetText = ReturnType<typeof textProvider.useText>['getText']
 
 /** Information for a cached default version. */
@@ -132,8 +136,10 @@ export default class RemoteBackend extends Backend {
   private defaultVersions: Partial<Record<backend.VersionType, DefaultVersionInfo>> = {}
   private user: object.Mutable<backend.User> | null = null
 
-  /** Create a new instance of the {@link RemoteBackend} API client.
-   * @throws An error if the `Authorization` header is not set on the given `client`. */
+  /**
+   * Create a new instance of the {@link RemoteBackend} API client.
+   * @throws An error if the `Authorization` header is not set on the given `client`.
+   */
   constructor(
     private readonly client: HttpClient,
     private readonly logger: loggerProvider.Logger,
@@ -142,14 +148,18 @@ export default class RemoteBackend extends Backend {
     super()
   }
 
-  /** Set `this.getText`. This function is exposed rather than the property itself to make it clear
-   * that it is intended to be mutable. */
+  /**
+   * Set `this.getText`. This function is exposed rather than the property itself to make it clear
+   * that it is intended to be mutable.
+   */
   setGetText(getText: GetText) {
     this.getText = getText
   }
 
-  /** Log an error message and throws an {@link Error} with the specified message.
-   * @throws {Error} Always. */
+  /**
+   * Log an error message and throws an {@link Error} with the specified message.
+   * @throws {Error} Always.
+   */
   async throw<K extends Extract<text.TextId, `${string}BackendError`>>(
     response: Response | null,
     textId: backend.NetworkError | K,
@@ -272,8 +282,10 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Delete a user.
-   * FIXME: Not implemented on backend yet. */
+  /**
+   * Delete a user.
+   * FIXME: Not implemented on backend yet.
+   */
   override async removeUser(): Promise<void> {
     return await this.throw(null, 'removeUserBackendError')
   }
@@ -365,8 +377,10 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Return details for the current organization.
-   * @returns `null` if a non-successful status code (not 200-299) was received. */
+  /**
+   * Return details for the current organization.
+   * @returns `null` if a non-successful status code (not 200-299) was received.
+   */
   override async getOrganization(): Promise<backend.OrganizationInfo | null> {
     const path = remoteBackendPaths.GET_ORGANIZATION_PATH
     const response = await this.get<backend.OrganizationInfo>(path)
@@ -427,8 +441,10 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Return details for the current user.
-   * @returns `null` if a non-successful status code (not 200-299) was received. */
+  /**
+   * Return details for the current user.
+   * @returns `null` if a non-successful status code (not 200-299) was received.
+   */
   override async usersMe(): Promise<backend.User | null> {
     const response = await this.get<backend.User>(remoteBackendPaths.USERS_ME_PATH)
 
@@ -452,8 +468,10 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Return a list of assets in a directory.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
+  /**
+   * Return a list of assets in a directory.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
   override async listDirectory(
     query: backend.ListDirectoryRequestParams,
     title: string,
@@ -503,8 +521,10 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Create a directory.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
+  /**
+   * Create a directory.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
   override async createDirectory(
     body: backend.CreateDirectoryRequestBody,
   ): Promise<backend.CreatedDirectory> {
@@ -517,8 +537,10 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Change the name of a directory.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
+  /**
+   * Change the name of a directory.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
   override async updateDirectory(
     directoryId: backend.DirectoryId,
     body: backend.UpdateDirectoryRequestBody,
@@ -563,8 +585,10 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Change the parent directory or description of an asset.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
+  /**
+   * Change the parent directory or description of an asset.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
   override async updateAsset(
     assetId: backend.AssetId,
     body: backend.UpdateAssetRequestBody,
@@ -579,8 +603,10 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Delete an arbitrary asset.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
+  /**
+   * Delete an arbitrary asset.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
   override async deleteAsset(
     assetId: backend.AssetId,
     body: backend.DeleteAssetRequestBody,
@@ -596,8 +622,10 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Restore an arbitrary asset from the trash.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
+  /**
+   * Restore an arbitrary asset from the trash.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
   override async undoDeleteAsset(assetId: backend.AssetId, title: string): Promise<void> {
     const path = remoteBackendPaths.UNDO_DELETE_ASSET_PATH
     const response = await this.patch(path, { assetId })
@@ -608,8 +636,10 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Copy an arbitrary asset to another directory.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
+  /**
+   * Copy an arbitrary asset to another directory.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
   override async copyAsset(
     assetId: backend.AssetId,
     parentDirectoryId: backend.DirectoryId,
@@ -627,8 +657,10 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Return a list of projects belonging to the current user.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
+  /**
+   * Return a list of projects belonging to the current user.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
   override async listProjects(): Promise<backend.ListedProject[]> {
     const path = remoteBackendPaths.LIST_PROJECTS_PATH
     const response = await this.get<ListProjectsResponseBody>(path)
@@ -644,8 +676,10 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Create a project.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
+  /**
+   * Create a project.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
   override async createProject(
     body: backend.CreateProjectRequestBody,
   ): Promise<backend.CreatedProject> {
@@ -688,8 +722,10 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Close a project.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
+  /**
+   * Close a project.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
   override async closeProject(projectId: backend.ProjectId, title: string): Promise<void> {
     const path = remoteBackendPaths.closeProjectPath(projectId)
     const response = await this.post(path, {})
@@ -700,8 +736,10 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** List project sessions for a specific project.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
+  /**
+   * List project sessions for a specific project.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
   override async listProjectSessions(
     projectId: backend.ProjectId,
     title: string,
@@ -716,8 +754,10 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Return details for a project.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
+  /**
+   * Return details for a project.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
   override async getProjectDetails(
     projectId: backend.ProjectId,
     _directory: backend.DirectoryId | null,
@@ -742,8 +782,10 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Return Language Server logs for a project session.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
+  /**
+   * Return Language Server logs for a project session.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
   override async getProjectSessionLogs(
     projectSessionId: backend.ProjectSessionId,
     title: string,
@@ -757,8 +799,10 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Prepare a project for execution.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
+  /**
+   * Prepare a project for execution.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
   override async openProject(
     projectId: backend.ProjectId,
     bodyRaw: backend.OpenProjectRequestBody,
@@ -791,8 +835,10 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Update the name or AMI of a project.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
+  /**
+   * Update the name or AMI of a project.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
   override async updateProject(
     projectId: backend.ProjectId,
     body: backend.UpdateProjectRequestBody,
@@ -807,8 +853,10 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Return the resource usage of a project.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
+  /**
+   * Return the resource usage of a project.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
   override async checkResources(
     projectId: backend.ProjectId,
     title: string,
@@ -822,8 +870,10 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Return a list of files accessible by the current user.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
+  /**
+   * Return a list of files accessible by the current user.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
   override async listFiles(): Promise<readonly backend.FileLocator[]> {
     const path = remoteBackendPaths.LIST_FILES_PATH
     const response = await this.get<ListFilesResponseBody>(path)
@@ -834,8 +884,10 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Upload a file.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
+  /**
+   * Upload a file.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
   override async uploadFile(
     params: backend.UploadFileRequestParams,
     file: Blob,
@@ -862,8 +914,10 @@ export default class RemoteBackend extends Backend {
     await this.throw(null, 'updateFileNotImplementedBackendError')
   }
 
-  /** Return details for a project.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
+  /**
+   * Return details for a project.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
   override async getFileDetails(
     fileId: backend.FileId,
     title: string,
@@ -877,8 +931,10 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Return a Datalink.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
+  /**
+   * Return a Datalink.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
   override async createDatalink(
     body: backend.CreateDatalinkRequestBody,
   ): Promise<backend.DatalinkInfo> {
@@ -891,8 +947,10 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Return a Datalink.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
+  /**
+   * Return a Datalink.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
   override async getDatalink(
     datalinkId: backend.DatalinkId,
     title: string,
@@ -906,8 +964,10 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Delete a Datalink.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
+  /**
+   * Delete a Datalink.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
   override async deleteDatalink(datalinkId: backend.DatalinkId, title: string): Promise<void> {
     const path = remoteBackendPaths.getDatalinkPath(datalinkId)
     const response = await this.delete(path)
@@ -918,8 +978,10 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Create a secret environment variable.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
+  /**
+   * Create a secret environment variable.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
   override async createSecret(body: backend.CreateSecretRequestBody): Promise<backend.SecretId> {
     const path = remoteBackendPaths.CREATE_SECRET_PATH
     const response = await this.post<backend.SecretId>(path, body)
@@ -930,8 +992,10 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Return a secret environment variable.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
+  /**
+   * Return a secret environment variable.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
   override async getSecret(secretId: backend.SecretId, title: string): Promise<backend.Secret> {
     const path = remoteBackendPaths.getSecretPath(secretId)
     const response = await this.get<backend.Secret>(path)
@@ -942,8 +1006,10 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Update a secret environment variable.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
+  /**
+   * Update a secret environment variable.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
   override async updateSecret(
     secretId: backend.SecretId,
     body: backend.UpdateSecretRequestBody,
@@ -958,8 +1024,10 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Return the secret environment variables accessible by the user.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
+  /**
+   * Return the secret environment variables accessible by the user.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
   override async listSecrets(): Promise<readonly backend.SecretInfo[]> {
     const path = remoteBackendPaths.LIST_SECRETS_PATH
     const response = await this.get<ListSecretsResponseBody>(path)
@@ -970,8 +1038,10 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Create a label used for categorizing assets.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
+  /**
+   * Create a label used for categorizing assets.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
   override async createTag(body: backend.CreateTagRequestBody): Promise<backend.Label> {
     const path = remoteBackendPaths.CREATE_TAG_PATH
     const response = await this.post<backend.Label>(path, body)
@@ -982,8 +1052,10 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Return all labels accessible by the user.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
+  /**
+   * Return all labels accessible by the user.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
   override async listTags(): Promise<readonly backend.Label[]> {
     const path = remoteBackendPaths.LIST_TAGS_PATH
     const response = await this.get<ListTagsResponseBody>(path)
@@ -994,8 +1066,10 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Set the full list of labels for a specific asset.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
+  /**
+   * Set the full list of labels for a specific asset.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
   override async associateTag(
     assetId: backend.AssetId,
     labels: backend.LabelName[],
@@ -1010,8 +1084,10 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Delete a label.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
+  /**
+   * Delete a label.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
   override async deleteTag(tagId: backend.TagId, value: backend.LabelName): Promise<void> {
     const path = remoteBackendPaths.deleteTagPath(tagId)
     const response = await this.delete(path)
@@ -1046,8 +1122,10 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** List all roles in the organization.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
+  /**
+   * List all roles in the organization.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
   override async listUserGroups(): Promise<backend.UserGroupInfo[]> {
     const path = remoteBackendPaths.LIST_USER_GROUPS_PATH
     const response = await this.get<backend.UserGroupInfo[]>(path)
@@ -1060,8 +1138,10 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Return a list of backend or IDE versions.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
+  /**
+   * Return a list of backend or IDE versions.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
   override async listVersions(
     params: backend.ListVersionsRequestParams,
   ): Promise<readonly backend.Version[]> {
@@ -1079,8 +1159,10 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Create a payment checkout session.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
+  /**
+   * Create a payment checkout session.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
   override async createCheckoutSession(
     params: backend.CreateCheckoutSessionRequestBody,
   ): Promise<backend.CheckoutSession> {
@@ -1095,8 +1177,10 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Gets the status of a payment checkout session.
-   * @throws An error if a non-successful status code (not 200-299) was received. */
+  /**
+   * Gets the status of a payment checkout session.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
   override async getCheckoutSession(
     sessionId: backend.CheckoutSessionId,
   ): Promise<backend.CheckoutSessionStatus> {
@@ -1195,8 +1279,10 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Replaces the `user` of all permissions for the current user on an asset, so that they always
-   * return the up-to-date user. */
+  /**
+   * Replaces the `user` of all permissions for the current user on an asset, so that they always
+   * return the up-to-date user.
+   */
   private dynamicAssetUser<Asset extends backend.AnyAsset>(asset: Asset) {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this

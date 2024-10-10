@@ -9,8 +9,10 @@ import * as array from './array'
 // eslint-disable-next-line no-control-regex
 const JSON_VALUE_REGEX = /"(?:[^\0-\x1f\\"]|\\[\\/bfnrt"]|\\u[0-9a-fA-F]{4})*"?/.source
 
-/** The regex, with `<json>` replaced with a regex subexpression matching a JSON-escaped search
- * term. */
+/**
+ * The regex, with `<json>` replaced with a regex subexpression matching a JSON-escaped search
+ * term.
+ */
 function interpolateRegex(regex: RegExp) {
   return new RegExp(regex.source.replace(/<json>/g, JSON_VALUE_REGEX), regex.flags)
 }
@@ -25,8 +27,10 @@ export type AssetQueryKey = Exclude<keyof AssetQuery & `${string}s`, 'withUpdate
 /** An {@link AssetQuery}, without the query and methods. */
 export type AssetQueryData = Record<AssetQueryKey, string[][]>
 
-/** An {@link AssetQuery}, without the query and methods, and with all the values being `string[]`s
- * instead of `string[][]`s, representing the last term rather than all terms. */
+/**
+ * An {@link AssetQuery}, without the query and methods, and with all the values being `string[]`s
+ * instead of `string[][]`s, representing the last term rather than all terms.
+ */
 export type AssetQueryLastTermData = Readonly<Record<AssetQueryKey, string[]>>
 
 /** An individual segment of a query string input to {@link AssetQuery}. */
@@ -353,8 +357,10 @@ export default class AssetQuery {
     )
   }
 
-  /** Return a new {@link AssetQuery} with the specified keys overwritten,
-   * or itself if there are no keys to overwrite. */
+  /**
+   * Return a new {@link AssetQuery} with the specified keys overwritten,
+   * or itself if there are no keys to overwrite.
+   */
   withUpdates(updates: Partial<AssetQueryData>) {
     if (Object.keys(updates).length === 0) {
       return this
@@ -383,8 +389,10 @@ export default class AssetQuery {
     }
   }
 
-  /** Return a new {@link AssetQuery} with the specified terms added,
-   * or itself if there are no terms to add. */
+  /**
+   * Return a new {@link AssetQuery} with the specified terms added,
+   * or itself if there are no terms to add.
+   */
   add(values: Partial<AssetQueryData>): AssetQuery {
     const updates: Partial<AssetQueryData> = {}
     for (const [key] of AssetQuery.tagNames) {
@@ -396,8 +404,10 @@ export default class AssetQuery {
     return this.withUpdates(updates)
   }
 
-  /** Return a new {@link AssetQuery} with the specified terms deleted,
-   * or itself if there are no terms to delete. */
+  /**
+   * Return a new {@link AssetQuery} with the specified terms deleted,
+   * or itself if there are no terms to delete.
+   */
   delete(values: Partial<AssetQueryData>): AssetQuery {
     const updates: Partial<AssetQueryData> = {}
     for (const [key] of AssetQuery.tagNames) {
@@ -409,8 +419,10 @@ export default class AssetQuery {
     return this.withUpdates(updates)
   }
 
-  /** Return a new {@link AssetQuery} with the specified words added to the last term
-   * with the matching tag, or itself if there are no terms to add. */
+  /**
+   * Return a new {@link AssetQuery} with the specified words added to the last term
+   * with the matching tag, or itself if there are no terms to add.
+   */
   addToLastTerm(values: Partial<AssetQueryLastTermData>): AssetQuery {
     const updates: Partial<AssetQueryData> = {}
     for (const [key] of AssetQuery.tagNames) {
@@ -422,8 +434,10 @@ export default class AssetQuery {
     return this.withUpdates(updates)
   }
 
-  /** Return a new {@link AssetQuery} with the specified terms deleted from the last term
-   * with the matching tag, or itself if there are no terms to delete. */
+  /**
+   * Return a new {@link AssetQuery} with the specified terms deleted from the last term
+   * with the matching tag, or itself if there are no terms to delete.
+   */
   deleteFromLastTerm(values: Partial<AssetQueryLastTermData>): AssetQuery {
     const updates: Partial<AssetQueryData> = {}
     for (const [key] of AssetQuery.tagNames) {
@@ -435,10 +449,12 @@ export default class AssetQuery {
     return this.withUpdates(updates)
   }
 
-  /** Return a new {@link AssetQuery} with the specified words added to every term
+  /**
+   * Return a new {@link AssetQuery} with the specified words added to every term
    * with the matching tag, or itself if there are no terms to add.
    * Note that this makes little sense to use, but is added for symmetry with
-   * {@link AssetQuery.deleteFromEveryTerm}. */
+   * {@link AssetQuery.deleteFromEveryTerm}.
+   */
   addToEveryTerm(values: Partial<AssetQueryLastTermData>): AssetQuery {
     const updates: Partial<AssetQueryData> = {}
     for (const [key] of AssetQuery.tagNames) {
@@ -450,8 +466,10 @@ export default class AssetQuery {
     return this.withUpdates(updates)
   }
 
-  /** Return a new {@link AssetQuery} with the specified terms deleted from the last term
-   * with the matching tag, or itself if there are no terms to delete. */
+  /**
+   * Return a new {@link AssetQuery} with the specified terms deleted from the last term
+   * with the matching tag, or itself if there are no terms to delete.
+   */
   deleteFromEveryTerm(values: Partial<AssetQueryLastTermData>): AssetQuery {
     const updates: Partial<AssetQueryData> = {}
     for (const [key] of AssetQuery.tagNames) {
@@ -463,10 +481,12 @@ export default class AssetQuery {
     return this.withUpdates(updates)
   }
 
-  /** Try to cycle the tag between:
+  /**
+   * Try to cycle the tag between:
    * - not present
    * - present as a positive tag, and
-   * - present as a negative tag. */
+   * - present as a negative tag.
+   */
   withToggled(
     positiveTag: AssetQueryKey,
     negativeTag: AssetQueryKey,

@@ -55,8 +55,10 @@ interface InternalSingleAutocompleteProps<T> extends InternalBaseAutocompletePro
 interface InternalMultipleAutocompleteProps<T> extends InternalBaseAutocompleteProps<T> {
   /** Whether selecting multiple values is allowed. */
   readonly multiple: true
-  /** This is `null` when multiple values are selected, causing the input to switch to a
-   * {@link HTMLTextAreaElement}. */
+  /**
+   * This is `null` when multiple values are selected, causing the input to switch to a
+   * {@link HTMLTextAreaElement}.
+   */
   readonly inputRef?: MutableRefObject<HTMLFieldSetElement | null>
   readonly setValues: (value: readonly T[]) => void
   readonly itemsToString: (items: readonly T[]) => string

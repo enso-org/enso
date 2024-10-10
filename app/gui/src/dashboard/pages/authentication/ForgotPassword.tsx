@@ -1,5 +1,7 @@
-/** @file Container responsible for rendering and interactions in first half of forgot password
- * flow. */
+/**
+ * @file Container responsible for rendering and interactions in first half of forgot password
+ * flow.
+ */
 import { useState } from 'react'
 
 import isEmail from 'validator/lib/isEmail'

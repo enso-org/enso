@@ -35,9 +35,11 @@ export interface ProjectNameColumnProps extends column.AssetColumnProps {
   readonly item: AssetTreeNode<backendModule.ProjectAsset>
 }
 
-/** The icon and name of a {@link backendModule.ProjectAsset}.
+/**
+ * The icon and name of a {@link backendModule.ProjectAsset}.
  * @throws {Error} when the asset is not a {@link backendModule.ProjectAsset}.
- * This should never happen. */
+ * This should never happen.
+ */
 export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const {
     item,

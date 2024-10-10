@@ -31,8 +31,10 @@ export function isWhitespaceOnly(string: string) {
 // === camelCaseToTitleCase ===
 // ============================
 
-/** Inserts spaces between every word, and capitalizes the first word.
- * DOES NOT make particles lowercase. */
+/**
+ * Inserts spaces between every word, and capitalizes the first word.
+ * DOES NOT make particles lowercase.
+ */
 export function camelCaseToTitleCase(string: string) {
   return string.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/^./, (c) => c.toUpperCase())
 }
@@ -41,8 +43,10 @@ export function camelCaseToTitleCase(string: string) {
 // === compareCaseInsensitive ===
 // ==============================
 
-/** Return `1` if `a > b`, `-1` if `a < b`, and `0` if `a === b`.
- * Falls back to a case-sensitive comparison if the case-insensitive comparison returns `0`. */
+/**
+ * Return `1` if `a > b`, `-1` if `a < b`, and `0` if `a === b`.
+ * Falls back to a case-sensitive comparison if the case-insensitive comparison returns `0`.
+ */
 export function compareCaseInsensitive(a: string, b: string) {
   const aLower = a.toLowerCase()
   const bLower = b.toLowerCase()

@@ -48,8 +48,10 @@ function getSchemaNameHelper(defs: Record<string, object>, schema: object): stri
   }
 }
 
-/** Return a human-readable name representing a schema.
- * This function is a memoized version of {@link getSchemaNameHelper}. */
+/**
+ * Return a human-readable name representing a schema.
+ * This function is a memoized version of {@link getSchemaNameHelper}.
+ */
 export function getSchemaName(defs: Record<string, object>, schema: object) {
   const cached = SCHEMA_NAMES.get(schema)
   if (cached != null) {
@@ -65,8 +67,10 @@ export function getSchemaName(defs: Record<string, object>, schema: object) {
 // === constantValueToSchema ===
 // =============================
 
-/** Convert a constant value to a JSON schema representing the value, or `null` if it cannot be
- * represented. */
+/**
+ * Convert a constant value to a JSON schema representing the value, or `null` if it cannot be
+ * represented.
+ */
 export function constantValueToSchema(value: unknown): object | null {
   let result: object | null
   switch (typeof value) {
@@ -341,8 +345,10 @@ function constantValueOfSchemaHelper(
   }
 }
 
-/** The value of the schema, if it can only have one possible value.
- * This function is a memoized version of {@link constantValueOfSchemaHelper}. */
+/**
+ * The value of the schema, if it can only have one possible value.
+ * This function is a memoized version of {@link constantValueOfSchemaHelper}.
+ */
 export function constantValueOfSchema(
   defs: Record<string, object>,
   schema: object,

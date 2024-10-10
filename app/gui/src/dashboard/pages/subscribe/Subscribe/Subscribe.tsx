@@ -9,7 +9,8 @@ import { useFullUserSession } from '#/providers/AuthProvider'
 import { useText } from '#/providers/TextProvider'
 import { isPlan } from '#/services/Backend'
 
-/** A page in which the currently active payment plan can be changed.
+/**
+ * A page in which the currently active payment plan can be changed.
  *
  * This page can be in one of several states:
  *

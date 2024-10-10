@@ -1,5 +1,7 @@
-/** @file A copy of `RadioGroup` from `react-aria-components`, with the sole difference being that
- * `onKeyDown` is omitted from `useRadioGroup`. */
+/**
+ * @file A copy of `RadioGroup` from `react-aria-components`, with the sole difference being that
+ * `onKeyDown` is omitted from `useRadioGroup`.
+ */
 // NOTE: Some of `react-aria-components/utils.ts` has also been inlined, in order to avoid needing
 // to export them, and by extension polluting auto-imports.
 /*

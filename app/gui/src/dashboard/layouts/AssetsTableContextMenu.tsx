@@ -1,5 +1,7 @@
-/** @file A context menu for an `AssetsTable`, when no row is selected, or multiple rows
- * are selected. */
+/**
+ * @file A context menu for an `AssetsTable`, when no row is selected, or multiple rows
+ * are selected.
+ */
 import * as React from 'react'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -52,8 +54,10 @@ export interface AssetsTableContextMenuProps {
   readonly doDelete: (assetId: backendModule.AssetId, forever?: boolean) => Promise<void>
 }
 
-/** A context menu for an `AssetsTable`, when no row is selected, or multiple rows
- * are selected. */
+/**
+ * A context menu for an `AssetsTable`, when no row is selected, or multiple rows
+ * are selected.
+ */
 export default function AssetsTableContextMenu(props: AssetsTableContextMenuProps) {
   const { hidden = false, backend, category, pasteData } = props
   const { nodeMapRef, event, rootDirectoryId } = props

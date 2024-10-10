@@ -32,31 +32,41 @@ export default class AssetTreeNode<Item extends backendModule.AnyAsset = backend
   readonly type: Item['type']
   /** Create a {@link AssetTreeNode}. */
   constructor(
-    /** The actual asset. This MAY change if this is initially a placeholder item, but rows MAY
-     * keep updated values within the row itself as well. */
+    /**
+     * The actual asset. This MAY change if this is initially a placeholder item, but rows MAY
+     * keep updated values within the row itself as well.
+     */
     public item: Item,
-    /** The id of the asset's parent directory (or the placeholder id for new assets).
-     * This must never change. */
+    /**
+     * The id of the asset's parent directory (or the placeholder id for new assets).
+     * This must never change.
+     */
     public readonly directoryKey: backendModule.DirectoryId,
     /** The actual id of the asset's parent directory (or the placeholder id for new assets). */
     public readonly directoryId: backendModule.DirectoryId,
-    /** This is `null` if the asset is not a directory asset, OR a directory asset whose contents
-     * have not yet been fetched. */
+    /**
+     * This is `null` if the asset is not a directory asset, OR a directory asset whose contents
+     * have not yet been fetched.
+     */
     public readonly children: AnyAssetTreeNode[] | null,
     public readonly depth: number,
     public readonly path: string,
     public readonly initialAssetEvents: readonly assetEvent.AssetEvent[] | null,
-    /** The internal (to the frontend) id of the asset (or the placeholder id for new assets).
+    /**
+     * The internal (to the frontend) id of the asset (or the placeholder id for new assets).
      * This must never change, otherwise the component's state is lost when receiving the real id
-     * from the backend. */
+     * from the backend.
+     */
     public readonly key: Item['id'] = item.id,
     public readonly createdAt = new Date(),
   ) {
     this.type = item.type
   }
 
-  /** Return a positive number if `a > b`, a negative number if `a < b`, and zero if `a === b`.
-   * Uses {@link backendModule.compareAssets} internally. */
+  /**
+   * Return a positive number if `a > b`, a negative number if `a < b`, and zero if `a === b`.
+   * Uses {@link backendModule.compareAssets} internally.
+   */
   static compare(this: void, a: AssetTreeNode, b: AssetTreeNode) {
     return backendModule.compareAssets(a.item, b.item)
   }
@@ -116,8 +126,10 @@ export default class AssetTreeNode<Item extends backendModule.AnyAsset = backend
     ).asUnion()
   }
 
-  /** Return a new {@link AssetTreeNode} array if any children would be changed by the transformation
-   * function, otherwise return the original {@link AssetTreeNode} array. */
+  /**
+   * Return a new {@link AssetTreeNode} array if any children would be changed by the transformation
+   * function, otherwise return the original {@link AssetTreeNode} array.
+   */
   map(transform: (node: AnyAssetTreeNode) => AnyAssetTreeNode): AnyAssetTreeNode {
     const children = this.children ?? []
 
@@ -141,9 +153,11 @@ export default class AssetTreeNode<Item extends backendModule.AnyAsset = backend
     return result
   }
 
-  /** Return a new {@link AssetTreeNode} array if any children would be changed by the transformation
+  /**
+   * Return a new {@link AssetTreeNode} array if any children would be changed by the transformation
    * function, otherwise return the original {@link AssetTreeNode} array. The predicate is applied to
-   * a parent node before it is applied to its children. The root node is never removed. */
+   * a parent node before it is applied to its children. The root node is never removed.
+   */
   filter(predicate: (node: AnyAssetTreeNode) => boolean): AnyAssetTreeNode {
     const children = this.children ?? []
     let result: AnyAssetTreeNode | null = null

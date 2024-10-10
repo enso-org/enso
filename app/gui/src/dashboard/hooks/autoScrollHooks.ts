@@ -27,9 +27,11 @@ export type AutoScrollDirection = 'both' | 'horizontal' | 'none' | 'vertical'
 export interface AutoScrollOptions {
   readonly direction?: AutoScrollDirection
   readonly insets?: AutoScrollInsets
-  /** If the drag pointer is less than this distance away from the top or bottom of the
+  /**
+   * If the drag pointer is less than this distance away from the top or bottom of the
    * scroll container, then the scroll container automatically scrolls upwards if the cursor is near
-   * the top of the scroll container, or downwards if the cursor is near the bottom. */
+   * the top of the scroll container, or downwards if the cursor is near the bottom.
+   */
   readonly threshold?: number
   /** An arbitrary constant that controls the speed of autoscroll. */
   readonly speed?: number
@@ -41,9 +43,11 @@ export interface AutoScrollOptions {
 // === AutoScrollOffsets ===
 // =========================
 
-/** The amount of space on which side on which scrolling should have no effect.
+/**
+ * The amount of space on which side on which scrolling should have no effect.
  * The container is treated as this much smaller, meaning that autoscroll speed will be calculated
- * as though the pointer is that much closer to an edge. */
+ * as though the pointer is that much closer to an edge.
+ */
 interface AutoScrollInsets {
   readonly top?: number
   readonly bottom?: number
