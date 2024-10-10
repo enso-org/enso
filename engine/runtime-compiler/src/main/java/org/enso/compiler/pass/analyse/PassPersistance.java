@@ -104,10 +104,8 @@ public final class PassPersistance {
     @Override
     protected TailCall.TailPosition readObject(Input in)
         throws IOException, ClassNotFoundException {
-      var b = in.readBoolean();
-      return b
-          ? org.enso.compiler.pass.analyse.TailCall$TailPosition$Tail$.MODULE$
-          : org.enso.compiler.pass.analyse.TailCall$TailPosition$NotTail$.MODULE$;
+      in.readBoolean();
+      return org.enso.compiler.pass.analyse.TailCall$TailPosition$Tail$.MODULE$;
     }
   }
 
