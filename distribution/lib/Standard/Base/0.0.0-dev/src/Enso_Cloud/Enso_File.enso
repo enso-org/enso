@@ -196,9 +196,9 @@ type Enso_File
          the same asset at the same time, some changes may be lost.
     add_label : Text -> Enso_File
     add_label self (label : Text) -> Enso_File =
-        Context.Output.if_enabled disabled_message="Cannot add a label when writing is disabled. Press the Write button ▶ to perform the operation." panic=False <|
-            labels = self.labels
-            if labels.contains label then self else
+        labels = self.labels
+        if labels.contains label then self else
+            Context.Output.if_enabled disabled_message="Cannot add a label when writing is disabled. Press the Write button ▶ to perform the operation." panic=False <|
                 create_tags_if_not_exist [label] . if_not_error <|
                     new_labels = labels+[label]
                     update_asset_labels self new_labels . if_not_error self
@@ -219,9 +219,9 @@ type Enso_File
          the same asset at the same time, some changes may be lost.
     remove_label : Text -> Boolean
     remove_label self (label : Text) -> Boolean =
-        Context.Output.if_enabled disabled_message="Cannot remove a label when writing is disabled. Press the Write button ▶ to perform the operation." panic=False <|
-            labels = self.labels
-            if labels.contains label . not then False else
+        labels = self.labels
+        if labels.contains label . not then False else
+            Context.Output.if_enabled disabled_message="Cannot remove a label when writing is disabled. Press the Write button ▶ to perform the operation." panic=False <|
                 new_labels = labels.filter l-> l != label
                 update_asset_labels self new_labels . if_not_error True
 
@@ -253,9 +253,12 @@ type Enso_File
        - name: The name of the label to create.
        - color: The color of the label to create.
     create_label : Text -> Text -> Nothing
-    create_label (name : Text) (color : Color) =
-        Context.Output.if_enabled disabled_message="Cannot create a label when writing is disabled. Press the Write button ▶ to perform the operation." panic=False <|
-            create_tag name color . if_not_error Nothing
+    create_label (name : Text) (color : Color) -> Nothing =
+        # TODO once cloud also checks for tag existance, if the Write context is enabled we could avoid this check as cloud will do it anyway - then we'll have only one request instead of 2 each time
+        # Cloud ticket: https://github.com/enso-org/cloud-v2/issues/1544
+        if does_tag_exist name then Error.throw (Illegal_Argument.Error "A label with name "+name+" already exists.") else
+            Context.Output.if_enabled disabled_message="Cannot create a label when writing is disabled. Press the Write button ▶ to perform the operation." panic=False <|
+                create_tag name color . if_not_error Nothing
 
     ## GROUP Metadata
        ICON metadata

@@ -186,6 +186,11 @@ random_tag_color -> Color =
     Color.HCL hue chroma lightness
 
 ## PRIVATE
+does_tag_exist (name : Text) -> Boolean =
+    existing_tags = Hashset.from_vector <| list_tags.map .value
+    existing_tags.contains name
+
+## PRIVATE
 create_tags_if_not_exist (names : Vector Text) =
     existing_tags = Hashset.from_vector <| list_tags.map .value
     tags_to_create = (Hashset.from_vector names).difference existing_tags . to_vector
