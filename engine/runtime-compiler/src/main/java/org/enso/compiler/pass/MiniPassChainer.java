@@ -2,6 +2,7 @@ package org.enso.compiler.pass;
 
 import java.util.List;
 import org.enso.compiler.core.IR;
+import org.enso.compiler.core.ir.Expression;
 
 /** Utility class for chaining mini passes together. */
 public final class MiniPassChainer {
@@ -41,16 +42,16 @@ class ChainedMiniPass extends MiniIRPass {
   }
 
   @Override
-  public MiniIRPass prepare(IR current) {
+  public MiniIRPass prepare(Expression current) {
     firstPass = firstPass.prepare(current);
     secondPass = secondPass.prepare(current);
     return this;
   }
 
   @Override
-  public IR transformIr(IR ir) {
-    var transformedIr = firstPass.transformIr(ir);
-    return secondPass.transformIr(transformedIr);
+  public Expression transformExpression(Expression ir) {
+    var transformedIr = firstPass.transformExpression(ir);
+    return secondPass.transformExpression(transformedIr);
   }
 
   @Override

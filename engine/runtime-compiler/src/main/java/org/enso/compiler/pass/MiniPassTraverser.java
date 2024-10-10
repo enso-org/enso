@@ -23,8 +23,25 @@ public final class MiniPassTraverser {
    * @return Transformed module IR.
    */
   public static Module compileModuleWithMiniPass(Module moduleIr, MiniIRPass miniPass) {
-    var newModuleIr = compileRecursively(moduleIr, miniPass);
-    return (Module) newModuleIr;
+    var preparedMiniPass = miniPass.prepareForModule(moduleIr);
+    logPrepare(moduleIr, miniPass, preparedMiniPass);
+    var newChildren = new ArrayList<Expression>();
+    boolean[] childrenChanged = {false};
+    moduleIr.mapExpressions(
+        (ch) -> {
+          var newChild = compileRecursively(ch, preparedMiniPass);
+          newChildren.add(newChild);
+          if (ch != newChild) {
+            childrenChanged[0] = true;
+          }
+          return newChild;
+        });
+    if (childrenChanged[0]) {
+      var index = new int[1];
+      moduleIr.mapExpressions((old) -> newChildren.get(index[0]++));
+    }
+    var newModuleIr = miniPass.transformModule(moduleIr);
+    return newModuleIr;
   }
 
   public static Expression compileInlineWithMiniPass(Expression exprIr, MiniIRPass miniPass) {
@@ -33,21 +50,21 @@ public final class MiniPassTraverser {
     if (!preparedMiniPass.checkPostCondition(newIr)) {
       throw new CompilerError("Post condition failed after applying mini pass " + preparedMiniPass);
     }
-    return (Expression) newIr;
+    return newIr;
   }
 
-  private static IR compileRecursively(IR ir, MiniIRPass miniPass) {
-    var preparedMiniPass = miniPass.prepare(ir);
-    logPrepare(ir, miniPass, preparedMiniPass);
-    IR newIr;
+  private static Expression compileRecursively(Expression expr, MiniIRPass miniPass) {
+    var preparedMiniPass = miniPass.prepare(expr);
+    logPrepare(expr, miniPass, preparedMiniPass);
+    Expression newIr;
     var childExpressions = new ArrayList<Expression>();
-    ir.mapExpressions(
+    expr.mapExpressions(
         (ch) -> {
           childExpressions.add(ch);
           return ch;
         });
     if (childExpressions.isEmpty()) {
-      newIr = ir;
+      newIr = expr;
     } else {
       var changed = false;
       for (var i = 0; i < childExpressions.size(); i++) {
@@ -57,27 +74,20 @@ public final class MiniPassTraverser {
           continue;
         }
         changed = true;
-        if (!(newChild instanceof Expression)) {
-          throw new IllegalStateException("Mini pass must return Expression");
-        }
         if (!preparedMiniPass.checkPostCondition(newChild)) {
           throw new CompilerError(
               "Post condition failed after applying mini pass " + preparedMiniPass);
         }
-        childExpressions.set(i, (Expression) newChild);
+        childExpressions.set(i, newChild);
       }
       if (changed) {
         var index = new int[1];
-        newIr =
-            ir.mapExpressions(
-                (old) -> {
-                  return childExpressions.get(index[0]++);
-                });
+        newIr = expr.mapExpressions((old) -> childExpressions.get(index[0]++));
       } else {
-        newIr = ir;
+        newIr = expr;
       }
     }
-    var transformedIr = preparedMiniPass.transformIr(newIr);
+    var transformedIr = preparedMiniPass.transformExpression(newIr);
     logTransform(newIr, preparedMiniPass, transformedIr);
     if (!preparedMiniPass.checkPostCondition(transformedIr)) {
       throw new CompilerError("Post condition failed after applying mini pass " + preparedMiniPass);
