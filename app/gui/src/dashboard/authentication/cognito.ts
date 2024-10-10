@@ -643,7 +643,7 @@ function extractRefreshUrlFromSession(session: cognito.CognitoUserSession): stri
  * @throws {Error} If the error is not recognized.
  */
 export function intoCurrentSessionErrorType(error: unknown): CognitoErrorType.noCurrentUser {
-  if (error === 'No current user') {
+  if (error instanceof Error && error.message === 'No current user') {
     return CognitoErrorType.noCurrentUser
   } else {
     throw error
