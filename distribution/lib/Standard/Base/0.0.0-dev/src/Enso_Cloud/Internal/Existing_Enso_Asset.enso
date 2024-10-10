@@ -114,15 +114,11 @@ type Existing_Enso_Asset
         title = get_required_field "title" json expected_type=Text
         id = get_required_field "id" json expected_type=Text
         metadata = Asset_Metadata.from_json json
-        Existing_Enso_Asset.new_with_metadata id title metadata
+        Existing_Enso_Asset.new id title metadata
 
     ## PRIVATE
-    new_with_metadata id:Text title:Text metadata:Asset_Metadata -> Existing_Enso_Asset =
+    new id:Text title:Text (metadata : Asset_Metadata | Nothing = Nothing) -> Existing_Enso_Asset =
         Existing_Enso_Asset.Value title id (asset_type_from_id id) metadata
-
-    ## PRIVATE
-    new_without_metadata id:Text title:Text -> Existing_Enso_Asset =
-        Existing_Enso_Asset.Value title id (asset_type_from_id id) Nothing
 
 ## PRIVATE
 asset_type_from_id id:Text -> Enso_Asset_Type =
