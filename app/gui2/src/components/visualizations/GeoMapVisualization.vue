@@ -88,8 +88,7 @@ declare var deck: typeof import('deck.gl')
 
 <script setup lang="ts">
 /// <reference types="@danmarshall/deckgl-typings" />
-import SvgButton from '@/components/SvgButton.vue'
-import { VisualizationContainer } from '@/util/visualizationBuiltins'
+import { useVisualizationConfig } from '@/util/visualizationBuiltins'
 import type { Deck } from 'deck.gl'
 import { computed, onUnmounted, ref, watchPostEffect } from 'vue'
 
@@ -97,8 +96,10 @@ const props = defineProps<{ data: Data }>()
 
 /** GeoMap Visualization. */
 
-/** Mapbox API access token.
- * All the limits of API are listed here: https://docs.mapbox.com/api/#rate-limits */
+/**
+ * Mapbox API access token.
+ * All the limits of API are listed here: https://docs.mapbox.com/api/#rate-limits
+ */
 const TOKEN = import.meta.env.VITE_ENSO_MAPBOX_API_TOKEN
 if (TOKEN == null) {
   console.warn(
@@ -121,6 +122,8 @@ const DEFAULT_MAP_STYLE = 'mapbox://styles/mapbox/light-v9'
 const DEFAULT_MAP_ZOOM = 11
 const DEFAULT_MAX_MAP_ZOOM = 18
 const ACCENT_COLOR: Color = [78, 165, 253]
+
+const config = useVisualizationConfig()
 
 const dataPoints = ref<LocationWithPosition[]>([])
 const mapNode = ref<HTMLElement>()
@@ -370,10 +373,7 @@ function extractVisualizationDataFromDataFrame(parsedData: DataFrame) {
 /**
  * Extracts the data form the given `parsedData`. Checks the type of input data and prepares our
  * internal data  (`GeoPoints') for consumption in deck.gl.
- *
- * @param parsedData         - All the parsed data to create points from.
- * @param preparedDataPoints - List holding data points to push the GeoPoints into.
- * @param ACCENT_COLOR        - accent color of IDE if element doesn't specify one.
+ * @param parsedData - All the parsed data to create points from.
  */
 function extractDataPoints(parsedData: Data) {
   if ('df_latitude' in parsedData && 'df_longitude' in parsedData) {
@@ -410,18 +410,30 @@ function pushPoints(newPoints: Location[]) {
     }
   }
 }
+
+config.setToolbar([
+  {
+    icon: 'find',
+    onClick: () => {},
+  },
+  {
+    icon: 'path2',
+    onClick: () => {},
+  },
+  {
+    icon: 'geo_map_distance',
+    onClick: () => {},
+  },
+  {
+    icon: 'geo_map_pin',
+    onClick: () => {},
+  },
+])
+config.setToolbarOverlay(true)
 </script>
 
 <template>
-  <VisualizationContainer :overflow="true">
-    <template #toolbar>
-      <SvgButton name="find" />
-      <SvgButton name="path2" />
-      <SvgButton name="geo_map_distance" />
-      <SvgButton name="geo_map_pin" />
-    </template>
-    <div ref="mapNode" class="GeoMapVisualization" @pointerdown.stop @wheel.stop></div>
-  </VisualizationContainer>
+  <div ref="mapNode" class="GeoMapVisualization" @pointerdown.stop @wheel.stop></div>
 </template>
 
 <style scoped>

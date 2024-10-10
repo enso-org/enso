@@ -100,7 +100,7 @@ case object FunctionBinding extends IRPass {
             args,
             body,
             _,
-            location,
+            _,
             canBeTCO,
             _
           ) =>
@@ -111,10 +111,10 @@ case object FunctionBinding extends IRPass {
         val lambda = args
           .map(_.mapExpressions(desugarExpression))
           .foldRight(desugarExpression(body))((arg, body) =>
-            new Function.Lambda(List(arg), body, None)
+            new Function.Lambda(List(arg), body, null)
           )
           .asInstanceOf[Function.Lambda]
-          .copy(canBeTCO = canBeTCO, location = location)
+          .copy(canBeTCO = canBeTCO, location = functionBinding.location())
 
         new Expression.Binding(functionBinding, lambda)
     }
@@ -167,7 +167,7 @@ case object FunctionBinding extends IRPass {
           val newBody = args
             .map(_.mapExpressions(desugarExpression))
             .foldRight(desugarExpression(body))((arg, body) =>
-              new Function.Lambda(List(arg), body, None)
+              new Function.Lambda(List(arg), body, null)
             )
 
           new definition.Method.Explicit(methodBinding, newBody)
@@ -180,7 +180,8 @@ case object FunctionBinding extends IRPass {
               errors.Conversion.MissingSourceType(args.head.name.name)
             )
           } else {
-            assert(!isPrivate, "Should be handled by previous match")
+            org.enso.common.Asserts
+              .assertInJvm(!isPrivate, "Should be handled by previous match")
             val firstArg :: restArgs = args
             val firstArgumentType    = firstArg.ascribedType.get
             val firstArgumentName    = firstArg.name
@@ -188,14 +189,16 @@ case object FunctionBinding extends IRPass {
               if (firstArgumentName.isInstanceOf[Name.Blank]) {
                 val newName =
                   if (restArgs.nonEmpty)
-                    Name.Self(firstArgumentName.location, synthetic = true)
+                    Name.Self(
+                      firstArgumentName.identifiedLocation(),
+                      synthetic = true
+                    )
                   else
-                    Name
-                      .Literal(
-                        ConstantsNames.THAT_ARGUMENT,
-                        firstArgumentName.isMethod,
-                        firstArgumentName.location
-                      )
+                    Name.Literal(
+                      ConstantsNames.THAT_ARGUMENT,
+                      firstArgumentName.isMethod,
+                      firstArgumentName.identifiedLocation()
+                    )
                 firstArg
                   .withName(newName)
                   .updateMetadata(
@@ -211,12 +214,11 @@ case object FunctionBinding extends IRPass {
               case snd :: rest =>
                 val sndArgName = snd.name
                 if (sndArgName.isInstanceOf[Name.Blank]) {
-                  val newName = Name
-                    .Literal(
-                      ConstantsNames.THAT_ARGUMENT,
-                      sndArgName.isMethod,
-                      sndArgName.location
-                    )
+                  val newName = Name.Literal(
+                    ConstantsNames.THAT_ARGUMENT,
+                    sndArgName.isMethod,
+                    sndArgName.identifiedLocation()
+                  )
                   (
                     Some(
                       snd
@@ -258,7 +260,7 @@ case object FunctionBinding extends IRPass {
                   val newBody = (requiredArgs ::: remainingArgs)
                     .map(_.mapExpressions(desugarExpression))
                     .foldRight(desugarExpression(body))((arg, body) =>
-                      new Function.Lambda(List(arg), body, None)
+                      new Function.Lambda(List(arg), body, null)
                     )
                   Right(
                     new definition.Method.Conversion(

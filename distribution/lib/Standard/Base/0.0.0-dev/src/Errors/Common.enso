@@ -431,7 +431,7 @@ type Forbidden_Operation
     ## PRIVATE
        Convert the Forbidden_Operation error to a human-readable format.
     to_display_text : Text
-    to_display_text self = "Forbidden operation: "+self.message
+    to_display_text self = self.message
 
 type Dry_Run_Operation
     ## PRIVATE

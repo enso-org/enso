@@ -19,6 +19,7 @@ import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.{
   Resolution,
   ResolutionNotFound,
+  ResolvedExtensionMethod,
   ResolvedModule,
   ResolvedModuleMethod
 }
@@ -219,9 +220,12 @@ case object GlobalNames extends IRPass {
                       )
                       val app = Application.Prefix(
                         fun,
-                        List(CallArgument.Specified(None, self, None)),
+                        List(
+                          CallArgument
+                            .Specified(None, self, identifiedLocation = null)
+                        ),
                         hasDefaultsSuspended = false,
-                        lit.location
+                        lit.identifiedLocation
                       )
                       fun
                         .getMetadata(ExpressionAnnotations)
@@ -237,11 +241,27 @@ case object GlobalNames extends IRPass {
                       app
                     }
                   case Right(values) =>
-                    values.foldLeft(lit)((lit, value) =>
-                      lit.updateMetadata(
-                        new MetadataPair(this, BindingsMap.Resolution(value))
+                    val containsErrors = values.exists {
+                      case ResolvedExtensionMethod(modRef, _)
+                          if bindings.currentModule.getName == modRef.getName =>
+                        // The resolved method is a static method in the current module,
+                        // but it is called without the type name, so it is an unresolved
+                        // symbol.
+                        true
+                      case _ => false
+                    }
+                    if (containsErrors) {
+                      errors.Resolution(
+                        lit,
+                        errors.Resolution.ResolverError(ResolutionNotFound)
                       )
-                    )
+                    } else {
+                      values.foldLeft(lit)((lit, value) =>
+                        lit.updateMetadata(
+                          new MetadataPair(this, BindingsMap.Resolution(value))
+                        )
+                      )
+                    }
                 }
 
               } else {
@@ -324,7 +344,8 @@ case object GlobalNames extends IRPass {
               )
             )
           )
-        val selfArg = CallArgument.Specified(None, self, None)
+        val selfArg =
+          CallArgument.Specified(None, self, identifiedLocation = null)
         processedFun.passData.remove(this) // Necessary for IrToTruffle
         app.copy(function = processedFun, arguments = selfArg :: processedArgs)
       case _ =>

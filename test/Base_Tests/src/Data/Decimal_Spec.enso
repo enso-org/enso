@@ -375,10 +375,20 @@ add_specs suite_builder =
                         (lesser > d) . should_be_false
                         (lesser >= d) . should_be_false
 
-        group_builder.specify "mixed float/decimal comparisons should attach a warning" pending="https://github.com/enso-org/enso/issues/10679" <|
-            [(_ == _), (_ != _), (_ <= _), (_ >= _), (_ < _), (_ > _), .min, .max].map c->
-                a = c (Decimal.new "0.1") 0.1
-                b = c 0.1 (Decimal.new "0.1")
+        compare_operations = Vector.build b->
+            b.append ["==", (_ == _)]
+            b.append ["!=", (_ != _)]
+            b.append ["<=", (_ <= _)]
+            b.append [">=", (_ >= _)]
+            b.append ["<", (_ < _)]
+            b.append [">", (_ > _)]
+            b.append ["min", .min]
+            b.append ["max", .max]
+
+        compare_operations.map p->
+            group_builder.specify p.first+" mixed float/decimal comparisons should attach a warning" <|
+                a = p.second (Decimal.new "0.1") 0.1
+                b = p.second 0.1 (Decimal.new "0.1")
                 Problems.expect_only_warning (Loss_Of_Numeric_Precision.Warning 0.1 (Decimal.new "0.1")) a
                 Problems.expect_only_warning (Loss_Of_Numeric_Precision.Warning 0.1 (Decimal.new "0.1")) b
 
@@ -788,14 +798,26 @@ add_specs suite_builder =
             d.format format="#,##.##" locale=Locale.italy . should_equal "1.23.45.67.89,88"
 
         group_builder.specify "should parse correctly" <|
-            Decimal.parse "123456789.87654" . should_equal 123456789.87654
-            Decimal.parse "123,456,789.87654" locale=Locale.default . should_equal 123456789.87654
-            Decimal.parse "123,456,789.87654" locale=Locale.us . should_equal 123456789.87654
-            Decimal.parse "123.456.789,87654" locale=Locale.italy . should_equal 123456789.87654
+            Decimal.parse "123,456,789.87654" . should_equal (dec "123456789.87654")
+            Decimal.parse "123.456.789,87654" locale=Locale.italy . should_equal (dec "123456789.87654")
+
+            Decimal.parse "123,456,789.88" format="#,###.##" . should_equal (dec "123456789.88")
+            Decimal.parse "123.456.789,88" format="#.###,##" locale=Locale.italy . should_equal (dec "123456789.88")
+            Decimal.parse "1,23,45,67,89.88" format="#,##.##" . should_equal (dec "123456789.88")
+            Decimal.parse "1.23.45.67.89,88" format="#.##,##" locale=Locale.italy . should_equal (dec "123456789.88")
+
+            Decimal.parse "123.456.789,88" format="#,###.##" locale=Locale.italy . should_fail_with Illegal_Argument
+            Decimal.parse "123,456,789.88" format="#.###,##" . should_fail_with Illegal_Argument
+
             Decimal.parse "123,456,789.87654" locale=Locale.italy . should_equal 123.456
             Decimal.parse "123.456.789,87654" locale=Locale.us . should_equal 123.456
 
-            Decimal.parse "123,456,789.87654" . should_fail_with Number_Parse_Error
+            Decimal.parse "123,456,789.654" format="###,###.##;-###,###.##" . should_equal 123456789.654
+            Decimal.parse "-123,456,789.654" format="###,###.##;-###,###.##" . should_equal -123456789.654
+            Decimal.parse "(123,456,789.654)" format="###,###.##;-###,###.##" . should_fail_with Number_Parse_Error
+            Decimal.parse "123,456,789.654" format="###,###.##;(###,###.##)" . should_equal 123456789.654
+            Decimal.parse "-123,456,789.654" format="###,###.##;(###,###.##)" . should_fail_with Number_Parse_Error
+            Decimal.parse "(123,456,789.654)" format="###,###.##;(###,###.##)" . should_equal -123456789.654
 
     suite_builder.group "(Decimal_Spec) signs" group_builder->
         group_builder.specify "should calculate abs correctly" <|

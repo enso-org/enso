@@ -103,15 +103,16 @@ case object MethodDefinitions extends IRPass {
         ) match {
           case Some(Resolution(ResolvedType(_, tp)))
               if canGenerateStaticWrappers(tp) =>
-            assert(method.body.isInstanceOf[Function.Lambda])
+            org.enso.common.Asserts
+              .assertInJvm(method.body.isInstanceOf[Function.Lambda])
             val dup = method.duplicate()
             // This is the self argument that will receive the `SelfType.type` value upon dispatch, it is added to avoid modifying the dispatch mechanism.
             val syntheticModuleSelfArg = DefinitionArgument.Specified(
-              Name.Self(None, synthetic = true),
+              Name.Self(identifiedLocation = null, synthetic = true),
               None,
               None,
-              suspended = false,
-              None
+              suspended          = false,
+              identifiedLocation = null
             )
 
             // The actual `self` argument that is referenced inside of method body is the second one in the lambda.
@@ -123,7 +124,7 @@ case object MethodDefinitions extends IRPass {
                 List(syntheticModuleSelfArg),
                 // Here we add the type ascription ensuring that the 'proper' self argument only accepts _instances_ of the type (or triggers conversions)
                 addTypeAscriptionToSelfArgument(dup.body),
-                None
+                identifiedLocation = null
               ),
               isStaticWrapperForInstanceMethod = true,
               isStatic                         = true
@@ -152,7 +153,8 @@ case object MethodDefinitions extends IRPass {
               _,
               _
             )) :: rest =>
-          val selfType = Name.SelfType(location = selfArg.location)
+          val selfType =
+            Name.SelfType(identifiedLocation = selfArg.identifiedLocation)
           selfArg.copy(ascribedType = Some(selfType)) :: rest
         case other :: _ =>
           throw new CompilerError(
@@ -197,7 +199,10 @@ case object MethodDefinitions extends IRPass {
               errors.Resolution.ResolverError(err)
             )
           case Right(resolvedItems) =>
-            assert(resolvedItems.size == 1, "Expected a single resolution")
+            org.enso.common.Asserts.assertInJvm(
+              resolvedItems.size == 1,
+              "Expected a single resolution"
+            )
             resolvedItems.head match {
               case _: BindingsMap.ResolvedConstructor =>
                 errors.Resolution(

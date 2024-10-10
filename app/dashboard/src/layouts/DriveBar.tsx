@@ -16,35 +16,28 @@ import { Button, ButtonGroup, DialogTrigger, useVisualTooltip } from '#/componen
 import AssetEventType from '#/events/AssetEventType'
 import { useOffline } from '#/hooks/offlineHooks'
 import { createGetProjectDetailsQuery } from '#/hooks/projectHooks'
-import AssetSearchBar, { type Suggestion } from '#/layouts/AssetSearchBar'
+import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
+import AssetSearchBar from '#/layouts/AssetSearchBar'
 import { useDispatchAssetEvent } from '#/layouts/AssetsTable/EventListProvider'
-import {
-  isCloudCategory,
-  isLocalCategory,
-  type Category,
-} from '#/layouts/CategorySwitcher/Category'
+import { isCloudCategory, type Category } from '#/layouts/CategorySwitcher/Category'
 import StartModal from '#/layouts/StartModal'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
-import { useFullUserSession } from '#/providers/AuthProvider'
-import { useCanDownload, useTargetDirectory } from '#/providers/DriveProvider'
+import {
+  useCanCreateAssets,
+  useCanDownload,
+  useDriveStore,
+  useIsAssetPanelVisible,
+  useSetIsAssetPanelPermanentlyVisible,
+  useSetIsAssetPanelTemporarilyVisible,
+} from '#/providers/DriveProvider'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { useSetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
-import {
-  Plan,
-  ProjectState,
-  type CreatedProject,
-  type Project,
-  type ProjectId,
-} from '#/services/Backend'
+import { ProjectState, type CreatedProject, type Project, type ProjectId } from '#/services/Backend'
 import type AssetQuery from '#/utilities/AssetQuery'
-import {
-  canPermissionModifyDirectoryContents,
-  tryFindSelfPermission,
-} from '#/utilities/permissions'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 
 // ================
@@ -56,10 +49,7 @@ export interface DriveBarProps {
   readonly backend: Backend
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
-  readonly suggestions: readonly Suggestion[]
   readonly category: Category
-  readonly isAssetPanelOpen: boolean
-  readonly setIsAssetPanelOpen: React.Dispatch<React.SetStateAction<boolean>>
   readonly doEmptyTrash: () => void
   readonly doCreateProject: (
     templateId?: string | null,
@@ -76,29 +66,29 @@ export interface DriveBarProps {
 /** Displays the current directory path and permissions, upload and download buttons,
  * and a column display mode switcher. */
 export default function DriveBar(props: DriveBarProps) {
-  const { backend, query, setQuery, suggestions, category } = props
+  const { backend, query, setQuery, category } = props
   const { doEmptyTrash, doCreateProject, doCreateDirectory } = props
   const { doCreateSecret, doCreateDatalink, doUploadFiles } = props
-  const { isAssetPanelOpen, setIsAssetPanelOpen } = props
+
+  const [startModalDefaultOpen, , resetStartModalDefaultOpen] = useSearchParamsState(
+    'startModalDefaultOpen',
+    false,
+  )
+
+  const driveStore = useDriveStore()
   const { unsetModal } = useSetModal()
   const { getText } = useText()
-  const { user } = useFullUserSession()
   const inputBindings = useInputBindings()
   const dispatchAssetEvent = useDispatchAssetEvent()
-  const targetDirectory = useTargetDirectory()
+  const canCreateAssets = useCanCreateAssets()
+  const isAssetPanelVisible = useIsAssetPanelVisible()
+  const setIsAssetPanelTemporarilyVisible = useSetIsAssetPanelTemporarilyVisible()
+  const setIsAssetPanelPermanentlyVisible = useSetIsAssetPanelPermanentlyVisible()
   const createAssetButtonsRef = React.useRef<HTMLDivElement>(null)
   const uploadFilesRef = React.useRef<HTMLInputElement>(null)
   const isCloud = isCloudCategory(category)
   const { isOffline } = useOffline()
   const canDownload = useCanDownload()
-  const targetDirectorySelfPermission =
-    targetDirectory == null ? null : tryFindSelfPermission(user, targetDirectory.item.permissions)
-  const canCreateAssets =
-    targetDirectory == null ?
-      category.type !== 'cloud' || user.plan == null || user.plan === Plan.solo
-    : isLocalCategory(category) ||
-      (targetDirectorySelfPermission != null &&
-        canPermissionModifyDirectoryContents(targetDirectorySelfPermission.permission))
   const shouldBeDisabled = (isCloud && isOffline) || !canCreateAssets
   const error =
     !shouldBeDisabled ? null
@@ -163,28 +153,29 @@ export default function DriveBar(props: DriveBarProps) {
   }, [isFetching])
 
   const searchBar = (
-    <AssetSearchBar
-      backend={backend}
-      isCloud={isCloud}
-      query={query}
-      setQuery={setQuery}
-      suggestions={suggestions}
-    />
+    <AssetSearchBar backend={backend} isCloud={isCloud} query={query} setQuery={setQuery} />
   )
 
   const assetPanelToggle = (
     <>
       {/* Spacing. */}
-      <div className={!isAssetPanelOpen ? 'w-5' : 'hidden'} />
+      <div className={!isAssetPanelVisible ? 'w-5' : 'hidden'} />
       <div className="absolute right-[15px] top-[27px] z-1">
         <Button
           size="medium"
           variant="custom"
-          isActive={isAssetPanelOpen}
+          isActive={isAssetPanelVisible}
           icon={RightPanelIcon}
-          aria-label={isAssetPanelOpen ? getText('openAssetPanel') : getText('closeAssetPanel')}
+          aria-label={isAssetPanelVisible ? getText('openAssetPanel') : getText('closeAssetPanel')}
           onPress={() => {
-            setIsAssetPanelOpen((isOpen) => !isOpen)
+            const isAssetPanelTemporarilyVisible =
+              driveStore.getState().isAssetPanelTemporarilyVisible
+            if (isAssetPanelTemporarilyVisible) {
+              setIsAssetPanelTemporarilyVisible(false)
+              setIsAssetPanelPermanentlyVisible(false)
+            } else {
+              setIsAssetPanelPermanentlyVisible(!isAssetPanelVisible)
+            }
           }}
         />
       </div>
@@ -229,7 +220,12 @@ export default function DriveBar(props: DriveBarProps) {
             className="grow-0"
             {...createAssetsVisualTooltip.targetProps}
           >
-            <DialogTrigger>
+            <DialogTrigger
+              defaultOpen={startModalDefaultOpen}
+              onClose={() => {
+                resetStartModalDefaultOpen(true)
+              }}
+            >
               <Button
                 size="medium"
                 variant="accent"

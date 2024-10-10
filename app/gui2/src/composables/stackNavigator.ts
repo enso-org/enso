@@ -5,6 +5,7 @@ import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
 import { computed, onMounted, ref } from 'vue'
 import { methodPointerEquals, type StackItem } from 'ydoc-shared/languageServerTypes'
 
+/** TODO: Add docs */
 export function useStackNavigator(projectStore: ProjectStore, graphStore: GraphStore) {
   const breadcrumbs = ref<StackItem[]>([])
 

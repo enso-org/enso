@@ -9,11 +9,15 @@ import * as dragAndDropHooks from '#/hooks/dragAndDropHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 
-import { useDriveStore, useSetSelectedKeys } from '#/providers/DriveProvider'
+import {
+  useDriveStore,
+  useSetAssetPanelProps,
+  useSetIsAssetPanelTemporarilyVisible,
+  useSetSelectedKeys,
+} from '#/providers/DriveProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import * as aria from '#/components/aria'
 import * as assetRowUtils from '#/components/dashboard/AssetRow/assetRowUtils'
 import * as columnModule from '#/components/dashboard/column'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
@@ -27,12 +31,12 @@ import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 import { isCloudCategory } from '#/layouts/CategorySwitcher/Category'
 import * as localBackend from '#/services/LocalBackend'
 
-import EditAssetDescriptionModal from '#/modals/EditAssetDescriptionModal'
-
 import * as backendModule from '#/services/Backend'
 
+import { Text } from '#/components/AriaComponents'
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import { createGetProjectDetailsQuery } from '#/hooks/projectHooks'
+import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import type * as assetTreeNode from '#/utilities/AssetTreeNode'
@@ -72,27 +76,47 @@ export interface AssetRowInnerProps {
 }
 
 /** Props for an {@link AssetRow}. */
-export interface AssetRowProps
-  extends Readonly<Omit<JSX.IntrinsicElements['tr'], 'onClick' | 'onContextMenu'>> {
+export interface AssetRowProps {
   readonly isOpened: boolean
   readonly item: assetTreeNode.AnyAssetTreeNode
   readonly state: assetsTable.AssetsTableState
   readonly hidden: boolean
   readonly columns: columnUtils.Column[]
   readonly isKeyboardSelected: boolean
-  readonly grabKeyboardFocus: () => void
+  readonly grabKeyboardFocus: (item: assetTreeNode.AnyAssetTreeNode) => void
   readonly onClick: (props: AssetRowInnerProps, event: React.MouseEvent) => void
-  readonly select: () => void
-  readonly updateAssetRef: React.Ref<(asset: backendModule.AnyAsset) => void>
+  readonly select: (item: assetTreeNode.AnyAssetTreeNode) => void
+  readonly onDragStart?: (
+    event: React.DragEvent<HTMLTableRowElement>,
+    item: assetTreeNode.AnyAssetTreeNode,
+  ) => void
+  readonly onDragOver?: (
+    event: React.DragEvent<HTMLTableRowElement>,
+    item: assetTreeNode.AnyAssetTreeNode,
+  ) => void
+  readonly onDragLeave?: (
+    event: React.DragEvent<HTMLTableRowElement>,
+    item: assetTreeNode.AnyAssetTreeNode,
+  ) => void
+  readonly onDragEnd?: (
+    event: React.DragEvent<HTMLTableRowElement>,
+    item: assetTreeNode.AnyAssetTreeNode,
+  ) => void
+  readonly onDrop?: (
+    event: React.DragEvent<HTMLTableRowElement>,
+    item: assetTreeNode.AnyAssetTreeNode,
+  ) => void
+  readonly updateAssetRef: React.RefObject<
+    Record<backendModule.AssetId, (asset: backendModule.AnyAsset) => void>
+  >
 }
 
 /** A row containing an {@link backendModule.AnyAsset}. */
-export default function AssetRow(props: AssetRowProps) {
+export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
   const { isKeyboardSelected, isOpened, select, state, columns, onClick } = props
   const { item: rawItem, hidden: hiddenRaw, updateAssetRef, grabKeyboardFocus } = props
   const {
     nodeMap,
-    setAssetPanelProps,
     doToggleDirectoryExpansion,
     doCopy,
     doCut,
@@ -102,13 +126,14 @@ export default function AssetRow(props: AssetRowProps) {
     doMove,
     category,
   } = state
-  const { setIsAssetPanelTemporarilyVisible, scrollContainerRef, rootDirectoryId, backend } = state
+  const { scrollContainerRef, rootDirectoryId, backend } = state
   const { visibilities } = state
 
   const [item, setItem] = React.useState(rawItem)
   const driveStore = useDriveStore()
   const { user } = useFullUserSession()
   const setSelectedKeys = useSetSelectedKeys()
+  const setAssetPanelProps = useSetAssetPanelProps()
   const selected = useStore(driveStore, ({ visuallySelectedKeys, selectedKeys }) =>
     (visuallySelectedKeys ?? selectedKeys).has(item.key),
   )
@@ -120,6 +145,7 @@ export default function AssetRow(props: AssetRowProps) {
     driveStore,
     ({ selectedKeys }) => selectedKeys.size === 0 || !selected || isSoleSelected,
   )
+  const wasSoleSelectedRef = React.useRef(isSoleSelected)
   const draggableProps = dragAndDropHooks.useDraggable()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
@@ -128,13 +154,21 @@ export default function AssetRow(props: AssetRowProps) {
   const [isDraggedOver, setIsDraggedOver] = React.useState(false)
   const rootRef = React.useRef<HTMLElement | null>(null)
   const dragOverTimeoutHandle = React.useRef<number | null>(null)
-  const grabKeyboardFocusRef = React.useRef(grabKeyboardFocus)
-  grabKeyboardFocusRef.current = grabKeyboardFocus
+  const setIsAssetPanelTemporarilyVisible = useSetIsAssetPanelTemporarilyVisible()
+  const grabKeyboardFocusRef = useSyncRef(grabKeyboardFocus)
   const asset = item.item
   const [insertionVisibility, setInsertionVisibility] = React.useState(Visibility.visible)
-  const [rowState, setRowState] = React.useState<assetsTable.AssetRowState>(() =>
+  const [innerRowState, setRowState] = React.useState<assetsTable.AssetRowState>(() =>
     object.merge(assetRowUtils.INITIAL_ROW_STATE, { setVisibility: setInsertionVisibility }),
   )
+
+  const isNewlyCreated = useStore(driveStore, ({ newestFolderId }) => newestFolderId === asset.id)
+  const isEditingName = innerRowState.isEditingName || isNewlyCreated
+
+  const rowState = React.useMemo(() => {
+    return object.merge(innerRowState, { isEditingName })
+  }, [isEditingName, innerRowState])
+
   const nodeParentKeysRef = React.useRef<{
     readonly nodeMap: WeakRef<ReadonlyMap<backendModule.AssetId, assetTreeNode.AnyAssetTreeNode>>
     readonly parentKeys: Map<backendModule.AssetId, backendModule.DirectoryId>
@@ -175,11 +209,12 @@ export default function AssetRow(props: AssetRowProps) {
     setItem(rawItem)
   }, [rawItem])
 
+  const rawItemRef = useSyncRef(rawItem)
   React.useEffect(() => {
     // Mutation is HIGHLY INADVISABLE in React, however it is useful here as we want to update the
     // parent's state while avoiding re-rendering the parent.
-    rawItem.item = asset
-  }, [asset, rawItem])
+    rawItemRef.current.item = asset
+  }, [asset, rawItemRef])
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
 
   React.useEffect(() => {
@@ -191,18 +226,38 @@ export default function AssetRow(props: AssetRowProps) {
   React.useEffect(() => {
     if (isKeyboardSelected) {
       rootRef.current?.focus()
-      grabKeyboardFocusRef.current()
+      grabKeyboardFocusRef.current(item)
     }
-  }, [isKeyboardSelected])
+  }, [grabKeyboardFocusRef, isKeyboardSelected, item])
 
-  React.useImperativeHandle(updateAssetRef, () => setAsset)
+  React.useImperativeHandle(updateAssetRef, () => ({ setAsset, item }))
+
+  if (updateAssetRef.current) {
+    updateAssetRef.current[item.item.id] = setAsset
+  }
 
   React.useEffect(() => {
-    if (isSoleSelected) {
+    return () => {
+      if (updateAssetRef.current) {
+        // eslint-disable-next-line react-hooks/exhaustive-deps, @typescript-eslint/no-dynamic-delete
+        delete updateAssetRef.current[item.item.id]
+      }
+    }
+  }, [item.item.id, updateAssetRef])
+
+  React.useEffect(() => {
+    if (isSoleSelected && item.item.id !== driveStore.getState().assetPanelProps?.item?.item.id) {
       setAssetPanelProps({ backend, item, setItem })
       setIsAssetPanelTemporarilyVisible(false)
     }
-  }, [item, isSoleSelected, backend, setAssetPanelProps, setIsAssetPanelTemporarilyVisible])
+  }, [
+    item,
+    isSoleSelected,
+    backend,
+    setAssetPanelProps,
+    setIsAssetPanelTemporarilyVisible,
+    driveStore,
+  ])
 
   const doDelete = React.useCallback(
     (forever = false) => {
@@ -210,26 +265,6 @@ export default function AssetRow(props: AssetRowProps) {
     },
     [doDeleteRaw, item.item],
   )
-
-  const doTriggerDescriptionEdit = React.useCallback(() => {
-    setModal(
-      <EditAssetDescriptionModal
-        doChangeDescription={async (description) => {
-          if (description !== asset.description) {
-            setAsset(object.merger({ description }))
-
-            await backend
-              .updateAsset(item.item.id, { parentDirectoryId: null, description }, item.item.title)
-              .catch((error) => {
-                setAsset(object.merger({ description: asset.description }))
-                throw error
-              })
-          }
-        }}
-        initialDescription={asset.description}
-      />,
-    )
-  }, [setModal, asset.description, setAsset, backend, item.item.id, item.item.title])
 
   const clearDragState = React.useCallback(() => {
     setIsDraggedOver(false)
@@ -292,7 +327,7 @@ export default function AssetRow(props: AssetRowProps) {
           break
         }
         default: {
-          return
+          break
         }
       }
     } else {
@@ -510,18 +545,18 @@ export default function AssetRow(props: AssetRowProps) {
         }
         case AssetEventType.deleteLabel: {
           setAsset((oldAsset) => {
-            // The IIFE is required to prevent TypeScript from narrowing this value.
-            let found = (() => false)()
-            const labels =
-              oldAsset.labels?.filter((label) => {
-                if (label === event.labelName) {
-                  found = true
-                  return false
-                } else {
-                  return true
-                }
-              }) ?? null
-            return found ? object.merge(oldAsset, { labels }) : oldAsset
+            const oldLabels = oldAsset.labels ?? []
+            const labels: backendModule.LabelName[] = []
+
+            for (const label of oldLabels) {
+              if (label !== event.labelName) {
+                labels.push(label)
+              }
+            }
+
+            return oldLabels.length !== labels.length ?
+                object.merge(oldAsset, { labels })
+              : oldAsset
           })
           break
         }
@@ -563,7 +598,12 @@ export default function AssetRow(props: AssetRowProps) {
                   rootRef.current = element
 
                   requestAnimationFrame(() => {
-                    if (isSoleSelected && element != null && scrollContainerRef.current != null) {
+                    if (
+                      isSoleSelected &&
+                      !wasSoleSelectedRef.current &&
+                      element != null &&
+                      scrollContainerRef.current != null
+                    ) {
                       const rect = element.getBoundingClientRect()
                       const scrollRect = scrollContainerRef.current.getBoundingClientRect()
                       const scrollUp = rect.top - (scrollRect.top + HEADER_HEIGHT_PX)
@@ -576,6 +616,7 @@ export default function AssetRow(props: AssetRowProps) {
                         })
                       }
                     }
+                    wasSoleSelectedRef.current = isSoleSelected
                   })
 
                   if (isKeyboardSelected && element?.contains(document.activeElement) === false) {
@@ -609,7 +650,7 @@ export default function AssetRow(props: AssetRowProps) {
                     event.preventDefault()
                     event.stopPropagation()
                     if (!selected) {
-                      select()
+                      select(item)
                     }
                     setModal(
                       <AssetContextMenu
@@ -623,7 +664,6 @@ export default function AssetRow(props: AssetRowProps) {
                         doCut={doCut}
                         doPaste={doPaste}
                         doDelete={doDelete}
-                        doTriggerDescriptionEdit={doTriggerDescriptionEdit}
                       />,
                     )
                   }
@@ -637,7 +677,7 @@ export default function AssetRow(props: AssetRowProps) {
                   ) {
                     event.preventDefault()
                   } else {
-                    props.onDragStart?.(event)
+                    props.onDragStart?.(event, item)
                   }
                 }}
                 onDragEnter={(event) => {
@@ -650,19 +690,19 @@ export default function AssetRow(props: AssetRowProps) {
                     }, DRAG_EXPAND_DELAY_MS)
                   }
                   // Required because `dragover` does not fire on `mouseenter`.
-                  props.onDragOver?.(event)
+                  props.onDragOver?.(event, item)
                   onDragOver(event)
                 }}
                 onDragOver={(event) => {
                   if (state.category.type === 'trash') {
                     event.dataTransfer.dropEffect = 'none'
                   }
-                  props.onDragOver?.(event)
+                  props.onDragOver?.(event, item)
                   onDragOver(event)
                 }}
                 onDragEnd={(event) => {
                   clearDragState()
-                  props.onDragEnd?.(event)
+                  props.onDragEnd?.(event, item)
                 }}
                 onDragLeave={(event) => {
                   if (
@@ -678,11 +718,11 @@ export default function AssetRow(props: AssetRowProps) {
                   ) {
                     clearDragState()
                   }
-                  props.onDragLeave?.(event)
+                  props.onDragLeave?.(event, item)
                 }}
                 onDrop={(event) => {
                   if (state.category.type !== 'trash') {
-                    props.onDrop?.(event)
+                    props.onDrop?.(event, item)
                     clearDragState()
                     const [directoryKey, directoryId] =
                       item.type === backendModule.AssetType.directory ?
@@ -721,8 +761,6 @@ export default function AssetRow(props: AssetRowProps) {
                 }}
               >
                 {columns.map((column) => {
-                  // This is a React component even though it does not contain JSX.
-                  // eslint-disable-next-line no-restricted-syntax
                   const Render = columnModule.COLUMN_RENDERER[column]
                   return (
                     <td key={column} className={columnUtils.COLUMN_CSS_CLASS[column]}>
@@ -767,7 +805,6 @@ export default function AssetRow(props: AssetRowProps) {
               doCut={doCut}
               doPaste={doPaste}
               doDelete={doDelete}
-              doTriggerDescriptionEdit={doTriggerDescriptionEdit}
             />
           )}
         </>
@@ -800,13 +837,35 @@ export default function AssetRow(props: AssetRowProps) {
                 )}
               >
                 <img src={BlankIcon} />
-                <aria.Text className="px-name-column-x placeholder">
+                <Text className="px-name-column-x placeholder" disableLineHeightCompensation>
                   {getText('thisFolderIsEmpty')}
-                </aria.Text>
+                </Text>
+              </div>
+            </td>
+          </tr>
+        )
+    }
+    case backendModule.AssetType.specialError: {
+      return hidden ? null : (
+          <tr>
+            <td colSpan={columns.length} className="border-r p-0 rounded-rows-skip-level">
+              <div
+                className={tailwindMerge.twMerge(
+                  'flex h-table-row items-center rounded-full rounded-rows-child',
+                  indent.indentClass(item.depth),
+                )}
+              >
+                <img src={BlankIcon} />
+                <Text
+                  className="px-name-column-x text-danger placeholder"
+                  disableLineHeightCompensation
+                >
+                  {getText('thisFolderFailedToFetch')}
+                </Text>
               </div>
             </td>
           </tr>
         )
     }
   }
-}
+})

@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
-/** Intermediate step in the parsing process, when we rename `constructor` field to `kind`.
+/**
+ * Intermediate step in the parsing process, when we rename `constructor` field to `kind`.
  *
  * It helps to avoid issues with TypeScript, which considers `constructor` as a reserved keyword in many contexts.
  */
@@ -115,22 +116,28 @@ export interface SingleChoice {
   values: Choice[]
 }
 
-/** Dynamic configuration for a function call with a list of arguments with known dynamic configuration.
- * This kind of config is not provided by the engine directly, but is derived from other config types by widgets. */
+/**
+ * Dynamic configuration for a function call with a list of arguments with known dynamic configuration.
+ * This kind of config is not provided by the engine directly, but is derived from other config types by widgets.
+ */
 export interface FunctionCall {
   kind: 'FunctionCall'
   parameters: Map<string, (WidgetConfiguration & WithDisplay) | null>
 }
 
-/** Dynamic configuration for one of the possible function calls. It is typically the case for dropdown widget.
+/**
+ * Dynamic configuration for one of the possible function calls. It is typically the case for dropdown widget.
  * One of function calls will be chosen by WidgetFunction basing on the actual AST at the call site,
  * and the configuration will be used in child widgets.
- * This kind of config is not provided by the engine directly, but is derived from other config types by widgets. */
+ * This kind of config is not provided by the engine directly, but is derived from other config types by widgets.
+ */
 export interface OneOfFunctionCalls {
   kind: 'OneOfFunctionCalls'
-  /** A list of possible function calls and their corresponding configuration.
+  /**
+   * A list of possible function calls and their corresponding configuration.
    * The key is typically a fully qualified or autoscoped name of the function, but in general it can be anything,
-   * depending on the widget implementation. */
+   * depending on the widget implementation.
+   */
   possibleFunctions: Map<string, FunctionCall>
 }
 
@@ -202,7 +209,7 @@ export function functionCallConfiguration(
 ): FunctionCall {
   const parametersMap = new Map(inherited?.parameters)
   for (const [name, param] of parameters) {
-    parametersMap.set(name, param)
+    parametersMap.set(name, parametersMap.get(name) ?? param)
   }
   return {
     kind: 'FunctionCall',

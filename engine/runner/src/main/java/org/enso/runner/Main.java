@@ -13,6 +13,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -216,7 +219,7 @@ public class Main {
             .numberOfArgs(1)
             .argName("file")
             .longOpt(PROFILING_PATH)
-            .desc("The path to the Language Server profiling file.")
+            .desc("The path to the profiling file.")
             .build();
     var lsProfilingTimeOption =
         cliOptionBuilder()
@@ -606,6 +609,7 @@ public class Main {
    *     compiled
    * @param shouldUseGlobalCache whether or not the compilation result should be written to the
    *     global cache
+   * @param shouldUseIrCaches whether or not IR caches should be used.
    * @param enableStaticAnalysis whether or not static type checking should be enabled
    * @param logLevel the logging level
    * @param logMasking whether or not log masking is enabled
@@ -614,6 +618,7 @@ public class Main {
       String packagePath,
       boolean shouldCompileDependencies,
       boolean shouldUseGlobalCache,
+      boolean shouldUseIrCaches,
       boolean enableStaticAnalysis,
       Level logLevel,
       boolean logMasking) {
@@ -631,7 +636,7 @@ public class Main {
                 .out(System.out)
                 .logLevel(logLevel)
                 .logMasking(logMasking)
-                .enableIrCaches(true)
+                .enableIrCaches(shouldUseIrCaches)
                 .enableStaticAnalysis(enableStaticAnalysis)
                 .strictErrors(true)
                 .useGlobalIrCacheLocation(shouldUseGlobalCache)
@@ -737,23 +742,30 @@ public class Main {
       factory.checkForWarnings(mainFile.getName().replace(".enso", "") + ".main");
     }
     var context = new PolyglotContext(factory.build());
-
-    if (projectMode) {
-      var result = PackageManager$.MODULE$.Default().loadPackage(file);
-      if (result.isSuccess()) {
-        var s = (scala.util.Success) result;
-        @SuppressWarnings("unchecked")
-        var pkg = (org.enso.pkg.Package<java.io.File>) s.get();
-        var mainModuleName = pkg.moduleNameForFile(pkg.mainFile()).toString();
-        runPackage(context, mainModuleName, file, additionalArgs);
+    try {
+      if (projectMode) {
+        var result = PackageManager$.MODULE$.Default().loadPackage(file);
+        if (result.isSuccess()) {
+          var s = (scala.util.Success) result;
+          @SuppressWarnings("unchecked")
+          var pkg = (org.enso.pkg.Package<java.io.File>) s.get();
+          var mainModuleName = pkg.moduleNameForFile(pkg.mainFile()).toString();
+          runPackage(context, mainModuleName, file, additionalArgs);
+        } else {
+          println(((scala.util.Failure) result).exception().getMessage());
+          throw exitFail();
+        }
       } else {
-        println(((scala.util.Failure) result).exception().getMessage());
-        throw exitFail();
+        runSingleFile(context, file, additionalArgs);
       }
-    } else {
-      runSingleFile(context, file, additionalArgs);
+    } catch (RuntimeException e) {
+      // forces computation of the exception message sooner than context is closed
+      // should work around issues seen at #11127
+      logger.debug("Execution failed with " + e.getMessage());
+      throw e;
+    } finally {
+      context.context().close();
     }
-    context.context().close();
     throw exitSuccess();
   }
 
@@ -959,12 +971,21 @@ public class Main {
   }
 
   private static MessageTransport replTransport() {
-    var repl = new Repl(makeTerminalForRepl());
+    ThreadFactory factory = (r) -> new Thread(r, "Initialize Enso Terminal");
+    var executor = Executors.newSingleThreadExecutor(factory);
+    var futureRepl = executor.submit(() -> new Repl(makeTerminalForRepl()));
     MessageTransport transport =
-        (uri, peer) ->
-            DebugServerInfo.URI.equals(uri.toString())
-                ? new DebuggerSessionManagerEndpoint(repl, peer)
-                : null;
+        (uri, peer) -> {
+          if (DebugServerInfo.URI.equals(uri.toString())) {
+            try {
+              var repl = futureRepl.get();
+              return new DebuggerSessionManagerEndpoint(repl, peer);
+            } catch (InterruptedException | ExecutionException ex) {
+              logger.error("Cannot initialize REPL transport", ex);
+            }
+          }
+          return null;
+        };
     return transport;
   }
 
@@ -1094,14 +1115,16 @@ public class Main {
     }
 
     if (line.hasOption(COMPILE_OPTION)) {
-      var packagePaths = line.getOptionValue(COMPILE_OPTION);
+      var packagePath = line.getOptionValue(COMPILE_OPTION);
       var shouldCompileDependencies = !line.hasOption(NO_COMPILE_DEPENDENCIES_OPTION);
       var shouldUseGlobalCache = !line.hasOption(NO_GLOBAL_CACHE_OPTION);
+      var shouldUseIrCaches = !line.hasOption(NO_IR_CACHES_OPTION);
 
       compile(
-          packagePaths,
+          packagePath,
           shouldCompileDependencies,
           shouldUseGlobalCache,
+          shouldUseIrCaches,
           line.hasOption(ENABLE_STATIC_ANALYSIS_OPTION),
           logLevel,
           logMasking);
@@ -1192,14 +1215,14 @@ public class Main {
           try {
             sampler.stop();
           } catch (IOException ex) {
-            logger.info("Error stopping sampler", ex);
+            logger.error("Error stopping sampler", ex);
           }
           return BoxedUnit.UNIT;
         });
 
     try {
       return main.call();
-    } catch (IOException ex) {
+    } catch (IOException | RuntimeException ex) {
       throw ex;
     } catch (Exception ex) {
       throw new IOException(ex);
@@ -1358,7 +1381,7 @@ public class Main {
         }
         commandAndArgs.add(component.getPath());
         commandAndArgs.add("-m");
-        commandAndArgs.add("org.enso.runtime/org.enso.EngineRunnerBootLoader");
+        commandAndArgs.add("org.enso.runner/org.enso.runner.Main");
         var it = line.iterator();
         while (it.hasNext()) {
           var op = it.next();

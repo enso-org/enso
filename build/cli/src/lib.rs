@@ -407,6 +407,15 @@ impl Processor {
                                 "Snowflake_Tests".to_string()
                             ]),
                         ),
+                        Tests::StdCloudRelated => config.add_standard_library_test_selection(
+                            StandardLibraryTestsSelection::Selected(vec![
+                                "Base_Tests".to_string(),
+                                // Table tests check integration of e.g. Postgres datalinks
+                                "Table_Tests".to_string(),
+                                // AWS tests check copying between Cloud and S3
+                                "AWS_Tests".to_string(),
+                            ]),
+                        ),
                     }
                 }
                 let context = self.prepare_backend_context(config);
@@ -547,7 +556,13 @@ impl Processor {
         &self,
         params: arg::ide::BuildInput,
     ) -> BoxFuture<'static, Result<ide::Artifact>> {
-        let arg::ide::BuildInput { gui, project_manager, output_path, electron_target } = params;
+        let arg::ide::BuildInput {
+            gui,
+            project_manager,
+            output_path,
+            electron_target,
+            sign_artifacts,
+        } = params;
 
         let build_info_get = self.js_build_info();
         let build_info_path = self.context.inner.repo_root.join(&*enso_build::ide::web::BUILD_INFO);
@@ -569,6 +584,7 @@ impl Processor {
             version: self.triple.versions.version.clone(),
             electron_target,
             artifact_name: "ide".into(),
+            sign_artifacts,
         };
 
         let target = Ide { target_os: self.triple.os, target_arch: self.triple.arch };
@@ -790,7 +806,11 @@ pub async fn main_internal(config: Option<Config>) -> Result {
                     java_gen::Command::Build => generate_job.await,
                     java_gen::Command::Test => {
                         generate_job.await?;
-                        let backend_context = ctx.prepare_backend_context(default()).await?;
+                        let config = enso_build::engine::BuildConfigurationFlags {
+                            test_java_generated_from_rust: true,
+                            ..Default::default()
+                        };
+                        let backend_context = ctx.prepare_backend_context(config).await?;
                         backend_context.prepare_build_env().await?;
                         enso_build::rust::parser::run_self_tests(&repo_root).await
                     }

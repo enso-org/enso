@@ -13,7 +13,6 @@ import org.enso.text.editing.{IndexedSource, TextEditor}
 
 import java.util.UUID
 import scala.collection.mutable
-import scala.util.Using
 
 /** The changeset of a module containing the computed list of invalidated
   * expressions.
@@ -80,9 +79,15 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
       .filter(_._2.size == 1)
       .flatMap { case (pending, directlyAffected) =>
         val directlyAffectedId = directlyAffected.head.externalId
-        val literals =
-          ir.preorder.filter(_.getExternalId == directlyAffectedId)
-        val oldIr = literals.head
+        var oldIr: IR          = null
+        IR.preorder(
+          ir,
+          { ir =>
+            if (oldIr == null && ir.getExternalId == directlyAffectedId) {
+              oldIr = ir
+            }
+          }
+        )
 
         def newIR(edit: PendingEdit): Option[Literal] = {
           val value = edit match {
@@ -91,14 +96,12 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
           }
 
           val source = Source.newBuilder("enso", value, null).build
-          Using(new EnsoParser) { compiler =>
-            compiler
-              .generateIRInline(compiler.parse(source.getCharacters()))
-              .flatMap(_ match {
-                case ir: Literal => Some(ir.setLocation(oldIr.location))
-                case _           => None
-              })
-          }.get
+          EnsoParser
+            .compileInline(source.getCharacters())
+            .flatMap(_ match {
+              case ir: Literal => Some(ir.setLocation(oldIr.location))
+              case _           => None
+            })
         }
 
         oldIr match {
@@ -514,12 +517,25 @@ object ChangesetBuilder {
     * @param id the node identifier
     * @return the node name
     */
-  private def getExpressionName(ir: IR, id: UUID @Identifier): Option[String] =
-    ir.preorder.find(_.getId == id).collect {
-      case name: Name =>
-        name.name
-      case method: definition.Method =>
-        method.methodName.name
-    }
+  private def getExpressionName(
+    ir: IR,
+    id: UUID @Identifier
+  ): Option[String] = {
+    IR.preorder(
+      ir,
+      { ir =>
+        if (ir.getId == id)
+          ir match {
+            case name: Name =>
+              return Some(name.name)
+            case method: definition.Method =>
+              return Some(method.methodName.name)
+            case _ =>
+              return None
+          }
+      }
+    )
+    None
+  }
 
 }

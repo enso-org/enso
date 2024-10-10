@@ -22,7 +22,8 @@ export type {
   SuggestionId,
 } from 'ydoc-shared/languageServerTypes/suggestions'
 
-/** An alias type for typename (for entry fields like `returnType`).
+/**
+ * An alias type for typename (for entry fields like `returnType`).
  *
  * It's not QualifiedName, because it may be a type with parameters, or
  * a type union.
@@ -51,8 +52,10 @@ export interface SuggestionEntry {
   aliases: string[]
   /** A type of the "self" argument. This field is present only for instance methods. */
   selfType?: Typename
-  /** Argument lists of suggested object (atom or function). If the object does not take any
-   * arguments, the list is empty. */
+  /**
+   * Argument lists of suggested object (atom or function). If the object does not take any
+   * arguments, the list is empty.
+   */
   arguments: SuggestionEntryArgument[]
   /** A type returned by the suggested object. */
   returnType: Typename
@@ -93,6 +96,7 @@ export function entryMethodPointer(entry: SuggestionEntry): MethodPointer | unde
   }
 }
 
+/** TODO: Add docs */
 export function entryOwnerQn(entry: SuggestionEntry): QualifiedName | null {
   if (entry.kind == SuggestionKind.Module) {
     return qnParent(entry.definedIn)
@@ -103,6 +107,7 @@ export function entryOwnerQn(entry: SuggestionEntry): QualifiedName | null {
 
 const DOCUMENTATION_ROOT = 'https://help.enso.org/docs/api'
 
+/** TODO: Add docs */
 export function suggestionDocumentationUrl(entry: SuggestionEntry): string | undefined {
   if (entry.kind !== SuggestionKind.Method && entry.kind !== SuggestionKind.Function) return
   const location = entry.memberOf ?? entry.definedIn
@@ -136,11 +141,13 @@ function makeSimpleEntry(
   }
 }
 
+/** TODO: Add docs */
 export function makeModule(fqn: string): SuggestionEntry {
   assert(isQualifiedName(fqn))
   return makeSimpleEntry(SuggestionKind.Module, fqn, qnLastSegment(fqn), fqn)
 }
 
+/** TODO: Add docs */
 export function makeType(fqn: string): SuggestionEntry {
   assert(isQualifiedName(fqn))
   const [definedIn, name] = qnSplit(fqn)
@@ -148,6 +155,7 @@ export function makeType(fqn: string): SuggestionEntry {
   return makeSimpleEntry(SuggestionKind.Type, definedIn, name, fqn)
 }
 
+/** TODO: Add docs */
 export function makeConstructor(fqn: string): SuggestionEntry {
   assert(isQualifiedName(fqn))
   const [type, name] = qnSplit(fqn)
@@ -160,6 +168,7 @@ export function makeConstructor(fqn: string): SuggestionEntry {
   }
 }
 
+/** TODO: Add docs */
 export function makeMethod(fqn: string, returnType: string = 'Any'): SuggestionEntry {
   assert(isQualifiedName(fqn))
   assert(isQualifiedName(returnType))
@@ -174,6 +183,7 @@ export function makeMethod(fqn: string, returnType: string = 'Any'): SuggestionE
   }
 }
 
+/** TODO: Add docs */
 export function makeStaticMethod(fqn: string, returnType: string = 'Any'): SuggestionEntry {
   assert(isQualifiedName(fqn))
   assert(isQualifiedName(returnType))
@@ -187,6 +197,7 @@ export function makeStaticMethod(fqn: string, returnType: string = 'Any'): Sugge
   }
 }
 
+/** TODO: Add docs */
 export function makeModuleMethod(fqn: string, returnType: string = 'Any'): SuggestionEntry {
   assert(isQualifiedName(fqn))
   assert(isQualifiedName(returnType))
@@ -198,6 +209,7 @@ export function makeModuleMethod(fqn: string, returnType: string = 'Any'): Sugge
   }
 }
 
+/** TODO: Add docs */
 export function makeFunction(
   definedIn: string,
   name: string,
@@ -209,6 +221,7 @@ export function makeFunction(
   return makeSimpleEntry(SuggestionKind.Function, definedIn, name, returnType)
 }
 
+/** TODO: Add docs */
 export function makeLocal(
   definedIn: string,
   name: string,
@@ -220,6 +233,7 @@ export function makeLocal(
   return makeSimpleEntry(SuggestionKind.Local, definedIn, name, returnType)
 }
 
+/** TODO: Add docs */
 export function makeArgument(name: string, type: string = 'Any'): SuggestionEntryArgument {
   return {
     name,

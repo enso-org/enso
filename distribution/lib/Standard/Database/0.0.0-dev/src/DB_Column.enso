@@ -103,7 +103,8 @@ type DB_Column
     info : Table
     info self -> Table = self.to_table.column_info
 
-    ## GROUP Standard.Base.Input
+    ## ALIAS import, load
+       GROUP Standard.Base.Input
        ICON data_input
        Returns a materialized column containing rows of this column.
 
@@ -156,7 +157,7 @@ type DB_Column
              example_at = Examples.integer_column.get 0 -1
     get : Integer -> Any -> Any | Nothing
     get self index:Integer=0 (~default=Nothing) =
-        if index < 0 then Error.throw (Unsupported_Database_Operation.Error "Reading backwards from end is not supported in-database. Use `read` to materialize the column.") else
+        if index < 0 then Error.throw (Unsupported_Database_Operation.Error "Reading backwards from end") else
             self.read (..First index+1) . get index default
 
     ## GROUP Standard.Base.Selections
@@ -326,14 +327,14 @@ type DB_Column
        - metadata: Optional metadata for the `SQL_Expression.Operation`.
     make_op : Text -> Vector Text -> (Text | Nothing) -> (Any | Nothing) -> DB_Column
     make_op self op_kind operands new_name metadata=Nothing =
-        checked_support = if self.connection.dialect.is_supported op_kind then True else
-            Error.throw (Unsupported_Database_Operation.Error "The operation "+op_kind+" is not supported by this backend.")
+        checked_support = if self.connection.dialect.is_operation_supported op_kind then True else
+            Error.throw (Unsupported_Database_Operation.Error op_kind)
         checked_support.if_not_error <|
             type_mapping = self.connection.dialect.get_type_mapping
             prepare_operand operand = case operand of
                 other_column : DB_Column ->
                     if Helpers.check_integrity self other_column then other_column.expression else
-                        Error.throw <| Unsupported_Database_Operation.Error "Cannot use columns coming from different contexts in one expression without a join."
+                        Error.throw (Integrity_Error.Error "DB_Column "+other_column.name)
                 sql_expression : SQL_Expression ->
                     sql_expression
                 constant ->
@@ -626,7 +627,7 @@ type DB_Column
             Value_Type_Helpers.Subtraction_Kind.Numeric_Subtract ->
                 self.make_binary_op "-" other
             Value_Type_Helpers.Subtraction_Kind.Date_Time_Difference ->
-                Error.throw (Unsupported_Database_Operation.Error "Subtracting date/time values is not supported in this database.")
+                Error.throw (Unsupported_Database_Operation.Error "Subtracting date/time value")
 
     ## ALIAS multiply, product, times
        GROUP Standard.Base.Operators
@@ -911,7 +912,7 @@ type DB_Column
     round : Integer -> Boolean -> DB_Column | Illegal_Argument | Invalid_Value_Type
     round self (decimal_places:Integer = 0) (use_bankers:Boolean = False) =
         Rounding_Helpers.check_decimal_places decimal_places <| Value_Type.expect_numeric self <|
-            if self.should_use_builtin_round decimal_places use_bankers then self.round_builtin decimal_places else
+            if self.should_use_builtin_round decimal_places use_bankers then self.round_builtin decimal_places use_bankers else
                 self.short_circuit_special_floating_point <|
                     case self.value_type of
                         Value_Type.Integer _ -> self.round_integer decimal_places use_bankers
@@ -929,24 +930,28 @@ type DB_Column
          (Note that Postgres is fine with a `numeric` value here, just not `double precision`.)
     should_use_builtin_round : Integer -> Boolean -> Boolean
     should_use_builtin_round self decimal_places use_bankers =
-        # Don't use for banker's rounding
-        not_bankers = use_bankers.not
+        # Don't use for banker's rounding (unless the dialect has a builtin for it)
+        bankers_ok = self.connection.dialect.dialect_flags.rounding.use_builtin_bankers || use_bankers.not
         # Don't use for negative decimal places, if the backend doesn't support it
-        negative_dp_ok = decimal_places >= 0 || self.connection.dialect.supports_negative_round_decimal_places
+        negative_dp_ok = decimal_places >= 0 || self.connection.dialect.dialect_flags.rounding.supports_negative_decimal_places
         # Don't use for floating-point inputs if decimal_places != 0, for Postgres
-        dp_param_ok = decimal_places == 0 || self.value_type.is_floating_point.not || self.connection.dialect.supports_float_round_decimal_places
-        not_bankers && negative_dp_ok && dp_param_ok
+        dp_param_ok = decimal_places == 0 || self.value_type.is_floating_point.not || self.connection.dialect.dialect_flags.rounding.supports_float_decimal_places
+        bankers_ok && negative_dp_ok && dp_param_ok
 
     ## PRIVATE
        Round a float-like column using the backend's builtin ROUND function.
-    round_builtin : Integer -> DB_Column
-    round_builtin self decimal_places =
+    round_builtin : Integer -> Boolean -> DB_Column
+    round_builtin self decimal_places use_bankers =
         new_name = self.naming_helper.function_name "round" [self]
-        case decimal_places == 0 of
+        case use_bankers of
             True ->
-                self.make_unary_op "ROUND" new_name
+                    self.make_binary_op "ROUND_BANKERS" (SQL_Expression.Literal decimal_places.to_text) new_name
             False ->
-                self.make_binary_op "ROUND" (SQL_Expression.Literal decimal_places.to_text) new_name
+                case decimal_places == 0 of
+                    True ->
+                        self.make_unary_op "ROUND" new_name
+                    False ->
+                        self.make_binary_op "ROUND" (SQL_Expression.Literal decimal_places.to_text) new_name
 
     ## PRIVATE
        Round a float-like column.
@@ -1042,11 +1047,11 @@ type DB_Column
             False -> case precise_value_type == Value_Type.Date_Time of
                 True ->
                     op = "date_trunc_to_day"
-                    case self.connection.dialect.is_supported op of
+                    case self.connection.dialect.is_operation_supported op of
                         True ->
                             self.make_unary_op op new_name
                         False ->
-                            Error.throw (Unsupported_Database_Operation.Error ("`Column.truncate` for `Date_Time` is not supported by this connection."))
+                            Error.throw (Unsupported_Database_Operation.Error ("`Column.truncate` for `Date_Time`"))
                 False -> Error.throw <| Invalid_Value_Type.Column "Numeric or Date_Time" self.value_type self.name
 
     ## GROUP Standard.Base.Rounding
@@ -1279,7 +1284,7 @@ type DB_Column
     @default (self-> Widget_Helpers.make_fill_default_value_selector value_types=self.value_type)
     fill_nothing : DB_Column | Previous_Value | Any -> DB_Column
     fill_nothing self default =
-        if Previous_Value == default then Error.throw (Unsupported_Database_Operation.Error "The Previous_Value argument is currently not supported in the database backend.") else
+        if Previous_Value == default then Error.throw (Unsupported_Database_Operation.Error "Previous_Value argument") else
             common_type = Value_Type_Helpers.find_common_type_for_arguments [self, default]
             common_type.if_not_error <|
                 op_result = self.make_binary_op "FILL_NULL" default self.name
@@ -1308,7 +1313,7 @@ type DB_Column
     @default (self-> Widget_Helpers.make_fill_default_value_selector value_types=Value_Type.Char add_nothing=True)
     fill_empty : DB_Column | Previous_Value | Any -> DB_Column
     fill_empty self default =
-        if Previous_Value == default then Error.throw (Unsupported_Database_Operation.Error "The Previous_Value argument is currently not supported in the database backend.") else
+        if Previous_Value == default then Error.throw (Unsupported_Database_Operation.Error "The Previous_Value argument") else
             Value_Type.expect_text self <| Value_Type.expect_text default <|
                 result = self.is_empty.iif default self
                 result.rename self.name
@@ -1536,8 +1541,8 @@ type DB_Column
                 Location.Both -> "TRIM"
                 Location.Left -> "LTRIM"
                 Location.Right -> "RTRIM"
-            if self.connection.dialect.is_supported operator then self.make_binary_op operator what new_name else
-                Error.throw (Unsupported_Database_Operation.Error ("`DB_Column.trim "+where.to_text+"` is not supported by this connection."))
+            if self.connection.dialect.is_operation_supported operator then self.make_binary_op operator what new_name else
+                Error.throw (Unsupported_Database_Operation.Error ("`trim "+where.to_text+"`"))
 
     ## GROUP Standard.Base.Text
        ICON column_add
@@ -1902,8 +1907,8 @@ type DB_Column
     @format (make_format_chooser include_number=False)
     parse : Value_Type | Auto -> Text | Data_Formatter -> Problem_Behavior -> DB_Column
     parse self type:(Value_Type | Auto) format:(Text | Data_Formatter)="" on_problems:Problem_Behavior=..Report_Warning =
-        if type == Auto then Error.throw (Unsupported_Database_Operation.Error "The `Auto` parse type is not supported by the Database backend. Either pick a specific type or materialize the table to memory using `.read`.") else
-            if format != "" then Error.throw (Unsupported_Database_Operation.Error "Custom formatting is not supported by the Database backend. Please set the format to `''` to use the default settings, or if custom formatting is needed, materialize the table to memory using `.read` first.") else
+        if type == Auto then Error.throw (Unsupported_Database_Operation.Error "`Auto` parse type") else
+            if format != "" then Error.throw (Unsupported_Database_Operation.Error "Custom formatting") else
                 Value_Type.expect_text self <|
                     ## In the future we may have some specific logic, for example
                        allowing to support formatting settings. For now, the
@@ -1918,7 +1923,7 @@ type DB_Column
     format : Text | Date_Time_Formatter | DB_Column -> Locale -> DB_Column ! Illegal_Argument
     format self format:(Text | Date_Time_Formatter | DB_Column)="" locale:Locale=Locale.default =
         _ = [format, locale]
-        Error.throw <| Unsupported_Database_Operation.Error "`DB_Column.format` is not implemented yet for the Database backends."
+        Error.throw <| Unsupported_Database_Operation.Error "format"
 
     ## GROUP Standard.Base.Conversions
        ICON convert
@@ -1983,7 +1988,7 @@ type DB_Column
     auto_cast : Boolean -> DB_Column
     auto_cast self shrink_types=False =
         _ = shrink_types
-        Error.throw <| Unsupported_Database_Operation.Error "`DB_Column.auto_cast` is not supported in the Database backends."
+        Error.throw <| Unsupported_Database_Operation.Error "auto_cast"
 
     ## PRIVATE
        Shares the core CAST logic between `cast` and `parse`.
@@ -2030,7 +2035,7 @@ type DB_Column
     map : (Any -> Any) -> Boolean -> Value_Type | Auto -> DB_Column ! Invalid_Value_Type
     map self function skip_nothing=True expected_value_type=Auto =
         _ = [function, skip_nothing, expected_value_type]
-        Error.throw <| Unsupported_Database_Operation.Error "`DB_Column.map` is not supported in the Database backends."
+        Error.throw <| Unsupported_Database_Operation.Error "map"
 
     ## ALIAS combine, join by row position, merge
        ICON join2-1
@@ -2070,7 +2075,7 @@ type DB_Column
     zip : DB_Column -> (Any -> Any -> Any) -> Boolean -> Value_Type | Auto -> DB_Column ! Invalid_Value_Type
     zip self that:DB_Column function skip_nothing=True expected_value_type=Auto =
         _ = [that, function, skip_nothing, expected_value_type]
-        Error.throw <| Unsupported_Database_Operation.Error "`DB_Column.zip` is not supported in the Database backends."
+        Error.throw <| Unsupported_Database_Operation.Error "zip"
 
     ## PRIVATE
     as_internal : Internal_Column

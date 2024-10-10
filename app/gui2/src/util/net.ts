@@ -8,23 +8,30 @@ import {
 
 export { AbortScope, MockWebSocketTransport }
 
+const WS_OPTIONS = {
+  // We do not want to enqueue any messages, because after reconnecting we have to initProtocol again.
+  maxEnqueuedMessages: 0,
+}
+
+/** TODO: Add docs */
 export function createRpcTransport(url: string): ReconnectingWebSocketTransport {
   if (url.startsWith('mock://')) {
     const mockName = url.slice('mock://'.length)
     return new MockWebSocketTransport(mockName)
   } else {
-    const transport = new ReconnectingWebSocketTransport(url)
+    const transport = new ReconnectingWebSocketTransport(url, WS_OPTIONS)
     return transport
   }
 }
 
+/** TODO: Add docs */
 export function createDataWebsocket(url: string, binaryType: 'arraybuffer' | 'blob'): WebSocket {
   if (url.startsWith('mock://')) {
     const mockWs = new MockWebSocket(url, url.slice('mock://'.length))
     mockWs.binaryType = binaryType
     return mockWs
   } else {
-    const websocket = new ReconnectingWebSocket(url)
+    const websocket = new ReconnectingWebSocket(url, undefined, WS_OPTIONS)
     websocket.binaryType = binaryType
     return websocket as WebSocket
   }
@@ -37,6 +44,7 @@ export interface WebSocketHandler {
   ): void
 }
 
+/** TODO: Add docs */
 export class MockWebSocket extends EventTarget implements WebSocket {
   static mocks: Map<string, WebSocketHandler> = new Map()
   readonly CONNECTING = WebSocket.CONNECTING
@@ -53,10 +61,12 @@ export class MockWebSocket extends EventTarget implements WebSocket {
   onmessage: ((this: WebSocket, ev: MessageEvent<any>) => any) | null = null
   onerror: ((this: WebSocket, ev: Event) => any) | null = null
 
+  /** TODO: Add docs */
   static addMock(name: string, data: WebSocketHandler) {
     MockWebSocket.mocks.set(name, data)
   }
 
+  /** TODO: Add docs */
   constructor(
     public url: string,
     public name: string,
@@ -70,11 +80,13 @@ export class MockWebSocket extends EventTarget implements WebSocket {
     setTimeout(() => this.dispatchEvent(new Event('open')), 0)
   }
 
+  /** TODO: Add docs */
   send(data: string | ArrayBufferLike | Blob | ArrayBufferView): void {
     MockWebSocket.mocks.get(this.name)?.(data, (data) =>
       this.dispatchEvent(new MessageEvent('message', { data })),
     )
   }
+  /** TODO: Add docs */
   close() {
     this.readyState = WebSocket.CLOSED
   }
@@ -92,6 +104,7 @@ export class AsyncQueue<State> {
   taskRunning = false
   queuedTasks: QueueTask<State>[] = []
 
+  /** TODO: Add docs */
   constructor(initTask: Promise<State>) {
     this.lastTask = initTask
   }
@@ -118,15 +131,18 @@ export class AsyncQueue<State> {
       })
   }
 
+  /** TODO: Add docs */
   pushTask(f: QueueTask<State>) {
     this.queuedTasks.push(f)
     this.run()
   }
 
+  /** TODO: Add docs */
   clear() {
     this.queuedTasks.length = 0
   }
 
+  /** TODO: Add docs */
   async waitForCompletion(): Promise<State> {
     let lastState: State
     do {

@@ -3,10 +3,11 @@ import type { Opt } from '@/util/data/opt'
 import { reactive, watch, type WatchSource } from 'vue'
 
 export { provideFn as provideAppClassSet }
-const { provideFn, injectFn: injectAppClassSet } = createContextStore('Port info', () => {
+const { provideFn, injectFn: injectAppClassSet } = createContextStore('App Class Set', () => {
   return reactive(new Map<string, number>())
 })
 
+/** TODO: Add docs */
 export function useAppClass(watchSource: WatchSource<Opt<Record<string, boolean>>>) {
   const classSet = injectAppClassSet(true)
   if (classSet == null) return

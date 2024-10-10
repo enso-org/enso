@@ -13,6 +13,7 @@ import org.enso.compiler.core.ir.IdentifiedLocation;
 import org.enso.compiler.core.ir.Location;
 import org.enso.compiler.core.ir.MetadataStorage;
 import org.enso.compiler.core.ir.Module;
+import org.enso.compiler.core.ir.Name;
 import org.enso.persist.Persistable;
 import org.enso.persist.Persistance;
 import org.junit.Before;
@@ -43,14 +44,14 @@ public class IrPersistanceTest {
   @Test
   public void identifiedLocation() throws Exception {
     var il = new IdentifiedLocation(new Location(5, 19), null);
-    var in = serde(IdentifiedLocation.class, il, 24);
+    var in = serde(IdentifiedLocation.class, il, 21);
     assertEquals(il, in);
   }
 
   @Test
   public void identifiedLocationWithUUID() throws Exception {
     var il = new IdentifiedLocation(new Location(5, 19), UUID.randomUUID());
-    var in = serde(IdentifiedLocation.class, il, 45);
+    var in = serde(IdentifiedLocation.class, il, 37);
     assertEquals("UUIDs are serialized at the moment", il, in);
   }
 
@@ -63,7 +64,7 @@ public class IrPersistanceTest {
               case UUID any -> null;
               default -> obj;
             };
-    var in = serde(IdentifiedLocation.class, il, 24, fn);
+    var in = serde(IdentifiedLocation.class, il, 21, fn);
     var withoutUUID = new IdentifiedLocation(il.location());
     assertEquals("UUIDs are no longer serialized", withoutUUID, in);
   }
@@ -118,7 +119,7 @@ public class IrPersistanceTest {
     var idLoc1 = new IdentifiedLocation(new Location(1, 5));
     var in = scala.collection.immutable.Map$.MODULE$.empty().$plus(new Tuple2("Hi", idLoc1));
 
-    var out = serde(scala.collection.immutable.Map.class, in, 48);
+    var out = serde(scala.collection.immutable.Map.class, in, 45);
 
     assertEquals("One element", 1, out.size());
     assertEquals(in, out);
@@ -159,7 +160,7 @@ public class IrPersistanceTest {
         (scala.collection.mutable.HashMap)
             scala.collection.mutable.HashMap$.MODULE$.apply(immutable);
 
-    var out = serde(scala.collection.mutable.Map.class, in, 48);
+    var out = serde(scala.collection.mutable.Map.class, in, 45);
 
     assertEquals("One element", 1, out.size());
     assertEquals(in, out);
@@ -171,7 +172,7 @@ public class IrPersistanceTest {
     var idLoc1 = new IdentifiedLocation(new Location(1, 5));
     var in = scala.collection.immutable.Set$.MODULE$.empty().$plus(idLoc1);
 
-    var out = serde(scala.collection.immutable.Set.class, in, 36);
+    var out = serde(scala.collection.immutable.Set.class, in, 33);
 
     assertEquals("One element", 1, out.size());
     assertEquals(in, out);
@@ -183,7 +184,7 @@ public class IrPersistanceTest {
     var idLoc2 = new IdentifiedLocation(new Location(2, 4), UUID.randomUUID());
     var in = join(idLoc2, join(idLoc1, nil()));
 
-    List out = serde(List.class, in, 77);
+    List out = serde(List.class, in, 66);
 
     assertEquals("Two elements", 2, out.size());
     assertEquals("UUIDs are serialized at the moment", idLoc2, out.head());
@@ -195,7 +196,7 @@ public class IrPersistanceTest {
     var idLoc1 = new IdentifiedLocation(new Location(1, 5));
     var in = join(idLoc1, join(idLoc1, nil()));
 
-    List out = serde(List.class, in, 44);
+    List out = serde(List.class, in, 41);
 
     assertEquals("Two elements", 2, out.size());
     assertEquals("Head is equal to original", idLoc1, out.head());
@@ -287,7 +288,7 @@ public class IrPersistanceTest {
   @Test
   public void serializeModule() throws Exception {
     var meta = new MetadataStorage();
-    var m = new Module(nil(), nil(), nil(), true, Option.empty(), meta);
+    var m = new Module(nil(), nil(), nil(), true, null, meta);
 
     var out = serde(Module.class, m, -1);
 
@@ -411,6 +412,16 @@ public class IrPersistanceTest {
 
     var plain = Persistance.read(arr, (Function<Object, Object>) null);
     assertEquals("Multiplied on write", 15, (int) plain.get(IntegerSupply.class).supply().get());
+  }
+
+  @Test
+  public void nameLiteral() throws Exception {
+    var loc = new IdentifiedLocation(new Location(5, 19), null);
+    var in = new Name.Literal("anyName", true, loc, Option.empty(), new MetadataStorage());
+
+    var out = serde(Name.Literal.class, in, 39);
+    assertEquals("They are structurally equal", 0, IR.STRUCTURE_COMPARATOR.compare(in, out));
+    assertNotEquals("But not .equals (currently)", in, out);
   }
 
   private static <T> T serde(Class<T> clazz, T l, int expectedSize) throws IOException {

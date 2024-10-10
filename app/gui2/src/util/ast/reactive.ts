@@ -2,6 +2,7 @@ import { markRaw, shallowReactive } from 'vue'
 import { MutableModule } from 'ydoc-shared/ast'
 import * as Y from 'yjs'
 
+/** TODO: Add docs */
 export function reactiveModule(doc: Y.Doc, onCleanup: (f: () => void) => void): MutableModule {
   const module = markRaw(new MutableModule(doc))
   const handle = module.observe((update) => {

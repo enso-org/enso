@@ -15,7 +15,8 @@ const ACCESSOR_OPERATOR = '.'
 
 const LAMBDA_OPERATOR = '->'
 
-/** Whether the debug logs of the alias analyzer should be enabled.
+/**
+ * Whether the debug logs of the alias analyzer should be enabled.
  *
  * It is recommended to keep them disabled (unless debugging this module), as they are very noisy and can.
  */
@@ -25,9 +26,9 @@ class Scope {
   /** The variables defined in this scope. */
   bindings: Map<string, RawAst.Token> = new Map()
 
-  /** Construct a new scope for the given range. If the parent scope is provided, the new scope will be added to its
+  /**
+   * Construct a new scope for the given range. If the parent scope is provided, the new scope will be added to its
    * children.
-   *
    * @param range The range of the code that is covered by this scope.
    * @param parent The parent scope.
    */
@@ -36,8 +37,8 @@ class Scope {
     public parent?: Scope,
   ) {}
 
-  /** Resolve the given identifier to a token that defines it.
-   *
+  /**
+   * Resolve the given identifier to a token that defines it.
    * @param identifier The identifier to resolve.
    * @param location The location of the usage of the identifier. It affects visibility of the bindings within this
    * scope, so the variables are not visible before they are defined. If not provided, the lookup will include all
@@ -86,6 +87,7 @@ export function identifierKind(token: RawAst.Token.Ident): IdentifierType {
   }
 }
 
+/** TODO: Add docs */
 export class AliasAnalyzer {
   /** All symbols that are not yet resolved (i.e. that were not bound in the analyzed tree). */
   readonly unresolvedSymbols = new MappedSet<SourceRange>(sourceRangeKey)
@@ -140,6 +142,7 @@ export class AliasAnalyzer {
     this.aliases.set(range, new MappedSet<SourceRange>(sourceRangeKey))
   }
 
+  /** TODO: Add docs */
   addConnection(source: RawAst.Token, target: RawAst.Token) {
     const sourceRange = parsedTreeOrTokenRange(source)
     const targetRange = parsedTreeOrTokenRange(target)
@@ -176,6 +179,7 @@ export class AliasAnalyzer {
     this.processTree(this.ast)
   }
 
+  /** TODO: Add docs */
   processToken(token?: RawAst.Token): void {
     if (token?.type !== RawAst.Token.Type.Ident) return
     if (identifierKind(token) === IdentifierType.Variable) {
@@ -187,7 +191,8 @@ export class AliasAnalyzer {
     }
   }
 
-  /** Process given AST node, assuming it does not change the alias analysis context.
+  /**
+   * Process given AST node, assuming it does not change the alias analysis context.
    *
    * All AST children will be processed recursively.
    */
@@ -207,6 +212,7 @@ export class AliasAnalyzer {
     })
   }
 
+  /** TODO: Add docs */
   processNode(node?: LazyObject): void {
     if (node == null) {
       return
@@ -333,10 +339,10 @@ export class AliasAnalyzer {
 // === LOG ===
 // ===========
 
-/** Provisional logging function. Delegates to `console.log` if {@link LOGGING_ENABLED} is `true`.
- *
+/**
+ * Provisional logging function. Delegates to `console.log` if {@link LOGGING_ENABLED} is `true`.
  * @param messages The messages to log. They are functions, so that they are only evaluated if logging is enabled.
- **/
+ */
 function log(...messages: Array<() => any>) {
   if (LOGGING_ENABLED ?? false) {
     console.log(...messages.map((message) => message()))

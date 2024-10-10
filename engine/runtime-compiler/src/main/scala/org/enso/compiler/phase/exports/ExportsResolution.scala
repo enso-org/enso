@@ -166,7 +166,7 @@ class ExportsResolution(private val context: CompilerContext) {
           .flatten
           .distinct
 
-      bindings.exportedSymbols = List(
+      val newSymbols = List(
         ownEntities,
         expSymbolsFromResolvedImps
       ).flatten.distinct
@@ -179,6 +179,7 @@ class ExportsResolution(private val context: CompilerContext) {
           }
           (symbolName, resolvedNames)
         }
+      bindings.exportedSymbols = newSymbols
     }
   }
 

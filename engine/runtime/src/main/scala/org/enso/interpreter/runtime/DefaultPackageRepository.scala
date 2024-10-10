@@ -489,7 +489,7 @@ private class DefaultPackageRepository(
     syntheticModule: Module,
     refs: List[QualifiedName]
   ): Unit = {
-    assert(syntheticModule.isSynthetic)
+    org.enso.common.Asserts.assertInJvm(syntheticModule.isSynthetic)
     if (!loadedModules.contains(syntheticModule.getName.toString)) {
       loadedModules.put(
         syntheticModule.getName.toString,
@@ -497,7 +497,7 @@ private class DefaultPackageRepository(
       )
     } else {
       val loaded = loadedModules(syntheticModule.getName.toString)
-      assert(!loaded.isSynthetic)
+      org.enso.common.Asserts.assertInJvm(!loaded.isSynthetic)
       loaded
         .asInstanceOf[TruffleCompilerContext.Module]
         .unsafeModule()
@@ -608,7 +608,7 @@ private class DefaultPackageRepository(
       Using(file.newBufferedReader) { reader =>
         StringUtils.join(reader.lines().iterator(), "\n")
       }
-    else Failure(PackageManager.PackageNotFound())
+    else Failure(PackageManager.PackageNotFound("manifest"))
   }
 
   override def shutdown(): Unit = {

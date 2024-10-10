@@ -130,37 +130,30 @@ registerAutoBlurHandler()
 
 :deep(.scrollable) {
   scrollbar-color: rgba(190 190 190 / 50%) transparent;
-}
-
-:deep(.scrollable)::-webkit-scrollbar {
-  -webkit-appearance: none;
-}
-
-:deep(.scrollable)::-webkit-scrollbar-track {
-  -webkit-box-shadow: none;
-}
-
-:deep(.scrollable)::-webkit-scrollbar:vertical {
-  width: 11px;
-}
-
-:deep(.scrollable)::-webkit-scrollbar:horizontal {
-  height: 11px;
-}
-
-:deep(.scrollable)::-webkit-scrollbar-thumb {
-  border-radius: 8px;
-  border: 1px solid rgba(220, 220, 220, 0.5);
-  background-color: rgba(190, 190, 190, 0.5);
-}
-
-:deep(.scrollable)::-webkit-scrollbar-corner {
-  background: rgba(0, 0, 0, 0);
-}
-
-:deep(.scrollable)::-webkit-scrollbar-button {
-  height: 8px;
-  width: 8px;
+  &::-webkit-scrollbar {
+    -webkit-appearance: none;
+  }
+  &::-webkit-scrollbar-track {
+    -webkit-box-shadow: none;
+  }
+  &::-webkit-scrollbar:vertical {
+    width: 11px;
+  }
+  &::-webkit-scrollbar:horizontal {
+    height: 11px;
+  }
+  &::-webkit-scrollbar-thumb {
+    border-radius: 8px;
+    border: 1px solid rgba(220, 220, 220, 0.5);
+    background-color: rgba(190, 190, 190, 0.5);
+  }
+  &::-webkit-scrollbar-corner {
+    background: rgba(0, 0, 0, 0);
+  }
+  &::-webkit-scrollbar-button {
+    height: 8px;
+    width: 8px;
+  }
 }
 
 :deep(.draggable) {

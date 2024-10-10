@@ -21,24 +21,25 @@ export interface AssetNameColumnProps extends column.AssetColumnProps {}
 export default function AssetNameColumn(props: AssetNameColumnProps) {
   const { item } = props
 
-  switch (item.item.type) {
+  switch (item.type) {
     case backendModule.AssetType.directory: {
-      return <DirectoryNameColumn {...props} />
+      return <DirectoryNameColumn {...props} item={item} />
     }
     case backendModule.AssetType.project: {
-      return <ProjectNameColumn {...props} />
+      return <ProjectNameColumn {...props} item={item} />
     }
     case backendModule.AssetType.file: {
-      return <FileNameColumn {...props} />
+      return <FileNameColumn {...props} item={item} />
     }
     case backendModule.AssetType.datalink: {
-      return <DatalinkNameColumn {...props} />
+      return <DatalinkNameColumn {...props} item={item} />
     }
     case backendModule.AssetType.secret: {
-      return <SecretNameColumn {...props} />
+      return <SecretNameColumn {...props} item={item} />
     }
     case backendModule.AssetType.specialLoading:
-    case backendModule.AssetType.specialEmpty: {
+    case backendModule.AssetType.specialEmpty:
+    case backendModule.AssetType.specialError: {
       // Special rows do not display columns at all.
       return <></>
     }

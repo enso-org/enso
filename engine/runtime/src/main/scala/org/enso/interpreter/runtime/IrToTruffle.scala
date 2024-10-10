@@ -1016,6 +1016,25 @@ class IrToTruffle(
     expr
   }
 
+  /** Sets the source section for a given expression node to the provided
+    * location.
+    *
+    * @param expr the expression to set the location for
+    * @param location the location to assign to `expr`
+    * @tparam T the type of `expr`
+    * @return `expr` with its location set to `location`
+    */
+  private def setLocation[T <: RuntimeExpression](
+    expr: T,
+    location: IdentifiedLocation
+  ): T = {
+    if (location ne null) {
+      expr.setSourceLocation(location.start, location.length)
+      location.id.foreach { id => expr.setId(id) }
+    }
+    expr
+  }
+
   private def generateReExportBindings(module: Module): Unit = {
     def mkConsGetter(constructor: AtomConstructor): RuntimeFunction =
       constructor.getAccessorFunction()
@@ -1088,7 +1107,7 @@ class IrToTruffle(
                   asAssociatedType(actualModule),
                   method.name
                 )
-              assert(
+              org.enso.common.Asserts.assertInJvm(
                 fun != null,
                 s"exported symbol `${method.name}` needs to be registered first in the module "
               )
@@ -1106,7 +1125,7 @@ class IrToTruffle(
                 case Right(List(BindingsMap.ResolvedType(modWithTp, _))) =>
                   val tpScope = asScope(modWithTp.unsafeAsModule())
                   val tp      = tpScope.getType(staticMethod.tpName, true)
-                  assert(
+                  org.enso.common.Asserts.assertInJvm(
                     tp != null,
                     s"Type should be defined in module ${modWithTp.getName}"
                   )
@@ -1118,7 +1137,7 @@ class IrToTruffle(
                       eigenTp,
                       staticMethod.methodName
                     )
-                  assert(
+                  org.enso.common.Asserts.assertInJvm(
                     fun != null,
                     s"exported symbol (static method) `${staticMethod.name}` needs to be registered first in the module "
                   )
@@ -1147,7 +1166,7 @@ class IrToTruffle(
                   val targetTpScope = asScope(modWithTargetTp.unsafeAsModule())
                   val targetTp =
                     targetTpScope.getType(conversionMethod.targetTpName, true)
-                  assert(
+                  org.enso.common.Asserts.assertInJvm(
                     targetTp != null,
                     s"Target type should be defined in module ${module.getName}"
                   )
@@ -1163,7 +1182,7 @@ class IrToTruffle(
                         conversionMethod.sourceTpName,
                         true
                       )
-                      assert(
+                      org.enso.common.Asserts.assertInJvm(
                         sourceTp != null,
                         s"Source type should be defined in module ${module.getName}"
                       )
@@ -1172,7 +1191,7 @@ class IrToTruffle(
                           sourceTp,
                           targetTp
                         )
-                      assert(
+                      org.enso.common.Asserts.assertInJvm(
                         conversionFun != null,
                         s"Conversion method `$conversionMethod` should be defined in module ${module.getName}"
                       )
@@ -1407,7 +1426,7 @@ class IrToTruffle(
       subjectToInstrumentation: Boolean
     ): RuntimeExpression =
       caseExpr match {
-        case Case.Expr(scrutinee, branches, isNested, location, _) =>
+        case caseExpr @ Case.Expr(scrutinee, branches, isNested, location, _) =>
           val scrutineeNode = this.run(scrutinee, subjectToInstrumentation)
 
           val maybeCases    = branches.map(processCaseBranch)
@@ -1703,29 +1722,27 @@ class IrToTruffle(
                 )
               )
           }
-        case Pattern.Type(varName, tpeName, location, _) =>
-          tpeName.getMetadata(Patterns) match {
+        case typePattern: Pattern.Type =>
+          typePattern.tpe.getMetadata(Patterns) match {
             case None =>
-              Left(BadPatternMatch.NonVisibleType(tpeName.name))
+              Left(BadPatternMatch.NonVisibleType(typePattern.tpe.name))
             case Some(
                   BindingsMap.Resolution(
                     binding @ BindingsMap.ResolvedType(_, _)
                   )
                 ) =>
               // Using .getTypes because .getType may return an associated type
-              Option(
-                asType(binding)
-              ) match {
+              Option(asType(binding)) match {
                 case Some(tpe) =>
                   val argOfType = List(
                     new DefinitionArgument.Specified(
-                      varName,
+                      typePattern.name,
                       None,
                       None,
                       suspended = false,
-                      location,
-                      passData    = varName.passData,
-                      diagnostics = varName.diagnostics
+                      typePattern.identifiedLocation,
+                      passData    = typePattern.name.passData,
+                      diagnostics = typePattern.name.diagnostics
                     )
                   )
 
@@ -1741,7 +1758,8 @@ class IrToTruffle(
                       branch.terminalBranch
                     )
                   )
-                case None => Left(BadPatternMatch.NonVisibleType(tpeName.name))
+                case None =>
+                  Left(BadPatternMatch.NonVisibleType(typePattern.tpe.name))
               }
             case Some(
                   BindingsMap.Resolution(
@@ -1755,13 +1773,13 @@ class IrToTruffle(
               if (polySymbol != null) {
                 val argOfType = List(
                   new DefinitionArgument.Specified(
-                    varName,
+                    typePattern.name,
                     None,
                     None,
                     suspended = false,
-                    location,
-                    passData    = varName.passData,
-                    diagnostics = varName.diagnostics
+                    typePattern.identifiedLocation,
+                    passData    = typePattern.name.passData,
+                    diagnostics = typePattern.name.diagnostics
                   )
                 )
 
@@ -1778,7 +1796,11 @@ class IrToTruffle(
                   )
                 )
               } else {
-                Left(BadPatternMatch.NonVisiblePolyglotSymbol(tpeName.name))
+                Left(
+                  BadPatternMatch.NonVisiblePolyglotSymbol(
+                    typePattern.name.name
+                  )
+                )
               }
             case Some(BindingsMap.Resolution(resolved)) =>
               throw new CompilerError(
@@ -1819,7 +1841,7 @@ class IrToTruffle(
         None,
         None,
         suspended = false,
-        name.location,
+        name.identifiedLocation,
         passData    = name.name.passData,
         diagnostics = name.name.diagnostics
       )
@@ -2061,8 +2083,8 @@ class IrToTruffle(
             case b: BigInteger => LiteralNode.build(b)
           }
           setLocation(node, lit.location)
-        case Literal.Text(text, location, _) =>
-          setLocation(LiteralNode.build(text), location)
+        case lit: Literal.Text =>
+          setLocation(LiteralNode.build(lit.text), lit.location)
       }
 
     private def fileLocationFromSection(loc: IdentifiedLocation) = {
@@ -2570,7 +2592,7 @@ class IrToTruffle(
 
           // Note [Handling Suspended Defaults]
           val defaultedValue = if (arg.suspended && defaultExpression != null) {
-            assert(arg.defaultValue.isDefined)
+            org.enso.common.Asserts.assertInJvm(arg.defaultValue.isDefined)
             val defaultRootNode = ClosureRootNode.build(
               language,
               scope,

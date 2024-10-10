@@ -171,7 +171,9 @@ case object TailCall extends IRPass {
   ): Expression = {
     val expressionWithWarning =
       if (isTailAnnotated(expression) && !isInTailPosition)
-        expression.addDiagnostic(Warning.WrongTco(expression.location))
+        expression.addDiagnostic(
+          Warning.WrongTco(expression.identifiedLocation())
+        )
       else expression
     expressionWithWarning match {
       case empty: Empty =>

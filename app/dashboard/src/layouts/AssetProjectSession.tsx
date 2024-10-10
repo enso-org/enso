@@ -1,19 +1,13 @@
 /** @file Displays information describing a specific version of an asset. */
-import * as React from 'react'
+import { useState } from 'react'
 
 import LogsIcon from '#/assets/logs.svg'
-
-import * as textProvider from '#/providers/TextProvider'
-
-import * as ariaComponents from '#/components/AriaComponents'
-import Button from '#/components/styled/Button'
-
+import { Button, DialogTrigger } from '#/components/AriaComponents'
 import ProjectLogsModal from '#/modals/ProjectLogsModal'
-
-import type * as backendModule from '#/services/Backend'
+import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
-
-import * as dateTime from '#/utilities/dateTime'
+import type { ProjectAsset, ProjectSession } from '#/services/Backend'
+import { formatDateTime } from '#/utilities/dateTime'
 
 // ===========================
 // === AssetProjectSession ===
@@ -22,26 +16,24 @@ import * as dateTime from '#/utilities/dateTime'
 /** Props for a {@link AssetProjectSession}. */
 export interface AssetProjectSessionProps {
   readonly backend: Backend
-  readonly project: backendModule.ProjectAsset
-  readonly projectSession: backendModule.ProjectSession
+  readonly project: ProjectAsset
+  readonly projectSession: ProjectSession
 }
 
 /** Displays information describing a specific version of an asset. */
 export default function AssetProjectSession(props: AssetProjectSessionProps) {
   const { backend, project, projectSession } = props
-  const { getText } = textProvider.useText()
-  const [isOpen, setIsOpen] = React.useState(false)
+  const { getText } = useText()
+  const [isOpen, setIsOpen] = useState(false)
 
   return (
     <div className="flex w-full flex-1 shrink-0 select-none flex-row gap-4 rounded-2xl p-2">
       <div className="flex flex-1 flex-col">
-        <time className="text-xs">
-          {dateTime.formatDateTime(new Date(projectSession.createdAt))}
-        </time>
+        <time className="text-xs">{formatDateTime(new Date(projectSession.createdAt))}</time>
       </div>
       <div className="flex items-center gap-1">
-        <ariaComponents.DialogTrigger isOpen={isOpen} onOpenChange={setIsOpen}>
-          <Button active image={LogsIcon} alt={getText('showLogs')} onPress={() => {}} />
+        <DialogTrigger isOpen={isOpen} onOpenChange={setIsOpen}>
+          <Button variant="icon" isActive icon={LogsIcon} aria-label={getText('showLogs')} />
 
           <ProjectLogsModal
             isOpen={isOpen}
@@ -49,7 +41,7 @@ export default function AssetProjectSession(props: AssetProjectSessionProps) {
             projectSessionId={projectSession.projectSessionId}
             projectTitle={project.title}
           />
-        </ariaComponents.DialogTrigger>
+        </DialogTrigger>
       </div>
     </div>
   )

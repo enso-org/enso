@@ -19,7 +19,6 @@ const MISSING = Symbol('MISSING')
  *
  * Under the hood, this uses Vue's [Context API], therefore it can only be used within a component's
  * setup function.
- *
  * @param name A user-friendly name for the store, used for error messages and debugging. The name
  * has no influence on the standard runtime behavior of the store, and doesn't have to be unique.
  * @param factory A factory function that creates the store. The parameters expected by the factory
@@ -31,12 +30,11 @@ const MISSING = Symbol('MISSING')
  * [Context API]: https://vuejs.org/guide/components/provide-inject.html#provide-inject
  */
 export function createContextStore<F extends (...args: any[]) => any>(name: string, factory: F) {
-  const provideKey = Symbol(name) as InjectionKey<ReturnType<F>>
+  const provideKey = Symbol.for(`contextStore-${name}`) as InjectionKey<ReturnType<F>>
 
   /**
    * Create the instance of a store and store it in the current component's context. All child
    * components will be able to access that store using the corresponding inject function.
-   *
    * @param args The parameters that will be passed to the store factory function.
    * @returns The store instance created by the factory function.
    */
@@ -66,7 +64,6 @@ export function createContextStore<F extends (...args: any[]) => any>(name: stri
   /**
    * Access a store instance provided by an ancestor component. When trying to access a store that
    * has never been provided, the behavior depends on the first parameter value.
-   *
    * @param missingBehavior determines what happens when trying to inject a store has never been provided:
    * - If `missingBehavior` is `false` or it is not provided, an exception is thrown.
    * - If `missingBehavior` is `true`, `undefined` is returned. This is also reflected in the return

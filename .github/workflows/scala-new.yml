@@ -37,7 +37,7 @@ jobs:
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
-          version: v0.10.2
+          version: v0.12.1
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -81,7 +81,7 @@ jobs:
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
-          version: v0.10.2
+          version: v0.12.1
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -126,7 +126,7 @@ jobs:
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
-          version: v0.10.2
+          version: v0.12.1
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -171,7 +171,7 @@ jobs:
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
-          version: v0.10.2
+          version: v0.12.1
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -226,7 +226,7 @@ jobs:
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
-          version: v0.10.2
+          version: v0.12.1
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -282,7 +282,7 @@ jobs:
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
-          version: v0.10.2
+          version: v0.12.1
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -338,7 +338,7 @@ jobs:
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
-          version: v0.10.2
+          version: v0.12.1
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -396,7 +396,7 @@ jobs:
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
-          version: v0.10.2
+          version: v0.12.1
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -455,7 +455,7 @@ jobs:
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
-          version: v0.10.2
+          version: v0.12.1
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -514,7 +514,7 @@ jobs:
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
-          version: v0.10.2
+          version: v0.12.1
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:

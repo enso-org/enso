@@ -1,19 +1,11 @@
-/**
- * @file
- * The subscribe button component.
- */
+/** @file A button to subscribe to a plan. */
 import { getSalesEmail } from '#/appUtils'
-
-import { useText } from '#/providers/TextProvider'
-
 import { Button, DialogTrigger, Text } from '#/components/AriaComponents'
-
-import { TRIAL_DURATION_DAYS } from '../../../constants'
+import { useText } from '#/providers/TextProvider'
+import { PLAN_TO_UPGRADE_LABEL_ID, TRIAL_DURATION_DAYS } from '../../../constants'
 import { PlanSelectorDialog, type PlanSelectorDialogProps } from './PlanSelectorDialog'
 
-/**
- * The props for the submit button.
- */
+/** Props for a {@link SubscribeButton}. */
 export interface SubscribeButtonProps
   extends Omit<PlanSelectorDialogProps, 'isTrialing' | 'title'> {
   readonly isOrganizationAdmin?: boolean
@@ -25,9 +17,7 @@ export interface SubscribeButtonProps
   readonly defaultOpen?: boolean
 }
 
-/**
- * Subscribe to a plan button
- */
+/** A button to subscribe to a plan. */
 export function SubscribeButton(props: SubscribeButtonProps) {
   const {
     defaultOpen,
@@ -47,51 +37,34 @@ export function SubscribeButton(props: SubscribeButtonProps) {
 
   const buttonText = (() => {
     if (isDowngrade) {
-      // eslint-disable-next-line no-restricted-syntax
       return getText('downgrade')
     }
-
     if (isCurrent) {
-      // eslint-disable-next-line no-restricted-syntax
       return getText('currentPlan')
     }
-
     if (userHasSubscription) {
-      // eslint-disable-next-line no-restricted-syntax
       return getText('upgrade')
     }
-
-    // eslint-disable-next-line no-restricted-syntax
-    return canTrial ? getText('trialDescription', TRIAL_DURATION_DAYS) : getText('subscribe')
-  })()
-
-  const description = (() => {
-    if (isDowngrade) {
-      // eslint-disable-next-line no-restricted-syntax
-      return (
-        <>
-          {getText('downgradeInfo')}{' '}
-          <Button variant="link" href={getSalesEmail() + `?subject=Downgrade%20our%20plan`}>
-            {getText('contactSales')}
-          </Button>
-        </>
-      )
+    if (canTrial) {
+      return getText('trialDescription', TRIAL_DURATION_DAYS)
     }
-
-    return null
+    return getText('subscribe')
   })()
+
+  const description =
+    isDowngrade ?
+      <Text transform="none">
+        <Button variant="link" href={getSalesEmail() + `?subject=Downgrade%20our%20plan`}>
+          {getText('contactSales')}
+        </Button>{' '}
+        {getText('downgradeInfo')}
+      </Text>
+    : null
 
   const variant = (() => {
-    if (isCurrent) {
-      // eslint-disable-next-line no-restricted-syntax
+    if (isCurrent || isDowngrade) {
       return 'outline'
     }
-
-    if (isDowngrade) {
-      // eslint-disable-next-line no-restricted-syntax
-      return 'outline'
-    }
-
     return 'submit'
   })()
 
@@ -99,29 +72,38 @@ export function SubscribeButton(props: SubscribeButtonProps) {
 
   return (
     <div className="w-full text-center">
-      <DialogTrigger
-        {...(disabled ? { defaultOpen: false }
-        : defaultOpen == null ? {}
-        : { defaultOpen })}
-      >
-        <Button fullWidth isDisabled={disabled} variant={variant} size="medium" rounded="full">
-          {buttonText}
-        </Button>
-
-        <PlanSelectorDialog
-          plan={plan}
-          planName={planName}
-          features={features}
-          onSubmit={onSubmit}
-          isTrialing={canTrial}
-          title={getText('upgradeTo', getText(plan))}
-        />
-      </DialogTrigger>
-
       {isDowngrade && (
-        <Text transform="capitalize" className="my-0.5">
+        <Text transform="normal" className="my-0.5">
           {description}
         </Text>
+      )}
+
+      {!isDowngrade && (
+        <DialogTrigger
+          {...(disabled ? { defaultOpen: false }
+          : defaultOpen == null ? {}
+          : { defaultOpen })}
+        >
+          <Button
+            fullWidth
+            isDisabled={disabled}
+            variant={variant}
+            size="medium"
+            rounded="full"
+            aria-label={getText(PLAN_TO_UPGRADE_LABEL_ID[plan])}
+          >
+            {buttonText}
+          </Button>
+
+          <PlanSelectorDialog
+            plan={plan}
+            planName={planName}
+            features={features}
+            onSubmit={onSubmit}
+            isTrialing={canTrial}
+            title={getText('upgradeTo', getText(plan))}
+          />
+        </DialogTrigger>
       )}
     </div>
   )

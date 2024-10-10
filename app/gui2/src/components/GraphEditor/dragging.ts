@@ -17,12 +17,22 @@ interface PartialVec2 {
   y: number | null
 }
 
+/**
+ * Snap Grid for dragged nodes.
+ *
+ * Created from existing nodes' rects, it allows "snapping" dragged nodes to another nodes on
+ * the scene, so the user could easily and nicely ailgn their nodes.
+ *
+ * The nodes will be snapped to align with every edge of any other node, and also at place above
+ * and below node leaving default vertical gap (same as when adding new node).
+ */
 export class SnapGrid {
   leftAxes: ComputedRef<number[]>
   rightAxes: ComputedRef<number[]>
   topAxes: ComputedRef<number[]>
   bottomAxes: ComputedRef<number[]>
 
+  /** Create grid from existing nodes' rects */
   constructor(rects: ComputedRef<Rect[]>) {
     markRaw(this)
     this.leftAxes = computed(() =>
@@ -43,6 +53,12 @@ export class SnapGrid {
     )
   }
 
+  /**
+   * Return "snapped" position of set of dragged nodes.
+   * @param rects rects of dragged nodes
+   * @param threshold a maximum distance from node's edge to the snap axe to have this node
+   *  snapped.
+   */
   snappedMany(rects: Rect[], threshold: number): Vec2 {
     const minSnap = rects.reduce<PartialVec2>(
       (minSnap, rect) => {
@@ -54,6 +70,13 @@ export class SnapGrid {
     return new Vec2(minSnap.x ?? 0.0, minSnap.y ?? 0.0)
   }
 
+  /**
+   * Return "snapped" position of node with given rects.
+   * @param rect rect of dragged node
+   * @param threshold a maximum distance from node's edge to the snap axe to have this node
+   *  snapped.
+   * @returns partial vector: the coordinate is missing if the node would not snap that direction.
+   */
   snap(rect: Rect, threshold: number): PartialVec2 {
     const leftSnap = SnapGrid.boundSnap(rect.left, this.leftAxes.value, threshold)
     const rightSnap = SnapGrid.boundSnap(rect.right, this.rightAxes.value, threshold)
@@ -111,6 +134,7 @@ export function useDragging() {
     grid: SnapGrid
     stopPositionUpdate: WatchStopHandle
 
+    /** Start dragging: initialize all properties and animations above */
     constructor(movedId: NodeId) {
       markRaw(this)
       function* draggedNodes(): Generator<[NodeId, DraggedNode]> {
@@ -131,6 +155,7 @@ export function useDragging() {
       this.stopPositionUpdate = watchEffect(() => this.updateNodesPosition())
     }
 
+    /** Update drag offset and snap animation target */
     updateOffset(newOffset: Vec2): void {
       const oldSnappedOffset = snappedOffset.value
       const rects: Rect[] = []
@@ -154,12 +179,25 @@ export function useDragging() {
       }
     }
 
+    /** Finish dragging and set nodes' positions */
     finishDragging(): void {
       this.stopPositionUpdate()
       this.updateNodesPosition()
     }
 
-    createSnapGrid() {
+    /** Cancel drag and reset nodes' positions */
+    cancelDragging(): void {
+      console.log('cancelDragging')
+      this.stopPositionUpdate()
+      offset.value = Vec2.Zero
+      snapXTarget.value = 0
+      snapYTarget.value = 0
+      snapX.skip()
+      snapY.skip()
+      this.updateNodesPosition()
+    }
+
+    private createSnapGrid() {
       const nonDraggedRects = computed(() => {
         const nonDraggedNodes = iteratorFilter(
           graphStore.db.nodeIds(),
@@ -170,7 +208,7 @@ export function useDragging() {
       return new SnapGrid(nonDraggedRects)
     }
 
-    updateNodesPosition() {
+    private updateNodesPosition() {
       graphStore.batchEdits(() => {
         for (const [id, dragged] of this.draggedNodes) {
           const node = graphStore.db.nodeIdToNode.get(id)
@@ -196,6 +234,10 @@ export function useDragging() {
     },
     finishDrag() {
       currentDrag?.finishDragging()
+      currentDrag = undefined
+    },
+    cancelDrag() {
+      currentDrag?.cancelDragging()
       currentDrag = undefined
     },
   }

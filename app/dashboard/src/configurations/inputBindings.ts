@@ -108,7 +108,6 @@ export const BINDINGS = inputBindings.defineBindings({
   // TODO: support handlers for double click; make single click handlers not work on double click events
   // [MouseAction.open]: [mousebind(MouseAction.open, [], MouseButton.left, 2)],
   // [MouseAction.run]: [mousebind(MouseAction.run, ['Shift'], MouseButton.left, 2)],
-  editName: { name: 'Edit Name', bindings: ['Mod+PointerMain'], rebindable: false },
   selectAdditional: { name: 'Select Additional', bindings: ['Mod+PointerMain'], rebindable: false },
   selectRange: { name: 'Select Range', bindings: ['Shift+PointerMain'], rebindable: false },
   selectAdditionalRange: {

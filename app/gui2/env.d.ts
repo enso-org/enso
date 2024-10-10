@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 
-declare const PROJECT_MANAGER_URL: string
-declare const YDOC_SERVER_URL: string
+declare const PROJECT_MANAGER_URL: string | undefined
+declare const YDOC_SERVER_URL: string | undefined
 declare const IS_CLOUD_BUILD: boolean
 
 interface Document {
@@ -12,7 +12,8 @@ interface Window {
   fileBrowserApi: FileBrowserApi
 }
 
-/** `window.fileBrowserApi` is a context bridge to the main process, when we're running in an
+/**
+ * `window.fileBrowserApi` is a context bridge to the main process, when we're running in an
  * Electron context.
  *
  * # Safety

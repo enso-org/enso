@@ -129,7 +129,6 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'asset-search-bar-wide': 'var(--asset-search-bar-wide-width)',
         chat: 'var(--chat-width)',
         'chat-indicator': 'var(--chat-indicator-width)',
-        'user-menu': 'var(--user-menu-width)',
         'modal-label': 'var(--modal-label-width)',
         'settings-sidebar': 'var(--settings-sidebar-width)',
         'asset-panel': 'var(--asset-panel-width)',
@@ -227,7 +226,6 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'modifiers-macos': 'var(--modifiers-macos-gap)',
         'side-panel': 'var(--side-panel-gap)',
         'side-panel-section': 'var(--side-panel-section-gap)',
-        'json-schema': 'var(--json-schema-gap)',
         'asset-search-bar': 'var(--asset-search-bar-gap)',
         'drive-bar': 'var(--drive-bar-gap)',
         'column-items': 'var(--column-items-gap)',
@@ -282,7 +280,6 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'label-x': 'var(--label-padding-x)',
         'sidebar-section-heading-x': 'var(--sidebar-section-heading-padding-x)',
         'sidebar-section-heading-y': 'var(--sidebar-section-heading-padding-y)',
-        'user-menu': 'var(--user-menu-padding)',
         'permission-type-selector': 'var(--permission-type-selector-padding)',
         'permission-type-button': 'var(--permission-type-button-padding)',
         'permission-type-y': 'var(--permission-type-padding-y)',
@@ -345,7 +342,8 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
       },
       zIndex: {
         1: '1',
-        tooltip: '2',
+        spotlight: '2',
+        tooltip: '3',
       },
       backdropBlur: {
         xs: '2px',
@@ -379,6 +377,7 @@ inset 0 -8px 11.4px -11.4px #00000005, inset 0 -15px 21.3px -21.3px #00000006, \
 inset 0 -36px 51px -51px #00000014`,
       },
       animation: {
+        'caret-blink': 'caret-blink 1.5s ease-out infinite',
         'spin-ease': 'spin cubic-bezier(0.67, 0.33, 0.33, 0.67) 1.5s infinite',
         'appear-delayed': 'appear-delayed 0.5s ease-in-out',
       },
@@ -420,6 +419,10 @@ inset 0 -36px 51px -51px #00000014`,
           '99%': { opacity: '0' },
           '100%': { opacity: '1' },
         },
+        'caret-blink': {
+          '0%,70%,100%': { opacity: '1' },
+          '20%,50%': { opacity: '0' },
+        },
       },
     },
   },
@@ -428,6 +431,12 @@ inset 0 -36px 51px -51px #00000014`,
     animate,
     plugin(({ addVariant, addUtilities, matchUtilities, addComponents, theme }) => {
       addVariant('group-hover-2', ['.group:where([data-hovered]) &', '.group:where(:hover) &'])
+
+      addUtilities({
+        '.scrollbar-gutter-stable': {
+          scrollbarGutter: 'stable',
+        },
+      })
 
       addUtilities(
         {
@@ -489,6 +498,46 @@ inset 0 -36px 51px -51px #00000014`,
           },
           '.read-only': {
             '@apply opacity-75 cursor-not-allowed': '',
+          },
+
+          '.scroll-offset-edge-s': {
+            '--scrollbar-offset-edge': '2px',
+          },
+          '.scroll-offset-edge-m': {
+            '--scrollbar-offset-edge': '4px',
+          },
+          '.scroll-offset-edge-l': {
+            '--scrollbar-offset-edge': '6px',
+          },
+          '.scroll-offset-edge-xl': {
+            '--scrollbar-offset-edge': '8px',
+          },
+          '.scroll-offset-edge-2xl': {
+            '--scrollbar-offset-edge': '16px',
+          },
+          '.scroll-offset-edge-3xl': {
+            '--scrollbar-offset-edge': '24px',
+          },
+          '.scroll-offset-edge-4xl': {
+            '--scrollbar-offset-edge': '28px',
+          },
+          '.scroll-offset-edge-5xl': {
+            '--scrollbar-offset-edge': '32px',
+          },
+          '.scroll-offset-edge-6xl': {
+            '--scrollbar-offset-edge': '36px',
+          },
+          '.scroll-offset-edge-7xl': {
+            '--scrollbar-offset-edge': '40px',
+          },
+          '.scroll-offset-edge-8xl': {
+            '--scrollbar-offset-edge': '44px',
+          },
+          '.scroll-offset-edge-9xl': {
+            '--scrollbar-offset-edge': '48px',
+          },
+          '.scroll-offset-edge-10xl': {
+            '--scrollbar-offset-edge': '52px',
           },
 
           // === Visbility classes ===

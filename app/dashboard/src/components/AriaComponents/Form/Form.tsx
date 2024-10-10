@@ -1,18 +1,11 @@
 /** @file Form component. */
 import * as React from 'react'
 
-import * as sentry from '@sentry/react'
-import * as reactQuery from '@tanstack/react-query'
-import * as reactHookForm from 'react-hook-form'
-
-import * as offlineHooks from '#/hooks/offlineHooks'
-
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
 
-import * as errorUtils from '#/utilities/error'
-
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { forwardRef } from '#/utilities/react'
 import * as dialog from '../Dialog'
 import * as components from './components'
@@ -24,109 +17,78 @@ import type * as types from './types'
  * Provides better error handling and form state management and better UX out of the box. */
 // There is no way to avoid type casting here
 // eslint-disable-next-line no-restricted-syntax
-export const Form = forwardRef(function Form<Schema extends components.TSchema>(
-  props: types.FormProps<Schema>,
-  ref: React.Ref<HTMLFormElement>,
-) {
+export const Form = forwardRef(function Form<
+  Schema extends components.TSchema,
+  SubmitResult = void,
+>(props: types.FormProps<Schema, SubmitResult>, ref: React.Ref<HTMLFormElement>) {
   /** Input values for this form. */
   type FieldValues = components.FieldValues<Schema>
   const formId = React.useId()
 
   const {
     children,
-    onSubmit,
     formRef,
     form,
-    formOptions = {},
+    formOptions,
     className,
     style,
     onSubmitted = () => {},
     onSubmitSuccess = () => {},
     onSubmitFailed = () => {},
     id = formId,
-    testId,
     schema,
     defaultValues,
     gap,
     method,
     canSubmitOffline = false,
+    testId = props['data-testid'],
     ...formProps
   } = props
 
   const { getText } = textProvider.useText()
 
-  if (defaultValues) {
-    formOptions.defaultValues = defaultValues
-  }
-
-  const innerForm = components.useForm(form ?? { shouldFocusError: true, schema, ...formOptions })
-
-  React.useImperativeHandle(formRef, () => innerForm, [innerForm])
-
   const dialogContext = dialog.useDialogContext()
 
-  const formMutation = reactQuery.useMutation({
-    // We use template literals to make the mutation key more readable in the devtools
-    // This mutation exists only for debug purposes - React Query dev tools record the mutation,
-    // the result, and the variables(form fields).
-    // In general, prefer using object literals for the mutation key.
-    mutationKey: ['Form submission', `testId: ${testId}`, `id: ${id}`],
-    mutationFn: async (fieldValues: FieldValues) => {
-      try {
-        await onSubmit?.(fieldValues, innerForm)
+  const onSubmit = useEventCallback(
+    async (fieldValues: types.FieldValues<Schema>, formInstance: types.UseFormReturn<Schema>) => {
+      // This is SAFE because we're passing the result transparently, and it's typed outside
+      // eslint-disable-next-line no-restricted-syntax
+      const result = (await props.onSubmit?.(fieldValues, formInstance)) as SubmitResult
 
-        if (method === 'dialog') {
-          dialogContext?.close()
-        }
-      } catch (error) {
-        const isJSError = errorUtils.isJSError(error)
-
-        if (isJSError) {
-          sentry.captureException(error, {
-            contexts: { form: { values: fieldValues } },
-          })
-        }
-
-        const message =
-          isJSError ?
-            getText('arbitraryFormErrorMessage')
-          : errorUtils.tryGetMessage(error, getText('arbitraryFormErrorMessage'))
-
-        innerForm.setError('root.submit', { message })
-
-        // We need to throw the error to make the mutation fail
-        // eslint-disable-next-line no-restricted-syntax
-        throw error
+      if (method === 'dialog') {
+        dialogContext?.close()
       }
+
+      return result
     },
-    onError: onSubmitFailed,
-    onSuccess: onSubmitSuccess,
-    onSettled: onSubmitted,
-  })
-
-  // There is no way to avoid type casting here
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any,no-restricted-syntax,@typescript-eslint/no-unsafe-argument
-  const formOnSubmit = innerForm.handleSubmit(formMutation.mutateAsync as any)
-
-  const { isOffline } = offlineHooks.useOffline()
-
-  offlineHooks.useOfflineChange(
-    (offline) => {
-      if (offline) {
-        innerForm.setError('root.offline', { message: getText('unavailableOffline') })
-      } else {
-        innerForm.clearErrors('root.offline')
-      }
-    },
-    { isDisabled: canSubmitOffline },
   )
+
+  const innerForm = components.useForm<Schema, SubmitResult>(
+    form ?? {
+      ...formOptions,
+      ...(defaultValues ? { defaultValues } : {}),
+      schema,
+      canSubmitOffline,
+      onSubmit,
+      onSubmitFailed,
+      onSubmitSuccess,
+      onSubmitted,
+      shouldFocusError: true,
+      debugName: `Form ${testId} id: ${id}`,
+    },
+  )
+
+  React.useImperativeHandle(formRef, () => innerForm, [innerForm])
+  React.useImperativeHandle(form?.closeRef, () => dialogContext?.close ?? (() => {}), [
+    dialogContext?.close,
+  ])
 
   const base = styles.FORM_STYLES({
     className: typeof className === 'function' ? className(innerForm) : className,
     gap,
   })
 
-  const { formState, setError } = innerForm
+  const { formState } = innerForm
 
   // eslint-disable-next-line no-restricted-syntax
   const errors = Object.fromEntries(
@@ -136,39 +98,30 @@ export const Form = forwardRef(function Form<Schema extends components.TSchema>(
     }),
   ) as Record<keyof FieldValues, string>
 
-  return (
-    <>
-      <form
-        id={id}
-        ref={ref}
-        onSubmit={(event) => {
-          event.preventDefault()
-          event.stopPropagation()
+  const values = components.useWatch({ control: innerForm.control })
 
-          if (isOffline && !canSubmitOffline) {
-            setError('root.offline', { message: getText('unavailableOffline') })
-          } else {
-            void formOnSubmit(event)
-          }
-        }}
-        className={base}
-        style={typeof style === 'function' ? style(innerForm) : style}
-        noValidate
-        data-testid={testId}
-        {...formProps}
-      >
-        <aria.FormValidationContext.Provider value={errors}>
-          <reactHookForm.FormProvider {...innerForm}>
-            {typeof children === 'function' ?
-              children({ ...innerForm, form: innerForm })
-            : children}
-          </reactHookForm.FormProvider>
-        </aria.FormValidationContext.Provider>
-      </form>
-    </>
+  return (
+    <form
+      {...formProps}
+      id={id}
+      ref={ref}
+      className={base}
+      style={typeof style === 'function' ? style(innerForm) : style}
+      noValidate
+      data-testid={testId}
+      onSubmit={innerForm.submit}
+    >
+      <aria.FormValidationContext.Provider value={errors}>
+        <components.FormProvider form={innerForm}>
+          {typeof children === 'function' ?
+            children({ ...innerForm, form: innerForm, values })
+          : children}
+        </components.FormProvider>
+      </aria.FormValidationContext.Provider>
+    </form>
   )
-}) as unknown as (<Schema extends components.TSchema>(
-  props: React.RefAttributes<HTMLFormElement> & types.FormProps<Schema>,
+}) as unknown as (<Schema extends components.TSchema, SubmitResult = void>(
+  props: React.RefAttributes<HTMLFormElement> & types.FormProps<Schema, SubmitResult>,
 ) => React.JSX.Element) & {
   /* eslint-disable @typescript-eslint/naming-convention */
   schema: typeof components.schema
@@ -183,7 +136,9 @@ export const Form = forwardRef(function Form<Schema extends components.TSchema>(
   FIELD_STYLES: typeof components.FIELD_STYLES
   useFormContext: typeof components.useFormContext
   useOptionalFormContext: typeof components.useOptionalFormContext
-  useWatch: typeof reactHookForm.useWatch
+  useWatch: typeof components.useWatch
+  useFieldRegister: typeof components.useFieldRegister
+  useFieldState: typeof components.useFieldState
   /* eslint-enable @typescript-eslint/naming-convention */
 }
 
@@ -198,5 +153,7 @@ Form.useFormContext = components.useFormContext
 Form.useOptionalFormContext = components.useOptionalFormContext
 Form.Field = components.Field
 Form.Controller = components.Controller
-Form.useWatch = reactHookForm.useWatch
+Form.useWatch = components.useWatch
 Form.FIELD_STYLES = components.FIELD_STYLES
+Form.useFieldRegister = components.useFieldRegister
+Form.useFieldState = components.useFieldState

@@ -2,14 +2,16 @@
 import type { IHeaderParams } from 'ag-grid-community'
 import { ref, watch } from 'vue'
 
-/** Parameters recognized by this header component.
+/**
+ * Parameters recognized by this header component.
  *
  * They are set through `headerComponentParams` option in AGGrid column definition.
  */
 export interface HeaderParams {
   /** Setter called when column name is changed by the user. */
   nameSetter?: (newName: string) => void
-  /** Column is virtual if it is not represented in the AST. Such column might be used
+  /**
+   * Column is virtual if it is not represented in the AST. Such column might be used
    * to create new one.
    */
   virtualColumn?: boolean
@@ -26,7 +28,7 @@ const props = defineProps<{
 const editing = ref(false)
 const inputElement = ref<HTMLInputElement>()
 
-watch(editing, (newVal, oldVal) => {
+watch(editing, (newVal) => {
   if (newVal) {
     props.params.onHeaderEditingStarted?.((cancel: boolean) => {
       if (cancel) editing.value = false
@@ -53,10 +55,29 @@ function acceptNewName() {
   props.params.nameSetter?.(inputElement.value.value)
   editing.value = false
 }
+
+function onMouseClick() {
+  if (!editing.value && props.params.nameSetter != null) {
+    editing.value = true
+  }
+}
+
+function onMouseRightClick(event: MouseEvent) {
+  if (!editing.value) {
+    props.params.showColumnMenuAfterMouseClick(event)
+  }
+}
 </script>
 
 <template>
-  <div class="ag-cell-label-container" role="presentation" @pointerdown.stop @click.stop>
+  <div
+    class="ag-cell-label-container"
+    role="presentation"
+    @pointerdown.stop
+    @click.stop
+    @click="onMouseClick"
+    @click.right="onMouseRightClick"
+  >
     <div class="ag-header-cell-label" role="presentation">
       <input
         v-if="editing"
@@ -73,7 +94,6 @@ function acceptNewName() {
         v-else
         class="ag-header-cell-text"
         :class="{ virtualColumn: params.virtualColumn === true }"
-        @click="editing = params.nameSetter != null"
         >{{ params.displayName }}</span
       >
     </div>

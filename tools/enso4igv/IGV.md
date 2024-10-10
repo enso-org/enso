@@ -17,9 +17,9 @@ major operating systems.
 
 ## Installation
 
-Visit [GraalVM's IGV page](https://www.graalvm.org/jdk22/tools/igv/) to read and
+Visit [GraalVM's IGV page](https://www.graalvm.org/22.1/tools/igv/) to read and
 download _IGV_. Or follow
-[this link](https://lafo.ssw.uni-linz.ac.at/pub/idealgraphvisualizer/idealgraphvisualizer-0.31-cb98bbf5fef-all.zip)
+[this link](https://lafo.ssw.uni-linz.ac.at/pub/idealgraphvisualizer/idealgraphvisualizer-1.20-ea624c6066a.zip)
 to get ZIP with the most up to date version of _Ideal Graph Visualizer_ (as of
 June 2024). Then:
 

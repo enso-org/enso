@@ -195,7 +195,7 @@ type File
                 _ -> stream
             Output_Stream.new wrapped (File_Error.handle_java_exceptions self)
 
-        Context.Output.if_enabled disabled_message="File writing is forbidden as the Output context is disabled." panic=False <|
+        Context.Output.if_enabled disabled_message="As writing is disabled, cannot write to a file. Press the Write button ▶ to perform the operation." panic=False <|
             open_as_data_link = (open_options.contains Data_Link_Access.No_Follow . not) && (Data_Link.is_data_link self)
             if open_as_data_link then Data_Link_Helpers.write_data_link_as_stream self open_options action else
                 # We ignore the Data_Link_Access options at this stage:
@@ -262,7 +262,7 @@ type File
                 just_file_options = open_options.filter opt-> opt.is_a File_Access
                 Managed_Resource.bracket (new_input_stream self just_file_options) (_.close) action
 
-    ## ALIAS load, open
+    ## ALIAS load, open, import
        GROUP Input
        ICON data_input
        Read a file using the specified file format
@@ -515,7 +515,7 @@ type File
                 (Examples.data_dir / "my_directory") . create_directory
     create_directory : File ! File_Error
     create_directory self =
-        Context.Output.if_enabled disabled_message="Directory creation is forbidden as the Output context is disabled." panic=False <|
+        Context.Output.if_enabled disabled_message="As writing is disabled, cannot create directory. Press the Write button ▶ to perform the operation." panic=False <|
             File_Error.handle_java_exceptions self self.create_directory_builtin . if_not_error self
 
     ## PRIVATE
@@ -665,7 +665,7 @@ type File
                  file.delete
     delete : Boolean -> Nothing ! File_Error
     delete self (recursive : Boolean = False) -> Nothing ! File_Error =
-        Context.Output.if_enabled disabled_message="File deleting is forbidden as the Output context is disabled." panic=False <|
+        Context.Output.if_enabled disabled_message="As writing is disabled, cannot delete file. Press the Write button ▶ to perform the operation." panic=False <|
             File_Error.handle_java_exceptions self (self.delete_builtin recursive)
 
     ## ICON data_output
@@ -677,7 +677,7 @@ type File
          destination file already exists. Defaults to `False`.
     copy_to : File_Like -> Boolean -> Any ! File_Error
     copy_to self (destination : File_Like) (replace_existing : Boolean = False) = Data_Link_Helpers.disallow_links_in_copy self destination <|
-        Context.Output.if_enabled disabled_message="File copying is forbidden as the Output context is disabled." panic=False <|
+        Context.Output.if_enabled disabled_message="As writing is disabled, cannot copy file. Press the Write button ▶ to perform the operation." panic=False <|
             ## We defer the `Writable_File` conversion after the 'disallow links' check,
                because the conversion would already start resolving the data link too soon.
             destination_writable = Writable_File.from destination
@@ -695,7 +695,7 @@ type File
          destination file already exists. Defaults to `False`.
     move_to : File_Like -> Boolean -> Any ! File_Error
     move_to self (destination : File_Like) (replace_existing : Boolean = False) = Data_Link_Helpers.disallow_links_in_move self destination <|
-        Context.Output.if_enabled disabled_message="File moving is forbidden as the Output context is disabled." panic=False <|
+        Context.Output.if_enabled disabled_message="As writing is disabled, cannot move file. Press the Write button ▶ to perform the operation." panic=False <|
             ## We defer the `Writable_File` conversion after the 'disallow links' check,
                because the conversion would already start resolving the data link too soon.
             destination_writable = Writable_File.from destination
@@ -823,9 +823,9 @@ type File
     list_immediate_children self = Vector.from_polyglot_array (self.list_immediate_children_array)
 
     ## PRIVATE
-       Return the absolute path of this File
+       Return the path that this file represents.
     to_text : Text
-    to_text self = self.absolute . path
+    to_text self = self.path
 
     ## PRIVATE
        Convert to a display representation of this File.

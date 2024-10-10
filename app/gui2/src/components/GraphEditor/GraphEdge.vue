@@ -35,7 +35,7 @@ const hoveredPort = computed(() => (mouseAnchor.value ? selection?.hoveredPort :
 const isSuggestion = computed(() => 'suggestion' in props.edge && props.edge.suggestion)
 
 const connectedSourceNode = computed(
-  () => props.edge.source && graph.db.getPatternExpressionNodeId(props.edge.source),
+  () => props.edge.source && graph.getSourceNodeId(props.edge.source),
 )
 
 const sourceNode = computed(() => {
@@ -104,8 +104,10 @@ const sourceRect = computed<Rect | undefined>(() => {
   }
 })
 
-/** Edges which do not have `sourceRect` and `targetPos` initialized are marked by a special
- * `broken-edge` data-testid, for debugging and e2e test purposes. */
+/**
+ * Edges which do not have `sourceRect` and `targetPos` initialized are marked by a special
+ * `broken-edge` data-testid, for debugging and e2e test purposes.
+ */
 const edgeIsBroken = computed(
   () =>
     sourceRect.value == null ||
@@ -145,11 +147,15 @@ const edgeColor = computed(() =>
 
 /** The inputs to the edge state computation. */
 interface Inputs {
-  /** The width and height of the node that originates the edge, if any.
-   *  The edge may begin anywhere around the bottom half of the node. */
+  /**
+   * The width and height of the node that originates the edge, if any.
+   *  The edge may begin anywhere around the bottom half of the node.
+   */
   sourceSize: Vec2
-  /** The coordinates of the node input port that is the edge's destination, relative to the source
-   * position. The edge enters the port from above. */
+  /**
+   * The coordinates of the node input port that is the edge's destination, relative to the source
+   * position. The edge enters the port from above.
+   */
   targetOffset: Vec2
 }
 
@@ -164,7 +170,8 @@ function circleIntersection(x: number, r1: number, r2: number): number {
   return Math.sqrt(r1 * r1 + r2 * r2 - xNorm * xNorm)
 }
 
-/** Edge layout calculation.
+/**
+ * Edge layout calculation.
  *
  *  # Corners
  *
@@ -200,7 +207,8 @@ function circleIntersection(x: number, r1: number, r2: number): number {
  *  horizontal/vertical, has a one-to-one relationship with a sequence of corners.
  */
 
-/** Calculate the start and end positions of each 1-corner section composing an edge to the
+/**
+ * Calculate the start and end positions of each 1-corner section composing an edge to the
  *  given offset. Return the points and the maximum radius that should be used to draw the corners
  *  connecting them.
  */

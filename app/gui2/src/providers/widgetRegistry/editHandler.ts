@@ -1,4 +1,3 @@
-import type { GraphNavigator } from '@/providers/graphNavigator'
 import type { Interaction, InteractionHandler } from '@/providers/interactionHandler'
 import { injectInteractionHandler } from '@/providers/interactionHandler'
 import type { PortId } from '@/providers/portInfo'
@@ -13,6 +12,7 @@ declare const brandWidgetId: unique symbol
 /** Uniquely identifies a widget type. */
 export type WidgetId = string & { [brandWidgetId]: true }
 
+/** TODO: Add docs */
 export abstract class WidgetEditHandlerParent {
   private readonly activeChild: ShallowRef<WidgetEditHandlerParent | undefined> =
     shallowRef(undefined)
@@ -65,16 +65,17 @@ export abstract class WidgetEditHandlerParent {
     this.parent?.onEdit(origin, value)
   }
 
+  /** TODO: Add docs */
   addItem(): boolean {
     return this.hooks.addItem?.() ?? this.parent?.addItem() ?? false
   }
 
-  protected pointerdown(event: PointerEvent, navigator: GraphNavigator): boolean | void {
-    if (this.hooks.pointerdown && this.hooks.pointerdown(event, navigator) !== false) return true
-    else
-      return this.activeChild.value ? this.activeChild.value.pointerdown(event, navigator) : false
+  protected pointerdown(event: PointerEvent): boolean | void {
+    if (this.hooks.pointerdown && this.hooks.pointerdown(event) !== false) return true
+    else return this.activeChild.value ? this.activeChild.value.pointerdown(event) : false
   }
 
+  /** TODO: Add docs */
   isActive() {
     return this.active.value
   }
@@ -134,7 +135,9 @@ type ResumeCallback = () => void
 type WidgetInstanceId = `${string}||${WidgetId}`
 type ResumableWidgetEdits = Map<WidgetInstanceId, ResumeCallback | undefined>
 
+/** TODO: Add docs */
 export class WidgetEditHandlerRoot extends WidgetEditHandlerParent implements Interaction {
+  /** TODO: Add docs */
   constructor(
     private readonly widgetTree: CurrentEdit,
     private readonly interactionHandler: InteractionHandler,
@@ -150,6 +153,7 @@ export class WidgetEditHandlerRoot extends WidgetEditHandlerParent implements In
     })
   }
 
+  /** TODO: Add docs */
   tryResumeRoot(widgetInstance: WidgetInstanceId) {
     const current = this.interactionHandler.getCurrent()
     if (current instanceof WidgetEditHandlerRoot) {
@@ -157,26 +161,31 @@ export class WidgetEditHandlerRoot extends WidgetEditHandlerParent implements In
     }
   }
 
+  /** TODO: Add docs */
   cancel() {
     this.onCancel()
   }
 
+  /** TODO: Add docs */
   end() {
     this.onEnd()
   }
 
-  override pointerdown(event: PointerEvent, navigator: GraphNavigator) {
-    return super.pointerdown(event, navigator)
+  /** TODO: Add docs */
+  override pointerdown(event: PointerEvent) {
+    return super.pointerdown(event)
   }
 
   protected override root() {
     return this
   }
 
+  /** TODO: Add docs */
   override isActive() {
     return this.interactionHandler.isActive(this)
   }
 
+  /** TODO: Add docs */
   currentEdit() {
     const leaf = this.activeLeaf()
     if (leaf !== this) return leaf
@@ -212,6 +221,7 @@ export class WidgetEditHandlerRoot extends WidgetEditHandlerParent implements In
  * the top-most widget, and a widget may choose to delegate to its child (if any) by returning false.
  */
 export class WidgetEditHandler extends WidgetEditHandlerParent {
+  /** TODO: Add docs */
   constructor(
     readonly portId: PortId,
     hooks: WidgetEditHooks,
@@ -222,6 +232,7 @@ export class WidgetEditHandler extends WidgetEditHandlerParent {
     super(parent ?? new WidgetEditHandlerRoot(widgetTree, interactionHandler), hooks)
   }
 
+  /** TODO: Add docs */
   static New(
     widgetId: string,
     input: WidgetInput,
@@ -237,18 +248,22 @@ export class WidgetEditHandler extends WidgetEditHandlerParent {
     return editHandler
   }
 
+  /** TODO: Add docs */
   end() {
     this.onEnd(this.portId)
   }
 
+  /** TODO: Add docs */
   cancel() {
     this.root().cancel()
   }
 
+  /** TODO: Add docs */
   start() {
     this.onStart(this.portId)
   }
 
+  /** TODO: Add docs */
   edit(value: Ast.Owned | string) {
     this.onEdit(this.portId, value)
   }
@@ -272,7 +287,8 @@ export interface WidgetEditHooks extends Interaction {
    * to indicate that creating the new item has been handled and the child should not perform its action in this case.
    */
   addItem?(): boolean
-  /** Hook called when the edit is aborted because the component instance is about to be unmounted due to a change in
+  /**
+   * Hook called when the edit is aborted because the component instance is about to be unmounted due to a change in
    *  the graph.
    *
    *  In this case, if a successor is identified in the graph, the interaction will be restarted. If this hook is

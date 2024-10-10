@@ -469,7 +469,12 @@ pub fn spawn_log_processor(
                 match String::from_utf8(line_bytes) {
                     Ok(line) => {
                         let line = line.trim_end_matches('\r');
-                        info!("{prefix} {line}");
+                        if let Some(special_command) = extract_github_command(line) {
+                            // intentionally using println to avoid info!'s prefix
+                            println!("{special_command}");
+                        } else {
+                            info!("{prefix} {line}");
+                        }
                     }
                     Err(e) => {
                         error!("{prefix} Failed to decode a line from output: {e}");
@@ -486,6 +491,29 @@ pub fn spawn_log_processor(
         }
         .inspect_err(|e| error!("Fatal error while processing process output: {e}")),
     )
+}
+
+/// Checks if the line contains a GitHub command and extracts it from the line if it does.
+/// Currently only error and group commands are supported. All commands are documented at https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/workflow-commands-for-github-actions
+fn extract_github_command(line: &str) -> Option<String> {
+    // We remove a possible [info] prefix that is added by sbt.
+    // We need to be careful as the [info] text can contain ANSI escape codes, so simple text
+    // matching for it won't work. Instead we locate `::`. If the line starts with `::` and the
+    // following text is `error`, `group`, or `endgroup`, we return the line as a special command.
+    let command_prefix = "::";
+    if let Some(start_of_command) = line.find(command_prefix) {
+        let command_part = &line[start_of_command + command_prefix.len()..];
+        if command_part.starts_with("error")
+            || command_part.starts_with("group")
+            || command_part.starts_with("endgroup")
+        {
+            // We now remove the stripped [info] prefix and return the rest of the line.
+            let trimmed = &line[start_of_command..];
+            return Some(trimmed.to_string());
+        }
+    }
+
+    None
 }
 
 pub trait Manipulator {

@@ -1,10 +1,12 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import Aggregate_Column, Value_Type
 
 import Standard.Database.Connection.Connection.Connection
 import Standard.Database.DB_Column.DB_Column
 import Standard.Database.Dialect
+import Standard.Database.Feature.Feature
 import Standard.Database.Internal.Base_Generator
 import Standard.Database.Internal.Column_Fetcher as Column_Fetcher_Module
 import Standard.Database.Internal.Column_Fetcher.Column_Fetcher
@@ -26,7 +28,9 @@ import Standard.Database.SQL.SQL_Builder
 import Standard.Database.SQL_Statement.SQL_Statement
 import Standard.Database.SQL_Type.SQL_Type
 from Standard.Database.Dialect import Temp_Table_Style
+from Standard.Database.Dialect_Flags import all
 from Standard.Database.Errors import SQL_Error, Unsupported_Database_Operation
+from Standard.Database.Internal.JDBC_Connection import JDBC_Connection
 
 import project.Database.Redshift.Internal.Redshift_Error_Mapper.Redshift_Error_Mapper
 
@@ -137,13 +141,13 @@ type Redshift_Dialect
     supports_separate_nan : Boolean
     supports_separate_nan self = True
 
-    ## PRIVATE
-    supports_negative_round_decimal_places : Boolean
-    supports_negative_round_decimal_places self = True
-
-    ## PRIVATE
-    supports_float_round_decimal_places : Boolean
-    supports_float_round_decimal_places self = False
+    ## PRIVAITE
+       Specifies implementation details flags.
+    dialect_flags : Dialect_Flags
+    dialect_flags self -> Dialect_Flags =
+        rounding = Rounding_Flags.Value supports_negative_decimal_places=True supports_float_decimal_places=False use_builtin_bankers=False
+        primary_key = Primary_Key_Flags.Value allows_nulls=False
+        Dialect_Flags.Value rounding=rounding primary_key=primary_key
 
     ## PRIVATE
        Specifies how the database creates temp tables.
@@ -183,9 +187,14 @@ type Redshift_Dialect
 
     ## PRIVATE
        Checks if an operation is supported by the dialect.
-    is_supported : Text -> Boolean
-    is_supported self operation =
-        self.dialect_operations.is_supported operation
+    is_operation_supported self operation:Text -> Boolean =
+        self.dialect_operations.is_operation_supported operation
+
+    ## PRIVATE
+       Checks if a feature is supported by the dialect.
+    is_feature_supported self feature:Feature -> Boolean =
+        _ = feature
+        True
 
     ## PRIVATE
        The default table types to use when listing tables.
@@ -217,3 +226,8 @@ type Redshift_Dialect
     needs_literal_table_cast self value_type =
         _ = value_type
         False
+
+    ## PRIVATE
+    ensure_query_has_no_holes : JDBC_Connection -> Text -> Nothing ! Illegal_Argument
+    ensure_query_has_no_holes self jdbc:JDBC_Connection raw_sql:Text =
+        jdbc.ensure_query_has_no_holes raw_sql

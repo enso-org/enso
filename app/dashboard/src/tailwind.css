@@ -99,8 +99,6 @@
   --context-menu-macos-width: 14.375rem;
   --context-menu-entry-padding-x: 0.75rem;
   --separator-margin-y: 0.125rem;
-  /* The vertical gap between entries in a Datalink input. */
-  --json-schema-gap: 0.25rem;
   --json-schema-text-input-width: 10rem;
   --json-schema-object-input-padding: 0.5rem;
   --json-schema-object-key-width: 11rem;
@@ -204,8 +202,6 @@
   /* The vertical gap between each group in the user menu. */
   --user-menu-transition-duration: 200ms;
   --user-menu-gap: 0.75rem;
-  --user-menu-padding: 0.5rem;
-  --user-menu-width: 12.875rem;
 
   /*************************\
   |* Right hand side panel *|
@@ -511,30 +507,26 @@
   background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" style="color:rgb(0 0 0 / 0.15)" fill="currentColor" viewBox="0 0 5 5" preserveAspectRatio="xMidYMid meet"><path d="M0 0H5V2.5C5 3.88071 3.88071 5 2.5 5V5C1.11929 5 0 3.88071 0 2.5V0Z" /></svg>'),
     url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" style="color:rgb(0 0 0 / 0.15)" fill="currentColor" viewBox="0 0 5 5" preserveAspectRatio="xMidYMid meet"><path d="M0 2.5C0 1.11929 1.11929 0 2.5 0V0C3.88071 0 5 1.11929 5 2.5V5H0V2.5Z"/></svg>'),
     url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" style="color:rgb(0 0 0 / 0.15)" fill="currentColor" viewBox="0 0 10 100" preserveAspectRatio="none"><rect x="0" y="0" width="10" height="100" /></svg>');
+  border-top-width: var(--scrollbar-offset-edge, 0);
+  border-bottom-width: var(--scrollbar-offset-edge, 0);
+  border-right-width: 4px;
+  border-left-width: 0;
 
   /* Custom scrollbar for rounded corners */
   :where(:is([class*='rounded-xl']))& {
-    border-width: 8px;
-    border-right-width: 4px;
-    border-left-width: 0;
+    --scrollbar-offset-edge: 8px;
   }
 
   :where(:is([class*='rounded-2xl']))& {
-    border-width: 16px;
-    border-right-width: 4px;
-    border-left-width: 0;
+    --scrollbar-offset-edge: 16px;
   }
 
   :where(:is([class*='rounded-3xl']))& {
-    border-width: 24px;
-    border-right-width: 4px;
-    border-left-width: 0;
+    --scrollbar-offset-edge: 24px;
   }
 
   :where(:is([class*='rounded-4xl']))& {
-    border-width: 28px;
-    border-right-width: 4px;
-    border-left-width: 0;
+    --scrollbar-offset-edge: 28px;
   }
 
   &:hover {
@@ -558,30 +550,26 @@
   background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" style="color:rgb(0 0 0 / 0.15); transform: rotate(90deg)" fill="currentColor" viewBox="0 0 5 5" preserveAspectRatio="xMidYMid meet"><path d="M0 0H5V2.5C5 3.88071 3.88071 5 2.5 5V5C1.11929 5 0 3.88071 0 2.5V0Z" /></svg>'),
     url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" style="color:rgb(0 0 0 / 0.15); transform: rotate(90deg)" fill="currentColor" viewBox="0 0 5 5" preserveAspectRatio="xMidYMid meet"><path d="M0 2.5C0 1.11929 1.11929 0 2.5 0V0C3.88071 0 5 1.11929 5 2.5V5H0V2.5Z"/></svg>'),
     url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" style="color:rgb(0 0 0 / 0.15)" fill="currentColor" viewBox="0 0 100 10" preserveAspectRatio="none"><rect x="0" y="0" width="100" height="10" /></svg>');
+  border-left-width: var(--scrollbar-offset-edge, 0);
+  border-right-width: var(--scrollbar-offset-edge, 0);
+  border-top-width: 0;
+  border-bottom-width: 4px;
 
   /* Custom scrollbar for rounded corners */
   :where(:is([class*='rounded-xl']))& {
-    border-width: 8px;
-    border-bottom-width: 4px;
-    border-top-width: 0;
+    --scrollbar-offset-edge: 8px;
   }
 
   :where(:is([class*='rounded-2xl']))& {
-    border-width: 16px;
-    border-bottom-width: 4px;
-    border-top-width: 0;
+    --scrollbar-offset-edge: 16px;
   }
 
   :where(:is([class*='rounded-3xl']))& {
-    border-width: 24px;
-    border-bottom-width: 4px;
-    border-top-width: 0;
+    --scrollbar-offset-edge: 24px;
   }
 
   :where(:is([class*='rounded-4xl']))& {
-    border-width: 28px;
-    border-bottom-width: 4px;
-    border-top-width: 0;
+    --scrollbar-offset-edge: 28px;
   }
 
   &:hover {

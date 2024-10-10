@@ -39,6 +39,17 @@ import * as urlAssociations from '@/urlAssociations'
 
 const logger = contentConfig.logger
 
+/**
+ * Convert path to proper `file://` URL.
+ */
+function pathToURL(path: string): URL {
+  if (process.platform === 'win32') {
+    return new URL(encodeURI(`file:///${path.replaceAll('\\', '/')}`))
+  } else {
+    return new URL(encodeURI(`file://${path}`))
+  }
+}
+
 // ===========
 // === App ===
 // ===========
@@ -58,11 +69,12 @@ class App {
     log.addFileLog()
     urlAssociations.registerAssociations()
     // Register file associations for macOS.
-    fileAssociations.setOpenFileEventHandler(project => {
+    fileAssociations.setOpenFileEventHandler(path => {
       if (electron.app.isReady()) {
+        const project = fileAssociations.handleOpenFile(path)
         this.window?.webContents.send(ipc.Channel.openProject, project)
       } else {
-        this.setProjectToOpenOnStartup(project.id)
+        this.setProjectToOpenOnStartup(pathToURL(path))
       }
     })
 
@@ -148,17 +160,17 @@ class App {
    * This method should be called before the application is ready, as it only
    * modifies the startup options. If the application is already initialized,
    * an error will be logged, and the method will have no effect.
-   * @param projectId - The ID of the project to be opened on startup. */
-  setProjectToOpenOnStartup(projectId: string) {
+   * @param projectUrl - The `file://` url of project to be opened on startup. */
+  setProjectToOpenOnStartup(projectUrl: URL) {
     // Make sure that we are not initialized yet, as this method should be called before the
     // application is ready.
     if (!electron.app.isReady()) {
-      logger.log(`Setting the project to open on startup to '${projectId}'.`)
-      this.args.groups.startup.options.project.value = projectId
+      logger.log(`Setting the project to open on startup to '${projectUrl.toString()}'.`)
+      this.args.groups.startup.options.project.value = projectUrl.toString()
     } else {
       logger.error(
         "Cannot set the project to open on startup to '" +
-          projectId +
+          projectUrl.toString() +
           "', as the application is already initialized.",
       )
     }
@@ -170,11 +182,9 @@ class App {
     logger.log('Opening file or URL.', { fileToOpen, urlToOpen })
     try {
       if (fileToOpen != null) {
-        // This makes the IDE open the relevant project. Also, this prevents us from using
-        // this method after the IDE has been fully set up, as the initializing code
-        // would have already read the value of this argument.
-        const projectInfo = fileAssociations.handleOpenFile(fileToOpen)
-        this.setProjectToOpenOnStartup(projectInfo.id)
+        // The IDE must receive the project path, otherwise if the IDE has a custom root directory
+        // set then it is added to the (incorrect) default root directory.
+        this.setProjectToOpenOnStartup(pathToURL(fileToOpen))
       }
 
       if (urlToOpen != null) {
@@ -346,6 +356,9 @@ class App {
           enableBlinkFeatures: argGroups.chrome.options.enableBlinkFeatures.value,
           disableBlinkFeatures: argGroups.chrome.options.disableBlinkFeatures.value,
           spellcheck: false,
+          ...(process.env.ENSO_TEST != null && process.env.ENSO_TEST !== '' ?
+            { partition: 'test' }
+          : {}),
         }
         const windowPreferences: electron.BrowserWindowConstructorOptions = {
           webPreferences,

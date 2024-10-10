@@ -43,8 +43,9 @@ Text.to_uri self = URI.parse self
      Defaults to `Auto_Detect`. If `Raw_Response` is selected or if the format
      cannot be determined automatically, a raw HTTP `Response` will be returned.
 @format Data_Read_Helpers.format_widget_with_raw_response
+@headers Header.default_widget
 URI.fetch : HTTP_Method -> Vector (Header | Pair Text Text) -> File_Format -> Any
-URI.fetch self (method:HTTP_Method=HTTP_Method.Get) headers=[] format=Auto_Detect =
+URI.fetch self (method:HTTP_Method=..Get) headers=[] format=Auto_Detect =
     Data.fetch self method headers format
 
 ## ALIAS http post, upload
@@ -85,7 +86,8 @@ URI.fetch self (method:HTTP_Method=HTTP_Method.Get) headers=[] format=Auto_Detec
      - Text: shorthand for `Request_Body.Text that_text`.
      - File: shorthand for `Request_Body.Binary that_file`.
      - Any other Enso object: shorthand for `Request_Body.Json that_object`.
+@headers Header.default_widget
 @response_format Data_Read_Helpers.format_widget_with_raw_response
 URI.post : Request_Body -> HTTP_Method -> Vector (Header | Pair Text Text) -> File_Format -> Any
-URI.post self (body:Request_Body=Request_Body.Empty) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector (Header | Pair Text Text))=[]) (response_format = Auto_Detect) =
+URI.post self (body:Request_Body=..Empty) (method:HTTP_Method=..Post) (headers:(Vector (Header | Pair Text Text))=[]) (response_format = Auto_Detect) =
     Data.post self body method headers response_format

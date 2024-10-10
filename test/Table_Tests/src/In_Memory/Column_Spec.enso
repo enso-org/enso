@@ -370,6 +370,19 @@ add_specs suite_builder =
                 warnings . should_contain <| Arithmetic_Error.Error 'Value is Infinity (at rows [3]).'
                 warnings . should_contain <| Arithmetic_Error.Error 'Value is NaN (at rows [2]).'
 
+    suite_builder.group "InferredIntegerBuilder" group_builder->
+        group_builder.specify "Should be able to handle Nothings" <|
+            c = Column.from_vector "x" [Nothing, 1, Nothing, Nothing, 2, 3, Nothing, Nothing, Nothing, Nothing, 4, 5, Nothing, Nothing, 6, Nothing, 7, Nothing]
+            c.truncate.to_vector . should_equal c.to_vector
+            c.truncate.length . should_equal c.length
+
+        group_builder.specify "Should be able to handle mixed integer / biginteger" <|
+            c0 = Column.from_vector "x" [1, 2, 3, 4, 5, 9223372036854775807001, 9223372036854775807002, 9223372036854775807003, 6, 7, 8]
+            c1 = Column.from_vector "x" [9223372036854775807001, 9223372036854775807002, 1, 2, 3, 4, 5, 9223372036854775807003, 6, 7, 8]
+            [c0, c1].map c->
+                c.truncate.to_vector . should_equal c.to_vector
+                c.truncate.length . should_equal c.length
+
     suite_builder.group "Date_Time truncate" group_builder->
         group_builder.specify "should be able to truncate a column of Date_Times" <|
             c = Column.from_vector "foo" [Date_Time.new 2020 10 24 1 2 3, Date_Time.new 2020 10 24 1 2 3]

@@ -277,6 +277,8 @@ const visualizationSelection = ref<Opt<VisualizationIdentifier>>(
   : undefined,
 )
 
+const isVisualizationVisible = ref(true)
+
 // === Documentation Panel ===
 
 watch(selectedSuggestionId, (id) => emit('selectedSuggestionId', id ?? null))
@@ -362,13 +364,15 @@ const handler = componentBrowserBindings.handler({
     @keydown.arrow-right.stop
   >
     <GraphVisualization
-      v-if="input.mode.mode === 'codeEditing'"
+      v-if="input.mode.mode === 'codeEditing' && isVisualizationVisible"
       class="visualization-preview"
       :nodeSize="inputSize"
       :nodePosition="nodePosition"
       :scale="1"
       :isCircularMenuVisible="false"
       :isFullscreen="false"
+      :isFullscreenAllowed="false"
+      :isResizable="false"
       :isFocused="true"
       :width="null"
       :height="null"
@@ -376,6 +380,7 @@ const handler = componentBrowserBindings.handler({
       :typename="previewedSuggestionReturnType"
       :currentType="visualizationSelection"
       @update:id="visualizationSelection = $event"
+      @update:enabled="isVisualizationVisible = $event"
     />
     <ComponentEditor
       ref="inputElement"
@@ -387,7 +392,7 @@ const handler = componentBrowserBindings.handler({
       :style="{ '--component-editor-padding': cssComponentEditorPadding }"
     >
       <SvgButton
-        name="add"
+        name="add_to_graph_editor"
         :title="
           input.mode.mode === 'componentBrowsing' && selected != null ?
             'Accept Suggested Component'
@@ -403,6 +408,16 @@ const handler = componentBrowserBindings.handler({
         @click.stop="applySuggestion()"
       />
     </ComponentEditor>
+    <div
+      v-if="input.mode.mode === 'codeEditing' && !isVisualizationVisible"
+      class="show-visualization"
+    >
+      <SvgButton
+        name="eye"
+        title="Show visualization"
+        @click.stop="isVisualizationVisible = true"
+      />
+    </div>
     <ComponentList
       v-if="input.mode.mode === 'componentBrowsing' && currentFiltering"
       ref="componentList"
@@ -419,12 +434,20 @@ const handler = componentBrowserBindings.handler({
   --radius-default: 20px;
   --background-color: #eaeaea;
   --doc-panel-bottom-clip: 4px;
-  width: 295px;
+  min-width: 295px;
+  width: min-content;
   color: rgba(0, 0, 0, 0.6);
   font-size: 11.5px;
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+.show-visualization {
+  position: relative;
+  display: flex;
+  padding: 8px;
+  opacity: 30%;
 }
 
 .component-editor {

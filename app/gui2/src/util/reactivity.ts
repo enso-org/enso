@@ -14,6 +14,9 @@ import {
   MaybeRefOrGetter,
   queuePostFlushCb,
   reactive,
+  ReactiveEffect,
+  ReactiveEffectOptions,
+  ReactiveEffectRunner,
   Ref,
   shallowReactive,
   shallowRef,
@@ -35,6 +38,26 @@ export function evalWatchSource<T>(src: WatchSource<T>): T {
   return isRef(src) ? src.value : src()
 }
 
+/**
+ * Create a `ReactiveEffect`. This is similar to the `effect` function, but doesn't immediately run the created effect.
+ */
+export function lazyEffect<T = any>(
+  fn: () => T,
+  options?: ReactiveEffectOptions,
+): ReactiveEffectRunner<T> {
+  if ((fn as ReactiveEffectRunner).effect instanceof ReactiveEffect) {
+    fn = (fn as ReactiveEffectRunner).effect.fn
+  }
+
+  const e = new ReactiveEffect(fn)
+  if (options) {
+    Object.assign(e, options)
+  }
+  const runner = e.run.bind(e) as ReactiveEffectRunner
+  runner.effect = e
+  return runner
+}
+
 export type OnCleanup = (fn: () => void) => void
 export type StopEffect = () => void
 
@@ -45,8 +68,10 @@ export type StopEffect = () => void
  */
 export class LazySyncEffectSet {
   _dirtyRunners = new Set<() => void>()
-  _scope = effectScope()
   _boundFlush = this.flush.bind(this)
+
+  /** TODO: Add docs */
+  constructor(private _scope = effectScope()) {}
 
   /**
    * Add an effect to the lazy set. The effect will run once immediately, and any subsequent runs
@@ -70,13 +95,12 @@ export class LazySyncEffectSet {
           cleanup = fn
         }
 
-        const runner = effect(
+        const runner = lazyEffect(
           () => {
             callCleanup()
             fn(onCleanup)
           },
           {
-            lazy: true,
             scheduler: () => {
               if (this._dirtyRunners.size === 0) queuePostFlushCb(this._boundFlush)
               this._dirtyRunners.add(runner)
@@ -106,6 +130,7 @@ export class LazySyncEffectSet {
   }
 
   // Immediately stops all effects and clears the dirty set.
+  /** TODO: Add docs */
   stop() {
     this._scope.stop()
   }
@@ -129,8 +154,10 @@ export function useWatchContext(): { watchEffect: (f: () => void) => WatchStopHa
   watch(jobs, () => {
     while (jobs.length > 0) {
       const job = jobs.pop()!
-      queued.delete(job)
-      job()
+      // Do not run scheduled job if it's stopped. It's consistent with vue's "watchEffect" (checked in tests)
+      if (queued.delete(job)) {
+        job()
+      }
     }
   })
   function watchEffect(f: () => void) {
@@ -143,7 +170,10 @@ export function useWatchContext(): { watchEffect: (f: () => void) => WatchStopHa
       },
       allowRecurse: true,
     })
-    return runner.effect.stop.bind(runner.effect)
+    return () => {
+      runner.effect.stop()
+      queued.delete(runner)
+    }
   }
   return { watchEffect }
 }
@@ -236,7 +266,8 @@ export function computedFallback<T>(
   })
 }
 
-/** Given a "raw" getter and setter, returns a writable-computed that buffers `set` operations.
+/**
+ * Given a "raw" getter and setter, returns a writable-computed that buffers `set` operations.
  *
  * When the setter of the returned ref is invoked, the raw setter will be called during the next callback flush if and
  * only if the most recently set value does not compare strictly-equal to the current value (read from the raw getter).
@@ -295,7 +326,8 @@ export function resumeShallowReactivity<T>(view: NonReactiveView<DeepReadonly<T>
   return shallowReactive(view) as T
 }
 
-/** Return a writable computed that reads/writes either `left` or `right` depending on the value of `select`
+/**
+ * Return a writable computed that reads/writes either `left` or `right` depending on the value of `select`
  *
  * `true` means `left`, `false` means `right`.
  */

@@ -9,6 +9,7 @@ import PeopleIcon from '#/assets/people.svg'
 import TagIcon from '#/assets/tag.svg'
 import TimeIcon from '#/assets/time.svg'
 
+import type { Category } from '#/layouts/CategorySwitcher/Category'
 import * as backend from '#/services/Backend'
 
 // =============
@@ -82,16 +83,23 @@ export const COLUMN_CSS_CLASS: Readonly<Record<Column, string>> = {
 // =====================
 
 /** Return the full list of columns given the relevant current state. */
-export function getColumnList(user: backend.User, backendType: backend.BackendType) {
+export function getColumnList(
+  user: backend.User,
+  backendType: backend.BackendType,
+  category: Category,
+) {
   const isCloud = backendType === backend.BackendType.remote
   const isEnterprise = user.plan === backend.Plan.enterprise
+  const isTrash = category.type === 'trash'
   const columns = [
     Column.name,
     Column.modified,
-    isCloud && isEnterprise && Column.sharedWith,
+    isCloud && (isEnterprise || isTrash) && Column.sharedWith,
     isCloud && Column.labels,
-    isCloud && Column.accessedByProjects,
-    isCloud && Column.accessedData,
+    // FIXME[sb]: https://github.com/enso-org/cloud-v2/issues/1525
+    // Bring back these columns when they are ready for use again.
+    // isCloud && Column.accessedByProjects,
+    // isCloud && Column.accessedData,
     isCloud && Column.docs,
   ]
   return columns.flatMap((column) => (column !== false ? [column] : []))

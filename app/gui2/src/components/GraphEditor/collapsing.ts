@@ -31,7 +31,8 @@ interface ExtractedInfo {
 
 /** The information about the output value of the extracted function. */
 interface Output {
-  /** The id of the node the expression of which should be replaced by the function call.
+  /**
+   * The id of the node the expression of which should be replaced by the function call.
    * This node is also included into `ids` of the {@link ExtractedInfo} and must be moved into the extracted function.
    */
   node: NodeId
@@ -51,7 +52,8 @@ interface RefactoredInfo {
 
 // === prepareCollapsedInfo ===
 
-/** Prepare the information necessary for collapsing nodes.
+/**
+ * Prepare the information necessary for collapsing nodes.
  * @throws errors in case of failures, but it should not happen in normal execution.
  */
 export function prepareCollapsedInfo(
@@ -63,7 +65,7 @@ export function prepareCollapsedInfo(
   const leaves = new Set(selected)
   const inputSet: Set<Identifier> = new Set()
   let output: Output | null = null
-  for (const [targetExprId, sourceExprIds] of graphDb.allConnections.allReverse()) {
+  for (const [targetExprId, sourceExprIds] of graphDb.connections.allReverse()) {
     const targetNode = graphDb.getExpressionNodeId(targetExprId)
     if (targetNode == null) continue
     for (const sourceExprId of sourceExprIds) {
@@ -98,7 +100,7 @@ export function prepareCollapsedInfo(
     }
   }
   // If there is no output found so far, it means that none of our nodes is used outside
-  // the extracted function. In such we will return value from arbitrarily chosen leaf.
+  // the extracted function. In such case we will return value from arbitrarily chosen leaf.
   if (output == null) {
     const arbitraryLeaf = set.first(leaves)
     if (arbitraryLeaf == null) throw Error('Cannot select the output node, no leaf nodes found.')
@@ -153,12 +155,13 @@ interface CollapsingResult {
   /** The ID of the node refactored to the collapsed function call. */
   refactoredNodeId: NodeId
   refactoredExpressionAstId: Ast.AstId
-  /** IDs of nodes inside the collapsed function, except the output node.
+  /**
+   * IDs of nodes inside the collapsed function, except the output node.
    * The order of these IDs is reversed comparing to the order of nodes in the source code.
    */
   collapsedNodeIds: NodeId[]
-  /** ID of the output node inside the collapsed function. */
-  outputNodeId?: NodeId | undefined
+  /** ID of the output AST node inside the collapsed function. */
+  outputAstId?: Ast.AstId | undefined
 }
 
 /** Perform the actual AST refactoring for collapsing nodes. */
@@ -204,18 +207,18 @@ export function performCollapse(
 
   // Insert a new function.
   const collapsedNodeIds = [...filterDefined(collapsed.map(nodeIdFromOuterExpr))].reverse()
-  let outputNodeId: NodeId | undefined
+  let outputAstId: Ast.AstId | undefined
   const outputIdentifier = info.extracted.output?.identifier
   if (outputIdentifier != null) {
     const ident = Ast.Ident.new(edit, outputIdentifier)
     collapsed.push(ident)
-    outputNodeId = asNodeId(ident.externalId)
+    outputAstId = ident.id
   }
   const argNames = info.extracted.inputs
   const collapsedFunction = Ast.Function.fromStatements(edit, collapsedName, argNames, collapsed)
   const collapsedFunctionWithIcon = Ast.Documented.new('ICON group', collapsedFunction)
   topLevel.insert(posToInsert, collapsedFunctionWithIcon, undefined)
-  return { refactoredNodeId, refactoredExpressionAstId, collapsedNodeIds, outputNodeId }
+  return { refactoredNodeId, refactoredExpressionAstId, collapsedNodeIds, outputAstId }
 }
 
 /** Prepare a method call expression for collapsed method. */

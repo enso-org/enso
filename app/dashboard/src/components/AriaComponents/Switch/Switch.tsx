@@ -3,6 +3,8 @@
  *
  * A switch allows a user to turn a setting on or off.
  */
+import { useRef, type CSSProperties, type ForwardedRef } from 'react'
+
 import {
   Switch as AriaSwitch,
   mergeProps,
@@ -10,9 +12,7 @@ import {
 } from '#/components/aria'
 import { mergeRefs } from '#/utilities/mergeRefs'
 import { forwardRef } from '#/utilities/react'
-import type { CSSProperties, ForwardedRef } from 'react'
-import { useRef } from 'react'
-import { tv, type VariantProps } from 'tailwind-variants'
+import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import { Form, type FieldPath, type FieldProps, type FieldStateProps, type TSchema } from '../Form'
 import { TEXT_STYLE } from '../Text'
 
@@ -94,7 +94,9 @@ export const Switch = forwardRef(function Switch<
     disabled: isDisabled,
     required: isRequired,
     ...(props.onBlur && { onBlur: props.onBlur }),
-    ...(props.onChange && { onChange: props.onChange }),
+    ...(props.onChange && {
+      onChange: (event: { target: { value: boolean } }) => props.onChange?.(event.target.value),
+    }),
   })
 
   const {
@@ -127,6 +129,8 @@ export const Switch = forwardRef(function Switch<
         {...mergeProps<AriaSwitchProps>()(ariaSwitchProps, fieldProps, {
           defaultSelected: field.value,
           className: switchStyles(),
+          onChange: field.onChange,
+          onBlur: field.onBlur,
         })}
       >
         <div className={background()} role="presentation">

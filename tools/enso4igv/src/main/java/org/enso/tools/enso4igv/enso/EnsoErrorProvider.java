@@ -27,12 +27,11 @@ public final class EnsoErrorProvider implements ErrorProvider {
         try {
             if (ctx.errorKind() == Kind.ERRORS) {
                 LOG.log(Level.FINE, "Processing errors for {0}", ctx.file().getPath());
-                var parser = new EnsoParser();
                 var text = toText(ctx);
                 Function1<IdentifiedLocation, String> where = (loc) -> {
                     return text.substring(loc.start(), loc.end());
                 };
-                var moduleIr = parser.compile(text);
+                var moduleIr = EnsoParser.compile(text);
                 moduleIr.preorder().foreach((p) -> {
                     if (p instanceof Syntax err && err.location().isDefined()) {
                         var loc = err.location().get();

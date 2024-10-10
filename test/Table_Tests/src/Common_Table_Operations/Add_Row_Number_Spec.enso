@@ -3,6 +3,8 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import Standard.Database.Extensions.Upload_Database_Table
 import Standard.Database.Extensions.Upload_In_Memory_Table
+import Standard.Database.Feature.Feature
+from Standard.Database.Errors import all
 
 from Standard.Table import Sort_Column, Aggregate_Column
 from Standard.Table.Errors import Missing_Input_Columns, Duplicate_Output_Column_Names, Floating_Point_Equality
@@ -27,8 +29,16 @@ type Data
     teardown self =
         self.connection.close
 
-
 add_specs suite_builder setup =
+    if setup.is_feature_supported Feature.Filter then (add_row_number_specs suite_builder setup) else
+        suite_builder.group setup.prefix+"Table.add_row_number" group_builder->
+            group_builder.specify "add_row_number should report unsupported" <|
+                table_builder = setup.light_table_builder
+                t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", [100, 3, Nothing, 4, 12]], ["Y", [100, 4, 2, Nothing, 11]]]
+                t2 = t.add_row_number
+                t2.should_fail_with (Unsupported_Database_Operation.Error "add_row_number")
+
+add_row_number_specs suite_builder setup =
     prefix = setup.prefix
     materialize = setup.materialize
     create_connection_fn = setup.create_connection_func
@@ -43,7 +53,7 @@ add_specs suite_builder setup =
             t2.at "X" . to_vector . should_equal ['a', 'b']
             t2.at "Y 1" . to_vector . should_equal ['c', 'd']
             t2.at "Z" . to_vector . should_equal [40, 20]
-            t2.at "Y" . to_vector . should_equal [1, 2]
+            t2.at "Y" . to_vector . should_equal [0, 1]
             Problems.expect_warning Duplicate_Output_Column_Names t2
 
             r3 = t1.add_row_number name="X" on_problems=..Report_Error
@@ -53,7 +63,7 @@ add_specs suite_builder setup =
             t2 = table_builder [["X", ["a", "b", "a", "a"]], ["Y", [1, 2, 3, 4]]]
             t3 = t2.add_row_number order_by=["X", (Sort_Column.Name "Y" Sort_Direction.Descending)] |> materialize |> _.sort "Y"
             t3.at "Y" . to_vector . should_equal [1, 2, 3, 4]
-            t3.at "Row" . to_vector . should_equal [3, 4, 2, 1]
+            t3.at "Row" . to_vector . should_equal [2, 3, 1, 0]
 
         group_builder.specify "should allow mixing grouping with ordering and custom start and step" <|
             vx = ['a', 'b', 'a', 'a', 'a', 'b', 'c', 'c']
@@ -71,18 +81,18 @@ add_specs suite_builder setup =
             t = table_builder [["X", [1.0, 1.5, 1.0, 2.5, 2.5]], ["row_id", [1, 2, 3, 4, 5]]]
             t1 = t.add_row_number group_by=["X"] order_by=["row_id"] |> materialize |> _.sort "row_id"
             Problems.expect_warning Floating_Point_Equality t1
-            t1.at "Row" . to_vector . should_equal [1, 1, 2, 1, 2]
+            t1.at "Row" . to_vector . should_equal [0, 0, 1, 0, 1]
 
             r2 = t.add_row_number group_by=["X"] order_by=["row_id"] on_problems=..Report_Error
             r2.should_fail_with Floating_Point_Equality
 
             t3 = t.add_row_number order_by=["X"] |> materialize |> _.sort "row_id"
             Problems.assume_no_problems t3
-            t3.at "Row" . to_vector . should_have_relative_ordering [[1, 3], [2], [4, 5]]
+            t3.at "Row" . to_vector . should_have_relative_ordering [[0, 2], [1], [3, 4]]
 
             if setup.is_database.not then
                 t4 = table_builder [["X", [1, "A", 1, 24.0, 24.0, 24.0, 24]], ["row_id", [1, 2, 3, 4, 5, 6, 7]]]
-                t5 = t4.add_row_number group_by=["X"] order_by=["row_id"] |> materialize |> _.sort "row_id"
+                t5 = t4.add_row_number from=1 group_by=["X"] order_by=["row_id"] |> materialize |> _.sort "row_id"
                 Problems.expect_warning Floating_Point_Equality t5
                 t5.at "Row" . to_vector . should_equal [1, 1, 2, 1, 2, 3, 4]
 
@@ -107,7 +117,7 @@ add_specs suite_builder setup =
 
             t2.at "X" . to_vector . should_equal [4, 3, 2, 1]
             t2.at "Y" . to_vector . should_equal [10, 20, 30, 40]
-            t2.at "Row" . to_vector . should_equal [1, 2, 3, 4]
+            t2.at "Row" . to_vector . should_equal [0, 1, 2, 3]
 
         group_builder.specify "Should work correctly after aggregation" <|
             t0 = table_builder [["X", ["a", "b", "a", "c"]], ["Y", [1, 2, 4, 8]]]
@@ -116,7 +126,7 @@ add_specs suite_builder setup =
             t2 = t1.sort "X" . add_row_number
             t2.at "X" . to_vector . should_equal ['a', 'b', 'c']
             t2.at "Sum Y" . to_vector . should_equal [5.0, 2.0, 8.0]
-            t2.at "Row" . to_vector . should_equal [1, 2, 3]
+            t2.at "Row" . to_vector . should_equal [0, 1, 2]
 
     if setup.is_database.not then suite_builder.group prefix+"Table.add_row_number (in-memory specific)" group_builder->
         data = Data.setup create_connection_fn
@@ -129,7 +139,7 @@ add_specs suite_builder setup =
 
         group_builder.specify "should add a row numbering column" <|
             t = table_builder [["X", ['a', 'b', 'a', 'a', 'c']]]
-            t1 = t.add_row_number
+            t1 = t.add_row_number from=1
             rows = t1.rows.to_vector . map .to_vector
             rows . should_equal [['a', 1], ['b', 2], ['a', 3], ['a', 4], ['c', 5]]
             t1.at "Row" . to_vector . should_equal [1, 2, 3, 4, 5]
@@ -141,7 +151,7 @@ add_specs suite_builder setup =
             t1.at "Row" . to_vector . should_equal [10, 11, 12]
 
             t2 = t.add_row_number step=10
-            t2.at "Row" . to_vector . should_equal [1, 11, 21]
+            t2.at "Row" . to_vector . should_equal [0, 10, 20]
 
             t3 = t.add_row_number from=100 step=(-10)
             t3.at "Row" . to_vector . should_equal [100, 90, 80]
@@ -154,17 +164,17 @@ add_specs suite_builder setup =
 
         group_builder.specify "should allow to assign row numbers separately within each group" <|
             t = table_builder [["X", ['a', 'a', 'a', 'a', 'b', 'b']], ["Y", [40, 30, 20, 40, 20, 10]]]
-            t1 = t.add_row_number group_by=["X"]
+            t1 = t.add_row_number from=1 group_by=["X"]
             t1.at "Row" . to_vector . should_equal [1, 2, 3, 4, 1, 2]
 
             t2 = table_builder [["X", ['a', 'a', 'a', 'a', 'b', 'b']], ["Y", [40, 40, 20, 20, 20, 10]]]
-            t3 = t2.add_row_number group_by=["X", "Y"]
+            t3 = t2.add_row_number from=1 group_by=["X", "Y"]
             t3.at "Row" . to_vector . should_equal [1, 2, 1, 2, 1, 1]
 
         group_builder.specify "should allow to assign row numbers separately within scattered groups, preserving the row layout" <|
             v = ['a', 'b', 'a', 'b', 'b', 'b', 'c', 'a']
             t = table_builder [["X", v]]
-            t1 = t.add_row_number group_by=["X"]
+            t1 = t.add_row_number from=1 group_by=["X"]
             # No reordering of elements:
             t1.at "X" . to_vector . should_equal v
             t1.at "Row" . to_vector . should_equal [1, 1, 2, 2, 3, 4, 1, 3]
@@ -188,11 +198,11 @@ add_specs suite_builder setup =
             t1 = t.add_row_number order_by=["X"]
             # No reordering of elements
             t1.at "X" . to_vector . should_equal v
-            t1.at "Row" . to_vector . should_equal [6, 5, 4, 3, 2, 1, 7, 8]
+            t1.at "Row" . to_vector . should_equal [5, 4, 3, 2, 1, 0, 6, 7]
 
             t2 = table_builder [["X", ["a", "b", "a", "a"]], ["Y", [1, 2, 3, 4]]]
             t3 = t2.add_row_number order_by=["X", (Sort_Column.Name "Y" Sort_Direction.Descending)]
-            t3.at "Row" . to_vector . should_equal [3, 4, 2, 1]
+            t3.at "Row" . to_vector . should_equal [2, 3, 1, 0]
 
         group_builder.specify "will fail if the row number exceeds Long range" <|
             max_long = Java_Long.MAX_VALUE
@@ -230,4 +240,4 @@ add_specs suite_builder setup =
             t2 = db_table.add_row_number |> materialize |> _.sort ["Y"]
             t2.at "Y" . to_vector . should_equal [10, 20, 30, 40, 50]
             t2.at "X" . to_vector . should_equal [500, 400, 30, 1, 2]
-            t2.at "Row" . to_vector . should_equal [5, 4, 3, 1, 2]
+            t2.at "Row" . to_vector . should_equal [4, 3, 2, 0, 1]

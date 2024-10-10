@@ -33,6 +33,7 @@ import { iteratorFilter } from 'lib0/iterator'
 import {
   computed,
   markRaw,
+  nextTick,
   proxyRefs,
   reactive,
   ref,
@@ -72,7 +73,9 @@ export interface NodeEditInfo {
   initialCursorPos: number
 }
 
+/** TODO: Add docs */
 export class PortViewInstance {
+  /** TODO: Add docs */
   constructor(
     public rect: ShallowRef<Rect | undefined>,
     public nodeId: NodeId,
@@ -179,7 +182,6 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       const methodSpan = moduleSource.getSpan(method.id)
       assert(methodSpan != null)
       const rawFunc = toRaw.get(sourceRangeKey(methodSpan))
-      assert(rawFunc != null)
       const getSpan = (id: AstId) => moduleSource.getSpan(id)
       db.updateBindings(method, rawFunc, moduleSource.text, getSpan)
     })
@@ -222,10 +224,11 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       return Ok(method)
     }
 
-    /** Generate unique identifier from `prefix` and some numeric suffix.
+    /**
+     * Generate unique identifier from `prefix` and some numeric suffix.
      * @param prefix - of the identifier
      * @param ignore - a list of identifiers to consider as unavailable. Useful when creating multiple identifiers in a batch.
-     * */
+     */
     function generateLocallyUniqueIdent(
       prefix?: string | undefined,
       ignore: Set<Identifier> = new Set(),
@@ -421,7 +424,7 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
 
     function updateNodeRect(nodeId: NodeId, rect: Rect) {
       nodeRects.set(nodeId, rect)
-      if (rect.pos.equals(Vec2.Zero)) {
+      if (rect.pos.equals(Vec2.Infinity)) {
         nodesToPlace.push(nodeId)
       }
     }
@@ -431,26 +434,48 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
     }
 
     const nodesToPlace = reactive<NodeId[]>([])
-    const { place: placeNode } = usePlacement(visibleNodeAreas, Rect.Zero)
+    const { place: placeNode, input: placeInputNode } = usePlacement(visibleNodeAreas, Rect.Zero)
 
-    watch(nodesToPlace, (nodeIds) => {
-      if (nodeIds.length === 0) return
-      const nodesToProcess = [...nodeIds]
-      nodesToPlace.length = 0
-      batchEdits(() => {
-        for (const nodeId of nodesToProcess) {
-          const rect = nodeRects.get(nodeId)
-          if (!rect) continue
-          const nodeAst = syncModule.value?.get(db.idFromExternal(nodeId))
-          if (!nodeAst) continue
-          const metadata = nodeAst.mutableNodeMetadata()
-          if (metadata.get('position') != null) continue
-          const position = placeNode([], rect.size)
-          metadata.set('position', { x: position.x, y: position.y })
-          nodeRects.set(nodeId, new Rect(position, rect.size))
-        }
-      }, 'local:autoLayout')
-    })
+    watch(nodesToPlace, (nodeIds) =>
+      nextTick(() => {
+        if (nodeIds.length === 0) return
+        const [inputNodes, nonInputNodes] = partition(
+          nodeIds,
+          (id) => db.nodeIdToNode.get(id)?.type === 'input',
+        )
+        const nonInputNodesSortedByLines = pickInCodeOrder(new Set(nonInputNodes))
+        const inputNodesSortedByArgIndex = inputNodes.sort((a, b) => {
+          const nodeA = db.nodeIdToNode.get(a)
+          const nodeB = db.nodeIdToNode.get(b)
+          if (!nodeA || !nodeB) return 0
+          return (nodeA.argIndex ?? 0) - (nodeB.argIndex ?? 0)
+        })
+        const nodesToProcess = [...nonInputNodesSortedByLines, ...inputNodesSortedByArgIndex]
+        nodesToPlace.length = 0
+        batchEdits(() => {
+          for (const nodeId of nodesToProcess) {
+            const nodeType = db.nodeIdToNode.get(nodeId)?.type
+            const rect = nodeRects.get(nodeId)
+            if (!rect) continue
+            const nodeAst = syncModule.value?.get(db.idFromExternal(nodeId))
+            if (!nodeAst) continue
+            const metadata = nodeAst.mutableNodeMetadata()
+            if (metadata.get('position') != null) continue
+            let position
+            if (nodeType === 'input') {
+              const allNodes = [...db.nodeIdToNode.entries()]
+              const nonInputNodes = allNodes.filter(([_, node]) => node.type !== 'input')
+              const nonInputNodeRects = nonInputNodes.map(([id]) => nodeRects.get(id) ?? Rect.Zero)
+              position = placeInputNode(nonInputNodeRects, rect.size)
+            } else {
+              position = placeNode([], rect.size)
+            }
+            metadata.set('position', { x: position.x, y: position.y })
+            nodeRects.set(nodeId, new Rect(position, rect.size))
+          }
+        }, 'local:autoLayout')
+      }),
+    )
 
     function updateVizRect(id: NodeId, rect: Rect | undefined) {
       if (rect) vizRects.set(id, rect)
@@ -502,6 +527,14 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       return getPortRelativeRect(id) != null
     }
 
+    /**
+     * Return the node ID that has the given `id` as its pattern or primary port.
+     * Technically this is either a component or the input node, as input nodes do not have patterns.
+     */
+    function getSourceNodeId(id: AstId): NodeId | undefined {
+      return db.getPatternExpressionNodeId(id) || getPortPrimaryInstance(id)?.nodeId
+    }
+
     function getPortNodeId(id: PortId): NodeId | undefined {
       return (isAstId(id) && db.getExpressionNodeId(id)) || getPortPrimaryInstance(id)?.nodeId
     }
@@ -528,8 +561,8 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       return syncModule.value!.edit()
     }
 
-    /** Apply the given `edit` to the state.
-     *
+    /**
+     * Apply the given `edit` to the state.
      *  @param skipTreeRepair - If the edit is known not to require any parenthesis insertion, this may be set to `true`
      *  for better performance.
      */
@@ -547,10 +580,10 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       syncModule.value!.applyEdit(edit, origin)
     }
 
-    /** Edit the AST module.
+    /**
+     * Edit the AST module.
      *
-     *  Optimization options: These are safe to use for metadata-only edits; otherwise, they require extreme caution.
-     *
+     * Optimization options: These are safe to use for metadata-only edits; otherwise, they require extreme caution.
      *  @param skipTreeRepair - If the edit is certain not to produce incorrect or non-canonical syntax, this may be set
      *  to `true` for better performance.
      */
@@ -570,7 +603,8 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       return result!
     }
 
-    /** Obtain a version of the given `Ast` for direct mutation. The `ast` must exist in the current module.
+    /**
+     * Obtain a version of the given `Ast` for direct mutation. The `ast` must exist in the current module.
      *  This can be more efficient than creating and committing an edit, but skips tree-repair and cannot be aborted.
      */
     function getMutable<T extends Ast.Ast>(ast: T): Ast.Mutable<T> {
@@ -740,6 +774,7 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       removePortInstance,
       getPortRelativeRect,
       getPortNodeId,
+      getSourceNodeId,
       isPortEnabled,
       updatePortValue,
       setEditedNode,
@@ -770,6 +805,7 @@ export interface ConnectedEdge {
   target: PortId
 }
 
+/** TODO: Add docs */
 export function isConnected(edge: Edge): edge is ConnectedEdge {
   return edge.source != null && edge.target != null
 }

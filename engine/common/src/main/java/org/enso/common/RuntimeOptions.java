@@ -1,7 +1,6 @@
 package org.enso.common;
 
 import java.util.Arrays;
-
 import org.graalvm.options.OptionDescriptor;
 import org.graalvm.options.OptionDescriptors;
 import org.graalvm.options.OptionKey;
@@ -9,6 +8,7 @@ import org.graalvm.options.OptionKey;
 /** Class representing runtime options supported by the Enso engine. */
 public final class RuntimeOptions {
   private RuntimeOptions() {}
+
   public static final String PROJECT_ROOT = optionName("projectRoot");
   public static final OptionKey<String> PROJECT_ROOT_KEY = new OptionKey<>("");
   private static final OptionDescriptor PROJECT_ROOT_DESCRIPTOR =
@@ -54,7 +54,7 @@ public final class RuntimeOptions {
   public static final String DISABLE_LINTING = optionName("disableLinting");
   public static final OptionKey<Boolean> DISABLE_LINTING_KEY = new OptionKey<>(false);
   public static final OptionDescriptor DISABLE_LINTING_DESCRIPTOR =
-          OptionDescriptor.newBuilder(DISABLE_LINTING_KEY, DISABLE_LINTING).build();
+      OptionDescriptor.newBuilder(DISABLE_LINTING_KEY, DISABLE_LINTING).build();
 
   public static final String INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION =
       interpreterOptionName("sequentialCommandExecution");

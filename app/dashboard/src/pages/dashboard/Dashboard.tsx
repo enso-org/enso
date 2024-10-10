@@ -2,14 +2,13 @@
  * interactive components. */
 import * as React from 'react'
 
-import * as validator from 'validator'
 import * as z from 'zod'
 
 import * as detect from 'enso-common/src/detect'
 
 import DriveIcon from '#/assets/drive.svg'
-import EditorIcon from '#/assets/network.svg'
 import SettingsIcon from '#/assets/settings.svg'
+import WorkspaceIcon from '#/assets/workspace.svg'
 
 import * as eventCallbacks from '#/hooks/eventCallbackHooks'
 import * as projectHooks from '#/hooks/projectHooks'
@@ -56,9 +55,13 @@ import * as backendModule from '#/services/Backend'
 import * as localBackendModule from '#/services/LocalBackend'
 import * as projectManager from '#/services/ProjectManager'
 
+import { baseName } from '#/utilities/fileInfo'
 import LocalStorage from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
+import { tryFindSelfPermission } from '#/utilities/permissions'
+import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
+import { usePrefetchQuery } from '@tanstack/react-query'
 
 // ============================
 // === Global configuration ===
@@ -97,6 +100,27 @@ export default function Dashboard(props: DashboardProps) {
   )
 }
 
+/**
+ * Extract proper path from `file://` URL.
+ */
+function fileURLToPath(url: string): string | null {
+  if (URL.canParse(url)) {
+    const parsed = new URL(url)
+    if (parsed.protocol === 'file:') {
+      return decodeURIComponent(
+        detect.platform() === detect.Platform.windows ?
+          // On Windows, we must remove leading `/` from URL.
+          parsed.pathname.slice(1)
+        : parsed.pathname,
+      )
+    } else {
+      return null
+    }
+  } else {
+    return null
+  }
+}
+
 /** The component that contains the entire UI. */
 function DashboardInner(props: DashboardProps) {
   const { appRunner, initialProjectName: initialProjectNameRaw, ydocUrl } = props
@@ -113,11 +137,9 @@ function DashboardInner(props: DashboardProps) {
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
   const assetManagementApiRef = React.useRef<assetTable.AssetManagementApi | null>(null)
 
-  const initialLocalProjectId =
-    initialProjectNameRaw != null && validator.isUUID(initialProjectNameRaw) ?
-      localBackendModule.newProjectId(projectManager.UUID(initialProjectNameRaw))
-    : null
-  const initialProjectName = initialLocalProjectId ?? initialProjectNameRaw
+  const initialLocalProjectPath =
+    initialProjectNameRaw != null ? fileURLToPath(initialProjectNameRaw) : null
+  const initialProjectName = initialLocalProjectPath != null ? null : initialProjectNameRaw
 
   const [category, setCategory] = searchParamsState.useSearchParamsState<categoryModule.Category>(
     'driveCategory',
@@ -139,6 +161,30 @@ function DashboardInner(props: DashboardProps) {
   const clearLaunchedProjects = useClearLaunchedProjects()
   const openProjectMutation = projectHooks.useOpenProjectMutation()
   const renameProjectMutation = projectHooks.useRenameProjectMutation()
+
+  usePrefetchQuery({
+    queryKey: ['loadInitialLocalProject'],
+    networkMode: 'always',
+    ...STATIC_QUERY_OPTIONS,
+    queryFn: async () => {
+      if (initialLocalProjectPath != null && window.backendApi && localBackend) {
+        const projectName = baseName(initialLocalProjectPath)
+        const { id } = await window.backendApi.importProjectFromPath(
+          initialLocalProjectPath,
+          localBackend.rootPath(),
+          projectName,
+        )
+        openProject({
+          type: backendModule.BackendType.local,
+          id: localBackendModule.newProjectId(projectManager.UUID(id)),
+          title: projectName,
+          parentId: localBackendModule.newDirectoryId(localBackend.rootPath()),
+        })
+      }
+      return null
+    },
+    staleTime: Infinity,
+  })
 
   React.useEffect(() => {
     window.projectManagementApi?.setOpenProjectHandler((project) => {
@@ -207,12 +253,7 @@ function DashboardInner(props: DashboardProps) {
   const doOpenShareModal = eventCallbacks.useEventCallback(() => {
     if (assetManagementApiRef.current != null && selectedProject != null) {
       const asset = assetManagementApiRef.current.getAsset(selectedProject.id)
-      const self =
-        asset?.permissions?.find(
-          backendModule.isUserPermissionAnd(
-            (permissions) => permissions.user.userId === user.userId,
-          ),
-        ) ?? null
+      const self = tryFindSelfPermission(user, asset?.permissions)
 
       if (asset != null && self != null) {
         setModal(
@@ -270,7 +311,7 @@ function DashboardInner(props: DashboardProps) {
                   project={project}
                   key={project.id}
                   isActive={page === project.id}
-                  icon={EditorIcon}
+                  icon={WorkspaceIcon}
                   labelId="editorPageName"
                   onClose={() => {
                     closeProject(project)

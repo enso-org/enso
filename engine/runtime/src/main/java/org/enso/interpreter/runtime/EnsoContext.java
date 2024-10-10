@@ -42,6 +42,7 @@ import java.util.logging.Level;
 import org.enso.common.LanguageInfo;
 import org.enso.common.RuntimeOptions;
 import org.enso.compiler.Compiler;
+import org.enso.compiler.core.EnsoParser;
 import org.enso.compiler.data.CompilerConfig;
 import org.enso.compiler.dump.IRDumper;
 import org.enso.distribution.DistributionManager;
@@ -51,6 +52,7 @@ import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.OptionsHelper;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.instrument.NotificationHandler;
@@ -106,7 +108,7 @@ public final class EnsoContext {
   private final AtomicLong clock = new AtomicLong();
 
   private final Shape rootStateShape = Shape.newBuilder().layout(State.Container.class).build();
-  private ExecutionEnvironment executionEnvironment;
+  private ExecutionEnvironment globalExecutionEnvironment;
 
   private final int warningsLimit;
 
@@ -142,7 +144,7 @@ public final class EnsoContext {
         getOption(RuntimeOptions.DISABLE_IR_CACHES_KEY) || isParallelismEnabled;
     this.isPrivateCheckDisabled = getOption(RuntimeOptions.DISABLE_PRIVATE_CHECK_KEY);
     this.isStaticTypeAnalysisEnabled = getOption(RuntimeOptions.ENABLE_STATIC_ANALYSIS_KEY);
-    this.executionEnvironment = getOption(EnsoLanguage.EXECUTION_ENVIRONMENT);
+    this.globalExecutionEnvironment = getOption(EnsoLanguage.EXECUTION_ENVIRONMENT);
     this.assertionsEnabled = shouldAssertionsBeEnabled();
     this.shouldWaitForPendingSerializationJobs =
         getOption(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS_KEY);
@@ -295,6 +297,7 @@ public final class EnsoContext {
     guestJava = null;
     topScope = null;
     hostClassLoader.close();
+    EnsoParser.freeAll();
   }
 
   private boolean shouldAssertionsBeEnabled() {
@@ -866,13 +869,49 @@ public final class EnsoContext {
     return clock.getAndIncrement();
   }
 
+  public ExecutionEnvironment getGlobalExecutionEnvironment() {
+    return globalExecutionEnvironment;
+  }
+
   public ExecutionEnvironment getExecutionEnvironment() {
-    return executionEnvironment;
+    ExecutionEnvironment env = language.getExecutionEnvironment();
+    return env == null ? getGlobalExecutionEnvironment() : env;
   }
 
   /** Set the runtime execution environment of this context. */
   public void setExecutionEnvironment(ExecutionEnvironment executionEnvironment) {
-    this.executionEnvironment = executionEnvironment;
+    this.globalExecutionEnvironment = executionEnvironment;
+    language.setExecutionEnvironment(executionEnvironment);
+  }
+
+  /**
+   * Enable execution context in the execution environment.
+   *
+   * @param context the execution context
+   * @param environmentName the execution environment name
+   * @return the execution environment version before modification
+   */
+  public ExecutionEnvironment enableExecutionEnvironment(Atom context, String environmentName) {
+    ExecutionEnvironment original = globalExecutionEnvironment;
+    if (original.getName().equals(environmentName)) {
+      setExecutionEnvironment(original.withContextEnabled(context));
+    }
+    return original;
+  }
+
+  /**
+   * Enable execution context in the execution environment.
+   *
+   * @param context the execution context
+   * @param environmentName the execution environment name
+   * @return the execution environment version before modification
+   */
+  public ExecutionEnvironment disableExecutionEnvironment(Atom context, String environmentName) {
+    ExecutionEnvironment original = globalExecutionEnvironment;
+    if (original.getName().equals(environmentName)) {
+      setExecutionEnvironment(original.withContextDisabled(context));
+    }
+    return original;
   }
 
   /** Returns a maximal number of warnings that can be attached to a value */

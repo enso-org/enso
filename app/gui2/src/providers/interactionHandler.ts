@@ -1,5 +1,4 @@
 import { createContextStore } from '@/providers'
-import type { GraphNavigator } from '@/providers/graphNavigator'
 import { shallowRef, watch, type WatchSource } from 'vue'
 
 export { injectFn as injectInteractionHandler, provideFn as provideInteractionHandler }
@@ -8,9 +7,11 @@ const { provideFn, injectFn } = createContextStore(
   () => new InteractionHandler(),
 )
 
+/** TODO: Add docs */
 export class InteractionHandler {
   private currentInteraction = shallowRef<Interaction>()
 
+  /** TODO: Add docs */
   isActive(interaction: Interaction | undefined): interaction is Interaction {
     return interaction != null && interaction === this.currentInteraction.value
   }
@@ -26,6 +27,7 @@ export class InteractionHandler {
     })
   }
 
+  /** TODO: Add docs */
   setCurrent(interaction: Interaction | undefined) {
     if (!this.isActive(interaction)) {
       this.currentInteraction.value?.end?.()
@@ -33,6 +35,7 @@ export class InteractionHandler {
     }
   }
 
+  /** TODO: Add docs */
   getCurrent(): Interaction | undefined {
     return this.currentInteraction.value
   }
@@ -58,6 +61,7 @@ export class InteractionHandler {
     }
   }
 
+  /** TODO: Add docs */
   handleCancel(): boolean {
     const hasCurrent = this.currentInteraction.value != null
     this.currentInteraction.value?.cancel?.()
@@ -65,16 +69,16 @@ export class InteractionHandler {
     return hasCurrent
   }
 
+  /** TODO: Add docs */
   handlePointerEvent<HandlerName extends keyof Interaction>(
     event: PointerEvent,
     handlerName: Interaction[HandlerName] extends InteractionEventHandler | undefined ? HandlerName
     : never,
-    graphNavigator: GraphNavigator,
   ): boolean {
     if (!this.currentInteraction.value) return false
     const handler = this.currentInteraction.value[handlerName]
     if (!handler) return false
-    const handled = handler.bind(this.currentInteraction.value)(event, graphNavigator) !== false
+    const handled = handler.bind(this.currentInteraction.value)(event) !== false
     if (handled) {
       event.stopImmediatePropagation()
       event.preventDefault()
@@ -83,7 +87,7 @@ export class InteractionHandler {
   }
 }
 
-type InteractionEventHandler = (event: PointerEvent, navigator: GraphNavigator) => boolean | void
+type InteractionEventHandler = (event: PointerEvent) => boolean | void
 
 export interface Interaction {
   /** Called when the interaction is explicitly canceled, e.g. with the `Esc` key. */
@@ -92,8 +96,10 @@ export interface Interaction {
   end?(): void
   /** Uses a `capture` event handler to allow an interaction to respond to clicks over any element. */
   pointerdown?: InteractionEventHandler
-  /** Uses a `capture` event handler to allow an interaction to respond to mouse button release
+  /**
+   * Uses a `capture` event handler to allow an interaction to respond to mouse button release
    * over any element. It is useful for interactions happening during mouse press (like dragging
-   * edges) */
+   * edges)
+   */
   pointerup?: InteractionEventHandler
 }

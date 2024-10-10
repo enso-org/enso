@@ -20,7 +20,10 @@ Cargo.toml
 /tools/build-performance/ @kazcw @Akirathan
 
 # Scala Libraries
-/lib/scala/ @4e6 @jaroslavtulach @hubertp
+/lib/scala/ @4e6 @jaroslavtulach @hubertp @Akirathan
+
+# Java libraries
+/lib/java/ @4e6 @jaroslavtulach @hubertp @Akirathan
 
 # GUI
 /app/gui2/ @Frizi @farmaazon @vitvakatu @kazcw @AdRiley
@@ -30,7 +33,7 @@ Cargo.toml
 /build.sbt @4e6 @jaroslavtulach @hubertp @Akirathan
 /distribution/ @4e6 @jdunkerley @radeusgd @GregoryTravis @AdRiley @marthasharkey
 /engine/ @4e6 @jaroslavtulach @hubertp @Akirathan
-/project/ @4e6 @jaroslavtulach @hubertp
+/project/ @4e6 @jaroslavtulach @hubertp @Akirathan
 /tools/ @4e6 @jaroslavtulach @radeusgd @hubertp
 
 # Enso Libraries

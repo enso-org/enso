@@ -50,8 +50,9 @@ function ColorPickerItem(props: InternalColorPickerItemProps) {
 // ===================
 
 /** Props for a {@link ColorPicker}. */
-export interface ColorPickerProps extends Readonly<aria.RadioGroupProps> {
+export interface ColorPickerProps extends Readonly<Omit<aria.RadioGroupProps, 'className'>> {
   readonly children?: React.ReactNode
+  readonly className?: string
   readonly pickerClassName?: string
   readonly setColor: (color: backend.LChColor) => void
 }
@@ -61,12 +62,13 @@ export default forwardRef(ColorPicker)
 
 /** A color picker to select from a predetermined list of colors. */
 function ColorPicker(props: ColorPickerProps, ref: React.ForwardedRef<HTMLDivElement>) {
-  const { pickerClassName = '', children, setColor, ...radioGroupProps } = props
+  const { className, pickerClassName = '', children, setColor, ...radioGroupProps } = props
   return (
     <RadioGroup
       ref={ref}
       {...radioGroupProps}
       orientation="horizontal"
+      className={tailwindMerge.twMerge('flex flex-col', className)}
       onChange={(value) => {
         const color = backend.COLOR_STRING_TO_COLOR.get(value)
         if (color != null) {
@@ -75,7 +77,12 @@ function ColorPicker(props: ColorPickerProps, ref: React.ForwardedRef<HTMLDivEle
       }}
     >
       {children}
-      <div className={tailwindMerge.twMerge('flex items-center gap-colors', pickerClassName)}>
+      <div
+        className={tailwindMerge.twMerge(
+          'flex items-center justify-between gap-colors',
+          pickerClassName,
+        )}
+      >
         {backend.COLORS.map((currentColor, i) => (
           <ColorPickerItem key={i} color={currentColor} />
         ))}

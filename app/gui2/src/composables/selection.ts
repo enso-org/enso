@@ -1,16 +1,17 @@
 /** @file A Vue composable for keeping track of selected DOM elements. */
 import { selectionMouseBindings } from '@/bindings'
-import { useEvent, usePointer } from '@/composables/events'
+import { useEvent } from '@/composables/events'
 import type { PortId } from '@/providers/portInfo.ts'
 import { type NodeId } from '@/stores/graph'
 import { filter, filterDefined, map } from '@/util/data/iterable'
 import type { Rect } from '@/util/data/rect'
 import { intersectionSize } from '@/util/data/set'
-import type { Vec2 } from '@/util/data/vec2'
+import { Vec2 } from '@/util/data/vec2'
 import { dataAttribute, elementHierarchy } from '@/util/dom'
 import * as set from 'lib0/set'
 import { computed, ref, shallowReactive, shallowRef } from 'vue'
 import { Err, Ok, type Result } from 'ydoc-shared/util/data/result'
+import { NavigatorComposable } from './navigator'
 
 interface BaseSelectionOptions<T> {
   margin?: number
@@ -19,7 +20,8 @@ interface BaseSelectionOptions<T> {
   onDeselected?: (element: T) => void
 }
 interface SelectionPackingOptions<T, PackedT> {
-  /** The `pack` and `unpack` functions are used to maintain state in a transformed form.
+  /**
+   * The `pack` and `unpack` functions are used to maintain state in a transformed form.
    *
    * If provided, all operations that modify or query state will transparently operate on packed state. This can be
    * used to expose a selection interface based on one element type (`T`), while allowing the selection set to be
@@ -35,17 +37,18 @@ export type SelectionOptions<T, PackedT> =
   | (BaseSelectionOptions<T> & SelectionPackingOptions<T, PackedT>)
 
 export function useSelection<T>(
-  navigator: { sceneMousePos: Vec2 | null; scale: number },
+  navigator: NavigatorComposable,
   elementRects: Map<T, Rect>,
   options?: BaseSelectionOptions<T>,
 ): UseSelection<T, T>
 export function useSelection<T, PackedT>(
-  navigator: { sceneMousePos: Vec2 | null; scale: number },
+  navigator: NavigatorComposable,
   elementRects: Map<T, Rect>,
   options: BaseSelectionOptions<T> & SelectionPackingOptions<T, PackedT>,
 ): UseSelection<T, PackedT>
+/** TODO: Add docs */
 export function useSelection<T, PackedT>(
-  navigator: { sceneMousePos: Vec2 | null; scale: number },
+  navigator: NavigatorComposable,
   elementRects: Map<T, Rect>,
   options: SelectionOptions<T, PackedT> = {},
 ): UseSelection<T, PackedT> {
@@ -71,12 +74,13 @@ export function useSelection<T, PackedT>(
 
 type UseSelection<T, PackedT> = ReturnType<typeof useSelectionImpl<T, PackedT>>
 function useSelectionImpl<T, PackedT>(
-  navigator: { sceneMousePos: Vec2 | null; scale: number },
+  navigator: NavigatorComposable,
   elementRects: Map<T, Rect>,
   { margin, isValid, onSelected, onDeselected }: Required<BaseSelectionOptions<T>>,
   { pack, unpack }: SelectionPackingOptions<T, PackedT>,
 ) {
   const anchor = shallowRef<Vec2>()
+  const focus = shallowRef<Vec2>()
   let initiallySelected = new Set<T>()
   // Selection, including elements that do not (currently) pass `isValid`.
   const rawSelected = shallowReactive(new Set<PackedT>())
@@ -153,13 +157,15 @@ function useSelectionImpl<T, PackedT>(
     },
   })
 
+  const dragging = ref(false)
+
   const intersectingElements = computed<Set<T>>(() => {
-    if (!pointer.dragging || anchor.value == null || navigator.sceneMousePos == null) {
+    if (!dragging.value || anchor.value == null || focus.value == null) {
       return new Set()
     }
     const navigatorSpaceMargin = margin / navigator.scale
 
-    const a = navigator.sceneMousePos
+    const a = focus.value
     const b = anchor.value
 
     const left = Math.min(a.x, b.x) - navigatorSpaceMargin
@@ -189,27 +195,30 @@ function useSelectionImpl<T, PackedT>(
     overrideElemsToSelect.value = undefined
   }
 
-  const pointer = usePointer(
-    (_pos, event, eventType) => {
-      if (eventType === 'start') {
-        readInitiallySelected()
-      } else if (eventType === 'stop') {
-        if (anchor.value == null) {
-          // If there was no drag, we want to handle "clicking-off" selected nodes.
-          selectionEventHandler(event)
-        } else {
-          anchor.value = undefined
-        }
-        initiallySelected.clear()
-      } else if (pointer.dragging) {
-        if (anchor.value == null) {
-          anchor.value = navigator.sceneMousePos?.copy()
-        }
-        selectionEventHandler(event)
+  navigator.addHoldDragListener((state) => {
+    dragging.value = state.dragging
+
+    const eventPosition = navigator.clientToScenePos(Vec2.FromTuple(state.xy))
+
+    if (state.first) {
+      readInitiallySelected()
+    }
+    if (state.last) {
+      if (anchor.value == null) {
+        // If there was no drag, we want to handle "clicking-off" selected nodes.
+        selectionEventHandler(state.event)
       }
-    },
-    { predicate: (e) => e.target === e.currentTarget },
-  )
+      anchor.value = undefined
+      focus.value = undefined
+      initiallySelected.clear()
+    } else if (state.dragging) {
+      if (anchor.value == null) {
+        anchor.value = eventPosition
+      }
+      focus.value = eventPosition
+      selectionEventHandler(state.event)
+    }
+  })
 
   return {
     // === Selected nodes ===
@@ -230,15 +239,16 @@ function useSelectionImpl<T, PackedT>(
     tryGetSoleSelection,
     // === Selection changes ===
     anchor,
+    focus,
     isChanging,
     // === Mouse events ===
     handleSelectionOf,
-    events: pointer.events,
   }
 }
 
 // === Hover tracking for nodes and ports ===
 
+/** TODO: Add docs */
 export function useGraphHover(isPortEnabled: (port: PortId) => boolean) {
   const hoveredElement = shallowRef<Element>()
 

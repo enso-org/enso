@@ -1,7 +1,8 @@
 /** @file Modal for confirming delete of any type of asset. */
 import * as z from 'zod'
 
-import { Button, ButtonGroup, Dialog, Form, Text } from '#/components/AriaComponents'
+import { ButtonGroup, Dialog, Form, Text } from '#/components/AriaComponents'
+import { useSetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
 
 // ==========================
@@ -21,29 +22,26 @@ export interface ConfirmDeleteModalProps {
 /** A modal for confirming the deletion of an asset. */
 export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
   const { defaultOpen, actionText, actionButtonLabel = 'Delete', doDelete } = props
+
+  const { unsetModal } = useSetModal()
   const { getText } = useText()
 
   return (
-    <Dialog title={getText('areYouSure')} modalProps={defaultOpen == null ? {} : { defaultOpen }}>
-      {({ close }) => (
-        <Form
-          schema={z.object({})}
-          method="dialog"
-          data-testid="confirm-delete-modal"
-          tabIndex={-1}
-          onSubmit={doDelete}
-        >
-          <Text className="relative">{getText('confirmPrompt', actionText)}</Text>
-          <ButtonGroup className="relative">
-            <Form.Submit variant="delete" className="relative">
-              {actionButtonLabel}
-            </Form.Submit>
-            <Button size="medium" variant="outline" autoFocus className="relative" onPress={close}>
-              {getText('cancel')}
-            </Button>
-          </ButtonGroup>
-        </Form>
-      )}
+    <Dialog
+      title={getText('areYouSure')}
+      role="alertdialog"
+      modalProps={defaultOpen == null ? {} : { defaultOpen }}
+    >
+      <Form schema={z.object({})} method="dialog" onSubmit={doDelete} onSubmitSuccess={unsetModal}>
+        <Text className="relative">{getText('confirmPrompt', actionText)}</Text>
+
+        <ButtonGroup>
+          <Form.Submit variant="delete" className="relative">
+            {actionButtonLabel}
+          </Form.Submit>
+          <Form.Submit action="cancel" />
+        </ButtonGroup>
+      </Form>
     </Dialog>
   )
 }

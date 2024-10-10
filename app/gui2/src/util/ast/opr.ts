@@ -23,6 +23,7 @@ export class GeneralOprApp<HasIdMap extends boolean = true> {
     expr: RawAstExtended<RawAst.Tree, HasIdMap> | null
   }[]
 
+  /** TODO: Add docs */
   constructor(ast: OperatorChain<HasIdMap>) {
     this.lhs = ast.tryMap((t) => t.lhs) ?? null
     if (ast.isTree(RawAst.Tree.Type.OprApp)) {
@@ -68,7 +69,8 @@ export class GeneralOprApp<HasIdMap extends boolean = true> {
     }
   }
 
-  /** Read operands of an operator chain. Operator is assumed to be left-associative.
+  /**
+   * Read operands of an operator chain. Operator is assumed to be left-associative.
    *
    * Works like `operandsOfLeftAssocOprChain` defined in this module, see its docs for details.
    */
@@ -103,7 +105,8 @@ export class GeneralOprApp<HasIdMap extends boolean = true> {
   }
 }
 
-/** An operand of some operator application chain.
+/**
+ * An operand of some operator application chain.
  *
  * There is a special case, where operand is a part of OperatorBlockApplication which is not
  * representable by any AST structure.
@@ -116,15 +119,14 @@ export type Operand<HasIdMap extends boolean = true> =
       statements: number
     }
 
-/** Read operands of an operator chain. Operator is assumed to be left-associative.
+/**
+ * Read operands of an operator chain. Operator is assumed to be left-associative.
  *
  * It flattens applications of same operator, e.g. for `2 + 3 + 4` will return `2`, `3`, and `4`,
  * but `2 - 3 + 4` will return `2 - 3` as first operand, and then `4`. If the ast is not
  * an operator application (of this specific operator if provided), `this` will be returned as
- *  a single operand.
- *
+ * a single operand.
  * @param ast the subtree which we assume is an operator application chain.
- * @param code the code from which the entire AST was generated.
  * @param expectedOpr if specified, the chain will be of specific operator.
  */
 export function* operandsOfLeftAssocOprChain<HasIdMap extends boolean = true>(

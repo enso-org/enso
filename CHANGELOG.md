@@ -2,6 +2,22 @@
 
 #### Enso IDE
 
+- [Rows and Columns may be now removed in Table Input Widget][11151]. The option
+  is available in right-click context menu.
+
+[11151]: https://github.com/enso-org/enso/pull/11151
+
+#### Enso Standard Library
+
+- [The `enso://~` path now resolves to user's home directory in the
+  cloud.][11235]
+
+[11235]: https://github.com/enso-org/enso/pull/11235
+
+# Enso 2024.4
+
+#### Enso IDE
+
 - [Table Editor Widget][10774] displayed in `Table.new` component.
 - [New design of Component Browser][10814] - the component list is under the
   input and shown only in the initial "component browsing" mode - in this mode
@@ -14,6 +30,16 @@
   updated actual code][10857]
 - [Added fullscreen modes to documentation editor and code editor][10876]
 - [Fixed issue with node name assignment when uploading multiple files.][10979]
+- [Cloud file browser inserts `enso:` paths][11001]
+- [Fixed issue where drag'n'dropped files were not uploaded in cloud
+  projects.][11014]
+- [Fixed files associations not properly registered on Windows][11030]
+- [Input components corresponding to function arguments are now
+  displayed.][11165]
+- [Fixed "rename project" button being broken after not changing project
+  name][11103]
+- [Numbers starting with dot (`.5`) are accepted in Numeric Widget][11108]
+- [Add support for interacting with graph editor using touch devices.][11056]
 
 [10774]: https://github.com/enso-org/enso/pull/10774
 [10814]: https://github.com/enso-org/enso/pull/10814
@@ -21,6 +47,13 @@
 [10857]: https://github.com/enso-org/enso/pull/10857
 [10876]: https://github.com/enso-org/enso/pull/10876
 [10979]: https://github.com/enso-org/enso/pull/10979
+[11001]: https://github.com/enso-org/enso/pull/11001
+[11014]: https://github.com/enso-org/enso/pull/11014
+[11030]: https://github.com/enso-org/enso/pull/11030
+[11165]: https://github.com/enso-org/enso/pull/11165
+[11103]: https://github.com/enso-org/enso/pull/11103
+[11108]: https://github.com/enso-org/enso/pull/11108
+[11056]: https://github.com/enso-org/enso/pull/11056
 
 #### Enso Standard Library
 
@@ -35,8 +68,14 @@
 - [Support for creating Atoms in expressions.][10820]
 - [IO.print without new line][10858]
 - [Add `Text.to_decimal`.][10874]
-- [Added .floor, .ceil, .trunc to the in-memory `Decimal` column.][10887]
+- [Added `floor`, `ceil`, `trunc` to the in-memory `Decimal` column.][10887]
 - [Added vectorized .round to the in-memory `Decimal` column.][10912]
+- [`select_into_database_table` no longer defaults the primary key to the first
+  column.][11120]
+- [Extend the range of `floor`, `ceil`, `trunc` to values outside the `Long`
+  range.][11135]
+- [Added `format` parameter to `Decimal.parse`.][11205]
+- [Added `format` parameter to `Float.parse`.][11229]
 
 [10614]: https://github.com/enso-org/enso/pull/10614
 [10660]: https://github.com/enso-org/enso/pull/10660
@@ -48,6 +87,10 @@
 [10874]: https://github.com/enso-org/enso/pull/10874
 [10887]: https://github.com/enso-org/enso/pull/10887
 [10912]: https://github.com/enso-org/enso/pull/10912
+[11120]: https://github.com/enso-org/enso/pull/11120
+[11135]: https://github.com/enso-org/enso/pull/11135
+[11205]: https://github.com/enso-org/enso/pull/11205
+[11229]: https://github.com/enso-org/enso/pull/11229
 
 #### Enso Language & Runtime
 
@@ -108,6 +151,7 @@
   `Comparable.new`][10468]
 - [Added `dec` construction function for creating `Decimal`s.][10517]
 - [Added initial read support for SQLServer][10324]
+- [Upgraded SQLite to version 3.46.1.][10911]
 
 [10434]: https://github.com/enso-org/enso/pull/10434
 [10445]: https://github.com/enso-org/enso/pull/10445
@@ -116,6 +160,7 @@
 [10474]: https://github.com/enso-org/enso/pull/10474
 [10517]: https://github.com/enso-org/enso/pull/10517
 [10324]: https://github.com/enso-org/enso/pull/10324
+[10911]: https://github.com/enso-org/enso/pull/10911
 
 # Enso 2024.2
 

@@ -384,11 +384,15 @@ export function getProjectRoot(subtreePath: string): string | null {
 
 /** Get the directory that stores Enso projects. */
 export function getProjectsDirectory(): string {
-  const documentsPath = desktopEnvironment.DOCUMENTS
-  if (documentsPath === undefined) {
-    return pathModule.join(os.homedir(), 'enso', 'projects')
+  if (process.env.ENSO_TEST != null && process.env.ENSO_TEST !== '') {
+    return pathModule.join(os.tmpdir(), 'enso-test-projects', process.env.ENSO_TEST)
   } else {
-    return pathModule.join(documentsPath, 'enso-projects')
+    const documentsPath = desktopEnvironment.DOCUMENTS
+    if (documentsPath === undefined) {
+      return pathModule.join(os.homedir(), 'enso', 'projects')
+    } else {
+      return pathModule.join(documentsPath, 'enso-projects')
+    }
   }
 }
 
@@ -422,9 +426,11 @@ export function bumpMetadata(
     let index: number | null = null
     const prefix = `${currentName} `
     for (const sibling of fs.readdirSync(parentDirectory, { withFileTypes: true })) {
-      if (sibling.isDirectory()) {
+      const siblingPath = pathModule.join(parentDirectory, sibling.name)
+      if (siblingPath === projectRoot) {
+        continue
+      } else if (sibling.isDirectory()) {
         try {
-          const siblingPath = pathModule.join(parentDirectory, sibling.name)
           const siblingName = getPackageName(siblingPath)
           if (siblingName === currentName) {
             index = index ?? 2

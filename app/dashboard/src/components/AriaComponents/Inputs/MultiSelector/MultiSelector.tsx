@@ -1,9 +1,6 @@
 /** @file A horizontal selector supporting multiple input. */
 import { useRef, type CSSProperties, type ForwardedRef, type Ref } from 'react'
 
-import { Controller } from 'react-hook-form'
-import type { VariantProps } from 'tailwind-variants'
-
 import { omit, unsafeRemoveUndefined } from 'enso-common/src/utilities/data/object'
 
 import {
@@ -23,7 +20,7 @@ import {
 } from '#/components/AriaComponents'
 import { mergeRefs } from '#/utilities/mergeRefs'
 import { forwardRef } from '#/utilities/react'
-import { tv } from '#/utilities/tailwindVariants'
+import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import { MultiSelectorOption } from './MultiSelectorOption'
 
 /** * Props for the MultiSelector component. */
@@ -142,7 +139,7 @@ export const MultiSelector = forwardRef(function MultiSelector<
         className={classes.base()}
         onClick={() => privateInputRef.current?.focus({ preventScroll: true })}
       >
-        <Controller
+        <Form.Controller
           control={formInstance.control}
           name={name}
           render={(renderProps) => {

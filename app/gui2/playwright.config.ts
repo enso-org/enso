@@ -1,9 +1,11 @@
 /** @file Playwright browser testing configuration. */
-/** Note that running Playwright in CI poses a number of issues:
+/**
+ * Note that running Playwright in CI poses a number of issues:
  * - `backdrop-filter: blur` is disabled, due to issues with Chromium's `--disable-gpu` flag
  * (see below).
  * - System validation dialogs are not reliable between computers, as they may have different
- * default fonts. */
+ * default fonts.
+ */
 import { defineConfig } from '@playwright/test'
 import net from 'net'
 
@@ -29,6 +31,7 @@ function checkAvailablePort(port: number) {
 
 const portFromEnv = parseInt(process.env.PLAYWRIGHT_PORT ?? '', 10)
 const PORT = Number.isFinite(portFromEnv) ? portFromEnv : await findFreePortInRange(4300, 4999)
+console.log(`Selected playwright server port: ${PORT}`)
 // Make sure to set the env to actual port that is being used. This is necessary for workers to
 // pick up the same configuration.
 process.env.PLAYWRIGHT_PORT = `${PORT}`
@@ -117,7 +120,7 @@ export default defineConfig({
         `corepack pnpm build && corepack pnpm exec vite preview --port ${PORT} --strictPort`
       : `corepack pnpm exec vite dev --port ${PORT}`,
     // Build from scratch apparently can take a while on CI machines.
-    timeout: 120 * 1000,
+    timeout: 240 * 1000,
     port: PORT,
     // We use our special, mocked version of server, thus do not want to re-use user's one.
     reuseExistingServer: false,

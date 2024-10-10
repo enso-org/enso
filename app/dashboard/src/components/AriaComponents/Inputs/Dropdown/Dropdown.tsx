@@ -47,7 +47,7 @@ const DROPDOWN_STYLES = tv({
   slots: {
     container: 'absolute left-0 h-full w-full min-w-max',
     options:
-      'relative before:absolute before:top before:w-full before:rounded-input before:border-0.5 before:border-primary/20 before:backdrop-blur-default before:transition-colors',
+      'relative backdrop-blur-md before:absolute before:top before:w-full before:rounded-input before:border-0.5 before:border-primary/20 before:transition-colors',
     optionsSpacing: 'padding relative h-6',
     optionsContainer:
       'relative grid max-h-dropdown-items w-full overflow-auto rounded-input transition-grid-template-rows',

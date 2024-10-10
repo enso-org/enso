@@ -4,7 +4,9 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Table import Value_Type, Bits
 from Standard.Table.Errors import Loss_Of_Decimal_Precision, Loss_Of_Integer_Precision, Missing_Input_Columns, Conversion_Failure
 
-from Standard.Database.Errors import Unsupported_Database_Operation
+from Standard.Database.Errors import Unsupported_Database_Operation, Unsupported_Database_Type
+
+import Standard.Database.Feature.Feature
 
 from Standard.Test import all
 
@@ -24,6 +26,9 @@ type Lazy_Ref
     Value ~get
 
 add_specs suite_builder setup =
+    if setup.is_feature_supported Feature.Column_Operations then (add_conversion_specs suite_builder setup)
+
+add_conversion_specs suite_builder setup =
     prefix = setup.prefix
     materialize = setup.materialize
     supports_dates = setup.test_selection.date_time
@@ -588,10 +593,10 @@ add_specs suite_builder setup =
                 t = table_builder [["X", ["2018-01-01", "2023-12-31"]]]
 
                 r1 = t.at "X" . parse Value_Type.Date
-                r1.should_fail_with Unsupported_Database_Operation
+                r1.should_fail_with Unsupported_Database_Type
 
                 r2 = t.parse ["X"] Value_Type.Date
-                r2.should_fail_with Unsupported_Database_Operation
+                r2.should_fail_with Unsupported_Database_Type
 
         group_builder.specify "should be able to parse booleans with default format" <|
             t = table_builder [["X", ["true", "false", "true"]]]

@@ -185,8 +185,7 @@ type Table
                  row_3 =  [ 3     , True  , 'c'   ]
                  Table.from_rows header [row_1, row_2, row_3]
     @header (Widget.Vector_Editor item_editor=Widget.Text_Input item_default='"Column"')
-    from_rows : Vector -> Vector -> Table
-    from_rows header rows =
+    from_rows header:Vector rows:Vector -> Table =
         columns = header.map_with_index i-> name-> [name, rows.map (_.at i)]
         Table.new columns
 
@@ -993,7 +992,7 @@ type Table
             Warning.with_suspended new_names names->
                 Table.new (self.columns.map c-> c.rename (names.at c.name))
 
-    ## ALIAS rename
+    ## ALIAS rename, header
        GROUP Standard.Base.Metadata
        ICON table_edit
        Returns a new table with the columns renamed based on entries in the
@@ -1033,7 +1032,7 @@ type Table
         problem_builder.attach_problems_before on_problems <|
             self.drop (..First 1) . rename_columns new_names_cleaned on_problems=on_problems
 
-    ## ALIAS group by, summarize
+    ## ALIAS group by, summarize, count, count distinct, sum, average, mean, median, percentile, mode, standard deviation, variance, minimum, maximum, first, last, shortest, longest
        GROUP Standard.Base.Calculations
        ICON transform4
 
@@ -2239,7 +2238,7 @@ type Table
 
        Arguments:
        - name: The name of the new column. Defaults to "Row".
-       - from: The starting value for the enumeration. Defaults to 1.
+       - from: The starting value for the enumeration. Defaults to 0.
        - step: The amount to increment the enumeration by. Defaults to 1.
        - group_by: Specifies the columns to group by. The row numbers are
          counted separately for each group. By default, all rows are treated as
@@ -2264,10 +2263,12 @@ type Table
            existing column is renamed to avoid the clash.
          - If grouping on floating point numbers, a `Floating_Point_Equality`
            problem is reported.
-    @group_by Widget_Helpers.make_column_name_multi_selector
-    @order_by Widget_Helpers.make_order_by_selector
+    @name (Widget.Text_Input display=..Always)
+    @from (Widget.Numeric_Input display=..Always)
+    @group_by (Widget_Helpers.make_column_name_multi_selector display=..When_Modified)
+    @order_by (Widget_Helpers.make_order_by_selector display=..When_Modified)
     add_row_number : Text -> Integer -> Integer -> Vector (Text | Integer | Regex) | Text | Integer | Regex -> Vector (Text | Sort_Column) | Text -> Problem_Behavior -> Table
-    add_row_number self (name:Text="Row") (from:Integer=1) (step:Integer=1) (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (on_problems:Problem_Behavior=..Report_Warning) =
+    add_row_number self (name:Text="Row") (from:Integer=0) (step:Integer=1) (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (on_problems:Problem_Behavior=..Report_Warning) =
         Add_Row_Number.add_row_number self name from step group_by order_by on_problems
 
     ## ALIAS add column, expression, formula, new column, update column
@@ -3024,7 +3025,8 @@ type Table
     row_count : Integer
     row_count self = self.java_table.rowCount
 
-    ## ICON data_input
+    ## PRIVATE
+       ICON data_input
        Returns a materialized dataframe containing rows of this table.
 
        In the in-memory backend, this returns the same table, truncated to
@@ -3280,7 +3282,8 @@ type Table
         mask = OrderMask.reverse self.row_count
         Table.Value <| self.java_table.applyMask mask
 
-    ## GROUP Standard.Base.Output
+    ## ALIAS export, save, output, to_file
+       GROUP Standard.Base.Output
        ICON data_output
        This function writes a table from memory into a file.
 
@@ -3592,7 +3595,7 @@ type Table
         transformer col = col.text_cleanse remove
         Table_Helpers.replace_columns_with_transformed_columns self from transformer
 
-    ## ALIAS cumulative
+    ## ALIAS cumulative, count, sum, total, minimum, maximum, sum, mean, product, variance, standard deviation
        GROUP Standard.Base.Values
        ICON column_add
        Adds a new column to the table with a running calculation.
@@ -3601,6 +3604,8 @@ type Table
        - statistic: The running statistic to calculate.
        - of: The existing column to run the statistic over.
        - as: The name of the new column.
+       - set_mode: Specifies the expected behaviour in regards to existing
+         column with the same name.
        - group_by: Specifies the columns to group by. The running statistic is
          calculated separately for each group. By default, all rows are treated as
          a single group.
@@ -3627,9 +3632,9 @@ type Table
     @group_by Widget_Helpers.make_column_name_multi_selector
     @order_by Widget_Helpers.make_order_by_selector
     @of Widget_Helpers.make_column_name_selector
-    running : Statistic -> (Text | Integer) -> Text -> Vector (Text | Integer | Regex) | Text | Integer | Regex -> Vector (Text | Sort_Column) | Text -> Problem_Behavior -> Table
-    running self (statistic:Statistic=..Count) (of:(Text | Integer)=0) (as:Text='') (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (on_problems:Problem_Behavior=..Report_Warning) =
-        Add_Running.add_running self statistic of as group_by order_by on_problems
+    running : Statistic -> (Text | Integer) -> Text -> Set_Mode -> Vector (Text | Integer | Regex) | Text | Integer | Regex -> Vector (Text | Sort_Column) | Text -> Problem_Behavior -> Table
+    running self (statistic:Statistic=..Count) (of:(Text | Integer)=0) (as:Text='') (set_mode:Set_Mode=..Add) (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (on_problems:Problem_Behavior=..Report_Warning) =
+        Add_Running.add_running self statistic of as set_mode group_by order_by on_problems
 
     ## PRIVATE
     column_naming_helper : Column_Naming_Helper
@@ -3780,11 +3785,13 @@ Table.from (that:Column) = that.to_table
    - that: The text to convert.
    - format: The format of the text.
    - on_problems: What to do if there are problems reading the text.
-Table.from (that : Text) (format = Delimited_Format.Delimited '\t') (on_problems:Problem_Behavior=..Report_Warning) =
-    resolved_format = File_Format.resolve format
-    case resolved_format of
-        _ : Delimited_Format -> Delimited_Reader.read_text that resolved_format on_problems
-        _ -> Unimplemented.throw "Table.from is currently only implemented for Delimited_Format."
+Table.from (that : Text) (format = Delimited_Format.Delimited '\t') (on_problems:Problem_Behavior=..Report_Warning) = case format of
+    _ : Text -> Table.from that (Delimited_Format.Delimited format) on_problems
+    _ ->
+        resolved_format = File_Format.resolve format
+        case resolved_format of
+            _ : Delimited_Format -> Delimited_Reader.read_text that resolved_format on_problems
+            _ -> Unimplemented.throw "Table.from is currently only implemented for Delimited_Format."
 
 ## PRIVATE
    Converts a Table into a Text value.

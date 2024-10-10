@@ -117,7 +117,7 @@ case object FramePointerAnalysis extends IRPass {
   ): Unit = {
     args.foreach { arg =>
       arg.name match {
-        case Name.Self(loc, synthetic, _) if loc.isEmpty && synthetic =>
+        case Name.Self(loc, synthetic, _) if loc == null && synthetic =>
           // synthetic self argument has occurrence attached, but there is no Occurence.Def for it.
           // So we have to handle it specially.
           updateMeta(arg, new FramePointer(0, 1))
@@ -336,11 +336,11 @@ case object FramePointerAnalysis extends IRPass {
     scope: Graph.Scope,
     defOcc: GraphOccurrence.Def
   ): Int = {
-    assert(
+    org.enso.common.Asserts.assertInJvm(
       graph.scopeFor(defOcc.id).contains(scope),
       "Def occurrence must be in the given scope"
     )
-    assert(
+    org.enso.common.Asserts.assertInJvm(
       scope.allDefinitions.contains(defOcc),
       "The given scope must contain the given Def occurrence"
     )
