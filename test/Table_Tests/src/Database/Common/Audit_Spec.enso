@@ -40,9 +40,6 @@ add_specs suite_builder prefix ~datalink_to_connection database_pending =
 
             # Retrying is needed as there may be some delay before the background thread finishes processing the logs.
             Test.with_retries <|
-                # We send a synchronous log to block the main thread until all pending async logs have been processed.
-                Audit_Log.report_event "TestEvent" "test message to sync" async=False . should_succeed
-
                 all_events = get_audit_log_events
                 relevant_events = all_events.filter e-> e.message.contains table_name
                 Test.with_clue ((relevant_events.map .to_text).join '\n' 'Found relevant events are:\n' '\n') <|
@@ -110,17 +107,18 @@ add_specs suite_builder prefix ~datalink_to_connection database_pending =
                 mem_table = Table.new [["X", [1, 2]], ["Y", ["my_payload", "foo"]]]
                 mem_table.select_into_database_table audited_connection table_name temporary=True . should_succeed
 
-                all_events = get_audit_log_events
-                relevant_events = all_events.filter e-> e.message.contains table_name
-                Test.with_clue ((relevant_events.map .to_text).join '\n' 'Found relevant events are:\n' '\n') <|
-                    create = relevant_events.find (e-> e.message.contains "CREATE")
-                    create.should_succeed
+                Test.with_retries <|
+                    all_events = get_audit_log_events
+                    relevant_events = all_events.filter e-> e.message.contains table_name
+                    Test.with_clue ((relevant_events.map .to_text).join '\n' 'Found relevant events are:\n' '\n') <|
+                        create = relevant_events.find (e-> e.message.contains "CREATE")
+                        create.should_succeed
 
-                    create.metadata.get "connectionUri" . should_contain "jdbc:"
-                    # Verify that it contains an asset id field:
-                    asset_id = create.metadata.get "dataLinkAssetId"
-                    # We cannot really assume too much about the ID other than that it is a string:
-                    asset_id.should_be_a Text
+                        create.metadata.get "connectionUri" . should_contain "jdbc:"
+                        # Verify that it contains an asset id field:
+                        asset_id = create.metadata.get "dataLinkAssetId"
+                        # We cannot really assume too much about the ID other than that it is a string:
+                        asset_id.should_be_a Text
 
 main filter=Nothing =
     connection_details = get_configured_connection_details
