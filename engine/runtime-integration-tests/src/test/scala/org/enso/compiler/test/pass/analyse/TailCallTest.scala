@@ -78,7 +78,7 @@ class TailCallTest extends MiniPassTest {
         |Foo.from (that : Bar) = undefined
         |""".stripMargin
 
-    "XX mark methods as tail" in {
+    "mark methods as tail" in {
       testModuleCompilation(
         code,
         () => mkModuleContext,
