@@ -1,5 +1,6 @@
 import { FlatCompat } from '@eslint/eslintrc'
 import eslintJs from '@eslint/js'
+import jsdoc from 'eslint-plugin-jsdoc'
 import * as path from 'node:path'
 import * as url from 'node:url'
 
@@ -23,6 +24,7 @@ const conf = [
   ...compat.extends('@vue/eslint-config-typescript', '@vue/eslint-config-prettier'),
   {
     // files: ['{**,src}/*.{vue,js,jsx,cjs,mjs,ts,tsx,cts,mts}'],
+    plugins: { jsdoc },
     languageOptions: {
       parserOptions: {
         tsconfigRootDir: DIR_NAME,
@@ -49,6 +51,34 @@ const conf = [
     files: ['stories/*.vue'],
     rules: {
       'vue/multi-word-component-names': 0,
+    },
+  },
+  // JsDoc lints for typescript - the recommended set with some modifications.
+  {
+    ignores: ['**/*.js'],
+    ...jsdoc.configs['flat/recommended-typescript'],
+    rules: {
+      ...jsdoc.configs['flat/recommended-typescript'].rules,
+      'jsdoc/check-param-names': [
+        'warn',
+        { checkDestructured: false, disableMissingParamChecks: true },
+      ],
+      'jsdoc/require-jsdoc': [
+        'warn',
+        {
+          publicOnly: true,
+          require: {
+            FunctionDeclaration: true,
+            MethodDefinition: true,
+            ClassDeclaration: true,
+            ArrowFunctionExpression: false,
+            FunctionExpression: true,
+          },
+        },
+      ],
+      'jsdoc/require-param': 'off',
+      'jsdoc/require-returns': 'off',
+      'jsdoc/require-yields': 'off',
     },
   },
   // We must make sure our E2E tests await all steps, otherwise they're flaky.

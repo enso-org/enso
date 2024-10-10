@@ -23,6 +23,7 @@ export class Awareness {
   public internal: YjsAwareness
   private uploadingFiles: Map<ClientId, Uploads>
 
+  /** TODO: Add docs */
   constructor(doc: Y.Doc) {
     this.internal = new YjsAwareness(doc)
     this.internal.setLocalState(initialState())
@@ -39,18 +40,21 @@ export class Awareness {
     })
   }
 
+  /** TODO: Add docs */
   public addOrUpdateUpload(name: FileName, file: UploadingFile) {
     this.withUploads((uploads) => {
       uploads[name] = file
     })
   }
 
+  /** TODO: Add docs */
   public removeUpload(name: FileName) {
     this.withUploads((uploads) => {
       delete uploads[name]
     })
   }
 
+  /** TODO: Add docs */
   public allUploads(): Iterable<[FileName, UploadingFile]> {
     return [...this.uploadingFiles.values()].flatMap((uploads) => [...Object.entries(uploads)])
   }

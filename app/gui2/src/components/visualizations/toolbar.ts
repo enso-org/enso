@@ -32,14 +32,17 @@ export interface SelectionMenu {
 
 export type ToolbarItem = ActionButton | ToggleButton | SelectionMenu
 
+/** {@link ActionButton} discriminant */
 export function isActionButton(item: Readonly<ToolbarItem>): item is ActionButton {
   return 'onClick' in item
 }
 
+/** {@link ToggleButton} discriminant */
 export function isToggleButton(item: Readonly<ToolbarItem>): item is ToggleButton {
   return 'toggle' in item
 }
 
+/** {@link SelectionMenu} discriminant */
 export function isSelectionMenu(item: Readonly<ToolbarItem>): item is SelectionMenu {
   return 'selected' in item
 }

@@ -109,6 +109,7 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
   private visualizationConfigs: Map<Uuid, NodeVisualizationConfiguration> = new Map()
   private _executionEnvironment: ExecutionEnvironment = 'Design'
 
+  /** TODO: Add docs */
   constructor(
     private lsRpc: LanguageServer,
     entryPoint: EntryPoint,
@@ -215,20 +216,24 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
     }
   }
 
+  /** TODO: Add docs */
   get desiredStack() {
     return this._desiredStack
   }
 
+  /** TODO: Add docs */
   set desiredStack(stack: StackItem[]) {
     this._desiredStack.length = 0
     this._desiredStack.push(...stack)
     this.sync()
   }
 
+  /** TODO: Add docs */
   push(expressionId: ExpressionId) {
     this.pushItem({ type: 'LocalCall', expressionId })
   }
 
+  /** TODO: Add docs */
   pop() {
     if (this._desiredStack.length === 1) {
       console.debug('Cannot pop last item from execution context stack')
@@ -238,6 +243,7 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
     this.sync()
   }
 
+  /** TODO: Add docs */
   setVisualization(id: Uuid, configuration: Opt<NodeVisualizationConfiguration>) {
     if (configuration == null) {
       this.visualizationConfigs.delete(id)
@@ -247,6 +253,7 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
     this.sync()
   }
 
+  /** TODO: Add docs */
   recompute(
     expressionIds: 'all' | ExternalId[] = 'all',
     executionEnvironment?: ExecutionEnvironment,
@@ -260,23 +267,28 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
     })
   }
 
+  /** TODO: Add docs */
   getStackBottom(): StackItem {
     return this._desiredStack[0]!
   }
 
+  /** TODO: Add docs */
   getStackTop(): StackItem {
     return this._desiredStack[this._desiredStack.length - 1]!
   }
 
+  /** TODO: Add docs */
   get executionEnvironment() {
     return this._executionEnvironment
   }
 
+  /** TODO: Add docs */
   set executionEnvironment(env: ExecutionEnvironment) {
     this._executionEnvironment = env
     this.sync()
   }
 
+  /** TODO: Add docs */
   dispose() {
     this.queue.pushTask(async (state) => {
       if (state.status === 'created') {

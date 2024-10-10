@@ -139,10 +139,9 @@ type DB_Table
     @selector Widget_Helpers.make_column_name_selector
     at : Integer | Text -> DB_Column ! No_Such_Column | Index_Out_Of_Bounds
     at self (selector:(Integer | Text)=0) = 
-        Feature.Column_Operations.if_supported_else_throw self.connection.dialect "at" <|
-            case selector of
-                _ : Integer -> self.make_column (self.internal_columns.at selector)
-                _ -> self.get selector (Error.throw (No_Such_Column.Error selector))
+        case selector of
+            _ : Integer -> self.make_column (self.internal_columns.at selector)
+            _ -> self.get selector (Error.throw (No_Such_Column.Error selector))
 
     ## ICON select_column
        Returns the column with the given name or index.
@@ -153,11 +152,10 @@ type DB_Table
     @selector Widget_Helpers.make_column_name_selector
     get : Integer | Text -> Any -> DB_Column | Any
     get self (selector:(Integer | Text)=0) ~if_missing=Nothing =
-        Feature.Column_Operations.if_supported_else_throw self.connection.dialect "get" <|
-            internal_column = case selector of
-                _ : Integer -> self.internal_columns.get selector if_missing=Nothing
-                _ : Text -> self.internal_columns.find (p -> p.name == selector) if_missing=Nothing
-            if internal_column.is_nothing then if_missing else self.make_column internal_column
+        internal_column = case selector of
+            _ : Integer -> self.internal_columns.get selector if_missing=Nothing
+            _ : Text -> self.internal_columns.find (p -> p.name == selector) if_missing=Nothing
+        if internal_column.is_nothing then if_missing else self.make_column internal_column
 
     ## ALIAS cell value, get cell
        GROUP Standard.Base.Selections
@@ -1010,46 +1008,45 @@ type DB_Table
     @value Simple_Expression.default_widget
     set : DB_Column | Text | Expression | Array | Vector | Range | Date_Range | Constant_Column | Simple_Expression -> Text -> Set_Mode -> Problem_Behavior -> DB_Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error
     set self value:(DB_Column | Text | Expression | Array | Vector | Range | Date_Range | Constant_Column | Simple_Expression) (as : Text = "") (set_mode : Set_Mode = ..Add_Or_Update) (on_problems : Problem_Behavior = ..Report_Warning) =
-        Feature.Set.if_supported_else_throw self.connection.dialect "set" <|
-            problem_builder = Problem_Builder.new
-            unique = self.column_naming_helper.create_unique_name_strategy
-            unique.mark_used self.column_names
+        problem_builder = Problem_Builder.new
+        unique = self.column_naming_helper.create_unique_name_strategy
+        unique.mark_used self.column_names
 
-            resolved = case value of
-                _ : Text -> self.make_constant_column value
-                _ : Expression -> self.evaluate_expression value on_problems
-                _ : DB_Column ->
-                    if Helpers.check_integrity self value then value else
-                        Error.throw (Integrity_Error.Error "Column "+value.name)
-                _ : Constant_Column -> self.make_constant_column value
-                _ : Simple_Expression -> value.evaluate self (set_mode==Set_Mode.Update && as=="") on_problems
-                _ : Vector -> Error.throw (Unsupported_Database_Operation "`Vector` for `set`")
-                _ : Array -> Error.throw (Unsupported_Database_Operation.Error "`Array` for `set`")
-                _ : Range -> Error.throw (Unsupported_Database_Operation.Error "`Range` for `set`")
-                _ : Date_Range -> Error.throw (Unsupported_Database_Operation.Error "`Date_Range` for `set`")
-                _ -> Error.throw (Illegal_Argument.Error "Unsupported type for `DB_Table.set`.")
+        resolved = case value of
+            _ : Text -> self.make_constant_column value
+            _ : Expression -> self.evaluate_expression value on_problems
+            _ : DB_Column ->
+                if Helpers.check_integrity self value then value else
+                    Error.throw (Integrity_Error.Error "Column "+value.name)
+            _ : Constant_Column -> self.make_constant_column value
+            _ : Simple_Expression -> value.evaluate self (set_mode==Set_Mode.Update && as=="") on_problems
+            _ : Vector -> Error.throw (Unsupported_Database_Operation "`Vector` for `set`")
+            _ : Array -> Error.throw (Unsupported_Database_Operation.Error "`Array` for `set`")
+            _ : Range -> Error.throw (Unsupported_Database_Operation.Error "`Range` for `set`")
+            _ : Date_Range -> Error.throw (Unsupported_Database_Operation.Error "`Date_Range` for `set`")
+            _ -> Error.throw (Illegal_Argument.Error "Unsupported type for `DB_Table.set`.")
 
-            ## If `as` was specified, use that. Otherwise, if `value` is a
-              `DB_Column`, use its name. In these two cases, do not make it unique.
-              Otherwise, make it unique. If set_mode is Update, however, do not
-              make it unique.
-            new_column_name = if as != "" then as else
-                if value.is_a DB_Column || set_mode==Set_Mode.Update || set_mode==Set_Mode.Add_Or_Update then resolved.name else unique.make_unique resolved.name
-            renamed = resolved.rename new_column_name
-            renamed.if_not_error <| self.column_naming_helper.check_ambiguity self.column_names renamed.name <|
-                index = self.internal_columns.index_of (c -> c.name == renamed.name)
-                check_add = case set_mode of
-                    Set_Mode.Add_Or_Update -> True
-                    Set_Mode.Add -> if index.is_nothing then True else Error.throw (Existing_Column.Error renamed.name)
-                    Set_Mode.Update -> if index.is_nothing then Error.throw (Missing_Column.Error renamed.name) else True
-                new_table = check_add.if_not_error <|
-                    new_col = renamed.as_internal
-                    new_cols = if index.is_nothing then self.internal_columns + [new_col] else
-                        Vector.new self.column_count i-> if i == index then new_col else self.internal_columns.at i
-                    self.updated_columns new_cols
+        ## If `as` was specified, use that. Otherwise, if `value` is a
+          `DB_Column`, use its name. In these two cases, do not make it unique.
+          Otherwise, make it unique. If set_mode is Update, however, do not
+          make it unique.
+        new_column_name = if as != "" then as else
+            if value.is_a DB_Column || set_mode==Set_Mode.Update || set_mode==Set_Mode.Add_Or_Update then resolved.name else unique.make_unique resolved.name
+        renamed = resolved.rename new_column_name
+        renamed.if_not_error <| self.column_naming_helper.check_ambiguity self.column_names renamed.name <|
+            index = self.internal_columns.index_of (c -> c.name == renamed.name)
+            check_add = case set_mode of
+                Set_Mode.Add_Or_Update -> True
+                Set_Mode.Add -> if index.is_nothing then True else Error.throw (Existing_Column.Error renamed.name)
+                Set_Mode.Update -> if index.is_nothing then Error.throw (Missing_Column.Error renamed.name) else True
+            new_table = check_add.if_not_error <|
+                new_col = renamed.as_internal
+                new_cols = if index.is_nothing then self.internal_columns + [new_col] else
+                    Vector.new self.column_count i-> if i == index then new_col else self.internal_columns.at i
+                self.updated_columns new_cols
 
-                problem_builder.report_unique_name_strategy unique
-                problem_builder.attach_problems_after on_problems new_table
+            problem_builder.report_unique_name_strategy unique
+            problem_builder.attach_problems_after on_problems new_table
 
     ## PRIVATE
        Given an expression, create a derived column where each value is the
@@ -1076,17 +1073,16 @@ type DB_Table
              an `Additional_Warnings`.
     evaluate_expression : Text | Expression -> Problem_Behavior -> DB_Column ! No_Such_Column | Invalid_Value_Type | Expression_Error
     evaluate_expression self expression:(Text | Expression) on_problems:Problem_Behavior=..Report_Warning =
-        Feature.Set.if_supported_else_throw self.connection.dialect "evaluate_expression" <|
-            if expression.is_a Text then self.evaluate_expression (Expression.Value expression) on_problems else
-                get_column name = self.at name
-                make_constant_column value = case value of
-                    _ : DB_Column -> value
-                    _ -> self.make_constant_column value
-                new_column = Expression.evaluate expression get_column make_constant_column "Standard.Database.DB_Column" "DB_Column" DB_Column.var_args_functions
-                problems = Warning.get_all new_column . map .value
-                result = new_column.rename (self.connection.base_connection.column_naming_helper.sanitize_name expression.expression)
-                on_problems.attach_problems_before problems <|
-                    Warning.set result []
+        if expression.is_a Text then self.evaluate_expression (Expression.Value expression) on_problems else
+            get_column name = self.at name
+            make_constant_column value = case value of
+                _ : DB_Column -> value
+                _ -> self.make_constant_column value
+            new_column = Expression.evaluate expression get_column make_constant_column "Standard.Database.DB_Column" "DB_Column" DB_Column.var_args_functions
+            problems = Warning.get_all new_column . map .value
+            result = new_column.rename (self.connection.base_connection.column_naming_helper.sanitize_name expression.expression)
+            on_problems.attach_problems_before problems <|
+                Warning.set result []
 
     ## PRIVATE
        A helper that creates a two-column table from a Dictionary.
@@ -1176,10 +1172,9 @@ type DB_Table
        Returns the vector of columns contained in this table.
     columns : Vector DB_Column
     columns self =
-        Feature.Column_Operations.if_supported_else_throw self.connection.dialect "columns" <|
-            Vector.from_polyglot_array <|
-                Array_Proxy.new self.internal_columns.length i->
-                    self.make_column (self.internal_columns.at i)
+        Vector.from_polyglot_array <|
+            Array_Proxy.new self.internal_columns.length i->
+                self.make_column (self.internal_columns.at i)
 
     ## GROUP Standard.Base.Metadata
        ICON metadata

@@ -191,7 +191,7 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
         )}
       >
         <FocusRing within>
-          <div className="relative z-1 flex flex-1 rounded-full">
+          <div className="relative z-1 flex flex-1 items-center gap-2 rounded-full px-2">
             {canEditText ?
               <Input
                 name="autocomplete"
@@ -199,10 +199,10 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
                 ref={inputRef}
                 autoFocus={autoFocus}
                 size="custom"
+                variant="custom"
                 value={text ?? ''}
                 autoComplete="off"
                 {...(placeholder == null ? {} : { placeholder })}
-                className="text grow rounded-full bg-transparent px-button-x"
                 onFocus={() => {
                   setIsDropdownVisible(true)
                 }}
@@ -216,9 +216,10 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
                   setText(event.currentTarget.value === '' ? null : event.currentTarget.value)
                 }}
               />
-            : <div
+            : <Text
                 tabIndex={-1}
-                className="text w-full grow cursor-pointer overflow-auto whitespace-nowrap bg-transparent px-button-x scroll-hidden"
+                truncate="1"
+                tooltipPlacement="left"
                 onClick={() => {
                   setIsDropdownVisible(true)
                 }}
@@ -229,13 +230,12 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
                 }}
               >
                 {itemsToString?.(values) ?? (values[0] != null ? children(values[0]) : ZWSP)}
-              </div>
+              </Text>
             }
             <Button
               size="medium"
               variant="icon"
               icon={CloseIcon}
-              className="absolute right-1 top-1/2 -translate-y-1/2"
               onPress={() => {
                 setValues([])
                 // setIsDropdownVisible(true)
@@ -250,7 +250,7 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
             isDropdownVisible && matchingItems.length !== 0 ? 'grid-rows-1fr' : 'grid-rows-0fr',
           )}
         >
-          <div className="relative max-h-60 w-full overflow-y-auto overflow-x-hidden rounded-b-xl">
+          <div className="relative max-h-60 w-full overflow-auto rounded-b-xl">
             {/* FIXME: "Invite" modal does not take into account the height of the autocomplete,
              * so the suggestions may go offscreen. */}
             {matchingItems.map((item, index) => (

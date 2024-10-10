@@ -50,15 +50,15 @@ object Definition {
     *
     * @param name the name of the union
     * @param members the members of this union
-    * @param location the source location that the node corresponds to
+    * @param identifiedLocation the source location that the node corresponds to
     * @param passData the pass metadata associated with this node
     */
   sealed case class Type(
     name: Name,
     params: List[DefinitionArgument],
     members: List[Data],
-    location: Option[IdentifiedLocation],
-    passData: MetadataStorage = new MetadataStorage()
+    override val identifiedLocation: IdentifiedLocation,
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends Definition
       with IRKind.Primitive
       with LazyDiagnosticStorage
@@ -82,7 +82,7 @@ object Definition {
         || diagnostics != this.diagnostics
         || id != this.id
       ) {
-        val res = Type(name, params, members, location, passData)
+        val res = Type(name, params, members, location.orNull, passData)
         res.diagnostics = diagnostics
         res.id          = id
         res
@@ -160,20 +160,20 @@ object Definition {
 
   /** The definition of an atom constructor and its associated arguments.
     *
-    * @param name        the name of the atom
-    * @param arguments   the arguments to the atom constructor
+    * @param name the name of the atom
+    * @param arguments the arguments to the atom constructor
     * @param annotations the list of annotations
-    * @param location    the source location that the node corresponds to
-    * @param isPrivate    If the constructor is private (project-private).
-    * @param passData    the pass metadata associated with this node
+    * @param identifiedLocation the source location that the node corresponds to
+    * @param isPrivate if the constructor is private (project-private).
+    * @param passData the pass metadata associated with this node
     */
   sealed case class Data(
     name: Name,
     arguments: List[DefinitionArgument],
     annotations: List[Name.GenericAnnotation],
     isPrivate: Boolean = false,
-    location: Option[IdentifiedLocation],
-    passData: MetadataStorage = new MetadataStorage()
+    override val identifiedLocation: IdentifiedLocation,
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends IR
       with IRKind.Primitive
       with LazyDiagnosticStorage
@@ -215,7 +215,7 @@ object Definition {
           arguments,
           annotations,
           isPrivate,
-          location,
+          location.orNull,
           passData
         )
         res.diagnostics = diagnostics
@@ -299,15 +299,15 @@ object Definition {
     * @param name the name of the complex type
     * @param arguments the (type) arguments to the complex type
     * @param body the body of the complex type
-    * @param location the source location that the node corresponds to
+    * @param identifiedLocation the source location that the node corresponds to
     * @param passData the pass metadata associated with this node
     */
   sealed case class SugaredType(
     name: Name,
     arguments: List[DefinitionArgument],
     body: List[IR],
-    location: Option[IdentifiedLocation],
-    passData: MetadataStorage = new MetadataStorage()
+    override val identifiedLocation: IdentifiedLocation,
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends Definition
       with IRKind.Sugar
       with LazyDiagnosticStorage
@@ -346,7 +346,7 @@ object Definition {
           name,
           arguments,
           body,
-          location,
+          location.orNull,
           passData
         )
         res.diagnostics = diagnostics

@@ -19,6 +19,7 @@ export interface LexicalMarkdownPlugin extends LexicalPlugin {
   transformers?: Transformer[]
 }
 
+/** TODO: Add docs */
 export function markdownPlugin(
   model: Ref<string>,
   extensions: LexicalMarkdownPlugin[],

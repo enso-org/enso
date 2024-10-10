@@ -13,6 +13,7 @@ window.__hst_controls_dark.push(isDark)
 
 window.__hst_controls_dark_ready?.()
 
+/** TODO: Add docs */
 export function createSetupComponent(setup: (app: App) => void) {
   return () => {
     const app = getCurrentInstance()?.appContext.app

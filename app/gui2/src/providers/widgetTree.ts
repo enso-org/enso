@@ -40,6 +40,7 @@ const { provideFn, injectFn } = createContextStore(
   },
 )
 
+/** TODO: Add docs */
 export function useCurrentEdit() {
   const currentEditRoot = shallowRef<WidgetEditHandlerRoot>()
   return {

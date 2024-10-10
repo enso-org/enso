@@ -21,10 +21,12 @@ const typeNameToIconLookup: Record<string, Icon> = {
 
 export const DEFAULT_ICON = 'enso_logo'
 
+/** TODO: Add docs */
 export function typeNameToIcon(typeName: string): Icon {
   return typeNameToIconLookup[typeName] ?? DEFAULT_ICON
 }
 
+/** TODO: Add docs */
 export function suggestionEntryToIcon(entry: SuggestionEntry) {
   if (entry.iconName) return entry.iconName
   if (entry.kind === SuggestionKind.Local) return 'local_scope2'
@@ -32,6 +34,7 @@ export function suggestionEntryToIcon(entry: SuggestionEntry) {
   return DEFAULT_ICON
 }
 
+/** TODO: Add docs */
 export function displayedIconOf(
   entry?: SuggestionEntry,
   methodCall?: MethodPointer,
@@ -46,6 +49,7 @@ export function displayedIconOf(
   }
 }
 
+/** TODO: Add docs */
 export function iconOfNode(node: NodeId, graphDb: GraphDb) {
   const expressionInfo = graphDb.getExpressionInfo(node)
   const suggestionEntry = graphDb.getNodeMainSuggestion(node)

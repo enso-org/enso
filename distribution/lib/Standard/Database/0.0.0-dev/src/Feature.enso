@@ -41,9 +41,6 @@ type Feature
        currently blocks getting a DB_Column from a DB_Table, but will soon refine to operations on DB_Column.
     Column_Operations
     ## PRIVATE
-       set operations on tables.
-    Set
-    ## PRIVATE
        get_row, take, drop, limit
     Sample
     ## PRIVATE

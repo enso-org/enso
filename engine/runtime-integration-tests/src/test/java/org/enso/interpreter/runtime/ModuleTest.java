@@ -22,7 +22,6 @@ import org.graalvm.polyglot.io.IOAccess;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import scala.Option;
 
 public class ModuleTest {
 
@@ -128,7 +127,7 @@ public class ModuleTest {
 
     assertNull("No IR by default", module.getIr());
 
-    var ir = new org.enso.compiler.core.ir.Module(nil(), nil(), nil(), false, Option.empty(), null);
+    var ir = new org.enso.compiler.core.ir.Module(nil(), nil(), nil(), false, null, null);
     compilerContext.updateModule(
         module,
         (u) -> {

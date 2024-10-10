@@ -9,16 +9,17 @@ import { isIdentifier, type AstId, type Identifier } from '@/util/ast/abstract'
 import { Err, Ok, type Result } from '@/util/data/result'
 import { qnLastSegment, type QualifiedName } from '@/util/qualifiedName'
 import { useToast } from '@/util/toast'
-import { computed, proxyRefs, readonly, ref, watch, type ComputedRef } from 'vue'
+import { computed, proxyRefs, readonly, ref, type ComputedRef } from 'vue'
 
 /** Information how the component browser is used, needed for proper input initializing. */
 export type Usage =
   | { type: 'newNode'; sourcePort?: AstId | undefined }
   | { type: 'editNode'; node: NodeId; cursorPos: number }
 
-/** One of the modes of the component browser:
- * * "component browsing" when user wants to add new component
- * * "code editing" for editing existing, or just added nodes
+/**
+ * One of the modes of the component browser:
+ * "component browsing" when user wants to add new component
+ * "code editing" for editing existing, or just added nodes
  * See https://github.com/enso-org/enso/issues/10598 for design details.
  */
 export type ComponentBrowserMode =
@@ -177,7 +178,8 @@ export function useComponentBrowserInput(
     }
   }
 
-  /** List of imports required for applied suggestions.
+  /**
+   * List of imports required for applied suggestions.
    *
    * If suggestion was manually edited by the user after accepting, it is not included.
    */

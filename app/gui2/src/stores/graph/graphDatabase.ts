@@ -38,10 +38,12 @@ export interface BindingInfo {
   usages: Set<AstId>
 }
 
+/** TODO: Add docs */
 export class BindingsDb {
   bindings = new ReactiveDb<AstId, BindingInfo>()
   identifierToBindingId = new ReactiveIndex(this.bindings, (id, info) => [[info.identifier, id]])
 
+  /** TODO: Add docs */
   readFunctionAst(
     func: Ast.Function,
     rawFunc: RawAst.Tree.Function | undefined,
@@ -100,7 +102,8 @@ export class BindingsDb {
     }
   }
 
-  /** Create mappings between bindings' ranges and AST
+  /**
+   * Create mappings between bindings' ranges and AST
    *
    * The AliasAnalyzer is general and returns ranges, but we're interested in AST nodes. This
    * method creates mappings in both ways. For given range, only the shallowest AST node will be
@@ -132,6 +135,7 @@ export class BindingsDb {
   }
 }
 
+/** TODO: Add docs */
 export class GraphDb {
   nodeIdToNode = new ReactiveDb<NodeId, Node>()
   private readonly nodeSources = new Map<NodeId, { data: NodeSource; stop: WatchStopHandle }>()
@@ -140,6 +144,7 @@ export class GraphDb {
   private readonly idFromExternalMap = reactive(new Map<ExternalId, Ast.AstId>())
   private bindings = new BindingsDb()
 
+  /** TODO: Add docs */
   constructor(
     private suggestionDb: SuggestionDb,
     private groups: Ref<Group[]>,
@@ -207,6 +212,7 @@ export class GraphDb {
     return this.suggestionDb.findByMethodPointer(method)
   })
 
+  /** TODO: Add docs */
   getNodeMainSuggestion(id: NodeId) {
     const suggestionId = this.nodeMainSuggestionId.lookup(id)
     if (suggestionId == null) return
@@ -222,10 +228,12 @@ export class GraphDb {
     )
   })
 
+  /** TODO: Add docs */
   getNodeFirstOutputPort(id: NodeId | undefined): AstId | undefined {
     return id ? set.first(this.nodeOutputPorts.lookup(id)) ?? this.idFromExternal(id) : undefined
   }
 
+  /** TODO: Add docs */
   *getNodeUsages(id: NodeId): IterableIterator<AstId> {
     const outputPorts = this.nodeOutputPorts.lookup(id)
     for (const outputPort of outputPorts) {
@@ -233,44 +241,54 @@ export class GraphDb {
     }
   }
 
+  /** TODO: Add docs */
   getExpressionNodeId(exprId: AstId | undefined): NodeId | undefined {
     return exprId && set.first(this.nodeIdToExprIds.reverseLookup(exprId))
   }
 
+  /** TODO: Add docs */
   getPatternExpressionNodeId(exprId: AstId | undefined): NodeId | undefined {
     return exprId && set.first(this.nodeIdToPatternExprIds.reverseLookup(exprId))
   }
 
+  /** TODO: Add docs */
   getIdentDefiningNode(ident: string): NodeId | undefined {
     const binding = set.first(this.bindings.identifierToBindingId.lookup(ident))
     return this.getPatternExpressionNodeId(binding)
   }
 
+  /** TODO: Add docs */
   getExpressionInfo(id: AstId | ExternalId | undefined): ExpressionInfo | undefined {
     const externalId = isUuid(id) ? id : this.idToExternal(id)
     return externalId && this.valuesRegistry.getExpressionInfo(externalId)
   }
 
+  /** TODO: Add docs */
   getOutputPortIdentifier(source: AstId | undefined): string | undefined {
     return source ? this.bindings.bindings.get(source)?.identifier : undefined
   }
 
+  /** TODO: Add docs */
   identifierUsed(ident: string): boolean {
     return this.bindings.identifierToBindingId.hasKey(ident)
   }
 
+  /** TODO: Add docs */
   nodeIds(): IterableIterator<NodeId> {
     return this.nodeIdToNode.keys()
   }
 
+  /** TODO: Add docs */
   isNodeId(externalId: ExternalId): boolean {
     return this.nodeIdToNode.has(asNodeId(externalId))
   }
 
+  /** TODO: Add docs */
   isKnownFunctionCall(id: AstId): boolean {
     return this.getMethodCallInfo(id) != null
   }
 
+  /** TODO: Add docs */
   getMethodCall(id: AstId): MethodCall | undefined {
     const info = this.getExpressionInfo(id)
     if (info == null) return
@@ -279,6 +297,7 @@ export class GraphDb {
     )
   }
 
+  /** TODO: Add docs */
   getMethodCallInfo(id: AstId): MethodCallInfo | undefined {
     const methodCall = this.getMethodCall(id)
     if (methodCall == null) return
@@ -289,10 +308,12 @@ export class GraphDb {
     return { methodCall, methodCallSource: id, suggestion }
   }
 
+  /** TODO: Add docs */
   getNodeColorStyle(id: NodeId): string {
     return this.nodeColor.lookup(id) ?? 'var(--node-color-no-type)'
   }
 
+  /** TODO: Add docs */
   moveNodeToTop(id: NodeId) {
     const node = this.nodeIdToNode.get(id)
     if (!node) return
@@ -450,6 +471,7 @@ export class GraphDb {
     this.bindings.readFunctionAst(functionAst_, rawFunction, moduleCode, getSpan)
   }
 
+  /** TODO: Add docs */
   updateExternalIds(topLevel: Ast.Ast) {
     const idToExternalNew = new Map()
     const idFromExternalNew = new Map()
@@ -481,6 +503,7 @@ export class GraphDb {
     }
   }
 
+  /** TODO: Add docs */
   nodeByRootAstId(astId: Ast.AstId): Node | undefined {
     const nodeId = asNodeId(this.idToExternal(astId))
     return nodeId != null ? this.nodeIdToNode.get(nodeId) : undefined
@@ -490,7 +513,8 @@ export class GraphDb {
   idFromExternal(id: ExternalId | undefined): AstId | undefined {
     return id ? this.idFromExternalMap.get(id) : id
   }
-  /** Get the external ID corresponding to the given `AstId` as of the last synchronization.
+  /**
+   * Get the external ID corresponding to the given `AstId` as of the last synchronization.
    *
    *  Note that if there is an edit in progress (i.e. a `MutableModule` containing changes that haven't been committed
    *  and observed), this may be different from the value return by calling `toExternal` on the edited `Ast` object.
@@ -508,10 +532,12 @@ export class GraphDb {
     return id ? this.idToExternalMap.get(id) : undefined
   }
 
+  /** TODO: Add docs */
   static Mock(registry = ComputedValueRegistry.Mock(), db = new SuggestionDb()): GraphDb {
     return new GraphDb(db, ref([]), registry)
   }
 
+  /** TODO: Add docs */
   mockNode(binding: string, id: NodeId, code?: string): Node {
     const edit = MutableModule.Transient()
     const pattern = Ast.parse(binding, edit)
@@ -550,11 +576,15 @@ export class GraphDb {
 interface NodeSource {
   /** The outer AST of the node (see {@link NodeDataFromAst.outerExpr}). */
   outerAst: Ast.Ast
-  /** Whether the node is `output` of the function or not. Mutually exclusive with `isInput`.
-   * Output node is the last node in a function body and has no pattern. */
+  /**
+   * Whether the node is `output` of the function or not. Mutually exclusive with `isInput`.
+   * Output node is the last node in a function body and has no pattern.
+   */
   isOutput: boolean
-  /** Whether the node is `input` of the function or not. Mutually exclusive with `isOutput`.
-   * Input node is a function argument. */
+  /**
+   * Whether the node is `input` of the function or not. Mutually exclusive with `isOutput`.
+   * Input node is a function argument.
+   */
   isInput: boolean
   /** The index of the argument in the function's argument list, if the node is an input node. */
   argIndex: number | undefined
@@ -567,6 +597,7 @@ export type NodeId = string & ExternalId & { [brandNodeId]: never }
 export type NodeType = 'component' | 'output' | 'input'
 export function asNodeId(id: ExternalId): NodeId
 export function asNodeId(id: ExternalId | undefined): NodeId | undefined
+/** TODO: Add docs */
 export function asNodeId(id: ExternalId | undefined): NodeId | undefined {
   return id != null ? (id as NodeId) : undefined
 }
@@ -583,13 +614,18 @@ export interface NodeDataFromAst {
   outerExpr: Ast.Ast
   /** The left side of the assignment expression, if `outerExpr` is an assignment expression. */
   pattern: Ast.Ast | undefined
-  /** The value of the node. The right side of the assignment, if `outerExpr` is an assignment
-   * expression, else the entire `outerExpr`. */
+  /**
+   * The value of the node. The right side of the assignment, if `outerExpr` is an assignment
+   * expression, else the entire `outerExpr`.
+   */
   rootExpr: Ast.Ast
-  /** The expression displayed by the node. This is `rootExpr`, minus the prefixes, which are in
-   * `prefixes`. */
+  /**
+   * The expression displayed by the node. This is `rootExpr`, minus the prefixes, which are in
+   * `prefixes`.
+   */
   innerExpr: Ast.Ast
-  /** Prefixes that are present in `rootExpr` but omitted in `innerExpr` to ensure a clean output.
+  /**
+    Prefixes that are present in `rootExpr` but omitted in `innerExpr` to ensure a clean output.
    */
   prefixes: Record<'enableRecording', Ast.AstId[] | undefined>
   /** A child AST in a syntactic position to be a self-argument input to the node. */

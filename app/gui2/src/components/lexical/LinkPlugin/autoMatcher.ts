@@ -36,6 +36,7 @@ type MatchedLink = {
 
 export type LinkMatcher = (text: string) => MatchedLink | null
 
+/** TODO: Add docs */
 export function createLinkMatcherWithRegExp(
   regExp: RegExp,
   urlTransformer: (text: string) => string = (text) => text,
@@ -403,6 +404,7 @@ function getTextNodesToMatch(textNode: TextNode): TextNode[] {
   return textNodesToMatch
 }
 
+/** TODO: Add docs */
 export function useAutoLink(
   editor: LexicalEditor,
   matchers: Array<LinkMatcher>,

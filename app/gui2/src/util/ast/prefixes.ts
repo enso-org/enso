@@ -9,7 +9,9 @@ interface MatchResult<T> {
   matches: Record<keyof T, Ast.AstId[] | undefined>
 }
 
+/** TODO: Add docs */
 export class Prefixes<T extends Record<keyof T, Pattern>> {
+  /** TODO: Add docs */
   constructor(
     /** Note that these are checked in order of definition. */
     public prefixes: T,
@@ -24,6 +26,7 @@ export class Prefixes<T extends Record<keyof T, Pattern>> {
     )
   }
 
+  /** TODO: Add docs */
   extractMatches(expression: Ast.Ast): MatchResult<T> {
     const matches = Object.fromEntries(
       Object.entries<Pattern>(this.prefixes).map(([name, pattern]) => {
@@ -36,6 +39,7 @@ export class Prefixes<T extends Record<keyof T, Pattern>> {
     return { matches, innerExpr: expression }
   }
 
+  /** TODO: Add docs */
   modify(expression: Ast.Mutable, replacements: Partial<Record<keyof T, Ast.Owned[] | undefined>>) {
     expression.updateValue((expression) => {
       const matches = this.extractMatches(expression)
