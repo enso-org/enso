@@ -122,8 +122,6 @@ object NativeImage {
       log.info("Native image JAVA_HOME: " + javaHome)
 
       val subProjectRoot = baseDirectory.value
-      val pathToJAR =
-        (assembly / assemblyOutputPath).value.toPath.toAbsolutePath.normalize
 
       if (!nativeImagePathResolver(javaHome).toFile.exists()) {
         log.error(
@@ -233,13 +231,15 @@ object NativeImage {
         buildMemoryLimitOptions ++
         runtimeMemoryOptions ++
         additionalOptions ++
-        Seq("-o", targetLoc.toString())
+        Seq("-o", targetLoc.toString)
 
       args = mainClass match {
         case Some(main) =>
           args ++
           Seq(main)
         case None =>
+          val pathToJAR =
+            (assembly / assemblyOutputPath).value.toPath.toAbsolutePath.normalize
           args ++
           Seq("-jar", pathToJAR.toString)
       }

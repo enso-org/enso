@@ -32,8 +32,8 @@
       "type": "nativeimage",
       "request": "launch",
       "name": "Launch Native Image",
-      "nativeImagePath": "${workspaceFolder}/runner",
-      "args": "--run ${file}"
+      "nativeImagePath": "${workspaceFolder}/ydoc",
+      // "args": ""
     }
   ]
 }

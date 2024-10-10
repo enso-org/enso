@@ -461,7 +461,7 @@ val commons = Seq(
 
 // === Helidon ================================================================
 val jakartaVersion = "2.0.1"
-val helidonVersion = "4.0.8"
+val helidonVersion = "4.1.2"
 val helidon = Seq(
   "io.helidon"                 % "helidon"                     % helidonVersion,
   "io.helidon.builder"         % "helidon-builder-api"         % helidonVersion,
@@ -1867,7 +1867,7 @@ lazy val `ydoc-server` = project
   .enablePlugins(JPMSPlugin)
   .configs(Test)
   .settings(
-    frgaalJavaCompilerSetting,
+    customFrgaalJavaCompilerSettings("21"),
     javaModuleName := "org.enso.ydoc",
     Compile / exportJars := true,
     crossPaths := false,
@@ -1885,14 +1885,15 @@ lazy val `ydoc-server` = project
     ),
     libraryDependencies ++= Seq(
       "org.graalvm.truffle"        % "truffle-api"                 % graalMavenPackagesVersion % "provided",
-      "org.graalvm.polyglot"       % "inspect"                     % graalMavenPackagesVersion % "runtime",
-      "org.graalvm.polyglot"       % "js"                          % graalMavenPackagesVersion % "runtime",
+      "org.graalvm.polyglot"       % "inspect-community"           % graalMavenPackagesVersion % "runtime",
+      "org.graalvm.polyglot"       % "js-community"                % graalMavenPackagesVersion % "runtime",
       "org.slf4j"                  % "slf4j-api"                   % slf4jVersion,
       "io.helidon.webclient"       % "helidon-webclient-websocket" % helidonVersion,
       "io.helidon.webserver"       % "helidon-webserver-websocket" % helidonVersion,
       "junit"                      % "junit"                       % junitVersion              % Test,
       "com.github.sbt"             % "junit-interface"             % junitIfVersion            % Test,
-      "com.fasterxml.jackson.core" % "jackson-databind"            % jacksonVersion            % Test
+      "com.fasterxml.jackson.core" % "jackson-databind"            % jacksonVersion            % Test,
+      "org.graalvm.sdk"            % "nativeimage"                 % graalMavenPackagesVersion % "provided"
     ),
     libraryDependencies ++= {
       GraalVM.modules ++ GraalVM.jsPkgs ++ GraalVM.chromeInspectorPkgs ++ helidon
@@ -1906,6 +1907,7 @@ lazy val `ydoc-server` = project
     Compile / run / connectInput := true,
     Compile / run / javaOptions := Seq(
       "-ea"
+      //"-agentlib:native-image-agent=config-merge-dir=/home/dbushev/projects/luna/enso/lib/java/ydoc-server/src/main/resources/META-INF/native-image/org/enso/ydoc"
     ),
     // We need to assembly the cmd line options here manually, because we need
     // to add path to this module, and adding that directly to the `modulePath` setting
@@ -1938,9 +1940,33 @@ lazy val `ydoc-server` = project
         )
         .taskValue
   )
+  .settings(
+    NativeImage.smallJdk := None,
+    NativeImage.additionalCp := Seq.empty,
+    rebuildNativeImage := NativeImage
+      .buildNativeImage(
+        "ydoc",
+        staticOnLinux  = false,
+        includeRuntime = false,
+        mainClass      = Some("org.enso.ydoc.Main"),
+        additionalOptions = Seq(
+          // useful perf & debug switches:
+          // "-g",
+          // "-H:+SourceLevelDebug",
+          // "-H:-DeleteLocalSymbols",
+        )
+      )
+      .value,
+    buildNativeImage := NativeImage
+      .incrementalNativeImageBuild(
+        rebuildNativeImage,
+        "ydoc"
+      )
+      .value
+  )
   .dependsOn(`syntax-rust-definition`)
   .dependsOn(`logging-service-logback`)
-  .dependsOn(`profiling-utils`)
+//.dependsOn(`profiling-utils`)
 
 lazy val `persistance` = (project in file("lib/java/persistance"))
   .enablePlugins(JPMSPlugin)
