@@ -1,6 +1,6 @@
 /** @file Rendering for an {@link SettingsFormEntryData}. */
 import { ButtonGroup, Form } from '#/components/AriaComponents'
-import SettingsInput from '#/layouts/Settings/SettingsInput'
+import SettingsInput from '#/layouts/Settings/Input'
 import type { SettingsContext, SettingsFormEntryData } from '#/layouts/Settings/data'
 import { useText } from '#/providers/TextProvider'
 import { useMemo } from 'react'

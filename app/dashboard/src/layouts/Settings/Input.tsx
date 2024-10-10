@@ -1,6 +1,6 @@
 /** @file Rendering for an {@link SettingsInputData}. */
-import SettingsAriaInput from '#/layouts/Settings/SettingsAriaInput'
-import type { SettingsContext, SettingsInputData } from '#/layouts/Settings/settingsData'
+import SettingsAriaInput from '#/layouts/Settings/AriaInput'
+import type { SettingsContext, SettingsInputData } from '#/layouts/Settings/data'
 import { useText } from '#/providers/TextProvider'
 
 // =====================
