@@ -53,9 +53,10 @@ add_specs suite_builder =
         p_has_index_col = ["has_index_col", has_index_col]
         p_get_child_node = ["get_child_node_action", get_child_node]
         p_number_of_nothing = ["number_of_nothing", number_of_nothing]
-        pairs    = [p_header, p_value_type, p_data, p_all_rows, p_has_index_col, p_get_child_node, p_number_of_nothing ,["type", "Table"]]
+        data_quality_pairs = JS_Object.from_pairs [p_number_of_nothing]
+        pairs    = [p_header, p_value_type, p_data, p_all_rows, p_has_index_col, p_get_child_node, ["data_quality_pairs", data_quality_pairs], ["type", "Table"]]
         JS_Object.from_pairs pairs . to_text
-
+    
     suite_builder.group "Table Visualization" group_builder->
         data = Data.setup
 
@@ -63,7 +64,7 @@ add_specs suite_builder =
             vis = Visualization.prepare_visualization data.t 1
             value_type_int = JS_Object.from_pairs [["type", "Value_Type"], ["constructor", "Integer"], ["display_text", "Integer (64 bits)"], ["bits", 64]]
             value_type_char = JS_Object.from_pairs [["type", "Value_Type"], ["constructor", "Char"], ["display_text", "Char (variable length, max_size=unlimited)"], ["size", Nothing], ["variable_length", True]]
-            json = make_json header=["A", "B", "C"] data=[['a'], [2], [3]] all_rows=3 value_type=[value_type_char, value_type_int, value_type_int] has_index_col=True get_child_node="get_row" number_of_nothing=[0,0,0]
+            json = make_json header=["A", "B", "C"] data=[['a'], [2], [3]] all_rows=3 value_type=[value_type_char, value_type_int, value_type_int] has_index_col=True get_child_node="get_row" number_of_nothing=Nothing
             vis . should_equal json
 
         group_builder.specify "should visualize database columns" <|
