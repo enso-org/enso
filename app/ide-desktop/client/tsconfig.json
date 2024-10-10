@@ -10,5 +10,5 @@
     "../types",
     "../../build.json",
     "src/config.json"
-  ],
+  ]
 }
