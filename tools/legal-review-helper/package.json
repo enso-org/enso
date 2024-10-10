@@ -10,7 +10,7 @@
   "author": "Enso Team",
   "license": "Apache-2.0",
   "dependencies": {
-    "express": "^4.21.0",
+    "express": "^4.21.1",
     "open": "^7.3.0"
   }
 }
