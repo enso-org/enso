@@ -117,65 +117,80 @@ add_specs suite_builder =
                 response = Data.fetch uri method headers cache_policy=cache_policy
                 response.code.is_success . should_be_true
 
-        # Only use with GET.
-        # Clears the cache first.
-        with_and_without_caching uri headers =
-            Data.clear_response_cache
-            request_and_get_counts uri HTTP_Method.Get headers . should_equal [0, 1]
-            request_and_get_counts uri HTTP_Method.Get headers . should_equal [1, 1]
-            Data.clear_response_cache
-            request_and_get_counts uri HTTP_Method.Get headers cache_policy=..Cache_Responses . should_equal [0, 1]
-            request_and_get_counts uri HTTP_Method.Get headers cache_policy=..Cache_Responses . should_equal [1, 1]
-            Data.clear_response_cache
-            request_and_get_counts uri HTTP_Method.Get headers cache_policy=..Dont_Cache_Responses . should_equal [0, 0]
-            request_and_get_counts uri HTTP_Method.Get headers cache_policy=..Dont_Cache_Responses . should_equal [0, 0]
+        ##
+            # Only use with GET.
+            # Clears the cache first.
+            with_and_without_caching uri headers =
+                Data.clear_response_cache
+                request_and_get_counts uri HTTP_Method.Get headers . should_equal [0, 1]
+                request_and_get_counts uri HTTP_Method.Get headers . should_equal [1, 1]
+                Data.clear_response_cache
+                request_and_get_counts uri HTTP_Method.Get headers cache_policy=..Cache_Responses . should_equal [0, 1]
+                request_and_get_counts uri HTTP_Method.Get headers cache_policy=..Cache_Responses . should_equal [1, 1]
+                Data.clear_response_cache
+                request_and_get_counts uri HTTP_Method.Get headers cache_policy=..Dont_Cache_Responses . should_equal [0, 0]
+                request_and_get_counts uri HTTP_Method.Get headers cache_policy=..Dont_Cache_Responses . should_equal [0, 0]
 
-        uri0 = base_url_with_slash+'test_download?max-age=16&length=100'
-        uri1 = base_url_with_slash+'test_download?max-age=16&length=10'
+        uri0 = base_url_with_slash+'test_download?max-age=16&length=10'
+        uri1 = base_url_with_slash+'test_download?max-age=16&length=20'
+        uri0_body = "aaaaaaaaaa"
+        uri1_body = "aaaaaaaaaaaaaaaaaaaa"
         url_post = base_url_with_slash + "post"
         headers0 = [Header.new "A-Header" "a-header-value", Header.new "A-Header" "a-header-value"]
         headers1 = [Header.new "A-Header" "a-different-header-value", Header.new "A-Header" "a-header-value"]
         # policies = [Cache_Policy.Default, Cache_Policy.Cache_Responses, Cache_Policy.Dont_Cache_Responses]
 
-        group_builder.specify "Should cache responses" pending=pending_has_url <| Test.with_retries <|
-            with_and_without_caching uri0 headers0
-
-        group_builder.specify "Should not cache for methods other than GET" pending=pending_has_url <| Test.with_retries <|
+        group_builder.specify "Cache should return the same repsonse" pending=pending_has_url <| Test.with_retries <|
             Data.clear_response_cache
 
+            HTTP.fetch uri0 . decode_as_text . should_equal uri0_body
+            HTTP.fetch uri0 . decode_as_text . should_equal uri0_body
+            HTTP.fetch uri1 . decode_as_text . should_equal uri1_body
+            HTTP.fetch uri1 . decode_as_text . should_equal uri1_body
+            http_get_num_response_cache_entries . should_equal 2
+
+            Data.clear_response_cache
+
+            HTTP.fetch uri0 cache_policy=Cache_Policy.Cache_Responses . decode_as_text . should_equal uri0_body
+            HTTP.fetch uri0 cache_policy=Cache_Policy.Cache_Responses . decode_as_text . should_equal uri0_body
+            HTTP.fetch uri1 cache_policy=Cache_Policy.Cache_Responses . decode_as_text . should_equal uri1_body
+            HTTP.fetch uri1 cache_policy=Cache_Policy.Cache_Responses . decode_as_text . should_equal uri1_body
+            http_get_num_response_cache_entries . should_equal 2
+
+            Data.clear_response_cache
+
+            HTTP.fetch uri0 cache_policy=Cache_Policy.Dont_Cache_Responses . decode_as_text . should_equal uri0_body
+            HTTP.fetch uri0 cache_policy=Cache_Policy.Dont_Cache_Responses . decode_as_text . should_equal uri0_body
+            HTTP.fetch uri1 cache_policy=Cache_Policy.Dont_Cache_Responses . decode_as_text . should_equal uri1_body
+            HTTP.fetch uri1 cache_policy=Cache_Policy.Dont_Cache_Responses . decode_as_text . should_equal uri1_body
+            http_get_num_response_cache_entries . should_equal 0
+
+        group_builder.specify "Cache should handle many entries" pending=pending_has_url <| Test.with_retries <|
+            count = 20
+
+            Data.clear_response_cache
+            0.up_to count . each i->
+                HTTP.fetch base_url_with_slash+"test_download?length="+i.to_text . decode_as_text . should_equal ('a' * i)
+            http_get_num_response_cache_entries . should_equal count
+
+            Data.clear_response_cache
+            0.up_to count . each i->
+                headers = [Header.new "A-Header" "a-header-value-"+i.to_text]
+                HTTP.fetch base_url_with_slash+"test_download?length=8" headers=headers . decode_as_text . should_equal ('a' * 8)
+            http_get_num_response_cache_entries . should_equal count
+
+        group_builder.specify "Cache policy should work for HTTP.fetch" pending=pending_has_url <| Test.with_retries <|
+            Data.clear_response_cache
             expect_counts [0, 0] <|
-                Data.post url_post (Request_Body.Text "hello world")
-
-        group_builder.specify "Should not allow a cache policy for methods other than GET" pending=pending_has_url <| Test.with_retries <|
-            request = Request.new HTTP_Method.Post url_post [] Request_Body.Empty
-            HTTP.new.request request cache_policy=Cache_Policy.Cache_Responses . should_fail_with Illegal_Argument
-
-        group_builder.specify "Should be able to clear caches" pending=pending_has_url <| Test.with_retries <|
-            Data.clear_response_cache
-            request_and_get_counts uri0 HTTP_Method.Get headers0 . should_equal [0, 1]
-            expect_counts [1, 0] <|
-                Data.clear_response_cache
-
-        group_builder.specify "Cache key should only dependon the URI and headers" pending=pending_has_url <| Test.with_retries <|
-            Data.clear_response_cache
-            expect_counts [0, 1] <|
-                Data.fetch uri0
-                Data.fetch uri0
-            expect_counts [1, 2] <|
-                Data.fetch uri1
-                Data.fetch uri1
-
-        group_builder.specify "Cache key should depend on the URI" pending=pending_has_url <| Test.with_retries <|
-            Data.clear_response_cache
+                HTTP.fetch uri0 cache_policy=Cache_Policy.Dont_Cache_Responses
+                HTTP.fetch uri1 cache_policy=Cache_Policy.Dont_Cache_Responses
             expect_counts [0, 2] <|
-                Data.fetch uri0
-                Data.fetch uri1
-
-        group_builder.specify "Cache key should depend on the headers" pending=pending_has_url <| Test.with_retries <|
-            Data.clear_response_cache
+                HTTP.fetch uri0 cache_policy=Cache_Policy.Cache_Responses
+                HTTP.fetch uri1 cache_policy=Cache_Policy.Cache_Responses
+            HTTP.clear_response_cache
             expect_counts [0, 2] <|
-                Data.fetch uri0 headers=headers0
-                Data.fetch uri0 headers=headers1
+                HTTP.fetch uri0
+                HTTP.fetch uri1
 
         group_builder.specify "Cache policy should work for Data.read" pending=pending_has_url <| Test.with_retries <|
             Data.clear_response_cache
@@ -227,6 +242,43 @@ add_specs suite_builder =
 
             target_file0.delete_if_exists
             target_file1.delete_if_exists
+
+        group_builder.specify "Should not cache for methods other than GET" pending=pending_has_url <| Test.with_retries <|
+            Data.clear_response_cache
+
+            expect_counts [0, 0] <|
+                Data.post url_post (Request_Body.Text "hello world")
+
+        group_builder.specify "Should not allow a cache policy for methods other than GET" pending=pending_has_url <| Test.with_retries <|
+            request = Request.new HTTP_Method.Post url_post [] Request_Body.Empty
+            HTTP.new.request request cache_policy=Cache_Policy.Cache_Responses . should_fail_with Illegal_Argument
+
+        group_builder.specify "Should be able to clear caches" pending=pending_has_url <| Test.with_retries <|
+            Data.clear_response_cache
+            request_and_get_counts uri0 HTTP_Method.Get headers0 . should_equal [0, 1]
+            expect_counts [1, 0] <|
+                Data.clear_response_cache
+
+        group_builder.specify "Cache key should only dependon the URI and headers" pending=pending_has_url <| Test.with_retries <|
+            Data.clear_response_cache
+            expect_counts [0, 1] <|
+                Data.fetch uri0
+                Data.fetch uri0
+            expect_counts [1, 2] <|
+                Data.fetch uri1
+                Data.fetch uri1
+
+        group_builder.specify "Cache key should depend on the URI" pending=pending_has_url <| Test.with_retries <|
+            Data.clear_response_cache
+            expect_counts [0, 2] <|
+                Data.fetch uri0
+                Data.fetch uri1
+
+        group_builder.specify "Cache key should depend on the headers" pending=pending_has_url <| Test.with_retries <|
+            Data.clear_response_cache
+            expect_counts [0, 2] <|
+                Data.fetch uri0 headers=headers0
+                Data.fetch uri0 headers=headers1
 
         ##
             group_builder.specify "The cache should expire stale entries" pending=pending_has_url <| Test.with_retries <|
