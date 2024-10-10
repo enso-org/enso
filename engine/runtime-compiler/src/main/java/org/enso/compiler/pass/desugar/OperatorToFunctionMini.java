@@ -27,4 +27,18 @@ public class OperatorToFunctionMini extends MiniIRPass {
     }
     return ir;
   }
+
+  @Override
+  public boolean checkPostCondition(IR ir) {
+    boolean[] isChildOperator = {false};
+    ir.children()
+        .foreach(
+            child -> {
+              if (child instanceof Operator.Binary) {
+                isChildOperator[0] = true;
+              }
+              return null;
+            });
+    return !isChildOperator[0];
+  }
 }
