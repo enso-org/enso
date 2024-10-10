@@ -2746,42 +2746,9 @@ lazy val runtime = (project in file("engine/runtime"))
 
 lazy val `runtime-and-langs` = (project in file("engine/runtime-and-langs"))
   .settings(
-    frgaalJavaCompilerSetting,
-    scalaModuleDependencySetting,
-    mixedJavaScalaProjectSetting,
-    annotationProcSetting,
-    truffleDslSuppressWarnsSetting,
-    version := ensoVersion,
-    commands += WithDebugCommand.withDebug,
-    inConfig(Compile)(truffleRunOptionsSettings),
-    // Add all GraalVM packages with Runtime scope - we don't need them for compilation,
-    // just provide them at runtime (in module-path).
     libraryDependencies ++= {
       GraalVM.modules ++ GraalVM.langsPkgs
-    },
-    Compile / internalModuleDependencies := Seq(
-      (`distribution-manager` / Compile / exportedModule).value,
-      (`engine-common` / Compile / exportedModule).value,
-      (`library-manager` / Compile / exportedModule).value,
-      (`connected-lock-manager` / Compile / exportedModule).value,
-      (`logging-utils` / Compile / exportedModule).value,
-      (`runtime-compiler` / Compile / exportedModule).value,
-      (`runtime-parser` / Compile / exportedModule).value,
-      (`runtime-suggestions` / Compile / exportedModule).value,
-      (`polyglot-api` / Compile / exportedModule).value,
-      (`common-polyglot-core-utils` / Compile / exportedModule).value,
-      (`pkg` / Compile / exportedModule).value,
-      (`cli` / Compile / exportedModule).value,
-      (`editions` / Compile / exportedModule).value,
-      (`edition-updater` / Compile / exportedModule).value,
-      (`syntax-rust-definition` / Compile / exportedModule).value,
-      (`version-output` / Compile / exportedModule).value,
-      (`interpreter-dsl` / Compile / exportedModule).value,
-      (`persistance` / Compile / exportedModule).value,
-      (`text-buffer` / Compile / exportedModule).value,
-      (`scala-libs-wrapper` / Compile / exportedModule).value,
-      (`fansi-wrapper` / Compile / exportedModule).value
-    )
+    }
   )
   .dependsOn(runtime)
 
