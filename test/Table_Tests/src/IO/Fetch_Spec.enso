@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Data.Base_64.Base_64
 import Standard.Base.Errors.File_Error.File_Error
+import Standard.Base.Network.HTTP.Request_Body.Request_Body
 import Standard.Base.Network.HTTP.Response.Response
 import Standard.Base.Runtime.Context
 from Standard.Base.Network.HTTP import http_get_num_response_cache_entries 
@@ -96,15 +97,19 @@ add_specs suite_builder =
             r4 = (uri.add_query_argument "Content-Type" "text/tab-separated-values").fetch
             r4.should_equal (Table.from_rows ["Column 1"] [["A,B"], ["1,x"], ["3,y"]])
 
-    suite_builder.group "Response caching" group_builder->
+    suite_builder.group "Response caching" pending=pending_has_url group_builder->
+        with_counts ~action =
+            before_count = http_get_num_response_cache_entries
+            action
+            after_count = http_get_num_response_cache_entries
+            [before_count, after_count]
+
         # Returns true if the cache was used.
         # Does not clear the cache first.
         request_and_get_counts uri method headers cache_policy=Cache_Policy.Default =
-            before_count = http_get_num_response_cache_entries
-            response = Data.fetch uri method headers cache_policy=cache_policy
-            response.code.is_success . should_be_true
-            after_count = http_get_num_response_cache_entries
-            [before_count, after_count]
+            with_counts <|
+                response = Data.fetch uri method headers cache_policy=cache_policy
+                response.code.is_success . should_be_true
 
         # Only use with GET.
         # Clears the cache first.
@@ -119,13 +124,22 @@ add_specs suite_builder =
             request_and_get_counts uri HTTP_Method.Get headers cache_policy=..Dont_Cache_Responses . should_equal [0, 0]
             request_and_get_counts uri HTTP_Method.Get headers cache_policy=..Dont_Cache_Responses . should_equal [0, 0]
 
-        uri0 = 'http://localhost:8080/test_download?max-age=16&length=100'
+        uri0 = base_url_with_slash+'test_download?max-age=16&length=100'
+        url_post = base_url_with_slash + "post"
         headers0 = [Header.new "A-Header" "a-header-value", Header.new "A-Header" "a-header-value"]
+        # policies = [Cache_Policy.Default, Cache_Policy.Cache_Responses, Cache_Policy.Dont_Cache_Responses]
 
         group_builder.specify "Should cache responses" pending=pending_has_url <| Test.with_retries <|
             with_and_without_caching uri0 headers0
+
+        group_builder.specify "Should not cache for methods other than GET" pending=pending_has_url <| Test.with_retries <|
+            Data.clear_response_cache
+
+            counts = with_counts <|
+                Data.post url_post (Request_Body.Text "hello world")
+            counts . should_equal [0, 0]
+
         ##
-            group_builder.specify "Should not cache for methods other than GET" pending=pending_has_url <| Test.with_retries <|
             group_builder.specify "Should not allow a cache policy for methods other than GET" pending=pending_has_url <| Test.with_retries <|
             group_builder.specify "Should be able to clear caches" pending=pending_has_url <| Test.with_retries <|
             group_builder.specify "Cache key should depend on the URI" pending=pending_has_url <| Test.with_retries <|
