@@ -13,7 +13,7 @@ import * as appUtils from '#/appUtils'
 
 import { useLogger, type Logger } from '#/providers/LoggerProvider'
 
-import type * as saveAccessTokenModule from '#/utilities/accessToken'
+import type * as saveAccessTokenModule from 'enso-common/src/accessToken'
 
 import * as cognitoModule from '#/authentication/cognito'
 import * as listen from '#/authentication/listen'

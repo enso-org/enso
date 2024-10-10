@@ -2,7 +2,7 @@
  * These are from variables defined at build time, environment variables,
  * monkeypatching on `window` and generated code. */
 /// <reference types="vite/client" />
-import type * as saveAccessToken from '#/utilities/accessToken'
+import type * as saveAccessToken from 'enso-common/src/accessToken'
 
 // This file is being imported for its types.
 // prettier-ignore

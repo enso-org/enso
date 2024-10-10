@@ -24,7 +24,7 @@ import {
   getMethodCallInfoRecursively,
 } from '@/util/callTree'
 import { partitionPoint } from '@/util/data/array'
-import { isIdentifier } from '@/util/qualifiedName.ts'
+import { isIdentifier } from '@/util/qualifiedName'
 import { computed, proxyRefs } from 'vue'
 import { methodPointerEquals, type MethodPointer } from 'ydoc-shared/languageServerTypes'
 

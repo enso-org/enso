@@ -15,16 +15,13 @@
   "bugs": {
     "url": "https://github.com/enso-org/enso/issues"
   },
-  "exports": {
-    ".": "./src/index.tsx"
-  },
   "//": {},
   "scripts": {
     "typecheck": "vue-tsc --noEmit -p tsconfig.app.json",
     "build": "vite build",
     "build-cloud": "cross-env CLOUD_BUILD=true corepack pnpm run build",
     "preview": "vite preview",
-    "lint": "cross-env NODE_OPTIONS=--max-old-space-size=4096 eslint .",
+    "lint": "cross-env eslint . --max-warnings=0",
     "format": "prettier --version && prettier --write src/ && eslint . --fix",
     "dev:vite": "vite",
     "test": "corepack pnpm run /^^^^test:.*/",

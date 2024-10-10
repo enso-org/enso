@@ -3,9 +3,9 @@
   "include": [
     "env.d.ts",
     "lib0-ext.d.ts",
-    "src/**/*",
     "src/**/*.vue",
     "src/**/*.ts",
+    "src/**/*.tsx",
     "src/util/theme.json",
     "src/**/__tests__/*.json",
     "templates/**/*"

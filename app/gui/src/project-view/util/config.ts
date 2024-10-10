@@ -70,14 +70,16 @@ export interface Group<T = Required<RawGroup>> extends Config<T> {
   description: string
 }
 
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 export interface Config<T = Required<RawConfig>> {
   options: T extends { options: infer Options extends object } ?
     { [K in keyof Options]: Option<Options[K]> }
-  : object
+  : {}
   groups: T extends { groups: infer Groups extends object } ?
     { [K in keyof Groups]: Group<Groups[K]> }
-  : object
+  : {}
 }
+/* eslint-enable @typescript-eslint/no-empty-object-type */
 
 function loadOption<T>(option: T): Option<T> {
   const obj = (typeof option !== 'object' || option == null ? {} : option) as Record<

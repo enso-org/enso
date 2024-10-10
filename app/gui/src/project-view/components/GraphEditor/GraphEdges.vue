@@ -6,7 +6,7 @@ import { injectInteractionHandler, type Interaction } from '@/providers/interact
 import type { PortId } from '@/providers/portInfo'
 import { useGraphStore, type NodeId } from '@/stores/graph'
 import { Ast } from '@/util/ast'
-import { isAstId, type AstId } from '@/util/ast/abstract.ts'
+import { isAstId, type AstId } from '@/util/ast/abstract'
 import { Vec2 } from '@/util/data/vec2'
 import { toast } from 'react-toastify'
 

@@ -5,7 +5,7 @@ import SizeTransition from '@/components/SizeTransition.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import DropdownWidget, { type DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
 import { unrefElement } from '@/composables/events'
-import { injectSelectionArrow, provideSelectionArrow } from '@/providers/selectionArrow.ts'
+import { injectSelectionArrow, provideSelectionArrow } from '@/providers/selectionArrow'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import {
   multipleChoiceConfiguration,
@@ -13,14 +13,14 @@ import {
   type ArgumentWidgetConfiguration,
 } from '@/providers/widgetRegistry/configuration'
 import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
-import { injectWidgetTree } from '@/providers/widgetTree.ts'
+import { injectWidgetTree } from '@/providers/widgetTree'
 import { useGraphStore } from '@/stores/graph'
-import { requiredImports, type RequiredImport } from '@/stores/graph/imports.ts'
+import { requiredImports, type RequiredImport } from '@/stores/graph/imports'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import {
   type SuggestionEntry,
   type SuggestionEntryArgument,
-} from '@/stores/suggestionDatabase/entry.ts'
+} from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import { targetIsOutside } from '@/util/autoBlur'
 import { ArgumentInfoKey } from '@/util/callTree'

@@ -27,7 +27,7 @@ import UIProviders from '#/components/UIProviders'
 
 import HttpClient from '#/utilities/HttpClient'
 
-export type { AccessToken } from '#/utilities/accessToken'
+export type { AccessToken } from '../../../ide-desktop/common/src/accessToken'
 
 export type { GraphEditorRunner } from '#/layouts/Editor'
 

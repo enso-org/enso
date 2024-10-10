@@ -87,7 +87,6 @@ export interface UseFormProps<Schema extends TSchema, SubmitResult = void>
    * Debug name for the form. Use it to identify the form in the tanstack query devtools.
    */
   readonly debugName?: string
-  // eslint-disable-next-line @typescript-eslint/ban-types
   readonly method?: 'dialog' | (string & {}) | undefined
 }
 
@@ -218,7 +217,7 @@ export interface FieldProps {
 }
 /**
  * Base Props for a Form Field.
- * @private
+ * @internal
  */
 export interface FormFieldProps<
   BaseValueType,

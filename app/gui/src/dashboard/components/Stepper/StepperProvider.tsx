@@ -25,7 +25,7 @@ const StepperContext = React.createContext<StepperContextType | null>(null)
 
 /**
  * Hook to use the stepper context
- * @private
+ * @internal
  */
 export function useStepperContext() {
   const context = React.useContext(StepperContext)

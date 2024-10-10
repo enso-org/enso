@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.js",
     "./src/config.json": "./src/config.json",
+    "./src/accessToken": "./src/accessToken.ts",
     "./src/appConfig": "./src/appConfig.js",
     "./src/buildUtils": "./src/buildUtils.js",
     "./src/detect": "./src/detect.ts",

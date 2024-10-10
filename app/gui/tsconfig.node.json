@@ -14,7 +14,7 @@
     "src/dashboard/services/RemoteBackend.ts",
     "src/dashboard/utilities/**/*",
     "node.env.d.ts"
-  ],
+, "../ide-desktop/common/src/accessToken.ts"  ],
   "compilerOptions": {
     "baseUrl": ".",
     "module": "ESNext",
