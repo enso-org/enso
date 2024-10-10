@@ -9,6 +9,7 @@ from Standard.Table.Errors import Invalid_Column_Names, Duplicate_Output_Column_
 
 import Standard.Database.Internal.Replace_Params.Replace_Params
 import Standard.Database.Feature.Feature
+import Standard.Database.Property.Property
 from Standard.Database import all
 from Standard.Database.Errors import SQL_Error, Unsupported_Database_Operation, Unsupported_Database_Type
 
@@ -331,7 +332,7 @@ sqlite_spec suite_builder prefix create_connection_func persistent_connector =
 
     materialize = .read
 
-    common_selection = Common_Table_Operations.Main.Test_Selection.Config supports_case_sensitive_columns=False natural_ordering=False case_insensitive_ordering=True case_insensitive_ascii_only=True is_nan_and_nothing_distinct=False date_time=False supported_replace_params=supported_replace_params different_size_integer_types=False length_restricted_text_columns=False char_max_size_after_substring=..Reset run_advanced_edge_case_tests_by_default=True
+    common_selection = Common_Table_Operations.Main.Test_Selection.Config natural_ordering=False case_insensitive_ordering=True case_insensitive_ascii_only=True is_nan_and_nothing_distinct=False date_time=False supported_replace_params=supported_replace_params different_size_integer_types=False length_restricted_text_columns=False char_max_size_after_substring=..Reset run_advanced_edge_case_tests_by_default=True
 
     ## For now `advanced_stats`, `text_shortest_longest` and
        `multi_distinct` remain disabled, because SQLite does not provide the
@@ -351,8 +352,9 @@ sqlite_spec suite_builder prefix create_connection_func persistent_connector =
         (agg_in_memory_table.take (..First 0)).select_into_database_table default_connection.get (Name_Generator.random_name "Agg_Empty") primary_key=Nothing temporary=True
 
     is_feature_supported_fn feature:Feature = default_connection.get.dialect.is_feature_supported feature
+    property_fn checked_property:Property = default_connection.get.dialect.property checked_property
 
-    setup = Common_Table_Operations.Main.Test_Setup.Config prefix agg_table_fn empty_agg_table_fn table_builder materialize is_database=True test_selection=common_selection aggregate_test_selection=aggregate_selection create_connection_func=create_connection_func light_table_builder=light_table_builder is_feature_supported=is_feature_supported_fn
+    setup = Common_Table_Operations.Main.Test_Setup.Config prefix agg_table_fn empty_agg_table_fn table_builder materialize is_database=True test_selection=common_selection aggregate_test_selection=aggregate_selection create_connection_func=create_connection_func light_table_builder=light_table_builder is_feature_supported=is_feature_supported_fn property=property_fn
     
     Common_Spec.add_specs suite_builder prefix create_connection_func default_connection setup
     sqlite_specific_spec suite_builder prefix create_connection_func setup

@@ -87,7 +87,6 @@ add_specs suite_builder setup =
 add_select_column_specs suite_builder setup =
     prefix = setup.prefix
     table_builder = Util.build_sorted_table setup
-    test_selection = setup.test_selection
 
     suite_builder.group prefix+"Table.select_columns" group_builder->
         data = Select_Columns_Data.setup table_builder
@@ -119,7 +118,7 @@ add_select_column_specs suite_builder setup =
             expect_column_names ["foo", "bar", "foo 1", "foo 2", "abcd123"] <| data.table.select_columns [-1, "bar", "foo.*".to_regex]
             expect_column_names ["foo", "foo 1", "foo 2", "bar", "abcd123"] <| data.table.select_columns ["foo.*".to_regex, "bar", "foo", -1] reorder=True
 
-        if test_selection.supports_case_sensitive_columns then
+        if setup.property ..Supports_Case_Sensitive_Columns then
             group_builder.specify "should correctly handle exact matches matching multiple names due to case insensitivity" <|
                 table =
                     col1 = ["foo", [1,2,3]]
@@ -245,7 +244,7 @@ add_select_column_specs suite_builder setup =
         group_builder.specify "should allow negative indices" <|
             expect_column_names ["Baz", "foo 1", "ab.+123"] <| data.table.remove_columns [-1, -3, 0, 1]
 
-        if test_selection.supports_case_sensitive_columns then
+        if setup.property ..Supports_Case_Sensitive_Columns then
             group_builder.specify "should correctly handle exact matches matching multiple names due to case insensitivity" <|
                 table =
                     col1 = ["foo", [1,2,3]]
@@ -331,7 +330,7 @@ add_select_column_specs suite_builder setup =
         group_builder.specify "should allow negative indices" <|
             expect_column_names ["abcd123", "foo 2", "foo", "bar", "Baz", "foo 1", "ab.+123"] <| data.table.reorder_columns [-1, -3, 0, 1]
 
-        if test_selection.supports_case_sensitive_columns then
+        if setup.property ..Supports_Case_Sensitive_Columns then
             group_builder.specify "should correctly handle exact matches matching multiple names due to case insensitivity" <|
                 table =
                     col1 = ["foo", [1,2,3]]

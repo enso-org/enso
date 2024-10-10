@@ -33,6 +33,7 @@ import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.SQLite.SQLite_Error_Mapper.SQLite_Error_Mapper
 import project.Internal.SQLite.SQLite_Type_Mapping.SQLite_Type_Mapping
 import project.Internal.Statement_Setter.Statement_Setter
+import project.Property.Property
 import project.SQL.SQL_Builder
 import project.SQL_Statement.SQL_Statement
 import project.SQL_Type.SQL_Type
@@ -183,23 +184,6 @@ type SQLite_Dialect
         True
 
     ## PRIVATE
-       Specifies if the Database backend supports WITH clauses in nested queries.
-    supports_nested_with_clause : Boolean
-    supports_nested_with_clause self = True
-
-    ## PRIVATE
-    supports_separate_nan : Boolean
-    supports_separate_nan self = False
-
-    ## PRIVAITE
-       Specifies implementation details flags.
-    dialect_flags : Dialect_Flags
-    dialect_flags self -> Dialect_Flags =
-        rounding = Rounding_Flags.Value supports_negative_decimal_places=False supports_float_decimal_places=True use_builtin_bankers=False
-        primary_key = Primary_Key_Flags.Value allows_nulls=True
-        Dialect_Flags.Value rounding=rounding primary_key=primary_key
-
-    ## PRIVATE
        Specifies how the database creates temp tables.
     temp_table_style : Temp_Table_Style
     temp_table_style self = Temp_Table_Style.Temporary_Table
@@ -281,6 +265,18 @@ type SQLite_Dialect
     is_feature_supported self feature:Feature -> Boolean =
         _ = feature
         True
+
+    ## PRIVATE
+       Gets a dialect property
+    property self checked_property:Property -> Boolean =
+        case checked_property of
+            Property.Supports_Negative_Decimal_Places -> False
+            Property.Supports_Float_Decimal_Places -> True
+            Property.Use_Builtin_Bankers -> False
+            Property.Primary_Key_Allows_Nulls -> True
+            Property.Supports_Separate_NaN -> False
+            Property.Supports_Nested_With_Clause -> True
+            Property.Supports_Case_Sensitive_Columns -> False
 
     ## PRIVATE
        The default table types to use when listing tables.

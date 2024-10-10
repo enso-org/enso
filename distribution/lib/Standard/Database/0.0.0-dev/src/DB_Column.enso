@@ -304,7 +304,7 @@ type DB_Column
                 times_ten + product_a_b + 100
     let : Text -> (DB_Column -> DB_Column) -> DB_Column
     let self (name : Text) (callback : (DB_Column -> DB_Column)) -> DB_Column =
-        use_ctes = self.connection.dialect.supports_nested_with_clause
+        use_ctes = self.connection.property ..Supports_Nested_With_Clause
 
         if use_ctes.not then callback self else
             binder = self.connection.base_connection.table_naming_helper.generate_random_table_name
@@ -931,11 +931,11 @@ type DB_Column
     should_use_builtin_round : Integer -> Boolean -> Boolean
     should_use_builtin_round self decimal_places use_bankers =
         # Don't use for banker's rounding (unless the dialect has a builtin for it)
-        bankers_ok = self.connection.dialect.dialect_flags.rounding.use_builtin_bankers || use_bankers.not
+        bankers_ok = self.connection.dialect.property ..Use_Builtin_Bankers || use_bankers.not
         # Don't use for negative decimal places, if the backend doesn't support it
-        negative_dp_ok = decimal_places >= 0 || self.connection.dialect.dialect_flags.rounding.supports_negative_decimal_places
+        negative_dp_ok = decimal_places >= 0 || self.connection.dialect.property ..Supports_Negative_Decimal_Places
         # Don't use for floating-point inputs if decimal_places != 0, for Postgres
-        dp_param_ok = decimal_places == 0 || self.value_type.is_floating_point.not || self.connection.dialect.dialect_flags.rounding.supports_float_decimal_places
+        dp_param_ok = decimal_places == 0 || self.value_type.is_floating_point.not || self.connection.dialect.dialect_flags.property ..Supports_Float_Decimal_Places
         bankers_ok && negative_dp_ok && dp_param_ok
 
     ## PRIVATE
@@ -1255,7 +1255,7 @@ type DB_Column
         is_blank = case self_type.is_text of
             True -> self.is_empty
             False -> self.is_nothing
-        result = case treat_nans_as_blank && self_type.is_floating_point && self.connection.dialect.supports_separate_nan of
+        result = case treat_nans_as_blank && self_type.is_floating_point && self.connection.property ..Supports_Separate_Nan of
             True -> is_blank || self.is_nan
             False -> is_blank
         result.rename new_name

@@ -35,6 +35,7 @@ import project.Internal.Replace_Params.Replace_Params
 import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.Statement_Setter.Statement_Setter
+import project.Property.Property
 import project.SQL.SQL_Builder
 import project.SQL.SQL_Fragment
 import project.SQL_Statement.SQL_Statement
@@ -170,23 +171,6 @@ type Postgres_Dialect
         False
 
     ## PRIVATE
-       Specifies if the Database backend supports WITH clauses in nested queries.
-    supports_nested_with_clause : Boolean
-    supports_nested_with_clause self = True
-
-    ## PRIVATE
-    supports_separate_nan : Boolean
-    supports_separate_nan self = True
-
-    ## PRIVAITE
-       Specifies implementation details flags.
-    dialect_flags : Dialect_Flags
-    dialect_flags self -> Dialect_Flags =
-        rounding = Rounding_Flags.Value supports_negative_decimal_places=True supports_float_decimal_places=False use_builtin_bankers=False
-        primary_key = Primary_Key_Flags.Value allows_nulls=False
-        Dialect_Flags.Value rounding=rounding primary_key=primary_key
-
-    ## PRIVATE
        Specifies how the database creates temp tables.
     temp_table_style : Temp_Table_Style
     temp_table_style self = Temp_Table_Style.Temporary_Table
@@ -270,6 +254,18 @@ type Postgres_Dialect
     is_feature_supported self feature:Feature -> Boolean =
         _ = feature
         True
+
+    ## PRIVATE
+       Gets a dialect property
+    property self checked_property:Property -> Boolean =
+        case checked_property of
+            Property.Supports_Negative_Decimal_Places -> True
+            Property.Supports_Float_Decimal_Places -> False
+            Property.Use_Builtin_Bankers -> False
+            Property.Primary_Key_Allows_Nulls -> False
+            Property.Supports_Separate_NaN -> True
+            Property.Supports_Nested_With_Clause -> True
+            Property.Supports_Case_Sensitive_Columns -> True
 
     ## PRIVATE
        The default table types to use when listing tables.

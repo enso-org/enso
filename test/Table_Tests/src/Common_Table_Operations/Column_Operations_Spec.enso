@@ -1797,7 +1797,7 @@ add_column_operation_specs suite_builder setup =
             group_builder.teardown <|
                 connection_data.teardown
 
-            if connection_data.connection.dialect.supports_nested_with_clause then
+            if connection_data.connection.dialect.property ..Supports_Nested_With_Clause then
                 group_builder.specify "Should allow the use of let-style CTEs" <|
                     t = table_builder [["X", [1, 2, 3, 4]], ["Y", [4, 3, 100, 200]], ["Z", [12.1, 23.4, -4.5, 44.33]]]
                     x = t.at "X"
