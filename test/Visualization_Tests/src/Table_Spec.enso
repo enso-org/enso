@@ -93,7 +93,8 @@ add_specs suite_builder =
 
         group_builder.specify "should handle Vectors" <|
             vis = Visualization.prepare_visualization [1, 2, 3] 2
-            json = JS_Object.from_pairs [["type", "Vector"], ["all_rows_count", 3], ["json", [1, 2]], ["get_child_node_action", "at"]]
+            data_quality_p = JS_Object.from_pairs [["number_of_nothing", [0]]]
+            json = JS_Object.from_pairs [["type", "Vector"], ["all_rows_count", 3], ["json", [1, 2]], ["get_child_node_action", "at"], ["data_quality_pairs", data_quality_p]]
             vis . should_equal json.to_text
 
             vis2 = Visualization.prepare_visualization [[1, 2], [3, 4]] 2
@@ -102,7 +103,8 @@ add_specs suite_builder =
 
         group_builder.specify "should handle Arrays" <|
             vis = Visualization.prepare_visualization ([1, 2, 3] . to_array) 2
-            json = JS_Object.from_pairs [["type", "Vector"], ["all_rows_count", 3], ["json", [1, 2]], ["get_child_node_action", "at"]]
+            data_quality_p = JS_Object.from_pairs [["number_of_nothing", [0]]]
+            json = JS_Object.from_pairs [["type", "Vector"], ["all_rows_count", 3], ["json", [1, 2]], ["get_child_node_action", "at"], ["data_quality_pairs", data_quality_p]]
             vis . should_equal json.to_text
 
         group_builder.specify "should handle other datatypes" <|
