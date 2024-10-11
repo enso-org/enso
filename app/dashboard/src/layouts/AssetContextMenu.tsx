@@ -127,12 +127,21 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const canPaste =
     !pasteData || !pasteDataParentKeys || !isCloud ?
       true
-    : !Array.from(pasteData.data).some((assetId) => {
-        const parentKey = pasteDataParentKeys.get(assetId)
+    : Array.from(pasteData.data).every((key) => {
+        const parentKey = pasteDataParentKeys.get(key)
         const parent = parentKey == null ? null : nodeMap.current.get(parentKey)
-        return !parent ? true : (
-            permissions.isTeamPath(parent.path) && permissions.isUserPath(item.path)
+        if (!parent) {
+          return false
+        } else if (permissions.isTeamPath(parent.path)) {
+          return true
+        } else {
+          // Assume user path; check permissions
+          const permission = permissions.tryFindSelfPermission(user, item.item.permissions)
+          return (
+            permission != null &&
+            permissions.canPermissionModifyDirectoryContents(permission.permission)
           )
+        }
       })
 
   const { data } = reactQuery.useQuery(
