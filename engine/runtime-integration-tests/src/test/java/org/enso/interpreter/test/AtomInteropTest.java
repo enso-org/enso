@@ -9,6 +9,8 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 
 import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.InvalidArrayIndexException;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.junit.After;
@@ -146,6 +148,75 @@ public class AtomInteropTest {
     assertThat("Method is readable", interop.isMemberReadable(atom, "method"), is(true));
     assertThat("Method is invocable", interop.isMemberInvocable(atom, "method"), is(true));
     assertThat("Field is readable", interop.isMemberReadable(atom, "a"), is(true));
+  }
+
+  @Test
+  public void fieldsFromPrivateConstructorAreInternalMembers() {
+    var myTypeAtom =
+        ContextUtils.evalModule(
+            ctx,
+            """
+        type My_Type
+            private Cons a
+
+        main = My_Type.Cons "a"
+        """);
+    var atom = ContextUtils.unwrapValue(ctx, myTypeAtom);
+    var interop = InteropLibrary.getUncached();
+    assertThat("field a is internal", interop.isMemberInternal(atom, "a"), is(true));
+  }
+
+  @Test
+  public void allMethodsAreInternalMembers() {
+    var myTypeAtom =
+        ContextUtils.evalModule(
+            ctx,
+            """
+        type My_Type
+            Cons a
+            pub_method self = 42
+            private priv_method self = 42
+
+        main = My_Type.Cons "a"
+        """);
+    var atom = ContextUtils.unwrapValue(ctx, myTypeAtom);
+    var interop = InteropLibrary.getUncached();
+    assertThat(
+        "public method is internal member", interop.isMemberInternal(atom, "pub_method"), is(true));
+    assertThat(
+        "private method is internal member",
+        interop.isMemberInternal(atom, "priv_method"),
+        is(true));
+  }
+
+  @Test
+  public void allMembersAreReadableAndInvocable()
+      throws UnsupportedMessageException, InvalidArrayIndexException {
+    var myTypeAtom =
+        ContextUtils.evalModule(
+            ctx,
+            """
+        type My_Type
+            Cons a
+            pub_method self = 42
+            private priv_method self = 42
+
+        main = My_Type.Cons "a"
+        """);
+    var atom = ContextUtils.unwrapValue(ctx, myTypeAtom);
+    var interop = InteropLibrary.getUncached();
+    var members = interop.getMembers(atom, true);
+    for (long i = 0; i < interop.getArraySize(members); i++) {
+      var memberName = interop.asString(interop.readArrayElement(members, i));
+      assertThat(
+          "Member " + memberName + " should be readable",
+          interop.isMemberReadable(atom, memberName),
+          is(true));
+      assertThat(
+          "Member " + memberName + " should be invocable",
+          interop.isMemberInvocable(atom, memberName),
+          is(true));
+    }
   }
 
   @Test
