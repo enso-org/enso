@@ -81,7 +81,7 @@ get_audit_log_events -> Vector Audit_Log_Event =
 ## PRIVATE
 type Audit_Log_Event
     ## PRIVATE
-    Value organization_id:Text user_email:Text timestamp:Date_Time metadata:JS_Object message:Text project_id:Text
+    Value organization_id:Text user_email:Text timestamp:Date_Time|Nothing metadata:JS_Object message:Text project_id:Text|Nothing
 
     ## PRIVATE
     from_json json =

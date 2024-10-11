@@ -1,5 +1,8 @@
 package org.enso.shttp.cloud_mock;
 
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Deque;
 import java.util.LinkedList;
@@ -15,11 +18,22 @@ public class AssetStore {
   final Directory homeDirectory;
 
   public AssetStore() {
-    rootDirectory = new Directory(ROOT_DIRECTORY_ID, "", null, new LinkedList<>());
+    rootDirectory =
+        new Directory(ROOT_DIRECTORY_ID, "", null, currentTimeAsString(), new LinkedList<>());
     Directory usersDirectory =
-        new Directory(USERS_DIRECTORY_ID, "Users", rootDirectory.id, new LinkedList<>());
+        new Directory(
+            USERS_DIRECTORY_ID,
+            "Users",
+            rootDirectory.id,
+            currentTimeAsString(),
+            new LinkedList<>());
     homeDirectory =
-        new Directory(HOME_DIRECTORY_ID, "My test User 1", usersDirectory.id, new LinkedList<>());
+        new Directory(
+            HOME_DIRECTORY_ID,
+            "My test User 1",
+            usersDirectory.id,
+            currentTimeAsString(),
+            new LinkedList<>());
 
     rootDirectory.children.add(usersDirectory);
     usersDirectory.children.add(homeDirectory);
@@ -37,7 +51,7 @@ public class AssetStore {
     }
 
     String id = "secret-" + java.util.UUID.randomUUID().toString();
-    secrets.add(new Secret(id, title, value, parentDirectoryId));
+    secrets.add(new Secret(id, title, value, parentDirectoryId, currentTimeAsString()));
     return id;
   }
 
@@ -65,10 +79,15 @@ public class AssetStore {
     return List.copyOf(secrets);
   }
 
-  record Secret(String id, String title, String value, String parentDirectoryId) {
-    Asset asAsset() {
-      return new Asset(id, title, parentDirectoryId);
-    }
+  /**
+   * We do not store the creation time as ZoneDateTime, because that causes trouble with
+   * serialization to JSON - we'd need to add more dependencies to handle it. Instead, since this is
+   * just a mock, we store as raw strings.
+   */
+  private String currentTimeAsString() {
+    return ZonedDateTime.now()
+        .withZoneSameInstant(ZoneId.of("UTC"))
+        .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
   }
 
   Asset resolvePath(String[] path) {
@@ -117,11 +136,19 @@ public class AssetStore {
     return currentAsset;
   }
 
-  public record Asset(String id, String title, String parentId) {}
-
-  record Directory(String id, String title, String parentId, LinkedList<Directory> children) {
+  record Secret(
+      String id, String title, String value, String parentDirectoryId, String modifiedAt) {
     Asset asAsset() {
-      return new Asset(id, title, parentId);
+      return new Asset(id, title, parentDirectoryId, modifiedAt);
+    }
+  }
+
+  public record Asset(String id, String title, String parentId, String modifiedAt) {}
+
+  record Directory(
+      String id, String title, String parentId, String modifiedAt, LinkedList<Directory> children) {
+    Asset asAsset() {
+      return new Asset(id, title, parentId, modifiedAt);
     }
   }
 }

@@ -591,7 +591,7 @@ add_specs suite_builder =
 
         ## Checking this error partially as a warning - I spent a lot of time debugging why I'm getting such an error.
            Apparently it happens when the httpbin server was crashing without sending any response.
-        group_builder.specify "should be able to handle server crash resulting in no response" pending=pending_has_url <| Test.with_retries <|
+        group_builder.specify "should be able to handle server crash resulting in no response" pending=pending_has_url <|
             err = Data.fetch (base_url_with_slash+"crash")
             err.should_fail_with Request_Error
             err.catch.error_type . should_equal "java.io.IOException"
@@ -600,10 +600,20 @@ add_specs suite_builder =
                I think it may be worth adding, because it may be really quite confusing for end users who get that kind of error.
             err.catch.message . should_equal "HTTP/1.1 header parser received no bytes"
 
-        group_builder.specify "should be able to handle IO errors" pending="TODO: Currently I was unable to figure out a way to test such errors" <|
-            # how to trigger this error???
-            err = Data.fetch "TODO"
+        group_builder.specify "should be able to handle occasional server crashes and retry" pending=pending_has_url <|
+            r1 = Data.fetch (base_url_with_slash+"crash?success_every=2")
+            r1.should_succeed
+            r1.should_be_a Response
+
+        group_builder.specify "should be able to handle server crash that closes stream abruptly" pending=pending_has_url <|
+            err = Data.fetch (base_url_with_slash+"crash?type=stream")
             err.should_fail_with HTTP_Error
+            err.catch.message . should_equal "An IO error has occurred: java.io.IOException: closed"
+
+        group_builder.specify "should be able to handle occasional abrupt stream closures and retry" pending=pending_has_url <|
+            r1 = Data.fetch (base_url_with_slash+"crash?type=stream&success_every=2")
+            r1.should_succeed
+            r1.should_be_a Response
 
     suite_builder.group "Http Auth" group_builder->
         group_builder.specify "should support Basic user+password authentication" pending=pending_has_url <| Test.with_retries <|

@@ -3,7 +3,7 @@ private
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.System.Input_Stream.Input_Stream
-from Standard.Base.Enso_Cloud.Data_Link_Helpers import parse_secure_value
+from Standard.Base.Enso_Cloud.Data_Link_Helpers import Data_Link_Source_Metadata, parse_secure_value
 from Standard.Base.Enso_Cloud.Public_Utils import get_optional_field, get_required_field
 
 import project.Connection.Connection_Options.Connection_Options
@@ -14,15 +14,15 @@ import project.Connection.Postgres.Postgres
 type Postgres_Data_Link
     ## PRIVATE
        A data-link returning a connection to the specified database.
-    Connection details:Postgres
+    Connection details:Postgres related_asset_id:Text|Nothing
 
     ## PRIVATE
        A data-link returning a query to a specific table within a database.
-    Table name:Text details:Postgres
+    Table name:Text details:Postgres related_asset_id:Text|Nothing
 
 
     ## PRIVATE
-    parse json -> Postgres_Data_Link =
+    parse json source:Data_Link_Source_Metadata -> Postgres_Data_Link =
         host = get_required_field "host" json expected_type=Text
         port = get_required_field "port" json expected_type=Integer
         db_name = get_required_field "database_name" json expected_type=Text
@@ -34,22 +34,25 @@ type Postgres_Data_Link
             password = get_required_field "password" credentials_json |> parse_secure_value
             Credentials.Username_And_Password username password
 
+        related_asset_id = case source of
+            Data_Link_Source_Metadata.Cloud_Asset id -> id
+            _ -> Nothing
         details = Postgres.Server host=host port=port database=db_name schema=schema credentials=credentials
         case get_optional_field "table" json expected_type=Text of
             Nothing ->
-                Postgres_Data_Link.Connection details
+                Postgres_Data_Link.Connection details related_asset_id
             table_name : Text ->
-                Postgres_Data_Link.Table table_name details
+                Postgres_Data_Link.Table table_name details related_asset_id
 
     ## PRIVATE
     read self (format = Auto_Detect) (on_problems : Problem_Behavior) =
         _ = on_problems
         if format != Auto_Detect then Error.throw (Illegal_Argument.Error "Only Auto_Detect can be used with a Postgres Data Link, as it points to a database.") else
-            # TODO add related asset id here: https://github.com/enso-org/enso/issues/9869
             audit_mode = if Enso_User.is_logged_in then "cloud" else "local"
-            default_options = Connection_Options.Value [["enso.internal.audit", audit_mode]]
+            options_vector = [["enso.internal.audit", audit_mode]] + (if self.related_asset_id.is_nothing then [] else [["enso.internal.relatedAssetId", self.related_asset_id]])
+            default_options = Connection_Options.Value options_vector
             connection = self.details.connect default_options allow_data_links=False
             case self of
-                Postgres_Data_Link.Connection _ -> connection
-                Postgres_Data_Link.Table table_name _ ->
+                Postgres_Data_Link.Connection _ _ -> connection
+                Postgres_Data_Link.Table table_name _ _ ->
                     connection.query table_name

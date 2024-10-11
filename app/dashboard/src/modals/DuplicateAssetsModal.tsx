@@ -214,6 +214,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                 >
                   {getText('update')}
                 </ariaComponents.Button>
+
                 <ariaComponents.Button
                   variant="outline"
                   onPress={() => {
@@ -252,6 +253,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
             : getText('andOtherProjects', otherProjectsCount)}
           </aria.Text>
         )}
+
         <ariaComponents.ButtonGroup className="relative">
           <ariaComponents.Button
             variant="submit"
@@ -263,6 +265,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
           >
             {count === 1 ? getText('update') : getText('updateAll')}
           </ariaComponents.Button>
+
           <ariaComponents.Button
             variant="accent"
             onPress={() => {

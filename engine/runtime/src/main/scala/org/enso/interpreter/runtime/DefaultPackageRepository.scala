@@ -608,7 +608,7 @@ private class DefaultPackageRepository(
       Using(file.newBufferedReader) { reader =>
         StringUtils.join(reader.lines().iterator(), "\n")
       }
-    else Failure(PackageManager.PackageNotFound())
+    else Failure(PackageManager.PackageNotFound("manifest"))
   }
 
   override def shutdown(): Unit = {
