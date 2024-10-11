@@ -57,6 +57,10 @@ export function useVisualizationData({
   const projectStore = useProjectStore()
   const visualizationStore = useVisualizationStore()
 
+  // Flag used to prevent rendering the visualization with a stale preprocessor while the new preprocessor is being
+  // prepared asynchronously.
+  const preprocessorLoading = ref(false)
+
   const configForGettingDefaultVisualization = computed<NodeVisualizationConfiguration | undefined>(
     () => {
       if (toValue(selectedVis)) return
@@ -169,9 +173,6 @@ export function useVisualizationData({
     () => (vueError.value = undefined),
   )
 
-  // Flag used to prevent rendering the visualization with a stale preprocessor while the new preprocessor is being
-  // prepared asynchronously.
-  const preprocessorLoading = ref(false)
   watchEffect(async () => {
     preprocessorLoading.value = true
     if (currentType.value == null) return
