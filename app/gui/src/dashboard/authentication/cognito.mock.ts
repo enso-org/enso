@@ -107,7 +107,9 @@ export class Cognito {
       const date = Math.floor(Number(new Date()) / SEC_MS)
       const expirationDate = date + TEN_HOURS_S
       if (!this.isSignedIn) {
-        throw new Error('No current user')
+        // The error MUST be a string to match AWS Amplify's behavior.
+        // eslint-disable-next-line @typescript-eslint/only-throw-error
+        throw 'No current user'
       } else {
         return Promise.resolve<cognito.CognitoUserSession>({
           isValid: () => true,
