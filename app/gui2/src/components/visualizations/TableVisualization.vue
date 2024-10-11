@@ -125,7 +125,9 @@ const defaultColDef: Ref<ColDef> = ref({
   filter: true,
   resizable: true,
   minWidth: 25,
-  cellRenderer: cellRenderer,
+  cellRenderer: (params: ICellRendererParams) => {
+    return params.node.rowPinned === 'top' ? customCellRenderer(params) : cellRenderer(params)
+  },
   cellClass: cellClass,
 } satisfies ColDef)
 const rowData = ref<Record<string, any>[]>([])
@@ -148,15 +150,6 @@ const selectableRowLimits = computed(() => {
   return defaults
 })
 
-const formatDataQualityMessage = (noNothing: number, noWhitespace: number, total: number) => {
-  return `Nulls/Nothing: ${(noNothing / total) * 100}%
-  Trailing/Leading WhiteSpace: ${(noWhitespace / total) * 100}%`
-}
-
-type RowType = {
-  [key: string]: string
-}
-
 const pinnedTopRowData = computed(() => {
   if (typeof props.data === 'object') {
     const data_ = props.data
@@ -168,12 +161,12 @@ const pinnedTopRowData = computed(() => {
     const total = data_.all_rows_count as number
     if (headers?.length) {
       const pairs: Record<string, string> = headers.reduce(
-        (obj: RowType, key: string, index: number) => {
-          obj[key] = formatDataQualityMessage(
-            numberOfNothing[index] as number,
-            numberOfWhitespace[index] as number,
+        (obj: any, key: string, index: number) => {
+          obj[key] = {
+            numberOfNothing: numberOfNothing[index],
+            numberOfWhitespace: numberOfWhitespace[index],
             total,
-          )
+          }
           return obj
         },
         {},
@@ -328,6 +321,36 @@ function cellClass(params: CellClassParams) {
     const valueType = params.value?.type
     if (valueType === 'BigInt' || valueType === 'Float' || valueType === 'Decimal')
       return 'ag-right-aligned-cell'
+  }
+  return null
+}
+
+const createVisual = (value: number) => {
+  let color
+  if (value < 33) {
+    color = 'green'
+  } else if (value < 66) {
+    color = 'orange'
+  } else {
+    color = 'red'
+  }
+  return `
+    <div style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background-color: ${color}; margin-left: 5px;"></div>
+  `
+}
+
+const customCellRenderer = (params: any) => {
+  if (params.node.rowPinned === 'top') {
+    const nothingPerecent = (params.value.numberOfNothing / params.value.total) * 100
+    const wsPerecent = (params.value.numberOfWhitespace / params.value.total) * 100
+    return `<div>
+    <div>
+      Nulls/Nothing: ${nothingPerecent.toFixed(2)}% ${createVisual(nothingPerecent)}
+    </div>
+    <div>
+      Trailing/Leading WhiteSpace: ${wsPerecent.toFixed(2)}% ${createVisual(wsPerecent)}
+    </div>
+    </div>`
   }
   return null
 }

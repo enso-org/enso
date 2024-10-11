@@ -71,6 +71,10 @@ function getRowHeight(params: RowHeightParams): number {
     return DEFAULT_ROW_HEIGHT
   }
 
+  if (params.node.rowPinned === 'top') {
+    return DEFAULT_ROW_HEIGHT * 2
+  }
+
   const returnCharsCount = textValues.map((text: string) => {
     const crlfCount = (text.match(/\r\n/g) || []).length
     const crCount = (text.match(/\r/g) || []).length
