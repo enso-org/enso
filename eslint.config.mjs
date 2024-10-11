@@ -210,7 +210,7 @@ export default [
       },
     },
     rules: {
-      camelcase: ['warn', { ignoreImports: true }],
+      camelcase: ['warn', { ignoreImports: true, ignoreDestructuring: true }],
       'no-inner-declarations': 'off',
       'vue/attribute-hyphenation': ['error', 'never'],
       'vue/v-on-event-hyphenation': ['error', 'never'],
@@ -225,7 +225,6 @@ export default [
       '@typescript-eslint/no-namespace': 'off',
       '@typescript-eslint/no-empty-object-type': ['error'],
       'no-unused-labels': 'off',
-      camelcase: ['warn', { ignoreDestructuring: true }],
       // Taken care of by prettier
       'vue/max-attributes-per-line': 'off',
       'vue/html-indent': 'off',
