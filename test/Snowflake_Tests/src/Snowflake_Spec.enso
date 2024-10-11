@@ -3,6 +3,7 @@ import Standard.Base.Enso_Cloud.Data_Link.Data_Link
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Ref.Ref
+from Standard.Base.Enso_Cloud.Data_Link_Helpers import secure_value_to_json
 
 from Standard.Table import Table, Value_Type, Aggregate_Column, Bits, expr
 from Standard.Table.Errors import Invalid_Column_Names, Inexact_Type_Coercion, Duplicate_Output_Column_Names
@@ -571,6 +572,10 @@ supported_replace_params =
 
 transform_file base_file connection_details =
     content = Data_Link.read_raw_config base_file
+
+    if connection_details.credentials.password.is_a Enso_Secret then
+        Panic.throw (Illegal_State.Error "Currently Snowflake tests need a plaintext password in environment variable to run.")
+
     new_content = content
         . replace "ACCOUNT" connection_details.account
         . replace "DBNAME" connection_details.database
@@ -578,6 +583,7 @@ transform_file base_file connection_details =
         . replace "WAREHOUSE" connection_details.warehouse
         . replace "USERNAME" connection_details.credentials.username
         . replace "PASSWORD" connection_details.credentials.password
+
     temp_file = File.create_temporary_file "snowflake-test-db" ".datalink"
     Data_Link.write_raw_config temp_file new_content replace_existing=True . if_not_error temp_file
 
