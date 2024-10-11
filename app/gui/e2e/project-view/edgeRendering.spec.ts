@@ -1,5 +1,6 @@
-import { expect, test, type Page } from '@playwright/test'
+import { test, type Page } from '@playwright/test'
 import * as actions from './actions'
+import { expect } from './customExpect'
 import { edgesFromNodeWithBinding, edgesToNodeWithBinding } from './locate'
 
 // For each outgoing edge we expect two elements: an element for io and an element for the rendered edge itself.

@@ -46,7 +46,7 @@ test('Using breadcrumbs to navigate', async ({ page }) => {
   await expectInsideMain(page)
   // Breadcrumbs still have all the crumbs, but the last two are dimmed.
   await expect(locate.navBreadcrumb(page)).toHaveText(['Mock Project', 'func1', 'func2'])
-  await expect(locate.navBreadcrumb(page, (f) => f.class('inactive'))).toHaveText([
+  await expect(locate.navBreadcrumb(page).and(page.locator('.inactive'))).toHaveText([
     'func1',
     'func2',
   ])

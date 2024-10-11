@@ -214,4 +214,4 @@ try {
   }
 }
 console.info('Done.')
-if (exitCode !== 0) process.exit(exitCode)
+process.exit(exitCode)

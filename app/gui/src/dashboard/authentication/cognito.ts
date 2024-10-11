@@ -643,7 +643,13 @@ function extractRefreshUrlFromSession(session: cognito.CognitoUserSession): stri
  * @throws {Error} If the error is not recognized.
  */
 export function intoCurrentSessionErrorType(error: unknown): CognitoErrorType.noCurrentUser {
-  if (error instanceof Error && error.message === 'No current user') {
+  //TODO: in app, the error is string, but in E2E tests it's of Error type.
+  // probably some mock should be fixed.
+  const message =
+    typeof error === 'string' ? error
+    : error instanceof Error ? error.message
+    : null
+  if (message === 'No current user') {
     return CognitoErrorType.noCurrentUser
   } else {
     throw error
