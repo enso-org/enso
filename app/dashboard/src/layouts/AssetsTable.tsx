@@ -2161,7 +2161,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     setSelectedKeys(EMPTY_SET)
   })
 
-  const transferBetweenCategories = useTransferBetweenCategories()
+  const transferBetweenCategories = useTransferBetweenCategories(category)
   const doPaste = useEventCallback((newParentKey: DirectoryId, newParentId: DirectoryId) => {
     unsetModal()
     const { pasteData } = driveStore.getState()

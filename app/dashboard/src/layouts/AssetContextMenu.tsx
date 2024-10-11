@@ -163,6 +163,20 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
 
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
 
+  const pasteMenuEntry = hasPasteData && canPaste && (
+    <ContextMenuEntry
+      hidden={hidden}
+      action="paste"
+      doAction={() => {
+        const [directoryKey, directoryId] =
+          item.type === backendModule.AssetType.directory ?
+            [item.key, item.item.id]
+          : [item.directoryKey, item.directoryId]
+        doPaste(directoryKey, directoryId)
+      }}
+    />
+  )
+
   return (
     category.type === 'trash' ?
       !ownsThisAsset ? null
@@ -193,6 +207,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 )
               }}
             />
+            {pasteMenuEntry}
           </ContextMenu>
         </ContextMenus>
     : <ContextMenus hidden={hidden} key={asset.id} event={event}>
@@ -469,19 +484,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               }}
             />
           )}
-          {hasPasteData && canPaste && (
-            <ContextMenuEntry
-              hidden={hidden}
-              action="paste"
-              doAction={() => {
-                const [directoryKey, directoryId] =
-                  item.type === backendModule.AssetType.directory ?
-                    [item.key, item.item.id]
-                  : [item.directoryKey, item.directoryId]
-                doPaste(directoryKey, directoryId)
-              }}
-            />
-          )}
+          {pasteMenuEntry}
         </ContextMenu>
         {canAddToThisDirectory && (
           <GlobalContextMenu

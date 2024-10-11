@@ -94,7 +94,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
   const localBackend = backendProvider.useLocalBackend()
   const { isOffline } = offlineHooks.useOffline()
   const isCurrent = areCategoriesEqual(currentCategory, category)
-  const transferBetweenCategories = useTransferBetweenCategories()
+  const transferBetweenCategories = useTransferBetweenCategories(currentCategory)
   const getCategoryError = (otherCategory: Category) => {
     switch (otherCategory.type) {
       case 'local':
