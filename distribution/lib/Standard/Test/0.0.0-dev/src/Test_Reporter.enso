@@ -100,12 +100,13 @@ report_github_error_message (title : Text) (message : Text) =
         on_location_failing_to_parse caught_panic =
             IO.println "Failed to parse file location ["+location_match.to_text+"]: "+caught_panic.to_display_text
             ""
-        location_part = if location_match.is_nothing then "" else Panic.catch Any handler=on_location_failing_to_parse <|
-            repo_root = enso_project.root.parent.parent.absolute.normalize
-            path = File.new (location_match.get 1)
-            relative_path = repo_root.relativize path
-            line = location_match.get 2
-            ",file="+(sanitize_parameter relative_path.path)+",line="+(sanitize_parameter line)+""
+        location_part = if location_match.is_nothing then "" else
+            Panic.catch Any handler=on_location_failing_to_parse <|
+                repo_root = enso_project.root.parent.parent.absolute.normalize
+                path = File.new (location_match.get 1)
+                relative_path = repo_root.relativize path
+                line = location_match.get 2
+                ",file="+(sanitize_parameter relative_path.path)+",line="+(sanitize_parameter line)+""
         IO.println "::error title="+(sanitize_parameter title)+location_part+"::"+(sanitize_message message)
 
 ## Prints all the results, optionally writing them to a jUnit XML output.
