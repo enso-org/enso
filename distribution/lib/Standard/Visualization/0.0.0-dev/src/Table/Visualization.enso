@@ -69,7 +69,7 @@ nothing_count col =
 whitespace_count : Column -> Integer | Nothing
 whitespace_count col =
     find_whitespace col = 
-        filtered = col.to_vector.filter (c-> c!=Nothing && c.starts_with ' ' || c!=Nothing && c.ends_with ' ')
+        filtered = col.to_vector.filter (c-> c!=Nothing && (c.starts_with ' ' || c.ends_with ' '))
         filtered.length
     if col.value_type.is_text then find_whitespace col else Nothing 
 
