@@ -66,7 +66,6 @@ export default function SelectionBrush(props: SelectionBrushProps) {
   }, [anchorAnimFactor, anchor])
 
   React.useEffect(() => {
-    const target = targetRef.current ?? document.body
     const isEventInBounds = (event: MouseEvent, parent?: HTMLElement | null) => {
       if (parent == null) {
         return true
