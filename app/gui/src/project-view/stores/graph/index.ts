@@ -734,11 +734,15 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       return isAstId(portId) && db.connections.reverseLookup(portId).size > 0
     }
 
-    const modulePath: Ref<LsPath | undefined> = computedAsync(async () => {
-      const rootId = await proj.projectRootId
-      const segments = ['src', 'Main.enso']
-      return rootId ? { rootId, segments } : undefined
-    })
+    const modulePath: Ref<LsPath | undefined> = computedAsync(
+      async () => {
+        const rootId = await proj.projectRootId
+        const segments = ['src', 'Main.enso']
+        return rootId ? { rootId, segments } : undefined
+      },
+      undefined,
+      { onError: console.error },
+    )
 
     return proxyRefs({
       db: markRaw(db),

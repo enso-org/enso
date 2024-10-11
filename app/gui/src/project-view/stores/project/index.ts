@@ -187,15 +187,19 @@ export const { provideFn: provideProjectStore, injectFn: useProjectStore } = cre
     projectModel.modules.observe(tryReadDocGuid)
     watchEffect(tryReadDocGuid)
 
-    const module = computedAsync(async () => {
-      const guid = moduleDocGuid.value
-      if (guid == null) return null
-      const moduleName = projectModel.findModuleByDocId(guid)
-      if (moduleName == null) return null
-      const mod = await projectModel.openModule(moduleName)
-      for (const origin of localUserActionOrigins) mod?.undoManager.addTrackedOrigin(origin)
-      return mod
-    })
+    const module = computedAsync(
+      async () => {
+        const guid = moduleDocGuid.value
+        if (guid == null) return null
+        const moduleName = projectModel.findModuleByDocId(guid)
+        if (moduleName == null) return null
+        const mod = await projectModel.openModule(moduleName)
+        for (const origin of localUserActionOrigins) mod?.undoManager.addTrackedOrigin(origin)
+        return mod
+      },
+      undefined,
+      { onError: console.error },
+    )
 
     const entryPoint = computed<MethodPointer>(() => {
       const projectName = fullName.value

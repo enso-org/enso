@@ -20,7 +20,9 @@ const urlTransformer = injectLexicalImageUrlTransformer(true)
 // change the `src` after creating an image.
 const data: Ref<TransformUrlResult | undefined> =
   urlTransformer ?
-    computedAsync(() => urlTransformer.transformUrl(props.src), undefined)
+    computedAsync(() => urlTransformer.transformUrl(props.src), undefined, {
+      onError: console.error,
+    })
   : computed(() => Ok({ url: props.src }))
 
 const title = computed(() =>

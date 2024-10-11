@@ -117,33 +117,42 @@ export function useVisualizationData({
     }
   })
 
-  const expressionVisualizationData = computedAsync(() => {
-    const dataSourceValue = toValue(dataSource)
-    if (dataSourceValue?.type !== 'expression') return
-    if (preprocessorLoading.value) return
-    const preprocessor = visPreprocessor.value
-    const args = preprocessor.positionalArgumentsExpressions
-    const tempModule = Ast.MutableModule.Transient()
-    const preprocessorModule = Ast.parse(preprocessor.visualizationModule, tempModule)
-    // TODO[ao]: it work with builtin visualization, but does not work in general case.
-    // Tracked in https://github.com/orgs/enso-org/discussions/6832#discussioncomment-7754474.
-    if (!isIdentifier(preprocessor.expression)) {
-      console.error(`Unsupported visualization preprocessor definition`, preprocessor)
-      return
-    }
-    const preprocessorQn = Ast.PropertyAccess.new(
-      tempModule,
-      preprocessorModule,
-      preprocessor.expression,
-    )
-    const preprocessorInvocation = Ast.App.PositionalSequence(preprocessorQn, [
-      Ast.Wildcard.new(tempModule),
-      ...args.map((arg) => Ast.Group.new(tempModule, Ast.parse(arg, tempModule))),
-    ])
-    const rhs = Ast.parse(dataSourceValue.expression, tempModule)
-    const expression = Ast.OprApp.new(tempModule, preprocessorInvocation, '<|', rhs)
-    return projectStore.executeExpression(dataSourceValue.contextId, expression.code())
-  })
+  const expressionVisualizationData = computedAsync(
+    () => {
+      try {
+        const dataSourceValue = toValue(dataSource)
+        if (dataSourceValue?.type !== 'expression') return
+        if (preprocessorLoading.value) return
+        const preprocessor = visPreprocessor.value
+        const args = preprocessor.positionalArgumentsExpressions
+        const tempModule = Ast.MutableModule.Transient()
+        const preprocessorModule = Ast.parse(preprocessor.visualizationModule, tempModule)
+        // TODO[ao]: it work with builtin visualization, but does not work in general case.
+        // Tracked in https://github.com/orgs/enso-org/discussions/6832#discussioncomment-7754474.
+        if (!isIdentifier(preprocessor.expression)) {
+          console.error(`Unsupported visualization preprocessor definition`, preprocessor)
+          return
+        }
+        const preprocessorQn = Ast.PropertyAccess.new(
+          tempModule,
+          preprocessorModule,
+          preprocessor.expression,
+        )
+        const preprocessorInvocation = Ast.App.PositionalSequence(preprocessorQn, [
+          Ast.Wildcard.new(tempModule),
+          ...args.map((arg) => Ast.Group.new(tempModule, Ast.parse(arg, tempModule))),
+        ])
+        const rhs = Ast.parse(dataSourceValue.expression, tempModule)
+        const expression = Ast.OprApp.new(tempModule, preprocessorInvocation, '<|', rhs)
+        return projectStore.executeExpression(dataSourceValue.contextId, expression.code())
+      } catch (e) {
+        console.error(e)
+        throw e
+      }
+    },
+    undefined,
+    { onError: console.error },
+  )
 
   const effectiveVisualizationData = computed(() => {
     const dataSourceValue = toValue(dataSource)
