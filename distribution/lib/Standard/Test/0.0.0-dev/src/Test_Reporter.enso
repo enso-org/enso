@@ -97,7 +97,10 @@ report_github_error_message (title : Text) (message : Text) =
     sanitize_parameter txt = txt . replace '\n' '%0A' . replace ',' '%2C'
     if is_enabled then
         location_match = Regex.compile "at ((?:[A-Za-z]:)?[^:]+):([0-9]+):" . match message
-        location_part = if location_match.is_nothing then "" else
+        on_location_failing_to_parse caught_panic =
+            IO.println "Failed to parse file location ["+location_match.to_text+"]: "+caught_panic.to_display_text
+            ""
+        location_part = if location_match.is_nothing then "" else Panic.catch Any handler=on_location_failing_to_parse <|
             repo_root = enso_project.root.parent.parent.absolute.normalize
             path = File.new (location_match.get 1)
             relative_path = repo_root.relativize path
