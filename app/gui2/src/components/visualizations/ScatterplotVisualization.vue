@@ -260,8 +260,8 @@ const symbol: d3.Symbol<unknown, Point> = d3.symbol()
 
 const animationDuration = computed(() => (shouldAnimate.value ? ANIMATION_DURATION_MS : 0))
 const margin = computed(() => {
-  const xLabel = data.value.axis.x?.label
-  const yLabel = data.value.axis.y?.label
+  const xLabel = 'x' in data.value.axis ? data.value.axis.x.label : null
+  const yLabel = 'y' in data.value.axis ? data.value.axis.y.label : null
   if (xLabel == null && yLabel === null) {
     return { top: 20, right: 20, bottom: 20, left: 45 }
   } else if (yLabel == null) {
