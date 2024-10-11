@@ -12,7 +12,13 @@ import DataUploadIcon from '#/assets/data_upload.svg'
 import Plus2Icon from '#/assets/plus2.svg'
 import RightPanelIcon from '#/assets/right_panel.svg'
 import { Input as AriaInput } from '#/components/aria'
-import { Button, ButtonGroup, DialogTrigger, useVisualTooltip } from '#/components/AriaComponents'
+import {
+  Button,
+  ButtonGroup,
+  DialogTrigger,
+  Text,
+  useVisualTooltip,
+} from '#/components/AriaComponents'
 import AssetEventType from '#/events/AssetEventType'
 import { useOffline } from '#/hooks/offlineHooks'
 import { createGetProjectDetailsQuery } from '#/hooks/projectHooks'
@@ -29,6 +35,7 @@ import {
   useCanDownload,
   useDriveStore,
   useIsAssetPanelVisible,
+  usePasteData,
   useSetIsAssetPanelPermanentlyVisible,
   useSetIsAssetPanelTemporarilyVisible,
 } from '#/providers/DriveProvider'
@@ -39,6 +46,7 @@ import type Backend from '#/services/Backend'
 import { ProjectState, type CreatedProject, type Project, type ProjectId } from '#/services/Backend'
 import type AssetQuery from '#/utilities/AssetQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
+import PasteType from '#/utilities/PasteType'
 
 // ================
 // === DriveBar ===
@@ -103,6 +111,7 @@ export default function DriveBar(props: DriveBarProps) {
   const [isCreatingProjectFromTemplate, setIsCreatingProjectFromTemplate] = React.useState(false)
   const [isCreatingProject, setIsCreatingProject] = React.useState(false)
   const [createdProjectId, setCreatedProjectId] = React.useState<ProjectId | null>(null)
+  const pasteData = usePasteData()
 
   React.useEffect(() => {
     return inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
@@ -351,6 +360,15 @@ export default function DriveBar(props: DriveBarProps) {
             </div>
             {createAssetsVisualTooltip.tooltip}
           </ButtonGroup>
+          {pasteData && (
+            <div className='flex items-center'>
+              <Text>
+                {pasteData.type === PasteType.copy ?
+                  getText('xItemsCopied', pasteData.data.ids.size)
+                : getText('xItemsCut', pasteData.data.ids.size)}
+              </Text>
+            </div>
+          )}
           {searchBar}
           {assetPanelToggle}
         </ButtonGroup>
