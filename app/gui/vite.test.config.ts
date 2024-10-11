@@ -50,5 +50,8 @@ export default mergeConfig(
       // eslint-disable-next-line @typescript-eslint/naming-convention
       'process.env.IS_IN_PLAYWRIGHT_TEST': JSON.stringify(`${true}`),
     },
+    build: {
+      outDir: fileURLToPath(new URL('./mockDist', import.meta.url)),
+    },
   }),
 )
