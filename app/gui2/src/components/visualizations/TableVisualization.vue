@@ -84,6 +84,7 @@ interface UnknownTable {
 
 interface DataQualityPairs {
   number_of_nothing: number[]
+  number_of_whitespace: number[]
 }
 
 export type TextFormatOptions = 'full' | 'partial' | 'off'
@@ -146,13 +147,18 @@ const selectableRowLimits = computed(() => {
   return defaults
 })
 
+const formatDataQualityMessage = (noNothing, noWhitespace) => {
+  return `Nulls/Nothing: ${noNothing}
+  Trailing/Leading WhiteSpace: ${noWhitespace}`
+}
+
 const pinnedTopRowData = computed(() => {
   const headers = props.data.header
-  console.log(props.data)
   if (headers) {
     const numberOfNothig = props.data.data_quality_pairs.number_of_nothing
+    const numberOfWhitespace = props.data.data_quality_pairs.number_of_whitespace
     const pairs: Record<string, string> = headers.reduce((obj, key, index) => {
-      obj[key] = numberOfNothig[index]
+      obj[key] = formatDataQualityMessage(numberOfNothig[index], numberOfWhitespace[index])
       return obj
     }, {})
     return [{ [INDEX_FIELD_NAME]: 'Data Quality', ...pairs }]
