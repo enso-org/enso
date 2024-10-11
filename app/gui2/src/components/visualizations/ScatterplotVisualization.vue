@@ -867,44 +867,42 @@ config.setToolbar([
 </script>
 
 <template>
-  <div v-if="errorMessage && errorMessage.length > 0">
-    <div class="WarningsScatterplotVisualization">{{ errorMessage }}</div>
+  <div v-if="errorMessage && errorMessage.length > 0" class="WarningsScatterplotVisualization">
+    {{ errorMessage }}
   </div>
-  <div v-else>
-    <div ref="containerNode" class="ScatterplotVisualization">
-      <svg :width="width" :height="height">
-        <g ref="legendNode"></g>
-        <g :transform="`translate(${margin.left}, ${margin.top})`">
-          <defs>
-            <clipPath id="clip">
-              <rect :width="boxWidth" :height="boxHeight"></rect>
-            </clipPath>
-          </defs>
-          <g ref="xAxisNode" class="axis-x" :transform="`translate(0, ${boxHeight})`"></g>
-          <g ref="yAxisNode" class="axis-y"></g>
-          <text
-            v-if="data.axis.x.label"
-            class="label label-x"
-            text-anchor="end"
-            :x="xLabelLeft"
-            :y="xLabelTop"
-            v-text="data.axis.x.label"
-          ></text>
-          <text
-            v-if="showYLabelText"
-            class="label label-y"
-            text-anchor="end"
-            :x="yLabelLeft"
-            :y="yLabelTop"
-            v-text="data.axis.y.label"
-          ></text>
-          <g ref="pointsNode" clip-path="url(#clip)"></g>
-          <g ref="zoomNode" class="zoom" :width="boxWidth" :height="boxHeight" fill="none">
-            <g ref="brushNode" class="brush"></g>
-          </g>
+  <div v-else ref="containerNode" class="ScatterplotVisualization">
+    <svg :width="width" :height="height">
+      <g ref="legendNode"></g>
+      <g :transform="`translate(${margin.left}, ${margin.top})`">
+        <defs>
+          <clipPath id="clip">
+            <rect :width="boxWidth" :height="boxHeight"></rect>
+          </clipPath>
+        </defs>
+        <g ref="xAxisNode" class="axis-x" :transform="`translate(0, ${boxHeight})`"></g>
+        <g ref="yAxisNode" class="axis-y"></g>
+        <text
+          v-if="data.axis.x.label"
+          class="label label-x"
+          text-anchor="end"
+          :x="xLabelLeft"
+          :y="xLabelTop"
+          v-text="data.axis.x.label"
+        ></text>
+        <text
+          v-if="showYLabelText"
+          class="label label-y"
+          text-anchor="end"
+          :x="yLabelLeft"
+          :y="yLabelTop"
+          v-text="data.axis.y.label"
+        ></text>
+        <g ref="pointsNode" clip-path="url(#clip)"></g>
+        <g ref="zoomNode" class="zoom" :width="boxWidth" :height="boxHeight" fill="none">
+          <g ref="brushNode" class="brush"></g>
         </g>
-      </svg>
-    </div>
+      </g>
+    </svg>
   </div>
 </template>
 
