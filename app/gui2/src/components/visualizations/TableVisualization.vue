@@ -2,6 +2,7 @@
 import icons from '@/assets/icons.svg'
 import AgGridTableView from '@/components/shared/AgGridTableView.vue'
 import { SortModel, useTableVizToolbar } from '@/components/visualizations/tableVizToolbar'
+import { provideSelectionArrow } from '@/providers/selectionArrow'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
 import { useVisualizationConfig } from '@/util/visualizationBuiltins'
@@ -147,28 +148,46 @@ const selectableRowLimits = computed(() => {
   return defaults
 })
 
-const formatDataQualityMessage = (noNothing, noWhitespace) => {
-  return `Nulls/Nothing: ${noNothing}
-  Trailing/Leading WhiteSpace: ${noWhitespace}`
+const formatDataQualityMessage = (noNothing: number, noWhitespace: number, total: number) => {
+  return `Nulls/Nothing: ${(noNothing / total) * 100}%
+  Trailing/Leading WhiteSpace: ${(noWhitespace / total) * 100}%`
+}
+
+type RowType = {
+  [key: string]: string
 }
 
 const pinnedTopRowData = computed(() => {
-  const headers = props.data.header
-  if (headers) {
-    const numberOfNothig = props.data.data_quality_pairs.number_of_nothing
-    const numberOfWhitespace = props.data.data_quality_pairs.number_of_whitespace
-    const pairs: Record<string, string> = headers.reduce((obj, key, index) => {
-      obj[key] = formatDataQualityMessage(numberOfNothig[index], numberOfWhitespace[index])
-      return obj
-    }, {})
-    return [{ [INDEX_FIELD_NAME]: 'Data Quality', ...pairs }]
+  if (typeof props.data === 'object') {
+    const data_ = props.data
+    const headers = 'header' in data_ ? data_.header : []
+    const numberOfNothing =
+      'data_quality_pairs' in data_ ? data_.data_quality_pairs.number_of_nothing : []
+    const numberOfWhitespace =
+      'data_quality_pairs' in data_ ? data_.data_quality_pairs.number_of_whitespace : []
+    const total = data_.all_rows_count as number
+    if (headers?.length) {
+      const pairs: Record<string, string> = headers.reduce(
+        (obj: RowType, key: string, index: number) => {
+          obj[key] = formatDataQualityMessage(
+            numberOfNothing[index] as number,
+            numberOfWhitespace[index] as number,
+            total,
+          )
+          return obj
+        },
+        {},
+      )
+      return [{ [INDEX_FIELD_NAME]: 'Data Quality', ...pairs }]
+    }
+    return [
+      {
+        [INDEX_FIELD_NAME]: 'Data Quality',
+        Value: numberOfNothing[0],
+      },
+    ]
   }
-  return [
-    {
-      [INDEX_FIELD_NAME]: 'Data Quality',
-      Value: props.data.data_quality_pairs.number_of_nothing[0],
-    },
-  ]
+  return null
 })
 
 const newNodeSelectorValues = computed(() => {
