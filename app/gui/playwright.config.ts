@@ -54,7 +54,6 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   repeatEach: process.env.CI ? 3 : 1,
-  ...(process.env.CI ? { workers: 1 } : {}),
   reporter: 'html',
   use: {
     headless: !DEBUG,
@@ -137,7 +136,7 @@ export default defineConfig({
     {
       command:
         process.env.CI || process.env.PROD ?
-          `corepack pnpm exec vite -c vite.test.config.ts build && vite preview --port ${ports.dashboard} --strictPort`
+          `corepack pnpm exec vite -c vite.test.config.ts build && vite -c vite.test.config.ts preview --port ${ports.dashboard} --strictPort`
         : `corepack pnpm exec vite -c vite.test.config.ts --port ${ports.dashboard}`,
       port: ports.dashboard,
       reuseExistingServer: false,
