@@ -9,7 +9,7 @@ import type { Suggestion } from '#/layouts/AssetSearchBar'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
 import { useLocalStorage } from '#/providers/LocalStorageProvider'
 import type AssetTreeNode from '#/utilities/AssetTreeNode'
-import { PasteData } from '#/utilities/pasteData'
+import type { PasteData } from '#/utilities/pasteData'
 import { EMPTY_SET } from '#/utilities/set'
 import type {
   AssetId,
@@ -23,8 +23,10 @@ import { EMPTY_ARRAY } from 'enso-common/src/utilities/data/array'
 // === DriveStore ===
 // ==================
 
+/** Attached data for a paste payload. */
 export interface DrivePastePayload {
   readonly backendType: BackendType
+  readonly category: Category
   readonly ids: ReadonlySet<AssetId>
 }
 

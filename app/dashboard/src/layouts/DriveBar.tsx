@@ -26,7 +26,7 @@ import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
 import AssetSearchBar from '#/layouts/AssetSearchBar'
 import { useDispatchAssetEvent } from '#/layouts/AssetsTable/EventListProvider'
 import {
-  canPasteIntoCategory,
+  canTransferBetweenCategories,
   isCloudCategory,
   type Category,
 } from '#/layouts/CategorySwitcher/Category'
@@ -117,7 +117,10 @@ export default function DriveBar(props: DriveBarProps) {
   const [createdProjectId, setCreatedProjectId] = React.useState<ProjectId | null>(null)
   const pasteData = usePasteData()
   const effectivePasteData =
-    pasteData?.data.backendType === backend.type && canPasteIntoCategory(category) ?
+    (
+      pasteData?.data.backendType === backend.type &&
+      canTransferBetweenCategories(pasteData.data.category, category)
+    ) ?
       pasteData
     : null
 

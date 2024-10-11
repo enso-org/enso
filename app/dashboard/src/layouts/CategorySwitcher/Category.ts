@@ -1,7 +1,15 @@
 /** @file The categories available in the category switcher. */
 import * as z from 'zod'
 
-import type { DirectoryId, Path, UserGroupInfo } from '#/services/Backend'
+import AssetEventType from '#/events/AssetEventType'
+import { useBackendQuery } from '#/hooks/backendHooks'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { useDispatchAssetEvent } from '#/layouts/AssetsTable/EventListProvider'
+import { useFullUserSession } from '#/providers/AuthProvider'
+import { useLocalBackend, useRemoteBackendStrict } from '#/providers/BackendProvider'
+import type { AssetId, DirectoryId, Path, UserGroupInfo } from '#/services/Backend'
+import { newDirectoryId } from '#/services/LocalBackend'
+import invariant from 'tiny-invariant'
 
 const PATH_SCHEMA = z.string().refine((s): s is Path => true)
 const DIRECTORY_ID_SCHEMA = z.string().refine((s): s is DirectoryId => true)
@@ -127,19 +135,64 @@ export function canTransferBetweenCategories(from: Category, to: Category) {
   }
 }
 
-/** Whether a category can be pasted into at all. */
-export function canPasteIntoCategory(category: Category) {
-  switch (category.type) {
-    case 'recent': {
-      return false
-    }
-    case 'cloud':
-    case 'team':
-    case 'user':
-    case 'trash':
-    case 'local':
-    case 'local-directory': {
-      return true
-    }
-  }
+/** A function to transfer a list of assets between categories. */
+export function useTransferBetweenCategories() {
+  const remoteBackend = useRemoteBackendStrict()
+  const localBackend = useLocalBackend()
+  const { user } = useFullUserSession()
+  const { data: organization = null } = useBackendQuery(remoteBackend, 'getOrganization', [])
+  const dispatchAssetEvent = useDispatchAssetEvent()
+  return useEventCallback(
+    (
+      from: Category,
+      to: Category,
+      keys: Iterable<AssetId>,
+      newParentKey?: DirectoryId | null,
+      newParentId?: DirectoryId | null,
+    ) => {
+      switch (from.type) {
+        case 'cloud':
+        case 'recent':
+        case 'team':
+        case 'user': {
+          if (to.type === 'trash') {
+            dispatchAssetEvent({ type: AssetEventType.delete, ids: new Set(keys) })
+          } else if (to.type === 'cloud' || to.type === 'team' || to.type === 'user') {
+            newParentId ??=
+              to.type === 'cloud' ?
+                remoteBackend.rootDirectoryId(user, organization)
+              : to.homeDirectoryId
+            invariant(newParentId != null, 'The Cloud backend is missing a root directory.')
+            newParentKey ??= newParentId
+            dispatchAssetEvent({
+              type: AssetEventType.move,
+              newParentKey,
+              newParentId,
+              ids: new Set(keys),
+            })
+          }
+          break
+        }
+        case 'trash': {
+          dispatchAssetEvent({ type: AssetEventType.restore, ids: new Set(keys) })
+          break
+        }
+        case 'local':
+        case 'local-directory': {
+          if (to.type === 'local' || to.type === 'local-directory') {
+            const parentDirectory = to.type === 'local' ? localBackend?.rootPath() : to.rootPath
+            invariant(parentDirectory != null, 'The Local backend is missing a root directory.')
+            newParentId ??= newDirectoryId(parentDirectory)
+            newParentKey ??= newParentId
+            dispatchAssetEvent({
+              type: AssetEventType.move,
+              newParentKey,
+              newParentId,
+              ids: new Set(keys),
+            })
+          }
+        }
+      }
+    },
+  )
 }

@@ -65,8 +65,9 @@ import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 import AssetsTableContextMenu from '#/layouts/AssetsTableContextMenu'
 import {
-  canPasteIntoCategory,
+  canTransferBetweenCategories,
   isLocalCategory,
+  useTransferBetweenCategories,
   type Category,
 } from '#/layouts/CategorySwitcher/Category'
 import DragModal from '#/modals/DragModal'
@@ -2140,7 +2141,10 @@ export default function AssetsTable(props: AssetsTableProps) {
   const doCopy = useEventCallback(() => {
     unsetModal()
     const { selectedKeys } = driveStore.getState()
-    setPasteData({ type: PasteType.copy, data: { backendType: backend.type, ids: selectedKeys } })
+    setPasteData({
+      type: PasteType.copy,
+      data: { backendType: backend.type, category, ids: selectedKeys },
+    })
   })
 
   const doCut = useEventCallback(() => {
@@ -2149,15 +2153,22 @@ export default function AssetsTable(props: AssetsTableProps) {
     if (pasteData != null) {
       dispatchAssetEvent({ type: AssetEventType.cancelCut, ids: pasteData.data.ids })
     }
-    setPasteData({ type: PasteType.move, data: { backendType: backend.type, ids: selectedKeys } })
+    setPasteData({
+      type: PasteType.move,
+      data: { backendType: backend.type, category, ids: selectedKeys },
+    })
     dispatchAssetEvent({ type: AssetEventType.cut, ids: selectedKeys })
     setSelectedKeys(EMPTY_SET)
   })
 
+  const transferBetweenCategories = useTransferBetweenCategories()
   const doPaste = useEventCallback((newParentKey: DirectoryId, newParentId: DirectoryId) => {
     unsetModal()
     const { pasteData } = driveStore.getState()
-    if (pasteData?.data.backendType === backend.type && canPasteIntoCategory(category)) {
+    if (
+      pasteData?.data.backendType === backend.type &&
+      canTransferBetweenCategories(pasteData.data.category, category)
+    ) {
       if (pasteData.data.ids.has(newParentKey)) {
         toast.error('Cannot paste a folder into itself.')
       } else {
@@ -2173,12 +2184,13 @@ export default function AssetsTable(props: AssetsTableProps) {
             newParentKey,
           })
         } else {
-          dispatchAssetEvent({
-            type: AssetEventType.move,
-            ids: pasteData.data.ids,
+          transferBetweenCategories(
+            pasteData.data.category,
+            category,
+            pasteData.data.ids,
             newParentKey,
             newParentId,
-          })
+          )
         }
         setPasteData(null)
       }
