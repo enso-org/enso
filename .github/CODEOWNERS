@@ -36,6 +36,10 @@ tsconfig.json
 /app/gui/src/dashboard @PabloBuchu @indiv0 @somebody1234 @MrFlashAccount
 /app/gui/src/project-view @Frizi @farmaazon @vitvakatu @kazcw @AdRiley 
 /app/ide-desktop/ @PabloBuchu @indiv0 @somebody1234 @MrFlashAccount
+/app/ydoc-server/ @Frizi @farmaazon @vitvakatu @kazcw @AdRiley 
+/app/ydoc-server-nodejs/ @Frizi @farmaazon @vitvakatu @kazcw @AdRiley 
+/app/ydoc-server-polyglot/ @Frizi @farmaazon @vitvakatu @kazcw @AdRiley 
+/app/ydoc-shared/ @Frizi @farmaazon @vitvakatu @kazcw @AdRiley 
 # The data-link schema is owned by the libraries team
 /app/gui/src/dashboard/data/datalinkSchema.json @radeusgd @jdunkerley @GregoryTravis @AdRiley @marthasharkey
 /app/gui/src/dashboard/data/__tests__ @radeusgd @jdunkerley @GregoryTravis @AdRiley @marthasharkey @PabloBuchu @indiv0 @somebody1234 @MrFlashAccount
