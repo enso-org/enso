@@ -3,7 +3,7 @@
 import * as React from 'react'
 
 import * as authProvider from '#/providers/AuthProvider'
-import { useSelectedKeys, useSetSelectedKeys } from '#/providers/DriveProvider'
+import { useDriveStore, useSelectedKeys, useSetSelectedKeys } from '#/providers/DriveProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -27,6 +27,7 @@ import type * as pasteDataModule from '#/utilities/pasteData'
 import * as permissions from '#/utilities/permissions'
 import { EMPTY_SET } from '#/utilities/set'
 import * as uniqueString from '#/utilities/uniqueString'
+import { useStore } from 'zustand'
 
 // =================
 // === Constants ===
@@ -38,7 +39,6 @@ export interface AssetsTableContextMenuProps {
   readonly backend: Backend
   readonly category: Category
   readonly rootDirectoryId: backendModule.DirectoryId
-  readonly pasteData: pasteDataModule.PasteData<ReadonlySet<backendModule.AssetId>> | null
   readonly nodeMapRef: React.MutableRefObject<
     ReadonlyMap<backendModule.AssetId, assetTreeNode.AnyAssetTreeNode>
   >
@@ -55,7 +55,7 @@ export interface AssetsTableContextMenuProps {
 /** A context menu for an `AssetsTable`, when no row is selected, or multiple rows
  * are selected. */
 export default function AssetsTableContextMenu(props: AssetsTableContextMenuProps) {
-  const { hidden = false, backend, category, pasteData } = props
+  const { hidden = false, backend, category } = props
   const { nodeMapRef, event, rootDirectoryId } = props
   const { doCopy, doCut, doPaste, doDelete } = props
   const { user } = authProvider.useFullUserSession()
@@ -65,6 +65,11 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const selectedKeys = useSelectedKeys()
   const setSelectedKeys = useSetSelectedKeys()
+  const driveStore = useDriveStore()
+  const pasteDataSize = useStore(
+    driveStore,
+    (storeState) => storeState.pasteData?.data.ids.size ?? 0,
+  )
 
   // This works because all items are mutated, ensuring their value stays
   // up to date.
@@ -190,7 +195,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
                 doAction={doCut}
               />
             )}
-            {pasteData != null && pasteData.data.size > 0 && (
+            {pasteDataSize > 0 && (
               <ContextMenuEntry
                 hidden={hidden}
                 action="paste"
@@ -217,7 +222,6 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
           <GlobalContextMenu
             hidden={hidden}
             backend={backend}
-            hasPasteData={pasteData != null}
             rootDirectoryId={rootDirectoryId}
             directoryKey={null}
             directoryId={null}
