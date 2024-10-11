@@ -40,6 +40,12 @@ macro_rules! test {
     }
 }
 
+macro_rules! test_block {
+    ( $code:expr, $($statements:tt)* ) => {
+        test_block($code, block![$( $statements )*])
+    }
+}
+
 
 
 // ================================
@@ -378,9 +384,14 @@ fn type_def_nested() {
 
 #[test]
 fn assignment_simple() {
-    test!("foo = x", (Assignment (Ident foo) (Ident x)));
-    test!("foo=x", (Assignment (Ident foo) (Ident x)));
-    test!("foo= x", (Assignment (Ident foo) (Ident x)));
+    // At the top level of a module, this defines a function with no arguments.
+    test!("foo = x", (Function (Ident foo) #() () (Ident x)));
+    // In a body block, this is a variable binding.
+    test_block!("main =\n    foo = x",
+        (Function (Ident main) #() () (BodyBlock #(
+         (Assignment (Ident foo) (Ident x))))));
+    test_block!("foo=x", (Assignment (Ident foo) (Ident x)));
+    test_block!("foo= x", (Assignment (Ident foo) (Ident x)));
     expect_invalid_node("foo =x");
 }
 
@@ -617,14 +628,12 @@ fn code_block_body() {
 #[test]
 fn code_block_operator() {
     let code = ["value = nums", "    * each random", "    + constant"];
-    let expect = block![
+    test_block!(code.join("\n"),
         (Assignment (Ident value)
          (OperatorBlockApplication (Ident nums)
           #(((Ok "*") (App (Ident each) (Ident random)))
             ((Ok "+") (Ident constant)))
-          #()))
-    ];
-    test(code.join("\n"), expect);
+          #())));
 }
 
 #[test]
@@ -640,37 +649,17 @@ fn dot_operator_blocks() {
 
 #[test]
 fn code_block_argument_list() {
-    #[rustfmt::skip]
-    let code = [
-        "foo",
-        "    bar",
-    ];
-    test!(code.join("\n"), (ArgumentBlockApplication (Ident foo) #((Ident bar))));
+    test!("foo\n    bar", (ArgumentBlockApplication (Ident foo) #((Ident bar))));
 
-    #[rustfmt::skip]
-    let code = [
-        "value = foo",
-        "    bar",
-    ];
-    let expect = block![
-        (Assignment (Ident value) (ArgumentBlockApplication (Ident foo) #((Ident bar))))
-    ];
-    test(code.join("\n"), expect);
+    test_block!("value = foo\n    bar",
+        (Assignment (Ident value) (ArgumentBlockApplication (Ident foo) #((Ident bar)))));
 
-    #[rustfmt::skip]
-    let code = [
-        "value = foo",
-        "    +x",
-        "    bar",
-    ];
-    #[rustfmt::skip]
-    let expect = block![
+    let code = ["value = foo", "    +x", "    bar"];
+    test_block!(code.join("\n"),
         (Assignment (Ident value)
          (ArgumentBlockApplication (Ident foo) #(
           (OprSectionBoundary 1 (OprApp () (Ok "+") (Ident x)))
-          (Ident bar))))
-    ];
-    test(code.join("\n"), expect);
+          (Ident bar)))));
 }
 
 #[test]
@@ -934,7 +923,7 @@ fn minus_unary() {
     test!("-x", (UnaryOprApp "-" (Ident x)));
     test!("(-x)", (Group (UnaryOprApp "-" (Ident x))));
     test!("-(x * x)", (UnaryOprApp "-" (Group (OprApp (Ident x) (Ok "*") (Ident x)))));
-    test!("x=-x", (Assignment (Ident x) (UnaryOprApp "-" (Ident x))));
+    test_block!("x=-x", (Assignment (Ident x) (UnaryOprApp "-" (Ident x))));
     test!("-x+x", (OprApp (UnaryOprApp "-" (Ident x)) (Ok "+") (Ident x)));
     test!("-x*x", (OprApp (UnaryOprApp "-" (Ident x)) (Ok "*") (Ident x)));
 }
@@ -960,9 +949,9 @@ fn method_app_in_minus_unary() {
 
 #[test]
 fn autoscope_operator() {
-    test!("x : ..True", (TypeSignature (Ident x) ":" (AutoscopedIdentifier ".." True)));
-    test!("x = ..True", (Assignment (Ident x) (AutoscopedIdentifier ".." True)));
-    test!("x = f ..True",
+    test_block!("x : ..True", (TypeSignature (Ident x) ":" (AutoscopedIdentifier ".." True)));
+    test_block!("x = ..True", (Assignment (Ident x) (AutoscopedIdentifier ".." True)));
+    test_block!("x = f ..True",
         (Assignment (Ident x) (App (Ident f) (AutoscopedIdentifier ".." True))));
     expect_invalid_node("x = ..not_a_constructor");
     expect_invalid_node("x = case a of ..True -> True");
@@ -1130,10 +1119,10 @@ fn type_annotations() {
 #[test]
 fn inline_text_literals() {
     test!(r#""I'm an inline raw text!""#, (TextLiteral #((Section "I'm an inline raw text!"))));
-    test!(r#"zero_length = """#, (Assignment (Ident zero_length) (TextLiteral #())));
+    test_block!(r#"zero_length = """#, (Assignment (Ident zero_length) (TextLiteral #())));
     test!(r#""type""#, (TextLiteral #((Section "type"))));
-    test!(r#"unclosed = ""#, (Assignment (Ident unclosed) (TextLiteral #())));
-    test!(r#"unclosed = "a"#, (Assignment (Ident unclosed) (TextLiteral #((Section "a")))));
+    test_block!(r#"unclosed = ""#, (Assignment (Ident unclosed) (TextLiteral #())));
+    test_block!(r#"unclosed = "a"#, (Assignment (Ident unclosed) (TextLiteral #((Section "a")))));
     test!(r#"'Other quote type'"#, (TextLiteral #((Section "Other quote type"))));
     test!(r#""Non-escape: \n""#, (TextLiteral #((Section "Non-escape: \\n"))));
     test!(r#""Non-escape: \""#, (TextLiteral #((Section "Non-escape: \\"))));
@@ -1151,7 +1140,7 @@ fn inline_text_literals() {
 
 #[test]
 fn multiline_text_literals() {
-    test("'''", block![(TextLiteral #())]);
+    test!("'''", (TextLiteral #()));
     let code = r#""""
     part of the string
        3-spaces indented line, part of the Text Block
@@ -1160,8 +1149,7 @@ fn multiline_text_literals() {
     `also` part of the string
 
 x"#;
-    #[rustfmt::skip]
-    let expected = block![
+    test!(code,
         (TextLiteral
          #((Section "part of the string") (Newline)
            (Section "   3-spaces indented line, part of the Text Block") (Newline)
@@ -1169,40 +1157,25 @@ x"#;
            (Newline)
            (Section "`also` part of the string")))
         ()
-        (Ident x)
-    ];
-    test(code, expected);
-    let code = r#""""
+        (Ident x));
+    test!(r#""""
     multiline string that doesn't end in a newline
-x"#;
-    #[rustfmt::skip]
-    let expected = block![
+x"#,
         (TextLiteral #((Section "multiline string that doesn't end in a newline")))
-        (Ident x)
-    ];
-    test(code, expected);
-    let code = "x = \"\"\"\n    Indented multiline\nx";
-    #[rustfmt::skip]
-    let expected = block![
+        (Ident x));
+    test_block!("x = \"\"\"\n    Indented multiline\nx",
         (Assignment (Ident x) (TextLiteral #((Section "Indented multiline"))))
-        (Ident x)
-    ];
-    test(code, expected);
-    let code = "'''\n    \\nEscape at start\n";
-    test!(code, (TextLiteral #((Escape 0x0A) (Section "Escape at start"))) ());
-    let code = "x =\n x = '''\n  x\nx";
-    #[rustfmt::skip]
-    let expected = block![
+        (Ident x));
+    test!("'''\n    \\nEscape at start\n",
+        (TextLiteral #((Escape 0x0A) (Section "Escape at start"))) ());
+    test!("x =\n x = '''\n  x\nx",
         (Function (Ident x) #() ()
          (BodyBlock #((Assignment (Ident x) (TextLiteral #((Section "x")))))))
-        (Ident x)
-    ];
-    test(code, expected);
-    test!("foo = bar '''\n baz",
+        (Ident x));
+    test_block!("foo = bar '''\n baz",
         (Assignment (Ident foo) (App (Ident bar) (TextLiteral #((Section "baz"))))));
     test!("'''\n \\t'", (TextLiteral #((Escape 0x09) (Section "'"))));
-    test!("'''\n x\n \\t'",
-        (TextLiteral #((Section "x") (Newline) (Escape 0x09) (Section "'"))));
+    test!("'''\n x\n \\t'", (TextLiteral #((Section "x") (Newline) (Escape 0x09) (Section "'"))));
 }
 
 #[test]
@@ -1855,6 +1828,24 @@ fn test<T: AsRef<str>>(code: T, expect: lexpr::Value) {
     let ast_s_expr = to_s_expr(&ast, code);
     assert_eq!(ast_s_expr.to_string(), expect.to_string(), "{:?}", &ast);
     expect_tree_representing_code(code, &ast);
+}
+
+fn test_block<T: AsRef<str>>(code: T, expect: lexpr::Value) {
+    let code = format!(
+        "main ={}",
+        code.as_ref().lines().map(|stmt| format!("\n    {stmt}")).collect::<Vec<_>>().join("")
+    );
+    let ast = parse(&code);
+    expect_tree_representing_code(&code, &ast);
+    let enso_parser::syntax::tree::Variant::BodyBlock(block) = ast.variant else { unreachable!() };
+    let enso_parser::syntax::tree::Variant::Function(function) =
+        block.statements.into_iter().next().unwrap().expression.unwrap().variant
+    else {
+        panic!()
+    };
+    let block_ast = function.body.as_ref().unwrap();
+    let ast_s_expr = to_s_expr(block_ast, &code);
+    assert_eq!(ast_s_expr.to_string(), expect.to_string(), "{:?}", block_ast);
 }
 
 fn parse(code: &str) -> enso_parser::syntax::tree::Tree {
