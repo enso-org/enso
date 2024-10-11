@@ -79,7 +79,7 @@ class TailCallTest extends MiniPassTest {
         |""".stripMargin
 
     "mark methods as tail" in {
-      testModuleCompilation(
+      assertModuleCompilation(
         code,
         () => mkModuleContext,
         ir => {
@@ -91,7 +91,7 @@ class TailCallTest extends MiniPassTest {
     }
 
     "mark atoms as tail" in {
-      testModuleCompilation(
+      assertModuleCompilation(
         code,
         () => mkModuleContext,
         ir => {
@@ -103,7 +103,7 @@ class TailCallTest extends MiniPassTest {
     }
 
     "mark conversions as tail" in {
-      testModuleCompilation(
+      assertModuleCompilation(
         code,
         () => mkModuleContext,
         ir => {
@@ -122,17 +122,18 @@ class TailCallTest extends MiniPassTest {
         |""".stripMargin
 
     "mark the expression as tail if the context requires it" in {
-      testInlineCompilation(
+      assertInlineCompilation(
         code,
         () => mkTailContext,
         ir => {
           ir.getMetadata(TailCall) shouldEqual Some(TailPosition.Tail)
-        }
+        },
+        true
       )
     }
 
     "not mark the expression as tail if the context doesn't require it" in {
-      testInlineCompilation(
+      assertInlineCompilation(
         code,
         () => mkNoTailContext,
         ir => {
@@ -142,7 +143,7 @@ class TailCallTest extends MiniPassTest {
     }
 
     "mark the value of a tail assignment as non-tail" in {
-      testInlineCompilation(
+      assertInlineCompilation(
         """
           |foo = a b
           |""".stripMargin,
@@ -158,7 +159,7 @@ class TailCallTest extends MiniPassTest {
     }
 
     "mark the value of a tail assignment as non-tail (mini pass)" in {
-      testInlineCompilation(
+      assertInlineCompilation(
         """
           |foo = a b
           |""".stripMargin,
@@ -184,7 +185,7 @@ class TailCallTest extends MiniPassTest {
         |""".stripMargin
 
     "mark the last expression of the function as tail" in {
-      testInlineCompilation(
+      assertInlineCompilation(
         code,
         () => mkTailContext,
         ir => {
@@ -198,7 +199,7 @@ class TailCallTest extends MiniPassTest {
     }
 
     "mark the other expressions in the function as not tail" in {
-      testInlineCompilation(
+      assertInlineCompilation(
         code,
         () => mkTailContext,
         ir => {
@@ -212,7 +213,7 @@ class TailCallTest extends MiniPassTest {
     }
 
     "warn about misplaced @TailCall annotations" in {
-      testInlineCompilation(
+      assertInlineCompilation(
         code,
         () => mkTailContext,
         ir => {
@@ -239,7 +240,7 @@ class TailCallTest extends MiniPassTest {
                    |        @Tail_Call adder_two
                    |""".stripMargin
 
-      testModuleCompilation(
+      assertModuleCompilation(
         code,
         () => mkModuleContext,
         ir => {
@@ -276,7 +277,7 @@ class TailCallTest extends MiniPassTest {
           |    x
           |""".stripMargin
 
-      testModuleCompilation(
+      assertModuleCompilation(
         code,
         () => mkModuleContext,
         ir => {
@@ -317,7 +318,7 @@ class TailCallTest extends MiniPassTest {
           |      Lambda fn arg -> fn arg
           |""".stripMargin
 
-      testModuleCompilation(
+      assertModuleCompilation(
         code,
         () => mkModuleContext,
         ir => {
@@ -354,7 +355,7 @@ class TailCallTest extends MiniPassTest {
           |    Cons a b -> a + b
           |""".stripMargin
 
-      testInlineCompilation(
+      assertInlineCompilation(
         code,
         () => mkTailContext,
         ir => {
@@ -386,7 +387,7 @@ class TailCallTest extends MiniPassTest {
 
   "Tail call analysis on function calls" should {
     "work on function that has tail call return value" in {
-      testModuleCompilation(
+      assertModuleCompilation(
         """
           |Foo.bar =
           |    IO.println "AAAAA"
@@ -422,7 +423,7 @@ class TailCallTest extends MiniPassTest {
     }
 
     "work on function that has not-tail call return value" in {
-      testModuleCompilation(
+      assertModuleCompilation(
         """
           |Foo.bar =
           |    a = b c d
@@ -473,7 +474,7 @@ class TailCallTest extends MiniPassTest {
         |""".stripMargin
 
     "mark the bodies of bound functions as tail properly" in {
-      testModuleCompilation(
+      assertModuleCompilation(
         code,
         () => mkModuleContext,
         ir => {
@@ -495,7 +496,7 @@ class TailCallTest extends MiniPassTest {
     }
 
     "mark the block expressions as not tail" in {
-      testModuleCompilation(
+      assertModuleCompilation(
         code,
         () => mkModuleContext,
         ir => {
@@ -515,7 +516,7 @@ class TailCallTest extends MiniPassTest {
     }
 
     "mark the final expression of the block as tail" in {
-      testModuleCompilation(
+      assertModuleCompilation(
         code,
         () => mkModuleContext,
         ir => {
@@ -533,7 +534,7 @@ class TailCallTest extends MiniPassTest {
     }
 
     "mark the block as tail if it is in a tail position" in {
-      testModuleCompilation(
+      assertModuleCompilation(
         code,
         () => mkModuleContext,
         ir => {

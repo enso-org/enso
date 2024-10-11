@@ -29,20 +29,28 @@ trait MiniPassTest extends CompilerTest {
     *                      there will be a new context created.
     * @param testSpec Body of the test. Receives module compiled either by mega pass or by mini pass.
     */
-  def testModuleCompilation(
+  def assertModuleCompilation(
     code: String,
     createContext: () => ModuleContext,
-    testSpec: Module => Unit
+    testSpec: Module => Unit,
+    compareIR: Boolean = false
   ): Unit = {
-    withClue("Mega pass module compilation") {
-      val ctx      = createContext()
-      val moduleIr = processModuleWithMegaPass(code, ctx)
-      testSpec(moduleIr)
+    val megaIr = withClue("Mega pass module compilation") {
+      val ctx = createContext()
+      processModuleWithMegaPass(code, ctx)
     }
-    withClue("Mini pass module compilation") {
-      val ctx      = createContext()
-      val moduleIr = processModuleWithMiniPass(code, ctx)
-      testSpec(moduleIr)
+    val miniIr = withClue("Mini pass module compilation") {
+      val ctx = createContext()
+      processModuleWithMiniPass(code, ctx)
+    }
+    if (compareIR) {
+      CompilerTests.assertIR("Should be the same", megaIr, miniIr)
+    }
+    withClue("Mega pass inline compilation: ") {
+      testSpec(megaIr)
+    }
+    withClue("Mini pass inline compilation: ") {
+      testSpec(miniIr)
     }
   }
 
@@ -52,20 +60,28 @@ trait MiniPassTest extends CompilerTest {
     *                      there will be a new context created.
     * @param testSpec Body of the test. Receives expression compiled either by mega pass or by mini pass.
     */
-  def testInlineCompilation(
+  def assertInlineCompilation(
     code: String,
     createContext: () => InlineContext,
-    testSpec: Expression => Unit
+    testSpec: Expression => Unit,
+    compareIR: Boolean = false
   ): Unit = {
+    val megaIr = withClue("Mega pass inline compilation: ") {
+      val ctx = createContext()
+      preprocessExpressionWithMegaPass(code, ctx)
+    }
+    val miniIr = withClue("Mini pass inline compilation: ") {
+      val ctx = createContext()
+      preprocessExpressionWithMiniPass(code, ctx)
+    }
+    if (compareIR) {
+      CompilerTests.assertIR("Should be the same", megaIr, miniIr)
+    }
     withClue("Mega pass inline compilation: ") {
-      val ctx          = createContext()
-      val expressionIr = preprocessExpressionWithMegaPass(code, ctx)
-      testSpec(expressionIr)
+      testSpec(megaIr)
     }
     withClue("Mini pass inline compilation: ") {
-      val ctx          = createContext()
-      val expressionIr = preprocessExpressionWithMiniPass(code, ctx)
-      testSpec(expressionIr)
+      testSpec(miniIr)
     }
   }
 
@@ -95,7 +111,9 @@ trait MiniPassTest extends CompilerTest {
     inlineCtx: InlineContext
   ): Expression = {
     val expr = parseExpression(expression)
-    megaPassManager.runPassesInline(expr, inlineCtx)
+    val preprocessedExpr =
+      megaPassManager.runPassesInline(expr, inlineCtx)
+    megaPassManager.runPassesInline(preprocessedExpr, inlineCtx)
   }
 
   def preprocessExpressionWithMiniPass(
@@ -104,7 +122,9 @@ trait MiniPassTest extends CompilerTest {
   ): Expression = {
     val expr     = parseExpression(expression)
     val miniPass = miniPassFactory.createForInlineCompilation(inlineCtx)
-    MiniPassTraverser.compileInlineWithMiniPass(expr, miniPass)
+    val preprocessedExpr =
+      megaPassManager.runPassesInline(expr, inlineCtx)
+    MiniPassTraverser.compileInlineWithMiniPass(preprocessedExpr, miniPass)
   }
 
   private def parseModule(source: String): Module = {

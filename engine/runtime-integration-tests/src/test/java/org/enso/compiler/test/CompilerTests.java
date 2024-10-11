@@ -64,13 +64,15 @@ public abstract class CompilerTests {
     }
   }
 
+  private static int counter = 'A';
+
   private static String findTestMethodName() {
     for (var e : new Exception().getStackTrace()) {
       if (e.getMethodName().startsWith("test")) {
         return e.getMethodName();
       }
     }
-    throw new IllegalStateException();
+    return "test" + (char) counter++;
   }
 
   /**

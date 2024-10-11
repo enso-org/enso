@@ -122,7 +122,7 @@ class OperatorToFunctionTest extends MiniPassTest {
           |    nested_method x y = x + y
           |    nested_method (3 * 4) a
           |""".stripMargin
-      testModuleCompilation(
+      assertModuleCompilation(
         code,
         () =>
           buildModuleContext(
