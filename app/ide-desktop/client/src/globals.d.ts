@@ -1,7 +1,7 @@
 /** @file Globals defined outside of TypeScript files.
  * These are from variables defined at build time, environment variables,
  * monkeypatching on `window` and generated code. */
-import type * as dashboard from 'enso-dashboard'
+import type * as common from 'enso-common'
 
 // This file is being imported for its types.
 // eslint-disable-next-line no-restricted-syntax
