@@ -299,11 +299,9 @@ public abstract class Atom implements EnsoObject {
     if (!isMemberReadable(member)) {
       throw UnknownIdentifierException.create(member);
     }
-    if (!hasProjectPrivateConstructor()) {
-      for (int i = 0; i < constructor.getArity(); i++) {
-        if (member.equals(constructor.getFields()[i].getName())) {
-          return structs.getField(this, i);
-        }
+    for (int i = 0; i < constructor.getArity(); i++) {
+      if (member.equals(constructor.getFields()[i].getName())) {
+        return structs.getField(this, i);
       }
     }
     var method = findMethod(member);

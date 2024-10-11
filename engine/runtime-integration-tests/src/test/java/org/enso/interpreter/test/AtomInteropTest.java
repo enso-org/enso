@@ -167,6 +167,42 @@ public class AtomInteropTest {
   }
 
   @Test
+  public void fieldFromPrivateConstructorIsReadable() {
+    var myTypeAtom =
+        ContextUtils.evalModule(
+            ctx,
+            """
+        type My_Type
+            private Cons a
+
+        main = My_Type.Cons "a"
+        """);
+    ContextUtils.executeInContext(
+        ctx,
+        () -> {
+          var atom = ContextUtils.unwrapValue(ctx, myTypeAtom);
+          var interop = InteropLibrary.getUncached();
+          assertThat(
+              "Field from private constructor is readable",
+              interop.isMemberReadable(atom, "a"),
+              is(true));
+          assertThat(
+              "Field from private constructor is invocable",
+              interop.isMemberInvocable(atom, "a"),
+              is(true));
+          assertThat(
+              "Field from private constructor can be read",
+              interop.asString(interop.readMember(atom, "a")),
+              is("a"));
+          assertThat(
+              "Field from private constructor can be invoked",
+              interop.asString(interop.invokeMember(atom, "a")),
+              is("a"));
+          return null;
+        });
+  }
+
+  @Test
   public void allMethodsAreInternalMembers() {
     var myTypeAtom =
         ContextUtils.evalModule(
