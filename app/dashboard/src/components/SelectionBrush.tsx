@@ -149,13 +149,13 @@ export default function SelectionBrush(props: SelectionBrushProps) {
       }
     }
 
-    target.addEventListener('mousedown', onMouseDown)
+    document.addEventListener('mousedown', onMouseDown)
     document.addEventListener('mouseup', onMouseUp)
     document.addEventListener('dragstart', onDragStart, { capture: true })
     document.addEventListener('mousemove', onMouseMove)
     document.addEventListener('click', onClick, { capture: true })
     return () => {
-      target.removeEventListener('mousedown', onMouseDown)
+      document.removeEventListener('mousedown', onMouseDown)
       document.removeEventListener('mouseup', onMouseUp)
       document.removeEventListener('dragstart', onDragStart, { capture: true })
       document.removeEventListener('mousemove', onMouseMove)
