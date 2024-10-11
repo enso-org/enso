@@ -1478,7 +1478,9 @@ class VcsManagerTest
         .setBare(false)
         .call()
 
-    path.toPath.resolve(".git").toFile.delete() shouldBe true
+    val gitPath = path.toPath.resolve(".git")
+    val deleted = gitPath.toFile.delete()
+    (deleted || !gitPath.toFile.exists()) shouldBe true
 
     val client = getInitialisedWsClient()
     jgit

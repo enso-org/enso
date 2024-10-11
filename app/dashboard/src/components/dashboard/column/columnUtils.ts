@@ -96,8 +96,10 @@ export function getColumnList(
     Column.modified,
     isCloud && (isEnterprise || isTrash) && Column.sharedWith,
     isCloud && Column.labels,
-    isCloud && Column.accessedByProjects,
-    isCloud && Column.accessedData,
+    // FIXME[sb]: https://github.com/enso-org/cloud-v2/issues/1525
+    // Bring back these columns when they are ready for use again.
+    // isCloud && Column.accessedByProjects,
+    // isCloud && Column.accessedData,
     isCloud && Column.docs,
   ]
   return columns.flatMap((column) => (column !== false ? [column] : []))

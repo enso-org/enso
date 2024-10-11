@@ -66,6 +66,7 @@ import scala.Tuple2$;
 @Persistable(clazz = Graph.Link.class, id = 1266, allowInlining = false)
 @Persistable(clazz = TypeInference.class, id = 1280)
 @Persistable(clazz = FramePointerAnalysis$.class, id = 1281)
+@Persistable(clazz = TailCall$TailPosition$Tail$.class, id = 1282)
 public final class PassPersistance {
   private PassPersistance() {}
 
@@ -87,27 +88,6 @@ public final class PassPersistance {
       return b
           ? org.enso.compiler.pass.resolve.IgnoredBindings$State$Ignored$.MODULE$
           : org.enso.compiler.pass.resolve.IgnoredBindings$State$NotIgnored$.MODULE$;
-    }
-  }
-
-  @ServiceProvider(service = Persistance.class)
-  public static final class PersistTail extends Persistance<TailCall.TailPosition> {
-    public PersistTail() {
-      super(TailCall.TailPosition.class, true, 1102);
-    }
-
-    @Override
-    protected void writeObject(TailCall.TailPosition obj, Output out) throws IOException {
-      out.writeBoolean(obj.isTail());
-    }
-
-    @Override
-    protected TailCall.TailPosition readObject(Input in)
-        throws IOException, ClassNotFoundException {
-      var b = in.readBoolean();
-      return b
-          ? org.enso.compiler.pass.analyse.TailCall$TailPosition$Tail$.MODULE$
-          : org.enso.compiler.pass.analyse.TailCall$TailPosition$NotTail$.MODULE$;
     }
   }
 

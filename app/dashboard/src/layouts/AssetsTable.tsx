@@ -104,6 +104,7 @@ import {
   createPlaceholderProjectAsset,
   createRootDirectoryAsset,
   createSpecialEmptyAsset,
+  createSpecialErrorAsset,
   createSpecialLoadingAsset,
   DatalinkId,
   DirectoryId,
@@ -153,7 +154,7 @@ import { EMPTY_SET, setPresence, withPresence } from '#/utilities/set'
 import type { SortInfo } from '#/utilities/sorting'
 import { SortDirection } from '#/utilities/sorting'
 import { regexEscape } from '#/utilities/string'
-import { twMerge } from '#/utilities/tailwindMerge'
+import { twJoin, twMerge } from '#/utilities/tailwindMerge'
 import { uniqueString } from '#/utilities/uniqueString'
 import Visibility from '#/utilities/Visibility'
 
@@ -469,10 +470,13 @@ export default function AssetsTable(props: AssetsTableProps) {
                 recentProjects: category.type === 'recent',
               },
             ] as const,
-            queryFn: async ({ queryKey: [, , parentId, params] }) => ({
-              parentId,
-              children: await backend.listDirectory(params, parentId),
-            }),
+            queryFn: async ({ queryKey: [, , parentId, params] }) => {
+              try {
+                return { parentId, children: await backend.listDirectory(params, parentId) }
+              } catch {
+                throw Object.assign(new Error(), { parentId })
+              }
+            },
 
             refetchInterval:
               enableAssetsTableBackgroundRefresh ? assetsTableBackgroundRefreshInterval : false,
@@ -494,18 +498,30 @@ export default function AssetsTable(props: AssetsTableProps) {
       ],
     ),
     combine: (results) => {
-      const rootQuery = results.find((directory) => directory.data?.parentId === rootDirectory.id)
+      const rootQuery = results.find(
+        (directory) =>
+          directory.data?.parentId === rootDirectory.id ||
+          // eslint-disable-next-line no-restricted-syntax
+          (directory.error as unknown as { parentId: string } | null)?.parentId ===
+            rootDirectory.id,
+      )
 
       return {
         rootDirectory: {
           isFetching: rootQuery?.isFetching ?? true,
           isLoading: rootQuery?.isLoading ?? true,
+          isError: rootQuery?.isError ?? false,
           data: rootQuery?.data,
         },
         directories: new Map(
           results.map((res) => [
             res.data?.parentId,
-            { isFetching: res.isFetching, isLoading: res.isLoading, data: res.data },
+            {
+              isFetching: res.isFetching,
+              isLoading: res.isLoading,
+              isError: res.isError,
+              data: res.data,
+            },
           ]),
         ),
       }
@@ -518,7 +534,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   type DirectoryQuery = typeof directories.rootDirectory.data
 
   const rootDirectoryContent = directories.rootDirectory.data?.children
-  const isLoading = directories.rootDirectory.isLoading
+  const isLoading = directories.rootDirectory.isLoading && !directories.rootDirectory.isError
 
   const assetTree = useMemo(() => {
     const rootPath = 'rootPath' in category ? category.rootPath : backend.rootPath(user)
@@ -535,6 +551,26 @@ export default function AssetsTable(props: AssetsTableProps) {
         rootPath,
         null,
       )
+    } else if (directories.rootDirectory.isError) {
+      // eslint-disable-next-line no-restricted-syntax
+      return AssetTreeNode.fromAsset(
+        createRootDirectoryAsset(rootDirectoryId),
+        rootParentDirectoryId,
+        rootParentDirectoryId,
+        -1,
+        rootPath,
+        null,
+      ).with({
+        children: [
+          AssetTreeNode.fromAsset(
+            createSpecialErrorAsset(rootDirectoryId),
+            rootDirectoryId,
+            rootDirectoryId,
+            0,
+            '',
+          ),
+        ],
+      })
     }
 
     const rootId = rootDirectory.id
@@ -568,6 +604,18 @@ export default function AssetsTable(props: AssetsTableProps) {
               children: [
                 AssetTreeNode.fromAsset(
                   createSpecialLoadingAsset(item.id),
+                  item.id,
+                  item.id,
+                  depth,
+                  '',
+                ),
+              ],
+            })
+          } else if (childrenAssetsQuery.isError) {
+            node = node.with({
+              children: [
+                AssetTreeNode.fromAsset(
+                  createSpecialErrorAsset(item.id),
                   item.id,
                   item.id,
                   depth,
@@ -626,10 +674,11 @@ export default function AssetsTable(props: AssetsTableProps) {
     backend,
     user,
     rootDirectoryContent,
+    directories.rootDirectory.isError,
+    directories.directories,
     rootDirectory,
     rootParentDirectoryId,
     rootDirectoryId,
-    directories.directories,
   ])
 
   const filter = useMemo(() => {
@@ -1721,7 +1770,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                   addIdToSelection(projectId)
 
                   await getProjectDetailsMutation
-                    .mutateAsync([projectId, asset.parentId, file.name])
+                    .mutateAsync([projectId, asset.parentId, asset.title])
                     .catch((error) => {
                       deleteAsset(projectId)
                       toastAndLog('uploadProjectError', error)
@@ -1838,13 +1887,7 @@ export default function AssetsTable(props: AssetsTableProps) {
 
                   const asset = isUpdating ? conflict.current : conflict.new
 
-                  fileMap.set(
-                    asset.id,
-                    new File([conflict.file], asset.title, {
-                      type: conflict.file.type,
-                      lastModified: conflict.file.lastModified,
-                    }),
-                  )
+                  fileMap.set(asset.id, conflict.file)
 
                   insertAssets([asset], event.parentId)
                   void doUploadFile(asset, isUpdating ? 'update' : 'new')
@@ -2745,23 +2788,27 @@ export default function AssetsTable(props: AssetsTableProps) {
           {itemRows}
           <tr className="hidden h-row first:table-row">
             <td colSpan={columns.length} className="bg-transparent">
-              {category.type === 'trash' ?
-                <Text className="px-cell-x placeholder">
-                  {query.query !== '' ?
+              <Text
+                className={twJoin(
+                  'px-cell-x placeholder',
+                  directories.rootDirectory.isError && 'text-danger',
+                )}
+                disableLineHeightCompensation
+              >
+                {directories.rootDirectory.isError ?
+                  getText('thisFolderFailedToFetch')
+                : category.type === 'trash' ?
+                  query.query !== '' ?
                     getText('noFilesMatchTheCurrentFilters')
-                  : getText('yourTrashIsEmpty')}
-                </Text>
-              : category.type === 'recent' ?
-                <Text className="px-cell-x placeholder">
-                  {query.query !== '' ?
+                  : getText('yourTrashIsEmpty')
+                : category.type === 'recent' ?
+                  query.query !== '' ?
                     getText('noFilesMatchTheCurrentFilters')
-                  : getText('youHaveNoRecentProjects')}
-                </Text>
-              : query.query !== '' ?
-                <Text className="px-cell-x placeholder">
-                  {getText('noFilesMatchTheCurrentFilters')}
-                </Text>
-              : <Text className="px-cell-x placeholder">{getText('youHaveNoFiles')}</Text>}
+                  : getText('youHaveNoRecentProjects')
+                : query.query !== '' ?
+                  getText('noFilesMatchTheCurrentFilters')
+                : getText('youHaveNoFiles')}
+              </Text>
             </td>
           </tr>
         </tbody>

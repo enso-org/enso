@@ -70,6 +70,7 @@ export class LazySyncEffectSet {
   _dirtyRunners = new Set<() => void>()
   _boundFlush = this.flush.bind(this)
 
+  /** TODO: Add docs */
   constructor(private _scope = effectScope()) {}
 
   /**
@@ -129,6 +130,7 @@ export class LazySyncEffectSet {
   }
 
   // Immediately stops all effects and clears the dirty set.
+  /** TODO: Add docs */
   stop() {
     this._scope.stop()
   }
@@ -264,7 +266,8 @@ export function computedFallback<T>(
   })
 }
 
-/** Given a "raw" getter and setter, returns a writable-computed that buffers `set` operations.
+/**
+ * Given a "raw" getter and setter, returns a writable-computed that buffers `set` operations.
  *
  * When the setter of the returned ref is invoked, the raw setter will be called during the next callback flush if and
  * only if the most recently set value does not compare strictly-equal to the current value (read from the raw getter).
@@ -323,7 +326,8 @@ export function resumeShallowReactivity<T>(view: NonReactiveView<DeepReadonly<T>
   return shallowReactive(view) as T
 }
 
-/** Return a writable computed that reads/writes either `left` or `right` depending on the value of `select`
+/**
+ * Return a writable computed that reads/writes either `left` or `right` depending on the value of `select`
  *
  * `true` means `left`, `false` means `right`.
  */

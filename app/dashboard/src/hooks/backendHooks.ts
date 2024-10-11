@@ -133,6 +133,7 @@ const INVALIDATION_MAP: Partial<
   changeUserGroup: ['listUsers'],
   createTag: ['listTags'],
   deleteTag: ['listTags'],
+  associateTag: ['listDirectory'],
   acceptInvitation: [INVALIDATE_ALL_QUERIES],
   declineInvitation: ['usersMe'],
   createProject: ['listDirectory'],

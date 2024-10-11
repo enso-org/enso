@@ -143,17 +143,17 @@ case object LambdaShorthandToLambda extends IRPass {
             DefinitionArgument.Specified(
               name = Name.Literal(
                 newName.name,
-                isMethod = false,
-                None
+                isMethod           = false,
+                identifiedLocation = null
               ),
-              ascribedType = None,
-              defaultValue = None,
-              suspended    = false,
-              location     = None
+              ascribedType       = None,
+              defaultValue       = None,
+              suspended          = false,
+              identifiedLocation = null
             )
           ),
           newName,
-          blank.location
+          blank.identifiedLocation
         )
       case _ => name
     }
@@ -217,7 +217,7 @@ case object LambdaShorthandToLambda extends IRPass {
         // arg
         val appResult =
           actualDefArgs.foldRight(processedApp: Expression)((arg, body) =>
-            new Function.Lambda(List(arg), body, None)
+            new Function.Lambda(List(arg), body, identifiedLocation = null)
           )
 
         // If the function is shorthand, do the same
@@ -225,20 +225,19 @@ case object LambdaShorthandToLambda extends IRPass {
           new Function.Lambda(
             List(
               DefinitionArgument.Specified(
-                Name
-                  .Literal(
-                    updatedName.get,
-                    isMethod = false,
-                    fn.location
-                  ),
+                Name.Literal(
+                  updatedName.get,
+                  isMethod = false,
+                  fn.identifiedLocation()
+                ),
                 None,
                 None,
                 suspended = false,
-                None
+                null
               )
             ),
             appResult,
-            None
+            identifiedLocation = null
           )
         } else appResult
 
@@ -265,14 +264,15 @@ case object LambdaShorthandToLambda extends IRPass {
         }
         val newVec = vector.copy(newItems)
         val locWithoutId =
-          newVec.location.map(l => new IdentifiedLocation(l.location()))
+          if (newVec.identifiedLocation eq null) null
+          else new IdentifiedLocation(newVec.identifiedLocation.location())
         bindings.foldLeft(newVec: Expression) { (body, bindingName) =>
           val defArg = DefinitionArgument.Specified(
             bindingName,
-            ascribedType = None,
-            defaultValue = None,
-            suspended    = false,
-            location     = None
+            ascribedType       = None,
+            defaultValue       = None,
+            suspended          = false,
+            identifiedLocation = null
           )
           new Function.Lambda(List(defArg), body, locWithoutId)
         }
@@ -354,8 +354,8 @@ case object LambdaShorthandToLambda extends IRPass {
           val defArgName =
             Name.Literal(
               value.asInstanceOf[Name.Literal].name,
-              isMethod = false,
-              None
+              isMethod           = false,
+              identifiedLocation = null
             )
 
           Some(
@@ -364,7 +364,7 @@ case object LambdaShorthandToLambda extends IRPass {
               None,
               None,
               suspended = false,
-              None,
+              null,
               passData.duplicate,
               specified.diagnosticsCopy
             )
@@ -413,7 +413,7 @@ case object LambdaShorthandToLambda extends IRPass {
           None,
           None,
           suspended = false,
-          None
+          null
         )
 
         val newCaseExpr = caseExpr.copy(
@@ -425,7 +425,7 @@ case object LambdaShorthandToLambda extends IRPass {
           caseExpr,
           List(lambdaArg),
           newCaseExpr,
-          caseExpr.location
+          caseExpr.identifiedLocation
         )
       case x =>
         caseExpr.copy(

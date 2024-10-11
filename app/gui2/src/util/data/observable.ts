@@ -4,8 +4,10 @@ import type { ObservableV2 } from 'lib0/observable'
 
 export type Events<O extends ObservableV2<any>> = O extends ObservableV2<infer E> ? E : never
 
-/** Returns promise which will resolve on the next event. The promise will have the event's
- * payload. */
+/**
+ * Returns promise which will resolve on the next event. The promise will have the event's
+ * payload.
+ */
 export function nextEvent<O extends ObservableV2<any>, NAME extends string>(
   observable: O,
   event: NAME,

@@ -72,6 +72,7 @@ const LINK: Transformer = {
   type: 'text-match',
 }
 
+/** TODO: Add docs */
 export function $getSelectedLinkNode() {
   const selection = $getSelection()
   if (selection?.isCollapsed) {
@@ -136,6 +137,7 @@ export const autoLinkPlugin: LexicalPlugin = {
   },
 }
 
+/** TODO: Add docs */
 export function useLinkNode(editor: LexicalEditor) {
   const urlUnderCursor = shallowRef<string>()
   editor.registerCommand(

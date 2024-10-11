@@ -24,14 +24,18 @@ export type RowData = {
   cells: Record<Ast.AstId, Ast.AstId>
 }
 
-/** A more specialized version of AGGrid's `MenuItemDef` to simplify testing (the tests need to provide
- * only values actually used by the composable) */
+/**
+ * A more specialized version of AGGrid's `MenuItemDef` to simplify testing (the tests need to provide
+ * only values actually used by the composable)
+ */
 export interface MenuItem extends MenuItemDef<RowData> {
   action: (params: { node: { data: RowData | undefined } | null }) => void
 }
 
-/** A more specialized version of AGGrid's `ColDef` to simplify testing (the tests need to provide
- * only values actually used by the composable) */
+/**
+ * A more specialized version of AGGrid's `ColDef` to simplify testing (the tests need to provide
+ * only values actually used by the composable)
+ */
 export interface ColumnDef extends ColDef<RowData> {
   valueGetter: ({ data }: { data: RowData | undefined }) => any
   valueSetter?: ({ data, newValue }: { data: RowData; newValue: any }) => boolean
@@ -41,6 +45,7 @@ export interface ColumnDef extends ColDef<RowData> {
 }
 
 namespace cellValueConversion {
+  /** TODO: Add docs */
   export function astToAgGrid(ast: Ast.Ast) {
     if (ast instanceof Ast.TextLiteral) return Ok(ast.rawTextContent)
     else if (ast instanceof Ast.Ident && ast.code() === NOTHING_NAME) return Ok(null)
@@ -52,6 +57,7 @@ namespace cellValueConversion {
     }
   }
 
+  /** TODO: Add docs */
   export function agGridToAst(
     value: unknown,
     module: Ast.MutableModule,
@@ -106,6 +112,11 @@ function retrieveColumnsDefinitions(columnsAst: Ast.Vector) {
   return transposeResult(Array.from(columnsAst.values(), readColumn))
 }
 
+/**
+ * Check if given ast is a `Table.new` call which may be handled by the TableEditorWidget.
+ *
+ * This widget may handle table definitions filled with literals or `Nothing` values.
+ */
 export function tableNewCallMayBeHandled(call: Ast.Ast) {
   const columnsAst = retrieveColumnsAst(call)
   if (!columnsAst.ok) return false
@@ -123,7 +134,6 @@ export function tableNewCallMayBeHandled(call: Ast.Ast) {
 /**
  * A composable responsible for interpreting `Table.new` expressions, creating AGGrid column
  * definitions allowing also editing AST through AGGrid editing.
- *
  * @param input the widget's input
  * @param graph the graph store
  * @param onUpdate callback called when AGGrid was edited by user, resulting in AST change.

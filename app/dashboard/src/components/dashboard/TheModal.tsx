@@ -1,6 +1,4 @@
 /** @file A component that renders the modal instance from the modal React Context. */
-import * as React from 'react'
-
 import { DialogTrigger } from '#/components/AriaComponents'
 import * as modalProvider from '#/providers/ModalProvider'
 import { AnimatePresence, motion } from 'framer-motion'

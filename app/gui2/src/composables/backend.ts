@@ -37,6 +37,7 @@ function backendQueryOptions<Method extends BackendMethods>(
   }
 }
 
+/** TODO: Add docs */
 export function useBackendQuery<Method extends BackendMethods>(
   method: Method,
   args: ToValue<Parameters<Backend[Method]> | undefined>,
@@ -45,6 +46,7 @@ export function useBackendQuery<Method extends BackendMethods>(
   return useQuery(backendQueryOptions(method, args, backend))
 }
 
+/** TODO: Add docs */
 export function useBackendQueryPrefetching() {
   const queryClient = useQueryClient()
   const { backend } = injectBackend()

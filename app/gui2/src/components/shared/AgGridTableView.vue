@@ -116,7 +116,8 @@ function lockColumnSize(e: ColumnResizedEvent) {
   }
 }
 
-/** Copy the provided TSV-formatted table data to the clipboard.
+/**
+ * Copy the provided TSV-formatted table data to the clipboard.
  *
  * The data will be copied as `text/plain` TSV data for spreadsheet applications, and an Enso-specific MIME section for
  * pasting as a new table node.

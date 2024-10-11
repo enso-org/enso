@@ -108,7 +108,8 @@ object ExecutionApi {
     case class Params(
       contextId: ContextId,
       invalidatedExpressions: Option[InvalidatedExpressions],
-      executionEnvironment: Option[ExecutionEnvironments.ExecutionEnvironment]
+      executionEnvironment: Option[ExecutionEnvironments.ExecutionEnvironment],
+      expressionConfigs: Option[Seq[ExpressionConfig]]
     )
 
     implicit

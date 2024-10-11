@@ -94,7 +94,8 @@ sealed case class ImportExport(
     this
 
   /** @inheritdoc */
-  override val location: Option[IdentifiedLocation] = ir.location
+  override def identifiedLocation: IdentifiedLocation =
+    ir.identifiedLocation()
 
   /** @inheritdoc */
   override def mapExpressions(
