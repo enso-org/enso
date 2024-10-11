@@ -160,7 +160,9 @@ const clientBounds = computed({
   },
 })
 
-const resizing: BoundsSet = {}
+// It's not const, because it's assigned in
+// eslint-disable-next-line prefer-const
+let resizing: BoundsSet = {}
 
 watch(containerContentSize, (newVal, oldVal) => {
   if (!resizing.left) return
