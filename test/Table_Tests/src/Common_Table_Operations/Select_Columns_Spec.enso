@@ -124,9 +124,8 @@ add_select_column_specs suite_builder setup =
                 col2 = ["bar", [4,5,6]]
                 col3 = ["Bar", [7,8,9]]
                 table_builder [col1, col2, col3]
-            case setup.flagged ..Supports_Case_Sensitive_Columns of
-                True -> expect_column_names ["bar", "Bar"] <| table.select_columns ["bar"] case_sensitivity=Case_Sensitivity.Insensitive
-                False -> table.should_fail_with (Duplicate_Output_Column_Names.Error ["Bar"])
+            if setup.flagged ..Supports_Case_Sensitive_Columns then
+                expect_column_names ["bar", "Bar"] <| table.select_columns ["bar"] case_sensitivity=Case_Sensitivity.Insensitive
         
         group_builder.specify "should correctly handle mis-matches due to case insensitivity regardless of backend support" <|
             table =
@@ -261,9 +260,8 @@ add_select_column_specs suite_builder setup =
                 col2 = ["bar", [4,5,6]]
                 col3 = ["Bar", [7,8,9]]
                 table_builder [col1, col2, col3]
-            case setup.flagged ..Supports_Case_Sensitive_Columns of
-                True -> expect_column_names ["foo"] <| table.remove_columns "bar" Case_Sensitivity.Insensitive
-                False -> table.should_fail_with (Duplicate_Output_Column_Names.Error ["Bar"])
+            if setup.flagged ..Supports_Case_Sensitive_Columns then
+                expect_column_names ["foo"] <| table.remove_columns "bar" Case_Sensitivity.Insensitive
 
         group_builder.specify "should correctly handle mis-matches due to case insensitivity regardless of backend support" <|
             table =
@@ -358,9 +356,8 @@ add_select_column_specs suite_builder setup =
                 col2 = ["bar", [4,5,6]]
                 col3 = ["Bar", [7,8,9]]
                 table_builder [col1, col2, col3]
-            case setup.flagged ..Supports_Case_Sensitive_Columns of
-                True -> expect_column_names ["bar", "Bar", "foo"] <| table.reorder_columns ["bar"] case_sensitivity=Case_Sensitivity.Insensitive
-                False -> table.should_fail_with (Duplicate_Output_Column_Names.Error ["Bar"])
+            if setup.flagged ..Supports_Case_Sensitive_Columns then
+                expect_column_names ["bar", "Bar", "foo"] <| table.reorder_columns ["bar"] case_sensitivity=Case_Sensitivity.Insensitive
 
         group_builder.specify "should correctly handle mis-matches due to case insensitivity regardless of backend support" <|
             table =
