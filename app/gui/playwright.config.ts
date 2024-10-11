@@ -138,6 +138,7 @@ export default defineConfig({
         process.env.CI || process.env.PROD ?
           `corepack pnpm exec vite -c vite.test.config.ts build && vite -c vite.test.config.ts preview --port ${ports.dashboard} --strictPort`
         : `corepack pnpm exec vite -c vite.test.config.ts --port ${ports.dashboard}`,
+      timeout: 240 * 1000,
       port: ports.dashboard,
       reuseExistingServer: false,
     },
