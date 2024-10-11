@@ -2,6 +2,8 @@ package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.core.Implicits.{AsDiagnostics, AsMetadata}
 import org.enso.compiler.core.ir.MetadataStorage._
+import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.expression.{
   Application,
   Case,
@@ -51,11 +53,8 @@ class TailCallMini(
   override type Metadata = TailCall.TailPosition
 
   override def transformModule(moduleIr: Module): Module = {
-    val newBindings = moduleIr.bindings.map { binding =>
-      binding.updateMetadata(tailMeta)
-    }
     moduleIr.copy(
-      bindings = newBindings
+      bindings = moduleIr.bindings.map(analyseModuleBinding)
     )
   }
 
@@ -161,6 +160,57 @@ class TailCallMini(
       }
     } else {
       true
+    }
+  }
+
+  /** Performs tail call analysis on a top-level definition in a module.
+    *
+    * @param moduleDefinition the top-level definition to analyse
+    * @return `definition`, annotated with tail call information
+    */
+  private def analyseModuleBinding(
+    moduleDefinition: Definition
+  ): Definition = {
+    moduleDefinition match {
+      case method: definition.Method.Conversion =>
+        method
+          .updateMetadata(new MetadataPair(TailCall, TailPosition.Tail))
+      case method @ definition.Method
+            .Explicit(_, _, _, _, _) =>
+        method
+          .updateMetadata(new MetadataPair(TailCall, TailPosition.Tail))
+      case _: definition.Method.Binding =>
+        throw new CompilerError(
+          "Sugared method definitions should not occur during tail call " +
+          "analysis."
+        )
+      case _: Definition.Type =>
+        moduleDefinition.updateMetadata(
+          new MetadataPair(TailCall, TailPosition.Tail)
+        )
+      case _: Definition.SugaredType =>
+        throw new CompilerError(
+          "Complex type definitions should not be present during " +
+          "tail call analysis."
+        )
+      case _: Comment.Documentation =>
+        throw new CompilerError(
+          "Documentation should not exist as an entity during tail call analysis."
+        )
+      case _: Type.Ascription =>
+        throw new CompilerError(
+          "Type signatures should not exist at the top level during " +
+          "tail call analysis."
+        )
+      case _: Name.BuiltinAnnotation =>
+        throw new CompilerError(
+          "Annotations should already be associated by the point of " +
+          "tail call analysis."
+        )
+      case ann: Name.GenericAnnotation =>
+        ann
+          .updateMetadata(new MetadataPair(TailCall, TailPosition.Tail))
+      case err: Error => err
     }
   }
 
