@@ -64,7 +64,11 @@ import useOnScroll from '#/hooks/useOnScroll'
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 import AssetsTableContextMenu from '#/layouts/AssetsTableContextMenu'
-import { isLocalCategory, type Category } from '#/layouts/CategorySwitcher/Category'
+import {
+  canPasteIntoCategory,
+  isLocalCategory,
+  type Category,
+} from '#/layouts/CategorySwitcher/Category'
 import DragModal from '#/modals/DragModal'
 import DuplicateAssetsModal from '#/modals/DuplicateAssetsModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
@@ -142,7 +146,6 @@ import { fileExtension } from '#/utilities/fileInfo'
 import type { DetailedRectangle } from '#/utilities/geometry'
 import { DEFAULT_HANDLER } from '#/utilities/inputBindings'
 import LocalStorage from '#/utilities/LocalStorage'
-import type { PasteData } from '#/utilities/pasteData'
 import PasteType from '#/utilities/PasteType'
 import {
   canPermissionModifyDirectoryContents,
@@ -1147,7 +1150,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         },
       })
     }
-  }, [hidden, inputBindings, dispatchAssetEvent])
+  }, [dispatchAssetEvent, driveStore, hidden, inputBindings, setPasteData])
 
   useEffect(
     () =>
@@ -2154,7 +2157,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const doPaste = useEventCallback((newParentKey: DirectoryId, newParentId: DirectoryId) => {
     unsetModal()
     const { pasteData } = driveStore.getState()
-    if (pasteData != null) {
+    if (pasteData?.data.backendType === backend.type && canPasteIntoCategory(category)) {
       if (pasteData.data.ids.has(newParentKey)) {
         toast.error('Cannot paste a folder into itself.')
       } else {

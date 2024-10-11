@@ -36,6 +36,7 @@ import ManagePermissionsModal from '#/modals/ManagePermissionsModal'
 import * as backendModule from '#/services/Backend'
 import * as localBackendModule from '#/services/LocalBackend'
 
+import { backendMutationOptions } from '#/hooks/backendHooks'
 import {
   usePasteData,
   useSetAssetPanelProps,
@@ -100,6 +101,9 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     : isCloud ? encodeURI(pathRaw)
     : pathRaw
   const copyMutation = copyHooks.useCopy({ copyText: path ?? '' })
+  const uploadFileMutation = reactQuery.useMutation(
+    backendMutationOptions(remoteBackend, 'uploadFile'),
+  )
 
   const { isFeatureUnderPaywall } = billingHooks.usePaywall({ plan: user.plan })
   const isUnderPaywall = isFeatureUnderPaywall('share')
@@ -279,19 +283,14 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                     const projectResponse = await fetch(
                       `./api/project-manager/projects/${localBackendModule.extractTypeAndId(asset.id).id}/enso-project`,
                     )
-                    // This DOES NOT update the cloud assets list when it
-                    // completes, as the current backend is not the remote
-                    // (cloud) backend. The user may change to the cloud backend
-                    // while this request is in progress, however this is
-                    // uncommon enough that it is not worth the added complexity.
-                    await remoteBackend.uploadFile(
+                    await uploadFileMutation.mutateAsync([
                       {
                         fileName: `${asset.title}.enso-project`,
                         fileId: null,
                         parentDirectoryId: null,
                       },
                       await projectResponse.blob(),
-                    )
+                    ])
                     toast.toast.success(getText('uploadProjectToCloudSuccess'))
                   } catch (error) {
                     toastAndLog('uploadProjectToCloudError', error)

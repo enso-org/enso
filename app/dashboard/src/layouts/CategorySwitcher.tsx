@@ -23,7 +23,11 @@ import AssetEventType from '#/events/AssetEventType'
 import { useBackendQuery } from '#/hooks/backendHooks'
 import * as offlineHooks from '#/hooks/offlineHooks'
 import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
-import { areCategoriesEqual, type Category } from '#/layouts/CategorySwitcher/Category'
+import {
+  areCategoriesEqual,
+  canTransferBetweenCategories,
+  type Category,
+} from '#/layouts/CategorySwitcher/Category'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
@@ -123,32 +127,9 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
   const isDisabled = error != null
   const tooltip = error ?? false
 
-  const isDropTarget = (() => {
-    if (areCategoriesEqual(category, currentCategory)) {
-      return false
-    } else {
-      switch (currentCategory.type) {
-        case 'cloud':
-        case 'recent':
-        case 'team':
-        case 'user': {
-          return (
-            category.type === 'trash' ||
-            category.type === 'cloud' ||
-            category.type === 'team' ||
-            category.type === 'user'
-          )
-        }
-        case 'trash': {
-          return category.type === 'cloud'
-        }
-        case 'local':
-        case 'local-directory': {
-          return category.type === 'local' || category.type === 'local-directory'
-        }
-      }
-    }
-  })()
+  const isDropTarget =
+    !areCategoriesEqual(currentCategory, category) &&
+    canTransferBetweenCategories(currentCategory, category)
   const acceptedDragTypes = isDropTarget ? [mimeTypes.ASSETS_MIME_TYPE] : []
 
   const onPress = () => {

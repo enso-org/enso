@@ -25,7 +25,11 @@ import { createGetProjectDetailsQuery } from '#/hooks/projectHooks'
 import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
 import AssetSearchBar from '#/layouts/AssetSearchBar'
 import { useDispatchAssetEvent } from '#/layouts/AssetsTable/EventListProvider'
-import { isCloudCategory, type Category } from '#/layouts/CategorySwitcher/Category'
+import {
+  canPasteIntoCategory,
+  isCloudCategory,
+  type Category,
+} from '#/layouts/CategorySwitcher/Category'
 import StartModal from '#/layouts/StartModal'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
@@ -45,8 +49,8 @@ import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import { ProjectState, type CreatedProject, type Project, type ProjectId } from '#/services/Backend'
 import type AssetQuery from '#/utilities/AssetQuery'
-import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import PasteType from '#/utilities/PasteType'
+import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 
 // ================
 // === DriveBar ===
@@ -112,6 +116,10 @@ export default function DriveBar(props: DriveBarProps) {
   const [isCreatingProject, setIsCreatingProject] = React.useState(false)
   const [createdProjectId, setCreatedProjectId] = React.useState<ProjectId | null>(null)
   const pasteData = usePasteData()
+  const effectivePasteData =
+    pasteData?.data.backendType === backend.type && canPasteIntoCategory(category) ?
+      pasteData
+    : null
 
   React.useEffect(() => {
     return inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
@@ -191,10 +199,21 @@ export default function DriveBar(props: DriveBarProps) {
     </>
   )
 
+  const pasteDataStatus = effectivePasteData && (
+    <div className="flex items-center">
+      <Text>
+        {effectivePasteData.type === PasteType.copy ?
+          getText('xItemsCopied', effectivePasteData.data.ids.size)
+        : getText('xItemsCut', effectivePasteData.data.ids.size)}
+      </Text>
+    </div>
+  )
+
   switch (category.type) {
     case 'recent': {
       return (
         <ButtonGroup className="my-0.5 grow-0">
+          {pasteDataStatus}
           {searchBar}
           {assetPanelToggle}
         </ButtonGroup>
@@ -212,6 +231,7 @@ export default function DriveBar(props: DriveBarProps) {
               doDelete={doEmptyTrash}
             />
           </DialogTrigger>
+          {pasteDataStatus}
           {searchBar}
           {assetPanelToggle}
         </ButtonGroup>
@@ -360,15 +380,7 @@ export default function DriveBar(props: DriveBarProps) {
             </div>
             {createAssetsVisualTooltip.tooltip}
           </ButtonGroup>
-          {pasteData && (
-            <div className='flex items-center'>
-              <Text>
-                {pasteData.type === PasteType.copy ?
-                  getText('xItemsCopied', pasteData.data.ids.size)
-                : getText('xItemsCut', pasteData.data.ids.size)}
-              </Text>
-            </div>
-          )}
+          {pasteDataStatus}
           {searchBar}
           {assetPanelToggle}
         </ButtonGroup>

@@ -3,10 +3,6 @@ import * as z from 'zod'
 
 import type { DirectoryId, Path, UserGroupInfo } from '#/services/Backend'
 
-// ================
-// === Category ===
-// ================
-
 const PATH_SCHEMA = z.string().refine((s): s is Path => true)
 const DIRECTORY_ID_SCHEMA = z.string().refine((s): s is DirectoryId => true)
 
@@ -87,27 +83,15 @@ export const CATEGORY_SCHEMA = z.union([ANY_CLOUD_CATEGORY_SCHEMA, ANY_LOCAL_CAT
 /** A category of an arbitrary type. */
 export type Category = z.infer<typeof CATEGORY_SCHEMA>
 
-// =======================
-// === isCloudCategory ===
-// =======================
-
 /** Whether the category is only accessible from the cloud. */
 export function isCloudCategory(category: Category): category is AnyCloudCategory {
   return ANY_CLOUD_CATEGORY_SCHEMA.safeParse(category).success
 }
 
-// =======================
-// === isLocalCategory ===
-// =======================
-
 /** Whether the category is only accessible locally. */
 export function isLocalCategory(category: Category): category is AnyLocalCategory {
   return ANY_LOCAL_CATEGORY_SCHEMA.safeParse(category).success
 }
-
-// ==========================
-// === areCategoriesEqual ===
-// ==========================
 
 /** Whether the given categories are equal. */
 export function areCategoriesEqual(a: Category, b: Category) {
@@ -121,5 +105,41 @@ export function areCategoriesEqual(a: Category, b: Category) {
     return a.homeDirectoryId === b.homeDirectoryId
   } else {
     return true
+  }
+}
+
+/** Whether an asset can be transferred between categories. */
+export function canTransferBetweenCategories(from: Category, to: Category) {
+  switch (from.type) {
+    case 'cloud':
+    case 'recent':
+    case 'team':
+    case 'user': {
+      return to.type === 'trash' || to.type === 'cloud' || to.type === 'team' || to.type === 'user'
+    }
+    case 'trash': {
+      return to.type === 'cloud'
+    }
+    case 'local':
+    case 'local-directory': {
+      return to.type === 'local' || to.type === 'local-directory'
+    }
+  }
+}
+
+/** Whether a category can be pasted into at all. */
+export function canPasteIntoCategory(category: Category) {
+  switch (category.type) {
+    case 'recent': {
+      return false
+    }
+    case 'cloud':
+    case 'team':
+    case 'user':
+    case 'trash':
+    case 'local':
+    case 'local-directory': {
+      return true
+    }
   }
 }
