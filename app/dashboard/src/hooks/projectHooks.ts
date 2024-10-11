@@ -58,26 +58,21 @@ function useSetProjectAsset() {
       parentId: backendModule.DirectoryId,
       transform: (asset: backendModule.ProjectAsset) => backendModule.ProjectAsset,
     ) => {
-      const listDirectoryQuery = queryClient.getQueryCache().find<
-        | {
-            parentId: backendModule.DirectoryId
-            children: readonly backendModule.AnyAsset<backendModule.AssetType>[]
-          }
-        | undefined
-      >({
-        queryKey: [backendType, 'listDirectory', parentId],
-        exact: false,
-      })
+      const listDirectoryQuery = queryClient
+        .getQueryCache()
+        .find<readonly backendModule.AnyAsset<backendModule.AssetType>[] | undefined>({
+          queryKey: [backendType, 'listDirectory', parentId],
+          exact: false,
+        })
 
       if (listDirectoryQuery?.state.data) {
-        listDirectoryQuery.setData({
-          ...listDirectoryQuery.state.data,
-          children: listDirectoryQuery.state.data.children.map((child) =>
+        listDirectoryQuery.setData(
+          listDirectoryQuery.state.data.map((child) =>
             child.id === assetId && child.type === backendModule.AssetType.project ?
               transform(child)
             : child,
           ),
-        })
+        )
       }
     },
   )
