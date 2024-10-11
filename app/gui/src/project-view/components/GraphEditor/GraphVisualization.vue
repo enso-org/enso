@@ -160,7 +160,7 @@ const clientBounds = computed({
   },
 })
 
-// It's not const, because it's assigned in
+// It's not const, because it's assigned in an event handler in template.
 // eslint-disable-next-line prefer-const
 let resizing: BoundsSet = {}
 
