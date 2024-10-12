@@ -538,26 +538,256 @@ case object TailCall extends IRPass with MiniPassFactory {
     }
 
     override def prepare(ir: Expression): Mini = {
+      val tailStatus = isTailPosition(ir)
+      subTailExpression(ir, tailStatus)
       this
     }
 
     override def transformExpression(ir: Expression): Expression = {
-      val tailStatus = isTailPosition(ir)
-      analyseExpression(ir, tailStatus)
+      ir
     }
 
     private def isTailPosition(ir: Expression): Boolean = {
-      val candidateCheck = tailCandidates.remove(ir)
-      if (candidateCheck ne null) {
-        candidateCheck
+      if (tailCandidates.containsKey(ir)) {
+        tailCandidates.get(ir)
       } else {
+        // if null is in the candidates, replace it with first Expression
         val initialState = tailCandidates.remove(null)
-        if (initialState eq null) {
-          false
-        } else {
+        if (initialState) {
+          tailCandidates.put(ir, true)
           initialState
+        } else {
+          false
         }
       }
     }
+
+    /** Performs tail call analysis on an arbitrary expression.
+      *
+      * @param expression the expression to subTail
+      * @param isInTailPosition whether or not the expression is occurring in tail
+      *                         position
+      * @return `expression`, annotated with tail position metadata
+      */
+    private def subTailExpression(
+      expression: Expression,
+      isInTailPosition: Boolean
+    ): Unit = {
+      expression match {
+        case function: Function =>
+          subTailFunction(function, isInTailPosition)
+        case caseExpr: Case   => subTailCase(caseExpr, isInTailPosition)
+        case typ: Type        => subTailType(typ, isInTailPosition)
+        case app: Application => subTailApplication(app, isInTailPosition)
+        case name: Name       => subTailName(name, isInTailPosition)
+        case literal: Literal => subTailLiteral(literal, isInTailPosition)
+        case _: Comment =>
+          throw new CompilerError(
+            "Comments should not be present during tail call analysis."
+          )
+        case Expression.Block(_, returnValue, _, _, _) =>
+          if (isInTailPosition) {
+            tailCandidates.put(returnValue, true)
+          }
+        case _ =>
+      }
+    }
+
+    private def updateMetaIfInTailPosition[T <: IR](
+      isInTailPosition: Boolean,
+      ir: T
+    ): T = {
+      if (isInTailPosition) {
+        ir.updateMetadata(TAIL_META)
+      } else {
+        ir
+      }
+    }
+
+    /** Performs tail call analysis on an occurrence of a name.
+      *
+      * @param name the name to subTail
+      * @param isInTailPosition whether the name occurs in tail position or not
+      * @return `name`, annotated with tail position metadata
+      */
+    def subTailName(name: Name, isInTailPosition: Boolean): Name = {
+      updateMetaIfInTailPosition(isInTailPosition, name)
+    }
+
+    /** Performs tail call analysis on a literal.
+      *
+      * @param literal the literal to subTail
+      * @param isInTailPosition whether or not the literal occurs in tail position
+      *                         or not
+      * @return `literal`, annotated with tail position metdata
+      */
+    private def subTailLiteral(
+      literal: Literal,
+      isInTailPosition: Boolean
+    ): Literal = {
+      updateMetaIfInTailPosition(isInTailPosition, literal)
+    }
+
+    /** Performs tail call analysis on an application.
+      *
+      * @param application the application to subTail
+      * @param isInTailPosition whether or not the application is occurring in
+      *                         tail position
+      * @return `application`, annotated with tail position metadata
+      */
+    private def subTailApplication(
+      application: Application,
+      isInTailPosition: Boolean
+    ): Unit = {
+      if (isInTailPosition) {
+        application.updateMetadata(TAIL_META)
+      }
+      application match {
+        case Application.Prefix(_, args, _, _, _) =>
+          args.foreach(subTailCallArg)
+        case Application.Force(target, _, _) =>
+          if (isInTailPosition) {
+            tailCandidates.put(target, true)
+          }
+        case Application.Sequence(_, _, _) =>
+        case Application.Typeset(_, _, _)  =>
+        case _: Operator =>
+          throw new CompilerError("Unexpected binary operator.")
+      }
+    }
+
+    /** Performs tail call analysis on a call site argument.
+      *
+      * @param argument the argument to subTail
+      * @return `argument`, annotated with tail position metadata
+      */
+    private def subTailCallArg(argument: CallArgument): Unit = {
+      argument match {
+        case CallArgument.Specified(_, expr, _, _) =>
+          // Note [Call Argument Tail Position]
+          tailCandidates.put(expr, true)
+      }
+      argument.updateMetadata(TAIL_META)
+    }
+
+    /* Note [Call Argument Tail Position]
+     * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     * In order to efficiently deal with Enso's ability to suspend function
+     * arguments, we behave as if all arguments to a function are passed as
+     * thunks. This means that the _function_ becomes responsible for deciding
+     * when to evaluate its arguments.
+     *
+     * Conceptually, this results in a desugaring as follows:
+     *
+     * ```
+     * foo a b c
+     * ```
+     *
+     * Becomes:
+     *
+     * ```
+     * foo ({} -> a) ({} -> b) ({} -> c)
+     * ```
+     *
+     * Quite obviously, the arguments `a`, `b` and `c` are in tail position in
+     * these closures, and hence should be marked as tail.
+     */
+
+    /** Performs tail call analysis on an expression involving type operators.
+      *
+      * @param value the type operator expression
+      * @param isInTailPosition whether or not the type operator occurs in a tail
+      *                         call position
+      * @return `value`, annotated with tail position metadata
+      */
+    private def subTailType(value: Type, isInTailPosition: Boolean): Unit = {}
+
+    /** Performs tail call analysis on a case expression.
+      *
+      * @param caseExpr the case expression to subTail
+      * @param isInTailPosition whether or not the case expression occurs in a tail
+      *                         call position
+      * @return `caseExpr`, annotated with tail position metadata
+      */
+    private def subTailCase(caseExpr: Case, isInTailPosition: Boolean): Unit = {
+      caseExpr match {
+        case Case.Expr(_, branches, _, _, _) =>
+          if (isInTailPosition) {
+            // Note [Analysing Branches in Case Expressions]
+            branches.foreach(b => tailCandidates.put(b.expression, true))
+          }
+        case _: Case.Branch =>
+          throw new CompilerError("Unexpected case branch.")
+      }
+    }
+
+    /* Note [Analysing Branches in Case Expressions]
+     * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     * When performing tail call analysis on a case expression it is very
+     * important to recognise that the branches of a case expression should all
+     * have the same tail call state. The branches should only be marked as being
+     * in tail position when the case expression _itself_ is in tail position.
+     *
+     * As only one branch is ever executed, it is hence safe to mark _all_
+     * branches as being in tail position if the case expression is.
+     */
+
+    /** Branch expression may be in tail position.
+      *
+      * @param branch the branch to subTail
+      * @param isInTailPosition whether or not the branch occurs in a tail call
+      *                         position
+      * @return `branch`, annotated with tail position metadata
+      *    private def subTailCaseBranch(
+      *      branch: Case.Branch,
+      *      isInTailPosition: Boolean
+      *      ): Unit = {
+      *        if (isInTailPosition) {
+      *          tailCandidates.put(branch.expression, isInTailPosition)
+      *        }
+      *      }
+      */
+
+    /** Patterns are never in tail possition.
+      *
+      * @param pattern the pattern to subTail
+      * @return `pattern`, annotated with tail position metadata
+      *    private def subTailPattern(
+      *      pattern: Pattern
+      *      ): Unit = {
+      *      }
+      */
+
+    /** Body of the function may be in tail position.
+      *
+      * @param function the function to subTail
+      * @param isInTailPosition whether or not the function definition occurs in a
+      *                         tail position
+      * @return `function`, annotated with tail position metadata
+      */
+    private def subTailFunction(
+      function: Function,
+      isInTailPosition: Boolean
+    ): Unit = {
+      val canBeTCO   = function.canBeTCO
+      val markAsTail = (!canBeTCO && isInTailPosition) || canBeTCO
+      if (isInTailPosition) {
+        function.updateMetadata(TAIL_META)
+      }
+      function match {
+        case Function.Lambda(_, body, _, _, _, _) =>
+          if (markAsTail) {
+            tailCandidates.put(body, true)
+          }
+        case _: Function.Binding =>
+          throw new CompilerError(
+            "Function sugar should not be present during tail call analysis."
+          )
+      }
+    }
+
+    /** No tail expressions in default arguments. Body of the function is next.
+      *   private def subTailDefArgument(
+      */
   }
 }
