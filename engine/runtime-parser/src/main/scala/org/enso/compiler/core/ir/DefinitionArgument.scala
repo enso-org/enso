@@ -45,21 +45,20 @@ object DefinitionArgument {
     * To create an ignored argument, the argument name should be an
     * [[Name.Blank]].
     *
-    * @param name         the name of the argument
-    * @param ascribedType the explicitly ascribed type of the argument, if
-    *                     present
+    * @param name the name of the argument
+    * @param ascribedType the explicitly ascribed type of the argument, if present
     * @param defaultValue the default value of the argument, if present
-    * @param suspended    whether or not the argument has its execution suspended
-    * @param location     the source location that the node corresponds to
-    * @param passData     the pass metadata associated with this node
+    * @param suspended whether or not the argument has its execution suspended
+    * @param identifiedLocation the source location that the node corresponds to
+    * @param passData the pass metadata associated with this node
     */
   sealed case class Specified(
     override val name: Name,
     override val ascribedType: Option[Expression],
     override val defaultValue: Option[Expression],
     override val suspended: Boolean,
-    location: Option[IdentifiedLocation],
-    passData: MetadataStorage = new MetadataStorage()
+    override val identifiedLocation: IdentifiedLocation,
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends DefinitionArgument
       with IRKind.Primitive
       with LazyDiagnosticStorage
@@ -71,7 +70,7 @@ object DefinitionArgument {
       * @param ascribedType the explicitly ascribed type of the argument, if present
       * @param defaultValue the default value of the argument, if present
       * @param suspended whether or not the argument has its execution suspended
-      * @param location the source location that the node corresponds to
+      * @param identifiedLocation the source location that the node corresponds to
       * @param passData the pass metadata associated with this node
       * @param diagnostics the compiler diagnostics
       */
@@ -80,7 +79,7 @@ object DefinitionArgument {
       ascribedType: Option[Expression],
       defaultValue: Option[Expression],
       suspended: Boolean,
-      location: Option[IdentifiedLocation],
+      identifiedLocation: IdentifiedLocation,
       passData: MetadataStorage,
       diagnostics: DiagnosticStorage
     ) = {
@@ -89,7 +88,7 @@ object DefinitionArgument {
         ascribedType,
         defaultValue,
         suspended,
-        location,
+        identifiedLocation,
         passData
       )
       this.diagnostics = diagnostics
@@ -133,7 +132,7 @@ object DefinitionArgument {
           ascribedType,
           defaultValue,
           suspended,
-          location,
+          location.orNull,
           passData
         )
         res.diagnostics = diagnostics

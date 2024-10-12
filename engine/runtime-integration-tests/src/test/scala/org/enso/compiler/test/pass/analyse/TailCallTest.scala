@@ -137,7 +137,7 @@ class TailCallTest extends MiniPassTest {
         code,
         () => mkNoTailContext,
         ir => {
-          ir.getMetadata(TailCall) shouldEqual Some(TailPosition.NotTail)
+          ir.getMetadata(TailCall) shouldEqual None
         }
       )
     }
@@ -151,9 +151,7 @@ class TailCallTest extends MiniPassTest {
         ir => {
           val binding = ir.asInstanceOf[Expression.Binding]
           binding.getMetadata(TailCall) shouldEqual Some(TailPosition.Tail)
-          binding.expression.getMetadata(TailCall) shouldEqual Some(
-            TailPosition.NotTail
-          )
+          binding.expression.getMetadata(TailCall) shouldEqual None
         }
       )
     }
@@ -167,9 +165,7 @@ class TailCallTest extends MiniPassTest {
         ir => {
           val binding = ir.asInstanceOf[Expression.Binding]
           binding.getMetadata(TailCall) shouldEqual Some(TailPosition.Tail)
-          binding.expression.getMetadata(TailCall) shouldEqual Some(
-            TailPosition.NotTail
-          )
+          binding.expression.getMetadata(TailCall) shouldEqual None
         }
       )
     }
@@ -206,7 +202,7 @@ class TailCallTest extends MiniPassTest {
           val lambda = ir.asInstanceOf[Function.Lambda]
           val fnBody = lambda.body.asInstanceOf[Expression.Block]
           fnBody.expressions.foreach { expr =>
-            expr.getMetadata(TailCall) shouldEqual Some(TailPosition.NotTail)
+            expr.getMetadata(TailCall) shouldEqual None
           }
         }
       )
@@ -295,16 +291,12 @@ class TailCallTest extends MiniPassTest {
             .returnValue
             .asInstanceOf[Case.Expr]
 
-          caseExpr.getMetadata(TailCall) shouldEqual Some(
-            TailPosition.NotTail
-          )
+          caseExpr.getMetadata(TailCall) shouldEqual None
           caseExpr.branches.foreach(branch => {
             val branchExpression =
               branch.expression.asInstanceOf[Application.Prefix]
 
-            branchExpression.getMetadata(TailCall) shouldEqual Some(
-              TailPosition.NotTail
-            )
+            branchExpression.getMetadata(TailCall) shouldEqual None
           })
         }
       )
@@ -367,18 +359,14 @@ class TailCallTest extends MiniPassTest {
           val pattern            = caseBranch.pattern.asInstanceOf[Pattern.Constructor]
           val patternConstructor = pattern.constructor
 
-          pattern.getMetadata(TailCall) shouldEqual Some(
-            TailPosition.NotTail
-          )
-          patternConstructor.getMetadata(TailCall) shouldEqual Some(
-            TailPosition.NotTail
-          )
+          pattern.getMetadata(TailCall) shouldEqual None
+          patternConstructor.getMetadata(TailCall) shouldEqual None
           pattern.fields.foreach(f => {
-            f.getMetadata(TailCall) shouldEqual Some(TailPosition.NotTail)
+            f.getMetadata(TailCall) shouldEqual None
 
             f.asInstanceOf[Pattern.Name]
               .name
-              .getMetadata(TailCall) shouldEqual Some(TailPosition.NotTail)
+              .getMetadata(TailCall) shouldEqual None
           })
         }
       )
@@ -457,96 +445,115 @@ class TailCallTest extends MiniPassTest {
             nonTailCallBody.expressions.head
               .asInstanceOf[Expression.Binding]
               .expression
-              .getMetadata(TailCall) shouldEqual Some(TailPosition.NotTail)
+              .getMetadata(TailCall) shouldEqual None
           }
         }
       )
-    }
-  }
-
-  "Tail call analysis on blocks" should {
-    val code =
-      """
-        |Foo.bar = a -> b -> c ->
-        |    d = a + b
-        |    mul = a -> b -> a * b
-        |    mul c d
-        |""".stripMargin
-
-    "mark the bodies of bound functions as tail properly" in {
-      assertModuleCompilation(
-        code,
-        () => mkModuleContext,
-        ir => {
-          val method = ir.bindings.head.asInstanceOf[definition.Method]
-          val block = method.body
-            .asInstanceOf[Function.Lambda]
-            .body
-            .asInstanceOf[Expression.Block]
-
-          block
-            .expressions(1)
-            .asInstanceOf[Expression.Binding]
-            .expression
-            .asInstanceOf[Function.Lambda]
-            .body
-            .getMetadata(TailCall) shouldEqual Some(TailPosition.Tail)
-        }
-      )
+      "mark the function call as not tail if it is in a tail position" in {
+        assertModuleCompilation(
+          """
+            |Foo.bar =
+            |    a = b c d
+            |    a
+            |""".stripMargin,
+          () => mkModuleContext,
+          ir => {
+            val nonTailCall = ir.bindings.head.asInstanceOf[definition.Method]
+            val nonTailCallBody = nonTailCall.body
+              .asInstanceOf[Function.Lambda]
+              .body
+              .asInstanceOf[Expression.Block]
+            nonTailCallBody.expressions.head
+              .asInstanceOf[Expression.Binding]
+              .expression
+              .getMetadata(TailCall) shouldEqual None
+          }
+        )
+      }
     }
 
-    "mark the block expressions as not tail" in {
-      assertModuleCompilation(
-        code,
-        () => mkModuleContext,
-        ir => {
-          val method = ir.bindings.head.asInstanceOf[definition.Method]
-          val block = method.body
-            .asInstanceOf[Function.Lambda]
-            .body
-            .asInstanceOf[Expression.Block]
+    "Tail call analysis on blocks" should {
+      val code =
+        """
+          |Foo.bar = a -> b -> c ->
+          |    d = a + b
+          |    mul = a -> b -> a * b
+          |    mul c d
+          |""".stripMargin
 
-          block.expressions.foreach(expr =>
-            expr.getMetadata(TailCall) shouldEqual Some(
-              TailPosition.NotTail
+      "mark the bodies of bound functions as tail properly" in {
+        assertModuleCompilation(
+          code,
+          () => mkModuleContext,
+          ir => {
+            val method = ir.bindings.head.asInstanceOf[definition.Method]
+            val block = method.body
+              .asInstanceOf[Function.Lambda]
+              .body
+              .asInstanceOf[Expression.Block]
+
+            block
+              .expressions(1)
+              .asInstanceOf[Expression.Binding]
+              .expression
+              .asInstanceOf[Function.Lambda]
+              .body
+              .getMetadata(TailCall) shouldEqual Some(TailPosition.Tail)
+          }
+        )
+      }
+
+      "mark the block expressions as not tail" in {
+        assertModuleCompilation(
+          code,
+          () => mkModuleContext,
+          ir => {
+            val method = ir.bindings.head.asInstanceOf[definition.Method]
+            val block = method.body
+              .asInstanceOf[Function.Lambda]
+              .body
+              .asInstanceOf[Expression.Block]
+
+            block.expressions.foreach(expr =>
+              expr.getMetadata(TailCall) shouldEqual None
             )
-          )
-        }
-      )
-    }
+          }
+        )
+      }
 
-    "mark the final expression of the block as tail" in {
-      assertModuleCompilation(
-        code,
-        () => mkModuleContext,
-        ir => {
-          val method = ir.bindings.head.asInstanceOf[definition.Method]
-          val block = method.body
-            .asInstanceOf[Function.Lambda]
-            .body
-            .asInstanceOf[Expression.Block]
+      "mark the final expression of the block as tail" in {
+        assertModuleCompilation(
+          code,
+          () => mkModuleContext,
+          ir => {
+            val method = ir.bindings.head.asInstanceOf[definition.Method]
+            val block = method.body
+              .asInstanceOf[Function.Lambda]
+              .body
+              .asInstanceOf[Expression.Block]
 
-          block.returnValue.getMetadata(TailCall) shouldEqual Some(
-            TailPosition.Tail
-          )
-        }
-      )
-    }
+            block.returnValue.getMetadata(TailCall) shouldEqual Some(
+              TailPosition.Tail
+            )
+          }
+        )
+      }
 
-    "mark the block as tail if it is in a tail position" in {
-      assertModuleCompilation(
-        code,
-        () => mkModuleContext,
-        ir => {
-          val method = ir.bindings.head.asInstanceOf[definition.Method]
-          val block = method.body
-            .asInstanceOf[Function.Lambda]
-            .body
-            .asInstanceOf[Expression.Block]
+      "mark the block as tail if it is in a tail position" in {
+        assertModuleCompilation(
+          code,
+          () => mkModuleContext,
+          ir => {
+            val method = ir.bindings.head.asInstanceOf[definition.Method]
+            val block = method.body
+              .asInstanceOf[Function.Lambda]
+              .body
+              .asInstanceOf[Expression.Block]
 
-          block.getMetadata(TailCall) shouldEqual Some(TailPosition.Tail)
-        }
-      )
+            block.getMetadata(TailCall) shouldEqual Some(TailPosition.Tail)
+          }
+        )
+      }
     }
   }
 }

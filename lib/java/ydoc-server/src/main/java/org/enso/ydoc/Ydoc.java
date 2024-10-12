@@ -149,7 +149,6 @@ public final class Ydoc implements AutoCloseable {
   public void close() throws Exception {
     executor.shutdownNow();
     executor.awaitTermination(3, TimeUnit.SECONDS);
-    parser.close();
     if (context != null) {
       context.close(true);
     }

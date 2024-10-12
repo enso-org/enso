@@ -1,9 +1,14 @@
 from Standard.Base import all
+import Standard.Base.Metadata.Widget
+from Standard.Base.Metadata.Choice import Option
+from Standard.Base.Metadata.Widget import Single_Choice, Text_Input, Vector_Editor
+from Standard.Base.Widget_Helpers import make_text_secret_selector
 
 type Connection_Options
     ## Additional customization options for the JDBC connection.
 
        Hold a set of key value pairs used to configure the connection.
+    @options Connection_Options.default_widget
     Value options:Vector=[]
 
     ## PRIVATE
@@ -12,3 +17,16 @@ type Connection_Options
     merge :  Vector -> Vector
     merge self base_options =
         base_options.filter x->(self.options.any (y->y.first==x.first) . not) + self.options
+
+    ## PRIVATE
+       Widget to design connection options.
+    default_widget : Widget
+    default_widget =
+        fqn = Meta.get_qualified_type_name Pair . take (..Before_Last '.')
+        default = 'pair "key" "value"'
+        pair = Option "Pair" fqn+".pair" [["first", Text_Input], ["second", make_text_secret_selector]]
+        item_editor = Single_Choice display=..Always values=[pair]
+        Vector_Editor item_editor=item_editor display=..Always item_default=default
+
+## PRIVATE
+Connection_Options.from (that:Vector) = Connection_Options.Value that

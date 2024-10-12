@@ -89,6 +89,7 @@ export const CHECKBOX_STYLES = tv({
       'outline -outline-offset-2 outline-transparent group-focus-visible:outline-offset-0 group-focus-visible:outline-primary',
       'border-primary group-selected:border-transparent',
       'group-pressed:border',
+      'shrink-0',
     ],
   },
   defaultVariants: {
@@ -143,8 +144,8 @@ export const Checkbox = forwardRef(function Checkbox<
 
   const { store, removeSelected, addSelected } = useCheckboxContext()
 
-  // eslint-disable-next-line react-hooks/rules-of-hooks,no-restricted-syntax
-  const formInstance = form ?? Form.useFormContext()
+  // eslint-disable-next-line react-hooks/rules-of-hooks, no-restricted-syntax
+  const formInstance = (form ?? Form.useFormContext()) as unknown as FormInstance<Schema>
 
   const { isSelected, field, onChange, name } = useStore(store, (state) => {
     const { insideGroup } = state
@@ -152,7 +153,7 @@ export const Checkbox = forwardRef(function Checkbox<
     if (insideGroup) {
       const value = props.value
 
-      invariant(value != null, 'Checkbox must have a value when placed inside a group')
+      invariant(value != null, '`Checkbox` must have a value when placed inside a group')
 
       return {
         isSelected: state.selected.has(value),
@@ -171,21 +172,17 @@ export const Checkbox = forwardRef(function Checkbox<
         },
       }
     } else {
-      invariant(props.name != null, 'Checkbox must have a name when outside a group')
+      invariant(props.name != null, '`Checkbox` must have a name when outside a group')
 
-      // eslint-disable-next-line no-restricted-syntax
-      const formInstanceTyped = formInstance as unknown as FormInstance<Schema>
-
-      const fieldInstance = formInstanceTyped.register(props.name)
+      const fieldInstance = formInstance.register(props.name)
 
       return {
         field: fieldInstance,
         name: props.name,
         isSelected: props.isSelected ?? false,
-        onChange: (checked: boolean) => {
-          void fieldInstance
-            .onChange({ target: { value: checked } })
-            .then(() => formInstanceTyped.trigger(props.name))
+        onChange: async (checked: boolean) => {
+          await fieldInstance.onChange({ target: { value: checked } })
+          await formInstance.trigger(props.name)
         },
       }
     }
@@ -204,7 +201,7 @@ export const Checkbox = forwardRef(function Checkbox<
     size,
   })
 
-  const testId = props['data-testid'] ?? props['testId'] ?? 'Checkbox'
+  const testId = props['data-testid'] ?? props['testId']
 
   return (
     <AriaCheckbox

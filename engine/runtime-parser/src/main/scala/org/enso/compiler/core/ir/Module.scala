@@ -15,7 +15,7 @@ import java.util.UUID
   * @param exports the export statements for this module
   * @param bindings the top-level bindings for this module
   * @param isPrivate whether or not this module is private (project-private)
-  * @param location the source location that the node corresponds to
+  * @param identifiedLocation the source location that the node corresponds to
   * @param passData the pass metadata associated with this node
   */
 final case class Module(
@@ -23,8 +23,8 @@ final case class Module(
   exports: List[Export],
   bindings: List[Definition],
   isPrivate: Boolean,
-  location: Option[IdentifiedLocation],
-  passData: MetadataStorage = new MetadataStorage()
+  override val identifiedLocation: IdentifiedLocation,
+  override val passData: MetadataStorage = new MetadataStorage()
 ) extends IR
     with IRKind.Primitive
     with LazyDiagnosticStorage
@@ -36,7 +36,7 @@ final case class Module(
     * @param exports the export statements for this module
     * @param bindings the top-level bindings for this module
     * @param isPrivate whether or not this module is private (project-private)
-    * @param location the source location that the node corresponds to
+    * @param identifiedLocation the source location that the node corresponds to
     * @param passData the pass metadata associated with this node
     * @param diagnostics the compiler diagnostics
     */
@@ -45,11 +45,11 @@ final case class Module(
     exports: List[Export],
     bindings: List[Definition],
     isPrivate: Boolean,
-    location: Option[IdentifiedLocation],
+    identifiedLocation: IdentifiedLocation,
     passData: MetadataStorage,
     diagnostics: DiagnosticStorage
   ) = {
-    this(imports, exports, bindings, isPrivate, location, passData)
+    this(imports, exports, bindings, isPrivate, identifiedLocation, passData)
     this.diagnostics = diagnostics
   }
 
@@ -90,7 +90,7 @@ final case class Module(
           exports,
           bindings,
           isPrivate,
-          location,
+          location.orNull,
           passData
         )
       res.diagnostics = diagnostics

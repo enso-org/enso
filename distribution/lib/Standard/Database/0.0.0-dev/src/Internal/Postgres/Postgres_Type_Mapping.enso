@@ -11,7 +11,7 @@ import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.SQL_Type.SQL_Type
-from project.Errors import Unsupported_Database_Operation
+from project.Errors import Unsupported_Database_Type
 
 polyglot java import java.sql.Types
 
@@ -65,7 +65,7 @@ type Postgres_Type_Mapping
                    See: https://www.postgresql.org/docs/current/datatype-bit.html
                 SQL_Type.Value Types.BINARY "bytea" precision=max_precision
             Value_Type.Mixed ->
-                Error.throw (Unsupported_Database_Operation.Error "Postgres tables do not support Mixed types.")
+                Error.throw (Unsupported_Database_Type.Error "Mixed" "Postgres")
             Value_Type.Unsupported_Data_Type type_name underlying_type ->
                 underlying_type.if_nothing <|
                     Error.throw <|

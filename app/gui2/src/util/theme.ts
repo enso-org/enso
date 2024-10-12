@@ -14,8 +14,10 @@ export interface Theme {
 export interface NodeTheme {
   /** The default height of a node. */
   height: number
-  /** The maximum corner radius of a node. If the node is shorter than `2 * corner_radius`,
-   * the corner radius will be half of the node's height instead. */
+  /**
+   * The maximum corner radius of a node. If the node is shorter than `2 * corner_radius`,
+   * the corner radius will be half of the node's height instead.
+   */
   corner_radius: number
   /** The vertical gap between nodes in automatic layout. */
   vertical_gap: number
@@ -54,7 +56,9 @@ export interface EdgeThreeCornerTheme {
   /** The maximum arc radius. */
   radius_max: number
   backward_edge_arrow_threshold: number
-  /** The maximum radius reduction (from [`RADIUS_BASE`]) to allow when choosing whether to use
-   *  the three-corner layout that doesn't use a backward corner. */
+  /**
+   * The maximum radius reduction (from [`RADIUS_BASE`]) to allow when choosing whether to use
+   *  the three-corner layout that doesn't use a backward corner.
+   */
   max_squeeze: number
 }

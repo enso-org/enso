@@ -4,7 +4,6 @@ import { isNone, isSome, type Opt } from '@/util/data/opt'
  * Compare two optional numbers. Returns a comparision result like specified for `sort`
  * comparators. None (null or undefined) values may be considered lesser or greater
  * than all others. Null and undefined are not discriminated - they are considered equal.
- *
  * @param a Left operand.
  * @param b Right operand.
  * @param noneValueCmp The result value in case where `a` is none and `b` is a number.

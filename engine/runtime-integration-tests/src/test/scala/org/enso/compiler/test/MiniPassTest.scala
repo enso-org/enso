@@ -128,17 +128,12 @@ trait MiniPassTest extends CompilerTest {
   }
 
   private def parseModule(source: String): Module = {
-    val compiler = new EnsoParser()
-    try compiler.compile(source)
-    finally compiler.close()
+    EnsoParser.compile(source)
   }
 
   private def parseExpression(source: String): Expression = {
-    val compiler = new EnsoParser()
-    try {
-      val exprIrOpt = compiler.generateIRInline(compiler.parse(source))
-      exprIrOpt shouldBe defined
-      exprIrOpt.get
-    } finally compiler.close()
+    val exprIrOpt = EnsoParser.compileInline(source)
+    exprIrOpt shouldBe defined
+    exprIrOpt.get
   }
 }

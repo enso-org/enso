@@ -302,6 +302,28 @@ add_specs suite_builder =
             Float.parse "000000,0001" l . should_equal 0.0001
             Float.parse "aaaa" l . should_fail_with Number_Parse_Error
 
+        group_builder.specify "should parse correctly with format and/or locale" <|
+            Float.parse "123,456,789.87654" . should_equal 123456789.87654
+            Float.parse "123.456.789,87654" locale=Locale.italy . should_equal 123456789.87654
+
+            Float.parse "123,456,789.88" format="#,###.##" . should_equal 123456789.88
+            Float.parse "123.456.789,88" format="#.###,##" locale=Locale.italy . should_equal 123456789.88
+            Float.parse "1,23,45,67,89.88" format="#,##.##" . should_equal 123456789.88
+            Float.parse "1.23.45.67.89,88" format="#.##,##" locale=Locale.italy . should_equal 123456789.88
+
+            Float.parse "123.456.789,88" format="#,###.##" locale=Locale.italy . should_fail_with Illegal_Argument
+            Float.parse "123,456,789.88" format="#.###,##" . should_fail_with Illegal_Argument
+
+            Float.parse "123,456,789.87654" locale=Locale.italy . should_equal 123.456
+            Float.parse "123.456.789,87654" locale=Locale.us . should_equal 123.456
+
+            Float.parse "123,456,789.654" format="###,###.##;-###,###.##" . should_equal 123456789.654
+            Float.parse "-123,456,789.654" format="###,###.##;-###,###.##" . should_equal -123456789.654
+            Float.parse "(123,456,789.654)" format="###,###.##;-###,###.##" . should_fail_with Number_Parse_Error
+            Float.parse "123,456,789.654" format="###,###.##;(###,###.##)" . should_equal 123456789.654
+            Float.parse "-123,456,789.654" format="###,###.##;(###,###.##)" . should_fail_with Number_Parse_Error
+            Float.parse "(123,456,789.654)" format="###,###.##;(###,###.##)" . should_equal -123456789.654
+
         group_builder.specify "Float should parse hundred factorial well" <|
             txt = hundred_factorial.to_text + ".345"
             float = Float.parse txt

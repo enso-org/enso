@@ -27,7 +27,11 @@ export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
   const { getText } = useText()
 
   return (
-    <Dialog title={getText('areYouSure')} modalProps={defaultOpen == null ? {} : { defaultOpen }}>
+    <Dialog
+      title={getText('areYouSure')}
+      role="alertdialog"
+      modalProps={defaultOpen == null ? {} : { defaultOpen }}
+    >
       <Form schema={z.object({})} method="dialog" onSubmit={doDelete} onSubmitSuccess={unsetModal}>
         <Text className="relative">{getText('confirmPrompt', actionText)}</Text>
 
@@ -35,10 +39,7 @@ export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
           <Form.Submit variant="delete" className="relative">
             {actionButtonLabel}
           </Form.Submit>
-
-          <Form.Submit formnovalidate variant="outline">
-            {getText('cancel')}
-          </Form.Submit>
+          <Form.Submit action="cancel" />
         </ButtonGroup>
       </Form>
     </Dialog>

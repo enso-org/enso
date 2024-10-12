@@ -16,6 +16,7 @@ import Standard.Database.Connection.Connection.Connection
 import Standard.Database.DB_Column.DB_Column
 import Standard.Database.DB_Table.DB_Table
 import Standard.Database.Dialect
+import Standard.Database.Feature.Feature
 import Standard.Database.Internal.Base_Generator
 import Standard.Database.Internal.Common.Database_Distinct_Helper
 import Standard.Database.Internal.Common.Database_Join_Helper
@@ -41,7 +42,7 @@ import Standard.Database.SQL_Type.SQL_Type
 from Standard.Database.Dialect import Temp_Table_Style
 from Standard.Database.Dialect_Flags import all
 from Standard.Database.Errors import SQL_Error, Unsupported_Database_Operation
-from  Standard.Database.Internal.Base_Generator import lift_binary_op
+from Standard.Database.Internal.Base_Generator import lift_binary_op
 from Standard.Database.Internal.IR.Operation_Metadata import Date_Period_Metadata
 from Standard.Database.Internal.JDBC_Connection import JDBC_Connection
 from Standard.Database.Internal.Statement_Setter import fill_hole_default
@@ -54,13 +55,13 @@ polyglot java import org.enso.database.JDBCUtils
 
 ## PRIVATE
    The dialect of SQL Server databases.
-sqlserver : SQLSever_Dialect
+sqlserver : SQLServer_Dialect
 sqlserver =
-    SQLSever_Dialect.Value make_dialect_operations
+    SQLServer_Dialect.Value make_dialect_operations
 
 ## PRIVATE
    The dialect of SQL Server databases.
-type SQLSever_Dialect
+type SQLServer_Dialect
     ## PRIVATE
        The dialect of SQL Server databases.
     Value dialect_operations
@@ -235,9 +236,15 @@ type SQLSever_Dialect
 
     ## PRIVATE
        Checks if an operation is supported by the dialect.
-    is_supported : Text -> Boolean
-    is_supported self operation =
-        self.dialect_operations.is_supported operation
+    is_operation_supported self operation:Text -> Boolean =
+        self.dialect_operations.is_operation_supported operation
+
+    ## PRIVATE
+       Checks if a feature is supported by the dialect.
+    is_feature_supported self feature:Feature -> Boolean =
+        case feature of
+            Feature.Select_Columns -> True
+            _ -> False
 
     ## PRIVATE
        The default table types to use when listing tables.
@@ -468,7 +475,7 @@ make_order_descriptor internal_column sort_direction text_ordering =
             Order_Descriptor.Value (Internals_Access.column_expression internal_column) sort_direction nulls_order=nulls collation=Nothing
         _ ->
             ## In the future we can modify this error to suggest using a custom defined collation.
-            if text_ordering.sort_digits_as_numbers then Error.throw (Unsupported_Database_Operation.Error "Natural ordering is currently not supported. You may need to materialize the Table to perform this operation.") else
+            if text_ordering.sort_digits_as_numbers then Error.throw (Unsupported_Database_Operation.Error "Natural ordering") else
                 case text_ordering.case_sensitivity of
                     Case_Sensitivity.Default ->
                         Order_Descriptor.Value (Internals_Access.column_expression internal_column) sort_direction nulls_order=nulls collation=Nothing
@@ -476,7 +483,7 @@ make_order_descriptor internal_column sort_direction text_ordering =
                         Order_Descriptor.Value (Internals_Access.column_expression internal_column) sort_direction nulls_order=nulls collation="ucs_basic"
                     Case_Sensitivity.Insensitive locale -> case locale == Locale.default of
                         False ->
-                            Error.throw (Unsupported_Database_Operation.Error "Case insensitive ordering with custom locale is currently not supported. You may need to materialize the Table to perform this operation.")
+                            Error.throw (Unsupported_Database_Operation.Error "Case insensitive ordering with custom locale")
                         True ->
                             upper = SQL_Expression.Operation "UPPER" [Internals_Access.column_expression internal_column]
                             folded_expression = SQL_Expression.Operation "LOWER" [upper]

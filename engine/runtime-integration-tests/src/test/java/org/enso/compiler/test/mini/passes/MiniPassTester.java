@@ -38,13 +38,8 @@ public abstract class MiniPassTester {
   }
 
   protected Module parse(String code) {
-    try (var parser = new EnsoParser()) {
-      var tree = parser.parse(code);
-      var modIr = parser.generateIR(tree);
-      return modIr;
-    } catch (Exception e) {
-      throw new AssertionError("Failed to parse code", e);
-    }
+    var modIr = EnsoParser.compile(code);
+    return modIr;
   }
 
   protected ModuleContext buildModuleContext(QualifiedName moduleName) {

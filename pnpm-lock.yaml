@@ -61,6 +61,9 @@ importers:
       '@monaco-editor/react':
         specifier: 4.6.0
         version: 4.6.0(monaco-editor@0.48.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@react-aria/interactions':
+        specifier: ^3.22.3
+        version: 3.22.3(react@18.3.1)
       '@sentry/react':
         specifier: ^7.74.0
         version: 7.118.0(react@18.3.1)
@@ -634,6 +637,9 @@ importers:
       '@electron/notarize':
         specifier: 2.1.0
         version: 2.1.0
+      '@playwright/test':
+        specifier: ^1.45.0
+        version: 1.45.0
       '@types/mime-types':
         specifier: ^2.1.1
         version: 2.1.4
@@ -682,6 +688,9 @@ importers:
       fast-glob:
         specifier: ^3.2.12
         version: 3.3.2
+      playwright:
+        specifier: ^1.45.0
+        version: 1.45.0
       portfinder:
         specifier: ^1.0.32
         version: 1.0.32
@@ -2235,8 +2244,8 @@ packages:
     peerDependencies:
       react: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0
 
-  '@react-aria/interactions@3.22.2':
-    resolution: {integrity: sha512-xE/77fRVSlqHp2sfkrMeNLrqf2amF/RyuAS6T5oDJemRSgYM3UoxTbWjucPhfnoW7r32pFPHHgz4lbdX8xqD/g==}
+  '@react-aria/interactions@3.22.3':
+    resolution: {integrity: sha512-RRUb/aG+P0IKTIWikY/SylB6bIbLZeztnZY2vbe7RAG5MgVaCgn5HQ45SI15GlTmhsFG8CnF6slJsUFJiNHpbQ==}
     peerDependencies:
       react: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0
 
@@ -2331,6 +2340,12 @@ packages:
     peerDependencies:
       react: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0
 
+  '@react-aria/ssr@3.9.6':
+    resolution: {integrity: sha512-iLo82l82ilMiVGy342SELjshuWottlb5+VefO3jOQqQRNYnJBFpUSadswDPbRimSgJUZuFwIEYs6AabkP038fA==}
+    engines: {node: '>= 12'}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0
+
   '@react-aria/switch@3.6.7':
     resolution: {integrity: sha512-yBNvKylhc3ZRQ0+7mD0mIenRRe+1yb8YaqMMZr8r3Bf87LaiFtQyhRFziq6ZitcwTJz5LEWjBihxbSVvUrf49w==}
     peerDependencies:
@@ -2382,6 +2397,11 @@ packages:
 
   '@react-aria/utils@3.25.2':
     resolution: {integrity: sha512-GdIvG8GBJJZygB4L2QJP1Gabyn2mjFsha73I2wSe+o4DYeGWoJiMZRM06PyTIxLH4S7Sn7eVDtsSBfkc2VY/NA==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0
+
+  '@react-aria/utils@3.25.3':
+    resolution: {integrity: sha512-PR5H/2vaD8fSq0H/UB9inNbc8KDcVmW6fYAfSWkkn+OAdhTTMVKqXXrZuZBWyFfSD5Ze7VN6acr4hrOQm2bmrA==}
     peerDependencies:
       react: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0
 
@@ -2529,6 +2549,11 @@ packages:
     peerDependencies:
       react: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0
 
+  '@react-stately/utils@3.10.4':
+    resolution: {integrity: sha512-gBEQEIMRh5f60KCm7QKQ2WfvhB2gLUr9b72sqUdIZ2EG+xuPgaIlCBeSicvjmjBvYZwOjoOEnmIkcx2GHp/HWw==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0
+
   '@react-stately/virtualizer@4.0.2':
     resolution: {integrity: sha512-LiSr6E6OoL/cKVFO088zEzkNGj41g02nlOAgLluYONncNEjoYiHmb8Yw0otPgViVLKiFjO6Kk4W+dbt8EZ51Ag==}
     peerDependencies:
@@ -2636,6 +2661,11 @@ packages:
 
   '@react-types/shared@3.24.1':
     resolution: {integrity: sha512-AUQeGYEm/zDTN6zLzdXolDxz3Jk5dDL7f506F07U8tBwxNNI3WRdhU84G0/AaFikOZzDXhOZDr3MhQMzyE7Ydw==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0
+
+  '@react-types/shared@3.25.0':
+    resolution: {integrity: sha512-OZSyhzU6vTdW3eV/mz5i6hQwQUhkRs7xwY2d1aqPvTdMe0+2cY7Fwp45PAiwYLEj73i9ro2FxF9qC4DvHGSCgQ==}
     peerDependencies:
       react: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0
 
@@ -9175,7 +9205,7 @@ snapshots:
   '@react-aria/button@3.9.8(react@18.3.1)':
     dependencies:
       '@react-aria/focus': 3.18.2(react@18.3.1)
-      '@react-aria/interactions': 3.22.2(react@18.3.1)
+      '@react-aria/interactions': 3.22.3(react@18.3.1)
       '@react-aria/utils': 3.25.2(react@18.3.1)
       '@react-stately/toggle': 3.7.7(react@18.3.1)
       '@react-types/button': 3.9.6(react@18.3.1)
@@ -9187,7 +9217,7 @@ snapshots:
     dependencies:
       '@internationalized/date': 3.5.5
       '@react-aria/i18n': 3.12.2(react@18.3.1)
-      '@react-aria/interactions': 3.22.2(react@18.3.1)
+      '@react-aria/interactions': 3.22.3(react@18.3.1)
       '@react-aria/live-announcer': 3.3.4
       '@react-aria/utils': 3.25.2(react@18.3.1)
       '@react-stately/calendar': 3.5.4(react@18.3.1)
@@ -9201,7 +9231,7 @@ snapshots:
   '@react-aria/checkbox@3.14.6(react@18.3.1)':
     dependencies:
       '@react-aria/form': 3.0.8(react@18.3.1)
-      '@react-aria/interactions': 3.22.2(react@18.3.1)
+      '@react-aria/interactions': 3.22.3(react@18.3.1)
       '@react-aria/label': 3.7.11(react@18.3.1)
       '@react-aria/toggle': 3.10.7(react@18.3.1)
       '@react-aria/utils': 3.25.2(react@18.3.1)
@@ -9226,7 +9256,7 @@ snapshots:
   '@react-aria/color@3.0.0-rc.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
       '@react-aria/i18n': 3.12.2(react@18.3.1)
-      '@react-aria/interactions': 3.22.2(react@18.3.1)
+      '@react-aria/interactions': 3.22.3(react@18.3.1)
       '@react-aria/numberfield': 3.11.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@react-aria/slider': 3.7.11(react@18.3.1)
       '@react-aria/spinbutton': 3.6.8(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -9269,7 +9299,7 @@ snapshots:
       '@react-aria/focus': 3.18.2(react@18.3.1)
       '@react-aria/form': 3.0.8(react@18.3.1)
       '@react-aria/i18n': 3.12.2(react@18.3.1)
-      '@react-aria/interactions': 3.22.2(react@18.3.1)
+      '@react-aria/interactions': 3.22.3(react@18.3.1)
       '@react-aria/label': 3.7.11(react@18.3.1)
       '@react-aria/spinbutton': 3.6.8(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@react-aria/utils': 3.25.2(react@18.3.1)
@@ -9299,7 +9329,7 @@ snapshots:
     dependencies:
       '@internationalized/string': 3.2.3
       '@react-aria/i18n': 3.12.2(react@18.3.1)
-      '@react-aria/interactions': 3.22.2(react@18.3.1)
+      '@react-aria/interactions': 3.22.3(react@18.3.1)
       '@react-aria/live-announcer': 3.3.4
       '@react-aria/overlays': 3.23.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@react-aria/utils': 3.25.2(react@18.3.1)
@@ -9312,7 +9342,7 @@ snapshots:
 
   '@react-aria/focus@3.18.2(react@18.3.1)':
     dependencies:
-      '@react-aria/interactions': 3.22.2(react@18.3.1)
+      '@react-aria/interactions': 3.22.3(react@18.3.1)
       '@react-aria/utils': 3.25.2(react@18.3.1)
       '@react-types/shared': 3.24.1(react@18.3.1)
       '@swc/helpers': 0.5.12
@@ -9321,7 +9351,7 @@ snapshots:
 
   '@react-aria/form@3.0.8(react@18.3.1)':
     dependencies:
-      '@react-aria/interactions': 3.22.2(react@18.3.1)
+      '@react-aria/interactions': 3.22.3(react@18.3.1)
       '@react-aria/utils': 3.25.2(react@18.3.1)
       '@react-stately/form': 3.0.5(react@18.3.1)
       '@react-types/shared': 3.24.1(react@18.3.1)
@@ -9332,7 +9362,7 @@ snapshots:
     dependencies:
       '@react-aria/focus': 3.18.2(react@18.3.1)
       '@react-aria/i18n': 3.12.2(react@18.3.1)
-      '@react-aria/interactions': 3.22.2(react@18.3.1)
+      '@react-aria/interactions': 3.22.3(react@18.3.1)
       '@react-aria/live-announcer': 3.3.4
       '@react-aria/selection': 3.19.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@react-aria/utils': 3.25.2(react@18.3.1)
@@ -9351,7 +9381,7 @@ snapshots:
       '@react-aria/focus': 3.18.2(react@18.3.1)
       '@react-aria/grid': 3.10.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@react-aria/i18n': 3.12.2(react@18.3.1)
-      '@react-aria/interactions': 3.22.2(react@18.3.1)
+      '@react-aria/interactions': 3.22.3(react@18.3.1)
       '@react-aria/selection': 3.19.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@react-aria/utils': 3.25.2(react@18.3.1)
       '@react-stately/collections': 3.10.9(react@18.3.1)
@@ -9374,11 +9404,11 @@ snapshots:
       '@swc/helpers': 0.5.12
       react: 18.3.1
 
-  '@react-aria/interactions@3.22.2(react@18.3.1)':
+  '@react-aria/interactions@3.22.3(react@18.3.1)':
     dependencies:
-      '@react-aria/ssr': 3.9.5(react@18.3.1)
-      '@react-aria/utils': 3.25.2(react@18.3.1)
-      '@react-types/shared': 3.24.1(react@18.3.1)
+      '@react-aria/ssr': 3.9.6(react@18.3.1)
+      '@react-aria/utils': 3.25.3(react@18.3.1)
+      '@react-types/shared': 3.25.0(react@18.3.1)
       '@swc/helpers': 0.5.12
       react: 18.3.1
 
@@ -9392,7 +9422,7 @@ snapshots:
   '@react-aria/link@3.7.4(react@18.3.1)':
     dependencies:
       '@react-aria/focus': 3.18.2(react@18.3.1)
-      '@react-aria/interactions': 3.22.2(react@18.3.1)
+      '@react-aria/interactions': 3.22.3(react@18.3.1)
       '@react-aria/utils': 3.25.2(react@18.3.1)
       '@react-types/link': 3.5.7(react@18.3.1)
       '@react-types/shared': 3.24.1(react@18.3.1)
@@ -9401,7 +9431,7 @@ snapshots:
 
   '@react-aria/listbox@3.13.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
-      '@react-aria/interactions': 3.22.2(react@18.3.1)
+      '@react-aria/interactions': 3.22.3(react@18.3.1)
       '@react-aria/label': 3.7.11(react@18.3.1)
       '@react-aria/selection': 3.19.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@react-aria/utils': 3.25.2(react@18.3.1)
@@ -9421,7 +9451,7 @@ snapshots:
     dependencies:
       '@react-aria/focus': 3.18.2(react@18.3.1)
       '@react-aria/i18n': 3.12.2(react@18.3.1)
-      '@react-aria/interactions': 3.22.2(react@18.3.1)
+      '@react-aria/interactions': 3.22.3(react@18.3.1)
       '@react-aria/overlays': 3.23.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@react-aria/selection': 3.19.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@react-aria/utils': 3.25.2(react@18.3.1)
@@ -9446,7 +9476,7 @@ snapshots:
   '@react-aria/numberfield@3.11.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
       '@react-aria/i18n': 3.12.2(react@18.3.1)
-      '@react-aria/interactions': 3.22.2(react@18.3.1)
+      '@react-aria/interactions': 3.22.3(react@18.3.1)
       '@react-aria/spinbutton': 3.6.8(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@react-aria/textfield': 3.14.8(react@18.3.1)
       '@react-aria/utils': 3.25.2(react@18.3.1)
@@ -9463,7 +9493,7 @@ snapshots:
     dependencies:
       '@react-aria/focus': 3.18.2(react@18.3.1)
       '@react-aria/i18n': 3.12.2(react@18.3.1)
-      '@react-aria/interactions': 3.22.2(react@18.3.1)
+      '@react-aria/interactions': 3.22.3(react@18.3.1)
       '@react-aria/ssr': 3.9.5(react@18.3.1)
       '@react-aria/utils': 3.25.2(react@18.3.1)
       '@react-aria/visually-hidden': 3.8.15(react@18.3.1)
@@ -9490,7 +9520,7 @@ snapshots:
       '@react-aria/focus': 3.18.2(react@18.3.1)
       '@react-aria/form': 3.0.8(react@18.3.1)
       '@react-aria/i18n': 3.12.2(react@18.3.1)
-      '@react-aria/interactions': 3.22.2(react@18.3.1)
+      '@react-aria/interactions': 3.22.3(react@18.3.1)
       '@react-aria/label': 3.7.11(react@18.3.1)
       '@react-aria/utils': 3.25.2(react@18.3.1)
       '@react-stately/radio': 3.10.7(react@18.3.1)
@@ -9515,7 +9545,7 @@ snapshots:
     dependencies:
       '@react-aria/form': 3.0.8(react@18.3.1)
       '@react-aria/i18n': 3.12.2(react@18.3.1)
-      '@react-aria/interactions': 3.22.2(react@18.3.1)
+      '@react-aria/interactions': 3.22.3(react@18.3.1)
       '@react-aria/label': 3.7.11(react@18.3.1)
       '@react-aria/listbox': 3.13.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@react-aria/menu': 3.15.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -9534,7 +9564,7 @@ snapshots:
     dependencies:
       '@react-aria/focus': 3.18.2(react@18.3.1)
       '@react-aria/i18n': 3.12.2(react@18.3.1)
-      '@react-aria/interactions': 3.22.2(react@18.3.1)
+      '@react-aria/interactions': 3.22.3(react@18.3.1)
       '@react-aria/utils': 3.25.2(react@18.3.1)
       '@react-stately/selection': 3.16.2(react@18.3.1)
       '@react-types/shared': 3.24.1(react@18.3.1)
@@ -9553,7 +9583,7 @@ snapshots:
     dependencies:
       '@react-aria/focus': 3.18.2(react@18.3.1)
       '@react-aria/i18n': 3.12.2(react@18.3.1)
-      '@react-aria/interactions': 3.22.2(react@18.3.1)
+      '@react-aria/interactions': 3.22.3(react@18.3.1)
       '@react-aria/label': 3.7.11(react@18.3.1)
       '@react-aria/utils': 3.25.2(react@18.3.1)
       '@react-stately/slider': 3.5.7(react@18.3.1)
@@ -9578,6 +9608,11 @@ snapshots:
       '@swc/helpers': 0.5.12
       react: 18.3.1
 
+  '@react-aria/ssr@3.9.6(react@18.3.1)':
+    dependencies:
+      '@swc/helpers': 0.5.12
+      react: 18.3.1
+
   '@react-aria/switch@3.6.7(react@18.3.1)':
     dependencies:
       '@react-aria/toggle': 3.10.7(react@18.3.1)
@@ -9592,7 +9627,7 @@ snapshots:
       '@react-aria/focus': 3.18.2(react@18.3.1)
       '@react-aria/grid': 3.10.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@react-aria/i18n': 3.12.2(react@18.3.1)
-      '@react-aria/interactions': 3.22.2(react@18.3.1)
+      '@react-aria/interactions': 3.22.3(react@18.3.1)
       '@react-aria/live-announcer': 3.3.4
       '@react-aria/utils': 3.25.2(react@18.3.1)
       '@react-aria/visually-hidden': 3.8.15(react@18.3.1)
@@ -9624,7 +9659,7 @@ snapshots:
     dependencies:
       '@react-aria/gridlist': 3.9.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@react-aria/i18n': 3.12.2(react@18.3.1)
-      '@react-aria/interactions': 3.22.2(react@18.3.1)
+      '@react-aria/interactions': 3.22.3(react@18.3.1)
       '@react-aria/label': 3.7.11(react@18.3.1)
       '@react-aria/selection': 3.19.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@react-aria/utils': 3.25.2(react@18.3.1)
@@ -9651,7 +9686,7 @@ snapshots:
   '@react-aria/toggle@3.10.7(react@18.3.1)':
     dependencies:
       '@react-aria/focus': 3.18.2(react@18.3.1)
-      '@react-aria/interactions': 3.22.2(react@18.3.1)
+      '@react-aria/interactions': 3.22.3(react@18.3.1)
       '@react-aria/utils': 3.25.2(react@18.3.1)
       '@react-stately/toggle': 3.7.7(react@18.3.1)
       '@react-types/checkbox': 3.8.3(react@18.3.1)
@@ -9671,7 +9706,7 @@ snapshots:
   '@react-aria/tooltip@3.7.7(react@18.3.1)':
     dependencies:
       '@react-aria/focus': 3.18.2(react@18.3.1)
-      '@react-aria/interactions': 3.22.2(react@18.3.1)
+      '@react-aria/interactions': 3.22.3(react@18.3.1)
       '@react-aria/utils': 3.25.2(react@18.3.1)
       '@react-stately/tooltip': 3.4.12(react@18.3.1)
       '@react-types/shared': 3.24.1(react@18.3.1)
@@ -9701,10 +9736,19 @@ snapshots:
       clsx: 2.1.1
       react: 18.3.1
 
+  '@react-aria/utils@3.25.3(react@18.3.1)':
+    dependencies:
+      '@react-aria/ssr': 3.9.6(react@18.3.1)
+      '@react-stately/utils': 3.10.4(react@18.3.1)
+      '@react-types/shared': 3.25.0(react@18.3.1)
+      '@swc/helpers': 0.5.12
+      clsx: 2.1.1
+      react: 18.3.1
+
   '@react-aria/virtualizer@4.0.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
       '@react-aria/i18n': 3.12.2(react@18.3.1)
-      '@react-aria/interactions': 3.22.2(react@18.3.1)
+      '@react-aria/interactions': 3.22.3(react@18.3.1)
       '@react-aria/utils': 3.25.2(react@18.3.1)
       '@react-stately/virtualizer': 4.0.2(react@18.3.1)
       '@react-types/shared': 3.24.1(react@18.3.1)
@@ -9714,7 +9758,7 @@ snapshots:
 
   '@react-aria/visually-hidden@3.8.15(react@18.3.1)':
     dependencies:
-      '@react-aria/interactions': 3.22.2(react@18.3.1)
+      '@react-aria/interactions': 3.22.3(react@18.3.1)
       '@react-aria/utils': 3.25.2(react@18.3.1)
       '@react-types/shared': 3.24.1(react@18.3.1)
       '@swc/helpers': 0.5.12
@@ -9950,6 +9994,11 @@ snapshots:
       '@swc/helpers': 0.5.12
       react: 18.3.1
 
+  '@react-stately/utils@3.10.4(react@18.3.1)':
+    dependencies:
+      '@swc/helpers': 0.5.12
+      react: 18.3.1
+
   '@react-stately/virtualizer@4.0.2(react@18.3.1)':
     dependencies:
       '@react-aria/utils': 3.25.2(react@18.3.1)
@@ -10067,6 +10116,10 @@ snapshots:
       react: 18.3.1
 
   '@react-types/shared@3.24.1(react@18.3.1)':
+    dependencies:
+      react: 18.3.1
+
+  '@react-types/shared@3.25.0(react@18.3.1)':
     dependencies:
       react: 18.3.1
 
@@ -14408,7 +14461,7 @@ snapshots:
       '@react-aria/color': 3.0.0-rc.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@react-aria/dnd': 3.7.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@react-aria/focus': 3.18.2(react@18.3.1)
-      '@react-aria/interactions': 3.22.2(react@18.3.1)
+      '@react-aria/interactions': 3.22.3(react@18.3.1)
       '@react-aria/menu': 3.15.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@react-aria/toolbar': 3.0.0-beta.8(react@18.3.1)
       '@react-aria/tree': 3.0.0-alpha.5(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -14447,7 +14500,7 @@ snapshots:
       '@react-aria/focus': 3.18.2(react@18.3.1)
       '@react-aria/gridlist': 3.9.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@react-aria/i18n': 3.12.2(react@18.3.1)
-      '@react-aria/interactions': 3.22.2(react@18.3.1)
+      '@react-aria/interactions': 3.22.3(react@18.3.1)
       '@react-aria/label': 3.7.11(react@18.3.1)
       '@react-aria/link': 3.7.4(react@18.3.1)
       '@react-aria/listbox': 3.13.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)

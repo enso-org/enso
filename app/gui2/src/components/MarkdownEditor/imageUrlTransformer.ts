@@ -26,6 +26,7 @@ export interface ResourceInfo<T> {
 export type ResourceLocator<T> = (url: Url) => Promise<Result<ResourceInfo<T>> | undefined>
 export type ResourceFetcher<T> = (locator: T) => Promise<Result<Blob>>
 
+/** TODO: Add docs */
 export function fetcherUrlTransformer<ResourceLocation>(
   locateResource: ResourceLocator<ResourceLocation>,
   fetchResource: ResourceFetcher<ResourceLocation>,

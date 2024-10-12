@@ -58,7 +58,7 @@ object FullyAppliedFunctionUses extends IRPass {
         meta match {
           case Some(Resolution(ResolvedConstructor(_, cons)))
               if cons.allFieldsDefaulted && cons.arity > 0 =>
-            Application.Prefix(name, List(), false, None);
+            Application.Prefix(name, List(), false, identifiedLocation = null);
           case _ => name
         }
     }

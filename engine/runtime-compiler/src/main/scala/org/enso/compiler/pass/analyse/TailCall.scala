@@ -1,9 +1,9 @@
 package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.{Expression, Module}
+import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.resolve.{ExpressionAnnotations, GlobalNames}
 import org.enso.compiler.pass.{IRPass, MiniPassFactory}
@@ -66,7 +66,9 @@ case object TailCall extends IRPass with MiniPassFactory {
   }
   object TailPosition {
 
-    /** The expression is in a tail position and can be tail call optimised. */
+    /** The expression is in a tail position and can be tail call optimised.
+      * If the expression is not in tail-call position, it has no metadata attached.
+      */
     final case object Tail extends TailPosition {
       override val metadataName: String = "TailCall.TailPosition.Tail"
       override def isTail: Boolean      = true
@@ -80,34 +82,6 @@ case object TailCall extends IRPass with MiniPassFactory {
       override def restoreFromSerialization(
         compiler: Compiler
       ): Option[Tail.type] = Some(this)
-    }
-
-    /** The expression is not in a tail position and cannot be tail call
-      * optimised.
-      */
-    final case object NotTail extends TailPosition {
-      override val metadataName: String = "TailCall.TailPosition.NotTail"
-      override def isTail: Boolean      = false
-
-      override def duplicate(): Option[IRPass.IRMetadata] = Some(NotTail)
-
-      /** @inheritdoc */
-      override def prepareForSerialization(compiler: Compiler): NotTail.type =
-        this
-
-      /** @inheritdoc */
-      override def restoreFromSerialization(
-        compiler: Compiler
-      ): Option[NotTail.type] = Some(this)
-    }
-
-    /** Implicitly converts a boolean to a [[TailPosition]] value.
-      *
-      * @param isTail the boolean
-      * @return the tail position value corresponding to `bool`
-      */
-    implicit def fromBool(isTail: Boolean): TailPosition = {
-      if (isTail) TailPosition.Tail else TailPosition.NotTail
     }
 
     /** Implicitly converts the tail position data into a boolean.

@@ -1,1 +1,1 @@
-export project.SQLServer_Details.SQLServer_Details
+export project.Connection.SQLServer_Details.SQLServer_Details

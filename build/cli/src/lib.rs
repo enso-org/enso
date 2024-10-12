@@ -140,15 +140,10 @@ impl Processor {
         let span = info_span!("Resolving.", ?target, ?source).entered();
         let destination = source.output_path.output_path;
         let should_upload_artifact = source.build_args.upload_artifact;
-        let should_sign_artifacts = source.build_args.sign_artifacts;
         let source = match source.source {
             arg::SourceKind::Build => T::resolve(self, source.build_args.input)
                 .map_ok(move |input| {
-                    Source::BuildLocally(BuildSource {
-                        input,
-                        should_upload_artifact,
-                        should_sign_artifacts,
-                    })
+                    Source::BuildLocally(BuildSource { input, should_upload_artifact })
                 })
                 .boxed(),
             arg::SourceKind::Local =>
@@ -237,17 +232,13 @@ impl Processor {
         &self,
         job: BuildJob<T>,
     ) -> BoxFuture<'static, Result<BuildTargetJob<T>>> {
-        let BuildJob {
-            input: BuildDescription { input, upload_artifact, sign_artifacts },
-            output_path,
-        } = job;
+        let BuildJob { input: BuildDescription { input, upload_artifact }, output_path } = job;
         let input = self.resolve_inputs::<T>(input);
         async move {
             Ok(WithDestination::new(
                 BuildSource {
                     input:                  input.await?,
                     should_upload_artifact: upload_artifact,
-                    should_sign_artifacts:  sign_artifacts,
                 },
                 output_path.output_path,
             ))
@@ -414,6 +405,15 @@ impl Processor {
                         Tests::StdSnowflake => config.add_standard_library_test_selection(
                             StandardLibraryTestsSelection::Selected(vec![
                                 "Snowflake_Tests".to_string()
+                            ]),
+                        ),
+                        Tests::StdCloudRelated => config.add_standard_library_test_selection(
+                            StandardLibraryTestsSelection::Selected(vec![
+                                "Base_Tests".to_string(),
+                                // Table tests check integration of e.g. Postgres datalinks
+                                "Table_Tests".to_string(),
+                                // AWS tests check copying between Cloud and S3
+                                "AWS_Tests".to_string(),
                             ]),
                         ),
                     }

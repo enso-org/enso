@@ -226,7 +226,7 @@ impl BuiltEnso {
                     user:                "sa".to_string(),
                     password:            "enso_test_password_<YourStrong@Passw0rd>".to_string(),
                     endpoint:            SQLServerEndpointConfiguration::deduce()?,
-                    version:             "latest".to_string(),
+                    version:             "2022-latest".to_string(),
                 };
                 let sqlserver = SQLServer::start(config).await?;
                 Some(sqlserver)
@@ -266,7 +266,19 @@ impl BuiltEnso {
         if errors.is_empty() {
             Ok(())
         } else {
-            error!("{} test suit(s) failed.", errors.len());
+            let summary = errors
+                .as_slice()
+                .iter()
+                .map(|e| e.to_string())
+                .collect::<Vec<_>>()
+                .join(";\n")
+                .replace("\n", "%0A");
+            println!(
+                "::error title=Failed Standard Library Tests::{} test suite(s) failed: {}",
+                errors.len(),
+                summary
+            );
+            error!("{} test suite(s) failed.", errors.len());
             for error in &errors {
                 error!("{}", error);
             }

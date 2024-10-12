@@ -14,7 +14,11 @@ class DiagnosticStorageTest extends CompilerTest {
     * @return a new diagnostic
     */
   def mkDiagnostic(name: String): Diagnostic = {
-    warnings.Shadowed.FunctionParam(name, Empty(None), None)
+    warnings.Shadowed.FunctionParam(
+      name,
+      Empty(identifiedLocation = null),
+      identifiedLocation = null
+    )
   }
 
   // === The Tests ============================================================

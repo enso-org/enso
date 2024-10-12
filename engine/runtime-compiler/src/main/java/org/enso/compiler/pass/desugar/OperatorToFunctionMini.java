@@ -21,7 +21,7 @@ public class OperatorToFunctionMini extends MiniIRPass {
           binOp.operator(),
           args.toList(),
           false,
-          binOp.location(),
+          binOp.location().isDefined() ? binOp.location().get() : null,
           binOp.passData(),
           binOp.diagnostics());
     }
@@ -41,4 +41,21 @@ public class OperatorToFunctionMini extends MiniIRPass {
             });
     return !isChildOperator[0];
   }
+
+  /* from develop:
+  ): Expression =
+    ir.transformExpressions { case operatorBinary: Operator.Binary =>
+      new Application.Prefix(
+        operatorBinary.operator,
+        List(
+          operatorBinary.left.mapExpressions(runExpression(_, inlineContext)),
+          operatorBinary.right.mapExpressions(runExpression(_, inlineContext))
+        ),
+        hasDefaultsSuspended = false,
+        operatorBinary.identifiedLocation,
+        operatorBinary.passData,
+        operatorBinary.diagnostics
+      )
+    }
+  */
 }

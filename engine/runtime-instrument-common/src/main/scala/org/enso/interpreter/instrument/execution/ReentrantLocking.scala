@@ -213,7 +213,7 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
         contextLock.lock,
         "context lock",
         where
-      ) //acquireContextLock(contextId)
+      )
       callable.call()
     } catch {
       case _: InterruptedException =>

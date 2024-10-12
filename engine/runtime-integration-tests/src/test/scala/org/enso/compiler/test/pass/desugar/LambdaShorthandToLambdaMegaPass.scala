@@ -154,16 +154,16 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
               name = Name.Literal(
                 newName.name,
                 isMethod = false,
-                None
+                null
               ),
-              ascribedType = None,
-              defaultValue = None,
-              suspended    = false,
-              location     = None
+              ascribedType       = None,
+              defaultValue       = None,
+              suspended          = false,
+              identifiedLocation = null
             )
           ),
           newName,
-          blank.location
+          blank.location.orNull
         )
       case _ => name
     }
@@ -227,7 +227,7 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
         // arg
         val appResult =
           actualDefArgs.foldRight(processedApp: Expression)((arg, body) =>
-            new Function.Lambda(List(arg), body, None)
+            new Function.Lambda(List(arg), body, null)
           )
 
         // If the function is shorthand, do the same
@@ -239,16 +239,16 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
                   .Literal(
                     updatedName.get,
                     isMethod = false,
-                    fn.location
+                    fn.location.orNull
                   ),
                 None,
                 None,
                 suspended = false,
-                None
+                null
               )
             ),
             appResult,
-            None
+            null
           )
         } else appResult
 
@@ -279,12 +279,12 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
         bindings.foldLeft(newVec: Expression) { (body, bindingName) =>
           val defArg = DefinitionArgument.Specified(
             bindingName,
-            ascribedType = None,
-            defaultValue = None,
-            suspended    = false,
-            location     = None
+            ascribedType       = None,
+            defaultValue       = None,
+            suspended          = false,
+            identifiedLocation = null
           )
-          new Function.Lambda(List(defArg), body, locWithoutId)
+          new Function.Lambda(List(defArg), body, locWithoutId.orNull)
         }
       case tSet @ Application.Typeset(expr, _, _) =>
         tSet.copy(expression = expr.map(desugarExpression(_, freshNameSupply)))
@@ -365,7 +365,7 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
             Name.Literal(
               value.asInstanceOf[Name.Literal].name,
               isMethod = false,
-              None
+              null
             )
 
           Some(
@@ -374,7 +374,7 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
               None,
               None,
               suspended = false,
-              None,
+              null,
               passData.duplicate,
               specified.diagnosticsCopy
             )
@@ -423,7 +423,7 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
           None,
           None,
           suspended = false,
-          None
+          null
         )
 
         val newCaseExpr = caseExpr.copy(
@@ -435,7 +435,7 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
           caseExpr,
           List(lambdaArg),
           newCaseExpr,
-          caseExpr.location
+          caseExpr.location.orNull
         )
       case x =>
         caseExpr.copy(

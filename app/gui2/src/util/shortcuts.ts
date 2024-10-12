@@ -32,8 +32,10 @@ function modifierFlagsForModifiers(modifiers: Modifier[]): ModifierFlags {
   return result as ModifierFlags
 }
 
-/** Any event that contains modifier keys. {@link KeyboardEvent}s and {@link MouseEvent}s fall into
- * this category. */
+/**
+ * Any event that contains modifier keys. {@link KeyboardEvent}s and {@link MouseEvent}s fall into
+ * this category.
+ */
 interface EventWithModifiers {
   ctrlKey: boolean
   altKey: boolean
@@ -49,8 +51,10 @@ function modifierFlagsForEvent(event: EventWithModifiers): ModifierFlags {
     (event.metaKey ? RAW_MODIFIER_FLAG.Meta : 0)) as ModifierFlags
 }
 
-/** These values MUST match the flags on `MouseEvent#buttons`.
- * See https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/buttons */
+/**
+ * These values MUST match the flags on `MouseEvent#buttons`.
+ * See https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/buttons
+ */
 const POINTER_BUTTON_FLAG = {
   PointerMain: 1 << 0,
   PointerSecondary: 1 << 1,
@@ -297,7 +301,6 @@ export const DefaultHandler = Symbol('default handler')
  * The event handler assigns functions to the corresponding action. The function may return false
  * if the event should be considered not handled (and thus propagated). Returning true or just
  * nothing from the function will cause propagation of event stop.
- *
  * @param namespace should be unique among other `defineKeybinds` calls.
  * @param bindings is an object defining actions and their key bindings. Each property name is an
  * action name, and value is list of default key bindings. See "Keybinds should be parsed

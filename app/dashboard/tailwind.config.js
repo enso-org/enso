@@ -129,7 +129,6 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'asset-search-bar-wide': 'var(--asset-search-bar-wide-width)',
         chat: 'var(--chat-width)',
         'chat-indicator': 'var(--chat-indicator-width)',
-        'user-menu': 'var(--user-menu-width)',
         'modal-label': 'var(--modal-label-width)',
         'settings-sidebar': 'var(--settings-sidebar-width)',
         'asset-panel': 'var(--asset-panel-width)',
@@ -227,7 +226,6 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'modifiers-macos': 'var(--modifiers-macos-gap)',
         'side-panel': 'var(--side-panel-gap)',
         'side-panel-section': 'var(--side-panel-section-gap)',
-        'json-schema': 'var(--json-schema-gap)',
         'asset-search-bar': 'var(--asset-search-bar-gap)',
         'drive-bar': 'var(--drive-bar-gap)',
         'column-items': 'var(--column-items-gap)',
@@ -282,7 +280,6 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'label-x': 'var(--label-padding-x)',
         'sidebar-section-heading-x': 'var(--sidebar-section-heading-padding-x)',
         'sidebar-section-heading-y': 'var(--sidebar-section-heading-padding-y)',
-        'user-menu': 'var(--user-menu-padding)',
         'permission-type-selector': 'var(--permission-type-selector-padding)',
         'permission-type-button': 'var(--permission-type-button-padding)',
         'permission-type-y': 'var(--permission-type-padding-y)',
@@ -345,7 +342,8 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
       },
       zIndex: {
         1: '1',
-        tooltip: '2',
+        spotlight: '2',
+        tooltip: '3',
       },
       backdropBlur: {
         xs: '2px',

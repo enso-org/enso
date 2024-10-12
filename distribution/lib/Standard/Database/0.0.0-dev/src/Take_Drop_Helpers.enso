@@ -57,8 +57,7 @@ collect_ranges take_drop length selector:(Index_Sub_Range | Range | Integer) =
 check_supported : (Index_Sub_Range | Range | Integer) -> Any -> Any | Unsupported_Database_Operation
 check_supported selector:(Index_Sub_Range | Range | Integer) ~cont =
     err =
-        msg = selector.to_display_text + " is not supported for database backends"
-        Error.throw (Unsupported_Database_Operation.Error msg)
+        Error.throw (Unsupported_Database_Operation.Error selector.to_display_text)
 
     case selector of
         Index_Sub_Range.While _ -> err

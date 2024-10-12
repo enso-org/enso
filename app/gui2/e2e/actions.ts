@@ -21,9 +21,16 @@ export async function goToGraph(page: Page, closeDocPanel: boolean = true) {
     await expect(page.getByTestId('rightDock')).toBeHidden()
   }
   // Wait for position initialization
-  await expectNodePositionsInitialized(page, 72)
+  await expectNodePositionsInitialized(page, -16)
 }
 
+/**
+ * Run assertions for nodes and edges positions being properly initialized.
+ *
+ * Usually, after opening project or entering a node, we need some ticks for placing both nodes
+ * and edges properly on the screen. If test relies on their positions, it must ensure this
+ * initialization is done.
+ */
 export async function expectNodePositionsInitialized(page: Page, yPos: number) {
   // Wait until edges are initialized and displayed correctly.
   await expect(page.getByTestId('broken-edge')).toBeHidden()
@@ -38,6 +45,7 @@ export async function expectNodePositionsInitialized(page: Page, yPos: number) {
   )
 }
 
+/** Exit the currently opened graph (of collapsed function). */
 export async function exitFunction(page: Page, x = 300, y = 300) {
   await locate.graphEditor(page).dblclick({ position: { x, y } })
 }
@@ -46,7 +54,7 @@ export async function exitFunction(page: Page, x = 300, y = 300) {
 // === Drag Node ===
 // =================
 
-/// Move node defined by the given binding  by the given x and y.
+/** Move node defined by the given binding  by the given x and y. */
 export async function dragNodeByBinding(page: Page, nodeBinding: string, x: number, y: number) {
   const node = graphNodeByBinding(page, nodeBinding)
   const grabHandle = node.locator('.grab-handle')
@@ -56,13 +64,13 @@ export async function dragNodeByBinding(page: Page, nodeBinding: string, x: numb
   })
 }
 
-/// Move mouse away to avoid random hover events and wait for any circular menus to disappear.
+/** Move mouse away to avoid random hover events and wait for any circular menus to disappear. */
 export async function ensureNoCircularMenusVisibleDueToHovering(page: Page) {
   await page.mouse.move(-1000, 0)
   await expect(locate.circularMenu(page)).toBeHidden()
 }
 
-/// Ensure no nodes are selected.
+/** Ensure no nodes are selected. */
 export async function deselectNodes(page: Page) {
   await page.mouse.click(0, 0)
   await expect(locate.selectedNodes(page)).toHaveCount(0)

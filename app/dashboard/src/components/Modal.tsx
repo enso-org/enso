@@ -5,6 +5,7 @@ import * as modalProvider from '#/providers/ModalProvider'
 
 import FocusRoot from '#/components/styled/FocusRoot'
 
+import { ClearPressResponder } from '#/components/aria'
 import * as tailwindVariants from '#/utilities/tailwindVariants'
 
 // =================
@@ -43,33 +44,37 @@ export default function Modal(props: ModalProps) {
   const { unsetModal } = modalProvider.useSetModal()
 
   return (
-    <FocusRoot active={!hidden}>
-      {(innerProps) => (
-        <div
-          {...(!hidden ? { 'data-testid': 'modal-background' } : {})}
-          style={style}
-          className={MODAL_VARIANTS(variantProps)}
-          onClick={
-            onClick ??
-            ((event) => {
-              if (event.currentTarget === event.target && getSelection()?.type !== 'Range') {
-                event.stopPropagation()
-                unsetModal()
-              }
-            })
-          }
-          onContextMenu={onContextMenu}
-          {...innerProps}
-          onKeyDown={(event) => {
-            innerProps.onKeyDown?.(event)
-            if (event.key !== 'Escape') {
-              event.stopPropagation()
+    // Required so that `Button`s and `Checkbox`es contained inside do not trigger any
+    // ancestor `DialogTrigger`s.
+    <ClearPressResponder>
+      <FocusRoot active={!hidden}>
+        {(innerProps) => (
+          <div
+            {...(!hidden ? { 'data-testid': 'modal-background' } : {})}
+            style={style}
+            className={MODAL_VARIANTS(variantProps)}
+            onClick={
+              onClick ??
+              ((event) => {
+                if (event.currentTarget === event.target && getSelection()?.type !== 'Range') {
+                  event.stopPropagation()
+                  unsetModal()
+                }
+              })
             }
-          }}
-        >
-          {children}
-        </div>
-      )}
-    </FocusRoot>
+            onContextMenu={onContextMenu}
+            {...innerProps}
+            onKeyDown={(event) => {
+              innerProps.onKeyDown?.(event)
+              if (event.key !== 'Escape') {
+                event.stopPropagation()
+              }
+            }}
+          >
+            {children}
+          </div>
+        )}
+      </FocusRoot>
+    </ClearPressResponder>
   )
 }

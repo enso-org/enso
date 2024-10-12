@@ -392,7 +392,7 @@ const handler = componentBrowserBindings.handler({
       :style="{ '--component-editor-padding': cssComponentEditorPadding }"
     >
       <SvgButton
-        name="add"
+        name="add_to_graph_editor"
         :title="
           input.mode.mode === 'componentBrowsing' && selected != null ?
             'Accept Suggested Component'
@@ -434,7 +434,8 @@ const handler = componentBrowserBindings.handler({
   --radius-default: 20px;
   --background-color: #eaeaea;
   --doc-panel-bottom-clip: 4px;
-  width: 295px;
+  min-width: 295px;
+  width: min-content;
   color: rgba(0, 0, 0, 0.6);
   font-size: 11.5px;
   display: flex;

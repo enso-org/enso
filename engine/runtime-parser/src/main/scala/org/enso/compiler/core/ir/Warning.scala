@@ -8,7 +8,7 @@ trait Warning extends Diagnostic
 object Warning {
 
   case class DuplicatedImport(
-    override val location: Option[IdentifiedLocation],
+    override val identifiedLocation: IdentifiedLocation,
     originalImport: ir.module.scope.Import,
     symbolName: String
   ) extends Warning {
@@ -28,9 +28,9 @@ object Warning {
   /** A warning about a `@Tail_Call` annotation placed in a non-tail
     * position.
     *
-    * @param location the location of the annotated application
+    * @param identifiedLocation the location of the annotated application
     */
-  case class WrongTco(override val location: Option[IdentifiedLocation])
+  case class WrongTco(override val identifiedLocation: IdentifiedLocation)
       extends Warning {
     override def message(source: (IdentifiedLocation => String)): String =
       "A @Tail_Call annotation was placed in a non-tail-call position."
@@ -42,11 +42,11 @@ object Warning {
     *
     * This warning indicates a place that will result in a Not_Invokable error in runtime.
     *
-    * @param location the location of the call
+    * @param identifiedLocation the location of the call
     * @param typeRepresentation the type of the value that was called
     */
   case class NotInvokable(
-    override val location: Option[IdentifiedLocation],
+    override val identifiedLocation: IdentifiedLocation,
     typeRepresentation: String
   ) extends Warning {
     override def message(source: (IdentifiedLocation => String)): String =
@@ -60,12 +60,12 @@ object Warning {
     * Currently, this warning is only raised if the mismatch is guaranteed to happen - i.e. running the expression will
     * always result in a runtime Type_Error.
     *
-    * @param location     the location of the type assertion
+    * @param identifiedLocation the location of the type assertion
     * @param expectedType the type that was expected in the assertion
-    * @param actualType   the type that was provided
+    * @param actualType the type that was provided
     */
   case class TypeMismatch(
-    override val location: Option[IdentifiedLocation],
+    override val identifiedLocation: IdentifiedLocation,
     expectedType: String,
     actualType: String
   ) extends Warning {
@@ -78,10 +78,10 @@ object Warning {
   /** A warning about a `@Builtin_Method` annotation placed in a method
     * with unexpected body.
     *
-    * @param location the location of the annotated application
+    * @param identifiedLocation the location of the annotated application
     */
   case class WrongBuiltinMethod(
-    override val location: Option[IdentifiedLocation]
+    override val identifiedLocation: IdentifiedLocation
   ) extends Warning {
     override def message(source: (IdentifiedLocation => String)): String =
       "A @Builtin_Method annotation allows only the name of the builtin node in the body."
@@ -100,7 +100,8 @@ object Warning {
     ir: IR,
     paramPosition: Int
   ) extends Warning {
-    override val location: Option[IdentifiedLocation] = ir.location
+    override def identifiedLocation: IdentifiedLocation =
+      ir.identifiedLocation()
 
     override def message(source: (IdentifiedLocation => String)): String =
       s"${funName.name}: Self parameter should be declared as the first parameter. Instead its position is: ${paramPosition + 1}."
@@ -119,7 +120,8 @@ object Warning {
     ir: IR,
     reason: String
   ) extends Warning {
-    override val location: Option[IdentifiedLocation] = ir.location
+    override def identifiedLocation: IdentifiedLocation =
+      ir.identifiedLocation()
 
     override def message(source: (IdentifiedLocation => String)): String =
       s"The expression ${ir.showCode()} could not be parallelised: $reason."
@@ -137,7 +139,8 @@ object Warning {
       " This is probably an error."
 
     /** The location at which the diagnostic occurs. */
-    override val location: Option[IdentifiedLocation] = ir.location
+    override def identifiedLocation: IdentifiedLocation =
+      ir.identifiedLocation()
 
     /** The important keys identifying identity of the diagnostic
       */
@@ -152,7 +155,8 @@ object Warning {
       message
 
     /** The location at which the diagnostic occurs. */
-    override val location: Option[IdentifiedLocation] = ir.location
+    override def identifiedLocation: IdentifiedLocation =
+      ir.identifiedLocation()
 
     /** The important keys identifying identity of the diagnostic
       */

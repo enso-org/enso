@@ -11,7 +11,7 @@ import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
-import { getLeastUsedColor } from '#/services/Backend'
+import { findLeastUsedColor } from '#/services/Backend'
 import { EMPTY_ARRAY } from 'enso-common/src/utilities/data/array'
 
 // =====================
@@ -33,7 +33,7 @@ export default function NewLabelModal(props: NewLabelModalProps) {
     [labels],
   )
   const labelNamesRef = useSyncRef(labelNames)
-  const leastUsedColor = React.useMemo(() => getLeastUsedColor(labels), [labels])
+  const leastUsedColor = React.useMemo(() => findLeastUsedColor(labels), [labels])
 
   const createTag = useMutation(backendMutationOptions(backend, 'createTag')).mutateAsync
 
@@ -45,7 +45,7 @@ export default function NewLabelModal(props: NewLabelModalProps) {
         schema={z.object({
           name: z
             .string()
-            .min(1, getText('emptyStringError'))
+            .min(1)
             .refine((value) => !labelNamesRef.current.has(value), {
               message: getText('duplicateLabelError'),
             }),
@@ -90,9 +90,7 @@ export default function NewLabelModal(props: NewLabelModalProps) {
             </FocusArea>
             <ButtonGroup className="relative">
               <Form.Submit>{getText('create')}</Form.Submit>
-              <Form.Submit formnovalidate variant="outline">
-                {getText('cancel')}
-              </Form.Submit>
+              <Form.Submit action="cancel" />
             </ButtonGroup>
             <Form.FormError />
           </>

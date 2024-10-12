@@ -20,7 +20,8 @@ interface BaseSelectionOptions<T> {
   onDeselected?: (element: T) => void
 }
 interface SelectionPackingOptions<T, PackedT> {
-  /** The `pack` and `unpack` functions are used to maintain state in a transformed form.
+  /**
+   * The `pack` and `unpack` functions are used to maintain state in a transformed form.
    *
    * If provided, all operations that modify or query state will transparently operate on packed state. This can be
    * used to expose a selection interface based on one element type (`T`), while allowing the selection set to be
@@ -45,6 +46,7 @@ export function useSelection<T, PackedT>(
   elementRects: Map<T, Rect>,
   options: BaseSelectionOptions<T> & SelectionPackingOptions<T, PackedT>,
 ): UseSelection<T, PackedT>
+/** TODO: Add docs */
 export function useSelection<T, PackedT>(
   navigator: NavigatorComposable,
   elementRects: Map<T, Rect>,
@@ -246,6 +248,7 @@ function useSelectionImpl<T, PackedT>(
 
 // === Hover tracking for nodes and ports ===
 
+/** TODO: Add docs */
 export function useGraphHover(isPortEnabled: (port: PortId) => boolean) {
   const hoveredElement = shallowRef<Element>()
 

@@ -25,6 +25,8 @@ transport formats, please look [here](./protocol-architecture).
   - [`MethodCall`](#methodcall)
   - [`MethodPointer`](#methodpointer)
   - [`ProfilingInfo`](#profilinginfo)
+  - [`ExecutionEnvironment`](#executionenvironment)
+  - [`ExpressionConfig`](#expressionConfig)
   - [`ExpressionUpdate`](#expressionupdate)
   - [`ExpressionUpdatePayload`](#expressionupdatepayload)
   - [`VisualizationConfiguration`](#visualizationconfiguration)
@@ -341,6 +343,19 @@ The execution environment of Enso runtime.
 
 ```typescript
 type ExecutionEnvironment = Design | Live;
+```
+
+### `ExpressionConfig`
+
+The expression configuration used in the recompute request.
+
+```typescript
+interface ExpressionConfig {
+  /** The expression identifier. */
+  expressionId: ExpressionId;
+  /** The execution environment that should be used to run this expression. */
+  executionEnvironment?: ExecutionEnvironment;
+}
 ```
 
 ### `ExpressionUpdate`
@@ -3633,10 +3648,23 @@ May include a list of expressions for which caches should be invalidated.
 interface ExecutionContextRecomputeParameters {
   /** The execution context identifier. */
   contextId: ContextId;
-  /** The expressions that will be invalidated before the execution. */
+
+  /** The expressions that will be invalidated before the execution.
+   *
+   *  Only the provided expression ids are invalidated excluding the dependencies.
+   */
   invalidatedExpressions?: "all" | ExpressionId[];
+
   /** The execution environment that will be used in the execution. */
   executionEnvironment?: ExecutionEnvironment;
+
+  /** The execution configurations for particular expressions.
+   *
+   *  The provided expressions will be invalidated from the cache with the
+   *  dependencies. The result of the execution will stay in the cache until the
+   *  cache is invalidated by editing the node or other means.
+   */
+  expressionConfigs?: ExpressionConfig[];
 }
 ```
 

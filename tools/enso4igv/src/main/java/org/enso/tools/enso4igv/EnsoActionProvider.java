@@ -1,6 +1,7 @@
 package org.enso.tools.enso4igv;
 
 import com.sun.jdi.connect.Connector;
+import java.awt.GraphicsEnvironment;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -10,6 +11,7 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.Future;
+import java.util.prefs.Preferences;
 import org.netbeans.api.debugger.jpda.JPDADebugger;
 import org.netbeans.api.debugger.jpda.ListeningDICookie;
 import org.netbeans.api.extexecution.ExecutionDescriptor;
@@ -26,8 +28,11 @@ import org.netbeans.api.extexecution.base.ProcessBuilder;
 import org.netbeans.api.java.classpath.ClassPath;
 import org.netbeans.api.java.platform.JavaPlatform;
 import org.netbeans.spi.project.ActionProgress;
+import org.openide.awt.Notification;
+import org.openide.awt.NotificationDisplayer;
 import org.openide.filesystems.FileUtil;
 import org.openide.modules.Modules;
+import org.openide.util.ImageUtilities;
 import org.openide.util.NbBundle;
 import org.openide.util.NbPreferences;
 import org.openide.util.RequestProcessor;
@@ -40,7 +45,10 @@ import org.openide.windows.IOProvider;
     "MSG_CannotExecute=Cannot execute {0}",
     "# {0} - executable file",
     "# {1} - exit code",
-    "MSG_ExecutionError=Process {0} finished with exit code {1}"
+    "MSG_ExecutionError=Process {0} finished with exit code {1}.",
+    "MSG_IgvMode=Enso/IGV Integration",
+    "MSG_EnableIgvMode=Send compiler graphs to IGV next time?",
+    "MSG_EnableIgvModeDone=Run Enso file again to get compiler graphs."
 })
 @ServiceProvider(service = ActionProvider.class)
 public final class EnsoActionProvider implements ActionProvider {
@@ -86,8 +94,19 @@ public final class EnsoActionProvider implements ActionProvider {
                 b.setRedirectErrorStream(true);
 
                 var env = b.getEnvironment();
-                if (isGraalVM && isIGVConnected()) {
-                    env.setVariable("JAVA_OPTS", "-Dgraal.Dump=Truffle:2");
+                var info = IgvInfo.find();
+                if (isGraalVM && info.igvMode()) {
+                    if (info.networkOn()) {
+                        env.setVariable("JAVA_OPTS", info.toJavaOptions());
+                    } else {
+                        var icon = ImageUtilities.loadImageIcon("org/enso/tools/enso4igv/enso.svg", false);
+                        var note = new Notification[1];
+                        note[0] = NotificationDisplayer.getDefault().notify(Bundle.MSG_IgvMode(), icon, Bundle.MSG_EnableIgvMode(), (e) -> {
+                            note[0].clear();
+                            info.enableNetworkMode();
+                            NotificationDisplayer.getDefault().notify(Bundle.MSG_IgvMode(), icon, Bundle.MSG_EnableIgvModeDone(), null);
+                        });
+                    }
                 }
                 var path = env.getVariable("PATH");
                 if (path != null && java != null) {
@@ -107,11 +126,15 @@ public final class EnsoActionProvider implements ActionProvider {
         var waitForProcessFuture = builderFuture.thenCompose((builder) -> {
             var cf = new CompletableFuture<Integer>();
             var descriptor = new ExecutionDescriptor()
-                .frontWindow(true).controllable(true)
-                .inputOutput(io)
+                .frontWindow(true)
                 .postExecution((exitCode) -> {
                     cf.complete(exitCode);
                 });
+            if (GraphicsEnvironment.isHeadless()) {
+                descriptor = descriptor.inputOutput(io);
+            } else {
+                descriptor = descriptor.controllable(true);
+            }
             var launch = COMMAND_DEBUG_SINGLE.equals(action) || COMMAND_DEBUG.equals(action) ?
                 new DebugAndLaunch(fo, builder, params) : builder;
             var service = ExecutionService.newService(launch, descriptor, script.getName());
@@ -120,12 +143,20 @@ public final class EnsoActionProvider implements ActionProvider {
         });
 
         waitForProcessFuture.thenAcceptBoth(builderFuture, (exitCode, builder) -> {
-            if (exitCode != 0) {
-                var msg = Bundle.MSG_ExecutionError(builder.getDescription(), exitCode);
-                var md = new NotifyDescriptor.Message(msg, NotifyDescriptor.ERROR_MESSAGE);
-                dd.notifyLater(md);
+            boolean success;
+            if (exitCode != null) {
+                if (exitCode != 0) {
+                    var msg = Bundle.MSG_ExecutionError(builder.getDescription(), exitCode);
+                    var md = new NotifyDescriptor.Message(msg, NotifyDescriptor.ERROR_MESSAGE);
+                    dd.notifyLater(md);
+                    success = false;
+                } else {
+                    success = true;
+                }
+            } else {
+                success = false;
             }
-            process.finished(exitCode == 0);
+            process.finished(success);
         }).exceptionally((ex) -> {
             process.finished(false);
             if (ex instanceof CompletionException && ex.getCause() instanceof CancellationException) {
@@ -136,9 +167,37 @@ public final class EnsoActionProvider implements ActionProvider {
         });
     }
 
-    private static boolean isIGVConnected() {
-        return Modules.getDefault().findCodeNameBase("org.graalvm.visualizer.connection") != null;
+    record IgvInfo(boolean igvMode, boolean networkOn, int networkPort) {
+        static IgvInfo find() {
+            if (Modules.getDefault().findCodeNameBase("org.graalvm.visualizer.settings") != null) {
+                var settings = settingsNode();
+                var port = settings.getInt("portBinary", -1);
+                var network = settings.getBoolean("acceptNetwork", false);
+                return new IgvInfo(true, network, port);
+            } else {
+                return new IgvInfo(false, false, -1);
+            }
+        }
+
+        private static Preferences settingsNode() {
+            return Preferences.userRoot().node("org/graalvm/visualizer/settings/graal");
+        }
+
+        private String toJavaOptions() {
+            return
+                "-Dgraal.Dump=Truffle:2 " +
+                "-Djdk.graal.Dump=Truffle:2 " +
+                "-Dgraal.PrintGraph=Network " +
+                "-Djdk.graal.PrintGraph=Network " +
+                "-Dgraal.PrintGraphPort=" + networkPort() + " " +
+                "-Djdk.graal.PrintGraphPort=" + networkPort();
+        }
+
+        private void enableNetworkMode() {
+            settingsNode().putBoolean("acceptNetwork", true);
+        }
     }
+
 
     private static List<String> prepareArguments(File script) {
         var list = new ArrayList<String>();

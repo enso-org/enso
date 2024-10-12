@@ -134,7 +134,7 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
         group_builder.specify "should fail if an unsupported type is specified" <|
             run_with_and_without_output <|
                 r1 = data.connection.create_table (Name_Generator.random_name "creating-table") structure=[Column_Description.Value "X" Value_Type.Integer, Column_Description.Value "Y" Value_Type.Mixed] temporary=True
-                r1.should_fail_with Unsupported_Database_Operation
+                r1.should_fail_with Unsupported_Database_Type
 
         group_builder.specify "should fail if empty structure is provided" <|
             run_with_and_without_output <|
@@ -656,8 +656,8 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
             connection_2 = make_new_connection Nothing
             run_with_and_without_output <|
                 r1 = db_table.select_into_database_table connection_2 (Name_Generator.random_name "copied-table") temporary=True primary_key=Nothing
-                r1.should_fail_with Unsupported_Database_Operation
-                r1.catch.message . should_contain "same connection"
+                r1.should_fail_with Different_Connections
+                r1.catch.to_display_text . should_contain "same connection"
 
         group_builder.specify "should fail if the target table already exists" <|
             name = Name_Generator.random_name "table-already-exists"

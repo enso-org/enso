@@ -12,6 +12,7 @@ import type { WidgetEditHandlerParent } from './widgetRegistry/editHandler'
 export type WidgetComponent<T extends WidgetInput> = Component<WidgetProps<T>>
 
 export namespace WidgetInput {
+  /** TODO: Add docs */
   export function FromAst<A extends Ast.Ast | Ast.Token>(ast: A): WidgetInput & { value: A } {
     return {
       portId: ast.id,
@@ -19,6 +20,7 @@ export namespace WidgetInput {
     }
   }
 
+  /** TODO: Add docs */
   export function FromAstWithPort<A extends Ast.Ast | Ast.Token>(
     ast: A,
   ): WidgetInput & { value: A } {
@@ -29,6 +31,7 @@ export namespace WidgetInput {
     }
   }
 
+  /** TODO: Add docs */
   export function valueRepr(input: WidgetInput): string | undefined {
     if (typeof input.value === 'string') return input.value
     else return input.value?.code()
@@ -53,6 +56,7 @@ export namespace WidgetInput {
       isPlaceholder(input) || input.value instanceof nodeType
   }
 
+  /** TODO: Add docs */
   export function isAst(input: WidgetInput): input is WidgetInput & { value: Ast.Ast } {
     return input.value instanceof Ast.Ast
   }
@@ -64,10 +68,12 @@ export namespace WidgetInput {
     return isPlaceholder(input) || isAst(input)
   }
 
+  /** TODO: Add docs */
   export function isToken(input: WidgetInput): input is WidgetInput & { value: Ast.Token } {
     return input.value instanceof Ast.Token
   }
 
+  /** TODO: Add docs */
   export function isFunctionCall(
     input: WidgetInput,
   ): input is WidgetInput & { value: Ast.App | Ast.Ident | Ast.PropertyAccess | Ast.OprApp } {
@@ -198,7 +204,8 @@ type InputTy<M> =
   : never
 
 export interface WidgetOptions<T extends WidgetInput> {
-  /** The priority number determining the order in which the widgets are matched. Smaller numbers
+  /**
+   * The priority number determining the order in which the widgets are matched. Smaller numbers
    * have higher priority, and are matched first.
    */
   priority: number
@@ -215,7 +222,8 @@ export interface WidgetOptions<T extends WidgetInput> {
   // A list of widget kinds that will be prevented from being used on the same node as this widget,
   // once this widget is used.
   prevent?: WidgetComponent<any>[]
-  /** If false, this widget will be matched only when at least one another widget is guaranteed to
+  /**
+   * If false, this widget will be matched only when at least one another widget is guaranteed to
    * be matched for the same input. `true` by default.
    *
    * The widget marked with `false` *must* have a child with the same input,
@@ -331,6 +339,7 @@ const { provideFn, injectFn } = createContextStore(
   (db: GraphDb) => new WidgetRegistry(db),
 )
 
+/** TODO: Add docs */
 export class WidgetRegistry {
   loadedModules: WidgetModule<any>[] = shallowReactive([])
   sortedModules = computed(() => {
@@ -338,8 +347,10 @@ export class WidgetRegistry {
       (a, b) => a.widgetDefinition.priority - b.widgetDefinition.priority,
     )
   })
+  /** TODO: Add docs */
   constructor(private db: GraphDb) {}
 
+  /** TODO: Add docs */
   loadWidgets(modules: [path: string, module: unknown][]) {
     for (const [path, mod] of modules) {
       if (isWidgetModule(mod)) this.registerWidgetModule(mod)

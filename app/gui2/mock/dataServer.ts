@@ -66,6 +66,7 @@ const PAYLOAD_CONSTRUCTOR = {
   [InboundPayload.CHECKSUM_BYTES_CMD]: ChecksumBytesCommand,
 } satisfies Record<InboundPayload, new () => Table>
 
+/** TODO: Add docs */
 export function mockDataWSHandler(
   readFile: (segments: string[]) => Promise<ArrayBuffer | null | undefined>,
   cb?: (send: (data: string | Blob | ArrayBufferLike | ArrayBufferView) => void) => void,

@@ -8,6 +8,7 @@ from Standard.Table.Errors import all
 import Standard.Table.Expression.Expression_Error
 
 from Standard.Database.Errors import SQL_Error
+import Standard.Database.Feature.Feature
 
 from Standard.Test import all
 
@@ -20,6 +21,9 @@ type Lazy_Ref
     Value ~get
 
 add_specs suite_builder detailed setup =
+    if setup.is_feature_supported Feature.Column_Operations then (add_expression_specs suite_builder detailed setup)
+
+add_expression_specs suite_builder detailed setup =
     prefix = setup.prefix
     table_builder = build_sorted_table setup
     column_a_description = ["A", [1, 2, 3, 4, 5]]

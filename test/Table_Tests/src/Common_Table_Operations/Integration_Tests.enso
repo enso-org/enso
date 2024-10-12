@@ -5,7 +5,7 @@ from Standard.Table import all hiding Table
 
 from Standard.Test import all
 
-
+import Standard.Database.Feature.Feature
 
 from project.Common_Table_Operations.Util import run_default_backend
 from project.Common_Table_Operations.Core_Spec import weird_names
@@ -21,8 +21,10 @@ type Data
     teardown self =
         self.connection.close
 
-
 add_specs suite_builder setup =
+    if setup.is_feature_supported Feature.Integration_Tests then (add_integration_specs suite_builder setup)
+
+add_integration_specs suite_builder setup =
     create_connection_fn = setup.create_connection_func
     materialize = setup.materialize
     suite_builder.group setup.prefix+" Interactions Between various operations" group_builder->

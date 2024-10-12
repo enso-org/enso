@@ -5,6 +5,7 @@ import type { Awareness } from 'y-protocols/awareness'
 import { WebsocketProvider } from 'y-websocket'
 import * as Y from 'yjs'
 
+/** TODO: Add docs */
 export function useObserveYjs<T>(
   typeRef: Ref<Opt<Y.AbstractType<T>>>,
   observer: (event: T, transaction: Y.Transaction) => void,
@@ -20,6 +21,7 @@ export function useObserveYjs<T>(
   })
 }
 
+/** TODO: Add docs */
 export function useObserveYjsDeep(
   typeRef: Ref<Opt<Y.AbstractType<any>>>,
   observer: (event: Y.YEvent<any>[], transaction: Y.Transaction) => void,
@@ -47,6 +49,7 @@ export type ProviderParams = {
   ls: string
 }
 
+/** TODO: Add docs */
 export function attachProvider(
   url: string,
   room: string,
@@ -111,13 +114,16 @@ export interface MockYdocProviderImpl {
   ): void
 }
 
+/** TODO: Add docs */
 export class MockYdocProvider extends ObservableV2<MockYdocProviderMessages> {
   static mocks: Map<string, MockYdocProviderImpl> = new Map()
 
+  /** TODO: Add docs */
   static addMock(name: string, mock: MockYdocProviderImpl) {
     MockYdocProvider.mocks.set(name, mock)
   }
 
+  /** TODO: Add docs */
   constructor(
     _url: string,
     room: string,
@@ -132,6 +138,7 @@ export class MockYdocProvider extends ObservableV2<MockYdocProviderMessages> {
     MockYdocProvider.mocks.get(name)?.(this, room, doc, options)
   }
 
+  /** TODO: Add docs */
   disconnect() {
     this.emit('client-disconnected', [])
   }
