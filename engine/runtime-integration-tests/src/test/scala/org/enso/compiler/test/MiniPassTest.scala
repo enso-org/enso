@@ -46,10 +46,10 @@ trait MiniPassTest extends CompilerTest {
     if (compareIR) {
       CompilerTests.assertIR("Should be the same", megaIr, miniIr)
     }
-    withClue("Mega pass inline compilation: ") {
+    withClue("Mega pass module spec execution") {
       testSpec(megaIr)
     }
-    withClue("Mini pass inline compilation: ") {
+    withClue("Mini pass module spec execution") {
       testSpec(miniIr)
     }
   }
@@ -77,10 +77,10 @@ trait MiniPassTest extends CompilerTest {
     if (compareIR) {
       CompilerTests.assertIR("Should be the same", megaIr, miniIr)
     }
-    withClue("Mega pass inline compilation: ") {
+    withClue("Mega pass inline spec execution") {
       testSpec(megaIr)
     }
-    withClue("Mini pass inline compilation: ") {
+    withClue("Mini pass inline spec execution") {
       testSpec(miniIr)
     }
   }
