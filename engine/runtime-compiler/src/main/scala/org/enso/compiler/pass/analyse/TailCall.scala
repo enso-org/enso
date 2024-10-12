@@ -83,27 +83,11 @@ case object TailCall extends IRPass with MiniPassFactory {
     new Mini(false)
   }
 
-  /** Analyses tail call state for expressions in a module.
-    *
-    * @param ir the Enso IR to process
-    * @param moduleContext a context object that contains the information needed
-    *                      to process a module
-    * @return `ir`, possibly having made transformations or annotations to that
-    *         IR.
-    */
   override def runModule(
     ir: Module,
     moduleContext: ModuleContext
   ): Module = ???
 
-  /** Analyses tail call state for an arbitrary expression.
-    *
-    * @param ir the Enso IR to process
-    * @param inlineContext a context object that contains the information needed
-    *                      for inline evaluation
-    * @return `ir`, possibly having made transformations or annotations to that
-    *         IR.
-    */
   override def runExpression(
     ir: Expression,
     inlineContext: InlineContext
@@ -115,22 +99,16 @@ case object TailCall extends IRPass with MiniPassFactory {
     * @return `definition`, annotated with tail call information
     */
   private def analyseModuleBinding(
-    moduleDefinition: Definition
+    moduleDefinition: Definition,
+    tailCandidates: java.util.Map[IR, Boolean]
   ): Definition = {
     moduleDefinition match {
       case method: definition.Method.Conversion =>
-        method
-          .copy(
-            body = analyseExpression(method.body, isInTailPosition = true)
-          )
-          .updateMetadata(TAIL_META)
-      case method @ definition.Method
-            .Explicit(_, body, _, _, _) =>
-        method
-          .copy(
-            body = analyseExpression(body, isInTailPosition = true)
-          )
-          .updateMetadata(TAIL_META)
+        tailCandidates.put(method.body, true)
+        method.updateMetadata(TAIL_META)
+      case method @ definition.Method.Explicit(_, body, _, _, _) =>
+        tailCandidates.put(body, true)
+        method.updateMetadata(TAIL_META)
       case _: definition.Method.Binding =>
         throw new CompilerError(
           "Sugared method definitions should not occur during tail call " +
@@ -160,11 +138,8 @@ case object TailCall extends IRPass with MiniPassFactory {
           "tail call analysis."
         )
       case ann: Name.GenericAnnotation =>
-        ann
-          .copy(expression =
-            analyseExpression(ann.expression, isInTailPosition = true)
-          )
-          .updateMetadata(TAIL_META)
+        tailCandidates.put(ann.expression, true)
+        ann.updateMetadata(TAIL_META)
       case err: Error => err
     }
   }
@@ -176,7 +151,7 @@ case object TailCall extends IRPass with MiniPassFactory {
     *                         position
     * @return `expression`, annotated with tail position metadata
     */
-  def analyseExpression(
+  private def analyseExpression(
     expression: Expression,
     isInTailPosition: Boolean
   ): Expression = {
@@ -265,7 +240,7 @@ case object TailCall extends IRPass with MiniPassFactory {
     *                         tail position
     * @return `application`, annotated with tail position metadata
     */
-  def analyseApplication(
+  private def analyseApplication(
     application: Application,
     isInTailPosition: Boolean
   ): Application = {
@@ -344,7 +319,7 @@ case object TailCall extends IRPass with MiniPassFactory {
     *                         call position
     * @return `value`, annotated with tail position metadata
     */
-  def analyseType(value: Type, isInTailPosition: Boolean): Type = {
+  private def analyseType(value: Type, isInTailPosition: Boolean): Type = {
     updateMetaIfInTailPosition(
       isInTailPosition,
       value
@@ -359,7 +334,7 @@ case object TailCall extends IRPass with MiniPassFactory {
     *                         call position
     * @return `caseExpr`, annotated with tail position metadata
     */
-  def analyseCase(caseExpr: Case, isInTailPosition: Boolean): Case = {
+  private def analyseCase(caseExpr: Case, isInTailPosition: Boolean): Case = {
     val newCaseExpr = caseExpr match {
       case caseExpr @ Case.Expr(scrutinee, branches, _, _, _) =>
         caseExpr
@@ -392,7 +367,7 @@ case object TailCall extends IRPass with MiniPassFactory {
     *                         position
     * @return `branch`, annotated with tail position metadata
     */
-  def analyseCaseBranch(
+  private def analyseCaseBranch(
     branch: Case.Branch,
     isInTailPosition: Boolean
   ): Case.Branch = {
@@ -414,7 +389,7 @@ case object TailCall extends IRPass with MiniPassFactory {
     * @param pattern the pattern to analyse
     * @return `pattern`, annotated with tail position metadata
     */
-  def analysePattern(
+  private def analysePattern(
     pattern: Pattern
   ): Pattern = {
     pattern match {
@@ -451,7 +426,7 @@ case object TailCall extends IRPass with MiniPassFactory {
     *                         tail position
     * @return `function`, annotated with tail position metadata
     */
-  def analyseFunction(
+  private def analyseFunction(
     function: Function,
     isInTailPosition: Boolean
   ): Function = {
@@ -533,7 +508,7 @@ case object TailCall extends IRPass with MiniPassFactory {
     * @return `true` if `expression` is annotated with `@Tail_Call`, otherwise
     *         `false`
     */
-  def isTailAnnotated(expression: Expression): Boolean = {
+  final def isTailAnnotated(expression: Expression): Boolean = {
     expression
       .getMetadata(ExpressionAnnotations)
       .exists(anns =>
@@ -558,7 +533,7 @@ case object TailCall extends IRPass with MiniPassFactory {
 
     override def transformModule(ir: Module): Module = {
       ir.copy(
-        bindings = ir.bindings.map(analyseModuleBinding)
+        bindings = ir.bindings.map(analyseModuleBinding(_, tailCandidates))
       )
     }
 
@@ -566,10 +541,23 @@ case object TailCall extends IRPass with MiniPassFactory {
       this
     }
 
-
     override def transformExpression(ir: Expression): Expression = {
-      tailCandidates.getClass()
-      ir
+      val tailStatus = isTailPosition(ir)
+      analyseExpression(ir, tailStatus)
+    }
+
+    private def isTailPosition(ir: Expression): Boolean = {
+      val candidateCheck = tailCandidates.remove(ir)
+      if (candidateCheck ne null) {
+        candidateCheck
+      } else {
+        val initialState = tailCandidates.remove(null)
+        if (initialState eq null) {
+          false
+        } else {
+          initialState
+        }
+      }
     }
   }
 }
