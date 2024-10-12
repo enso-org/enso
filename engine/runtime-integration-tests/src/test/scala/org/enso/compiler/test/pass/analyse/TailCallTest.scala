@@ -224,7 +224,8 @@ class TailCallTest extends MiniPassTest {
             .count(_.isInstanceOf[Warning.WrongTco]) shouldEqual 1
           fnBody.returnValue.diagnosticsList
             .count(_.isInstanceOf[Warning.WrongTco]) shouldEqual 0
-        }
+        },
+        true
       )
     }
   }
@@ -337,7 +338,8 @@ class TailCallTest extends MiniPassTest {
               TailPosition.Tail
             )
           })
-        }
+        },
+        true
       )
     }
 
