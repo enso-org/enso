@@ -551,7 +551,8 @@ class TailCallTest extends MiniPassTest {
               .asInstanceOf[Expression.Block]
 
             block.getMetadata(TailCall) shouldEqual Some(TailPosition.Tail)
-          }
+          },
+          true
         )
       }
     }

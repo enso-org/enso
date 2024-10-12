@@ -93,57 +93,6 @@ case object TailCall extends IRPass with MiniPassFactory {
     inlineContext: InlineContext
   ): Expression = ???
 
-  /** Performs tail call analysis on a top-level definition in a module.
-    *
-    * @param moduleDefinition the top-level definition to analyse
-    * @return `definition`, annotated with tail call information
-    */
-  private def analyseModuleBinding(
-    moduleDefinition: Definition,
-    tailCandidates: java.util.Map[IR, Boolean]
-  ): Definition = {
-    moduleDefinition match {
-      case method: definition.Method.Conversion =>
-        tailCandidates.put(method.body, true)
-        method.updateMetadata(TAIL_META)
-      case method @ definition.Method.Explicit(_, body, _, _, _) =>
-        tailCandidates.put(body, true)
-        method.updateMetadata(TAIL_META)
-      case _: definition.Method.Binding =>
-        throw new CompilerError(
-          "Sugared method definitions should not occur during tail call " +
-          "analysis."
-        )
-      case _: Definition.Type =>
-        moduleDefinition.updateMetadata(
-          TAIL_META
-        )
-      case _: Definition.SugaredType =>
-        throw new CompilerError(
-          "Complex type definitions should not be present during " +
-          "tail call analysis."
-        )
-      case _: Comment.Documentation =>
-        throw new CompilerError(
-          "Documentation should not exist as an entity during tail call analysis."
-        )
-      case _: Type.Ascription =>
-        throw new CompilerError(
-          "Type signatures should not exist at the top level during " +
-          "tail call analysis."
-        )
-      case _: Name.BuiltinAnnotation =>
-        throw new CompilerError(
-          "Annotations should already be associated by the point of " +
-          "tail call analysis."
-        )
-      case ann: Name.GenericAnnotation =>
-        tailCandidates.put(ann.expression, true)
-        ann.updateMetadata(TAIL_META)
-      case err: Error => err
-    }
-  }
-
   /** Performs tail call analysis on an arbitrary expression.
     *
     * @param expression the expression to analyse
@@ -528,13 +477,12 @@ case object TailCall extends IRPass with MiniPassFactory {
     }
 
     override def prepareForModule(ir: Module): Mini = {
+      ir.bindings.map(subTailModuleBinding)
       this
     }
 
     override def transformModule(ir: Module): Module = {
-      ir.copy(
-        bindings = ir.bindings.map(analyseModuleBinding(_, tailCandidates))
-      )
+      ir
     }
 
     override def prepare(ir: Expression): Mini = {
@@ -559,6 +507,56 @@ case object TailCall extends IRPass with MiniPassFactory {
         } else {
           false
         }
+      }
+    }
+
+    /** Performs tail call analysis on a top-level definition in a module.
+      *
+      * @param moduleDefinition the top-level definition to analyse
+      * @return `definition`, annotated with tail call information
+      */
+    private def subTailModuleBinding(
+      moduleDefinition: Definition
+    ): Unit = {
+      moduleDefinition match {
+        case method: definition.Method.Conversion =>
+          tailCandidates.put(method.body, true)
+          method.updateMetadata(TAIL_META)
+        case method @ definition.Method.Explicit(_, body, _, _, _) =>
+          tailCandidates.put(body, true)
+          method.updateMetadata(TAIL_META)
+        case _: definition.Method.Binding =>
+          throw new CompilerError(
+            "Sugared method definitions should not occur during tail call " +
+            "analysis."
+          )
+        case _: Definition.Type =>
+          moduleDefinition.updateMetadata(
+            TAIL_META
+          )
+        case _: Definition.SugaredType =>
+          throw new CompilerError(
+            "Complex type definitions should not be present during " +
+            "tail call analysis."
+          )
+        case _: Comment.Documentation =>
+          throw new CompilerError(
+            "Documentation should not exist as an entity during tail call analysis."
+          )
+        case _: Type.Ascription =>
+          throw new CompilerError(
+            "Type signatures should not exist at the top level during " +
+            "tail call analysis."
+          )
+        case _: Name.BuiltinAnnotation =>
+          throw new CompilerError(
+            "Annotations should already be associated by the point of " +
+            "tail call analysis."
+          )
+        case ann: Name.GenericAnnotation =>
+          tailCandidates.put(ann.expression, true)
+          ann.updateMetadata(TAIL_META)
+        case _: Error =>
       }
     }
 
@@ -587,6 +585,7 @@ case object TailCall extends IRPass with MiniPassFactory {
           )
         case Expression.Block(_, returnValue, _, _, _) =>
           if (isInTailPosition) {
+            expression.updateMetadata(TAIL_META)
             tailCandidates.put(returnValue, true)
           }
         case _ =>
