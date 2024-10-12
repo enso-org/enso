@@ -4,16 +4,10 @@ import org.enso.compiler.core.Implicits.{AsDiagnostics, AsMetadata}
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
-import org.enso.compiler.core.ir.expression.{
-  Application,
-  Case,
-  Comment,
-  Foreign
-}
+import org.enso.compiler.core.ir.expression.{Application, Case, Comment}
 import org.enso.compiler.core.ir.{
   CallArgument,
   DefinitionArgument,
-  Empty,
   Expression,
   Function,
   Module,
@@ -47,8 +41,7 @@ class TailCallMini(
     new IdentityHashMap[IR, Boolean]()
 ) extends MiniIRPass {
 
-  private val tailMeta    = new MetadataPair(this, TailPosition.Tail)
-  private val notTailMeta = new MetadataPair(this, TailPosition. /*Not*/ Tail)
+  private val tailMeta = new MetadataPair(this, TailPosition.Tail)
 
   override type Metadata = TailCall.TailPosition
 
@@ -128,25 +121,18 @@ class TailCallMini(
           arg.updateMetadata(tailMeta)
         }
         app
-      case lambda @ Function.Lambda(args, _, _, _, _, _) =>
-        args.foreach { arg =>
-          arg.updateMetadata(notTailMeta)
-        }
-        lambda
       case _ => ir
     }
 
     irWithUpdatedChildren match {
       case _: Name.GenericAnnotation =>
         ir.updateMetadata(tailMeta)
-      case _: Pattern =>
-        ir.updateMetadata(notTailMeta)
       case expr: Expression => analyseExpression(expr)
       case _ =>
         if (isInTailPosition) {
           ir.updateMetadata(tailMeta)
         } else {
-          ir.updateMetadata(notTailMeta)
+          ir
         }
     }
   }
@@ -227,10 +213,6 @@ class TailCallMini(
         expression.addDiagnostic(Warning.WrongTco(expression.location.orNull))
       else expression
     expressionWithWarning match {
-      case empty: Empty =>
-        empty.updateMetadata(notTailMeta)
-      case foreign: Foreign =>
-        foreign.updateMetadata(notTailMeta)
       case _: Comment =>
         throw new CompilerError(
           "Comments should not be present during tail call analysis."
@@ -239,7 +221,7 @@ class TailCallMini(
         if (isInTailPosition) {
           expressionWithWarning.updateMetadata(tailMeta)
         } else {
-          expressionWithWarning.updateMetadata(notTailMeta)
+          expressionWithWarning
         }
     }
   }
