@@ -503,6 +503,7 @@ case object TailCall extends IRPass with MiniPassFactory {
         val initialState = tailCandidates.remove(null)
         if (initialState) {
           tailCandidates.put(ir, true)
+          ir.updateMetadata(TAIL_META)
           initialState
         } else {
           false

@@ -152,7 +152,8 @@ class TailCallTest extends MiniPassTest {
           val binding = ir.asInstanceOf[Expression.Binding]
           binding.getMetadata(TailCall) shouldEqual Some(TailPosition.Tail)
           binding.expression.getMetadata(TailCall) shouldEqual None
-        }
+        },
+        true
       )
     }
 
