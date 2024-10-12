@@ -113,7 +113,7 @@ trait MiniPassTest extends CompilerTest {
     val expr = parseExpression(expression)
     val preprocessedExpr =
       megaPassManager.runPassesInline(expr, inlineCtx)
-    megaPassManager.runPassesInline(preprocessedExpr, inlineCtx)
+    megaPass.runExpression(preprocessedExpr, inlineCtx)
   }
 
   def preprocessExpressionWithMiniPass(
