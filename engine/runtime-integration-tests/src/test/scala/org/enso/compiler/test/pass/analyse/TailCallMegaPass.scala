@@ -28,6 +28,8 @@ import org.enso.compiler.core.ir.{
 }
 import org.enso.compiler.core.{CompilerError, IR}
 import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.analyse.TailCall
+import org.enso.compiler.pass.analyse.TailCall.TailPosition
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.resolve.{ExpressionAnnotations, GlobalNames}
 
@@ -62,7 +64,7 @@ case object TailCallMegaPass extends IRPass {
 
   override lazy val invalidatedPasses: Seq[IRPass] = List()
 
-  private lazy val TAIL_META = new MetadataPair(this, TailPosition.Tail)
+  private lazy val TAIL_META = new MetadataPair(TailCall, TailPosition.Tail)
 
   /** Analyses tail call state for expressions in a module.
     *
@@ -479,42 +481,6 @@ case object TailCallMegaPass extends IRPass {
             defaultValue =
               default.map(x => analyseExpression(x, isInTailPosition = false))
           )
-    }
-  }
-
-  /** Expresses the tail call state of an IR Node. */
-  sealed trait TailPosition extends IRPass.IRMetadata {
-
-    /** A boolean representation of the expression's tail state. */
-    def isTail: Boolean
-  }
-  object TailPosition {
-
-    /** The expression is in a tail position and can be tail call optimised.
-      * If the expression is not in tail-call position, it has no metadata attached.
-      */
-    final case object Tail extends TailPosition {
-      override val metadataName: String = "TailCall.TailPosition.Tail"
-      override def isTail: Boolean      = true
-
-      override def duplicate(): Option[IRPass.IRMetadata] = Some(Tail)
-
-      /** @inheritdoc */
-      override def prepareForSerialization(compiler: Compiler): Tail.type = this
-
-      /** @inheritdoc */
-      override def restoreFromSerialization(
-        compiler: Compiler
-      ): Option[Tail.type] = Some(this)
-    }
-
-    /** Implicitly converts the tail position data into a boolean.
-      *
-      * @param tailPosition the tail position value
-      * @return the boolean value corresponding to `tailPosition`
-      */
-    implicit def toBool(tailPosition: TailPosition): Boolean = {
-      tailPosition.isTail
     }
   }
 
