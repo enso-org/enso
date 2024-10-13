@@ -28,7 +28,7 @@ class PassManagerTest extends CompilerTest {
     ComplexType,
     FunctionBinding,
     GenerateMethodBodies,
-    SectionsToBinOp,
+    SectionsToBinOp.INSTANCE,
     OperatorToFunction,
     LambdaShorthandToLambda,
     IgnoredBindings,

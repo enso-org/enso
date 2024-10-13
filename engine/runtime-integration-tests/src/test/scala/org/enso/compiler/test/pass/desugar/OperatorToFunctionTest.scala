@@ -197,7 +197,7 @@ case object OperatorToFunctionTestPass extends IRPass {
 
   override lazy val precursorPasses: Seq[IRPass] = List(
     GenerateMethodBodies,
-    SectionsToBinOp
+    SectionsToBinOp.INSTANCE
   )
   override lazy val invalidatedPasses: Seq[IRPass] = List(
     AliasAnalysis,

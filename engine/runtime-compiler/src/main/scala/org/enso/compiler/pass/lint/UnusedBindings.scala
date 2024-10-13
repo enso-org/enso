@@ -40,7 +40,7 @@ case object UnusedBindings extends IRPass {
     LambdaShorthandToLambda,
     NestedPatternMatch,
     OperatorToFunction,
-    SectionsToBinOp
+    SectionsToBinOp.INSTANCE
   )
   override lazy val invalidatedPasses: Seq[IRPass] = List()
 

@@ -1,4 +1,4 @@
-package org.enso.compiler.pass.desugar
+package org.enso.compiler.test.pass.desugar
 
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.ir.{
@@ -23,12 +23,12 @@ import org.enso.compiler.pass.lint.UnusedBindings
   *
   * - A [[FreshNameSupply]].
   */
-case object SectionsToBinOp extends IRPass {
+case object SectionsToBinOpMegaPass extends IRPass {
   override type Metadata = IRPass.Metadata.Empty
   override type Config   = IRPass.Configuration.Default
 
   override lazy val precursorPasses: Seq[IRPass] = List(
-    GenerateMethodBodies
+    org.enso.compiler.pass.desugar.GenerateMethodBodies
   )
   override lazy val invalidatedPasses: Seq[IRPass] = List(
     AliasAnalysis,

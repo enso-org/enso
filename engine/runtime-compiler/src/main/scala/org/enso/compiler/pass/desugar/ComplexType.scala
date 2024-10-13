@@ -64,7 +64,7 @@ case object ComplexType extends IRPass {
       LambdaShorthandToLambda,
       NestedPatternMatch,
       OperatorToFunction,
-      SectionsToBinOp,
+      SectionsToBinOp.INSTANCE,
       TailCall,
       UnusedBindings
     )

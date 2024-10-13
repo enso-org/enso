@@ -44,7 +44,7 @@ case object CachePreferenceAnalysis extends IRPass {
     GenerateMethodBodies,
     LambdaShorthandToLambda,
     OperatorToFunction,
-    SectionsToBinOp
+    SectionsToBinOp.INSTANCE
   )
 
   override lazy val invalidatedPasses: Seq[IRPass] = List()

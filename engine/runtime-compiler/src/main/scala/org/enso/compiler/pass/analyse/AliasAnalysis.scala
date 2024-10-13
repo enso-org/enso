@@ -77,7 +77,7 @@ case object AliasAnalysis extends IRPass {
   override lazy val precursorPasses: Seq[IRPass] = List(
     FunctionBinding,
     GenerateMethodBodies,
-    SectionsToBinOp,
+    SectionsToBinOp.INSTANCE,
     OperatorToFunction,
     LambdaShorthandToLambda
   )

@@ -71,7 +71,7 @@ case object LambdaConsolidate extends IRPass {
     IgnoredBindings,
     LambdaShorthandToLambda,
     OperatorToFunction,
-    SectionsToBinOp
+    SectionsToBinOp.INSTANCE
   )
   override lazy val invalidatedPasses: Seq[IRPass] = List(
     AliasAnalysis,

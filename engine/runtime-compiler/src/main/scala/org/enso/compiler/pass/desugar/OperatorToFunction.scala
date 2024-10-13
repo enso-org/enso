@@ -19,7 +19,7 @@ case object OperatorToFunction extends IRPass with MiniPassFactory {
 
   override lazy val precursorPasses: Seq[IRPass] = List(
     GenerateMethodBodies,
-    SectionsToBinOp
+    SectionsToBinOp.INSTANCE
   )
   override lazy val invalidatedPasses: Seq[IRPass] = List(
     AliasAnalysis,

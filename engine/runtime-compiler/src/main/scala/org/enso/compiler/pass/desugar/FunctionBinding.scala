@@ -53,7 +53,7 @@ case object FunctionBinding extends IRPass {
     LambdaShorthandToLambda,
     NestedPatternMatch,
     OperatorToFunction,
-    SectionsToBinOp,
+    SectionsToBinOp.INSTANCE,
     TailCall
   )
 

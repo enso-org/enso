@@ -61,7 +61,7 @@ class PassesTest extends CompilerTest {
           BindingAnalysis,
           ModuleNameConflicts,
           MethodDefinitions,
-          SectionsToBinOp,
+          SectionsToBinOp.INSTANCE,
           OperatorToFunction,
           LambdaShorthandToLambda,
           ImportSymbolAnalysis,

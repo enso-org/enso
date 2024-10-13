@@ -30,7 +30,7 @@ case object LambdaShorthandToLambda extends IRPass with MiniPassFactory {
     FunctionBinding,
     GenerateMethodBodies,
     OperatorToFunction,
-    SectionsToBinOp
+    SectionsToBinOp.INSTANCE
   )
   override lazy val invalidatedPasses: Seq[IRPass] = List(
     AliasAnalysis,

@@ -51,7 +51,7 @@ case object TailCall extends IRPass with MiniPassFactory {
   override lazy val precursorPasses: Seq[IRPass] = List(
     FunctionBinding,
     GenerateMethodBodies,
-    SectionsToBinOp,
+    SectionsToBinOp.INSTANCE,
     OperatorToFunction,
     LambdaShorthandToLambda,
     GlobalNames

@@ -55,7 +55,7 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
     FunctionBinding,
     GenerateMethodBodies,
     OperatorToFunction,
-    SectionsToBinOp
+    SectionsToBinOp.INSTANCE
   )
   override lazy val invalidatedPasses: Seq[IRPass] = List(
     AliasAnalysis,
