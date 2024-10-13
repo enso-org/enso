@@ -25,10 +25,6 @@ public final class MetadataStorage {
     this.metadata = init;
   }
 
-  public int size() {
-    return metadata.size();
-  }
-
   /**
    * Adds a new metadata entity to the pass metadata, or updates it if it already exists for a given
    * pass.
