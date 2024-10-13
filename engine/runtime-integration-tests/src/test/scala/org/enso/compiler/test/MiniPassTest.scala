@@ -3,12 +3,7 @@ package org.enso.compiler.test
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.EnsoParser
 import org.enso.compiler.core.ir.{Expression, Module}
-import org.enso.compiler.pass.{
-  IRPass,
-  MiniPassFactory,
-  MiniPassTraverser,
-  PassManager
-}
+import org.enso.compiler.pass.{IRPass, MiniIRPass, MiniPassFactory, PassManager}
 
 trait MiniPassTest extends CompilerTest {
   def testName: String
@@ -103,7 +98,7 @@ trait MiniPassTest extends CompilerTest {
     val miniPass = miniPassFactory.createForModuleCompilation(moduleCtx)
     val preprocessedModule =
       megaPassManager.runPassesOnModule(module, moduleCtx)
-    MiniPassTraverser.compileModuleWithMiniPass(preprocessedModule, miniPass)
+    MiniIRPass.compile(classOf[Module], preprocessedModule, miniPass)
   }
 
   def preprocessExpressionWithMegaPass(
@@ -124,7 +119,7 @@ trait MiniPassTest extends CompilerTest {
     val miniPass = miniPassFactory.createForInlineCompilation(inlineCtx)
     val preprocessedExpr =
       megaPassManager.runPassesInline(expr, inlineCtx)
-    MiniPassTraverser.compileInlineWithMiniPass(preprocessedExpr, miniPass)
+    MiniIRPass.compile(classOf[Expression], preprocessedExpr, miniPass)
   }
 
   private def parseModule(source: String): Module = {

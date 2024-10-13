@@ -19,8 +19,8 @@ import org.enso.compiler.pass.analyse.{
 }
 import org.enso.compiler.pass.{
   IRPass,
+  MiniIRPass,
   MiniPassFactory,
-  MiniPassTraverser,
   PassConfiguration,
   PassManager
 }
@@ -160,7 +160,7 @@ class OperatorToFunctionTest extends MiniPassTest {
     "be translated to functions" in {
       val miniPass = OperatorToFunction.createForInlineCompilation(ctx)
       val miniRes =
-        MiniPassTraverser.compileInlineWithMiniPass(operator, miniPass)
+        MiniIRPass.compile(classOf[Expression], operator, miniPass)
       miniRes shouldEqual operatorFn
     }
 
@@ -176,7 +176,7 @@ class OperatorToFunctionTest extends MiniPassTest {
 
       val miniPass = OperatorToFunction.createForInlineCompilation(ctx)
       val miniRes =
-        MiniPassTraverser.compileInlineWithMiniPass(recursiveIR, miniPass)
+        MiniIRPass.compile(classOf[Expression], recursiveIR, miniPass)
       miniRes shouldEqual recursiveIRResult
     }
   }

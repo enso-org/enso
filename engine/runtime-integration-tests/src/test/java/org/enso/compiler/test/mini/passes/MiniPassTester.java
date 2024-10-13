@@ -10,7 +10,6 @@ import org.enso.compiler.data.CompilerConfig;
 import org.enso.compiler.pass.IRPass;
 import org.enso.compiler.pass.MiniIRPass;
 import org.enso.compiler.pass.MiniPassFactory;
-import org.enso.compiler.pass.MiniPassTraverser;
 import org.enso.compiler.pass.PassConfiguration;
 import org.enso.compiler.test.CompilerTests;
 import org.enso.pkg.QualifiedName;
@@ -28,7 +27,7 @@ public abstract class MiniPassTester {
       throw new IllegalArgumentException("Mini pass does not support module compilation");
     }
     var megaPassResult = megaPass.runModule(ir, moduleContext);
-    var miniPassResult = MiniPassTraverser.compileModuleWithMiniPass(ir, miniPass);
+    var miniPassResult = MiniIRPass.compile(Module.class, ir, miniPass);
     try {
       CompilerTests.assertIR(
           "Mini pass and mega pass results are equal", megaPassResult, miniPassResult);

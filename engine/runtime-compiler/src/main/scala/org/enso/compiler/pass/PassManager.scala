@@ -101,10 +101,7 @@ class PassManager(
         pass match {
           case miniFactory: MiniPassFactory =>
             val miniPass = miniFactory.createForModuleCompilation(newContext)
-            MiniPassTraverser.compileModuleWithMiniPass(
-              intermediateIR,
-              miniPass
-            )
+            MiniIRPass.compile(classOf[Module], intermediateIR, miniPass)
           case _ =>
             pass.runModule(intermediateIR, newContext)
         }
@@ -160,7 +157,8 @@ class PassManager(
         pass match {
           case miniFactory: MiniPassFactory =>
             val miniPass = miniFactory.createForInlineCompilation(newContext)
-            MiniPassTraverser.compileInlineWithMiniPass(
+            MiniIRPass.compile(
+              classOf[Expression],
               intermediateIR,
               miniPass
             )

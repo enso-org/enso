@@ -119,4 +119,28 @@ public abstract class MiniIRPass implements ProcessingPass {
   public static MiniIRPass combine(MiniIRPass first, MiniIRPass second) {
     return ChainedMiniPass.chain(first, second);
   }
+
+  /**
+   * Takes an IR element of given type {@code irType} and transforms it by provided {@link
+   * MiniIRPass}. When assertions are on, the resulting IR is checked with {@link
+   * #checkPostCondition} method of provided {@code miniPass}.
+   *
+   * @param <T> the in and out type of IR
+   * @param irType class of the requested IR type
+   * @param ir the IR element (not {@code null})
+   * @param miniPass the pass to apply
+   * @return the transformed IR
+   */
+  public static <T extends IR> T compile(Class<T> irType, T ir, MiniIRPass miniPass) {
+    var newIr = MiniPassTraverser.compileRecursively(ir, miniPass);
+    assert irType.isInstance(newIr)
+        : "Expected "
+            + irType.getName()
+            + " but got "
+            + newIr.getClass().getName()
+            + " by "
+            + miniPass;
+    assert miniPass.checkPostCondition(newIr) : "Post condition failed for " + miniPass;
+    return irType.cast(newIr);
+  }
 }

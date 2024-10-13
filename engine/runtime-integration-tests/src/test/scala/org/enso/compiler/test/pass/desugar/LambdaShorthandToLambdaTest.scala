@@ -14,7 +14,7 @@ import org.enso.compiler.core.ir.{
 import org.enso.compiler.core.ir.expression.{Application, Case}
 import org.enso.compiler.pass.desugar.LambdaShorthandToLambda
 import org.enso.compiler.pass.{
-  MiniPassTraverser,
+  MiniIRPass,
   PassConfiguration,
   PassGroup,
   PassManager
@@ -54,7 +54,7 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
     def desugarMini(implicit inlineContext: InlineContext): Expression = {
       val miniPass =
         LambdaShorthandToLambda.createForInlineCompilation(inlineContext)
-      MiniPassTraverser.compileInlineWithMiniPass(ir, miniPass)
+      MiniIRPass.compile(classOf[Expression], ir, miniPass)
     }
   }
 
