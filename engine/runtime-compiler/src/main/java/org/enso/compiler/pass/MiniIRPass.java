@@ -98,4 +98,25 @@ public abstract class MiniIRPass implements ProcessingPass {
   public boolean checkPostCondition(IR ir) {
     return true;
   }
+
+  /**
+   * Name of the mini pass.
+   *
+   * @return by default it returns name of the implementing class
+   */
+  @Override
+  public String toString() {
+    return getClass().getName();
+  }
+
+  /**
+   * Combines two mini IR passes into one that delegates to both of them.
+   *
+   * @param first first mini pass (can be {@code null})
+   * @param second second mini pass
+   * @return a combined pass that calls both non-{@code null} of the provided passes
+   */
+  public static MiniIRPass combine(MiniIRPass first, MiniIRPass second) {
+    return ChainedMiniPass.chain(first, second);
+  }
 }
