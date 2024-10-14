@@ -403,7 +403,7 @@ export default function Chat(props: ChatProps) {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { isFocusVisible } = aria.useFocusVisible()
   const { focusWithinProps } = aria.useFocusWithin({
-    onFocusWithin: (event) => {
+    onFocusWithin: (event: FocusEvent) => {
       if (
         isFocusVisible &&
         !isOpen &&
