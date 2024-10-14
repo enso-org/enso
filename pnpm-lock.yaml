@@ -473,9 +473,9 @@ importers:
       d3:
         specifier: ^7.4.0
         version: 7.9.0
-      enso-chat:
+      enso-support:
         specifier: git://github.com/enso-org/enso-bot
-        version: enso-support@https://codeload.github.com/enso-org/enso-bot/tar.gz/aa903b6e639a31930ee4fff55c5639e4471fa48d
+        version: https://codeload.github.com/enso-org/enso-bot/tar.gz/aa903b6e639a31930ee4fff55c5639e4471fa48d
       fast-check:
         specifier: ^3.15.0
         version: 3.19.0
