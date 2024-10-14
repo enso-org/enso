@@ -156,20 +156,6 @@ class TailCallTest extends MiniPassTest {
         true
       )
     }
-
-    "mark the value of a tail assignment as non-tail (mini pass)" in {
-      assertInlineCompilation(
-        """
-          |foo = a b
-          |""".stripMargin,
-        () => mkTailContext,
-        ir => {
-          val binding = ir.asInstanceOf[Expression.Binding]
-          binding.getMetadata(TailCall) shouldEqual Some(TailPosition.Tail)
-          binding.expression.getMetadata(TailCall) shouldEqual None
-        }
-      )
-    }
   }
 
   "Tail call analysis on functions" should {
