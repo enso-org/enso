@@ -15,6 +15,7 @@ import * as backendModule from '#/services/Backend'
 // The number of bytes in 1 megabyte.
 const MB_BYTES = 1_000_000
 const S3_CHUNK_SIZE_MB = Math.round(backendModule.S3_CHUNK_SIZE_BYTES / MB_BYTES)
+const TOAST_SUCCESS_AUTO_CLOSE_MS = 5_000
 
 // ============================
 // === DefineBackendMethods ===
@@ -296,7 +297,11 @@ export function useUploadFileMutation(backend: Backend) {
         )) {
           parts.push(await uploadFileChunkMutation.mutateAsync([url, file, i]))
           toast.update(toastId, {
-            render: getText('uploadLargeFileStatus', (i + 1) * S3_CHUNK_SIZE_MB, fileSizeMB),
+            render: getText(
+              'uploadLargeFileStatus',
+              Math.min((i + 1) * S3_CHUNK_SIZE_MB, fileSizeMB),
+              fileSizeMB,
+            ),
           })
         }
         const result = await uploadFileEndMutation.mutateAsync([
@@ -309,7 +314,11 @@ export function useUploadFileMutation(backend: Backend) {
             fileName: params.fileName,
           },
         ])
-        toast.update(toastId, { type: 'success', render: getText('uploadLargeFileSuccess') })
+        toast.update(toastId, {
+          type: 'success',
+          render: getText('uploadLargeFileSuccess'),
+          autoClose: TOAST_SUCCESS_AUTO_CLOSE_MS,
+        })
         return result
       } catch (error) {
         toastAndLog(toastId, 'uploadLargeFileError', error)
