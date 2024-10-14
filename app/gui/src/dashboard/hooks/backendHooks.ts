@@ -2,6 +2,7 @@
 import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
+import { toast } from 'react-toastify'
 
 import * as backendQuery from 'enso-common/src/backendQuery'
 
@@ -10,7 +11,6 @@ import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
-import { toast } from 'react-toastify'
 
 // ============================
 // === DefineBackendMethods ===

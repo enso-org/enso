@@ -937,8 +937,8 @@ export default class RemoteBackend extends Backend {
   ): Promise<backend.S3MultipartPart> {
     const start = index * backend.S3_CHUNK_SIZE_BYTES
     const end = Math.min(start + backend.S3_CHUNK_SIZE_BYTES, file.size)
-    const blob = file.slice(start, end)
-    const response = await fetch(url, { method: 'POST', body: file.slice(start, end) })
+    const body = file.slice(start, end)
+    const response = await fetch(url, { method: 'PUT', body })
     const eTag = response.headers.get('ETag')
     if (!responseIsSuccessful(response) || eTag == null) {
       return await this.throw(response, 'uploadFileChunkBackendError')
