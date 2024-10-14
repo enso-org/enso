@@ -146,7 +146,7 @@ GatherLicenses.distributions := Seq(
     "engine",
     file("distribution/engine/THIRD-PARTY"),
     Distribution.sbtProjects(
-      runtime,
+      `runtime-and-langs`,
       `engine-runner`,
       `language-server`
     )
@@ -2649,7 +2649,7 @@ lazy val runtime = (project in file("engine/runtime"))
     version := ensoVersion,
     commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
-    libraryDependencies ++= GraalVM.langsPkgs ++ Seq(
+    libraryDependencies ++= Seq(
       "org.apache.commons"   % "commons-lang3"           % commonsLangVersion,
       "org.apache.tika"      % "tika-core"               % tikaVersion,
       "com.lihaoyi"         %% "fansi"                   % fansiVersion,
@@ -2657,6 +2657,7 @@ lazy val runtime = (project in file("engine/runtime"))
       "org.graalvm.sdk"      % "polyglot-tck"            % graalMavenPackagesVersion % "provided",
       "org.graalvm.truffle"  % "truffle-api"             % graalMavenPackagesVersion % "provided",
       "org.graalvm.truffle"  % "truffle-dsl-processor"   % graalMavenPackagesVersion % "provided",
+      "org.graalvm.regex"    % "regex"                   % graalMavenPackagesVersion % "provided",
       "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion        % "provided",
       "org.scalacheck"      %% "scalacheck"              % scalacheckVersion         % Test,
       "org.scalactic"       %% "scalactic"               % scalacticVersion          % Test,
@@ -2743,6 +2744,14 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(`connected-lock-manager`)
   .dependsOn(testkit % Test)
 
+lazy val `runtime-and-langs` = (project in file("engine/runtime-and-langs"))
+  .settings(
+    libraryDependencies ++= {
+      GraalVM.modules ++ GraalVM.langsPkgs
+    }
+  )
+  .dependsOn(runtime)
+
 /** A project holding all the runtime integration tests. These tests require, among other things,
   * the `org.enso.runtime` JPMS module, so it is easier to keep them in a separate project.
   * For standard unit tests, use `runtime/Test`.
@@ -2771,6 +2780,7 @@ lazy val `runtime-integration-tests` =
         "junit"                % "junit"                        % junitVersion              % Test,
         "com.github.sbt"       % "junit-interface"              % junitIfVersion            % Test,
         "org.hamcrest"         % "hamcrest-all"                 % hamcrestVersion           % Test,
+        "org.yaml"             % "snakeyaml"                    % snakeyamlVersion,
         "org.slf4j"            % "slf4j-api"                    % slf4jVersion
       ),
       Test / fork := true,
@@ -3441,7 +3451,7 @@ lazy val `engine-runner` = project
     Compile / run / mainClass := Some("org.enso.runner.Main"),
     commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
-    libraryDependencies ++= Seq(
+    libraryDependencies ++= GraalVM.modules ++ Seq(
       "org.graalvm.polyglot"    % "polyglot"                % graalMavenPackagesVersion,
       "org.graalvm.sdk"         % "polyglot-tck"            % graalMavenPackagesVersion % Provided,
       "commons-cli"             % "commons-cli"             % commonsCliVersion,
@@ -3675,8 +3685,7 @@ lazy val launcher = project
           "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
           "-H:IncludeResources=.*Main.enso$"
         ),
-        includeRuntime = false,
-        mainClass      = Some("org.enso.launcher.cli.Main")
+        mainClass = Some("org.enso.launcher.cli.Main")
       )
       .dependsOn(assembly)
       .dependsOn(VerifyReflectionSetup.run)
@@ -3833,6 +3842,7 @@ lazy val `bench-processor` = (project in file("lib/scala/bench-processor"))
       "org.graalvm.polyglot" % "polyglot"                 % graalMavenPackagesVersion % "provided",
       "junit"                % "junit"                    % junitVersion              % Test,
       "com.github.sbt"       % "junit-interface"          % junitIfVersion            % Test,
+      "org.graalvm.regex"    % "regex"                    % graalMavenPackagesVersion % Test,
       "org.graalvm.truffle"  % "truffle-api"              % graalMavenPackagesVersion % Test
     ),
     Compile / javacOptions := ((Compile / javacOptions).value ++

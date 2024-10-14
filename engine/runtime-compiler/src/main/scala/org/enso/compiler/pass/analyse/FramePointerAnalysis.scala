@@ -12,7 +12,8 @@ import org.enso.compiler.core.ir.{
   Function,
   Module,
   Name,
-  Pattern
+  Pattern,
+  Type
 }
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition.Method
@@ -163,6 +164,9 @@ case object FramePointerAnalysis extends IRPass {
         caseExpr.branches.foreach { branch =>
           processCaseBranch(branch)
         }
+      case asc: Type.Ascription =>
+        processExpression(asc.typed, graph)
+        processExpression(asc.signature, graph)
       case _ => ()
     }
     if (updateSymbols) {

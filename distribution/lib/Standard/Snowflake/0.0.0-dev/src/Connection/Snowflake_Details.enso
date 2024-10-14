@@ -36,8 +36,10 @@ type Snowflake_Details
 
        Arguments:
        - options: Overrides for the connection properties.
-    connect : Connection_Options -> Snowflake_Connection
-    connect self options =
+    connect : Connection_Options -> Boolean -> Snowflake_Connection
+    connect self options (allow_data_links : Boolean = True) =
+        # TODO use this once #11294 is done
+        _ = allow_data_links
         properties = options.merge self.jdbc_properties
 
         ## Cannot use default argument values as gets in an infinite loop if you do.

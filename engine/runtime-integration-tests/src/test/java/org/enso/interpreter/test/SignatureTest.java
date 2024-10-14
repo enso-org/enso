@@ -973,6 +973,59 @@ public class SignatureTest extends ContextTest {
     }
   }
 
+  @Test
+  public void returnTypeNoCheckJustSignature() throws Exception {
+    final URI uri = new URI("memory://rts.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+                type Integer
+
+                plusChecked a b =
+                    x:Integer
+                    x = a + b
+                    x
+                """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var plusChecked = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "plusChecked");
+    assertEquals(5, plusChecked.execute(2, 3).asInt());
+    var res = plusChecked.execute("a", "b");
+    assertEquals("ab", res.asString());
+  }
+
+  @Test
+  public void returnTypeCheckByLastStatement() throws Exception {
+    final URI uri = new URI("memory://rts.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+                from Standard.Base import Integer
+
+                plusChecked a b =
+                    x = a + b
+                    x:Integer
+                """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var plusChecked = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "plusChecked");
+    assertEquals(5, plusChecked.execute(2, 3).asInt());
+    try {
+      var res = plusChecked.execute("a", "b");
+      fail("Expecting an exception, not: " + res);
+    } catch (PolyglotException e) {
+      assertContains("expected expression to be Integer, but got Text", e.getMessage());
+    }
+  }
+
   /**
    * Similar scenario to {@code returnTypeCheckOptInError}, but with the opt out signature the check
    * is not currently performed.

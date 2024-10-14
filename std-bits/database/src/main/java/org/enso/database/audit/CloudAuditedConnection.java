@@ -22,7 +22,7 @@ public final class CloudAuditedConnection extends AuditedConnection {
     super(underlying);
     metadata = new ObjectNode(JsonNodeFactory.instance);
     if (relatedAssetId != null) {
-      metadata.put("asset_id", relatedAssetId);
+      metadata.put("dataLinkAssetId", relatedAssetId);
     }
     try {
       metadata.put("connectionUri", underlying.getMetaData().getURL());

@@ -1,1 +1,1 @@
-export default ['app/gui2/vitest.config.ts', 'app/ide-desktop/lib/dashboard/vitest.config.ts']
+export default ['app/gui/vitest.config.ts']
