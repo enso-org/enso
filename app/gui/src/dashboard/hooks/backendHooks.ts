@@ -6,8 +6,11 @@ import * as reactQuery from '@tanstack/react-query'
 import * as backendQuery from 'enso-common/src/backendQuery'
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { useToastAndLog } from '#/hooks/toastAndLogHooks'
+import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
+import { toast } from 'react-toastify'
 
 // ============================
 // === DefineBackendMethods ===
@@ -264,30 +267,42 @@ export function useUploadFileMutation(backend: Backend) {
     backendMutationOptions(backend, 'uploadFileEnd'),
   )
   return useEventCallback(async (params: backendModule.UploadFileRequestParams, file: Blob) => {
+    const { getText } = useText()
+    const toastAndLog = useToastAndLog()
     if (
       backend.type === backendModule.BackendType.local ||
       file.size < backendModule.MAXIMUM_SINGLE_FILE_SIZE
     ) {
       return await uploadFileMutation.mutateAsync([params, file])
     } else {
-      const { sourcePath, uploadId, presignedUrls } = await uploadFileStartMutation.mutateAsync([
-        { fileName: params.fileName },
-        file,
-      ])
-      const parts: backendModule.S3MultipartPart[] = []
-      for (const [url, i] of Array.from(presignedUrls, (url, i) => [url, i] as const)) {
-        parts.push(await uploadFileChunkMutation.mutateAsync([url, file, i]))
+      try {
+        const preliminaryPartCount = Math.ceil(file.size / backendModule.MAXIMUM_SINGLE_FILE_SIZE)
+        const toastId = toast.loading(getText('uploadingLargeFileStatus', 0, preliminaryPartCount))
+        const { sourcePath, uploadId, presignedUrls } = await uploadFileStartMutation.mutateAsync([
+          { fileName: params.fileName },
+          file,
+        ])
+        const parts: backendModule.S3MultipartPart[] = []
+        for (const [url, i] of Array.from(presignedUrls, (url, i) => [url, i] as const)) {
+          parts.push(await uploadFileChunkMutation.mutateAsync([url, file, i]))
+          toast.loading(getText('uploadingLargeFileStatus', 0, preliminaryPartCount), { toastId })
+        }
+        const result = await uploadFileEndMutation.mutateAsync([
+          {
+            parentDirectoryId: params.parentDirectoryId,
+            parts,
+            sourcePath: sourcePath,
+            uploadId: uploadId,
+            assetId: params.fileId,
+            fileName: params.fileName,
+          },
+        ])
+        toast.success(getText('uploadingLargeFileStatus', 0, preliminaryPartCount), { toastId })
+        return result
+      } catch (error) {
+        toastAndLog('uploadingLargeFileError', error)
+        throw error
       }
-      return await uploadFileEndMutation.mutateAsync([
-        {
-          parentDirectoryId: params.parentDirectoryId,
-          parts,
-          sourcePath: sourcePath,
-          uploadId: uploadId,
-          assetId: params.fileId,
-          fileName: params.fileName,
-        },
-      ])
     }
   })
 }

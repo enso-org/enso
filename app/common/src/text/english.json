@@ -484,6 +484,8 @@
   "youHaveNoUserGroupsAdmin": "This organization has no user groups. You can create one using the button above.",
   "youHaveNoUserGroupsNonAdmin": "This organization has no user groups. You can create one using the button above.",
   "xIsUsingTheProject": "'$0' is currently using the project",
+  "uploadingLargeFileStatus": "Uploading large file, $0/$1 parts uploaded...",
+  "uploadingLargeFileError": "Could not upload large file",
 
   "enableMultitabs": "Enable Multi-Tabs",
   "enableMultitabsDescription": "Open multiple projects at the same time.",
