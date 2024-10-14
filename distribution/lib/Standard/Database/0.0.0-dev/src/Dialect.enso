@@ -23,10 +23,10 @@ import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.SQLite.SQLite_Dialect
 import project.Internal.Statement_Setter.Statement_Setter
+import project.Dialect_Flag.Dialect_Flag
 import project.SQL.SQL_Builder
 import project.SQL_Statement.SQL_Statement
 import project.SQL_Type.SQL_Type
-from project.Dialect_Flags import all
 from project.Errors import SQL_Error, Unsupported_Database_Operation
 from project.Feature import Feature
 from project.Internal.JDBC_Connection import JDBC_Connection
@@ -140,26 +140,6 @@ type Dialect
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
-       Specifies if the Database backend supports WITH clauses in nested queries.
-    supports_nested_with_clause : Boolean
-    supports_nested_with_clause self =
-        Unimplemented.throw "This is an interface only."
-
-    ## PRIVATE
-       Specifies if the Database distinguishes a separate `NaN` value for
-       floating point columns. Some databases will not be able to distinguish
-       NaN from NULL.
-    supports_separate_nan : Boolean
-    supports_separate_nan self =
-        Unimplemented.throw "This is an interface only."
-
-    ## PRIVAITE
-       Specifies implementation details flags.
-    dialect_flags : Dialect_Flags
-    dialect_flags -> Dialect_Flags =
-        Unimplemented.throw "This is an interface only."
-
-    ## PRIVATE
        Specifies how the database creates temp tables.
     temp_table_style : Temp_Table_Style
     temp_table_style self =
@@ -210,6 +190,12 @@ type Dialect
        Checks if a feature is supported by the dialect.
     is_feature_supported self feature:Feature -> Boolean =
         _ = feature
+        Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
+       Checks a dialect flag
+    flagged self flag:Dialect_Flag -> Boolean =
+        _ = flag
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE

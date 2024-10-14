@@ -3,7 +3,7 @@
  * APIs to the renderer via the contextBridge API. To learn more, visit:
  * https://www.electronjs.org/docs/latest/tutorial/tutorial-preload. */
 
-import type * as dashboard from 'enso-dashboard'
+import type * as accessToken from 'enso-common/src/accessToken'
 
 import * as debug from '@/debug'
 import * as ipc from '@/ipc'
@@ -126,7 +126,7 @@ exposeInMainWorld(AUTHENTICATION_API_KEY, {
    *
    * The backend doesn't have access to Electron's `localStorage` so we need to save access token
    * to a file. Then the token will be used to sign cloud API requests. */
-  saveAccessToken: (accessTokenPayload: dashboard.AccessToken | null) => {
+  saveAccessToken: (accessTokenPayload: accessToken.AccessToken | null) => {
     electron.ipcRenderer.send(ipc.Channel.saveAccessToken, accessTokenPayload)
   },
 })
