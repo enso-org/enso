@@ -166,7 +166,7 @@ function EditorInternal(props: EditorInternalProps) {
   const gtagEvent = gtagHooks.useGtagEvent()
 
   const localBackend = backendProvider.useLocalBackend()
-  const remoteBackend = backendProvider.useRemoteBackend()
+  const remoteBackend = backendProvider.useRemoteBackendStrict()
 
   const logEvent = React.useCallback(
     (message: string, projectId?: string | null, metadata?: object | null) => {

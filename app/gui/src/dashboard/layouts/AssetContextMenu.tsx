@@ -36,6 +36,7 @@ import ManagePermissionsModal from '#/modals/ManagePermissionsModal'
 import * as backendModule from '#/services/Backend'
 import * as localBackendModule from '#/services/LocalBackend'
 
+import { useUploadFileMutation } from '#/hooks/backendHooks'
 import {
   useSetAssetPanelProps,
   useSetIsAssetPanelTemporarilyVisible,
@@ -74,7 +75,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
 
   const { user } = authProvider.useFullUserSession()
   const { setModal } = modalProvider.useSetModal()
-  const remoteBackend = backendProvider.useRemoteBackend()
+  const remoteBackend = backendProvider.useRemoteBackendStrict()
   const localBackend = backendProvider.useLocalBackend()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
@@ -99,6 +100,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     : isCloud ? encodeURI(pathRaw)
     : pathRaw
   const copyMutation = copyHooks.useCopy({ copyText: path ?? '' })
+  const uploadFileToCloudMutation = useUploadFileMutation(remoteBackend)
 
   const { isFeatureUnderPaywall } = billingHooks.usePaywall({ plan: user.plan })
   const isUnderPaywall = isFeatureUnderPaywall('share')
@@ -281,7 +283,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                     // (cloud) backend. The user may change to the cloud backend
                     // while this request is in progress, however this is
                     // uncommon enough that it is not worth the added complexity.
-                    await remoteBackend.uploadFile(
+                    await uploadFileToCloudMutation(
                       {
                         fileName: `${asset.title}.enso-project`,
                         fileId: null,

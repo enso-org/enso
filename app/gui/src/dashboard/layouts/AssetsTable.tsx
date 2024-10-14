@@ -55,7 +55,11 @@ import AssetEventType from '#/events/AssetEventType'
 import type { AssetListEvent } from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
 import { useAutoScroll } from '#/hooks/autoScrollHooks'
-import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
+import {
+  backendMutationOptions,
+  useBackendQuery,
+  useUploadFileMutation,
+} from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useIntersectionRatio } from '#/hooks/intersectionHooks'
 import { useOpenProject } from '#/hooks/projectHooks'
@@ -449,7 +453,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const createSecretMutation = useMutation(backendMutationOptions(backend, 'createSecret'))
   const updateSecretMutation = useMutation(backendMutationOptions(backend, 'updateSecret'))
   const createDatalinkMutation = useMutation(backendMutationOptions(backend, 'createDatalink'))
-  const uploadFileMutation = useMutation(backendMutationOptions(backend, 'uploadFile'))
+  const uploadFileMutation = useUploadFileMutation(backend)
   const getProjectDetailsMutation = useMutation(
     backendMutationOptions(backend, 'getProjectDetails'),
   )
@@ -1783,15 +1787,14 @@ export default function AssetsTable(props: AssetsTableProps) {
                       toastAndLog('uploadProjectError', error)
                     })
                 } else {
-                  uploadFileMutation
-                    .mutateAsync([
-                      {
-                        fileId,
-                        fileName: `${title}.${extension}`,
-                        parentDirectoryId: asset.parentId,
-                      },
-                      file,
-                    ])
+                  uploadFileMutation(
+                    {
+                      fileId,
+                      fileName: `${title}.${extension}`,
+                      parentDirectoryId: asset.parentId,
+                    },
+                    file,
+                  )
                     .then(({ id }) => {
                       addIdToSelection(id)
                     })
@@ -1804,14 +1807,12 @@ export default function AssetsTable(props: AssetsTableProps) {
                 break
               }
               case assetIsFile(asset): {
-                void uploadFileMutation
-                  .mutateAsync([
-                    { fileId, fileName: asset.title, parentDirectoryId: asset.parentId },
-                    file,
-                  ])
-                  .then(({ id }) => {
-                    addIdToSelection(id)
-                  })
+                void uploadFileMutation(
+                  { fileId, fileName: asset.title, parentDirectoryId: asset.parentId },
+                  file,
+                ).then(({ id }) => {
+                  addIdToSelection(id)
+                })
 
                 break
               }

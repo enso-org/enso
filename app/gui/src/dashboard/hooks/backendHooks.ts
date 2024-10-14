@@ -252,7 +252,7 @@ export function useListUserGroupsWithUsers(
   }, [listUserGroupsQuery.data, listUsersQuery.data])
 }
 
-export function useUploadFile(backend: Backend) {
+export function useUploadFileMutation(backend: Backend) {
   const uploadFileMutation = reactQuery.useMutation(backendMutationOptions(backend, 'uploadFile'))
   const uploadFileStartMutation = reactQuery.useMutation(
     backendMutationOptions(backend, 'uploadFileStart'),
