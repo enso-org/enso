@@ -12,6 +12,10 @@ import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 
+// The number of bytes in 1 megabyte.
+const MB_BYTES = 1_000_000
+const S3_CHUNK_SIZE_MB = Math.round(backendModule.S3_CHUNK_SIZE_BYTES / MB_BYTES)
+
 // ============================
 // === DefineBackendMethods ===
 // ============================
@@ -274,12 +278,12 @@ export function useUploadFileMutation(backend: Backend) {
   return useEventCallback(async (params: backendModule.UploadFileRequestParams, file: Blob) => {
     if (
       backend.type === backendModule.BackendType.local ||
-      file.size < backendModule.MAXIMUM_SINGLE_FILE_SIZE
+      file.size < backendModule.MAXIMUM_SINGLE_FILE_SIZE_BYTES
     ) {
       return await uploadFileMutation.mutateAsync([params, file])
     } else {
-      const preliminaryPartCount = Math.ceil(file.size / backendModule.MAXIMUM_SINGLE_FILE_SIZE)
-      const toastId = toast.loading(getText('uploadLargeFileStatus', 0, preliminaryPartCount))
+      const fileSizeMB = Math.ceil(file.size / MB_BYTES)
+      const toastId = toast.loading(getText('uploadLargeFileStatus', 0, fileSizeMB))
       try {
         const { sourcePath, uploadId, presignedUrls } = await uploadFileStartMutation.mutateAsync([
           { fileName: params.fileName },
@@ -291,7 +295,7 @@ export function useUploadFileMutation(backend: Backend) {
           (presignedUrl, index) => [presignedUrl, index] as const,
         )) {
           parts.push(await uploadFileChunkMutation.mutateAsync([url, file, i]))
-          toast.loading(getText('uploadLargeFileStatus', i + 1, presignedUrls.length), {
+          toast.loading(getText('uploadLargeFileStatus', (i + 1) * S3_CHUNK_SIZE_MB, fileSizeMB), {
             toastId,
           })
         }
