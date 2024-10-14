@@ -22,7 +22,7 @@ SRCS = [
     ":tsconfig_scripts",
     ":icon_metadata",
     "vite.config.ts",
-    "tailwind.config.js",
+    "tailwind.config.ts",
     "package.json",
     "index.html",
 ] + glob(["src/**", "public/**", "project-manager-shim-middleware/**"], [ICON_GENERATED_DIR + "/**"])

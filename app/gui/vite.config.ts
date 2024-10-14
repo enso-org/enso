@@ -1,5 +1,3 @@
-/// <reference types="histoire" />
-
 import react from '@vitejs/plugin-react'
 import vue from '@vitejs/plugin-vue'
 import { COOP_COEP_CORP_HEADERS } from 'enso-common'

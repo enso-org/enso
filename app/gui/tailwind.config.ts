@@ -1,12 +1,13 @@
 /** @file Configuration for Tailwind. */
 import { fileURLToPath } from 'node:url'
+import type { Config } from 'tailwindcss'
 import animate from 'tailwindcss-animate'
 import reactAriaComponents from 'tailwindcss-react-aria-components'
 import plugin from 'tailwindcss/plugin.js'
 
 // The names come from a third-party API and cannot be changed.
 /* eslint-disable no-restricted-syntax, @typescript-eslint/naming-convention, @typescript-eslint/no-magic-numbers */
-export default /** @satisfies {import('tailwindcss').Config} */ ({
+export default {
   content: [
     fileURLToPath(new URL('./src/**/*.tsx', import.meta.url)),
     fileURLToPath(new URL('./src/**/*.ts', import.meta.url)),
@@ -170,8 +171,8 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'drive-accessed-data-column': 'var(--drive-accessed-data-column-width)',
         'drive-docs-column': 'var(--drive-docs-column-width)',
       },
-      minWidth: ({ theme }) => ({ .../** @type {{}}*/ (theme('width')) }),
-      maxWidth: ({ theme }) => ({ .../** @type {{}}*/ (theme('width')) }),
+      minWidth: ({ theme }) => ({ ...theme('width') }),
+      maxWidth: ({ theme }) => ({ ...theme('width') }),
       height: {
         row: 'var(--row-height)',
         'table-row': 'var(--table-row-height)',
@@ -191,8 +192,8 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'manage-labels-list': 'var(--manage-labels-list-height)',
         'search-suggestions-list': 'var(--search-suggestions-list-height)',
       },
-      minHeight: ({ theme }) => ({ .../** @type {{}}*/ (theme('height')) }),
-      maxHeight: ({ theme }) => ({ .../** @type {{}}*/ (theme('height')) }),
+      minHeight: ({ theme }) => ({ ...theme('height') }),
+      maxHeight: ({ theme }) => ({ ...theme('height') }),
       opacity: {
         full: '100%',
         unimportant: 'var(--unimportant-opacity)',
@@ -657,4 +658,4 @@ inset 0 -36px 51px -51px #00000014`,
       addVariant('not-selected', '&:where([data-rac]):not([data-selected])')
     }),
   ],
-})
+} satisfies Config
