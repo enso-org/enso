@@ -7,7 +7,9 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 
-@NodeInfo(shortName = "get_field", description = "A base for auto-generated Atom getters.")
+@NodeInfo(
+    shortName = "get_field",
+    description = "Returns a single field from an Atom based on the given index.")
 final class GetFieldNode extends GetFieldBaseNode {
   private final int index;
 

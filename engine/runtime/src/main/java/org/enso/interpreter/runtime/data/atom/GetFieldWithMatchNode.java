@@ -9,7 +9,9 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 
-@NodeInfo(shortName = "get_field", description = "A base for auto-generated Atom getters.")
+@NodeInfo(
+    shortName = "get_field_with_match",
+    description = "Finds an atom field in multiple constructors")
 final class GetFieldWithMatchNode extends GetFieldBaseNode {
 
   record GetterPair(AtomConstructor target, int index) {}
