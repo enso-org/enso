@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Data.Vector.Builder
 
 import Standard.Table.Row.Row
-from Standard.Table import Column, Excel_Workbook, Table
+from Standard.Table import Column, Excel_Workbook, Table, Value_Type
 
 import Standard.Database.DB_Column.DB_Column
 import Standard.Database.DB_Table.DB_Table
@@ -69,9 +69,9 @@ nothing_count col =
 whitespace_count : Column -> Integer | Nothing
 whitespace_count col =
     find_whitespace col = 
-        filtered = col.to_vector.filter (c-> c!=Nothing && (c.starts_with ' ' || c.ends_with ' '))
+        filtered = col.to_vector.filter (c-> c!=Nothing && (c.to_text.starts_with ' ' || c.to_text.ends_with ' '))
         filtered.length
-    if col.value_type.is_text then find_whitespace col else Nothing 
+    if (col.value_type == Value_Type.Mixed || col.value_type.is_text) then find_whitespace col else Nothing 
 
 ##PRIVATE
 nothing_count_vector : Vector -> Integer
