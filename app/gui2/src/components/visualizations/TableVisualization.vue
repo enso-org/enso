@@ -2,7 +2,6 @@
 import icons from '@/assets/icons.svg'
 import AgGridTableView from '@/components/shared/AgGridTableView.vue'
 import { SortModel, useTableVizToolbar } from '@/components/visualizations/tableVizToolbar'
-import { provideSelectionArrow } from '@/providers/selectionArrow'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
 import { useVisualizationConfig } from '@/util/visualizationBuiltins'
@@ -11,6 +10,7 @@ import type {
   CellClickedEvent,
   ColDef,
   ICellRendererParams,
+  ITooltipParams,
   SortChangedEvent,
 } from 'ag-grid-enterprise'
 import { computed, onMounted, ref, shallowRef, watchEffect, type Ref } from 'vue'
@@ -343,11 +343,15 @@ const customCellRenderer = (params: any) => {
   if (params.node.rowPinned === 'top') {
     const nothingPerecent = (params.value.numberOfNothing / params.value.total) * 100
     const wsPerecent = (params.value.numberOfWhitespace / params.value.total) * 100
+
+    const nothingVisibility = params.value.numberOfNothing === null ? 'hidden' : 'visible'
+    const whitespaceVisibility = params.value.numberOfWhitespace === null ? 'hidden' : 'visible'
+
     return `<div>
-    <div>
+    <div style="visibility:${nothingVisibility};">
       Nulls/Nothing: ${nothingPerecent.toFixed(2)}% ${createVisual(nothingPerecent)}
     </div>
-    <div>
+    <div style="visibility:${whitespaceVisibility};">
       Trailing/Leading WhiteSpace: ${wsPerecent.toFixed(2)}% ${createVisual(wsPerecent)}
     </div>
     </div>`
@@ -475,10 +479,14 @@ function toLinkField(fieldName: string, getChildAction?: string, castValueTypes?
       newNodeSelectorValues.value.headerName ? newNodeSelectorValues.value.headerName : fieldName,
     field: fieldName,
     onCellDoubleClicked: (params) => createNode(params, fieldName, getChildAction, castValueTypes),
-    tooltipValueGetter: () => {
-      return `Double click to view this ${newNodeSelectorValues.value.tooltipValue} in a separate component`
-    },
-    cellRenderer: (params: any) => `<div class='link'> ${params.value} </div>`,
+    tooltipValueGetter: (params: ITooltipParams) =>
+      params.node?.rowPinned === 'top' ?
+        null
+      : `Double click to view this ${newNodeSelectorValues.value.tooltipValue} in a separate component`,
+    cellRenderer: (params: ICellRendererParams) =>
+      params.node.rowPinned === 'top' ?
+        `<div> ${params.value}</div>`
+      : `<div class='link'> ${params.value} </div>`,
   }
 }
 
