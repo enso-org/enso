@@ -476,6 +476,11 @@ add_specs suite_builder =
             typ = Meta.Type.find fqn
             typ . should_equal meta_type
 
+    suite_builder.group "Engine Metadata" group_builder->
+        group_builder.specify "should return engine version" <|
+            version = Meta.engine_version
+            version.should_contain "Enso Engine Version:"
+
 main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
