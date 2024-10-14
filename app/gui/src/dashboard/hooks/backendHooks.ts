@@ -67,9 +67,9 @@ export type MutationMethod = DefineBackendMethods<
   | 'updateSecret'
   | 'updateUser'
   | 'uploadFile'
-  | 'uploadFileStart'
   | 'uploadFileChunk'
   | 'uploadFileEnd'
+  | 'uploadFileStart'
   | 'uploadOrganizationPicture'
   | 'uploadUserPicture'
 >
@@ -255,7 +255,12 @@ export function useListUserGroupsWithUsers(
   }, [listUserGroupsQuery.data, listUsersQuery.data])
 }
 
+/**
+ * Call "upload file" mutations for a file. Automatically uses multipart upload for large files.
+ */
 export function useUploadFileMutation(backend: Backend) {
+  const { getText } = useText()
+  const toastAndLog = useToastAndLog()
   const uploadFileMutation = reactQuery.useMutation(backendMutationOptions(backend, 'uploadFile'))
   const uploadFileStartMutation = reactQuery.useMutation(
     backendMutationOptions(backend, 'uploadFileStart'),
@@ -267,8 +272,6 @@ export function useUploadFileMutation(backend: Backend) {
     backendMutationOptions(backend, 'uploadFileEnd'),
   )
   return useEventCallback(async (params: backendModule.UploadFileRequestParams, file: Blob) => {
-    const { getText } = useText()
-    const toastAndLog = useToastAndLog()
     if (
       backend.type === backendModule.BackendType.local ||
       file.size < backendModule.MAXIMUM_SINGLE_FILE_SIZE
@@ -283,7 +286,10 @@ export function useUploadFileMutation(backend: Backend) {
           file,
         ])
         const parts: backendModule.S3MultipartPart[] = []
-        for (const [url, i] of Array.from(presignedUrls, (url, i) => [url, i] as const)) {
+        for (const [url, i] of Array.from(
+          presignedUrls,
+          (presignedUrl, index) => [presignedUrl, index] as const,
+        )) {
           parts.push(await uploadFileChunkMutation.mutateAsync([url, file, i]))
           toast.loading(getText('uploadingLargeFileStatus', 0, preliminaryPartCount), { toastId })
         }
