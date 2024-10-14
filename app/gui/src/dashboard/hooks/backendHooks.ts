@@ -251,3 +251,43 @@ export function useListUserGroupsWithUsers(
     }
   }, [listUserGroupsQuery.data, listUsersQuery.data])
 }
+
+export function useUploadFile(backend: Backend) {
+  const uploadFileMutation = reactQuery.useMutation(backendMutationOptions(backend, 'uploadFile'))
+  const uploadFileStartMutation = reactQuery.useMutation(
+    backendMutationOptions(backend, 'uploadFileStart'),
+  )
+  const uploadFileChunkMutation = reactQuery.useMutation(
+    backendMutationOptions(backend, 'uploadFileChunk'),
+  )
+  const uploadFileEndMutation = reactQuery.useMutation(
+    backendMutationOptions(backend, 'uploadFileEnd'),
+  )
+  return useEventCallback(async (params: backendModule.UploadFileRequestParams, file: Blob) => {
+    if (
+      backend.type === backendModule.BackendType.local ||
+      file.size < backendModule.MAXIMUM_SINGLE_FILE_SIZE
+    ) {
+      return await uploadFileMutation.mutateAsync([params, file])
+    } else {
+      const { sourcePath, uploadId, presignedUrls } = await uploadFileStartMutation.mutateAsync([
+        { fileName: params.fileName },
+        file,
+      ])
+      const parts: backendModule.S3MultipartPart[] = []
+      for (const [url, i] of Array.from(presignedUrls, (url, i) => [url, i] as const)) {
+        parts.push(await uploadFileChunkMutation.mutateAsync([url, file, i]))
+      }
+      return await uploadFileEndMutation.mutateAsync([
+        {
+          parentDirectoryId: params.parentDirectoryId,
+          parts,
+          sourcePath: sourcePath,
+          uploadId: uploadId,
+          assetId: params.fileId,
+          fileName: params.fileName,
+        },
+      ])
+    }
+  })
+}
