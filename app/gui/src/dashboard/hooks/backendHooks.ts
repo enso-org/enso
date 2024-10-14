@@ -279,7 +279,7 @@ export function useUploadFileMutation(backend: Backend) {
       return await uploadFileMutation.mutateAsync([params, file])
     } else {
       const preliminaryPartCount = Math.ceil(file.size / backendModule.MAXIMUM_SINGLE_FILE_SIZE)
-      const toastId = toast.loading(getText('uploadingLargeFileStatus', 0, preliminaryPartCount))
+      const toastId = toast.loading(getText('uploadLargeFileStatus', 0, preliminaryPartCount))
       try {
         const { sourcePath, uploadId, presignedUrls } = await uploadFileStartMutation.mutateAsync([
           { fileName: params.fileName },
@@ -291,7 +291,9 @@ export function useUploadFileMutation(backend: Backend) {
           (presignedUrl, index) => [presignedUrl, index] as const,
         )) {
           parts.push(await uploadFileChunkMutation.mutateAsync([url, file, i]))
-          toast.loading(getText('uploadingLargeFileStatus', 0, preliminaryPartCount), { toastId })
+          toast.loading(getText('uploadLargeFileStatus', i + 1, presignedUrls.length), {
+            toastId,
+          })
         }
         const result = await uploadFileEndMutation.mutateAsync([
           {
@@ -303,10 +305,10 @@ export function useUploadFileMutation(backend: Backend) {
             fileName: params.fileName,
           },
         ])
-        toast.success(getText('uploadingLargeFileStatus', 0, preliminaryPartCount), { toastId })
+        toast.success(getText('uploadLargeFileSuccess'), { toastId })
         return result
       } catch (error) {
-        toastAndLog(toastId, 'uploadingLargeFileError', error)
+        toastAndLog(toastId, 'uploadLargeFileError', error)
         throw error
       }
     }
