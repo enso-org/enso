@@ -47,12 +47,12 @@ public class IRProcessor extends AbstractProcessor {
     var irNodeTypeElem = (TypeElement) irNodeElem;
     var irNodeInterfaceName = irNodeTypeElem.getSimpleName().toString();
     var pkgName = packageName(irNodeTypeElem);
-    var newRecordName = irNodeInterfaceName + "Gen";
+    var newClassName = irNodeInterfaceName + "Gen";
     String newBinaryName;
     if (!pkgName.isEmpty()) {
-      newBinaryName = pkgName + "." + newRecordName;
+      newBinaryName = pkgName + "." + newClassName;
     } else {
-      newBinaryName = newRecordName;
+      newBinaryName = newClassName;
     }
     JavaFileObject srcGen = null;
     try {
@@ -61,16 +61,17 @@ public class IRProcessor extends AbstractProcessor {
       printError("Failed to create source file for IRNode", irNodeElem);
     }
     assert srcGen != null;
-    var irNodeElement = new IRNodeElement(processingEnv, irNodeTypeElem, newRecordName);
+    var irNodeElement = new IRNodeElement(processingEnv, irNodeTypeElem, newClassName);
     try {
       try (var lineWriter = new PrintWriter(srcGen.openWriter())) {
         var code =
             """
             $imports
 
-            public record $recordName (
+            public final class $className implements $interfaceName {
               $fields
-            ) implements $interfaceName {
+
+              $constructor
 
               public static Builder builder() {
                 return new Builder();
@@ -82,8 +83,9 @@ public class IRProcessor extends AbstractProcessor {
             }
             """
                 .replace("$imports", irNodeElement.imports())
+                .replace("$className", newClassName)
                 .replace("$fields", irNodeElement.fields())
-                .replace("$recordName", newRecordName)
+                .replace("$constructor", irNodeElement.constructor())
                 .replace("$interfaceName", irNodeInterfaceName)
                 .replace("$overrideIRMethods", irNodeElement.overrideIRMethods())
                 .replace("$builder", irNodeElement.builder());
@@ -93,7 +95,6 @@ public class IRProcessor extends AbstractProcessor {
     } catch (IOException e) {
       printError("Failed to write to source file for IRNode", irNodeElem);
     }
-    var childElems = findChildElements(irNodeElem);
   }
 
   private void processChildElem(Element childElem) {}

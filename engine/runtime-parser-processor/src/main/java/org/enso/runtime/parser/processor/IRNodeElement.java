@@ -19,7 +19,11 @@ import org.enso.runtime.parser.dsl.IRNode;
  */
 final class IRNodeElement {
   private final ProcessingEnvironment processingEnv;
-  private final String recordName;
+
+  /** Name of the class that is being generated. */
+  private final String className;
+
+  /** User defined fields - all the abstract parameterless methods, including the inherited ones. */
   private final List<Field> fields;
 
   private static final String IMPORTS =
@@ -38,14 +42,14 @@ import scala.collection.immutable.List;
 
   /**
    * @param processingEnv
-   * @param irNodeInterface
-   * @param recordName Simple name (non-qualified) of the newly generated record.
+   * @param irNodeInterface Type element of the interface annotated with {@link IRNode}.
+   * @param className Simple name (non-qualified) of the newly generated class.
    */
   IRNodeElement(
-      ProcessingEnvironment processingEnv, TypeElement irNodeInterface, String recordName) {
-    assert !recordName.contains(".") : "Record name should be simple, not qualified";
+      ProcessingEnvironment processingEnv, TypeElement irNodeInterface, String className) {
+    assert !className.contains(".") : "Class name should be simple, not qualified";
     this.processingEnv = processingEnv;
-    this.recordName = recordName;
+    this.className = className;
     this.fields = getAllFields(irNodeInterface);
   }
 
@@ -115,20 +119,22 @@ import scala.collection.immutable.List;
   }
 
   /**
-   * Returns string representation of record fields. Meant to be inside the generated record
-   * definition.
+   * Returns string representation of the class fields. Meant to be at the beginning of the class
+   * body.
    */
   String fields() {
     var userDefinedFields =
         fields.stream()
-            .map(field -> field.getSimpleTypeName() + " " + field.getName())
-            .collect(Collectors.joining(", " + System.lineSeparator()));
+            .map(field -> "private final " + field.getSimpleTypeName() + " " + field.getName())
+            .collect(Collectors.joining(";" + System.lineSeparator()));
     var code =
         """
-        $userDefinedFields,
-        DiagnosticStorage diagnostics,
-        MetadataStorage passData,
-        IdentifiedLocation location
+        $userDefinedFields;
+        // Not final on purpose
+        private DiagnosticStorage diagnostics;
+        private MetadataStorage passData;
+        private IdentifiedLocation location;
+        private UUID id;
         """
             .replace("$userDefinedFields", userDefinedFields);
     return indent(code, 2);
@@ -212,7 +218,7 @@ import scala.collection.immutable.List;
             .map(
                 field ->
                     """
-            $fieldType $fieldName;
+            private $fieldType $fieldName;
             """
                         .replace("$fieldName", field.getName())
                         .replace("$fieldType", field.getSimpleTypeName()))
@@ -255,10 +261,9 @@ import scala.collection.immutable.List;
 
           $fieldSetters
 
-          public $recordName build() {
+          public $className build() {
             validate();
-            // DiagnosticStorage, MetadataStorage, IdentifiedLocation are null initially.
-            return new $recordName($fieldList, null, null, null);
+            return new $className($fieldList);
           }
 
           private void validate() {
@@ -268,7 +273,7 @@ import scala.collection.immutable.List;
         """
             .replace("$fieldDeclarations", fieldDeclarations)
             .replace("$fieldSetters", fieldSetters)
-            .replace("$recordName", recordName)
+            .replace("$className", className)
             .replace("$fieldList", fieldList)
             .replace("$validationCode", validationCode);
     return indent(code, 2);
