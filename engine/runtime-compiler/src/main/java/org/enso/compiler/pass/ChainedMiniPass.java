@@ -34,8 +34,9 @@ final class ChainedMiniPass extends MiniIRPass {
 
   @Override
   public Expression transformExpression(Expression ir) {
-    var transformedIr = firstPass.transformExpression(ir);
-    return secondPass.transformExpression(transformedIr);
+    var fstIr = firstPass.transformExpression(ir);
+    var sndIr = secondPass.transformExpression(fstIr);
+    return sndIr;
   }
 
   @Override
