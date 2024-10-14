@@ -13,7 +13,6 @@ import com.oracle.truffle.api.interop.StopIterationException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
 import org.enso.interpreter.node.expression.builtin.meta.HashCodeNode;
@@ -40,13 +39,12 @@ public abstract class HashMapRemoveNode extends Node {
       EnsoHashMap ensoMap,
       Object key,
       @Shared("hash") @Cached HashCodeNode hashCodeNode,
-      @Shared("equals") @Cached EqualsNode equalsNode,
-      @Cached BranchProfile attachFullStackTraceProfile) {
+      @Shared("equals") @Cached EqualsNode equalsNode) {
     var mapBuilder = ensoMap.getMapBuilder(frame, false, hashCodeNode, equalsNode);
     if (mapBuilder.remove(frame, key, hashCodeNode, equalsNode)) {
       return mapBuilder.build();
     } else {
-      throw DataflowError.withDefaultTrace("No such key", null, attachFullStackTraceProfile);
+      throw DataflowError.withDefaultTrace("No such key", null);
     }
   }
 
