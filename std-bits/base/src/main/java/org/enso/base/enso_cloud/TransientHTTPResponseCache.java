@@ -11,15 +11,21 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.function.Predicate;
 import java.util.List;
-import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.Map;
+import java.util.Optional;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.stream.Collectors;
 
-import org.enso.base.enso_cloud.EnsoHttpResponse;
+import org.enso.base.net.URIWithSecrets;
 import org.graalvm.collections.Pair;
 
 /**
@@ -33,9 +39,12 @@ import org.graalvm.collections.Pair;
  * directly to the remote server.
  */
 public class TransientHTTPResponseCache {
+  TransientHTTPResponseCache() {}
   private static final Logger logger = Logger.getLogger(TransientHTTPResponseCache .class.getName());
 
   private static final int DEFAULT_TTL_SECONDS = 31536000;
+  private static long MAX_FILE_SIZE = 10 * 1024 * 1024;
+  private static long MAX_TOTAL_CACHE_SIZE = 10 * 1024 * 1024 * 1024;
 
   /**
    * This value is used for the current time when deciding if a cache entry is
@@ -43,13 +52,21 @@ public class TransientHTTPResponseCache {
    */
   private static ZonedDateTime nowOverrideTestOnly = null;
 
+  /**
+   * Used for testing file and cache size limits. These cannot be set to values
+   * larger than the real limits.
+   */
+  private static Optional<Long> maxFileSizeOverrideTestOnly = Optional.empty();
+  private static Optional<Long> maxTotalCacheSizeOverrideTestOnly  = Optional.empty();
+
   private static final Map<String, CacheEntry> cache = new HashMap<>();
 
   static EnsoHttpResponse makeRequest(
+      URIWithSecrets unresolvedURI,
       URI resolvedURI,
       List<Pair<String, String>> resolvedHeaders,
       RequestMaker requestMaker)
-      throws IOException, InterruptedException {
+      throws IOException, InterruptedException, ResponseTooLargeException {
     removeStaleEntries();
 
     var cacheKey = makeHashKey(resolvedURI, resolvedHeaders);
@@ -57,7 +74,7 @@ public class TransientHTTPResponseCache {
     if (cache.containsKey(cacheKey)) {
       return returnCachedResponse(cacheKey);
     } else {
-      return makeRequestAndCache(resolvedURI, resolvedHeaders, cacheKey, requestMaker);
+      return makeRequestAndCache(unresolvedURI, resolvedURI, resolvedHeaders, cacheKey, requestMaker);
     }
   }
 
@@ -68,10 +85,11 @@ public class TransientHTTPResponseCache {
   // IOExceptions thrown by the HTTP request are propagated; IOExceptions thrown
   // while storing the data in the cache are caught.
   private static EnsoHttpResponse makeRequestAndCache(
+      URIWithSecrets unresolvedURI,
       URI resolvedURI,
       List<Pair<String, String>> resolvedHeaders,
       String cacheKey,
-      RequestMaker requestMaker) throws InterruptedException, IOException {
+      RequestMaker requestMaker) throws InterruptedException, IOException, ResponseTooLargeException {
     assert !cache.containsKey(cacheKey);
 
     var response = requestMaker.run();
@@ -80,14 +98,30 @@ public class TransientHTTPResponseCache {
       return response;
     }
 
+    var sizeMaybe = response.headers().firstValue("content-length").map(Long::parseLong);
+    if (sizeMaybe.isPresent()) {
+      long size = sizeMaybe.get();
+      if (size > getMaxFileSize()) {
+        throw new ResponseTooLargeException(size, getMaxFileSize(), unresolvedURI.toString());
+      }
+      makeRoomFor(size);
+    }
+
     try {
       int ttl = calculateTTL(response.headers());
       ZonedDateTime expiry = getNow().plus(Duration.ofSeconds(ttl));
       int statusCode = response.statusCode();
       var headers = response.headers();
       String responseDataPath = downloadResponseData(response);
+      long size = new File(responseDataPath).length();
 
-      var cacheEntry = new CacheEntry(resolvedURI, headers, responseDataPath, statusCode, expiry);
+      if (sizeMaybe.isPresent() && size != sizeMaybe.get()) {
+        // If the file is larger than expected, we might have to remove some more old entries.
+        logger.log(Level.WARNING, "Downloaded size " + size + " != content-length value " + sizeMaybe.get());
+        removeFilesToSatisfyLimit();
+      }
+
+      var cacheEntry = new CacheEntry(resolvedURI, headers, responseDataPath, size, statusCode, expiry);
 
       cache.put(cacheKey, cacheEntry);
 
@@ -167,13 +201,94 @@ public class TransientHTTPResponseCache {
     }
   }
 
+  /**
+   * Remove old entries until there is enough room for a new file.
+   */
+  private static void makeRoomFor(long newFileSize) {
+    long totalSize = getTotalCacheSize() + newFileSize;
+    var sortedEntries = getSortedEntries();
+    var toRemove = new ArrayList<Map.Entry<String, CacheEntry>>();
+    for (var mapEntry : sortedEntries) {
+      System.out.println("AAA entry " + mapEntry.getValue().size() + " " + mapEntry);
+    }
+    for (var mapEntry : sortedEntries) {
+      if (totalSize <= getMaxTotalCacheSize()) {
+        break;
+      }
+      toRemove.add(mapEntry);
+      totalSize -= mapEntry.getValue().size();
+      System.out.println("AAA will remove " + mapEntry.getValue().size() + " " + totalSize + " " + mapEntry);
+    }
+    assert totalSize <= getMaxTotalCacheSize();
+    for (var mapEntry : toRemove) {
+      cache.remove(mapEntry.getKey());
+      removeCacheFile(mapEntry.getKey(), mapEntry.getValue());
+    }
+    System.out.println("AAA total now " + getTotalCacheSize() + " " + getMaxTotalCacheSize());
+  }
+
+  private static SortedSet<Map.Entry<String, CacheEntry>> getSortedEntries() {
+    var sortedEntries = new TreeSet<Map.Entry<String, CacheEntry>>(cacheEntrySizeComparator);
+    sortedEntries.addAll(cache.entrySet());
+    return sortedEntries;
+  }
+
+  /**
+   * Remove old entries until the total cache size is under the limit.
+   */
+  private static void removeFilesToSatisfyLimit() {
+    makeRoomFor(0L);
+  }
+
+  private static long getTotalCacheSize() {
+    //cache.values().stream().map(e -> e.size()).sum();
+    return cache.values().stream().collect(Collectors.summingLong(e -> e.size()));
+      /*
+      long totalSize = 0;
+      for (var ce : cache.values()) {
+        totalSize += ce.size();
+      }
+      return totalSize;
+      */
+  }
+
+  private static long getMaxFileSize() {
+    return maxFileSizeOverrideTestOnly.orElse(MAX_FILE_SIZE);
+  }
+
+  private static long getMaxTotalCacheSize() {
+    return maxTotalCacheSizeOverrideTestOnly.orElse(MAX_TOTAL_CACHE_SIZE);
+  }
+
   public static int getNumEntries() {
     return cache.size();
+  }
+
+  public static List<Long> eetFileSizesTestOnly() {
+    return new ArrayList<>(cache.values().stream().map(CacheEntry::size).collect(Collectors.toList()));
   }
 
   public static void setNowOverrideTestOnly(ZonedDateTime nowOverride) {
     //System.out.println("AAA zdt " + nowOverride);
     nowOverrideTestOnly = nowOverride;
+  }
+
+  public void setMaxFileSizeOverrideTestOnly(long maxFileSizeOverrideTestOnly_) {
+    assert maxFileSizeOverrideTestOnly_ <= MAX_FILE_SIZE;
+    maxFileSizeOverrideTestOnly = Optional.of(maxFileSizeOverrideTestOnly_);
+  }
+
+  public void clearMaxFileSizeOverrideTestOnly() {
+    maxFileSizeOverrideTestOnly = Optional.empty();
+  }
+
+  public void setMaxTotalCacheSizeOverrideTestOnly(long maxTotalCacheSizeOverrideTestOnly_) {
+    assert maxTotalCacheSizeOverrideTestOnly_ <= MAX_TOTAL_CACHE_SIZE;
+    maxTotalCacheSizeOverrideTestOnly = Optional.of(maxTotalCacheSizeOverrideTestOnly_);
+  }
+
+  public void clearMaxTotalCacheSizeOverrideTestOnly() {
+    maxTotalCacheSizeOverrideTestOnly = Optional.empty();
   }
 
   private static ZonedDateTime getNow() {
@@ -274,5 +389,7 @@ public class TransientHTTPResponseCache {
     throw (E) ex;
   }
 
-  private record CacheEntry(URI uri, HttpHeaders headers, String responseDataPath, int statusCode, ZonedDateTime expiry) {}
+  private record CacheEntry(URI uri, HttpHeaders headers, String responseDataPath, long size, int statusCode, ZonedDateTime expiry) {}
+
+  private static final Comparator<Map.Entry<String, CacheEntry>> cacheEntrySizeComparator = Comparator.comparingLong(me -> me.getValue().size());
 }

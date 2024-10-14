@@ -5,12 +5,14 @@ import project.Data.Numbers.Integer
 import project.Data.Pair.Pair
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
+import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Duration.Duration
 import project.Data.Vector.No_Wrap
 import project.Data.Vector.Vector
 import project.Enso_Cloud.Enso_Secret.Enso_Secret
 import project.Error.Error
 import project.Errors.Common.Forbidden_Operation
+import project.Errors.Common.Response_Too_Large
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Function.Function
 import project.Meta
@@ -106,7 +108,7 @@ type HTTP
        - req: The HTTP request to send using `self` HTTP client.
        - error_on_failure_code: Whether or not to throw an error if the response
          code is not a success code.
-    request : Request -> Boolean -> Boolean | Nothing -> Response ! Request_Error | HTTP_Error | Illegal_Argument
+    request : Request -> Boolean -> Boolean | Nothing -> Response ! Request_Error | HTTP_Error | Illegal_Argument | Response_Too_Large
     request self req error_on_failure_code=True (cache_policy:Cache_Policy = ..Default) =
         # Prevent request if the method is a write-like method and output context is disabled.
         check_output_context ~action =
@@ -129,7 +131,7 @@ type HTTP
                 Error.throw (Request_Error.Error (Meta.type_of exception . to_text) exception.getMessage)
             Panic.catch IllegalArgumentException handler=handler <| Panic.catch IOException handler=handler
 
-        handle_request_error <| Illegal_Argument.handle_java_exception <| check_output_context <| check_cache_policy <|
+        handle_request_error <| Illegal_Argument.handle_java_exception <| check_output_context <| check_cache_policy <| Response_Too_Large.handle_java_exception <|
             headers = resolve_headers req
             headers.if_not_error <|
                 body_publisher_and_boundary = resolve_body_to_publisher_and_boundary req.body
@@ -201,15 +203,30 @@ type HTTP
     clear_response_cache : Nothing
     clear_response_cache -> Nothing = TransientHTTPResponseCache.clear
 
-## PRIVATE
-   Returns the number of entries in the HTTP response cache. For testing only.
-http_get_num_response_cache_entries : Integer
-http_get_num_response_cache_entries -> Integer = TransientHTTPResponseCache.getNumEntries
+##
+    ## PRIVATE
+    Returns the number of entries in the HTTP response cache. For testing only.
+    http_get_num_response_cache_entries : Integer
+    http_get_num_response_cache_entries -> Integer = TransientHTTPResponseCache.getNumEntries
 
-## PRIVATE
-   Adjust the value of the current time for testing the TTL logic
-http_set_now_override_test_only : Nothing
-http_set_now_override_test_only now_override = TransientHTTPResponseCache.setNowOverrideTestOnly now_override
+    ## PRIVATE
+    Adjust the value of the current time for testing the TTL logic
+    http_set_now_override_test_only : Date_Time -> Nothing
+    http_set_now_override_test_only now_override = TransientHTTPResponseCache.setNowOverrideTestOnly now_override
+
+    ## PRIVATE
+    Adjust the maximum cache file size.
+    http_set_max_file_size_test_only : Integer -> Nothing
+    http_set_max_file_size_test_only max_file_size:Integer = TransientHTTPResponseCache.setMaxFileSizeOverrideTestOnly http_set_max_file_size
+
+    ## PRIVATE
+    Adjust the maximum total cache size.
+    http_set_max_total_cache_size_test_only : Integer -> Nothing
+    http_set_max_total_cache_size_test_only total_cache_size:Integer = TransientHTTPResponseCache.setMaxTotalCacheSizeOverrideTestOnly total_cache_size
+
+http_get_file_sizes_test_only : Vector Integer
+http_get_file_sizes_test_only -> Vector Integer = 
+    Vector.from_polyglot_array TransientHTTPResponseCache.getFileSizesTestOnly . sort Sort_Direction.Ascending
 
 ## PRIVATE
 parse_headers : Vector (Header | Pair Text Text) -> Vector Header

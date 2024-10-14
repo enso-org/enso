@@ -9,12 +9,9 @@ import java.net.http.HttpResponse;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.util.function.Supplier;
 import java.util.List;
 import java.util.Properties;
-import java.util.function.Supplier;
 
-import org.enso.base.enso_cloud.TransientHTTPResponseCache;
 import org.enso.base.net.URISchematic;
 import org.enso.base.net.URIWithSecrets;
 import org.graalvm.collections.Pair;
@@ -63,7 +60,7 @@ public final class EnsoSecretHelper extends SecretValueResolver {
       URIWithSecrets uri,
       List<Pair<String, HideableValue>> headers,
       boolean useCache)
-      throws IllegalArgumentException, IOException, InterruptedException {
+      throws IllegalArgumentException, IOException, InterruptedException, ResponseTooLargeException {
 
     // Build a new URI with the query arguments.
     URI resolvedURI = resolveURI(uri);
@@ -78,7 +75,7 @@ public final class EnsoSecretHelper extends SecretValueResolver {
     if (!useCache) {
       return requestMaker.run();
     } else {
-      return TransientHTTPResponseCache.makeRequest(resolvedURI, resolvedHeaders, requestMaker);
+      return TransientHTTPResponseCache.makeRequest(uri, resolvedURI, resolvedHeaders, requestMaker);
     }
   }
 
