@@ -7,7 +7,7 @@ import { toast } from 'react-toastify'
 import * as backendQuery from 'enso-common/src/backendQuery'
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useToastAndLog } from '#/hooks/toastAndLogHooks'
+import { useToastAndLogWithId } from '#/hooks/toastAndLogHooks'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
@@ -260,7 +260,7 @@ export function useListUserGroupsWithUsers(
  */
 export function useUploadFileMutation(backend: Backend) {
   const { getText } = useText()
-  const toastAndLog = useToastAndLog()
+  const toastAndLog = useToastAndLogWithId()
   const uploadFileMutation = reactQuery.useMutation(backendMutationOptions(backend, 'uploadFile'))
   const uploadFileStartMutation = reactQuery.useMutation(
     backendMutationOptions(backend, 'uploadFileStart'),
@@ -278,9 +278,9 @@ export function useUploadFileMutation(backend: Backend) {
     ) {
       return await uploadFileMutation.mutateAsync([params, file])
     } else {
+      const preliminaryPartCount = Math.ceil(file.size / backendModule.MAXIMUM_SINGLE_FILE_SIZE)
+      const toastId = toast.loading(getText('uploadingLargeFileStatus', 0, preliminaryPartCount))
       try {
-        const preliminaryPartCount = Math.ceil(file.size / backendModule.MAXIMUM_SINGLE_FILE_SIZE)
-        const toastId = toast.loading(getText('uploadingLargeFileStatus', 0, preliminaryPartCount))
         const { sourcePath, uploadId, presignedUrls } = await uploadFileStartMutation.mutateAsync([
           { fileName: params.fileName },
           file,
@@ -306,7 +306,7 @@ export function useUploadFileMutation(backend: Backend) {
         toast.success(getText('uploadingLargeFileStatus', 0, preliminaryPartCount), { toastId })
         return result
       } catch (error) {
-        toastAndLog('uploadingLargeFileError', error)
+        toastAndLog(toastId, 'uploadingLargeFileError', error)
         throw error
       }
     }
