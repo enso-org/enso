@@ -14,6 +14,7 @@ import project.Suite_Config.Suite_Config
 import project.Test.Test
 import project.Test_Result.Test_Result
 
+polyglot java import java.lang.IllegalArgumentException
 polyglot java import java.lang.StringBuilder
 polyglot java import java.lang.System as Java_System
 
@@ -113,13 +114,16 @@ generate_github_error_annotation (title : Text) (message : Text) =
                 end = parts.at 1
                 start_field_name+"="+start+","+end_field_name+"="+end
     on_location_failing_to_parse caught_panic =
-        Test_Result.log_message "Failed to parse file location ["+location_match.to_display_text+"]: "+caught_panic.to_display_text
+        Test_Result.log_message "Failed to parse file location ["+location_match.to_display_text+"]: "+caught_panic.payload.to_display_text
         ""
     location_part = if location_match.is_nothing then "" else
         Panic.catch Any handler=on_location_failing_to_parse <|
             repo_root = enso_project.root.parent.parent.absolute.normalize
             path = File.new (location_match.get 1)
-            relative_path = repo_root.relativize path
+            ## We try to relativize the path, but if it fails, we just use the original path.
+               (It may fail eg. if the project root and the test files are on different drives -
+               very unlikely but not impossible if tests import other libraries located in weird places.)
+            relative_path = Panic.catch IllegalArgumentException (repo_root.relativize path) _->path
             lines_part = split_on_dash "line" "endLine" (location_match.get 2)
             columns_part = split_on_dash "col" "endColumn" (location_match.get 3)
             ",file="+(sanitize_parameter relative_path.path)+","+lines_part+","+columns_part
