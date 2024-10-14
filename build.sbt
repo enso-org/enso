@@ -293,6 +293,7 @@ lazy val enso = (project in file("."))
   .settings(version := "0.1")
   .aggregate(
     `akka-native`,
+    `akka-wrapper`,
     `benchmark-java-helpers`,
     `benchmarks-common`,
     `bench-processor`,
@@ -301,6 +302,7 @@ lazy val enso = (project in file("."))
     `connected-lock-manager`,
     `connected-lock-manager-server`,
     `desktop-environment`,
+    `directory-watcher-wrapper`,
     `distribution-manager`,
     downloader,
     editions,
@@ -311,13 +313,16 @@ lazy val enso = (project in file("."))
     `engine-runner`,
     `enso-test-java-helpers`,
     `exploratory-benchmark-java-helpers`,
+    `fansi-wrapper`,
     filewatcher,
     `http-test-helper`,
     `interpreter-dsl`,
     `interpreter-dsl-test`,
+    `jna-wrapper`,
     `json-rpc-server-test`,
     `json-rpc-server`,
     `language-server`,
+    `language-server-deps-wrapper`,
     launcher,
     `library-manager`,
     `library-manager-test`,
@@ -351,6 +356,7 @@ lazy val enso = (project in file("."))
     `runtime-suggestions`,
     `runtime-version-manager`,
     `runtime-version-manager-test`,
+    `scala-libs-wrapper`,
     `scala-yaml`,
     searcher,
     semver,
@@ -369,7 +375,8 @@ lazy val enso = (project in file("."))
     `test-utils`,
     `text-buffer`,
     `version-output`,
-    `ydoc-server`
+    `ydoc-server`,
+    `zio-wrapper`
   )
   .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
   .settings(
