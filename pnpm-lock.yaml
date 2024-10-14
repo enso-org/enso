@@ -124,6 +124,9 @@ importers:
       '@babel/parser':
         specifier: ^7.24.7
         version: 7.25.6
+      '@babel/plugin-syntax-import-attributes':
+        specifier: ^7.24.7
+        version: 7.24.7(@babel/core@7.25.2)
       '@codemirror/commands':
         specifier: ^6.6.0
         version: 6.6.0

@@ -75,6 +75,7 @@
     "@ag-grid-enterprise/core": "^31.1.1",
     "@ag-grid-enterprise/range-selection": "^31.1.1",
     "@babel/parser": "^7.24.7",
+    "@babel/plugin-syntax-import-attributes": "^7.24.7",
     "@codemirror/commands": "^6.6.0",
     "@codemirror/language": "^6.10.2",
     "@codemirror/lint": "^6.8.1",
