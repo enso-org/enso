@@ -168,10 +168,13 @@ type Test
         next_clue = case prev_clue of
             Clue.Value prev_add_clue -> (x -> prev_add_clue (add_clue x))
             _                        -> add_clue
+
+        # Set the new clue
         State.put Clue (Clue.Value next_clue)
-        result = behavior
-        State.put Clue prev_clue
-        result
+
+        # Run the behaviour, and restore the previous clue afterwards, even if the behaviour panics
+        Panic.with_finalizer (State.put Clue prev_clue) <|
+            behavior
 
     ## A helper method that retries the action a few times if it panics.
        It allows to make flaky tests more robust.

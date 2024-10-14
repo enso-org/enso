@@ -83,7 +83,6 @@ pub trait IsTargetSource {
     const RELEASE_DESIGNATOR_NAME: &'static str;
     const ARTIFACT_NAME_NAME: &'static str;
     const UPLOAD_ARTIFACT_NAME: &'static str;
-    const SIGN_ARTIFACTS: &'static str;
     const DEFAULT_OUTPUT_PATH: &'static str;
 
     type BuildInput: Clone + Debug + PartialEq + Args + Send + Sync;
@@ -105,7 +104,6 @@ macro_rules! source_args_hlp {
             const RELEASE_DESIGNATOR_NAME: &'static str = concat!($prefix, "-", "release");
             const ARTIFACT_NAME_NAME: &'static str = concat!($prefix, "-", "artifact-name");
             const UPLOAD_ARTIFACT_NAME: &'static str = concat!($prefix, "-", "upload-artifact");
-            const SIGN_ARTIFACTS: &'static str = concat!($prefix, "-", "sign-artifacts");
             const DEFAULT_OUTPUT_PATH: &'static str = concat!("dist/", $prefix);
 
             type BuildInput = $inputs;
@@ -119,14 +117,12 @@ pub enum Target {
     /// Build/Test the Rust part of the GUI.
     Wasm(wasm::Target),
     /// Build/Run the Vue-based GUI.
-    #[clap(alias = "gui2")]
     Gui(gui::Target),
     /// Enso Engine Runtime.
     Runtime(runtime::Target),
     /// Build/Get Project Manager bundle (includes Enso Engine with GraalVM Runtime).
     Backend(backend::Target),
     /// Build/Run/Test IDE bundle (includes Vue-based GUI and Project Manager).
-    #[clap(alias = "ide2")]
     Ide(ide::Target),
     /// Clean the repository. Keeps the IntelliJ's .idea directory intact. WARNING: This removes
     /// files that are not under version control in the repository subtree.
@@ -281,16 +277,6 @@ pub struct BuildDescription<Target: IsTargetSource> {
         action = clap::ArgAction::Set
     )]
     pub upload_artifact: bool,
-    #[clap(
-        name = Target::SIGN_ARTIFACTS,
-        long,
-        enso_env(),
-        default_value_t = ide_ci::actions::workflow::is_in_env(),
-        default_missing_value("true"),
-        num_args(0..=1),
-        action = clap::ArgAction::Set
-    )]
-    pub sign_artifacts:  bool,
 }
 
 #[derive(Args, Clone, PartialEq, Debug)]

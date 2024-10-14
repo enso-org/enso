@@ -1,7 +1,6 @@
 # all node modules
 node_modules
-app/gui2/node_modules
-app/dashboard/node_modules
+app/gui/node_modules
 app/common/node_modules
 app/ide-desktop/client/node_modules
 app/ide-desktop/icons/node_modules

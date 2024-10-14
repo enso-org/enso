@@ -7,8 +7,6 @@ import Standard.Table.Internal.Problem_Builder.Problem_Builder
 from Standard.Table import Aggregate_Column, Value_Type
 from Standard.Table.Aggregate_Column.Aggregate_Column import all
 
-from Standard.Database.Dialect_Flags import all
-
 import project.Connection.Connection.Connection
 import project.DB_Column.DB_Column
 import project.DB_Table.DB_Table
@@ -33,11 +31,13 @@ import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.SQLite.SQLite_Error_Mapper.SQLite_Error_Mapper
 import project.Internal.SQLite.SQLite_Type_Mapping.SQLite_Type_Mapping
 import project.Internal.Statement_Setter.Statement_Setter
+import project.Dialect_Flag.Dialect_Flag
 import project.SQL.SQL_Builder
 import project.SQL_Statement.SQL_Statement
 import project.SQL_Type.SQL_Type
 from project.Dialect import Temp_Table_Style
 from project.Errors import SQL_Error, Unsupported_Database_Operation
+from project.Feature import Feature
 from project.Internal.JDBC_Connection import JDBC_Connection
 
 ## PRIVATE
@@ -117,7 +117,7 @@ type SQLite_Dialect
         Nothing ->
             Order_Descriptor.Value internal_column.expression sort_direction collation=Nothing
         _ ->
-            if text_ordering.sort_digits_as_numbers then Error.throw (Unsupported_Database_Operation.Error "Natural ordering is not supported by the SQLite backend. You may need to materialize the Table to perform this operation.") else
+            if text_ordering.sort_digits_as_numbers then Error.throw (Unsupported_Database_Operation.Error "Natural ordering") else
                 case text_ordering.case_sensitivity of
                     Case_Sensitivity.Default ->
                         Order_Descriptor.Value internal_column.expression sort_direction collation=Nothing
@@ -125,7 +125,7 @@ type SQLite_Dialect
                         Order_Descriptor.Value internal_column.expression sort_direction collation="BINARY"
                     Case_Sensitivity.Insensitive locale -> case locale == Locale.default of
                         False ->
-                            Error.throw (Unsupported_Database_Operation.Error "Case insensitive ordering with custom locale is not supported by the SQLite backend. You may need to materialize the Table to perform this operation.")
+                            Error.throw (Unsupported_Database_Operation.Error "Case insensitive ordering with custom locale")
                         True ->
                             Order_Descriptor.Value internal_column.expression sort_direction collation="NOCASE"
 
@@ -180,23 +180,6 @@ type SQLite_Dialect
     needs_execute_query_for_type_inference self statement =
         _ = statement
         True
-
-    ## PRIVATE
-       Specifies if the Database backend supports WITH clauses in nested queries.
-    supports_nested_with_clause : Boolean
-    supports_nested_with_clause self = True
-
-    ## PRIVATE
-    supports_separate_nan : Boolean
-    supports_separate_nan self = False
-
-    ## PRIVAITE
-       Specifies implementation details flags.
-    dialect_flags : Dialect_Flags
-    dialect_flags self -> Dialect_Flags =
-        rounding = Rounding_Flags.Value supports_negative_decimal_places=False supports_float_decimal_places=True use_builtin_bankers=False
-        primary_key = Primary_Key_Flags.Value allows_nulls=True
-        Dialect_Flags.Value rounding=rounding primary_key=primary_key
 
     ## PRIVATE
        Specifies how the database creates temp tables.
@@ -272,9 +255,26 @@ type SQLite_Dialect
 
     ## PRIVATE
        Checks if an operation is supported by the dialect.
-    is_supported : Text -> Boolean
-    is_supported self operation =
-        self.dialect_operations.is_supported operation
+    is_operation_supported self operation:Text -> Boolean =
+        self.dialect_operations.is_operation_supported operation
+
+    ## PRIVATE
+       Checks if a feature is supported by the dialect.
+    is_feature_supported self feature:Feature -> Boolean =
+        _ = feature
+        True
+
+    ## PRIVATE
+       Checks a dialect flag
+    flagged self flag:Dialect_Flag -> Boolean =
+        case flag of
+            Dialect_Flag.Supports_Negative_Decimal_Places -> False
+            Dialect_Flag.Supports_Float_Decimal_Places -> True
+            Dialect_Flag.Use_Builtin_Bankers -> False
+            Dialect_Flag.Primary_Key_Allows_Nulls -> True
+            Dialect_Flag.Supports_Separate_NaN -> False
+            Dialect_Flag.Supports_Nested_With_Clause -> True
+            Dialect_Flag.Supports_Case_Sensitive_Columns -> False
 
     ## PRIVATE
        The default table types to use when listing tables.
@@ -310,7 +310,7 @@ type SQLite_Dialect
     prepare_metadata_for_period : Date_Period | Time_Period -> Value_Type -> Any
     prepare_metadata_for_period self period operation_input_type =
         _ = [period, operation_input_type]
-        Error.throw (Unsupported_Database_Operation.Error "SQLite backend does not support date/time operations.")
+        Error.throw (Unsupported_Database_Operation.Error "Date/time operations.")
 
     ## PRIVATE
        Returns true if the `replace` parameters are suppoerted by this backend.
@@ -404,7 +404,7 @@ make_dialect_operations =
 
 ## PRIVATE
 unsupported name =
-    Error.throw (Unsupported_Database_Operation.Error name+" is not supported by SQLite backend. You may need to materialize the table and perform the operation in-memory.")
+    Error.throw (Unsupported_Database_Operation.Error name)
 
 ## PRIVATE
 agg_count_is_null = Base_Generator.lift_unary_op "COUNT_IS_NULL" arg->

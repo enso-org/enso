@@ -38,19 +38,20 @@
     "@types/semver": "^7.5.8",
     "@types/tar": "^6.1.4",
     "@types/yargs": "^17.0.30",
+    "@playwright/test": "^1.45.0",
     "cross-env": "^7.0.3",
     "electron": "31.2.0",
     "electron-builder": "^24.13.3",
     "enso-common": "workspace:*",
-    "enso-dashboard": "workspace:*",
-    "enso-gui2": "workspace:*",
+    "enso-gui": "workspace:*",
     "enso-runner": "workspace:*",
     "esbuild": "^0.19.3",
     "esbuild-plugin-wasm": "^1.1.0",
     "fast-glob": "^3.2.12",
     "portfinder": "^1.0.32",
     "tsx": "^4.7.1",
-    "vite": "^5.3.5"
+    "vite": "^5.3.5",
+    "playwright": "^1.45.0"
   },
   "//": [
     "vite is required for the watch script",

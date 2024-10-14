@@ -1,5 +1,6 @@
 package org.enso.compiler.core;
 
+import java.util.Comparator;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -28,6 +29,23 @@ import scala.collection.immutable.List;
  * <p>See also: Note [IR Equality and hashing]
  */
 public interface IR {
+  /**
+   * Compares IR structure, but not metadata neither diagnostics. A special comparator used by
+   * <em>Persistance API</em> to perform some rare consistency checks.
+   */
+  public static final Comparator<IR> STRUCTURE_COMPARATOR =
+      (aIr, bIr) -> {
+        if (aIr == bIr) {
+          return 0;
+        }
+        var aCopy = aIr.duplicate(true, false, false, true);
+        var bCopy = bIr.duplicate(true, false, false, true);
+
+        if (aCopy.equals(bCopy)) {
+          return 0;
+        }
+        return System.identityHashCode(aIr) - System.identityHashCode(bIr);
+      };
 
   /**
    * Storage for metadata that the node has been tagged with as the result of various compiler
@@ -35,8 +53,17 @@ public interface IR {
    */
   MetadataStorage passData();
 
+  /**
+   * The nullable source location that the node corresponds to.
+   *
+   * @return the node location or {@code null}
+   */
+  IdentifiedLocation identifiedLocation();
+
   /** The source location that the node corresponds to. */
-  Option<IdentifiedLocation> location();
+  default Option<IdentifiedLocation> location() {
+    return Option.apply(identifiedLocation());
+  }
 
   /**
    * Sets the location for an IR node.

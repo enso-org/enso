@@ -1,0 +1,57 @@
+from Standard.Base import all
+import Standard.Base.Data.Numbers.Number_Parse_Error
+import Standard.Base.Errors.Common.Missing_Argument
+import Standard.Base.Errors.Common.Type_Error
+import Standard.Base.Errors.Illegal_State.Illegal_State
+import Standard.Base.Metadata.Widget.Text_Input
+
+import Standard.Database.Connection.Connection_Options.Connection_Options
+import Standard.Database.Connection.Credentials.Credentials
+
+import project.SQLServer_Connection.SQLServer_Connection
+
+type SQLServer_Details
+    ## Connect to a SQLServer database.
+
+       Arguments:
+       - host: The name of the server to connect to.
+       - credentials: The credentials to use for the connection.
+       - port: The port to connect to (defaults to 1433).
+       - database: The name of the database to connect to.
+    @host (Text_Input display=..Always)
+    @credentials Credentials.default_widget
+    SQLServer (host:Text=(Missing_Argument.throw "host")) (credentials:Credentials=(Missing_Argument.throw "credentials")) port:Integer=1433 database:Text="master"
+
+    ## PRIVATE
+       Attempt to resolve the constructor.
+    resolve : Function -> SQLServer_Details | Nothing
+    resolve constructor =
+        Panic.catch Type_Error (constructor:SQLServer_Details) _->Nothing
+
+    ## PRIVATE
+       Build the Connection resource.
+
+       Arguments:
+       - options: Overrides for the connection properties.
+    connect : Connection_Options -> SQLServer_Connection
+    connect self options =
+        properties = options.merge self.jdbc_properties
+        make_new database =
+            SQLServer_Details.SQLServer self.host self.credentials self.port (database.if_nothing self.database) . connect options
+
+        SQLServer_Connection.create self.jdbc_url properties make_new
+
+    ## PRIVATE
+       Provides the jdbc url for the connection.
+    jdbc_url : Text
+    jdbc_url self =
+        'jdbc:sqlserver://' + self.host + ':' + self.port.to_text
+
+    ## PRIVATE
+       Provides the properties for the connection.
+    jdbc_properties : Vector (Pair Text Text)
+    jdbc_properties self =
+        account = [Pair.new 'encrypt' 'false']
+        database = [Pair.new 'databaseName' self.database]
+        credentials = [Pair.new 'user' self.credentials.username, Pair.new 'password' self.credentials.password]
+        account + database + credentials

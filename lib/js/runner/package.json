@@ -15,18 +15,13 @@
     "build": "We are using tsup to be able to generate the bundled .d.ts file. It is the only solution that works. See the following link for reference: https://github.com/Microsoft/TypeScript/issues/4433"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
-    "lint": "eslint src"
+    "typecheck": "tsc --noEmit"
   },
   "bugs": {
     "url": "https://github.com/enso-org/enso/issues"
   },
   "devDependencies": {
     "@types/node": "^20.11.21",
-    "@typescript-eslint/eslint-plugin": "^7.15.0",
-    "@typescript-eslint/parser": "^7.15.0",
-    "eslint": "^8.49.0",
-    "eslint-plugin-jsdoc": "^46.8.1",
     "typescript": "^5.5.3"
   },
   "dependencies": {

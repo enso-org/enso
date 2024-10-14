@@ -201,6 +201,7 @@ impl RunContext {
         }
 
         prepare_simple_library_server.await??;
+
         Ok(())
     }
 
@@ -330,7 +331,6 @@ impl RunContext {
         // === Build project-manager distribution and native image ===
         let mut tasks = vec![];
         if self.config.build_engine_package() {
-            tasks.push("engine-runner/assembly");
             tasks.push("buildEngineDistribution");
         }
         if self.config.build_native_runner {

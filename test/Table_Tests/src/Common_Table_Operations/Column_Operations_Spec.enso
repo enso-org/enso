@@ -12,6 +12,7 @@ from Standard.Table import Bits, Value_Type, Column_Ref, Column
 from Standard.Table.Errors import all
 
 from Standard.Database.Errors import all
+import Standard.Database.Feature.Feature
 import Standard.Database.DB_Table.DB_Table
 
 from Standard.Test import all
@@ -145,6 +146,9 @@ type Connection_Data
         self.connection.close
 
 add_specs suite_builder setup =
+    if setup.is_feature_supported Feature.Column_Operations then (add_column_operation_specs suite_builder setup)
+
+add_column_operation_specs suite_builder setup =
     prefix = setup.prefix
     table_builder = setup.table_builder
     create_connection_fn = setup.create_connection_func
@@ -1139,6 +1143,27 @@ add_specs suite_builder setup =
             table.at "x" . round 16 . should_fail_with Illegal_Argument
 
         if setup.test_selection.supports_decimal_type then
+            group_builder.specify "ceil, floor and truncate should work correctly on Integers outside the java Long range" <|
+                positive_values = [9223372036854775806, 9223372036854775807, 9223372036854775808, 9223372036854775809, 9223372036854775807000000]
+                values = positive_values + positive_values.map .negate
+                values.map x->
+                    c = table_builder [["x", [x, -x]]] . at "x"
+                    c.ceil . to_vector . should_equal [x, -x]
+                    c.floor . to_vector . should_equal [x, -x]
+                    c.truncate . to_vector . should_equal [x, -x]
+
+        if setup.is_database.not then
+            group_builder.specify "ceil, floor and truncate should work correctly on Floats outside the java Long range" <|
+                positive_values = [9223372036854775000.0, 9223372036854776000.0, 9223372036854775807000000.0]
+                values = positive_values + positive_values.map .negate
+                values.map x->
+                    x_int = x.truncate
+                    c = table_builder [["x", [x, -x]]] . at "x"
+                    c.ceil . to_vector . should_equal [x_int, -x_int]
+                    c.floor . to_vector . should_equal [x_int, -x_int]
+                    c.truncate . to_vector . should_equal [x_int, -x_int]
+
+        if setup.test_selection.supports_decimal_type then
             group_builder.specify "ceil, floor and truncate should work correctly on Decimals" <|
                 c = table_builder [["X", [Decimal.new "123492233720368547758075678.25", Decimal.new "179243023788662739454197523.625", Decimal.new "-123492233720368547758075678.25", Decimal.new "-179243023788662739454197523.625"]]] . at "X"
                 c.value_type.is_decimal . should_be_true
@@ -1772,7 +1797,7 @@ add_specs suite_builder setup =
             group_builder.teardown <|
                 connection_data.teardown
 
-            if connection_data.connection.dialect.supports_nested_with_clause then
+            if connection_data.connection.dialect.flagged ..Supports_Nested_With_Clause then
                 group_builder.specify "Should allow the use of let-style CTEs" <|
                     t = table_builder [["X", [1, 2, 3, 4]], ["Y", [4, 3, 100, 200]], ["Z", [12.1, 23.4, -4.5, 44.33]]]
                     x = t.at "X"

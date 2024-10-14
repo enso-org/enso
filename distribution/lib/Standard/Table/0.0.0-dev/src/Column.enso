@@ -46,7 +46,6 @@ polyglot java import org.enso.table.data.column.operation.unary.IsNothingOperati
 polyglot java import org.enso.table.data.column.operation.unary.NotOperation
 polyglot java import org.enso.table.data.column.operation.unary.TextLengthOperation
 polyglot java import org.enso.table.data.column.operation.unary.TruncatedTimePartOperation
-polyglot java import org.enso.table.data.column.operation.unary.UnaryDecimalRoundOperation
 polyglot java import org.enso.table.data.column.operation.unary.UnaryRoundOperation
 polyglot java import org.enso.table.data.column.operation.UnaryOperation
 polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
@@ -930,11 +929,8 @@ type Column
                 case precise_value_type.is_integer of
                     True ->
                         self.rename new_name
-                    False -> case precise_value_type.is_decimal of
-                        True ->
-                            apply_unary_operation self UnaryDecimalRoundOperation.TRUNCATE_INSTANCE
-                        False ->
-                            apply_unary_operation self UnaryRoundOperation.TRUNCATE_INSTANCE
+                    False ->
+                        apply_unary_operation self UnaryRoundOperation.TRUNCATE_INSTANCE
             False -> case precise_value_type == Value_Type.Date_Time of
                 True ->
                     fun = _.date
@@ -959,11 +955,7 @@ type Column
                 new_name = naming_helper.function_name "ceil" [self]
                 self.rename new_name
             False ->
-                case self.inferred_precise_value_type.is_decimal of
-                    True ->
-                        apply_unary_operation self UnaryDecimalRoundOperation.CEIL_INSTANCE
-                    False ->
-                        apply_unary_operation self UnaryRoundOperation.CEIL_INSTANCE
+                apply_unary_operation self UnaryRoundOperation.CEIL_INSTANCE
 
     ## GROUP Standard.Base.Rounding
        ICON math
@@ -983,11 +975,7 @@ type Column
                 new_name = naming_helper.function_name "floor" [self]
                 self.rename new_name
             False ->
-                case self.inferred_precise_value_type.is_decimal of
-                    True ->
-                        apply_unary_operation self UnaryDecimalRoundOperation.FLOOR_INSTANCE
-                    False ->
-                        apply_unary_operation self UnaryRoundOperation.FLOOR_INSTANCE
+                apply_unary_operation self UnaryRoundOperation.FLOOR_INSTANCE
 
     ## GROUP Standard.Base.Logical
        ICON operators
@@ -1007,8 +995,8 @@ type Column
     coalesce self values =
         vec = Vector.unify_vector_or_element values
         new_name = self.naming_helper.function_name "coalesce" [self]+vec
-        result = if values.is_empty then self else
-            values.fold self acc-> v-> acc.fill_nothing v
+        result = if vec.is_empty then self else
+            vec.fold self acc-> v-> acc.fill_nothing v
         result.rename new_name
 
     ## GROUP Standard.Base.Math
@@ -2280,7 +2268,8 @@ type Column
                 if storage.isNothing index then Nothing else
                     java_to_enso <| storage.getItem index
 
-    ## ICON data_input
+    ## PRIVATE
+       ICON data_input
        Returns a column containing rows of this column.
 
        Arguments:

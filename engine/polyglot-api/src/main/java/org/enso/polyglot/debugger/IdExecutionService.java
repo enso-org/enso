@@ -69,6 +69,8 @@ public interface IdExecutionService {
      *     the execution and return the value as a result.
      */
     Object onFunctionReturn(Info info);
+
+    Object getExecutionEnvironment(Info info);
   }
 
   /**

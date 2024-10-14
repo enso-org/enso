@@ -32,9 +32,8 @@ public final class EnsoStructure implements StructureProvider {
     }
     var arr = new ArrayList<StructureElement>();
     try {
-      var parser = new EnsoParser();
       var text = dcmnt.getText(0, dcmnt.getLength());
-      var moduleIr = parser.compile(text);
+      var moduleIr = EnsoParser.compile(text);
       var it = moduleIr.bindings().iterator();
       collectStructure(file, arr, it);
       return arr;

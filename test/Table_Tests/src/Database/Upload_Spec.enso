@@ -134,7 +134,7 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
         group_builder.specify "should fail if an unsupported type is specified" <|
             run_with_and_without_output <|
                 r1 = data.connection.create_table (Name_Generator.random_name "creating-table") structure=[Column_Description.Value "X" Value_Type.Integer, Column_Description.Value "Y" Value_Type.Mixed] temporary=True
-                r1.should_fail_with Unsupported_Database_Operation
+                r1.should_fail_with Unsupported_Database_Type
 
         group_builder.specify "should fail if empty structure is provided" <|
             run_with_and_without_output <|
@@ -358,30 +358,35 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
             db_table_2 = t1.select_into_database_table data.connection (Name_Generator.random_name "primary-key-2")
             Panic.with_finalizer (data.connection.drop_table db_table_2.name) <|
                 db_table_2.at "X" . to_vector . should_equal_ignoring_order [1, 2, 3]
-                db_table_2.get_primary_key . should_equal ["X"]
+                db_table_2.get_primary_key . should_equal Nothing
 
             db_table_3 = t1.select_into_database_table data.connection (Name_Generator.random_name "primary-key-3") primary_key=Nothing
             Panic.with_finalizer (data.connection.drop_table db_table_3.name) <|
                 db_table_3.at "X" . to_vector . should_equal_ignoring_order [1, 2, 3]
                 db_table_3.get_primary_key . should_equal Nothing
 
+            db_table_4 = t1.select_into_database_table data.connection (Name_Generator.random_name "primary-key-4")
+            Panic.with_finalizer (data.connection.drop_table db_table_4.name) <|
+                db_table_4.at "X" . to_vector . should_equal_ignoring_order [1, 2, 3]
+                db_table_4.get_primary_key . should_equal Nothing
+
         group_builder.specify "should ensure that primary key columns are valid" <|
             run_with_and_without_output <|
                 r1 = data.in_memory_table.select_into_database_table data.connection (Name_Generator.random_name "primary-key-4") primary_key=["X", "nonexistent"]
                 r1.should_fail_with Missing_Input_Columns
 
-        if data.connection.dialect.dialect_flags.primary_key.allows_nulls then
+        if data.connection.dialect.flagged ..Primary_Key_Allows_Nulls then
             group_builder.specify "should not fail if the primary key contains nulls" <|
                 t1 = Table.new [['X', [1, Nothing, 3]], ['Y', [4, 5, Nothing]]]
                 run_with_and_without_output <|
                     r2 = t1.select_into_database_table data.connection (Name_Generator.random_name "primary-key-null-1") temporary=True primary_key=['X']
                     r2.row_count . should_equal 3
 
-        if data.connection.dialect.dialect_flags.primary_key.allows_nulls.not then
+        if data.connection.dialect.flagged ..Primary_Key_Allows_Nulls . not then
             group_builder.specify "should fail if the primary key contains nulls" <|
                 t1 = Table.new [['X', [1, Nothing, 3]], ['Y', [4, 5, Nothing]]]
                 run_with_and_without_output <|
-                    r1 = t1.select_into_database_table data.connection (Name_Generator.random_name "primary-key-null-0") temporary=True primary_key=[]
+                    r1 = t1.select_into_database_table data.connection (Name_Generator.random_name "primary-key-null-0") temporary=True
                     r1.row_count . should_equal 3
 
                     r2 = t1.select_into_database_table data.connection (Name_Generator.random_name "primary-key-null-1") temporary=True primary_key=['X']
@@ -561,24 +566,24 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
                 r1 = db_table.select_into_database_table data.connection (Name_Generator.random_name "copied-table") temporary=True primary_key=["nonexistent"]
                 r1.should_fail_with Missing_Input_Columns
 
-        if data.connection.dialect.dialect_flags.primary_key.allows_nulls then
+        if data.connection.dialect.flagged ..Primary_Key_Allows_Nulls then
             group_builder.specify "should fail when the primary key contains nulls" <|
                 t = Table.new [['X', [1, Nothing, 3]], ['Y', [4, 5, Nothing]]]
-                db_table = t.select_into_database_table data.connection (Name_Generator.random_name "source-table-nulls-1") temporary=True primary_key=Nothing
+                db_table = t.select_into_database_table data.connection (Name_Generator.random_name "source-table-nulls-1") temporary=True
                 Problems.assume_no_problems db_table
 
                 run_with_and_without_output <|
                     r2 = db_table.select_into_database_table data.connection (Name_Generator.random_name "primary-key-null-2") temporary=True primary_key=['X']
                     r2.row_count . should_equal 3
 
-        if data.connection.dialect.dialect_flags.primary_key.allows_nulls.not then
+        if data.connection.dialect.flagged ..Primary_Key_Allows_Nulls . not then
             group_builder.specify "should fail when the primary key contains nulls" <|
                 t = Table.new [['X', [1, Nothing, 3]], ['Y', [4, 5, Nothing]]]
-                db_table = t.select_into_database_table data.connection (Name_Generator.random_name "source-table-nulls-1") temporary=True primary_key=Nothing
+                db_table = t.select_into_database_table data.connection (Name_Generator.random_name "source-table-nulls-1") temporary=True
                 Problems.assume_no_problems db_table
 
                 run_with_and_without_output <|
-                    r1 = db_table.select_into_database_table data.connection (Name_Generator.random_name "primary-key-null-1") temporary=True primary_key=[]
+                    r1 = db_table.select_into_database_table data.connection (Name_Generator.random_name "primary-key-null-1") temporary=True
                     r1.row_count . should_equal 3
 
                     r2 = db_table.select_into_database_table data.connection (Name_Generator.random_name "primary-key-null-2") temporary=True primary_key=['X']
@@ -651,8 +656,8 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
             connection_2 = make_new_connection Nothing
             run_with_and_without_output <|
                 r1 = db_table.select_into_database_table connection_2 (Name_Generator.random_name "copied-table") temporary=True primary_key=Nothing
-                r1.should_fail_with Unsupported_Database_Operation
-                r1.catch.message . should_contain "same connection"
+                r1.should_fail_with Different_Connections
+                r1.catch.to_display_text . should_contain "same connection"
 
         group_builder.specify "should fail if the target table already exists" <|
             name = Name_Generator.random_name "table-already-exists"

@@ -1,6 +1,8 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
+import Standard.Database.Feature.Feature
+from Standard.Database.Errors import all
 from Standard.Table import Position, Value_Type, Bits, Table
 from Standard.Table.Errors import all
 
@@ -74,9 +76,17 @@ type Rename_Columns_Data
         [table]
 
 add_specs suite_builder setup =
+    if setup.is_feature_supported Feature.Select_Columns then (add_select_column_specs suite_builder setup) else
+        suite_builder.group setup.prefix+"Table.select_columns" group_builder->
+            group_builder.specify "select_columns should report unsupported" <|
+                table_builder = Util.build_sorted_table setup
+                data = Select_Columns_Data.setup table_builder
+                table_2 = data.table.select_columns ["bar", "foo"] reorder=True
+                table_2.should_fail_with (Unsupported_Database_Operation.Error "select_columns")
+
+add_select_column_specs suite_builder setup =
     prefix = setup.prefix
     table_builder = Util.build_sorted_table setup
-    test_selection = setup.test_selection
 
     suite_builder.group prefix+"Table.select_columns" group_builder->
         data = Select_Columns_Data.setup table_builder
@@ -108,14 +118,24 @@ add_specs suite_builder setup =
             expect_column_names ["foo", "bar", "foo 1", "foo 2", "abcd123"] <| data.table.select_columns [-1, "bar", "foo.*".to_regex]
             expect_column_names ["foo", "foo 1", "foo 2", "bar", "abcd123"] <| data.table.select_columns ["foo.*".to_regex, "bar", "foo", -1] reorder=True
 
-        if test_selection.supports_case_sensitive_columns then
-            group_builder.specify "should correctly handle exact matches matching multiple names due to case insensitivity" <|
-                table =
-                    col1 = ["foo", [1,2,3]]
-                    col2 = ["bar", [4,5,6]]
-                    col3 = ["Bar", [7,8,9]]
-                    table_builder [col1, col2, col3]
+        group_builder.specify "should correctly handle exact matches matching multiple names due to case insensitivity" <|
+            table =
+                col1 = ["foo", [1,2,3]]
+                col2 = ["bar", [4,5,6]]
+                col3 = ["Bar", [7,8,9]]
+                table_builder [col1, col2, col3]
+            if setup.flagged ..Supports_Case_Sensitive_Columns then
                 expect_column_names ["bar", "Bar"] <| table.select_columns ["bar"] case_sensitivity=Case_Sensitivity.Insensitive
+        
+        group_builder.specify "should correctly handle mis-matches due to case insensitivity regardless of backend support" <|
+            table =
+                col1 = ["foo", [1,2,3]]
+                col2 = ["bar", [4,5,6]]
+                table_builder [col1, col2]
+            result = table.select_columns ["Bar"] case_sensitivity=Case_Sensitivity.Default
+            case setup.flagged ..Supports_Case_Sensitive_Columns of
+                True -> result.should_fail_with (Missing_Input_Columns.Error ["Bar"])
+                False -> result.should_fail_with (Missing_Input_Columns.Error ["Bar"])
 
         group_builder.specify "should correctly handle regexes matching multiple names" <|
             expect_column_names ["foo", "bar", "foo 1", "foo 2"] <| data.table.select_columns ["b.*".to_regex, "f.+".to_regex]
@@ -234,14 +254,24 @@ add_specs suite_builder setup =
         group_builder.specify "should allow negative indices" <|
             expect_column_names ["Baz", "foo 1", "ab.+123"] <| data.table.remove_columns [-1, -3, 0, 1]
 
-        if test_selection.supports_case_sensitive_columns then
-            group_builder.specify "should correctly handle exact matches matching multiple names due to case insensitivity" <|
-                table =
-                    col1 = ["foo", [1,2,3]]
-                    col2 = ["bar", [4,5,6]]
-                    col3 = ["Bar", [7,8,9]]
-                    table_builder [col1, col2, col3]
+        group_builder.specify "should correctly handle exact matches matching multiple names due to case insensitivity" <|
+            table =
+                col1 = ["foo", [1,2,3]]
+                col2 = ["bar", [4,5,6]]
+                col3 = ["Bar", [7,8,9]]
+                table_builder [col1, col2, col3]
+            if setup.flagged ..Supports_Case_Sensitive_Columns then
                 expect_column_names ["foo"] <| table.remove_columns "bar" Case_Sensitivity.Insensitive
+
+        group_builder.specify "should correctly handle mis-matches due to case insensitivity regardless of backend support" <|
+            table =
+                col1 = ["foo", [1,2,3]]
+                col2 = ["bar", [4,5,6]]
+                table_builder [col1, col2]
+            result = table.remove_columns "Bar" Case_Sensitivity.Default
+            case setup.flagged ..Supports_Case_Sensitive_Columns of
+                True -> expect_column_names ["foo", "bar"] <| result
+                False -> expect_column_names ["foo", "bar"] <| result
 
         group_builder.specify "should correctly handle regexes matching multiple names" <|
             expect_column_names ["Baz", "ab.+123", "abcd123"] <| data.table.remove_columns ["f.+".to_regex, "b.*".to_regex]
@@ -320,14 +350,24 @@ add_specs suite_builder setup =
         group_builder.specify "should allow negative indices" <|
             expect_column_names ["abcd123", "foo 2", "foo", "bar", "Baz", "foo 1", "ab.+123"] <| data.table.reorder_columns [-1, -3, 0, 1]
 
-        if test_selection.supports_case_sensitive_columns then
-            group_builder.specify "should correctly handle exact matches matching multiple names due to case insensitivity" <|
-                table =
-                    col1 = ["foo", [1,2,3]]
-                    col2 = ["bar", [4,5,6]]
-                    col3 = ["Bar", [7,8,9]]
-                    table_builder [col1, col2, col3]
+        group_builder.specify "should correctly handle exact matches matching multiple names due to case insensitivity" <|
+            table =
+                col1 = ["foo", [1,2,3]]
+                col2 = ["bar", [4,5,6]]
+                col3 = ["Bar", [7,8,9]]
+                table_builder [col1, col2, col3]
+            if setup.flagged ..Supports_Case_Sensitive_Columns then
                 expect_column_names ["bar", "Bar", "foo"] <| table.reorder_columns ["bar"] case_sensitivity=Case_Sensitivity.Insensitive
+
+        group_builder.specify "should correctly handle mis-matches due to case insensitivity regardless of backend support" <|
+            table =
+                col1 = ["foo", [1,2,3]]
+                col2 = ["bar", [4,5,6]]
+                table_builder [col1, col2]
+            result = table.reorder_columns ["Bar"] case_sensitivity=Case_Sensitivity.Default
+            case setup.flagged ..Supports_Case_Sensitive_Columns of
+                True -> expect_column_names ["foo", "bar"] <| result
+                False -> expect_column_names ["foo", "bar"] <| result
 
         group_builder.specify "should correctly handle regexes matching multiple names" <|
             expect_column_names ["bar", "foo", "foo 1", "foo 2", "Baz", "ab.+123", "abcd123"] <| data.table.reorder_columns ["b.*".to_regex, "f.+".to_regex]

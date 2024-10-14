@@ -18,20 +18,19 @@
       shader-tools.yml:
       std-libs-benchmark.yml:
   app/:
-    gui2/: # The new, Vue-based GUI.
+    gui/: # GUI.
       dist/:
-      playwright-report/: # Test results for the new GUI that we want to keep as artifacts.
+      playwright-report/: # Test results for the GUI that we want to keep as artifacts.
       public/:
         font-enso/:
         font-mplus1/:
         font-dejavu/:
       src/:
-        assets/:
-          font-enso.css:
-          font-mplus1.css:
-          font-dejavu.css:
-    dashboard/:
-      playwright-report/: # Test results for the dashboard that we want to keep as artifacts.
+        project-view/:
+          assets/:
+            font-enso.css:
+            font-mplus1.css:
+            font-dejavu.css:
     ide-desktop/:
       client/:
       common/:
@@ -60,7 +59,7 @@
         type: project_manager_bundle
         var: project_manager_bundle
   dist/:
-    gui2/:
+    gui/:
       assets/:
 
     # Final WASM artifacts in `dist` directory.

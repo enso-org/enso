@@ -1,7 +1,7 @@
 /** @file Globals defined outside of TypeScript files.
  * These are from variables defined at build time, environment variables,
  * monkeypatching on `window` and generated code. */
-import type * as dashboard from 'enso-dashboard'
+import type * as common from 'enso-common'
 
 // This file is being imported for its types.
 // eslint-disable-next-line no-restricted-syntax
@@ -188,12 +188,13 @@ declare global {
       // @ts-expect-error The index signature is intentional to disallow unknown env vars.
       readonly ENSO_SUPPORTS_VIBRANCY?: string
 
-      // === E2E test variables ===
+      // === Integration test variables ===
 
-      // @ts-expect-error The index signature is intentional to disallow unknown env vars.
-      readonly IS_IN_PLAYWRIGHT_TEST?: `${boolean}`
-      // @ts-expect-error The index signature is intentional to disallow unknown env vars.
-      readonly PWDEBUG?: '1'
+      readonly ENSO_TEST?: string
+      readonly ENSO_TEST_APP_ARGS?: string
+      readonly ENSO_TEST_USER?: string
+      readonly ENSO_TEST_USER_PASSWORD?: string
+      ENSO_TEST_EXEC_PATH?: string
 
       // === Electron watch script variables ===
 

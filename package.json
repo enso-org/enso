@@ -1,7 +1,16 @@
 {
   "devDependencies": {
-    "eslint-plugin-jsdoc": "^48.2.12",
+    "@typescript-eslint/eslint-plugin": "^8.8.0",
+    "@typescript-eslint/parser": "^8.8.0",
+    "@eslint/eslintrc": "^3.1.0",
+    "@eslint/js": "^9.11.1",
+    "@vue/eslint-config-typescript": "14.0.0-rc.2",
+    "eslint-plugin-jsdoc": "^50.3.1",
     "eslint-plugin-react-hooks": "^4.6.2",
+    "eslint-plugin-prettier": "^5.2.1",
+    "eslint-plugin-react": "^7.37.1",
+    "eslint-plugin-vue": "^9.28.0",
+    "eslint": "^8.57.1",
     "globals": "^15.8.0",
     "npm-run-all": "^4.1.5",
     "prettier": "^3.3.2",
@@ -13,8 +22,8 @@
   },
   "name": "root",
   "scripts": {
-    "dev:gui": "corepack pnpm run --parallel -r --filter enso-gui2 --filter ydoc-server-nodejs  --aggregate-output /^^^^dev:/",
-    "build:gui": "corepack pnpm run -r --filter enso-gui2 build",
+    "dev:gui": "corepack pnpm run --parallel -r --filter enso-gui --filter ydoc-server-nodejs  --aggregate-output /^^^^dev:/",
+    "build:gui": "corepack pnpm run -r --filter enso-gui build",
     "build:ide": "corepack pnpm run -r compile && corepack pnpm run -r --filter enso build",
     "build:icons": "corepack pnpm run -r --filter enso-icons build",
     "dist:ide": "corepack pnpm run -r --filter enso dist",
@@ -27,10 +36,6 @@
     "ci:typecheck": "corepack pnpm run -r typecheck",
     "postinstall": "bazel run //:write_all"
   },
-  "//": "Workspaces kept only to show deprecated message when running a script. Remove once everyone is familiar with pnpm.",
-  "workspaces": [
-    "app/gui2"
-  ],
   "pnpm": {
     "//": "To completely ignore deep dependencies, see .pnpmfile.cjs",
     "overrides": {

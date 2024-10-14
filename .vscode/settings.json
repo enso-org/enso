@@ -12,7 +12,7 @@
     }
   ],
   "typescript.tsdk": "node_modules/typescript/lib",
-  "eslint.experimental.useFlatConfig": true,
+  "eslint.useFlatConfig": true,
   "eslint.useESLintClass": true,
   "[javascript][typescript][typescriptreact][vue]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode",

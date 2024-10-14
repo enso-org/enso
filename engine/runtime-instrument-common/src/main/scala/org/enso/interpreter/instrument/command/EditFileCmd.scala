@@ -34,7 +34,7 @@ class EditFileCmd(request: Api.EditFileNotification)
           () => {
             logger.log(
               Level.FINEST,
-              "Adding pending file [{0}] edits [{1}] idMap [{2}]",
+              "Adding pending file [{0}] edits [{1}] and IdMap of length {2}",
               Array[Any](
                 MaskedPath(request.path.toPath),
                 request.edits.map(e => (e.range, e.text.length)),
@@ -50,7 +50,7 @@ class EditFileCmd(request: Api.EditFileNotification)
               ctx.state.pendingEdits.updateIdMap(request.path, idMap)
             }
             if (request.execute) {
-              ctx.jobControlPlane.abortAllJobs()
+              ctx.jobControlPlane.abortAllJobs("edit file")
               ctx.jobProcessor
                 .run(compileJob())
                 .foreach(_ => executeJobs.foreach(ctx.jobProcessor.run))

@@ -380,7 +380,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run ide upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}
+      - run: ./run ide upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}} --sign-artifacts
         env:
           ENSO_CLOUD_API_URL: ${{ vars.ENSO_CLOUD_API_URL }}
           ENSO_CLOUD_CHAT_URL: ${{ vars.ENSO_CLOUD_CHAT_URL }}
@@ -442,7 +442,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run ide upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}
+      - run: ./run ide upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}} --sign-artifacts
         env:
           APPLEID: ${{ secrets.APPLE_NOTARIZATION_USERNAME }}
           APPLEIDPASS: ${{ secrets.APPLE_NOTARIZATION_PASSWORD }}
@@ -509,7 +509,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run ide upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}
+      - run: ./run ide upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}} --sign-artifacts
         env:
           APPLEID: ${{ secrets.APPLE_NOTARIZATION_USERNAME }}
           APPLEIDPASS: ${{ secrets.APPLE_NOTARIZATION_PASSWORD }}
@@ -577,7 +577,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run ide upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}
+      - run: ./run ide upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}} --sign-artifacts
         env:
           ENSO_CLOUD_API_URL: ${{ vars.ENSO_CLOUD_API_URL }}
           ENSO_CLOUD_CHAT_URL: ${{ vars.ENSO_CLOUD_CHAT_URL }}

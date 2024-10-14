@@ -5,11 +5,9 @@ import org.apache.commons.cli.CommandLine;
 import org.enso.runner.common.LanguageServerApi;
 import org.enso.runner.common.ProfilingConfig;
 import org.enso.runner.common.WrongOption;
-import org.openide.util.lookup.ServiceProvider;
 import org.slf4j.event.Level;
 import scala.concurrent.ExecutionContext;
 
-@ServiceProvider(service = LanguageServerApi.class)
 public final class LanguageServerRunner extends LanguageServerApi {
   public LanguageServerRunner() {}
 

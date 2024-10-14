@@ -15,6 +15,7 @@ import Standard.Test.Suite.Suite_Builder
 
 import project.Database.Common.Default_Ordering_Spec
 import project.Database.Common.Names_Length_Limits_Spec
+import Standard.Database.Feature.Feature
 
 import project.Util
 import project.Database.Helpers.Name_Generator
@@ -142,14 +143,16 @@ type Missing_Values_Data
     teardown self =
         drop_table self.connection self.t4.name
 
+add_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connection_fn : (Nothing -> Any)) default_connection setup =
+    if setup.is_feature_supported Feature.Integration_Tests then (add_commmon_specs suite_builder prefix create_connection_fn default_connection setup)
 
 ## Adds common database tests specs to the suite builder.
 
    Arguments:
    - create_connection_fn: A function that creates an appropriate Connection to the database backend.
-add_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connection_fn : (Nothing -> Any)) default_connection =
+add_commmon_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connection_fn : (Nothing -> Any)) default_connection setup =
 
-    Default_Ordering_Spec.add_specs suite_builder prefix create_connection_fn
+    Default_Ordering_Spec.add_specs suite_builder prefix create_connection_fn setup
     Names_Length_Limits_Spec.add_specs suite_builder prefix create_connection_fn
 
     suite_builder.group (prefix + "Basic Table Access") group_builder->

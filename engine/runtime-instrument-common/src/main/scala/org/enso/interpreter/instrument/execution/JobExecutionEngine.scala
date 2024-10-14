@@ -1,5 +1,6 @@
 package org.enso.interpreter.instrument.execution
 
+import com.oracle.truffle.api.TruffleLogger
 import org.enso.interpreter.instrument.InterpreterContext
 import org.enso.interpreter.instrument.job.{BackgroundJob, Job, UniqueJob}
 import org.enso.text.Sha3_224VersionCalculator
@@ -74,6 +75,9 @@ final class JobExecutionEngine(
       versionCalculator = Sha3_224VersionCalculator
     )
 
+  private lazy val logger: TruffleLogger =
+    runtimeContext.executionService.getLogger
+
   /** @inheritdoc */
   override def runBackground[A](job: BackgroundJob[A]): Unit =
     synchronized {
@@ -112,7 +116,7 @@ final class JobExecutionEngine(
         allJobs.foreach { runningJob =>
           runningJob.job match {
             case jobRef: UniqueJob[_] if jobRef.equalsTo(job) =>
-              runtimeContext.executionService.getLogger
+              logger
                 .log(Level.FINEST, s"Cancelling duplicate job [$jobRef].")
               runningJob.future.cancel(jobRef.mayInterruptIfRunning)
             case _ =>
@@ -129,8 +133,11 @@ final class JobExecutionEngine(
   ): Future[A] = {
     val jobId   = UUID.randomUUID()
     val promise = Promise[A]()
-    val logger  = runtimeContext.executionService.getLogger
-    logger.log(Level.FINE, s"Submitting job: {0}...", job)
+    logger.log(
+      Level.FINE,
+      s"Submitting job: {0} with {1} id...",
+      Array(job, jobId)
+    )
     val future = executorService.submit(() => {
       logger.log(Level.FINE, s"Executing job: {0}...", job)
       val before = System.currentTimeMillis()
@@ -166,17 +173,25 @@ final class JobExecutionEngine(
   }
 
   /** @inheritdoc */
-  override def abortAllJobs(): Unit =
-    abortAllExcept()
+  override def abortAllJobs(reason: String): Unit =
+    abortAllExcept(reason)
 
   /** @inheritdoc */
-  override def abortAllExcept(ignoredJobs: Class[_ <: Job[_]]*): Unit = {
+  override def abortAllExcept(
+    reason: String,
+    ignoredJobs: Class[_ <: Job[_]]*
+  ): Unit = {
     val allJobs = runningJobsRef.updateAndGet(_.filterNot(_.future.isCancelled))
     val cancellableJobs = allJobs
       .filter { runningJob =>
         runningJob.job.isCancellable &&
         !ignoredJobs.contains(runningJob.job.getClass)
       }
+    logger.log(
+      Level.FINE,
+      "Aborting {0} jobs because {1}: {2}",
+      Array[Any](cancellableJobs.length, reason, cancellableJobs.map(_.id))
+    )
     cancellableJobs.foreach { runningJob =>
       runningJob.future.cancel(runningJob.job.mayInterruptIfRunning)
     }
@@ -187,6 +202,7 @@ final class JobExecutionEngine(
   /** @inheritdoc */
   override def abortJobs(
     contextId: UUID,
+    reason: String,
     toAbort: Class[_ <: Job[_]]*
   ): Unit = {
     val allJobs     = runningJobsRef.get()
@@ -196,6 +212,11 @@ final class JobExecutionEngine(
         runningJob.job.isCancellable && (toAbort.isEmpty || toAbort
           .contains(runningJob.getClass))
       ) {
+        logger.log(
+          Level.FINE,
+          "Aborting job {0} because {1}",
+          Array[Any](runningJob.id, reason)
+        )
         runningJob.future.cancel(runningJob.job.mayInterruptIfRunning)
       }
     }
@@ -206,12 +227,18 @@ final class JobExecutionEngine(
   /** @inheritdoc */
   override def abortJobs(
     contextId: UUID,
+    reason: String,
     accept: java.util.function.Function[Job[_], java.lang.Boolean]
   ): Unit = {
     val allJobs     = runningJobsRef.get()
     val contextJobs = allJobs.filter(_.job.contextIds.contains(contextId))
     contextJobs.foreach { runningJob =>
       if (runningJob.job.isCancellable && accept.apply(runningJob.job)) {
+        logger.log(
+          Level.FINE,
+          "Aborting job {0} because {1}",
+          Array[Any](runningJob.id, reason)
+        )
         runningJob.future.cancel(runningJob.job.mayInterruptIfRunning)
       }
     }
@@ -219,7 +246,10 @@ final class JobExecutionEngine(
       .interruptThreads()
   }
 
-  override def abortBackgroundJobs(toAbort: Class[_ <: Job[_]]*): Unit = {
+  override def abortBackgroundJobs(
+    reason: String,
+    toAbort: Class[_ <: Job[_]]*
+  ): Unit = {
     val allJobs =
       backgroundJobsRef.updateAndGet(_.filterNot(_.future.isCancelled))
     val cancellableJobs = allJobs
@@ -227,6 +257,11 @@ final class JobExecutionEngine(
         runningJob.job.isCancellable &&
         toAbort.contains(runningJob.job.getClass)
       }
+    logger.log(
+      Level.FINE,
+      "Aborting {0} background jobs because {1}: {2}",
+      Array[Any](cancellableJobs.length, reason, cancellableJobs.map(_.id))
+    )
     cancellableJobs.foreach { runningJob =>
       runningJob.future.cancel(runningJob.job.mayInterruptIfRunning)
     }

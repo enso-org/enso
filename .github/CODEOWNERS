@@ -19,11 +19,30 @@ Cargo.toml
 /lib/rust/parser/ @farmaazon @kazcw @vitvakatu @Frizi @jaroslavtulach @AdRiley
 /tools/build-performance/ @kazcw @Akirathan
 
-# Scala Libraries
-/lib/scala/ @4e6 @jaroslavtulach @hubertp
+# Global JS configuration
+esling.config.mjs
+tsconfig.json
 
-# GUI
-/app/gui2/ @Frizi @farmaazon @vitvakatu @kazcw @AdRiley
+# Scala Libraries
+/lib/scala/ @4e6 @jaroslavtulach @hubertp @Akirathan
+
+# Java libraries
+/lib/java/ @4e6 @jaroslavtulach @hubertp @Akirathan
+
+# GUI/Dashboard
+/app @Frizi @farmaazon @vitvakatu @kazcw @AdRiley @PabloBuchu @indiv0 @somebody1234 @MrFlashAccount
+/app/gui/e2e/dashboard @PabloBuchu @indiv0 @somebody1234 @MrFlashAccount
+/app/gui/e2e/project-view @Frizi @farmaazon @vitvakatu @kazcw @AdRiley 
+/app/gui/src/dashboard @PabloBuchu @indiv0 @somebody1234 @MrFlashAccount
+/app/gui/src/project-view @Frizi @farmaazon @vitvakatu @kazcw @AdRiley 
+/app/ide-desktop/ @PabloBuchu @indiv0 @somebody1234 @MrFlashAccount
+/app/ydoc-server/ @Frizi @farmaazon @vitvakatu @kazcw @AdRiley 
+/app/ydoc-server-nodejs/ @Frizi @farmaazon @vitvakatu @kazcw @AdRiley 
+/app/ydoc-server-polyglot/ @Frizi @farmaazon @vitvakatu @kazcw @AdRiley 
+/app/ydoc-shared/ @Frizi @farmaazon @vitvakatu @kazcw @AdRiley 
+# The data-link schema is owned by the libraries team
+/app/gui/src/dashboard/data/datalinkSchema.json @radeusgd @jdunkerley @GregoryTravis @AdRiley @marthasharkey
+/app/gui/src/dashboard/data/__tests__ @radeusgd @jdunkerley @GregoryTravis @AdRiley @marthasharkey @PabloBuchu @indiv0 @somebody1234 @MrFlashAccount
 
 # Engine (old)
 # This section should be removed once the engine moves to /app/engine
@@ -42,14 +61,3 @@ Cargo.toml
 
 # The default project template is owned by the libraries team
 /lib/scala/pkg/src/main/resources/default/src/ @radeusgd @jdunkerley @GregoryTravis @AdRiley @marthasharkey
-
-# Dashboard, Cloud, Authentication & Electron
-/app/ide-desktop/ @PabloBuchu @indiv0 @somebody1234 @MrFlashAccount
-/app/dashboard/ @PabloBuchu @indiv0 @somebody1234 @MrFlashAccount
-# The data-link schema is owned by the libraries team
-/app/dashboard/src/data/datalinkSchema.json @radeusgd @jdunkerley @GregoryTravis @AdRiley @marthasharkey
-/app/dashboard/src/data/__tests__ @radeusgd @jdunkerley @GregoryTravis @AdRiley @marthasharkey @PabloBuchu @indiv0 @somebody1234 @MrFlashAccount
-
-# GUI / Dashboard shared
-/app/*.* @Frizi @farmaazon @vitvakatu @kazcw @AdRiley @PabloBuchu @indiv0 @somebody1234 @MrFlashAccount
-/app/ide-desktop/common @PabloBuchu @indiv0 @somebody1234 @MrFlashAccount @Frizi @farmaazon @vitvakatu @kazcw @AdRiley

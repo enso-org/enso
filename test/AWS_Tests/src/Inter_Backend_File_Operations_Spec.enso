@@ -42,7 +42,7 @@ type Temporary_Enso_Cloud_File
     Value ~get
 
     make tmp_dir_name name = Temporary_Enso_Cloud_File.Value <|
-        location = Enso_File.root / tmp_dir_name
+        location = Enso_File.home / tmp_dir_name
         Panic.rethrow <| location.create_directory
         location / ("cloud-"+name)
 

@@ -1,21 +1,13 @@
-import JPMSPlugin.autoImport.javaModuleName
+import JPMSPlugin.autoImport.{javaModuleName, modulePath}
 import sbt._
 import sbt.Keys._
 import sbt.internal.inc.{CompileOutput, PlainVirtualFile}
 import sbt.util.CacheStore
-import sbtassembly.Assembly.{Dependency, JarEntry, Project}
-import sbtassembly.{CustomMergeStrategy, MergeStrategy}
 import xsbti.compile.IncToolOptionsUtil
 
 import java.io.File
 import java.nio.file.attribute.BasicFileAttributes
-import java.nio.file.{
-  FileVisitOption,
-  FileVisitResult,
-  Files,
-  Path,
-  SimpleFileVisitor
-}
+import java.nio.file.{FileVisitResult, Files, Path, SimpleFileVisitor}
 import scala.collection.mutable
 
 /** Collection of utility methods dealing with JPMS modules.
@@ -30,53 +22,42 @@ object JPMSUtils {
   val slf4jVersion          = "2.0.9"
   val logbackClassicVersion = "1.3.7"
 
-  /** The list of modules that are included in the `component` directory in engine distribution.
-    * When invoking the `java` command, these modules need to be put on the module-path.
-    */
-  val componentModules: Seq[ModuleID] =
-    GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.toolsPkgs ++ Seq(
-      "org.slf4j"      % "slf4j-api"       % slf4jVersion,
-      "ch.qos.logback" % "logback-classic" % logbackClassicVersion,
-      "ch.qos.logback" % "logback-core"    % logbackClassicVersion
-    )
-
   /** Filters modules by their IDs from the given classpath.
     *
     * @param cp               The classpath to filter
-    * @param modules          These modules are looked for in the class path, can be duplicated.
+    * @param modules          These modules are looked for in the class path, can be duplicated
+    * @param projName Name of the current sbt project for debugging
     * @param shouldContainAll If true, the method will throw an exception if not all modules were found
-    *                         in the classpath.
-    * @return The classpath with only the provided modules searched by their IDs.
+    *                         in the classpath
+    * @param scalaBinaryVersion Scala version used in all dependencies
+    * @return The classpath with only the provided modules searched by their IDs
     */
   def filterModulesFromClasspath(
     cp: Def.Classpath,
     modules: Seq[ModuleID],
     log: sbt.util.Logger,
+    projName: String,
+    scalaBinaryVersion: String,
     shouldContainAll: Boolean = false
   ): Def.Classpath = {
     val distinctModules = modules.distinct
 
-    def shouldFilterModule(module: ModuleID): Boolean = {
-      distinctModules.exists(m =>
-        m.organization == module.organization &&
-        m.name == module.name &&
-        m.revision == module.revision
-      )
-    }
-
     val ret = cp.filter(dep => {
       val moduleID = dep.metadata.get(AttributeKey[ModuleID]("moduleID")).get
-      shouldFilterModule(moduleID)
+      shouldFilterModule(distinctModules, scalaBinaryVersion)(moduleID)
     })
+
     if (shouldContainAll) {
       if (ret.size < distinctModules.size) {
-        log.error("[JPMSUtils] Not all modules from classpath were found")
         log.error(
-          "[JPMSUtils] Ensure libraryDependencies and moduleDependencies are correct"
+          s"[JPMSUtils/$projName] Not all modules from classpath were found"
         )
-        log.error(s"[JPMSUtils] Returned (${ret.size}): $ret")
         log.error(
-          s"[JPMSUtils] Expected: (${distinctModules.size}): $distinctModules"
+          s"[JPMSUtils/$projName] Ensure libraryDependencies and moduleDependencies are correct"
+        )
+        log.error(s"[JPMSUtils/$projName] Returned (${ret.size}): $ret")
+        log.error(
+          s"[JPMSUtils/$projName] Expected: (${distinctModules.size}): $distinctModules"
         )
       }
     }
@@ -85,44 +66,57 @@ object JPMSUtils {
 
   /** Filters all the requested modules from the given [[UpdateReport]].
     *
-    * @param updateReport     The update report to filter. This is the result of `update.value`.
-    * @param modules          The modules to filter from the update report. Can be duplicated.
-    * @param log              The logger to use for logging.
-    * @param shouldContainAll If true, the method will log an error if not all modules were found.
+    * @param updateReport       The update report to filter. This is the result of `update.value`.
+    * @param modules            The modules to filter from the update report. Can be duplicated.
+    * @param log                The logger to use for logging.
+    * @param projName           Name of the current sbt project for debugging.
+    * @param scalaBinaryVersion Scala version used in all dependencies
+    * @param shouldContainAll   If true, the method will log an error if not all modules were found.
     * @return The list of files (Jar archives, directories, etc.) that were found in the update report.
     */
   def filterModulesFromUpdate(
     updateReport: UpdateReport,
     modules: Seq[ModuleID],
     log: sbt.util.Logger,
+    projName: String,
+    scalaBinaryVersion: String,
     shouldContainAll: Boolean = false
   ): Seq[File] = {
     val distinctModules = modules.distinct
 
-    def shouldFilterModule(module: ModuleID): Boolean = {
-      distinctModules.exists(m =>
-        m.organization == module.organization &&
-        m.name == module.name &&
-        m.revision == module.revision
-      )
-    }
-
     val foundFiles = updateReport.select(
-      module = shouldFilterModule
+      module = shouldFilterModule(distinctModules, scalaBinaryVersion)
     )
     if (shouldContainAll) {
       if (foundFiles.size < distinctModules.size) {
-        log.error("[JPMSUtils] Not all modules from update were found")
         log.error(
-          "[JPMSUtils] Ensure libraryDependencies and moduleDependencies are correct"
+          s"[JPMSUtils/$projName] Not all modules from update were found"
         )
-        log.error(s"[JPMSUtils] Returned (${foundFiles.size}): $foundFiles")
         log.error(
-          s"[JPMSUtils] Expected: (${distinctModules.size}): $distinctModules"
+          s"[JPMSUtils/$projName] Ensure libraryDependencies and moduleDependencies are correct"
+        )
+        log.error(
+          s"[JPMSUtils/$projName] Returned (${foundFiles.size}): $foundFiles"
+        )
+        log.error(
+          s"[JPMSUtils/$projName] Expected: (${distinctModules.size}): $distinctModules"
         )
       }
     }
     foundFiles
+  }
+
+  def shouldFilterModule(
+    distinctModules: Seq[ModuleID],
+    scalaBinaryVersion: String
+  )(module: ModuleID): Boolean = {
+    distinctModules.exists(m =>
+      m.organization == module.organization &&
+      (m.name == module.name || m.crossVersion.isInstanceOf[
+        sbt.librarymanagement.Binary
+      ] && s"${m.name}_$scalaBinaryVersion" == module.name) &&
+      m.revision == module.revision
+    )
   }
 
   def filterArtifacts(
@@ -262,6 +256,58 @@ object JPMSUtils {
           }
         }
       }
+
+  /** Compiles `module-info.java` in the current project. The module path is
+    * gathered from [[JPMSPlugin.autoImport.modulePath]] settings.
+    * @see [[compileModuleInfo]].
+    */
+  def compileModuleInfo(): Def.Initialize[Task[Unit]] = Def.task {
+    val moduleInfo       = (Compile / javaSource).value / "module-info.java"
+    val projName         = moduleName.value
+    val log              = streams.value.log
+    val incToolOpts      = IncToolOptionsUtil.defaultIncToolOptions()
+    val reporter         = (Compile / compile / bspReporter).value
+    val output           = CompileOutput((Compile / classDirectory).value.toPath)
+    val outputPath: Path = output.getSingleOutputAsPath.get()
+    val mp               = (Compile / modulePath).value
+    val baseJavacOpts    = (Compile / javacOptions).value
+    val cp               = (Compile / fullClasspath).value
+    val javaCompiler =
+      (Compile / compile / compilers).value.javaTools.javac()
+    val cache =
+      streams.value.cacheStoreFactory.make("cache-module-info-" + projName)
+
+    Tracked.diffInputs(cache, FileInfo.lastModified)(
+      Set(moduleInfo)
+    ) { changeReport =>
+      if (changeReport.modified.nonEmpty || changeReport.added.nonEmpty) {
+        log.info(s"Compiling $moduleInfo with javac")
+        val allOpts = baseJavacOpts ++ Seq(
+          "--class-path",
+          cp.map(_.data.getAbsolutePath).mkString(File.pathSeparator),
+          "--module-path",
+          mp.map(_.getAbsolutePath).mkString(File.pathSeparator),
+          "-d",
+          outputPath.toAbsolutePath.toString
+        )
+        log.debug(s"javac options: $allOpts")
+        val succ = javaCompiler.run(
+          Array(PlainVirtualFile(moduleInfo.toPath)),
+          allOpts.toArray,
+          output,
+          incToolOpts,
+          reporter,
+          log
+        )
+        if (!succ) {
+          val msg = s"Compilation of ${moduleInfo} failed"
+          log.error(s"javac options: $allOpts")
+          log.error(msg)
+          throw new IllegalStateException(msg)
+        }
+      }
+    }
+  }
 
   /** Copies all classes from all the dependencies `classes` directories into the target directory.
     * @param sourceClassesDir Directory from where the classes will be copied.
