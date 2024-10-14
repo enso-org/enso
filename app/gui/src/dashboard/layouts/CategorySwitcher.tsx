@@ -88,7 +88,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
   const { user } = authProvider.useFullUserSession()
   const { unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
-  const remoteBackend = backendProvider.useRemoteBackendStrict()
+  const remoteBackend = backendProvider.useRemoteBackend()
   const { data: organization = null } = useBackendQuery(remoteBackend, 'getOrganization', [])
   const localBackend = backendProvider.useLocalBackend()
   const { isOffline } = offlineHooks.useOffline()
@@ -295,7 +295,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
   const { category, setCategory } = props
   const { user } = authProvider.useFullUserSession()
   const { getText } = textProvider.useText()
-  const remoteBackend = backendProvider.useRemoteBackendStrict()
+  const remoteBackend = backendProvider.useRemoteBackend()
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const setPage = useSetPage()
   const [, setSearchParams] = useSearchParams()

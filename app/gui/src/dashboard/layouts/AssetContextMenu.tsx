@@ -75,7 +75,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
 
   const { user } = authProvider.useFullUserSession()
   const { setModal } = modalProvider.useSetModal()
-  const remoteBackend = backendProvider.useRemoteBackendStrict()
+  const remoteBackend = backendProvider.useRemoteBackend()
   const localBackend = backendProvider.useLocalBackend()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
