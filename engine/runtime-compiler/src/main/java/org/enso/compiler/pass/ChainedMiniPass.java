@@ -3,11 +3,12 @@ package org.enso.compiler.pass;
 import java.util.Objects;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Expression;
+import org.enso.compiler.core.ir.Module;
 
 /** Utility class for chaining mini passes together. */
 final class ChainedMiniPass extends MiniIRPass {
-  private MiniIRPass firstPass;
-  private MiniIRPass secondPass;
+  private final MiniIRPass firstPass;
+  private final MiniIRPass secondPass;
 
   private ChainedMiniPass(MiniIRPass firstPass, MiniIRPass secondPass) {
     this.firstPass = firstPass;
@@ -23,9 +24,24 @@ final class ChainedMiniPass extends MiniIRPass {
 
   @Override
   public MiniIRPass prepare(Expression current) {
-    firstPass = firstPass.prepare(current);
-    secondPass = secondPass.prepare(current);
-    return this;
+    var first = firstPass.prepare(current);
+    var second = secondPass.prepare(current);
+    return meOrNew(first, second);
+  }
+
+  @Override
+  public MiniIRPass prepareForModule(Module current) {
+    var first = firstPass.prepareForModule(current);
+    var second = secondPass.prepareForModule(current);
+    return meOrNew(first, second);
+  }
+
+  private ChainedMiniPass meOrNew(MiniIRPass first, MiniIRPass second) {
+    if (first == firstPass && second == secondPass) {
+      return this;
+    } else {
+      return new ChainedMiniPass(first, second);
+    }
   }
 
   @Override
