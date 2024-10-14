@@ -6,8 +6,6 @@ import * as newtype from '../utilities/data/newtype'
 import * as permissions from '../utilities/permissions'
 import * as uniqueString from '../utilities/uniqueString'
 
-/** The maximum size, in bytes, of a single file upload. */
-export const MAXIMUM_SINGLE_FILE_SIZE_BYTES = 6_000_000
 /** The size, in bytes, of the chunks which the backend accepts. */
 export const S3_CHUNK_SIZE_BYTES = 10_000_000
 

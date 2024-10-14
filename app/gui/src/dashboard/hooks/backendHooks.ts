@@ -277,10 +277,7 @@ export function useUploadFileMutation(backend: Backend) {
     backendMutationOptions(backend, 'uploadFileEnd'),
   )
   return useEventCallback(async (params: backendModule.UploadFileRequestParams, file: Blob) => {
-    if (
-      backend.type === backendModule.BackendType.local ||
-      file.size < backendModule.MAXIMUM_SINGLE_FILE_SIZE_BYTES
-    ) {
+    if (backend.type === backendModule.BackendType.local) {
       return await uploadFileMutation.mutateAsync([params, file])
     } else {
       const fileSizeMB = Math.ceil(file.size / MB_BYTES)
