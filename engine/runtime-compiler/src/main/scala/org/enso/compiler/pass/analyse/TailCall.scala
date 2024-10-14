@@ -151,21 +151,26 @@ case object TailCall extends IRPass with MiniPassFactory {
       map
     }
 
-    override def prepareForModule(ir: Module): Mini = {
-      ir.bindings.map(subTailModuleBinding)
-      this
+    override def transformModule(m: Module): Module = {
+      m.bindings.map(subTailModuleBinding)
+      m
     }
 
-    override def transformModule(ir: Module): Module = {
-      ir
-    }
-
-    override def prepare(ir: Expression): Mini = {
-      val tailStatus = isTailPosition(ir)
-      subTailExpression(ir, tailStatus)
-      if (!tailStatus && isTailAnnotated(ir)) {
-        ir.addDiagnostic(
-          Warning.WrongTco(ir.identifiedLocation())
+    override def prepare(parent: IR, child: Expression): Mini = {
+      parent match {
+        case m: Module => m.bindings.map(subTailModuleBinding)
+        case e: Expression =>
+          if (tailCandidates.remove(null)) {
+            subTailExpression(e, true)
+            e.updateMetadata(TAIL_META)
+          }
+        case _ =>
+      }
+      val tailStatus = isTailPosition(child)
+      subTailExpression(child, tailStatus)
+      if (!tailStatus && isTailAnnotated(child)) {
+        child.addDiagnostic(
+          Warning.WrongTco(child.identifiedLocation())
         )
       }
       this

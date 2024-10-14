@@ -2,6 +2,7 @@ package org.enso.compiler.pass.desugar
 
 import org.enso.compiler.context.FreshNameSupply
 import org.enso.compiler.core.CompilerError
+import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.expression.{Application, Case, Operator}
 import org.enso.compiler.core.ir.{
   CallArgument,
@@ -18,8 +19,11 @@ class LambdaShorthandToLambdaMini(
   private val shouldSkipBlanks: Boolean = false
 ) extends MiniIRPass {
 
-  override def prepare(current: Expression): LambdaShorthandToLambdaMini = {
-    current match {
+  override def prepare(
+    parent: IR,
+    current: Expression
+  ): LambdaShorthandToLambdaMini = {
+    parent match {
       case Application.Prefix(fn, args, _, _, _) =>
         val hasBlankArg = args.exists {
           case CallArgument.Specified(_, _: Name.Blank, _, _) => true

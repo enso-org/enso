@@ -57,10 +57,11 @@ public abstract class MiniIRPass implements ProcessingPass {
    *
    * <p>TL;DR; Do no store references to the IR elements or their children in this method.
    *
-   * @param expr Expression IR element to be prepared for transformation.
-   * @return May be null if the pass does not want to traverse anything anymore.
+   * @param parent the the parent of the edge
+   * @param child the child expression element to be be processed.
+   * @return an instance of the pass to process the child's element subtree
    */
-  public MiniIRPass prepare(Expression expr) {
+  public MiniIRPass prepare(IR parent, Expression child) {
     return this;
   }
 
@@ -76,15 +77,6 @@ public abstract class MiniIRPass implements ProcessingPass {
    *     return null.
    */
   public abstract Expression transformExpression(Expression expr);
-
-  /**
-   * Prepare this pass for the module compilation.
-   *
-   * @see #prepare(Expression)
-   */
-  public MiniIRPass prepareForModule(Module moduleIr) {
-    return this;
-  }
 
   /**
    * Transforms the module IR. This is the last method that is called.
@@ -132,7 +124,7 @@ public abstract class MiniIRPass implements ProcessingPass {
    * @return the transformed IR
    */
   public static <T extends IR> T compile(Class<T> irType, T ir, MiniIRPass miniPass) {
-    var newIr = MiniPassTraverser.compileRecursively(ir, miniPass);
+    var newIr = MiniPassTraverser.compileDeep(ir, miniPass);
     assert irType.isInstance(newIr)
         : "Expected "
             + irType.getName()
