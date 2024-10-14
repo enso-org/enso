@@ -62,8 +62,7 @@ max_columns = 250
 ##PRIVATE
 nothing_count : Column -> Integer
 nothing_count col =
-    filtered_to_nothing = col.to_vector.filter (c-> c==Nothing)
-    filtered_to_nothing.length
+    filtered_to_nothing = nothing_count_vector (col.to_vector)
 
 ##PRIVATE
 whitespace_count : Column -> Integer | Nothing
