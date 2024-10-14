@@ -78,7 +78,7 @@ import * as electron from 'electron'
 import opener from 'opener'
 
 import * as common from 'enso-common'
-import type * as dashboard from 'enso-dashboard'
+import type * as accessToken from 'enso-common/src/accessToken'
 
 import * as contentConfig from '@/contentConfig'
 import * as ipc from '@/ipc'
@@ -119,7 +119,7 @@ export function initAuthentication(window: () => electron.BrowserWindow) {
   // Listen for events to save the given user credentials to `~/.enso/credentials`.
   electron.ipcMain.on(
     ipc.Channel.saveAccessToken,
-    (event, accessTokenPayload: dashboard.AccessToken | null) => {
+    (event, accessTokenPayload: accessToken.AccessToken | null) => {
       event.preventDefault()
 
       /** Home directory for the credentials file.  */

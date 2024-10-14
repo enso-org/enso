@@ -7,6 +7,7 @@ from Standard.Database.Errors import Integrity_Error
 from Standard.Test import all
 
 from project.Common_Table_Operations.Util import run_default_backend
+import project.Common_Table_Operations.Util
 
 main filter=Nothing = run_default_backend add_specs filter
 
@@ -15,7 +16,7 @@ add_specs suite_builder setup =
 
 add_coalesce_specs suite_builder setup =
     prefix = setup.prefix
-    table_builder = setup.table_builder
+    table_builder = Util.build_sorted_table setup
 
     suite_builder.group prefix+"Table.coalesce" group_builder->
         group_builder.specify "2 columns" <|

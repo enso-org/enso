@@ -135,7 +135,7 @@ class TailCallTest extends CompilerTest {
       implicit val ctx: InlineContext = mkNoTailContext
       val ir                          = code.preprocessExpression.get.analyse
 
-      ir.getMetadata(TailCall) shouldEqual Some(TailPosition.NotTail)
+      ir.getMetadata(TailCall) shouldEqual None
     }
 
     "mark the value of a tail assignment as non-tail" in {
@@ -146,9 +146,7 @@ class TailCallTest extends CompilerTest {
           |""".stripMargin.preprocessExpression.get.analyse
           .asInstanceOf[Expression.Binding]
       binding.getMetadata(TailCall) shouldEqual Some(TailPosition.Tail)
-      binding.expression.getMetadata(TailCall) shouldEqual Some(
-        TailPosition.NotTail
-      )
+      binding.expression.getMetadata(TailCall) shouldEqual None
 
     }
   }
@@ -175,9 +173,7 @@ class TailCallTest extends CompilerTest {
 
     "mark the other expressions in the function as not tail" in {
       fnBody.expressions.foreach(expr =>
-        expr.getMetadata(TailCall) shouldEqual Some(
-          TailPosition.NotTail
-        )
+        expr.getMetadata(TailCall) shouldEqual None
       )
     }
 
@@ -254,16 +250,12 @@ class TailCallTest extends CompilerTest {
         .returnValue
         .asInstanceOf[Case.Expr]
 
-      caseExpr.getMetadata(TailCall) shouldEqual Some(
-        TailPosition.NotTail
-      )
+      caseExpr.getMetadata(TailCall) shouldEqual None
       caseExpr.branches.foreach(branch => {
         val branchExpression =
           branch.expression.asInstanceOf[Application.Prefix]
 
-        branchExpression.getMetadata(TailCall) shouldEqual Some(
-          TailPosition.NotTail
-        )
+        branchExpression.getMetadata(TailCall) shouldEqual None
       })
     }
 
@@ -317,16 +309,14 @@ class TailCallTest extends CompilerTest {
       val pattern            = caseBranch.pattern.asInstanceOf[Pattern.Constructor]
       val patternConstructor = pattern.constructor
 
-      pattern.getMetadata(TailCall) shouldEqual Some(TailPosition.NotTail)
-      patternConstructor.getMetadata(TailCall) shouldEqual Some(
-        TailPosition.NotTail
-      )
+      pattern.getMetadata(TailCall) shouldEqual None
+      patternConstructor.getMetadata(TailCall) shouldEqual None
       pattern.fields.foreach(f => {
-        f.getMetadata(TailCall) shouldEqual Some(TailPosition.NotTail)
+        f.getMetadata(TailCall) shouldEqual None
 
         f.asInstanceOf[Pattern.Name]
           .name
-          .getMetadata(TailCall) shouldEqual Some(TailPosition.NotTail)
+          .getMetadata(TailCall) shouldEqual None
       })
     }
   }
@@ -389,7 +379,7 @@ class TailCallTest extends CompilerTest {
       nonTailCallBody.expressions.head
         .asInstanceOf[Expression.Binding]
         .expression
-        .getMetadata(TailCall) shouldEqual Some(TailPosition.NotTail)
+        .getMetadata(TailCall) shouldEqual None
     }
   }
 
@@ -422,9 +412,7 @@ class TailCallTest extends CompilerTest {
 
     "mark the block expressions as not tail" in {
       block.expressions.foreach(expr =>
-        expr.getMetadata(TailCall) shouldEqual Some(
-          TailPosition.NotTail
-        )
+        expr.getMetadata(TailCall) shouldEqual None
       )
     }
 
