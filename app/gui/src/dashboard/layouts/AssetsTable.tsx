@@ -1896,7 +1896,6 @@ export default function AssetsTable(props: AssetsTableProps) {
 
                   fileMap.set(asset.id, conflict.file)
 
-                  // insertAssets([asset], event.parentId)
                   void doUploadFile(asset, isUpdating ? 'update' : 'new')
                 }
               }}
@@ -1933,8 +1932,6 @@ export default function AssetsTable(props: AssetsTableProps) {
                   })
 
                 const assets = [...newFiles, ...newProjects]
-
-                // insertAssets(assets, event.parentId)
 
                 for (const asset of assets) {
                   void doUploadFile(asset, 'new')
