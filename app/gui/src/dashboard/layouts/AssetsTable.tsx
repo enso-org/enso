@@ -1783,11 +1783,9 @@ export default function AssetsTable(props: AssetsTableProps) {
                       toastAndLog('uploadProjectError', error)
                     })
 
-                  void queryClient.invalidateQueries([
-                    backend.type,
-                    'listDirectory',
-                    asset.parentId,
-                  ])
+                  void queryClient.invalidateQueries({
+                    queryKey: [backend.type, 'listDirectory', asset.parentId],
+                  })
                 } else {
                   uploadFileMutation
                     .mutateAsync([
