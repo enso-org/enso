@@ -149,6 +149,7 @@ const INVALIDATION_MAP: Partial<
   updateAsset: ['listDirectory', 'listAssetVersions'],
   closeProject: ['listDirectory', 'listAssetVersions'],
   updateDirectory: ['listDirectory'],
+  getProjectDetails: ['listDirectory'],
 }
 
 export function backendMutationOptions<Method extends MutationMethod>(

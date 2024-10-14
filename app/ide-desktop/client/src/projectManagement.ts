@@ -192,15 +192,11 @@ export function importDirectory(
   } else {
     logger.log(`Importing a project copy from '${rootPath}'${name != null ? ` as '${name}'` : ''}.`)
     const targetPath = generateDirectoryName(rootPath, directory)
-    if (fs.existsSync(targetPath)) {
-      throw new Error(`Project directory '${targetPath}' already exists.`)
-    } else {
-      logger.log(`Copying: '${rootPath}' -> '${targetPath}'.`)
-      fs.cpSync(rootPath, targetPath, { recursive: true })
-      // Update the project ID, so we are certain that it is unique.
-      // This would be violated, if we imported the same project multiple times.
-      return bumpMetadata(targetPath, directory, name ?? null)
-    }
+    logger.log(`Copying: '${rootPath}' -> '${targetPath}'.`)
+    fs.cpSync(rootPath, targetPath, { recursive: true, force: true })
+    // Update the project ID, so we are certain that it is unique.
+    // This would be violated, if we imported the same project multiple times.
+    return bumpMetadata(targetPath, directory, name ?? null)
   }
 }
 
@@ -345,26 +341,14 @@ export function generateDirectoryName(name: string, directory = getProjectsDirec
 
   // If the name already consists a suffix, reuse it.
   const matches = name.match(/^(.*)_(\d+)$/)
-  const initialSuffix = -1
-  let suffix = initialSuffix
   // Matches start with the whole match, so we need to skip it. Then come our two capture groups.
   const [matchedName, matchedSuffix] = matches?.slice(1) ?? []
+
   if (typeof matchedName !== 'undefined' && typeof matchedSuffix !== 'undefined') {
     name = matchedName
-    suffix = parseInt(matchedSuffix)
   }
 
-  let finalPath: string
-  while (true) {
-    suffix++
-    const newName = `${name}${suffix === 0 ? '' : `_${suffix}`}`
-    const candidatePath = pathModule.join(directory, newName)
-    if (!fs.existsSync(candidatePath)) {
-      finalPath = candidatePath
-      break
-    }
-  }
-  return finalPath
+  return pathModule.join(directory, name)
 }
 
 /** Take a path to a file, presumably located in a project's subtree.Returns the path
