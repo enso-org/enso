@@ -271,30 +271,26 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               hidden={hidden}
               action="uploadToCloud"
               doAction={async () => {
-                if (remoteBackend == null) {
-                  toastAndLog('offlineUploadFilesError')
-                } else {
-                  try {
-                    const projectResponse = await fetch(
-                      `./api/project-manager/projects/${localBackendModule.extractTypeAndId(asset.id).id}/enso-project`,
-                    )
-                    // This DOES NOT update the cloud assets list when it
-                    // completes, as the current backend is not the remote
-                    // (cloud) backend. The user may change to the cloud backend
-                    // while this request is in progress, however this is
-                    // uncommon enough that it is not worth the added complexity.
-                    await uploadFileToCloudMutation(
-                      {
-                        fileName: `${asset.title}.enso-project`,
-                        fileId: null,
-                        parentDirectoryId: null,
-                      },
-                      await projectResponse.blob(),
-                    )
-                    toast.toast.success(getText('uploadProjectToCloudSuccess'))
-                  } catch (error) {
-                    toastAndLog('uploadProjectToCloudError', error)
-                  }
+                try {
+                  const projectResponse = await fetch(
+                    `./api/project-manager/projects/${localBackendModule.extractTypeAndId(asset.id).id}/enso-project`,
+                  )
+                  // This DOES NOT update the cloud assets list when it
+                  // completes, as the current backend is not the remote
+                  // (cloud) backend. The user may change to the cloud backend
+                  // while this request is in progress, however this is
+                  // uncommon enough that it is not worth the added complexity.
+                  await uploadFileToCloudMutation(
+                    {
+                      fileName: `${asset.title}.enso-project`,
+                      fileId: null,
+                      parentDirectoryId: null,
+                    },
+                    await projectResponse.blob(),
+                  )
+                  toast.toast.success(getText('uploadProjectToCloudSuccess'))
+                } catch (error) {
+                  toastAndLog('uploadProjectToCloudError', error)
                 }
               }}
             />
@@ -315,8 +311,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             )}
           {(asset.type === backendModule.AssetType.secret ||
             asset.type === backendModule.AssetType.datalink) &&
-            canEditThisAsset &&
-            remoteBackend != null && (
+            canEditThisAsset && (
               <ContextMenuEntry
                 hidden={hidden}
                 action="edit"

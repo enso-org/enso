@@ -317,6 +317,7 @@ export function useUploadFileMutation(backend: Backend) {
         toast.update(toastId, {
           type: 'success',
           render: getText('uploadLargeFileSuccess'),
+          isLoading: false,
           autoClose: TOAST_SUCCESS_AUTO_CLOSE_MS,
         })
         return result

@@ -9,6 +9,8 @@ import * as textProvider from '#/providers/TextProvider'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as errorModule from '#/utilities/error'
 
+const TOAST_ERROR_AUTO_CLOSE_MS = 5_000
+
 // ===========================
 // === ToastAndLogCallback ===
 // ===========================
@@ -51,7 +53,12 @@ export function useToastAndLogWithId() {
         : `${
             messagePrefix != null ? messagePrefix + ': ' : ''
           }${errorModule.getMessageOrToString<unknown>(error)}`
-      toastify.toast.update(toastId, { type: 'error', render: message })
+      toastify.toast.update(toastId, {
+        type: 'error',
+        render: message,
+        isLoading: false,
+        autoClose: TOAST_ERROR_AUTO_CLOSE_MS,
+      })
       logger.error(message)
     },
   )
