@@ -1,0 +1,12 @@
+{
+  "type": "Snowflake_Connection",
+  "libraryName": "Standard.Snowflake",
+  "account": "ACCOUNT",
+  "database_name": "DBNAME",
+  "schema": "SCHEMA",
+  "warehouse": "WAREHOUSE",
+  "credentials": {
+    "username": "USERNAME",
+    "password": "PASSWORD"
+  }
+}

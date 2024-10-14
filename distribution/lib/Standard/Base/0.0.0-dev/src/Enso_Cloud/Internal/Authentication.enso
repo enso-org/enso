@@ -145,8 +145,7 @@ type Refresh_Token_Data
                 HTTP_Error.Status_Error status message _ ->
                     Authentication_Service.log_message level=..Warning "Refresh token request failed with status "+status.to_text+": "+(message.if_nothing "<no message>")+"."
 
-                    # As per OAuth specification, an expired refresh token should result in a 401 status code: https://www.rfc-editor.org/rfc/rfc6750.html#section-3.1
-                    if status.code == 401 then Panic.throw (Cloud_Session_Expired.Error error) else
+                    if is_refresh_token_expired status message then Panic.throw (Cloud_Session_Expired.Error error) else
                         # Otherwise, we fail with the generic error that gives more details.
                         Panic.throw (Enso_Cloud_Error.Connection_Error error)
                 _ -> Panic.throw (Enso_Cloud_Error.Connection_Error error)
@@ -174,6 +173,13 @@ type Refresh_Token_Data
    The amount of time before the token expiration that we pro-actively refresh
    it to reduce the chance of it expiring during a request.
 token_early_refresh_period = Duration.new minutes=2
+
+## PRIVATE
+is_refresh_token_expired status message -> Boolean =
+    # As per OAuth specification, an expired refresh token should result in a 401 status code: https://www.rfc-editor.org/rfc/rfc6750.html#section-3.1
+    # But empirically, it failed with: 400 Bad Request: {"__type":"NotAuthorizedException","message":"Refresh Token has expired"}.
+    # Let's just handle both just in case
+    (status.code == 401) || (status.code == 400 && message.contains '"Refresh Token has expired"')
 
 ## PRIVATE
    A sibling to `get_required_field`.
