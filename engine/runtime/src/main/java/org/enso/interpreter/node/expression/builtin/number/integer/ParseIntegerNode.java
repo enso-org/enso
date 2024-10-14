@@ -20,7 +20,6 @@ public final class ParseIntegerNode extends IntegerNode {
   @Child ToJavaStringNode toJavaString = ToJavaStringNode.build();
   private final BranchProfile noEx1 = BranchProfile.create();
   private final BranchProfile noEx2 = BranchProfile.create();
-  private final BranchProfile attachFullStackTraceProfile = BranchProfile.create();
 
   Object execute(Text value, long radix) {
     var r = Math.toIntExact(radix);
@@ -37,7 +36,7 @@ public final class ParseIntegerNode extends IntegerNode {
       noEx2.enter();
       var errors = EnsoContext.get(this).getBuiltins().error();
       var err = errors.makeNumberParseError(ex.getMessage());
-      return DataflowError.withDefaultTrace(err, this, attachFullStackTraceProfile);
+      return DataflowError.withDefaultTrace(err, this);
     }
   }
 }

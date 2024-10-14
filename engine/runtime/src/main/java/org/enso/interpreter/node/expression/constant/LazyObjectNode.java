@@ -3,7 +3,6 @@ package org.enso.interpreter.node.expression.constant;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.oracle.truffle.api.profiles.BranchProfile;
 import java.util.function.Supplier;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.data.text.Text;
@@ -17,7 +16,6 @@ public final class LazyObjectNode extends ExpressionNode {
 
   private final String error;
   private final CachingSupplier<? extends Object> supply;
-  private final BranchProfile attachFullStackTraceProfile = BranchProfile.create();
 
   private LazyObjectNode(String error, Supplier<? extends Object> supply) {
     this.error = error;
@@ -41,6 +39,6 @@ public final class LazyObjectNode extends ExpressionNode {
     if (result instanceof TruffleObject) {
       return result;
     }
-    return DataflowError.withDefaultTrace(Text.create(error), this, attachFullStackTraceProfile);
+    return DataflowError.withDefaultTrace(Text.create(error), this);
   }
 }

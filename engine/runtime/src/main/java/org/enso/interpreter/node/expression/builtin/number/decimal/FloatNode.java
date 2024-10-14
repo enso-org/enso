@@ -4,7 +4,6 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.node.expression.builtin.number.utils.ToEnsoNumberNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.error.DataflowError;
@@ -13,7 +12,6 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 abstract class FloatNode extends Node {
   static final String INTEROP_LIMIT = "3";
-  private final BranchProfile attachFullStackTraceProfile = BranchProfile.create();
 
   final boolean isForeignNumber(InteropLibrary iop, TruffleObject obj) {
     if (obj instanceof EnsoBigInteger) {
@@ -50,6 +48,6 @@ abstract class FloatNode extends Node {
   final DataflowError incomparableError(Object self, Object that) {
     var builtins = EnsoContext.get(this).getBuiltins();
     var incomparableErr = builtins.error().makeIncomparableValues(self, that);
-    return DataflowError.withDefaultTrace(incomparableErr, this, attachFullStackTraceProfile);
+    return DataflowError.withDefaultTrace(incomparableErr, this);
   }
 }
