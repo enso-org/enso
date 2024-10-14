@@ -4,7 +4,6 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.version.BuildVersion;
-import scala.collection.mutable.StringBuilder;
 
 @BuiltinMethod(
     type = "Meta",
@@ -27,12 +26,12 @@ public class CurrentEngineVersionNode extends Node {
 
     sb.append("\nBased on commit ");
     sb.append(BuildVersion.commit());
-    sb.append(" on ref ");
-    sb.append(BuildVersion.ref());
-    sb.append(" at ");
+    sb.append(" (at ");
     sb.append(BuildVersion.latestCommitDate());
+    sb.append(")\non ref ");
+    sb.append(BuildVersion.ref());
     if (BuildVersion.isDirty()) {
-      sb.append(" (with uncommitted changes)");
+      sb.append("\n(with uncommitted changes)");
     }
 
     return Text.create(sb.toString());
