@@ -1,0 +1,25 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "vite.config.*",
+    "vite.test.config.*",
+    "vitest.config.*",
+    "project-manager-shim-middleware/*.ts",
+    "playwright.config.*",
+    "eslint.config.js",
+    "tailwind.config.js",
+    "e2e/**/*",
+    "src/dashboard/hooks/eventCallbackHooks.ts",
+    "src/dashboard/services/Backend.ts",
+    "src/dashboard/services/RemoteBackend.ts",
+    "src/dashboard/utilities/**/*",
+    "node.env.d.ts"
+  ],
+  "compilerOptions": {
+    "baseUrl": ".",
+    "module": "ESNext",
+    "verbatimModuleSyntax": true,
+    "types": ["node", "vitest/importMeta"],
+    "paths": { "@/*": ["./src/project-view/*"], "#/*": ["./src/dashboard/*"] }
+  }
+}
