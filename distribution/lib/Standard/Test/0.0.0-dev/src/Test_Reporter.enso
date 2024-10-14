@@ -98,7 +98,7 @@ report_github_error_message (title : Text) (message : Text) =
     if is_enabled then
         location_match = Regex.compile "at ((?:[A-Za-z]:)?[^:]+):([0-9]+):" . match message
         on_location_failing_to_parse caught_panic =
-            IO.println "Failed to parse file location ["+location_match.to_text+"]: "+caught_panic.to_display_text
+            IO.println "Failed to parse file location ["+location_match.to_display_text+"]: "+caught_panic.to_display_text
             ""
         location_part = if location_match.is_nothing then "" else
             Panic.catch Any handler=on_location_failing_to_parse <|
