@@ -43,8 +43,8 @@ public class TransientHTTPResponseCache {
   private static final Logger logger = Logger.getLogger(TransientHTTPResponseCache .class.getName());
 
   private static final int DEFAULT_TTL_SECONDS = 31536000;
-  private static long MAX_FILE_SIZE = 10 * 1024 * 1024;
-  private static long MAX_TOTAL_CACHE_SIZE = 10 * 1024 * 1024 * 1024;
+  private static long MAX_FILE_SIZE = 10L * 1024 * 1024;
+  private static long MAX_TOTAL_CACHE_SIZE = 10L * 1024 * 1024 * 1024;
 
   /**
    * This value is used for the current time when deciding if a cache entry is
@@ -206,29 +206,33 @@ public class TransientHTTPResponseCache {
    */
   private static void makeRoomFor(long newFileSize) {
     long totalSize = getTotalCacheSize() + newFileSize;
+    long maxTotalCacheSize = getMaxTotalCacheSize();
+    if (totalSize <= maxTotalCacheSize) {
+      return;
+    }
     var sortedEntries = getSortedEntries();
     var toRemove = new ArrayList<Map.Entry<String, CacheEntry>>();
     for (var mapEntry : sortedEntries) {
-      System.out.println("AAA entry " + mapEntry.getValue().size() + " " + mapEntry);
+      System.out.println("AAA entry " + mapEntry.getValue().expiry() + " " + mapEntry);
     }
     for (var mapEntry : sortedEntries) {
-      if (totalSize <= getMaxTotalCacheSize()) {
+      if (totalSize <= maxTotalCacheSize) {
         break;
       }
       toRemove.add(mapEntry);
       totalSize -= mapEntry.getValue().size();
-      System.out.println("AAA will remove " + mapEntry.getValue().size() + " " + totalSize + " " + mapEntry);
+      System.out.println("AAA will remove " + mapEntry.getValue().expiry() + " " + mapEntry.getValue().size() + " " + totalSize + " " + mapEntry);
     }
-    assert totalSize <= getMaxTotalCacheSize();
+    assert totalSize <= maxTotalCacheSize;
     for (var mapEntry : toRemove) {
       cache.remove(mapEntry.getKey());
       removeCacheFile(mapEntry.getKey(), mapEntry.getValue());
     }
-    System.out.println("AAA total now " + getTotalCacheSize() + " " + getMaxTotalCacheSize());
+    System.out.println("AAA total now " + getTotalCacheSize() + " " + maxTotalCacheSize);
   }
 
   private static SortedSet<Map.Entry<String, CacheEntry>> getSortedEntries() {
-    var sortedEntries = new TreeSet<Map.Entry<String, CacheEntry>>(cacheEntrySizeComparator);
+    var sortedEntries = new TreeSet<Map.Entry<String, CacheEntry>>(cacheEntryExpiryComparatorDesc);
     sortedEntries.addAll(cache.entrySet());
     return sortedEntries;
   }
@@ -241,15 +245,7 @@ public class TransientHTTPResponseCache {
   }
 
   private static long getTotalCacheSize() {
-    //cache.values().stream().map(e -> e.size()).sum();
     return cache.values().stream().collect(Collectors.summingLong(e -> e.size()));
-      /*
-      long totalSize = 0;
-      for (var ce : cache.values()) {
-        totalSize += ce.size();
-      }
-      return totalSize;
-      */
   }
 
   private static long getMaxFileSize() {
@@ -264,7 +260,7 @@ public class TransientHTTPResponseCache {
     return cache.size();
   }
 
-  public static List<Long> eetFileSizesTestOnly() {
+  public static List<Long> getFileSizesTestOnly() {
     return new ArrayList<>(cache.values().stream().map(CacheEntry::size).collect(Collectors.toList()));
   }
 
@@ -273,21 +269,21 @@ public class TransientHTTPResponseCache {
     nowOverrideTestOnly = nowOverride;
   }
 
-  public void setMaxFileSizeOverrideTestOnly(long maxFileSizeOverrideTestOnly_) {
+  public static void setMaxFileSizeOverrideTestOnly(long maxFileSizeOverrideTestOnly_) {
     assert maxFileSizeOverrideTestOnly_ <= MAX_FILE_SIZE;
     maxFileSizeOverrideTestOnly = Optional.of(maxFileSizeOverrideTestOnly_);
   }
 
-  public void clearMaxFileSizeOverrideTestOnly() {
+  public static void clearMaxFileSizeOverrideTestOnly() {
     maxFileSizeOverrideTestOnly = Optional.empty();
   }
 
-  public void setMaxTotalCacheSizeOverrideTestOnly(long maxTotalCacheSizeOverrideTestOnly_) {
+  public static void setMaxTotalCacheSizeOverrideTestOnly(long maxTotalCacheSizeOverrideTestOnly_) {
     assert maxTotalCacheSizeOverrideTestOnly_ <= MAX_TOTAL_CACHE_SIZE;
     maxTotalCacheSizeOverrideTestOnly = Optional.of(maxTotalCacheSizeOverrideTestOnly_);
   }
 
-  public void clearMaxTotalCacheSizeOverrideTestOnly() {
+  public static void clearMaxTotalCacheSizeOverrideTestOnly() {
     maxTotalCacheSizeOverrideTestOnly = Optional.empty();
   }
 
@@ -391,5 +387,11 @@ public class TransientHTTPResponseCache {
 
   private record CacheEntry(URI uri, HttpHeaders headers, String responseDataPath, long size, int statusCode, ZonedDateTime expiry) {}
 
-  private static final Comparator<Map.Entry<String, CacheEntry>> cacheEntrySizeComparator = Comparator.comparingLong(me -> me.getValue().size());
+  //private static final Comparator<Map.Entry<String, CacheEntry>> cacheEntryExpiryComparatorDesc = Comparator.comparing(me -> me.getValue.expiry()).reversed();
+
+  private static final ZonedDateTime getMapEntryExpiry(Map.Entry<String, CacheEntry> mapEntry) {
+    return mapEntry.getValue().expiry();
+  }
+
+  private static final Comparator<Map.Entry<String, CacheEntry>> cacheEntryExpiryComparatorDesc = Comparator.comparing(TransientHTTPResponseCache::getMapEntryExpiry).reversed();
 }

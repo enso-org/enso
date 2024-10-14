@@ -569,7 +569,7 @@ type Response_Too_Large
     to_text : Text
     to_text self =
         url_maybe = if self.url.is_nothing then "" else " (URL = "+self.url+")"
-        "(Response_Too_Large (size = "+self.size.to_text+") (limit = "+self.limit.to_text+")" + extra + ")"
+        "(Response_Too_Large (size = "+self.size.to_text+") (limit = "+self.limit.to_text+")" + url_maybe + ")"
 
     ## PRIVATE
        Convert the Java exception to an Enso dataflow error.

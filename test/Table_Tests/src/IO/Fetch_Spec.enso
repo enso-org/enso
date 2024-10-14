@@ -7,7 +7,7 @@ import Standard.Base.Network.HTTP.Request.Request
 import Standard.Base.Network.HTTP.Request_Body.Request_Body
 import Standard.Base.Network.HTTP.Response.Response
 import Standard.Base.Runtime.Context
-#from Standard.Base.Network.HTTP import http_get_num_response_cache_entries, http_set_now_override_test_only
+from Standard.Base.Network.HTTP import http_get_file_sizes_test_only 
 
 from Standard.Table import all
 import Standard.Table.Errors.Invalid_JSON_Format
@@ -340,7 +340,7 @@ add_specs suite_builder =
         download size = 
             Data.fetch base_url_with_slash+'test_download?length='+size.to_text
 
-        group_builder.specify "Will not download or cache a file with a content length greater than the single file limit" pending=pending_has_url <| Test.with_retries <|
+        group_builder.specify "Will remove old cache files to keep the total cache size under the total cache size limit" pending=pending_has_url <| Test.with_retries <|
             reset_size_limits
             TransientHTTPResponseCache.setMaxFileSizeOverrideTestOnly 100
             download 30
@@ -348,11 +348,16 @@ add_specs suite_builder =
             download 10
             http_get_file_sizes_test_only . should_equal [10, 30, 50]
             download 20
-            Check exception contents
+            http_get_file_sizes_test_only . should_equal [10, 20, 50]
+
+        group_builder.specify "Will not download or cache a file with a content length greater than the single file limit" pending=pending_has_url <| Test.with_retries <|
+            reset_size_limits
+            TransientHTTPResponseCache.setMaxFileSizeOverrideTestOnly 100
+            download 110 . should_fail_with (Response_Too_Large.Error 110 100 base_url_with_slash+'test_download?length=110')
+
 
         ##
             group_builder.specify "Will not download or cache a file without a content length, but which is greater than the single file limit" pending=pending_has_url <| Test.with_retries <|
-            group_builder.specify "Will remove old cache files to keep the total cache size under the total cache size limit" pending=pending_has_url <| Test.with_retries <|
             group_builder.specify "Deleted cache files that have an open input stream connected to them are still readable" pending=pending_has_url <| Test.with_retries <|
             group_builder.specify "ResponseTooLargeException does not contain any secrets" pending=pending_has_url <| Test.with_retries <|
 
