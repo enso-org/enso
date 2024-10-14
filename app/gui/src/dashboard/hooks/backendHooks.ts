@@ -295,8 +295,8 @@ export function useUploadFileMutation(backend: Backend) {
           (presignedUrl, index) => [presignedUrl, index] as const,
         )) {
           parts.push(await uploadFileChunkMutation.mutateAsync([url, file, i]))
-          toast.loading(getText('uploadLargeFileStatus', (i + 1) * S3_CHUNK_SIZE_MB, fileSizeMB), {
-            toastId,
+          toast.update(toastId, {
+            render: getText('uploadLargeFileStatus', (i + 1) * S3_CHUNK_SIZE_MB, fileSizeMB),
           })
         }
         const result = await uploadFileEndMutation.mutateAsync([
@@ -309,7 +309,7 @@ export function useUploadFileMutation(backend: Backend) {
             fileName: params.fileName,
           },
         ])
-        toast.success(getText('uploadLargeFileSuccess'), { toastId })
+        toast.update(toastId, { type: 'success', render: getText('uploadLargeFileSuccess') })
         return result
       } catch (error) {
         toastAndLog(toastId, 'uploadLargeFileError', error)

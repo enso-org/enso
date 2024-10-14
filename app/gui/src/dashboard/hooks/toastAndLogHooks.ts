@@ -51,9 +51,8 @@ export function useToastAndLogWithId() {
         : `${
             messagePrefix != null ? messagePrefix + ': ' : ''
           }${errorModule.getMessageOrToString<unknown>(error)}`
-      const id = toastify.toast.error(message, { toastId })
+      toastify.toast.update(toastId, { type: 'error', render: message })
       logger.error(message)
-      return id
     },
   )
 }
