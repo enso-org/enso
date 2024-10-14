@@ -792,25 +792,21 @@ fn accessor_operator() {
 
 #[test]
 fn operator_sections() {
-    #[rustfmt::skip]
-    test(".map (+2 * 3) *7", block![
+    test!(".map (+2 * 3) *7",
         (OprSectionBoundary 1
          (App (App (OprApp () (Ok ".") (Ident map))
                    (Group
                     (OprSectionBoundary 1 (OprApp (OprApp () (Ok "+") (Number () "2" ()))
                     (Ok "*") (Number () "3" ())))))
-              (OprSectionBoundary 1 (OprApp () (Ok "*") (Number () "7" ())))))]);
-    #[rustfmt::skip]
-    test(".sum 1", block![
-        (OprSectionBoundary 1 (App (OprApp () (Ok ".") (Ident sum)) (Number () "1" ())))]);
-    #[rustfmt::skip]
-    test("+1 + x", block![
+              (OprSectionBoundary 1 (OprApp () (Ok "*") (Number () "7" ()))))));
+    test!(".sum 1",
+        (OprSectionBoundary 1 (App (OprApp () (Ok ".") (Ident sum)) (Number () "1" ()))));
+    test!("+1 + x",
         (OprSectionBoundary 1 (OprApp (OprApp () (Ok "+") (Number () "1" ()))
-                                (Ok "+") (Ident x)))]);
-    #[rustfmt::skip]
-    test("increment = 1 +", block![
+                               (Ok "+") (Ident x))));
+    test_block!("increment = 1 +",
         (Assignment (Ident increment)
-         (OprSectionBoundary 1 (OprApp (Number () "1" ()) (Ok "+") ())))]);
+         (OprSectionBoundary 1 (OprApp (Number () "1" ()) (Ok "+") ()))));
     test!("1+ << 2*",
         (OprSectionBoundary 1
          (OprApp (OprApp (Number () "1" ()) (Ok "+") ())
@@ -883,18 +879,18 @@ fn unary_operator_at_end_of_expression() {
 #[test]
 fn unspaced_operator_sequence() {
     // Add a negated value.
-    test!("x = y+-z",
+    test_block!("x = y+-z",
         (Assignment (Ident x) (OprApp (Ident y) (Ok "+") (UnaryOprApp "-" (Ident z)))));
     // Create an operator section that adds a negated value to its input.
-    test!("x = +-z",
+    test_block!("x = +-z",
         (Assignment (Ident x) (OprSectionBoundary 1
             (OprApp () (Ok "+") (UnaryOprApp "-" (Ident z))))));
     // The `-` can only be lexed as a unary operator, and unary operators cannot form sections.
-    expect_invalid_node("x = y+-");
+    expect_invalid_node("main =\n    x = y+-");
     // Assign a negative number to x.
-    test!("x=-1", (Assignment (Ident x) (UnaryOprApp "-" (Number () "1" ()))));
+    test_block!("x=-1", (Assignment (Ident x) (UnaryOprApp "-" (Number () "1" ()))));
     // Assign a negated value to x.
-    test!("x=-y", (Assignment (Ident x) (UnaryOprApp "-" (Ident y))));
+    test_block!("x=-y", (Assignment (Ident x) (UnaryOprApp "-" (Ident y))));
 }
 
 #[test]
@@ -1094,9 +1090,9 @@ fn type_signatures() {
 
 #[test]
 fn type_annotations() {
-    test!("val = x : Int",
+    test_block!("val = x : Int",
         (Assignment (Ident val) (TypeAnnotated (Ident x) ":" (Ident Int))));
-    test!("val = foo (x : Int)",
+    test_block!("val = foo (x : Int)",
         (Assignment (Ident val)
          (App (Ident foo)
           (Group (TypeAnnotated (Ident x) ":" (Ident Int))))));
@@ -1259,7 +1255,7 @@ fn old_lambdas() {
     test!("f x->\n y",
         (App (Ident f) (OprApp (Ident x) (Ok "->") (BodyBlock #((Ident y))))));
     test!("x->y-> z", (OprApp (Ident x) (Ok "->") (OprApp (Ident y) (Ok "->") (Ident z))));
-    test!("foo = x -> (y = bar x) -> x + y",
+    test_block!("foo = x -> (y = bar x) -> x + y",
         (Assignment (Ident foo)
          (OprApp (Ident x) (Ok "->")
           (OprApp (Group (OprApp (Ident y) (Ok "=") (App (Ident bar) (Ident x)))) (Ok "->")
@@ -1271,10 +1267,10 @@ fn old_lambdas() {
 
 #[test]
 fn pattern_irrefutable() {
-    test!("Point x_val = my_point",
+    test_block!("Point x_val = my_point",
         (Assignment (App (Ident Point) (Ident x_val)) (Ident my_point)));
-    test!("Vector _ = x", (Assignment (App (Ident Vector) (Wildcard -1)) (Ident x)));
-    test!("X.y = z", (Function (OprApp (Ident X) (Ok ".") (Ident y)) #() () (Ident z)));
+    test_block!("Vector _ = x", (Assignment (App (Ident Vector) (Wildcard -1)) (Ident x)));
+    test_block!("X.y = z", (Function (OprApp (Ident X) (Ok ".") (Ident y)) #() () (Ident z)));
 }
 
 #[test]
@@ -1383,10 +1379,10 @@ fn suspended_default_arguments_in_pattern() {
 
 #[test]
 fn suspended_default_arguments_in_expression() {
-    test!("c = self.value ...",
+    test_block!("c = self.value ...",
         (Assignment (Ident c)
          (App (OprApp (Ident self) (Ok ".") (Ident value)) (SuspendedDefaultArguments))));
-    test!("c = self.value...",
+    test_block!("c = self.value...",
         (Assignment (Ident c)
          (App (OprApp (Ident self) (Ok ".") (Ident value)) (SuspendedDefaultArguments))));
 }
@@ -1398,7 +1394,7 @@ fn private_keyword() {
     test!("private", (Private()));
     expect_invalid_node("private func");
     // Private binding is not supported.
-    expect_invalid_node("private var = 42");
+    expect_invalid_node("main =\n    private var = 42");
     expect_invalid_node("private ConstructorOutsideType");
     expect_invalid_node("type My_Type\n    private");
     expect_invalid_node("private type My_Type\n    Ctor");
@@ -1474,7 +1470,7 @@ mod numbers {
 
     #[test]
     fn with_decimal() {
-        test!("pi = 3.14", (Assignment (Ident pi) (Number () "3" ("." "14"))));
+        test_block!("pi = 3.14", (Assignment (Ident pi) (Number () "3" ("." "14"))));
     }
 
     #[test]
@@ -1616,11 +1612,11 @@ fn skip() {
 
 #[test]
 fn statement_in_expression_context() {
-    test!("x = y = z", (Assignment (Ident x) (Invalid)));
+    test_block!("x = y = z", (Assignment (Ident x) (Invalid)));
     test!("(y = z)", (Group(Invalid)));
     test!("(y = z) x", (App (Group (Invalid)) (Ident x)));
-    test!("(f x = x)", (Group(Invalid)));
-    test!("y = f x = x", (Assignment (Ident y) (Invalid)));
+    test_block!("(f x = x)", (Group(Invalid)));
+    test_block!("y = f x = x", (Assignment (Ident y) (Invalid)));
 }
 
 
@@ -1831,30 +1827,30 @@ fn test<T: AsRef<str>>(code: T, expect: lexpr::Value) {
 }
 
 fn test_block<T: AsRef<str>>(code: T, expect: lexpr::Value) {
-    let code = format!(
-        "main ={}",
-        code.as_ref().lines().map(|stmt| format!("\n    {stmt}")).collect::<Vec<_>>().join("")
-    );
-    let ast = parse(&code);
-    expect_tree_representing_code(&code, &ast);
-    let enso_parser::syntax::tree::Variant::BodyBlock(block) = ast.variant else { unreachable!() };
-    let enso_parser::syntax::tree::Variant::Function(function) =
-        block.statements.into_iter().next().unwrap().expression.unwrap().variant
-    else {
-        panic!()
-    };
-    let block_ast = function.body.as_ref().unwrap();
-    let ast_s_expr = to_s_expr(block_ast, &code);
-    assert_eq!(ast_s_expr.to_string(), expect.to_string(), "{:?}", block_ast);
+    let code = code.as_ref();
+    let ast = parse_block(code);
+    let ast_s_expr = to_s_expr(&ast, code);
+    assert_eq!(ast_s_expr.to_string(), expect.to_string(), "{:?}", &ast);
+    expect_tree_representing_code(code, &ast);
 }
 
 fn parse(code: &str) -> enso_parser::syntax::tree::Tree {
-    let ast = enso_parser::Parser::new().run(code);
+    let ast = enso_parser::Parser::new().parse_module(code);
+    validate_parse(code, &ast);
+    ast
+}
+
+fn parse_block(code: &str) -> enso_parser::syntax::tree::Tree {
+    let ast = enso_parser::Parser::new().parse_block(code);
+    validate_parse(code, &ast);
+    ast
+}
+
+fn validate_parse(code: &str, ast: &enso_parser::syntax::Tree) {
     let expected_span = 0..(code.encode_utf16().count() as u32);
     let mut locations = enso_parser::source::code::debug::LocationCheck::new();
-    enso_parser_debug::validate_spans(&ast, expected_span, &mut locations).unwrap();
+    enso_parser_debug::validate_spans(ast, expected_span, &mut locations).unwrap();
     locations.check(code);
-    ast
 }
 
 
@@ -1885,7 +1881,7 @@ impl Errors {
 
 /// Checks that an input contains an `Invalid` node somewhere.
 fn expect_invalid_node(code: &str) {
-    let ast = enso_parser::Parser::new().run(code);
+    let ast = enso_parser::Parser::new().parse_module(code);
     expect_tree_representing_code(code, &ast);
     let errors = Errors::collect(&ast, code);
     assert!(errors.invalid_node, "{}", to_s_expr(&ast, code));
@@ -1893,7 +1889,7 @@ fn expect_invalid_node(code: &str) {
 
 /// Checks that an input contains a multiple-operator error somewhere.
 fn expect_multiple_operator_error(code: &str) {
-    let ast = enso_parser::Parser::new().run(code);
+    let ast = enso_parser::Parser::new().parse_module(code);
     expect_tree_representing_code(code, &ast);
     let errors = Errors::collect(&ast, code);
     assert!(errors.multiple_operator || errors.invalid_node, "{}", to_s_expr(&ast, code));
@@ -1902,7 +1898,7 @@ fn expect_multiple_operator_error(code: &str) {
 
 /// Check that the input can be parsed, and doesn't yield any `Invalid` nodes.
 fn expect_valid(code: &str) {
-    let ast = enso_parser::Parser::new().run(code);
+    let ast = enso_parser::Parser::new().parse_module(code);
     expect_tree_representing_code(code, &ast);
     let errors = Errors::collect(&ast, code);
     assert!(!errors.invalid_node);

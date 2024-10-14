@@ -27,8 +27,12 @@ public final class Parser {
     return getWorker().parseInputLazy(input);
   }
 
-  public static Tree parse(CharSequence input) {
-    return getWorker().parse(input);
+  public static Tree parseModule(CharSequence input) {
+    return getWorker().parse(input, false);
+  }
+
+  public static Tree parseBlock(CharSequence input) {
+    return getWorker().parse(input, true);
   }
 
   public static UUID getUuid(long metadata, long nodeOffset, long nodeLength) {
@@ -198,13 +202,18 @@ public final class Parser {
       return withState(state -> parseTreeLazy(state, inputBuf));
     }
 
-    Tree parse(CharSequence input) {
+    Tree parse(CharSequence input, boolean isInternalBlock) {
       byte[] inputBytes = input.toString().getBytes(StandardCharsets.UTF_8);
       ByteBuffer inputBuf = ByteBuffer.allocateDirect(inputBytes.length);
       inputBuf.put(inputBytes);
       return withState(
           state -> {
-            var serializedTree = parseTree(state, inputBuf);
+            ByteBuffer serializedTree;
+            if (isInternalBlock) {
+              serializedTree = parseBlock(state, inputBuf);
+            } else {
+              serializedTree = parseModule(state, inputBuf);
+            }
             var base = getLastInputBase(state);
             var metadata = getMetadata(state);
             serializedTree.order(ByteOrder.LITTLE_ENDIAN);
@@ -226,7 +235,9 @@ public final class Parser {
 
   private static native void freeState(long state);
 
-  private static native ByteBuffer parseTree(long state, ByteBuffer input);
+  private static native ByteBuffer parseModule(long state, ByteBuffer input);
+
+  private static native ByteBuffer parseBlock(long state, ByteBuffer input);
 
   private static native ByteBuffer parseTreeLazy(long state, ByteBuffer input);
 

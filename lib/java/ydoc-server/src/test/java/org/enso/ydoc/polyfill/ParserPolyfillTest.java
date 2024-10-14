@@ -40,7 +40,7 @@ public class ParserPolyfillTest extends ExecutorSetup {
   }
 
   @Test
-  public void parseTree() throws Exception {
+  public void parseModule() throws Exception {
     var code = """
         const arr = parse_tree(`main = 1 + 2`)
         arr.buffer

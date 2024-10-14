@@ -15,7 +15,7 @@ public final class EnsoParser {
   }
 
   public static Module compile(CharSequence src, Map<Location, UUID> idMap) {
-    var tree = Parser.parse(src);
+    var tree = Parser.parseModule(src);
     var treeToIr = TreeToIr.MODULE;
     if (idMap != null) {
       treeToIr = new TreeToIr(idMap);
@@ -24,7 +24,7 @@ public final class EnsoParser {
   }
 
   public static scala.Option<Expression> compileInline(CharSequence src) {
-    var tree = Parser.parse(src);
+    var tree = Parser.parseBlock(src);
     return TreeToIr.MODULE.translateInline(tree);
   }
 
