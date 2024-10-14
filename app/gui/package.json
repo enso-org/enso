@@ -29,11 +29,10 @@
     "test-dev:unit": "vitest",
     "test:e2e": "cross-env NODE_ENV=production playwright test",
     "test-dev:e2e": "cross-env NODE_ENV=production playwright test --ui",
-    "preinstall": "corepack pnpm run generate-metadata && corepack pnpm run download-fonts",
+    "preinstall": "corepack pnpm run generate-metadata",
     "postinstall": "playwright install",
     "build-rust-ffi": "wasm-pack build ./rust-ffi --release --target web && wasm-pack build ./rust-ffi --out-dir node-pkg --target nodejs",
-    "generate-metadata": "node scripts/generateIconMetadata.js",
-    "download-fonts": "node scripts/downloadFonts.js"
+    "generate-metadata": "node scripts/generateIconMetadata.js"
   },
   "dependencies": {
     "@aws-amplify/auth": "5.6.5",
