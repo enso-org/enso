@@ -2,7 +2,7 @@ import {
   astContainingChar,
   childrenAstNodes,
   debugAst,
-  parseEnso,
+  parseEnsoModule,
   parseEnsoLine,
   readAstOrTokenSpan,
   readAstSpan,
@@ -48,18 +48,18 @@ const parseCases = [
 ]
 
 test.each(parseCases)("Parsing '%s'", (code) => {
-  expect(debugAst(parseEnso(code))).toMatchSnapshot()
+  expect(debugAst(parseEnsoModule(code))).toMatchSnapshot()
 })
 
 test.each(parseCases)("AST spans of '%s' are valid", (input) => {
-  const tree = parseEnso(input)
+  const tree = parseEnsoModule(input)
   const endPos = validateSpans(tree)
   expect(endPos).toStrictEqual(input.length)
 })
 
 test("Reading AST node's code", () => {
   const code = 'Data.read File\n2 + 3'
-  const ast = parseEnso(code)
+  const ast = parseEnsoModule(code)
   expect(readAstSpan(ast, code)).toStrictEqual(code)
   assert(ast.type === Tree.Type.BodyBlock)
   const statements = Array.from(ast.statements)
@@ -206,7 +206,7 @@ test.each([
     ],
   ],
 ])("Reading AST from code '%s' and position %i", (code, position, expected) => {
-  const ast = parseEnso(code)
+  const ast = parseEnsoModule(code)
   const astAtPosition = astContainingChar(position, ast)
   const resultWithExpected = astAtPosition.map((ast, i) => {
     return { ast, expected: expected[i] }

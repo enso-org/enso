@@ -170,7 +170,7 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       if (!methodAst.value.ok || !moduleSource.text) return
       const method = methodAst.value.value
       const toRaw = new Map<SourceRangeKey, RawAst.Tree.Function>()
-      visitRecursive(Ast.parseEnso(moduleSource.text), (node) => {
+      visitRecursive(Ast.parseEnsoModule(moduleSource.text), (node) => {
         if (node.type === RawAst.Tree.Type.Function) {
           const start = node.whitespaceStartInCodeParsed + node.whitespaceLengthInCodeParsed
           const end = start + node.childrenLengthInCodeParsed

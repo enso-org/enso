@@ -199,7 +199,7 @@ export abstract class Ast {
   }
 
   static parseBlock(source: string, inModule?: MutableModule) {
-    return parseBlock(source, inModule)
+    return parseBlock(source, { module: inModule })
   }
 
   static parse(source: string, module?: MutableModule) {

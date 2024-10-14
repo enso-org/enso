@@ -2,7 +2,7 @@ import { assert } from '@/util/assert'
 import {
   RawAst,
   astPrettyPrintType,
-  parseEnso,
+  parseEnsoModule,
   parsedTreeOrTokenRange,
   readAstOrTokenSpan,
   readTokenSpan,
@@ -114,7 +114,7 @@ export class AliasAnalyzer {
     private readonly code: string,
     ast?: RawAst.Tree,
   ) {
-    this.ast = ast ?? parseEnso(code)
+    this.ast = ast ?? parseEnsoModule(code)
     this.rootScope = new Scope(parsedTreeOrTokenRange(this.ast))
     this.scopes = new NonEmptyStack(this.rootScope)
   }

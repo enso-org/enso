@@ -15,8 +15,14 @@ pub fn parse_doc_to_json(docs: &str) -> String {
 }
 
 #[wasm_bindgen]
-pub fn parse(code: &str) -> Vec<u8> {
+pub fn parse_module(code: &str) -> Vec<u8> {
     let ast = PARSER.with(|parser| parser.parse_module(code));
+    enso_parser::format::serialize(&ast).expect("Failed to serialize AST to binary format")
+}
+
+#[wasm_bindgen]
+pub fn parse_block(code: &str) -> Vec<u8> {
+    let ast = PARSER.with(|parser| parser.parse_block(code));
     enso_parser::format::serialize(&ast).expect("Failed to serialize AST to binary format")
 }
 

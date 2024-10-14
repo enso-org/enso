@@ -1,7 +1,7 @@
 import { assert, assertDefined } from '@/util/assert'
 import {
   childrenAstNodesOrTokens,
-  parseEnso,
+  parseEnsoModule,
   parsedTreeOrTokenRange,
   readAstOrTokenSpan,
   visitGenerator,
@@ -46,7 +46,7 @@ class AstExtended<T extends Tree | Token = Tree | Token, HasIdMap extends boolea
   public static parse(code: string): AstExtended<Tree, false>
   public static parse(code: string, idMap: IdMap): AstExtended<Tree, true>
   public static parse(code: string, idMap?: IdMap): AstExtended<Tree, boolean> {
-    const ast = parseEnso(code)
+    const ast = parseEnsoModule(code)
     if (idMap != null) {
       visitRecursive(ast, (node) => {
         const range = parsedTreeOrTokenRange(node)

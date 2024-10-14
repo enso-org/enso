@@ -19,7 +19,7 @@ import { findExpressions, testCase, tryFindExpressions } from './testCase'
 
 test('Raw block abstracts to Ast.BodyBlock', () => {
   const code = 'value = 2 + 2'
-  const rawBlock = Ast.parseEnso(code)
+  const rawBlock = Ast.parseEnsoModule(code)
   const edit = MutableModule.Transient()
   const abstracted = Ast.abstract(edit, rawBlock, code)
   expect(abstracted.root).toBeInstanceOf(Ast.BodyBlock)
@@ -789,7 +789,7 @@ describe('Code edit', () => {
     const before = findExpressions(beforeRoot, {
       value: Ast.Ident,
       '1': Ast.NumericLiteral,
-      'value = 1 +': Ast.Assignment,
+      'value = 1 +': Ast.Function,
     })
     const edit = beforeRoot.module.edit()
     const newCode = 'value = 1 \n'
@@ -800,7 +800,7 @@ describe('Code edit', () => {
     const after = findExpressions(edit.root()!, {
       value: Ast.Ident,
       '1': Ast.NumericLiteral,
-      'value = 1': Ast.Assignment,
+      'value = 1': Ast.Function,
     })
     expect(after.value.id).toBe(before.value.id)
     expect(after['1'].id).toBe(before['1'].id)

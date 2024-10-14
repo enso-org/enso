@@ -31,7 +31,7 @@ import {
   type SourceRangeKey,
 } from '../yjsModel'
 import { graphParentPointers } from './debug'
-import { parse_tree, xxHash128 } from './ffi'
+import { parse_module, parse_block, xxHash128 } from './ffi'
 import * as RawAst from './generated/ast'
 import { MutableModule } from './mutableModule'
 import type { LazyObject } from './parserSupport'
@@ -62,9 +62,17 @@ import {
   Wildcard,
 } from './tree'
 
-/** Return the raw parser output for the given code. */
-export function parseEnso(code: string): RawAst.Tree.BodyBlock {
-  const blob = parse_tree(code)
+/** Return the raw parser output for the given code, parsed as a module. */
+export function parseEnsoModule(code: string): RawAst.Tree.BodyBlock {
+  return deserializeBlock(parse_module(code))
+}
+
+/** Return the raw parser output for the given code, parsed as a body block. */
+export function parseEnsoBlock(code: string): RawAst.Tree.BodyBlock {
+  return deserializeBlock(parse_block(code))
+}
+
+function deserializeBlock(blob: Uint8Array): RawAst.Tree.BodyBlock {
   const tree = RawAst.Tree.read(new DataView(blob.buffer), blob.byteLength - 4)
   // The root of the parser output is always a body block.
   assert(tree.type === RawAst.Tree.Type.BodyBlock)
@@ -76,7 +84,7 @@ export function normalize(rootIn: Ast): Ast {
   const printed = print(rootIn)
   const idMap = spanMapToIdMap(printed.info)
   const module = MutableModule.Transient()
-  const tree = parseEnso(printed.code)
+  const tree = parseEnsoModule(printed.code)
   const { root: parsed, spans } = abstract(module, tree, printed.code)
   module.replaceRoot(parsed)
   setExternalIds(module, spans, idMap)
@@ -597,14 +605,16 @@ export function printDocumented(
 }
 
 /** Parse the input as a block. */
-export function parseBlock(code: string, inModule?: MutableModule): Owned<MutableBodyBlock> {
-  return parseBlockWithSpans(code, inModule).root
+export function parseBlock(code: string, options: ParseOptions = {}): Owned<MutableBodyBlock> {
+  return parseBlockWithSpans(code, options).root
 }
 
-/** Parse the input. If it contains a single expression at the top level, return it; otherwise, return a block. */
+/**
+ * Parse the input. If it contains a single expression at the top level, return it; otherwise, parse it as a body block.
+ */
 export function parse(code: string, module?: MutableModule): Owned {
   const module_ = module ?? MutableModule.Transient()
-  const ast = parseBlock(code, module_)
+  const ast = parseBlock(code, { context: 'block', module: module_ })
   const soleStatement = tryGetSoleValue(ast.statements())
   if (!soleStatement) return ast
   const parent = parentId(soleStatement)
@@ -613,13 +623,22 @@ export function parse(code: string, module?: MutableModule): Owned {
   return asOwned(soleStatement)
 }
 
+export interface ParseOptions {
+  /**
+   * Specifies whether the input should be parsed as if it contains the top-level statements of a file, or statements in
+   * a body block. If `undefined` or not specified, the default is `'module'`.
+   */
+  context?: 'module' | 'block' | undefined
+  module?: MutableModule | undefined
+}
+
 /** Parse a block, and return it along with a mapping from source locations to parsed objects. */
 export function parseBlockWithSpans(
   code: string,
-  inModule?: MutableModule,
+  options: ParseOptions = {}
 ): { root: Owned<MutableBodyBlock>; spans: SpanMap } {
-  const tree = parseEnso(code)
-  const module = inModule ?? MutableModule.Transient()
+  const tree = options.context === 'block' ? parseEnsoBlock(code) : parseEnsoModule(code)
+  const module = options.module ?? MutableModule.Transient()
   return abstract(module, tree, code)
 }
 
@@ -627,7 +646,7 @@ export function parseBlockWithSpans(
  *  mapping to the `RawAst` representation.
  */
 export function parseExtended(code: string, idMap?: IdMap | undefined, inModule?: MutableModule) {
-  const rawRoot = parseEnso(code)
+  const rawRoot = parseEnsoModule(code)
   const module = inModule ?? MutableModule.Transient()
   const { root, spans, toRaw } = module.transact(() => {
     const { root, spans, toRaw } = abstract(module, rawRoot, code)
@@ -919,7 +938,7 @@ export function applyTextEditsToAst(
 ) {
   const printed = print(ast)
   const code = applyTextEdits(printed.code, textEdits)
-  const rawParsedBlock = parseEnso(code)
+  const rawParsedBlock = parseEnsoModule(code)
   const rawParsed =
     ast instanceof MutableBodyBlock ? rawParsedBlock : rawBlockToInline(rawParsedBlock)
   const parsed = abstract(ast.module, rawParsed, code)
