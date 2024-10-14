@@ -6,6 +6,11 @@ import * as newtype from '../utilities/data/newtype'
 import * as permissions from '../utilities/permissions'
 import * as uniqueString from '../utilities/uniqueString'
 
+/** The maximum size, in bytes, of a single file upload. */
+export const MAXIMUM_SINGLE_FILE_SIZE = 6_000_000
+/** The size, in bytes, of the chunks which the backend accepts. */
+export const S3_CHUNK_SIZE_BYTES = 10_000_000
+
 // ================
 // === Newtypes ===
 // ================
@@ -1240,6 +1245,50 @@ export interface UploadFileRequestParams {
   readonly parentDirectoryId: DirectoryId | null
 }
 
+/** HTTP request body for the "upload file start" endpoint. */
+export interface UploadFileStartRequestBody {
+  readonly size: number
+  readonly fileName: string
+}
+
+/** Metadata required to uploading a large file. */
+export interface UploadLargeFileMetadata {
+  readonly presignedUrls: readonly HttpsUrl[]
+  readonly uploadId: string
+  readonly sourcePath: S3FilePath
+}
+
+/** Metadata for each multipart upload. */
+export interface S3MultipartPart {
+  readonly eTag: string
+  readonly partNumber: number
+}
+
+/** HTTP request body for the "upload file end" endpoint. */
+export interface UploadFileEndRequestBody {
+  readonly parentDirectoryId: DirectoryId | null
+  readonly parts: readonly S3MultipartPart[]
+  readonly sourcePath: S3FilePath
+  readonly uploadId: string
+  readonly assetId: AssetId | null
+  readonly fileName: string
+}
+
+/** A large file that has finished uploading. */
+export interface UploadedLargeFile {
+  readonly id: FileId
+  readonly project: null
+}
+
+/** A large project that has finished uploading. */
+export interface UploadedLargeProject {
+  readonly id: ProjectId
+  readonly project: Project
+}
+
+/** A large asset (file or project) that has finished uploading. */
+export type UploadedLargeAsset = UploadedLargeFile | UploadedLargeProject
+
 /** URL query string parameters for the "upload profile picture" endpoint. */
 export interface UploadPictureRequestParams {
   readonly fileName: string | null
@@ -1530,6 +1579,15 @@ export default abstract class Backend {
   abstract listFiles(): Promise<readonly FileLocator[]>
   /** Upload a file. */
   abstract uploadFile(params: UploadFileRequestParams, file: Blob): Promise<FileInfo>
+  /** Begin uploading a large file. */
+  abstract uploadFileStart(
+    body: Omit<UploadFileStartRequestBody, 'size'>,
+    file: Blob,
+  ): Promise<UploadLargeFileMetadata>
+  /** Upload a chunk of a large file. */
+  abstract uploadFileChunk(url: HttpsUrl, file: Blob, index: number): Promise<S3MultipartPart>
+  /** Finish uploading a large file. */
+  abstract uploadFileEnd(body: UploadFileEndRequestBody): Promise<UploadedLargeAsset>
   /** Change the name of a file. */
   abstract updateFile(fileId: FileId, body: UpdateFileRequestBody, title: string): Promise<void>
   /** Return file details. */

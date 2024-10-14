@@ -5,6 +5,7 @@ import * as reactQuery from '@tanstack/react-query'
 
 import * as backendQuery from 'enso-common/src/backendQuery'
 
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 
@@ -63,6 +64,9 @@ export type MutationMethod = DefineBackendMethods<
   | 'updateSecret'
   | 'updateUser'
   | 'uploadFile'
+  | 'uploadFileStart'
+  | 'uploadFileChunk'
+  | 'uploadFileEnd'
   | 'uploadOrganizationPicture'
   | 'uploadUserPicture'
 >

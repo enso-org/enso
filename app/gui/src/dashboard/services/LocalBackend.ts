@@ -877,4 +877,25 @@ export default class LocalBackend extends Backend {
   override createCustomerPortalSession() {
     return this.invalidOperation()
   }
+
+  /**
+   * Invalid operation.
+   */
+  override uploadFileStart() {
+    return this.invalidOperation()
+  }
+
+  /**
+   * Invalid operation.
+   */
+  override uploadFileChunk() {
+    return this.invalidOperation()
+  }
+
+  /**
+   * Invalid operation.
+   */
+  override uploadFileEnd() {
+    return this.invalidOperation()
+  }
 }

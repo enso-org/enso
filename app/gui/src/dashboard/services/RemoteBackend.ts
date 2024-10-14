@@ -909,6 +909,57 @@ export default class RemoteBackend extends Backend {
     }
   }
 
+  /**
+   * Begin uploading a large file.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  override async uploadFileStart(
+    body: Omit<backend.UploadFileStartRequestBody, 'size'>,
+    file: Blob,
+  ): Promise<backend.UploadLargeFileMetadata> {
+    const path = remoteBackendPaths.UPLOAD_FILE_START_PATH
+    const response = await this.post<backend.UploadLargeFileMetadata>(path, {
+      ...body,
+      size: file.size,
+    } satisfies backend.UploadFileStartRequestBody)
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'uploadFileStartBackendError')
+    } else {
+      return await response.json()
+    }
+  }
+
+  /** Upload a chunk of a large file. */
+  override async uploadFileChunk(
+    url: backend.HttpsUrl,
+    file: Blob,
+    index: number,
+  ): Promise<backend.S3MultipartPart> {
+    const start = index * backend.S3_CHUNK_SIZE_BYTES
+    const end = Math.min(start + backend.S3_CHUNK_SIZE_BYTES, file.size)
+    const blob = file.slice(start, end)
+    const response = await fetch(url, { method: 'POST', body: file.slice(start, end) })
+    const eTag = response.headers.get('ETag')
+    if (!responseIsSuccessful(response) || eTag == null) {
+      return await this.throw(response, 'uploadFileChunkBackendError')
+    } else {
+      return { eTag, partNumber: index + 1 }
+    }
+  }
+
+  /** Finish uploading a large file. */
+  override async uploadFileEnd(
+    body: backend.UploadFileEndRequestBody,
+  ): Promise<backend.UploadedLargeAsset> {
+    const path = remoteBackendPaths.UPLOAD_FILE_END_PATH
+    const response = await this.post<backend.UploadedLargeAsset>(path, body)
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'uploadFileEndBackendError')
+    } else {
+      return await response.json()
+    }
+  }
+
   /** Change the name of a file. */
   override async updateFile(): Promise<void> {
     await this.throw(null, 'updateFileNotImplementedBackendError')
