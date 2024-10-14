@@ -29,6 +29,7 @@ final class IRNodeElement {
   private static final String IMPORTS =
       """
 import java.util.UUID;
+import java.util.ArrayList;
 import java.util.function.Function;
 import org.enso.compiler.core.Identifier;
 import org.enso.compiler.core.IR;
@@ -141,6 +142,61 @@ import scala.collection.immutable.List;
   }
 
   /**
+   * Returns string representation of the package-private constructor of the generated class. Note
+   * that the constructor is meant to be invoked only by the internal Builder class.
+   */
+  String constructor() {
+    var sb = new StringBuilder();
+    sb.append("private ").append(className).append("(");
+    var inParens =
+        fields.stream()
+            .map(
+                field ->
+                    "$fieldType $fieldName"
+                        .replace("$fieldType", field.getSimpleTypeName())
+                        .replace("$fieldName", field.getName()))
+            .collect(Collectors.joining(", "));
+    sb.append(inParens).append(") {").append(System.lineSeparator());
+    var ctorBody =
+        fields.stream()
+            .map(field -> "  this.$fieldName = $fieldName;".replace("$fieldName", field.getName()))
+            .collect(Collectors.joining(System.lineSeparator()));
+    sb.append(indent(ctorBody, 2));
+    sb.append(System.lineSeparator());
+    sb.append("}").append(System.lineSeparator());
+    return indent(sb.toString(), 2);
+  }
+
+  private String childrenMethodBody() {
+    var sb = new StringBuilder();
+    var nl = System.lineSeparator();
+    sb.append("var list = new ArrayList<IR>();").append(nl);
+    fields.stream()
+        .filter(Field::isChild)
+        .forEach(
+            childField -> {
+              var childName = childField.getName();
+              if (childField.isNullable()) {
+                sb.append(
+                    """
+                if ($childName != null) {
+                  list.add($childName);
+                }
+                """
+                        .replace("$childName", childName));
+              } else {
+                sb.append(
+                    """
+                list.add($childName);
+                """
+                        .replace("$childName", childName));
+              }
+            });
+    sb.append("return scala.jdk.javaapi.CollectionConverters.asScala(list).toList();").append(nl);
+    return indent(sb.toString(), 2);
+  }
+
+  /**
    * Returns a String representing all the overriden methods from {@link org.enso.compiler.core.IR}.
    * Meant to be inside the generated record definition.
    */
@@ -170,12 +226,15 @@ import scala.collection.immutable.List;
 
         @Override
         public List<IR> children() {
-          throw new UnsupportedOperationException("unimplemented");
+        $childrenMethodBody
         }
 
         @Override
         public @Identifier UUID getId() {
-          throw new UnsupportedOperationException("unimplemented");
+          if (id == null) {
+            id = UUID.randomUUID();
+          }
+          return id;
         }
 
         @Override
@@ -202,7 +261,31 @@ import scala.collection.immutable.List;
         public String showCode(int indent) {
           throw new UnsupportedOperationException("unimplemented");
         }
-        """;
+        """
+            .replace("$childrenMethodBody", childrenMethodBody());
+    return indent(code, 2);
+  }
+
+  /**
+   * Returns string representation of all parameterless abstract methods from the interface
+   * annotated with {@link IRNode}.
+   *
+   * @return Code of the overriden methods
+   */
+  String overrideUserDefinedMethods() {
+    var code =
+        fields.stream()
+            .map(
+                field ->
+                    """
+            @Override
+            public $returnType $fieldName() {
+              return $fieldName;
+            }
+            """
+                        .replace("$returnType", field.getSimpleTypeName())
+                        .replace("$fieldName", field.getName()))
+            .collect(Collectors.joining(System.lineSeparator()));
     return indent(code, 2);
   }
 

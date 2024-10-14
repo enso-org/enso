@@ -77,6 +77,8 @@ public class IRProcessor extends AbstractProcessor {
                 return new Builder();
               }
 
+              $overrideUserDefinedMethods
+
               $overrideIRMethods
 
               $builder
@@ -87,6 +89,7 @@ public class IRProcessor extends AbstractProcessor {
                 .replace("$fields", irNodeElement.fields())
                 .replace("$constructor", irNodeElement.constructor())
                 .replace("$interfaceName", irNodeInterfaceName)
+                .replace("$overrideUserDefinedMethods", irNodeElement.overrideUserDefinedMethods())
                 .replace("$overrideIRMethods", irNodeElement.overrideIRMethods())
                 .replace("$builder", irNodeElement.builder());
         lineWriter.println(code);
