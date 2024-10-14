@@ -193,9 +193,12 @@ impl<'s> Finish for ResolverState<'s> {
     }
 }
 
+/// Specifies how statements of the input should be interpreted.
 #[derive(Debug, Copy, Clone)]
 pub enum RootContext {
+    /// Interpret the input as a sequence of module-level statements.
     Module,
+    /// Interpret the input as a sequence of statements inside a body block.
     Block,
 }
 
