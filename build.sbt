@@ -3955,7 +3955,8 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
       Map(
         runtimeModName -> Seq(
           "ALL-UNNAMED",
-          (`benchmarks-common` / javaModuleName).value
+          (`benchmarks-common` / javaModuleName).value,
+          (`bench-processor` / javaModuleName).value
         )
       )
     },
