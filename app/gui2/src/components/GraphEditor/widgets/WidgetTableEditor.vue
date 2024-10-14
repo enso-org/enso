@@ -152,7 +152,7 @@ const widgetStyle = computed(() => {
 // === Column and Row Dragging ===
 
 function onColumnMoved(event: ColumnMovedEvent<RowData>) {
-  if (event.column && event.toIndex != null) {
+  if (event.column && event.toIndex != null && event.finished) {
     moveColumn(event.column.getColId(), event.toIndex)
   }
 }
@@ -169,6 +169,7 @@ const defaultColDef = {
   editable: true,
   resizable: true,
   sortable: false,
+  lockPinned: true,
   headerComponentParams: {
     onHeaderEditingStarted: headerEditHandler.headerEditedInGrid.bind(headerEditHandler),
     onHeaderEditingStopped: headerEditHandler.headerEditingStoppedInGrid.bind(headerEditHandler),
