@@ -26,6 +26,5 @@ mockDist
 test-results/
 playwright-report/
 
-src/project-view/util/iconList.json
-src/project-view/util/iconName.ts
+src/project-view/util/iconMetadata
 src/project-view/stores/visualization/metadata.json

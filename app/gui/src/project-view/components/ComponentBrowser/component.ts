@@ -9,7 +9,7 @@ import { compareOpt } from '@/util/compare'
 import { isSome } from '@/util/data/opt'
 import { Range } from '@/util/data/range'
 import { displayedIconOf } from '@/util/getIconName'
-import type { Icon } from '@/util/iconName'
+import type { Icon } from '@/util/iconMetadata/iconName'
 import { qnLastSegmentIndex } from '@/util/qualifiedName'
 
 interface ComponentLabelInfo {

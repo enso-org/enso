@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import SvgIcon from '@/components/SvgIcon.vue'
-import type { Icon } from '@/util/iconName'
+import type { Icon } from '@/util/iconMetadata/iconName'
 
 import Breadcrumb from '@/components/DocumentationPanel/DocsBreadcrumb.vue'
 import SvgButton from '../SvgButton.vue'

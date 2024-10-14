@@ -1,22 +1,18 @@
 load("@npm//:defs.bzl", "npm_link_all_packages", "npm_link_targets")
-load("@npm//app/gui2:vite/package_json.bzl", vite_bin = "bin")
+load("@npm//app/gui:vite/package_json.bzl", vite_bin = "bin")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_config")
 load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_run_binary")
+load("@aspect_bazel_lib//lib:write_source_files.bzl", "write_source_files")
 
 npm_link_all_packages(name = "node_modules")
 
-ts_config(name = "tsconfig", src = "tsconfig.json", deps = ["//app:tsconfig"])
+ts_config(name = "tsconfig", src = "tsconfig.json", deps = ["//:tsconfig"])
 ts_config(name = "tsconfig_node", src = "tsconfig.node.json", deps = [":tsconfig"])
 ts_config(name = "tsconfig_app", src = "tsconfig.app.json", deps = [":tsconfig"])
 ts_config(name = "tsconfig_scripts", src = "tsconfig.scripts.json")
 ts_config(name = "tsconfig_app_vitest", src = "tsconfig.app.vitest.json", deps = [":tsconfig_app"])
 
-
-IGNORED_GENERATED_FILES = [
-    "src/assets/icons.svg",
-    "src/assets/fonts/**/*",
-    "public/fonts/**/*",
-]
+ICON_GENERATED_DIR = "src/project-view/util/iconMetadata"
 
 SRCS = [
     ":tsconfig",
@@ -25,19 +21,10 @@ SRCS = [
     ":tsconfig_app_vitest",
     ":tsconfig_scripts",
     ":icon_metadata",
-    ":fonts",
     "vite.config.ts",
     "package.json",
     "index.html",
-] + glob(["src/**", "public/**", "project-manager-shim-middleware/**"], IGNORED_GENERATED_FILES)
-
-# BUILD_DEPS = [":node_modules/" + d for d in [
-#     "@vitejs/plugin-vue",
-#     "@vue/tsconfig",
-#     "vite",
-#     "vue",
-#     "vue-router",
-# ]]
+] + glob(["src/**", "public/**", "project-manager-shim-middleware/**"], [ICON_GENERATED_DIR])
 
 vite_bin.vite(
     name = "vite_build",
@@ -63,28 +50,23 @@ js_run_binary(
     name = "icon_metadata",
     tool = ":script_generate_icon_metadata",
     chdir = package_name(),
-    srcs = ["src/assets/icons.svg"],
-    outs = ["src/util/iconName.ts"],
+    srcs = ["src/project-view/assets/icons.svg"],
+    out_dirs = [ICON_GENERATED_DIR],
     visibility = ["//visibility:public"],
 )
 
-js_binary(
-    name = "script_download_fonts",
-    data = [":node_modules/tar", ":node_modules/unbzip2-stream"],
-    entry_point = "scripts/downloadFonts.mjs",
-)
-
-js_run_binary(
-    name = "fonts",
-    tool = ":script_download_fonts",
-    chdir = package_name(),
-    srcs = ["src/assets/icons.svg"],
-    out_dirs = [
-        "public/fonts",
-        "src/assets/fonts",
-    ],
+# Convenience rule to output built artifacts to the filesystem, so JS tooling can see them.
+# Important! Make sure the output of this rule is NOT used during the build process.
+# This is part of the ICON_GENERATED_FILES definition.
+write_source_files(
+    name = "write_icon_metadata",
+    files = {
+        ICON_GENERATED_DIR: ":icon_metadata",
+    },
+    suggested_update_target = "//:write_all",
     visibility = ["//visibility:public"],
 )
+
 
 # vue_tsc_bin.vue_tsc_test(
 #     name = "type-check",

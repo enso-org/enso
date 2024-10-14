@@ -1,5 +1,4 @@
 load("@aspect_rules_js//npm:defs.bzl", "npm_package")
-load("@npm//:defs.bzl", "npm_link_all_packages")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
 load("@npm//:defs.bzl", "npm_link_all_packages", "npm_link_targets")
 npm_link_all_packages(name = "node_modules")
@@ -7,7 +6,7 @@ npm_link_all_packages(name = "node_modules")
 ts_config(
     name = "tsconfig",
     src = "tsconfig.json",
-    deps = ["//app:tsconfig"],
+    deps = ["//:tsconfig"],
 )
 
 ts_project(
@@ -18,7 +17,7 @@ ts_project(
     out_dir = "dist",
     root_dir = "src",
     resolve_json_module = True,
-    srcs = glob(["src/**/*.ts", "src/**/*.js", "src/text/english.json"]),
+    srcs = glob(["src/**/*.ts", "src/**/*.js"]) + ["src/text/english.json"],
     deps = npm_link_targets()
 )
 
