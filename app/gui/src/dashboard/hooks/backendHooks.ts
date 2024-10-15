@@ -348,8 +348,11 @@ export function useUploadFileMutation(backend: Backend, options: UploadFileMutat
   const uploadFileEndMutation = reactQuery.useMutation(
     backendMutationOptions(backend, 'uploadFileEnd'),
   )
+  const [variables, setVariables] =
+    React.useState<[params: backendModule.UploadFileRequestParams, file: Blob]>()
   const mutateAsync = useEventCallback(
     async (params: backendModule.UploadFileRequestParams, file: Blob) => {
+      setVariables([params, file])
       if (backend.type === backendModule.BackendType.local) {
         return await uploadFileMutation.mutateAsync([params, file])
       } else {
@@ -393,8 +396,8 @@ export function useUploadFileMutation(backend: Backend, options: UploadFileMutat
     void mutateAsync(params, file)
   })
 
-  // TODO: Also return `variables`
   return {
+    variables,
     mutate,
     mutateAsync,
     context: uploadFileEndMutation.context ?? uploadFileMutation.context,
