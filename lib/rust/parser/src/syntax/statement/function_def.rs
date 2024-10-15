@@ -74,6 +74,7 @@ pub fn parse_args<'s>(
 
 pub fn parse_constructor_definition<'s>(
     items: &mut Vec<Item<'s>>,
+    private_keywords_start: usize,
     start: usize,
     precedence: &mut Precedence<'s>,
     args_buffer: &mut Vec<ArgumentDefinition<'s>>,
@@ -87,7 +88,15 @@ pub fn parse_constructor_definition<'s>(
         }))
     }
     let (name, inline_args) = parse_constructor_decl(items, start, precedence, args_buffer);
-    Tree::constructor_definition(name, inline_args, block_args)
+    let private =
+        (private_keywords_start < start).then(|| into_private_keyword(items.pop().unwrap()));
+    Tree::constructor_definition(private, name, inline_args, block_args)
+}
+
+fn into_private_keyword(item: Item) -> token::PrivateKeyword {
+    let Item::Token(keyword) = item else { unreachable!() };
+    let token::Variant::PrivateKeyword(variant) = keyword.variant else { unreachable!() };
+    keyword.with_variant(variant)
 }
 
 fn parse_constructor_decl<'s>(
