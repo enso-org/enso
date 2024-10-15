@@ -414,6 +414,11 @@ export function useUploadFileMutation(backend: Backend, options: UploadFileMutat
       uploadFileStartMutation.isError ||
       uploadFileChunkMutation.isError ||
       uploadFileEndMutation.isError,
+    error:
+      uploadFileEndMutation.error ??
+      uploadFileChunkMutation.error ??
+      uploadFileStartMutation.error ??
+      uploadFileMutation.error,
     isPaused:
       uploadFileMutation.isPaused ||
       uploadFileStartMutation.isPaused ||
