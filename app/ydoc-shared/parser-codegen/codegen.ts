@@ -35,6 +35,9 @@ const viewIdent = tsf.createIdentifier('view')
 
 // === Public API ===
 
+/**
+ *
+ */
 export function implement(schema: Schema.Schema): string {
   const file = ts.createSourceFile('source.ts', '', ts.ScriptTarget.ESNext, false, ts.ScriptKind.TS)
   const printer = ts.createPrinter({

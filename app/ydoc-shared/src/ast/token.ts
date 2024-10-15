@@ -6,10 +6,16 @@ import { isUuid } from '../yjsModel'
 import { is_ident_or_operator } from './ffi'
 import * as RawAst from './generated/ast'
 
+/**
+ *
+ */
 export function isToken(t: unknown): t is Token {
   return t instanceof Token
 }
 
+/**
+ *
+ */
 export function isTokenChild(child: NodeChild<unknown>): child is NodeChild<Token> {
   return isToken(child.node)
 }
@@ -28,6 +34,9 @@ export interface SyncTokenId {
   readonly tokenType_: RawAst.Token.Type | undefined
 }
 
+/**
+ *
+ */
 export class Token implements SyncTokenId {
   readonly id: TokenId
   code_: string
@@ -39,27 +48,45 @@ export class Token implements SyncTokenId {
     this.tokenType_ = type
   }
 
+  /**
+   *
+   */
   get externalId(): TokenId {
     return this.id
   }
 
+  /**
+   *
+   */
   static new(code: string, type?: RawAst.Token.Type) {
     return new this(code, type, newTokenId())
   }
 
+  /**
+   *
+   */
   static withId(code: string, type: RawAst.Token.Type | undefined, id: TokenId) {
     assert(isUuid(id))
     return new this(code, type, id)
   }
 
+  /**
+   *
+   */
   static equal(a: SyncTokenId, b: SyncTokenId): boolean {
     return a.tokenType_ === b.tokenType_ && a.code_ === b.code_
   }
 
+  /**
+   *
+   */
   code(): string {
     return this.code_
   }
 
+  /**
+   *
+   */
   typeName(): string {
     if (this.tokenType_) return RawAst.Token.typeNames[this.tokenType_]!
     else return 'Raw'
@@ -79,7 +106,8 @@ declare const identifierBrand: unique symbol
 declare const typeOrConsIdentifierBrand: unique symbol
 declare const operatorBrand: unique symbol
 
-/** A string representing a valid qualified name of our language.
+/**
+ * A string representing a valid qualified name of our language.
  *
  * In our language, the segments are separated by `.`. All the segments except the last must be lexical identifiers. The
  * last may be an identifier or a lexical operator. A single identifier is also a valid qualified name.
@@ -95,7 +123,8 @@ export type TypeOrConstructorIdentifier = Identifier & { [typeOrConsIdentifierBr
 /** A string representing a lexical operator. */
 export type Operator = string & { [operatorBrand]: never; [qualifiedNameBrand]: never }
 
-/** A string that can be parsed as an identifier in some contexts.
+/**
+ * A string that can be parsed as an identifier in some contexts.
  *
  *  If it is lexically an identifier (see `StrictIdentifier`), it can be used as identifier anywhere.
  *
@@ -105,7 +134,8 @@ export type Operator = string & { [operatorBrand]: never; [qualifiedNameBrand]: 
  */
 export type IdentifierOrOperatorIdentifier = Identifier | Operator
 
-/** Returns true if `code` can be used as an identifier in some contexts.
+/**
+ * Returns true if `code` can be used as an identifier in some contexts.
  *
  *  If it is lexically an identifier (see `isIdentifier`), it can be used as identifier anywhere.
  *
@@ -124,11 +154,17 @@ export function isIdentifier(code: string): code is Identifier {
   return is_ident_or_operator(code) === 1
 }
 
+/**
+ *
+ */
 export function isTypeOrConsIdentifier(code: string): code is TypeOrConstructorIdentifier {
   const isUppercase = (s: string) => s.toUpperCase() === s && s.toLowerCase() !== s
   return isIdentifier(code) && code.length > 0 && isUppercase(code[0]!)
 }
 
+/**
+ *
+ */
 export function identifier(code: string): Identifier | undefined {
   if (isIdentifier(code)) return code
 }

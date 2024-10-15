@@ -77,6 +77,9 @@ type VisitorApplicator = (cursor: ts.Expression, offset: AccessOffset) => ts.Exp
 
 // === Public API ===
 
+/**
+ *
+ */
 export class Type {
   readonly type: ts.TypeNode
   readonly reader: ReadApplicator
@@ -95,16 +98,25 @@ export class Type {
     this.size = size
   }
 
+  /**
+   *
+   */
   static Abstract(name: string): Type {
     const valueReader = callRead(name)
     return new Type(tsf.createTypeReferenceNode(name), valueReader, 'visitValue', POINTER_SIZE)
   }
 
+  /**
+   *
+   */
   static Concrete(name: string, size: number): Type {
     const valueReader = callRead(name)
     return new Type(tsf.createTypeReferenceNode(name), valueReader, 'visitValue', size)
   }
 
+  /**
+   *
+   */
   static Sequence(element: Type): Type {
     return new Type(
       tsf.createTypeReferenceNode('IterableIterator', [element.type]),
@@ -114,6 +126,9 @@ export class Type {
     )
   }
 
+  /**
+   *
+   */
   static Option(element: Type): Type {
     return new Type(
       tsf.createUnionTypeNode([element.type, noneType]),
@@ -123,6 +138,9 @@ export class Type {
     )
   }
 
+  /**
+   *
+   */
   static Result(ok: Type, err: Type): Type {
     return new Type(
       support.Result(ok.type, err.type),
@@ -179,6 +197,9 @@ export class Type {
   )
 }
 
+/**
+ *
+ */
 export function seekView(view: ts.Expression, address: number): ts.Expression {
   if (address === 0) {
     return view
@@ -187,10 +208,16 @@ export function seekView(view: ts.Expression, address: number): ts.Expression {
   }
 }
 
+/**
+ *
+ */
 export function seekViewDyn(view: ts.Expression, address: ts.Expression): ts.Expression {
   return tsf.createCallExpression(support.readOffset, [], [view, address])
 }
 
+/**
+ *
+ */
 export function abstractTypeVariants(cases: ts.Identifier[]): ts.Statement {
   const reads = cases.map(c => tsf.createPropertyAccessChain(c, undefined, 'read'))
   return tsf.createVariableStatement(
@@ -209,6 +236,9 @@ export function abstractTypeVariants(cases: ts.Identifier[]): ts.Statement {
   )
 }
 
+/**
+ *
+ */
 export function abstractTypeDeserializer(
   ident: ts.Identifier,
   cursorIdent: ts.Identifier,
@@ -221,6 +251,9 @@ export function abstractTypeDeserializer(
   )
 }
 
+/**
+ *
+ */
 export function fieldDeserializer(
   ident: ts.Identifier,
   type: Type,
@@ -239,6 +272,9 @@ export function fieldDeserializer(
   )
 }
 
+/**
+ *
+ */
 export function fieldVisitor(
   ident: ts.Identifier,
   type: Type,
@@ -273,8 +309,10 @@ function thisAccess(ident: ts.Identifier): ts.PropertyAccessExpression {
 
 // === Implementation ===
 
-/** Returns a function that, given an expression evaluating to a [`Cursor`], returns an expression applying a
- * deserialization method with the given name to the cursor. */
+/**
+ * Returns a function that, given an expression evaluating to a [`Cursor`], returns an expression applying a
+ * deserialization method with the given name to the cursor.
+ */
 function primitiveReader(func: ts.Identifier): ReadApplicator {
   return (view, address) => tsf.createCallExpression(func, [], [view, materializeAddress(address)])
 }
@@ -322,8 +360,10 @@ function materializeAddress(offset: AccessOffset): ts.Expression {
   }
 }
 
-/** Similar to [`readerTransformer`], but for deserialization-transformers that produce a reader by combining two input
- * readers. */
+/**
+ * Similar to [`readerTransformer`], but for deserialization-transformers that produce a reader by combining two input
+ * readers.
+ */
 function readerTransformerTwoTyped(
   func: ts.Identifier,
 ): (readOk: ReadApplicator, readErr: ReadApplicator) => ReadApplicator {
@@ -336,6 +376,9 @@ function readerTransformerTwoTyped(
   }
 }
 
+/**
+ *
+ */
 export function callRead(ident: string): ReadApplicator {
   return (view, address) =>
     tsf.createCallExpression(
@@ -345,6 +388,9 @@ export function callRead(ident: string): ReadApplicator {
     )
 }
 
+/**
+ *
+ */
 export function createSequenceReader(size: number, reader: ReadApplicator): ReadApplicator {
   const sizeLiteral = tsf.createNumericLiteral(size)
   const closure = readerClosure(reader)
@@ -390,6 +436,9 @@ function createResultVisitor(
     )
 }
 
+/**
+ *
+ */
 export function visitorClosure(
   visitor: VisitorApplicator | 'visitValue' | undefined,
   reader: ReadApplicator,
@@ -407,6 +456,9 @@ export function visitorClosure(
   }
 }
 
+/**
+ *
+ */
 export function readerClosure(reader: ReadApplicator): ts.Expression {
   const view = tsf.createIdentifier('view')
   const address = tsf.createIdentifier('address')

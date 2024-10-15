@@ -87,10 +87,16 @@ const RemoteRpcErrorSchema = z.object({
 })
 type RemoteRpcErrorParsed = z.infer<typeof RemoteRpcErrorSchema>
 
+/**
+ *
+ */
 export class RemoteRpcError {
   code: ErrorCode
   message: string
   data?: any
+  /**
+   *
+   */
   constructor(error: RemoteRpcErrorParsed) {
     this.code = error.code
     this.message = error.message
@@ -98,16 +104,25 @@ export class RemoteRpcError {
   }
 }
 
+/**
+ *
+ */
 export class LsRpcError {
   cause: RemoteRpcError | Error | string
   request: string
   params: object
+  /**
+   *
+   */
   constructor(cause: RemoteRpcError | Error | string, request: string, params: object) {
     this.cause = cause
     this.request = request
     this.params = params
   }
 
+  /**
+   *
+   */
   toString() {
     return `Language Server request '${this.request}' failed: ${this.cause instanceof RemoteRpcError ? this.cause.message : this.cause}`
   }
@@ -140,6 +155,9 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
   private retainCount = 1
   debug = false
 
+  /**
+   *
+   */
   constructor(
     private clientID: Uuid,
     private transport: ReconnectingWebSocketTransport,
@@ -206,14 +224,23 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
     return this.initialized
   }
 
+  /**
+   *
+   */
   get isDisposed() {
     return this.retainCount === 0
   }
 
+  /**
+   *
+   */
   get contentRoots(): Promise<ContentRoot[]> {
     return this.initialized.then(result => (result.ok ? result.value.contentRoots : []))
   }
 
+  /**
+   *
+   */
   reconnect() {
     this.transport.reconnect()
   }
@@ -259,6 +286,9 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
     return this.acquireCapability('file/receivesTreeUpdates', { path })
   }
 
+  /**
+   *
+   */
   acquireExecutionContextCanModify(contextId: ContextId): Promise<LsRpcResult<void>> {
     return this.acquireCapability('executionContext/canModify', { contextId })
   }
@@ -512,15 +542,21 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
     return this.request('profiling/stop', {})
   }
 
+  /**
+   *
+   */
   aiCompletion(prompt: string, stopSequence: string): Promise<LsRpcResult<response.AICompletion>> {
     return this.request('ai/completion', { prompt, stopSequence })
   }
 
-  /** A helper function to subscribe to file updates.
+  /**
+   * A helper function to subscribe to file updates.
    * Please use `ls.on('file/event')` directly if the initial `'Added'` notifications are not
-   * needed. */
+   * needed.
+   */
   watchFiles(rootId: Uuid, segments: string[], callback: (event: Event<'file/event'>) => void) {
     let running = true
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this
     return {
       promise: (async () => {
@@ -550,6 +586,9 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
     }
   }
 
+  /**
+   *
+   */
   retain() {
     if (this.isDisposed) {
       throw new Error('Trying to retain already disposed Language Server.')
@@ -557,10 +596,16 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
     this.retainCount += 1
   }
 
+  /**
+   *
+   */
   stopReconnecting() {
     this.shouldReconnect = false
   }
 
+  /**
+   *
+   */
   release() {
     if (this.retainCount > 0) {
       this.retainCount -= 1
@@ -581,6 +626,9 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
   }
 }
 
+/**
+ *
+ */
 export function computeTextChecksum(text: string): Checksum {
   return bytesToHex(SHA3.create().update(text).digest()) as Checksum
 }

@@ -1,7 +1,13 @@
+/**
+ *
+ */
 export function assertNever(x: never): never {
   bail('Unexpected object: ' + JSON.stringify(x))
 }
 
+/**
+ *
+ */
 export function assert(condition: boolean, message?: string): asserts condition {
   if (!condition) bail(message ? `Assertion failed: ${message}` : 'Assertion failed')
 }
@@ -13,7 +19,6 @@ export function assert(condition: boolean, message?: string): asserts condition 
  * @param iterable The iterable to check.
  * @param length The expected length of the iterable.
  * @param message Optional message for the assertion error.
- * @return void
  * @throws Error Will throw an error if the length does not match.
  *
  * The first five elements of the iterable will be displayed in the error message
@@ -33,25 +38,40 @@ export function assertLength<T>(iterable: Iterable<T>, length: number, message?:
   )
 }
 
+/**
+ *
+ */
 export function assertEmpty<T>(iterable: Iterable<T>, message?: string): void {
   assertLength(iterable, 0, message)
 }
 
+/**
+ *
+ */
 export function assertEqual<T>(actual: T, expected: T, message?: string) {
   const messagePrefix = message ? message + ' ' : ''
   assert(actual === expected, `${messagePrefix}Expected ${expected}, got ${actual}.`)
 }
 
+/**
+ *
+ */
 export function assertNotEqual<T>(actual: T, unexpected: T, message?: string) {
   const messagePrefix = message ? message + ' ' : ''
   assert(actual !== unexpected, `${messagePrefix}Expected not ${unexpected}, got ${actual}.`)
 }
 
+/**
+ *
+ */
 export function assertDefined<T>(x: T | undefined, message?: string): asserts x is T {
   const messagePrefix = message ? message + ' ' : ''
   assert(x !== undefined, `${messagePrefix}Expected value to be defined.`)
 }
 
+/**
+ *
+ */
 export function assertUnreachable(): never {
   bail('Unreachable code')
 }

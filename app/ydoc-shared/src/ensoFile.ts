@@ -6,6 +6,9 @@ export interface EnsoFileParts {
   metadataJson: string | null
 }
 
+/**
+ *
+ */
 export function splitFileContents(content: string): EnsoFileParts {
   const splitPoint = content.lastIndexOf(META_TAG)
   if (splitPoint < 0) {
@@ -23,6 +26,9 @@ export function splitFileContents(content: string): EnsoFileParts {
   return { code, idMapJson, metadataJson }
 }
 
+/**
+ *
+ */
 export function combineFileParts(parts: EnsoFileParts): string {
   const hasMeta = parts.idMapJson != null || parts.metadataJson != null
   if (hasMeta) {

@@ -1,7 +1,13 @@
 /** @file Functions for manipulating {@link Iterable}s. */
 
+/**
+ *
+ */
 export function* empty(): Generator<never> {}
 
+/**
+ *
+ */
 export function* range(start: number, stop: number, step = start <= stop ? 1 : -1) {
   if ((step > 0 && start > stop) || (step < 0 && start < stop)) {
     throw new Error(
@@ -21,22 +27,34 @@ export function* range(start: number, stop: number, step = start <= stop ? 1 : -
   }
 }
 
+/**
+ *
+ */
 export function* map<T, U>(iter: Iterable<T>, map: (value: T) => U): IterableIterator<U> {
   for (const value of iter) {
     yield map(value)
   }
 }
 
+/**
+ *
+ */
 export function* filter<T>(iter: Iterable<T>, include: (value: T) => boolean): IterableIterator<T> {
   for (const value of iter) if (include(value)) yield value
 }
 
+/**
+ *
+ */
 export function* chain<T>(...iters: Iterable<T>[]) {
   for (const iter of iters) {
     yield* iter
   }
 }
 
+/**
+ *
+ */
 export function* zip<T, U>(left: Iterable<T>, right: Iterable<U>): Generator<[T, U]> {
   const leftIterator = left[Symbol.iterator]()
   const rightIterator = right[Symbol.iterator]()
@@ -48,6 +66,9 @@ export function* zip<T, U>(left: Iterable<T>, right: Iterable<U>): Generator<[T,
   }
 }
 
+/**
+ *
+ */
 export function* zipLongest<T, U>(
   left: Iterable<T>,
   right: Iterable<U>,
@@ -65,6 +86,9 @@ export function* zipLongest<T, U>(
   }
 }
 
+/**
+ *
+ */
 export function tryGetSoleValue<T>(iter: Iterable<T>): T | undefined {
   const iterator = iter[Symbol.iterator]()
   const result = iterator.next()
@@ -78,20 +102,30 @@ export function tryGetSoleValue<T>(iter: Iterable<T>): T | undefined {
 export class Resumable<T> {
   private readonly iterator: Iterator<T>
   private current: IteratorResult<T>
+  /**
+   *
+   */
   constructor(iterable: Iterable<T>) {
     this.iterator = iterable[Symbol.iterator]()
     this.current = this.iterator.next()
   }
 
+  /**
+   *
+   */
   peek() {
     return this.current.done ? undefined : this.current.value
   }
 
+  /**
+   *
+   */
   advance() {
     this.current = this.iterator.next()
   }
 
-  /** The given function peeks at the current value. If the function returns `true`, the current value will be advanced
+  /**
+   * The given function peeks at the current value. If the function returns `true`, the current value will be advanced
    *  and the function called again; if it returns `false`, the peeked value remains current and `advanceWhile` returns.
    */
   advanceWhile(f: (value: T) => boolean) {

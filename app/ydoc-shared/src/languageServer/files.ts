@@ -2,6 +2,9 @@ import type { LanguageServer } from '../languageServer'
 import type { FileSystemObject, Path } from '../languageServerTypes'
 import { Err, Ok, type Result } from '../util/data/result'
 
+/**
+ *
+ */
 export async function walkFs(
   ls: LanguageServer,
   path: Path,

@@ -18,8 +18,14 @@ export interface AddEventListenerOptions {
   signal?: AbortSignal
 }
 
+/**
+ *
+ */
 export class ReconnectingWebSocketTransport extends WebSocketTransport {
   private _reconnectingConnection: ReconnectingWebSocket
+  /**
+   *
+   */
   constructor(uri: string, wsOptions: Options = {}) {
     super(uri)
     this.uri = uri
@@ -31,10 +37,16 @@ export class ReconnectingWebSocketTransport extends WebSocketTransport {
     this.connection = this._reconnectingConnection as any
   }
 
+  /**
+   *
+   */
   public reconnect() {
     this._reconnectingConnection.reconnect()
   }
 
+  /**
+   *
+   */
   on<K extends keyof WebSocketEventMap>(
     type: K,
     cb: (
@@ -45,6 +57,9 @@ export class ReconnectingWebSocketTransport extends WebSocketTransport {
     this._reconnectingConnection.addEventListener(type, cb, options)
   }
 
+  /**
+   *
+   */
   off<K extends keyof WebSocketEventMap>(
     type: K,
     cb: (

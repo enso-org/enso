@@ -1,5 +1,7 @@
-/** @file A generic type that can either hold a value representing a successful result,
- * or an error. */
+/**
+ * @file A generic type that can either hold a value representing a successful result,
+ * or an error.
+ */
 
 import { isSome, type Opt } from './opt'
 
@@ -31,6 +33,9 @@ export type Result<T = undefined, E = unknown> =
  */
 export function Ok(): Result<undefined, never>
 export function Ok<T>(data: T): Result<T, never>
+/**
+ *
+ */
 export function Ok<T>(data?: T): Result<T | undefined, never> {
   return { ok: true, value: data }
 }
@@ -97,6 +102,9 @@ export function transposeResult<T, E>(value: Opt<Result<T, E>>): Result<Opt<T>, 
  * If any of the values is an error, the first error is returned.
  */
 export function transposeResult<T, E>(value: Result<T, E>[]): Result<T[], E>
+/**
+ *
+ */
 export function transposeResult<T, E>(value: Opt<Result<T, E>> | Result<T, E>[]) {
   if (value == null) return Ok(value)
   if (value instanceof Array) {
@@ -128,6 +136,9 @@ export class ResultError<E = unknown> {
   /** All contexts attached by {@link withContext} function */
   context: (() => string)[]
 
+  /**
+   *
+   */
   constructor(payload: E) {
     this.payload = payload
     this.context = []
@@ -193,6 +204,9 @@ export function withContext<T, E>(
   context: () => string,
   f: () => Promise<Result<T, E>>,
 ): Promise<Result<T, E>>
+/**
+ *
+ */
 export function withContext<T, E>(
   context: () => string,
   f: () => Promise<Result<T, E>> | Result<T, E>,

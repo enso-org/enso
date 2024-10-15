@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-declaration-merging */
 import type {
   Identifier,
   IdentifierOrOperatorIdentifier,
@@ -80,21 +81,33 @@ const astFieldKeys = allKeys<RawAstFields>({
   metadata: null,
 })
 
+/**
+ *
+ */
 export abstract class Ast {
   readonly module: Module
   /** @internal */
   readonly fields: FixedMapView<AstFields>
 
+  /**
+   *
+   */
   get id(): AstId {
     return this.fields.get('id')
   }
 
+  /**
+   *
+   */
   get externalId(): ExternalId {
     const id = this.fields.get('metadata').get('externalId')
     assert(id != null)
     return id
   }
 
+  /**
+   *
+   */
   get nodeMetadata(): NodeMetadata {
     const metadata = this.fields.get('metadata')
     return metadata as FixedMapView<NodeMetadataFields & MetadataFields>
@@ -105,6 +118,9 @@ export abstract class Ast {
     return this.fields.get('metadata').toJSON() as any
   }
 
+  /**
+   *
+   */
   typeName(): string {
     return this.fields.get('type')
   }
@@ -116,27 +132,45 @@ export abstract class Ast {
     return this.id === other.id
   }
 
+  /**
+   *
+   */
   innerExpression(): Ast {
     return this.wrappedExpression()?.innerExpression() ?? this
   }
 
+  /**
+   *
+   */
   wrappedExpression(): Ast | undefined {
     return undefined
   }
 
+  /**
+   *
+   */
   wrappingExpression(): Ast | undefined {
     const parent = this.parent()
     return parent?.wrappedExpression()?.is(this) ? parent : undefined
   }
 
+  /**
+   *
+   */
   wrappingExpressionRoot(): Ast {
     return this.wrappingExpression()?.wrappingExpressionRoot() ?? this
   }
 
+  /**
+   *
+   */
   documentingAncestor(): Documented | undefined {
     return this.wrappingExpression()?.documentingAncestor()
   }
 
+  /**
+   *
+   */
   get isBindingStatement(): boolean {
     const inner = this.wrappedExpression()
     if (inner) {
@@ -146,10 +180,16 @@ export abstract class Ast {
     }
   }
 
+  /**
+   *
+   */
   code(): string {
     return print(this).code
   }
 
+  /**
+   *
+   */
   visitRecursive(visit: (node: Ast | Token) => void): void {
     visit(this)
     for (const child of this.children()) {
@@ -161,6 +201,9 @@ export abstract class Ast {
     }
   }
 
+  /**
+   *
+   */
   visitRecursiveAst(visit: (ast: Ast) => void | boolean): void {
     if (visit(this) === false) return
     for (const child of this.children()) {
@@ -168,6 +211,9 @@ export abstract class Ast {
     }
   }
 
+  /**
+   *
+   */
   printSubtree(
     info: SpanMap,
     offset: number,
@@ -189,19 +235,31 @@ export abstract class Ast {
     }
   }
 
+  /**
+   *
+   */
   get parentId(): AstId | undefined {
     const parentId = this.fields.get('parent')
     if (parentId !== ROOT_ID) return parentId
   }
 
+  /**
+   *
+   */
   parent(): Ast | undefined {
     return this.module.get(this.parentId)
   }
 
+  /**
+   *
+   */
   static parseBlock(source: string, inModule?: MutableModule) {
     return parseBlock(source, inModule)
   }
 
+  /**
+   *
+   */
   static parse(source: string, module?: MutableModule) {
     return parse(source, module)
   }
@@ -213,25 +271,36 @@ export abstract class Ast {
     this.fields = fields
   }
 
-  /** @internal
-   *  Returns child subtrees, including information about the whitespace between them.
-   */
+  /** @internal */
   abstract concreteChildren(verbatim?: boolean): IterableIterator<RawNodeChild>
 }
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface MutableAst {}
+/**
+ *
+ */
 export abstract class MutableAst extends Ast {
   declare readonly module: MutableModule
   declare readonly fields: FixedMap<AstFields>
 
+  /**
+   *
+   */
   setExternalId(id: ExternalId) {
     this.fields.get('metadata').set('externalId', id)
   }
 
+  /**
+   *
+   */
   mutableNodeMetadata(): MutableNodeMetadata {
     const metadata = this.fields.get('metadata')
     return metadata as FixedMap<NodeMetadataFields & MetadataFields>
   }
 
+  /**
+   *
+   */
   setNodeMetadata(nodeMeta: NodeMetadataFields) {
     const metadata = this.fields.get('metadata') as unknown as Map<string, unknown>
     for (const [key, value] of Object.entries(nodeMeta)) {
@@ -255,7 +324,8 @@ export abstract class MutableAst extends Ast {
     return asOwned(this)
   }
 
-  /** Change the value of the object referred to by the `target` ID. (The initial ID of `replacement` will be ignored.)
+  /**
+   * Change the value of the object referred to by the `target` ID. (The initial ID of `replacement` will be ignored.)
    *  Returns the old value, with a new (unreferenced) ID.
    */
   replaceValue<T extends MutableAst>(replacement: Owned<T>): Owned<typeof this> {
@@ -266,14 +336,19 @@ export abstract class MutableAst extends Ast {
     return old
   }
 
+  /**
+   *
+   */
   replaceValueChecked<T extends MutableAst>(replacement: Owned<T>): Owned<typeof this> {
     const parentId = this.fields.get('parent')
     assertDefined(parentId)
     return this.replaceValue(replacement)
   }
 
-  /** Replace the parent of this object with a reference to a new placeholder object.
-   *  Returns the object, now parentless, and the placeholder. */
+  /**
+   * Replace the parent of this object with a reference to a new placeholder object.
+   * Returns the object, now parentless, and the placeholder.
+   */
   takeToReplace(): Removed<this> {
     if (parentId(this)) {
       const placeholder = Wildcard.new(this.module)
@@ -284,12 +359,17 @@ export abstract class MutableAst extends Ast {
     }
   }
 
-  /** Replace the parent of this object with a reference to a new placeholder object.
-   *  Returns the object, now parentless. */
+  /**
+   * Replace the parent of this object with a reference to a new placeholder object.
+   * Returns the object, now parentless.
+   */
   take(): Owned<this> {
     return this.replace(Wildcard.new(this.module))
   }
 
+  /**
+   *
+   */
   takeIfParented(): Owned<typeof this> {
     const parent = parentId(this)
     if (parent) {
@@ -301,16 +381,18 @@ export abstract class MutableAst extends Ast {
     return asOwned(this)
   }
 
-  /** Replace the value assigned to the given ID with a placeholder.
+  /**
+   * Replace the value assigned to the given ID with a placeholder.
    *  Returns the removed value, with a new unreferenced ID.
-   **/
+   */
   takeValue(): Removed<typeof this> {
     const placeholder = Wildcard.new(this.module)
     const node = this.replaceValue(placeholder)
     return { node, placeholder }
   }
 
-  /** Take this node from the tree, and replace it with the result of applying the given function to it.
+  /**
+   * Take this node from the tree, and replace it with the result of applying the given function to it.
    *
    *  Note that this is a modification of the *parent* node. Any `Ast` objects or `AstId`s that pointed to the old value
    *  will still point to the old value.
@@ -323,7 +405,8 @@ export abstract class MutableAst extends Ast {
     return replacement
   }
 
-  /** Take this node from the tree, and replace it with the result of applying the given function to it; transfer the
+  /**
+   * Take this node from the tree, and replace it with the result of applying the given function to it; transfer the
    *  metadata from this node to the replacement.
    *
    *  Note that this is a modification of the *parent* node. Any `Ast` objects or `AstId`s that pointed to the old value
@@ -337,6 +420,9 @@ export abstract class MutableAst extends Ast {
     return replacement
   }
 
+  /**
+   *
+   */
   mutableParent(): MutableAst | undefined {
     const parentId = this.fields.get('parent')
     if (parentId === 'ROOT_ID') return
@@ -353,6 +439,9 @@ export abstract class MutableAst extends Ast {
     applyTextEditsToAst(this, textEdits, metadataSource ?? this.module)
   }
 
+  /**
+   *
+   */
   getOrInitDocumentation(): MutableDocumented {
     const existing = this.documentingAncestor()
     if (existing) return this.module.getVersion(existing)
@@ -386,7 +475,13 @@ export abstract class MutableAst extends Ast {
 
   /** @internal */
   claimChild<T extends MutableAst>(child: Owned<T>): AstId
+  /**
+   *
+   */
   claimChild<T extends MutableAst>(child: Owned<T> | undefined): AstId | undefined
+  /**
+   *
+   */
   claimChild<T extends MutableAst>(child: Owned<T> | undefined): AstId | undefined {
     return child ? claimChild(this.module, child, this.id) : undefined
   }
@@ -438,7 +533,8 @@ function idRewriter(
   }
 }
 
-/** Apply the given function to each `AstId` in the fields of `ast`. For each value that it returns an output, that
+/**
+ * Apply the given function to each `AstId` in the fields of `ast`. For each value that it returns an output, that
  *  output will be substituted for the input ID.
  */
 export function rewriteRefs(ast: MutableAst, f: (id: AstId) => AstId | undefined) {
@@ -453,7 +549,8 @@ export function rewriteRefs(ast: MutableAst, f: (id: AstId) => AstId | undefined
   return fieldsChanged
 }
 
-/** Copy all fields except the `Ast` base fields from `ast2` to `ast1`. A reference-rewriting function will be applied
+/**
+ * Copy all fields except the `Ast` base fields from `ast2` to `ast1`. A reference-rewriting function will be applied
  *  to `AstId`s in copied fields; see {@link rewriteRefs}.
  */
 export function syncFields(ast1: MutableAst, ast2: Ast, f: (id: AstId) => AstId | undefined) {
@@ -463,6 +560,9 @@ export function syncFields(ast1: MutableAst, ast2: Ast, f: (id: AstId) => AstId 
   }
 }
 
+/**
+ *
+ */
 export function syncNodeMetadata(target: MutableNodeMetadata, source: NodeMetadata) {
   const oldPos = target.get('position')
   const newPos = source.get('position')
@@ -590,17 +690,29 @@ interface NameSpecification<T extends TreeRefs = RawRefs> {
   name: T['token']
   equals: T['token']
 }
+/**
+ *
+ */
 export class App extends Ast {
   declare fields: FixedMap<AstFields & AppFields>
+  /**
+   *
+   */
   constructor(module: Module, fields: FixedMapView<AstFields & AppFields>) {
     super(module, fields)
   }
 
+  /**
+   *
+   */
   static tryParse(source: string, module?: MutableModule): Owned<MutableApp> | undefined {
     const parsed = parse(source, module)
     if (parsed instanceof MutableApp) return parsed
   }
 
+  /**
+   *
+   */
   static concrete(
     module: MutableModule,
     func: NodeChild<Owned>,
@@ -619,6 +731,9 @@ export class App extends Ast {
     return asOwned(new MutableApp(module, fields))
   }
 
+  /**
+   *
+   */
   static new(
     module: MutableModule,
     func: Owned,
@@ -634,10 +749,16 @@ export class App extends Ast {
     )
   }
 
+  /**
+   *
+   */
   static positional(func: Owned, argument: Owned, module?: MutableModule): Owned<MutableApp> {
     return App.new(module ?? MutableModule.Transient(), func, undefined, argument)
   }
 
+  /**
+   *
+   */
   static PositionalSequence(func: Owned, args: Owned[]): Owned {
     return args.reduce(
       (expression, argument) => App.new(func.module, expression, undefined, argument),
@@ -645,16 +766,28 @@ export class App extends Ast {
     )
   }
 
+  /**
+   *
+   */
   get function(): Ast {
     return this.module.get(this.fields.get('function').node)
   }
+  /**
+   *
+   */
   get argumentName(): Token | undefined {
     return this.module.getToken(this.fields.get('nameSpecification')?.name.node)
   }
+  /**
+   *
+   */
   get argument(): Ast {
     return this.module.get(this.fields.get('argument').node)
   }
 
+  /**
+   *
+   */
   *concreteChildren(verbatim?: boolean): IterableIterator<RawNodeChild> {
     const { function: function_, parens, nameSpecification, argument } = getAll(this.fields)
     yield ensureUnspaced(function_, verbatim)
@@ -708,6 +841,9 @@ function preferUnspaced<T>(child: NodeChild<T>): ConcreteChild<T> {
 function preferSpaced<T>(child: NodeChild<T>): ConcreteChild<T> {
   return tryAsConcrete(child) ?? { ...child, whitespace: ' ' }
 }
+/**
+ *
+ */
 export class MutableApp extends App implements MutableAst {
   declare readonly module: MutableModule
   declare readonly fields: FixedMap<AstFields & AppFields>
@@ -732,17 +868,29 @@ interface UnaryOprAppFields {
   operator: NodeChild<SyncTokenId>
   argument: NodeChild<AstId> | undefined
 }
+/**
+ *
+ */
 export class UnaryOprApp extends Ast {
   declare fields: FixedMapView<AstFields & UnaryOprAppFields>
+  /**
+   *
+   */
   constructor(module: Module, fields: FixedMapView<AstFields & UnaryOprAppFields>) {
     super(module, fields)
   }
 
+  /**
+   *
+   */
   static tryParse(source: string, module?: MutableModule): Owned<MutableUnaryOprApp> | undefined {
     const parsed = parse(source, module)
     if (parsed instanceof MutableUnaryOprApp) return parsed
   }
 
+  /**
+   *
+   */
   static concrete(
     module: MutableModule,
     operator: NodeChild<Token>,
@@ -757,23 +905,38 @@ export class UnaryOprApp extends Ast {
     return asOwned(new MutableUnaryOprApp(module, fields))
   }
 
+  /**
+   *
+   */
   static new(module: MutableModule, operator: Token, argument: Owned | undefined) {
     return this.concrete(module, unspaced(operator), argument ? autospaced(argument) : undefined)
   }
 
+  /**
+   *
+   */
   get operator(): Token {
     return this.module.getToken(this.fields.get('operator').node)
   }
+  /**
+   *
+   */
   get argument(): Ast | undefined {
     return this.module.get(this.fields.get('argument')?.node)
   }
 
+  /**
+   *
+   */
   *concreteChildren(_verbatim?: boolean): IterableIterator<RawNodeChild> {
     const { operator, argument } = getAll(this.fields)
     yield operator
     if (argument) yield argument
   }
 }
+/**
+ *
+ */
 export class MutableUnaryOprApp extends UnaryOprApp implements MutableAst {
   declare readonly module: MutableModule
   declare readonly fields: FixedMap<AstFields & UnaryOprAppFields>
@@ -794,16 +957,28 @@ interface AutoscopedIdentifierFields {
   operator: NodeChild<SyncTokenId>
   identifier: NodeChild<SyncTokenId>
 }
+/**
+ *
+ */
 export class AutoscopedIdentifier extends Ast {
   declare fields: FixedMapView<AstFields & AutoscopedIdentifierFields>
+  /**
+   *
+   */
   constructor(module: Module, fields: FixedMapView<AstFields & AutoscopedIdentifierFields>) {
     super(module, fields)
   }
 
+  /**
+   *
+   */
   get identifier(): Token {
     return this.module.getToken(this.fields.get('identifier').node)
   }
 
+  /**
+   *
+   */
   static tryParse(
     source: string,
     module?: MutableModule,
@@ -812,6 +987,9 @@ export class AutoscopedIdentifier extends Ast {
     if (parsed instanceof MutableAutoscopedIdentifier) return parsed
   }
 
+  /**
+   *
+   */
   static concrete(module: MutableModule, operator: NodeChild<Token>, identifier: NodeChild<Token>) {
     const base = module.baseObject('AutoscopedIdentifier')
     const fields = composeFieldData(base, {
@@ -821,6 +999,9 @@ export class AutoscopedIdentifier extends Ast {
     return asOwned(new MutableAutoscopedIdentifier(module, fields))
   }
 
+  /**
+   *
+   */
   static new(
     identifier: TypeOrConstructorIdentifier,
     module?: MutableModule,
@@ -831,12 +1012,18 @@ export class AutoscopedIdentifier extends Ast {
     return this.concrete(module_, unspaced(operator), unspaced(ident))
   }
 
+  /**
+   *
+   */
   *concreteChildren(_verbatim?: boolean): IterableIterator<RawNodeChild> {
     const { operator, identifier } = getAll(this.fields)
     yield operator
     yield identifier
   }
 }
+/**
+ *
+ */
 export class MutableAutoscopedIdentifier extends AutoscopedIdentifier implements MutableAst {
   declare readonly module: MutableModule
   declare readonly fields: FixedMap<AstFields & AutoscopedIdentifierFields>
@@ -853,17 +1040,29 @@ interface NegationAppFields {
   operator: NodeChild<SyncTokenId>
   argument: NodeChild<AstId>
 }
+/**
+ *
+ */
 export class NegationApp extends Ast {
   declare fields: FixedMapView<AstFields & NegationAppFields>
+  /**
+   *
+   */
   constructor(module: Module, fields: FixedMapView<AstFields & NegationAppFields>) {
     super(module, fields)
   }
 
+  /**
+   *
+   */
   static tryParse(source: string, module?: MutableModule): Owned<MutableNegationApp> | undefined {
     const parsed = parse(source, module)
     if (parsed instanceof MutableNegationApp) return parsed
   }
 
+  /**
+   *
+   */
   static concrete(module: MutableModule, operator: NodeChild<Token>, argument: NodeChild<Owned>) {
     const base = module.baseObject('NegationApp')
     const id_ = base.get('id')
@@ -874,24 +1073,39 @@ export class NegationApp extends Ast {
     return asOwned(new MutableNegationApp(module, fields))
   }
 
+  /**
+   *
+   */
   static new(module: MutableModule, argument: Owned) {
     const minus = Token.new('-', RawAst.Token.Type.Operator)
     return this.concrete(module, unspaced(minus), unspaced(argument))
   }
 
+  /**
+   *
+   */
   get operator(): Token {
     return this.module.getToken(this.fields.get('operator').node)
   }
+  /**
+   *
+   */
   get argument(): Ast {
     return this.module.get(this.fields.get('argument').node)
   }
 
+  /**
+   *
+   */
   *concreteChildren(_verbatim?: boolean): IterableIterator<RawNodeChild> {
     const { operator, argument } = getAll(this.fields)
     yield operator
     if (argument) yield argument
   }
 }
+/**
+ *
+ */
 export class MutableNegationApp extends NegationApp implements MutableAst {
   declare readonly module: MutableModule
   declare readonly fields: FixedMap<AstFields & NegationAppFields>
@@ -910,17 +1124,29 @@ interface OprAppFields {
   operators: NodeChild<SyncTokenId>[]
   rhs: NodeChild<AstId> | undefined
 }
+/**
+ *
+ */
 export class OprApp extends Ast {
   declare fields: FixedMapView<AstFields & OprAppFields>
+  /**
+   *
+   */
   constructor(module: Module, fields: FixedMapView<AstFields & OprAppFields>) {
     super(module, fields)
   }
 
+  /**
+   *
+   */
   static tryParse(source: string, module?: MutableModule): Owned<MutableOprApp> | undefined {
     const parsed = parse(source, module)
     if (parsed instanceof MutableOprApp) return parsed
   }
 
+  /**
+   *
+   */
   static concrete(
     module: MutableModule,
     lhs: NodeChild<Owned> | undefined,
@@ -937,6 +1163,9 @@ export class OprApp extends Ast {
     return asOwned(new MutableOprApp(module, fields))
   }
 
+  /**
+   *
+   */
   static new(
     module: MutableModule,
     lhs: Owned | undefined,
@@ -948,9 +1177,15 @@ export class OprApp extends Ast {
     return OprApp.concrete(module, unspaced(lhs), [autospaced(operatorToken)], autospaced(rhs))
   }
 
+  /**
+   *
+   */
   get lhs(): Ast | undefined {
     return this.module.get(this.fields.get('lhs')?.node)
   }
+  /**
+   *
+   */
   get operator(): Result<Token, NodeChild<Token>[]> {
     const operators = this.fields.get('operators')
     const operators_ = operators.map(child => ({
@@ -960,10 +1195,16 @@ export class OprApp extends Ast {
     const [opr] = operators_
     return opr ? Ok(opr.node) : Err(operators_)
   }
+  /**
+   *
+   */
   get rhs(): Ast | undefined {
     return this.module.get(this.fields.get('rhs')?.node)
   }
 
+  /**
+   *
+   */
   *concreteChildren(_verbatim?: boolean): IterableIterator<RawNodeChild> {
     const { lhs, operators, rhs } = getAll(this.fields)
     if (lhs) yield lhs
@@ -971,6 +1212,9 @@ export class OprApp extends Ast {
     if (rhs) yield rhs
   }
 }
+/**
+ *
+ */
 export class MutableOprApp extends OprApp implements MutableAst {
   declare readonly module: MutableModule
   declare readonly fields: FixedMap<AstFields & OprAppFields>
@@ -996,12 +1240,21 @@ interface PropertyAccessFields {
   operator: NodeChild<SyncTokenId>
   rhs: NodeChild<AstId>
 }
+/**
+ *
+ */
 export class PropertyAccess extends Ast {
   declare fields: FixedMapView<AstFields & PropertyAccessFields>
+  /**
+   *
+   */
   constructor(module: Module, fields: FixedMapView<AstFields & PropertyAccessFields>) {
     super(module, fields)
   }
 
+  /**
+   *
+   */
   static tryParse(
     source: string,
     module?: MutableModule,
@@ -1010,6 +1263,9 @@ export class PropertyAccess extends Ast {
     if (parsed instanceof MutablePropertyAccess) return parsed
   }
 
+  /**
+   *
+   */
   static new(module: MutableModule, lhs: Owned, rhs: IdentLike, style?: { spaced?: boolean }) {
     const dot = Token.new('.', RawAst.Token.Type.Operator)
     const whitespace = style?.spaced ? ' ' : ''
@@ -1021,18 +1277,30 @@ export class PropertyAccess extends Ast {
     )
   }
 
+  /**
+   *
+   */
   static Sequence(
     segments: [StrictIdentLike, ...StrictIdentLike[]],
     module: MutableModule,
   ): Owned<MutablePropertyAccess> | Owned<MutableIdent>
+  /**
+   *
+   */
   static Sequence(
     segments: [StrictIdentLike, ...StrictIdentLike[], IdentLike],
     module: MutableModule,
   ): Owned<MutablePropertyAccess> | Owned<MutableIdent>
+  /**
+   *
+   */
   static Sequence(
     segments: IdentLike[],
     module: MutableModule,
   ): Owned<MutablePropertyAccess> | Owned<MutableIdent> | undefined
+  /**
+   *
+   */
   static Sequence(
     segments: IdentLike[],
     module: MutableModule,
@@ -1047,6 +1315,9 @@ export class PropertyAccess extends Ast {
     if (!operatorInNonFinalSegment) return path
   }
 
+  /**
+   *
+   */
   static concrete(
     module: MutableModule,
     lhs: NodeChild<Owned> | undefined,
@@ -1063,18 +1334,30 @@ export class PropertyAccess extends Ast {
     return asOwned(new MutablePropertyAccess(module, fields))
   }
 
+  /**
+   *
+   */
   get lhs(): Ast | undefined {
     return this.module.get(this.fields.get('lhs')?.node)
   }
+  /**
+   *
+   */
   get operator(): Token {
     return this.module.getToken(this.fields.get('operator').node)
   }
+  /**
+   *
+   */
   get rhs(): IdentifierOrOperatorIdentifierToken {
     const ast = this.module.get(this.fields.get('rhs').node)
     assert(ast instanceof Ident)
     return ast.token as IdentifierOrOperatorIdentifierToken
   }
 
+  /**
+   *
+   */
   *concreteChildren(_verbatim?: boolean): IterableIterator<RawNodeChild> {
     const { lhs, operator, rhs } = getAll(this.fields)
     if (lhs) yield lhs
@@ -1082,6 +1365,9 @@ export class PropertyAccess extends Ast {
     yield rhs
   }
 }
+/**
+ *
+ */
 export class MutablePropertyAccess extends PropertyAccess implements MutableAst {
   declare readonly module: MutableModule
   declare readonly fields: FixedMap<AstFields & PropertyAccessFields>
@@ -1100,8 +1386,10 @@ export interface MutablePropertyAccess extends PropertyAccess, MutableAst {
 }
 applyMixins(MutablePropertyAccess, [MutableAst])
 
-/** Unroll the provided chain of `PropertyAccess` nodes, returning the first non-access as `subject` and the accesses
- *  from left-to-right. */
+/**
+ * Unroll the provided chain of `PropertyAccess` nodes, returning the first non-access as `subject` and the accesses
+ * from left-to-right.
+ */
 export function accessChain(ast: Ast): { subject: Ast; accessChain: PropertyAccess[] } {
   const accessChain = new Array<PropertyAccess>()
   while (ast instanceof PropertyAccess && ast.lhs) {
@@ -1115,12 +1403,21 @@ export function accessChain(ast: Ast): { subject: Ast; accessChain: PropertyAcce
 interface GenericFields {
   children: RawNodeChild[]
 }
+/**
+ *
+ */
 export class Generic extends Ast {
   declare fields: FixedMapView<AstFields & GenericFields>
+  /**
+   *
+   */
   constructor(module: Module, fields: FixedMapView<AstFields & GenericFields>) {
     super(module, fields)
   }
 
+  /**
+   *
+   */
   static concrete(module: MutableModule, children: (NodeChild<Owned> | NodeChild<Token>)[]) {
     const base = module.baseObject('Generic')
     const id_ = base.get('id')
@@ -1130,10 +1427,16 @@ export class Generic extends Ast {
     return asOwned(new MutableGeneric(module, fields))
   }
 
+  /**
+   *
+   */
   concreteChildren(_verbatim?: boolean): IterableIterator<RawNodeChild> {
     return this.fields.get('children')[Symbol.iterator]()
   }
 }
+/**
+ *
+ */
 export class MutableGeneric extends Generic implements MutableAst {
   declare readonly module: MutableModule
   declare readonly fields: FixedMap<AstFields & GenericFields>
@@ -1183,36 +1486,66 @@ interface ImportFields<T extends TreeRefs = RawRefs> extends FieldObject<T> {
   hiding: MultiSegmentAppSegment<T> | undefined
 }
 
+/**
+ *
+ */
 export class Import extends Ast {
   declare fields: FixedMapView<AstFields & ImportFields>
+  /**
+   *
+   */
   constructor(module: Module, fields: FixedMapView<AstFields & ImportFields>) {
     super(module, fields)
   }
 
+  /**
+   *
+   */
   static tryParse(source: string, module?: MutableModule): Owned<MutableImport> | undefined {
     const parsed = parse(source, module)
     if (parsed instanceof MutableImport) return parsed
   }
 
+  /**
+   *
+   */
   get polyglot(): Ast | undefined {
     return this.module.get(this.fields.get('polyglot')?.body?.node)
   }
+  /**
+   *
+   */
   get from(): Ast | undefined {
     return this.module.get(this.fields.get('from')?.body?.node)
   }
+  /**
+   *
+   */
   get import_(): Ast | undefined {
     return this.module.get(this.fields.get('import').body?.node)
   }
+  /**
+   *
+   */
   get all(): Token | undefined {
     return this.module.getToken(this.fields.get('all')?.node)
   }
+  /**
+   *
+   */
   get as(): Ast | undefined {
     return this.module.get(this.fields.get('as')?.body?.node)
   }
+  /**
+   *
+   */
   get hiding(): Ast | undefined {
     return this.module.get(this.fields.get('hiding')?.body?.node)
   }
 
+  /**
+   *
+   */
   static concrete(
     module: MutableModule,
     polyglot: MultiSegmentAppSegment<OwnedRefs> | undefined,
@@ -1237,6 +1570,9 @@ export class Import extends Ast {
     return asOwned(new MutableImport(module, fields))
   }
 
+  /**
+   *
+   */
   static Qualified(path: IdentLike[], module: MutableModule): Owned<MutableImport> | undefined {
     const path_ = PropertyAccess.Sequence(path, module)
     if (!path_) return
@@ -1251,6 +1587,9 @@ export class Import extends Ast {
     )
   }
 
+  /**
+   *
+   */
   static Unqualified(
     path: IdentLike[],
     name: IdentLike,
@@ -1270,6 +1609,9 @@ export class Import extends Ast {
     )
   }
 
+  /**
+   *
+   */
   *concreteChildren(_verbatim?: boolean): IterableIterator<RawNodeChild> {
     const segment = (segment: MultiSegmentAppSegment | undefined) => {
       const parts = []
@@ -1286,6 +1628,9 @@ export class Import extends Ast {
     yield* segment(hiding)
   }
 }
+/**
+ *
+ */
 export class MutableImport extends Import implements MutableAst {
   declare readonly module: MutableModule
   declare readonly fields: FixedMap<AstFields & ImportFields>
@@ -1435,17 +1780,29 @@ interface TextLiteralFields {
   elements: TextElement[]
   close: NodeChild<SyncTokenId> | undefined
 }
+/**
+ *
+ */
 export class TextLiteral extends Ast {
   declare fields: FixedMapView<AstFields & TextLiteralFields>
+  /**
+   *
+   */
   constructor(module: Module, fields: FixedMapView<AstFields & TextLiteralFields>) {
     super(module, fields)
   }
 
+  /**
+   *
+   */
   static tryParse(source: string, module?: MutableModule): Owned<MutableTextLiteral> | undefined {
     const parsed = parse(source, module)
     if (parsed instanceof MutableTextLiteral) return parsed
   }
 
+  /**
+   *
+   */
   static concrete(
     module: MutableModule,
     open: NodeChild<Token> | undefined,
@@ -1464,6 +1821,9 @@ export class TextLiteral extends Ast {
     return asOwned(new MutableTextLiteral(module, fields))
   }
 
+  /**
+   *
+   */
   static new(rawText: string, module?: MutableModule): Owned<MutableTextLiteral> {
     const escaped = escapeTextLiteral(rawText)
     const parsed = parse(`'${escaped}'`, module)
@@ -1483,6 +1843,9 @@ export class TextLiteral extends Ast {
     return uninterpolatedText(this.fields.get('elements'), this.module)
   }
 
+  /**
+   *
+   */
   *concreteChildren(_verbatim?: boolean): IterableIterator<RawNodeChild> {
     const { open, newline, elements, close } = getAll(this.fields)
     if (open) yield open
@@ -1491,27 +1854,45 @@ export class TextLiteral extends Ast {
     if (close) yield close
   }
 
+  /**
+   *
+   */
   boundaryTokenCode(): string | undefined {
     return (this.open || this.close)?.code()
   }
 
+  /**
+   *
+   */
   isInterpolated(): boolean {
     const token = this.boundaryTokenCode()
     return token === "'" || token === "'''"
   }
 
+  /**
+   *
+   */
   get open(): Token | undefined {
     return this.module.getToken(this.fields.get('open')?.node)
   }
 
+  /**
+   *
+   */
   get close(): Token | undefined {
     return this.module.getToken(this.fields.get('close')?.node)
   }
 
+  /**
+   *
+   */
   get elements(): TextElement<ConcreteRefs>[] {
     return this.fields.get('elements').map(e => mapRefs(e, rawToConcrete(this.module)))
   }
 }
+/**
+ *
+ */
 export class MutableTextLiteral extends TextLiteral implements MutableAst {
   declare readonly module: MutableModule
   declare readonly fields: FixedMap<AstFields & TextLiteralFields>
@@ -1557,17 +1938,29 @@ interface DocumentedFields {
   newlines: NodeChild<SyncTokenId>[]
   expression: NodeChild<AstId> | undefined
 }
+/**
+ *
+ */
 export class Documented extends Ast {
   declare fields: FixedMapView<AstFields & DocumentedFields>
+  /**
+   *
+   */
   constructor(module: Module, fields: FixedMapView<AstFields & DocumentedFields>) {
     super(module, fields)
   }
 
+  /**
+   *
+   */
   static tryParse(source: string, module?: MutableModule): Owned<MutableDocumented> | undefined {
     const parsed = parse(source, module)
     if (parsed instanceof MutableDocumented) return parsed
   }
 
+  /**
+   *
+   */
   static new(text: string, expression: Owned) {
     return this.concrete(
       expression.module,
@@ -1578,6 +1971,9 @@ export class Documented extends Ast {
     )
   }
 
+  /**
+   *
+   */
   static concrete(
     module: MutableModule,
     open: NodeChild<Token> | undefined,
@@ -1596,6 +1992,9 @@ export class Documented extends Ast {
     return asOwned(new MutableDocumented(module, fields))
   }
 
+  /**
+   *
+   */
   get expression(): Ast | undefined {
     return this.module.get(this.fields.get('expression')?.node)
   }
@@ -1606,14 +2005,23 @@ export class Documented extends Ast {
     return raw.startsWith(' ') ? raw.slice(1) : raw
   }
 
+  /**
+   *
+   */
   override wrappedExpression(): Ast | undefined {
     return this.expression
   }
 
+  /**
+   *
+   */
   override documentingAncestor(): Documented | undefined {
     return this
   }
 
+  /**
+   *
+   */
   *concreteChildren(_verbatim?: boolean): IterableIterator<RawNodeChild> {
     const { open, elements, newlines, expression } = getAll(this.fields)
     yield open
@@ -1622,6 +2030,9 @@ export class Documented extends Ast {
     if (expression) yield expression
   }
 
+  /**
+   *
+   */
   override printSubtree(
     info: SpanMap,
     offset: number,
@@ -1631,6 +2042,9 @@ export class Documented extends Ast {
     return printDocumented(this, info, offset, parentIndent, verbatim)
   }
 }
+/**
+ *
+ */
 export class MutableDocumented extends Documented implements MutableAst {
   declare readonly module: MutableModule
   declare readonly fields: FixedMap<AstFields & DocumentedFields>
@@ -1672,25 +2086,43 @@ function textToUninterpolatedElements(text: string): TextToken<OwnedRefs>[] {
 interface InvalidFields {
   expression: NodeChild<AstId>
 }
+/**
+ *
+ */
 export class Invalid extends Ast {
   declare fields: FixedMapView<AstFields & InvalidFields>
+  /**
+   *
+   */
   constructor(module: Module, fields: FixedMapView<AstFields & InvalidFields>) {
     super(module, fields)
   }
 
+  /**
+   *
+   */
   static concrete(module: MutableModule, expression: NodeChild<Owned>) {
     const base = module.baseObject('Invalid')
     return asOwned(new MutableInvalid(module, invalidFields(module, base, expression)))
   }
 
+  /**
+   *
+   */
   get expression(): Ast {
     return this.module.get(this.fields.get('expression').node)
   }
 
+  /**
+   *
+   */
   *concreteChildren(_verbatim?: boolean): IterableIterator<RawNodeChild> {
     yield this.fields.get('expression')
   }
 
+  /**
+   *
+   */
   override printSubtree(
     info: SpanMap,
     offset: number,
@@ -1700,6 +2132,9 @@ export class Invalid extends Ast {
     return super.printSubtree(info, offset, parentIndent, true)
   }
 }
+/**
+ *
+ */
 export function invalidFields(
   module: MutableModule,
   base: FixedMap<AstFields>,
@@ -1708,13 +2143,18 @@ export function invalidFields(
   const id_ = base.get('id')
   return composeFieldData(base, { expression: concreteChild(module, expression, id_) })
 }
+/**
+ *
+ */
 export class MutableInvalid extends Invalid implements MutableAst {
   declare readonly module: MutableModule
   declare readonly fields: FixedMap<AstFields & InvalidFields>
 }
 export interface MutableInvalid extends Invalid, MutableAst {
-  /** The `expression` getter is intentionally not narrowed to provide mutable access:
-   *  It makes more sense to `.replace` the `Invalid` node. */
+  /**
+   * The `expression` getter is intentionally not narrowed to provide mutable access:
+   * It makes more sense to `.replace` the `Invalid` node.
+   */
 }
 applyMixins(MutableInvalid, [MutableAst])
 
@@ -1723,17 +2163,29 @@ interface GroupFields {
   expression: NodeChild<AstId> | undefined
   close: NodeChild<SyncTokenId> | undefined
 }
+/**
+ *
+ */
 export class Group extends Ast {
   declare fields: FixedMapView<AstFields & GroupFields>
+  /**
+   *
+   */
   constructor(module: Module, fields: FixedMapView<AstFields & GroupFields>) {
     super(module, fields)
   }
 
+  /**
+   *
+   */
   static tryParse(source: string, module?: MutableModule): Owned<MutableGroup> | undefined {
     const parsed = parse(source, module)
     if (parsed instanceof MutableGroup) return parsed
   }
 
+  /**
+   *
+   */
   static concrete(
     module: MutableModule,
     open: NodeChild<Token> | undefined,
@@ -1750,20 +2202,32 @@ export class Group extends Ast {
     return asOwned(new MutableGroup(module, fields))
   }
 
+  /**
+   *
+   */
   static new(module: MutableModule, expression: Owned) {
     const open = unspaced(Token.new('(', RawAst.Token.Type.OpenSymbol))
     const close = unspaced(Token.new(')', RawAst.Token.Type.CloseSymbol))
     return this.concrete(module, open, unspaced(expression), close)
   }
 
+  /**
+   *
+   */
   get expression(): Ast | undefined {
     return this.module.get(this.fields.get('expression')?.node)
   }
 
+  /**
+   *
+   */
   override wrappedExpression(): Ast | undefined {
     return this.expression
   }
 
+  /**
+   *
+   */
   *concreteChildren(_verbatim?: boolean): IterableIterator<RawNodeChild> {
     const { open, expression, close } = getAll(this.fields)
     if (open) yield open
@@ -1771,6 +2235,9 @@ export class Group extends Ast {
     if (close) yield close
   }
 }
+/**
+ *
+ */
 export class MutableGroup extends Group implements MutableAst {
   declare readonly module: MutableModule
   declare readonly fields: FixedMap<AstFields & GroupFields>
@@ -1787,12 +2254,21 @@ applyMixins(MutableGroup, [MutableAst])
 interface NumericLiteralFields {
   tokens: NodeChild<SyncTokenId>[]
 }
+/**
+ *
+ */
 export class NumericLiteral extends Ast {
   declare fields: FixedMapView<AstFields & NumericLiteralFields>
+  /**
+   *
+   */
   constructor(module: Module, fields: FixedMapView<AstFields & NumericLiteralFields>) {
     super(module, fields)
   }
 
+  /**
+   *
+   */
   static tryParse(
     source: string,
     module?: MutableModule,
@@ -1801,6 +2277,9 @@ export class NumericLiteral extends Ast {
     if (parsed instanceof MutableNumericLiteral) return parsed
   }
 
+  /**
+   *
+   */
   static tryParseWithSign(
     source: string,
     module?: MutableModule,
@@ -1813,16 +2292,25 @@ export class NumericLiteral extends Ast {
       return parsed
   }
 
+  /**
+   *
+   */
   static concrete(module: MutableModule, tokens: NodeChild<Token>[]) {
     const base = module.baseObject('NumericLiteral')
     const fields = composeFieldData(base, { tokens })
     return asOwned(new MutableNumericLiteral(module, fields))
   }
 
+  /**
+   *
+   */
   concreteChildren(_verbatim?: boolean): IterableIterator<RawNodeChild> {
     return this.fields.get('tokens')[Symbol.iterator]()
   }
 }
+/**
+ *
+ */
 export class MutableNumericLiteral extends NumericLiteral implements MutableAst {
   declare readonly module: MutableModule
   declare readonly fields: FixedMap<AstFields & NumericLiteralFields>
@@ -1830,6 +2318,9 @@ export class MutableNumericLiteral extends NumericLiteral implements MutableAst 
 export interface MutableNumericLiteral extends NumericLiteral, MutableAst {}
 applyMixins(MutableNumericLiteral, [MutableAst])
 
+/**
+ *
+ */
 export function isNumericLiteral(code: string) {
   return is_numeric_literal(code)
 }
@@ -1861,29 +2352,50 @@ export interface FunctionFields {
   equals: NodeChild<SyncTokenId>
   body: NodeChild<AstId> | undefined
 }
+/**
+ *
+ */
 export class Function extends Ast {
   declare fields: FixedMapView<AstFields & FunctionFields>
+  /**
+   *
+   */
   constructor(module: Module, fields: FixedMapView<AstFields & FunctionFields>) {
     super(module, fields)
   }
 
+  /**
+   *
+   */
   static tryParse(source: string, module?: MutableModule): Owned<MutableFunction> | undefined {
     const parsed = parse(source, module)
     if (parsed instanceof MutableFunction) return parsed
   }
 
+  /**
+   *
+   */
   get name(): Ast {
     return this.module.get(this.fields.get('name').node)
   }
+  /**
+   *
+   */
   get body(): Ast | undefined {
     return this.module.get(this.fields.get('body')?.node)
   }
+  /**
+   *
+   */
   get argumentDefinitions(): ArgumentDefinition<ConcreteRefs>[] {
     return this.fields
       .get('argumentDefinitions')
       .map(def => mapRefs(def, rawToConcrete(this.module)))
   }
 
+  /**
+   *
+   */
   static concrete(
     module: MutableModule,
     name: NodeChild<Owned>,
@@ -1902,6 +2414,9 @@ export class Function extends Ast {
     return asOwned(new MutableFunction(module, fields))
   }
 
+  /**
+   *
+   */
   static new(
     module: MutableModule,
     name: IdentLike,
@@ -1937,6 +2452,9 @@ export class Function extends Ast {
     return MutableFunction.new(module, name, argumentDefinitions, body)
   }
 
+  /**
+   *
+   */
   *bodyExpressions(): IterableIterator<Ast> {
     const body = this.body
     if (body instanceof BodyBlock) {
@@ -1946,10 +2464,16 @@ export class Function extends Ast {
     }
   }
 
+  /**
+   *
+   */
   override get isBindingStatement(): boolean {
     return true
   }
 
+  /**
+   *
+   */
   *concreteChildren(_verbatim?: boolean): IterableIterator<RawNodeChild> {
     const { name, argumentDefinitions, equals, body } = getAll(this.fields)
     yield name
@@ -1974,6 +2498,9 @@ export class Function extends Ast {
     if (body) yield preferSpacedIf(body, this.module.tryGet(body.node) instanceof BodyBlock)
   }
 }
+/**
+ *
+ */
 export class MutableFunction extends Function implements MutableAst {
   declare readonly module: MutableModule
   declare readonly fields: FixedMap<AstFields & FunctionFields>
@@ -2012,17 +2539,29 @@ interface AssignmentFields {
   equals: NodeChild<SyncTokenId>
   expression: NodeChild<AstId>
 }
+/**
+ *
+ */
 export class Assignment extends Ast {
   declare fields: FixedMapView<AstFields & AssignmentFields>
+  /**
+   *
+   */
   constructor(module: Module, fields: FixedMapView<AstFields & AssignmentFields>) {
     super(module, fields)
   }
 
+  /**
+   *
+   */
   static tryParse(source: string, module?: MutableModule): Owned<MutableAssignment> | undefined {
     const parsed = parse(source, module)
     if (parsed instanceof MutableAssignment) return parsed
   }
 
+  /**
+   *
+   */
   static concrete(
     module: MutableModule,
     pattern: NodeChild<Owned>,
@@ -2039,6 +2578,9 @@ export class Assignment extends Ast {
     return asOwned(new MutableAssignment(module, fields))
   }
 
+  /**
+   *
+   */
   static new(module: MutableModule, ident: StrictIdentLike, expression: Owned) {
     return Assignment.concrete(
       module,
@@ -2048,17 +2590,29 @@ export class Assignment extends Ast {
     )
   }
 
+  /**
+   *
+   */
   get pattern(): Ast {
     return this.module.get(this.fields.get('pattern').node)
   }
+  /**
+   *
+   */
   get expression(): Ast {
     return this.module.get(this.fields.get('expression').node)
   }
 
+  /**
+   *
+   */
   override get isBindingStatement(): boolean {
     return true
   }
 
+  /**
+   *
+   */
   *concreteChildren(verbatim?: boolean): IterableIterator<RawNodeChild> {
     const { pattern, equals, expression } = getAll(this.fields)
     yield ensureUnspaced(pattern, verbatim)
@@ -2066,6 +2620,9 @@ export class Assignment extends Ast {
     yield preferSpaced(expression)
   }
 }
+/**
+ *
+ */
 export class MutableAssignment extends Assignment implements MutableAst {
   declare readonly module: MutableModule
   declare readonly fields: FixedMap<AstFields & AssignmentFields>
@@ -2086,17 +2643,29 @@ applyMixins(MutableAssignment, [MutableAst])
 interface BodyBlockFields {
   lines: RawBlockLine[]
 }
+/**
+ *
+ */
 export class BodyBlock extends Ast {
   declare fields: FixedMapView<AstFields & BodyBlockFields>
+  /**
+   *
+   */
   constructor(module: Module, fields: FixedMapView<AstFields & BodyBlockFields>) {
     super(module, fields)
   }
 
+  /**
+   *
+   */
   static tryParse(source: string, module?: MutableModule): Owned<MutableBodyBlock> | undefined {
     const parsed = parse(source, module)
     if (parsed instanceof MutableBodyBlock) return parsed
   }
 
+  /**
+   *
+   */
   static concrete(module: MutableModule, lines: OwnedBlockLine[]) {
     const base = module.baseObject('BodyBlock')
     const id_ = base.get('id')
@@ -2106,20 +2675,32 @@ export class BodyBlock extends Ast {
     return asOwned(new MutableBodyBlock(module, fields))
   }
 
+  /**
+   *
+   */
   static new(lines: OwnedBlockLine[], module: MutableModule) {
     return BodyBlock.concrete(module, lines)
   }
 
+  /**
+   *
+   */
   get lines(): BlockLine[] {
     return this.fields.get('lines').map(line => lineFromRaw(line, this.module))
   }
 
+  /**
+   *
+   */
   *statements(): IterableIterator<Ast> {
     for (const line of this.lines) {
       if (line.expression) yield line.expression.node
     }
   }
 
+  /**
+   *
+   */
   *concreteChildren(_verbatim?: boolean): IterableIterator<RawNodeChild> {
     for (const line of this.fields.get('lines')) {
       yield preferUnspaced(line.newline)
@@ -2127,6 +2708,9 @@ export class BodyBlock extends Ast {
     }
   }
 
+  /**
+   *
+   */
   override printSubtree(
     info: SpanMap,
     offset: number,
@@ -2136,6 +2720,9 @@ export class BodyBlock extends Ast {
     return printBlock(this, info, offset, parentIndent, verbatim)
   }
 }
+/**
+ *
+ */
 export class MutableBodyBlock extends BodyBlock implements MutableAst {
   declare readonly module: MutableModule
   declare readonly fields: FixedMap<AstFields & BodyBlockFields>
@@ -2245,31 +2832,52 @@ function lineToRaw(line: OwnedBlockLine, module: MutableModule, block: AstId): R
 interface IdentFields {
   token: NodeChild<SyncTokenId>
 }
+/**
+ *
+ */
 export class Ident extends Ast {
   declare fields: FixedMapView<AstFields & IdentFields>
+  /**
+   *
+   */
   constructor(module: Module, fields: FixedMapView<AstFields & IdentFields>) {
     super(module, fields)
   }
 
+  /**
+   *
+   */
   static tryParse(source: string, module?: MutableModule): Owned<MutableIdent> | undefined {
     const parsed = parse(source, module)
     if (parsed instanceof MutableIdent) return parsed
   }
 
+  /**
+   *
+   */
   get token(): IdentifierToken {
     return this.module.getToken(this.fields.get('token').node) as IdentifierToken
   }
 
+  /**
+   *
+   */
   isTypeOrConstructor(): boolean {
     return /^[A-Z]/.test(this.token.code())
   }
 
+  /**
+   *
+   */
   static concrete(module: MutableModule, token: NodeChild<Token>) {
     const base = module.baseObject('Ident')
     const fields = composeFieldData(base, { token })
     return asOwned(new MutableIdent(module, fields))
   }
 
+  /**
+   *
+   */
   static new(module: MutableModule, ident: StrictIdentLike) {
     return Ident.concrete(module, unspaced(toIdentStrict(ident)))
   }
@@ -2279,14 +2887,23 @@ export class Ident extends Ast {
     return Ident.concrete(module, unspaced(toIdent(ident)))
   }
 
+  /**
+   *
+   */
   *concreteChildren(_verbatim?: boolean): IterableIterator<RawNodeChild> {
     yield this.fields.get('token')
   }
 
+  /**
+   *
+   */
   override code(): Identifier {
     return this.token.code() as Identifier
   }
 }
+/**
+ *
+ */
 export class MutableIdent extends Ident implements MutableAst {
   declare readonly module: MutableModule
   declare readonly fields: FixedMap<AstFields & IdentFields>
@@ -2305,37 +2922,61 @@ applyMixins(MutableIdent, [MutableAst])
 interface WildcardFields {
   token: NodeChild<SyncTokenId>
 }
+/**
+ *
+ */
 export class Wildcard extends Ast {
   declare fields: FixedMapView<AstFields & WildcardFields>
+  /**
+   *
+   */
   constructor(module: Module, fields: FixedMapView<AstFields & WildcardFields>) {
     super(module, fields)
   }
 
+  /**
+   *
+   */
   static tryParse(source: string, module?: MutableModule): Owned<MutableWildcard> | undefined {
     const parsed = parse(source, module)
     if (parsed instanceof MutableWildcard) return parsed
   }
 
+  /**
+   *
+   */
   get token(): Token {
     return this.module.getToken(this.fields.get('token').node)
   }
 
+  /**
+   *
+   */
   static concrete(module: MutableModule, token: NodeChild<Token>) {
     const base = module.baseObject('Wildcard')
     const fields = composeFieldData(base, { token })
     return asOwned(new MutableWildcard(module, fields))
   }
 
+  /**
+   *
+   */
   static new(module?: MutableModule) {
     const token = Token.new('_', RawAst.Token.Type.Wildcard)
     return this.concrete(module ?? MutableModule.Transient(), unspaced(token))
   }
 
+  /**
+   *
+   */
   *concreteChildren(_verbatim?: boolean): IterableIterator<RawNodeChild> {
     yield this.fields.get('token')
   }
 }
 
+/**
+ *
+ */
 export class MutableWildcard extends Wildcard implements MutableAst {
   declare readonly module: MutableModule
   declare readonly fields: FixedMap<AstFields & WildcardFields>
@@ -2359,17 +3000,29 @@ interface VectorFields {
   elements: VectorElement<RawRefs>[]
   close: NodeChild<Token>
 }
+/**
+ *
+ */
 export class Vector extends Ast {
   declare fields: FixedMapView<AstFields & VectorFields>
+  /**
+   *
+   */
   constructor(module: Module, fields: FixedMapView<AstFields & VectorFields>) {
     super(module, fields)
   }
 
+  /**
+   *
+   */
   static tryParse(source: string, module?: MutableModule): Owned<MutableVector> | undefined {
     const parsed = parse(source, module)
     if (parsed instanceof MutableVector) return parsed
   }
 
+  /**
+   *
+   */
   static concrete(
     module: MutableModule,
     open: NodeChild<Token> | undefined,
@@ -2386,6 +3039,9 @@ export class Vector extends Ast {
     return asOwned(new MutableVector(module, fields))
   }
 
+  /**
+   *
+   */
   static new(module: MutableModule, elements: Owned[]) {
     return this.concrete(
       module,
@@ -2395,16 +3051,25 @@ export class Vector extends Ast {
     )
   }
 
+  /**
+   *
+   */
   static tryBuild<T>(
     inputs: Iterable<T>,
     elementBuilder: (input: T, module: MutableModule) => Owned,
     edit?: MutableModule,
   ): Owned<MutableVector>
+  /**
+   *
+   */
   static tryBuild<T>(
     inputs: Iterable<T>,
     elementBuilder: (input: T, module: MutableModule) => Owned | undefined,
     edit?: MutableModule,
   ): Owned<MutableVector> | undefined
+  /**
+   *
+   */
   static tryBuild<T>(
     inputs: Iterable<T>,
     valueBuilder: (input: T, module: MutableModule) => Owned | undefined,
@@ -2420,6 +3085,9 @@ export class Vector extends Ast {
     return Vector.concrete(module, undefined, elements, undefined)
   }
 
+  /**
+   *
+   */
   static build<T>(
     inputs: Iterable<T>,
     elementBuilder: (input: T, module: MutableModule) => Owned,
@@ -2428,6 +3096,9 @@ export class Vector extends Ast {
     return Vector.tryBuild(inputs, elementBuilder, edit)
   }
 
+  /**
+   *
+   */
   *concreteChildren(verbatim?: boolean): IterableIterator<RawNodeChild> {
     const { open, elements, close } = getAll(this.fields)
     yield ensureUnspaced(open, verbatim)
@@ -2444,21 +3115,33 @@ export class Vector extends Ast {
     yield preferUnspaced(close)
   }
 
+  /**
+   *
+   */
   *values(): IterableIterator<Ast> {
     for (const element of this.fields.get('elements'))
       if (element.value) yield this.module.get(element.value.node)
   }
 
+  /**
+   *
+   */
   *enumerate(): IterableIterator<[number, Ast | undefined]> {
     for (const [index, element] of this.fields.get('elements').entries()) {
       yield [index, this.module.get(element.value?.node)]
     }
   }
 
+  /**
+   *
+   */
   get length() {
     return this.fields.get('elements').length
   }
 }
+/**
+ *
+ */
 export class MutableVector extends Vector implements MutableAst {
   declare readonly module: MutableModule
   declare readonly fields: FixedMap<AstFields & VectorFields>
@@ -2534,6 +3217,9 @@ export type Mutable<T extends Ast = Ast> =
   : T extends Wildcard ? MutableWildcard
   : MutableAst
 
+/**
+ *
+ */
 export function materializeMutable(module: MutableModule, fields: FixedMap<AstFields>): MutableAst {
   const type = fields.get('type')
   const fieldsForType = fields as FixedMap<any>
@@ -2580,6 +3266,9 @@ export function materializeMutable(module: MutableModule, fields: FixedMap<AstFi
   bail(`Invalid type: ${type}`)
 }
 
+/**
+ *
+ */
 export function materialize(module: Module, fields: FixedMapView<AstFields>): Ast {
   const type = fields.get('type')
   const fields_ = fields as FixedMapView<any>
@@ -2628,7 +3317,7 @@ export function materialize(module: Module, fields: FixedMapView<AstFields>): As
 
 export interface FixedMapView<Fields> {
   get<Key extends string & keyof Fields>(key: Key): DeepReadonly<Fields[Key]>
-  /** @internal Unsafe. The caller must ensure the yielded values are not modified. */
+  /** @internal */
   entries(): IterableIterator<readonly [string, unknown]>
   clone(): FixedMap<Fields>
   has(key: string): boolean
@@ -2648,7 +3337,8 @@ function getAll<Fields extends object>(map: FixedMapView<Fields>): DeepReadonlyF
 }
 
 declare const brandLegalFieldContent: unique symbol
-/** Used to add a constraint to all `AstFields`s subtypes ensuring that they were produced by `composeFieldData`, which
+/**
+ * Used to add a constraint to all `AstFields`s subtypes ensuring that they were produced by `composeFieldData`, which
  *  enforces a requirement that the provided fields extend `FieldObject`.
  */
 interface LegalFieldContent {
@@ -2668,8 +3358,10 @@ export function setAll<Fields1, Fields2 extends Record<string, any>>(
   return map_
 }
 
-/** Modifies the input `map`. Returns the same object with an extended type. The added fields are required to have only
- *  types extending `FieldData`; the returned object is branded as `LegalFieldContent`. */
+/**
+ * Modifies the input `map`. Returns the same object with an extended type. The added fields are required to have only
+ * types extending `FieldData`; the returned object is branded as `LegalFieldContent`.
+ */
 export function composeFieldData<Fields1, Fields2 extends FieldObject<RawRefs>>(
   map: FixedMap<Fields1>,
   fields: Fields2,
@@ -2791,6 +3483,9 @@ function unspaced<T extends object | string>(node: T | undefined): NodeChild<T> 
 
 export function autospaced<T extends object | string>(node: T): NodeChild<T>
 export function autospaced<T extends object | string>(node: T | undefined): NodeChild<T> | undefined
+/**
+ *
+ */
 export function autospaced<T extends object | string>(
   node: T | undefined,
 ): NodeChild<T> | undefined {

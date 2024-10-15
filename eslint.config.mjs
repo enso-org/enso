@@ -198,6 +198,7 @@ export default [
       '**/build.mjs',
       '**/*.timestamp-*.mjs',
       '**/node_modules',
+      '**/generated',
     ],
   },
   eslintJs.configs.recommended,
@@ -211,7 +212,10 @@ export default [
         ecmaVersion: 'latest',
         extraFileExtensions: ['.vue'],
         projectService: {
-          allowDefaultProject: ['app/ydoc-server/vitest.config.ts'],
+          allowDefaultProject: [
+            'app/ydoc-server/vitest.config.ts',
+            'app/ydoc-shared/vitest.config.ts',
+          ],
         },
       },
     },

@@ -4,11 +4,17 @@ const tsf = ts.factory
 
 // === Identifier utilities ===
 
+/**
+ *
+ */
 export function toPascal(ident: string): string {
   if (ident.includes('.')) throw new Error('toPascal cannot be applied to a namespaced name.')
   return changeCase.pascalCase(ident)
 }
 
+/**
+ *
+ */
 export function toCamel(ident: string): string {
   if (ident.includes('.')) throw new Error('toCamel cannot be applied to a namespaced name.')
   return changeCase.camelCase(ident)
@@ -30,10 +36,16 @@ const RENAME = new Map([
   ['codeStartUtf16', 'startInCodeBuffer'],
 ])
 
+/**
+ *
+ */
 export function mapIdent(ident: string): string {
   return RENAME.get(ident) ?? ident
 }
 
+/**
+ *
+ */
 export function namespacedName(name: string, namespace?: string): string {
   if (namespace == null) {
     return toPascal(name)
@@ -53,12 +65,18 @@ export const modifiers = {
   protected: tsf.createModifier(ts.SyntaxKind.ProtectedKeyword),
 } as const
 
+/**
+ *
+ */
 export function assignmentStatement(left: ts.Expression, right: ts.Expression): ts.Statement {
   return tsf.createExpressionStatement(
     tsf.createBinaryExpression(left, ts.SyntaxKind.EqualsToken, right),
   )
 }
 
+/**
+ *
+ */
 export function forwardToSuper(
   ident: ts.Identifier,
   type: ts.TypeNode,
@@ -75,16 +93,25 @@ export function forwardToSuper(
   )
 }
 
+/**
+ *
+ */
 export function casesOrThrow(cases: ts.CaseClause[], error: string): ts.CaseBlock {
   return tsf.createCaseBlock([...cases, tsf.createDefaultClause([throwError(error)])])
 }
 
+/**
+ *
+ */
 export function throwError(error: string): ts.Statement {
   return tsf.createThrowStatement(
     tsf.createNewExpression(tsf.createIdentifier('Error'), [], [tsf.createStringLiteral(error)]),
   )
 }
 
+/**
+ *
+ */
 export function makeArrow(params: ts.BindingName[], expr: ts.Expression) {
   return tsf.createArrowFunction(
     [],
