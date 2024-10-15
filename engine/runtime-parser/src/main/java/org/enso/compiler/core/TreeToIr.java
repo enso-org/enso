@@ -557,8 +557,6 @@ final class TreeToIr {
     var methodRef = translateMethodReference(fn.getName(), false);
     var args = translateArgumentsDefinition(fn.getArgs());
     var body = translateExpression(fn.getBody());
-    var bodyLoc = expandToContain(getIdentifiedLocation(fn.getBody()), body.identifiedLocation());
-    body = body.setLocation(Option.apply(bodyLoc));
     var loc = getIdentifiedLocation(fn, 0, 0, null);
     var returnSignature = resolveReturnTypeSignature(fn);
     if (body == null) {
@@ -573,15 +571,14 @@ final class TreeToIr {
 
     String functionName = fn.getName().codeRepr();
     var ascribedBody = addTypeAscription(functionName, body, returnSignature, loc);
-    var binding = new Method.Binding(
-        methodRef,
-        args,
-        isPrivate,
-        ascribedBody,
-        loc,
-        meta()
+    return new Method.Binding(
+      methodRef,
+      args,
+      isPrivate,
+      ascribedBody,
+      loc,
+      meta()
     );
-    return binding;
   }
 
   private Expression translateFunction(
@@ -1098,7 +1095,7 @@ final class TreeToIr {
             case Literal.Number n -> n.copy(
                 n.copy$default$1(),
                 "-" + n.copy$default$2(),
-                n.copy$default$3(),
+                Option.apply(getIdentifiedLocation(un)),
                 n.copy$default$4(),
                 n.copy$default$5(),
                 n.copy$default$6()
@@ -1106,7 +1103,7 @@ final class TreeToIr {
             case Expression expr -> {
               var negate = new Name.Literal("negate", true, null, Option.empty(), meta());
               var arg = new CallArgument.Specified(Option.empty(), expr, expr.identifiedLocation(), meta());
-              yield new Application.Prefix(negate, join(arg, nil()), false, expr.identifiedLocation(), meta());
+              yield new Application.Prefix(negate, join(arg, nil()), false, getIdentifiedLocation(un), meta());
             }
             case null ->
                 translateSyntaxError(tree, new Syntax.UnsupportedSyntax("Strange unary -"));
@@ -1610,15 +1607,16 @@ final class TreeToIr {
           new Pattern.Literal((Literal) translateNumber(num), getIdentifiedLocation(num), meta());
       case Tree.UnaryOprApp num when num.getOpr().codeRepr().equals("-") -> {
         var n = (Literal.Number) translateExpression(num.getRhs());
+        var loc = getIdentifiedLocation(num);
         var t = n.copy(
             n.copy$default$1(),
             "-" + n.copy$default$2(),
-            n.copy$default$3(),
+            Option.apply(loc),
             n.copy$default$4(),
             n.copy$default$5(),
             n.copy$default$6()
         );
-        yield new Pattern.Literal(t, getIdentifiedLocation(num), meta());
+        yield new Pattern.Literal(t, loc, meta());
       }
       case Tree.TypeAnnotated anno -> {
         var type = buildNameOrQualifiedName(maybeManyParensed(anno.getType()));
