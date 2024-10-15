@@ -33,6 +33,9 @@ import org.graalvm.collections.Pair;
  * TransientHTTPResponseCache is a cache for EnsoHttpResponse values that
  * respects the cache control HTTP headers received in the original repsonse to
  * a request.
+ * 
+ * It also puts limits on the size of files that can be requested, and on the
+ * total cache size, deleting entries to make space for new ones.
  *
  * EnsoHttpResponse contains an InputStream providing the response data. When
  * there is a cache hit, this stream reads from the local file storing the
@@ -41,9 +44,12 @@ import org.graalvm.collections.Pair;
  */
 public class TransientHTTPResponseCache {
   TransientHTTPResponseCache() {}
+
   private static final Logger logger = Logger.getLogger(TransientHTTPResponseCache .class.getName());
 
+  // 1 year.
   private static final int DEFAULT_TTL_SECONDS = 31536000;
+
   private static long MAX_FILE_SIZE = 10L * 1024 * 1024;
   private static long MAX_TOTAL_CACHE_SIZE = 10L * 1024 * 1024 * 1024;
 
@@ -72,7 +78,6 @@ public class TransientHTTPResponseCache {
     removeStaleEntries();
 
     var cacheKey = makeHashKey(resolvedURI, resolvedHeaders);
-    //System.out.println("AAA cache hit " + cacheKey + " " + cache.containsKey(cacheKey));
     if (cache.containsKey(cacheKey)) {
       return returnCachedResponse(cacheKey);
     } else {
@@ -131,7 +136,7 @@ public class TransientHTTPResponseCache {
       markCacheEntryUsed(cacheKey);
       return buildEnsoHttpResponseFromCacheEntry(cacheEntry);
     } catch (IOException e) {
-      logger.log(Level.WARNING, "Failure when caching HTTP response, will re-issue request directly: " + e);
+      logger.log(Level.WARNING, "Failure when caching HTTP response, will re-issue request without caching: " + e);
       // Re-issue the request since we don't know if we've consumed any of the response.
       return requestMaker.run();
     }
@@ -181,22 +186,7 @@ public class TransientHTTPResponseCache {
   /** Remove all cache entries (and their files) that have passed their TTL. */
   private static void removeStaleEntries() {
     var now = getNow();
-    //System.out.println("AAA cleanup " + nowOverrideTestOnly);
-    //System.out.println("AAA cleanup " + cache);
-    if (nowOverrideTestOnly != null) {
-      for (var ce : cache.values()) {
-        var ex = ce.expiry();
-        //System.out.println("AAA ce " + ex + " / " + Duration.between(ex, nowOverrAideTestOnly));
-      }
-    }
-    removeCacheEntriesByPredicate(e -> {
-      var stale = e.expiry().isBefore(now);
-      var ex = e.expiry();
-      if (nowOverrideTestOnly != null) {
-        //System.out.println("AAA check stale " + stale + " " + Duration.between(nowOverrideTestOnly, ex) + " " + nowOverrideTestOnly + " " + ex);
-      }
-      return stale;
-    });
+    removeCacheEntriesByPredicate(e -> e.expiry().isBefore(now));
   }
 
   /** Remove all cache entries (and their files). */
@@ -219,7 +209,6 @@ public class TransientHTTPResponseCache {
 
   /** Remove a cache entry: from `cache`, `lastUsed`, and the filesystem. */
   private static void removeCacheEntry(Map.Entry<String, CacheEntry> toRemove) {
-    System.out.println("AAA removing " + toRemove);
     var key = toRemove.getKey();
     var value = toRemove.getValue();
     cache.remove(key);
@@ -237,7 +226,7 @@ public class TransientHTTPResponseCache {
   }
 
   /**
-   * Remove old entries until there is enough room for a new file.
+   * Remove least-recently used entries until there is enough room for a new file.
    */
   private static void makeRoomFor(long newFileSize) {
     long totalSize = getTotalCacheSize() + newFileSize;
@@ -245,22 +234,19 @@ public class TransientHTTPResponseCache {
     if (totalSize <= maxTotalCacheSize) {
       return;
     }
+
+    // Remove least-recently used entries first.
     var sortedEntries = getSortedEntries();
     var toRemove = new ArrayList<Map.Entry<String, CacheEntry>>();
-    for (var mapEntry : sortedEntries) {
-      //System.out.println("AAA entry " + mapEntry.getValue().expiry() + " " + mapEntry);
-    }
     for (var mapEntry : sortedEntries) {
       if (totalSize <= maxTotalCacheSize) {
         break;
       }
       toRemove.add(mapEntry);
       totalSize -= mapEntry.getValue().size();
-      System.out.println("AAA will remove " + mapEntry.getValue().expiry() + " " + mapEntry.getValue().size() + " " + totalSize + " " + mapEntry);
     }
     assert totalSize <= maxTotalCacheSize;
     removeCacheEntries(toRemove);
-    //System.out.println("AAA total now " + getTotalCacheSize() + " " + maxTotalCacheSize);
   }
 
   private static SortedSet<Map.Entry<String, CacheEntry>> getSortedEntries() {
@@ -270,7 +256,7 @@ public class TransientHTTPResponseCache {
   }
 
   /**
-   * Remove old entries until the total cache size is under the limit.
+   * Remove least-recently used entries until the total cache size is under the limit.
    */
   private static void removeFilesToSatisfyLimit() {
     makeRoomFor(0L);
@@ -297,7 +283,6 @@ public class TransientHTTPResponseCache {
   }
 
   public static void setNowOverrideTestOnly(ZonedDateTime nowOverride) {
-    //System.out.println("AAA zdt " + nowOverride);
     nowOverrideTestOnly = nowOverride;
   }
 
@@ -348,14 +333,11 @@ public class TransientHTTPResponseCache {
    * If neither are present, we use a default.
    */
   private static int calculateTTL(HttpHeaders headers) {
-    //System.out.println("AAA h "+headers.map());
-    //System.out.println("AAA "+headers.firstValue("asdf"));
     Integer maxAge = getMaxAge(headers);
     if (maxAge == null) {
       return DEFAULT_TTL_SECONDS;
     } else {
       int age = headers.firstValue("age").map(Integer::parseInt).orElse(0);
-      //System.out.println("AAA calculateTTL " + maxAge + " " + age);
       return maxAge - age;
     }
   }
@@ -384,10 +366,8 @@ public class TransientHTTPResponseCache {
       List<Pair<String, String>> resolvedHeaders) {
     try {
       MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
-      //System.out.println("AAA uri " + resolvedURI.toString());
       messageDigest.update(resolvedURI.toString().getBytes());
       for (Pair<String, String> resolvedHeader : resolvedHeaders) {
-        //System.out.println("AAA header "+resolvedHeader.getLeft()+" "+resolvedHeader.getRight());
         messageDigest.update(resolvedHeader.getLeft().getBytes());
         messageDigest.update(resolvedHeader.getRight().getBytes());
       }
