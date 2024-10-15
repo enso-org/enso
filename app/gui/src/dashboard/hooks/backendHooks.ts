@@ -7,7 +7,7 @@ import { toast } from 'react-toastify'
 import * as backendQuery from 'enso-common/src/backendQuery'
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useToastAndLogWithId } from '#/hooks/toastAndLogHooks'
+import { useToastAndLog, useToastAndLogWithId } from '#/hooks/toastAndLogHooks'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
@@ -261,11 +261,80 @@ export function useListUserGroupsWithUsers(
 }
 
 /**
- * Call "upload file" mutations for a file. Always uses multipart upload for Cloud backend.
+ * Upload progress for {@link useUploadFileMutation}.
  */
-export function useUploadFileMutation(backend: Backend) {
+export interface UploadFileMutationProgress {
+  readonly sentMb: number
+  readonly totalMb: number
+}
+
+/**
+ * Options for {@link useUploadFileMutation}.
+ */
+export interface UploadFileMutationOptions {
+  /** Called before any mutations are sent. */
+  readonly onBegin?: (progress: UploadFileMutationProgress) => void
+  /** Called after each successful chunk upload mutation. */
+  readonly onChunkSuccess?: (progress: UploadFileMutationProgress) => void
+  /** Called after the entire mutation succeeds. */
+  readonly onSuccess?: (progress: UploadFileMutationProgress) => void
+  /** Called after any mutations fail. */
+  readonly onError?: (error: unknown) => void
+}
+
+/**
+ * Call "upload file" mutations for a file.
+ * Always uses multipart upload for Cloud backend.
+ * Shows toasts to update progress.
+ */
+export function useUploadFileWithToastMutation(
+  backend: Backend,
+  options: UploadFileMutationOptions = {},
+) {
+  const toastId = React.useId()
   const { getText } = useText()
   const toastAndLog = useToastAndLogWithId()
+  const { onBegin, onChunkSuccess, onSuccess, onError } = options
+  return useUploadFileMutation(backend, {
+    ...options,
+    onBegin: (progress) => {
+      onBegin?.(progress)
+      const { sentMb, totalMb } = progress
+      toast.loading(getText('uploadLargeFileStatus', sentMb, totalMb), { toastId })
+    },
+    onChunkSuccess: (progress) => {
+      onChunkSuccess?.(progress)
+      const { sentMb, totalMb } = progress
+      const text = getText('uploadLargeFileStatus', sentMb, totalMb)
+      toast.update(toastId, { render: text })
+    },
+    onSuccess: (progress) => {
+      onSuccess?.(progress)
+      toast.update(toastId, {
+        type: 'success',
+        render: getText('uploadLargeFileSuccess'),
+        isLoading: false,
+        autoClose: TOAST_SUCCESS_AUTO_CLOSE_MS,
+      })
+    },
+    onError: (error) => {
+      onError?.(error)
+      toastAndLog(toastId, 'uploadLargeFileError', error)
+    },
+  })
+}
+
+/**
+ * Call "upload file" mutations for a file.
+ * Always uses multipart upload for Cloud backend.
+ */
+export function useUploadFileMutation(backend: Backend, options: UploadFileMutationOptions = {}) {
+  const toastAndLog = useToastAndLog()
+  const {
+    onError = (error) => {
+      toastAndLog('uploadLargeFileError', error)
+    },
+  } = options
   const uploadFileMutation = reactQuery.useMutation(backendMutationOptions(backend, 'uploadFile'))
   const uploadFileStartMutation = reactQuery.useMutation(
     backendMutationOptions(backend, 'uploadFileStart'),
@@ -281,8 +350,8 @@ export function useUploadFileMutation(backend: Backend) {
       if (backend.type === backendModule.BackendType.local) {
         return await uploadFileMutation.mutateAsync([params, file])
       } else {
-        const fileSizeMB = Math.ceil(file.size / MB_BYTES)
-        const toastId = toast.loading(getText('uploadLargeFileStatus', 0, fileSizeMB))
+        const fileSizeMb = Math.ceil(file.size / MB_BYTES)
+        options.onBegin?.({ sentMb: 0, totalMb: fileSizeMb })
         try {
           const { sourcePath, uploadId, presignedUrls } = await uploadFileStartMutation.mutateAsync(
             [{ fileName: params.fileName }, file],
@@ -293,12 +362,9 @@ export function useUploadFileMutation(backend: Backend) {
             (presignedUrl, index) => [presignedUrl, index] as const,
           )) {
             parts.push(await uploadFileChunkMutation.mutateAsync([url, file, i]))
-            toast.update(toastId, {
-              render: getText(
-                'uploadLargeFileStatus',
-                Math.min((i + 1) * S3_CHUNK_SIZE_MB, fileSizeMB),
-                fileSizeMB,
-              ),
+            options.onChunkSuccess?.({
+              sentMb: Math.min((i + 1) * S3_CHUNK_SIZE_MB, fileSizeMb),
+              totalMb: fileSizeMb,
             })
           }
           const result = await uploadFileEndMutation.mutateAsync([
@@ -311,15 +377,10 @@ export function useUploadFileMutation(backend: Backend) {
               fileName: params.fileName,
             },
           ])
-          toast.update(toastId, {
-            type: 'success',
-            render: getText('uploadLargeFileSuccess'),
-            isLoading: false,
-            autoClose: TOAST_SUCCESS_AUTO_CLOSE_MS,
-          })
+          options.onSuccess?.({ sentMb: fileSizeMb, totalMb: fileSizeMb })
           return result
         } catch (error) {
-          toastAndLog(toastId, 'uploadLargeFileError', error)
+          onError(error)
           throw error
         }
       }
