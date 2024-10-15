@@ -90,77 +90,68 @@ final class TreeToIr {
    * @return The {@link IR} representation of the given ast if it is valid, otherwise
    * {@link Option#empty()}.
    */
-  Option<Expression> translateInline(Tree ast) {
-    return switch (ast) {
-      case Tree.BodyBlock b -> {
-        List<Expression> expressions = nil();
-        java.util.List<IdentifiedLocation> locations = new ArrayList<>();
-        for (Line statement : b.getStatements()) {
-          Tree exprTree = statement.getExpression();
-          Expression expr = switch (exprTree) {
-            case null -> null;
-            case Tree.Export x -> null;
-            case Tree.Import x -> null;
-            case Tree.Invalid x -> null;
-            case Tree.TypeSignature sig -> {
-             Expression methodReference;
-             try {
-               methodReference = translateMethodReference(sig.getVariable(), true);
-             } catch (SyntaxException ex) {
-               methodReference = ex.toError();
-             }
-              var signature = translateType(sig.getType());
-              var ascription =
-                  new Type.Ascription(
-                      methodReference,
-                      signature,
-                      Option.empty(),
-                      getIdentifiedLocation(sig),
-                      meta());
-              yield ascription;
-            }
-            case Tree.TypeAnnotated anno -> translateTypeAnnotated(anno);
-            default -> translateExpression(exprTree);
-          };
-          if (expr != null) {
-            expressions = join(expr, expressions);
-            if (expr.location().isDefined()) {
-              locations.add(expr.location().get());
-            }
-          }
+  Option<Expression> translateInline(Tree.BodyBlock ast) {
+    List<Expression> expressions = nil();
+    java.util.List<IdentifiedLocation> locations = new ArrayList<>();
+    for (Line statement : ast.getStatements()) {
+      Tree exprTree = statement.getExpression();
+      Expression expr = switch (exprTree) {
+        case null -> null;
+        case Tree.Export x -> null;
+        case Tree.Import x -> null;
+        case Tree.Invalid x -> null;
+        case Tree.TypeSignature sig -> {
+         Expression methodReference;
+         try {
+           methodReference = translateMethodReference(sig.getVariable(), true);
+         } catch (SyntaxException ex) {
+           methodReference = ex.toError();
+         }
+          var signature = translateType(sig.getType());
+            yield new Type.Ascription(
+                  methodReference,
+                  signature,
+                  Option.empty(),
+                  getIdentifiedLocation(sig),
+                  meta());
         }
-        yield switch (expressions.size()) {
-          case 0 -> Option.empty();
-          case 1 -> Option.apply(expressions.head());
-          default -> {
-            IdentifiedLocation combinedLocation;
-            if (locations.isEmpty()) {
-              combinedLocation = null;
-            } else {
-              combinedLocation =
-                  new IdentifiedLocation(
-                      new Location(
-                          locations.get(1).start(),
-                          locations.get(locations.size() - 1).end()
-                      ),
-                      null
-                  );
-            }
-            var returnValue = expressions.head();
-            @SuppressWarnings("unchecked")
-            var statements = ((List<Expression>) expressions.tail()).reverse();
-            yield Option.apply(new Expression.Block(
-                statements,
-                returnValue,
-                combinedLocation,
-                false,
-                meta()
-            ));
-          }
-        };
+        case Tree.TypeAnnotated anno -> translateTypeAnnotated(anno);
+        default -> translateExpression(exprTree);
+      };
+      if (expr != null) {
+        expressions = join(expr, expressions);
+        if (expr.location().isDefined()) {
+          locations.add(expr.location().get());
+        }
       }
+    }
+    return switch (expressions.size()) {
+      case 0 -> Option.empty();
+      case 1 -> Option.apply(expressions.head());
       default -> {
-        throw new IllegalStateException();
+        IdentifiedLocation combinedLocation;
+        if (locations.isEmpty()) {
+          combinedLocation = null;
+        } else {
+          combinedLocation =
+              new IdentifiedLocation(
+                  new Location(
+                      locations.get(1).start(),
+                      locations.get(locations.size() - 1).end()
+                  ),
+                  null
+              );
+        }
+        var returnValue = expressions.head();
+        @SuppressWarnings("unchecked")
+        var statements = ((List<Expression>) expressions.tail()).reverse();
+        yield Option.apply(new Expression.Block(
+            statements,
+            returnValue,
+            combinedLocation,
+            false,
+            meta()
+        ));
       }
     };
   }
@@ -592,30 +583,23 @@ final class TreeToIr {
     } catch (SyntaxException ex) {
       return ex.toError();
     }
-
     var loc = getIdentifiedLocation(fun);
-    var body = translateExpression(treeBody);
     String functionName = name.name();
     if (args.isEmpty()) {
-      if (body instanceof Expression.Block block) {
+      Expression body;
+      if (treeBody instanceof Tree.BodyBlock block) {
         // suspended block has a name and no arguments
-        body = block.copy(
-            block.copy$default$1(),
-            block.copy$default$2(),
-            block.copy$default$3(),
-            true,
-            block.copy$default$5(),
-            block.copy$default$6(),
-            block.copy$default$7()
-        );
+        body = translateBodyBlock(block, true);
+      } else {
+        body = translateExpression(treeBody);
       }
       if (body == null) {
         body = translateSyntaxError(fun, Syntax.UnexpectedExpression$.MODULE$);
       }
-
       var ascribedBody = addTypeAscription(functionName, body, returnType, loc);
       return new Expression.Binding(name, ascribedBody, loc, meta());
     } else {
+      var body = translateExpression(treeBody);
       if (body == null) {
         return translateSyntaxError(fun, Syntax.UnexpectedDeclarationInType$.MODULE$);
       }
