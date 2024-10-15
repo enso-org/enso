@@ -62,7 +62,7 @@ export const PAYWALL_LEVELS: Record<PaywallLevelName, PaywallLevelValue> = {
 }
 
 /**
- *
+ * Possible paywall unlock states for a user account.
  */
 export type PaywallLevel = (typeof PAYWALL_LEVELS)[keyof typeof PAYWALL_LEVELS]
 

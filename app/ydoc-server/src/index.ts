@@ -34,7 +34,7 @@ export function configureAllDebugLogs(
 }
 
 /**
- *
+ * Create a WebSocket server to host the YDoc coordinating server.
  */
 export async function createGatewayServer(
   httpServer: Server | Http2SecureServer,

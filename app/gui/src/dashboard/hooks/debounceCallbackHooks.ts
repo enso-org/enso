@@ -84,8 +84,9 @@ export function useDebouncedCallback<Fn extends (...args: never[]) => unknown>(
 }
 
 /**
- *
+ * The type of a wrapped function that has been debounced.
  */
-export interface DebouncedFunction<Fn extends (...args: never[]) => unknown> {
-  (this: ThisParameterType<Fn>, ...args: Parameters<Fn>): void
-}
+export type DebouncedFunction<Fn extends (...args: never[]) => unknown> = (
+  this: ThisParameterType<Fn>,
+  ...args: Parameters<Fn>
+) => void

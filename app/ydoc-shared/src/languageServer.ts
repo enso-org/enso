@@ -317,7 +317,7 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
   applyEdit(
     edit: FileEdit,
     execute: boolean,
-    idMap?: IdMapTriple[] | IdMapTuple[],
+    idMap?: readonly IdMapTriple[] | readonly IdMapTuple[],
   ): Promise<LsRpcResult<void>> {
     return this.request('text/applyEdit', { edit, execute, idMap })
   }

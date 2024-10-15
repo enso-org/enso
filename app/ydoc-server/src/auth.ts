@@ -11,7 +11,7 @@ export type ConnectionData = {
 const docNameRegex = /^[a-z0-9/-]+$/i
 
 /**
- *
+ * Extract the document name from the path name extracted from the connection.
  */
 export function docName(pathname: string) {
   const prefix = '/project/'

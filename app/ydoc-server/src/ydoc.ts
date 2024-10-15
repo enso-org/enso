@@ -39,7 +39,7 @@ export class WSSharedDoc {
   awareness: Awareness
 
   /**
-   *
+   * Create a {@link WSSharedDoc}.
    */
   constructor(gc = true) {
     this.doc = new Y.Doc({ gc })
@@ -72,7 +72,7 @@ export class WSSharedDoc {
   }
 
   /**
-   *
+   * Send a message to all connected clients.
    */
   broadcast(message: Uint8Array) {
     for (const [conn] of this.conns) {
@@ -81,7 +81,7 @@ export class WSSharedDoc {
   }
 
   /**
-   *
+   * Process an update event from the YDoc document.
    */
   updateHandler(update: Uint8Array, _origin: any) {
     const encoder = encoding.createEncoder()

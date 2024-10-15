@@ -237,7 +237,7 @@ export type Table = {
 }
 
 /**
- *
+ * A helper to incrementally build a message buffer.
  */
 export class Builder {
   private bb: ByteBuffer
@@ -253,7 +253,7 @@ export class Builder {
   private stringMaps: Map<string | Uint8Array, AnyOffset> | null = null
 
   /**
-   *
+   * Create a {@link Builder}.
    */
   constructor(initialSize?: number) {
     initialSize ??= 1024
@@ -262,7 +262,7 @@ export class Builder {
   }
 
   /**
-   *
+   * Reset the state of the internal buffer.
    */
   clear(): void {
     this.bb.position = 0
@@ -289,14 +289,14 @@ export class Builder {
   }
 
   /**
-   *
+   * Return the current contents as an {@link ArrayBuffer}.
    */
   toArrayBuffer(): ArrayBuffer {
     return this.bb.view.buffer.slice(this.bb.position, this.bb.position + this.offset())
   }
 
   /**
-   *
+   * Ensure alignment of the next field, and grow the byte buffer if needed.
    */
   prep(size: number, additionalBytes: number): void {
     if (size > this.minAlignment) {
@@ -315,7 +315,7 @@ export class Builder {
   }
 
   /**
-   *
+   * Add padding to the backing {@link ByteBuffer} for alignment purposes.
    */
   pad(byteSize: number): void {
     for (let i = 0; i < byteSize; i++) {
@@ -324,49 +324,55 @@ export class Builder {
   }
 
   /**
-   *
+   * Write a signed 8-bit integer and update the buffer position.
+   * Prefer {@link addInt8} which ensures alignment as well.
    */
   writeInt8(value: number): void {
     this.bb.view.setInt8((this.space -= 1), value)
   }
 
   /**
-   *
+   * Write a signed 16-bit integer and update the buffer position.
+   * Prefer {@link addInt16} which ensures alignment as well.
    */
   writeInt16(value: number): void {
     this.bb.view.setInt16((this.space -= 2), value, true)
   }
 
   /**
-   *
+   * Write a signed 32-bit integer and update the buffer position.
+   * Prefer {@link addInt32} which ensures alignment as well.
    */
   writeInt32(value: number): void {
     this.bb.view.setInt32((this.space -= 4), value, true)
   }
 
   /**
-   *
+   * Write a signed 64-bit integer and update the buffer position.
+   * Prefer {@link addInt64} which ensures alignment as well.
    */
   writeInt64(value: bigint): void {
     this.bb.view.setBigInt64((this.space -= 8), value, true)
   }
 
   /**
-   *
+   * Write a 32-bit IEEE754 floating point number and update the buffer position.
+   * Prefer {@link addFloat32} which ensures alignment as well.
    */
   writeFloat32(value: number): void {
     this.bb.view.setFloat32((this.space -= 4), value, true)
   }
 
   /**
-   *
+   * Write a 64-bit IEEE754 floating point number and update the buffer position.
+   * Prefer {@link addFloat64} which ensures alignment as well.
    */
   writeFloat64(value: number): void {
     this.bb.view.setFloat64((this.space -= 8), value, true)
   }
 
   /**
-   *
+   * Ensure alignment and write a signed 8-bit integer and update the buffer position.
    */
   addInt8(value: number): void {
     this.prep(1, 0)
@@ -374,7 +380,7 @@ export class Builder {
   }
 
   /**
-   *
+   * Ensure alignment and write a signed 16-bit integer and update the buffer position.
    */
   addInt16(value: number): void {
     this.prep(2, 0)
@@ -382,7 +388,7 @@ export class Builder {
   }
 
   /**
-   *
+   * Ensure alignment and write a signed 32-bit integer and update the buffer position.
    */
   addInt32(value: number): void {
     this.prep(4, 0)
@@ -390,7 +396,7 @@ export class Builder {
   }
 
   /**
-   *
+   * Ensure alignment and write a signed 64-bit integer and update the buffer position.
    */
   addInt64(value: bigint): void {
     this.prep(8, 0)
@@ -398,7 +404,7 @@ export class Builder {
   }
 
   /**
-   *
+   * Ensure alignment and write a 32-bit IEEE754 floating point number and update the buffer position.
    */
   addFloat32(value: number): void {
     this.prep(4, 0)
@@ -406,7 +412,7 @@ export class Builder {
   }
 
   /**
-   *
+   * Ensure alignment and write a 64-bit IEEE754 floating point number and update the buffer position.
    */
   addFloat64(value: number): void {
     this.prep(8, 0)
@@ -511,7 +517,7 @@ export class Builder {
   }
 
   /**
-   *
+   * Assert that the builder is not already serializing an object when beginning object serialization.
    */
   notNested(): void {
     if (this.isNested) {
@@ -527,14 +533,15 @@ export class Builder {
   }
 
   /**
-   *
+   * Return the offset of the current filled content of the backing {@link ByteBuffer}.
    */
   offset<T extends OffsetConstraint>(): Offset<T> {
     return (this.bb.view.byteLength - this.space) as Offset<T>
   }
 
   /**
-   *
+   * Grow the internal {@link ByteBuffer}.
+   * Only call this if there is not enough space for the next write.
    */
   static growByteBuffer(bb: ByteBuffer): void {
     const oldBufSize = bb.view.byteLength
@@ -550,7 +557,7 @@ export class Builder {
   }
 
   /**
-   *
+   * Write an offset to a given field.
    */
   addOffset(offset: AnyOffset): void {
     this.prep(SIZEOF_INT, 0) // Ensure alignment is already done.
@@ -638,7 +645,7 @@ export class Builder {
   }
 
   /**
-   *
+   * Finalize a message to be ready for sending.
    */
   finish(
     rootTable: AnyOffset,
@@ -688,7 +695,7 @@ export class Builder {
   }
 
   /**
-   *
+   * Initialize buffer state for adding vector elements.
    */
   startVector(elemSize: number, numElems: number, alignment: number): void {
     this.notNested()
@@ -698,7 +705,7 @@ export class Builder {
   }
 
   /**
-   *
+   * Finish buffer state after having added all vector elements.
    */
   endVector<T extends OffsetConstraint>(): Offset<T> {
     this.writeInt32(this.vectorNumElems)
@@ -706,7 +713,7 @@ export class Builder {
   }
 
   /**
-   *
+   * Add a shared string to this buffer.
    */
   createSharedString<T extends string | Uint8Array>(s: T): Offset<T> {
     if (!s) {
@@ -725,7 +732,7 @@ export class Builder {
   }
 
   /**
-   *
+   * Add a string to this buffer.
    */
   createString(s: string | Uint8Array | ArrayBuffer | null | undefined): Offset<Uint8Array> {
     if (s === null || s === undefined) return Null
@@ -761,7 +768,7 @@ export class Builder {
    *
    */
   createObjectOffsetList<T extends OffsetConstraint>(
-    list: (T extends string ? string : IGeneratedObject<T>)[],
+    list: readonly (T extends string ? string : IGeneratedObject<T>)[],
   ): Offset<T>[] {
     const ret: number[] = []
     for (let i = 0; i < list.length; ++i) {
@@ -779,7 +786,7 @@ export class Builder {
    *
    */
   createStructOffsetList<T extends OffsetConstraint>(
-    list: (T extends string ? string : IGeneratedObject<T>)[],
+    list: readonly (T extends string ? string : IGeneratedObject<T>)[],
     startFunc: (builder: Builder, length: number) => void,
   ): Offset<T> {
     startFunc(this, list.length)
@@ -789,7 +796,7 @@ export class Builder {
 }
 
 /**
- *
+ * An {@link ArrayBuffer} wrapper with added utility methods.
  */
 export class ByteBuffer {
   position = 0
@@ -833,31 +840,31 @@ export class ByteBuffer {
   }
 
   /**
-   *
+   * Extract a string from the given offset.
    */
   message(offset: number): string {
     return TEXT_DECODER.decode(this.rawMessage(offset))
   }
 
   /**
-   *
+   * Get the offset to the start of the referenced value, given the position of the reference.
    */
   indirect<T extends OffsetConstraint>(offset: number | Offset<T>): Offset<T> {
     return (offset + this.view.getInt32(offset, true)) as Offset<T>
   }
 
   /**
-   *
+   * Get the offset to the start of the vector, given the offset to the entire vector.
    */
   vector<T extends OffsetConstraint>(offset: number | Offset<T>): Offset<T> {
     return (offset + this.view.getInt32(offset, true) + SIZEOF_INT) as Offset<T> // data starts after the length
   }
 
   /**
-   *
+   * Read the length of the vector, given the offset to the entire vector.
    */
-  vectorLength(offset: number | AnyOffset): Offset<number> {
-    return this.view.getInt32(offset + this.view.getInt32(offset, true), true) as Offset<number>
+  vectorLength(offset: number | AnyOffset): number {
+    return this.view.getInt32(offset + this.view.getInt32(offset, true), true)
   }
 }
 
@@ -967,7 +974,8 @@ export class InboundMessage implements Table {
    */
   payload<T extends Table>(obj: T): T | null {
     const offset = this.bb.offset(this.bbPos, 10)
-    // @ts-expect-error This is SAFE assuming the payload is well-formed.
+    // @ts-expect-error This is UNSAFE. Care must be taken to ensure `obj` is
+    // of the corresponding type for the `payloadType` field.
     return offset ? this.bb.union(obj, this.bbPos + offset) : null
   }
 
@@ -1075,7 +1083,7 @@ export class OutboundMessage implements Table {
   }
 
   /**
-   *
+   * Get the `messageId` field of this message.
    */
   messageId(obj?: EnsoUUID): EnsoUUID | null {
     const offset = this.bb.offset(this.bbPos, 4)
@@ -1083,7 +1091,7 @@ export class OutboundMessage implements Table {
   }
 
   /**
-   *
+   * Get the `correlationId` field of this message.
    */
   correlationId(obj?: EnsoUUID): EnsoUUID | null {
     const offset = this.bb.offset(this.bbPos, 6)
@@ -1091,7 +1099,7 @@ export class OutboundMessage implements Table {
   }
 
   /**
-   *
+   * Get the `payloadType` field of this message.
    */
   payloadType(): OutboundPayload {
     const offset = this.bb.offset(this.bbPos, 8)
@@ -1099,51 +1107,52 @@ export class OutboundMessage implements Table {
   }
 
   /**
-   *
+   * Get the `payload` field of this message.
    */
   payload<T extends Table>(obj: T): T | null {
     const offset = this.bb.offset(this.bbPos, 10)
-    // @ts-expect-error This is SAFE assuming the payload is well-formed.
+    // @ts-expect-error This is UNSAFE. Care must be taken to ensure `obj` is
+    // of the corresponding type for the `payloadType` field.
     return offset ? this.bb.union(obj, this.bbPos + offset) : null
   }
 
   /**
-   *
+   * Start encoding this struct in the builder.
    */
   static startOutboundMessage(builder: Builder) {
     builder.startObject(4)
   }
 
   /**
-   *
+   * Add a `messageId` field to the given builder given its offset.
    */
   static addMessageId(builder: Builder, messageIdOffset: Offset<EnsoUUID>) {
     builder.addFieldStruct(0, messageIdOffset, Null)
   }
 
   /**
-   *
+   * Add a `correlationId` field to the given builder given its offset.
    */
   static addCorrelationId(builder: Builder, correlationIdOffset: Offset<EnsoUUID>) {
     builder.addFieldStruct(1, correlationIdOffset, Null)
   }
 
   /**
-   *
+   * Add a `payloadType` field to the given builder given its offset.
    */
   static addPayloadType(builder: Builder, payloadType: OutboundPayload) {
     builder.addFieldInt8(2, payloadType, OutboundPayload.NONE)
   }
 
   /**
-   *
+   * Add a `payload` field to the given builder given its offset.
    */
   static addPayload(builder: Builder, payloadOffset: Offset<AnyOutboundPayload>) {
     builder.addFieldOffset(3, payloadOffset, Null)
   }
 
   /**
-   *
+   * Finish encoding this struct in the builder.
    */
   static endOutboundMessage(builder: Builder): Offset<OutboundMessage> {
     const offset = builder.endObject<OutboundMessage>()
@@ -1153,7 +1162,7 @@ export class OutboundMessage implements Table {
   }
 
   /**
-   *
+   * Encode this struct in the builder, given the values of all fields.
    */
   static createOutboundMessage(
     builder: Builder,
@@ -1162,12 +1171,12 @@ export class OutboundMessage implements Table {
     payloadType: OutboundPayload,
     payloadOffset: Offset<AnyOutboundPayload>,
   ): Offset<OutboundMessage> {
-    OutboundMessage.startOutboundMessage(builder)
-    OutboundMessage.addMessageId(builder, createMessageId?.(builder) ?? Null)
-    OutboundMessage.addCorrelationId(builder, createCorrelationId?.(builder) ?? Null)
-    OutboundMessage.addPayloadType(builder, payloadType)
-    OutboundMessage.addPayload(builder, payloadOffset)
-    return OutboundMessage.endOutboundMessage(builder)
+    this.startOutboundMessage(builder)
+    this.addMessageId(builder, createMessageId?.(builder) ?? Null)
+    this.addCorrelationId(builder, createCorrelationId?.(builder) ?? Null)
+    this.addPayloadType(builder, payloadType)
+    this.addPayload(builder, payloadOffset)
+    return this.endOutboundMessage(builder)
   }
 }
 
@@ -1216,7 +1225,7 @@ export class EnsoUUID implements Table {
 }
 
 /**
- *
+ * A struct representing a failed operation.
  */
 export class Error implements Table {
   bb!: ByteBuffer
@@ -1246,7 +1255,7 @@ export class Error implements Table {
   }
 
   /**
-   *
+   * Get the `code` field of this message.
    */
   code(): number {
     const offset = this.bb.offset(this.bbPos, 4)
@@ -1254,7 +1263,7 @@ export class Error implements Table {
   }
 
   /**
-   *
+   * Get the `message` field of this message, as an {@link ArrayBuffer}.
    */
   rawMessage(): ArrayBuffer | null {
     const offset = this.bb.offset(this.bbPos, 6)
@@ -1262,7 +1271,7 @@ export class Error implements Table {
   }
 
   /**
-   *
+   * Get the `message` field of this message.
    */
   message(): string | null {
     const rawMessage = this.rawMessage()
@@ -1270,7 +1279,7 @@ export class Error implements Table {
   }
 
   /**
-   *
+   * Get the `dataType` field of this message.
    */
   dataType(): ErrorPayload {
     const offset = this.bb.offset(this.bbPos, 8)
@@ -1278,11 +1287,12 @@ export class Error implements Table {
   }
 
   /**
-   *
+   * Get the `data` field of this message.
    */
   data<T extends Table>(obj: T): T | null {
     const offset = this.bb.offset(this.bbPos, 10)
-    // @ts-expect-error This is SAFE assuming the payload is well-formed.r
+    // @ts-expect-error This is UNSAFE. Care must be taken to ensure the`obj` is
+    // of the corresponding type for the `dataType` field.
     return offset ? this.bb.union(obj, this.bbPos + offset) : null
   }
 
