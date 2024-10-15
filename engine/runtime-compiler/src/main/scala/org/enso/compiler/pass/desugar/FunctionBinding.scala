@@ -55,7 +55,7 @@ case object FunctionBinding extends IRPass {
     NestedPatternMatch,
     OperatorToFunction,
     SectionsToBinOp.INSTANCE,
-    TailCall
+    TailCall.INSTANCE
   )
 
   /** The name of the conversion method, as a reserved name for methods. */

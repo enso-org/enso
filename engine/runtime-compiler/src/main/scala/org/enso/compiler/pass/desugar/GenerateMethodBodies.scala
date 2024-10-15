@@ -56,7 +56,7 @@ case object GenerateMethodBodies extends IRPass {
     DataflowAnalysis,
     LambdaConsolidate,
     NestedPatternMatch,
-    TailCall,
+    TailCall.INSTANCE,
     UnusedBindings
   )
 

@@ -86,7 +86,7 @@ class Passes(config: CompilerConfig) {
       AliasAnalysis,
       DemandAnalysis,
       AliasAnalysis,
-      TailCall,
+      TailCall.INSTANCE,
       Patterns
     ) ++ (if (config.privateCheckEnabled) {
             List(PrivateSymbolsAnalysis.INSTANCE)

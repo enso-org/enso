@@ -60,7 +60,7 @@ case object UnreachableMatchBranches extends IRPass {
     DemandAnalysis,
     IgnoredBindings,
     NestedPatternMatch,
-    TailCall
+    TailCall.INSTANCE
   )
 
   /** Runs unreachable branch optimisation on a module.

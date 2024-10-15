@@ -65,7 +65,8 @@ case object TailCallMegaPass extends IRPass {
 
   override lazy val invalidatedPasses: Seq[IRProcessingPass] = List()
 
-  private lazy val TAIL_META = new MetadataPair(TailCall, TailPosition.Tail)
+  private lazy val TAIL_META =
+    new MetadataPair(TailCall.INSTANCE, TailPosition.Tail)
 
   /** Analyses tail call state for expressions in a module.
     *

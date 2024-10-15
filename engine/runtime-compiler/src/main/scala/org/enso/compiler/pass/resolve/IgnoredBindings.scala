@@ -53,7 +53,7 @@ case object IgnoredBindings extends IRPass {
     AliasAnalysis,
     DataflowAnalysis,
     DemandAnalysis,
-    TailCall
+    TailCall.INSTANCE
   )
 
   /** Desugars ignored bindings for a module.

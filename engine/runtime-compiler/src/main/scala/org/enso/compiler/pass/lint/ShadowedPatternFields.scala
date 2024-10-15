@@ -44,7 +44,7 @@ case object ShadowedPatternFields extends IRPass {
     DemandAnalysis,
     IgnoredBindings,
     NestedPatternMatch,
-    TailCall
+    TailCall.INSTANCE
   )
 
   /** Lints for shadowed pattern fields.

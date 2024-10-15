@@ -36,7 +36,7 @@ class PassManagerTest extends CompilerTest {
     LambdaConsolidate,
     OverloadsResolution,
     DemandAnalysis,
-    TailCall,
+    TailCall.INSTANCE,
     AliasAnalysis,
     DataflowAnalysis,
     UnusedBindings

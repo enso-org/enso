@@ -57,7 +57,7 @@ case object DataflowAnalysis extends IRPass {
   override lazy val precursorPasses: Seq[IRProcessingPass] = List(
     AliasAnalysis,
     DemandAnalysis,
-    TailCall
+    TailCall.INSTANCE
   )
 
   override lazy val invalidatedPasses: Seq[IRProcessingPass] = List()

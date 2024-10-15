@@ -63,7 +63,7 @@ case object SuspendedArguments extends IRPass {
     DataflowAnalysis,
     DataflowAnalysis,
     DemandAnalysis,
-    TailCall,
+    TailCall.INSTANCE,
     UnusedBindings
   )
 

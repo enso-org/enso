@@ -78,7 +78,7 @@ case object LambdaConsolidate extends IRPass {
     AliasAnalysis,
     DataflowAnalysis,
     DemandAnalysis,
-    TailCall
+    TailCall.INSTANCE
   )
 
   /** Performs lambda consolidation on a module.

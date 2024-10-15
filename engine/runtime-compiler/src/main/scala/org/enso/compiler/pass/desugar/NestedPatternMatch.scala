@@ -86,7 +86,7 @@ case object NestedPatternMatch extends IRPass {
     DataflowAnalysis,
     DemandAnalysis,
     IgnoredBindings,
-    TailCall
+    TailCall.INSTANCE
   )
 
   /** Desugars nested pattern matches in a module.

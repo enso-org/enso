@@ -18,7 +18,7 @@ import org.enso.compiler.pass.analyse.AliasAnalysis$;
 import org.enso.compiler.pass.analyse.CachePreferenceAnalysis$;
 import org.enso.compiler.pass.analyse.DataflowAnalysis$;
 import org.enso.compiler.pass.analyse.DemandAnalysis$;
-import org.enso.compiler.pass.analyse.TailCall$;
+import org.enso.compiler.pass.analyse.TailCall;
 import org.enso.compiler.pass.lint.UnusedBindings$;
 import scala.Option;
 import scala.collection.immutable.Seq;
@@ -44,7 +44,7 @@ public final class SectionsToBinOp implements MiniPassFactory {
             CachePreferenceAnalysis$.MODULE$,
             DataflowAnalysis$.MODULE$,
             DemandAnalysis$.MODULE$,
-            TailCall$.MODULE$,
+            TailCall.INSTANCE,
             UnusedBindings$.MODULE$);
     return CollectionConverters.asScala(passes).toList();
   }

@@ -36,7 +36,7 @@ case object SectionsToBinOpMegaPass extends IRPass {
     CachePreferenceAnalysis,
     DataflowAnalysis,
     DemandAnalysis,
-    TailCall,
+    TailCall.INSTANCE,
     UnusedBindings
   )
 

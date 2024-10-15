@@ -64,7 +64,7 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
     IgnoredBindings,
     LambdaConsolidate,
     OverloadsResolution,
-    TailCall,
+    TailCall.INSTANCE,
     UnusedBindings
   )
 

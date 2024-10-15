@@ -46,7 +46,7 @@ case object TypeSignatures extends IRPass {
     CachePreferenceAnalysis,
     DataflowAnalysis,
     DemandAnalysis,
-    TailCall,
+    org.enso.compiler.pass.analyse.TailCall.INSTANCE,
     UnusedBindings
   )
 

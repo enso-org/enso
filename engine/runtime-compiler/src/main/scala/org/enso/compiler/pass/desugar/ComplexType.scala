@@ -68,7 +68,7 @@ case object ComplexType extends IRPass {
       NestedPatternMatch,
       OperatorToFunction,
       SectionsToBinOp.INSTANCE,
-      TailCall,
+      TailCall.INSTANCE,
       UnusedBindings
     )
 

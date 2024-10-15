@@ -35,7 +35,7 @@ case object LambdaShorthandToLambda extends MiniPassFactory {
     IgnoredBindings,
     LambdaConsolidate,
     OverloadsResolution,
-    TailCall,
+    TailCall.INSTANCE,
     UnusedBindings
   )
 

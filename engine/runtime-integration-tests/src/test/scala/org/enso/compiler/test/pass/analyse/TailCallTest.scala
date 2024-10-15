@@ -24,7 +24,7 @@ class TailCallTest extends MiniPassTest {
   override def testName: String = "Tail call"
 
   override def miniPassFactory: MiniPassFactory = {
-    TailCall
+    TailCall.INSTANCE
   }
 
   override def megaPass: IRPass = TailCallMegaPass
@@ -55,7 +55,7 @@ class TailCallTest extends MiniPassTest {
 
   val passes = new Passes(defaultConfig)
 
-  val precursorPasses: PassGroup = passes.getPrecursors(TailCall).get
+  val precursorPasses: PassGroup = passes.getPrecursors(TailCall.INSTANCE).get
 
   val passConfiguration: PassConfiguration = PassConfiguration(
     AliasAnalysis -->> AliasAnalysis.Configuration()
@@ -83,7 +83,7 @@ class TailCallTest extends MiniPassTest {
         code,
         () => mkModuleContext,
         ir => {
-          ir.bindings.head.getMetadata(TailCall) shouldEqual Some(
+          ir.bindings.head.getMetadata(TailCall.INSTANCE) shouldEqual Some(
             TailPosition.Tail
           )
         }
@@ -95,7 +95,7 @@ class TailCallTest extends MiniPassTest {
         code,
         () => mkModuleContext,
         ir => {
-          ir.bindings(1).getMetadata(TailCall) shouldEqual Some(
+          ir.bindings(1).getMetadata(TailCall.INSTANCE) shouldEqual Some(
             TailPosition.Tail
           )
         }
@@ -107,7 +107,7 @@ class TailCallTest extends MiniPassTest {
         code,
         () => mkModuleContext,
         ir => {
-          ir.bindings(2).getMetadata(TailCall) shouldEqual Some(
+          ir.bindings(2).getMetadata(TailCall.INSTANCE) shouldEqual Some(
             TailPosition.Tail
           )
         }
@@ -126,7 +126,7 @@ class TailCallTest extends MiniPassTest {
         code,
         () => mkTailContext,
         ir => {
-          ir.getMetadata(TailCall) shouldEqual Some(TailPosition.Tail)
+          ir.getMetadata(TailCall.INSTANCE) shouldEqual Some(TailPosition.Tail)
         },
         true
       )
@@ -137,7 +137,7 @@ class TailCallTest extends MiniPassTest {
         code,
         () => mkNoTailContext,
         ir => {
-          ir.getMetadata(TailCall) shouldEqual None
+          ir.getMetadata(TailCall.INSTANCE) shouldEqual None
         }
       )
     }
@@ -150,8 +150,10 @@ class TailCallTest extends MiniPassTest {
         () => mkTailContext,
         ir => {
           val binding = ir.asInstanceOf[Expression.Binding]
-          binding.getMetadata(TailCall) shouldEqual Some(TailPosition.Tail)
-          binding.expression.getMetadata(TailCall) shouldEqual None
+          binding.getMetadata(TailCall.INSTANCE) shouldEqual Some(
+            TailPosition.Tail
+          )
+          binding.expression.getMetadata(TailCall.INSTANCE) shouldEqual None
         },
         true
       )
@@ -174,7 +176,7 @@ class TailCallTest extends MiniPassTest {
         ir => {
           val lambda = ir.asInstanceOf[Function.Lambda]
           val fnBody = lambda.body.asInstanceOf[Expression.Block]
-          fnBody.returnValue.getMetadata(TailCall) shouldEqual Some(
+          fnBody.returnValue.getMetadata(TailCall.INSTANCE) shouldEqual Some(
             TailPosition.Tail
           )
         }
@@ -189,7 +191,7 @@ class TailCallTest extends MiniPassTest {
           val lambda = ir.asInstanceOf[Function.Lambda]
           val fnBody = lambda.body.asInstanceOf[Expression.Block]
           fnBody.expressions.foreach { expr =>
-            expr.getMetadata(TailCall) shouldEqual None
+            expr.getMetadata(TailCall.INSTANCE) shouldEqual None
           }
         }
       )
@@ -279,12 +281,12 @@ class TailCallTest extends MiniPassTest {
             .returnValue
             .asInstanceOf[Case.Expr]
 
-          caseExpr.getMetadata(TailCall) shouldEqual None
+          caseExpr.getMetadata(TailCall.INSTANCE) shouldEqual None
           caseExpr.branches.foreach(branch => {
             val branchExpression =
               branch.expression.asInstanceOf[Application.Prefix]
 
-            branchExpression.getMetadata(TailCall) shouldEqual None
+            branchExpression.getMetadata(TailCall.INSTANCE) shouldEqual None
           })
         }
       )
@@ -313,14 +315,14 @@ class TailCallTest extends MiniPassTest {
             .returnValue
             .asInstanceOf[Case.Expr]
 
-          caseExpr.getMetadata(TailCall) shouldEqual Some(
+          caseExpr.getMetadata(TailCall.INSTANCE) shouldEqual Some(
             TailPosition.Tail
           )
           caseExpr.branches.foreach(branch => {
             val branchExpression =
               branch.expression.asInstanceOf[Application.Prefix]
 
-            branchExpression.getMetadata(TailCall) shouldEqual Some(
+            branchExpression.getMetadata(TailCall.INSTANCE) shouldEqual Some(
               TailPosition.Tail
             )
           })
@@ -348,14 +350,14 @@ class TailCallTest extends MiniPassTest {
           val pattern            = caseBranch.pattern.asInstanceOf[Pattern.Constructor]
           val patternConstructor = pattern.constructor
 
-          pattern.getMetadata(TailCall) shouldEqual None
-          patternConstructor.getMetadata(TailCall) shouldEqual None
+          pattern.getMetadata(TailCall.INSTANCE) shouldEqual None
+          patternConstructor.getMetadata(TailCall.INSTANCE) shouldEqual None
           pattern.fields.foreach(f => {
-            f.getMetadata(TailCall) shouldEqual None
+            f.getMetadata(TailCall.INSTANCE) shouldEqual None
 
             f.asInstanceOf[Pattern.Name]
               .name
-              .getMetadata(TailCall) shouldEqual None
+              .getMetadata(TailCall.INSTANCE) shouldEqual None
           })
         }
       )
@@ -382,7 +384,7 @@ class TailCallTest extends MiniPassTest {
               .asInstanceOf[Application.Prefix]
               .arguments
               .foreach(arg =>
-                arg.getMetadata(TailCall) shouldEqual Some(
+                arg.getMetadata(TailCall.INSTANCE) shouldEqual Some(
                   TailPosition.Tail
                 )
               )
@@ -391,7 +393,9 @@ class TailCallTest extends MiniPassTest {
           withClue(
             "Mark the function call as tail if it is in a tail position"
           ) {
-            tailCallBody.returnValue.getMetadata(TailCall) shouldEqual Some(
+            tailCallBody.returnValue.getMetadata(
+              TailCall.INSTANCE
+            ) shouldEqual Some(
               TailPosition.Tail
             )
           }
@@ -422,7 +426,7 @@ class TailCallTest extends MiniPassTest {
               .asInstanceOf[Application.Prefix]
               .arguments
               .foreach(arg =>
-                arg.getMetadata(TailCall) shouldEqual Some(
+                arg.getMetadata(TailCall.INSTANCE) shouldEqual Some(
                   TailPosition.Tail
                 )
               )
@@ -434,7 +438,7 @@ class TailCallTest extends MiniPassTest {
             nonTailCallBody.expressions.head
               .asInstanceOf[Expression.Binding]
               .expression
-              .getMetadata(TailCall) shouldEqual None
+              .getMetadata(TailCall.INSTANCE) shouldEqual None
           }
         }
       )
@@ -457,7 +461,7 @@ class TailCallTest extends MiniPassTest {
           nonTailCallBody.expressions.head
             .asInstanceOf[Expression.Binding]
             .expression
-            .getMetadata(TailCall) shouldEqual None
+            .getMetadata(TailCall.INSTANCE) shouldEqual None
         }
       )
     }
@@ -489,7 +493,7 @@ class TailCallTest extends MiniPassTest {
             .expression
             .asInstanceOf[Function.Lambda]
             .body
-            .getMetadata(TailCall) shouldEqual Some(TailPosition.Tail)
+            .getMetadata(TailCall.INSTANCE) shouldEqual Some(TailPosition.Tail)
         }
       )
     }
@@ -506,7 +510,7 @@ class TailCallTest extends MiniPassTest {
             .asInstanceOf[Expression.Block]
 
           block.expressions.foreach(expr =>
-            expr.getMetadata(TailCall) shouldEqual None
+            expr.getMetadata(TailCall.INSTANCE) shouldEqual None
           )
         }
       )
@@ -523,7 +527,7 @@ class TailCallTest extends MiniPassTest {
             .body
             .asInstanceOf[Expression.Block]
 
-          block.returnValue.getMetadata(TailCall) shouldEqual Some(
+          block.returnValue.getMetadata(TailCall.INSTANCE) shouldEqual Some(
             TailPosition.Tail
           )
         }
@@ -541,7 +545,9 @@ class TailCallTest extends MiniPassTest {
             .body
             .asInstanceOf[Expression.Block]
 
-          block.getMetadata(TailCall) shouldEqual Some(TailPosition.Tail)
+          block.getMetadata(TailCall.INSTANCE) shouldEqual Some(
+            TailPosition.Tail
+          )
         },
         true
       )
