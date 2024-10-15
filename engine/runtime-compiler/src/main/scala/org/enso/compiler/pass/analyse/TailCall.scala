@@ -70,13 +70,13 @@ case object TailCall extends MiniPassFactory with ProcessingPass {
         "must be known by the point of tail call analysis."
       )
     )
-    new Mini(isInTailPos)
+    Mini(isInTailPos)
   }
 
   override def createForModuleCompilation(
     moduleContext: ModuleContext
   ): MiniIRPass = {
-    new Mini(false)
+    Mini(false)
   }
 
   /** Expresses the tail call state of an IR Node. */
@@ -132,58 +132,23 @@ case object TailCall extends MiniPassFactory with ProcessingPass {
       )
   }
 
-  private class Mini(private val isInTailPos: Boolean) extends MiniIRPass {
-    private val tailCandidates = {
-      val map = new java.util.IdentityHashMap[IR, Boolean]();
+  private object Mini {
+    val IN_TAIL_POS     = new Mini(true)
+    val NOT_IN_TAIL_POS = new Mini(false)
+
+    def apply(isInTailPos: Boolean): Mini = {
       if (isInTailPos) {
-        map.put(null, true)
-      }
-      map
-    }
-
-    override def transformModule(m: Module): Module = {
-      m.bindings.map(subTailModuleBinding)
-      m
-    }
-
-    override def prepare(parent: IR, child: Expression): Mini = {
-      parent match {
-        case m: Module => m.bindings.map(subTailModuleBinding)
-        case e: Expression =>
-          if (tailCandidates.remove(null)) {
-            subTailExpression(e, true)
-            e.updateMetadata(TAIL_META)
-          }
-        case _ =>
-      }
-      val tailStatus = isTailPosition(child)
-      subTailExpression(child, tailStatus)
-      if (!tailStatus && isTailAnnotated(child)) {
-        child.addDiagnostic(
-          Warning.WrongTco(child.identifiedLocation())
-        )
-      }
-      this
-    }
-
-    override def transformExpression(ir: Expression): Expression = {
-      ir
-    }
-
-    private def isTailPosition(ir: Expression): Boolean = {
-      if (tailCandidates.containsKey(ir)) {
-        tailCandidates.get(ir)
+        IN_TAIL_POS
       } else {
-        // if null is in the candidates, replace it with first Expression
-        val initialState = tailCandidates.remove(null)
-        if (initialState) {
-          tailCandidates.put(ir, true)
-          ir.updateMetadata(TAIL_META)
-          initialState
-        } else {
-          false
-        }
+        NOT_IN_TAIL_POS
       }
+    }
+  }
+
+  private class Mini(private val isInTailPos: Boolean) extends MiniIRPass {
+    override def transformModule(m: Module): Module = {
+      m.bindings.map(updateModuleBinding)
+      m
     }
 
     /** Performs tail call analysis on a top-level definition in a module.
@@ -191,15 +156,13 @@ case object TailCall extends MiniPassFactory with ProcessingPass {
       * @param moduleDefinition the top-level definition to analyse
       * @return `definition`, annotated with tail call information
       */
-    private def subTailModuleBinding(
+    private def updateModuleBinding(
       moduleDefinition: Definition
     ): Unit = {
       moduleDefinition match {
         case method: definition.Method.Conversion =>
-          tailCandidates.put(method.body, true)
           method.updateMetadata(TAIL_META)
-        case method @ definition.Method.Explicit(_, body, _, _, _) =>
-          tailCandidates.put(body, true)
+        case method @ definition.Method.Explicit(_, _, _, _, _) =>
           method.updateMetadata(TAIL_META)
         case _: definition.Method.Binding =>
           throw new CompilerError(
@@ -230,98 +193,130 @@ case object TailCall extends MiniPassFactory with ProcessingPass {
             "tail call analysis."
           )
         case ann: Name.GenericAnnotation =>
-          tailCandidates.put(ann.expression, true)
           ann.updateMetadata(TAIL_META)
         case _: Error =>
       }
     }
 
+    private def updateTailMetadata(ir: IR): Unit = {
+      if (isInTailPos) {
+        ir.updateMetadata(TAIL_META)
+      }
+    }
+
+    override def transformExpression(ir: Expression): Expression = {
+      ir match {
+        case _: Literal =>
+        case Application.Prefix(_, args, _, _, _) =>
+          updateTailMetadata(ir)
+          // Note [Call Argument Tail Position]
+          args.foreach(_.updateMetadata(TAIL_META))
+        case Case.Expr(_, branches, _, _, _) =>
+          if (isInTailPos) {
+            ir.updateMetadata(TAIL_META)
+            // Note [Analysing Branches in Case Expressions]
+            branches.foreach(b => {
+              b.updateMetadata(TAIL_META)
+            })
+          }
+        case _ =>
+          updateTailMetadata(ir)
+      }
+      if (!isInTailPos && isTailAnnotated(ir)) {
+        ir.addDiagnostic(
+          Warning.WrongTco(ir.identifiedLocation())
+        )
+      }
+      ir
+    }
+
+    override def prepare(parent: IR, child: Expression): Mini = {
+      val isChildTailCandidate = parent match {
+        case _: Module => true
+        case e: Expression =>
+          val tailCandidates = new java.util.IdentityHashMap[IR, Boolean]
+          collectTailCandidatesExpression(e, tailCandidates)
+          tailCandidates.containsKey(child)
+        case _ => false
+      }
+      Mini(isChildTailCandidate)
+    }
+
     /** Performs tail call analysis on an arbitrary expression.
       *
-      * @param expression the expression to subTail
-      * @param isInTailPosition whether or not the expression is occurring in tail
-      *                         position
+      * @param expression the expression to check
       * @return `expression`, annotated with tail position metadata
       */
-    private def subTailExpression(
+    private def collectTailCandidatesExpression(
       expression: Expression,
-      isInTailPosition: Boolean
+      tailCandidates: java.util.Map[IR, Boolean]
     ): Unit = {
       expression match {
         case function: Function =>
-          subTailFunction(function, isInTailPosition)
-        case caseExpr: Case   => subTailCase(caseExpr, isInTailPosition)
-        case typ: Type        => subTailType(typ, isInTailPosition)
-        case app: Application => subTailApplication(app, isInTailPosition)
-        case name: Name       => subTailName(name, isInTailPosition)
-        case literal: Literal => subTailLiteral(literal, isInTailPosition)
+          collectTailCandicateFunction(function, tailCandidates)
+        case caseExpr: Case =>
+          collectTailCandidatesCase(caseExpr, tailCandidates)
+        case app: Application =>
+          collectTailCandidatesApplication(app, tailCandidates)
+        case name: Name => collectTailCandidatesName(name, tailCandidates)
+        case literal: Literal =>
+          collectTailCandidatesLiteral(literal, tailCandidates)
         case _: Comment =>
           throw new CompilerError(
             "Comments should not be present during tail call analysis."
           )
         case Expression.Block(_, returnValue, _, _, _) =>
-          if (isInTailPosition) {
-            expression.updateMetadata(TAIL_META)
+          if (isInTailPos) {
             tailCandidates.put(returnValue, true)
           }
         case _ =>
       }
     }
 
-    private def updateMetaIfInTailPosition[T <: IR](
-      isInTailPosition: Boolean,
-      ir: T
-    ): T = {
-      if (isInTailPosition) {
-        ir.updateMetadata(TAIL_META)
-      } else {
-        ir
-      }
-    }
-
     /** Performs tail call analysis on an occurrence of a name.
       *
-      * @param name the name to subTail
-      * @param isInTailPosition whether the name occurs in tail position or not
+      * @param name the name to check
       * @return `name`, annotated with tail position metadata
       */
-    def subTailName(name: Name, isInTailPosition: Boolean): Name = {
-      updateMetaIfInTailPosition(isInTailPosition, name)
+    def collectTailCandidatesName(
+      name: Name,
+      tailCandidates: java.util.Map[IR, Boolean]
+    ): Unit = {
+      if (isInTailPos) {
+        tailCandidates.put(name, true)
+      }
     }
 
     /** Performs tail call analysis on a literal.
       *
-      * @param literal the literal to subTail
-      * @param isInTailPosition whether or not the literal occurs in tail position
-      *                         or not
+      * @param literal the literal to check
       * @return `literal`, annotated with tail position metdata
       */
-    private def subTailLiteral(
+    private def collectTailCandidatesLiteral(
       literal: Literal,
-      isInTailPosition: Boolean
-    ): Literal = {
-      updateMetaIfInTailPosition(isInTailPosition, literal)
+      tailCandidates: java.util.Map[IR, Boolean]
+    ): Unit = {
+      if (isInTailPos) {
+        literal.getClass()
+        tailCandidates.getClass()
+        // tailCandidates.put(literal, true)
+      }
     }
 
     /** Performs tail call analysis on an application.
       *
-      * @param application the application to subTail
-      * @param isInTailPosition whether or not the application is occurring in
-      *                         tail position
+      * @param application the application to check
       * @return `application`, annotated with tail position metadata
       */
-    private def subTailApplication(
+    private def collectTailCandidatesApplication(
       application: Application,
-      isInTailPosition: Boolean
+      tailCandidates: java.util.Map[IR, Boolean]
     ): Unit = {
-      if (isInTailPosition) {
-        application.updateMetadata(TAIL_META)
-      }
       application match {
         case Application.Prefix(_, args, _, _, _) =>
-          args.foreach(subTailCallArg)
+          args.foreach(collectTailCandidatesCallArg(_, tailCandidates))
         case Application.Force(target, _, _) =>
-          if (isInTailPosition) {
+          if (isInTailPos) {
             tailCandidates.put(target, true)
           }
         case Application.Sequence(_, _, _) =>
@@ -333,16 +328,18 @@ case object TailCall extends MiniPassFactory with ProcessingPass {
 
     /** Performs tail call analysis on a call site argument.
       *
-      * @param argument the argument to subTail
+      * @param argument the argument to check
       * @return `argument`, annotated with tail position metadata
       */
-    private def subTailCallArg(argument: CallArgument): Unit = {
+    private def collectTailCandidatesCallArg(
+      argument: CallArgument,
+      tailCandidates: java.util.Map[IR, Boolean]
+    ): Unit = {
       argument match {
         case CallArgument.Specified(_, expr, _, _) =>
           // Note [Call Argument Tail Position]
           tailCandidates.put(expr, true)
       }
-      argument.updateMetadata(TAIL_META)
     }
 
     /* Note [Call Argument Tail Position]
@@ -368,32 +365,20 @@ case object TailCall extends MiniPassFactory with ProcessingPass {
      * these closures, and hence should be marked as tail.
      */
 
-    /** Performs tail call analysis on an expression involving type operators.
-      *
-      * @param value the type operator expression
-      * @param isInTailPosition whether or not the type operator occurs in a tail
-      *                         call position
-      * @return `value`, annotated with tail position metadata
-      */
-    private def subTailType(value: Type, isInTailPosition: Boolean): Unit = {}
-
     /** Performs tail call analysis on a case expression.
       *
-      * @param caseExpr the case expression to subTail
-      * @param isInTailPosition whether or not the case expression occurs in a tail
-      *                         call position
+      * @param caseExpr the case expression to check
       * @return `caseExpr`, annotated with tail position metadata
       */
-    private def subTailCase(caseExpr: Case, isInTailPosition: Boolean): Unit = {
-      if (isInTailPosition) {
-        caseExpr.updateMetadata(TAIL_META)
-      }
+    private def collectTailCandidatesCase(
+      caseExpr: Case,
+      tailCandidates: java.util.Map[IR, Boolean]
+    ): Unit = {
       caseExpr match {
         case Case.Expr(_, branches, _, _, _) =>
-          if (isInTailPosition) {
+          if (isInTailPos) {
             // Note [Analysing Branches in Case Expressions]
             branches.foreach(b => {
-              b.updateMetadata(TAIL_META)
               tailCandidates.put(b.expression, true)
             })
           }
@@ -413,48 +398,17 @@ case object TailCall extends MiniPassFactory with ProcessingPass {
      * branches as being in tail position if the case expression is.
      */
 
-    /** Branch expression may be in tail position.
-      *
-      * @param branch the branch to subTail
-      * @param isInTailPosition whether or not the branch occurs in a tail call
-      *                         position
-      * @return `branch`, annotated with tail position metadata
-      *    private def subTailCaseBranch(
-      *      branch: Case.Branch,
-      *      isInTailPosition: Boolean
-      *      ): Unit = {
-      *        if (isInTailPosition) {
-      *          tailCandidates.put(branch.expression, isInTailPosition)
-      *        }
-      *      }
-      */
-
-    /** Patterns are never in tail possition.
-      *
-      * @param pattern the pattern to subTail
-      * @return `pattern`, annotated with tail position metadata
-      *    private def subTailPattern(
-      *      pattern: Pattern
-      *      ): Unit = {
-      *      }
-      */
-
     /** Body of the function may be in tail position.
       *
-      * @param function the function to subTail
-      * @param isInTailPosition whether or not the function definition occurs in a
-      *                         tail position
+      * @param function the function to check
       * @return `function`, annotated with tail position metadata
       */
-    private def subTailFunction(
+    private def collectTailCandicateFunction(
       function: Function,
-      isInTailPosition: Boolean
+      tailCandidates: java.util.Map[IR, Boolean]
     ): Unit = {
       val canBeTCO   = function.canBeTCO
-      val markAsTail = (!canBeTCO && isInTailPosition) || canBeTCO
-      if (isInTailPosition) {
-        function.updateMetadata(TAIL_META)
-      }
+      val markAsTail = (!canBeTCO && isInTailPos) || canBeTCO
       function match {
         case Function.Lambda(_, body, _, _, _, _) =>
           if (markAsTail) {
@@ -466,9 +420,5 @@ case object TailCall extends MiniPassFactory with ProcessingPass {
           )
       }
     }
-
-    /** No tail expressions in default arguments. Body of the function is next.
-      *   private def subTailDefArgument(
-      */
   }
 }
