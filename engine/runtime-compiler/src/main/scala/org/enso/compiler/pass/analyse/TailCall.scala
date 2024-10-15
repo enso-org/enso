@@ -259,8 +259,6 @@ case object TailCall extends MiniPassFactory with ProcessingPass {
         case app: Application =>
           collectTailCandidatesApplication(app, tailCandidates)
         case name: Name => collectTailCandidatesName(name, tailCandidates)
-        case literal: Literal =>
-          collectTailCandidatesLiteral(literal, tailCandidates)
         case _: Comment =>
           throw new CompilerError(
             "Comments should not be present during tail call analysis."
@@ -284,22 +282,6 @@ case object TailCall extends MiniPassFactory with ProcessingPass {
     ): Unit = {
       if (isInTailPos) {
         tailCandidates.put(name, true)
-      }
-    }
-
-    /** Performs tail call analysis on a literal.
-      *
-      * @param literal the literal to check
-      * @return `literal`, annotated with tail position metdata
-      */
-    private def collectTailCandidatesLiteral(
-      literal: Literal,
-      tailCandidates: java.util.Map[IR, Boolean]
-    ): Unit = {
-      if (isInTailPos) {
-        literal.getClass()
-        tailCandidates.getClass()
-        // tailCandidates.put(literal, true)
       }
     }
 
