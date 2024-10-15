@@ -41,6 +41,9 @@ interface AppliedUpdates {
   newMetadata: fileFormat.IdeMetadata['node'] | undefined
 }
 
+/**
+ *
+ */
 export function applyDocumentUpdates(
   doc: ModuleDoc,
   synced: EnsoFileParts,
@@ -122,6 +125,9 @@ function translateVisualizationToFile(
   }
 }
 
+/**
+ *
+ */
 export function translateVisualizationFromFile(
   vis: fileFormat.VisualizationMetadata,
 ): VisualizationMetadata | undefined {
@@ -177,6 +183,9 @@ export function stupidFastDiff(oldString: string, newString: string): diff.Diff[
     .concat(commonSuffix ? [[0, commonSuffix]] : [])
 }
 
+/**
+ *
+ */
 export function applyDiffAsTextEdits(
   lineOffset: number,
   oldString: string,
@@ -230,6 +239,9 @@ export function applyDiffAsTextEdits(
   return edits
 }
 
+/**
+ *
+ */
 export function prettyPrintDiff(from: string, to: string): string {
   const colReset = '\x1b[0m'
   const colRed = '\x1b[31m'

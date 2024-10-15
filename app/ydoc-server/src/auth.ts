@@ -10,6 +10,9 @@ export type ConnectionData = {
 
 const docNameRegex = /^[a-z0-9/-]+$/i
 
+/**
+ *
+ */
 export function docName(pathname: string) {
   const prefix = '/project/'
   if (pathname != null && pathname.startsWith(prefix)) {

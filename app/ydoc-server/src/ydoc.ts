@@ -38,6 +38,9 @@ export class WSSharedDoc {
   conns: Map<ConnectionId, Set<number>>
   awareness: Awareness
 
+  /**
+   *
+   */
   constructor(gc = true) {
     this.doc = new Y.Doc({ gc })
     // this.name = name
@@ -68,12 +71,18 @@ export class WSSharedDoc {
     this.doc.on('update', (update, origin) => this.updateHandler(update, origin))
   }
 
+  /**
+   *
+   */
   broadcast(message: Uint8Array) {
     for (const [conn] of this.conns) {
       if (typeof conn !== 'string') conn.send(message)
     }
   }
 
+  /**
+   *
+   */
   updateHandler(update: Uint8Array, _origin: any) {
     const encoder = encoding.createEncoder()
     encoding.writeVarUint(encoder, messageSync)
@@ -170,7 +179,7 @@ class YjsConnection extends ObservableV2<{ close(): void }> {
     }
     try {
       this.ws.send(message, error => error && this.close())
-    } catch (e) {
+    } catch {
       this.close()
     }
   }
@@ -198,10 +207,10 @@ class YjsConnection extends ObservableV2<{ close(): void }> {
           break
         }
       }
-    } catch (err) {
-      console.error(err)
-      // @ts-ignore
-      this.wsDoc.doc.emit('error', [err])
+    } catch (error) {
+      console.error(error)
+      // @ts-expect-error Emit a custom event.
+      this.wsDoc.doc.emit('error', [error])
     }
   }
 
@@ -214,7 +223,7 @@ class YjsConnection extends ObservableV2<{ close(): void }> {
     this.ws.close()
     this.emit('close', [])
     if (this.wsDoc.conns.size === 0) {
-      // @ts-ignore
+      // @ts-expect-error Emit a custom event.
       this.wsDoc.doc.emit('unload', [])
     }
   }

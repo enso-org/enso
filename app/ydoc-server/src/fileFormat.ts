@@ -109,6 +109,9 @@ export function tryParseMetadataOrFallback(metadataJson: string | undefined | nu
   return metadata.parse(parsedMeta)
 }
 
+/**
+ *
+ */
 export function tryParseIdMapOrFallback(idMapJson: string | undefined | null): IdMap {
   if (idMapJson == null) return []
   const parsedIdMap = tryParseJson(idMapJson)

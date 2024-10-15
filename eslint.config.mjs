@@ -207,7 +207,9 @@ export default [
         tsconfigRootDir: DIR_NAME,
         ecmaVersion: 'latest',
         extraFileExtensions: ['.vue'],
-        projectService: true,
+        projectService: {
+          allowDefaultProject: ['app/ydoc-server/vitest.config.ts'],
+        },
       },
     },
     rules: {

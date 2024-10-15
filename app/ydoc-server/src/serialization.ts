@@ -4,6 +4,9 @@ import * as json from 'lib0/json'
 import { ExternalId, IdMap, sourceRangeFromKey } from 'ydoc-shared/yjsModel'
 import * as fileFormat from './fileFormat'
 
+/**
+ *
+ */
 export function deserializeIdMap(idMapJson: string) {
   const idMapMeta = fileFormat.tryParseIdMapOrFallback(idMapJson)
   const idMap = new IdMap()
@@ -18,11 +21,17 @@ export function deserializeIdMap(idMapJson: string) {
   return idMap
 }
 
+/**
+ *
+ */
 export function serializeIdMap(map: IdMap): string {
   map.validate()
   return json.stringify(idMapToArray(map))
 }
 
+/**
+ *
+ */
 export function idMapToArray(map: IdMap): fileFormat.IdMapEntry[] {
   const entries: fileFormat.IdMapEntry[] = []
   map.entries().forEach(([rangeBuffer, id]) => {
