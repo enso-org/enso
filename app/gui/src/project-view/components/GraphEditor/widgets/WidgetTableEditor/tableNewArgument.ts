@@ -1,3 +1,4 @@
+import { commonContextMenuActions, type MenuItem } from '@/components/shared/AgGridTableView.vue'
 import type { WidgetInput, WidgetUpdate } from '@/providers/widgetRegistry'
 import { requiredImportsByFQN, type RequiredImport } from '@/stores/graph/imports'
 import type { SuggestionDb } from '@/stores/suggestionDatabase'
@@ -25,23 +26,20 @@ export type RowData = {
 }
 
 /**
- * A more specialized version of AGGrid's `MenuItemDef` to simplify testing (the tests need to provide
- * only values actually used by the composable)
- */
-export interface MenuItem extends MenuItemDef<RowData> {
-  action: (params: { node: { data: RowData | undefined } | null }) => void
-}
-
-/**
  * A more specialized version of AGGrid's `ColDef` to simplify testing (the tests need to provide
  * only values actually used by the composable)
  */
 export interface ColumnDef extends ColDef<RowData> {
   valueGetter: ({ data }: { data: RowData | undefined }) => any
   valueSetter?: ({ data, newValue }: { data: RowData; newValue: any }) => boolean
+<<<<<<< HEAD
   mainMenuItems: (string | MenuItem)[]
   contextMenuItems: (string | MenuItem)[]
   rowDrag?: ({ data }: { data: RowData | undefined }) => boolean
+=======
+  mainMenuItems: (string | MenuItem<RowData>)[]
+  contextMenuItems: (string | MenuItem<RowData>)[]
+>>>>>>> 0be73fbc8 (Custom menu items)
 }
 
 namespace cellValueConversion {
@@ -282,7 +280,7 @@ export function useTableNewArgument(
       virtualColumn: true,
     },
     mainMenuItems: ['autoSizeThis', 'autoSizeAll'],
-    contextMenuItems: ['paste', 'separator', removeRowMenuItem],
+    contextMenuItems: [commonContextMenuActions.paste, 'separator', removeRowMenuItem],
     lockPosition: 'right',
   }))
 
@@ -342,10 +340,10 @@ export function useTableNewArgument(
           },
           mainMenuItems: ['autoSizeThis', 'autoSizeAll', removeColumnMenuItem(col.id)],
           contextMenuItems: [
-            'cut',
-            'copy',
+            commonContextMenuActions.cut,
+            commonContextMenuActions.copy,
             'copyWithHeaders',
-            'paste',
+            commonContextMenuActions.paste,
             'separator',
             removeRowMenuItem,
             removeColumnMenuItem(col.id),

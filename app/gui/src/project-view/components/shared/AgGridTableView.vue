@@ -1,9 +1,47 @@
+<script lang="ts">
+import { gridBindings } from '@/bindings'
+import type { MenuItemDef } from 'ag-grid-enterprise'
+/**
+ * A more specialized version of AGGrid's `MenuItemDef` to simplify testing (the tests need to provide
+ * only values actually used by the composable)
+ */
+export interface MenuItem<TData> extends MenuItemDef<TData> {
+  action: (params: {
+    node: { data: TData | undefined } | null
+    api: { copyToClipboard: () => void; cutToClipboard: () => void; pasteFromClipboard: () => void }
+  }) => void
+}
+
+const AGGRID_DEFAULT_COPY_ICON =
+  '<span class="ag-icon ag-icon-copy" unselectable="on" role="presentation"></span>'
+
+export const commonContextMenuActions = {
+  cut: {
+    name: 'Cut',
+    shortcut: gridBindings.bindings['cutCells'].humanReadable,
+    action: ({ api }) => api.cutToClipboard(),
+    icon: AGGRID_DEFAULT_COPY_ICON,
+  },
+  copy: {
+    name: 'Copy',
+    shortcut: gridBindings.bindings['copyCells'].humanReadable,
+    action: ({ api }) => api.copyToClipboard(),
+    icon: AGGRID_DEFAULT_COPY_ICON,
+  },
+  paste: {
+    name: 'Paste',
+    shortcut: gridBindings.bindings['pasteCells'].humanReadable,
+    action: ({ api }) => api.pasteFromClipboard(),
+    icon: AGGRID_DEFAULT_COPY_ICON,
+  },
+} satisfies Record<string, MenuItem<unknown>>
+</script>
+
 <script setup lang="ts" generic="TData, TValue">
 /**
  * Component adding some useful logic to AGGrid table component (like keeping track of colum sizes),
  * and using common style for tables in our application.
  */
-import { gridBindings } from '@/bindings'
 import {
   clipboardNodeData,
   tsvTableToEnsoExpression,
@@ -164,7 +202,7 @@ function supressCopy(event: KeyboardEvent) {
   // Suppress the default keybindings of AgGrid, because we want to use our own handlers (and bindings),
   // and AgGrid API does not allow copy suppression.
   if (
-    event.code === 'KeyC' &&
+    (event.code === 'KeyX' || event.code === 'KeyC' || event.code === 'KeyV') &&
     event.ctrlKey &&
     wrapper.value != null &&
     event.target != wrapper.value
@@ -225,8 +263,6 @@ const { AgGridVue } = await import('ag-grid-vue3')
       :stopEditingWhenCellsLoseFocus="stopEditingWhenCellsLoseFocus"
       :suppressDragLeaveHidesColumns="suppressDragLeaveHidesColumns"
       :suppressMoveWhenColumnDragging="suppressMoveWhenColumnDragging"
-      :suppressCutToClipboard="true"
-      :suppressClipboardPaste="true"
       @gridReady="onGridReady"
       @firstDataRendered="updateColumnWidths"
       @rowDataUpdated="updateColumnWidths($event), emit('rowDataUpdated', $event)"
