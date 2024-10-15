@@ -3,10 +3,10 @@ package org.enso.compiler.test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Empty;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Location;
-import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.expression.errors.Syntax;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.junit.Test;
@@ -466,7 +466,7 @@ public class ErrorCompilerTest extends CompilerTests {
 
   @Test
   public void illegalPrivateVariableDeclaration() throws Exception {
-    var ir = parse("private var = 42");
+    var ir = parseBlock("private var = 42");
     assertSingleSyntaxError(
         ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 16);
   }
@@ -623,8 +623,7 @@ public class ErrorCompilerTest extends CompilerTests {
         ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 41);
   }
 
-  private void assertSingleSyntaxError(
-      Module ir, Syntax.Reason type, String msg, int start, int end) {
+  private void assertSingleSyntaxError(IR ir, Syntax.Reason type, String msg, int start, int end) {
     var errors = assertIR(ir, Syntax.class, 1);
     assertEquals(type, errors.head().reason());
     if (msg != null) {
@@ -633,7 +632,7 @@ public class ErrorCompilerTest extends CompilerTests {
     assertEquals(new Location(start, end), errors.head().location().get().location());
   }
 
-  private List<Syntax> assertIR(Module ir, Class<Syntax> type, int count) {
+  private List<Syntax> assertIR(IR ir, Class<Syntax> type, int count) {
     var errors = ir.preorder().filter(type::isInstance).map(type::cast);
     assertEquals("Expecting errors: " + errors, count, errors.size());
     return errors;

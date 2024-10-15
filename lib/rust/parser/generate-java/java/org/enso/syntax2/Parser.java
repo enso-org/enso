@@ -27,11 +27,11 @@ public final class Parser {
     return getWorker().parseInputLazy(input);
   }
 
-  public static Tree parseModule(CharSequence input) {
+  public static Tree.BodyBlock parseModule(CharSequence input) {
     return getWorker().parse(input, false);
   }
 
-  public static Tree parseBlock(CharSequence input) {
+  public static Tree.BodyBlock parseBlock(CharSequence input) {
     return getWorker().parse(input, true);
   }
 
@@ -202,7 +202,7 @@ public final class Parser {
       return withState(state -> parseTreeLazy(state, inputBuf));
     }
 
-    Tree parse(CharSequence input, boolean isInternalBlock) {
+    Tree.BodyBlock parse(CharSequence input, boolean isInternalBlock) {
       byte[] inputBytes = input.toString().getBytes(StandardCharsets.UTF_8);
       ByteBuffer inputBuf = ByteBuffer.allocateDirect(inputBytes.length);
       inputBuf.put(inputBytes);
@@ -218,13 +218,15 @@ public final class Parser {
             var metadata = getMetadata(state);
             serializedTree.order(ByteOrder.LITTLE_ENDIAN);
             var message = new Message(serializedTree, input, base, metadata);
+            Tree parsed;
             try {
-              return Tree.deserialize(message);
+              parsed = Tree.deserialize(message);
             } catch (BufferUnderflowException | IllegalArgumentException e) {
               LoggerFactory.getLogger(this.getClass())
                   .error("Unrecoverable parser failure for: {}", input, e);
               throw e;
             }
+            return (Tree.BodyBlock) parsed;
           });
     }
   }

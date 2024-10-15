@@ -696,7 +696,7 @@ class Compiler(
     * @return A Tree representation of `source`
     */
   def parseInline(source: CharSequence): Tree =
-    Parser.parseModule(source)
+    Parser.parseBlock(source)
 
   /** Enhances the provided IR with import/export statements for the provided list
     * of fully qualified names of modules. The statements are considered to be "synthetic" i.e. compiler-generated.

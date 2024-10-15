@@ -75,6 +75,10 @@ final class TreeToIr {
     return translateModule(ast);
   }
 
+  Expression.Block translateBlock(Tree.BodyBlock ast) {
+    return translateBodyBlock(ast, false);
+  }
+
   /**
    * Translates an inline program expression represented in the parser {@link Tree} to the
    * compiler's {@link IR} representation.
@@ -553,6 +557,8 @@ final class TreeToIr {
     var methodRef = translateMethodReference(fn.getName(), false);
     var args = translateArgumentsDefinition(fn.getArgs());
     var body = translateExpression(fn.getBody());
+    var bodyLoc = expandToContain(getIdentifiedLocation(fn.getBody()), body.identifiedLocation());
+    body = body.setLocation(Option.apply(bodyLoc));
     var loc = getIdentifiedLocation(fn, 0, 0, null);
     var returnSignature = resolveReturnTypeSignature(fn);
     if (body == null) {
@@ -1151,7 +1157,7 @@ final class TreeToIr {
     };
   }
 
-  private Expression.Block translateBodyBlock(Tree.BodyBlock body, boolean suspended) throws SyntaxException {
+  private Expression.Block translateBodyBlock(Tree.BodyBlock body, boolean suspended) {
     var expressions = new java.util.ArrayList<Expression>();
     Expression last = null;
     for (var line : body.getStatements()) {
@@ -1164,7 +1170,13 @@ final class TreeToIr {
       }
       while (expr instanceof Tree.Documented doc) {
         expr = doc.getExpression();
-        expressions.add(translateComment(doc, doc.getDocumentation()));
+        Expression commentIr;
+        try {
+          commentIr = translateComment(doc, doc.getDocumentation());
+        } catch (SyntaxException ex) {
+          commentIr = ex.toError();
+        }
+        expressions.add(commentIr);
       }
       last = translateExpression(expr, false);
     }
