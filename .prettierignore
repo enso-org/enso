@@ -1,5 +1,6 @@
 # Build Artefacts
 dist
+mockDist
 target
 
 # Release body template should not be auto-formatted, as the word wrap does not really looks good in the GitHub UI.
@@ -39,10 +40,10 @@ app/ide-desktop/lib/dashboard/playwright/.cache/
 app/ide-desktop/lib/dashboard/dist/
 app/gui/view/documentation/assets/stylesheet.css
 app/rust-ffi/pkg
-app/gui2/src/assets/font-*.css
+app/gui/src/project-view/assets/font-*.css
 Cargo.lock
 build.json
-app/gui2/playwright-report/
+app/gui/playwright-report/
 
 # Engine Builds can leave these nested working copies.
 # TODO [mwu]: Adjust Engine build to not leave them.

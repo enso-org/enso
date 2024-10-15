@@ -42,7 +42,6 @@ import org.graalvm.polyglot.io.IOAccess;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class DebuggingEnsoTest {
@@ -483,7 +482,6 @@ public class DebuggingEnsoTest {
     }
   }
 
-  @Ignore("https://github.com/enso-org/enso/issues/10675")
   @Test
   public void testAtomFieldAreReadable_MultipleConstructors() {
     var fooFunc =
