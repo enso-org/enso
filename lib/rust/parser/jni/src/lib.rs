@@ -24,8 +24,7 @@ use jni::JNIEnv;
 static DIRECT_ALLOCATED: &str = "Internal Error: ByteBuffer must be direct-allocated.";
 static FAILED_SERIALIZE_AST: &str = "Failed to serialize AST to binary format.";
 
-/// Parse the input as a module. Returns a serialized representation of the parse tree. The caller
-/// is responsible for freeing the memory associated with the returned buffer.
+/// Parse the input as a module. Returns a serialized representation of the parse tree.
 ///
 /// # Safety
 ///
@@ -44,8 +43,7 @@ pub extern "system" fn Java_org_enso_syntax2_Parser_parseModule(
     parse(env, class, state, input, RootContext::Module)
 }
 
-/// Parse the input as a block. Returns a serialized representation of the parse tree. The caller
-/// is responsible for freeing the memory associated with the returned buffer.
+/// Parse the input as a block. Returns a serialized representation of the parse tree.
 ///
 /// # Safety
 ///
