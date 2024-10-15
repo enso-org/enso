@@ -11,7 +11,6 @@ import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { GetContextMenuItems, GetMainMenuItems } from 'ag-grid-enterprise'
 import { expect, test, vi } from 'vitest'
-import { m } from 'vitest/dist/reporters-yx5ZTtEV.js'
 
 function suggestionDbWithNothing() {
   const db = new SuggestionDb()

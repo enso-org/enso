@@ -2496,11 +2496,9 @@ export class MutableVector extends Vector implements MutableAst {
 
   splice(start: number, deletedCount: number) {
     const elements = [...this.fields.get('elements')]
-    // Spacing around opening brackets should be preserved, as it's more natural (see tests).
-    const firstSpacing = elements[0]?.value?.whitespace
     elements.splice(start, deletedCount)
-    if (start === 0 && firstSpacing != null && elements[0]?.value != null) {
-      elements[0].value.whitespace = firstSpacing
+    if (start === 0 && elements[0]?.value != null) {
+      elements[0].value.whitespace = undefined
     }
     this.fields.set('elements', elements)
   }
@@ -2514,23 +2512,14 @@ export class MutableVector extends Vector implements MutableAst {
    */
   move(fromIndex: number, toIndex: number) {
     const elements = [...this.fields.get('elements')]
-    const firstSpacing = elements[0]?.value?.whitespace
     const [element] = elements.splice(fromIndex, 1)
     if (element != null) {
+      element.value = autospaced(element.value?.node)
       elements.splice(toIndex, 0, element)
-      // Restore/automate spacing to look make array look more natural.
-      // 1. Keep the spacing after opening bracket
-      if (
-        (toIndex === 0 || fromIndex === 0) &&
-        firstSpacing != null &&
-        elements[0]?.value != null
-      ) {
-        elements[0].value.whitespace = firstSpacing
-      }
-      // 2. If the first element was moved, automate the spacing (often from no-space to
-      // single-space)
-      if (fromIndex === 0 && toIndex !== 0 && elements[toIndex]?.value != null) {
-        elements[toIndex].value.whitespace = undefined
+      // Automate spacing to make array look more natural.
+
+      if (fromIndex === 0 && elements[0]?.value != null) {
+        elements[0].value.whitespace = undefined
       }
       // 3. If the first element was shifted by inserting element before, also automate its spacing
       if (toIndex === 0 && elements[1]?.value != null) {
