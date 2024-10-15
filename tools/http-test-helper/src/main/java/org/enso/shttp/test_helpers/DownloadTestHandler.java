@@ -37,20 +37,6 @@ public class DownloadTestHandler extends SimpleHttpHandler {
     byte responseData[] = new byte[length];
     Arrays.fill(responseData, (byte) 97);
 
-    /*
-    List<String> ccHeaders = new ArrayList<>();
-    if (maxAge != null) {
-      ccHeaders.add("max-age="+maxAge);
-    }
-    if (age != null) {
-      ccHeaders.add("Age="+age);
-    }
-    if (ccHeaders.size() > 0) {
-      String ccString = ccHeaders.stream().collect(Collectors.joining(","));
-      exchange.getResponseHeaders().add("Cache-Control", ccString);
-    }
-    */
-
     if (maxAge != null) {
       exchange.getResponseHeaders().add("Cache-Control", "max-age="+maxAge);
     }
