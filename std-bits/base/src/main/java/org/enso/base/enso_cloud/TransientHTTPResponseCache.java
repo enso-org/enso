@@ -25,6 +25,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 
+import org.apache.commons.io.IOUtils;
 import org.enso.base.net.URIWithSecrets;
 import org.graalvm.collections.Pair;
 
@@ -104,7 +105,7 @@ public class TransientHTTPResponseCache {
     if (sizeMaybe.isPresent()) {
       long size = sizeMaybe.get();
       if (size > getMaxFileSize()) {
-        throw new ResponseTooLargeException(size, getMaxFileSize(), unresolvedURI.toString());
+        throw new ResponseTooLargeException(size, getMaxFileSize(), unresolvedURI.getBaseUri());
       }
       makeRoomFor(size);
     }
@@ -114,7 +115,7 @@ public class TransientHTTPResponseCache {
       ZonedDateTime expiry = getNow().plus(Duration.ofSeconds(ttl));
       int statusCode = response.statusCode();
       var headers = response.headers();
-      String responseDataPath = downloadResponseData(response);
+      String responseDataPath = downloadResponseData(unresolvedURI, response);
       long size = new File(responseDataPath).length();
 
       if (sizeMaybe.isPresent() && size != sizeMaybe.get()) {
@@ -141,11 +142,27 @@ public class TransientHTTPResponseCache {
     return new EnsoHttpResponse(cacheEntry.uri(), cacheEntry.headers(), inputStream , cacheEntry.statusCode());
   }
 
-  private static String downloadResponseData(EnsoHttpResponse response) throws IOException {
+  private static String downloadResponseData(URIWithSecrets unresolvedURI, EnsoHttpResponse response) throws IOException, ResponseTooLargeException {
     File temp = File.createTempFile("TransientHTTPResponseCache", "");
     try {
+      var inputStream = response.body();
       var outputStream = new FileOutputStream(temp);
+
+      // Limit to getMaxFileSize().
+      long tooMany = getMaxFileSize()+1;
+      long bytesCopied = IOUtils.copyLarge(inputStream, outputStream, 0, tooMany);
+      if (bytesCopied >= tooMany) {
+        try {
+          temp.delete();
+          outputStream.close();
+        } finally {
+          // catch block below will delete the temp file.
+          throw new ResponseTooLargeException(tooMany, getMaxFileSize(), unresolvedURI.getBaseUri());
+        }
+      }
+
       response.body().transferTo(outputStream);
+      outputStream.close();
       temp.deleteOnExit();
       return temp.getAbsolutePath();
     } catch (IOException e) {

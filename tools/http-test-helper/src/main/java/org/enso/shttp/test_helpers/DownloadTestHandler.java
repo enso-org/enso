@@ -21,6 +21,7 @@ public class DownloadTestHandler extends SimpleHttpHandler {
     int length = 10;
     String maxAge = null;
     String age = null;
+    boolean omitContentLength = false;
     for (var queryPair : builder.getQueryParams()) {
         if (queryPair.getName().equals("length")) {
             length = Integer.parseInt(queryPair.getValue());
@@ -28,6 +29,8 @@ public class DownloadTestHandler extends SimpleHttpHandler {
             maxAge = queryPair.getValue();
         } else if (queryPair.getName().equals("age")) {
             age = queryPair.getValue();
+        } else if (queryPair.getName().equals("omit-content-length")) {
+          omitContentLength = true;
         }
     }
 
@@ -56,7 +59,8 @@ public class DownloadTestHandler extends SimpleHttpHandler {
       exchange.getResponseHeaders().add("Age", age.toString());
     }
 
-    exchange.sendResponseHeaders(200, responseData.length);
+    long contentLength = omitContentLength ? 0 : responseData.length;
+    exchange.sendResponseHeaders(200, contentLength);
 
     try (OutputStream os = exchange.getResponseBody()) {
       os.write(responseData);

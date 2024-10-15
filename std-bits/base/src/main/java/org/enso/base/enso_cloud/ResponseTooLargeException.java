@@ -5,7 +5,7 @@ public class ResponseTooLargeException extends Exception {
     private final long limit;
     private final String url;
 
-  public ResponseTooLargeException (long size, long limit, String url) {
+  public ResponseTooLargeException(long size, long limit, String url) {
     super(
         "Response too large: repsonse size (" + size + ") is over the limit (" + limit + ")" +
             (url == null ? "" : "(URL " + url + ")"));
