@@ -14,6 +14,7 @@ import Standard.Table.Errors.Invalid_JSON_Format
 
 from Standard.Test import all
 
+import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
 from enso_dev.Base_Tests.Network.Http.Http_Test_Setup import base_url_with_slash, pending_has_url
 
 import project.Util
@@ -400,14 +401,32 @@ add_specs suite_builder =
             HTTP.fetch base_url_with_slash+'crash'
             get_num_response_cache_entries . should_equal 1
 
-        ##
-            cloud_setup = Cloud_Tests_Setup.prepare
+        cloud_setup = Cloud_Tests_Setup.prepare
 
-                cloud_setup.with_prepared_environment <|
-                    secret1 = Enso_Secret.create "my_test_secret-uri-1-"+Random.uuid "My Value"
-                    secret1.should_succeed
-                group_builder.specify "ResponseTooLargeException does not contain any secrets" pending=pending_has_url <| Test.with_retries <|
-            group_builder.specify "Should work with secrets in the URI" pending=pending_has_url <| Test.with_retries <|
+        group_builder.specify "Should work with secrets in the URI" pending=pending_has_url <| Test.with_retries <|
+            cloud_setup.with_prepared_environment <|
+                secret1 = Enso_Secret.create "http-cache-secret-1-"+Random.uuid "My Value"
+                secret2 = Enso_Secret.create "http-cache-secret-2-"+Random.uuid "Some Value"
+                cleanup =
+                    secret1.delete
+                    secret2.delete
+                Panic.with_finalizer cleanup <|
+                    # URLs differ only in secrets
+                    uri1 = URI.from 'https://httpbin.org/bytes/50'
+                        . add_query_argument "arg1" secret1
+                        . add_query_argument "arg2" "plain value"
+                    uri2 = URI.from 'https://httpbin.org/bytes/50'
+                        . add_query_argument "arg1" secret2
+                        . add_query_argument "arg2" "plain value"
+
+                    Data.clear_response_cache
+                    HTTP.fetch uri1
+                    get_num_response_cache_entries . should_equal 1
+                    HTTP.fetch uri2
+                    get_num_response_cache_entries . should_equal 2
+
+        ##
             group_builder.specify "Should work with secrets in the headers" pending=pending_has_url <| Test.with_retries <|
+            group_builder.specify "ResponseTooLargeException does not contain any secrets" pending=pending_has_url <| Test.with_retries <|
             group_builder.specify "Cache state should be consistent" pending=pending_has_url <| Test.with_retries <|
                 # Check that map matches files on disk
