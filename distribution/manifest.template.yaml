@@ -3,3 +3,4 @@ minimum-project-manager-version: 2023.2.1-nightly.2023.11.2
 jvm-options:
   - value: "-Dgraal.PrintGraph=Network"
   - value: "--add-opens=java.base/java.nio=ALL-UNNAMED"
+  - value: "-Xss16M"
