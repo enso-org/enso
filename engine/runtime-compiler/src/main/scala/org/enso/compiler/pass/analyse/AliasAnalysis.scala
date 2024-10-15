@@ -28,6 +28,7 @@ import org.enso.compiler.core.ir.{
 }
 import org.enso.compiler.core.{CompilerError, IR}
 import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.IRProcessingPass
 import org.enso.compiler.pass.analyse.alias.graph.Graph
 import org.enso.compiler.pass.analyse.alias.graph.GraphOccurrence
 import org.enso.compiler.pass.analyse.alias.graph.Graph.Scope
@@ -74,7 +75,7 @@ case object AliasAnalysis extends IRPass {
   override type Metadata = alias.AliasMetadata
   override type Config   = Configuration
 
-  override lazy val precursorPasses: Seq[IRPass] = List(
+  override lazy val precursorPasses: Seq[IRProcessingPass] = List(
     FunctionBinding,
     GenerateMethodBodies,
     SectionsToBinOp.INSTANCE,
@@ -82,7 +83,7 @@ case object AliasAnalysis extends IRPass {
     LambdaShorthandToLambda
   )
 
-  override lazy val invalidatedPasses: Seq[IRPass] =
+  override lazy val invalidatedPasses: Seq[IRProcessingPass] =
     List(DataflowAnalysis, UnusedBindings)
 
   /** Performs alias analysis on a module.

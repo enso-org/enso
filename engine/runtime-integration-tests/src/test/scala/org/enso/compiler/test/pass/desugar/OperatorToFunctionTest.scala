@@ -19,6 +19,7 @@ import org.enso.compiler.pass.analyse.{
 }
 import org.enso.compiler.pass.{
   IRPass,
+  IRProcessingPass,
   MiniIRPass,
   MiniPassFactory,
   PassConfiguration,
@@ -195,11 +196,11 @@ case object OperatorToFunctionTestPass extends IRPass {
   override type Metadata = IRPass.Metadata.Empty
   override type Config   = IRPass.Configuration.Default
 
-  override lazy val precursorPasses: Seq[IRPass] = List(
+  override lazy val precursorPasses: Seq[IRProcessingPass] = List(
     GenerateMethodBodies,
     SectionsToBinOp.INSTANCE
   )
-  override lazy val invalidatedPasses: Seq[IRPass] = List(
+  override lazy val invalidatedPasses: Seq[IRProcessingPass] = List(
     AliasAnalysis,
     DataflowAnalysis,
     DemandAnalysis

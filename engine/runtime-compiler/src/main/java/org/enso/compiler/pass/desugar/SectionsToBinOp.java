@@ -1,7 +1,6 @@
 package org.enso.compiler.pass.desugar;
 
 import java.util.List;
-import java.util.UUID;
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.context.ModuleContext;
 import org.enso.compiler.core.ir.CallArgument;
@@ -9,11 +8,10 @@ import org.enso.compiler.core.ir.DefinitionArgument;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Function;
 import org.enso.compiler.core.ir.MetadataStorage;
-import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.Name;
 import org.enso.compiler.core.ir.expression.Application;
 import org.enso.compiler.core.ir.expression.Section;
-import org.enso.compiler.pass.IRPass;
+import org.enso.compiler.pass.IRProcessingPass;
 import org.enso.compiler.pass.MiniIRPass;
 import org.enso.compiler.pass.MiniPassFactory;
 import org.enso.compiler.pass.analyse.AliasAnalysis$;
@@ -26,32 +24,21 @@ import scala.Option;
 import scala.collection.immutable.Seq;
 import scala.jdk.javaapi.CollectionConverters;
 
-public final class SectionsToBinOp implements IRPass, MiniPassFactory {
+public final class SectionsToBinOp implements MiniPassFactory {
 
   public static final SectionsToBinOp INSTANCE = new SectionsToBinOp();
-  private UUID uuid;
 
   private SectionsToBinOp() {}
 
   @Override
-  public void org$enso$compiler$pass$IRPass$_setter_$key_$eq(UUID v) {
-    this.uuid = v;
-  }
-
-  @Override
-  public UUID key() {
-    return uuid;
-  }
-
-  @Override
-  public Seq<IRPass> precursorPasses() {
-    List<IRPass> passes = List.of(GenerateMethodBodies$.MODULE$);
+  public Seq<IRProcessingPass> precursorPasses() {
+    List<IRProcessingPass> passes = List.of(GenerateMethodBodies$.MODULE$);
     return CollectionConverters.asScala(passes).toList();
   }
 
   @Override
-  public Seq<IRPass> invalidatedPasses() {
-    List<IRPass> passes =
+  public Seq<IRProcessingPass> invalidatedPasses() {
+    List<IRProcessingPass> passes =
         List.of(
             AliasAnalysis$.MODULE$,
             CachePreferenceAnalysis$.MODULE$,
@@ -60,16 +47,6 @@ public final class SectionsToBinOp implements IRPass, MiniPassFactory {
             TailCall$.MODULE$,
             UnusedBindings$.MODULE$);
     return CollectionConverters.asScala(passes).toList();
-  }
-
-  @Override
-  public Module runModule(Module ir, ModuleContext moduleContext) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public Expression runExpression(Expression ir, InlineContext inlineContext) {
-    throw new UnsupportedOperationException();
   }
 
   @Override

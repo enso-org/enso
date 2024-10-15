@@ -4,16 +4,14 @@ import java.util.function.Function;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Module;
-import org.enso.compiler.core.ir.ProcessingPass;
 
 /**
  * Mini IR pass operates on a single IR element at a time. The {@link org.enso.compiler.Compiler}
  * traverses the whole IR tree in DFS. It works in two phases.
  *
  * <p><b>Note</b> that the current implementation is limited to traverse only {@link
- * org.enso.compiler.core.ir.Expression} elements. This is a technical limitation because of the
- * implementation of traversal via {@link IR#mapExpressions(Function)}. Hence, the additional
- * methods {@link #prepareForModule(Module)} and {@link #transformModule(Module)}.
+ * org.enso.compiler.core.ir.Expression} elements as provided by {@link
+ * IR#mapExpressions(Function)}. Hence, the additional method {@link #transformModule(Module)}.
  *
  * <p>In the first, <b>prepare</b> phase, the compiler traverses from the root to the leaves and
  * calls the {@link #prepare(Expression)} method on the mini pass. During this phase, the mini pass
@@ -44,7 +42,7 @@ import org.enso.compiler.core.ir.ProcessingPass;
  * using modular and efficient tree transformations</a>. PDF available at <a
  * href="https://infoscience.epfl.ch/server/api/core/bitstreams/8ab72c0a-8aa6-4dee-a704-3504938dc316/content">infoscience.epfl.ch</a>
  */
-public abstract class MiniIRPass implements ProcessingPass {
+public abstract class MiniIRPass {
   /**
    * Prepare the pass for the provided IR element. This method is called when the {@link
    * org.enso.compiler.Compiler} traverses the IR element from top to bottom.

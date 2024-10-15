@@ -12,6 +12,7 @@ import org.enso.compiler.core.ir.{
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.ir.expression.{Application, Section}
 import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.IRProcessingPass
 import org.enso.compiler.pass.analyse._
 import org.enso.compiler.pass.lint.UnusedBindings
 
@@ -27,10 +28,10 @@ case object SectionsToBinOpMegaPass extends IRPass {
   override type Metadata = IRPass.Metadata.Empty
   override type Config   = IRPass.Configuration.Default
 
-  override lazy val precursorPasses: Seq[IRPass] = List(
+  override lazy val precursorPasses: Seq[IRProcessingPass] = List(
     org.enso.compiler.pass.desugar.GenerateMethodBodies
   )
-  override lazy val invalidatedPasses: Seq[IRPass] = List(
+  override lazy val invalidatedPasses: Seq[IRProcessingPass] = List(
     AliasAnalysis,
     CachePreferenceAnalysis,
     DataflowAnalysis,

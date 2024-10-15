@@ -1,8 +1,7 @@
 package org.enso.compiler.pass.desugar
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.ir.{Expression, Module}
-import org.enso.compiler.pass.{IRPass, MiniPassFactory}
+import org.enso.compiler.pass.{IRProcessingPass, MiniPassFactory}
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
   DataflowAnalysis,
@@ -11,36 +10,18 @@ import org.enso.compiler.pass.analyse.{
 
 /** Implementation moved to `OperatorToFunctionTest`
   */
-case object OperatorToFunction extends IRPass with MiniPassFactory {
+case object OperatorToFunction extends MiniPassFactory {
 
-  /** A purely desugaring pass has no analysis output. */
-  override type Metadata = IRPass.Metadata.Empty
-  override type Config   = IRPass.Configuration.Default
-
-  override lazy val precursorPasses: Seq[IRPass] = List(
+  override lazy val precursorPasses: Seq[IRProcessingPass] = List(
     GenerateMethodBodies,
     SectionsToBinOp.INSTANCE
   )
-  override lazy val invalidatedPasses: Seq[IRPass] = List(
+  override lazy val invalidatedPasses: Seq[IRProcessingPass] = List(
     AliasAnalysis,
     DataflowAnalysis,
     DemandAnalysis,
     LambdaShorthandToLambda
   )
-
-  override def runModule(
-    ir: Module,
-    moduleContext: ModuleContext
-  ): Module = {
-    ???
-  }
-
-  override def runExpression(
-    ir: Expression,
-    inlineContext: InlineContext
-  ): Expression = {
-    ???
-  }
 
   override def createForModuleCompilation(
     moduleContext: ModuleContext

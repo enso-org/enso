@@ -2,7 +2,6 @@ package org.enso.compiler.pass.desugar
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.CompilerError
-import org.enso.compiler.core.ir.{Expression, Module}
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
   DataflowAnalysis,
@@ -16,15 +15,12 @@ import org.enso.compiler.pass.resolve.{
   IgnoredBindings,
   OverloadsResolution
 }
-import org.enso.compiler.pass.{IRPass, MiniPassFactory}
+import org.enso.compiler.pass.{IRProcessingPass, MiniPassFactory}
 
 /** Implementation moved to `LambdaShorthandToLambdaMegaPass` test.
   */
-case object LambdaShorthandToLambda extends IRPass with MiniPassFactory {
-  override type Metadata = IRPass.Metadata.Empty
-  override type Config   = IRPass.Configuration.Default
-
-  override lazy val precursorPasses: Seq[IRPass] = List(
+case object LambdaShorthandToLambda extends MiniPassFactory {
+  override lazy val precursorPasses: Seq[IRProcessingPass] = List(
     ComplexType,
     DocumentationComments,
     FunctionBinding,
@@ -32,7 +28,7 @@ case object LambdaShorthandToLambda extends IRPass with MiniPassFactory {
     OperatorToFunction,
     SectionsToBinOp.INSTANCE
   )
-  override lazy val invalidatedPasses: Seq[IRPass] = List(
+  override lazy val invalidatedPasses: Seq[IRProcessingPass] = List(
     AliasAnalysis,
     DataflowAnalysis,
     DemandAnalysis,
@@ -42,20 +38,6 @@ case object LambdaShorthandToLambda extends IRPass with MiniPassFactory {
     TailCall,
     UnusedBindings
   )
-
-  override def runModule(
-    ir: Module,
-    moduleContext: ModuleContext
-  ): Module = {
-    ???
-  }
-
-  override def runExpression(
-    ir: Expression,
-    inlineContext: InlineContext
-  ): Expression = {
-    ???
-  }
 
   override def createForModuleCompilation(
     moduleContext: ModuleContext

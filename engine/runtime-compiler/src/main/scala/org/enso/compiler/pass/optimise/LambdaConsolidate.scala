@@ -15,6 +15,7 @@ import org.enso.compiler.core.ir.{
 import org.enso.compiler.core.ir.expression.warnings
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.IRProcessingPass
 import org.enso.compiler.pass.analyse.alias.graph.{
   GraphOccurrence,
   Graph => AliasGraph
@@ -63,7 +64,7 @@ case object LambdaConsolidate extends IRPass {
   override type Metadata = IRPass.Metadata.Empty
   override type Config   = IRPass.Configuration.Default
 
-  override lazy val precursorPasses: Seq[IRPass] = List(
+  override lazy val precursorPasses: Seq[IRProcessingPass] = List(
     AliasAnalysis,
     ComplexType,
     FunctionBinding,
@@ -73,7 +74,7 @@ case object LambdaConsolidate extends IRPass {
     OperatorToFunction,
     SectionsToBinOp.INSTANCE
   )
-  override lazy val invalidatedPasses: Seq[IRPass] = List(
+  override lazy val invalidatedPasses: Seq[IRProcessingPass] = List(
     AliasAnalysis,
     DataflowAnalysis,
     DemandAnalysis,

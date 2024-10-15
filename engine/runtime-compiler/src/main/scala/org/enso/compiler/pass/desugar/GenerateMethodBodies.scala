@@ -15,6 +15,7 @@ import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.ir.expression.Foreign
 import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.IRProcessingPass
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
   DataflowAnalysis,
@@ -48,9 +49,9 @@ case object GenerateMethodBodies extends IRPass {
   override type Metadata = IRPass.Metadata.Empty
   override type Config   = IRPass.Configuration.Default
 
-  override lazy val precursorPasses: Seq[IRPass] =
+  override lazy val precursorPasses: Seq[IRProcessingPass] =
     List(ComplexType, FunctionBinding)
-  override lazy val invalidatedPasses: Seq[IRPass] = List(
+  override lazy val invalidatedPasses: Seq[IRProcessingPass] = List(
     AliasAnalysis,
     DataflowAnalysis,
     LambdaConsolidate,

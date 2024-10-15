@@ -12,7 +12,7 @@ import org.enso.compiler.core.ir.{
   Name
 }
 import org.enso.compiler.core.ir.expression.{Application, Case, Operator}
-import org.enso.compiler.pass.{IRPass}
+import org.enso.compiler.pass.{IRPass, IRProcessingPass}
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
   DataflowAnalysis,
@@ -49,7 +49,7 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
   override type Metadata = IRPass.Metadata.Empty
   override type Config   = IRPass.Configuration.Default
 
-  override lazy val precursorPasses: Seq[IRPass] = List(
+  override lazy val precursorPasses: Seq[IRProcessingPass] = List(
     ComplexType,
     DocumentationComments,
     FunctionBinding,
@@ -57,7 +57,7 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
     OperatorToFunction,
     SectionsToBinOp.INSTANCE
   )
-  override lazy val invalidatedPasses: Seq[IRPass] = List(
+  override lazy val invalidatedPasses: Seq[IRProcessingPass] = List(
     AliasAnalysis,
     DataflowAnalysis,
     DemandAnalysis,

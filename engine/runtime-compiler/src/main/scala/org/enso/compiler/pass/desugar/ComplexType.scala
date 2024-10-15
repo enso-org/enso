@@ -19,6 +19,7 @@ import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.expression.Error
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.IRProcessingPass
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
   DataflowAnalysis,
@@ -51,8 +52,10 @@ case object ComplexType extends IRPass {
   override type Metadata = IRPass.Metadata.Empty
   override type Config   = IRPass.Configuration.Default
 
-  override lazy val precursorPasses: Seq[IRPass] = List(ModuleAnnotations)
-  override lazy val invalidatedPasses: Seq[IRPass] =
+  override lazy val precursorPasses: Seq[IRProcessingPass] = List(
+    ModuleAnnotations
+  )
+  override lazy val invalidatedPasses: Seq[IRProcessingPass] =
     List(
       AliasAnalysis,
       DataflowAnalysis,

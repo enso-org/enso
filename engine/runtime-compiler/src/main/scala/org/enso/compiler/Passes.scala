@@ -18,7 +18,7 @@ import org.enso.compiler.pass.optimise.{
 }
 import org.enso.compiler.pass.resolve._
 import org.enso.compiler.pass.{
-  IRPass,
+  IRProcessingPass,
   PassConfiguration,
   PassGroup,
   PassManager
@@ -123,7 +123,7 @@ class Passes(config: CompilerConfig) {
     )
 
   /** The ordered representation of all passes run by the compiler. */
-  val allPassOrdering: List[IRPass] = passOrdering.flatMap(_.passes)
+  val allPassOrdering: List[IRProcessingPass] = passOrdering.flatMap(_.passes)
 
   /** Configuration for the passes. */
   private val passConfig: PassConfiguration = PassConfiguration(
@@ -142,7 +142,7 @@ class Passes(config: CompilerConfig) {
     * @param pass the pass to get the precursors for
     * @return the precursors to the first instance of `pass`
     */
-  def getPrecursors(pass: IRPass): Option[PassGroup] = {
+  def getPrecursors(pass: IRProcessingPass): Option[PassGroup] = {
     val allPasses = passOrdering.flatMap(_.passes)
     val result    = allPasses.takeWhile(_ != pass)
     if (result.length != allPasses.length) {

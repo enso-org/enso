@@ -17,6 +17,7 @@ import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.expression.{Application, Comment, Error}
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.IRProcessingPass
 import org.enso.compiler.pass.desugar._
 
 import java.util
@@ -38,7 +39,7 @@ case object CachePreferenceAnalysis extends IRPass {
   override type Metadata = WeightInfo
 
   /** Run desugaring passes first. */
-  override lazy val precursorPasses: Seq[IRPass] = List(
+  override lazy val precursorPasses: Seq[IRProcessingPass] = List(
     ComplexType,
     FunctionBinding,
     GenerateMethodBodies,
@@ -47,7 +48,7 @@ case object CachePreferenceAnalysis extends IRPass {
     SectionsToBinOp.INSTANCE
   )
 
-  override lazy val invalidatedPasses: Seq[IRPass] = List()
+  override lazy val invalidatedPasses: Seq[IRProcessingPass] = List()
 
   /** Performs the cache preference analysis on a module.
     *

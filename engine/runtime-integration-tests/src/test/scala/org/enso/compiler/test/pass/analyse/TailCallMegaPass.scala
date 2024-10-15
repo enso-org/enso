@@ -28,6 +28,7 @@ import org.enso.compiler.core.ir.{
 }
 import org.enso.compiler.core.{CompilerError, IR}
 import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.IRProcessingPass
 import org.enso.compiler.pass.analyse.TailCall
 import org.enso.compiler.pass.analyse.TailCall.TailPosition
 import org.enso.compiler.pass.desugar._
@@ -53,7 +54,7 @@ case object TailCallMegaPass extends IRPass {
 
   override type Config = IRPass.Configuration.Default
 
-  override lazy val precursorPasses: Seq[IRPass] = List(
+  override lazy val precursorPasses: Seq[IRProcessingPass] = List(
     FunctionBinding,
     GenerateMethodBodies,
     SectionsToBinOp.INSTANCE,
@@ -62,7 +63,7 @@ case object TailCallMegaPass extends IRPass {
     GlobalNames
   )
 
-  override lazy val invalidatedPasses: Seq[IRPass] = List()
+  override lazy val invalidatedPasses: Seq[IRProcessingPass] = List()
 
   private lazy val TAIL_META = new MetadataPair(TailCall, TailPosition.Tail)
 

@@ -19,11 +19,13 @@ import org.enso.compiler.core.ir.{
   Literal,
   Module,
   Name,
+  ProcessingPass,
   Type,
   Warning
 }
 import org.enso.compiler.core.{CompilerError, IR}
 import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.IRProcessingPass
 import org.enso.compiler.pass.MiniPassFactory
 import org.enso.compiler.pass.MiniIRPass
 import org.enso.compiler.pass.desugar._
@@ -41,14 +43,12 @@ import org.enso.compiler.pass.resolve.{ExpressionAnnotations, GlobalNames}
   *
   * - The tail position of its expression, where relevant.
   */
-case object TailCall extends IRPass with MiniPassFactory {
+case object TailCall extends MiniPassFactory with ProcessingPass {
 
   /** The annotation metadata type associated with IR nodes by this pass. */
   override type Metadata = TailPosition
 
-  override type Config = IRPass.Configuration.Default
-
-  override lazy val precursorPasses: Seq[IRPass] = List(
+  override lazy val precursorPasses: Seq[IRProcessingPass] = List(
     FunctionBinding,
     GenerateMethodBodies,
     SectionsToBinOp.INSTANCE,
@@ -57,7 +57,7 @@ case object TailCall extends IRPass with MiniPassFactory {
     GlobalNames
   )
 
-  override lazy val invalidatedPasses: Seq[IRPass] = List()
+  override lazy val invalidatedPasses: Seq[IRProcessingPass] = List()
 
   private lazy val TAIL_META = new MetadataPair(this, TailPosition.Tail)
 
@@ -78,16 +78,6 @@ case object TailCall extends IRPass with MiniPassFactory {
   ): MiniIRPass = {
     new Mini(false)
   }
-
-  override def runModule(
-    ir: Module,
-    moduleContext: ModuleContext
-  ): Module = ???
-
-  override def runExpression(
-    ir: Expression,
-    inlineContext: InlineContext
-  ): Expression = ???
 
   /** Expresses the tail call state of an IR Node. */
   sealed trait TailPosition extends IRPass.IRMetadata {
