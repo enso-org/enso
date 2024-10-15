@@ -29,11 +29,10 @@
     "test-dev:unit": "vitest",
     "test:e2e": "cross-env NODE_ENV=production playwright test",
     "test-dev:e2e": "cross-env NODE_ENV=production playwright test --ui",
-    "preinstall": "corepack pnpm run generate-metadata && corepack pnpm run download-fonts",
+    "preinstall": "corepack pnpm run generate-metadata",
     "postinstall": "playwright install",
     "build-rust-ffi": "wasm-pack build ./rust-ffi --release --target web && wasm-pack build ./rust-ffi --out-dir node-pkg --target nodejs",
-    "generate-metadata": "node scripts/generateIconMetadata.js",
-    "download-fonts": "node scripts/downloadFonts.js"
+    "generate-metadata": "node scripts/generateIconMetadata.js"
   },
   "dependencies": {
     "@aws-amplify/auth": "5.6.5",
@@ -166,7 +165,6 @@
     "@types/mapbox-gl": "^2.7.13",
     "@types/shuffle-seed": "^1.1.0",
     "@types/tar": "^6.1.4",
-    "@types/unbzip2-stream": "^1.4.3",
     "@types/wicg-file-system-access": "^2023.10.2",
     "@types/ws": "^8.5.5",
     "@vitejs/plugin-vue": "^5.0.4",
@@ -188,7 +186,6 @@
     "sql-formatter": "^13.0.0",
     "tar": "^6.2.1",
     "tsx": "^4.7.1",
-    "unbzip2-stream": "^1.4.3",
     "vite-plugin-vue-devtools": "7.3.7",
     "vite-plugin-wasm": "^3.3.0",
     "vue-react-wrapper": "^0.3.1",
