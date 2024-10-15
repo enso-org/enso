@@ -60,6 +60,7 @@ public class TransientHTTPResponseCache {
   private static Optional<Long> maxTotalCacheSizeOverrideTestOnly  = Optional.empty();
 
   private static final Map<String, CacheEntry> cache = new HashMap<>();
+  private static final Map<String, ZonedDateTime> lastUsed = new HashMap<>();
 
   static EnsoHttpResponse makeRequest(
       URIWithSecrets unresolvedURI,
@@ -79,6 +80,7 @@ public class TransientHTTPResponseCache {
   }
 
   private static EnsoHttpResponse returnCachedResponse(String cacheKey) throws IOException {
+    markCacheEntryUsed(cacheKey);
     return buildEnsoHttpResponseFromCacheEntry(cache.get(cacheKey));
   }
 
@@ -125,8 +127,10 @@ public class TransientHTTPResponseCache {
 
       cache.put(cacheKey, cacheEntry);
 
+      markCacheEntryUsed(cacheKey);
       return buildEnsoHttpResponseFromCacheEntry(cacheEntry);
     } catch (IOException e) {
+      logger.log(Level.WARNING, "Failure when caching HTTP response, will re-issue request directly: " + e);
       // Re-issue the request since we don't know if we've consumed any of the response.
       return requestMaker.run();
     }
@@ -148,6 +152,13 @@ public class TransientHTTPResponseCache {
       temp.delete();
       throw e;
     }
+  }
+
+  /**
+   * Mark the entry with the current time, to maintain LRU data.
+   */
+  private static void markCacheEntryUsed(String cacheKey) {
+    lastUsed.put(cacheKey, ZonedDateTime.now());
   }
 
   /** Remove all cache entries (and their files) that have passed their TTL. */
@@ -188,6 +199,7 @@ public class TransientHTTPResponseCache {
         System.out.println("AAA removing " + cacheValue);
         it.remove();
         removeCacheFile(key, cacheValue);
+        lastUsed.remove(key);
       }
     }
     //System.out.println("AAA");
@@ -227,12 +239,13 @@ public class TransientHTTPResponseCache {
     for (var mapEntry : toRemove) {
       cache.remove(mapEntry.getKey());
       removeCacheFile(mapEntry.getKey(), mapEntry.getValue());
+      lastUsed.remove(key);
     }
     System.out.println("AAA total now " + getTotalCacheSize() + " " + maxTotalCacheSize);
   }
 
   private static SortedSet<Map.Entry<String, CacheEntry>> getSortedEntries() {
-    var sortedEntries = new TreeSet<Map.Entry<String, CacheEntry>>(cacheEntryExpiryComparatorDesc);
+    var sortedEntries = new TreeSet<Map.Entry<String, CacheEntry>>(cacheEntryLRUComparator);
     sortedEntries.addAll(cache.entrySet());
     return sortedEntries;
   }
@@ -387,11 +400,9 @@ public class TransientHTTPResponseCache {
 
   private record CacheEntry(URI uri, HttpHeaders headers, String responseDataPath, long size, int statusCode, ZonedDateTime expiry) {}
 
-  //private static final Comparator<Map.Entry<String, CacheEntry>> cacheEntryExpiryComparatorDesc = Comparator.comparing(me -> me.getValue.expiry()).reversed();
-
-  private static final ZonedDateTime getMapEntryExpiry(Map.Entry<String, CacheEntry> mapEntry) {
-    return mapEntry.getValue().expiry();
+  private static final ZonedDateTime getMapEntryLRU(Map.Entry<String, CacheEntry> mapEntry) {
+    return lastUsed.get(mapEntry.getKey());
   }
 
-  private static final Comparator<Map.Entry<String, CacheEntry>> cacheEntryExpiryComparatorDesc = Comparator.comparing(TransientHTTPResponseCache::getMapEntryExpiry).reversed();
+  private static final Comparator<Map.Entry<String, CacheEntry>> cacheEntryLRUComparator = Comparator.comparing(TransientHTTPResponseCache::getMapEntryLRU);
 }

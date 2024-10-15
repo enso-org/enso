@@ -342,13 +342,15 @@ add_specs suite_builder =
 
         group_builder.specify "Will remove old cache files to keep the total cache size under the total cache size limit" pending=pending_has_url <| Test.with_retries <|
             reset_size_limits
-            TransientHTTPResponseCache.setMaxFileSizeOverrideTestOnly 100
+            TransientHTTPResponseCache.setMaxTotalCacheSizeOverrideTestOnly 100
             download 30
             download 50
             download 10
             http_get_file_sizes_test_only . should_equal [10, 30, 50]
             download 20
             http_get_file_sizes_test_only . should_equal [10, 20, 50]
+
+        group_builder.specify "Will remove old cache files based on how recently they were used" pending=pending_has_url <| Test.with_retries <|
 
         group_builder.specify "Will not download or cache a file with a content length greater than the single file limit" pending=pending_has_url <| Test.with_retries <|
             reset_size_limits
