@@ -17,6 +17,7 @@ import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import java.util.Objects;
 import org.enso.interpreter.node.callable.IndirectInvokeMethodNode;
+import org.enso.interpreter.node.expression.builtin.runtime.Context;
 import org.enso.interpreter.node.expression.builtin.text.util.TypeToDisplayTextNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
@@ -57,7 +58,7 @@ public final class DataflowError extends AbstractTruffleException implements Ens
         state == null
             || EnsoContext.get(location)
                 .getExecutionEnvironment()
-                .hasContextEnabled("Dataflow_Stack_Trace");
+                .hasContextEnabled(Context.DATAFLOW_STACK_TRACE_NAME);
     if (attachFullStackTrace) {
       var result = new DataflowError(payload, UNLIMITED_STACK_TRACE, location);
       TruffleStackTrace.fillIn(result);
