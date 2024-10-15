@@ -227,6 +227,7 @@ type SQLServer_Dialect
     is_feature_supported self feature:Feature -> Boolean =
         case feature of
             Feature.Select_Columns -> True
+            Feature.Sort -> True
             _ -> False
 
     ## PRIVATE
