@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.data.text.Text;
@@ -13,6 +14,11 @@ import org.enso.version.BuildVersion;
 public class CurrentEngineVersionNode extends Node {
 
   public Text execute() {
+    return getCurrentVersion();
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private Text getCurrentVersion() {
     StringBuilder sb = new StringBuilder();
     sb.append("Enso Engine Version: ");
     sb.append(BuildVersion.ensoVersion());
