@@ -187,10 +187,14 @@ const data = computed<Data>(() => {
   if (Array.isArray(rawData)) {
     rawData = {}
   }
-  const axis: AxesConfiguration = rawData.axis ?? {
-    x: { label: '', scale: isTimeSeries ? ScaleType.Time : ScaleType.Linear },
-    y: { label: '', scale: ScaleType.Linear },
-  }
+
+  const axis: AxesConfiguration =
+    rawData.axis && 'x' in rawData.axis && 'y' in rawData.axis ?
+      rawData.axis
+    : {
+        x: { label: '', scale: isTimeSeries ? ScaleType.Time : ScaleType.Linear },
+        y: { label: '', scale: ScaleType.Linear },
+      }
   const points = rawData.points ?? { labels: 'visible' }
   const focus: Focus | undefined = rawData.focus
   // eslint-disable-next-line camelcase
@@ -260,8 +264,8 @@ const symbol: d3.Symbol<unknown, Point> = d3.symbol()
 
 const animationDuration = computed(() => (shouldAnimate.value ? ANIMATION_DURATION_MS : 0))
 const margin = computed(() => {
-  const xLabel = data.value.axis.x?.label
-  const yLabel = data.value.axis.y?.label
+  const xLabel = data.value.axis.x.label
+  const yLabel = data.value.axis.y.label
   if (xLabel == null && yLabel === null) {
     return { top: 20, right: 20, bottom: 20, left: 45 }
   } else if (yLabel == null) {
