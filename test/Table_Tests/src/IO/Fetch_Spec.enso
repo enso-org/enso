@@ -7,7 +7,7 @@ import Standard.Base.Network.HTTP.Request.Request
 import Standard.Base.Network.HTTP.Request_Body.Request_Body
 import Standard.Base.Network.HTTP.Response.Response
 import Standard.Base.Runtime.Context
-from Standard.Base.Network.HTTP import http_get_file_sizes_test_only 
+from Standard.Base.Network.HTTP import http_get_file_sizes_test_only
 
 from Standard.Table import all
 import Standard.Table.Errors.Invalid_JSON_Format
@@ -18,7 +18,7 @@ from enso_dev.Base_Tests.Network.Http.Http_Test_Setup import base_url_with_slash
 
 import project.Util
 
-polyglot java import org.enso.base.enso_cloud.TransientHTTPResponseCache 
+polyglot java import org.enso.base.enso_cloud.TransientHTTPResponseCache
 
 main filter=Nothing =
     suite = Test.build suite_builder->
@@ -401,7 +401,12 @@ add_specs suite_builder =
             get_num_response_cache_entries . should_equal 1
 
         ##
-            group_builder.specify "ResponseTooLargeException does not contain any secrets" pending=pending_has_url <| Test.with_retries <|
+            cloud_setup = Cloud_Tests_Setup.prepare
+
+                cloud_setup.with_prepared_environment <|
+                    secret1 = Enso_Secret.create "my_test_secret-uri-1-"+Random.uuid "My Value"
+                    secret1.should_succeed
+                group_builder.specify "ResponseTooLargeException does not contain any secrets" pending=pending_has_url <| Test.with_retries <|
             group_builder.specify "Should work with secrets in the URI" pending=pending_has_url <| Test.with_retries <|
             group_builder.specify "Should work with secrets in the headers" pending=pending_has_url <| Test.with_retries <|
             group_builder.specify "Cache state should be consistent" pending=pending_has_url <| Test.with_retries <|

@@ -72,10 +72,6 @@ public record URIWithSecrets(URI baseUri, List<Pair<String, HideableValue>> quer
     return this.forAuthorityPart().getRawUserInfo();
   }
 
-  public String getBaseUri() {
-    return baseUri.toString();
-  }
-
   public String getHost() {
     // This is not affected by secrets at all, so we can rely on the baseUri.
     return baseUri.getHost();

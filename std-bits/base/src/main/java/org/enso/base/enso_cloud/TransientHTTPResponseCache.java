@@ -33,7 +33,7 @@ import org.graalvm.collections.Pair;
  * TransientHTTPResponseCache is a cache for EnsoHttpResponse values that
  * respects the cache control HTTP headers received in the original repsonse to
  * a request.
- * 
+ *
  * EnsoHttpResponse contains an InputStream providing the response data. When
  * there is a cache hit, this stream reads from the local file storing the
  * cached data. When there is no cache hit, the InputStream is connected
@@ -105,7 +105,7 @@ public class TransientHTTPResponseCache {
     if (sizeMaybe.isPresent()) {
       long size = sizeMaybe.get();
       if (size > getMaxFileSize()) {
-        throw new ResponseTooLargeException(size, getMaxFileSize(), unresolvedURI.getBaseUri());
+        throw new ResponseTooLargeException(size, getMaxFileSize(), unresolvedURI.render().toString());
       }
       makeRoomFor(size);
     }
@@ -157,7 +157,7 @@ public class TransientHTTPResponseCache {
           outputStream.close();
         } finally {
           // catch block below will delete the temp file.
-          throw new ResponseTooLargeException(tooMany, getMaxFileSize(), unresolvedURI.getBaseUri());
+          throw new ResponseTooLargeException(tooMany, getMaxFileSize(), unresolvedURI.render().toString());
         }
       }
 
