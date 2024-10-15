@@ -300,7 +300,10 @@ export function useUploadFileWithToastMutation(
     onBegin: (progress) => {
       onBegin?.(progress)
       const { sentMb, totalMb } = progress
-      toast.loading(getText('uploadLargeFileStatus', sentMb, totalMb), { toastId })
+      toast.loading(getText('uploadLargeFileStatus', sentMb, totalMb), {
+        toastId,
+        position: 'bottom-right',
+      })
     },
     onChunkSuccess: (progress) => {
       onChunkSuccess?.(progress)
