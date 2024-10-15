@@ -261,7 +261,7 @@ export function useListUserGroupsWithUsers(
 }
 
 /**
- * Call "upload file" mutations for a file. Automatically uses multipart upload for large files.
+ * Call "upload file" mutations for a file. Always uses multipart upload for Cloud backend.
  */
 export function useUploadFileMutation(backend: Backend) {
   const { getText } = useText()
@@ -276,52 +276,90 @@ export function useUploadFileMutation(backend: Backend) {
   const uploadFileEndMutation = reactQuery.useMutation(
     backendMutationOptions(backend, 'uploadFileEnd'),
   )
-  return useEventCallback(async (params: backendModule.UploadFileRequestParams, file: Blob) => {
-    if (backend.type === backendModule.BackendType.local) {
-      return await uploadFileMutation.mutateAsync([params, file])
-    } else {
-      const fileSizeMB = Math.ceil(file.size / MB_BYTES)
-      const toastId = toast.loading(getText('uploadLargeFileStatus', 0, fileSizeMB))
-      try {
-        const { sourcePath, uploadId, presignedUrls } = await uploadFileStartMutation.mutateAsync([
-          { fileName: params.fileName },
-          file,
-        ])
-        const parts: backendModule.S3MultipartPart[] = []
-        for (const [url, i] of Array.from(
-          presignedUrls,
-          (presignedUrl, index) => [presignedUrl, index] as const,
-        )) {
-          parts.push(await uploadFileChunkMutation.mutateAsync([url, file, i]))
+  const mutateAsync = useEventCallback(
+    async (params: backendModule.UploadFileRequestParams, file: Blob) => {
+      if (backend.type === backendModule.BackendType.local) {
+        return await uploadFileMutation.mutateAsync([params, file])
+      } else {
+        const fileSizeMB = Math.ceil(file.size / MB_BYTES)
+        const toastId = toast.loading(getText('uploadLargeFileStatus', 0, fileSizeMB))
+        try {
+          const { sourcePath, uploadId, presignedUrls } = await uploadFileStartMutation.mutateAsync(
+            [{ fileName: params.fileName }, file],
+          )
+          const parts: backendModule.S3MultipartPart[] = []
+          for (const [url, i] of Array.from(
+            presignedUrls,
+            (presignedUrl, index) => [presignedUrl, index] as const,
+          )) {
+            parts.push(await uploadFileChunkMutation.mutateAsync([url, file, i]))
+            toast.update(toastId, {
+              render: getText(
+                'uploadLargeFileStatus',
+                Math.min((i + 1) * S3_CHUNK_SIZE_MB, fileSizeMB),
+                fileSizeMB,
+              ),
+            })
+          }
+          const result = await uploadFileEndMutation.mutateAsync([
+            {
+              parentDirectoryId: params.parentDirectoryId,
+              parts,
+              sourcePath: sourcePath,
+              uploadId: uploadId,
+              assetId: params.fileId,
+              fileName: params.fileName,
+            },
+          ])
           toast.update(toastId, {
-            render: getText(
-              'uploadLargeFileStatus',
-              Math.min((i + 1) * S3_CHUNK_SIZE_MB, fileSizeMB),
-              fileSizeMB,
-            ),
+            type: 'success',
+            render: getText('uploadLargeFileSuccess'),
+            isLoading: false,
+            autoClose: TOAST_SUCCESS_AUTO_CLOSE_MS,
           })
+          return result
+        } catch (error) {
+          toastAndLog(toastId, 'uploadLargeFileError', error)
+          throw error
         }
-        const result = await uploadFileEndMutation.mutateAsync([
-          {
-            parentDirectoryId: params.parentDirectoryId,
-            parts,
-            sourcePath: sourcePath,
-            uploadId: uploadId,
-            assetId: params.fileId,
-            fileName: params.fileName,
-          },
-        ])
-        toast.update(toastId, {
-          type: 'success',
-          render: getText('uploadLargeFileSuccess'),
-          isLoading: false,
-          autoClose: TOAST_SUCCESS_AUTO_CLOSE_MS,
-        })
-        return result
-      } catch (error) {
-        toastAndLog(toastId, 'uploadLargeFileError', error)
-        throw error
       }
-    }
+    },
+  )
+  const mutate = useEventCallback((params: backendModule.UploadFileRequestParams, file: Blob) => {
+    void mutateAsync(params, file)
   })
+
+  // TODO: Also return `variables`
+  return {
+    mutate,
+    mutateAsync,
+    context: uploadFileEndMutation.context ?? uploadFileMutation.context,
+    data: uploadFileEndMutation.data ?? uploadFileMutation.data,
+    failureCount:
+      uploadFileEndMutation.failureCount +
+      uploadFileChunkMutation.failureCount +
+      uploadFileStartMutation.failureCount +
+      uploadFileMutation.failureCount,
+    failureReason:
+      uploadFileEndMutation.failureReason ??
+      uploadFileChunkMutation.failureReason ??
+      uploadFileStartMutation.failureReason ??
+      uploadFileMutation.failureReason,
+    isError:
+      uploadFileMutation.isError ||
+      uploadFileStartMutation.isError ||
+      uploadFileChunkMutation.isError ||
+      uploadFileEndMutation.isError,
+    isPaused:
+      uploadFileMutation.isPaused ||
+      uploadFileStartMutation.isPaused ||
+      uploadFileChunkMutation.isPaused ||
+      uploadFileEndMutation.isPaused,
+    isPending:
+      uploadFileMutation.isPending ||
+      uploadFileStartMutation.isPending ||
+      uploadFileChunkMutation.isPending ||
+      uploadFileEndMutation.isPending,
+    isSuccess: uploadFileMutation.isSuccess || uploadFileEndMutation.isSuccess,
+  }
 }
