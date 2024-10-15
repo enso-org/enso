@@ -14,7 +14,9 @@ export interface AccessToken {
   readonly refreshToken: string
   /** The Cognito url to refresh the token. */
   readonly refreshUrl: string
-  /** The when the token will expire.
-   * This is a string representation of a date in ISO 8601 format (e.g. "2021-01-01T00:00:00Z"). */
+  /**
+   * The when the token will expire.
+   * This is a string representation of a date in ISO 8601 format (e.g. "2021-01-01T00:00:00Z").
+   */
   readonly expireAt: string
 }
