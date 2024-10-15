@@ -60,12 +60,6 @@ prepare_visualization y max_rows=1000 =
 max_columns = 250
 
 ##PRIVATE
-nothing_count : Column -> Integer
-nothing_count col =
-    filtered_to_nothing = col.to_vector.filter (c-> c==Nothing)
-    filtered_to_nothing.length
-
-##PRIVATE
 whitespace_count : Column -> Integer | Nothing
 whitespace_count col =
     find_whitespace col = 
@@ -204,7 +198,7 @@ make_json_for_table dataframe all_rows_count include_index_col is_db_table =
     all_rows    = ["all_rows_count", all_rows_count]
     has_index_col = ["has_index_col", include_index_col]
     links       = ["get_child_node_action", "get_row"]
-    number_of_nothing = if is_db_table then Nothing else columns.map c-> nothing_count c
+    number_of_nothing = if is_db_table then Nothing else columns.map c-> c.count_nothing
     number_of_whitespace= if is_db_table then Nothing else columns.map c-> whitespace_count c
     data_quality_pairs = JS_Object.from_pairs [["number_of_nothing", number_of_nothing], ["number_of_whitespace", number_of_whitespace]]
     pairs       = [header, value_type, data, all_rows, has_index_col, links, ["data_quality_pairs", data_quality_pairs] ,["type", "Table"]]
