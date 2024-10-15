@@ -199,6 +199,7 @@ export default [
       '**/*.timestamp-*.mjs',
       '**/node_modules',
       '**/generated',
+      'app/rust-ffi/pkg/',
     ],
   },
   eslintJs.configs.recommended,
