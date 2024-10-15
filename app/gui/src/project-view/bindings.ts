@@ -64,3 +64,9 @@ export const nodeEditBindings = defineKeybinds('node-edit', {
   cancel: ['Escape'],
   edit: ['Mod+PointerMain'],
 })
+
+export const gridBindings = defineKeybinds('grid', {
+  cutCells: ['Mod+W'],
+  copyCells: ['Mod+E'],
+  pasteCells: ['Mod+T'],
+})

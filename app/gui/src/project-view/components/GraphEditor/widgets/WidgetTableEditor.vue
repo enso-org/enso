@@ -204,7 +204,6 @@ export const widgetDefinition = defineWidget(
         :rowData="rowData"
         :getRowId="(row) => `${row.data.index}`"
         :components="{ agColumnHeader: TableHeader }"
-        :singleClickEdit="true"
         :stopEditingWhenCellsLoseFocus="true"
         :suppressDragLeaveHidesColumns="true"
         :suppressMoveWhenColumnDragging="true"
