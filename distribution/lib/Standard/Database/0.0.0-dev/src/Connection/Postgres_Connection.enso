@@ -32,6 +32,7 @@ type Postgres_Connection
        - url: The URL to connect to.
        - properties: A vector of properties for the connection.
        - make_new: A function that returns a new connection.
+       - data_link_setup: The setup for saving the connection as a data link.
     create : Text -> Vector -> (Text -> Text -> Postgres_Connection) -> Data_Link_Setup -> Postgres_Connection
     create url properties make_new data_link_setup =
         jdbc_connection = JDBC_Connection.create url properties
@@ -52,6 +53,7 @@ type Postgres_Connection
        Arguments:
        - connection: the underlying connection.
        - make_new: a function that returns a new connection.
+       - data_link_setup: the setup for saving the connection as a data link.
     private Value (connection:Connection) (make_new : Text -> Text -> Postgres_Connection) (data_link_setup : Data_Link_Setup)
 
     ## ICON close
