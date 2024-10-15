@@ -41,7 +41,6 @@ app/ide-desktop/lib/dashboard/dist/
 app/gui/view/documentation/assets/stylesheet.css
 app/rust-ffi/pkg
 app/gui/src/project-view/assets/font-*.css
-app/gui/mockDist
 Cargo.lock
 build.json
 app/gui/playwright-report/
