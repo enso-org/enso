@@ -12,6 +12,7 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -361,13 +362,17 @@ public class TransientHTTPResponseCache {
     return maxAge;
   }
 
+  // Sorts the header by header name, so we don't depend on header order.
+  // Multiple-valued headers might hash differently, but it's a rare case.
   private static String makeHashKey(
       URI resolvedURI,
       List<Pair<String, String>> resolvedHeaders) {
     try {
       MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
       messageDigest.update(resolvedURI.toString().getBytes());
-      for (Pair<String, String> resolvedHeader : resolvedHeaders) {
+
+      var sortedHeaders = resolvedHeaders.stream().sorted(headerNameComparator).toList();
+      for (Pair<String, String> resolvedHeader : sortedHeaders) {
         messageDigest.update(resolvedHeader.getLeft().getBytes());
         messageDigest.update(resolvedHeader.getRight().getBytes());
       }
@@ -399,9 +404,6 @@ public class TransientHTTPResponseCache {
 
   private record CacheEntry(URI uri, HttpHeaders headers, String responseDataPath, long size, int statusCode, ZonedDateTime expiry) {}
 
-  private static final ZonedDateTime getMapEntryLRU(Map.Entry<String, CacheEntry> mapEntry) {
-    return lastUsed.get(mapEntry.getKey());
-  }
-
-  private static final Comparator<Map.Entry<String, CacheEntry>> cacheEntryLRUComparator = Comparator.comparing(TransientHTTPResponseCache::getMapEntryLRU);
+  private static final Comparator<Map.Entry<String, CacheEntry>> cacheEntryLRUComparator = Comparator.comparing(me -> lastUsed.get(me.getKey()));
+  private static final Comparator<Pair<String, String>> headerNameComparator = Comparator.comparing(pair -> pair.getLeft());
 }

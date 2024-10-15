@@ -261,6 +261,15 @@ add_specs suite_builder =
                 Data.fetch url0 headers=headers0
                 Data.fetch url0 headers=headers1
 
+        group_builder.specify "Cache key should not depend on header order" pending=pending_has_url <| Test.with_retries <|
+            Data.clear_response_cache
+            header0 = Header.new "Abc" "def"
+            header1 = Header.new "Ghi" "jkl"
+            Data.fetch url0 headers=[header0, header1]
+            get_num_response_cache_entries . should_equal 1
+            Data.fetch url0 headers=[header1, header0]
+            get_num_response_cache_entries . should_equal 1
+
         # Fetching the trigger uri causes stale entries to be removed.
         fake_now = Date_Time.now
         trigger_uri = base_url_with_slash+'test_download?max-age=10000&length=50'
