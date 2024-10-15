@@ -24,7 +24,8 @@ case object OperatorToFunction extends IRPass with MiniPassFactory {
   override lazy val invalidatedPasses: Seq[IRPass] = List(
     AliasAnalysis,
     DataflowAnalysis,
-    DemandAnalysis
+    DemandAnalysis,
+    LambdaShorthandToLambda
   )
 
   override def runModule(

@@ -23,6 +23,14 @@ class LambdaShorthandToLambdaMini(
     parent: IR,
     current: Expression
   ): LambdaShorthandToLambdaMini = {
+    if (shouldSkipBlanks(parent)) {
+      new LambdaShorthandToLambdaMini(freshNameSupply, true)
+    } else {
+      this
+    }
+  }
+
+  private def shouldSkipBlanks(parent: IR): Boolean = {
     parent match {
       case Application.Prefix(fn, args, _, _, _) =>
         val hasBlankArg = args.exists {
@@ -30,34 +38,27 @@ class LambdaShorthandToLambdaMini(
           case _                                              => false
         }
         val hasBlankFn = fn.isInstanceOf[Name.Blank]
-        if (hasBlankArg || hasBlankFn) {
-          new LambdaShorthandToLambdaMini(freshNameSupply, true)
-        } else {
-          this
-        }
+        hasBlankArg || hasBlankFn
       case Application.Sequence(items, _, _) =>
         val hasBlankItem = items.exists {
           case _: Name.Blank => true
           case _             => false
         }
-        if (hasBlankItem) {
-          new LambdaShorthandToLambdaMini(freshNameSupply, true)
-        } else {
-          this
-        }
+        hasBlankItem
       case Case.Expr(_: Name.Blank, _, _, _, _) =>
-        new LambdaShorthandToLambdaMini(freshNameSupply, true)
-      case _ => this
+        true
+      case _ => false
     }
   }
 
   override def transformExpression(ir: Expression): Expression = {
-    ir match {
+    val newIr = ir match {
       case name: Name          => desugarName(name)
       case app: Application    => desugarApplication(app)
       case caseExpr: Case.Expr => desugarCaseExpr(caseExpr)
       case _                   => ir
     }
+    newIr
   }
 
   /** Desugars an arbitrary name occurrence, turning isolated occurrences of

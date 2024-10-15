@@ -1,5 +1,6 @@
 package org.enso.compiler.pass
 
+import org.slf4j.LoggerFactory
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.ir.{Expression, Module}
 import org.enso.compiler.core.CompilerError
@@ -20,7 +21,8 @@ class PassManager(
   passes: List[PassGroup],
   passConfiguration: PassConfiguration
 ) {
-  val allPasses = verifyPassOrdering(passes.flatMap(_.passes))
+  private val logger = LoggerFactory.getLogger(classOf[PassManager])
+  val allPasses      = verifyPassOrdering(passes.flatMap(_.passes))
 
   /** Computes a valid pass ordering for the compiler.
     *
@@ -89,7 +91,26 @@ class PassManager(
 
     val passesWithIndex = passGroup.passes.zipWithIndex
 
-    passesWithIndex.foldLeft(ir) {
+    logger.debug(
+      "runPassesOnModule[{}@{}]",
+      moduleContext.getName(),
+      moduleContext.module.getCompilationStage()
+    )
+    var pendingMiniPasses: List[MiniPassFactory] = List()
+    def flushMiniPass(in: Module): Module = {
+      if (pendingMiniPasses.nonEmpty) {
+        val miniPasses = pendingMiniPasses.map(factory =>
+          factory.createForModuleCompilation(newContext)
+        )
+        val combinedPass = miniPasses.fold(null)(MiniIRPass.combine)
+        logger.trace("  flushing pending mini pass: {}", combinedPass)
+        pendingMiniPasses = List()
+        MiniIRPass.compile(classOf[Module], in, combinedPass)
+      } else {
+        in
+      }
+    }
+    val res = passesWithIndex.foldLeft(ir) {
       case (intermediateIR, (pass, index)) => {
         // TODO [AA, MK] This is a possible race condition.
         passConfiguration
@@ -100,13 +121,36 @@ class PassManager(
 
         pass match {
           case miniFactory: MiniPassFactory =>
-            val miniPass = miniFactory.createForModuleCompilation(newContext)
-            MiniIRPass.compile(classOf[Module], intermediateIR, miniPass)
+            logger.trace(
+              "  mini collected: {}",
+              pass
+            )
+            val combiningPreventedBy = pendingMiniPasses.find { p =>
+              p.asInstanceOf[IRPass].invalidatedPasses.contains(miniFactory)
+            }
+            val irForRemainingMiniPasses = if (combiningPreventedBy.isDefined) {
+              logger.trace(
+                "  pass {} forces flush before {}",
+                combiningPreventedBy.orNull,
+                miniFactory
+              )
+              flushMiniPass(intermediateIR)
+            } else {
+              intermediateIR
+            }
+            pendingMiniPasses = pendingMiniPasses.appended(miniFactory)
+            irForRemainingMiniPasses
           case _ =>
-            pass.runModule(intermediateIR, newContext)
+            val flushedIR = flushMiniPass(intermediateIR)
+            logger.trace(
+              "  mega running: {}",
+              pass
+            )
+            pass.runModule(flushedIR, newContext)
         }
       }
     }
+    flushMiniPass(res)
   }
 
   /** Executes all passes on the [[Expression]].
@@ -157,11 +201,7 @@ class PassManager(
         pass match {
           case miniFactory: MiniPassFactory =>
             val miniPass = miniFactory.createForInlineCompilation(newContext)
-            MiniIRPass.compile(
-              classOf[Expression],
-              intermediateIR,
-              miniPass
-            )
+            MiniIRPass.compile(classOf[Expression], intermediateIR, miniPass)
           case _ =>
             pass.runExpression(intermediateIR, newContext)
         }
