@@ -153,9 +153,11 @@ add_specs suite_builder =
             Data.clear_response_cache
 
             HTTP.fetch uri0 . decode_as_text . should_equal uri0_body
-            get_num_response_cache_entries
+            get_num_response_cache_entries . should_equal 1
             HTTP.fetch uri0 . decode_as_text . should_equal uri0_body
+            get_num_response_cache_entries . should_equal 1
             HTTP.fetch uri1 . decode_as_text . should_equal uri1_body
+            get_num_response_cache_entries . should_equal 2
             HTTP.fetch uri1 . decode_as_text . should_equal uri1_body
             get_num_response_cache_entries . should_equal 2
 
@@ -390,12 +392,16 @@ add_specs suite_builder =
                 url = base_url_with_slash+'test_download?omit-content-length=1&length=110'
                 Data.fetch url . should_fail_with (Response_Too_Large.Error 101 100 url)
 
-        ##
-            group_builder.specify "Deletes the temporary file created for a too-large file with no content-length" pending=pending_has_url <| Test.with_retries <|
-            group_builder.specify "Deleted cache files that have an open input stream connected to them are still readable" pending=pending_has_url <| Test.with_retries <|
-            group_builder.specify "ResponseTooLargeException does not contain any secrets" pending=pending_has_url <| Test.with_retries <|
+        group_builder.specify "Should not cache if the request fails" pending=pending_has_url <| Test.with_retries <|
+            Data.clear_response_cache
 
-            group_builder.specify "Should not cache if the request fails" pending=pending_has_url <| Test.with_retries <|
+            HTTP.fetch uri0
+            get_num_response_cache_entries . should_equal 1
+            HTTP.fetch base_url_with_slash+'crash'
+            get_num_response_cache_entries . should_equal 1
+
+        ##
+            group_builder.specify "ResponseTooLargeException does not contain any secrets" pending=pending_has_url <| Test.with_retries <|
             group_builder.specify "Should work with secrets in the URI" pending=pending_has_url <| Test.with_retries <|
             group_builder.specify "Should work with secrets in the headers" pending=pending_has_url <| Test.with_retries <|
             group_builder.specify "Cache state should be consistent" pending=pending_has_url <| Test.with_retries <|
