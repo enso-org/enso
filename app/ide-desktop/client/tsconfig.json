@@ -1,5 +1,5 @@
 {
-  "extends": "../../tsconfig.json",
+  "extends": "../../../tsconfig.json",
   "compilerOptions": {
     "esModuleInterop": true,
     "paths": { "@/*": ["./src/*"] }
@@ -10,6 +10,5 @@
     "../types",
     "../../build.json",
     "src/config.json"
-  ],
-  "references": [{ "path": "../../dashboard" }]
+  ]
 }

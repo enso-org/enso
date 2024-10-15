@@ -41,12 +41,10 @@ add_specs spec_builder =
             obj = Priv_Type.create 42
             obj.get_data . should_equal 42
 
-        group_builder.specify "cannot get private field from JS" pending=pending_js_missing <|
+        group_builder.specify "can get private field from JS" pending=pending_js_missing <|
             obj = Priv_Type.create 42
-            # When JS tries to access a private field, it does not throw a panic, as it does not
-            # see the field. It returns undefined.
             ret = js_access_field obj
-            ret.is_nothing . should_be_true
+            ret.should_equal 42
 
         group_builder.specify "can call private constructor via public factory method from JS" pending=pending_js_missing <|
             create_fn x = Priv_Type.create x

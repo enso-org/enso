@@ -64,6 +64,10 @@ secrets_api = cloud_root_uri + "secrets"
 datalinks_api = cloud_root_uri + "datalinks"
 
 ## PRIVATE
+   Root address for managing labels.
+tags_api = cloud_root_uri + "tags"
+
+## PRIVATE
    Flushes all cloud caches, including the authentication data
    (so the next request will re-read the credentials file).
 flush_caches : Nothing

@@ -1,7 +1,9 @@
 from Standard.Base import all
+import Standard.Base.Enso_Cloud.Data_Link.Data_Link
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Ref.Ref
+from Standard.Base.Enso_Cloud.Data_Link_Helpers import secure_value_to_json
 
 from Standard.Table import Table, Value_Type, Aggregate_Column, Bits, expr
 from Standard.Table.Errors import Invalid_Column_Names, Inexact_Type_Coercion, Duplicate_Output_Column_Names
@@ -9,6 +11,7 @@ from Standard.Table.Errors import Invalid_Column_Names, Inexact_Type_Coercion, D
 import Standard.Database.DB_Column.DB_Column
 import Standard.Database.DB_Table.DB_Table
 import Standard.Database.Feature.Feature
+import Standard.Database.Dialect_Flag.Dialect_Flag
 import Standard.Database.SQL_Type.SQL_Type
 import Standard.Database.Internal.Replace_Params.Replace_Params
 from Standard.Database import all
@@ -20,6 +23,7 @@ from Standard.Test import all
 import Standard.Test.Test_Environment
 
 import enso_dev.Table_Tests
+import enso_dev.Table_Tests.Database.Common.Audit_Spec
 import enso_dev.Table_Tests.Database.Common.Common_Spec
 import enso_dev.Table_Tests.Database.Common.IR_Spec
 import enso_dev.Table_Tests.Database.Transaction_Spec
@@ -531,7 +535,7 @@ add_snowflake_specs suite_builder create_connection_fn db_name =
         default_connection.get.base_connection.create_literal_table (Table.new columns) "literal_table"
     materialize = .read
 
-    common_selection = Common_Table_Operations.Main.Test_Selection.Config supports_case_sensitive_columns=True order_by_unicode_normalization_by_default=True allows_mixed_type_comparisons=False text_length_limited_columns=True fixed_length_text_columns=False different_size_integer_types=False removes_trailing_whitespace_casting_from_char_to_varchar=False supports_decimal_type=True supported_replace_params=supported_replace_params run_advanced_edge_case_tests_by_default=False supports_date_time_without_timezone=True supports_nanoseconds_in_time=True is_nan_comparable=True distinct_returns_first_row_from_group_if_ordered=False
+    common_selection = Common_Table_Operations.Main.Test_Selection.Config order_by_unicode_normalization_by_default=True allows_mixed_type_comparisons=False text_length_limited_columns=True fixed_length_text_columns=False different_size_integer_types=False removes_trailing_whitespace_casting_from_char_to_varchar=False supports_decimal_type=True supported_replace_params=supported_replace_params run_advanced_edge_case_tests_by_default=False supports_date_time_without_timezone=True supports_nanoseconds_in_time=True is_nan_comparable=True distinct_returns_first_row_from_group_if_ordered=False
     aggregate_selection = Common_Table_Operations.Aggregate_Spec.Test_Selection.Config first_last_row_order=False aggregation_problems=False text_concat=False
     agg_in_memory_table = ((Project_Description.new enso_dev.Table_Tests).data / "data.csv") . read
 
@@ -542,8 +546,9 @@ add_snowflake_specs suite_builder create_connection_fn db_name =
         (agg_in_memory_table.take (..First 0)).select_into_database_table default_connection.get (Name_Generator.random_name "Agg_Empty") primary_key=Nothing temporary=True
 
     is_feature_supported_fn feature:Feature = default_connection.get.dialect.is_feature_supported feature
+    flagged_fn = default_connection.get.dialect.flagged
 
-    setup = Common_Table_Operations.Main.Test_Setup.Config prefix agg_table_fn empty_agg_table_fn table_builder materialize is_database=True test_selection=common_selection aggregate_test_selection=aggregate_selection create_connection_func=create_connection_fn light_table_builder=light_table_builder is_integer_type=is_snowflake_integer is_feature_supported=is_feature_supported_fn
+    setup = Common_Table_Operations.Main.Test_Setup.Config prefix agg_table_fn empty_agg_table_fn table_builder materialize is_database=True test_selection=common_selection aggregate_test_selection=aggregate_selection create_connection_func=create_connection_fn light_table_builder=light_table_builder is_integer_type=is_snowflake_integer is_feature_supported=is_feature_supported_fn flagged=flagged_fn
 
     Common_Spec.add_specs suite_builder prefix create_connection_fn default_connection setup
     snowflake_specific_spec suite_builder default_connection db_name setup
@@ -567,15 +572,42 @@ supported_replace_params =
     e4 = [Replace_Params.Value DB_Column Case_Sensitivity.Default False, Replace_Params.Value DB_Column Case_Sensitivity.Sensitive False]
     Hashset.from_vector <| e0 + e1 + e2 + e3 + e4
 
+transform_file base_file connection_details =
+    content = Data_Link.read_raw_config base_file
+
+    if connection_details.credentials.password.is_a Enso_Secret then
+        Panic.throw (Illegal_State.Error "Currently Snowflake tests need a plaintext password in environment variable to run.")
+
+    new_content = content
+        . replace "ACCOUNT" connection_details.account
+        . replace "DBNAME" connection_details.database
+        . replace "SCHEMA" connection_details.schema
+        . replace "WAREHOUSE" connection_details.warehouse
+        . replace "USERNAME" connection_details.credentials.username
+        . replace "PASSWORD" connection_details.credentials.password
+
+    temp_file = File.create_temporary_file "snowflake-test-db" ".datalink"
+    Data_Link.write_raw_config temp_file new_content replace_existing=True . if_not_error temp_file
+
+type Temporary_Data_Link_File
+    Value ~get
+
+    make connection_details = Temporary_Data_Link_File.Value <|
+        transform_file (enso_project.data / "datalinks" / "snowflake-db.datalink") connection_details
+
 add_table_specs suite_builder =
-    case create_connection_builder of
+    case get_configured_connection_details of
         Nothing ->
             message = "Snowflake test connection is not configured. See README.md for instructions."
             suite_builder.group "[Snowflake] Database tests" pending=message (_-> Nothing)
-        connection_builder ->
-            db_name = get_configured_connection_details.database
+        connection_details ->
+            db_name = connection_details.database
+            connection_builder = _ -> Database.connect connection_details
             add_snowflake_specs suite_builder connection_builder db_name
             Transaction_Spec.add_specs suite_builder connection_builder "[Snowflake] "
+
+            data_link_file = Temporary_Data_Link_File.make connection_details
+            Audit_Spec.add_specs suite_builder "[Snowflake] " data_link_file.get database_pending=Nothing
 
             suite_builder.group "[Snowflake] Secrets in connection settings" group_builder->
                 cloud_setup = Cloud_Tests_Setup.prepare
@@ -622,14 +654,6 @@ get_configured_connection_details = Panic.rethrow <|
         resolved_password = if password.starts_with "enso://" then Enso_Secret.get password else password
         credentials = Credentials.Username_And_Password user resolved_password
         Snowflake_Details.Snowflake account_name credentials database schema warehouse
-
-## Returns a function that takes anything and returns a new connection.
-   The function creates a _new_ connection on each invocation
-   (this is needed for some tests that need multiple distinct connections).
-create_connection_builder =
-    connection_details = get_configured_connection_details
-    connection_details.if_not_nothing <|
-        _ -> Database.connect connection_details
 
 add_specs suite_builder =
     add_table_specs suite_builder

@@ -4,13 +4,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.net.URI;
 import java.util.Set;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.junit.After;
@@ -78,10 +76,9 @@ public class TypeMembersTest {
     assertEquals("seven check", 7, seven.asInt());
     assertEquals("three check", 3, three.asInt());
 
-    assertMembers("Keys in list1", false, headAtom, "head", "tail", "is_empty");
-    assertMembers("Keys in list2", false, endAtom, "head", "tail", "is_empty");
-    assertMembers("Keys in list1", false, headAtom, "h", "t");
-    assertMembers("Keys in list2", true, endAtom, "h", "t");
+    assertMembers("Keys in list1", headAtom, "head", "tail", "is_empty");
+    assertMembers("Keys in list2", endAtom, "head", "tail", "is_empty");
+    assertMembers("Keys in list1", headAtom, "h", "t");
   }
 
   @Test
@@ -105,24 +102,15 @@ public class TypeMembersTest {
 
     var module = ctx.eval(src);
     var compileError = module.invokeMember("eval_expression", "v");
-    assertEquals("all members", compileError.getMemberKeys(), Set.of("to_display_text", "message"));
+    assertEquals("all members", Set.of("to_display_text", "message"), compileError.getMemberKeys());
   }
 
-  private static void assertMembers(String msg, boolean invokeFails, Value v, String... keys) {
+  private static void assertMembers(String msg, Value v, String... keys) {
     var realKeys = v.getMemberKeys();
     for (var k : keys) {
       assertTrue(msg + " - found " + k + " in " + realKeys, realKeys.contains(k));
       assertTrue(msg + " - has member " + k, v.hasMember(k));
-      if (invokeFails) {
-        try {
-          v.invokeMember(k);
-          fail("Invoking " + k + " on " + v + " shall fail");
-        } catch (PolyglotException ex) {
-          assertEquals("Field `" + k + "` of IntList could not be found.", ex.getMessage());
-        }
-      } else {
-        assertNotNull(msg + " - can be invoked", v.invokeMember(k));
-      }
+      assertNotNull(msg + " - can be invoked", v.invokeMember(k));
     }
   }
 }

@@ -261,6 +261,78 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
         (Enso_File.root / "test-directory" / "non-existent") . is_descendant_of (Enso_File.root / "test-directory") . should_be_true
         (Enso_File.root / "test-directory") . is_descendant_of (Enso_File.root / "test-directory" / "non-existent") . should_be_false
 
+    group_builder.specify "supports partial metadata for directories" <|
+        dir = test_root.get / "test-directory"
+        dir.last_modified_time.should_be_a Date_Time
+
+        # TODO this test should be 'reversed' and merged with above once the metadata is implemented
+        dir.creation_time.should_fail_with Illegal_Argument
+
+    group_builder.specify "should be able to read and modify asset description" <|
+        nested_file = test_root.get / "test-directory" / "another.txt"
+        nested_file.description . should_equal ""
+
+        my_description = "This is a test file."
+        nested_file.set_description my_description . should_equal nested_file
+        nested_file.description . should_equal my_description
+
+        # We can also set description back to empty
+        nested_file.set_description "" . should_equal nested_file
+        nested_file.description . should_equal ""
+
+        Context.Output.with_disabled <|
+            nested_file.set_description "ABC" . should_fail_with Forbidden_Operation
+
+    group_builder.specify "should be able to get and modify labels on assets" <|
+        f = test_root.get / "test_file.json"
+        f.labels . should_equal []
+
+        f.set_labels ["A", "B", "C", "D"] . should_equal f
+        f.labels . should_equal_ignoring_order ["A", "B", "C", "D"]
+
+        f.add_label "E" . should_equal f
+        f.add_label "A" . should_equal f
+        f.labels . should_equal_ignoring_order ["A", "B", "C", "D", "E"]
+
+        f.remove_label "B" . should_equal True
+        f.remove_label "C" . should_equal True
+        f.labels . should_equal_ignoring_order ["A", "D", "E"]
+
+        f.remove_label "non-existent" . should_equal False
+        # B is also already removed
+        f.remove_label "B" . should_equal False
+        f.labels . should_equal_ignoring_order ["A", "D", "E"]
+
+        Context.Output.with_disabled <|
+            # Adding new label with disabled context fails
+            f.add_label "new" . should_fail_with Forbidden_Operation
+
+            # Removing a label that is there also fails
+            f.remove_label "A" . should_fail_with Forbidden_Operation
+
+            f.labels . should_equal_ignoring_order ["A", "D", "E"]
+
+            # But adding a label that is already there or removing one that is not (so no effective change), succeeds:
+            f.add_label "A" . should_equal f
+            f.remove_label "non-existent" . should_equal False
+
+    group_builder.specify "can get and set metadata on just-created asset" <|
+        ## This is a bit of a white-box test - we know that just-created assets are cached without metadata,
+           so we want to test this case to ensure nothing breaks here.
+        f = (test_root.get / "my-directory-for-metadata").create_directory
+        f.should_succeed
+
+        f.description . should_equal ""
+        f.labels . should_equal []
+
+        f.set_description "ABC" . should_succeed
+        f.description . should_equal "ABC"
+
+        # Also test setting metadata before querying it:
+        g = (test_root.get / "my-directory-for-metadata-2").create_directory
+        g.set_labels ["A"] . should_succeed
+        g.labels . should_equal ["A"]
+
     group_builder.specify "allows / as well as .. and . in resolve" <|
         (Enso_File.root / "a/b/c") . should_equal (Enso_File.root / "a" / "b" / "c")
         (Enso_File.root / "a///b/c") . should_equal (Enso_File.root / "a" / "b" / "c")
@@ -284,21 +356,6 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
 
         # If the `~` is not at the beginning, it is not resolved
         Enso_File.new "enso://a/b/c/~" . should_not_equal Enso_File.home
-
-    group_builder.specify "currently does not support metadata for directories" <|
-        # TODO this test should be 'reversed' and merged with above once the metadata is implemented
-        dir = test_root.get / "test-directory"
-        dir.creation_time.should_fail_with Illegal_Argument
-        dir.last_modified_time.should_fail_with Illegal_Argument
-
-    group_builder.specify "should be able to read other file metadata" pending="TODO needs further design" <|
-        nested_file = test_root.get / "test-directory" / "another.txt"
-
-        nested_file.is_absolute.should_be_true
-        nested_file.absolute . should_equal nested_file
-        nested_file.normalize . should_equal nested_file
-        nested_file.posix_permissions . should_be_a File_Permissions
-        nested_file.is_writable . should_be_a Boolean
 
     Local_File_Spec.add_create_and_delete_directory_specs group_builder test_root.get
     Local_File_Spec.add_copy_edge_cases_specs group_builder test_root.get

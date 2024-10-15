@@ -1,0 +1,31 @@
+from Standard.Base import all
+
+from Standard.Test import all
+import Standard.Test.Test_Reporter
+
+add_specs suite_builder = suite_builder.group "Test Reporter running on GitHub" group_builder->
+    file = (enso_project.root / "src" / "test-file.enso") . absolute . normalize
+    file_relative_to_repo_root = (File.new "test") / "Base_Internal_Tests" / "src" / "test-file.enso"
+    group_builder.specify "should correctly parse error message" <|
+        message = "[False, False, False, True] did not equal [False, False, True, True]; first difference at index 2  (at "+file.path+":1:13-110)."
+        line = Test_Reporter.generate_github_error_annotation 'Test, and\n special characters' message
+        line.should_equal "::error title=Test%2C and%0A special characters,file="+file_relative_to_repo_root.path+",line=1,col=13,endColumn=110::[False, False, False, True] did not equal [False, False, True, True]; first difference at index 2  (at "+file.path+":1:13-110)."
+
+    group_builder.specify "should be able to parse dashes" <|
+        message = "test failure (at "+file.path+":1-2:3-4)."
+        line = Test_Reporter.generate_github_error_annotation "Test" message
+        line.should_equal "::error title=Test,file="+file_relative_to_repo_root.path+",line=1,endLine=2,col=3,endColumn=4::test failure (at "+file.path+":1-2:3-4)."
+
+        message2 = "test failure (at "+file.path+":1234-5678:91011-121314)."
+        line2 = Test_Reporter.generate_github_error_annotation "Test" message2
+        line2.should_equal "::error title=Test,file="+file_relative_to_repo_root.path+",line=1234,endLine=5678,col=91011,endColumn=121314::test failure (at "+file.path+":1234-5678:91011-121314)."
+
+    group_builder.specify "should be able to parse no dashes" <|
+        message = "test failure (at "+file.path+":1234:7)."
+        line = Test_Reporter.generate_github_error_annotation "Test" message
+        line.should_equal "::error title=Test,file="+file_relative_to_repo_root.path+",line=1234,col=7::test failure (at "+file.path+":1234:7)."
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter
