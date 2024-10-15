@@ -411,7 +411,7 @@ add_specs suite_builder =
                     secret1.delete
                     secret2.delete
                 Panic.with_finalizer cleanup <|
-                    # Requests differ only in secrets
+                    # Requests differ only in secrets in URI.
                     uri1 = URI.from 'https://httpbin.org/bytes/50'
                         . add_query_argument "arg1" secret1
                         . add_query_argument "arg2" "plain value"
@@ -433,10 +433,8 @@ add_specs suite_builder =
                     secret1.delete
                     secret2.delete
                 Panic.with_finalizer cleanup <|
-                    # Requests differ only in secrets
+                    # Requests differ only in secrets in headers.
                     uri = URI.from 'https://httpbin.org/bytes/50'
-                        . add_query_argument "arg1" secret1
-                        . add_query_argument "arg2" "plain value"
                     headers1 = [Header.new "A-Header" secret1]
                     headers2 = [Header.new "A-Header" secret2]
 
@@ -446,8 +444,18 @@ add_specs suite_builder =
                     HTTP.fetch headers=headers2 uri
                     get_num_response_cache_entries . should_equal 2
 
+        group_builder.specify "ResponseTooLargeException does not contain any secrets" pending=pending_has_url <| Test.with_retries <|
+            cloud_setup.with_prepared_environment <|
+                secret1 = Enso_Secret.create "http-cache-secret-1-"+Random.uuid "My Value"
+                cleanup =
+                    secret1.delete
+                Panic.with_finalizer cleanup <| Panic.with_finalizer reset_size_limits <|
+                    reset_size_limits
+                    TransientHTTPResponseCache.setMaxFileSizeOverrideTestOnly 10
+                    uri1 = URI.from 'https://httpbin.org/bytes/50'
+                        . add_query_argument "arg1" secret1
+                    HTTP.fetch uri1 . should_fail_with (Response_Too_Large.Error 50 10 'https://httpbin.org/bytes/50?arg1=__SECRET__')
 
         ##
-            group_builder.specify "ResponseTooLargeException does not contain any secrets" pending=pending_has_url <| Test.with_retries <|
             group_builder.specify "Cache state should be consistent" pending=pending_has_url <| Test.with_retries <|
                 # Check that map matches files on disk
