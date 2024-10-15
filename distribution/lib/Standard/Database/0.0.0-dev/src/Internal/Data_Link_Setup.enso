@@ -40,10 +40,10 @@ type Data_Link_Setup
         Data_Link_Setup.Unavailable cause ->
             Error.throw (Illegal_Argument.Error "Cannot save connection as Data Link: "+cause)
 
-## PRIVATE
-save_credentials_for_data_link data_link_location:Enso_File credentials:Credentials -> JS_Object =
-    # A plain text is automatically promoted to a secret.
-    secret_password = save_password_for_data_link data_link_location credentials.password
+    ## PRIVATE
+    save_credentials_for_data_link data_link_location:Enso_File credentials:Credentials -> JS_Object =
+        # A plain text is automatically promoted to a secret.
+        secret_password = save_password_for_data_link data_link_location credentials.password
 
-    # But we keep the username as-is - if it was in plain text, it will stay in plain text.
-    JS_Object.from_pairs [["username", secure_value_to_json credentials.username], ["password", secure_value_to_json secret_password]]
+        # But we keep the username as-is - if it was in plain text, it will stay in plain text.
+        JS_Object.from_pairs [["username", secure_value_to_json credentials.username], ["password", secure_value_to_json secret_password]]
