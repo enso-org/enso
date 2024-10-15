@@ -120,7 +120,7 @@ add_specs suite_builder =
             counts . should_equal expected_counts frames_to_skip=1
 
         get_cache_file_sizes : Vector Integer
-        get_cache_file_sizes -> Vector Integer = 
+        get_cache_file_sizes -> Vector Integer =
             Vector.from_polyglot_array TransientHTTPResponseCache.getFileSizesTestOnly . sort Sort_Direction.Ascending
 
         url0 = base_url_with_slash+'test_download?max-age=16&length=10'
