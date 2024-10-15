@@ -4,10 +4,7 @@ import com.sun.net.httpserver.HttpExchange;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
 import org.apache.http.client.utils.URIBuilder;
 import org.enso.shttp.SimpleHttpHandler;
 
@@ -23,22 +20,22 @@ public class DownloadTestHandler extends SimpleHttpHandler {
     String age = null;
     boolean omitContentLength = false;
     for (var queryPair : builder.getQueryParams()) {
-        if (queryPair.getName().equals("length")) {
-            length = Integer.parseInt(queryPair.getValue());
-        } else if (queryPair.getName().equals("max-age")) {
-            maxAge = queryPair.getValue();
-        } else if (queryPair.getName().equals("age")) {
-            age = queryPair.getValue();
-        } else if (queryPair.getName().equals("omit-content-length")) {
-          omitContentLength = true;
-        }
+      if (queryPair.getName().equals("length")) {
+        length = Integer.parseInt(queryPair.getValue());
+      } else if (queryPair.getName().equals("max-age")) {
+        maxAge = queryPair.getValue();
+      } else if (queryPair.getName().equals("age")) {
+        age = queryPair.getValue();
+      } else if (queryPair.getName().equals("omit-content-length")) {
+        omitContentLength = true;
+      }
     }
 
     byte responseData[] = new byte[length];
     Arrays.fill(responseData, (byte) 97);
 
     if (maxAge != null) {
-      exchange.getResponseHeaders().add("Cache-Control", "max-age="+maxAge);
+      exchange.getResponseHeaders().add("Cache-Control", "max-age=" + maxAge);
     }
 
     if (age != null) {

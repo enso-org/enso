@@ -1,14 +1,18 @@
 package org.enso.base.enso_cloud;
 
 public class ResponseTooLargeException extends Exception {
-    private final long size;
-    private final long limit;
-    private final String url;
+  private final long size;
+  private final long limit;
+  private final String url;
 
   public ResponseTooLargeException(long size, long limit, String url) {
     super(
-        "Response too large: repsonse size (" + size + ") is over the limit (" + limit + ")" +
-            (url == null ? "" : "(URL " + url + ")"));
+        "Response too large: repsonse size ("
+            + size
+            + ") is over the limit ("
+            + limit
+            + ")"
+            + (url == null ? "" : "(URL " + url + ")"));
 
     this.size = size;
     this.limit = limit;

@@ -11,7 +11,6 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Properties;
-
 import org.enso.base.net.URISchematic;
 import org.enso.base.net.URIWithSecrets;
 import org.graalvm.collections.Pair;
@@ -60,22 +59,32 @@ public final class EnsoSecretHelper extends SecretValueResolver {
       URIWithSecrets uri,
       List<Pair<String, HideableValue>> headers,
       boolean useCache)
-      throws IllegalArgumentException, IOException, InterruptedException, ResponseTooLargeException {
+      throws IllegalArgumentException,
+          IOException,
+          InterruptedException,
+          ResponseTooLargeException {
 
     // Build a new URI with the query arguments.
     URI resolvedURI = resolveURI(uri);
 
-    List<Pair<String, String>> resolvedHeaders = headers.stream().map(pair -> {
-      return Pair.create(pair.getLeft(), resolveValue(pair.getRight()));
-    }).toList();
+    List<Pair<String, String>> resolvedHeaders =
+        headers.stream()
+            .map(
+                pair -> {
+                  return Pair.create(pair.getLeft(), resolveValue(pair.getRight()));
+                })
+            .toList();
 
     TransientHTTPResponseCache.RequestMaker requestMaker =
-      () -> makeRequestWithResolvedSecrets(client, builder, uri, resolvedURI, headers, resolvedHeaders);
+        () ->
+            makeRequestWithResolvedSecrets(
+                client, builder, uri, resolvedURI, headers, resolvedHeaders);
 
     if (!useCache) {
       return requestMaker.run();
     } else {
-      return TransientHTTPResponseCache.makeRequest(uri, resolvedURI, resolvedHeaders, requestMaker);
+      return TransientHTTPResponseCache.makeRequest(
+          uri, resolvedURI, resolvedHeaders, requestMaker);
     }
   }
 

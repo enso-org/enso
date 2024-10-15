@@ -117,7 +117,7 @@ public final class ArrayLikeHelpers {
   public static Object newVectorBuilder(long capacity) {
     return ArrayBuilder.newBuilder((int) Math.min(Math.abs(capacity), Integer.MAX_VALUE));
   }
- 
+
   public static EnsoObject wrapBuffer(ByteBuffer buffer) {
     return ArrayOverBuffer.wrapBuffer(buffer);
   }
