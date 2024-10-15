@@ -1,6 +1,4 @@
 /** @file A context menu available everywhere in the directory. */
-import * as React from 'react'
-
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -16,6 +14,7 @@ import UpsertSecretModal from '#/modals/UpsertSecretModal'
 
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
+import { inputFiles } from '#/utilities/input'
 
 /** Props for a {@link GlobalContextMenu}. */
 export interface GlobalContextMenuProps {
@@ -45,24 +44,14 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
       <ContextMenuEntry
         hidden={hidden}
         action="uploadFiles"
-        doAction={() => {
-          const input = document.createElement('input')
-          input.type = 'file'
-          input.style.display = 'none'
-          document.body.appendChild(input)
-          input.addEventListener('input', () => {
-            if (input.files != null) {
-              dispatchAssetListEvent({
-                type: AssetListEventType.uploadFiles,
-                parentKey: directoryKey ?? rootDirectoryId,
-                parentId: directoryId ?? rootDirectoryId,
-                files: Array.from(input.files),
-              })
-              unsetModal()
-            }
+        doAction={async () => {
+          const files = await inputFiles()
+          dispatchAssetListEvent({
+            type: AssetListEventType.uploadFiles,
+            parentKey: directoryKey ?? rootDirectoryId,
+            parentId: directoryId ?? rootDirectoryId,
+            files: Array.from(files),
           })
-          input.click()
-          input.remove()
         }}
       />
       <ContextMenuEntry
