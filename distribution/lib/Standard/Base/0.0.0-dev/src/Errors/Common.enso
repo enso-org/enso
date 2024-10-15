@@ -574,4 +574,4 @@ type Response_Too_Large
     ## PRIVATE
        Convert the Java exception to an Enso dataflow error.
     handle_java_exception ~action =
-        Panic.catch ResponseTooLargeException  action (cause-> Error.throw (Response_Too_Large cause.getSize cause.getLimit cause.getURL))
+        Panic.catch ResponseTooLargeException action (cause-> Error.throw (Response_Too_Large.Error cause.payload.getSize cause.payload.getLimit cause.payload.getURL))

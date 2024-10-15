@@ -103,7 +103,8 @@ add_specs suite_builder =
             r4.should_equal (Table.from_rows ["Column 1"] [["A,B"], ["1,x"], ["3,y"]])
 
     suite_builder.group "Response caching" pending=pending_has_url group_builder->
-        get_num_response_cache_entries = TransientHTTPResponseCache.getNumEntries
+        get_num_response_cache_entries =
+            TransientHTTPResponseCache.getNumEntries
         with_counts ~action =
             before_count = get_num_response_cache_entries 
             action
@@ -152,6 +153,7 @@ add_specs suite_builder =
             Data.clear_response_cache
 
             HTTP.fetch uri0 . decode_as_text . should_equal uri0_body
+            get_num_response_cache_entries
             HTTP.fetch uri0 . decode_as_text . should_equal uri0_body
             HTTP.fetch uri1 . decode_as_text . should_equal uri1_body
             HTTP.fetch uri1 . decode_as_text . should_equal uri1_body
@@ -341,22 +343,46 @@ add_specs suite_builder =
             Data.fetch base_url_with_slash+'test_download?length='+size.to_text
 
         group_builder.specify "Will remove old cache files to keep the total cache size under the total cache size limit" pending=pending_has_url <| Test.with_retries <|
-            reset_size_limits
-            TransientHTTPResponseCache.setMaxTotalCacheSizeOverrideTestOnly 100
-            download 30
-            download 50
-            download 10
-            http_get_file_sizes_test_only . should_equal [10, 30, 50]
-            download 20
-            http_get_file_sizes_test_only . should_equal [10, 20, 50]
+            Panic.with_finalizer reset_size_limits <|
+                reset_size_limits
+                TransientHTTPResponseCache.setMaxTotalCacheSizeOverrideTestOnly 100
+
+                download 30
+                download 50
+                download 10
+                http_get_file_sizes_test_only . should_equal [10, 30, 50]
+                download 20
+                http_get_file_sizes_test_only . should_equal [10, 20, 50]
+                download 40
+                http_get_file_sizes_test_only . should_equal [10, 20, 40]
+                download 35
+                http_get_file_sizes_test_only . should_equal [20, 35, 40]
 
         group_builder.specify "Will remove old cache files based on how recently they were used" pending=pending_has_url <| Test.with_retries <|
+            Panic.with_finalizer reset_size_limits <|
+                reset_size_limits
+                TransientHTTPResponseCache.setMaxTotalCacheSizeOverrideTestOnly 100
+
+                download 30
+                download 50
+                download 10
+                http_get_file_sizes_test_only . should_equal [10, 30, 50]
+                # Use 30 again so it's considered more recently used.
+                download 30
+                http_get_file_sizes_test_only . should_equal [10, 30, 50]
+                download 20
+                http_get_file_sizes_test_only . should_equal [10, 20, 30]
+                download 45
+                http_get_file_sizes_test_only . should_equal [20, 30, 45]
 
         group_builder.specify "Will not download or cache a file with a content length greater than the single file limit" pending=pending_has_url <| Test.with_retries <|
-            reset_size_limits
-            TransientHTTPResponseCache.setMaxFileSizeOverrideTestOnly 100
-            download 110 . should_fail_with (Response_Too_Large.Error 110 100 base_url_with_slash+'test_download?length=110')
-
+            Panic.with_finalizer reset_size_limits <|
+                reset_size_limits
+                TransientHTTPResponseCache.setMaxFileSizeOverrideTestOnly 100
+                err = download 110 . catch
+                err.should_be_a Response_Too_Large
+                err.size . should_equal 110
+                err.limit . should_equal 100
 
         ##
             group_builder.specify "Will not download or cache a file without a content length, but which is greater than the single file limit" pending=pending_has_url <| Test.with_retries <|

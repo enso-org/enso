@@ -164,7 +164,7 @@ public class TransientHTTPResponseCache {
   /** Remove all cache entries (and their files) that have passed their TTL. */
   private static void removeStaleEntries() {
     var now = getNow();
-    System.out.println("AAA cleanup " + nowOverrideTestOnly);
+    //System.out.println("AAA cleanup " + nowOverrideTestOnly);
     //System.out.println("AAA cleanup " + cache);
     if (nowOverrideTestOnly != null) {
       for (var ce : cache.values()) {
@@ -172,12 +172,11 @@ public class TransientHTTPResponseCache {
         //System.out.println("AAA ce " + ex + " / " + Duration.between(ex, nowOverrAideTestOnly));
       }
     }
-    //removeCacheEntries(e -> e.expiry().isBefore(now));
-    removeCacheEntries(e -> {
+    removeCacheEntriesByPredicate(e -> {
       var stale = e.expiry().isBefore(now);
       var ex = e.expiry();
       if (nowOverrideTestOnly != null) {
-        System.out.println("AAA check stale " + stale + " " + Duration.between(nowOverrideTestOnly, ex) + " " + nowOverrideTestOnly + " " + ex);
+        //System.out.println("AAA check stale " + stale + " " + Duration.between(nowOverrideTestOnly, ex) + " " + nowOverrideTestOnly + " " + ex);
       }
       return stale;
     });
@@ -185,26 +184,33 @@ public class TransientHTTPResponseCache {
 
   /** Remove all cache entries (and their files). */
   public static void clear() {
-    removeCacheEntries(e -> true);
+    removeCacheEntriesByPredicate(e -> true);
   }
 
   /** Remove all cache entries (and their cache files) that match the predicate. */
-  private static void removeCacheEntries(Predicate<CacheEntry> predicate) {
-    for (Iterator<Map.Entry<String, CacheEntry>> it = cache.entrySet().iterator(); it.hasNext();) {
-      var entry = it.next();
-      var key = entry.getKey();
-      var cacheValue = entry.getValue();
-      boolean shouldRemove = predicate.test(cacheValue);
-      if (shouldRemove) {
-        System.out.println("AAA removing " + cacheValue);
-        it.remove();
-        removeCacheFile(key, cacheValue);
-        lastUsed.remove(key);
-      }
-    }
-    //System.out.println("AAA");
+  private static void removeCacheEntriesByPredicate(Predicate<CacheEntry> predicate) {
+    List<Map.Entry<String, CacheEntry>> toRemove = cache.entrySet().stream().filter(me -> predicate.test(me.getValue())).collect(Collectors.toList());
+    removeCacheEntries(toRemove);
   }
 
+  /** Remove a set of cache entries. */
+  private static void removeCacheEntries(List<Map.Entry<String, CacheEntry>> toRemove) {
+    for (var entry : toRemove) {
+      removeCacheEntry(entry);
+    }
+  }
+
+  /** Remove a cache entry: from `cache`, `lastUsed`, and the filesystem. */
+  private static void removeCacheEntry(Map.Entry<String, CacheEntry> toRemove) {
+    System.out.println("AAA removing " + toRemove);
+    var key = toRemove.getKey();
+    var value = toRemove.getValue();
+    cache.remove(key);
+    lastUsed.remove(key);
+    removeCacheFile(key, value);
+  }
+
+  /** Remove a cache file. */
   private static void removeCacheFile(String key, CacheEntry cacheEntry) {
     File file = new File(cacheEntry.responseDataPath);
     boolean removed = file.delete();
@@ -225,7 +231,7 @@ public class TransientHTTPResponseCache {
     var sortedEntries = getSortedEntries();
     var toRemove = new ArrayList<Map.Entry<String, CacheEntry>>();
     for (var mapEntry : sortedEntries) {
-      System.out.println("AAA entry " + mapEntry.getValue().expiry() + " " + mapEntry);
+      //System.out.println("AAA entry " + mapEntry.getValue().expiry() + " " + mapEntry);
     }
     for (var mapEntry : sortedEntries) {
       if (totalSize <= maxTotalCacheSize) {
@@ -236,12 +242,8 @@ public class TransientHTTPResponseCache {
       System.out.println("AAA will remove " + mapEntry.getValue().expiry() + " " + mapEntry.getValue().size() + " " + totalSize + " " + mapEntry);
     }
     assert totalSize <= maxTotalCacheSize;
-    for (var mapEntry : toRemove) {
-      cache.remove(mapEntry.getKey());
-      removeCacheFile(mapEntry.getKey(), mapEntry.getValue());
-      lastUsed.remove(key);
-    }
-    System.out.println("AAA total now " + getTotalCacheSize() + " " + maxTotalCacheSize);
+    removeCacheEntries(toRemove);
+    //System.out.println("AAA total now " + getTotalCacheSize() + " " + maxTotalCacheSize);
   }
 
   private static SortedSet<Map.Entry<String, CacheEntry>> getSortedEntries() {
@@ -336,7 +338,7 @@ public class TransientHTTPResponseCache {
       return DEFAULT_TTL_SECONDS;
     } else {
       int age = headers.firstValue("age").map(Integer::parseInt).orElse(0);
-      System.out.println("AAA calculateTTL " + maxAge + " " + age);
+      //System.out.println("AAA calculateTTL " + maxAge + " " + age);
       return maxAge - age;
     }
   }
@@ -368,7 +370,7 @@ public class TransientHTTPResponseCache {
       //System.out.println("AAA uri " + resolvedURI.toString());
       messageDigest.update(resolvedURI.toString().getBytes());
       for (Pair<String, String> resolvedHeader : resolvedHeaders) {
-        System.out.println("AAA header "+resolvedHeader.getLeft()+" "+resolvedHeader.getRight());
+        //System.out.println("AAA header "+resolvedHeader.getLeft()+" "+resolvedHeader.getRight());
         messageDigest.update(resolvedHeader.getLeft().getBytes());
         messageDigest.update(resolvedHeader.getRight().getBytes());
       }
