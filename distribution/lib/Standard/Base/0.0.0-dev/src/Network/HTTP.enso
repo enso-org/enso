@@ -204,31 +204,6 @@ type HTTP
     clear_response_cache : Nothing
     clear_response_cache -> Nothing = TransientHTTPResponseCache.clear
 
-##
-    ## PRIVATE
-    Returns the number of entries in the HTTP response cache. For testing only.
-    http_get_num_response_cache_entries : Integer
-    http_get_num_response_cache_entries -> Integer = TransientHTTPResponseCache.getNumEntries
-
-    ## PRIVATE
-    Adjust the value of the current time for testing the TTL logic
-    http_set_now_override_test_only : Date_Time -> Nothing
-    http_set_now_override_test_only now_override = TransientHTTPResponseCache.setNowOverrideTestOnly now_override
-
-    ## PRIVATE
-    Adjust the maximum cache file size.
-    http_set_max_file_size_test_only : Integer -> Nothing
-    http_set_max_file_size_test_only max_file_size:Integer = TransientHTTPResponseCache.setMaxFileSizeOverrideTestOnly http_set_max_file_size
-
-    ## PRIVATE
-    Adjust the maximum total cache size.
-    http_set_max_total_cache_size_test_only : Integer -> Nothing
-    http_set_max_total_cache_size_test_only total_cache_size:Integer = TransientHTTPResponseCache.setMaxTotalCacheSizeOverrideTestOnly total_cache_size
-
-http_get_file_sizes_test_only : Vector Integer
-http_get_file_sizes_test_only -> Vector Integer = 
-    Vector.from_polyglot_array TransientHTTPResponseCache.getFileSizesTestOnly . sort Sort_Direction.Ascending
-
 ## PRIVATE
 parse_headers : Vector (Header | Pair Text Text) -> Vector Header
 parse_headers headers =

@@ -7,7 +7,6 @@ import Standard.Base.Network.HTTP.Request.Request
 import Standard.Base.Network.HTTP.Request_Body.Request_Body
 import Standard.Base.Network.HTTP.Response.Response
 import Standard.Base.Runtime.Context
-from Standard.Base.Network.HTTP import http_get_file_sizes_test_only
 
 from Standard.Table import all
 import Standard.Table.Errors.Invalid_JSON_Format
@@ -119,6 +118,10 @@ add_specs suite_builder =
         expect_counts expected_counts ~action =
             counts = with_counts action
             counts . should_equal expected_counts frames_to_skip=1
+
+        get_cache_file_sizes : Vector Integer
+        get_cache_file_sizes -> Vector Integer = 
+            Vector.from_polyglot_array TransientHTTPResponseCache.getFileSizesTestOnly . sort Sort_Direction.Ascending
 
         url0 = base_url_with_slash+'test_download?max-age=16&length=10'
         url1 = base_url_with_slash+'test_download?max-age=16&length=20'
@@ -318,13 +321,13 @@ add_specs suite_builder =
                 download 30
                 download 50
                 download 10
-                http_get_file_sizes_test_only . should_equal [10, 30, 50]
+                get_cache_file_sizes . should_equal [10, 30, 50]
                 download 20
-                http_get_file_sizes_test_only . should_equal [10, 20, 50]
+                get_cache_file_sizes . should_equal [10, 20, 50]
                 download 40
-                http_get_file_sizes_test_only . should_equal [10, 20, 40]
+                get_cache_file_sizes . should_equal [10, 20, 40]
                 download 35
-                http_get_file_sizes_test_only . should_equal [20, 35, 40]
+                get_cache_file_sizes . should_equal [20, 35, 40]
 
         group_builder.specify "Will remove old cache files based on how recently they were used" pending=pending_has_url <| Test.with_retries <|
             Panic.with_finalizer reset_size_limits <|
@@ -334,14 +337,14 @@ add_specs suite_builder =
                 download 30
                 download 50
                 download 10
-                http_get_file_sizes_test_only . should_equal [10, 30, 50]
+                get_cache_file_sizes . should_equal [10, 30, 50]
                 # Use 30 again so it's considered more recently used.
                 download 30
-                http_get_file_sizes_test_only . should_equal [10, 30, 50]
+                get_cache_file_sizes . should_equal [10, 30, 50]
                 download 20
-                http_get_file_sizes_test_only . should_equal [10, 20, 30]
+                get_cache_file_sizes . should_equal [10, 20, 30]
                 download 45
-                http_get_file_sizes_test_only . should_equal [20, 30, 45]
+                get_cache_file_sizes . should_equal [20, 30, 45]
 
         group_builder.specify "Will not download or cache a file with a content length greater than the single file limit" pending=pending_has_url <| Test.with_retries <|
             Panic.with_finalizer reset_size_limits <|
@@ -364,6 +367,8 @@ add_specs suite_builder =
             HTTP.fetch url0
             get_num_response_cache_entries . should_equal 1
             HTTP.fetch base_url_with_slash+'crash'
+            get_num_response_cache_entries . should_equal 1
+            HTTP.fetch base_url_with_slash+'nonexistent_endpoint'
             get_num_response_cache_entries . should_equal 1
 
         cloud_setup = Cloud_Tests_Setup.prepare
@@ -420,7 +425,3 @@ add_specs suite_builder =
                     url1 = URI.from 'https://httpbin.org/bytes/50'
                         . add_query_argument "arg1" secret1
                     HTTP.fetch url1 . should_fail_with (Response_Too_Large.Error 50 10 'https://httpbin.org/bytes/50?arg1=__SECRET__')
-
-        ##
-            group_builder.specify "Cache state should be consistent" pending=pending_has_url <| Test.with_retries <|
-                # Check that map matches files on disk
