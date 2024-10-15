@@ -166,6 +166,7 @@ class Abstractor {
       }
       case RawAst.Tree.Type.Function: {
         const name = this.abstractTree(tree.name)
+        const private_ = tree.private && this.abstractToken(tree.private)
         const argumentDefinitions = Array.from(tree.args, arg => ({
           open: arg.open && this.abstractToken(arg.open),
           open2: arg.open2 && this.abstractToken(arg.open2),
@@ -184,7 +185,7 @@ class Abstractor {
         }))
         const equals = this.abstractToken(tree.equals)
         const body = tree.body !== undefined ? this.abstractTree(tree.body) : undefined
-        node = Function.concrete(this.module, name, argumentDefinitions, equals, body)
+        node = Function.concrete(this.module, private_, name, argumentDefinitions, equals, body)
         break
       }
       case RawAst.Tree.Type.Ident: {
