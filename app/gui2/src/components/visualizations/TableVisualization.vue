@@ -176,7 +176,11 @@ const pinnedTopRowData = computed(() => {
     return [
       {
         [INDEX_FIELD_NAME]: 'Data Quality',
-        Value: numberOfNothing[0],
+        Value: {
+          numberOfNothing: numberOfNothing[0] ?? null,
+          numberOfWhitespace: numberOfWhitespace[0] ?? null,
+          total,
+        },
       },
     ]
   }
@@ -343,7 +347,6 @@ const customCellRenderer = (params: any) => {
   if (params.node.rowPinned === 'top') {
     const nothingPerecent = (params.value.numberOfNothing / params.value.total) * 100
     const wsPerecent = (params.value.numberOfWhitespace / params.value.total) * 100
-
     const nothingVisibility = params.value.numberOfNothing === null ? 'hidden' : 'visible'
     const whitespaceVisibility = params.value.numberOfWhitespace === null ? 'hidden' : 'visible'
 
