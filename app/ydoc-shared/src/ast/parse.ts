@@ -31,7 +31,7 @@ import {
   type SourceRangeKey,
 } from '../yjsModel'
 import { graphParentPointers } from './debug'
-import { parse_module, parse_block, xxHash128 } from './ffi'
+import { parse_block, parse_module, xxHash128 } from './ffi'
 import * as RawAst from './generated/ast'
 import { MutableModule } from './mutableModule'
 import type { LazyObject } from './parserSupport'
@@ -635,7 +635,7 @@ export interface ParseOptions {
 /** Parse a block, and return it along with a mapping from source locations to parsed objects. */
 export function parseBlockWithSpans(
   code: string,
-  options: ParseOptions = {}
+  options: ParseOptions = {},
 ): { root: Owned<MutableBodyBlock>; spans: SpanMap } {
   const tree = options.context === 'block' ? parseEnsoBlock(code) : parseEnsoModule(code)
   const module = options.module ?? MutableModule.Transient()

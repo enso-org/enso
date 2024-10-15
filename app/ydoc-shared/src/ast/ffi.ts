@@ -6,7 +6,13 @@
 
 import { createXXHash128 } from 'hash-wasm'
 import type { IDataType } from 'hash-wasm/dist/lib/util'
-import { is_ident_or_operator, is_numeric_literal, parse_module, parse_block, parse_doc_to_json } from 'rust-ffi'
+import {
+  is_ident_or_operator,
+  is_numeric_literal,
+  parse_block,
+  parse_doc_to_json,
+  parse_module,
+} from 'rust-ffi'
 
 const xxHasher128 = await createXXHash128()
 export function xxHash128(input: IDataType) {
@@ -16,4 +22,4 @@ export function xxHash128(input: IDataType) {
 }
 
 /* eslint-disable-next-line camelcase */
-export { is_ident_or_operator, is_numeric_literal, parse_doc_to_json, parse_module, parse_block }
+export { is_ident_or_operator, is_numeric_literal, parse_block, parse_doc_to_json, parse_module }
