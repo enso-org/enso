@@ -122,6 +122,40 @@
   },
   "selectedYankedVersions": {},
   "moduleExtensions": {
+    "//:bazel_scripts/secrets.bzl%secrets": {
+      "general": {
+        "bzlTransitiveDigest": "ohtO/g2zVbvc2pT6feGQ4k/0wp+xnyj9O+c9v/ms5NM=",
+        "usagesDigest": "3hpxv0eRs/8Ch42CA3IlDYbd7Q0POHuNTyeyiUgxCRY=",
+        "recordedFileInputs": {},
+        "recordedDirentsInputs": {},
+        "envVariables": {},
+        "generatedRepoSpecs": {
+          "env": {
+            "bzlFile": "@@//:bazel_scripts/secrets.bzl",
+            "ruleClassName": "environment_secrets_rule",
+            "attributes": {
+              "entries": {
+                "BUILD_INFO_VERSION": "SNAPSHOT",
+                "BUILD_INFO_COMMIT_HASH": "SNAPSHOT",
+                "ENSO_CLOUD_ENVIRONMENT": "production",
+                "ENSO_CLOUD_API_URL": "<REQUIRED>",
+                "ENSO_CLOUD_CHAT_URL": "<REQUIRED>",
+                "ENSO_CLOUD_SENTRY_DSN": "<REQUIRED>",
+                "ENSO_CLOUD_STRIPE_KEY": "<REQUIRED>",
+                "ENSO_CLOUD_COGNITO_USER_POOL_ID": "<REQUIRED>",
+                "ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID": "<REQUIRED>",
+                "ENSO_CLOUD_COGNITO_DOMAIN": "<REQUIRED>",
+                "ENSO_CLOUD_COGNITO_REGION": "<REQUIRED>",
+                "PROJECT_MANAGER_URL": "",
+                "YDOC_SERVER_URL": "",
+                "CLOUD_BUILD": "false"
+              }
+            }
+          }
+        },
+        "recordedRepoMappingEntries": []
+      }
+    },
     "@@apple_support~//crosstool:setup.bzl%apple_cc_configure_extension": {
       "general": {
         "bzlTransitiveDigest": "Co35oEwSoYZFy42IHjYfE7VkKR1WykyxhRlbUGSa3XA=",

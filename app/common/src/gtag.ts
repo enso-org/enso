@@ -1,7 +1,7 @@
 /** @file Google Analytics tag. */
 import * as load from './load'
 
-const GOOGLE_ANALYTICS_TAG = process.env.ENSO_CLOUD_GOOGLE_ANALYTICS_TAG
+const GOOGLE_ANALYTICS_TAG = $config.GOOGLE_ANALYTICS_TAG
 
 if (GOOGLE_ANALYTICS_TAG != null) {
   void load.loadScript(`https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ANALYTICS_TAG}`)
@@ -17,8 +17,8 @@ window.dataLayer = window.dataLayer || []
 export function gtag(_action: 'config' | 'event' | 'js' | 'set', ..._args: unknown[]) {
   // @ts-expect-error This is explicitly not given types as it is a mistake to acess this
   // anywhere else.
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-  window.dataLayer.push(arguments)
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  window.dataLayer.push([_action, ..._args])
 }
 
 /** Send event to Google Analytics. */
@@ -27,7 +27,7 @@ export function event(name: string, params?: object) {
 }
 
 gtag('js', new Date())
-// eslint-disable-next-line @typescript-eslint/naming-convention
+// eslint-disable-next-line camelcase
 gtag('set', 'linker', { accept_incoming: true })
 gtag('config', GOOGLE_ANALYTICS_TAG)
 if (GOOGLE_ANALYTICS_TAG === 'G-CLTBJ37MDM') {

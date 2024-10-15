@@ -23,8 +23,10 @@ export enum Platform {
   android = 'Android',
 }
 
-/** The platform the app is currently running on.
- * This is used to determine whether `metaKey` or `ctrlKey` is used in shortcuts. */
+/**
+ * The platform the app is currently running on.
+ * This is used to determine whether `metaKey` or `ctrlKey` is used in shortcuts.
+ */
 export function platform() {
   if (isOnWindowsPhone()) {
     // MUST be before Android and Windows.
@@ -96,8 +98,10 @@ export enum Browser {
   opera = 'Opera',
 }
 
-/** Return the platform the app is currently running on.
- * This is used to determine whether `metaKey` or `ctrlKey` is used in shortcuts. */
+/**
+ * Return the platform the app is currently running on.
+ * This is used to determine whether `metaKey` or `ctrlKey` is used in shortcuts.
+ */
 export function browser(): Browser {
   if (isOnElectron()) {
     return Browser.electron
@@ -117,10 +121,12 @@ export function browser(): Browser {
     return Browser.unknown
   }
 }
-/** Returns `true` if running in Electron, else `false`.
+/**
+ * Returns `true` if running in Electron, else `false`.
  * This is used to determine whether to use a `MemoryRouter` (stores history in an array)
  * or a `BrowserRouter` (stores history in the path of the URL).
- * It is also used to determine whether to send custom state to Amplify for a workaround. */
+ * It is also used to determine whether to send custom state to Amplify for a workaround.
+ */
 export function isOnElectron() {
   return /electron/i.test(navigator.userAgent)
 }

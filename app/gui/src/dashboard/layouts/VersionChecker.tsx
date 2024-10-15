@@ -36,7 +36,7 @@ export default function VersionChecker() {
   const latestVersion = metadataQuery.data?.tag_name
 
   React.useEffect(() => {
-    if (latestVersion != null && latestVersion !== process.env.ENSO_CLOUD_DASHBOARD_VERSION) {
+    if (latestVersion != null && latestVersion !== $config.VERSION) {
       setIsOpen(true)
     }
   }, [latestVersion])
@@ -53,7 +53,7 @@ export default function VersionChecker() {
           <Text className="text-center text-sm">
             {getText('yourVersion')}{' '}
             <Text className="text-sm font-semibold text-danger">
-              {process.env.ENSO_CLOUD_DASHBOARD_VERSION ?? getText('unknownPlaceholder')}
+              {$config.VERSION ?? getText('unknownPlaceholder')}
             </Text>
           </Text>
           <Text className="text-center text-sm">

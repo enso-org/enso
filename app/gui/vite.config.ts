@@ -13,8 +13,7 @@ import tailwindConfig from './tailwind.config'
 
 const dynHostnameWsUrl = (port: number) => JSON.stringify(`ws://__HOSTNAME__:${port}`)
 const projectManagerUrl = dynHostnameWsUrl(process.env.E2E === 'true' ? 30536 : 30535)
-const IS_CLOUD_BUILD = process.env.CLOUD_BUILD === 'true'
-const YDOC_SERVER_URL =
+const ydocServerUrl =
   process.env.ENSO_POLYGLOT_YDOC_SERVER ? JSON.stringify(process.env.ENSO_POLYGLOT_YDOC_SERVER)
   : process.env.NODE_ENV === 'development' ? dynHostnameWsUrl(5976)
   : undefined
@@ -70,9 +69,8 @@ export default defineConfig({
   },
   define: {
     ...getDefines(),
-    IS_CLOUD_BUILD: JSON.stringify(IS_CLOUD_BUILD),
-    PROJECT_MANAGER_URL: projectManagerUrl,
-    YDOC_SERVER_URL: YDOC_SERVER_URL,
+    'process.env.PROJECT_MANAGER_URL': projectManagerUrl,
+    'process.env.YDOC_SERVER_URL': ydocServerUrl,
     'import.meta.vitest': false,
     // Single hardcoded usage of `global` in aws-amplify.
     'global.TYPED_ARRAY_SUPPORT': true,
@@ -93,6 +91,13 @@ export default defineConfig({
   build: {
     // dashboard chunk size is larger than the default warning limit
     chunkSizeWarningLimit: 700,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          config: ['enso-common/src/config'],
+        },
+      },
+    },
   },
 })
 async function projectManagerShim(): Promise<Plugin> {

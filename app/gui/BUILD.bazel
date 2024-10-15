@@ -3,6 +3,7 @@ load("@npm//app/gui:vite/package_json.bzl", vite_bin = "bin")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_config")
 load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_run_binary")
 load("@aspect_bazel_lib//lib:write_source_files.bzl", "write_source_files")
+load("@env//:defs.bzl", "getenv")
 
 npm_link_all_packages(name = "node_modules")
 
@@ -12,9 +13,28 @@ ts_config(name = "tsconfig_app", src = "tsconfig.app.json", deps = [":tsconfig"]
 ts_config(name = "tsconfig_scripts", src = "tsconfig.scripts.json")
 ts_config(name = "tsconfig_app_vitest", src = "tsconfig.app.vitest.json", deps = [":tsconfig_app"])
 
+
+BUILD_ENV_VARS = [
+    "BUILD_INFO_VERSION",
+    "BUILD_INFO_COMMIT_HASH",
+    "ENSO_CLOUD_ENVIRONMENT",
+    "ENSO_CLOUD_API_URL",
+    "ENSO_CLOUD_CHAT_URL",
+    "ENSO_CLOUD_SENTRY_DSN",
+    "ENSO_CLOUD_STRIPE_KEY",
+    "ENSO_CLOUD_COGNITO_USER_POOL_ID",
+    "ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID",
+    "ENSO_CLOUD_COGNITO_DOMAIN",
+    "ENSO_CLOUD_COGNITO_REGION",
+    "PROJECT_MANAGER_URL",
+    "YDOC_SERVER_URL",
+    "CLOUD_BUILD",
+]
+
 ICON_GENERATED_DIR = "src/project-view/util/iconMetadata"
 
 SRCS = [
+    "//:tsconfig",
     ":tsconfig",
     ":tsconfig_app",
     ":tsconfig_node",
@@ -27,12 +47,16 @@ SRCS = [
     "index.html",
 ] + glob(["src/**", "public/**", "project-manager-shim-middleware/**"], [ICON_GENERATED_DIR + "/**"])
 
+
 vite_bin.vite(
     name = "vite_build",
     srcs = SRCS + npm_link_targets(),
     args = ["build"],
     chdir = package_name(),
-    out_dirs = ["dist"]
+    out_dirs = ["dist"],
+    env = {
+        "TRY_LOAD_ENV_FILE": "false",
+    } | {e: '((%__{}__%))'.format(e) for e in BUILD_ENV_VARS}
 )
 
 vite_bin.vite_binary(
@@ -53,6 +77,23 @@ js_run_binary(
     chdir = package_name(),
     srcs = ["src/project-view/assets/icons.svg"],
     out_dirs = [ICON_GENERATED_DIR],
+    visibility = ["//visibility:public"],
+)
+
+js_binary(
+    name = "script_env_replacer",
+    entry_point = "scripts/envReplacer.mjs",
+)
+
+DEFINED_ENVS = {k: v for k,v in [(e, getenv(e, False)) for e in BUILD_ENV_VARS] if v != None}
+
+js_run_binary(
+    name = "dist",
+    tool = ":script_env_replacer",
+    srcs = [":vite_build"],
+    args = ["$(rootpath :vite_build)", package_name() + "/env_replaced"],
+    out_dirs = ["env_replaced"],
+    env = DEFINED_ENVS,
     visibility = ["//visibility:public"],
 )
 

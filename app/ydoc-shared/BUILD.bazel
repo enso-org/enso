@@ -65,8 +65,7 @@ js_run_binary(
     name = "generate_ast_typedefs",
     tool = ":parser-codegen-bin",
     srcs = ["//lib/rust/parser/schema:generate"],
-    # Why is this location path incorrect? ¯\_(ツ)_/¯
-    args = ["../../../$(location //lib/rust/parser/schema:generate)"],
+    args = ["$(rootpath //lib/rust/parser/schema:generate)"],
     stdout = "src/ast/generated/ast.ts",
     visibility = ["//visibility:public"],
 )

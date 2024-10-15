@@ -65,14 +65,10 @@ export // This export declaration must be broken up to satisfy the `require-jsdo
 // eslint-disable-next-line no-restricted-syntax
 function run(props: DashboardProps) {
   const { vibrancy, supportsDeepLinks, queryClient, logger } = props
-  if (
-    !detect.IS_DEV_MODE &&
-    process.env.ENSO_CLOUD_SENTRY_DSN != null &&
-    process.env.ENSO_CLOUD_API_URL != null
-  ) {
+  if (!detect.IS_DEV_MODE && $config.SENTRY_DSN != null && $config.API_URL != null) {
     sentry.init({
-      dsn: process.env.ENSO_CLOUD_SENTRY_DSN,
-      environment: process.env.ENSO_CLOUD_ENVIRONMENT,
+      dsn: $config.SENTRY_DSN,
+      environment: $config.ENVIRONMENT ?? '',
       integrations: [
         new sentry.BrowserTracing({
           routingInstrumentation: sentry.reactRouterV6Instrumentation(
@@ -89,7 +85,7 @@ function run(props: DashboardProps) {
       ],
       profilesSampleRate: SENTRY_SAMPLE_RATE,
       tracesSampleRate: SENTRY_SAMPLE_RATE,
-      tracePropagationTargets: [process.env.ENSO_CLOUD_API_URL.split('//')[1] ?? ''],
+      tracePropagationTargets: [$config.API_URL.split('//')[1] ?? ''],
       replaysSessionSampleRate: SENTRY_SAMPLE_RATE,
       replaysOnErrorSampleRate: 1.0,
     })
