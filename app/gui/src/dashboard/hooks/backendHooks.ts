@@ -272,6 +272,8 @@ export interface UploadFileMutationProgress {
  * Options for {@link useUploadFileMutation}.
  */
 export interface UploadFileMutationOptions {
+  /** Defaults to 3. */
+  readonly chunkRetries?: number
   /** Called before any mutations are sent. */
   readonly onBegin?: (progress: UploadFileMutationProgress) => void
   /** Called after each successful chunk upload mutation. */
@@ -334,6 +336,7 @@ export function useUploadFileWithToastMutation(
 export function useUploadFileMutation(backend: Backend, options: UploadFileMutationOptions = {}) {
   const toastAndLog = useToastAndLog()
   const {
+    chunkRetries = 3,
     onError = (error) => {
       toastAndLog('uploadLargeFileError', error)
     },
@@ -342,9 +345,10 @@ export function useUploadFileMutation(backend: Backend, options: UploadFileMutat
   const uploadFileStartMutation = reactQuery.useMutation(
     backendMutationOptions(backend, 'uploadFileStart'),
   )
-  const uploadFileChunkMutation = reactQuery.useMutation(
-    backendMutationOptions(backend, 'uploadFileChunk'),
-  )
+  const uploadFileChunkMutation = reactQuery.useMutation({
+    ...backendMutationOptions(backend, 'uploadFileChunk'),
+    retry: chunkRetries,
+  })
   const uploadFileEndMutation = reactQuery.useMutation(
     backendMutationOptions(backend, 'uploadFileEnd'),
   )
