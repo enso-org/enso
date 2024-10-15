@@ -42,12 +42,13 @@ public class MethodRootNode extends ClosureRootNode {
         shortName(type.getName(), methodName),
         null,
         false);
+
     this.type = type;
     this.methodName = methodName;
   }
 
-  private static String shortName(String atomName, String methodName) {
-    return atomName + "." + methodName;
+  private static String shortName(String typeName, String methodName) {
+    return typeName + "." + methodName;
   }
 
   /**
