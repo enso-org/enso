@@ -107,9 +107,9 @@ add_specs suite_builder =
         get_num_response_cache_entries =
             TransientHTTPResponseCache.getNumEntries
         with_counts ~action =
-            before_count = get_num_response_cache_entries 
+            before_count = get_num_response_cache_entries
             action
-            after_count = get_num_response_cache_entries 
+            after_count = get_num_response_cache_entries
             [before_count, after_count]
 
         reset_size_limits =
@@ -126,20 +126,6 @@ add_specs suite_builder =
             with_counts <|
                 response = Data.fetch uri method headers cache_policy=cache_policy
                 response.code.is_success . should_be_true
-
-        ##
-            # Only use with GET.
-            # Clears the cache first.
-            with_and_without_caching uri headers =
-                Data.clear_response_cache
-                request_and_get_counts uri HTTP_Method.Get headers . should_equal [0, 1]
-                request_and_get_counts uri HTTP_Method.Get headers . should_equal [1, 1]
-                Data.clear_response_cache
-                request_and_get_counts uri HTTP_Method.Get headers cache_policy=..Cache_Responses . should_equal [0, 1]
-                request_and_get_counts uri HTTP_Method.Get headers cache_policy=..Cache_Responses . should_equal [1, 1]
-                Data.clear_response_cache
-                request_and_get_counts uri HTTP_Method.Get headers cache_policy=..Dont_Cache_Responses . should_equal [0, 0]
-                request_and_get_counts uri HTTP_Method.Get headers cache_policy=..Dont_Cache_Responses . should_equal [0, 0]
 
         uri0 = base_url_with_slash+'test_download?max-age=16&length=10'
         uri1 = base_url_with_slash+'test_download?max-age=16&length=20'
@@ -231,30 +217,16 @@ add_specs suite_builder =
                 Data.fetch uri0
                 Data.fetch uri1
 
-        group_builder.specify "Cache policy should work for Data.download" pending=pending_has_url <| Test.with_retries <|
-            target_file0 = enso_project.data / "transient" / "my_download0.txt"
-            target_file1 = enso_project.data / "transient" / "my_download1.txt"
+        group_builder.specify "Should not cache Data.download" pending=pending_has_url <| Test.with_retries <|
+            target_file = enso_project.data / "transient" / "my_download0.txt"
 
             Data.clear_response_cache
-            expect_counts [0, 0] <|
-                target_file0.delete_if_exists
-                target_file1.delete_if_exists
-                Data.download uri0 target_file0 cache_policy=Cache_Policy.Dont_Cache_Responses
-                Data.download uri1 target_file1 cache_policy=Cache_Policy.Dont_Cache_Responses
-            expect_counts [0, 2] <|
-                target_file0.delete_if_exists
-                target_file1.delete_if_exists
-                Data.download uri0 target_file0 cache_policy=Cache_Policy.Cache_Responses
-                Data.download uri1 target_file1 cache_policy=Cache_Policy.Cache_Responses
-            Data.clear_response_cache
-            expect_counts [0, 2] <|
-                target_file0.delete_if_exists
-                target_file1.delete_if_exists
-                Data.download uri0 target_file0 
-                Data.download uri1 target_file1 
+            target_file.delete_if_exists
 
-            target_file0.delete_if_exists
-            target_file1.delete_if_exists
+            Data.download uri0 target_file
+            get_num_response_cache_entries . should_equal 0
+
+            target_file.delete_if_exists
 
         group_builder.specify "Should not cache for methods other than GET" pending=pending_has_url <| Test.with_retries <|
             Data.clear_response_cache
@@ -342,7 +314,7 @@ add_specs suite_builder =
                 set_time_and_get_count 88 . should_equal 2
                 set_time_and_get_count 93 . should_equal 1
 
-        download size = 
+        download size =
             Data.fetch base_url_with_slash+'test_download?length='+size.to_text
 
         group_builder.specify "Will remove old cache files to keep the total cache size under the total cache size limit" pending=pending_has_url <| Test.with_retries <|
