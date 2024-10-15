@@ -28,8 +28,8 @@ fn main() {
     println!("import java.nio.ByteOrder;");
     println!();
     println!("class GeneratedFormatTests {{");
-    // Force the parser to load its shared library. `parseModule` handles this because usually it is the
-    // entry point to the class, but we're doing low-level operations directly.
+    // Force the parser to load its shared library. `parseModule` handles this because usually it is
+    // the entry point to the class, but we're doing low-level operations directly.
     println!("    private static final Object INIT = {package}.Parser.parseModule(\"\");");
     println!("    private static java.util.Vector<byte[]> accept;");
     println!("    private static java.util.Vector<byte[]> reject;");
