@@ -120,48 +120,40 @@ add_specs suite_builder =
             counts = with_counts action
             counts . should_equal expected_counts frames_to_skip=1
 
-        # Returns true if the cache was used.
-        # Does not clear the cache first.
-        request_and_get_counts uri method headers cache_policy=Cache_Policy.Default =
-            with_counts <|
-                response = Data.fetch uri method headers cache_policy=cache_policy
-                response.code.is_success . should_be_true
-
-        uri0 = base_url_with_slash+'test_download?max-age=16&length=10'
-        uri1 = base_url_with_slash+'test_download?max-age=16&length=20'
-        uri0_body = "aaaaaaaaaa"
-        uri1_body = "aaaaaaaaaaaaaaaaaaaa"
+        url0 = base_url_with_slash+'test_download?max-age=16&length=10'
+        url1 = base_url_with_slash+'test_download?max-age=16&length=20'
+        url0_body = "aaaaaaaaaa"
+        url1_body = "aaaaaaaaaaaaaaaaaaaa"
         url_post = base_url_with_slash + "post"
         headers0 = [Header.new "A-Header" "a-header-value", Header.new "A-Header" "a-header-value"]
         headers1 = [Header.new "A-Header" "a-different-header-value", Header.new "A-Header" "a-header-value"]
-        # policies = [Cache_Policy.Default, Cache_Policy.Cache_Responses, Cache_Policy.Dont_Cache_Responses]
 
         group_builder.specify "Cache should return the same repsonse" pending=pending_has_url <| Test.with_retries <|
             Data.clear_response_cache
 
-            HTTP.fetch uri0 . decode_as_text . should_equal uri0_body
+            HTTP.fetch url0 . decode_as_text . should_equal url0_body
             get_num_response_cache_entries . should_equal 1
-            HTTP.fetch uri0 . decode_as_text . should_equal uri0_body
+            HTTP.fetch url0 . decode_as_text . should_equal url0_body
             get_num_response_cache_entries . should_equal 1
-            HTTP.fetch uri1 . decode_as_text . should_equal uri1_body
+            HTTP.fetch url1 . decode_as_text . should_equal url1_body
             get_num_response_cache_entries . should_equal 2
-            HTTP.fetch uri1 . decode_as_text . should_equal uri1_body
+            HTTP.fetch url1 . decode_as_text . should_equal url1_body
             get_num_response_cache_entries . should_equal 2
 
             Data.clear_response_cache
 
-            HTTP.fetch uri0 cache_policy=Cache_Policy.Cache_Responses . decode_as_text . should_equal uri0_body
-            HTTP.fetch uri0 cache_policy=Cache_Policy.Cache_Responses . decode_as_text . should_equal uri0_body
-            HTTP.fetch uri1 cache_policy=Cache_Policy.Cache_Responses . decode_as_text . should_equal uri1_body
-            HTTP.fetch uri1 cache_policy=Cache_Policy.Cache_Responses . decode_as_text . should_equal uri1_body
+            HTTP.fetch url0 cache_policy=Cache_Policy.Cache_Responses . decode_as_text . should_equal url0_body
+            HTTP.fetch url0 cache_policy=Cache_Policy.Cache_Responses . decode_as_text . should_equal url0_body
+            HTTP.fetch url1 cache_policy=Cache_Policy.Cache_Responses . decode_as_text . should_equal url1_body
+            HTTP.fetch url1 cache_policy=Cache_Policy.Cache_Responses . decode_as_text . should_equal url1_body
             get_num_response_cache_entries . should_equal 2
 
             Data.clear_response_cache
 
-            HTTP.fetch uri0 cache_policy=Cache_Policy.Dont_Cache_Responses . decode_as_text . should_equal uri0_body
-            HTTP.fetch uri0 cache_policy=Cache_Policy.Dont_Cache_Responses . decode_as_text . should_equal uri0_body
-            HTTP.fetch uri1 cache_policy=Cache_Policy.Dont_Cache_Responses . decode_as_text . should_equal uri1_body
-            HTTP.fetch uri1 cache_policy=Cache_Policy.Dont_Cache_Responses . decode_as_text . should_equal uri1_body
+            HTTP.fetch url0 cache_policy=Cache_Policy.Dont_Cache_Responses . decode_as_text . should_equal url0_body
+            HTTP.fetch url0 cache_policy=Cache_Policy.Dont_Cache_Responses . decode_as_text . should_equal url0_body
+            HTTP.fetch url1 cache_policy=Cache_Policy.Dont_Cache_Responses . decode_as_text . should_equal url1_body
+            HTTP.fetch url1 cache_policy=Cache_Policy.Dont_Cache_Responses . decode_as_text . should_equal url1_body
             get_num_response_cache_entries . should_equal 0
 
         group_builder.specify "Cache should handle many entries" pending=pending_has_url <| Test.with_retries <|
@@ -181,41 +173,41 @@ add_specs suite_builder =
         group_builder.specify "Cache policy should work for HTTP.fetch" pending=pending_has_url <| Test.with_retries <|
             Data.clear_response_cache
             expect_counts [0, 0] <|
-                HTTP.fetch uri0 cache_policy=Cache_Policy.Dont_Cache_Responses
-                HTTP.fetch uri1 cache_policy=Cache_Policy.Dont_Cache_Responses
+                HTTP.fetch url0 cache_policy=Cache_Policy.Dont_Cache_Responses
+                HTTP.fetch url1 cache_policy=Cache_Policy.Dont_Cache_Responses
             expect_counts [0, 2] <|
-                HTTP.fetch uri0 cache_policy=Cache_Policy.Cache_Responses
-                HTTP.fetch uri1 cache_policy=Cache_Policy.Cache_Responses
+                HTTP.fetch url0 cache_policy=Cache_Policy.Cache_Responses
+                HTTP.fetch url1 cache_policy=Cache_Policy.Cache_Responses
             HTTP.clear_response_cache
             expect_counts [0, 2] <|
-                HTTP.fetch uri0
-                HTTP.fetch uri1
+                HTTP.fetch url0
+                HTTP.fetch url1
 
         group_builder.specify "Cache policy should work for Data.read" pending=pending_has_url <| Test.with_retries <|
             Data.clear_response_cache
             expect_counts [0, 0] <|
-                Data.read uri0 cache_policy=Cache_Policy.Dont_Cache_Responses
-                Data.read uri1 cache_policy=Cache_Policy.Dont_Cache_Responses
+                Data.read url0 cache_policy=Cache_Policy.Dont_Cache_Responses
+                Data.read url1 cache_policy=Cache_Policy.Dont_Cache_Responses
             expect_counts [0, 2] <|
-                Data.read uri0 cache_policy=Cache_Policy.Cache_Responses
-                Data.read uri1 cache_policy=Cache_Policy.Cache_Responses
+                Data.read url0 cache_policy=Cache_Policy.Cache_Responses
+                Data.read url1 cache_policy=Cache_Policy.Cache_Responses
             Data.clear_response_cache
             expect_counts [0, 2] <|
-                Data.read uri0
-                Data.read uri1
+                Data.read url0
+                Data.read url1
 
         group_builder.specify "Cache policy should work for Data.fetch" pending=pending_has_url <| Test.with_retries <|
             Data.clear_response_cache
             expect_counts [0, 0] <|
-                Data.fetch uri0 cache_policy=Cache_Policy.Dont_Cache_Responses
-                Data.fetch uri1 cache_policy=Cache_Policy.Dont_Cache_Responses
+                Data.fetch url0 cache_policy=Cache_Policy.Dont_Cache_Responses
+                Data.fetch url1 cache_policy=Cache_Policy.Dont_Cache_Responses
             expect_counts [0, 2] <|
-                Data.fetch uri0 cache_policy=Cache_Policy.Cache_Responses
-                Data.fetch uri1 cache_policy=Cache_Policy.Cache_Responses
+                Data.fetch url0 cache_policy=Cache_Policy.Cache_Responses
+                Data.fetch url1 cache_policy=Cache_Policy.Cache_Responses
             Data.clear_response_cache
             expect_counts [0, 2] <|
-                Data.fetch uri0
-                Data.fetch uri1
+                Data.fetch url0
+                Data.fetch url1
 
         group_builder.specify "Should not cache Data.download" pending=pending_has_url <| Test.with_retries <|
             target_file = enso_project.data / "transient" / "my_download0.txt"
@@ -223,7 +215,7 @@ add_specs suite_builder =
             Data.clear_response_cache
             target_file.delete_if_exists
 
-            Data.download uri0 target_file
+            Data.download url0 target_file
             get_num_response_cache_entries . should_equal 0
 
             target_file.delete_if_exists
@@ -240,30 +232,31 @@ add_specs suite_builder =
 
         group_builder.specify "Should be able to clear caches" pending=pending_has_url <| Test.with_retries <|
             Data.clear_response_cache
-            request_and_get_counts uri0 HTTP_Method.Get headers0 . should_equal [0, 1]
-            expect_counts [1, 0] <|
-                Data.clear_response_cache
+            Data.fetch url0
+            get_num_response_cache_entries . should_equal 1
+            Data.clear_response_cache
+            get_num_response_cache_entries . should_equal 0
 
         group_builder.specify "Cache key should only dependon the URI and headers" pending=pending_has_url <| Test.with_retries <|
             Data.clear_response_cache
             expect_counts [0, 1] <|
-                Data.fetch uri0
-                Data.fetch uri0
+                Data.fetch url0
+                Data.fetch url0
             expect_counts [1, 2] <|
-                Data.fetch uri1
-                Data.fetch uri1
+                Data.fetch url1
+                Data.fetch url1
 
         group_builder.specify "Cache key should depend on the URI" pending=pending_has_url <| Test.with_retries <|
             Data.clear_response_cache
             expect_counts [0, 2] <|
-                Data.fetch uri0
-                Data.fetch uri1
+                Data.fetch url0
+                Data.fetch url1
 
         group_builder.specify "Cache key should depend on the headers" pending=pending_has_url <| Test.with_retries <|
             Data.clear_response_cache
             expect_counts [0, 2] <|
-                Data.fetch uri0 headers=headers0
-                Data.fetch uri0 headers=headers1
+                Data.fetch url0 headers=headers0
+                Data.fetch url0 headers=headers1
 
         # Fetching the trigger uri causes stale entries to be removed.
         fake_now = Date_Time.now
@@ -368,7 +361,7 @@ add_specs suite_builder =
         group_builder.specify "Should not cache if the request fails" pending=pending_has_url <| Test.with_retries <|
             Data.clear_response_cache
 
-            HTTP.fetch uri0
+            HTTP.fetch url0
             get_num_response_cache_entries . should_equal 1
             HTTP.fetch base_url_with_slash+'crash'
             get_num_response_cache_entries . should_equal 1
@@ -384,7 +377,7 @@ add_specs suite_builder =
                     secret2.delete
                 Panic.with_finalizer cleanup <|
                     # Requests differ only in secrets in URI.
-                    uri1 = URI.from 'https://httpbin.org/bytes/50'
+                    url1 = URI.from 'https://httpbin.org/bytes/50'
                         . add_query_argument "arg1" secret1
                         . add_query_argument "arg2" "plain value"
                     uri2 = URI.from 'https://httpbin.org/bytes/50'
@@ -392,7 +385,7 @@ add_specs suite_builder =
                         . add_query_argument "arg2" "plain value"
 
                     Data.clear_response_cache
-                    HTTP.fetch uri1
+                    HTTP.fetch url1
                     get_num_response_cache_entries . should_equal 1
                     HTTP.fetch uri2
                     get_num_response_cache_entries . should_equal 2
@@ -424,9 +417,9 @@ add_specs suite_builder =
                 Panic.with_finalizer cleanup <| Panic.with_finalizer reset_size_limits <|
                     reset_size_limits
                     TransientHTTPResponseCache.setMaxFileSizeOverrideTestOnly 10
-                    uri1 = URI.from 'https://httpbin.org/bytes/50'
+                    url1 = URI.from 'https://httpbin.org/bytes/50'
                         . add_query_argument "arg1" secret1
-                    HTTP.fetch uri1 . should_fail_with (Response_Too_Large.Error 50 10 'https://httpbin.org/bytes/50?arg1=__SECRET__')
+                    HTTP.fetch url1 . should_fail_with (Response_Too_Large.Error 50 10 'https://httpbin.org/bytes/50?arg1=__SECRET__')
 
         ##
             group_builder.specify "Cache state should be consistent" pending=pending_has_url <| Test.with_retries <|

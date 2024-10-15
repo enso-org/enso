@@ -109,7 +109,7 @@ type HTTP
        - req: The HTTP request to send using `self` HTTP client.
        - error_on_failure_code: Whether or not to throw an error if the response
          code is not a success code.
-    request : Request -> Boolean -> Boolean | Nothing -> Response ! Request_Error | HTTP_Error | Illegal_Argument | Response_Too_Large
+    request : Request -> Boolean -> Cache_Policy -> Response ! Request_Error | HTTP_Error | Illegal_Argument | Response_Too_Large
     request self req error_on_failure_code=True (cache_policy:Cache_Policy = ..Default) =
         # Prevent request if the method is a write-like method and output context is disabled.
         check_output_context ~action =
@@ -155,7 +155,7 @@ type HTTP
 
     ## PRIVATE
        Static helper for get-like methods
-    fetch : (URI | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean | Nothing -> Response ! Request_Error | HTTP_Error
+    fetch : (URI | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> Cache_Policy -> Response ! Request_Error | HTTP_Error
     fetch (uri:(URI | Text)) (method:HTTP_Method=..Get) (headers:(Vector (Header | Pair Text Text))=[]) (cache_policy:Cache_Policy = ..Default) =
         check_method fetch_methods method <|
             request = Request.new method uri (parse_headers headers) Request_Body.Empty

@@ -200,7 +200,7 @@ list (directory:(Text | File)=enso_project.root) (name_filter:Text="") recursive
 @uri Text_Input
 @format Data_Read_Helpers.format_widget_with_raw_response
 @headers Header.default_widget
-fetch : (URI | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> File_Format -> Boolean | Nothing -> Any ! Request_Error | HTTP_Error
+fetch : (URI | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> File_Format -> Cache_Policy -> Any ! Request_Error | HTTP_Error
 fetch (uri:(URI | Text)) (method:HTTP_Method=..Get) (headers:(Vector (Header | Pair Text Text))=[]) (format = Auto_Detect) (cache_policy:Cache_Policy = ..Default) =
     Data_Read_Helpers.fetch_following_data_links uri method headers (Data_Read_Helpers.handle_legacy_format "fetch" "format" format) cache_policy=cache_policy
 
