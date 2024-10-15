@@ -13,7 +13,7 @@ import project.Dialect
 import project.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties
 import project.Internal.IR.Query.Query
 import project.Internal.JDBC_Connection
-import project.Internal.Postgres.Postgres_Data_Link_Setup.Postgres_Data_Link_Setup
+import project.Internal.Data_Link_Setup.Data_Link_Setup
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.SQL_Query.SQL_Query
 import project.SQL_Statement.SQL_Statement
@@ -32,7 +32,7 @@ type Postgres_Connection
        - url: The URL to connect to.
        - properties: A vector of properties for the connection.
        - make_new: A function that returns a new connection.
-    create : Text -> Vector -> (Text -> Text -> Postgres_Connection) -> Postgres_Data_Link_Setup -> Postgres_Connection
+    create : Text -> Vector -> (Text -> Text -> Postgres_Connection) -> Data_Link_Setup -> Postgres_Connection
     create url properties make_new data_link_setup =
         jdbc_connection = JDBC_Connection.create url properties
         encoding = parse_postgres_encoding (get_encoding_name jdbc_connection)
@@ -52,7 +52,7 @@ type Postgres_Connection
        Arguments:
        - connection: the underlying connection.
        - make_new: a function that returns a new connection.
-    private Value (connection:Connection) (make_new : Text -> Text -> Postgres_Connection) (data_link_setup : Postgres_Data_Link_Setup)
+    private Value (connection:Connection) (make_new : Text -> Text -> Postgres_Connection) (data_link_setup : Data_Link_Setup)
 
     ## ICON close
        Closes the connection releasing the underlying database resources
