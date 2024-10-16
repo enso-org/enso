@@ -6,6 +6,7 @@ use crate::syntax::consumer::TokenConsumer;
 use crate::syntax::consumer::TreeConsumer;
 use crate::syntax::maybe_with_error;
 use crate::syntax::token;
+use crate::syntax::tree::SyntaxError;
 use crate::syntax::GroupHierarchyConsumer;
 use crate::syntax::Token;
 use crate::syntax::Tree;
@@ -19,20 +20,22 @@ use crate::syntax::Tree;
 /// Recognizes lexical tokens that are indivisible, and assembles them into trees.
 #[derive(Default, Debug)]
 pub struct CompoundTokens<'s, Inner> {
-    compounding: Option<CompoundToken<'s>>,
-    inner:       Inner,
+    compounding:        Option<CompoundToken<'s>>,
+    inner:              Inner,
+    has_preceding_item: bool,
 }
 
 impl<'s, Inner: TreeConsumer<'s> + TokenConsumer<'s>> CompoundTokens<'s, Inner> {
     fn try_start(&mut self, token: Token<'s>) {
-        match CompoundToken::start(token) {
+        match CompoundToken::start(token, self.has_preceding_item) {
             StartStep::Start(compounding) => self.compounding = Some(compounding),
             StartStep::RejectButStart(compounding, token) => {
                 self.inner.push_token(token);
-                self.compounding = Some(compounding)
+                self.compounding = Some(compounding);
             }
             StartStep::Reject(token) => self.inner.push_token(token),
         }
+        self.has_preceding_item = true;
     }
 }
 
@@ -89,6 +92,7 @@ impl<'s, Inner: TreeConsumer<'s>> CompoundTokens<'s, Inner> {
         if let Some(tree) = self.compounding.take().and_then(|builder| builder.flush()) {
             self.inner.push_tree(tree);
         }
+        self.has_preceding_item = default();
     }
 }
 
@@ -121,7 +125,7 @@ where Inner: TreeConsumer<'s> + GroupHierarchyConsumer<'s>
 // ==============================
 
 trait CompoundTokenBuilder<'s>: Sized {
-    fn start(token: Token<'s>) -> StartStep<Self, Token<'s>>;
+    fn start(token: Token<'s>, has_preceding_item: bool) -> StartStep<Self, Token<'s>>;
     fn step(self, token: Token<'s>) -> Step<Self, Token<'s>, Tree<'s>>;
     fn flush(self) -> Option<Tree<'s>>;
 }
@@ -176,12 +180,19 @@ impl<State, Input> StartStep<State, Input> {
 }
 
 impl<'s> CompoundTokenBuilder<'s> for CompoundToken<'s> {
-    fn start(token: Token<'s>) -> StartStep<Self, Token<'s>> {
+    fn start(token: Token<'s>, has_preceding_item: bool) -> StartStep<Self, Token<'s>> {
         use CompoundToken::*;
         StartStep::Reject(token)
-            .or_else(|token| TextLiteralBuilder::start(token).map_state(TextLiteral))
-            .or_else(|token| OperatorIdentifierBuilder::start(token).map_state(OperatorIdentifier))
-            .or_else(|token| AutoscopeBuilder::start(token).map_state(Autoscope))
+            .or_else(|token| {
+                TextLiteralBuilder::start(token, has_preceding_item).map_state(TextLiteral)
+            })
+            .or_else(|token| {
+                OperatorIdentifierBuilder::start(token, has_preceding_item)
+                    .map_state(OperatorIdentifier)
+            })
+            .or_else(|token| {
+                AutoscopeBuilder::start(token, has_preceding_item).map_state(Autoscope)
+            })
     }
 
     fn step(self, token: Token<'s>) -> Step<Self, Token<'s>, Tree<'s>> {
@@ -210,17 +221,23 @@ impl<'s> CompoundTokenBuilder<'s> for CompoundToken<'s> {
 
 #[derive(Debug)]
 struct TextLiteralBuilder<'s> {
-    open:     token::TextStart<'s>,
-    newline:  Option<token::Newline<'s>>,
-    elements: Vec<syntax::tree::TextElement<'s>>,
+    open:               token::TextStart<'s>,
+    newline:            Option<token::Newline<'s>>,
+    elements:           Vec<syntax::tree::TextElement<'s>>,
+    has_preceding_item: bool,
 }
 
 impl<'s> CompoundTokenBuilder<'s> for TextLiteralBuilder<'s> {
-    fn start(token: Token<'s>) -> StartStep<Self, Token<'s>> {
+    fn start(token: Token<'s>, has_preceding_item: bool) -> StartStep<Self, Token<'s>> {
         match token.variant {
             token::Variant::TextStart(variant) => {
                 let token = token.with_variant(variant);
-                StartStep::Start(Self { open: token, newline: default(), elements: default() })
+                StartStep::Start(Self {
+                    open: token,
+                    newline: default(),
+                    elements: default(),
+                    has_preceding_item,
+                })
             }
             _ => StartStep::Reject(token),
         }
@@ -260,18 +277,21 @@ impl<'s> CompoundTokenBuilder<'s> for TextLiteralBuilder<'s> {
     }
 
     fn flush(self) -> Option<Tree<'s>> {
-        let Self { open, newline, elements } = self;
+        let Self { open, newline, elements, has_preceding_item: _ } = self;
         Some(Tree::text_literal(Some(open), newline, elements, None))
     }
 }
 
 impl<'s> TextLiteralBuilder<'s> {
     fn finish(self, close: token::TextEnd<'s>) -> Tree<'s> {
-        let Self { open, newline, elements } = self;
+        let Self { open, newline, elements, has_preceding_item } = self;
         if open.code.starts_with('#') {
             assert_eq!(newline, None);
             let doc = syntax::tree::DocComment { open, elements, newlines: default() };
-            Tree::documented(doc, default())
+            let tree = Tree::documented(doc, default());
+            let error =
+                has_preceding_item.then_some(SyntaxError::DocumentationUnexpectedNonInitial);
+            maybe_with_error(tree, error)
         } else {
             let close = if close.code.is_empty() { None } else { Some(close) };
             Tree::text_literal(Some(open), newline, elements, close)
@@ -288,7 +308,7 @@ impl<'s> TextLiteralBuilder<'s> {
 struct OperatorIdentifierBuilder;
 
 impl<'s> CompoundTokenBuilder<'s> for OperatorIdentifierBuilder {
-    fn start(token: Token<'s>) -> StartStep<Self, Token<'s>> {
+    fn start(token: Token<'s>, _has_preceding_item: bool) -> StartStep<Self, Token<'s>> {
         match token.variant {
             token::Variant::DotOperator(_) => StartStep::RejectButStart(Self, token),
             _ => StartStep::Reject(token),
@@ -322,7 +342,7 @@ struct AutoscopeBuilder<'s> {
 }
 
 impl<'s> CompoundTokenBuilder<'s> for AutoscopeBuilder<'s> {
-    fn start(token: Token<'s>) -> StartStep<Self, Token<'s>> {
+    fn start(token: Token<'s>, _has_preceding_item: bool) -> StartStep<Self, Token<'s>> {
         match token.variant {
             token::Variant::AutoscopeOperator(variant) => {
                 let operator = token.with_variant(variant);

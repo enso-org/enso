@@ -489,9 +489,9 @@ class App {
     })
     electron.ipcMain.on(
       ipc.Channel.importProjectFromPath,
-      (event, path: string, directory: string | null) => {
+      (event, path: string, directory: string | null, title: string) => {
         const directoryParams = directory == null ? [] : [directory]
-        const info = projectManagement.importProjectFromPath(path, ...directoryParams)
+        const info = projectManagement.importProjectFromPath(path, ...directoryParams, title)
         event.reply(ipc.Channel.importProjectFromPath, path, info)
       },
     )

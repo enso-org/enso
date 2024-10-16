@@ -169,6 +169,7 @@ fn doc_comments() {
          (Documented
           (#((Section " Test indent handling")) #(() ()))
           (Function (Ident foo) #((() (Ident bar) () ())) () (Ident foo))))));
+    expect_invalid_node("expression ## unexpected doc comment on same line");
 }
 
 

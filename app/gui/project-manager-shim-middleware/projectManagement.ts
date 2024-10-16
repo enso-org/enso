@@ -187,27 +187,14 @@ function generateDirectoryName(name: string, directory = getProjectsDirectory())
 
   // If the name already consists a suffix, reuse it.
   const matches = name.match(/^(.*)_(\d+)$/)
-  const initialSuffix = -1
-  let suffix = initialSuffix
   // Matches start with the whole match, so we need to skip it. Then come our two capture groups.
   const [matchedName, matchedSuffix] = matches?.slice(1) ?? []
+
   if (typeof matchedName !== 'undefined' && typeof matchedSuffix !== 'undefined') {
     name = matchedName
-    suffix = parseInt(matchedSuffix)
   }
 
-  let finalPath: string
-  // eslint-disable-next-line no-constant-condition
-  while (true) {
-    suffix++
-    const newName = `${name}${suffix === 0 ? '' : `_${suffix}`}`
-    const candidatePath = pathModule.join(directory, newName)
-    if (!fs.existsSync(candidatePath)) {
-      finalPath = candidatePath
-      break
-    }
-  }
-  return finalPath
+  return pathModule.join(directory, name)
 }
 
 /**
