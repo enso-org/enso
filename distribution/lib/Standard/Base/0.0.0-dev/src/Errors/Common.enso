@@ -267,7 +267,7 @@ type Incomparable_Values
     to_display_text : Text
     to_display_text self =
         case self.left.is_nothing && self.right.is_nothing of
-            True -> "Could not comparable values."
+            True -> "Could not compare values."
             False ->
                 left_text = self.left.to_display_text + " (" + (Meta.type_of self.left).to_text + ")"
                 right_text = self.right.to_display_text + " (" + (Meta.type_of self.right).to_text + ")"
