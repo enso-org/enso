@@ -28,7 +28,6 @@ import org.enso.compiler.core.ir.expression.Foreign;
 import org.enso.compiler.core.ir.expression.Operator;
 import org.enso.compiler.core.ir.expression.Section;
 import org.enso.compiler.core.ir.expression.errors.Syntax;
-import org.enso.compiler.core.ir.expression.errors.Syntax.UnexpectedExpression$;
 import org.enso.compiler.core.ir.module.scope.Definition;
 import org.enso.compiler.core.ir.module.scope.Export;
 import org.enso.compiler.core.ir.module.scope.Import;
@@ -731,10 +730,6 @@ final class TreeToIr {
         }
         case Tree.App app -> {
           var expr = translateExpression(app.getArg(), false);
-          if (expr == null) {
-            return translateSyntaxError(app.getArg(),
-                UnexpectedExpression$.MODULE$);
-          }
           var loc = getIdentifiedLocation(app.getArg());
           args.add(new CallArgument.Specified(Option.empty(), expr, loc, meta()));
           tree = app.getFunc();
