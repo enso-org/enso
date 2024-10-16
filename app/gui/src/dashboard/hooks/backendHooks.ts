@@ -11,6 +11,7 @@ import { useToastAndLog, useToastAndLogWithId } from '#/hooks/toastAndLogHooks'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
+import { usePreventNavigation } from '#/utilities/preventNavigation'
 
 // The number of bytes in 1 megabyte.
 const MB_BYTES = 1_000_000
@@ -287,6 +288,8 @@ export interface UploadFileMutationOptions {
   readonly onSuccess?: (progress: UploadFileMutationProgress) => void
   /** Called after any mutations fail. */
   readonly onError?: (error: unknown) => void
+  /** Called after `onSuccess` or `onError`, depending on whether the mutation succeeded. */
+  readonly onSettled?: (progress: UploadFileMutationProgress | null, error: unknown) => void
 }
 
 /**
@@ -302,7 +305,8 @@ export function useUploadFileWithToastMutation(
   const { getText } = useText()
   const toastAndLog = useToastAndLogWithId()
   const { onBegin, onChunkSuccess, onSuccess, onError } = options
-  return useUploadFileMutation(backend, {
+
+  const mutation = useUploadFileMutation(backend, {
     ...options,
     onBegin: (progress) => {
       onBegin?.(progress)
@@ -332,6 +336,10 @@ export function useUploadFileWithToastMutation(
       toastAndLog(toastId, 'uploadLargeFileError', error)
     },
   })
+
+  usePreventNavigation({ isEnabled: mutation.isPending })
+
+  return mutation
 }
 
 /**
@@ -397,10 +405,17 @@ export function useUploadFileMutation(backend: Backend, options: UploadFileMutat
           },
         ])
         setSentMb(fileSizeMb)
-        options.onSuccess?.({ event: 'end', sentMb: fileSizeMb, totalMb: fileSizeMb })
+        const progress: UploadFileMutationProgress = {
+          event: 'end',
+          sentMb: fileSizeMb,
+          totalMb: fileSizeMb,
+        }
+        options.onSuccess?.(progress)
+        options.onSettled?.(progress, null)
         return result
       } catch (error) {
         onError(error)
+        options.onSettled?.(null, error)
         throw error
       }
     },
