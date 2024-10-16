@@ -1331,12 +1331,12 @@ fn private_keyword() {
 #[test]
 fn private_methods() {
     test!("private method x = x",
-        ,(Function::new("method", sexp![(Ident x)]).as_private().with_arg("x")));
+        ,(Function::new("method", sexp![(Ident x)]).private().with_arg("x")));
     test!("private method =\n    42",
-        ,(Function::new("method", block![(Number () "42" ())]).as_private()));
+        ,(Function::new("method", block![(Number () "42" ())]).private()));
     test!("type T\n    private method x = x",
          (TypeDef T #() #(
-          ,(Function::new("method", sexp![(Ident x)]).as_private().with_arg("x")))));
+          ,(Function::new("method", sexp![(Ident x)]).private().with_arg("x")))));
 }
 
 
@@ -1864,7 +1864,7 @@ impl Function {
         Self { ret: sexp![("->", ret)], ..self }
     }
 
-    fn as_private(self) -> Self {
+    fn private(self) -> Self {
         Self { private: sexp![private], ..self }
     }
 }
