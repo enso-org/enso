@@ -23,8 +23,12 @@ public final class Parser {
     return getWorker().isIdentOrOperator(input);
   }
 
-  public static ByteBuffer parseInputLazy(CharSequence input) {
-    return getWorker().parseInputLazy(input);
+  public static ByteBuffer parseModuleLazy(CharSequence input) {
+    return getWorker().parseLazy(input, false);
+  }
+
+  public static ByteBuffer parseBlockLazy(CharSequence input) {
+    return getWorker().parseLazy(input, true);
   }
 
   public static Tree.BodyBlock parseModule(CharSequence input) {
@@ -195,11 +199,20 @@ public final class Parser {
       return Parser.isIdentOrOperator(inputBuf);
     }
 
-    ByteBuffer parseInputLazy(CharSequence input) {
+    ByteBuffer parseLazy(CharSequence input, boolean isInternalBlock) {
       byte[] inputBytes = input.toString().getBytes(StandardCharsets.UTF_8);
       ByteBuffer inputBuf = ByteBuffer.allocateDirect(inputBytes.length);
       inputBuf.put(inputBytes);
-      return withState(state -> parseTreeLazy(state, inputBuf));
+      return withState(state -> {
+          ByteBuffer serializedTree;
+          if (isInternalBlock) {
+            serializedTree = parseBlockLazy(state, inputBuf);
+          } else {
+            serializedTree = parseModuleLazy(state, inputBuf);
+          }
+          return serializedTree;
+        }
+      );
     }
 
     Tree.BodyBlock parse(CharSequence input, boolean isInternalBlock) {
@@ -241,7 +254,9 @@ public final class Parser {
 
   private static native ByteBuffer parseBlock(long state, ByteBuffer input);
 
-  private static native ByteBuffer parseTreeLazy(long state, ByteBuffer input);
+  private static native ByteBuffer parseModuleLazy(long state, ByteBuffer input);
+
+  private static native ByteBuffer parseBlockLazy(long state, ByteBuffer input);
 
   private static native long isIdentOrOperator(ByteBuffer input);
 
