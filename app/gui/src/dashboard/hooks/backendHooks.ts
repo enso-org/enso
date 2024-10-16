@@ -15,7 +15,6 @@ import * as backendModule from '#/services/Backend'
 // The number of bytes in 1 megabyte.
 const MB_BYTES = 1_000_000
 const S3_CHUNK_SIZE_MB = Math.round(backendModule.S3_CHUNK_SIZE_BYTES / MB_BYTES)
-const TOAST_SUCCESS_AUTO_CLOSE_MS = 5_000
 
 // ============================
 // === DefineBackendMethods ===
@@ -263,6 +262,11 @@ export function useListUserGroupsWithUsers(
  * Upload progress for {@link useUploadFileMutation}.
  */
 export interface UploadFileMutationProgress {
+  /**
+   * Whether this is the first progress update.
+   * Useful to determine whether to create a new toast or to update an existing toast.
+   */
+  readonly event: 'begin' | 'chunk' | 'end'
   readonly sentMb: number
   readonly totalMb: number
 }
@@ -273,6 +277,8 @@ export interface UploadFileMutationProgress {
 export interface UploadFileMutationOptions {
   /** Defaults to 3. */
   readonly chunkRetries?: number
+  /** Called for all progress updates (`onBegin`, `onChunkSuccess` and `onSuccess`). */
+  readonly onProgress?: (progress: UploadFileMutationProgress) => void
   /** Called before any mutations are sent. */
   readonly onBegin?: (progress: UploadFileMutationProgress) => void
   /** Called after each successful chunk upload mutation. */
@@ -318,7 +324,7 @@ export function useUploadFileWithToastMutation(
         type: 'success',
         render: getText('uploadLargeFileSuccess'),
         isLoading: false,
-        autoClose: TOAST_SUCCESS_AUTO_CLOSE_MS,
+        autoClose: null,
       })
     },
     onError: (error) => {
@@ -352,11 +358,15 @@ export function useUploadFileMutation(backend: Backend, options: UploadFileMutat
   )
   const [variables, setVariables] =
     React.useState<[params: backendModule.UploadFileRequestParams, file: File]>()
+  const [sentMb, setSentMb] = React.useState(0)
+  const [totalMb, setTotalMb] = React.useState(0)
   const mutateAsync = useEventCallback(
     async (body: backendModule.UploadFileRequestParams, file: File) => {
       setVariables([body, file])
       const fileSizeMb = Math.ceil(file.size / MB_BYTES)
-      options.onBegin?.({ sentMb: 0, totalMb: fileSizeMb })
+      options.onBegin?.({ event: 'begin', sentMb: 0, totalMb: fileSizeMb })
+      setSentMb(0)
+      setTotalMb(fileSizeMb)
       try {
         const { sourcePath, uploadId, presignedUrls } = await uploadFileStartMutation.mutateAsync([
           body,
@@ -368,8 +378,11 @@ export function useUploadFileMutation(backend: Backend, options: UploadFileMutat
           (presignedUrl, index) => [presignedUrl, index] as const,
         )) {
           parts.push(await uploadFileChunkMutation.mutateAsync([url, file, i]))
+          const newSentMb = Math.min((i + 1) * S3_CHUNK_SIZE_MB, fileSizeMb)
+          setSentMb(newSentMb)
           options.onChunkSuccess?.({
-            sentMb: Math.min((i + 1) * S3_CHUNK_SIZE_MB, fileSizeMb),
+            event: 'chunk',
+            sentMb: newSentMb,
             totalMb: fileSizeMb,
           })
         }
@@ -383,7 +396,8 @@ export function useUploadFileMutation(backend: Backend, options: UploadFileMutat
             fileName: body.fileName,
           },
         ])
-        options.onSuccess?.({ sentMb: fileSizeMb, totalMb: fileSizeMb })
+        setSentMb(fileSizeMb)
+        options.onSuccess?.({ event: 'end', sentMb: fileSizeMb, totalMb: fileSizeMb })
         return result
       } catch (error) {
         onError(error)
@@ -396,6 +410,8 @@ export function useUploadFileMutation(backend: Backend, options: UploadFileMutat
   })
 
   return {
+    sentMb,
+    totalMb,
     variables,
     mutate,
     mutateAsync,
