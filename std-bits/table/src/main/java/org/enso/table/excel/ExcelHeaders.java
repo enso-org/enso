@@ -61,21 +61,27 @@ public class ExcelHeaders {
     for (int col = startCol; col <= currentEndCol; col++) {
       Cell cell = row.get(col);
 
-      var resultType = cell.getCellType() == CellType.FORMULA ? cell.getCachedFormulaResultType() : cell.getCellType();
-      String cellText = switch (resultType) {
-        case STRING -> cell.getRichStringCellValue().getString();
-        case BOOLEAN -> cell.getBooleanCellValue() ? "TRUE" : "FALSE";
-        case BLANK -> "";
-        case ERROR -> FormulaError.forInt(cell.getErrorCellValue()).getString();
-        case NUMERIC -> {
-          var format = ExcelNumberFormat.from(cell, null);
-          var value = cell.getNumericCellValue();
-          yield format == null ? Double.toString(value) : formatter.formatRawCellContents(value, format.getIdx(), format.getFormat());
-        }
-        default ->
+      var resultType =
+          cell.getCellType() == CellType.FORMULA
+              ? cell.getCachedFormulaResultType()
+              : cell.getCellType();
+      String cellText =
+          switch (resultType) {
+            case STRING -> cell.getRichStringCellValue().getString();
+            case BOOLEAN -> cell.getBooleanCellValue() ? "TRUE" : "FALSE";
+            case BLANK -> "";
+            case ERROR -> FormulaError.forInt(cell.getErrorCellValue()).getString();
+            case NUMERIC -> {
+              var format = ExcelNumberFormat.from(cell, null);
+              var value = cell.getNumericCellValue();
+              yield format == null
+                  ? Double.toString(value)
+                  : formatter.formatRawCellContents(value, format.getIdx(), format.getFormat());
+            }
+            default ->
             // Fallback to the formatted value
             formatter.formatCellValue(cell);
-        };
+          };
       String name = cellText.isEmpty() ? "" : deduplicator.makeUnique(cellText);
 
       output[col - startCol] = name;
