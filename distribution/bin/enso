@@ -1,5 +1,5 @@
 COMP_PATH=$(dirname "$0")/../component
 
-JAVA_OPTS="--add-opens=java.base/java.nio=ALL-UNNAMED $JAVA_OPTS"
+JAVA_OPTS="--add-opens=java.base/java.nio=ALL-UNNAMED -Xss16M $JAVA_OPTS"
 exec java --module-path $COMP_PATH $JAVA_OPTS -m org.enso.runner/org.enso.runner.Main "$@"
 exit

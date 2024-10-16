@@ -878,7 +878,8 @@ class IrToTruffle(
       // Type contexts aren't currently really used. But we should still check the base type.
       extractAscribedType(comment, typeInContext.typed)
     case t => {
-      t.getMetadata(TypeNames) match {
+      val res = t.getMetadata(TypeNames)
+      res match {
         case Some(
               BindingsMap
                 .Resolution(binding @ BindingsMap.ResolvedType(_, _))
@@ -984,7 +985,7 @@ class IrToTruffle(
     expression: Expression
   ): BaseNode.TailStatus = {
     val isTailPosition =
-      expression.getMetadata(TailCall).contains(TailCall.TailPosition.Tail)
+      expression.getMetadata(TailCall.INSTANCE).isDefined
     val isTailAnnotated = TailCall.isTailAnnotated(expression)
     if (isTailPosition) {
       if (isTailAnnotated) {
@@ -1306,6 +1307,15 @@ class IrToTruffle(
         case binding: Expression.Binding => processBinding(binding)
         case caseExpr: Case =>
           processCase(caseExpr, subjectToInstrumentation)
+        case asc: Tpe.Ascription =>
+          val checkNode =
+            extractAscribedType(asc.comment.orNull, asc.signature)
+          if (checkNode != null) {
+            val body = run(asc.typed, binding, subjectToInstrumentation)
+            ReadArgumentCheckNode.wrap(body, checkNode)
+          } else {
+            processType(asc)
+          }
         case typ: Tpe => processType(typ)
         case _: Empty =>
           processEmpty()

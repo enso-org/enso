@@ -15,6 +15,7 @@ import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.core.ir.expression.{errors, Case}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.IRProcessingPass
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
   DataflowAnalysis,
@@ -42,17 +43,17 @@ case object IgnoredBindings extends IRPass {
   override type Metadata = State
   override type Config   = IRPass.Configuration.Default
 
-  override lazy val precursorPasses: Seq[IRPass] = List(
+  override lazy val precursorPasses: Seq[IRProcessingPass] = List(
     ComplexType,
     GenerateMethodBodies,
     LambdaShorthandToLambda,
     NestedPatternMatch
   )
-  override lazy val invalidatedPasses: Seq[IRPass] = List(
+  override lazy val invalidatedPasses: Seq[IRProcessingPass] = List(
     AliasAnalysis,
     DataflowAnalysis,
     DemandAnalysis,
-    TailCall
+    TailCall.INSTANCE
   )
 
   /** Desugars ignored bindings for a module.
