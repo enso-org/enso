@@ -1843,18 +1843,17 @@ export default function AssetsTable(props: AssetsTableProps) {
               siblingProjectNames={siblingProjectsByName.keys()}
               nonConflictingFileCount={files.length - conflictingFiles.length}
               nonConflictingProjectCount={projects.length - conflictingProjects.length}
-              doUpdateConflicting={(resolvedConflicts) => {
-                for (const conflict of resolvedConflicts) {
-                  const isUpdating = conflict.current.title === conflict.new.title
-
-                  const asset = isUpdating ? conflict.current : conflict.new
-
-                  fileMap.set(asset.id, conflict.file)
-
-                  void doUploadFile(asset, isUpdating ? 'update' : 'new')
-                }
+              doUpdateConflicting={async (resolvedConflicts) => {
+                await Promise.allSettled(
+                  resolvedConflicts.map((conflict) => {
+                    const isUpdating = conflict.current.title === conflict.new.title
+                    const asset = isUpdating ? conflict.current : conflict.new
+                    fileMap.set(asset.id, conflict.file)
+                    return doUploadFile(asset, isUpdating ? 'update' : 'new')
+                  }),
+                )
               }}
-              doUploadNonConflicting={() => {
+              doUploadNonConflicting={async () => {
                 doToggleDirectoryExpansion(event.parentId, event.parentKey, true)
 
                 const newFiles = files
@@ -1888,9 +1887,7 @@ export default function AssetsTable(props: AssetsTableProps) {
 
                 const assets = [...newFiles, ...newProjects]
 
-                for (const asset of assets) {
-                  void doUploadFile(asset, 'new')
-                }
+                await Promise.allSettled(assets.map((asset) => doUploadFile(asset, 'new')))
               }}
             />,
           )

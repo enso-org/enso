@@ -46,8 +46,8 @@ export interface DuplicateAssetsModalProps {
   readonly siblingProjectNames: Iterable<string>
   readonly nonConflictingFileCount: number
   readonly nonConflictingProjectCount: number
-  readonly doUploadNonConflicting: () => void
-  readonly doUpdateConflicting: (toUpdate: ConflictingAsset[]) => void
+  readonly doUploadNonConflicting: () => Promise<void> | void
+  readonly doUpdateConflicting: (toUpdate: ConflictingAsset[]) => Promise<void> | void
 }
 
 /** A modal for creating a new label. */
@@ -174,8 +174,8 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
               <ariaComponents.Button
                 variant="outline"
                 isDisabled={didUploadNonConflicting}
-                onPress={() => {
-                  doUploadNonConflicting()
+                onPress={async () => {
+                  await doUploadNonConflicting()
                   setDidUploadNonConflicting(true)
                 }}
               >
@@ -202,8 +202,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
               <ariaComponents.ButtonGroup>
                 <ariaComponents.Button
                   variant="outline"
-                  onPress={() => {
-                    doUpdateConflicting([firstConflict])
+                  onPress={async () => {
                     switch (firstConflict.new.type) {
                       case backendModule.AssetType.file: {
                         setConflictingFiles((oldConflicts) => oldConflicts.slice(1))
@@ -214,6 +213,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                         break
                       }
                     }
+                    await doUpdateConflicting([firstConflict])
                   }}
                 >
                   {getText('update')}
@@ -261,9 +261,9 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
         <ariaComponents.ButtonGroup className="relative">
           <ariaComponents.Button
             variant="submit"
-            onPress={() => {
-              doUploadNonConflicting()
-              doUpdateConflicting([...conflictingFiles, ...conflictingProjects])
+            onPress={async () => {
+              await doUploadNonConflicting()
+              await doUpdateConflicting([...conflictingFiles, ...conflictingProjects])
               unsetModal()
             }}
           >
@@ -272,13 +272,10 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
 
           <ariaComponents.Button
             variant="accent"
-            onPress={() => {
+            onPress={async () => {
               const resolved = doRename([...conflictingFiles, ...conflictingProjects])
-
-              doUploadNonConflicting()
-
-              doUpdateConflicting(resolved)
-
+              await doUploadNonConflicting()
+              await doUpdateConflicting(resolved)
               unsetModal()
             }}
           >
