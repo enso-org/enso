@@ -73,14 +73,10 @@ impl<'s> StatementParser<'s> {
         start: usize,
         precedence: &mut Precedence<'s>,
     ) -> Option<Tree<'s>> {
-        parse_statement(
-            items,
-            start,
-            precedence,
-            &mut self.args_buffer,
-            EvaluationContext::Eager,
-            VisibilityContext::Private,
-        )
+        parse_statement(items, start, precedence, &mut self.args_buffer, StatementContext {
+            evaluation_context: EvaluationContext::Eager,
+            visibility_context: VisibilityContext::Private,
+        })
     }
 
     fn parse_module_statement(
@@ -89,14 +85,10 @@ impl<'s> StatementParser<'s> {
         start: usize,
         precedence: &mut Precedence<'s>,
     ) -> Option<Tree<'s>> {
-        parse_statement(
-            items,
-            start,
-            precedence,
-            &mut self.args_buffer,
-            EvaluationContext::Lazy,
-            VisibilityContext::Public,
-        )
+        parse_statement(items, start, precedence, &mut self.args_buffer, StatementContext {
+            evaluation_context: EvaluationContext::Lazy,
+            visibility_context: VisibilityContext::Public,
+        })
         .map(|statement| {
             let error = match &statement.variant {
                 tree::Variant::Assignment(_) =>
@@ -125,15 +117,18 @@ fn parse_statement<'s>(
     statement_start: usize,
     precedence: &mut Precedence<'s>,
     args_buffer: &mut Vec<ArgumentDefinition<'s>>,
-    evaluation_context: EvaluationContext,
-    visibility_context: VisibilityContext,
+    statement_context: StatementContext,
 ) -> Option<Tree<'s>> {
     use token::Variant;
     let private_keywords = scan_private_keywords(&items[statement_start..]);
     let start = statement_start + private_keywords;
     if let Some(type_def) = try_parse_type_def(items, start, precedence, args_buffer) {
         debug_assert_eq!(items.len(), start);
-        return apply_private_keywords(Some(type_def), items.drain(statement_start..), visibility_context);
+        return apply_private_keywords(
+            Some(type_def),
+            items.drain(statement_start..),
+            statement_context.visibility_context,
+        );
     }
     let top_level_operator = match find_top_level_operator(&items[start..]) {
         Ok(top_level_operator) => top_level_operator.map(|(i, t)| (i + start, t)),
@@ -153,8 +148,7 @@ fn parse_statement<'s>(
                 i,
                 precedence,
                 args_buffer,
-                evaluation_context,
-                visibility_context,
+                statement_context,
             )
             .into(),
         Some((i, Token { variant: Variant::TypeAnnotationOperator(_), .. })) => {
@@ -180,7 +174,11 @@ fn parse_statement<'s>(
         None => precedence.resolve_offset(start, items),
     };
     debug_assert!(items.len() <= start);
-    apply_private_keywords(statement, items.drain(statement_start..), visibility_context)
+    apply_private_keywords(
+        statement,
+        items.drain(statement_start..),
+        statement_context.visibility_context,
+    )
 }
 
 fn apply_private_keywords<'s>(
@@ -216,6 +214,12 @@ fn into_private_keyword(item: Item) -> token::PrivateKeyword {
 }
 
 #[derive(Debug, Copy, Clone)]
+struct StatementContext {
+    evaluation_context: EvaluationContext,
+    visibility_context: VisibilityContext,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 enum EvaluationContext {
     /// A context in which variable assignments are allowed.
     Eager,
@@ -238,8 +242,7 @@ fn parse_assignment_like_statement<'s>(
     operator: usize,
     precedence: &mut Precedence<'s>,
     args_buffer: &mut Vec<ArgumentDefinition<'s>>,
-    evaluation_context: EvaluationContext,
-    visibility_context: VisibilityContext,
+    StatementContext { evaluation_context, visibility_context }: StatementContext,
 ) -> Tree<'s> {
     if operator == start {
         return precedence
@@ -295,7 +298,8 @@ fn parse_assignment_like_statement<'s>(
         Type::Function { expression, qn_len } => {
             let (qn, args, return_) =
                 parse_function_decl(items, start, qn_len, precedence, args_buffer);
-            let private = (visibility_context != VisibilityContext::Private && private_keywords_start < start)
+            let private = (visibility_context != VisibilityContext::Private
+                && private_keywords_start < start)
                 .then(|| into_private_keyword(items.pop().unwrap()));
             Tree::function(private, qn, args, return_, operator, expression)
         }

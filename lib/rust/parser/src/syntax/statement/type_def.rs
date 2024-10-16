@@ -5,9 +5,11 @@ use crate::syntax::maybe_with_error;
 use crate::syntax::operator::Precedence;
 use crate::syntax::statement::function_def::parse_constructor_definition;
 use crate::syntax::statement::function_def::parse_type_args;
-use crate::syntax::statement::{parse_statement, VisibilityContext};
+use crate::syntax::statement::parse_statement;
 use crate::syntax::statement::scan_private_keywords;
 use crate::syntax::statement::EvaluationContext;
+use crate::syntax::statement::StatementContext;
+use crate::syntax::statement::VisibilityContext;
 use crate::syntax::token;
 use crate::syntax::tree;
 use crate::syntax::tree::block;
@@ -99,9 +101,11 @@ fn parse_type_body_statement<'s>(
             )),
         None => None,
         _ => {
-            let tree =
-                parse_statement(&mut items, 0, precedence, args_buffer, EvaluationContext::Lazy, VisibilityContext::Public)
-                    .unwrap();
+            let tree = parse_statement(&mut items, 0, precedence, args_buffer, StatementContext {
+                evaluation_context: EvaluationContext::Lazy,
+                visibility_context: VisibilityContext::Public,
+            })
+            .unwrap();
             let error = match &tree.variant {
                 tree::Variant::Function(_)
                 | tree::Variant::ForeignFunction(_)
