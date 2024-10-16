@@ -1802,8 +1802,6 @@ export default function AssetsTable(props: AssetsTableProps) {
 
           doToggleDirectoryExpansion(event.parentId, event.parentKey, true)
 
-          insertAssets(assets, event.parentId)
-
           void Promise.all(assets.map((asset) => doUploadFile(asset, 'new')))
         } else {
           const siblingFilesByName = new Map(siblingFiles.map((file) => [file.title, file]))
@@ -1853,7 +1851,6 @@ export default function AssetsTable(props: AssetsTableProps) {
 
                   fileMap.set(asset.id, conflict.file)
 
-                  insertAssets([asset], event.parentId)
                   void doUploadFile(asset, isUpdating ? 'update' : 'new')
                 }
               }}
@@ -1890,8 +1887,6 @@ export default function AssetsTable(props: AssetsTableProps) {
                   })
 
                 const assets = [...newFiles, ...newProjects]
-
-                insertAssets(assets, event.parentId)
 
                 for (const asset of assets) {
                   void doUploadFile(asset, 'new')
