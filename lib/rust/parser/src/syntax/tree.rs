@@ -831,6 +831,7 @@ pub enum SyntaxError {
     PatternUnexpectedExpression,
     PatternUnexpectedDot,
     CaseOfInvalidCase,
+    DocumentationUnexpectedNonInitial,
 }
 
 impl From<SyntaxError> for Cow<'static, str> {
@@ -867,6 +868,7 @@ impl From<SyntaxError> for Cow<'static, str> {
             PatternUnexpectedExpression => "Expression invalid in a pattern",
             PatternUnexpectedDot => "In a pattern, the dot operator can only be used in a qualified name",
             CaseOfInvalidCase => "Invalid case expression.",
+            DocumentationUnexpectedNonInitial => "Unexpected documentation at end of line",
         })
         .into()
     }

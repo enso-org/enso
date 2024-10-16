@@ -47,7 +47,7 @@ import scala.Tuple2$;
 @Persistable(clazz = GlobalNames$.class, id = 1205)
 @Persistable(clazz = IgnoredBindings$.class, id = 1206)
 @Persistable(clazz = Patterns$.class, id = 1207)
-@Persistable(clazz = TailCall$.class, id = 1208)
+@Persistable(clazz = TailCall.class, id = 1208)
 @Persistable(clazz = TypeNames$.class, id = 1209)
 @Persistable(clazz = TypeSignatures$.class, id = 1210)
 @Persistable(clazz = DocumentationComments$.class, id = 1211)
@@ -66,7 +66,7 @@ import scala.Tuple2$;
 @Persistable(clazz = Graph.Link.class, id = 1266, allowInlining = false)
 @Persistable(clazz = TypeInference.class, id = 1280)
 @Persistable(clazz = FramePointerAnalysis$.class, id = 1281)
-@Persistable(clazz = TailCall$TailPosition$Tail$.class, id = 1282)
+@Persistable(clazz = TailCall.TailPosition.class, id = 1282)
 public final class PassPersistance {
   private PassPersistance() {}
 
