@@ -250,7 +250,7 @@ type Snowflake_Dialect
             Dialect_Flag.Supports_Float_Decimal_Places -> True
             Dialect_Flag.Use_Builtin_Bankers -> True
             Dialect_Flag.Primary_Key_Allows_Nulls -> False
-            Dialect_Flag.Supports_Separate_NaN -> False
+            Dialect_Flag.Supports_Separate_NaN -> True
             Dialect_Flag.Supports_Nested_With_Clause -> True
             Dialect_Flag.Supports_Case_Sensitive_Columns -> True
 

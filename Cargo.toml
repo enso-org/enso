@@ -10,8 +10,6 @@ members = [
     "build_tools/install/config",
     "build_tools/install/installer",
     "build_tools/install/uninstaller",
-    "lib/rust/enso-font",
-    "lib/rust/font",
     "lib/rust/launcher-shims",
     "lib/rust/macro-utils",
     "lib/rust/metamodel",

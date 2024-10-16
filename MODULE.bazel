@@ -58,8 +58,6 @@ crate.from_cargo(
         "//:build_tools/install/uninstaller/Cargo.toml",
         "//:build_tools/macros/lib/Cargo.toml",
         "//:Cargo.toml",
-        "//:lib/rust/enso-font/Cargo.toml",
-        "//:lib/rust/font/Cargo.toml",
         "//:lib/rust/launcher-shims/Cargo.toml",
         "//:lib/rust/macro-utils/Cargo.toml",
         "//:lib/rust/metamodel/Cargo.toml",

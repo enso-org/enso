@@ -1,8 +1,10 @@
 private
 
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Runtime.Context
 import Standard.Base.Runtime.Ref.Ref
+from Standard.Base.Logging import all
 from Standard.Base.Runtime import assert
 
 import project.Group.Group
@@ -12,6 +14,7 @@ import project.Suite_Config.Suite_Config
 import project.Test.Test
 import project.Test_Result.Test_Result
 
+polyglot java import java.lang.IllegalArgumentException
 polyglot java import java.lang.StringBuilder
 polyglot java import java.lang.System as Java_System
 
@@ -93,17 +96,39 @@ print_single_result (test_result : Test_Result) (config : Suite_Config) =
    only if running in the GitHub Actions environment.
 report_github_error_message (title : Text) (message : Text) =
     is_enabled = Environment.get "GITHUB_ACTIONS" == "true"
+    if is_enabled then
+        IO.println (generate_github_error_annotation title message)
+
+## PRIVATE
+   Generates a GitHub Actions annotation for a failing test.
+generate_github_error_annotation (title : Text) (message : Text) =
     sanitize_message txt = txt.replace '\n' '%0A'
     sanitize_parameter txt = txt . replace '\n' '%0A' . replace ',' '%2C'
-    if is_enabled then
-        location_match = Regex.compile "at ((?:[A-Za-z]:)?[^:]+):([0-9]+):" . match message
-        location_part = if location_match.is_nothing then "" else
+
+    location_match = Regex.compile "\(at ((?:[A-Za-z]:)?[^:]+):([0-9\-]+):([0-9\-]+)\)" . match message
+    split_on_dash start_field_name end_field_name text =
+        if text.contains "-" . not then start_field_name+"="+text else
+            parts = text.split "-"
+            if parts.length != 2 then Panic.throw (Illegal_Argument.Error "Invalid range format: "+text) else
+                start = parts.at 0
+                end = parts.at 1
+                start_field_name+"="+start+","+end_field_name+"="+end
+    on_location_failing_to_parse caught_panic =
+        Test_Result.log_message "Failed to parse file location ["+location_match.to_display_text+"]: "+caught_panic.payload.to_display_text
+        ""
+    location_part = if location_match.is_nothing then "" else
+        Panic.catch Any handler=on_location_failing_to_parse <|
             repo_root = enso_project.root.parent.parent.absolute.normalize
             path = File.new (location_match.get 1)
-            relative_path = repo_root.relativize path
-            line = location_match.get 2
-            ",file="+(sanitize_parameter relative_path.path)+",line="+(sanitize_parameter line)+""
-        IO.println "::error title="+(sanitize_parameter title)+location_part+"::"+(sanitize_message message)
+            ## We try to relativize the path, but if it fails, we just use the original path.
+               (It may fail eg. if the project root and the test files are on different drives -
+               very unlikely but not impossible if tests import other libraries located in weird places.)
+            relative_path = Panic.catch IllegalArgumentException (repo_root.relativize path) _->path
+            lines_part = split_on_dash "line" "endLine" (location_match.get 2)
+            columns_part = split_on_dash "col" "endColumn" (location_match.get 3)
+            ",file="+(sanitize_parameter relative_path.path)+","+lines_part+","+columns_part
+
+    "::error title="+(sanitize_parameter title)+location_part+"::"+(sanitize_message message)
 
 ## Prints all the results, optionally writing them to a jUnit XML output.
 

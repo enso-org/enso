@@ -17,6 +17,7 @@ import org.enso.compiler.core.ir.{
 import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.IRProcessingPass
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
   DataflowAnalysis,
@@ -42,8 +43,8 @@ case object FunctionBinding extends IRPass {
   override type Metadata = IRPass.Metadata.Empty
   override type Config   = IRPass.Configuration.Default
 
-  override lazy val precursorPasses: Seq[IRPass] = List(ComplexType)
-  override lazy val invalidatedPasses: Seq[IRPass] = List(
+  override lazy val precursorPasses: Seq[IRProcessingPass] = List(ComplexType)
+  override lazy val invalidatedPasses: Seq[IRProcessingPass] = List(
     AliasAnalysis,
     DataflowAnalysis,
     DemandAnalysis,
@@ -53,8 +54,8 @@ case object FunctionBinding extends IRPass {
     LambdaShorthandToLambda,
     NestedPatternMatch,
     OperatorToFunction,
-    SectionsToBinOp,
-    TailCall
+    SectionsToBinOp.INSTANCE,
+    TailCall.INSTANCE
   )
 
   /** The name of the conversion method, as a reserved name for methods. */
