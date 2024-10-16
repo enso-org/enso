@@ -79,6 +79,8 @@
   range.][11135]
 - [Added `format` parameter to `Decimal.parse`.][11205]
 - [Added `format` parameter to `Float.parse`.][11229]
+- [Implemented a cache for HTTP data requests, as well as a per-file response
+  size limit.][11342]
 
 [10614]: https://github.com/enso-org/enso/pull/10614
 [10660]: https://github.com/enso-org/enso/pull/10660
@@ -94,6 +96,7 @@
 [11135]: https://github.com/enso-org/enso/pull/11135
 [11205]: https://github.com/enso-org/enso/pull/11205
 [11229]: https://github.com/enso-org/enso/pull/11229
+[11342]: https://github.com/enso-org/enso/pull/11342
 
 #### Enso Language & Runtime
 
