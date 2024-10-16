@@ -170,9 +170,7 @@ function EditorInternal(props: EditorInternalProps) {
 
   const logEvent = React.useCallback(
     (message: string, projectId?: string | null, metadata?: object | null) => {
-      if (remoteBackend) {
-        void remoteBackend.logEvent(message, projectId, metadata)
-      }
+      void remoteBackend.logEvent(message, projectId, metadata)
     },
     [remoteBackend],
   )

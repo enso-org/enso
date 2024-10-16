@@ -339,9 +339,7 @@ export default function DriveBar(props: DriveBarProps) {
                 aria-label={getText('uploadFiles')}
                 onPress={async () => {
                   const files = await inputFiles()
-                  if (files != null) {
-                    doUploadFiles(Array.from(files))
-                  }
+                  doUploadFiles(Array.from(files))
                 }}
               />
               <Button
