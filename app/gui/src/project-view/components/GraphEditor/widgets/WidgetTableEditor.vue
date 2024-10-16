@@ -22,6 +22,7 @@ import type {
   CellEditingStoppedEvent,
   Column,
   ColumnMovedEvent,
+  ProcessDataFromClipboardParams,
   RowDragEndEvent,
 } from 'ag-grid-enterprise'
 import { computed, ref } from 'vue'
@@ -32,7 +33,7 @@ const graph = useGraphStore()
 const suggestionDb = useSuggestionDbStore()
 const grid = ref<ComponentExposed<typeof AgGridTableView<RowData, any>>>()
 
-const { rowData, columnDefs, moveColumn, moveRow } = useTableNewArgument(
+const { rowData, columnDefs, moveColumn, moveRow, pasteFromClipboard } = useTableNewArgument(
   () => props.input,
   graph,
   suggestionDb.entries,
@@ -161,6 +162,20 @@ function onRowDragEnd(event: RowDragEndEvent<RowData>) {
   }
 }
 
+// === Paste Handler ===
+
+function processDataFromClipboard({ data, api }: ProcessDataFromClipboardParams<RowData>) {
+  const focusedCell = api.getFocusedCell()
+  if (focusedCell === null) console.warn('Pasting while no cell is focused!')
+  else {
+    pasteFromClipboard(data, {
+      rowIndex: focusedCell?.rowIndex,
+      colId: focusedCell.column.getColId(),
+    })
+  }
+  return []
+}
+
 // === Column Default Definition ===
 
 const defaultColDef = {
@@ -207,6 +222,7 @@ export const widgetDefinition = defineWidget(
         :stopEditingWhenCellsLoseFocus="true"
         :suppressDragLeaveHidesColumns="true"
         :suppressMoveWhenColumnDragging="true"
+        :processDataFromClipboard="processDataFromClipboard"
         @keydown.enter.stop
         @keydown.arrow-left.stop
         @keydown.arrow-right.stop

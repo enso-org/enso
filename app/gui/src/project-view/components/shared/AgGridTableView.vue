@@ -59,6 +59,7 @@ import type {
   GetRowIdFunc,
   GridApi,
   GridReadyEvent,
+  ProcessDataFromClipboardParams,
   RowDataUpdatedEvent,
   RowEditingStartedEvent,
   RowEditingStoppedEvent,
@@ -80,6 +81,7 @@ const _props = defineProps<{
   suppressDragLeaveHidesColumns?: boolean
   suppressMoveWhenColumnDragging?: boolean
   textFormatOption?: TextFormatOptions
+  processDataFromClipboard?: (params: ProcessDataFromClipboardParams<TData>) => string[][] | null
 }>()
 const emit = defineEmits<{
   cellEditingStarted: [event: CellEditingStartedEvent]
@@ -263,6 +265,7 @@ const { AgGridVue } = await import('ag-grid-vue3')
       :stopEditingWhenCellsLoseFocus="stopEditingWhenCellsLoseFocus"
       :suppressDragLeaveHidesColumns="suppressDragLeaveHidesColumns"
       :suppressMoveWhenColumnDragging="suppressMoveWhenColumnDragging"
+      :processDataFromClipboard="processDataFromClipboard"
       @gridReady="onGridReady"
       @firstDataRendered="updateColumnWidths"
       @rowDataUpdated="updateColumnWidths($event), emit('rowDataUpdated', $event)"
