@@ -734,6 +734,37 @@ describe('Code edit', () => {
     expect(after['value = 42']?.id).toBe(before['    value = 42'].id)
   })
 
+  test('Rename binding', () => {
+    const beforeCase = testCase({
+      'main =': Ast.Function,
+      '    value = 42': Ast.Assignment,
+      '    sum = value + 23': Ast.Assignment,
+      '    call_result = func sum 12': Ast.Assignment,
+    })
+    const before = beforeCase.statements
+
+    const edit = beforeCase.module.edit()
+    const newCode = [
+      'main =',
+      '\n    the_number = 42',
+      '\n    sum = the_number + 23',
+      '\n    call_result = func sum 12',
+    ].join('')
+    edit.root()!.syncToCode(newCode)
+    // Ensure the change was made.
+    expect(edit.root()?.code()).toBe(newCode)
+    // Ensure the identities of all the original nodes were maintained.
+    const after = tryFindExpressions(edit.root()!, {
+      'main =': Ast.Function,
+      'call_result = func sum 12': Ast.Assignment,
+      'sum = the_number + 23': Ast.Assignment,
+      'the_number = 42': Ast.Assignment,
+    })
+    expect(after['call_result = func sum 12']?.id).toBe(before['    call_result = func sum 12'].id)
+    expect(after['sum = the_number + 23']?.id).toBe(before['    sum = value + 23'].id)
+    expect(after['the_number = 42']?.id).toBe(before['    value = 42'].id)
+  })
+
   test('Inline expression change', () => {
     const beforeRoot = Ast.parse('func name1=arg1 name2=arg2')
     beforeRoot.module.replaceRoot(beforeRoot)
