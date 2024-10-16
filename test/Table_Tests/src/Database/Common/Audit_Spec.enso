@@ -86,7 +86,7 @@ add_specs suite_builder prefix ~datalink_to_connection database_pending =
                 locally_audited_connection = datalink_to_connection.read
 
                 # We just check that we can read queries through this connection:
-                locally_audited_connection.read (SQL_Query.Raw_SQL "SELECT 1") . at 0 . to_vector . should_equal [1]
+                locally_audited_connection.read (SQL_Query.Raw_SQL "SELECT 1 AS foo") . at 0 . to_vector . should_equal [1]
 
         # This test may only run on real cloud because the mock does not support creating datalinks.
         # Once the tests above can be run on real cloud too (#10919), we can merge all 3 cloud setups into a single one.
