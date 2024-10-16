@@ -6,6 +6,7 @@ import project.Data.Vector.Vector
 import project.Enso_Cloud.Data_Link.Data_Link
 import project.Enso_Cloud.Data_Link_Helpers
 import project.Error.Error
+import project.Errors.Common.Missing_Argument
 import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
@@ -68,7 +69,7 @@ from project.System.File_Format import Auto_Detect, File_Format
 @path Text_Input
 @format File_Format.default_widget
 read : Text | URI | File -> File_Format -> Problem_Behavior -> Any ! File_Error
-read path format=Auto_Detect (on_problems : Problem_Behavior = ..Report_Warning) = case path of
+read path=(Missing_Argument.throw "path") format=Auto_Detect (on_problems : Problem_Behavior = ..Report_Warning) = case path of
     _ : Text -> if Data_Read_Helpers.looks_like_uri path then Data_Read_Helpers.fetch_following_data_links path format=format else
         read (File.new path) format on_problems
     uri : URI -> Data_Read_Helpers.fetch_following_data_links uri format=format
