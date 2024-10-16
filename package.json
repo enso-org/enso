@@ -23,7 +23,8 @@
   "name": "root",
   "scripts": {
     "dev:gui": "corepack pnpm run --parallel -r --filter enso-gui --filter ydoc-server-nodejs  --aggregate-output /^^^^dev:/",
-    "build:gui": "corepack pnpm run -r --filter enso-gui build",
+    "compile": "corepack pnpm run -r compile",
+    "build:gui": "corepack pnpm run -r compile && corepack pnpm run -r --filter enso-gui build",
     "build:ide": "corepack pnpm run -r compile && corepack pnpm run -r --filter enso build",
     "build:icons": "corepack pnpm run -r --filter enso-icons build",
     "dist:ide": "corepack pnpm run -r --filter enso dist",

@@ -7,7 +7,7 @@ import * as url from 'node:url'
 // === readEnvironmentFromFile ===
 // ===============================
 
-const PATH_TO_REPO_ROOT = url.fileURLToPath(new URL('../../../..', import.meta.url))
+const PATH_TO_ENV_FILE_DIR = url.fileURLToPath(new URL('../../ide-desktop/', import.meta.url))
 
 /**
  * Read environment variables from a file based on the `ENSO_CLOUD_ENVIRONMENT`
@@ -18,7 +18,7 @@ export async function readEnvironmentFromFile() {
   const environment = process.env.ENSO_CLOUD_ENVIRONMENT ?? null
   const isProduction = environment == null || environment === '' || environment === 'production'
   const fileName = isProduction ? '.env' : `.${environment}.env`
-  const filePath = path.join(PATH_TO_REPO_ROOT, fileName)
+  const filePath = path.join(PATH_TO_ENV_FILE_DIR, fileName)
   if (process.env.TRY_LOAD_ENV_FILE !== 'false') {
     try {
       const file = await fs.readFile(filePath, { encoding: 'utf-8' })
