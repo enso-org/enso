@@ -39,7 +39,7 @@ const _props = defineProps<{
   singleClickEdit?: boolean
   stopEditingWhenCellsLoseFocus?: boolean
   textFormatOption?: TextFormatOptions
-  pinnedTopRowData?: TData[]
+  pinnedTopRowData?: TData[] | null
   pinnedRowHeight?: number
 }>()
 const emit = defineEmits<{

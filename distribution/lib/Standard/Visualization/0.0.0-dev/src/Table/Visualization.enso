@@ -60,12 +60,6 @@ prepare_visualization y max_rows=1000 =
 max_columns = 250
 
 ##PRIVATE
-nothing_count : Column -> Integer
-nothing_count col =
-    filtered_to_nothing = col.to_vector.filter (c-> c==Nothing)
-    filtered_to_nothing.length
-
-##PRIVATE
 whitespace_count : Column -> Integer | Nothing
 whitespace_count col =
     find_whitespace col = 
