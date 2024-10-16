@@ -1,7 +1,6 @@
 package org.enso.compiler.pass.analyse;
 
 import java.util.List;
-import java.util.UUID;
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.context.ModuleContext;
 import org.enso.compiler.core.IR;
@@ -11,6 +10,7 @@ import org.enso.compiler.core.ir.expression.errors.Syntax;
 import org.enso.compiler.core.ir.expression.errors.Syntax.InconsistentConstructorVisibility$;
 import org.enso.compiler.core.ir.module.scope.Definition;
 import org.enso.compiler.pass.IRPass;
+import org.enso.compiler.pass.IRProcessingPass;
 import scala.collection.immutable.Seq;
 import scala.jdk.javaapi.CollectionConverters;
 
@@ -21,31 +21,19 @@ import scala.jdk.javaapi.CollectionConverters;
 public final class PrivateConstructorAnalysis implements IRPass {
   public static final PrivateConstructorAnalysis INSTANCE = new PrivateConstructorAnalysis();
 
-  private UUID uuid;
-
   private PrivateConstructorAnalysis() {}
 
   @Override
-  public void org$enso$compiler$pass$IRPass$_setter_$key_$eq(UUID v) {
-    this.uuid = v;
-  }
-
-  @Override
-  public UUID key() {
-    return uuid;
-  }
-
-  @Override
-  public Seq<IRPass> precursorPasses() {
-    List<IRPass> passes = List.of(PrivateModuleAnalysis.INSTANCE);
+  public Seq<IRProcessingPass> precursorPasses() {
+    List<IRProcessingPass> passes = List.of(PrivateModuleAnalysis.INSTANCE);
     return CollectionConverters.asScala(passes).toList();
   }
 
   @Override
   @SuppressWarnings("unchecked")
-  public Seq<IRPass> invalidatedPasses() {
+  public Seq<IRProcessingPass> invalidatedPasses() {
     Object obj = scala.collection.immutable.Nil$.MODULE$;
-    return (scala.collection.immutable.List<IRPass>) obj;
+    return (scala.collection.immutable.List<IRProcessingPass>) obj;
   }
 
   @Override
