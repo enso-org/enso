@@ -13,6 +13,7 @@ import * as backendModule from '#/services/Backend'
 
 import * as fileInfo from '#/utilities/fileInfo'
 import * as object from '#/utilities/object'
+import { useMutation } from '@tanstack/react-query'
 
 // =============
 // === Types ===
@@ -68,6 +69,19 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
   const firstConflict = conflictingFiles[0] ?? conflictingProjects[0]
   const otherFilesCount = Math.max(0, conflictingFiles.length - 1)
   const otherProjectsCount = conflictingProjects.length - (conflictingFiles.length > 0 ? 0 : 1)
+  const updateConflictingMutation = useMutation({
+    mutationKey: ['updateConflicting'],
+    mutationFn: async (...args: Parameters<typeof doUpdateConflicting>) => {
+      await doUpdateConflicting(...args)
+    },
+  })
+  const uploadNonConflictingMutation = useMutation({
+    mutationKey: ['uploadNonConflicting'],
+    mutationFn: async (...args: Parameters<typeof doUploadNonConflicting>) => {
+      await doUploadNonConflicting(...args)
+    },
+  })
+  const isLoading = uploadNonConflictingMutation.isPending || updateConflictingMutation.isPending
 
   React.useEffect(() => {
     for (const name of siblingFileNamesRaw) {
@@ -261,9 +275,15 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
         <ariaComponents.ButtonGroup className="relative">
           <ariaComponents.Button
             variant="submit"
+            loading={isLoading}
             onPress={async () => {
-              await doUploadNonConflicting()
-              await doUpdateConflicting([...conflictingFiles, ...conflictingProjects])
+              await Promise.allSettled([
+                uploadNonConflictingMutation.mutateAsync(),
+                updateConflictingMutation.mutateAsync([
+                  ...conflictingFiles,
+                  ...conflictingProjects,
+                ]),
+              ])
               unsetModal()
             }}
           >
@@ -272,10 +292,13 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
 
           <ariaComponents.Button
             variant="accent"
+            loading={isLoading}
             onPress={async () => {
               const resolved = doRename([...conflictingFiles, ...conflictingProjects])
-              await doUploadNonConflicting()
-              await doUpdateConflicting(resolved)
+              await Promise.allSettled([
+                uploadNonConflictingMutation.mutateAsync(),
+                updateConflictingMutation.mutateAsync(resolved),
+              ])
               unsetModal()
             }}
           >
@@ -287,7 +310,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
               getText('renameNewFiles')
             : getText('renameNewProjects')}
           </ariaComponents.Button>
-          <ariaComponents.Button variant="outline" onPress={unsetModal}>
+          <ariaComponents.Button variant="outline" loading={isLoading} onPress={unsetModal}>
             {getText('cancel')}
           </ariaComponents.Button>
         </ariaComponents.ButtonGroup>
