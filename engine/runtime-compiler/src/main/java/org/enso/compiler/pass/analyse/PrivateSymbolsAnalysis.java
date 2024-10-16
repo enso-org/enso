@@ -1,7 +1,6 @@
 package org.enso.compiler.pass.analyse;
 
 import java.util.List;
-import java.util.UUID;
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.context.ModuleContext;
 import org.enso.compiler.core.IR;
@@ -17,6 +16,7 @@ import org.enso.compiler.data.BindingsMap.ResolvedConstructor;
 import org.enso.compiler.data.BindingsMap.ResolvedModule;
 import org.enso.compiler.data.BindingsMap.ResolvedName;
 import org.enso.compiler.pass.IRPass;
+import org.enso.compiler.pass.IRProcessingPass;
 import org.enso.compiler.pass.resolve.Patterns$;
 import org.enso.pkg.QualifiedName;
 import scala.collection.immutable.Seq;
@@ -30,30 +30,19 @@ import scala.jdk.javaapi.CollectionConverters;
  */
 public class PrivateSymbolsAnalysis implements IRPass {
   public static final PrivateSymbolsAnalysis INSTANCE = new PrivateSymbolsAnalysis();
-  private UUID uuid;
 
   private PrivateSymbolsAnalysis() {}
 
   @Override
-  public void org$enso$compiler$pass$IRPass$_setter_$key_$eq(UUID v) {
-    this.uuid = v;
-  }
-
-  @Override
-  public UUID key() {
-    return uuid;
-  }
-
-  @Override
-  public Seq<IRPass> precursorPasses() {
-    List<IRPass> passes =
+  public Seq<IRProcessingPass> precursorPasses() {
+    List<IRProcessingPass> passes =
         List.of(
             PrivateModuleAnalysis.INSTANCE, PrivateConstructorAnalysis.INSTANCE, Patterns$.MODULE$);
     return CollectionConverters.asScala(passes).toList();
   }
 
   @Override
-  public Seq<IRPass> invalidatedPasses() {
+  public Seq<IRProcessingPass> invalidatedPasses() {
     return nil();
   }
 

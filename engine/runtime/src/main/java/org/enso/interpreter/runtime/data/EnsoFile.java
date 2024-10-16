@@ -614,6 +614,7 @@ public final class EnsoFile implements EnsoObject {
   }
 
   @Builtin.Method
+  @Builtin.WrapException(from = IllegalArgumentException.class)
   @TruffleBoundary
   public EnsoFile relativize(EnsoFile other) {
     return new EnsoFile(this.truffleFile.relativize(other.truffleFile));

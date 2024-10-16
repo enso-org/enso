@@ -1,5 +1,6 @@
 # Build Artefacts
 dist
+mockDist
 target
 
 # Release body template should not be auto-formatted, as the word wrap does not really looks good in the GitHub UI.

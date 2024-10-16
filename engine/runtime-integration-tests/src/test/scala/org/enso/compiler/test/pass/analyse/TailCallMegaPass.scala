@@ -1,4 +1,4 @@
-package org.enso.compiler.pass.analyse
+package org.enso.compiler.test.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.Implicits.{AsDiagnostics, AsMetadata}
@@ -28,40 +28,45 @@ import org.enso.compiler.core.ir.{
 }
 import org.enso.compiler.core.{CompilerError, IR}
 import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.IRProcessingPass
+import org.enso.compiler.pass.analyse.TailCall
+import org.enso.compiler.pass.analyse.TailCall.TailPosition
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.resolve.{ExpressionAnnotations, GlobalNames}
 
-/** This pass performs tail call analysis on the Enso IR.
+/** Original implementation of [[org.enso.compiler.pass.analyse.TailCall]].
+  * Now server as the test verification of the new [[org.enso.compiler.pass.analyse.TailCallMini]].
+  *
+  * This pass performs tail call analysis on the Enso IR.
   *
   * It is responsible for marking every single expression with whether it is in
-  * tail position. This allows the code generator to correctly create the
+  * tail position or not. This allows the code generator to correctly create the
   * Truffle nodes.
-  * If the expression is in tail position, [[TailPosition.Tail]] metadata is attached
-  * to it, otherwise, nothing is attached.
   *
   * This pass requires the context to provide:
   *
   * - The tail position of its expression, where relevant.
   */
-case object TailCall extends IRPass {
+case object TailCallMegaPass extends IRPass {
 
   /** The annotation metadata type associated with IR nodes by this pass. */
   override type Metadata = TailPosition
 
   override type Config = IRPass.Configuration.Default
 
-  override lazy val precursorPasses: Seq[IRPass] = List(
+  override lazy val precursorPasses: Seq[IRProcessingPass] = List(
     FunctionBinding,
     GenerateMethodBodies,
-    SectionsToBinOp,
+    SectionsToBinOp.INSTANCE,
     OperatorToFunction,
     LambdaShorthandToLambda,
     GlobalNames
   )
 
-  override lazy val invalidatedPasses: Seq[IRPass] = List()
+  override lazy val invalidatedPasses: Seq[IRProcessingPass] = List()
 
-  private lazy val TAIL_META = new MetadataPair(this, TailPosition.Tail)
+  private lazy val TAIL_META =
+    new MetadataPair(TailCall.INSTANCE, TailPosition.Tail)
 
   /** Analyses tail call state for expressions in a module.
     *
@@ -478,42 +483,6 @@ case object TailCall extends IRPass {
             defaultValue =
               default.map(x => analyseExpression(x, isInTailPosition = false))
           )
-    }
-  }
-
-  /** Expresses the tail call state of an IR Node. */
-  sealed trait TailPosition extends IRPass.IRMetadata {
-
-    /** A boolean representation of the expression's tail state. */
-    def isTail: Boolean
-  }
-  object TailPosition {
-
-    /** The expression is in a tail position and can be tail call optimised.
-      * If the expression is not in tail-call position, it has no metadata attached.
-      */
-    final case object Tail extends TailPosition {
-      override val metadataName: String = "TailCall.TailPosition.Tail"
-      override def isTail: Boolean      = true
-
-      override def duplicate(): Option[IRPass.IRMetadata] = Some(Tail)
-
-      /** @inheritdoc */
-      override def prepareForSerialization(compiler: Compiler): Tail.type = this
-
-      /** @inheritdoc */
-      override def restoreFromSerialization(
-        compiler: Compiler
-      ): Option[Tail.type] = Some(this)
-    }
-
-    /** Implicitly converts the tail position data into a boolean.
-      *
-      * @param tailPosition the tail position value
-      * @return the boolean value corresponding to `tailPosition`
-      */
-    implicit def toBool(tailPosition: TailPosition): Boolean = {
-      tailPosition.isTail
     }
   }
 
