@@ -1,5 +1,6 @@
 import { type Page } from '@playwright/test'
 import { expect } from './customExpect'
+import { mockExpressionUpdate, mockMethodCallInfo } from './expressionUpdates'
 import * as locate from './locate'
 import { graphNodeByBinding } from './locate'
 
@@ -50,9 +51,9 @@ export async function exitFunction(page: Page, x = 300, y = 300) {
   await locate.graphEditor(page).dblclick({ position: { x, y } })
 }
 
-// =================
-// === Drag Node ===
-// =================
+// =============
+// === Graph ===
+// =============
 
 /** Move node defined by the given binding  by the given x and y. */
 export async function dragNodeByBinding(page: Page, nodeBinding: string, x: number, y: number) {
@@ -74,4 +75,63 @@ export async function ensureNoCircularMenusVisibleDueToHovering(page: Page) {
 export async function deselectNodes(page: Page) {
   await page.mouse.click(0, 0)
   await expect(locate.selectedNodes(page)).toHaveCount(0)
+}
+
+/** Click at spot where no node is. */
+export function clickAtBackground(page: Page) {
+  return page.mouse.click(200, 200)
+}
+
+// ======================
+// === Visualizations ===
+// ======================
+
+/**
+ *  Open Table visualization
+ *
+ * This action ensures the table visualization is opened somewhere in the graph; currently it opens
+ * visualization for `aggregate` node.
+ */
+export async function openVisualization(page: Page, visName: string) {
+  const aggregatedNode = graphNodeByBinding(page, 'aggregated')
+  await aggregatedNode.click()
+  await page.keyboard.press('Space')
+  await locate.toggleVisualizationSelectorButton(page).click()
+  await page.locator('.VisualizationSelector').getByRole('button', { name: visName }).click()
+}
+
+// ===============
+// === Widgets ===
+// ===============
+
+/**
+ * Create a Node with Table Input Widget.
+ *
+ * This function relies on automatically assigned binding and assome no more table nodes exist.
+ */
+export async function createTableNode(page: Page) {
+  // Adding `Table.new` component will display the widget
+  await locate.addNewNodeButton(page).click()
+  await expect(locate.componentBrowser(page)).toBeVisible()
+  await page.keyboard.type('Table.new')
+  // Wait for CB entry to appear; this way we're sure about node name (binding).
+  await expect(locate.componentBrowserSelectedEntry(page)).toHaveCount(1)
+  await expect(locate.componentBrowserSelectedEntry(page)).toHaveText('Table.new')
+  await page.keyboard.press('Enter')
+  const node = locate.graphNodeByBinding(page, 'table1')
+  await expect(node).toHaveCount(1)
+  await expect(node).toBeVisible()
+  await mockMethodCallInfo(
+    page,
+    { binding: 'table1', expr: 'Table.new' },
+    {
+      methodPointer: {
+        module: 'Standard.Table.Table',
+        definedOnType: 'Standard.Table.Table.Table',
+        name: 'new',
+      },
+      notAppliedArguments: [0],
+    },
+  )
+  return node
 }
