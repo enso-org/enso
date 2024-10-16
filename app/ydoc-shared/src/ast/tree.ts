@@ -2465,10 +2465,7 @@ export class MutableVector extends Vector implements MutableAst {
 
   push(value: Owned) {
     const elements = this.fields.get('elements')
-    const element = mapRefs(
-      delimitVectorElement({ value: autospaced(value) }),
-      ownedToRaw(this.module, this.id),
-    )
+    const element = this.valueToElement(value)
     this.fields.set('elements', [...elements, element])
   }
 
@@ -2494,12 +2491,11 @@ export class MutableVector extends Vector implements MutableAst {
     this.fields.set('elements', elements)
   }
 
-  splice(start: number, deletedCount: number) {
+  splice(start: number, deletedCount: number, ...newValues: Owned[]) {
     const elements = [...this.fields.get('elements')]
-    elements.splice(start, deletedCount)
-    if (start === 0 && elements[0]?.value != null) {
-      elements[0].value.whitespace = undefined
-    }
+    const newElements = newValues.map(value => this.valueToElement(value))
+    elements.splice(start, deletedCount, ...newElements)
+    MutableVector.autospaceElement(elements[start + newValues.length])
     this.fields.set('elements', elements)
   }
 
@@ -2514,17 +2510,10 @@ export class MutableVector extends Vector implements MutableAst {
     const elements = [...this.fields.get('elements')]
     const [element] = elements.splice(fromIndex, 1)
     if (element != null) {
-      element.value = autospaced(element.value?.node)
+      MutableVector.autospaceElement(element)
       elements.splice(toIndex, 0, element)
-      // Automate spacing to make array look more natural.
-
-      if (fromIndex === 0 && elements[0]?.value != null) {
-        elements[0].value.whitespace = undefined
-      }
-      // 3. If the first element was shifted by inserting element before, also automate its spacing
-      if (toIndex === 0 && elements[1]?.value != null) {
-        elements[1].value.whitespace = undefined
-      }
+      MutableVector.autospaceElement(elements[fromIndex])
+      MutableVector.autospaceElement(elements[toIndex + 1])
       this.fields.set('elements', elements)
     }
   }
@@ -2540,6 +2529,20 @@ export class MutableVector extends Vector implements MutableAst {
       filtered[0].value.whitespace = firstSpacing
     }
     this.fields.set('elements', filtered)
+  }
+
+  private valueToElement(value: Owned) {
+    return mapRefs(
+      delimitVectorElement({ value: autospaced(value) }),
+      ownedToRaw(this.module, this.id),
+    )
+  }
+
+  private static autospaceElement(element: VectorElement<RawRefs> | undefined) {
+    if (element != null) {
+      element.delimiter.whitespace = undefined
+      element.value = autospaced(element.value?.node)
+    }
   }
 }
 export interface MutableVector extends Vector, MutableAst {
