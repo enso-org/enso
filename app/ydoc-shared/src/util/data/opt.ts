@@ -15,21 +15,22 @@
 export type Opt<T> = T | null | undefined
 
 /**
- *
+ * Whether the given {@link Opt} is non-nullish.
  */
 export function isSome<T>(value: Opt<T>): value is T {
   return value != null
 }
 
 /**
- *
+ * Whether the given {@link Opt} is nullish.
  */
 export function isNone(value: Opt<any>): value is null | undefined {
   return value == null
 }
 
 /**
- *
+ * Map the value inside the given {@link Opt} if it is not nullish,
+ * else return the given fallback value.
  */
 export function mapOr<T, R>(optional: Opt<T>, fallback: R, mapper: (value: T) => R): R {
   return isSome(optional) ? mapper(optional) : fallback

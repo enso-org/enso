@@ -34,7 +34,7 @@ export type Result<T = undefined, E = unknown> =
 export function Ok(): Result<undefined, never>
 export function Ok<T>(data: T): Result<T, never>
 /**
- *
+ * Implementation of `Ok` constructor.
  */
 export function Ok<T>(data?: T): Result<T | undefined, never> {
   return { ok: true, value: data }
@@ -103,7 +103,7 @@ export function transposeResult<T, E>(value: Opt<Result<T, E>>): Result<Opt<T>, 
  */
 export function transposeResult<T, E>(value: Result<T, E>[]): Result<T[], E>
 /**
- *
+ * Implementation of `transposeResult`.
  */
 export function transposeResult<T, E>(value: Opt<Result<T, E>> | Result<T, E>[]) {
   if (value == null) return Ok(value)
@@ -137,7 +137,7 @@ export class ResultError<E = unknown> {
   context: (() => string)[]
 
   /**
-   *
+   * Create an {@link ResultError}.
    */
   constructor(payload: E) {
     this.payload = payload
@@ -205,7 +205,7 @@ export function withContext<T, E>(
   f: () => Promise<Result<T, E>>,
 ): Promise<Result<T, E>>
 /**
- *
+ * Implementation of `withContext`.
  */
 export function withContext<T, E>(
   context: () => string,

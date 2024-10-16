@@ -7,7 +7,7 @@ export interface EnsoFileParts {
 }
 
 /**
- *
+ * Return the parts of a file, given its entire content.
  */
 export function splitFileContents(content: string): EnsoFileParts {
   const splitPoint = content.lastIndexOf(META_TAG)
@@ -27,7 +27,7 @@ export function splitFileContents(content: string): EnsoFileParts {
 }
 
 /**
- *
+ * Return the entire content of a file, given its parts.
  */
 export function combineFileParts(parts: EnsoFileParts): string {
   const hasMeta = parts.idMapJson != null || parts.metadataJson != null

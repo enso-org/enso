@@ -192,7 +192,7 @@ export interface MethodPointer {
 }
 
 /**
- *
+ * Whether one {@link MethodPointer} deeply equals another.
  */
 export function methodPointerEquals(left: MethodPointer, right: MethodPointer): boolean {
   return (
@@ -392,7 +392,7 @@ export interface LocalCall {
 }
 
 /**
- *
+ * Serialize a {@link MethodPointer}.
  */
 export function encodeMethodPointer(enc: encoding.Encoder, ptr: MethodPointer) {
   encoding.writeVarString(enc, ptr.module)
@@ -401,7 +401,7 @@ export function encodeMethodPointer(enc: encoding.Encoder, ptr: MethodPointer) {
 }
 
 /**
- *
+ * Whether one {@link StackItem} is deeply equal to another.
  */
 export function stackItemsEqual(left: StackItem, right: StackItem): boolean {
   if (left.type !== right.type) return false

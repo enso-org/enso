@@ -7,14 +7,14 @@ import { is_ident_or_operator } from './ffi'
 import * as RawAst from './generated/ast'
 
 /**
- *
+ * Whether the given value is a {@link Token}.
  */
-export function isToken(t: unknown): t is Token {
-  return t instanceof Token
+export function isToken(maybeToken: unknown): maybeToken is Token {
+  return maybeToken instanceof Token
 }
 
 /**
- *
+ * Whether the given {@link NodeChild} is a {@link NodeChild}<{@link Token}>.
  */
 export function isTokenChild(child: NodeChild<unknown>): child is NodeChild<Token> {
   return isToken(child.node)
@@ -35,7 +35,7 @@ export interface SyncTokenId {
 }
 
 /**
- *
+ * A structure representing a lexical source code unit in the AST.
  */
 export class Token implements SyncTokenId {
   readonly id: TokenId
@@ -49,21 +49,21 @@ export class Token implements SyncTokenId {
   }
 
   /**
-   *
+   * The id of this token.
    */
   get externalId(): TokenId {
     return this.id
   }
 
   /**
-   *
+   * Construct a {@link Token} without a {@link TokenId}.
    */
   static new(code: string, type?: RawAst.Token.Type) {
     return new this(code, type, newTokenId())
   }
 
   /**
-   *
+   * Construct a {@link Token} with a {@link TokenId}.
    */
   static withId(code: string, type: RawAst.Token.Type | undefined, id: TokenId) {
     assert(isUuid(id))
@@ -71,21 +71,21 @@ export class Token implements SyncTokenId {
   }
 
   /**
-   *
+   * Whether one {@link SyncTokenId} is equal to another.
    */
   static equal(a: SyncTokenId, b: SyncTokenId): boolean {
     return a.tokenType_ === b.tokenType_ && a.code_ === b.code_
   }
 
   /**
-   *
+   * The code represented by this token.
    */
   code(): string {
     return this.code_
   }
 
   /**
-   *
+   * The name of the token type of this token.
    */
   typeName(): string {
     if (this.tokenType_) return RawAst.Token.typeNames[this.tokenType_]!
@@ -149,13 +149,14 @@ export function isIdentifierOrOperatorIdentifier(
   return is_ident_or_operator(code) !== 0
 }
 
-/** Returns true if `code` is lexically an identifier. */
+/** Whether the given code is lexically an identifier. */
 export function isIdentifier(code: string): code is Identifier {
   return is_ident_or_operator(code) === 1
 }
 
 /**
- *
+ * Whether the given code is a type or constructor identifier.
+ * This is true if the code is an identifier beginning with an uppercase letter.
  */
 export function isTypeOrConsIdentifier(code: string): code is TypeOrConstructorIdentifier {
   const isUppercase = (s: string) => s.toUpperCase() === s && s.toLowerCase() !== s
@@ -163,13 +164,13 @@ export function isTypeOrConsIdentifier(code: string): code is TypeOrConstructorI
 }
 
 /**
- *
+ * The code as an {@link Identifier} if it is an {@link Identifier}, else `undefined`.
  */
 export function identifier(code: string): Identifier | undefined {
   if (isIdentifier(code)) return code
 }
 
-/** Returns true if `code` is lexically an operator. */
+/** Whether the given code is lexically an operator. */
 export function isOperator(code: string): code is Operator {
   return is_ident_or_operator(code) === 2
 }

@@ -3,7 +3,9 @@ import type { FileSystemObject, Path } from '../languageServerTypes'
 import { Err, Ok, type Result } from '../util/data/result'
 
 /**
- *
+ * Recursively walk through the file system using the Language Server,
+ * calling the given callback with each file system entry found
+ * (both files and folders).
  */
 export async function walkFs(
   ls: LanguageServer,

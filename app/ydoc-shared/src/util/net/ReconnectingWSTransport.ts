@@ -19,12 +19,12 @@ export interface AddEventListenerOptions {
 }
 
 /**
- *
+ * A socket that automatically connects upon disconnect, for example after network issues.
  */
 export class ReconnectingWebSocketTransport extends WebSocketTransport {
   private _reconnectingConnection: ReconnectingWebSocket
   /**
-   *
+   * Create a {@link ReconnectingWebSocketTransport}.
    */
   constructor(uri: string, wsOptions: Options = {}) {
     super(uri)
@@ -38,14 +38,14 @@ export class ReconnectingWebSocketTransport extends WebSocketTransport {
   }
 
   /**
-   *
+   * Reconnect the underlying WebSocket.
    */
   public reconnect() {
     this._reconnectingConnection.reconnect()
   }
 
   /**
-   *
+   * Add an event listener to the underlying WebSocket.
    */
   on<K extends keyof WebSocketEventMap>(
     type: K,
@@ -58,7 +58,7 @@ export class ReconnectingWebSocketTransport extends WebSocketTransport {
   }
 
   /**
-   *
+   * Remove an event listener from the underlying WebSocket.
    */
   off<K extends keyof WebSocketEventMap>(
     type: K,
