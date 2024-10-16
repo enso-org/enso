@@ -51,6 +51,32 @@ from project.System.File_Format import Auto_Detect, File_Format
      If set to `Report_Error`, the operation fails with a dataflow error.
      If set to `Ignore`, the operation proceeds without errors or warnings.
 
+   ! Request Caching
+
+     Responses to HTTP data requests are cached, and additional requests for the
+     same resources will use the cache, saving a round-trip call to the remote
+     server. Two resources are considered the same if the URIs and request
+     headers are the same. Header order does not affect sameness.
+
+     The cached values are retained as long as the project as open. Closing a
+     project will clear the cache.
+
+     The cache respects the "max-age" and "Age" response headers received from
+     remote servers. These headers are used to determine if the cached value is
+     fresh or stale. If it is stale, the cached value is removed and a request
+     is made again to the remote servers.
+
+     The following limits are imposed on values stored in the cache:
+     - Single file limit: a single file can be no more than 10M.
+     - Total cache size limit: the entire cache can be no more than 10G.
+
+     For data responses over the single file limit, you can use `Data.download`
+     to download the file locally. Download sizes are not constrained by either
+     limit.
+
+     If the entire cache goes over the total cache size limit, the
+     least-recently-used entries are removed.
+
    > Example
      Read the first sheet of an XLSX from disk and convert it into a table.
 
@@ -184,6 +210,32 @@ list (directory:(Text | File)=enso_project.root) (name_filter:Text="") recursive
    - format: The format to use for interpreting the response.
      Defaults to `Auto_Detect`. If `Raw_Response` is selected or if the format
      cannot be determined automatically, a raw HTTP `Response` will be returned.
+
+   ! Request Caching
+
+     Responses to HTTP data requests are cached, and additional requests for the
+     same resources will use the cache, saving a round-trip call to the remote
+     server. Two resources are considered the same if the URIs and request
+     headers are the same. Header order does not affect sameness.
+
+     The cached values are retained as long as the project as open. Closing a
+     project will clear the cache.
+
+     The cache respects the "max-age" and "Age" response headers received from
+     remote servers. These headers are used to determine if the cached value is
+     fresh or stale. If it is stale, the cached value is removed and a request
+     is made again to the remote servers.
+
+     The following limits are imposed on values stored in the cache:
+     - Single file limit: a single file can be no more than 10M.
+     - Total cache size limit: the entire cache can be no more than 10G.
+
+     For data responses over the single file limit, you can use `Data.download`
+     to download the file locally. Download sizes are not constrained by either
+     limit.
+
+     If the entire cache goes over the total cache size limit, the
+     least-recently-used entries are removed.
 
    > Example
      Read from an HTTP endpoint.

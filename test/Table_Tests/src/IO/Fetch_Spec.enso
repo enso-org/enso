@@ -355,14 +355,14 @@ add_specs suite_builder =
                 download 45
                 get_cache_file_sizes . should_equal [20, 30, 45]
 
-        group_builder.specify "Will not download or cache a file with a content length greater than the single file limit" pending=pending_has_url <| Test.with_retries <|
+        group_builder.specify "Will not cache a file with a content length greater than the single file limit" pending=pending_has_url <| Test.with_retries <|
             Panic.with_finalizer reset_size_limits <|
                 reset_size_limits
                 TransientHTTPResponseCache.setMaxFileSizeOverrideTestOnly 100
                 download 110 . should_fail_with (Response_Too_Large.Error 110 100 base_url_with_slash+'test_download?length=110')
 
 
-        group_builder.specify "Will not download or cache a file without a content length, but which is greater than the single file limit" pending=pending_has_url <| Test.with_retries <|
+        group_builder.specify "Will not cache a file without a content length, but which is greater than the single file limit" pending=pending_has_url <| Test.with_retries <|
             Data.clear_response_cache
             Panic.with_finalizer reset_size_limits <|
                 reset_size_limits
