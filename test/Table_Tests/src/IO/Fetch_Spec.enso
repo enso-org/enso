@@ -223,6 +223,14 @@ add_specs suite_builder =
 
             target_file.delete_if_exists
 
+        group_builder.specify "Data.download is not affected by caching limits" pending=pending_has_url <| Test.with_retries <|
+            target_file = enso_project.data / "transient" / "my_download0.txt"
+            Panic.with_finalizer reset_size_limits <|
+                TransientHTTPResponseCache.setMaxTotalCacheSizeOverrideTestOnly 120
+                TransientHTTPResponseCache.setMaxFileSizeOverrideTestOnly 100
+                Data.download base_url_with_slash+"test_download?length=200" target_file
+                target_file.read.length . should_equal 200
+
         group_builder.specify "Should not cache for methods other than GET" pending=pending_has_url <| Test.with_retries <|
             Data.clear_response_cache
 
