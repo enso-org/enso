@@ -36,7 +36,7 @@ import ManagePermissionsModal from '#/modals/ManagePermissionsModal'
 import * as backendModule from '#/services/Backend'
 import * as localBackendModule from '#/services/LocalBackend'
 
-import { useUploadFileMutation } from '#/hooks/backendHooks'
+import { useUploadFileWithToastMutation } from '#/hooks/backendHooks'
 import {
   useSetAssetPanelProps,
   useSetIsAssetPanelTemporarilyVisible,
@@ -100,7 +100,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     : isCloud ? encodeURI(pathRaw)
     : pathRaw
   const copyMutation = copyHooks.useCopy({ copyText: path ?? '' })
-  const uploadFileToCloudMutation = useUploadFileMutation(remoteBackend)
+  const uploadFileToCloudMutation = useUploadFileWithToastMutation(remoteBackend)
 
   const { isFeatureUnderPaywall } = billingHooks.usePaywall({ plan: user.plan })
   const isUnderPaywall = isFeatureUnderPaywall('share')
@@ -280,13 +280,14 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                   // (cloud) backend. The user may change to the cloud backend
                   // while this request is in progress, however this is
                   // uncommon enough that it is not worth the added complexity.
-                  await uploadFileToCloudMutation(
+                  const fileName = `${asset.title}.enso-project`
+                  await uploadFileToCloudMutation.mutateAsync(
                     {
-                      fileName: `${asset.title}.enso-project`,
+                      fileName,
                       fileId: null,
                       parentDirectoryId: null,
                     },
-                    await projectResponse.blob(),
+                    new File([await projectResponse.blob()], fileName),
                   )
                   toast.toast.success(getText('uploadProjectToCloudSuccess'))
                 } catch (error) {

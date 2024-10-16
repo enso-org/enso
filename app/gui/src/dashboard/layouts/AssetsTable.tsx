@@ -58,7 +58,7 @@ import { useAutoScroll } from '#/hooks/autoScrollHooks'
 import {
   backendMutationOptions,
   useBackendQuery,
-  useUploadFileMutation,
+  useUploadFileWithToastMutation,
 } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useIntersectionRatio } from '#/hooks/intersectionHooks'
@@ -452,7 +452,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const createSecretMutation = useMutation(backendMutationOptions(backend, 'createSecret'))
   const updateSecretMutation = useMutation(backendMutationOptions(backend, 'updateSecret'))
   const createDatalinkMutation = useMutation(backendMutationOptions(backend, 'createDatalink'))
-  const uploadFileMutation = useUploadFileMutation(backend)
+  const uploadFileMutation = useUploadFileWithToastMutation(backend)
   const copyAssetMutation = useMutation(backendMutationOptions(backend, 'copyAsset'))
   const deleteAssetMutation = useMutation(backendMutationOptions(backend, 'deleteAsset'))
   const undoDeleteAssetMutation = useMutation(backendMutationOptions(backend, 'undoDeleteAsset'))
