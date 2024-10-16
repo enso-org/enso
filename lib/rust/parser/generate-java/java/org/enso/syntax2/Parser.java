@@ -203,16 +203,16 @@ public final class Parser {
       byte[] inputBytes = input.toString().getBytes(StandardCharsets.UTF_8);
       ByteBuffer inputBuf = ByteBuffer.allocateDirect(inputBytes.length);
       inputBuf.put(inputBytes);
-      return withState(state -> {
-          ByteBuffer serializedTree;
-          if (isInternalBlock) {
-            serializedTree = parseBlockLazy(state, inputBuf);
-          } else {
-            serializedTree = parseModuleLazy(state, inputBuf);
-          }
-          return serializedTree;
-        }
-      );
+      return withState(
+          state -> {
+            ByteBuffer serializedTree;
+            if (isInternalBlock) {
+              serializedTree = parseBlockLazy(state, inputBuf);
+            } else {
+              serializedTree = parseModuleLazy(state, inputBuf);
+            }
+            return serializedTree;
+          });
     }
 
     Tree.BodyBlock parse(CharSequence input, boolean isInternalBlock) {
