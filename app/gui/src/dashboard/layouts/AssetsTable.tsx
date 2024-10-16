@@ -131,8 +131,7 @@ import {
   type ProjectAsset,
   type SecretAsset,
 } from '#/services/Backend'
-import LocalBackend, { extractTypeAndId, newProjectId } from '#/services/LocalBackend'
-import { UUID } from '#/services/ProjectManager'
+import LocalBackend from '#/services/LocalBackend'
 import { isSpecialReadonlyDirectoryId } from '#/services/RemoteBackend'
 import type { AssetQueryKey } from '#/utilities/AssetQuery'
 import AssetQuery from '#/utilities/AssetQuery'
@@ -454,9 +453,6 @@ export default function AssetsTable(props: AssetsTableProps) {
   const updateSecretMutation = useMutation(backendMutationOptions(backend, 'updateSecret'))
   const createDatalinkMutation = useMutation(backendMutationOptions(backend, 'createDatalink'))
   const uploadFileMutation = useUploadFileMutation(backend)
-  const getProjectDetailsMutation = useMutation(
-    backendMutationOptions(backend, 'getProjectDetails'),
-  )
   const copyAssetMutation = useMutation(backendMutationOptions(backend, 'copyAsset'))
   const deleteAssetMutation = useMutation(backendMutationOptions(backend, 'deleteAsset'))
   const undoDeleteAssetMutation = useMutation(backendMutationOptions(backend, 'undoDeleteAsset'))
@@ -1746,48 +1742,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                 const { extension } = extractProjectExtension(file.name)
                 const title = stripProjectExtension(asset.title)
 
-                const assetNode = nodeMapRef.current.get(asset.id)
-
-                if (backend.type === BackendType.local && localBackend != null) {
-                  const directory = extractTypeAndId(assetNode?.directoryId ?? asset.parentId).id
-                  let id: string
-                  if (
-                    'backendApi' in window &&
-                    // This non-standard property is defined in Electron.
-                    'path' in file &&
-                    typeof file.path === 'string'
-                  ) {
-                    const projectInfo = await window.backendApi.importProjectFromPath(
-                      file.path,
-                      directory,
-                      title,
-                    )
-                    id = projectInfo.id
-                  } else {
-                    const searchParams = new URLSearchParams({ directory, name: title }).toString()
-                    // Ideally this would use `file.stream()`, to minimize RAM
-                    // requirements. for uploading large projects. Unfortunately,
-                    // this requires HTTP/2, which is HTTPS-only, so it will not
-                    // work on `http://localhost`.
-                    const body =
-                      window.location.protocol === 'https:' ?
-                        file.stream()
-                      : await file.arrayBuffer()
-                    const path = `./api/upload-project?${searchParams}`
-                    const response = await fetch(path, { method: 'POST', body })
-                    id = await response.text()
-                  }
-                  const projectId = newProjectId(UUID(id))
-                  addIdToSelection(projectId)
-
-                  await getProjectDetailsMutation
-                    .mutateAsync([projectId, asset.parentId, asset.title])
-                    .catch((error) => {
-                      deleteAsset(projectId)
-                      toastAndLog('uploadProjectError', error)
-                    })
-                } else {
-                  uploadFileMutation(
+                await uploadFileMutation
+                  .mutateAsync(
                     {
                       fileId,
                       fileName: `${title}.${extension}`,
@@ -1795,24 +1751,24 @@ export default function AssetsTable(props: AssetsTableProps) {
                     },
                     file,
                   )
-                    .then(({ id }) => {
-                      addIdToSelection(id)
-                    })
-                    .catch((error) => {
-                      deleteAsset(asset.id)
-                      toastAndLog('uploadProjectError', error)
-                    })
-                }
+                  .then(({ id }) => {
+                    addIdToSelection(id)
+                  })
+                  .catch((error) => {
+                    toastAndLog('uploadProjectError', error)
+                  })
 
                 break
               }
               case assetIsFile(asset): {
-                void uploadFileMutation(
-                  { fileId, fileName: asset.title, parentDirectoryId: asset.parentId },
-                  file,
-                ).then(({ id }) => {
-                  addIdToSelection(id)
-                })
+                await uploadFileMutation
+                  .mutateAsync(
+                    { fileId, fileName: asset.title, parentDirectoryId: asset.parentId },
+                    file,
+                  )
+                  .then(({ id }) => {
+                    addIdToSelection(id)
+                  })
 
                 break
               }

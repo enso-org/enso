@@ -1575,12 +1575,10 @@ export default abstract class Backend {
   abstract checkResources(projectId: ProjectId, title: string): Promise<ResourceUsage>
   /** Return a list of files accessible by the current user. */
   abstract listFiles(): Promise<readonly FileLocator[]>
-  /** Upload a file. */
-  abstract uploadFile(params: UploadFileRequestParams, file: Blob): Promise<FileInfo>
   /** Begin uploading a large file. */
   abstract uploadFileStart(
-    body: Omit<UploadFileStartRequestBody, 'size'>,
-    file: Blob,
+    body: UploadFileRequestParams,
+    file: File,
   ): Promise<UploadLargeFileMetadata>
   /** Upload a chunk of a large file. */
   abstract uploadFileChunk(url: HttpsUrl, file: Blob, index: number): Promise<S3MultipartPart>

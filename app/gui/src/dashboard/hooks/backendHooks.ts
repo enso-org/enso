@@ -71,7 +71,6 @@ export type MutationMethod = DefineBackendMethods<
   | 'updateProject'
   | 'updateSecret'
   | 'updateUser'
-  | 'uploadFile'
   | 'uploadFileChunk'
   | 'uploadFileEnd'
   | 'uploadFileStart'
@@ -154,7 +153,7 @@ const INVALIDATION_MAP: Partial<
   createSecret: ['listDirectory'],
   updateSecret: ['listDirectory'],
   createDatalink: ['listDirectory'],
-  uploadFile: ['listDirectory'],
+  uploadFileEnd: ['listDirectory'],
   copyAsset: ['listDirectory', 'listAssetVersions'],
   deleteAsset: ['listDirectory', 'listAssetVersions'],
   undoDeleteAsset: ['listDirectory'],
@@ -341,7 +340,6 @@ export function useUploadFileMutation(backend: Backend, options: UploadFileMutat
       toastAndLog('uploadLargeFileError', error)
     },
   } = options
-  const uploadFileMutation = reactQuery.useMutation(backendMutationOptions(backend, 'uploadFile'))
   const uploadFileStartMutation = reactQuery.useMutation(
     backendMutationOptions(backend, 'uploadFileStart'),
   )
@@ -353,50 +351,47 @@ export function useUploadFileMutation(backend: Backend, options: UploadFileMutat
     backendMutationOptions(backend, 'uploadFileEnd'),
   )
   const [variables, setVariables] =
-    React.useState<[params: backendModule.UploadFileRequestParams, file: Blob]>()
+    React.useState<[params: backendModule.UploadFileRequestParams, file: File]>()
   const mutateAsync = useEventCallback(
-    async (params: backendModule.UploadFileRequestParams, file: Blob) => {
-      setVariables([params, file])
-      if (backend.type === backendModule.BackendType.local) {
-        return await uploadFileMutation.mutateAsync([params, file])
-      } else {
-        const fileSizeMb = Math.ceil(file.size / MB_BYTES)
-        options.onBegin?.({ sentMb: 0, totalMb: fileSizeMb })
-        try {
-          const { sourcePath, uploadId, presignedUrls } = await uploadFileStartMutation.mutateAsync(
-            [{ fileName: params.fileName }, file],
-          )
-          const parts: backendModule.S3MultipartPart[] = []
-          for (const [url, i] of Array.from(
-            presignedUrls,
-            (presignedUrl, index) => [presignedUrl, index] as const,
-          )) {
-            parts.push(await uploadFileChunkMutation.mutateAsync([url, file, i]))
-            options.onChunkSuccess?.({
-              sentMb: Math.min((i + 1) * S3_CHUNK_SIZE_MB, fileSizeMb),
-              totalMb: fileSizeMb,
-            })
-          }
-          const result = await uploadFileEndMutation.mutateAsync([
-            {
-              parentDirectoryId: params.parentDirectoryId,
-              parts,
-              sourcePath: sourcePath,
-              uploadId: uploadId,
-              assetId: params.fileId,
-              fileName: params.fileName,
-            },
-          ])
-          options.onSuccess?.({ sentMb: fileSizeMb, totalMb: fileSizeMb })
-          return result
-        } catch (error) {
-          onError(error)
-          throw error
+    async (body: backendModule.UploadFileRequestParams, file: File) => {
+      setVariables([body, file])
+      const fileSizeMb = Math.ceil(file.size / MB_BYTES)
+      options.onBegin?.({ sentMb: 0, totalMb: fileSizeMb })
+      try {
+        const { sourcePath, uploadId, presignedUrls } = await uploadFileStartMutation.mutateAsync([
+          body,
+          file,
+        ])
+        const parts: backendModule.S3MultipartPart[] = []
+        for (const [url, i] of Array.from(
+          presignedUrls,
+          (presignedUrl, index) => [presignedUrl, index] as const,
+        )) {
+          parts.push(await uploadFileChunkMutation.mutateAsync([url, file, i]))
+          options.onChunkSuccess?.({
+            sentMb: Math.min((i + 1) * S3_CHUNK_SIZE_MB, fileSizeMb),
+            totalMb: fileSizeMb,
+          })
         }
+        const result = await uploadFileEndMutation.mutateAsync([
+          {
+            parentDirectoryId: body.parentDirectoryId,
+            parts,
+            sourcePath: sourcePath,
+            uploadId: uploadId,
+            assetId: body.fileId,
+            fileName: body.fileName,
+          },
+        ])
+        options.onSuccess?.({ sentMb: fileSizeMb, totalMb: fileSizeMb })
+        return result
+      } catch (error) {
+        onError(error)
+        throw error
       }
     },
   )
-  const mutate = useEventCallback((params: backendModule.UploadFileRequestParams, file: Blob) => {
+  const mutate = useEventCallback((params: backendModule.UploadFileRequestParams, file: File) => {
     void mutateAsync(params, file)
   })
 
@@ -404,38 +399,30 @@ export function useUploadFileMutation(backend: Backend, options: UploadFileMutat
     variables,
     mutate,
     mutateAsync,
-    context: uploadFileEndMutation.context ?? uploadFileMutation.context,
-    data: uploadFileEndMutation.data ?? uploadFileMutation.data,
+    context: uploadFileEndMutation.context,
+    data: uploadFileEndMutation.data,
     failureCount:
       uploadFileEndMutation.failureCount +
       uploadFileChunkMutation.failureCount +
-      uploadFileStartMutation.failureCount +
-      uploadFileMutation.failureCount,
+      uploadFileStartMutation.failureCount,
     failureReason:
       uploadFileEndMutation.failureReason ??
       uploadFileChunkMutation.failureReason ??
-      uploadFileStartMutation.failureReason ??
-      uploadFileMutation.failureReason,
+      uploadFileStartMutation.failureReason,
     isError:
-      uploadFileMutation.isError ||
       uploadFileStartMutation.isError ||
       uploadFileChunkMutation.isError ||
       uploadFileEndMutation.isError,
     error:
-      uploadFileEndMutation.error ??
-      uploadFileChunkMutation.error ??
-      uploadFileStartMutation.error ??
-      uploadFileMutation.error,
+      uploadFileEndMutation.error ?? uploadFileChunkMutation.error ?? uploadFileStartMutation.error,
     isPaused:
-      uploadFileMutation.isPaused ||
       uploadFileStartMutation.isPaused ||
       uploadFileChunkMutation.isPaused ||
       uploadFileEndMutation.isPaused,
     isPending:
-      uploadFileMutation.isPending ||
       uploadFileStartMutation.isPending ||
       uploadFileChunkMutation.isPending ||
       uploadFileEndMutation.isPending,
-    isSuccess: uploadFileMutation.isSuccess || uploadFileEndMutation.isSuccess,
+    isSuccess: uploadFileEndMutation.isSuccess,
   }
 }
