@@ -113,6 +113,10 @@ public class ExcelRow {
   /** Returns the formatted cell value. */
   public String getFormattedCell(int col) {
     var cell = get(col);
+    if (cell == null) {
+      return "";
+    }
+
     var rawCellType = cell.getCellType();
     var cellType =
         rawCellType == CellType.FORMULA ? cell.getCachedFormulaResultType() : rawCellType;
