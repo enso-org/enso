@@ -28,17 +28,15 @@ import org.enso.base.net.URIWithSecrets;
 import org.graalvm.collections.Pair;
 
 /**
- * TransientHTTPResponseCache is a cache for EnsoHttpResponse values that
- * respects the cache control HTTP headers received in the original repsonse to
- * a request.
+ * TransientHTTPResponseCache is a cache for EnsoHttpResponse values that respects the cache control
+ * HTTP headers received in the original repsonse to a request.
  *
- * <p>It also puts limits on the size of files that can be requested, and on the
- * total cache size, deleting entries to make space for new ones.
+ * <p>It also puts limits on the size of files that can be requested, and on the total cache size,
+ * deleting entries to make space for new ones.
  *
- * <p>Without cachineg, EnsoHttpResponse contains an InputStream providing the
- * response data. When there is a cache hit, this stream reads from the local
- * file storing the cached data. When there is no cache hit, the InputStream is
- * connected directly to the remote server.
+ * <p>Without cachineg, EnsoHttpResponse contains an InputStream providing the response data. When
+ * there is a cache hit, this stream reads from the local file storing the cached data. When there
+ * is no cache hit, the InputStream is connected directly to the remote server.
  */
 public class TransientHTTPResponseCache {
   TransientHTTPResponseCache() {}
@@ -59,6 +57,7 @@ public class TransientHTTPResponseCache {
    * limits.
    */
   private static Optional<Long> maxFileSizeOverrideTestOnly = Optional.empty();
+
   private static Optional<Long> maxTotalCacheSizeOverrideTestOnly = Optional.empty();
 
   private static final Map<String, CacheEntry> cache = new HashMap<>();
@@ -87,10 +86,10 @@ public class TransientHTTPResponseCache {
   }
 
   /**
-   * IOExceptions thrown by the HTTP request are propagated; IOExceptions thrown
-   * while storing the data in the cache are caught.
-   * 
-   * Only HTTP 200 responses are cached; all others are returned uncached.
+   * IOExceptions thrown by the HTTP request are propagated; IOExceptions thrown while storing the
+   * data in the cache are caught.
+   *
+   * <p>Only HTTP 200 responses are cached; all others are returned uncached.
    */
   private static EnsoHttpResponse makeRequestAndCache(
       URIWithSecrets unresolvedURI,
@@ -160,9 +159,8 @@ public class TransientHTTPResponseCache {
   }
 
   /**
-   * Read the repsonse data from the remote server into the cache file.
-   * If the downloaded data is over the file size limit, throw a
-   * ResponseTooLargeException.
+   * Read the repsonse data from the remote server into the cache file. If the downloaded data is
+   * over the file size limit, throw a ResponseTooLargeException.
    */
   private static String downloadResponseData(
       URIWithSecrets unresolvedURI, EnsoHttpResponse response)
@@ -273,10 +271,7 @@ public class TransientHTTPResponseCache {
     return sortedEntries;
   }
 
-  /**
-   * Remove least-recently used entries until the total cache size is under the
-   * limit.
-   */
+  /** Remove least-recently used entries until the total cache size is under the limit. */
   private static void removeFilesToSatisfyLimit() {
     makeRoomFor(0L);
   }
@@ -379,8 +374,8 @@ public class TransientHTTPResponseCache {
   }
 
   /**
-   * Sorts the header by header name, so we don't depend on header order.
-   * Multiple-valued headers might hash differently, but it's a rare case.
+   * Sorts the header by header name, so we don't depend on header order. Multiple-valued headers
+   * might hash differently, but it's a rare case.
    */
   private static String makeHashKey(URI resolvedURI, List<Pair<String, String>> resolvedHeaders) {
     try {
