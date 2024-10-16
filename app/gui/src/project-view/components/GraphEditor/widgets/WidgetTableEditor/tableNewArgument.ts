@@ -432,7 +432,8 @@ export function useTableNewArgument(
      * The column definitions have proper getters for obtaining value from AST.
      */
     rowData,
-    /** Move column in AST. Do not change colunDefs, they are updated upon expected widgetInput change.
+    /**
+     * Move column in AST. Do not change colunDefs, they are updated upon expected widgetInput change.
      * @param colId the id of moved column (as got from `getColId()`)
      * @param toIndex the new index of column as in view (counting in the row index column).
      */
