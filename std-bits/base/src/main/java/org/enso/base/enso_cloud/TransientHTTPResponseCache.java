@@ -28,15 +28,17 @@ import org.enso.base.net.URIWithSecrets;
 import org.graalvm.collections.Pair;
 
 /**
- * TransientHTTPResponseCache is a cache for EnsoHttpResponse values that respects the cache control
- * HTTP headers received in the original repsonse to a request.
+ * TransientHTTPResponseCache is a cache for EnsoHttpResponse values that
+ * respects the cache control HTTP headers received in the original repsonse to
+ * a request.
  *
- * <p>It also puts limits on the size of files that can be requested, and on the total cache size,
- * deleting entries to make space for new ones.
+ * <p>It also puts limits on the size of files that can be requested, and on the
+ * total cache size, deleting entries to make space for new ones.
  *
- * <p>EnsoHttpResponse contains an InputStream providing the response data. When there is a cache
- * hit, this stream reads from the local file storing the cached data. When there is no cache hit,
- * the InputStream is connected directly to the remote server.
+ * <p>Without cachineg, EnsoHttpResponse contains an InputStream providing the
+ * response data. When there is a cache hit, this stream reads from the local
+ * file storing the cached data. When there is no cache hit, the InputStream is
+ * connected directly to the remote server.
  */
 public class TransientHTTPResponseCache {
   TransientHTTPResponseCache() {}
@@ -57,7 +59,6 @@ public class TransientHTTPResponseCache {
    * limits.
    */
   private static Optional<Long> maxFileSizeOverrideTestOnly = Optional.empty();
-
   private static Optional<Long> maxTotalCacheSizeOverrideTestOnly = Optional.empty();
 
   private static final Map<String, CacheEntry> cache = new HashMap<>();
@@ -85,8 +86,12 @@ public class TransientHTTPResponseCache {
     return buildEnsoHttpResponseFromCacheEntry(cache.get(cacheKey));
   }
 
-  // IOExceptions thrown by the HTTP request are propagated; IOExceptions thrown
-  // while storing the data in the cache are caught.
+  /**
+   * IOExceptions thrown by the HTTP request are propagated; IOExceptions thrown
+   * while storing the data in the cache are caught.
+   * 
+   * Only HTTP 200 responses are cached; all others are returned uncached.
+   */
   private static EnsoHttpResponse makeRequestAndCache(
       URIWithSecrets unresolvedURI,
       URI resolvedURI,
@@ -98,10 +103,14 @@ public class TransientHTTPResponseCache {
 
     var response = requestMaker.run();
 
+    // Don't cache non-200 repsonses.
     if (response.statusCode() != 200) {
       return response;
     }
 
+    // If we get a content-length header, make room for the new file before
+    // downloading. If the response is too large, throw
+    // ResponseTooLargeException.
     var sizeMaybe = response.headers().firstValue("content-length").map(Long::parseLong);
     if (sizeMaybe.isPresent()) {
       long size = sizeMaybe.get();
@@ -113,6 +122,7 @@ public class TransientHTTPResponseCache {
     }
 
     try {
+      // Download the response data.
       int ttl = calculateTTL(response.headers());
       ZonedDateTime expiry = getNow().plus(Duration.ofSeconds(ttl));
       int statusCode = response.statusCode();
@@ -120,20 +130,17 @@ public class TransientHTTPResponseCache {
       String responseDataPath = downloadResponseData(unresolvedURI, response);
       long size = new File(responseDataPath).length();
 
-      if (sizeMaybe.isPresent() && size != sizeMaybe.get()) {
-        // If the file is larger than expected, we might have to remove some more old entries.
-        logger.log(
-            Level.WARNING,
-            "Downloaded size " + size + " != content-length value " + sizeMaybe.get());
-        removeFilesToSatisfyLimit();
-      }
-
+      // Create a cache entry. Remove old files if we are over the cache size
+      // limit.
       var cacheEntry =
           new CacheEntry(resolvedURI, headers, responseDataPath, size, statusCode, expiry);
-
       cache.put(cacheKey, cacheEntry);
-
       markCacheEntryUsed(cacheKey);
+
+      // Clear out old entries to satisfy the total cache size limit. This might
+      // be necessary here if we didn't receive a content-length.
+      removeFilesToSatisfyLimit();
+
       return buildEnsoHttpResponseFromCacheEntry(cacheEntry);
     } catch (IOException e) {
       logger.log(
@@ -144,6 +151,7 @@ public class TransientHTTPResponseCache {
     }
   }
 
+  /** Create an EnsoHttpResponse with an InputStream reading from the cache file. */
   private static EnsoHttpResponse buildEnsoHttpResponseFromCacheEntry(CacheEntry cacheEntry)
       throws IOException {
     InputStream inputStream = new FileInputStream(cacheEntry.responseDataPath);
@@ -151,6 +159,11 @@ public class TransientHTTPResponseCache {
         cacheEntry.uri(), cacheEntry.headers(), inputStream, cacheEntry.statusCode());
   }
 
+  /**
+   * Read the repsonse data from the remote server into the cache file.
+   * If the downloaded data is over the file size limit, throw a
+   * ResponseTooLargeException.
+   */
   private static String downloadResponseData(
       URIWithSecrets unresolvedURI, EnsoHttpResponse response)
       throws IOException, ResponseTooLargeException {
@@ -159,7 +172,7 @@ public class TransientHTTPResponseCache {
       var inputStream = response.body();
       var outputStream = new FileOutputStream(temp);
 
-      // Limit to getMaxFileSize().
+      // Limit the download to getMaxFileSize().
       long tooMany = getMaxFileSize() + 1;
       long bytesCopied = IOUtils.copyLarge(inputStream, outputStream, 0, tooMany);
       if (bytesCopied >= tooMany) {
@@ -173,7 +186,6 @@ public class TransientHTTPResponseCache {
         }
       }
 
-      response.body().transferTo(outputStream);
       outputStream.close();
       temp.deleteOnExit();
       return temp.getAbsolutePath();
@@ -261,7 +273,10 @@ public class TransientHTTPResponseCache {
     return sortedEntries;
   }
 
-  /** Remove least-recently used entries until the total cache size is under the limit. */
+  /**
+   * Remove least-recently used entries until the total cache size is under the
+   * limit.
+   */
   private static void removeFilesToSatisfyLimit() {
     makeRoomFor(0L);
   }
@@ -363,8 +378,10 @@ public class TransientHTTPResponseCache {
     return maxAge;
   }
 
-  // Sorts the header by header name, so we don't depend on header order.
-  // Multiple-valued headers might hash differently, but it's a rare case.
+  /**
+   * Sorts the header by header name, so we don't depend on header order.
+   * Multiple-valued headers might hash differently, but it's a rare case.
+   */
   private static String makeHashKey(URI resolvedURI, List<Pair<String, String>> resolvedHeaders) {
     try {
       MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");

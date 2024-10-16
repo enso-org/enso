@@ -237,9 +237,15 @@ add_specs suite_builder =
             expect_counts [0, 0] <|
                 Data.post url_post (Request_Body.Text "hello world")
 
-        group_builder.specify "Should not allow a cache policy for methods other than GET" pending=pending_has_url <| Test.with_retries <|
+        group_builder.specify "HTTP request with a non-GET method should reject a Cache_Policy argument" pending=pending_has_url <| Test.with_retries <|
             request = Request.new HTTP_Method.Post url_post [] Request_Body.Empty
             HTTP.new.request request cache_policy=Cache_Policy.Cache_Responses . should_fail_with Illegal_Argument
+
+        group_builder.specify "Data.read with a non-URL should reject a Cache_Policy argument" pending=pending_has_url <| Test.with_retries <|
+            path = enso_project.data / "transient" / "fake_path_name"
+            file = File.new path
+            Data.read path cache_policy=Cache_Policy.Default . should_fail_with Illegal_Argument
+            Data.read file cache_policy=Cache_Policy.Default . should_fail_with Illegal_Argument
 
         group_builder.specify "Should be able to clear caches" pending=pending_has_url <| Test.with_retries <|
             Data.clear_response_cache

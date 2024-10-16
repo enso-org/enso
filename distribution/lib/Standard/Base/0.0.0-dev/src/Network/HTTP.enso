@@ -105,9 +105,9 @@ type HTTP
        Please note, this must be closed after use (either directly or via the
        helpers on Response_Body).
 
-       ! Request caching
+       ! Response caching
 
-         See `Data.fetch` for information about request caching.
+         See `Data.fetch` for information about response caching.
 
        Arguments:
        - req: The HTTP request to send using `self` HTTP client.
@@ -160,9 +160,9 @@ type HTTP
     ## PRIVATE
        Static helper for get-like methods
 
-       ! Request caching
+       ! Response caching
 
-         See `Data.fetch` for information about request caching.
+         See `Data.fetch` for information about response caching.
     fetch : (URI | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> Cache_Policy -> Response ! Request_Error | HTTP_Error
     fetch (uri:(URI | Text)) (method:HTTP_Method=..Get) (headers:(Vector (Header | Pair Text Text))=[]) (cache_policy:Cache_Policy = ..Default) =
         check_method fetch_methods method <|
