@@ -9,7 +9,7 @@ import * as iterable from '@/util/data/iterable'
 import { Err, Ok, transposeResult, unwrapOrWithLog, type Result } from '@/util/data/result'
 import { qnLastSegment, type QualifiedName } from '@/util/qualifiedName'
 import type { ToValue } from '@/util/reactivity'
-import type { ColDef, MenuItemDef } from 'ag-grid-enterprise'
+import type { ColDef } from 'ag-grid-enterprise'
 import { computed, toValue } from 'vue'
 
 const NEW_COLUMN_ID = 'NewColumn'

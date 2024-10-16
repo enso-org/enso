@@ -1,9 +1,9 @@
 import {
-  MenuItem,
   RowData,
   tableNewCallMayBeHandled,
   useTableNewArgument,
 } from '@/components/GraphEditor/widgets/WidgetTableEditor/tableNewArgument'
+import { MenuItem } from '@/components/shared/AgGridTableView.vue'
 import { WidgetInput } from '@/providers/widgetRegistry'
 import { SuggestionDb } from '@/stores/suggestionDatabase'
 import { makeType } from '@/stores/suggestionDatabase/entry'
@@ -144,7 +144,12 @@ function tableEditFixture(code: string, expectedCode: string) {
     suggestionDbWithNothing(),
     onUpdate,
   )
-  return { tableNewArgs, startEdit, onUpdate, addMissingImports }
+  const gridApi = {
+    cutToClipboard: vi.fn(),
+    copyToClipboard: vi.fn(),
+    pasteFromClipboard: vi.fn(),
+  }
+  return { tableNewArgs, startEdit, onUpdate, addMissingImports, gridApi }
 }
 
 test.each([
@@ -255,11 +260,11 @@ test.each([
 function getCustomMenuItemByName(
   name: string,
   items:
-    | (string | MenuItem)[]
+    | (string | MenuItem<RowData>)[]
     | GetMainMenuItems<RowData>
     | GetContextMenuItems<RowData>
     | undefined,
-): MenuItem | undefined {
+): MenuItem<RowData> | undefined {
   if (!(items instanceof Array)) return undefined
   const found = items.find((item) => typeof item === 'object' && item.name === name)
   return typeof found === 'object' ? found : undefined
@@ -287,15 +292,14 @@ test.each([
     expected: "Table.new [['a', []], ['b', []]]",
   },
 ])('Removing $removedRowIndex row in $code', ({ code, removedRowIndex, expected }) => {
-  const { tableNewArgs, onUpdate, addMissingImports } = tableEditFixture(code, expected)
-
+  const { tableNewArgs, onUpdate, addMissingImports, gridApi } = tableEditFixture(code, expected)
   const removedRow = tableNewArgs.rowData.value[removedRowIndex]
   assert(removedRow != null)
   // Context menu of all cells in given row should work (even the "virtual" columns).
   for (const colDef of tableNewArgs.columnDefs.value) {
     const removeAction = getCustomMenuItemByName('Remove Row', colDef.contextMenuItems)
     assert(removeAction != null)
-    removeAction.action({ node: { data: removedRow } })
+    removeAction.action({ node: { data: removedRow }, api: gridApi })
     expect(onUpdate).toHaveBeenCalledOnce()
     onUpdate.mockClear()
   }
@@ -324,17 +328,17 @@ test.each([
     expected: 'Table.new []',
   },
 ])('Removing $removedColIndex column in $code', ({ code, removedColIndex, expected }) => {
-  const { tableNewArgs, onUpdate, addMissingImports } = tableEditFixture(code, expected)
+  const { tableNewArgs, onUpdate, addMissingImports, gridApi } = tableEditFixture(code, expected)
   const removedCol = tableNewArgs.columnDefs.value[removedColIndex]
   assert(removedCol != null)
   const removeAction = getCustomMenuItemByName('Remove Column', removedCol.mainMenuItems)
   assert(removeAction != null)
-  removeAction.action({ node: null })
+  removeAction.action({ node: null, api: gridApi })
   expect(onUpdate).toHaveBeenCalledOnce()
   onUpdate.mockClear()
 
   const cellRemoveAction = getCustomMenuItemByName('Remove Column', removedCol.contextMenuItems)
-  cellRemoveAction?.action({ node: { data: tableNewArgs.rowData.value[0] } })
+  cellRemoveAction?.action({ node: { data: tableNewArgs.rowData.value[0] }, api: gridApi })
   expect(onUpdate).toHaveBeenCalledOnce()
 
   expect(addMissingImports).not.toHaveBeenCalled()
