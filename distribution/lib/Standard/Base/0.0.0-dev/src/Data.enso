@@ -6,6 +6,7 @@ import project.Data.Vector.Vector
 import project.Enso_Cloud.Data_Link.Data_Link
 import project.Enso_Cloud.Data_Link_Helpers
 import project.Error.Error
+import project.Errors.Common.Missing_Argument
 import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
@@ -68,7 +69,7 @@ from project.System.File_Format import Auto_Detect, File_Format
 @path Text_Input
 @format File_Format.default_widget
 read : Text | URI | File -> File_Format -> Problem_Behavior -> Any ! File_Error
-read path format=Auto_Detect (on_problems : Problem_Behavior = ..Report_Warning) = case path of
+read path=(Missing_Argument.throw "path") format=Auto_Detect (on_problems : Problem_Behavior = ..Report_Warning) = case path of
     _ : Text -> if Data_Read_Helpers.looks_like_uri path then Data_Read_Helpers.fetch_following_data_links path format=format else
         read (File.new path) format on_problems
     uri : URI -> Data_Read_Helpers.fetch_following_data_links uri format=format
@@ -103,7 +104,7 @@ read path format=Auto_Detect (on_problems : Problem_Behavior = ..Report_Warning)
 @path Text_Input
 @encoding Encoding.default_widget
 read_text : (Text | File) -> Encoding -> Problem_Behavior -> Text
-read_text path (encoding : Encoding = Encoding.default) (on_problems : Problem_Behavior = ..Report_Warning) =
+read_text path=(Missing_Argument.throw "path") (encoding : Encoding = Encoding.default) (on_problems : Problem_Behavior = ..Report_Warning) =
     File.new path . read_text encoding on_problems
 
 ## GROUP Input
@@ -198,7 +199,7 @@ list (directory:(Text | File)=enso_project.root) (name_filter:Text="") recursive
 @format Data_Read_Helpers.format_widget_with_raw_response
 @headers Header.default_widget
 fetch : (URI | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> File_Format -> Any ! Request_Error | HTTP_Error
-fetch (uri:(URI | Text)) (method:HTTP_Method=..Get) (headers:(Vector (Header | Pair Text Text))=[]) (format = Auto_Detect) =
+fetch (uri:(URI | Text)=(Missing_Argument.throw "uri")) (method:HTTP_Method=..Get) (headers:(Vector (Header | Pair Text Text))=[]) (format = Auto_Detect) =
     Data_Read_Helpers.fetch_following_data_links uri method headers (Data_Read_Helpers.handle_legacy_format "fetch" "format" format)
 
 ## ALIAS http post, upload
@@ -325,7 +326,7 @@ fetch (uri:(URI | Text)) (method:HTTP_Method=..Get) (headers:(Vector (Header | P
 @headers Header.default_widget
 @response_format Data_Read_Helpers.format_widget_with_raw_response
 post : (URI | Text) -> Request_Body -> HTTP_Method -> Vector (Header | Pair Text Text) -> File_Format -> Any ! Request_Error | HTTP_Error
-post (uri:(URI | Text)) (body:Request_Body=..Empty) (method:HTTP_Method=..Post) (headers:(Vector (Header | Pair Text Text))=[]) (response_format = Auto_Detect) =
+post (uri:(URI | Text)=(Missing_Argument.throw "uri")) (body:Request_Body=..Empty) (method:HTTP_Method=..Post) (headers:(Vector (Header | Pair Text Text))=[]) (response_format = Auto_Detect) =
     response = HTTP.post uri body method headers
     Data_Read_Helpers.decode_http_response_following_data_links response (Data_Read_Helpers.handle_legacy_format "post" "response_format" response_format)
 
@@ -344,7 +345,7 @@ post (uri:(URI | Text)) (body:Request_Body=..Empty) (method:HTTP_Method=..Post) 
 @uri Text_Input
 @headers Header.default_widget
 download : (URI | Text) -> Writable_File -> HTTP_Method -> Vector (Header | Pair Text Text) -> File ! Request_Error | HTTP_Error
-download (uri:(URI | Text)) file:Writable_File (method:HTTP_Method=..Get) (headers:(Vector (Header | Pair Text Text))=[]) =
+download (uri:(URI | Text)=(Missing_Argument.throw "uri")) file:Writable_File (method:HTTP_Method=..Get) (headers:(Vector (Header | Pair Text Text))=[]) =
     Context.Output.if_enabled disabled_message="As writing is disabled, cannot download to a file. Press the Write button ▶ to perform the operation." panic=False <|
         response = HTTP.fetch uri method headers
         case Data_Link.is_data_link response.body.metadata of
