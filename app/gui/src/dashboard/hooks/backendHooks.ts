@@ -276,8 +276,12 @@ export interface UploadFileMutationProgress {
  * Options for {@link useUploadFileMutation}.
  */
 export interface UploadFileMutationOptions {
-  /** Defaults to 3. */
+  /** Defaults to 3. Controls the default value of {@link chunkRetries} and {@link endRetries}. */
+  readonly retries?: number
+  /** Defaults to {@link retries}. */
   readonly chunkRetries?: number
+  /** Defaults to {@link retries}. */
+  readonly endRetries?: number
   /** Called for all progress updates (`onBegin`, `onChunkSuccess` and `onSuccess`). */
   readonly onProgress?: (progress: UploadFileMutationProgress) => void
   /** Called before any mutations are sent. */
@@ -349,7 +353,9 @@ export function useUploadFileWithToastMutation(
 export function useUploadFileMutation(backend: Backend, options: UploadFileMutationOptions = {}) {
   const toastAndLog = useToastAndLog()
   const {
-    chunkRetries = 3,
+    retries = 3,
+    chunkRetries = retries,
+    endRetries = retries,
     onError = (error) => {
       toastAndLog('uploadLargeFileError', error)
     },
@@ -357,12 +363,11 @@ export function useUploadFileMutation(backend: Backend, options: UploadFileMutat
   const uploadFileStartMutation = reactQuery.useMutation(
     backendMutationOptions(backend, 'uploadFileStart'),
   )
-  const uploadFileChunkMutation = reactQuery.useMutation({
-    ...backendMutationOptions(backend, 'uploadFileChunk'),
-    retry: chunkRetries,
-  })
+  const uploadFileChunkMutation = reactQuery.useMutation(
+    backendMutationOptions(backend, 'uploadFileChunk', { retry: chunkRetries }),
+  )
   const uploadFileEndMutation = reactQuery.useMutation(
-    backendMutationOptions(backend, 'uploadFileEnd'),
+    backendMutationOptions(backend, 'uploadFileEnd', { retry: endRetries }),
   )
   const [variables, setVariables] =
     React.useState<[params: backendModule.UploadFileRequestParams, file: File]>()
