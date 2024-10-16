@@ -197,7 +197,7 @@ public class ExcelRange {
 
     Context context = Context.getCurrent();
     while (currentRow != null && !currentRow.isEmpty(excelRange.getLeftColumn(), rightColumn)) {
-      rightColumn = currentRow.findEndRight(rightColumn);
+      rightColumn = findEndRight(currentRow, rightColumn);
       bottomRow++;
       currentRow = sheet.get(bottomRow);
 
@@ -210,6 +210,16 @@ public class ExcelRange {
         excelRange.getTopRow(),
         rightColumn,
         bottomRow - 1);
+  }
+
+  private static int findEndRight(ExcelRow row, int start) {
+    Context context = Context.getCurrent();
+    int column = start;
+    while (!row.isEmpty(column + 1)) {
+      column++;
+      context.safepoint();
+    }
+    return column;
   }
 
   /**

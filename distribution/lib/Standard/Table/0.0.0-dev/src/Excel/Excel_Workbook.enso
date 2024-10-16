@@ -42,7 +42,7 @@ type Excel_Workbook
        - file: The file to load.
        - xls_format: Whether to use the old XLS format (default is XLSX).
     new : File | Temporary_File -> Boolean  -> Excel_Workbook
-    new file:(File | Temporary_File) xls_format=False =
+    new file:(File | Temporary_File) xls_format:Boolean=False =
         file_for_errors = if file.is_a Temporary_File then Nothing else file
 
         continuation raw_file =
@@ -66,7 +66,7 @@ type Excel_Workbook
        - xls_format: Whether to use the old XLS format (default is XLSX).
        - file: Optional file reference.
     from_stream : Input_Stream -> Boolean -> File | Nothing -> Excel_Workbook
-    from_stream stream xls_format=False file=Nothing = Excel_Reader.handle_bad_format file <|
+    from_stream stream xls_format:Boolean=False file=Nothing = Excel_Reader.handle_bad_format file <|
         temp_file = Temporary_File.from_stream_light stream
         Excel_Workbook.new temp_file xls_format
 
@@ -82,8 +82,8 @@ type Excel_Workbook
     ## PRIVATE
        ICON metadata
        Returns the list of databases (or catalogs) for the connection.
-    databases : Nothing
-    databases self = Nothing
+    databases : Vector (Text | Nothing)
+    databases self = [Nothing]
 
     ## PRIVATE
        ICON metadata
@@ -102,7 +102,7 @@ type Excel_Workbook
        Arguments:
         - database: The target file to open as an Excel_Workbook.
     set_database : Text | File -> Excel_Workbook ! Illegal_Argument
-    set_database self database =
+    set_database self database:(Text | File) =
         if database == self.database then self else
             file = File.new database
             if file.exists && file.is_directory.not then Excel_Workbook.new file self.xls_format else
@@ -156,7 +156,7 @@ type Excel_Workbook
        Gets the names of all the named ranges.
     named_ranges : Vector Text
     named_ranges self = self.with_java_workbook java_workbook->
-        Vector.from_polyglot_array (ExcelReader.readRangeNames java_workbook)
+        Vector.from_polyglot_array java_workbook.getRangeNames
 
     ## PRIVATE
        ICON metadata
