@@ -664,7 +664,7 @@ export default class LocalBackend extends Backend {
       : extractTypeAndId(body.parentDirectoryId).id
     const filePath = joinPath(parentPath, body.fileName)
     const uploadId = uniqueString()
-    if (!backend.fileIsNotProject(file)) {
+    if (backend.fileIsNotProject(file)) {
       const searchParams = new URLSearchParams([
         ['file_name', body.fileName],
         ...(body.parentDirectoryId == null ? [] : [['directory', parentPath]]),
