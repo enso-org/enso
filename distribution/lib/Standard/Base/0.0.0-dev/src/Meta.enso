@@ -688,9 +688,3 @@ type Instrumentor
    - fqn: fully qualified name.
 find_type_by_qualified_name : Text -> Any
 find_type_by_qualified_name fqn = @Builtin_Method "Meta.find_type_by_qualified_name"
-
-## PRIVATE
-   ADVANCED
-   Returns the version of the currently running Enso engine.
-engine_version : Text
-engine_version = @Builtin_Method "Meta.engine_version"
