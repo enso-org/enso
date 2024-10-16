@@ -2,6 +2,7 @@ package org.enso.interpreter.runtime.error;
 
 import static org.enso.interpreter.runtime.error.PanicException.handleExceptionMessage;
 
+import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.TruffleStackTrace;
 import com.oracle.truffle.api.TruffleStackTraceElement;
@@ -17,7 +18,6 @@ import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import java.util.Objects;
 import org.enso.interpreter.node.callable.IndirectInvokeMethodNode;
-import org.enso.interpreter.node.expression.builtin.runtime.Context;
 import org.enso.interpreter.node.expression.builtin.text.util.TypeToDisplayTextNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
@@ -54,11 +54,14 @@ public final class DataflowError extends AbstractTruffleException implements Ens
    */
   public static DataflowError withDefaultTrace(State state, Object payload, Node location) {
     assert payload != null;
+    var ensoCtx = EnsoContext.get(location);
+    var dataflowStacktraceCtx = ensoCtx.getBuiltins().context().getDataflowStackTrace();
+    // dataflowStacktraceCtx is a compiler constant, because it is a constructor of a builtin
+    // type.
+    CompilerAsserts.partialEvaluationConstant(dataflowStacktraceCtx);
     boolean attachFullStackTrace =
         state == null
-            || EnsoContext.get(location)
-                .getExecutionEnvironment()
-                .hasContextEnabled(Context.DATAFLOW_STACK_TRACE_NAME);
+            || ensoCtx.getExecutionEnvironment().hasContextEnabled(dataflowStacktraceCtx, ensoCtx);
     if (attachFullStackTrace) {
       var result = new DataflowError(payload, UNLIMITED_STACK_TRACE, location);
       TruffleStackTrace.fillIn(result);

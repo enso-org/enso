@@ -1,18 +1,15 @@
 package org.enso.interpreter.runtime.state;
 
-import org.enso.interpreter.node.expression.builtin.runtime.Context;
+import com.oracle.truffle.api.CompilerDirectives;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.atom.Atom;
+import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 
 public class ExecutionEnvironment {
 
   private final String name;
 
-  // Ideally we would "just" use a map here. But that leads
-  // to native image build problems. This in turn leads to
-  // TruffleBoundary annotations which in turn leads to slow path.
-  private final String[] keys;
-  private final Boolean[] permissions;
+  private final Permissions permissions;
 
   public static final String LIVE_ENVIRONMENT_NAME = "live";
 
@@ -22,21 +19,18 @@ public class ExecutionEnvironment {
   public static final ExecutionEnvironment DESIGN =
       new ExecutionEnvironment(DESIGN_ENVIRONMENT_NAME);
 
-  private static final ExecutionEnvironment initLive(String name) {
-    String[] keys = new String[] {Context.INPUT_NAME, Context.OUTPUT_NAME};
-    Boolean[] permissions = new Boolean[] {true, true};
-    return new ExecutionEnvironment(name, keys, permissions);
+  private static ExecutionEnvironment initLive(String name) {
+    var permissions = new Permissions(true, true, false);
+    return new ExecutionEnvironment(name, permissions);
   }
 
   public ExecutionEnvironment(String name) {
     this.name = name;
-    this.keys = new String[0];
-    this.permissions = new Boolean[0];
+    this.permissions = new Permissions(false, false, false);
   }
 
-  private ExecutionEnvironment(String name, String[] keys, Boolean[] permissions) {
+  private ExecutionEnvironment(String name, Permissions permissions) {
     this.name = name;
-    this.keys = keys;
     this.permissions = permissions;
   }
 
@@ -53,49 +47,39 @@ public class ExecutionEnvironment {
   }
 
   private ExecutionEnvironment update(Atom context, boolean value) {
-    assert context.getConstructor().getType()
-        == EnsoContext.get(null).getBuiltins().context().getType();
-    int keyFound = -1;
-    for (int i = 0; i < keys.length; i++) {
-      if (keys[i].equals(context.getConstructor().getName())) {
-        keyFound = i;
-      }
-    }
-    String[] keys1;
-    Boolean[] permissions1;
-    if (keyFound != -1) {
-      keys1 = cloneArray(keys, new String[keys.length]);
-      permissions1 = cloneArray(permissions, new Boolean[keys.length]);
-      permissions1[keyFound] = value;
+    var contextBuiltin = EnsoContext.get(null).getBuiltins().context();
+    assert context.getConstructor().getType() == contextBuiltin.getType();
+    var ctor = context.getConstructor();
+    Permissions newPermissions;
+    if (ctor == contextBuiltin.getInput()) {
+      newPermissions = new Permissions(value, permissions.output, permissions.dataflowStacktrace);
+    } else if (ctor == contextBuiltin.getOutput()) {
+      newPermissions = new Permissions(permissions.input, value, permissions.dataflowStacktrace);
+    } else if (ctor == contextBuiltin.getDataflowStackTrace()) {
+      newPermissions = new Permissions(permissions.input, permissions.output, value);
     } else {
-      keys1 = cloneArray(keys, new String[keys.length + 1]);
-      permissions1 = cloneArray(permissions, new Boolean[keys.length + 1]);
-      keyFound = keys.length;
-      keys1[keyFound] = context.getConstructor().getName();
-      permissions1[keyFound] = value;
+      throw CompilerDirectives.shouldNotReachHere("Unknown context `" + ctor.getName() + "`");
     }
-    return new ExecutionEnvironment(name, keys1, permissions1);
+    return new ExecutionEnvironment(name, newPermissions);
   }
 
-  private <T> T[] cloneArray(T[] fromArray, T[] toArray) {
-    for (int i = 0; i < fromArray.length; i++) {
-      toArray[i] = fromArray[i];
+  /**
+   * Checks if the context is enabled in this execution environment.
+   *
+   * @param runtimeCtx Constructor of {@code Standard.Base.Runtime.Context} builtin type.
+   * @return {@code true} if the context is enabled in this execution environment.
+   */
+  public boolean hasContextEnabled(AtomConstructor runtimeCtx, EnsoContext ensoCtx) {
+    var contextBuiltin = ensoCtx.getBuiltins().context();
+    if (runtimeCtx == contextBuiltin.getInput()) {
+      return permissions.input;
+    } else if (runtimeCtx == contextBuiltin.getOutput()) {
+      return permissions.output;
+    } else if (runtimeCtx == contextBuiltin.getDataflowStackTrace()) {
+      return permissions.dataflowStacktrace;
     }
-    return toArray;
-  }
-
-  public Boolean hasContextEnabled(String context) {
-    int keyFound = -1;
-    for (int i = 0; i < keys.length; i++) {
-      if (keys[i].equals(context)) {
-        keyFound = i;
-      }
-    }
-    if (keyFound != -1) {
-      return permissions[keyFound];
-    } else {
-      return false;
-    }
+    throw CompilerDirectives.shouldNotReachHere(
+        "Unknown runtimeCtx `" + runtimeCtx.getName() + "`");
   }
 
   public static ExecutionEnvironment forName(String name) {
@@ -108,4 +92,9 @@ public class ExecutionEnvironment {
         throw new IllegalArgumentException("Unsupported Execution Environment `" + name + "`");
     }
   }
+
+  /**
+   * Fields correspond to the constructors of {@code Standard.Base.Runtime.Context} builtin type.
+   */
+  private record Permissions(boolean input, boolean output, boolean dataflowStacktrace) {}
 }
