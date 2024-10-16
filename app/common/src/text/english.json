@@ -274,6 +274,7 @@
   "options": "Options",
   "googleIcon": "Google icon",
   "gitHubIcon": "GitHub icon",
+  "close": "Close",
 
   "enterSecretPath": "Enter secret path",
   "enterText": "Enter text",
@@ -487,6 +488,8 @@
   "uploadLargeFileStatus": "Uploading file... ($0/$1MB)",
   "uploadLargeFileSuccess": "Finished uploading file.",
   "uploadLargeFileError": "Could not upload file",
+  "closeWindowDialogTitle": "Close window?",
+  "anUploadIsInProgress": "An upload is in progress.",
 
   "enableMultitabs": "Enable Multi-Tabs",
   "enableMultitabsDescription": "Open multiple projects at the same time.",

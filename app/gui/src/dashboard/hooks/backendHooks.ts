@@ -337,7 +337,7 @@ export function useUploadFileWithToastMutation(
     },
   })
 
-  usePreventNavigation({ isEnabled: mutation.isPending })
+  usePreventNavigation({ message: getText('anUploadIsInProgress'), isEnabled: mutation.isPending })
 
   return mutation
 }
