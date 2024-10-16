@@ -186,7 +186,9 @@ object RecomputeContextCmd {
       case CacheInvalidation.Command.InvalidateAll =>
         stack.headOption
           .map { frame =>
-            frame.cache.getWeights.keySet().forEach(builder.addOne)
+            frame.cache.getPreferences.getValues
+              .keySet()
+              .forEach(builder.addOne)
           }
       case CacheInvalidation.Command.InvalidateKeys(expressionIds) =>
         builder ++= expressionIds
