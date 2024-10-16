@@ -1,6 +1,5 @@
 package org.enso.table.excel;
 
-import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellReference;
 import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.NameDeduplicator;
@@ -55,33 +54,10 @@ public class ExcelHeaders {
     }
 
     int currentEndCol = endCol == -1 ? row.getLastColumn() : endCol;
-    DataFormatter formatter = new DataFormatter();
 
     String[] output = new String[currentEndCol - startCol + 1];
     for (int col = startCol; col <= currentEndCol; col++) {
-      Cell cell = row.get(col);
-
-      var resultType =
-          cell.getCellType() == CellType.FORMULA
-              ? cell.getCachedFormulaResultType()
-              : cell.getCellType();
-      String cellText =
-          switch (resultType) {
-            case STRING -> cell.getRichStringCellValue().getString();
-            case BOOLEAN -> cell.getBooleanCellValue() ? "TRUE" : "FALSE";
-            case BLANK -> "";
-            case ERROR -> FormulaError.forInt(cell.getErrorCellValue()).getString();
-            case NUMERIC -> {
-              var format = ExcelNumberFormat.from(cell, null);
-              var value = cell.getNumericCellValue();
-              yield format == null
-                  ? Double.toString(value)
-                  : formatter.formatRawCellContents(value, format.getIdx(), format.getFormat());
-            }
-            default ->
-            // Fallback to the formatted value
-            formatter.formatCellValue(cell);
-          };
+      String cellText = row.getFormattedCell(col);
       String name = cellText.isEmpty() ? "" : deduplicator.makeUnique(cellText);
 
       output[col - startCol] = name;
