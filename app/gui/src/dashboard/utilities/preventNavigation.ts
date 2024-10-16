@@ -12,12 +12,12 @@ export function usePreventNavigation(options: PreventNavigationOptions) {
 
   useEffect(() => {
     if (isEnabled) {
-      const onClose = (event: Event) => {
+      const onBeforeUnload = (event: BeforeUnloadEvent) => {
         event.preventDefault()
       }
-      window.addEventListener('close', onClose)
+      window.addEventListener('beforeunload', onBeforeUnload)
       return () => {
-        window.removeEventListener('close', onClose)
+        window.removeEventListener('beforeunload', onBeforeUnload)
       }
     }
   }, [isEnabled])
