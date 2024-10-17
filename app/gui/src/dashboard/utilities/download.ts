@@ -32,5 +32,5 @@ export async function downloadWithHeaders(
   const response = await fetch(url, { headers })
   const body = await response.blob()
   const objectUrl = URL.createObjectURL(body)
-  download(objectUrl, name ?? url.match(/[^/]+$/)?.[0] ?? '')
+  download(objectUrl, name)
 }

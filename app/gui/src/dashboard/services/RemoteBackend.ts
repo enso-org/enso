@@ -1275,7 +1275,8 @@ export default class RemoteBackend extends Backend {
 
   /** Download from an arbitrary URL that is assumed to originate from this backend. */
   override async download(url: string, name?: string) {
-    await download.downloadWithHeaders(url, this.client.defaultHeaders, name)
+    download.download(url, name)
+    return Promise.resolve()
   }
 
   /**
