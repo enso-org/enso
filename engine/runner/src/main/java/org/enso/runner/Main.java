@@ -960,6 +960,7 @@ public class Main {
                 .messageTransport(replTransport())
                 .enableDebugServer(true)
                 .logLevel(logLevel)
+                .executionEnvironment("live")
                 .logMasking(logMasking)
                 .enableIrCaches(enableIrCaches)
                 .disableLinting(true)
