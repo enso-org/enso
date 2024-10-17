@@ -188,7 +188,7 @@
           },
           "required": ["username", "password"]
         },
-        "table": { "title": "Table to access", "type": "string" }
+        "table": { "title": "Table to access", "$ref": "#/$defs/DatabaseTableDefinition" }
       },
       "required": ["type", "libraryName", "host", "port", "database_name"]
     },
@@ -233,7 +233,7 @@
           },
           "required": ["username", "password"]
         },
-        "table": { "title": "Table to access", "type": "string" }
+        "table": { "title": "Table to access", "$ref": "#/$defs/DatabaseTableDefinition" }
       },
       "required": ["type", "libraryName", "account", "database_name", "credentials"]
     },
@@ -277,7 +277,7 @@
           },
           "required": ["username", "password"]
         },
-        "table": { "title": "Table to access", "type": "string" }
+        "table": { "title": "Table to access", "$ref": "#/$defs/DatabaseTableDefinition" }
       },
       "required": ["type", "libraryName", "host", "port", "database_name"]
     },
@@ -458,6 +458,35 @@
         }
       },
       "required": ["type", "subType"]
+    },
+
+    "DatabaseTableDefinition": {
+      "title": "Query to read",
+      "anyOf": [
+        { "title": "Table", "type": "string" },
+        {
+          "title": "SQL Query",
+          "type": "object",
+          "properties": {
+            "query": {
+              "title": "SQL",
+              "type": "string"
+            }
+          },
+          "required": ["query"]
+        },
+        {
+          "title": "(Advanced) JSON serialized interpolated SQL statement",
+          "type": "object",
+          "properties": {
+            "sql_statement": {
+              "title": "SQL_Statement (JSON)",
+              "type": "string"
+            }
+          },
+          "required": ["sql_statement"]
+        }
+      ]
     }
   }
 }
