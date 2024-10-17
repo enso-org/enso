@@ -3,6 +3,7 @@ import Standard.Base.Data.Base_64.Base_64
 import Standard.Base.Errors.Common.Response_Too_Large
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Network.HTTP.Cache_Policy.Cache_Policy
 import Standard.Base.Network.HTTP.Request.Request
 import Standard.Base.Network.HTTP.Request_Body.Request_Body
 import Standard.Base.Network.HTTP.Response.Response
@@ -132,7 +133,7 @@ add_specs suite_builder =
         headers1 = [Header.new "A-Header" "a-different-header-value", Header.new "A-Header" "a-header-value"]
 
         group_builder.specify "Cache should return the same repsonse" pending=pending_has_url <| Test.with_retries <|
-            Data.clear_response_cache
+            HTTP.clear_response_cache
 
             HTTP.fetch url0 . decode_as_text . should_equal url0_body
             get_num_response_cache_entries . should_equal 1
@@ -143,7 +144,7 @@ add_specs suite_builder =
             HTTP.fetch url1 . decode_as_text . should_equal url1_body
             get_num_response_cache_entries . should_equal 2
 
-            Data.clear_response_cache
+            HTTP.clear_response_cache
 
             HTTP.fetch url0 cache_policy=Cache_Policy.Cache_Responses . decode_as_text . should_equal url0_body
             HTTP.fetch url0 cache_policy=Cache_Policy.Cache_Responses . decode_as_text . should_equal url0_body
@@ -151,7 +152,7 @@ add_specs suite_builder =
             HTTP.fetch url1 cache_policy=Cache_Policy.Cache_Responses . decode_as_text . should_equal url1_body
             get_num_response_cache_entries . should_equal 2
 
-            Data.clear_response_cache
+            HTTP.clear_response_cache
 
             HTTP.fetch url0 cache_policy=Cache_Policy.Dont_Cache_Responses . decode_as_text . should_equal url0_body
             HTTP.fetch url0 cache_policy=Cache_Policy.Dont_Cache_Responses . decode_as_text . should_equal url0_body
@@ -162,19 +163,19 @@ add_specs suite_builder =
         group_builder.specify "Cache should handle many entries" pending=pending_has_url <| Test.with_retries <|
             count = 20
 
-            Data.clear_response_cache
+            HTTP.clear_response_cache
             0.up_to count . each i->
                 HTTP.fetch base_url_with_slash+"test_download?length="+i.to_text . decode_as_text . should_equal ('a' * i)
             get_num_response_cache_entries . should_equal count
 
-            Data.clear_response_cache
+            HTTP.clear_response_cache
             0.up_to count . each i->
                 headers = [Header.new "A-Header" "a-header-value-"+i.to_text]
                 HTTP.fetch base_url_with_slash+"test_download?length=8" headers=headers . decode_as_text . should_equal ('a' * 8)
             get_num_response_cache_entries . should_equal count
 
         group_builder.specify "Cache policy should work for HTTP.fetch" pending=pending_has_url <| Test.with_retries <|
-            Data.clear_response_cache
+            HTTP.clear_response_cache
             expect_counts [0, 0] <|
                 HTTP.fetch url0 cache_policy=Cache_Policy.Dont_Cache_Responses
                 HTTP.fetch url1 cache_policy=Cache_Policy.Dont_Cache_Responses
@@ -186,28 +187,15 @@ add_specs suite_builder =
                 HTTP.fetch url0
                 HTTP.fetch url1
 
-        group_builder.specify "Cache policy should work for Data.read" pending=pending_has_url <| Test.with_retries <|
-            Data.clear_response_cache
-            expect_counts [0, 0] <|
-                Data.read url0 cache_policy=Cache_Policy.Dont_Cache_Responses
-                Data.read url1 cache_policy=Cache_Policy.Dont_Cache_Responses
-            expect_counts [0, 2] <|
-                Data.read url0 cache_policy=Cache_Policy.Cache_Responses
-                Data.read url1 cache_policy=Cache_Policy.Cache_Responses
-            Data.clear_response_cache
-            expect_counts [0, 2] <|
-                Data.read url0
-                Data.read url1
-
         group_builder.specify "Cache policy should work for Data.fetch" pending=pending_has_url <| Test.with_retries <|
-            Data.clear_response_cache
+            HTTP.clear_response_cache
             expect_counts [0, 0] <|
                 Data.fetch url0 cache_policy=Cache_Policy.Dont_Cache_Responses
                 Data.fetch url1 cache_policy=Cache_Policy.Dont_Cache_Responses
             expect_counts [0, 2] <|
                 Data.fetch url0 cache_policy=Cache_Policy.Cache_Responses
                 Data.fetch url1 cache_policy=Cache_Policy.Cache_Responses
-            Data.clear_response_cache
+            HTTP.clear_response_cache
             expect_counts [0, 2] <|
                 Data.fetch url0
                 Data.fetch url1
@@ -215,7 +203,7 @@ add_specs suite_builder =
         group_builder.specify "Should not cache Data.download" pending=pending_has_url <| Test.with_retries <|
             target_file = enso_project.data / "transient" / "my_download0.txt"
 
-            Data.clear_response_cache
+            HTTP.clear_response_cache
             target_file.delete_if_exists
 
             Data.download url0 target_file
@@ -232,7 +220,7 @@ add_specs suite_builder =
                 target_file.read.length . should_equal 200
 
         group_builder.specify "Should not cache for methods other than GET" pending=pending_has_url <| Test.with_retries <|
-            Data.clear_response_cache
+            HTTP.clear_response_cache
 
             expect_counts [0, 0] <|
                 Data.post url_post (Request_Body.Text "hello world")
@@ -241,21 +229,15 @@ add_specs suite_builder =
             request = Request.new HTTP_Method.Post url_post [] Request_Body.Empty
             HTTP.new.request request cache_policy=Cache_Policy.Cache_Responses . should_fail_with Illegal_Argument
 
-        group_builder.specify "Data.read with a non-URL should reject a Cache_Policy argument" pending=pending_has_url <| Test.with_retries <|
-            path = enso_project.data / "transient" / "fake_path_name"
-            file = File.new path
-            Data.read path cache_policy=Cache_Policy.Default . should_fail_with Illegal_Argument
-            Data.read file cache_policy=Cache_Policy.Default . should_fail_with Illegal_Argument
-
         group_builder.specify "Should be able to clear caches" pending=pending_has_url <| Test.with_retries <|
-            Data.clear_response_cache
+            HTTP.clear_response_cache
             Data.fetch url0
             get_num_response_cache_entries . should_equal 1
-            Data.clear_response_cache
+            HTTP.clear_response_cache
             get_num_response_cache_entries . should_equal 0
 
         group_builder.specify "Cache key should only dependon the URI and headers" pending=pending_has_url <| Test.with_retries <|
-            Data.clear_response_cache
+            HTTP.clear_response_cache
             expect_counts [0, 1] <|
                 Data.fetch url0
                 Data.fetch url0
@@ -264,19 +246,19 @@ add_specs suite_builder =
                 Data.fetch url1
 
         group_builder.specify "Cache key should depend on the URI" pending=pending_has_url <| Test.with_retries <|
-            Data.clear_response_cache
+            HTTP.clear_response_cache
             expect_counts [0, 2] <|
                 Data.fetch url0
                 Data.fetch url1
 
         group_builder.specify "Cache key should depend on the headers" pending=pending_has_url <| Test.with_retries <|
-            Data.clear_response_cache
+            HTTP.clear_response_cache
             expect_counts [0, 2] <|
                 Data.fetch url0 headers=headers0
                 Data.fetch url0 headers=headers1
 
         group_builder.specify "Cache key should not depend on header order" pending=pending_has_url <| Test.with_retries <|
-            Data.clear_response_cache
+            HTTP.clear_response_cache
             header0 = Header.new "Abc" "def"
             header1 = Header.new "Ghi" "jkl"
             Data.fetch url0 headers=[header0, header1]
@@ -295,7 +277,7 @@ add_specs suite_builder =
             TransientHTTPResponseCache.setNowOverrideTestOnly Nothing
 
         group_builder.specify "The cache should expire stale entries" pending=pending_has_url <| Test.with_retries <|
-            Data.clear_response_cache
+            HTTP.clear_response_cache
 
             set_time_and_get_count 0  # Initialize fake now.
 
@@ -314,7 +296,7 @@ add_specs suite_builder =
                 set_time_and_get_count 301 . should_equal 1
 
         group_builder.specify "The cache should use the Age response header" pending=pending_has_url <| Test.with_retries <|
-            Data.clear_response_cache
+            HTTP.clear_response_cache
 
             set_time_and_get_count 0  # Initialize fake now.
 
@@ -377,7 +359,7 @@ add_specs suite_builder =
 
 
         group_builder.specify "Will not cache a file without a content length, but which is greater than the single file limit" pending=pending_has_url <| Test.with_retries <|
-            Data.clear_response_cache
+            HTTP.clear_response_cache
             Panic.with_finalizer reset_size_limits <|
                 reset_size_limits
                 TransientHTTPResponseCache.setMaxFileSizeOverrideTestOnly 100
@@ -385,7 +367,7 @@ add_specs suite_builder =
                 Data.fetch url . should_fail_with (Response_Too_Large.Error 101 100 url)
 
         group_builder.specify "Should not cache if the request fails" pending=pending_has_url <| Test.with_retries <|
-            Data.clear_response_cache
+            HTTP.clear_response_cache
 
             HTTP.fetch url0
             get_num_response_cache_entries . should_equal 1
@@ -412,7 +394,7 @@ add_specs suite_builder =
                         . add_query_argument "arg1" secret2
                         . add_query_argument "arg2" "plain value"
 
-                    Data.clear_response_cache
+                    HTTP.clear_response_cache
                     HTTP.fetch url1
                     get_num_response_cache_entries . should_equal 1
                     HTTP.fetch uri2
@@ -431,7 +413,7 @@ add_specs suite_builder =
                     headers1 = [Header.new "A-Header" secret1]
                     headers2 = [Header.new "A-Header" secret2]
 
-                    Data.clear_response_cache
+                    HTTP.clear_response_cache
                     HTTP.fetch headers=headers1 uri
                     get_num_response_cache_entries . should_equal 1
                     HTTP.fetch headers=headers2 uri

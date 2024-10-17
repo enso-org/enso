@@ -59,24 +59,8 @@ from project.System.File_Format import Auto_Detect, File_Format
      server. Two resources are considered the same if the URIs and request
      headers are the same. Header order does not affect sameness.
 
-     The cached values are retained as long as the project as open. Closing a
-     project will clear the cache.
-
-     The cache respects the "max-age" and "Age" response headers received from
-     remote servers. These headers are used to determine if the cached value is
-     fresh or stale. If it is stale, the cached value is removed and a request
-     is made again to the remote servers.
-
-     The following limits are imposed on values stored in the cache:
-     - Single file limit: a single file can be no more than 10M.
-     - Total cache size limit: the entire cache can be no more than 10G.
-
-     For data responses over the single file limit, you can use `Data.download`
-     to download the file locally. Download sizes are not constrained by either
-     limit.
-
-     If the entire cache goes over the total cache size limit, the
-     least-recently-used entries are removed.
+     The cached values are retained as long as the project remains open. Closing
+     a project will clear the cache.
 
    > Example
      Read the first sheet of an XLSX from disk and convert it into a table.
@@ -95,17 +79,15 @@ from project.System.File_Format import Auto_Detect, File_Format
          example_xls_to_table = Data.read Examples.xls (..Sheet 'Dates')
 @path Text_Input
 @format File_Format.default_widget
-read : Text | URI | File -> File_Format -> Problem_Behavior -> Cache_Policy -> Any ! File_Error
-read path=(Missing_Argument.throw "path") format=Auto_Detect (on_problems : Problem_Behavior = ..Report_Warning) (cache_policy : Cache_Policy = ..Default) =
-    if path.is_a File && cache_policy != ..Default then Error.throw (Illegal_Argument.Error "Cannot specify cache policy in a call to `Data.read` with a `File` object.") else
-        case path of
-            _ : Text -> if Data_Read_Helpers.looks_like_uri path then Data_Read_Helpers.fetch_following_data_links path format=format cache_policy=cache_policy else
-                read (File.new path) format on_problems cache_policy=cache_policy
-            uri : URI -> Data_Read_Helpers.fetch_following_data_links uri format=format cache_policy=cache_policy
-            _ : File ->
-                file_obj = File.new path
-                if file_obj.is_directory then Error.throw (Illegal_Argument.Error "Cannot `read` a directory, use `Data.list`.") else
-                    file_obj.read format on_problems
+read : Text | URI | File -> File_Format -> Problem_Behavior -> Any ! File_Error
+read path=(Missing_Argument.throw "path") format=Auto_Detect (on_problems : Problem_Behavior = ..Report_Warning) = case path of
+    _ : Text -> if Data_Read_Helpers.looks_like_uri path then Data_Read_Helpers.fetch_following_data_links path format=format else
+        read (File.new path) format on_problems
+    uri : URI -> fetch uri format=format
+    _ : File ->
+        file_obj = File.new path
+        if file_obj.is_directory then Error.throw (Illegal_Argument.Error "Cannot `read` a directory, use `Data.list`.") else
+            file_obj.read format on_problems
 
 ## ALIAS load text, open text
    GROUP Input
@@ -219,8 +201,8 @@ list (directory:(Text | File)=enso_project.root) (name_filter:Text="") recursive
      server. Two resources are considered the same if the URIs and request
      headers are the same. Header order does not affect sameness.
 
-     The cached values are retained as long as the project as open. Closing a
-     project will clear the cache.
+     The cached values are retained as long as the project remains open. Closing
+     a project will clear the cache.
 
      The cache respects the "max-age" and "Age" response headers received from
      remote servers. These headers are used to determine if the cached value is
@@ -254,7 +236,7 @@ list (directory:(Text | File)=enso_project.root) (name_filter:Text="") recursive
 @format Data_Read_Helpers.format_widget_with_raw_response
 @headers Header.default_widget
 fetch : (URI | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> File_Format -> Cache_Policy -> Any ! Request_Error | HTTP_Error
-fetch (uri:(URI | Text))=(Missing_Argument.throw "uri") (method:HTTP_Method=..Get) (headers:(Vector (Header | Pair Text Text))=[]) (format = Auto_Detect) (cache_policy:Cache_Policy = ..Default) =
+fetch (uri:(URI | Text)=(Missing_Argument.throw "uri")) (method:HTTP_Method=..Get) (headers:(Vector (Header | Pair Text Text))=[]) (format = Auto_Detect) (cache_policy:Cache_Policy = ..Default) =
     Data_Read_Helpers.fetch_following_data_links uri method headers (Data_Read_Helpers.handle_legacy_format "fetch" "format" format) cache_policy=cache_policy
 
 ## ALIAS http post, upload
@@ -417,17 +399,3 @@ type Raw_Response
     ## PRIVATE
     get_dropdown_options : Vector Option
     get_dropdown_options = [Option "Raw HTTP Response" (Meta.get_qualified_type_name Raw_Response)]
-
-## ALIAS flush
-   GROUP Input
-   ICON data_input
-   Clear the HTTP request cache.
-
-   > Example
-     Clear the HTTP response cache.
-
-         import Standard.Base.Data
-
-         Data.clear_response_cache
-clear_response_cache : Nothing
-clear_response_cache -> Nothing = HTTP.clear_response_cache

@@ -14,6 +14,7 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -126,7 +127,7 @@ public class TransientHTTPResponseCache {
       ZonedDateTime expiry = getNow().plus(Duration.ofSeconds(ttl));
       int statusCode = response.statusCode();
       var headers = response.headers();
-      String responseDataPath = downloadResponseData(unresolvedURI, response);
+      String responseDataPath = downloadResponseData(cacheKey, unresolvedURI, response);
       long size = new File(responseDataPath).length();
 
       // Create a cache entry. Remove old files if we are over the cache size
@@ -163,9 +164,9 @@ public class TransientHTTPResponseCache {
    * over the file size limit, throw a ResponseTooLargeException.
    */
   private static String downloadResponseData(
-      URIWithSecrets unresolvedURI, EnsoHttpResponse response)
+      String cacheKey, URIWithSecrets unresolvedURI, EnsoHttpResponse response)
       throws IOException, ResponseTooLargeException {
-    File temp = File.createTempFile("TransientHTTPResponseCache", "");
+    File temp = File.createTempFile("TransientHTTPResponseCache-"+cacheKey, "");
     try {
       var inputStream = response.body();
       var outputStream = new FileOutputStream(temp);
@@ -387,20 +388,10 @@ public class TransientHTTPResponseCache {
         messageDigest.update(resolvedHeader.getLeft().getBytes());
         messageDigest.update(resolvedHeader.getRight().getBytes());
       }
-      return toHexString(messageDigest.digest());
+      return HexFormat.of().formatHex(messageDigest.digest());
     } catch (NoSuchAlgorithmException ex) {
       throw raise(RuntimeException.class, ex);
     }
-  }
-
-  public static String toHexString(byte[] bytes) {
-    char[] out = new char[bytes.length * 2];
-    for (int i = 0; i < bytes.length; i++) {
-      int v = bytes[i] & 0xFF;
-      out[i * 2] = Character.forDigit(v >>> 4, 16);
-      out[i * 2 + 1] = Character.forDigit(v & 0x0F, 16);
-    }
-    return new String(out);
   }
 
   @FunctionalInterface

@@ -159,7 +159,6 @@ export project.Meta.Enso_Project.Project_Description
 export project.Network.Extensions.fetch
 export project.Network.Extensions.post
 export project.Network.Extensions.to_uri
-export project.Network.HTTP.Cache_Policy.Cache_Policy
 export project.Network.HTTP.Header.Header
 export project.Network.HTTP.HTTP
 export project.Network.HTTP.HTTP_Method.HTTP_Method

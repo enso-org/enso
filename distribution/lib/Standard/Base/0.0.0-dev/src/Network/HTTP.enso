@@ -124,11 +124,6 @@ type HTTP
             cache_policy_value_ok = req.method == HTTP_Method.Get || cache_policy == Cache_Policy.Default
             if cache_policy_value_ok then action else
                 Error.throw (Illegal_Argument.Error "Cannot specify cache policy for a "+req.method.to_text+" request")
-        # Default to using the cache for GET requests, unless explicitly disabled
-        use_cache = case cache_policy of
-            Cache_Policy.Default -> if req.method == HTTP_Method.Get then True else False
-            Cache_Policy.Cache_Responses -> True
-            Cache_Policy.Dont_Cache_Responses -> False
 
         handle_request_error =
             handler caught_panic =
@@ -151,7 +146,7 @@ type HTTP
                     all_headers = headers + boundary_header_list
                     mapped_headers = all_headers.map on_problems=No_Wrap .to_java_pair
 
-                    response = Response.Value (EnsoSecretHelper.makeRequest self.internal_http_client builder req.uri.to_java_representation mapped_headers use_cache)
+                    response = Response.Value (EnsoSecretHelper.makeRequest self.internal_http_client builder req.uri.to_java_representation mapped_headers (cache_policy.should_use_cache req))
                     if error_on_failure_code.not || response.code.is_success then response else
                         body = response.body.decode_as_text.catch Any _->""
                         message = if body.is_empty then Nothing else body
@@ -176,6 +171,19 @@ type HTTP
         check_method post_methods method <|
             request = Request.new method uri (parse_headers headers) body
             HTTP.new.request request
+
+    ## ALIAS flush
+       ICON temp
+       Clear the HTTP request cache.
+
+       > Example
+         Clear the HTTP response cache.
+
+             import Standard.Base.Network.HTTP
+
+             HTTP.clear_response_cache
+    clear_response_cache : Nothing
+    clear_response_cache -> Nothing = TransientHTTPResponseCache.clear
 
     ## PRIVATE
 
@@ -207,10 +215,6 @@ type HTTP
     set_custom_ssl_context : SSLContext -> HTTP
     set_custom_ssl_context self ssl_context =
         HTTP.Value self.timeout self.follow_redirects self.proxy self.version ssl_context
-
-    ## PRIVATE
-    clear_response_cache : Nothing
-    clear_response_cache -> Nothing = TransientHTTPResponseCache.clear
 
 ## PRIVATE
 parse_headers : Vector (Header | Pair Text Text) -> Vector Header

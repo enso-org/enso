@@ -565,7 +565,7 @@ type Response_Too_Large
     to_display_text : Text
     to_display_text self =
         url_maybe = if self.url.is_nothing then "" else "(URL "+self.url+")"
-        suggestion = " Use `Data.download` to fetch the data to a local file, and `Data.read` to read the file."
+        suggestion = "Use `Data.fetch` with `cache_policy=Dont_Cache_Responses`, or use `Data.download` to fetch the data to a local file, and `Data.read` to read the file."
         "Response too large: repsonse size ("+self.size.to_text+") is over the limit ("+self.limit.to_text+")" + url_maybe + suggestion
 
     ## PRIVATE
