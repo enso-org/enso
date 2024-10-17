@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime.state;
 
+import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
@@ -29,16 +30,19 @@ public abstract class HasContextEnabledNode extends Node {
   public abstract boolean executeHasContextEnabled(
       ExecutionEnvironment executionEnvironment, AtomConstructor runtimeCtxCtor);
 
-  @Specialization
-  boolean doIt(ExecutionEnvironment executionEnvironment, AtomConstructor runtimeCtxCtor) {
+  @Specialization(guards = "executionEnvironment == cachedEnv", limit = "3")
+  boolean doIt(
+      ExecutionEnvironment executionEnvironment,
+      AtomConstructor runtimeCtxCtor,
+      @Cached("executionEnvironment") ExecutionEnvironment cachedEnv) {
     var ensoCtx = EnsoContext.get(this);
     var contextBuiltin = ensoCtx.getBuiltins().context();
     if (runtimeCtxCtor == contextBuiltin.getInput()) {
-      return executionEnvironment.permissions.input();
+      return cachedEnv.permissions.input();
     } else if (runtimeCtxCtor == contextBuiltin.getOutput()) {
-      return executionEnvironment.permissions.output();
+      return cachedEnv.permissions.output();
     } else if (runtimeCtxCtor == contextBuiltin.getDataflowStackTrace()) {
-      return executionEnvironment.permissions.dataflowStacktrace();
+      return cachedEnv.permissions.dataflowStacktrace();
     } else {
       throw ensoCtx.raiseAssertionPanic(this, "Unknown context: " + runtimeCtxCtor, null);
     }
