@@ -13,6 +13,14 @@ export function every<T>(iter: Iterable<T>, f: (value: T) => boolean): boolean {
   return true
 }
 
+/** Return the first element returned by the iterable which meets the condition. */
+export function find<T>(iter: Iterable<T>, f: (value: T) => boolean): T | undefined {
+  for (const value of iter) {
+    if (f(value)) return value
+  }
+  return undefined
+}
+
 /**
  * Return last element returned by the iterable.
  * NOTE: Linear complexity. This function always visits the whole iterable. Using this with an

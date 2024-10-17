@@ -35,8 +35,11 @@ add_specs suite_builder prefix ~datalink_to_connection database_pending =
             table_name = "audited-table-"+Random.uuid
             mem_table = Table.new [["X", [1, 2]], ["Y", ["my_payload", "foo"]]]
             audited_table = mem_table.select_into_database_table audited_connection table_name temporary=True . should_succeed
-            audited_table.read . should_equal mem_table
-            audited_connection.drop_table table_name . should_succeed
+            materialized = audited_table.read
+            materialized.column_names . should_equal ["X", "Y"]
+            materialized.at "X" . to_vector . should_equal_ignoring_order [1, 2]
+            materialized.at "Y" . to_vector . should_equal_ignoring_order ["my_payload", "foo"]
+            audited_connection.drop_table audited_table.name . should_succeed
 
             # Retrying is needed as there may be some delay before the background thread finishes processing the logs.
             Test.with_retries <|
@@ -86,7 +89,7 @@ add_specs suite_builder prefix ~datalink_to_connection database_pending =
                 locally_audited_connection = datalink_to_connection.read
 
                 # We just check that we can read queries through this connection:
-                locally_audited_connection.read (SQL_Query.Raw_SQL "SELECT 1") . at 0 . to_vector . should_equal [1]
+                locally_audited_connection.read (SQL_Query.Raw_SQL "SELECT 1 AS foo") . at 0 . to_vector . should_equal [1]
 
         # This test may only run on real cloud because the mock does not support creating datalinks.
         # Once the tests above can be run on real cloud too (#10919), we can merge all 3 cloud setups into a single one.
