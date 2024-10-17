@@ -322,6 +322,7 @@ public class ErrorCompilerTest extends CompilerTests {
         parse(
             """
     fan_out_to_columns : Table -> Text | Integer -> (Any -> Vector Any) -> | Nothing -> Problem_Behavior -> Table | Nothing
+    fan_out_to_columns table text_or_integer any_to_vector_any wat problem_behavior = Nothing
     """);
     assertSingleSyntaxError(
         ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 48, 119);

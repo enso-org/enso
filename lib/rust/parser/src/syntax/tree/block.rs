@@ -50,7 +50,7 @@ impl<'s> span::Builder<'s> for Line<'s> {
 
 /// Parse the top-level of a module.
 pub fn parse_module<'s>(
-    lines: impl IntoIterator<Item = item::Line<'s>>,
+    lines: &mut Vec<item::Line<'s>>,
     precedence: &mut operator::Precedence<'s>,
 ) -> Tree<'s> {
     BodyBlockParser::default().parse_module(lines, precedence)
@@ -58,7 +58,7 @@ pub fn parse_module<'s>(
 
 /// Parse a body block.
 pub fn parse_block<'s>(
-    lines: impl IntoIterator<Item = item::Line<'s>>,
+    lines: &mut Vec<item::Line<'s>>,
     precedence: &mut operator::Precedence<'s>,
 ) -> Tree<'s> {
     BodyBlockParser::default().parse_body_block(lines, precedence)

@@ -97,9 +97,11 @@ where T: serde::Serialize + Reflect {
     };
     let line = rust_to_meta[&tree::block::Line::reflect().id];
     let operator_line = rust_to_meta[&tree::block::OperatorLine::reflect().id];
+    let type_signature_line = rust_to_meta[&tree::TypeSignatureLine::reflect().id];
     let invalid = rust_to_meta[&tree::Invalid::reflect().id];
     to_s_expr.mapper(line, into_car);
     to_s_expr.mapper(operator_line, into_car);
+    to_s_expr.mapper(type_signature_line, into_car);
     to_s_expr.mapper(invalid, strip_invalid);
     to_s_expr.mapper(text_escape_token, simplify_escape);
     tuplify(to_s_expr.value(ast_ty, &value))
