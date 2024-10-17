@@ -70,8 +70,6 @@ public class TransientHTTPResponseCache {
       List<Pair<String, String>> resolvedHeaders,
       RequestMaker requestMaker)
       throws IOException, InterruptedException, ResponseTooLargeException {
-    removeStaleEntries();
-
     var cacheKey = makeHashKey(resolvedURI, resolvedHeaders);
     if (cache.containsKey(cacheKey)) {
       return returnCachedResponse(cacheKey);
@@ -246,6 +244,8 @@ public class TransientHTTPResponseCache {
 
   /** Remove least-recently used entries until there is enough room for a new file. */
   private static void makeRoomFor(long newFileSize) {
+    removeStaleEntries();
+
     long totalSize = getTotalCacheSize() + newFileSize;
     long maxTotalCacheSize = getMaxTotalCacheSize();
     if (totalSize <= maxTotalCacheSize) {

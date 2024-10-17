@@ -8,6 +8,7 @@ import Standard.Base.Network.HTTP.Request.Request
 import Standard.Base.Network.HTTP.Request_Body.Request_Body
 import Standard.Base.Network.HTTP.Response.Response
 import Standard.Base.Runtime.Context
+import Standard.Base.Runtime.Ref.Ref
 
 from Standard.Table import all
 import Standard.Table.Errors.Invalid_JSON_Format
@@ -266,17 +267,23 @@ add_specs suite_builder =
             Data.fetch url0 headers=[header1, header0]
             get_num_response_cache_entries . should_equal 1
 
-        # Fetching the trigger uri causes stale entries to be removed.
+        ## Fetching the trigger uri causes stale entries to be removed, since the
+           uri is always different and so the caching and cleanup logic is run.
         fake_now = Date_Time.now
-        trigger_uri = base_url_with_slash+'test_download?max-age=10000&length=50'
+        trigger_uri_serial = Ref.new 0
+        make_trigger_uri =
+            serial = trigger_uri_serial.get
+            trigger_uri_serial.modify (_ + 1)
+            base_url_with_slash+'test_download?max-age=10000&length=50&abc='+serial.to_text
         set_time_and_get_count advance_secs =
             TransientHTTPResponseCache.setNowOverrideTestOnly (fake_now + (Duration.new seconds=advance_secs))
+            trigger_uri = make_trigger_uri
             Data.fetch trigger_uri
             get_num_response_cache_entries
         fake_time_resetter =
             TransientHTTPResponseCache.setNowOverrideTestOnly Nothing
 
-        group_builder.specify "The cache should expire stale entries" pending=pending_has_url <| Test.with_retries <|
+        group_builder.specify "The cache should expire stale entries" pending=pending_has_url <| # Test.with_retries <|
             HTTP.clear_response_cache
 
             set_time_and_get_count 0  # Initialize fake now.
@@ -287,13 +294,15 @@ add_specs suite_builder =
             Data.fetch base_url_with_slash+'test_download?max-age=300&length=50'
 
             Panic.with_finalizer fake_time_resetter <|
-                set_time_and_get_count 0 . should_equal 5
-                set_time_and_get_count 90 . should_equal 5
-                set_time_and_get_count 110 . should_equal 4
-                set_time_and_get_count 190 . should_equal 4
-                set_time_and_get_count 202 . should_equal 2
-                set_time_and_get_count 292 . should_equal 2
-                set_time_and_get_count 301 . should_equal 1
+                ## The count will increase by 1 each time, but decrease by the
+                   number of entries removed
+                set_time_and_get_count 0 . should_equal 6
+                set_time_and_get_count 90 . should_equal 7
+                set_time_and_get_count 110 . should_equal 7
+                set_time_and_get_count 190 . should_equal 8
+                set_time_and_get_count 202 . should_equal 7
+                set_time_and_get_count 292 . should_equal 8
+                set_time_and_get_count 301 . should_equal 8
 
         group_builder.specify "The cache should use the Age response header" pending=pending_has_url <| Test.with_retries <|
             HTTP.clear_response_cache
@@ -307,13 +316,15 @@ add_specs suite_builder =
             Data.fetch base_url_with_slash+'test_download?max-age=160&age=70&length=50' # ttl 90
 
             Panic.with_finalizer fake_time_resetter <|
-                set_time_and_get_count 0 . should_equal 6
-                set_time_and_get_count 40 . should_equal 6
-                set_time_and_get_count 51 . should_equal 5
-                set_time_and_get_count 68 . should_equal 5
-                set_time_and_get_count 72 . should_equal 2
-                set_time_and_get_count 88 . should_equal 2
-                set_time_and_get_count 93 . should_equal 1
+                ## The count will increase by 1 each time, but decrease by the
+                   number of entries removed
+                set_time_and_get_count 0 . should_equal 7
+                set_time_and_get_count 40 . should_equal 8
+                set_time_and_get_count 51 . should_equal 8
+                set_time_and_get_count 68 . should_equal 9
+                set_time_and_get_count 72 . should_equal 7
+                set_time_and_get_count 88 . should_equal 8
+                set_time_and_get_count 93 . should_equal 8
 
         download size =
             Data.fetch base_url_with_slash+'test_download?length='+size.to_text
