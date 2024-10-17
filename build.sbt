@@ -348,6 +348,8 @@ lazy val enso = (project in file("."))
     `runtime-compiler`,
     `runtime-integration-tests`,
     `runtime-parser`,
+    `runtime-parser-dsl`,
+    `runtime-parser-processor`,
     `runtime-language-arrow`,
     `runtime-language-epb`,
     `runtime-instrument-common`,
@@ -3133,12 +3135,42 @@ lazy val `runtime-parser` =
       ),
       Compile / internalModuleDependencies := Seq(
         (`syntax-rust-definition` / Compile / exportedModule).value,
-        (`persistance` / Compile / exportedModule).value
+        (`persistance` / Compile / exportedModule).value,
+        (`runtime-parser-dsl` / Compile / exportedModule).value
       )
     )
     .dependsOn(`syntax-rust-definition`)
     .dependsOn(`persistance`)
     .dependsOn(`persistance-dsl` % "provided")
+    .dependsOn(`runtime-parser-dsl`)
+
+lazy val `runtime-parser-dsl` =
+  (project in file("engine/runtime-parser-dsl"))
+    .enablePlugins(JPMSPlugin)
+    .settings(
+      frgaalJavaCompilerSetting
+    )
+
+lazy val `runtime-parser-processor` =
+  (project in file("engine/runtime-parser-processor"))
+    .enablePlugins(JPMSPlugin)
+    .settings(
+      frgaalJavaCompilerSetting,
+      commands += WithDebugCommand.withDebug,
+      Test / fork := true,
+      libraryDependencies ++= Seq(
+        "junit"                      % "junit"           % junitVersion    % Test,
+        "com.github.sbt"             % "junit-interface" % junitIfVersion  % Test,
+        "org.hamcrest"               % "hamcrest-all"    % hamcrestVersion % Test,
+        "com.google.testing.compile" % "compile-testing" % "0.21.0"        % Test
+      ),
+      Compile / internalModuleDependencies := Seq(
+        (`runtime-parser` / Compile / exportedModule).value,
+        (`runtime-parser-dsl` / Compile / exportedModule).value
+      )
+    )
+    .dependsOn(`runtime-parser`)
+    .dependsOn(`runtime-parser-dsl`)
 
 lazy val `runtime-compiler` =
   (project in file("engine/runtime-compiler"))
