@@ -127,7 +127,7 @@ public class InferredBuilder extends Builder {
     } else if (o instanceof BigDecimal) {
       currentBuilder = new BigDecimalBuilder(initialCapacity);
     } else if (o instanceof LocalDate) {
-      currentBuilder = new DateBuilder(initialCapacity);
+      currentBuilder = new DateBuilder(initialCapacity, allowDateToDateTimeConversion);
     } else if (o instanceof LocalTime) {
       currentBuilder = new TimeOfDayBuilder(initialCapacity);
     } else if (o instanceof ZonedDateTime) {

@@ -16,8 +16,15 @@ public class DateBuilder extends TypedBuilderImpl<LocalDate> {
     return new LocalDate[size];
   }
 
+  private final boolean allowDateToDateTimeConversion;
+
   public DateBuilder(int size) {
+    this(size, false);
+  }
+
+  public DateBuilder(int size, boolean allowDateToDateTimeConversion) {
     super(size);
+    this.allowDateToDateTimeConversion = allowDateToDateTimeConversion;
   }
 
   @Override
@@ -50,7 +57,7 @@ public class DateBuilder extends TypedBuilderImpl<LocalDate> {
 
   @Override
   public boolean canRetypeTo(StorageType type) {
-    if (Objects.equals(type, DateTimeType.INSTANCE)) {
+    if (allowDateToDateTimeConversion && Objects.equals(type, DateTimeType.INSTANCE)) {
       return true;
     }
     return super.canRetypeTo(type);
@@ -58,7 +65,7 @@ public class DateBuilder extends TypedBuilderImpl<LocalDate> {
 
   @Override
   public TypedBuilder retypeTo(StorageType type) {
-    if (Objects.equals(type, DateTimeType.INSTANCE)) {
+    if (allowDateToDateTimeConversion && Objects.equals(type, DateTimeType.INSTANCE)) {
       DateTimeBuilder res = new DateTimeBuilder(data.length, true);
       for (int i = 0; i < currentSize; i++) {
         res.appendNoGrow(data[i]);
