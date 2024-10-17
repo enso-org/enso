@@ -4,7 +4,6 @@ import { ToValue } from '@/util/reactivity'
 import { Ref } from 'vue'
 
 export interface Button {
-  icon: Icon | URLString
   iconStyle?: Record<string, string>
   title?: string
   dataTestid?: string
@@ -13,21 +12,26 @@ export interface Button {
 export interface ActionButton extends Button {
   onClick: () => void
   disabled?: ToValue<boolean>
+  icon: Icon | URLString
 }
 
 export interface ToggleButton extends Button {
   toggle: Ref<boolean>
   disabled?: ToValue<boolean>
+  icon: Icon | URLString
 }
 
 export interface SelectionMenuOption extends Button {
   label?: string
+  icon?: Icon | URLString
 }
 
 export interface SelectionMenu {
   selected: Ref<string>
   title?: string
   options: Record<string, SelectionMenuOption>
+  isTextDropdown?: boolean
+  heading?: string
 }
 
 export type ToolbarItem = ActionButton | ToggleButton | SelectionMenu

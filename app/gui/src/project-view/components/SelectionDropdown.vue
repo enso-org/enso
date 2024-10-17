@@ -14,6 +14,8 @@ const _props = defineProps<{
   title?: string | undefined
   labelButton?: boolean
   alwaysShowArrow?: boolean
+  isTextDropdown?: boolean
+  heading?: string | null
 }>()
 
 const open = ref(false)
@@ -23,12 +25,22 @@ const open = ref(false)
   <DropdownMenu v-model:open="open" :title="title" :alwaysShowArrow="alwaysShowArrow">
     <template #button>
       <template v-if="options[selected]">
-        <SvgIcon :name="options[selected]!.icon" :style="options[selected]!.iconStyle" />
-        <div
-          v-if="labelButton && options[selected]!.label"
-          class="iconLabel"
-          v-text="options[selected]!.label"
-        />
+        <template v-if="isTextDropdown">
+          <div v-if="heading" v-text="heading" />
+          <div
+            v-if="options[selected]?.label"
+            class="iconLabel"
+            v-text="options[selected]?.label"
+          />
+        </template>
+        <template v-else-if="options[selected]!.icon">
+          <SvgIcon :name="options[selected]!.icon!" :style="options[selected]!.iconStyle" />
+          <div
+            v-if="labelButton && options[selected]!.label"
+            class="iconLabel"
+            v-text="options[selected]!.label"
+          />
+        </template>
       </template>
     </template>
     <template #entries>
@@ -40,7 +52,9 @@ const open = ref(false)
         @update:modelValue="$event && (selected = key)"
         @click="open = false"
       >
-        <SvgIcon :name="option.icon" :style="option.iconStyle" :data-testid="option.dataTestid" />
+        <template v-if="option.icon">
+          <SvgIcon :name="option.icon" :style="option.iconStyle" :data-testid="option.dataTestid" />
+        </template>
         <div v-if="option.label" class="iconLabel" v-text="option.label" />
       </MenuButton>
     </template>
