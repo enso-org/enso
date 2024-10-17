@@ -9,7 +9,7 @@
  */
 export interface TestIdProps {
   /**
-   * @deprecated Use `testid` instead
+   * @deprecated Use `testId` instead
    */
   readonly 'data-testid'?: string | undefined
   readonly testId?: string | undefined

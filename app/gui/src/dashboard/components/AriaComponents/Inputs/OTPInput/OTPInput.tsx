@@ -112,7 +112,7 @@ export const OTPInput = forwardRef(function OTPInput<
 
   return (
     <Form.Field
-      {...mergeProps<FieldComponentProps<Schema>>()(inputProps, omit(fieldProps), {
+      {...mergeProps<FieldComponentProps<Schema>>()(inputProps, fieldProps, {
         isHidden: props.hidden,
         fullWidth: true,
         variants: fieldVariants,

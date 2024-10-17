@@ -25,7 +25,6 @@ import {
   SETTINGS_DATA,
   SETTINGS_NO_RESULTS_SECTION_DATA,
   SETTINGS_TAB_DATA,
-  SettingsEntryType,
   type SettingsContext,
   type SettingsEntryData,
   type SettingsTabData,
@@ -79,6 +78,11 @@ export default function Settings() {
     localBackend?.resetRootPath()
   })
 
+  const isMatch = React.useMemo(() => {
+    const regex = new RegExp(regexEscape(query.trim()).replace(/\s+/g, '.+'), 'i')
+    return (name: string) => regex.test(name)
+  }, [query])
+
   const context = React.useMemo<SettingsContext>(
     () => ({
       accessToken,
@@ -93,6 +97,7 @@ export default function Settings() {
       toastAndLog,
       getText,
       queryClient,
+      isMatch,
     }),
     [
       accessToken,
@@ -107,21 +112,17 @@ export default function Settings() {
       updateUser,
       user,
       queryClient,
+      isMatch,
     ],
   )
-
-  const isMatch = React.useMemo(() => {
-    const regex = new RegExp(regexEscape(query.trim()).replace(/\s+/g, '.+'), 'i')
-    return (name: string) => regex.test(name)
-  }, [query])
 
   const doesEntryMatchQuery = React.useCallback(
     (entry: SettingsEntryData) => {
       switch (entry.type) {
-        case SettingsEntryType.input: {
-          return isMatch(getText(entry.nameId))
+        case 'form': {
+          return entry.inputs.some((input) => isMatch(getText(input.nameId)))
         }
-        case SettingsEntryType.custom: {
+        case 'custom': {
           const doesAliasesIdMatch =
             entry.aliasesId == null ? false : getText(entry.aliasesId).split('\n').some(isMatch)
           if (doesAliasesIdMatch) {
