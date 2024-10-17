@@ -58,7 +58,7 @@ interface Data {
   x_value_type: string
   is_multi_series: boolean
   get_row_method: string
-  error_message: string
+  error_message: string | null
 }
 
 interface Focus {
@@ -202,7 +202,7 @@ const data = computed<Data>(() => {
   // eslint-disable-next-line camelcase
   const get_row_method: string = rawData.get_row_method || 'get_row'
   // eslint-disable-next-line camelcase
-  const error_message: string = rawData.error_message || ''
+  const error_message: string | null = rawData.error_message || null
   return {
     axis,
     points,
@@ -873,7 +873,7 @@ config.setToolbar([
 </script>
 
 <template>
-  <div v-if="errorMessage && errorMessage.length > 0" class="WarningsScatterplotVisualization">
+  <div v-if="errorMessage" class="WarningsScatterplotVisualization">
     {{ errorMessage }}
   </div>
   <div v-else ref="containerNode" class="ScatterplotVisualization">
