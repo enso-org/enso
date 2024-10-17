@@ -1,7 +1,7 @@
 import test, { type Locator, type Page } from 'playwright/test'
 import * as actions from './actions'
 import { expect } from './customExpect'
-import { mockExpressionUpdate, mockMethodCallInfo } from './expressionUpdates'
+import { mockMethodCallInfo } from './expressionUpdates'
 import * as locate from './locate'
 
 class DropDownLocator {
