@@ -228,7 +228,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
   const { category, setCategory } = props
   const { user } = authProvider.useFullUserSession()
   const { getText } = textProvider.useText()
-  const remoteBackend = backendProvider.useRemoteBackendStrict()
+  const remoteBackend = backendProvider.useRemoteBackend()
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const setPage = useSetPage()
   const [, setSearchParams] = useSearchParams()

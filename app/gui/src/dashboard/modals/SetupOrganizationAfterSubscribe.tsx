@@ -35,7 +35,7 @@ const PLANS_TO_SPECIFY_ORG_NAME = [backendModule.Plan.team, backendModule.Plan.e
 export function SetupOrganizationAfterSubscribe() {
   const { getText } = textProvider.useText()
 
-  const backend = backendProvider.useRemoteBackendStrict()
+  const backend = backendProvider.useRemoteBackend()
   const { session } = authProvider.useAuth()
 
   const user = session != null && 'user' in session ? session.user : null

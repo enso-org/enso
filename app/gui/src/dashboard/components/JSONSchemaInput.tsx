@@ -6,7 +6,7 @@ import { Button, Checkbox, Dropdown, Text } from '#/components/AriaComponents'
 import Autocomplete from '#/components/Autocomplete'
 import FocusRing from '#/components/styled/FocusRing'
 import { useBackendQuery } from '#/hooks/backendHooks'
-import { useRemoteBackendStrict } from '#/providers/BackendProvider'
+import { useRemoteBackend } from '#/providers/BackendProvider'
 import { useText } from '#/providers/TextProvider'
 import { constantValueOfSchema, getSchemaName, lookupDef } from '#/utilities/jsonSchema'
 import { asObject, singletonObjectOrNull } from '#/utilities/object'
@@ -37,7 +37,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
   const { noBorder = false, isAbsent = false, value, onChange } = props
   // The functionality for inputting `enso-secret`s SHOULD be injected using a plugin,
   // but it is more convenient to avoid having plugin infrastructure.
-  const remoteBackend = useRemoteBackendStrict()
+  const remoteBackend = useRemoteBackend()
   const { getText } = useText()
   const [autocompleteText, setAutocompleteText] = useState(() =>
     typeof value === 'string' ? value : null,

@@ -29,7 +29,7 @@ const LIST_USERS_STALE_TIME_MS = 60_000
 /** Settings tab for viewing and editing organization members. */
 export default function MembersSettingsSection() {
   const { getText } = textProvider.useText()
-  const backend = backendProvider.useRemoteBackendStrict()
+  const backend = backendProvider.useRemoteBackend()
   const { user } = authProvider.useFullUserSession()
 
   const { isFeatureUnderPaywall, getFeature } = billingHooks.usePaywall({ plan: user.plan })

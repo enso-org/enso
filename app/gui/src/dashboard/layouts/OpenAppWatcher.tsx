@@ -21,7 +21,7 @@ import * as backendProvider from '#/providers/BackendProvider'
  */
 export function OpenAppWatcher() {
   const context = router.useOutletContext()
-  const remoteBackend = backendProvider.useRemoteBackendStrict()
+  const remoteBackend = backendProvider.useRemoteBackend()
 
   const { mutate: logUserOpenAppMutate } = reactQuery.useMutation({
     mutationFn: () => remoteBackend.logEvent('open_app'),
