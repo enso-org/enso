@@ -213,6 +213,8 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         },
         /// A function definition, like `add x y = x + y`.
         Function {
+            /// A type signature for the function, on its own line.
+            pub signature_line: Option<TypeSignatureLine<'s>>,
             /// The `private` keyword, if present. This is allowed at top level and in type
             /// definitions, must be `None` if the context is a function body.
             pub private: Option<token::PrivateKeyword<'s>>,
@@ -268,13 +270,7 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         },
         /// Statement declaring the type of a variable.
         TypeSignature {
-            /// (Qualified) name of the item whose type is being declared.
-            pub variable: Tree<'s>,
-            /// The `:` token.
-            pub operator: token::TypeAnnotationOperator<'s>,
-            /// The variable's type.
-            #[reflect(rename = "type")]
-            pub type_:    Tree<'s>,
+            pub signature: FunctionTypeSignature<'s>,
         },
         /// An expression with explicit type information attached.
         TypeAnnotated {
@@ -529,6 +525,41 @@ impl<'s> span::Builder<'s> for FractionalDigits<'s> {
 
 
 // === Functions ===
+
+/// A function type signature line.
+#[cfg_attr(feature = "debug", derive(Visitor))]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Reflect, Deserialize)]
+pub struct TypeSignatureLine<'s> {
+    /// The type signature.
+    pub signature: FunctionTypeSignature<'s>,
+    /// The end of the type signature line.
+    pub newlines:  NonEmptyVec<token::Newline<'s>>,
+}
+
+impl<'s> span::Builder<'s> for TypeSignatureLine<'s> {
+    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
+        span.add(&mut self.signature).add(&mut self.newlines)
+    }
+}
+
+/// Contents of a function type signature line.
+#[cfg_attr(feature = "debug", derive(Visitor))]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Reflect, Deserialize)]
+pub struct FunctionTypeSignature<'s> {
+    /// (Qualified) name of the item whose type is being declared.
+    pub name:     Tree<'s>,
+    /// The `:` token.
+    pub operator: token::TypeAnnotationOperator<'s>,
+    /// The variable's type.
+    #[reflect(rename = "type")]
+    pub type_:    Tree<'s>,
+}
+
+impl<'s> span::Builder<'s> for FunctionTypeSignature<'s> {
+    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
+        span.add(&mut self.name).add(&mut self.operator).add(&mut self.type_)
+    }
+}
 
 /// A function argument definition.
 #[cfg_attr(feature = "debug", derive(Visitor))]
@@ -837,6 +868,7 @@ pub enum SyntaxError {
     PatternUnexpectedDot,
     CaseOfInvalidCase,
     DocumentationUnexpectedNonInitial,
+    UnexpectedTypeSignatureDeclaration,
 }
 
 impl From<SyntaxError> for Cow<'static, str> {
@@ -874,6 +906,8 @@ impl From<SyntaxError> for Cow<'static, str> {
             PatternUnexpectedDot => "In a pattern, the dot operator can only be used in a qualified name",
             CaseOfInvalidCase => "Invalid case expression.",
             DocumentationUnexpectedNonInitial => "Unexpected documentation at end of line",
+            UnexpectedTypeSignatureDeclaration =>
+                "A type-signature declaration must be followed by a function implementation",
         })
         .into()
     }

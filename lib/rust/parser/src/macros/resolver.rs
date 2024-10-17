@@ -176,10 +176,11 @@ impl<'s> Finish for ResolverState<'s> {
 
     fn finish(&mut self) -> Self::Result {
         self.finish_current_line();
-        let lines = self.lines.drain(..);
         let tree = match self.root_context {
-            RootContext::Module => syntax::tree::block::parse_module(lines, &mut self.precedence),
-            RootContext::Block => syntax::tree::block::parse_block(lines, &mut self.precedence),
+            RootContext::Module =>
+                syntax::tree::block::parse_module(&mut self.lines, &mut self.precedence),
+            RootContext::Block =>
+                syntax::tree::block::parse_block(&mut self.lines, &mut self.precedence),
         };
         debug_assert!(self.blocks.is_empty());
         debug_assert!(self.lines.is_empty());

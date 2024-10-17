@@ -4,8 +4,12 @@ use crate::empty_tree;
 use crate::syntax::item;
 use crate::syntax::maybe_with_error;
 use crate::syntax::operator::Precedence;
+use crate::syntax::statement::apply_private_keywords;
 use crate::syntax::statement::find_top_level_operator;
 use crate::syntax::statement::parse_pattern;
+use crate::syntax::statement::Line;
+use crate::syntax::statement::StatementPrefix;
+use crate::syntax::statement::VisibilityContext;
 use crate::syntax::token;
 use crate::syntax::tree;
 use crate::syntax::tree::ArgumentDefault;
@@ -14,6 +18,7 @@ use crate::syntax::tree::ArgumentDefinitionLine;
 use crate::syntax::tree::ArgumentType;
 use crate::syntax::tree::ReturnSpecification;
 use crate::syntax::tree::SyntaxError;
+use crate::syntax::tree::TypeSignatureLine;
 use crate::syntax::treebuilding::Spacing;
 use crate::syntax::Item;
 use crate::syntax::Token;
@@ -22,12 +27,19 @@ use crate::syntax::Tree;
 
 
 pub fn parse_function_decl<'s>(
-    items: &mut Vec<Item<'s>>,
+    prefixes: &mut Vec<Line<'s, StatementPrefix<'s>>>,
+    mut line: item::Line<'s>,
     start: usize,
     qn_len: usize,
+    operator: token::AssignmentOperator<'s>,
+    expression: Option<Tree<'s>>,
     precedence: &mut Precedence<'s>,
     args_buffer: &mut Vec<ArgumentDefinition<'s>>,
-) -> (Tree<'s>, Vec<ArgumentDefinition<'s>>, Option<ReturnSpecification<'s>>) {
+    visibility_context: VisibilityContext,
+) -> Line<'s, Tree<'s>> {
+    let items = &mut line.items;
+    let private_keywords_start = 0;
+
     let mut arg_starts = vec![];
     let mut arrow = None;
     for (i, item) in items.iter().enumerate().skip(start + qn_len) {
@@ -48,7 +60,55 @@ pub fn parse_function_decl<'s>(
 
     let qn = precedence.resolve_non_section_offset(start, items).unwrap();
 
-    (qn, args, return_)
+    let private = (visibility_context != VisibilityContext::Private
+        && private_keywords_start < start)
+        .then(|| into_private_keyword(items.pop().unwrap()));
+
+    let mut first_newline = line.newline;
+    let mut signature_line = None;
+    if let Some(Line { content: Some(StatementPrefix::TypeSignature(signature)), .. }) =
+        prefixes.last()
+    {
+        if qn_equivalent(&qn, &signature.name) {
+            let Some(Line {
+                newline: outer_newline,
+                content: Some(StatementPrefix::TypeSignature(signature)),
+            }) = prefixes.pop()
+            else {
+                unreachable!()
+            };
+            let newline = mem::replace(&mut first_newline, outer_newline);
+            signature_line =
+                Some(TypeSignatureLine { signature, newlines: NonEmptyVec::singleton(newline) })
+        }
+    }
+
+    Line {
+        newline: first_newline,
+        content: apply_private_keywords(
+            Some(Tree::function(signature_line, private, qn, args, return_, operator, expression)),
+            items.drain(..),
+            visibility_context,
+        ),
+    }
+}
+
+fn qn_equivalent(a: &Tree, b: &Tree) -> bool {
+    use tree::Variant::*;
+    match (&a.variant, &b.variant) {
+        (Ident(a), Ident(b)) => a.token.code.repr == b.token.code.repr,
+        (OprApp(a), OprApp(b)) =>
+            opt_qn_equivalent(&a.lhs, &b.lhs) && opt_qn_equivalent(&a.rhs, &b.rhs),
+        _ => false,
+    }
+}
+
+fn opt_qn_equivalent(a: &Option<Tree>, b: &Option<Tree>) -> bool {
+    match (a, b) {
+        (Some(a), Some(b)) => qn_equivalent(a, b),
+        (None, None) => true,
+        _ => false,
+    }
 }
 
 /// Parse a sequence of argument definitions.
