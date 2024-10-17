@@ -37,7 +37,8 @@ main n=Nothing =
             @Tail_Call print_nth s.tail (n.if_not_nothing n-1)
 
     compute_and_print_nth nth:Integer|Nothing =
-        @Tail_Call print_nth primes nth
+        p = primes
+        print_nth p nth
 
     compute_and_print_nth n
 
