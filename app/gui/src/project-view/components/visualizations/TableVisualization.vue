@@ -361,7 +361,7 @@ const customCellRenderer = (params: any) => {
       Nulls/Nothing: ${nothingPerecent.toFixed(2)}% ${createVisual(nothingPerecent)}
     </div>
     <div style="visibility:${whitespaceVisibility};">
-      Trailing/Leading WhiteSpace: ${wsPerecent.toFixed(2)}% ${createVisual(wsPerecent)}
+      Trailing/Leading Whitespace: ${wsPerecent.toFixed(2)}% ${createVisual(wsPerecent)}
     </div>
     </div>`
   }
