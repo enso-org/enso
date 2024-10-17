@@ -314,20 +314,12 @@ const seriesLabels = computed(() =>
       return data.value.axis[s as keyof AxesConfiguration].label
     }),
 )
-const isCustomColorAndAxis = computed(() => {
-  return seriesLabels.value.length <= 2
-})
-const showYLabelText = computed(() => {
-  if (data.value.is_multi_series) {
-    return isCustomColorAndAxis
-  }
-  return true
-})
+
 const yLabelText = computed(() => {
   if (!data.value.is_multi_series) {
     return data.value.axis.y.label
   }
-  if (isCustomColorAndAxis.value) {
+  if (yAxisSelected.value) {
     return yAxisSelected.value === 'none' ? null : yAxisSelected.value
   } else return null
 })
@@ -856,13 +848,12 @@ const yAxisSelected = ref('none')
 const makeSeriesLabelOptions = () => {
   const seriesOptions: { [key: string]: { label: string } } = {}
   seriesLabels.value.forEach((label, index) => {
-    seriesOptions[index] = {
+    seriesOptions[label] = {
       label: label,
     }
   })
   return seriesOptions
 }
-console.log({ yAxisSelected: yAxisSelected.value })
 
 config.setToolbar([
   {
@@ -891,10 +882,10 @@ config.setToolbar([
     selected: yAxisSelected,
     title: 'Choose Y Axis Label',
     isTextDropdown: true,
-    heading: 'Y axis label: ',
+    heading: 'Y Axis Label: ',
     options: {
       none: {
-        label: 'No Y Axis Label',
+        label: 'No Label',
       },
       ...makeSeriesLabelOptions(),
     },
@@ -923,7 +914,6 @@ config.setToolbar([
           v-text="data.axis.x.label"
         ></text>
         <text
-          v-if="yLabelText"
           class="label label-y"
           text-anchor="end"
           :x="yLabelLeft"
