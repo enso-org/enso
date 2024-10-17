@@ -16,6 +16,7 @@ import project.Data.Time.Time_Period.Time_Period
 import project.Data.Time.Time_Zone.Time_Zone
 import project.Data.Vector.Vector
 import project.Error.Error
+import project.Errors.Common.Missing_Argument
 import project.Errors.Common.Type_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Time_Error.Time_Error
@@ -161,7 +162,7 @@ type Date_Time
     @nanosecond (Widget.Numeric_Input minimum=0 maximum=999 display=Display.When_Modified)
     @zone Time_Zone.default_widget
     new : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Time_Zone -> Date_Time ! Time_Error
-    new year (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (millisecond = 0) (microsecond = 0) (nanosecond = 0) (zone = Time_Zone.system) =
+    new (year:Integer=(Missing_Argument.throw "year")) (month:Integer=1) (day:Integer=1) (hour:Integer=0) (minute:Integer=0) (second:Integer=0) (millisecond:Integer=0) (microsecond:Integer=0) (nanosecond = 0) (zone:Time_Zone=Time_Zone.system) =
         total_nanoseconds = nanosecond + microsecond * 1000 + millisecond * 1000000
         Panic.catch JException (new_builtin year month day hour minute second total_nanoseconds zone) cause->
             Error.throw (Time_Error.Error cause.payload.getMessage)
@@ -833,6 +834,20 @@ type Date_Time
         time_format = if self.nanosecond include_milliseconds=True == 0 then "HH:mm:ss" else "HH:mm:ss.fff"
         zone_format = if self.zone == Time_Zone.system then "" else "'['TT']'"
         self.format "yyyy-MM-dd "+time_format+zone_format
+
+    ## PRIVATE
+       Convert to a Enso code representation of this Time_Of_Day.
+    pretty : Text
+    pretty self = "(Date_Time.new " + self.year.to_text + " " + self.month.to_text + " " + self.day.to_text
+        + (if self.hour == 0 then "" else " hour="+self.hour.to_text)
+        + (if self.minute == 0 then "" else " minute="+self.minute.to_text)
+        + (if self.second == 0 then "" else " second="+self.second.to_text)
+        + (if self.millisecond == 0 then "" else " millisecond="+self.millisecond.to_text)
+        + (if self.microsecond == 0 then "" else " microsecond="+self.microsecond.to_text)
+        + (if self.nanosecond == 0 then "" else " nanosecond="+self.nanosecond.to_text)
+        + (if self.zone == Time_Zone.system then "" else " zone="+self.zone.pretty)
+        + ")"
+
 
     ## PRIVATE
        Convert to a JavaScript Object representing a Date_Time.
