@@ -1838,11 +1838,12 @@ fn expect_valid(code: &str) {
 
 /// Builder for function definitions.
 struct Function {
-    private: lexpr::Value,
-    name:    lexpr::Value,
-    args:    Vec<lexpr::Value>,
-    body:    lexpr::Value,
-    ret:     lexpr::Value,
+    signature: lexpr::Value,
+    private:   lexpr::Value,
+    name:      lexpr::Value,
+    args:      Vec<lexpr::Value>,
+    body:      lexpr::Value,
+    ret:       lexpr::Value,
 }
 
 impl Function {
@@ -1852,7 +1853,7 @@ impl Function {
     }
 
     fn named(name: lexpr::Value, body: lexpr::Value) -> Self {
-        Self { private: sexp![()], name, args: vec![], body, ret: sexp![()] }
+        Self { signature: sexp![()], private: sexp![()], name, args: vec![], body, ret: sexp![()] }
     }
 
     fn with_arg(mut self, arg: impl Into<Arg>) -> Self {
@@ -1871,8 +1872,8 @@ impl Function {
 
 impl From<Function> for lexpr::Value {
     #[rustfmt::skip]
-    fn from(Function { private, name, args, ret, body }: Function) -> Self {
-        sexp![(Function ,private ,name ,args ,ret ,body)]
+    fn from(Function { signature, private, name, args, ret, body }: Function) -> Self {
+        sexp![(Function ,signature ,private ,name ,args ,ret ,body)]
     }
 }
 
