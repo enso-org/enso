@@ -18,8 +18,6 @@ const _props = defineProps<{
   heading?: string | null
 }>()
 
-console.log({ selected })
-
 const open = ref(false)
 </script>
 
