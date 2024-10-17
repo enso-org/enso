@@ -349,7 +349,7 @@ const createVisual = (value: number) => {
   `
 }
 
-const customCellRenderer = (params: any) => {
+const customCellRenderer = (params: ICellRendererParams) => {
   if (params.node.rowPinned === 'top') {
     const nothingPerecent = (params.value.numberOfNothing / params.value.total) * 100
     const wsPerecent = (params.value.numberOfWhitespace / params.value.total) * 100
