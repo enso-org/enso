@@ -386,7 +386,10 @@ export class MutableModule implements Module {
     else return { whitespace: child.whitespace, node: this.get(child.node) }
   }
 
-  /** @internal */
+  /**
+   * Copy a node into the module, if it is bound to a different module.
+   * @internal
+   */
   copyIfForeign<T extends MutableAst>(ast: Owned<T>): Owned<T>
   /** TODO: Add docs */
   copyIfForeign<T extends MutableAst>(ast: Owned<T> | undefined): Owned<T> | undefined {

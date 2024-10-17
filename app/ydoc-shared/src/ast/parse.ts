@@ -512,7 +512,10 @@ export function printAst(
   return code
 }
 
-/** @internal */
+/**
+ * Use `Ast.code()' to stringify.
+ * @internal
+ */
 export function printBlock(
   block: BodyBlock,
   info: SpanMap,
@@ -554,7 +557,10 @@ export function printBlock(
   return code
 }
 
-/** @internal */
+/**
+ * Use `Ast.code()' to stringify.
+ * @internal
+ */
 export function printDocumented(
   documented: Documented,
   info: SpanMap,
@@ -787,7 +793,10 @@ function resync(
   )
 }
 
-/** @internal */
+/**
+ * Recursion helper for {@link syntaxHash}.
+ * @internal
+ */
 function hashSubtreeSyntax(ast: Ast, hashesOut: Map<SyntaxHash, Ast[]>): SyntaxHash {
   let content = ''
   content += ast.typeName + ':'
