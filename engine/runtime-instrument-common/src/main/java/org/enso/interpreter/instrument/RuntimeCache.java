@@ -10,7 +10,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-
 import org.enso.common.CachePreferences;
 import org.enso.interpreter.service.ExecutionService;
 
@@ -88,7 +87,8 @@ public final class RuntimeCache implements java.util.function.Function<String, O
     cache.clear();
   }
 
-  /** Clear cached values of the provided kind.
+  /**
+   * Clear cached values of the provided kind.
    *
    * @param kind the kind of cached value to clear
    * @return the set of cleared keys
@@ -181,7 +181,8 @@ public final class RuntimeCache implements java.util.function.Function<String, O
     return preferences;
   }
 
-  /** Set the new cache preferences.
+  /**
+   * Set the new cache preferences.
    *
    * @param preferences the new cache preferences
    */
@@ -189,7 +190,8 @@ public final class RuntimeCache implements java.util.function.Function<String, O
     this.preferences = preferences;
   }
 
-  /** Remove the cache preference associated with the provided key.
+  /**
+   * Remove the cache preference associated with the provided key.
    *
    * @param key the preference to remove
    */

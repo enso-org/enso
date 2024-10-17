@@ -10,7 +10,6 @@ import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
 import java.util.HashSet;
 import java.util.UUID;
-
 import org.enso.common.CachePreferences;
 import org.junit.Test;
 
