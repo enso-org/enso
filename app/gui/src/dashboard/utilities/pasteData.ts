@@ -1,9 +1,7 @@
 /** @file Types related to pasting. */
-import type PasteType from '#/utilities/PasteType'
 
-// =================
-// === PasteData ===
-// =================
+/** The type of operation that should be triggered on paste. */
+export type PasteType = 'copy' | 'move'
 
 /** All information required to paste assets. */
 export interface PasteData<T> {

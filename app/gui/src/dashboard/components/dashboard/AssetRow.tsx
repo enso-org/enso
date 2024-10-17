@@ -34,7 +34,12 @@ import * as localBackend from '#/services/LocalBackend'
 import * as backendModule from '#/services/Backend'
 
 import { Text } from '#/components/AriaComponents'
-import { backendMutationOptions } from '#/hooks/backendHooks'
+import { useCutAndPaste } from '#/events/assetListEvent'
+import {
+  backendMutationOptions,
+  backendQueryOptions,
+  type BackendMutation,
+} from '#/hooks/backendHooks'
 import { createGetProjectDetailsQuery } from '#/hooks/projectHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
@@ -49,7 +54,7 @@ import * as permissions from '#/utilities/permissions'
 import * as set from '#/utilities/set'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import Visibility from '#/utilities/Visibility'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation, useMutationState, useQuery, useQueryClient } from '@tanstack/react-query'
 
 // =================
 // === Constants ===
@@ -133,6 +138,7 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
 
   const [item, setItem] = React.useState(rawItem)
   const driveStore = useDriveStore()
+  const queryClient = useQueryClient()
   const { user } = useFullUserSession()
   const setSelectedKeys = useSetSelectedKeys()
   const setAssetPanelProps = useSetAssetPanelProps()
@@ -151,17 +157,16 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
   const draggableProps = dragAndDropHooks.useDraggable()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
-  const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
+  const cutAndPaste = useCutAndPaste(category)
   const [isDraggedOver, setIsDraggedOver] = React.useState(false)
   const rootRef = React.useRef<HTMLElement | null>(null)
   const dragOverTimeoutHandle = React.useRef<number | null>(null)
   const setIsAssetPanelTemporarilyVisible = useSetIsAssetPanelTemporarilyVisible()
   const grabKeyboardFocusRef = useSyncRef(grabKeyboardFocus)
   const asset = item.item
-  const [insertionVisibility, setInsertionVisibility] = React.useState(Visibility.visible)
-  const [innerRowState, setRowState] = React.useState<assetsTable.AssetRowState>(() =>
-    object.merge(assetRowUtils.INITIAL_ROW_STATE, { setVisibility: setInsertionVisibility }),
+  const [innerRowState, setRowState] = React.useState<assetsTable.AssetRowState>(
+    assetRowUtils.INITIAL_ROW_STATE,
   )
 
   const isNewlyCreated = useStore(driveStore, ({ newestFolderId }) => newestFolderId === asset.id)
@@ -176,12 +181,14 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
     readonly parentKeys: Map<backendModule.AssetId, backendModule.DirectoryId>
   } | null>(null)
 
-  const outerVisibility = visibilities.get(item.key)
-  const visibility =
-    outerVisibility == null || outerVisibility === Visibility.visible ?
-      insertionVisibility
-    : outerVisibility
-  const hidden = hiddenRaw || visibility === Visibility.hidden
+  const isDeleted =
+    useMutationState({
+      filters: {
+        ...backendMutationOptions(backend, 'deleteAsset'),
+        predicate: (mutation: BackendMutation<'deleteAsset'>) =>
+          mutation.state.variables?.[0] === asset.id,
+      },
+    }).length !== 0
   const isCloud = isCloudCategory(category)
 
   const { data: projectState } = useQuery({
@@ -194,13 +201,25 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
 
   const toastAndLog = useToastAndLog()
 
-  const getProjectDetailsMutation = useMutation(
-    backendMutationOptions(backend, 'getProjectDetails'),
-  )
-  const getFileDetailsMutation = useMutation(backendMutationOptions(backend, 'getFileDetails'))
-  const getDatalinkMutation = useMutation(backendMutationOptions(backend, 'getDatalink'))
   const createPermissionMutation = useMutation(backendMutationOptions(backend, 'createPermission'))
   const associateTagMutation = useMutation(backendMutationOptions(backend, 'associateTag'))
+
+  const outerVisibility = visibilities.get(item.key)
+  const insertionVisibility = useStore(driveStore, (driveState) =>
+    driveState.pasteData?.type === 'move' && driveState.pasteData.data.ids.has(item.key) ?
+      Visibility.faded
+    : Visibility.visible,
+  )
+  const createPermissionVariables = createPermissionMutation.variables?.[0]
+  const isRemovingSelf =
+    createPermissionVariables != null &&
+    createPermissionVariables.action == null &&
+    createPermissionVariables.actorsIds[0] === user.userId
+  const visibility =
+    isRemovingSelf ? Visibility.hidden
+    : outerVisibility === Visibility.visible ? insertionVisibility
+    : outerVisibility ?? insertionVisibility
+  const hidden = isDeleted || hiddenRaw || visibility === Visibility.hidden
 
   const setSelected = useEventCallback((newSelected: boolean) => {
     const { selectedKeys } = driveStore.getState()
@@ -249,7 +268,7 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
 
   React.useEffect(() => {
     if (isSoleSelected && item.item.id !== driveStore.getState().assetPanelProps?.item?.item.id) {
-      setAssetPanelProps({ backend, item, setItem })
+      setAssetPanelProps({ backend, item })
       setIsAssetPanelTemporarilyVisible(false)
     }
   }, [
@@ -285,7 +304,7 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
       payload != null && payload.every((innerItem) => innerItem.key !== directoryKey)
     const canPaste = (() => {
       if (!isPayloadMatch) {
-        return true
+        return false
       } else {
         if (nodeMap.current !== nodeParentKeysRef.current?.nodeMap.deref()) {
           const parentKeys = new Map(
@@ -296,12 +315,21 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
           )
           nodeParentKeysRef.current = { nodeMap: new WeakRef(nodeMap.current), parentKeys }
         }
-        return !payload.some((payloadItem) => {
+        return payload.every((payloadItem) => {
           const parentKey = nodeParentKeysRef.current?.parentKeys.get(payloadItem.key)
           const parent = parentKey == null ? null : nodeMap.current.get(parentKey)
-          return !parent ? true : (
-              permissions.isTeamPath(parent.path) && permissions.isUserPath(item.path)
+          if (!parent) {
+            return false
+          } else if (permissions.isTeamPath(parent.path)) {
+            return true
+          } else {
+            // Assume user path; check permissions
+            const permission = permissions.tryFindSelfPermission(user, item.item.permissions)
+            return (
+              permission != null &&
+              permissions.canPermissionModifyDirectoryContents(permission.permission)
             )
+          }
         })
       }
     })()
@@ -334,21 +362,8 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
       }
     } else {
       switch (event.type) {
-        case AssetEventType.cut: {
-          if (event.ids.has(item.key)) {
-            setInsertionVisibility(Visibility.faded)
-          }
-          break
-        }
-        case AssetEventType.cancelCut: {
-          if (event.ids.has(item.key)) {
-            setInsertionVisibility(Visibility.visible)
-          }
-          break
-        }
         case AssetEventType.move: {
           if (event.ids.has(item.key)) {
-            setInsertionVisibility(Visibility.visible)
             await doMove(event.newParentKey, item.item)
           }
           break
@@ -378,11 +393,13 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
               switch (asset.type) {
                 case backendModule.AssetType.project: {
                   try {
-                    const details = await getProjectDetailsMutation.mutateAsync([
-                      asset.id,
-                      asset.parentId,
-                      asset.title,
-                    ])
+                    const details = await queryClient.fetchQuery(
+                      backendQueryOptions(backend, 'getProjectDetails', [
+                        asset.id,
+                        asset.parentId,
+                        asset.title,
+                      ]),
+                    )
                     if (details.url != null) {
                       await backend.download(details.url, `${asset.title}.enso-project`)
                     } else {
@@ -396,10 +413,9 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
                 }
                 case backendModule.AssetType.file: {
                   try {
-                    const details = await getFileDetailsMutation.mutateAsync([
-                      asset.id,
-                      asset.title,
-                    ])
+                    const details = await queryClient.fetchQuery(
+                      backendQueryOptions(backend, 'getFileDetails', [asset.id, asset.title]),
+                    )
                     if (details.url != null) {
                       await backend.download(details.url, asset.title)
                     } else {
@@ -413,7 +429,9 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
                 }
                 case backendModule.AssetType.datalink: {
                   try {
-                    const value = await getDatalinkMutation.mutateAsync([asset.id, asset.title])
+                    const value = await queryClient.fetchQuery(
+                      backendQueryOptions(backend, 'getDatalink', [asset.id, asset.title]),
+                    )
                     const fileName = `${asset.title}.datalink`
                     download(
                       URL.createObjectURL(
@@ -450,7 +468,6 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
         case AssetEventType.removeSelf: {
           // This is not triggered from the asset list, so it uses `item.id` instead of `key`.
           if (event.id === asset.id && user.isEnabled) {
-            setInsertionVisibility(Visibility.hidden)
             try {
               await createPermissionMutation.mutateAsync([
                 {
@@ -461,7 +478,6 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
               ])
               dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
             } catch (error) {
-              setInsertionVisibility(Visibility.visible)
               toastAndLog(null, error)
             }
           }
@@ -658,6 +674,7 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
                       <AssetContextMenu
                         innerProps={innerProps}
                         rootDirectoryId={rootDirectoryId}
+                        triggerRef={rootRef}
                         event={event}
                         eventTarget={
                           event.target instanceof HTMLElement ? event.target : event.currentTarget
@@ -742,12 +759,12 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
                       const ids = payload
                         .filter((payloadItem) => payloadItem.asset.parentId !== directoryId)
                         .map((dragItem) => dragItem.key)
-                      dispatchAssetEvent({
-                        type: AssetEventType.move,
-                        newParentKey: directoryKey,
-                        newParentId: directoryId,
-                        ids: new Set(ids),
-                      })
+                      cutAndPaste(
+                        directoryKey,
+                        directoryId,
+                        { backendType: backend.type, ids: new Set(ids), category },
+                        nodeMap.current,
+                      )
                     } else if (event.dataTransfer.types.includes('Files')) {
                       event.preventDefault()
                       event.stopPropagation()
@@ -801,6 +818,7 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
                 setRowState,
               }}
               rootDirectoryId={rootDirectoryId}
+              triggerRef={rootRef}
               event={{ pageX: 0, pageY: 0 }}
               eventTarget={null}
               doCopy={doCopy}

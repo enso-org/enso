@@ -4,8 +4,17 @@
  */
 import * as React from 'react'
 
+import { useStore } from 'zustand'
+
+import { uniqueString } from 'enso-common/src/utilities/uniqueString'
+
 import * as authProvider from '#/providers/AuthProvider'
-import { useDriveStore, useSelectedKeys, useSetSelectedKeys } from '#/providers/DriveProvider'
+import {
+  useDriveStore,
+  usePasteData,
+  useSelectedKeys,
+  useSetSelectedKeys,
+} from '#/providers/DriveProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -31,8 +40,6 @@ import * as backendModule from '#/services/Backend'
 import type * as assetTreeNode from '#/utilities/AssetTreeNode'
 import * as permissions from '#/utilities/permissions'
 import { EMPTY_SET } from '#/utilities/set'
-import * as uniqueString from '#/utilities/uniqueString'
-import { useStore } from 'zustand'
 
 // =================
 // === Constants ===
@@ -65,6 +72,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   const { hidden = false, backend, category } = props
   const { nodeMapRef, event, rootDirectoryId } = props
   const { doCopy, doCut, doPaste, doDelete } = props
+  const pasteData = usePasteData()
   const { user } = authProvider.useFullUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
@@ -149,9 +157,9 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   )
 
   if (category.type === 'trash') {
-    return selectedKeys.size === 0 ?
-        null
-      : <ContextMenus key={uniqueString.uniqueString()} hidden={hidden} event={event}>
+    return (
+      selectedKeys.size !== 0 && (
+        <ContextMenus key={uniqueString()} hidden={hidden} event={event}>
           <ContextMenu aria-label={getText('assetsTableContextMenuLabel')} hidden={hidden}>
             <ContextMenuEntry
               hidden={hidden}
@@ -196,11 +204,13 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
             {pasteAllMenuEntry}
           </ContextMenu>
         </ContextMenus>
+      )
+    )
   } else if (category.type === 'recent') {
     return null
   } else {
     return (
-      <ContextMenus key={uniqueString.uniqueString()} hidden={hidden} event={event}>
+      <ContextMenus key={uniqueString()} hidden={hidden} event={event}>
         {(selectedKeys.size !== 0 || pasteAllMenuEntry !== false) && (
           <ContextMenu aria-label={getText('assetsTableContextMenuLabel')} hidden={hidden}>
             {selectedKeys.size !== 0 && ownsAllSelectedAssets && (

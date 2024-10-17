@@ -3,11 +3,9 @@ import { useEffect, useMemo, useState } from 'react'
 
 import { useMutation } from '@tanstack/react-query'
 
-import { Heading, Text } from '#/components/aria'
-import { ButtonGroup, Checkbox, Form, Input } from '#/components/AriaComponents'
+import { ButtonGroup, Checkbox, Form, Input, Popover, Text } from '#/components/AriaComponents'
 import ColorPicker from '#/components/ColorPicker'
 import Label from '#/components/dashboard/Label'
-import Modal from '#/components/Modal'
 import FocusArea from '#/components/styled/FocusArea'
 import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
@@ -26,8 +24,7 @@ import { regexEscape } from '#/utilities/string'
 export interface ManageLabelsModalProps<Asset extends AnyAsset = AnyAsset> {
   readonly backend: Backend
   readonly item: Asset
-  /** If this is `null`, this modal will be centered. */
-  readonly eventTarget: HTMLElement | null
+  readonly triggerRef?: React.MutableRefObject<HTMLElement | null>
 }
 
 /**
@@ -38,14 +35,13 @@ export interface ManageLabelsModalProps<Asset extends AnyAsset = AnyAsset> {
 export default function ManageLabelsModal<Asset extends AnyAsset = AnyAsset>(
   props: ManageLabelsModalProps<Asset>,
 ) {
-  const { backend, item, eventTarget } = props
+  const { backend, item, triggerRef } = props
   const { unsetModal } = useSetModal()
   const { getText } = useText()
   const toastAndLog = useToastAndLog()
   const { data: allLabels } = useBackendQuery(backend, 'listTags', [])
   const [color, setColor] = useState<LChColor | null>(null)
   const leastUsedColor = useMemo(() => findLeastUsedColor(allLabels ?? []), [allLabels])
-  const position = useMemo(() => eventTarget?.getBoundingClientRect(), [eventTarget])
 
   const createTagMutation = useMutation(backendMutationOptions(backend, 'createTag'))
   const associateTagMutation = useMutation(backendMutationOptions(backend, 'associateTag'))
@@ -75,7 +71,7 @@ export default function ManageLabelsModal<Asset extends AnyAsset = AnyAsset>(
 
   const formRef = useSyncRef(form)
   useEffect(() => {
-    formRef.current.setValue('labels', item.labels ?? [])
+    formRef.current.resetField('labels', { defaultValue: item.labels ?? [] })
   }, [formRef, item.labels])
 
   const query = Form.useWatch({ control: form.control, name: 'name' })
@@ -89,85 +85,56 @@ export default function ManageLabelsModal<Asset extends AnyAsset = AnyAsset>(
   const canCreateNewLabel = canSelectColor
 
   return (
-    <Modal
-      centered={eventTarget == null}
-      className="absolute left top z-1 size-full overflow-hidden bg-dim"
-    >
-      <div
-        tabIndex={-1}
-        style={
-          position != null ?
-            { left: position.left + window.scrollX, top: position.top + window.scrollY }
-          : {}
-        }
-        className="sticky w-manage-labels-modal"
-        onClick={(mouseEvent) => {
-          mouseEvent.stopPropagation()
-        }}
-        onContextMenu={(mouseEvent) => {
-          mouseEvent.stopPropagation()
-          mouseEvent.preventDefault()
-        }}
-      >
-        <div className="absolute h-full w-full rounded-default bg-selected-frame backdrop-blur-default" />
-        <Form form={form} className="relative flex flex-col gap-modal rounded-default p-modal">
-          <Heading
-            slot="title"
-            level={2}
-            className="flex h-row items-center gap-modal-tabs px-modal-tab-bar-x"
-          >
-            <Text className="text text-sm font-bold">{getText('labels')}</Text>
-          </Heading>
-          <FocusArea direction="horizontal">
-            {(innerProps) => (
-              <ButtonGroup className="relative" {...innerProps}>
-                <Input
-                  form={form}
-                  name="name"
-                  autoFocus
-                  type="text"
-                  size="small"
-                  placeholder={getText('labelSearchPlaceholder')}
-                />
-                <Form.Submit isDisabled={!canCreateNewLabel}>{getText('create')}</Form.Submit>
-              </ButtonGroup>
-            )}
-          </FocusArea>
-          {canSelectColor && <ColorPicker setColor={setColor} className="w-full" />}
-          <FocusArea direction="vertical">
-            {(innerProps) => (
-              <Checkbox.Group
+    <Popover size="xsmall" {...(triggerRef ? { triggerRef } : {})}>
+      <Form form={form} className="relative flex flex-col gap-modal rounded-default p-modal">
+        <Text.Heading slot="title" level={2} variant="subtitle">
+          {getText('labels')}
+        </Text.Heading>
+        <FocusArea direction="horizontal">
+          {(innerProps) => (
+            <ButtonGroup className="relative" {...innerProps}>
+              <Input
                 form={form}
-                name="labels"
-                className="max-h-manage-labels-list overflow-auto"
-                onChange={async (values) => {
-                  await associateTagMutation.mutateAsync([
-                    item.id,
-                    values.map(LabelName),
-                    item.title,
-                  ])
-                }}
-                {...innerProps}
-              >
-                <>
-                  {(allLabels ?? [])
-                    .filter((label) => regex.test(label.value))
-                    .map((label) => {
-                      const isActive = labels.includes(label.value)
-                      return (
-                        <Checkbox key={label.id} value={String(label.value)} isSelected={isActive}>
-                          <Label active={isActive} color={label.color} onPress={() => {}}>
-                            {label.value}
-                          </Label>
-                        </Checkbox>
-                      )
-                    })}
-                </>
-              </Checkbox.Group>
-            )}
-          </FocusArea>
-        </Form>
-      </div>
-    </Modal>
+                name="name"
+                autoFocus
+                type="text"
+                size="small"
+                placeholder={getText('labelSearchPlaceholder')}
+              />
+              <Form.Submit isDisabled={!canCreateNewLabel}>{getText('create')}</Form.Submit>
+            </ButtonGroup>
+          )}
+        </FocusArea>
+        {canSelectColor && <ColorPicker setColor={setColor} className="w-full" />}
+        <FocusArea direction="vertical">
+          {(innerProps) => (
+            <Checkbox.Group
+              form={form}
+              name="labels"
+              className="max-h-manage-labels-list overflow-auto"
+              onChange={async (values) => {
+                await associateTagMutation.mutateAsync([item.id, values.map(LabelName), item.title])
+              }}
+              {...innerProps}
+            >
+              <>
+                {allLabels
+                  ?.filter((label) => regex.test(label.value))
+                  .map((label) => {
+                    const isActive = labels.includes(label.value)
+                    return (
+                      <Checkbox key={label.id} value={String(label.value)}>
+                        <Label active={isActive} color={label.color} onPress={() => {}}>
+                          {label.value}
+                        </Label>
+                      </Checkbox>
+                    )
+                  })}
+              </>
+            </Checkbox.Group>
+          )}
+        </FocusArea>
+      </Form>
+    </Popover>
   )
 }

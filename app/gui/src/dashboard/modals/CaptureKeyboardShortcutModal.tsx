@@ -1,31 +1,29 @@
 /** @file A modal for capturing an arbitrary keyboard shortcut. */
-import * as React from 'react'
+import { useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 
-import * as detect from 'enso-common/src/detect'
+import { isOnMacOS } from 'enso-common/src/detect'
 
-import * as modalProvider from '#/providers/ModalProvider'
-import * as textProvider from '#/providers/TextProvider'
-
-import * as aria from '#/components/aria'
-import * as ariaComponents from '#/components/AriaComponents'
+import { ButtonGroup, Dialog, Form, Text } from '#/components/AriaComponents'
 import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
-import Modal from '#/components/Modal'
-
-import * as inputBindings from '#/utilities/inputBindings'
-import * as tailwindMerge from '#/utilities/tailwindMerge'
+import { useSetModal } from '#/providers/ModalProvider'
+import { useText } from '#/providers/TextProvider'
+import {
+  modifierFlagsForEvent,
+  modifiersForModifierFlags,
+  normalizedKeyboardSegmentLookup,
+} from '#/utilities/inputBindings'
+import { twMerge } from '#/utilities/tailwindMerge'
 
 // ==============================
 // === eventToPartialShortcut ===
 // ==============================
 
 const DISALLOWED_KEYS = new Set(['Control', 'Alt', 'Shift', 'Meta'])
-const DELETE_KEY = detect.isOnMacOS() ? 'Backspace' : 'Delete'
+const DELETE_KEY = isOnMacOS() ? 'Backspace' : 'Delete'
 
 /** Extracts a partial keyboard shortcut from a {@link KeyboardEvent}. */
-function eventToPartialShortcut(event: KeyboardEvent | React.KeyboardEvent) {
-  const modifiers = inputBindings
-    .modifiersForModifierFlags(inputBindings.modifierFlagsForEvent(event))
-    .join('+')
+function eventToPartialShortcut(event: KeyboardEvent | ReactKeyboardEvent) {
+  const modifiers = modifiersForModifierFlags(modifierFlagsForEvent(event)).join('+')
   // `Tab` and `Shift+Tab` should be reserved for keyboard navigation
   const key =
     (
@@ -35,7 +33,7 @@ function eventToPartialShortcut(event: KeyboardEvent | React.KeyboardEvent) {
       null
     : event.key === ' ' ? 'Space'
     : event.key === DELETE_KEY ? 'OsDelete'
-    : inputBindings.normalizedKeyboardSegmentLookup[event.key.toLowerCase()] ?? event.key
+    : normalizedKeyboardSegmentLookup[event.key.toLowerCase()] ?? event.key
   return { key, modifiers }
 }
 
@@ -53,10 +51,10 @@ export interface CaptureKeyboardShortcutModalProps {
 /** A modal for capturing an arbitrary keyboard shortcut. */
 export default function CaptureKeyboardShortcutModal(props: CaptureKeyboardShortcutModalProps) {
   const { description, existingShortcuts, onSubmit } = props
-  const { unsetModal } = modalProvider.useSetModal()
-  const { getText } = textProvider.useText()
-  const [key, setKey] = React.useState<string | null>(null)
-  const [modifiers, setModifiers] = React.useState<string>('')
+  const { unsetModal } = useSetModal()
+  const { getText } = useText()
+  const [key, setKey] = useState<string | null>(null)
+  const [modifiers, setModifiers] = useState<string>('')
   const shortcut =
     key == null ? modifiers
     : modifiers === '' ? key
@@ -65,13 +63,16 @@ export default function CaptureKeyboardShortcutModal(props: CaptureKeyboardShort
   const canSubmit = key != null && !doesAlreadyExist
 
   return (
-    <Modal centered className="bg-dim">
-      <form
+    <Dialog>
+      <Form
         ref={(element) => {
           element?.focus()
         }}
         tabIndex={-1}
-        className="pointer-events-auto relative flex w-capture-keyboard-shortcut-modal flex-col items-center gap-modal rounded-default p-modal before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-3xl"
+        method="dialog"
+        schema={(z) => z.object({})}
+        className="flex-col items-center"
+        gap="none"
         onKeyDown={(event) => {
           if (event.key === 'Escape' && key === 'Escape') {
             // Ignore.
@@ -99,8 +100,7 @@ export default function CaptureKeyboardShortcutModal(props: CaptureKeyboardShort
         onClick={(event) => {
           event.stopPropagation()
         }}
-        onSubmit={(event) => {
-          event.preventDefault()
+        onSubmit={() => {
           if (canSubmit) {
             unsetModal()
             onSubmit(shortcut)
@@ -109,34 +109,23 @@ export default function CaptureKeyboardShortcutModal(props: CaptureKeyboardShort
       >
         <div className="relative">{getText('enterTheNewKeyboardShortcutFor', description)}</div>
         <div
-          className={tailwindMerge.twMerge(
+          className={twMerge(
             'relative flex scale-150 items-center justify-center',
             doesAlreadyExist && 'text-red-600',
           )}
         >
           {shortcut === '' ?
-            <aria.Text className="text text-primary/30">{getText('noShortcutEntered')}</aria.Text>
+            <Text>{getText('noShortcutEntered')}</Text>
           : <KeyboardShortcut shortcut={shortcut} />}
         </div>
-        <aria.Text className="relative text-red-600">
+        <Text className="relative text-red-600">
           {doesAlreadyExist ? 'This shortcut already exists.' : ''}
-        </aria.Text>
-        <ariaComponents.ButtonGroup>
-          <ariaComponents.Button
-            variant="submit"
-            isDisabled={!canSubmit}
-            onPress={() => {
-              unsetModal()
-              onSubmit(shortcut)
-            }}
-          >
-            {getText('confirm')}
-          </ariaComponents.Button>
-          <ariaComponents.Button variant="outline" onPress={unsetModal}>
-            {getText('cancel')}
-          </ariaComponents.Button>
-        </ariaComponents.ButtonGroup>
-      </form>
-    </Modal>
+        </Text>
+        <ButtonGroup>
+          <Form.Submit isDisabled={!canSubmit}>{getText('confirm')}</Form.Submit>
+          <Form.Submit action="cancel" />
+        </ButtonGroup>
+      </Form>
+    </Dialog>
   )
 }

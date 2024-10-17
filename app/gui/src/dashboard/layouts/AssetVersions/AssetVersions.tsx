@@ -17,7 +17,7 @@ import * as backendService from '#/services/Backend'
 
 import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as dateTime from '#/utilities/dateTime'
-import * as uniqueString from '#/utilities/uniqueString'
+import * as uniqueString from 'enso-common/src/utilities/uniqueString'
 
 // ==============================
 // === AddNewVersionVariables ===

@@ -59,19 +59,21 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
 
   const content = (
     <Form form={form} testId="upsert-secret-modal" gap="none" className="w-full">
-      <Input
-        form={form}
-        name="name"
-        size="custom"
-        rounded="full"
-        autoFocus={isNameEditable}
-        autoComplete="off"
-        isDisabled={!isNameEditable}
-        label={getText('name')}
-        placeholder={getText('secretNamePlaceholder')}
-        variants={CLASSIC_INPUT_STYLES}
-        fieldVariants={CLASSIC_FIELD_STYLES}
-      />
+      {isNameEditable && (
+        <Input
+          form={form}
+          name="name"
+          size="custom"
+          rounded="full"
+          autoFocus={isNameEditable}
+          autoComplete="off"
+          isDisabled={!isNameEditable}
+          label={getText('name')}
+          placeholder={getText('secretNamePlaceholder')}
+          variants={CLASSIC_INPUT_STYLES}
+          fieldVariants={CLASSIC_FIELD_STYLES}
+        />
+      )}
       <Input
         form={form}
         name="value"

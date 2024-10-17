@@ -12,7 +12,6 @@ enum AssetListEventType {
   closeFolder = 'close-folder',
   copy = 'copy',
   move = 'move',
-  willDelete = 'will-delete',
   delete = 'delete',
   emptyTrash = 'empty-trash',
   removeSelf = 'remove-self',

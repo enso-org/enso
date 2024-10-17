@@ -1,6 +1,8 @@
 /** @file A context menu available everywhere in the directory. */
 import * as React from 'react'
 
+import { useStore } from 'zustand'
+
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -18,7 +20,6 @@ import UpsertSecretModal from '#/modals/UpsertSecretModal'
 import { useDriveStore } from '#/providers/DriveProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
-import { useStore } from 'zustand'
 
 /** Props for a {@link GlobalContextMenu}. */
 export interface GlobalContextMenuProps {
@@ -35,8 +36,8 @@ export interface GlobalContextMenuProps {
 
 /** A context menu available everywhere in the directory. */
 export default function GlobalContextMenu(props: GlobalContextMenuProps) {
-  const { hidden = false, backend, directoryKey, directoryId } = props
-  const { rootDirectoryId, doPaste } = props
+  const { hidden = false, backend, directoryKey, directoryId, rootDirectoryId } = props
+  const { doPaste } = props
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
