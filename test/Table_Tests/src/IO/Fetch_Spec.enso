@@ -283,7 +283,7 @@ add_specs suite_builder =
         fake_time_resetter =
             TransientHTTPResponseCache.setNowOverrideTestOnly Nothing
 
-        group_builder.specify "The cache should expire stale entries" pending=pending_has_url <| # Test.with_retries <|
+        group_builder.specify "The cache should expire stale entries" pending=pending_has_url <| Test.with_retries <|
             HTTP.clear_response_cache
 
             set_time_and_get_count 0  # Initialize fake now.
