@@ -180,12 +180,6 @@ public class InferredBuilder extends Builder {
   }
 
   private void retypeToMixed() {
-    // If the current builder can be re-typed to AnyObjectType, we do that.
-    if (currentBuilder.canRetypeTo(AnyObjectType.INSTANCE)) {
-      currentBuilder = currentBuilder.retypeTo(AnyObjectType.INSTANCE);
-      return;
-    }
-
     // The new internal builder must be at least `currentSize` so it can store
     // all the current values. It must also be at least 'initialSize' since the
     // caller might be using appendNoGrow and is expecting to write at least

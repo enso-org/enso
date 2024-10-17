@@ -3,13 +3,10 @@ package org.enso.table.data.column.builder;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.util.Arrays;
 import java.util.BitSet;
-import java.util.Objects;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.datetime.DateStorage;
 import org.enso.table.data.column.storage.datetime.DateTimeStorage;
-import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.DateTimeType;
 import org.enso.table.data.column.storage.type.DateType;
 import org.enso.table.data.column.storage.type.StorageType;
@@ -102,22 +99,20 @@ public class DateTimeBuilder extends TypedBuilderImpl<ZonedDateTime> {
   }
 
   @Override
-  public TypedBuilder retypeTo(StorageType type) {
-    if (allowDateToDateTimeConversion && Objects.equals(type, AnyObjectType.INSTANCE)) {
-      Object[] widenedData = Arrays.copyOf(data, data.length, Object[].class);
+  public void retypeToMixed(Object[] items) {
+    if (allowDateToDateTimeConversion) {
+      if (currentSize >= 0) {
+        System.arraycopy(data, 0, items, 0, currentSize);
 
-      // Replace ZonedDateTime with LocalDate where necessary.
-      int next = this.wasLocalDate.nextSetBit(0);
-      while (next != -1) {
-        widenedData[next] = data[next].toLocalDate();
-        next = this.wasLocalDate.nextSetBit(next + 1);
+        // Replace ZonedDateTime with LocalDate where necessary.
+        int next = this.wasLocalDate.nextSetBit(0);
+        while (next != -1) {
+          items[next] = data[next].toLocalDate();
+          next = this.wasLocalDate.nextSetBit(next + 1);
+        }
       }
-
-      ObjectBuilder res = new MixedBuilder(widenedData);
-      res.setCurrentSize(currentSize);
-      return res;
+    } else {
+      super.retypeToMixed(items);
     }
-
-    return super.retypeTo(type);
   }
 }
