@@ -153,11 +153,9 @@ const selectableRowLimits = computed(() => {
 const pinnedTopRowData = computed(() => {
   if (typeof props.data === 'object' && 'data_quality_pairs' in props.data) {
     const data_ = props.data
-    const headers = 'header' in data_ ? data_.header : []
-    const numberOfNothing =
-      'data_quality_pairs' in data_ ? data_.data_quality_pairs.number_of_nothing : []
-    const numberOfWhitespace =
-      'data_quality_pairs' in data_ ? data_.data_quality_pairs.number_of_whitespace : []
+    const headers = data_.header
+    const numberOfNothing = data_.data_quality_pairs!.number_of_nothing
+    const numberOfWhitespace = data_.data_quality_pairs!.number_of_whitespace
     const total = data_.all_rows_count as number
     if (headers?.length) {
       const pairs: Record<string, string> = headers.reduce(
@@ -728,7 +726,7 @@ config.setToolbar(
         :defaultColDef="defaultColDef"
         :textFormatOption="textFormatterSelected"
         :pinnedTopRowData="pinnedTopRowData"
-        :pinnedRowHeight="pinnedRowHeight"
+        :pinnedRowHeightMultiplier="pinnedRowHeight"
         @sortOrFilterUpdated="(e) => checkSortAndFilter(e)"
       />
     </Suspense>

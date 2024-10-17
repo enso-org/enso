@@ -40,7 +40,7 @@ const _props = defineProps<{
   stopEditingWhenCellsLoseFocus?: boolean
   textFormatOption?: TextFormatOptions
   pinnedTopRowData?: TData[] | null
-  pinnedRowHeight?: number
+  pinnedRowHeightMultiplier?: number
 }>()
 const emit = defineEmits<{
   cellEditingStarted: [event: CellEditingStartedEvent]
@@ -73,7 +73,7 @@ function getRowHeight(params: RowHeightParams): number {
   }
 
   if (params.node.rowPinned === 'top') {
-    return DEFAULT_ROW_HEIGHT * (_props.pinnedRowHeight ?? 2)
+    return DEFAULT_ROW_HEIGHT * (_props.pinnedRowHeightMultiplier ?? 2)
   }
 
   const returnCharsCount = textValues.map((text: string) => {
