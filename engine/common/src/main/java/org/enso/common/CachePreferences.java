@@ -20,9 +20,7 @@ public record CachePreferences(Map<UUID, Kind> preferences) {
     return new CachePreferences(new HashMap<>());
   }
 
-  /**
-   * A kind of cached value.
-   */
+  /** A kind of cached value. */
   public enum Kind {
     BINDING_EXPRESSION,
     SELF_ARGUMENT
@@ -84,9 +82,7 @@ public record CachePreferences(Map<UUID, Kind> preferences) {
     return preferences.containsKey(id);
   }
 
-  /**
-   * Clear all the cache preferences.
-   */
+  /** Clear all the cache preferences. */
   public void clear() {
     preferences.clear();
   }
