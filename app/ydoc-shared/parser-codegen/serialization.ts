@@ -77,9 +77,7 @@ type VisitorApplicator = (cursor: ts.Expression, offset: AccessOffset) => ts.Exp
 
 // === Public API ===
 
-/**
- *
- */
+/** TODO: Add docs */
 export class Type {
   readonly type: ts.TypeNode
   readonly reader: ReadApplicator
@@ -98,25 +96,19 @@ export class Type {
     this.size = size
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static Abstract(name: string): Type {
     const valueReader = callRead(name)
     return new Type(tsf.createTypeReferenceNode(name), valueReader, 'visitValue', POINTER_SIZE)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static Concrete(name: string, size: number): Type {
     const valueReader = callRead(name)
     return new Type(tsf.createTypeReferenceNode(name), valueReader, 'visitValue', size)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static Sequence(element: Type): Type {
     return new Type(
       tsf.createTypeReferenceNode('IterableIterator', [element.type]),
@@ -126,9 +118,7 @@ export class Type {
     )
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static Option(element: Type): Type {
     return new Type(
       tsf.createUnionTypeNode([element.type, noneType]),
@@ -138,9 +128,7 @@ export class Type {
     )
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static Result(ok: Type, err: Type): Type {
     return new Type(
       support.Result(ok.type, err.type),
@@ -197,9 +185,7 @@ export class Type {
   )
 }
 
-/**
- *
- */
+/** TODO: Add docs */
 export function seekView(view: ts.Expression, address: number): ts.Expression {
   if (address === 0) {
     return view
@@ -208,16 +194,12 @@ export function seekView(view: ts.Expression, address: number): ts.Expression {
   }
 }
 
-/**
- *
- */
+/** TODO: Add docs */
 export function seekViewDyn(view: ts.Expression, address: ts.Expression): ts.Expression {
   return tsf.createCallExpression(support.readOffset, [], [view, address])
 }
 
-/**
- *
- */
+/** TODO: Add docs */
 export function abstractTypeVariants(cases: ts.Identifier[]): ts.Statement {
   const reads = cases.map(c => tsf.createPropertyAccessChain(c, undefined, 'read'))
   return tsf.createVariableStatement(
@@ -236,9 +218,7 @@ export function abstractTypeVariants(cases: ts.Identifier[]): ts.Statement {
   )
 }
 
-/**
- *
- */
+/** TODO: Add docs */
 export function abstractTypeDeserializer(
   ident: ts.Identifier,
   cursorIdent: ts.Identifier,
@@ -251,9 +231,7 @@ export function abstractTypeDeserializer(
   )
 }
 
-/**
- *
- */
+/** TODO: Add docs */
 export function fieldDeserializer(
   ident: ts.Identifier,
   type: Type,
@@ -272,9 +250,7 @@ export function fieldDeserializer(
   )
 }
 
-/**
- *
- */
+/** TODO: Add docs */
 export function fieldVisitor(
   ident: ts.Identifier,
   type: Type,
@@ -376,9 +352,7 @@ function readerTransformerTwoTyped(
   }
 }
 
-/**
- *
- */
+/** TODO: Add docs */
 export function callRead(ident: string): ReadApplicator {
   return (view, address) =>
     tsf.createCallExpression(
@@ -388,9 +362,7 @@ export function callRead(ident: string): ReadApplicator {
     )
 }
 
-/**
- *
- */
+/** TODO: Add docs */
 export function createSequenceReader(size: number, reader: ReadApplicator): ReadApplicator {
   const sizeLiteral = tsf.createNumericLiteral(size)
   const closure = readerClosure(reader)
@@ -436,9 +408,7 @@ function createResultVisitor(
     )
 }
 
-/**
- *
- */
+/** TODO: Add docs */
 export function visitorClosure(
   visitor: VisitorApplicator | 'visitValue' | undefined,
   reader: ReadApplicator,
@@ -456,9 +426,7 @@ export function visitorClosure(
   }
 }
 
-/**
- *
- */
+/** TODO: Add docs */
 export function readerClosure(reader: ReadApplicator): ts.Expression {
   const view = tsf.createIdentifier('view')
   const address = tsf.createIdentifier('address')

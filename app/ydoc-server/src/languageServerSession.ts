@@ -47,9 +47,7 @@ const EXTENSION = '.enso'
 
 const debugLog = createDebug('ydoc-server:session')
 
-/**
- *
- */
+/** TODO: Add docs */
 export class LanguageServerSession {
   clientId: Uuid
   indexDoc: WSSharedDoc
@@ -211,9 +209,7 @@ export class LanguageServerSession {
     )
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   async scanSourceFiles() {
     this.assertProjectRoot()
     const sourceDir: Path = { rootId: this.projectRootId, segments: [SOURCE_DIR] }
@@ -224,17 +220,13 @@ export class LanguageServerSession {
     )
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   tryGetExistingModuleModel(path: Path): ModulePersistence | undefined {
     const name = pathToModuleName(path)
     return this.authoritativeModules.get(name)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   getModuleModel(path: Path): ModulePersistence {
     const name = pathToModuleName(path)
     return map.setIfUndefined(this.authoritativeModules, name, () => {
@@ -252,16 +244,12 @@ export class LanguageServerSession {
     })
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   retain() {
     this.retainCount += 1
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   async release(): Promise<void> {
     this.retainCount -= 1
     if (this.retainCount !== 0) return

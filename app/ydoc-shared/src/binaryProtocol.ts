@@ -419,9 +419,7 @@ export class Builder {
     this.writeFloat64(value)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   addFieldInt8(voffset: number, value: number, defaultValue: number | null): void {
     if (this._forceDefaults || value != defaultValue) {
       this.addInt8(value)
@@ -429,9 +427,7 @@ export class Builder {
     }
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   addFieldInt16(voffset: number, value: number, defaultValue: number | null): void {
     if (this._forceDefaults || value != defaultValue) {
       this.addInt16(value)
@@ -439,9 +435,7 @@ export class Builder {
     }
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   addFieldInt32(voffset: number, value: number, defaultValue: number | null): void {
     if (this._forceDefaults || value != defaultValue) {
       this.addInt32(value)
@@ -449,9 +443,7 @@ export class Builder {
     }
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   addFieldInt64(voffset: number, value: bigint, defaultValue: bigint | null): void {
     if (this._forceDefaults || value !== defaultValue) {
       this.addInt64(value)
@@ -459,9 +451,7 @@ export class Builder {
     }
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   addFieldFloat32(voffset: number, value: number, defaultValue: number | null): void {
     if (this._forceDefaults || value != defaultValue) {
       this.addFloat32(value)
@@ -469,9 +459,7 @@ export class Builder {
     }
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   addFieldFloat64(voffset: number, value: number, defaultValue: number | null): void {
     if (this._forceDefaults || value != defaultValue) {
       this.addFloat64(value)
@@ -479,9 +467,7 @@ export class Builder {
     }
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   addFieldOffset<T extends OffsetConstraint>(
     voffset: number,
     value: Offset<T>,
@@ -493,9 +479,7 @@ export class Builder {
     }
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   addFieldStruct<T extends OffsetConstraint>(
     voffset: number,
     value: Offset<T>,
@@ -507,9 +491,7 @@ export class Builder {
     }
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   nested(obj: AnyOffset): void {
     if (obj != this.offset()) {
       throw new TypeError('FlatBuffers: struct must be serialized inline.')
@@ -525,9 +507,7 @@ export class Builder {
     }
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   slot(voffset: number): void {
     if (this.vtable !== null) this.vtable[voffset] = this.offset()
   }
@@ -564,9 +544,7 @@ export class Builder {
     this.writeInt32(this.offset() - offset + SIZEOF_INT)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   startObject(numfields: number): void {
     this.notNested()
     if (this.vtable == null) {
@@ -580,9 +558,7 @@ export class Builder {
     this.objectStart = this.offset()
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   endObject<T extends OffsetConstraint>(): Offset<T> {
     if (this.vtable == null || !this.isNested) {
       throw new globalThis.Error('FlatBuffers: endObject called without startObject')
@@ -671,17 +647,13 @@ export class Builder {
     return this
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   finishSizePrefixed(rootTable: AnyOffset, fileIdentifier?: string): Builder {
     this.finish(rootTable, fileIdentifier, true)
     return this
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   requiredField(table: AnyOffset, field: number): void {
     const tableStart = this.bb.view.byteLength - table
     const vtableStart = tableStart - this.bb.view.getInt32(tableStart, true)
@@ -753,9 +725,7 @@ export class Builder {
     return this.endVector()
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   createObjectOffset<T extends OffsetConstraint>(
     obj: T extends string | null ? T : IGeneratedObject<T>,
   ): Offset<T> {
@@ -764,9 +734,7 @@ export class Builder {
     else return obj.pack(this) as Offset<T>
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   createObjectOffsetList<T extends OffsetConstraint>(
     list: readonly (T extends string ? string : IGeneratedObject<T>)[],
   ): Offset<T>[] {
@@ -782,9 +750,7 @@ export class Builder {
     return ret as Offset<T>[]
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   createStructOffsetList<T extends OffsetConstraint>(
     list: readonly (T extends string ? string : IGeneratedObject<T>)[],
     startFunc: (builder: Builder, length: number) => void,
@@ -802,16 +768,12 @@ export class ByteBuffer {
   position = 0
   view: DataView
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   constructor(buffer: ArrayBufferLike) {
     this.view = new DataView(buffer)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   offset<T extends OffsetConstraint>(bbPos: number, vtableOffset: number): Offset<T> {
     const vtable = bbPos - this.view.getInt32(bbPos, true)
     return (
@@ -820,18 +782,14 @@ export class ByteBuffer {
       : 0) as Offset<T>
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   union(t: Table, offset: number): Table {
     t.bbPos = offset + this.view.getInt32(offset, true)
     t.bb = this
     return t
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   rawMessage(offset: number): ArrayBuffer {
     offset += this.view.getInt32(offset, true)
     const length = this.view.getInt32(offset, true)
@@ -915,63 +873,47 @@ export enum ErrorPayload {
 
 export type AnyErrorPayload = None | ReadOutOfBoundsError
 
-/**
- *
- */
+/** TODO: Add docs */
 export class InboundMessage implements Table {
   bb!: ByteBuffer
   bbPos: number = 0
-  /**
-   *
-   */
+  /** TODO: Add docs */
   init(i: number, bb: ByteBuffer): InboundMessage {
     this.bbPos = i
     this.bb = bb
     return this
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static getRootAsInboundMessage(bb: ByteBuffer, obj?: InboundMessage): InboundMessage {
     return (obj ?? new InboundMessage()).init(bb.view.getInt32(bb.position, true) + bb.position, bb)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static getSizePrefixedRootAsInboundMessage(bb: ByteBuffer, obj?: InboundMessage): InboundMessage {
     bb.position += SIZE_PREFIX_LENGTH
     return (obj ?? new InboundMessage()).init(bb.view.getInt32(bb.position, true) + bb.position, bb)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   messageId(obj?: EnsoUUID): EnsoUUID | null {
     const offset = this.bb.offset(this.bbPos, 4)
     return offset ? (obj ?? new EnsoUUID()).init(this.bbPos + offset, this.bb!) : null
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   correlationId(obj?: EnsoUUID): EnsoUUID | null {
     const offset = this.bb.offset(this.bbPos, 6)
     return offset ? (obj ?? new EnsoUUID()).init(this.bbPos + offset, this.bb!) : null
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   payloadType(): InboundPayload {
     const offset = this.bb.offset(this.bbPos, 8)
     return offset ? this.bb.view.getUint8(this.bbPos + offset) : InboundPayload.NONE
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   payload<T extends Table>(obj: T): T | null {
     const offset = this.bb.offset(this.bbPos, 10)
     // @ts-expect-error This is UNSAFE. Care must be taken to ensure `obj` is
@@ -979,44 +921,32 @@ export class InboundMessage implements Table {
     return offset ? this.bb.union(obj, this.bbPos + offset) : null
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static startInboundMessage(builder: Builder) {
     builder.startObject(4)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static addMessageId(builder: Builder, messageIdOffset: Offset<EnsoUUID>) {
     builder.addFieldStruct(0, messageIdOffset, Null)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static addCorrelationId(builder: Builder, correlationIdOffset: Offset<EnsoUUID>) {
     builder.addFieldStruct(1, correlationIdOffset, Null)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static addPayloadType(builder: Builder, payloadType: InboundPayload) {
     builder.addFieldInt8(2, payloadType, InboundPayload.NONE)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static addPayload(builder: Builder, payloadOffset: Offset<AnyInboundPayload>) {
     builder.addFieldOffset(3, payloadOffset, Null)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static endInboundMessage(builder: Builder): Offset<InboundMessage> {
     const offset = builder.endObject<InboundMessage>()
     builder.requiredField(offset, 4) // messageId
@@ -1024,9 +954,7 @@ export class InboundMessage implements Table {
     return offset
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static createInboundMessage(
     builder: Builder,
     createMessageId: CreateOffset<EnsoUUID>,
@@ -1043,24 +971,18 @@ export class InboundMessage implements Table {
   }
 }
 
-/**
- *
- */
+/** TODO: Add docs */
 export class OutboundMessage implements Table {
   bb!: ByteBuffer
   bbPos: number = 0
-  /**
-   *
-   */
+  /** TODO: Add docs */
   init(i: number, bb: ByteBuffer): OutboundMessage {
     this.bbPos = i
     this.bb = bb
     return this
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static getRootAsOutboundMessage(bb: ByteBuffer, obj?: OutboundMessage): OutboundMessage {
     return (obj ?? new OutboundMessage()).init(
       bb.view.getInt32(bb.position, true) + bb.position,
@@ -1068,9 +990,7 @@ export class OutboundMessage implements Table {
     )
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static getSizePrefixedRootAsOutboundMessage(
     bb: ByteBuffer,
     obj?: OutboundMessage,
@@ -1180,38 +1100,28 @@ export class OutboundMessage implements Table {
   }
 }
 
-/**
- *
- */
+/** TODO: Add docs */
 export class EnsoUUID implements Table {
   bb!: ByteBuffer
   bbPos: number = 0
-  /**
-   *
-   */
+  /** TODO: Add docs */
   init(i: number, bb: ByteBuffer): EnsoUUID {
     this.bbPos = i
     this.bb = bb
     return this
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   leastSigBits(): bigint {
     return this.bb.view.getBigUint64(this.bbPos, true)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   mostSigBits(): bigint {
     return this.bb.view.getBigUint64(this.bbPos + 8, true)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static createEnsoUUID(
     builder: Builder,
     leastSigBits: bigint,
@@ -1230,25 +1140,19 @@ export class EnsoUUID implements Table {
 export class Error implements Table {
   bb!: ByteBuffer
   bbPos: number = 0
-  /**
-   *
-   */
+  /** TODO: Add docs */
   init(i: number, bb: ByteBuffer): Error {
     this.bbPos = i
     this.bb = bb
     return this
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static getRootAsError(bb: ByteBuffer, obj?: Error): Error {
     return (obj ?? new Error()).init(bb.view.getInt32(bb.position, true) + bb.position, bb)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static getSizePrefixedRootAsError(bb: ByteBuffer, obj?: Error): Error {
     bb.position += SIZE_PREFIX_LENGTH
     return (obj ?? new Error()).init(bb.view.getInt32(bb.position, true) + bb.position, bb)
@@ -1296,53 +1200,39 @@ export class Error implements Table {
     return offset ? this.bb.union(obj, this.bbPos + offset) : null
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static startError(builder: Builder) {
     builder.startObject(4)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static addCode(builder: Builder, code: number) {
     builder.addFieldInt32(0, code, 0)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static addMessage(builder: Builder, messageOffset: Offset<string | ArrayBuffer>) {
     builder.addFieldOffset(1, messageOffset, Null)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static addDataType(builder: Builder, dataType: ErrorPayload) {
     builder.addFieldInt8(2, dataType, ErrorPayload.NONE)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static addData(builder: Builder, dataOffset: Offset<AnyErrorPayload>) {
     builder.addFieldOffset(3, dataOffset, Null)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static endError(builder: Builder): Offset<Error> {
     const offset = builder.endObject<Error>()
     builder.requiredField(offset, 6) // message
     return offset
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static createError(
     builder: Builder,
     code: number,
@@ -1359,24 +1249,18 @@ export class Error implements Table {
   }
 }
 
-/**
- *
- */
+/** TODO: Add docs */
 export class ReadOutOfBoundsError implements Table {
   bb!: ByteBuffer
   bbPos: number = 0
-  /**
-   *
-   */
+  /** TODO: Add docs */
   init(i: number, bb: ByteBuffer): ReadOutOfBoundsError {
     this.bbPos = i
     this.bb = bb
     return this
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static getRootAsReadOutOfBoundsError(
     bb: ByteBuffer,
     obj?: ReadOutOfBoundsError,
@@ -1387,9 +1271,7 @@ export class ReadOutOfBoundsError implements Table {
     )
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static getSizePrefixedRootAsReadOutOfBoundsError(
     bb: ByteBuffer,
     obj?: ReadOutOfBoundsError,
@@ -1401,39 +1283,29 @@ export class ReadOutOfBoundsError implements Table {
     )
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   fileLength(): bigint {
     const offset = this.bb.offset(this.bbPos, 4)
     return offset ? this.bb.view.getBigUint64(this.bbPos + offset, true) : 0n
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static startReadOutOfBoundsError(builder: Builder) {
     builder.startObject(1)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static addFileLength(builder: Builder, fileLength: bigint) {
     builder.addFieldInt64(0, fileLength, 0n)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static endReadOutOfBoundsError(builder: Builder): Offset<ReadOutOfBoundsError> {
     const offset = builder.endObject<ReadOutOfBoundsError>()
     return offset
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static createReadOutOfBoundsError(
     builder: Builder,
     fileLength: bigint,
@@ -1444,15 +1316,11 @@ export class ReadOutOfBoundsError implements Table {
   }
 }
 
-/**
- *
- */
+/** TODO: Add docs */
 export class None implements Table {
   bb!: ByteBuffer
   bbPos: number = 0
-  /**
-   *
-   */
+  /** TODO: Add docs */
   init(i: number, bb: ByteBuffer): None {
     this.bbPos = i
     this.bb = bb
@@ -1460,78 +1328,58 @@ export class None implements Table {
   }
 }
 
-/**
- *
- */
+/** TODO: Add docs */
 export class Success implements Table {
   bb!: ByteBuffer
   bbPos: number = 0
-  /**
-   *
-   */
+  /** TODO: Add docs */
   init(i: number, bb: ByteBuffer): Success {
     this.bbPos = i
     this.bb = bb
     return this
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static getRootAsSuccess(bb: ByteBuffer, obj?: Success): Success {
     return (obj ?? new Success()).init(bb.view.getInt32(bb.position, true) + bb.position, bb)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static getSizePrefixedRootAsSuccess(bb: ByteBuffer, obj?: Success): Success {
     bb.position += SIZE_PREFIX_LENGTH
     return (obj ?? new Success()).init(bb.view.getInt32(bb.position, true) + bb.position, bb)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static startSuccess(builder: Builder) {
     builder.startObject(0)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static endSuccess(builder: Builder): Offset<Success> {
     const offset = builder.endObject<Success>()
     return offset
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static createSuccess(builder: Builder): Offset<Success> {
     Success.startSuccess(builder)
     return Success.endSuccess(builder)
   }
 }
 
-/**
- *
- */
+/** TODO: Add docs */
 export class InitSessionCommand implements Table {
   bb!: ByteBuffer
   bbPos: number = 0
-  /**
-   *
-   */
+  /** TODO: Add docs */
   init(i: number, bb: ByteBuffer): InitSessionCommand {
     this.bbPos = i
     this.bb = bb
     return this
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static getRootAsInitSessionCommand(bb: ByteBuffer, obj?: InitSessionCommand): InitSessionCommand {
     return (obj ?? new InitSessionCommand()).init(
       bb.view.getInt32(bb.position, true) + bb.position,
@@ -1539,9 +1387,7 @@ export class InitSessionCommand implements Table {
     )
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static getSizePrefixedRootAsInitSessionCommand(
     bb: ByteBuffer,
     obj?: InitSessionCommand,
@@ -1553,40 +1399,30 @@ export class InitSessionCommand implements Table {
     )
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   identifier(obj?: EnsoUUID): EnsoUUID | null {
     const offset = this.bb.offset(this.bbPos, 4)
     return offset ? (obj ?? new EnsoUUID()).init(this.bbPos + offset, this.bb!) : null
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static startInitSessionCommand(builder: Builder) {
     builder.startObject(1)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static addIdentifier(builder: Builder, identifierOffset: Offset<EnsoUUID>) {
     builder.addFieldStruct(0, identifierOffset, Null)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static endInitSessionCommand(builder: Builder): Offset<InitSessionCommand> {
     const offset = builder.endObject<InitSessionCommand>()
     builder.requiredField(offset, 4) // identifier
     return offset
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static createInitSessionCommand(
     builder: Builder,
     createIdentifier: CreateOffset<EnsoUUID>,
@@ -1597,24 +1433,18 @@ export class InitSessionCommand implements Table {
   }
 }
 
-/**
- *
- */
+/** TODO: Add docs */
 export class VisualizationContext implements Table {
   bb!: ByteBuffer
   bbPos: number = 0
-  /**
-   *
-   */
+  /** TODO: Add docs */
   init(i: number, bb: ByteBuffer): VisualizationContext {
     this.bbPos = i
     this.bb = bb
     return this
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static getRootAsVisualizationContext(
     bb: ByteBuffer,
     obj?: VisualizationContext,
@@ -1625,9 +1455,7 @@ export class VisualizationContext implements Table {
     )
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static getSizePrefixedRootAsVisualizationContext(
     bb: ByteBuffer,
     obj?: VisualizationContext,
@@ -1639,61 +1467,45 @@ export class VisualizationContext implements Table {
     )
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   visualizationId(obj?: EnsoUUID): EnsoUUID | null {
     const offset = this.bb.offset(this.bbPos, 4)
     return offset ? (obj ?? new EnsoUUID()).init(this.bbPos + offset, this.bb!) : null
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   contextId(obj?: EnsoUUID): EnsoUUID | null {
     const offset = this.bb.offset(this.bbPos, 6)
     return offset ? (obj ?? new EnsoUUID()).init(this.bbPos + offset, this.bb!) : null
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   expressionId(obj?: EnsoUUID): EnsoUUID | null {
     const offset = this.bb.offset(this.bbPos, 8)
     return offset ? (obj ?? new EnsoUUID()).init(this.bbPos + offset, this.bb!) : null
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static startVisualizationContext(builder: Builder) {
     builder.startObject(3)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static addVisualizationId(builder: Builder, visualizationIdOffset: Offset<EnsoUUID>) {
     builder.addFieldStruct(0, visualizationIdOffset, Null)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static addContextId(builder: Builder, contextIdOffset: Offset<EnsoUUID>) {
     builder.addFieldStruct(1, contextIdOffset, Null)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static addExpressionId(builder: Builder, expressionIdOffset: Offset<EnsoUUID>) {
     builder.addFieldStruct(2, expressionIdOffset, Null)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static endVisualizationContext(builder: Builder): Offset<VisualizationContext> {
     const offset = builder.endObject<VisualizationContext>()
     builder.requiredField(offset, 4) // visualizationId
@@ -1702,9 +1514,7 @@ export class VisualizationContext implements Table {
     return offset
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static createVisualizationContext(
     builder: Builder,
     createVisualizationId: CreateOffset<EnsoUUID>,
@@ -1719,24 +1529,18 @@ export class VisualizationContext implements Table {
   }
 }
 
-/**
- *
- */
+/** TODO: Add docs */
 export class VisualizationUpdate implements Table {
   bb!: ByteBuffer
   bbPos: number = 0
-  /**
-   *
-   */
+  /** TODO: Add docs */
   init(i: number, bb: ByteBuffer): VisualizationUpdate {
     this.bbPos = i
     this.bb = bb
     return this
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static getRootAsVisualizationUpdate(
     bb: ByteBuffer,
     obj?: VisualizationUpdate,
@@ -1747,9 +1551,7 @@ export class VisualizationUpdate implements Table {
     )
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static getSizePrefixedRootAsVisualizationUpdate(
     bb: ByteBuffer,
     obj?: VisualizationUpdate,
@@ -1761,9 +1563,7 @@ export class VisualizationUpdate implements Table {
     )
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   visualizationContext(obj?: VisualizationContext): VisualizationContext | null {
     const offset = this.bb.offset(this.bbPos, 4)
     return offset ?
@@ -1771,25 +1571,19 @@ export class VisualizationUpdate implements Table {
       : null
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   data(index: number): number | null {
     const offset = this.bb.offset(this.bbPos, 6)
     return offset ? this.bb.view.getUint8(this.bb.vector(this.bbPos + offset) + index) : 0
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   dataLength(): number {
     const offset = this.bb.offset(this.bbPos, 6)
     return offset ? this.bb.vectorLength(this.bbPos + offset) : 0
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   dataArray(): Uint8Array | null {
     const offset = this.bb.offset(this.bbPos, 6)
     return offset ?
@@ -1801,24 +1595,18 @@ export class VisualizationUpdate implements Table {
       : null
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   dataString(): string | null {
     const buffer = this.dataArray()
     return buffer != null ? TEXT_DECODER.decode(buffer) : null
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static startVisualizationUpdate(builder: Builder) {
     builder.startObject(2)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static addVisualizationContext(
     builder: Builder,
     visualizationContextOffset: Offset<VisualizationContext>,
@@ -1826,16 +1614,12 @@ export class VisualizationUpdate implements Table {
     builder.addFieldOffset(0, visualizationContextOffset, Null)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static addData(builder: Builder, dataOffset: Offset<Uint8Array>) {
     builder.addFieldOffset(1, dataOffset, Null)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static createDataVector(builder: Builder, data: number[] | Uint8Array): Offset<Uint8Array> {
     builder.startVector(1, data.length, 1)
     // An iterator is more type-safe, but less performant.
@@ -1845,16 +1629,12 @@ export class VisualizationUpdate implements Table {
     return builder.endVector()
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static startDataVector(builder: Builder, numElems: number) {
     builder.startVector(1, numElems, 1)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static endVisualizationUpdate(builder: Builder): Offset<VisualizationUpdate> {
     const offset = builder.endObject<VisualizationUpdate>()
     builder.requiredField(offset, 4) // visualizationContext
@@ -1862,9 +1642,7 @@ export class VisualizationUpdate implements Table {
     return offset
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static createVisualizationUpdate(
     builder: Builder,
     visualizationContextOffset: Offset<VisualizationContext>,
@@ -1877,47 +1655,35 @@ export class VisualizationUpdate implements Table {
   }
 }
 
-/**
- *
- */
+/** TODO: Add docs */
 export class Path implements Table {
   bb!: ByteBuffer
   bbPos: number = 0
-  /**
-   *
-   */
+  /** TODO: Add docs */
   init(i: number, bb: ByteBuffer): Path {
     this.bbPos = i
     this.bb = bb
     return this
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static getRootAsPath(bb: ByteBuffer, obj?: Path): Path {
     return (obj ?? new Path()).init(bb.view.getInt32(bb.position, true) + bb.position, bb)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static getSizePrefixedRootAsPath(bb: ByteBuffer, obj?: Path): Path {
     bb.position += SIZE_PREFIX_LENGTH
     return (obj ?? new Path()).init(bb.view.getInt32(bb.position, true) + bb.position, bb)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   rootId(obj?: EnsoUUID): EnsoUUID | null {
     const offset = this.bb.offset(this.bbPos, 4)
     return offset ? (obj ?? new EnsoUUID()).init(this.bbPos + offset, this.bb) : null
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   rawSegments(index: number): ArrayBuffer {
     const offset = this.bb.offset(this.bbPos, 6)
     return offset ?
@@ -1925,45 +1691,33 @@ export class Path implements Table {
       : new Uint8Array()
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   segments(index: number): string {
     return TEXT_DECODER.decode(this.rawSegments(index))
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   segmentsLength(): number {
     const offset = this.bb.offset(this.bbPos, 6)
     return offset ? this.bb.vectorLength(this.bbPos + offset) : 0
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static startPath(builder: Builder) {
     builder.startObject(2)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static addRootId(builder: Builder, rootIdOffset: Offset<EnsoUUID>) {
     builder.addFieldStruct(0, rootIdOffset, Null)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static addSegments(builder: Builder, segmentsOffset: Offset<string[] | ArrayBuffer[]>) {
     builder.addFieldOffset(1, segmentsOffset, Null)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static createSegmentsVector(
     builder: Builder,
     data: Offset<string>[] | Offset<ArrayBuffer>[],
@@ -1976,24 +1730,18 @@ export class Path implements Table {
     return builder.endVector()
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static startSegmentsVector(builder: Builder, numElems: number) {
     builder.startVector(4, numElems, 4)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static endPath(builder: Builder): Offset<Path> {
     const offset = builder.endObject<Path>()
     return offset
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static createPath(
     builder: Builder,
     createRootId: CreateOffset<EnsoUUID>,
@@ -2006,24 +1754,18 @@ export class Path implements Table {
   }
 }
 
-/**
- *
- */
+/** TODO: Add docs */
 export class WriteFileCommand implements Table {
   bb!: ByteBuffer
   bbPos: number = 0
-  /**
-   *
-   */
+  /** TODO: Add docs */
   init(i: number, bb: ByteBuffer): WriteFileCommand {
     this.bbPos = i
     this.bb = bb
     return this
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static getRootAsWriteFileCommand(bb: ByteBuffer, obj?: WriteFileCommand): WriteFileCommand {
     return (obj ?? new WriteFileCommand()).init(
       bb.view.getInt32(bb.position, true) + bb.position,
@@ -2031,9 +1773,7 @@ export class WriteFileCommand implements Table {
     )
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static getSizePrefixedRootAsWriteFileCommand(
     bb: ByteBuffer,
     obj?: WriteFileCommand,
@@ -2045,33 +1785,25 @@ export class WriteFileCommand implements Table {
     )
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   path(obj?: Path): Path | null {
     const offset = this.bb.offset(this.bbPos, 4)
     return offset ? (obj ?? new Path()).init(this.bb.indirect(this.bbPos + offset), this.bb!) : null
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   contents(index: number): number | null {
     const offset = this.bb.offset(this.bbPos, 6)
     return offset ? this.bb.view.getUint8(this.bb.vector(this.bbPos + offset) + index) : 0
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   contentsLength(): number {
     const offset = this.bb.offset(this.bbPos, 6)
     return offset ? this.bb.vectorLength(this.bbPos + offset) : 0
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   contentsArray(): Uint8Array | null {
     const offset = this.bb.offset(this.bbPos, 6)
     return offset ?
@@ -2083,30 +1815,22 @@ export class WriteFileCommand implements Table {
       : null
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static startWriteFileCommand(builder: Builder) {
     builder.startObject(2)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static addPath(builder: Builder, pathOffset: Offset<Path>) {
     builder.addFieldOffset(0, pathOffset, Null)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static addContents(builder: Builder, contentsOffset: Offset<Uint8Array>) {
     builder.addFieldOffset(1, contentsOffset, Null)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static createContentsVector(builder: Builder, data: number[] | Uint8Array): Offset<Uint8Array> {
     builder.startVector(1, data.length, 1)
     // An iterator is more type-safe, but less performant.
@@ -2116,24 +1840,18 @@ export class WriteFileCommand implements Table {
     return builder.endVector()
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static startContentsVector(builder: Builder, numElems: number) {
     builder.startVector(1, numElems, 1)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static endWriteFileCommand(builder: Builder): Offset<WriteFileCommand> {
     const offset = builder.endObject<WriteFileCommand>()
     return offset
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static createWriteFileCommand(
     builder: Builder,
     pathOffset: Offset<Path>,
@@ -2146,24 +1864,18 @@ export class WriteFileCommand implements Table {
   }
 }
 
-/**
- *
- */
+/** TODO: Add docs */
 export class ReadFileCommand implements Table {
   bb!: ByteBuffer
   bbPos: number = 0
-  /**
-   *
-   */
+  /** TODO: Add docs */
   init(i: number, bb: ByteBuffer): ReadFileCommand {
     this.bbPos = i
     this.bb = bb
     return this
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static getRootAsReadFileCommand(bb: ByteBuffer, obj?: ReadFileCommand): ReadFileCommand {
     return (obj ?? new ReadFileCommand()).init(
       bb.view.getInt32(bb.position, true) + bb.position,
@@ -2171,9 +1883,7 @@ export class ReadFileCommand implements Table {
     )
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static getSizePrefixedRootAsReadFileCommand(
     bb: ByteBuffer,
     obj?: ReadFileCommand,
@@ -2185,39 +1895,29 @@ export class ReadFileCommand implements Table {
     )
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   path(obj?: Path): Path | null {
     const offset = this.bb.offset(this.bbPos, 4)
     return offset ? (obj ?? new Path()).init(this.bb.indirect(this.bbPos + offset), this.bb!) : null
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static startReadFileCommand(builder: Builder) {
     builder.startObject(1)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static addPath(builder: Builder, pathOffset: Offset<Path>) {
     builder.addFieldOffset(0, pathOffset, Null)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static endReadFileCommand(builder: Builder): Offset<ReadFileCommand> {
     const offset = builder.endObject<ReadFileCommand>()
     return offset
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static createReadFileCommand(
     builder: Builder,
     pathOffset: Offset<Path>,
@@ -2228,24 +1928,18 @@ export class ReadFileCommand implements Table {
   }
 }
 
-/**
- *
- */
+/** TODO: Add docs */
 export class FileContentsReply implements Table {
   bb!: ByteBuffer
   bbPos: number = 0
-  /**
-   *
-   */
+  /** TODO: Add docs */
   init(i: number, bb: ByteBuffer): FileContentsReply {
     this.bbPos = i
     this.bb = bb
     return this
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static getRootAsFileContentsReply(bb: ByteBuffer, obj?: FileContentsReply): FileContentsReply {
     return (obj ?? new FileContentsReply()).init(
       bb.view.getInt32(bb.position, true) + bb.position,
@@ -2253,9 +1947,7 @@ export class FileContentsReply implements Table {
     )
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static getSizePrefixedRootAsFileContentsReply(
     bb: ByteBuffer,
     obj?: FileContentsReply,
@@ -2267,25 +1959,19 @@ export class FileContentsReply implements Table {
     )
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   contents(index: number): number | null {
     const offset = this.bb.offset(this.bbPos, 4)
     return offset ? this.bb.view.getUint8(this.bb.vector(this.bbPos + offset) + index) : 0
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   contentsLength(): number {
     const offset = this.bb.offset(this.bbPos, 4)
     return offset ? this.bb.vectorLength(this.bbPos + offset) : 0
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   contentsArray(): Uint8Array | null {
     const offset = this.bb.offset(this.bbPos, 4)
     return offset ?
@@ -2297,23 +1983,17 @@ export class FileContentsReply implements Table {
       : null
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static startFileContentsReply(builder: Builder) {
     builder.startObject(1)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static addContents(builder: Builder, contentsOffset: Offset<Uint8Array>) {
     builder.addFieldOffset(0, contentsOffset, Null)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static createContentsVector(builder: Builder, data: number[] | Uint8Array): Offset<Uint8Array> {
     builder.startVector(1, data.length, 1)
     // An iterator is more type-safe, but less performant.
@@ -2323,24 +2003,18 @@ export class FileContentsReply implements Table {
     return builder.endVector()
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static startContentsVector(builder: Builder, numElems: number) {
     builder.startVector(1, numElems, 1)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static endFileContentsReply(builder: Builder): Offset<FileContentsReply> {
     const offset = builder.endObject<FileContentsReply>()
     return offset
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static createFileContentsReply(
     builder: Builder,
     contentsOffset: Offset<Uint8Array>,
@@ -2351,24 +2025,18 @@ export class FileContentsReply implements Table {
   }
 }
 
-/**
- *
- */
+/** TODO: Add docs */
 export class WriteBytesCommand implements Table {
   bb!: ByteBuffer
   bbPos: number = 0
-  /**
-   *
-   */
+  /** TODO: Add docs */
   init(i: number, bb: ByteBuffer): WriteBytesCommand {
     this.bbPos = i
     this.bb = bb
     return this
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static getRootAsWriteBytesCommand(bb: ByteBuffer, obj?: WriteBytesCommand): WriteBytesCommand {
     return (obj ?? new WriteBytesCommand()).init(
       bb.view.getInt32(bb.position, true) + bb.position,
@@ -2376,9 +2044,7 @@ export class WriteBytesCommand implements Table {
     )
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static getSizePrefixedRootAsWriteBytesCommand(
     bb: ByteBuffer,
     obj?: WriteBytesCommand,
@@ -2390,49 +2056,37 @@ export class WriteBytesCommand implements Table {
     )
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   path(obj?: Path): Path | null {
     const offset = this.bb.offset(this.bbPos, 4)
     return offset ? (obj ?? new Path()).init(this.bb.indirect(this.bbPos + offset), this.bb!) : null
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   byteOffset(): bigint {
     const offset = this.bb.offset(this.bbPos, 6)
     return offset ? this.bb.view.getBigUint64(this.bbPos + offset, true) : 0n
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   overwriteExisting(): boolean {
     const offset = this.bb.offset(this.bbPos, 8)
     return offset ? !!this.bb.view.getInt8(this.bbPos + offset) : false
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   bytes(index: number): number | null {
     const offset = this.bb.offset(this.bbPos, 10)
     return offset ? this.bb.view.getUint8(this.bb.vector(this.bbPos + offset) + index) : 0
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   bytesLength(): number {
     const offset = this.bb.offset(this.bbPos, 10)
     return offset ? this.bb.vectorLength(this.bbPos + offset) : 0
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   bytesArray(): Uint8Array | null {
     const offset = this.bb.offset(this.bbPos, 10)
     return offset ?
@@ -2444,44 +2098,32 @@ export class WriteBytesCommand implements Table {
       : null
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static startWriteBytesCommand(builder: Builder) {
     builder.startObject(4)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static addPath(builder: Builder, pathOffset: Offset<Path>) {
     builder.addFieldOffset(0, pathOffset, Null)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static addByteOffset(builder: Builder, byteOffset: bigint) {
     builder.addFieldInt64(1, byteOffset, 0n)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static addOverwriteExisting(builder: Builder, overwriteExisting: boolean) {
     builder.addFieldInt8(2, +overwriteExisting, +false)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static addBytes(builder: Builder, bytesOffset: Offset<Uint8Array>) {
     builder.addFieldOffset(3, bytesOffset, Null)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static createBytesVector(builder: Builder, data: number[] | Uint8Array): Offset<Uint8Array> {
     builder.startVector(1, data.length, 1)
     // An iterator is more type-safe, but less performant.
@@ -2491,16 +2133,12 @@ export class WriteBytesCommand implements Table {
     return builder.endVector()
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static startBytesVector(builder: Builder, numElems: number) {
     builder.startVector(1, numElems, 1)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static endWriteBytesCommand(builder: Builder): Offset<WriteBytesCommand> {
     const offset = builder.endObject<WriteBytesCommand>()
     builder.requiredField(offset, 4) // path
@@ -2508,9 +2146,7 @@ export class WriteBytesCommand implements Table {
     return offset
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static createWriteBytesCommand(
     builder: Builder,
     pathOffset: Offset<Path>,
@@ -2527,24 +2163,18 @@ export class WriteBytesCommand implements Table {
   }
 }
 
-/**
- *
- */
+/** TODO: Add docs */
 export class WriteBytesReply implements Table {
   bb!: ByteBuffer
   bbPos: number = 0
-  /**
-   *
-   */
+  /** TODO: Add docs */
   init(i: number, bb: ByteBuffer): WriteBytesReply {
     this.bbPos = i
     this.bb = bb
     return this
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static getRootAsWriteBytesReply(bb: ByteBuffer, obj?: WriteBytesReply): WriteBytesReply {
     return (obj ?? new WriteBytesReply()).init(
       bb.view.getInt32(bb.position, true) + bb.position,
@@ -2552,9 +2182,7 @@ export class WriteBytesReply implements Table {
     )
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static getSizePrefixedRootAsWriteBytesReply(
     bb: ByteBuffer,
     obj?: WriteBytesReply,
@@ -2566,9 +2194,7 @@ export class WriteBytesReply implements Table {
     )
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   checksum(obj?: EnsoDigest): EnsoDigest | null {
     const offset = this.bb.offset(this.bbPos, 4)
     return offset ?
@@ -2576,32 +2202,24 @@ export class WriteBytesReply implements Table {
       : null
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static startWriteBytesReply(builder: Builder) {
     builder.startObject(1)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static addChecksum(builder: Builder, checksumOffset: Offset<EnsoDigest>) {
     builder.addFieldOffset(0, checksumOffset, Null)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static endWriteBytesReply(builder: Builder): Offset<WriteBytesReply> {
     const offset = builder.endObject<WriteBytesReply>()
     builder.requiredField(offset, 4) // checksum
     return offset
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static createWriteBytesReply(
     builder: Builder,
     checksumOffset: Offset<EnsoDigest>,
@@ -2612,24 +2230,18 @@ export class WriteBytesReply implements Table {
   }
 }
 
-/**
- *
- */
+/** TODO: Add docs */
 export class ReadBytesCommand implements Table {
   bb!: ByteBuffer
   bbPos: number = 0
-  /**
-   *
-   */
+  /** TODO: Add docs */
   init(i: number, bb: ByteBuffer): ReadBytesCommand {
     this.bbPos = i
     this.bb = bb
     return this
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static getRootAsReadBytesCommand(bb: ByteBuffer, obj?: ReadBytesCommand): ReadBytesCommand {
     return (obj ?? new ReadBytesCommand()).init(
       bb.view.getInt32(bb.position, true) + bb.position,
@@ -2637,9 +2249,7 @@ export class ReadBytesCommand implements Table {
     )
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static getSizePrefixedRootAsReadBytesCommand(
     bb: ByteBuffer,
     obj?: ReadBytesCommand,
@@ -2651,9 +2261,7 @@ export class ReadBytesCommand implements Table {
     )
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   segment(obj?: FileSegment): FileSegment | null {
     const offset = this.bb.offset(this.bbPos, 4)
     return offset ?
@@ -2661,32 +2269,24 @@ export class ReadBytesCommand implements Table {
       : null
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static startReadBytesCommand(builder: Builder) {
     builder.startObject(1)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static addSegment(builder: Builder, segmentOffset: Offset<FileSegment>) {
     builder.addFieldOffset(0, segmentOffset, Null)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static endReadBytesCommand(builder: Builder): Offset<ReadBytesCommand> {
     const offset = builder.endObject<ReadBytesCommand>()
     builder.requiredField(offset, 4) // segment
     return offset
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static createReadBytesCommand(
     builder: Builder,
     segmentOffset: Offset<FileSegment>,
@@ -2697,39 +2297,29 @@ export class ReadBytesCommand implements Table {
   }
 }
 
-/**
- *
- */
+/** TODO: Add docs */
 export class ReadBytesReply implements Table {
   bb!: ByteBuffer
   bbPos: number = 0
-  /**
-   *
-   */
+  /** TODO: Add docs */
   init(i: number, bb: ByteBuffer): ReadBytesReply {
     this.bbPos = i
     this.bb = bb
     return this
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static getRootAsReadBytesReply(bb: ByteBuffer, obj?: ReadBytesReply): ReadBytesReply {
     return (obj ?? new ReadBytesReply()).init(bb.view.getInt32(bb.position, true) + bb.position, bb)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static getSizePrefixedRootAsReadBytesReply(bb: ByteBuffer, obj?: ReadBytesReply): ReadBytesReply {
     bb.position += SIZE_PREFIX_LENGTH
     return (obj ?? new ReadBytesReply()).init(bb.view.getInt32(bb.position, true) + bb.position, bb)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   checksum(obj?: EnsoDigest): EnsoDigest | null {
     const offset = this.bb.offset(this.bbPos, 4)
     return offset ?
@@ -2737,25 +2327,19 @@ export class ReadBytesReply implements Table {
       : null
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   bytes(index: number): number | null {
     const offset = this.bb.offset(this.bbPos, 6)
     return offset ? this.bb.view.getUint8(this.bb.vector(this.bbPos + offset) + index) : 0
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   bytesLength(): number {
     const offset = this.bb.offset(this.bbPos, 6)
     return offset ? this.bb.vectorLength(this.bbPos + offset) : 0
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   bytesArray(): Uint8Array | null {
     const offset = this.bb.offset(this.bbPos, 6)
     return offset ?
@@ -2767,30 +2351,22 @@ export class ReadBytesReply implements Table {
       : null
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static startReadBytesReply(builder: Builder) {
     builder.startObject(2)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static addChecksum(builder: Builder, checksumOffset: Offset<EnsoDigest>) {
     builder.addFieldOffset(0, checksumOffset, Null)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static addBytes(builder: Builder, bytesOffset: Offset<Uint8Array>) {
     builder.addFieldOffset(1, bytesOffset, Null)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static createBytesVector(builder: Builder, data: number[] | Uint8Array): Offset<Uint8Array> {
     builder.startVector(1, data.length, 1)
     // An iterator is more type-safe, but less performant.
@@ -2800,16 +2376,12 @@ export class ReadBytesReply implements Table {
     return builder.endVector()
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static startBytesVector(builder: Builder, numElems: number) {
     builder.startVector(1, numElems, 1)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static endReadBytesReply(builder: Builder): Offset<ReadBytesReply> {
     const offset = builder.endObject<ReadBytesReply>()
     builder.requiredField(offset, 4) // checksum
@@ -2817,9 +2389,7 @@ export class ReadBytesReply implements Table {
     return offset
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static createReadBytesReply(
     builder: Builder,
     checksumOffset: Offset<EnsoDigest>,
@@ -2832,24 +2402,18 @@ export class ReadBytesReply implements Table {
   }
 }
 
-/**
- *
- */
+/** TODO: Add docs */
 export class ChecksumBytesCommand implements Table {
   bb!: ByteBuffer
   bbPos: number = 0
-  /**
-   *
-   */
+  /** TODO: Add docs */
   init(i: number, bb: ByteBuffer): ChecksumBytesCommand {
     this.bbPos = i
     this.bb = bb
     return this
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static getRootAsChecksumBytesCommand(
     bb: ByteBuffer,
     obj?: ChecksumBytesCommand,
@@ -2860,9 +2424,7 @@ export class ChecksumBytesCommand implements Table {
     )
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static getSizePrefixedRootAsChecksumBytesCommand(
     bb: ByteBuffer,
     obj?: ChecksumBytesCommand,
@@ -2874,9 +2436,7 @@ export class ChecksumBytesCommand implements Table {
     )
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   segment(obj?: FileSegment): FileSegment | null {
     const offset = this.bb.offset(this.bbPos, 4)
     return offset ?
@@ -2884,32 +2444,24 @@ export class ChecksumBytesCommand implements Table {
       : null
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static startChecksumBytesCommand(builder: Builder) {
     builder.startObject(1)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static addSegment(builder: Builder, segmentOffset: Offset<FileSegment>) {
     builder.addFieldOffset(0, segmentOffset, Null)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static endChecksumBytesCommand(builder: Builder): Offset<ChecksumBytesCommand> {
     const offset = builder.endObject<ChecksumBytesCommand>()
     builder.requiredField(offset, 4) // segment
     return offset
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static createChecksumBytesCommand(
     builder: Builder,
     segmentOffset: Offset<FileSegment>,
@@ -2920,24 +2472,18 @@ export class ChecksumBytesCommand implements Table {
   }
 }
 
-/**
- *
- */
+/** TODO: Add docs */
 export class ChecksumBytesReply implements Table {
   bb!: ByteBuffer
   bbPos: number = 0
-  /**
-   *
-   */
+  /** TODO: Add docs */
   init(i: number, bb: ByteBuffer): ChecksumBytesReply {
     this.bbPos = i
     this.bb = bb
     return this
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static getRootAsChecksumBytesReply(bb: ByteBuffer, obj?: ChecksumBytesReply): ChecksumBytesReply {
     return (obj ?? new ChecksumBytesReply()).init(
       bb.view.getInt32(bb.position, true) + bb.position,
@@ -2945,9 +2491,7 @@ export class ChecksumBytesReply implements Table {
     )
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static getSizePrefixedRootAsChecksumBytesReply(
     bb: ByteBuffer,
     obj?: ChecksumBytesReply,
@@ -2959,9 +2503,7 @@ export class ChecksumBytesReply implements Table {
     )
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   checksum(obj?: EnsoDigest): EnsoDigest | null {
     const offset = this.bb.offset(this.bbPos, 4)
     return offset ?
@@ -2969,32 +2511,24 @@ export class ChecksumBytesReply implements Table {
       : null
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static startChecksumBytesReply(builder: Builder) {
     builder.startObject(1)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static addChecksum(builder: Builder, checksumOffset: Offset<EnsoDigest>) {
     builder.addFieldOffset(0, checksumOffset, Null)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static endChecksumBytesReply(builder: Builder): Offset<ChecksumBytesReply> {
     const offset = builder.endObject<ChecksumBytesReply>()
     builder.requiredField(offset, 4) // checksum
     return offset
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static createChecksumBytesReply(
     builder: Builder,
     checksumOffset: Offset<EnsoDigest>,
@@ -3005,55 +2539,41 @@ export class ChecksumBytesReply implements Table {
   }
 }
 
-/**
- *
- */
+/** TODO: Add docs */
 export class EnsoDigest implements Table {
   bb!: ByteBuffer
   bbPos: number = 0
-  /**
-   *
-   */
+  /** TODO: Add docs */
   init(i: number, bb: ByteBuffer): EnsoDigest {
     this.bbPos = i
     this.bb = bb
     return this
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static getRootAsEnsoDigest(bb: ByteBuffer, obj?: EnsoDigest): EnsoDigest {
     return (obj ?? new EnsoDigest()).init(bb.view.getInt32(bb.position, true) + bb.position, bb)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static getSizePrefixedRootAsEnsoDigest(bb: ByteBuffer, obj?: EnsoDigest): EnsoDigest {
     bb.position += SIZE_PREFIX_LENGTH
     return (obj ?? new EnsoDigest()).init(bb.view.getInt32(bb.position, true) + bb.position, bb)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   bytes(index: number): number | null {
     const offset = this.bb.offset(this.bbPos, 4)
     return offset ? this.bb.view.getUint8(this.bb.vector(this.bbPos + offset) + index) : 0
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   bytesLength(): number {
     const offset = this.bb.offset(this.bbPos, 4)
     return offset ? this.bb.vectorLength(this.bbPos + offset) : 0
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   bytesArray(): Uint8Array | null {
     const offset = this.bb.offset(this.bbPos, 4)
     return offset ?
@@ -3065,23 +2585,17 @@ export class EnsoDigest implements Table {
       : null
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static startEnsoDigest(builder: Builder) {
     builder.startObject(1)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static addBytes(builder: Builder, bytesOffset: Offset<Uint8Array>) {
     builder.addFieldOffset(0, bytesOffset, Null)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static createBytesVector(builder: Builder, data: number[] | Uint8Array): Offset<Uint8Array> {
     builder.startVector(1, data.length, 1)
     // An iterator is more type-safe, but less performant.
@@ -3091,25 +2605,19 @@ export class EnsoDigest implements Table {
     return builder.endVector()
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static startBytesVector(builder: Builder, numElems: number) {
     builder.startVector(1, numElems, 1)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static endEnsoDigest(builder: Builder): Offset<EnsoDigest> {
     const offset = builder.endObject<EnsoDigest>()
     builder.requiredField(offset, 4) // bytes
     return offset
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static createEnsoDigest(builder: Builder, bytesOffset: Offset<Uint8Array>): Offset<EnsoDigest> {
     EnsoDigest.startEnsoDigest(builder)
     EnsoDigest.addBytes(builder, bytesOffset)
@@ -3117,100 +2625,74 @@ export class EnsoDigest implements Table {
   }
 }
 
-/**
- *
- */
+/** TODO: Add docs */
 export class FileSegment implements Table {
   bb!: ByteBuffer
   bbPos: number = 0
-  /**
-   *
-   */
+  /** TODO: Add docs */
   init(i: number, bb: ByteBuffer): FileSegment {
     this.bbPos = i
     this.bb = bb
     return this
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static getRootAsFileSegment(bb: ByteBuffer, obj?: FileSegment): FileSegment {
     return (obj ?? new FileSegment()).init(bb.view.getInt32(bb.position, true) + bb.position, bb)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static getSizePrefixedRootAsFileSegment(bb: ByteBuffer, obj?: FileSegment): FileSegment {
     bb.position += SIZE_PREFIX_LENGTH
     return (obj ?? new FileSegment()).init(bb.view.getInt32(bb.position, true) + bb.position, bb)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   path(obj?: Path): Path | null {
     const offset = this.bb.offset(this.bbPos, 4)
     return offset ? (obj ?? new Path()).init(this.bb.indirect(this.bbPos + offset), this.bb!) : null
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   byteOffset(): bigint {
     const offset = this.bb.offset(this.bbPos, 6)
     return offset ? this.bb.view.getBigUint64(this.bbPos + offset, true) : 0n
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   length(): bigint {
     const offset = this.bb.offset(this.bbPos, 8)
     return offset ? this.bb.view.getBigUint64(this.bbPos + offset, true) : 0n
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static startFileSegment(builder: Builder) {
     builder.startObject(3)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static addPath(builder: Builder, pathOffset: Offset<Path>) {
     builder.addFieldOffset(0, pathOffset, Null)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static addByteOffset(builder: Builder, byteOffset: bigint) {
     builder.addFieldInt64(1, byteOffset, 0n)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static addLength(builder: Builder, length: bigint) {
     builder.addFieldInt64(2, length, 0n)
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static endFileSegment(builder: Builder): Offset<FileSegment> {
     const offset = builder.endObject<FileSegment>()
     builder.requiredField(offset, 4) // path
     return offset
   }
 
-  /**
-   *
-   */
+  /** TODO: Add docs */
   static createFileSegment(
     builder: Builder,
     pathOffset: Offset<Path>,
