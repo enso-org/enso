@@ -1,7 +1,6 @@
 package org.enso.compiler.pass.analyse;
 
 import java.io.IOException;
-
 import org.enso.common.CachePreferences;
 import org.enso.compiler.pass.analyse.alias.AliasMetadata;
 import org.enso.compiler.pass.analyse.alias.graph.Graph;
