@@ -186,7 +186,7 @@ object RecomputeContextCmd {
       case CacheInvalidation.Command.InvalidateAll =>
         stack.headOption
           .map { frame =>
-            frame.cache.getPreferences.getValues
+            frame.cache.getPreferences.preferences
               .keySet()
               .forEach(builder.addOne)
           }

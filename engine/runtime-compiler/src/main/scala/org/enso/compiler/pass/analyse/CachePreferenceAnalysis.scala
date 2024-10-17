@@ -206,7 +206,7 @@ case object CachePreferenceAnalysis extends IRPass {
     * @param weights the storage for weights of the program components
     */
   sealed case class WeightInfo(
-    preferences: CachePreferences = new CachePreferences
+    preferences: CachePreferences = CachePreferences.empty()
   ) extends IRPass.IRMetadata {
 
     /** The name of the metadata as a string. */
