@@ -9,16 +9,7 @@ import java.util.List;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.type.BigDecimalType;
-import org.enso.table.data.column.storage.type.BigIntegerType;
-import org.enso.table.data.column.storage.type.BooleanType;
-import org.enso.table.data.column.storage.type.DateTimeType;
-import org.enso.table.data.column.storage.type.DateType;
-import org.enso.table.data.column.storage.type.FloatType;
-import org.enso.table.data.column.storage.type.IntegerType;
-import org.enso.table.data.column.storage.type.StorageType;
-import org.enso.table.data.column.storage.type.TextType;
-import org.enso.table.data.column.storage.type.TimeOfDayType;
+import org.enso.table.data.column.storage.type.*;
 import org.enso.table.problems.ProblemAggregator;
 
 /**
@@ -189,6 +180,12 @@ public class InferredBuilder extends Builder {
   }
 
   private void retypeToMixed() {
+    // If the current builder can be re-typed to AnyObjectType, we do that.
+    if (currentBuilder.canRetypeTo(AnyObjectType.INSTANCE)) {
+      currentBuilder = currentBuilder.retypeTo(AnyObjectType.INSTANCE);
+      return;
+    }
+
     // The new internal builder must be at least `currentSize` so it can store
     // all the current values. It must also be at least 'initialSize' since the
     // caller might be using appendNoGrow and is expecting to write at least

@@ -3,9 +3,13 @@ package org.enso.table.data.column.builder;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.Arrays;
+import java.util.BitSet;
+import java.util.Objects;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.datetime.DateStorage;
 import org.enso.table.data.column.storage.datetime.DateTimeStorage;
+import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.DateTimeType;
 import org.enso.table.data.column.storage.type.DateType;
 import org.enso.table.data.column.storage.type.StorageType;
@@ -20,6 +24,7 @@ public class DateTimeBuilder extends TypedBuilderImpl<ZonedDateTime> {
   }
 
   private final boolean allowDateToDateTimeConversion;
+  private final BitSet wasLocalDate;
 
   public DateTimeBuilder(int size) {
     this(size, false);
@@ -28,6 +33,7 @@ public class DateTimeBuilder extends TypedBuilderImpl<ZonedDateTime> {
   public DateTimeBuilder(int size, boolean allowDateToDateTimeConversion) {
     super(size);
     this.allowDateToDateTimeConversion = allowDateToDateTimeConversion;
+    this.wasLocalDate = allowDateToDateTimeConversion ? new BitSet(size) : null;
   }
 
   @Override
@@ -48,6 +54,7 @@ public class DateTimeBuilder extends TypedBuilderImpl<ZonedDateTime> {
     try {
       if (allowDateToDateTimeConversion && o instanceof LocalDate localDate) {
         data[currentSize++] = convertDate(localDate);
+        wasLocalDate.set(currentSize - 1);
       } else {
         data[currentSize++] = (ZonedDateTime) o;
       }
@@ -92,5 +99,25 @@ public class DateTimeBuilder extends TypedBuilderImpl<ZonedDateTime> {
   @Override
   protected Storage<ZonedDateTime> doSeal() {
     return new DateTimeStorage(data, currentSize);
+  }
+
+  @Override
+  public TypedBuilder retypeTo(StorageType type) {
+    if (allowDateToDateTimeConversion && Objects.equals(type, AnyObjectType.INSTANCE)) {
+      Object[] widenedData = Arrays.copyOf(data, data.length, Object[].class);
+
+      // Replace ZonedDateTime with LocalDate where necessary.
+      int next = this.wasLocalDate.nextSetBit(0);
+      while (next != -1) {
+        widenedData[next] = data[next].toLocalDate();
+        next = this.wasLocalDate.nextSetBit(next + 1);
+      }
+
+      ObjectBuilder res = new MixedBuilder(widenedData);
+      res.setCurrentSize(currentSize);
+      return res;
+    }
+
+    return super.retypeTo(type);
   }
 }
