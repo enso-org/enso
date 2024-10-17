@@ -236,9 +236,7 @@ export type Table = {
   bbPos: number
 }
 
-/**
- * A helper to incrementally build a message buffer.
- */
+/** A helper to incrementally build a message buffer. */
 export class Builder {
   private bb: ByteBuffer
   private space: number
@@ -252,18 +250,14 @@ export class Builder {
   private _forceDefaults = false
   private stringMaps: Map<string | Uint8Array, AnyOffset> | null = null
 
-  /**
-   * Create a {@link Builder}.
-   */
+  /** Create a {@link Builder}. */
   constructor(initialSize?: number) {
     initialSize ??= 1024
     this.bb = new ByteBuffer(new ArrayBuffer(initialSize))
     this.space = initialSize
   }
 
-  /**
-   * Reset the state of the internal buffer.
-   */
+  /** Reset the state of the internal buffer. */
   clear(): void {
     this.bb.position = 0
     this.space = this.bb.view.byteLength
@@ -288,16 +282,12 @@ export class Builder {
     this._forceDefaults = forceDefaults
   }
 
-  /**
-   * Return the current contents as an {@link ArrayBuffer}.
-   */
+  /** Return the current contents as an {@link ArrayBuffer}. */
   toArrayBuffer(): ArrayBuffer {
     return this.bb.view.buffer.slice(this.bb.position, this.bb.position + this.offset())
   }
 
-  /**
-   * Ensure alignment of the next field, and grow the byte buffer if needed.
-   */
+  /** Ensure alignment of the next field, and grow the byte buffer if needed. */
   prep(size: number, additionalBytes: number): void {
     if (size > this.minAlignment) {
       this.minAlignment = size
@@ -314,9 +304,7 @@ export class Builder {
     this.pad(alignSize)
   }
 
-  /**
-   * Add padding to the backing {@link ByteBuffer} for alignment purposes.
-   */
+  /** Add padding to the backing {@link ByteBuffer} for alignment purposes. */
   pad(byteSize: number): void {
     for (let i = 0; i < byteSize; i++) {
       this.bb.view.setInt8(--this.space, 0)
@@ -371,49 +359,37 @@ export class Builder {
     this.bb.view.setFloat64((this.space -= 8), value, true)
   }
 
-  /**
-   * Ensure alignment and write a signed 8-bit integer and update the buffer position.
-   */
+  /** Ensure alignment and write a signed 8-bit integer and update the buffer position. */
   addInt8(value: number): void {
     this.prep(1, 0)
     this.writeInt8(value)
   }
 
-  /**
-   * Ensure alignment and write a signed 16-bit integer and update the buffer position.
-   */
+  /** Ensure alignment and write a signed 16-bit integer and update the buffer position. */
   addInt16(value: number): void {
     this.prep(2, 0)
     this.writeInt16(value)
   }
 
-  /**
-   * Ensure alignment and write a signed 32-bit integer and update the buffer position.
-   */
+  /** Ensure alignment and write a signed 32-bit integer and update the buffer position. */
   addInt32(value: number): void {
     this.prep(4, 0)
     this.writeInt32(value)
   }
 
-  /**
-   * Ensure alignment and write a signed 64-bit integer and update the buffer position.
-   */
+  /** Ensure alignment and write a signed 64-bit integer and update the buffer position. */
   addInt64(value: bigint): void {
     this.prep(8, 0)
     this.writeInt64(value)
   }
 
-  /**
-   * Ensure alignment and write a 32-bit IEEE754 floating point number and update the buffer position.
-   */
+  /** Ensure alignment and write a 32-bit IEEE754 floating point number and update the buffer position. */
   addFloat32(value: number): void {
     this.prep(4, 0)
     this.writeFloat32(value)
   }
 
-  /**
-   * Ensure alignment and write a 64-bit IEEE754 floating point number and update the buffer position.
-   */
+  /** Ensure alignment and write a 64-bit IEEE754 floating point number and update the buffer position. */
   addFloat64(value: number): void {
     this.prep(8, 0)
     this.writeFloat64(value)
@@ -498,9 +474,7 @@ export class Builder {
     }
   }
 
-  /**
-   * Assert that the builder is not already serializing an object when beginning object serialization.
-   */
+  /** Assert that the builder is not already serializing an object when beginning object serialization. */
   notNested(): void {
     if (this.isNested) {
       throw new TypeError('FlatBuffers: object serialization must not be nested.')
@@ -512,9 +486,7 @@ export class Builder {
     if (this.vtable !== null) this.vtable[voffset] = this.offset()
   }
 
-  /**
-   * Return the offset of the current filled content of the backing {@link ByteBuffer}.
-   */
+  /** Return the offset of the current filled content of the backing {@link ByteBuffer}. */
   offset<T extends OffsetConstraint>(): Offset<T> {
     return (this.bb.view.byteLength - this.space) as Offset<T>
   }
@@ -536,9 +508,7 @@ export class Builder {
     bb.view = new DataView(newBuffer)
   }
 
-  /**
-   * Write an offset to a given field.
-   */
+  /** Write an offset to a given field. */
   addOffset(offset: AnyOffset): void {
     this.prep(SIZEOF_INT, 0) // Ensure alignment is already done.
     this.writeInt32(this.offset() - offset + SIZEOF_INT)
@@ -620,9 +590,7 @@ export class Builder {
     return vtableloc as Offset<T>
   }
 
-  /**
-   * Finalize a message to be ready for sending.
-   */
+  /** Finalize a message to be ready for sending. */
   finish(
     rootTable: AnyOffset,
     fileIdentifier?: string,
@@ -666,9 +634,7 @@ export class Builder {
     }
   }
 
-  /**
-   * Initialize buffer state for adding vector elements.
-   */
+  /** Initialize buffer state for adding vector elements. */
   startVector(elemSize: number, numElems: number, alignment: number): void {
     this.notNested()
     this.vectorNumElems = numElems
@@ -676,17 +642,13 @@ export class Builder {
     this.prep(alignment, elemSize * numElems) // Just in case alignment > int.
   }
 
-  /**
-   * Finish buffer state after having added all vector elements.
-   */
+  /** Finish buffer state after having added all vector elements. */
   endVector<T extends OffsetConstraint>(): Offset<T> {
     this.writeInt32(this.vectorNumElems)
     return this.offset()
   }
 
-  /**
-   * Add a shared string to this buffer.
-   */
+  /** Add a shared string to this buffer. */
   createSharedString<T extends string | Uint8Array>(s: T): Offset<T> {
     if (!s) {
       return 0 as Offset<T>
@@ -703,9 +665,7 @@ export class Builder {
     return offset as Offset<T>
   }
 
-  /**
-   * Add a string to this buffer.
-   */
+  /** Add a string to this buffer. */
   createString(s: string | Uint8Array | ArrayBuffer | null | undefined): Offset<Uint8Array> {
     if (s === null || s === undefined) return Null
     let utf8: string | Uint8Array | number[]
@@ -761,9 +721,7 @@ export class Builder {
   }
 }
 
-/**
- * An {@link ArrayBuffer} wrapper with added utility methods.
- */
+/** An {@link ArrayBuffer} wrapper with added utility methods. */
 export class ByteBuffer {
   position = 0
   view: DataView
@@ -797,30 +755,22 @@ export class ByteBuffer {
     return this.view.buffer.slice(offset, offset + length)
   }
 
-  /**
-   * Extract a string from the given offset.
-   */
+  /** Extract a string from the given offset. */
   message(offset: number): string {
     return TEXT_DECODER.decode(this.rawMessage(offset))
   }
 
-  /**
-   * Get the offset to the start of the referenced value, given the position of the reference.
-   */
+  /** Get the offset to the start of the referenced value, given the position of the reference. */
   indirect<T extends OffsetConstraint>(offset: number | Offset<T>): Offset<T> {
     return (offset + this.view.getInt32(offset, true)) as Offset<T>
   }
 
-  /**
-   * Get the offset to the start of the vector, given the offset to the entire vector.
-   */
+  /** Get the offset to the start of the vector, given the offset to the entire vector. */
   vector<T extends OffsetConstraint>(offset: number | Offset<T>): Offset<T> {
     return (offset + this.view.getInt32(offset, true) + SIZEOF_INT) as Offset<T> // data starts after the length
   }
 
-  /**
-   * Read the length of the vector, given the offset to the entire vector.
-   */
+  /** Read the length of the vector, given the offset to the entire vector. */
   vectorLength(offset: number | AnyOffset): number {
     return this.view.getInt32(offset + this.view.getInt32(offset, true), true)
   }
@@ -1002,33 +952,25 @@ export class OutboundMessage implements Table {
     )
   }
 
-  /**
-   * Get the `messageId` field of this message.
-   */
+  /** Get the `messageId` field of this message. */
   messageId(obj?: EnsoUUID): EnsoUUID | null {
     const offset = this.bb.offset(this.bbPos, 4)
     return offset ? (obj ?? new EnsoUUID()).init(this.bbPos + offset, this.bb!) : null
   }
 
-  /**
-   * Get the `correlationId` field of this message.
-   */
+  /** Get the `correlationId` field of this message. */
   correlationId(obj?: EnsoUUID): EnsoUUID | null {
     const offset = this.bb.offset(this.bbPos, 6)
     return offset ? (obj ?? new EnsoUUID()).init(this.bbPos + offset, this.bb!) : null
   }
 
-  /**
-   * Get the `payloadType` field of this message.
-   */
+  /** Get the `payloadType` field of this message. */
   payloadType(): OutboundPayload {
     const offset = this.bb.offset(this.bbPos, 8)
     return offset ? this.bb.view.getUint8(this.bbPos + offset) : OutboundPayload.NONE
   }
 
-  /**
-   * Get the `payload` field of this message.
-   */
+  /** Get the `payload` field of this message. */
   payload<T extends Table>(obj: T): T | null {
     const offset = this.bb.offset(this.bbPos, 10)
     // @ts-expect-error This is UNSAFE. Care must be taken to ensure `obj` is
@@ -1036,44 +978,32 @@ export class OutboundMessage implements Table {
     return offset ? this.bb.union(obj, this.bbPos + offset) : null
   }
 
-  /**
-   * Start encoding this struct in the builder.
-   */
+  /** Start encoding this struct in the builder. */
   static startOutboundMessage(builder: Builder) {
     builder.startObject(4)
   }
 
-  /**
-   * Add a `messageId` field to the given builder given its offset.
-   */
+  /** Add a `messageId` field to the given builder given its offset. */
   static addMessageId(builder: Builder, messageIdOffset: Offset<EnsoUUID>) {
     builder.addFieldStruct(0, messageIdOffset, Null)
   }
 
-  /**
-   * Add a `correlationId` field to the given builder given its offset.
-   */
+  /** Add a `correlationId` field to the given builder given its offset. */
   static addCorrelationId(builder: Builder, correlationIdOffset: Offset<EnsoUUID>) {
     builder.addFieldStruct(1, correlationIdOffset, Null)
   }
 
-  /**
-   * Add a `payloadType` field to the given builder given its offset.
-   */
+  /** Add a `payloadType` field to the given builder given its offset. */
   static addPayloadType(builder: Builder, payloadType: OutboundPayload) {
     builder.addFieldInt8(2, payloadType, OutboundPayload.NONE)
   }
 
-  /**
-   * Add a `payload` field to the given builder given its offset.
-   */
+  /** Add a `payload` field to the given builder given its offset. */
   static addPayload(builder: Builder, payloadOffset: Offset<AnyOutboundPayload>) {
     builder.addFieldOffset(3, payloadOffset, Null)
   }
 
-  /**
-   * Finish encoding this struct in the builder.
-   */
+  /** Finish encoding this struct in the builder. */
   static endOutboundMessage(builder: Builder): Offset<OutboundMessage> {
     const offset = builder.endObject<OutboundMessage>()
     builder.requiredField(offset, 4) // messageId
@@ -1081,9 +1011,7 @@ export class OutboundMessage implements Table {
     return offset
   }
 
-  /**
-   * Encode this struct in the builder, given the values of all fields.
-   */
+  /** Encode this struct in the builder, given the values of all fields. */
   static createOutboundMessage(
     builder: Builder,
     createMessageId: CreateOffset<EnsoUUID>,
@@ -1134,9 +1062,7 @@ export class EnsoUUID implements Table {
   }
 }
 
-/**
- * A struct representing a failed operation.
- */
+/** A struct representing a failed operation. */
 export class Error implements Table {
   bb!: ByteBuffer
   bbPos: number = 0
@@ -1158,41 +1084,31 @@ export class Error implements Table {
     return (obj ?? new Error()).init(bb.view.getInt32(bb.position, true) + bb.position, bb)
   }
 
-  /**
-   * Get the `code` field of this message.
-   */
+  /** Get the `code` field of this message. */
   code(): number {
     const offset = this.bb.offset(this.bbPos, 4)
     return offset ? this.bb.view.getInt32(this.bbPos + offset, true) : 0
   }
 
-  /**
-   * Get the `message` field of this message, as an {@link ArrayBuffer}.
-   */
+  /** Get the `message` field of this message, as an {@link ArrayBuffer}. */
   rawMessage(): ArrayBuffer | null {
     const offset = this.bb.offset(this.bbPos, 6)
     return offset ? this.bb.rawMessage(this.bbPos + offset) : null
   }
 
-  /**
-   * Get the `message` field of this message.
-   */
+  /** Get the `message` field of this message. */
   message(): string | null {
     const rawMessage = this.rawMessage()
     return rawMessage ? TEXT_DECODER.decode(rawMessage) : null
   }
 
-  /**
-   * Get the `dataType` field of this message.
-   */
+  /** Get the `dataType` field of this message. */
   dataType(): ErrorPayload {
     const offset = this.bb.offset(this.bbPos, 8)
     return offset ? this.bb.view.getUint8(this.bbPos + offset) : ErrorPayload.NONE
   }
 
-  /**
-   * Get the `data` field of this message.
-   */
+  /** Get the `data` field of this message. */
   data<T extends Table>(obj: T): T | null {
     const offset = this.bb.offset(this.bbPos, 10)
     // @ts-expect-error This is UNSAFE. Care must be taken to ensure the`obj` is

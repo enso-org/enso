@@ -115,9 +115,7 @@ export abstract class Ast {
     return this.fields.get('type')
   }
 
-  /**
-   * Return whether `this` and `other` are the same object, possibly in different modules.
-   */
+  /** Return whether `this` and `other` are the same object, possibly in different modules. */
   is<T extends Ast>(other: T): boolean {
     return this.id === other.id
   }

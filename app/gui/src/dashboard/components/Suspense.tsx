@@ -18,9 +18,7 @@ import * as result from '#/components/Result'
 
 import * as loader from './Loader'
 
-/**
- * Props for {@link Suspense} component.
- */
+/** Props for {@link Suspense} component. */
 export interface SuspenseProps extends React.SuspenseProps {
   readonly loaderProps?: loader.LoaderProps
   readonly offlineFallback?: React.ReactNode

@@ -63,9 +63,7 @@ export class LanguageServerSession {
 
   static DEBUG = false
 
-  /**
-   * Create a {@link LanguageServerSession}.
-   */
+  /** Create a {@link LanguageServerSession}. */
   constructor(url: string) {
     this.clientScope = new AbortScope()
     this.clientId = random.uuidv4() as Uuid
@@ -94,9 +92,7 @@ export class LanguageServerSession {
 
   static sessions = new Map<string, LanguageServerSession>()
 
-  /**
-   * Get a {@link LanguageServerSession} by its URL.
-   */
+  /** Get a {@link LanguageServerSession} by its URL. */
   static get(url: string): LanguageServerSession {
     const session = map.setIfUndefined(
       LanguageServerSession.sessions,
@@ -262,9 +258,7 @@ export class LanguageServerSession {
     await Promise.all(moduleDisposePromises)
   }
 
-  /**
-   * Get a YDoc by its id.
-   */
+  /** Get a YDoc by its id. */
   getYDoc(guid: string): WSSharedDoc | undefined {
     return this.docs.get(guid)
   }

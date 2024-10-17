@@ -1,8 +1,6 @@
 /** @file Functions for manipulating {@link Iterable}s. */
 
-/**
- * An iterable with zero elements.
- */
+/** An iterable with zero elements. */
 export function* empty(): Generator<never> {}
 
 /**
@@ -109,24 +107,18 @@ export function tryGetSoleValue<T>(iter: Iterable<T>): T | undefined {
 export class Resumable<T> {
   private readonly iterator: Iterator<T>
   private current: IteratorResult<T>
-  /**
-   * Create a {@link Resumable}.
-   */
+  /** Create a {@link Resumable}. */
   constructor(iterable: Iterable<T>) {
     this.iterator = iterable[Symbol.iterator]()
     this.current = this.iterator.next()
   }
 
-  /**
-   * The current value of the iterator.
-   */
+  /** The current value of the iterator. */
   peek() {
     return this.current.done ? undefined : this.current.value
   }
 
-  /**
-   * Advance the iterator, saving the new current value of the iterator.
-   */
+  /** Advance the iterator, saving the new current value of the iterator. */
   advance() {
     this.current = this.iterator.next()
   }

@@ -41,9 +41,7 @@ import * as urlAssociations from '@/urlAssociations'
 
 const logger = contentConfig.logger
 
-/**
- * Convert path to proper `file://` URL.
- */
+/** Convert path to proper `file://` URL. */
 function pathToURL(path: string): URL {
   if (process.platform === 'win32') {
     return new URL(encodeURI(`file:///${path.replaceAll('\\', '/')}`))

@@ -42,40 +42,30 @@ export function assertLength<T>(iterable: Iterable<T>, length: number, message?:
   )
 }
 
-/**
- * Assert that an iterable contains zero elements.
- */
+/** Assert that an iterable contains zero elements. */
 export function assertEmpty<T>(iterable: Iterable<T>, message?: string): void {
   assertLength(iterable, 0, message)
 }
 
-/**
- * Assert that two values are equal (by reference for reference types, by value for value types).
- */
+/** Assert that two values are equal (by reference for reference types, by value for value types). */
 export function assertEqual<T>(actual: T, expected: T, message?: string) {
   const messagePrefix = message ? message + ' ' : ''
   assert(actual === expected, `${messagePrefix}Expected ${expected}, got ${actual}.`)
 }
 
-/**
- * Assert that two values are not equal (by reference for reference types, by value for value types).
- */
+/** Assert that two values are not equal (by reference for reference types, by value for value types). */
 export function assertNotEqual<T>(actual: T, unexpected: T, message?: string) {
   const messagePrefix = message ? message + ' ' : ''
   assert(actual !== unexpected, `${messagePrefix}Expected not ${unexpected}, got ${actual}.`)
 }
 
-/**
- * A type assertion that a given value is not `undefined`.
- */
+/** A type assertion that a given value is not `undefined`. */
 export function assertDefined<T>(x: T | undefined, message?: string): asserts x is T {
   const messagePrefix = message ? message + ' ' : ''
   assert(x !== undefined, `${messagePrefix}Expected value to be defined.`)
 }
 
-/**
- * Assert that this case is unreachable.
- */
+/** Assert that this case is unreachable. */
 export function assertUnreachable(): never {
   bail('Unreachable code')
 }

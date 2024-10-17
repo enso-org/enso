@@ -8,9 +8,7 @@ import type { IDataType } from 'hash-wasm/dist/lib/util'
 import { is_ident_or_operator, is_numeric_literal, parse, parse_doc_to_json } from 'rust-ffi'
 
 const xxHasher128 = await createXXHash128()
-/**
- * Return the xxhash hash for the given buffer.
- */
+/** Return the xxhash hash for the given buffer. */
 export function xxHash128(input: IDataType) {
   xxHasher128.init()
   xxHasher128.update(input)

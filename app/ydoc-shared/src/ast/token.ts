@@ -6,16 +6,12 @@ import { isUuid } from '../yjsModel'
 import { is_ident_or_operator } from './ffi'
 import * as RawAst from './generated/ast'
 
-/**
- * Whether the given value is a {@link Token}.
- */
+/** Whether the given value is a {@link Token}. */
 export function isToken(maybeToken: unknown): maybeToken is Token {
   return maybeToken instanceof Token
 }
 
-/**
- * Whether the given {@link NodeChild} is a {@link NodeChild}<{@link Token}>.
- */
+/** Whether the given {@link NodeChild} is a {@link NodeChild}<{@link Token}>. */
 export function isTokenChild(child: NodeChild<unknown>): child is NodeChild<Token> {
   return isToken(child.node)
 }
@@ -34,9 +30,7 @@ export interface SyncTokenId {
   readonly tokenType_: RawAst.Token.Type | undefined
 }
 
-/**
- * A structure representing a lexical source code unit in the AST.
- */
+/** A structure representing a lexical source code unit in the AST. */
 export class Token implements SyncTokenId {
   readonly id: TokenId
   code_: string
@@ -48,45 +42,33 @@ export class Token implements SyncTokenId {
     this.tokenType_ = type
   }
 
-  /**
-   * The id of this token.
-   */
+  /** The id of this token. */
   get externalId(): TokenId {
     return this.id
   }
 
-  /**
-   * Construct a {@link Token} without a {@link TokenId}.
-   */
+  /** Construct a {@link Token} without a {@link TokenId}. */
   static new(code: string, type?: RawAst.Token.Type) {
     return new this(code, type, newTokenId())
   }
 
-  /**
-   * Construct a {@link Token} with a {@link TokenId}.
-   */
+  /** Construct a {@link Token} with a {@link TokenId}. */
   static withId(code: string, type: RawAst.Token.Type | undefined, id: TokenId) {
     assert(isUuid(id))
     return new this(code, type, id)
   }
 
-  /**
-   * Whether one {@link SyncTokenId} is equal to another.
-   */
+  /** Whether one {@link SyncTokenId} is equal to another. */
   static equal(a: SyncTokenId, b: SyncTokenId): boolean {
     return a.tokenType_ === b.tokenType_ && a.code_ === b.code_
   }
 
-  /**
-   * The code represented by this token.
-   */
+  /** The code represented by this token. */
   code(): string {
     return this.code_
   }
 
-  /**
-   * The name of the token type of this token.
-   */
+  /** The name of the token type of this token. */
   typeName(): string {
     if (this.tokenType_) return RawAst.Token.typeNames[this.tokenType_]!
     else return 'Raw'
@@ -163,9 +145,7 @@ export function isTypeOrConsIdentifier(code: string): code is TypeOrConstructorI
   return isIdentifier(code) && code.length > 0 && isUppercase(code[0]!)
 }
 
-/**
- * The code as an {@link Identifier} if it is an {@link Identifier}, else `undefined`.
- */
+/** The code as an {@link Identifier} if it is an {@link Identifier}, else `undefined`. */
 export function identifier(code: string): Identifier | undefined {
   if (isIdentifier(code)) return code
 }

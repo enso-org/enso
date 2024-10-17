@@ -10,18 +10,14 @@ import type { Plan } from '#/services/Backend'
 
 import { DISCOUNT_MULTIPLIER_BY_DURATION, PRICE_BY_PLAN } from '../constants'
 
-/**
- * Options for {@link createSubscriptionPriceQuery}.
- */
+/** Options for {@link createSubscriptionPriceQuery}. */
 export interface SubscriptionPriceQueryOptions {
   readonly plan: Plan
   readonly seats: number
   readonly period: number
 }
 
-/**
- * Creates a query to fetch the subscription price based on the provided parameters.
- */
+/** Creates a query to fetch the subscription price based on the provided parameters. */
 export function createSubscriptionPriceQuery(options: SubscriptionPriceQueryOptions) {
   return queryOptions({
     queryKey: ['getPrice', options] as const,
@@ -44,9 +40,7 @@ export function createSubscriptionPriceQuery(options: SubscriptionPriceQueryOpti
   })
 }
 
-/**
- * Fetches the subscription price based on the provided parameters.
- */
+/** Fetches the subscription price based on the provided parameters. */
 export function useSubscriptionPrice(params: SubscriptionPriceQueryOptions) {
   return useQuery(createSubscriptionPriceQuery(params))
 }

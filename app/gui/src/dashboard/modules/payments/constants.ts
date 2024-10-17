@@ -1,24 +1,18 @@
-/**
- * @file Constants for the subscribe page.
- */
+/** @file Constants for the subscribe page. */
 import type * as text from 'enso-common/src/text'
 
 import * as backendModule from '#/services/Backend'
 
 /* eslint-disable @typescript-eslint/no-magic-numbers, @typescript-eslint/naming-convention */
 
-/**
- * The text id for the plan name.
- */
+/** The text id for the plan name. */
 export const PLAN_TO_TEXT_ID: Readonly<Record<backendModule.Plan, text.TextId>> = {
   [backendModule.Plan.free]: 'freePlanName',
   [backendModule.Plan.solo]: 'soloPlanName',
   [backendModule.Plan.team]: 'teamPlanName',
   [backendModule.Plan.enterprise]: 'enterprisePlanName',
 } satisfies { [Plan in backendModule.Plan]: `${Plan}PlanName` }
-/**
- * The text id for the plan name.
- */
+/** The text id for the plan name. */
 export const PLAN_TO_UPGRADE_LABEL_ID: Readonly<Record<backendModule.Plan, text.TextId>> = {
   [backendModule.Plan.free]: 'freePlanUpgradeLabel',
   [backendModule.Plan.solo]: 'soloPlanUpgradeLabel',

@@ -33,9 +33,7 @@ export function useMergedRef<T>(
       new Proxy(
         { current: null satisfies T | null },
         {
-          /**
-           * Set the value of the ref object and call all the refs.
-           */
+          /** Set the value of the ref object and call all the refs. */
           set(
             target: { current: null },
             p: string | symbol,

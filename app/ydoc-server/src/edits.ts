@@ -41,9 +41,7 @@ interface AppliedUpdates {
   newMetadata: fileFormat.IdeMetadata['node'] | undefined
 }
 
-/**
- * Return an object containing updated versions of relevant fields, given an update payload.
- */
+/** Return an object containing updated versions of relevant fields, given an update payload. */
 export function applyDocumentUpdates(
   doc: ModuleDoc,
   synced: EnsoFileParts,
@@ -184,9 +182,7 @@ export function stupidFastDiff(oldString: string, newString: string): diff.Diff[
     .concat(commonSuffix ? [[0, commonSuffix]] : [])
 }
 
-/**
- * Return a list of text edits describing how to turn one string into another.
- */
+/** Return a list of text edits describing how to turn one string into another. */
 export function applyDiffAsTextEdits(
   lineOffset: number,
   oldString: string,
@@ -240,9 +236,7 @@ export function applyDiffAsTextEdits(
   return edits
 }
 
-/**
- * Pretty print a code diff for display in the terminal using ANSI escapes to control text colors.
- */
+/** Pretty print a code diff for display in the terminal using ANSI escapes to control text colors. */
 export function prettyPrintDiff(from: string, to: string): string {
   const colReset = '\x1b[0m'
   const colRed = '\x1b[31m'

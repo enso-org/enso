@@ -109,9 +109,7 @@ process.on('SIGINT', () => {
   })
 })
 
-/**
- * Starts the electron process with the IDE.
- */
+/** Starts the electron process with the IDE. */
 function startElectronProcess() {
   console.log('Spawning Electron process.')
 

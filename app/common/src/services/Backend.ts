@@ -78,9 +78,7 @@ export type AssetId = IdType[keyof IdType]
 export type CheckoutSessionId = newtype.Newtype<string, 'CheckoutSessionId'>
 export const CheckoutSessionId = newtype.newtypeConstructor<CheckoutSessionId>()
 
-/**
- * Unique identifier for a subscription.
- */
+/** Unique identifier for a subscription. */
 export type SubscriptionId = newtype.Newtype<string, 'SubscriptionId'>
 export const SubscriptionId = newtype.newtypeConstructor<SubscriptionId>()
 
@@ -478,9 +476,7 @@ export interface ResourceUsage {
   readonly storage: number
 }
 
-/**
- * Metadata for a subscription.
- */
+/** Metadata for a subscription. */
 export interface Subscription {
   readonly id?: SubscriptionId
   readonly plan?: Plan
@@ -1366,9 +1362,7 @@ export function extractProjectExtension(name: string) {
   return { basename: basename ?? name, extension: extension ?? '' }
 }
 
-/**
- * Network error class.
- */
+/** Network error class. */
 export class NetworkError extends Error {
   /**
    * Create a new instance of the {@link NetworkError} class.
@@ -1382,9 +1376,7 @@ export class NetworkError extends Error {
     super(message)
   }
 }
-/**
- * Error class for when the user is not authorized to access a resource.
- */
+/** Error class for when the user is not authorized to access a resource. */
 export class NotAuthorizedError extends NetworkError {}
 
 // ===============

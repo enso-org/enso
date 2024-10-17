@@ -9,9 +9,7 @@ import invariant from 'tiny-invariant'
 import type * as types from './types'
 import type { FormInstance, FormInstanceValidated } from './types'
 
-/**
- * Context type for the form provider.
- */
+/** Context type for the form provider. */
 interface FormContextType<Schema extends types.TSchema> {
   readonly form: types.UseFormReturn<Schema>
 }
@@ -20,9 +18,7 @@ interface FormContextType<Schema extends types.TSchema> {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const FormContext = createContext<FormContextType<any> | null>(null)
 
-/**
- * Provides the form instance to the component tree.
- */
+/** Provides the form instance to the component tree. */
 export function FormProvider<Schema extends types.TSchema>(
   props: FormContextType<Schema> & PropsWithChildren,
 ) {
@@ -36,9 +32,7 @@ export function FormProvider<Schema extends types.TSchema>(
   )
 }
 
-/**
- * Returns the form instance from the context.
- */
+/** Returns the form instance from the context. */
 export function useFormContext<Schema extends types.TSchema>(
   form?: FormInstanceValidated<Schema>,
 ): FormInstance<Schema> {
@@ -56,9 +50,7 @@ export function useFormContext<Schema extends types.TSchema>(
   }
 }
 
-/**
- * Returns the form instance from the context, or null if the context is not available.
- */
+/** Returns the form instance from the context, or null if the context is not available. */
 export function useOptionalFormContext<
   Form extends FormInstanceValidated<Schema> | undefined,
   Schema extends types.TSchema,

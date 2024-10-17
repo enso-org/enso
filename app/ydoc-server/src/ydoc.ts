@@ -26,9 +26,7 @@ interface AwarenessUpdate {
 
 type ConnectionId = YjsConnection | string
 
-/**
- * A Yjs document that is shared over multiple websocket connections.
- */
+/** A Yjs document that is shared over multiple websocket connections. */
 export class WSSharedDoc {
   doc: Y.Doc
   /**
@@ -38,9 +36,7 @@ export class WSSharedDoc {
   conns: Map<ConnectionId, Set<number>>
   awareness: Awareness
 
-  /**
-   * Create a {@link WSSharedDoc}.
-   */
+  /** Create a {@link WSSharedDoc}. */
   constructor(gc = true) {
     this.doc = new Y.Doc({ gc })
     // this.name = name
@@ -71,18 +67,14 @@ export class WSSharedDoc {
     this.doc.on('update', (update, origin) => this.updateHandler(update, origin))
   }
 
-  /**
-   * Send a message to all connected clients.
-   */
+  /** Send a message to all connected clients. */
   broadcast(message: Uint8Array) {
     for (const [conn] of this.conns) {
       if (typeof conn !== 'string') conn.send(message)
     }
   }
 
-  /**
-   * Process an update event from the YDoc document.
-   */
+  /** Process an update event from the YDoc document. */
   updateHandler(update: Uint8Array, _origin: any) {
     const encoder = encoding.createEncoder()
     encoding.writeVarUint(encoder, messageSync)

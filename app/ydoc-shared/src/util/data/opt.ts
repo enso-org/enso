@@ -14,16 +14,12 @@
  */
 export type Opt<T> = T | null | undefined
 
-/**
- * Whether the given {@link Opt} is non-nullish.
- */
+/** Whether the given {@link Opt} is non-nullish. */
 export function isSome<T>(value: Opt<T>): value is T {
   return value != null
 }
 
-/**
- * Whether the given {@link Opt} is nullish.
- */
+/** Whether the given {@link Opt} is nullish. */
 export function isNone(value: Opt<any>): value is null | undefined {
   return value == null
 }

@@ -87,16 +87,12 @@ const RemoteRpcErrorSchema = z.object({
 })
 type RemoteRpcErrorParsed = z.infer<typeof RemoteRpcErrorSchema>
 
-/**
- * Payload for a {@linnk LsRpcError}.
- */
+/** Payload for a {@linnk LsRpcError}. */
 export class RemoteRpcError {
   code: ErrorCode
   message: string
   data?: any
-  /**
-   * Create a {@link RemoteRpcError}.
-   */
+  /** Create a {@link RemoteRpcError}. */
   constructor(error: RemoteRpcErrorParsed) {
     this.code = error.code
     this.message = error.message
@@ -104,25 +100,19 @@ export class RemoteRpcError {
   }
 }
 
-/**
- * An error executing a request from the {@link LanguageServer}.
- */
+/** An error executing a request from the {@link LanguageServer}. */
 export class LsRpcError {
   cause: RemoteRpcError | Error | string
   request: string
   params: object
-  /**
-   * Create an {@link LsRpcError}.
-   */
+  /** Create an {@link LsRpcError}. */
   constructor(cause: RemoteRpcError | Error | string, request: string, params: object) {
     this.cause = cause
     this.request = request
     this.params = params
   }
 
-  /**
-   * Get a human-readable string representation of this error.
-   */
+  /** Get a human-readable string representation of this error. */
   toString() {
     return `Language Server request '${this.request}' failed: ${this.cause instanceof RemoteRpcError ? this.cause.message : this.cause}`
   }
@@ -155,9 +145,7 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
   private retainCount = 1
   debug = false
 
-  /**
-   * Create a {@link LanguageServer}.
-   */
+  /** Create a {@link LanguageServer}. */
   constructor(
     private clientID: Uuid,
     private transport: ReconnectingWebSocketTransport,
@@ -224,23 +212,17 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
     return this.initialized
   }
 
-  /**
-   * Whether this {@link LanguageServer} has been disposed and therefore is no longer usable.
-   */
+  /** Whether this {@link LanguageServer} has been disposed and therefore is no longer usable. */
   get isDisposed() {
     return this.retainCount === 0
   }
 
-  /**
-   * The {@link ContentRoot}s of this {@link LanguageServer}.
-   */
+  /** The {@link ContentRoot}s of this {@link LanguageServer}. */
   get contentRoots(): Promise<ContentRoot[]> {
     return this.initialized.then(result => (result.ok ? result.value.contentRoots : []))
   }
 
-  /**
-   * Reconnect the underlying network transport.
-   */
+  /** Reconnect the underlying network transport. */
   reconnect() {
     this.transport.reconnect()
   }
@@ -593,9 +575,7 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
     this.retainCount += 1
   }
 
-  /**
-   * Disable automatic reconnection of the underlying network transport.
-   */
+  /** Disable automatic reconnection of the underlying network transport. */
   stopReconnecting() {
     this.shouldReconnect = false
   }
@@ -624,9 +604,7 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
   }
 }
 
-/**
- * Compute the SHA3 checksum of the given text.
- */
+/** Compute the SHA3 checksum of the given text. */
 export function computeTextChecksum(text: string): Checksum {
   return bytesToHex(SHA3.create().update(text).digest()) as Checksum
 }

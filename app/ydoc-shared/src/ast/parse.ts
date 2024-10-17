@@ -96,9 +96,7 @@ export function abstract(
   code: string,
   substitutor?: (key: NodeKey) => Owned | undefined,
 ): { root: Owned; spans: SpanMap; toRaw: Map<AstId, RawAst.Tree> }
-/**
- * Implementation of `abstract`.
- */
+/** Implementation of `abstract`. */
 export function abstract(
   module: MutableModule,
   tree: RawAst.Tree,

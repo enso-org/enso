@@ -102,46 +102,30 @@ export interface MethodCall {
 
 export type ExpressionUpdatePayload = Value | DataflowError | Panic | Pending
 
-/**
- * Indicates that the expression was computed to a value.
- */
+/** Indicates that the expression was computed to a value. */
 export interface Value {
   type: 'Value'
-  /**
-   * Information about attached warnings.
-   */
+  /** Information about attached warnings. */
   warnings?: Warnings
 
-  /**
-   * The schema of returned function value.
-   */
+  /** The schema of returned function value. */
   functionSchema?: FunctionSchema
 }
 
-/**
- * Indicates that the expression was computed to an error.
- */
+/** Indicates that the expression was computed to an error. */
 export interface DataflowError {
   type: 'DataflowError'
-  /**
-   * The list of expressions leading to the root error.
-   */
+  /** The list of expressions leading to the root error. */
   trace: ExpressionId[]
 }
 
-/**
- * Indicates that the expression failed with the runtime exception.
- */
+/** Indicates that the expression failed with the runtime exception. */
 export interface Panic {
   type: 'Panic'
-  /**
-   * The error message.
-   */
+  /** The error message. */
   message: string
 
-  /**
-   * The stack trace.
-   */
+  /** The stack trace. */
   trace: ExpressionId[]
 }
 
@@ -157,9 +141,7 @@ export interface Pending {
   progress?: number
 }
 
-/**
- * Information about warnings associated with the value.
- */
+/** Information about warnings associated with the value. */
 export interface Warnings {
   /** The number of attached warnings. */
   count: number
@@ -191,9 +173,7 @@ export interface MethodPointer {
   name: string
 }
 
-/**
- * Whether one {@link MethodPointer} deeply equals another.
- */
+/** Whether one {@link MethodPointer} deeply equals another. */
 export function methodPointerEquals(left: MethodPointer, right: MethodPointer): boolean {
   return (
     left.module === right.module &&
@@ -391,18 +371,14 @@ export interface LocalCall {
   expressionId: ExpressionId
 }
 
-/**
- * Serialize a {@link MethodPointer}.
- */
+/** Serialize a {@link MethodPointer}. */
 export function encodeMethodPointer(enc: encoding.Encoder, ptr: MethodPointer) {
   encoding.writeVarString(enc, ptr.module)
   encoding.writeVarString(enc, ptr.name)
   encoding.writeVarString(enc, ptr.definedOnType)
 }
 
-/**
- * Whether one {@link StackItem} is deeply equal to another.
- */
+/** Whether one {@link StackItem} is deeply equal to another. */
 export function stackItemsEqual(left: StackItem, right: StackItem): boolean {
   if (left.type !== right.type) return false
 

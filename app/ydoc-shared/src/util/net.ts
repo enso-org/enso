@@ -17,28 +17,20 @@ interface Disposable {
   dispose(): void
 }
 
-/**
- * A scope which controls
- */
+/** A scope which controls */
 export class AbortScope {
   private ctrl: AbortController = new AbortController()
-  /**
-   * Get the {@link AbortSignal} for this {@link AbortScope}.
-   */
+  /** Get the {@link AbortSignal} for this {@link AbortScope}. */
   get signal() {
     return this.ctrl.signal
   }
 
-  /**
-   * Trigger an abort for all listeners of this {@link AbortScope}.
-   */
+  /** Trigger an abort for all listeners of this {@link AbortScope}. */
   dispose(reason?: string) {
     this.ctrl.abort(reason)
   }
 
-  /**
-   * Trigger disposal of the given {@link Disposable} when this {@link AbortScope} is aborted.
-   */
+  /** Trigger disposal of the given {@link Disposable} when this {@link AbortScope} is aborted. */
   handleDispose(disposable: Disposable) {
     this.signal.throwIfAborted()
     this.onAbort(disposable.dispose.bind(disposable))
@@ -54,9 +46,7 @@ export class AbortScope {
     return child
   }
 
-  /**
-   * Call the given callback when this {@link AbortScope} is aborted.
-   */
+  /** Call the given callback when this {@link AbortScope} is aborted. */
   onAbort(listener: () => void) {
     if (this.signal.aborted) {
       queueMicrotask(listener)
@@ -155,9 +145,7 @@ export async function exponentialBackoff<T, E>(
   }
 }
 
-/**
- * An `onBeforeRetry` handler used in {@link printingCallbacks} that logs an error.
- */
+/** An `onBeforeRetry` handler used in {@link printingCallbacks} that logs an error. */
 export function defaultOnBeforeRetry(
   description: string,
 ): NonNullable<BackoffOptions<any>['onBeforeRetry']> {
@@ -171,9 +159,7 @@ export function defaultOnBeforeRetry(
   }
 }
 
-/**
- * An `onFailure` handler used in {@link printingCallbacks} that logs an error.
- */
+/** An `onFailure` handler used in {@link printingCallbacks} that logs an error. */
 export function defaultOnFailure(
   description: string,
 ): NonNullable<BackoffOptions<any>['onFailure']> {
@@ -185,9 +171,7 @@ export function defaultOnFailure(
   }
 }
 
-/**
- * An `onSuccess` handler used in {@link printingCallbacks} that logs a message.
- */
+/** An `onSuccess` handler used in {@link printingCallbacks} that logs a message. */
 export function defaultOnSuccess(
   description: string,
 ): NonNullable<BackoffOptions<any>['onSuccess']> {
