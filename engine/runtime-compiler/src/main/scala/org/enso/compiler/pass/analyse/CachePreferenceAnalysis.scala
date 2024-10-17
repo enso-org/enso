@@ -25,12 +25,8 @@ import java.util.UUID
 
 /** This pass implements the preference analysis for caching.
   *
-  * The pass assigns weights to the expressions. The greater the weight, the
-  * more preferable the expression for caching.
-  *
-  * Weights:
-  *
-  *   - `1` - Right hand side expressions
+  * The pass assigns preferences to the expressions. To mark the expression for
+  * caching, it should be added to the [[CachePreferences]] configuration.
   */
 case object CachePreferenceAnalysis extends IRPass {
 
