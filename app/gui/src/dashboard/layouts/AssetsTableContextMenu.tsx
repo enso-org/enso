@@ -4,15 +4,28 @@
  */
 import * as React from 'react'
 
+import { useStore } from 'zustand'
+
+import { uniqueString } from 'enso-common/src/utilities/uniqueString'
+
 import * as authProvider from '#/providers/AuthProvider'
-import { usePasteData, useSelectedKeys, useSetSelectedKeys } from '#/providers/DriveProvider'
+import {
+  useDriveStore,
+  usePasteData,
+  useSelectedKeys,
+  useSetSelectedKeys,
+} from '#/providers/DriveProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import AssetEventType from '#/events/AssetEventType'
 
 import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
-import { type Category, isCloudCategory } from '#/layouts/CategorySwitcher/Category'
+import {
+  canTransferBetweenCategories,
+  type Category,
+  isCloudCategory,
+} from '#/layouts/CategorySwitcher/Category'
 import GlobalContextMenu from '#/layouts/GlobalContextMenu'
 
 import ContextMenu from '#/components/ContextMenu'
@@ -27,7 +40,6 @@ import * as backendModule from '#/services/Backend'
 import type * as assetTreeNode from '#/utilities/AssetTreeNode'
 import * as permissions from '#/utilities/permissions'
 import { EMPTY_SET } from '#/utilities/set'
-import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 
 // =================
 // === Constants ===
@@ -68,6 +80,17 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const selectedKeys = useSelectedKeys()
   const setSelectedKeys = useSetSelectedKeys()
+  const driveStore = useDriveStore()
+  const hasPasteData = useStore(driveStore, ({ pasteData }) => {
+    const effectivePasteData =
+      (
+        pasteData?.data.backendType === backend.type &&
+        canTransferBetweenCategories(pasteData.data.category, category)
+      ) ?
+        pasteData
+      : null
+    return (effectivePasteData?.data.ids.size ?? 0) > 0
+  })
 
   // This works because all items are mutated, ensuring their value stays
   // up to date.
@@ -115,6 +138,24 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
     }
   }
 
+  const pasteAllMenuEntry = hasPasteData && (
+    <ContextMenuEntry
+      hidden={hidden}
+      action="paste"
+      label={getText('pasteAllShortcut')}
+      doAction={() => {
+        const [firstKey] = selectedKeys
+        const selectedNode =
+          selectedKeys.size === 1 && firstKey != null ? nodeMapRef.current.get(firstKey) : null
+        if (selectedNode?.type === backendModule.AssetType.directory) {
+          doPaste(selectedNode.key, selectedNode.item.id)
+        } else {
+          doPaste(rootDirectoryId, rootDirectoryId)
+        }
+      }}
+    />
+  )
+
   if (category.type === 'trash') {
     return (
       selectedKeys.size !== 0 && (
@@ -160,6 +201,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
                 }}
               />
             )}
+            {pasteAllMenuEntry}
           </ContextMenu>
         </ContextMenus>
       )
@@ -169,9 +211,9 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   } else {
     return (
       <ContextMenus key={uniqueString()} hidden={hidden} event={event}>
-        {selectedKeys.size !== 0 && (
+        {(selectedKeys.size !== 0 || pasteAllMenuEntry !== false) && (
           <ContextMenu aria-label={getText('assetsTableContextMenuLabel')} hidden={hidden}>
-            {ownsAllSelectedAssets && (
+            {selectedKeys.size !== 0 && ownsAllSelectedAssets && (
               <ContextMenuEntry
                 hidden={hidden}
                 action="delete"
@@ -179,7 +221,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
                 doAction={doDeleteAll}
               />
             )}
-            {isCloud && (
+            {selectedKeys.size !== 0 && isCloud && (
               <ContextMenuEntry
                 hidden={hidden}
                 action="copy"
@@ -187,7 +229,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
                 doAction={doCopy}
               />
             )}
-            {ownsAllSelectedAssets && (
+            {selectedKeys.size !== 0 && ownsAllSelectedAssets && (
               <ContextMenuEntry
                 hidden={hidden}
                 action="cut"
@@ -195,25 +237,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
                 doAction={doCut}
               />
             )}
-            {pasteData != null && pasteData.data.size > 0 && (
-              <ContextMenuEntry
-                hidden={hidden}
-                action="paste"
-                label={getText('pasteAllShortcut')}
-                doAction={() => {
-                  const [firstKey] = selectedKeys
-                  const selectedNode =
-                    selectedKeys.size === 1 && firstKey != null ?
-                      nodeMapRef.current.get(firstKey)
-                    : null
-                  if (selectedNode?.type === backendModule.AssetType.directory) {
-                    doPaste(selectedNode.key, selectedNode.item.id)
-                  } else {
-                    doPaste(rootDirectoryId, rootDirectoryId)
-                  }
-                }}
-              />
-            )}
+            {pasteAllMenuEntry}
           </ContextMenu>
         )}
         {(category.type !== 'cloud' ||

@@ -44,7 +44,10 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
   const filesInputRef = React.useRef<HTMLInputElement>(null)
   const isCloud = backend.type === backendModule.BackendType.remote
   const driveStore = useDriveStore()
-  const hasPasteData = useStore(driveStore, (storeState) => storeState.pasteData != null)
+  const hasPasteData = useStore(
+    driveStore,
+    (storeState) => (storeState.pasteData?.data.ids.size ?? 0) > 0,
+  )
 
   return (
     <ContextMenu aria-label={getText('globalContextMenuLabel')} hidden={hidden}>

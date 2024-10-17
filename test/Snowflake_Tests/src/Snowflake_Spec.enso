@@ -26,6 +26,7 @@ import enso_dev.Table_Tests
 import enso_dev.Table_Tests.Database.Common.Audit_Spec
 import enso_dev.Table_Tests.Database.Common.Common_Spec
 import enso_dev.Table_Tests.Database.Common.IR_Spec
+import enso_dev.Table_Tests.Database.Common.Save_Connection_Data_Link
 import enso_dev.Table_Tests.Database.Transaction_Spec
 import enso_dev.Table_Tests.Database.Upload_Spec
 import enso_dev.Table_Tests.Database.Helpers.Name_Generator
@@ -604,10 +605,12 @@ add_table_specs suite_builder =
             db_name = connection_details.database
             connection_builder = _ -> Database.connect connection_details
             add_snowflake_specs suite_builder connection_builder db_name
-            Transaction_Spec.add_specs suite_builder connection_builder "[Snowflake] "
+            prefix = "[Snowflake] "
+            Transaction_Spec.add_specs suite_builder connection_builder prefix
 
             data_link_file = Temporary_Data_Link_File.make connection_details
-            Audit_Spec.add_specs suite_builder "[Snowflake] " data_link_file.get database_pending=Nothing
+            Audit_Spec.add_specs suite_builder prefix data_link_file.get database_pending=Nothing
+            Save_Connection_Data_Link.add_specs suite_builder prefix connection_details pending=Nothing
 
             suite_builder.group "[Snowflake] Secrets in connection settings" group_builder->
                 cloud_setup = Cloud_Tests_Setup.prepare

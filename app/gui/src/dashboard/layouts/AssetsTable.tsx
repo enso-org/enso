@@ -65,8 +65,10 @@ import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 import AssetsTableContextMenu from '#/layouts/AssetsTableContextMenu'
 import {
+  canTransferBetweenCategories,
   CATEGORY_TO_FILTER_BY,
   isLocalCategory,
+  useTransferBetweenCategories,
   type Category,
 } from '#/layouts/CategorySwitcher/Category'
 import DragModal from '#/modals/DragModal'
@@ -1121,7 +1123,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           if (pasteData == null) {
             return false
           } else {
-            dispatchAssetEvent({ type: AssetEventType.cancelCut, ids: pasteData.data })
+            dispatchAssetEvent({ type: AssetEventType.cancelCut, ids: pasteData.data.ids })
             setPasteData(null)
             return
           }
@@ -2105,47 +2107,56 @@ export default function AssetsTable(props: AssetsTableProps) {
   const doCopy = useEventCallback(() => {
     unsetModal()
     const { selectedKeys } = driveStore.getState()
-    setPasteData({ type: 'copy', data: selectedKeys })
+    setPasteData({
+      type: 'copy',
+      data: { backendType: backend.type, category, ids: selectedKeys },
+    })
   })
 
   const doCut = useEventCallback(() => {
     unsetModal()
-    const pasteData = getPasteData()
+    const { selectedKeys, pasteData } = driveStore.getState()
     if (pasteData != null) {
-      dispatchAssetEvent({ type: AssetEventType.cancelCut, ids: pasteData.data })
+      dispatchAssetEvent({ type: AssetEventType.cancelCut, ids: pasteData.data.ids })
     }
-    const { selectedKeys } = driveStore.getState()
-    setPasteData({ type: 'move', data: selectedKeys })
+    setPasteData({
+      type: 'move',
+      data: { backendType: backend.type, category, ids: selectedKeys },
+    })
     dispatchAssetEvent({ type: AssetEventType.cut, ids: selectedKeys })
     setSelectedKeys(EMPTY_SET)
   })
 
-  const cutAndPaste = useCutAndPaste()
+  const transferBetweenCategories = useTransferBetweenCategories(category)
   const doPaste = useEventCallback((newParentKey: DirectoryId, newParentId: DirectoryId) => {
     unsetModal()
-    const pasteData = getPasteData()
-    if (pasteData) {
-      if (pasteData.data.has(newParentKey)) {
+    const { pasteData } = driveStore.getState()
+    if (
+      pasteData?.data.backendType === backend.type &&
+      canTransferBetweenCategories(pasteData.data.category, category)
+    ) {
+      if (pasteData.data.ids.has(newParentKey)) {
         toast.error('Cannot paste a folder into itself.')
       } else {
         doToggleDirectoryExpansion(newParentId, newParentKey, true)
-        switch (pasteData.type) {
-          case 'copy': {
-            const assets = Array.from(pasteData.data, (id) => nodeMapRef.current.get(id)).flatMap(
-              (asset) => (asset ? [asset.item] : []),
-            )
-            dispatchAssetListEvent({
-              type: AssetListEventType.copy,
-              items: assets,
-              newParentId,
-              newParentKey,
-            })
-            break
-          }
-          case 'move': {
-            cutAndPaste(newParentKey, newParentId, [...pasteData.data], nodeMapRef.current)
-            break
-          }
+        if (pasteData.type === 'copy') {
+          const assets = Array.from(pasteData.data.ids, (id) => nodeMapRef.current.get(id)).flatMap(
+            (asset) => (asset ? [asset.item] : []),
+          )
+          dispatchAssetListEvent({
+            type: AssetListEventType.copy,
+            items: assets,
+            newParentId,
+            newParentKey,
+          })
+        } else {
+          transferBetweenCategories(
+            pasteData.data.category,
+            category,
+            pasteData.data.ids,
+            newParentKey,
+            newParentId,
+          )
         }
         setPasteData(null)
       }

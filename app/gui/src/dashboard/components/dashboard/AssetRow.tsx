@@ -206,7 +206,7 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
 
   const outerVisibility = visibilities.get(item.key)
   const insertionVisibility = useStore(driveStore, (driveState) =>
-    driveState.pasteData?.type === 'move' && driveState.pasteData.data.has(item.key) === true ?
+    driveState.pasteData?.type === 'move' && driveState.pasteData.data.ids.has(item.key) ?
       Visibility.faded
     : Visibility.visible,
   )
