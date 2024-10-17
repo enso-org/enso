@@ -2,7 +2,6 @@ package org.enso.interpreter.runtime.error;
 
 import static org.enso.interpreter.runtime.error.PanicException.handleExceptionMessage;
 
-import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.TruffleStackTrace;
 import com.oracle.truffle.api.TruffleStackTraceElement;
@@ -58,9 +57,6 @@ public final class DataflowError extends AbstractTruffleException implements Ens
     assert payload != null;
     var ensoCtx = EnsoContext.get(location);
     var dataflowStacktraceCtx = ensoCtx.getBuiltins().context().getDataflowStackTrace();
-    // dataflowStacktraceCtx is a compiler constant, because it is a constructor of a builtin
-    // type.
-    CompilerAsserts.partialEvaluationConstant(dataflowStacktraceCtx);
     boolean attachFullStackTrace =
         state == null
             || hasContextEnabledNode.executeHasContextEnabled(
