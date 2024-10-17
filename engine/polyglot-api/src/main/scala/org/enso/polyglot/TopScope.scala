@@ -34,7 +34,11 @@ class TopScope(private val value: Value) {
     value.invokeMember(UNREGISTER_MODULE, qualifiedName): Unit
   }
 
-  def compile(shouldCompileDependencies: Boolean): Unit = {
-    value.invokeMember(COMPILE, shouldCompileDependencies)
+  def compile(
+    shouldCompileDependencies: Boolean,
+    generateDocs: Boolean = false
+  ): Unit = {
+    value.invokeMember(COMPILE, shouldCompileDependencies, generateDocs)
   }
+
 }

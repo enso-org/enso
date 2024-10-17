@@ -21,7 +21,6 @@ case class ModuleContext(
   compilerConfig: CompilerConfig,
   freshNameSupply: Option[FreshNameSupply]     = None,
   passConfiguration: Option[PassConfiguration] = None,
-  isGeneratingDocs: Boolean                    = false,
   pkgRepo: Option[PackageRepository]           = None
 ) {
   def isSynthetic(): Boolean          = module.isSynthetic()
