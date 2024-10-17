@@ -6,25 +6,15 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-public class CachePreferences {
+public record CachePreferences(Map<UUID, Kind> preferences) {
 
-  private final Map<UUID, Kind> preferences;
-
-  private CachePreferences(Map<UUID, Kind> preferences) {
-    this.preferences = preferences;
-  }
-
-  public CachePreferences() {
-    this.preferences = new HashMap<>();
+  public static CachePreferences empty() {
+    return new CachePreferences(new HashMap<>());
   }
 
   public enum Kind {
     BINDING_EXPRESSION,
     SELF_ARGUMENT
-  }
-
-  public Map<UUID, Kind> getValues() {
-    return preferences;
   }
 
   public Kind get(UUID id) {

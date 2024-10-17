@@ -20,7 +20,7 @@ public final class RuntimeCache implements java.util.function.Function<String, O
   private final Map<UUID, Reference<Object>> expressions = new HashMap<>();
   private final Map<UUID, String> types = new HashMap<>();
   private final Map<UUID, ExecutionService.FunctionCallInfo> calls = new HashMap<>();
-  private CachePreferences preferences = new CachePreferences();
+  private CachePreferences preferences = CachePreferences.empty();
   private Consumer<UUID> observer;
 
   /**

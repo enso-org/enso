@@ -167,7 +167,7 @@ public class RuntimeCacheTest {
   }
 
   private static CachePreferences of(UUID key, CachePreferences.Kind value) {
-    var preferences = new CachePreferences();
+    var preferences = CachePreferences.empty();
     preferences.set(key, value);
     return preferences;
   }
