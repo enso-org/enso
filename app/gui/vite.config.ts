@@ -1,5 +1,3 @@
-/// <reference types="histoire" />
-
 import react from '@vitejs/plugin-react'
 import vue from '@vitejs/plugin-vue'
 import { COOP_COEP_CORP_HEADERS } from 'enso-common'
@@ -15,8 +13,7 @@ import tailwindConfig from './tailwind.config'
 
 const dynHostnameWsUrl = (port: number) => JSON.stringify(`ws://__HOSTNAME__:${port}`)
 const projectManagerUrl = dynHostnameWsUrl(process.env.E2E === 'true' ? 30536 : 30535)
-const IS_CLOUD_BUILD = process.env.CLOUD_BUILD === 'true'
-const YDOC_SERVER_URL =
+const ydocServerUrl =
   process.env.ENSO_POLYGLOT_YDOC_SERVER ? JSON.stringify(process.env.ENSO_POLYGLOT_YDOC_SERVER)
   : process.env.NODE_ENV === 'development' ? dynHostnameWsUrl(5976)
   : undefined
@@ -28,13 +25,18 @@ const entrypoint =
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  root: fileURLToPath(new URL('.', import.meta.url)),
   cacheDir: fileURLToPath(new URL('../../node_modules/.cache/vite', import.meta.url)),
-  publicDir: fileURLToPath(new URL('./public', import.meta.url)),
-  envDir: fileURLToPath(new URL('.', import.meta.url)),
   plugins: [
     wasm(),
-    ...(process.env.NODE_ENV === 'development' ? [await VueDevTools()] : []),
+    ...(process.env.NODE_ENV === 'development' ?
+      [
+        await VueDevTools(),
+        react({
+          include: fileURLToPath(new URL('../dashboard/**/*.tsx', import.meta.url)),
+          babel: { plugins: ['@babel/plugin-syntax-import-attributes'] },
+        }),
+      ]
+    : []),
     vue({
       customElement: ['**/components/visualizations/**', '**/components/shared/**'],
       template: {
@@ -57,7 +59,7 @@ export default defineConfig({
     ...(process.env.GUI_HOSTNAME ? { host: process.env.GUI_HOSTNAME } : {}),
   },
   resolve: {
-    conditions: ['source'],
+    conditions: process.env.NODE_ENV === 'development' ? ['source'] : [],
     alias: {
       '/src/entrypoint.ts': fileURLToPath(new URL(entrypoint, import.meta.url)),
       shared: fileURLToPath(new URL('./shared', import.meta.url)),
@@ -67,9 +69,8 @@ export default defineConfig({
   },
   define: {
     ...getDefines(),
-    IS_CLOUD_BUILD: JSON.stringify(IS_CLOUD_BUILD),
-    PROJECT_MANAGER_URL: projectManagerUrl,
-    YDOC_SERVER_URL: YDOC_SERVER_URL,
+    'process.env.PROJECT_MANAGER_URL': projectManagerUrl,
+    'process.env.YDOC_SERVER_URL': ydocServerUrl,
     'import.meta.vitest': false,
     // Single hardcoded usage of `global` in aws-amplify.
     'global.TYPED_ARRAY_SUPPORT': true,
@@ -86,9 +87,17 @@ export default defineConfig({
       plugins: [tailwindcssNesting(postcssNesting()), tailwindcss(tailwindConfig)],
     },
   },
+  logLevel: 'info',
   build: {
     // dashboard chunk size is larger than the default warning limit
     chunkSizeWarningLimit: 700,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          config: ['enso-common/src/config'],
+        },
+      },
+    },
   },
 })
 async function projectManagerShim(): Promise<Plugin> {
@@ -96,6 +105,9 @@ async function projectManagerShim(): Promise<Plugin> {
   return {
     name: 'project-manager-shim',
     configureServer(server) {
+      server.middlewares.use(module.default)
+    },
+    configurePreviewServer(server) {
       server.middlewares.use(module.default)
     },
   }

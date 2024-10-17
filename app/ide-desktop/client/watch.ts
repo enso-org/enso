@@ -1,11 +1,13 @@
-/** @file This script is for watching the whole IDE and spawning the electron process.
+/**
+ * @file This script is for watching the whole IDE and spawning the electron process.
  *
  * It sets up watchers for the client and content, and spawns the electron process with the IDE.
  * The spawned electron process can then use its refresh capability to pull the latest changes
  * from the watchers.
  *
  * If the electron app is closed, the script will restart it, allowing to test the IDE setup.
- * To stop, use Ctrl+C. */
+ * To stop, use Ctrl+C.
+ */
 import * as childProcess from 'node:child_process'
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
@@ -36,7 +38,6 @@ const PROJECT_MANAGER_BUNDLE_PATH = paths.getProjectManagerBundlePath()
 // === Watch ===
 // =============
 
-// @ts-expect-error This is the only place where an environment variable should be written to.
 process.env.ELECTRON_DEV_MODE = 'true'
 console.log('Cleaning IDE dist directory.')
 await fs.rm(IDE_DIR_PATH, { recursive: true, force: true })

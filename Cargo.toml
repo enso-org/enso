@@ -1,27 +1,28 @@
 [workspace]
 resolver = "2"
-# Listing only the "root" crates of each app/library. All path dependencies are included in the workspace automatically.
-# If you want to add sub crate (like `app/gui/config` or `lib/rust/ensogl/examples`), just add it as a path dependency
-# where plausible.
-# Any GUI functionality that is not used by the main entry point should be defined somewhere with `examples` in the
-# path, e.g. `lib/rust/ensogl/examples`, or `app/gui/view/examples`; this is used to optimize the application for
-# loading the IDE.
 members = [
     "app/rust-ffi",
-    "build/cli",
-    "build/ci-gen",
-    "build/cli",
-    "build/install",
-    "build/install/config",
-    "build/install/installer",
-    "build/install/uninstaller",
-    "lib/rust/*",
+    "build_tools/cli",
+    "build_tools/macros/lib",
+    "build_tools/ci-gen",
+    "build_tools/cli",
+    "build_tools/install",
+    "build_tools/install/config",
+    "build_tools/install/installer",
+    "build_tools/install/uninstaller",
+    "lib/rust/launcher-shims",
+    "lib/rust/macro-utils",
+    "lib/rust/metamodel",
     "lib/rust/parser/doc-parser",
     "lib/rust/parser/src/syntax/tree/visitor",
     "lib/rust/parser/jni",
     "lib/rust/parser/generate-java",
     "lib/rust/parser/schema",
     "lib/rust/parser/debug",
+    "lib/rust/prelude",
+    "lib/rust/prelude/macros",
+    "lib/rust/reflect",
+    "lib/rust/zst",
     "lib/rust/parser/debug/fuzz",
     "tools/language-server/logstat",
     "tools/language-server/wstest",
@@ -120,7 +121,7 @@ tokio-util = { version = "0.7.10", features = ["full"] }
 tracing = { version = "0.1.40" }
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 walkdir = { version = "2.5.0" }
-wasm-bindgen = { version = "0.2.92", default-features = false }
+wasm-bindgen = { version = "0.2.93", default-features = false }
 wasm-bindgen-test = { version = "0.3.34" }
 windows = { version = "0.52.0", features = ["Win32_UI", "Win32_UI_Shell", "Win32_System_LibraryLoader", "Win32_System_Com"] }
 winreg = { version = "0.52.0" }

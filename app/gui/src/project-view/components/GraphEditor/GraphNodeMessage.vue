@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
-import type { Icon } from '@/util/iconName'
+import type { Icon } from '@/util/iconMetadata/iconName'
 
 const props = defineProps<{
   message: string

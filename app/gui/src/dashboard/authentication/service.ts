@@ -178,15 +178,15 @@ function loadAmplifyConfig(
     setDeepLinkHandler(logger, navigate)
   }
 
-  const redirectUrl = process.env.ENSO_CLOUD_REDIRECT ?? window.location.origin
+  const redirectUrl = $config.REDIRECT ?? window.location.origin
 
   /** Load the platform-specific Amplify configuration. */
   const signInOutRedirect = supportsDeepLinks ? `${common.DEEP_LINK_SCHEME}://auth` : redirectUrl
   return {
-    userPoolId: process.env.ENSO_CLOUD_COGNITO_USER_POOL_ID,
-    userPoolWebClientId: process.env.ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID,
-    domain: process.env.ENSO_CLOUD_COGNITO_DOMAIN,
-    region: process.env.ENSO_CLOUD_COGNITO_REGION,
+    userPoolId: $config.COGNITO_USER_POOL_ID ?? '',
+    userPoolWebClientId: $config.COGNITO_USER_POOL_WEB_CLIENT_ID ?? '',
+    domain: $config.COGNITO_DOMAIN ?? '',
+    region: $config.COGNITO_REGION ?? '',
     redirectSignIn: signInOutRedirect,
     redirectSignOut: signInOutRedirect,
     scope: ['email', 'openid', 'aws.cognito.signin.user.admin'],

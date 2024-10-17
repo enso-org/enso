@@ -1,4 +1,5 @@
-/** @file This script signs the content of all archives that we have for macOS.
+/**
+ * @file This script signs the content of all archives that we have for macOS.
  * For this to work this needs to run on macOS with `codesign`, and a JDK installed.
  * `codesign` is needed to sign the files, while the JDK is needed for correct packing
  * and unpacking of java archives.
@@ -11,7 +12,8 @@
  * This code is based on https://github.com/electron/electron-osx-sign/pull/231
  * but our use-case is unlikely to be supported by `electron-osx-sign`
  * as it adds a java toolchain as additional dependency.
- * This script should be removed once the engine is signed. */
+ * This script should be removed once the engine is signed.
+ */
 
 import * as childProcess from 'node:child_process'
 import * as fs from 'node:fs/promises'
@@ -138,8 +140,10 @@ async function ensoPackageSignables(resourcesDir: string): Promise<Signable[]> {
 
 /** Information we need to sign a given binary. */
 interface SigningContext {
-  /** A digital identity that is stored in a keychain that is on the calling user's keychain
-   * search list. We rely on this already being set up by the Electron Builder. */
+  /**
+   * A digital identity that is stored in a keychain that is on the calling user's keychain
+   * search list. We rely on this already being set up by the Electron Builder.
+   */
   readonly identity: string
   /** Path to the entitlements file. */
   readonly entitlements: string
@@ -160,9 +164,11 @@ function run(cmd: string, args: string[], cwd?: string) {
   return childProcess.execFileSync(cmd, args, { cwd }).toString()
 }
 
-/** Archive with some binaries that we want to sign.
+/**
+ * Archive with some binaries that we want to sign.
  *
- * Can be either a zip or a jar file. */
+ * Can be either a zip or a jar file.
+ */
 class ArchiveToSign implements Signable {
   /** Looks up for archives to sign using the given path patterns. */
   static lookupMany = lookupManyHelper(ArchiveToSign.lookup.bind(this))
@@ -171,8 +177,10 @@ class ArchiveToSign implements Signable {
   constructor(
     /** An absolute path to the archive. */
     public path: string,
-    /** A list of patterns for files to sign inside the archive.
-     * Relative to the root of the archive. */
+    /**
+     * A list of patterns for files to sign inside the archive.
+     * Relative to the root of the archive.
+     */
     public binaries: glob.Pattern[],
   ) {}
 
@@ -181,8 +189,10 @@ class ArchiveToSign implements Signable {
     return lookupHelper(path => new ArchiveToSign(path, binaries))(base, pattern)
   }
 
-  /** Sign content of an archive. This function extracts the archive, signs the required files,
-   * re-packages the archive and replaces the original. */
+  /**
+   * Sign content of an archive. This function extracts the archive, signs the required files,
+   * re-packages the archive and replaces the original.
+   */
   async sign(context: SigningContext) {
     console.log(`Signing archive ${this.path}`)
     const archiveName = pathModule.basename(this.path)
@@ -268,10 +278,12 @@ class BinaryToSign implements Signable {
 // === Discovering Signables. ===
 // ==============================
 
-/** Helper used to concisely define patterns for an archive to sign.
+/**
+ * Helper used to concisely define patterns for an archive to sign.
  *
  * Consists of pattern of the archive path
- * and set of patterns for files to sign inside the archive. */
+ * and set of patterns for files to sign inside the archive.
+ */
 type ArchivePattern = [glob.Pattern, glob.Pattern[]]
 
 /** Like `glob` but returns absolute paths by default. */
@@ -280,8 +292,10 @@ async function globAbsolute(pattern: glob.Pattern, options?: glob.Options): Prom
   return paths
 }
 
-/** Glob patterns relative to a given base directory. The base directory is allowed to be a pattern
- * as well. */
+/**
+ * Glob patterns relative to a given base directory. The base directory is allowed to be a pattern
+ * as well.
+ */
 async function globAbsoluteIn(
   base: glob.Pattern,
   pattern: glob.Pattern,

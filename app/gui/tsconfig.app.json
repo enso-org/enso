@@ -16,6 +16,5 @@
     "allowImportingTsExtensions": true,
     "types": ["vitest/importMeta"],
     "paths": { "@/*": ["./src/project-view/*"], "#/*": ["./src/dashboard/*"] }
-  },
-  "references": [{ "path": "../ydoc-shared" }]
+  }
 }

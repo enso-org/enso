@@ -2,9 +2,14 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "lib": ["DOM", "es2023"],
-    "allowJs": false,
+    "allowJs": true,
     "checkJs": false,
-    "skipLibCheck": false
+    "skipLibCheck": false,
+    "noEmit": false,
+    "resolveJsonModule": true,
+    "outDir": "dist",
+    "rootDir": "src",
   },
-  "include": ["./src/", "./src/text/english.json", "../types/"]
+  "include": ["src", "./src/text/english.json"],
+  "exclude": []
 }
