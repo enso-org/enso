@@ -33,7 +33,7 @@ looks_like_uri path:Text -> Boolean =
 ## PRIVATE
    A common implementation for fetching a resource and decoding it,
    following encountered data links.
-fetch_following_data_links (uri:URI) (method:HTTP_Method = HTTP_Method.Get) (headers:Vector = []) format (cache_policy:Cache_Policy = ..Default) =
+fetch_following_data_links (uri:URI) (method:HTTP_Method = ..Get) (headers:Vector = []) format (cache_policy:Cache_Policy = ..Default) =
     fetch_and_decode =
         response = HTTP.fetch uri method headers cache_policy=cache_policy
         decode_http_response_following_data_links response format
