@@ -7,6 +7,7 @@ import Standard.Base.Runtime.Context
 from Standard.Base.Enso_Cloud.Data_Link_Helpers import data_link_extension, secure_value_to_json, save_password_for_data_link
 
 import project.Connection.Credentials.Credentials
+import project.SQL_Statement.SQL_Statement
 
 ## PRIVATE
 type Data_Link_Setup
@@ -21,7 +22,7 @@ type Data_Link_Setup
     already_a_data_link -> Data_Link_Setup = Data_Link_Setup.Unavailable "Saving connections established through a Data Link is not allowed. Please copy the Data Link instead."
 
     ## PRIVATE
-    save_as_data_link self destination on_existing_file:Existing_File_Behavior = case self of
+    save_as_data_link self destination on_existing_file:Existing_File_Behavior link_type:DB_Data_Link_Type=..Database = case self of
         Data_Link_Setup.Available create_fn -> Context.Output.if_enabled disabled_message="As writing is disabled, cannot save to a Data Link. Press the Write button ▶ to perform the operation." panic=False <|
             case destination of
                 _ : Enso_File ->
@@ -31,12 +32,17 @@ type Data_Link_Setup
                         _ -> Error.throw (Illegal_Argument.Error "Invalid value for `on_existing_file` parameter, only `Overwrite` and `Error` are supported here.")
                     exists_checked = if replace_existing.not && destination.exists then Error.throw (File_Error.Already_Exists destination)
                     exists_checked.if_not_error <|
-                        json = create_fn destination
+                        json = link_type.alter (create_fn destination)
                         Data_Link.write_config destination json replace_existing
                 _ -> Error.throw (Illegal_Argument.Error "Currently a connection can only be saved as a Data Link into the Enso Cloud. Please provide an `Enso_File` as destination.")
 
         Data_Link_Setup.Unavailable cause ->
-            Error.throw (Illegal_Argument.Error "Cannot save connection as Data Link: "+cause)
+            word = case link_type of
+                DB_Data_Link_Type.Database -> "connection"
+                DB_Data_Link_Type.Table _ -> "table"
+                DB_Data_Link_Type.Query _ -> "query"
+                DB_Data_Link_Type.SQL_Statement _ -> "query"
+            Error.throw (Illegal_Argument.Error "Cannot save "+word+" as Data Link: "+cause)
 
     ## PRIVATE
     save_credentials_for_data_link data_link_location:Enso_File credentials:Credentials -> JS_Object =
@@ -45,3 +51,32 @@ type Data_Link_Setup
 
         # But we keep the username as-is - if it was in plain text, it will stay in plain text.
         JS_Object.from_pairs [["username", secure_value_to_json credentials.username], ["password", secure_value_to_json secret_password]]
+
+## PRIVATE
+type DB_Data_Link_Type
+    ## PRIVATE
+    Database
+
+    ## PRIVATE
+    Table name:Text
+
+    ## PRIVATE
+    Query query:Text
+
+    ## PRIVATE
+    SQL_Statement sql_statement:SQL_Statement
+
+    ## PRIVATE
+       Alters the connection description JSON, adding information dependent on
+       the data link type (table name or query to fetch, when applicable).
+    alter self connection_description:JS_Object -> JS_Object = case self of
+        DB_Data_Link_Type.Database -> connection_description
+        DB_Data_Link_Type.Table name ->
+            connection_description.set_value "table" name
+        DB_Data_Link_Type.Query query ->
+            connection_description.set_value "table" (JS_Object.from_pairs [["query", query]])
+        DB_Data_Link_Type.SQL_Statement sql_statement ->
+            serialized = sql_statement.serialize ensure_roundtrip=True
+            serialized.if_not_error <|
+                # Instead of nesting the serialized query as a JSON object, we store its JSON representation as a string - this will be more friendly in the GUI.
+                connection_description.set_value "table" (JS_Object.from_pairs [["sql_statement", serialized.to_json]])

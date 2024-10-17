@@ -6,6 +6,7 @@ import Standard.Base.Data.Vector.Builder
 import Standard.Base.Errors.Common.Additional_Warnings
 import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
+import Standard.Base.Errors.Common.No_Such_Method
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Deprecated.Deprecated
 import Standard.Base.Errors.File_Error.File_Error
@@ -2824,6 +2825,26 @@ type DB_Table
     write self path:Writable_File format=Auto_Detect on_existing_file:Existing_File_Behavior=..Backup match_columns:Match_Columns=..By_Name on_problems:Problem_Behavior=..Report_Warning =
         # TODO This should ideally be done in a streaming manner, or at least respect the row limits.
         self.read.write path format on_existing_file match_columns on_problems
+
+
+    ## GROUP Standard.Base.Output
+       ICON data_output
+       Creates a Data Link that will act as a view into the query represented by
+       this table.
+    @on_existing_file (Existing_File_Behavior.widget include_backup=False include_append=False)
+    save_as_data_link self destination (on_existing_file:Existing_File_Behavior = Existing_File_Behavior.Error) =
+        no_data_link_setup _ =
+            Error.throw (Illegal_Argument.Error "Saving a Table as data link is currently not supported in "+(Meta.type_of self.connection).to_text+".")
+        data_link_setup = Panic.catch No_Such_Method handler=no_data_link_setup self.connection.data_link_setup
+        # For a trivial query we return the table name.
+        link_type = if self.is_trivial_query then ..Table self.name else
+            sql_statement = self.to_sql
+            prepared = sql_statement.prepare
+            # If there are no interpolations, we can do a raw query represented by Text (more friendly in the GUI).
+            if prepared.second.is_empty then ..Query sql_statement.first else
+                # Lastly, if there are interpolations, we need to fully serialize
+                ..SQL_Statement sql_statement
+        data_link_setup.save_as_data_link destination on_existing_file link_type
 
     ## ALIAS fill missing, if_nothing
        GROUP Standard.Base.Values
