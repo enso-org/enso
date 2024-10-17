@@ -4,6 +4,7 @@ import type { SuggestionDb } from '@/stores/suggestionDatabase'
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { tryEnsoToNumber, tryNumberToEnso } from '@/util/ast/abstract'
+import * as iterable from '@/util/data/iterable'
 import { Err, Ok, transposeResult, unwrapOrWithLog, type Result } from '@/util/data/result'
 import { qnLastSegment, type QualifiedName } from '@/util/qualifiedName'
 import type { ToValue } from '@/util/reactivity'
@@ -40,6 +41,7 @@ export interface ColumnDef extends ColDef<RowData> {
   valueSetter?: ({ data, newValue }: { data: RowData; newValue: any }) => boolean
   mainMenuItems: (string | MenuItem)[]
   contextMenuItems: (string | MenuItem)[]
+  rowDrag?: ({ data }: { data: RowData | undefined }) => boolean
 }
 
 namespace cellValueConversion {
@@ -281,6 +283,7 @@ export function useTableNewArgument(
     },
     mainMenuItems: ['autoSizeThis', 'autoSizeAll'],
     contextMenuItems: ['paste', 'separator', removeRowMenuItem],
+    lockPosition: 'right',
   }))
 
   const rowIndexColumnDef = computed<ColumnDef>(() => ({
@@ -291,6 +294,8 @@ export function useTableNewArgument(
     mainMenuItems: ['autoSizeThis', 'autoSizeAll'],
     contextMenuItems: [removeRowMenuItem],
     cellStyle: { color: 'rgba(0, 0, 0, 0.4)' },
+    lockPosition: 'left',
+    rowDrag: ({ data }) => data?.index != null && data.index < rowCount.value,
   }))
 
   const columnDefs = computed(() => {
@@ -382,5 +387,63 @@ export function useTableNewArgument(
     return ast
   }
 
-  return { columnDefs, rowData }
+  function moveColumn(colId: string, toIndex: number) {
+    if (!columnsAst.value.ok) {
+      columnsAst.value.error.log('Cannot reorder columns: The table AST is not available')
+      return
+    }
+    if (!columnsAst.value.value) {
+      console.error('Cannot reorder columns on placeholders! This should not be possible in the UI')
+      return
+    }
+    const edit = graph.startEdit()
+    const columns = edit.getVersion(columnsAst.value.value)
+    const fromIndex = iterable.find(columns.enumerate(), ([, ast]) => ast?.id === colId)?.[0]
+    if (fromIndex != null) {
+      columns.move(fromIndex, toIndex - 1)
+      onUpdate({ edit })
+    }
+  }
+
+  function moveRow(rowIndex: number, overIndex: number) {
+    if (!columnsAst.value.ok) {
+      columnsAst.value.error.log('Cannot reorder rows: The table AST is not available')
+      return
+    }
+    if (!columnsAst.value.value) {
+      console.error('Cannot reorder rows on placeholders! This should not be possible in the UI')
+      return
+    }
+    // If dragged out of grid, we do nothing.
+    if (overIndex === -1) return
+    const edit = graph.startEdit()
+    for (const col of columns.value) {
+      const editedCol = edit.getVersion(col.data)
+      editedCol.move(rowIndex, overIndex)
+    }
+    onUpdate({ edit })
+  }
+
+  return {
+    /** All column definitions, to be passed to AgGrid component. */
+    columnDefs,
+    /**
+     * Row Data, to be passed to AgGrid component. They do not contain values, but AstIds.
+     * The column definitions have proper getters for obtaining value from AST.
+     */
+    rowData,
+    /**
+     * Move column in AST. Do not change colunDefs, they are updated upon expected widgetInput change.
+     * @param colId the id of moved column (as got from `getColId()`)
+     * @param toIndex the new index of column as in view (counting in the row index column).
+     */
+    moveColumn,
+    /**
+     * Move row in AST. Do not change rowData, its updated upon expected widgetInput change.
+     * @param rowIndex the index of moved row.
+     * @param overIndex the index of row over which this row was dropped, as in RowDragEndEvent's
+     * `overIndex` (the -1 case is handled)
+     */
+    moveRow,
+  }
 }
