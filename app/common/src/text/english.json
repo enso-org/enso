@@ -638,6 +638,8 @@
   "slsaLicenseAgreementDescription1": "This Order is governed by the Software License and Service Agreement found at",
   "slsaLicenseAgreementDescription2": ", (the “Agreement”). All capitalized terms used in this Customer Order but not otherwise defined herein shall have the meanings set forth in the Agreement.\n                      Except as expressly provided in the Agreement, Products and Services purchased under this Customer Order are non-cancelable and non-refundable.",
   "downgradeInfo": "to downgrade",
+  "xItemsCopied": "$0 item(s) copied",
+  "xItemsCut": "$0 item(s) cut",
 
   "someAgreementsHaveBeenUpdated": "Some agreements have been updated. Please re-read and agree to continue.",
   "licenseAgreementTitle": "Enso Terms of Service",

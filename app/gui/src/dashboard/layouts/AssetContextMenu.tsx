@@ -38,6 +38,7 @@ import * as localBackendModule from '#/services/LocalBackend'
 
 import { useUploadFileWithToastMutation } from '#/hooks/backendHooks'
 import {
+  usePasteData,
   useSetAssetPanelProps,
   useSetIsAssetPanelTemporarilyVisible,
 } from '#/providers/DriveProvider'
@@ -71,7 +72,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const { innerProps, rootDirectoryId, event, eventTarget, hidden = false } = props
   const { doCopy, doCut, doPaste, doDelete } = props
   const { item, setItem, state, setRowState } = innerProps
-  const { backend, category, hasPasteData, pasteData, nodeMap } = state
+  const { backend, category, nodeMap } = state
 
   const { user } = authProvider.useFullUserSession()
   const { setModal } = modalProvider.useSetModal()
@@ -114,8 +115,10 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     category.type !== 'recent' &&
     asset.type === backendModule.AssetType.directory &&
     canEditThisAsset
+  const pasteData = usePasteData()
+  const hasPasteData = (pasteData?.data.ids.size ?? 0) > 0
   const pasteDataParentKeys =
-    !pasteData.current ? null : (
+    !pasteData ? null : (
       new Map(
         Array.from(nodeMap.current.entries()).map(([id, otherAsset]) => [
           id,
@@ -124,9 +127,9 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
       )
     )
   const canPaste =
-    !pasteData.current || !pasteDataParentKeys || !isCloud ?
+    !pasteData || !pasteDataParentKeys || !isCloud ?
       true
-    : !Array.from(pasteData.current.data).some((assetId) => {
+    : !Array.from(pasteData.data.ids).some((assetId) => {
         const parentKey = pasteDataParentKeys.get(assetId)
         const parent = parentKey == null ? null : nodeMap.current.get(parentKey)
         return !parent ? true : (
@@ -158,6 +161,20 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
 
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
 
+  const pasteMenuEntry = hasPasteData && canPaste && (
+    <ContextMenuEntry
+      hidden={hidden}
+      action="paste"
+      doAction={() => {
+        const [directoryKey, directoryId] =
+          item.type === backendModule.AssetType.directory ?
+            [item.key, item.item.id]
+          : [item.directoryKey, item.directoryId]
+        doPaste(directoryKey, directoryId)
+      }}
+    />
+  )
+
   return (
     category.type === 'trash' ?
       !ownsThisAsset ? null
@@ -188,6 +205,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 )
               }}
             />
+            {pasteMenuEntry}
           </ContextMenu>
         </ContextMenus>
     : <ContextMenus hidden={hidden} key={asset.id} event={event}>
@@ -465,25 +483,12 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               }}
             />
           )}
-          {hasPasteData && canPaste && (
-            <ContextMenuEntry
-              hidden={hidden}
-              action="paste"
-              doAction={() => {
-                const [directoryKey, directoryId] =
-                  item.type === backendModule.AssetType.directory ?
-                    [item.key, item.item.id]
-                  : [item.directoryKey, item.directoryId]
-                doPaste(directoryKey, directoryId)
-              }}
-            />
-          )}
+          {pasteMenuEntry}
         </ContextMenu>
         {canAddToThisDirectory && (
           <GlobalContextMenu
             hidden={hidden}
             backend={backend}
-            hasPasteData={hasPasteData}
             rootDirectoryId={rootDirectoryId}
             directoryKey={
               // This is SAFE, as both branches are guaranteed to be `DirectoryId`s

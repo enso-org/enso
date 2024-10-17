@@ -17,7 +17,13 @@ import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import '@ag-grid-community/styles/ag-grid.css'
 import '@ag-grid-community/styles/ag-theme-alpine.css'
-import type { CellEditingStartedEvent, CellEditingStoppedEvent, Column } from 'ag-grid-enterprise'
+import type {
+  CellEditingStartedEvent,
+  CellEditingStoppedEvent,
+  Column,
+  ColumnMovedEvent,
+  RowDragEndEvent,
+} from 'ag-grid-enterprise'
 import { computed, ref } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
 
@@ -26,7 +32,7 @@ const graph = useGraphStore()
 const suggestionDb = useSuggestionDbStore()
 const grid = ref<ComponentExposed<typeof AgGridTableView<RowData, any>>>()
 
-const { rowData, columnDefs } = useTableNewArgument(
+const { rowData, columnDefs, moveColumn, moveRow } = useTableNewArgument(
   () => props.input,
   graph,
   suggestionDb.entries,
@@ -141,11 +147,27 @@ const widgetStyle = computed(() => {
   }
 })
 
+// === Column and Row Dragging ===
+
+function onColumnMoved(event: ColumnMovedEvent<RowData>) {
+  if (event.column && event.toIndex != null && event.finished) {
+    moveColumn(event.column.getColId(), event.toIndex)
+  }
+}
+
+function onRowDragEnd(event: RowDragEndEvent<RowData>) {
+  if (event.node.data != null) {
+    moveRow(event.node.data?.index, event.overIndex)
+  }
+}
+
 // === Column Default Definition ===
 
 const defaultColDef = {
   editable: true,
   resizable: true,
+  sortable: false,
+  lockPinned: true,
   headerComponentParams: {
     onHeaderEditingStarted: headerEditHandler.headerEditedInGrid.bind(headerEditHandler),
     onHeaderEditingStopped: headerEditHandler.headerEditingStoppedInGrid.bind(headerEditHandler),
@@ -184,6 +206,8 @@ export const widgetDefinition = defineWidget(
         :components="{ agColumnHeader: TableHeader }"
         :singleClickEdit="true"
         :stopEditingWhenCellsLoseFocus="true"
+        :suppressDragLeaveHidesColumns="true"
+        :suppressMoveWhenColumnDragging="true"
         @keydown.enter.stop
         @keydown.arrow-left.stop
         @keydown.arrow-right.stop
@@ -196,6 +220,8 @@ export const widgetDefinition = defineWidget(
         @rowDataUpdated="cellEditHandler.rowDataChanged()"
         @pointerdown.stop
         @click.stop
+        @columnMoved="onColumnMoved"
+        @rowDragEnd="onRowDragEnd"
       />
     </Suspense>
     <ResizeHandles v-model="clientBounds" bottom right />

@@ -11,6 +11,7 @@ import Standard.Database.Connection.Connection.Connection
 import Standard.Database.DB_Table.DB_Table
 import Standard.Database.Internal.Common.Encoding_Limited_Naming_Properties.Encoding_Limited_Naming_Properties
 import Standard.Database.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties
+import Standard.Database.Internal.Data_Link_Setup.Data_Link_Setup
 import Standard.Database.Internal.JDBC_Connection
 import Standard.Database.SQL_Query.SQL_Query
 import Standard.Database.SQL_Statement.SQL_Statement
@@ -29,14 +30,15 @@ type SQLServer_Connection
        - url: The URL to connect to.
        - properties: A vector of properties for the connection.
        - make_new: A function that returns a new connection.
-    create : Text -> Vector -> (Text -> Text -> SQLServer_Connection) -> SQLServer_Connection
-    create url properties make_new =
+       - data_link_setup: the setup for saving the connection as a data link.
+    create : Text -> Vector -> (Text -> Text -> SQLServer_Connection) -> Data_Link_Setup -> SQLServer_Connection
+    create url properties make_new data_link_setup =
         jdbc_connection = JDBC_Connection.create url properties
         jdbc_entity_naming_properties = Entity_Naming_Properties.from_jdbc_connection jdbc_connection is_case_sensitive=True
         ## jdbc reports table name length limit as 128, but it actually seems to be 116 for temp tables so we override it
         limited = Encoding_Limited_Naming_Properties.Instance Encoding.utf_8 limit=116 is_case_sensitive=True
         modified_entity_naming_properties = Entity_Naming_Properties.Value for_table_names=limited for_column_names=jdbc_entity_naming_properties.for_column_names for_generated_column_names=jdbc_entity_naming_properties.for_generated_column_names
-        SQLServer_Connection.Value (Connection.new jdbc_connection SQLServer_Dialect.sqlserver modified_entity_naming_properties) make_new
+        SQLServer_Connection.Value (Connection.new jdbc_connection SQLServer_Dialect.sqlserver modified_entity_naming_properties) make_new data_link_setup
 
     ## PRIVATE
 
@@ -45,7 +47,8 @@ type SQLServer_Connection
        Arguments:
        - connection: the underlying connection.
        - make_new: a function that returns a new connection.
-    Value connection make_new
+       - data_link_setup: the setup for saving the connection as a data link.
+    Value connection make_new data_link_setup
 
     ## ICON close
        Closes the connection releasing the underlying database resources
@@ -291,3 +294,15 @@ type SQLServer_Connection
        on the 'subclasses'.
     base_connection : Connection
     base_connection self = self.connection
+
+    ## ICON data_output
+       Creates a Data Link that will open the same connection.
+    @on_existing_file (Existing_File_Behavior.widget include_backup=False include_append=False)
+    save_as_data_link self destination (on_existing_file:Existing_File_Behavior = Existing_File_Behavior.Error) =
+        self.data_link_setup.save_as_data_link destination on_existing_file
+
+    ## PRIVATE
+       Converts this value to a JSON serializable object.
+    to_js_object : JS_Object
+    to_js_object self =
+        JS_Object.from_pairs [["type", "SQLServer_Connection"], ["links", self.tables.at "Name" . to_vector]]

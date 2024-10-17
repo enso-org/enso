@@ -68,7 +68,12 @@ import useOnScroll from '#/hooks/useOnScroll'
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 import AssetsTableContextMenu from '#/layouts/AssetsTableContextMenu'
-import { isLocalCategory, type Category } from '#/layouts/CategorySwitcher/Category'
+import {
+  canTransferBetweenCategories,
+  isLocalCategory,
+  useTransferBetweenCategories,
+  type Category,
+} from '#/layouts/CategorySwitcher/Category'
 import DragModal from '#/modals/DragModal'
 import DuplicateAssetsModal from '#/modals/DuplicateAssetsModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
@@ -85,6 +90,7 @@ import {
   useSetCanDownload,
   useSetIsAssetPanelTemporarilyVisible,
   useSetNewestFolderId,
+  useSetPasteData,
   useSetSelectedKeys,
   useSetSuggestions,
   useSetTargetDirectory,
@@ -144,7 +150,6 @@ import { fileExtension } from '#/utilities/fileInfo'
 import type { DetailedRectangle } from '#/utilities/geometry'
 import { DEFAULT_HANDLER } from '#/utilities/inputBindings'
 import LocalStorage from '#/utilities/LocalStorage'
-import type { PasteData } from '#/utilities/pasteData'
 import PasteType from '#/utilities/PasteType'
 import {
   canPermissionModifyDirectoryContents,
@@ -312,14 +317,11 @@ export interface AssetsTableState {
   readonly scrollContainerRef: RefObject<HTMLElement>
   readonly visibilities: ReadonlyMap<AssetId, Visibility>
   readonly category: Category
-  readonly hasPasteData: boolean
-  readonly setPasteData: (pasteData: PasteData<Set<AssetId>>) => void
   readonly sortInfo: SortInfo<SortableColumn> | null
   readonly setSortInfo: (sortInfo: SortInfo<SortableColumn> | null) => void
   readonly query: AssetQuery
   readonly setQuery: Dispatch<SetStateAction<AssetQuery>>
   readonly nodeMap: Readonly<MutableRefObject<ReadonlyMap<AssetId, AnyAssetTreeNode>>>
-  readonly pasteData: Readonly<MutableRefObject<PasteData<ReadonlySet<AssetId>> | null>>
   readonly hideColumn: (column: Column) => void
   readonly doToggleDirectoryExpansion: (
     directoryId: DirectoryId,
@@ -399,7 +401,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const setSelectedKeys = useSetSelectedKeys()
   const setVisuallySelectedKeys = useSetVisuallySelectedKeys()
   const updateAssetRef = useRef<Record<AnyAsset['id'], (asset: AnyAsset) => void>>({})
-  const [pasteData, setPasteData] = useState<PasteData<ReadonlySet<AssetId>> | null>(null)
+  const setPasteData = useSetPasteData()
 
   const { data: users } = useBackendQuery(backend, 'listUsers', [])
   const { data: userGroups } = useBackendQuery(backend, 'listUserGroups', [])
@@ -864,7 +866,6 @@ export default function AssetsTable(props: AssetsTableProps) {
   const lastSelectedIdsRef = useRef<AssetId | ReadonlySet<AssetId> | null>(null)
   const headerRowRef = useRef<HTMLTableRowElement>(null)
   const assetTreeRef = useRef<AnyAssetTreeNode>(assetTree)
-  const pasteDataRef = useRef<PasteData<ReadonlySet<AssetId>> | null>(null)
   const nodeMapRef = useRef<ReadonlyMap<AssetId, AnyAssetTreeNode>>(
     new Map<AssetId, AnyAssetTreeNode>(),
   )
@@ -1142,24 +1143,21 @@ export default function AssetsTable(props: AssetsTableProps) {
   }, [assetTree])
 
   useEffect(() => {
-    pasteDataRef.current = pasteData
-  }, [pasteData])
-
-  useEffect(() => {
     if (!hidden) {
       return inputBindings.attach(document.body, 'keydown', {
         cancelCut: () => {
-          if (pasteDataRef.current == null) {
+          const { pasteData } = driveStore.getState()
+          if (pasteData == null) {
             return false
           } else {
-            dispatchAssetEvent({ type: AssetEventType.cancelCut, ids: pasteDataRef.current.data })
+            dispatchAssetEvent({ type: AssetEventType.cancelCut, ids: pasteData.data.ids })
             setPasteData(null)
             return
           }
         },
       })
     }
-  }, [hidden, inputBindings, dispatchAssetEvent])
+  }, [dispatchAssetEvent, driveStore, hidden, inputBindings, setPasteData])
 
   useEffect(
     () =>
@@ -2093,29 +2091,40 @@ export default function AssetsTable(props: AssetsTableProps) {
   const doCopy = useEventCallback(() => {
     unsetModal()
     const { selectedKeys } = driveStore.getState()
-    setPasteData({ type: PasteType.copy, data: selectedKeys })
+    setPasteData({
+      type: PasteType.copy,
+      data: { backendType: backend.type, category, ids: selectedKeys },
+    })
   })
 
   const doCut = useEventCallback(() => {
     unsetModal()
+    const { selectedKeys, pasteData } = driveStore.getState()
     if (pasteData != null) {
-      dispatchAssetEvent({ type: AssetEventType.cancelCut, ids: pasteData.data })
+      dispatchAssetEvent({ type: AssetEventType.cancelCut, ids: pasteData.data.ids })
     }
-    const { selectedKeys } = driveStore.getState()
-    setPasteData({ type: PasteType.move, data: selectedKeys })
+    setPasteData({
+      type: PasteType.move,
+      data: { backendType: backend.type, category, ids: selectedKeys },
+    })
     dispatchAssetEvent({ type: AssetEventType.cut, ids: selectedKeys })
     setSelectedKeys(EMPTY_SET)
   })
 
+  const transferBetweenCategories = useTransferBetweenCategories(category)
   const doPaste = useEventCallback((newParentKey: DirectoryId, newParentId: DirectoryId) => {
     unsetModal()
-    if (pasteData != null) {
-      if (pasteData.data.has(newParentKey)) {
+    const { pasteData } = driveStore.getState()
+    if (
+      pasteData?.data.backendType === backend.type &&
+      canTransferBetweenCategories(pasteData.data.category, category)
+    ) {
+      if (pasteData.data.ids.has(newParentKey)) {
         toast.error('Cannot paste a folder into itself.')
       } else {
         doToggleDirectoryExpansion(newParentId, newParentKey, true)
         if (pasteData.type === PasteType.copy) {
-          const assets = Array.from(pasteData.data, (id) => nodeMapRef.current.get(id)).flatMap(
+          const assets = Array.from(pasteData.data.ids, (id) => nodeMapRef.current.get(id)).flatMap(
             (asset) => (asset ? [asset.item] : []),
           )
           dispatchAssetListEvent({
@@ -2125,12 +2134,13 @@ export default function AssetsTable(props: AssetsTableProps) {
             newParentKey,
           })
         } else {
-          dispatchAssetEvent({
-            type: AssetEventType.move,
-            ids: pasteData.data,
+          transferBetweenCategories(
+            pasteData.data.category,
+            category,
+            pasteData.data.ids,
             newParentKey,
             newParentId,
-          })
+          )
         }
         setPasteData(null)
       }
@@ -2155,7 +2165,6 @@ export default function AssetsTable(props: AssetsTableProps) {
         hidden
         backend={backend}
         category={category}
-        pasteData={pasteData}
         nodeMapRef={nodeMapRef}
         rootDirectoryId={rootDirectoryId}
         event={{ pageX: 0, pageY: 0 }}
@@ -2165,7 +2174,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         doDelete={doDeleteById}
       />
     ),
-    [backend, category, pasteData, rootDirectoryId, doCopy, doCut, doPaste, doDeleteById],
+    [backend, category, rootDirectoryId, doCopy, doCut, doPaste, doDeleteById],
   )
 
   const onDropzoneDragOver = (event: DragEvent<Element>) => {
@@ -2208,14 +2217,11 @@ export default function AssetsTable(props: AssetsTableProps) {
       visibilities,
       scrollContainerRef: rootRef,
       category,
-      hasPasteData: pasteData != null,
-      setPasteData,
       sortInfo,
       setSortInfo,
       query,
       setQuery,
       nodeMap: nodeMapRef,
-      pasteData: pasteDataRef,
       hideColumn,
       doToggleDirectoryExpansion,
       doCopy,
@@ -2231,7 +2237,6 @@ export default function AssetsTable(props: AssetsTableProps) {
       rootDirectoryId,
       visibilities,
       category,
-      pasteData,
       sortInfo,
       query,
       doToggleDirectoryExpansion,
@@ -2710,7 +2715,6 @@ export default function AssetsTable(props: AssetsTableProps) {
             <AssetsTableContextMenu
               backend={backend}
               category={category}
-              pasteData={pasteData}
               nodeMapRef={nodeMapRef}
               event={event}
               rootDirectoryId={rootDirectoryId}
