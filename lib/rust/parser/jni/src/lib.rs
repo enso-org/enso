@@ -11,6 +11,7 @@
 
 use enso_prelude::*;
 
+use enso_parser::macros::resolver::RootContext;
 use jni::objects::JByteBuffer;
 use jni::objects::JClass;
 use jni::sys::jobject;
@@ -26,8 +27,7 @@ use jni::JNIEnv;
 static DIRECT_ALLOCATED: &str = "Internal Error: ByteBuffer must be direct-allocated.";
 static FAILED_SERIALIZE_AST: &str = "Failed to serialize AST to binary format.";
 
-/// Parse the input. Returns a serialized representation of the parse tree. The caller is
-/// responsible for freeing the memory associated with the returned buffer.
+/// Parse the input as a module. Returns a serialized representation of the parse tree.
 ///
 /// # Safety
 ///
@@ -37,11 +37,41 @@ static FAILED_SERIALIZE_AST: &str = "Failed to serialize AST to binary format.";
 /// a call to `freeState`.
 #[allow(unsafe_code)]
 #[no_mangle]
-pub extern "system" fn Java_org_enso_syntax2_Parser_parseTree(
+pub extern "system" fn Java_org_enso_syntax2_Parser_parseModule(
+    env: JNIEnv,
+    class: JClass,
+    state: u64,
+    input: JByteBuffer,
+) -> jobject {
+    parse(env, class, state, input, RootContext::Module)
+}
+
+/// Parse the input as a block. Returns a serialized representation of the parse tree.
+///
+/// # Safety
+///
+/// The state MUST be a value returned by `allocState` that has not been passed to `freeState`.
+/// The input buffer contents MUST be valid UTF-8.
+/// The contents of the returned buffer MUST not be accessed after another call to `parseInput`, or
+/// a call to `freeState`.
+#[allow(unsafe_code)]
+#[no_mangle]
+pub extern "system" fn Java_org_enso_syntax2_Parser_parseBlock(
+    env: JNIEnv,
+    class: JClass,
+    state: u64,
+    input: JByteBuffer,
+) -> jobject {
+    parse(env, class, state, input, RootContext::Block)
+}
+
+#[allow(unsafe_code)]
+fn parse(
     mut env: JNIEnv,
     _class: JClass,
     state: u64,
     input: JByteBuffer,
+    root_context: RootContext,
 ) -> jobject {
     let state = unsafe { &mut *(state as usize as *mut State) };
     let input = unsafe { decode_utf8_buffer(&env, &input) };
@@ -55,34 +85,34 @@ pub extern "system" fn Java_org_enso_syntax2_Parser_parseTree(
         code = code_;
     }
     state.base = str::as_ptr(code) as usize as u64;
-    let tree = enso_parser::Parser::new().run(code);
-    state.output = match enso_parser::serialization::serialize_tree(&tree) {
-        Ok(tree) => tree,
+    let parser = enso_parser::Parser::new();
+    let tree = match root_context {
+        RootContext::Module => parser.parse_module(code),
+        RootContext::Block => parser.parse_block(code),
+    };
+    state.output = enso_parser::serialization::serialize_tree(&tree).unwrap_or_else(|_| {
         // `Tree` does not contain any types with fallible `serialize` implementations, so this
         // cannot fail.
-        Err(_) => {
-            debug_assert!(false);
-            default()
-        }
-    };
+        debug_assert!(false);
+        default()
+    });
     state.metadata = meta;
     let result =
         unsafe { env.new_direct_byte_buffer(state.output.as_mut_ptr(), state.output.len()) };
     result.unwrap().into_raw()
 }
 
-/// Parse the input. Returns a serialize format compatible with a lazy deserialization strategy. The
-/// caller is responsible for freeing the memory associated with the returned buffer.
+/// Parse a module. Returns a serialize format compatible with a lazy deserialization strategy.
 ///
 /// # Safety
 ///
 /// The state MUST be a value returned by `allocState` that has not been passed to `freeState`.
 /// The input buffer contents MUST be valid UTF-8.
-/// The contents of the returned buffer MUST not be accessed after another call to `parseInput`, or
+/// The contents of the returned buffer MUST NOT be accessed after another call to `parseInput`, or
 /// a call to `freeState`.
 #[allow(unsafe_code)]
 #[no_mangle]
-pub extern "system" fn Java_org_enso_syntax2_Parser_parseTreeLazy(
+pub extern "system" fn Java_org_enso_syntax2_Parser_parseModuleLazy(
     mut env: JNIEnv,
     _class: JClass,
     state: u64,
@@ -91,7 +121,34 @@ pub extern "system" fn Java_org_enso_syntax2_Parser_parseTreeLazy(
     let state = unsafe { &mut *(state as usize as *mut State) };
     let input = unsafe { decode_utf8_buffer(&env, &input) };
 
-    let tree = enso_parser::Parser::new().run(input);
+    let tree = enso_parser::Parser::new().parse_module(input);
+    state.output = enso_parser::format::serialize(&tree).expect(FAILED_SERIALIZE_AST);
+
+    let result =
+        unsafe { env.new_direct_byte_buffer(state.output.as_mut_ptr(), state.output.len()) };
+    result.unwrap().into_raw()
+}
+
+/// Parse a block. Returns a serialize format compatible with a lazy deserialization strategy.
+///
+/// # Safety
+///
+/// The state MUST be a value returned by `allocState` that has not been passed to `freeState`.
+/// The input buffer contents MUST be valid UTF-8.
+/// The contents of the returned buffer MUST NOT be accessed after another call to `parseInput`, or
+/// a call to `freeState`.
+#[allow(unsafe_code)]
+#[no_mangle]
+pub extern "system" fn Java_org_enso_syntax2_Parser_parseBlockLazy(
+    mut env: JNIEnv,
+    _class: JClass,
+    state: u64,
+    input: JByteBuffer,
+) -> jobject {
+    let state = unsafe { &mut *(state as usize as *mut State) };
+    let input = unsafe { decode_utf8_buffer(&env, &input) };
+
+    let tree = enso_parser::Parser::new().parse_block(input);
     state.output = enso_parser::format::serialize(&tree).expect(FAILED_SERIALIZE_AST);
 
     let result =

@@ -31,7 +31,6 @@
     "test-dev:e2e": "cross-env NODE_ENV=production playwright test --ui",
     "preinstall": "corepack pnpm run generate-metadata",
     "postinstall": "playwright install",
-    "build-rust-ffi": "wasm-pack build ./rust-ffi --release --target web && wasm-pack build ./rust-ffi --out-dir node-pkg --target nodejs",
     "generate-metadata": "node scripts/generateIconMetadata.js"
   },
   "dependencies": {

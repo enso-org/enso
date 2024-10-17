@@ -132,7 +132,7 @@ fn check_file(
     if let Some((_meta, code_)) = enso_parser::metadata::parse(code) {
         code = code_;
     }
-    let ast = parser.run(code);
+    let ast = parser.parse_module(code);
     let mut messages = if smoke_test { vec![] } else { collect_messages(&ast, &file.path) };
     if ast.code() != code {
         messages.push(format!(

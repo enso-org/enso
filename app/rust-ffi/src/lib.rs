@@ -15,8 +15,14 @@ pub fn parse_doc_to_json(docs: &str) -> String {
 }
 
 #[wasm_bindgen]
-pub fn parse(code: &str) -> Vec<u8> {
-    let ast = PARSER.with(|parser| parser.run(code));
+pub fn parse_module(code: &str) -> Vec<u8> {
+    let ast = PARSER.with(|parser| parser.parse_module(code));
+    enso_parser::format::serialize(&ast).expect("Failed to serialize AST to binary format")
+}
+
+#[wasm_bindgen]
+pub fn parse_block(code: &str) -> Vec<u8> {
+    let ast = PARSER.with(|parser| parser.parse_block(code));
     enso_parser::format::serialize(&ast).expect("Failed to serialize AST to binary format")
 }
 
@@ -39,7 +45,7 @@ pub fn is_ident_or_operator(code: &str) -> u32 {
 
 #[wasm_bindgen]
 pub fn is_numeric_literal(code: &str) -> bool {
-    let parsed = PARSER.with(|parser| parser.run(code));
+    let parsed = PARSER.with(|parser| parser.parse_block(code));
     let enso_parser::syntax::tree::Variant::BodyBlock(body) = parsed.variant else { return false };
     let [stmt] = &body.statements[..] else { return false };
     stmt.expression.as_ref().map_or(false, |expr| match &expr.variant {

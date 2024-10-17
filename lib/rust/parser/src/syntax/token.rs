@@ -309,7 +309,7 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
             pub base: Option<Base>
         },
         NumberBase,
-        Private,
+        PrivateKeyword,
         TypeKeyword,
         ForeignKeyword,
         AllKeyword,

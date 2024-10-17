@@ -24,7 +24,7 @@ fn main() {
         .map(|path| {
             let code = read_source(path).unwrap();
             let start = std::time::Instant::now();
-            std::hint::black_box(parser.run(&code));
+            std::hint::black_box(parser.parse_module(&code));
             start.elapsed()
         })
         .sum();
@@ -85,7 +85,7 @@ fn bench_std_lib(b: &mut test::Bencher) {
     b.bytes = sources.iter().map(|s| s.len() as u64).sum();
     b.iter(|| {
         for source in &sources {
-            test::black_box(parser.run(source));
+            test::black_box(parser.parse_module(source));
         }
     });
 }
