@@ -156,7 +156,9 @@ public class InferredBuilder extends Builder {
           new RetypeInfo(Integer.class, IntegerType.INT_64),
           new RetypeInfo(Short.class, IntegerType.INT_64),
           new RetypeInfo(Byte.class, IntegerType.INT_64),
-          new RetypeInfo(BigInteger.class, BigIntegerType.INSTANCE));
+          new RetypeInfo(BigInteger.class, BigIntegerType.INSTANCE),
+          // Will only return true if the date to date-time conversion is allowed.
+          new RetypeInfo(LocalDate.class, DateTimeType.INSTANCE));
 
   private void retypeAndAppend(Object o) {
     for (RetypeInfo info : retypePairs) {
@@ -165,14 +167,6 @@ public class InferredBuilder extends Builder {
         currentBuilder.append(o);
         return;
       }
-    }
-
-    if (allowDateToDateTimeConversion
-        && o instanceof LocalDate
-        && currentBuilder.canRetypeTo(DateTimeType.INSTANCE)) {
-      currentBuilder = currentBuilder.retypeTo(DateTimeType.INSTANCE);
-      currentBuilder.append(o);
-      return;
     }
 
     retypeToMixed();
