@@ -2,7 +2,6 @@ package org.enso.table.data.column.builder;
 
 import java.time.LocalDate;
 import java.util.Objects;
-
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.datetime.DateStorage;
 import org.enso.table.data.column.storage.type.DateTimeType;

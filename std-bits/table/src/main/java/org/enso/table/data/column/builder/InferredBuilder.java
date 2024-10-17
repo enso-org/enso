@@ -42,14 +42,15 @@ public class InferredBuilder extends Builder {
   }
 
   /**
-   * Creates a new instance of this builder, with the given known result length.
-   * This is a special constructor that allows for date to date-time conversion (for Excel).
+   * Creates a new instance of this builder, with the given known result length. This is a special
+   * constructor that allows for date to date-time conversion (for Excel).
    *
    * @param initialSize the result length
    * @param problemAggregator the problem aggregator to use
    * @param allowDateToDateTimeConversion whether to allow date to date-time conversion
    */
-  public InferredBuilder(int initialSize, ProblemAggregator problemAggregator, boolean allowDateToDateTimeConversion) {
+  public InferredBuilder(
+      int initialSize, ProblemAggregator problemAggregator, boolean allowDateToDateTimeConversion) {
     this.initialSize = initialSize;
     this.problemAggregator = problemAggregator;
     this.allowDateToDateTimeConversion = allowDateToDateTimeConversion;
@@ -175,7 +176,9 @@ public class InferredBuilder extends Builder {
       }
     }
 
-    if (allowDateToDateTimeConversion && o instanceof LocalDate && currentBuilder.canRetypeTo(DateTimeType.INSTANCE)) {
+    if (allowDateToDateTimeConversion
+        && o instanceof LocalDate
+        && currentBuilder.canRetypeTo(DateTimeType.INSTANCE)) {
       currentBuilder = currentBuilder.retypeTo(DateTimeType.INSTANCE);
       currentBuilder.append(o);
       return;
