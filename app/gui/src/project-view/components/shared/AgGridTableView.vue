@@ -38,6 +38,8 @@ const _props = defineProps<{
   components?: Record<string, unknown>
   singleClickEdit?: boolean
   stopEditingWhenCellsLoseFocus?: boolean
+  suppressDragLeaveHidesColumns?: boolean
+  suppressMoveWhenColumnDragging?: boolean
   textFormatOption?: TextFormatOptions
   pinnedTopRowData?: TData[] | null
   pinnedRowHeightMultiplier?: number
@@ -196,6 +198,8 @@ const { AgGridVue } = await import('ag-grid-vue3')
     :components="components"
     :singleClickEdit="singleClickEdit"
     :stopEditingWhenCellsLoseFocus="stopEditingWhenCellsLoseFocus"
+    :suppressDragLeaveHidesColumns="suppressDragLeaveHidesColumns"
+    :suppressMoveWhenColumnDragging="suppressMoveWhenColumnDragging"
     :pinnedTopRowData="pinnedTopRowData"
     @gridReady="onGridReady"
     @firstDataRendered="updateColumnWidths"
