@@ -15,6 +15,15 @@ final class Utils {
     return processingEnv.getTypeUtils().isAssignable(type, irType);
   }
 
+  /**
+   * Returns true if the given type extends {@link org.enso.compiler.core.ir.Expression}
+   */
+  static boolean isSubtypeOfExpression(TypeMirror type, ProcessingEnvironment processingEnv) {
+    var expressionType =
+        processingEnv.getElementUtils().getTypeElement("org.enso.compiler.core.ir.Expression").asType();
+    return processingEnv.getTypeUtils().isAssignable(type, expressionType);
+  }
+
   static void printError(String msg, Element elem, Messager messager) {
     messager.printMessage(Kind.ERROR, msg, elem);
   }

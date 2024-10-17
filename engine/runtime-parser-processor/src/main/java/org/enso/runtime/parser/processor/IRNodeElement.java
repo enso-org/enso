@@ -358,7 +358,7 @@ import scala.collection.immutable.List;
             .replace("$fieldSetters", fieldSetters)
             .replace("$className", className)
             .replace("$fieldList", fieldList)
-            .replace("$validationCode", validationCode);
+            .replace("$validationCode", indent(validationCode, 2));
     return indent(code, 2);
   }
 
