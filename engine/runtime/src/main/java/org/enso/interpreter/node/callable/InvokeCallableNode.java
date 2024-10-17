@@ -429,4 +429,9 @@ public abstract class InvokeCallableNode extends BaseNode {
       childDispatch.setId(id);
     }
   }
+
+  /** Returns expression ID of this node. */
+  public UUID getId() {
+    return invokeFunctionNode.getId();
+  }
 }
