@@ -91,7 +91,7 @@ add_specs (suite_builder : Suite_Builder) setup (prefix : Text) default_connecti
                 big.to_vector
             results.flatten.flatten.flatten.distinct.length . should_equal 1
 
-        if data.connection.dialect.supports_nested_with_clause then
+        if data.connection.dialect.flagged ..Supports_Nested_With_Clause then
             group_builder.specify "should convert WITH binders to short names that do not conflict with existing table names" <|
                 t = Table.new [["x", [1, 2]], ["y", ['a', 'b']]]
                 let0 = t.select_into_database_table data.connection "let_0" temporary=True

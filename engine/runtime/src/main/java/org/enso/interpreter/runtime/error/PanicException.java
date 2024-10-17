@@ -115,11 +115,17 @@ public final class PanicException extends AbstractTruffleException implements En
   }
 
   @NeverDefault
-  static UnresolvedSymbol toDisplayText(IndirectInvokeMethodNode payloads)
+  static UnresolvedSymbol toDisplayText(Object payload, IndirectInvokeMethodNode payloads)
       throws UnsupportedMessageException {
-    var ctx = EnsoContext.get(payloads);
-    if (ctx == null) {
-      throw UnsupportedMessageException.create();
+    EnsoContext ctx;
+    try {
+      ctx = EnsoContext.get(payloads);
+      if (ctx == null) {
+        throw UnsupportedMessageException.create();
+      }
+    } catch (Error | Exception e) {
+      logger().atError().log("Cannot compute message for " + payload, e);
+      throw UnsupportedMessageException.create(e);
     }
     var scope = ctx.getBuiltins().panic().getDefinitionScope();
     return UnresolvedSymbol.build("to_display_text", scope);
@@ -128,7 +134,7 @@ public final class PanicException extends AbstractTruffleException implements En
   @ExportMessage
   Object getExceptionMessage(
       @Cached IndirectInvokeMethodNode payloads,
-      @Cached(value = "toDisplayText(payloads)", allowUncached = true)
+      @Cached(value = "toDisplayText(this.getPayload(), payloads)", allowUncached = true)
           UnresolvedSymbol toDisplayText,
       @CachedLibrary(limit = "3") InteropLibrary strings,
       @Cached TypeToDisplayTextNode typeToDisplayTextNode) {
@@ -213,6 +219,7 @@ public final class PanicException extends AbstractTruffleException implements En
   }
 
   private static Logger logger() {
+    CompilerDirectives.transferToInterpreter();
     return LoggerFactory.getLogger(PanicException.class);
   }
 }

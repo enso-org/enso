@@ -2,14 +2,13 @@ package org.enso.table.excel;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.CellType;
-import org.apache.poi.ss.usermodel.DateUtil;
-import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.*;
 import org.graalvm.polyglot.Context;
 
 /** Wrapper class to handle Excel rows. */
 public class ExcelRow {
+  private static final DataFormatter formatter = new DataFormatter();
+
   private final Row row;
   private final int firstColumn;
   private final int lastColumn;
@@ -109,6 +108,37 @@ public class ExcelRow {
       context.safepoint();
     }
     return column;
+  }
+
+  /** Returns the formatted cell value. */
+  public String getFormattedCell(int col) {
+    var cell = get(col);
+    if (cell == null) {
+      return "";
+    }
+
+    var rawCellType = cell.getCellType();
+    var cellType =
+        rawCellType == CellType.FORMULA ? cell.getCachedFormulaResultType() : rawCellType;
+
+    return switch (cellType) {
+      case ERROR ->
+      // Want to show the error message rather than empty.
+      FormulaError.forInt(cell.getErrorCellValue()).getString();
+      case NUMERIC -> {
+        // Special handling for Number or Date cells as want to keep formatting.
+        var format = ExcelNumberFormat.from(cell, null);
+        var value = cell.getNumericCellValue();
+        yield format == null
+            ? Double.toString(value)
+            : formatter.formatRawCellContents(value, format.getIdx(), format.getFormat());
+      }
+      default -> {
+        // Use the default read and then toString.
+        var value = getCellValue(col);
+        yield value == null ? "" : value.toString();
+      }
+    };
   }
 
   public String[] getCellsAsText(int startCol, int endCol) {

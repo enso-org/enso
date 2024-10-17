@@ -7,6 +7,7 @@ import Standard.Base.Metadata.Widget.Text_Input
 
 import Standard.Database.Connection.Connection_Options.Connection_Options
 import Standard.Database.Connection.Credentials.Credentials
+import Standard.Database.Internal.Data_Link_Setup.Data_Link_Setup
 
 import project.SQLServer_Connection.SQLServer_Connection
 
@@ -33,13 +34,15 @@ type SQLServer_Details
 
        Arguments:
        - options: Overrides for the connection properties.
-    connect : Connection_Options -> SQLServer_Connection
-    connect self options =
+    connect : Connection_Options -> Boolean -> SQLServer_Connection
+    connect self options (allow_data_links : Boolean = True) =
+        data_link_setup = if allow_data_links then Data_Link_Setup.Available (create_data_link_structure self) else
+            Data_Link_Setup.already_a_data_link
         properties = options.merge self.jdbc_properties
         make_new database =
             SQLServer_Details.SQLServer self.host self.credentials self.port (database.if_nothing self.database) . connect options
 
-        SQLServer_Connection.create self.jdbc_url properties make_new
+        SQLServer_Connection.create self.jdbc_url properties make_new data_link_setup
 
     ## PRIVATE
        Provides the jdbc url for the connection.
@@ -55,3 +58,12 @@ type SQLServer_Details
         database = [Pair.new 'databaseName' self.database]
         credentials = [Pair.new 'user' self.credentials.username, Pair.new 'password' self.credentials.password]
         account + database + credentials
+
+## PRIVATE
+private create_data_link_structure details:SQLServer_Details data_link_location:Enso_File -> JS_Object =
+    credentials_json = Data_Link_Setup.save_credentials_for_data_link data_link_location details.credentials
+    JS_Object.from_pairs <|
+        header = [["type", "SQLServer_Connection"], ["libraryName", "Standard.Microsoft"]]
+        connection_part = [["host", details.host], ["port", details.port], ["database_name", details.database]]
+        credential_part = [["credentials", credentials_json]]
+        header + connection_part + credential_part

@@ -1,4 +1,6 @@
 from Standard.Base import all
+import Standard.Base.Enso_Cloud.Data_Link.Data_Link
+import Standard.Base.Enso_Cloud.Internal.Audit_Log.Audit_Log
 
 from Standard.Table import Table
 
@@ -7,6 +9,7 @@ from Standard.Database import all
 from Standard.Test import all
 
 import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
+import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Temporary_Directory
 from enso_dev.Base_Tests.Network.Enso_Cloud.Audit_Log_Spec import Audit_Log_Event, get_audit_log_events
 
 import project.Database.Postgres_Spec.Temporary_Data_Link_File
@@ -23,6 +26,7 @@ add_specs suite_builder prefix ~datalink_to_connection database_pending =
        The local environment is more predictable for running these tests.
        The following flag can be changed to `False` to run it on the real cloud (if it is set up in the test context).
        This can be used to verify that the mock logic is consistent with the real thing.
+       TODO Once https://github.com/enso-org/enso/issues/10919 is implemented, we can remove this flag.
     always_run_on_mock = True
     cloud_setup = if always_run_on_mock then Cloud_Tests_Setup.prepare_mock_setup else Cloud_Tests_Setup.prepare
     suite_builder.group prefix+"Audit Logs" pending=(cloud_setup.pending.if_nothing database_pending) group_builder->
@@ -31,34 +35,36 @@ add_specs suite_builder prefix ~datalink_to_connection database_pending =
             table_name = "audited-table-"+Random.uuid
             mem_table = Table.new [["X", [1, 2]], ["Y", ["my_payload", "foo"]]]
             audited_table = mem_table.select_into_database_table audited_connection table_name temporary=True . should_succeed
-            audited_table.read . should_equal mem_table
-            audited_connection.drop_table table_name . should_succeed
+            materialized = audited_table.read
+            materialized.column_names . should_equal ["X", "Y"]
+            materialized.at "X" . to_vector . should_equal_ignoring_order [1, 2]
+            materialized.at "Y" . to_vector . should_equal_ignoring_order ["my_payload", "foo"]
+            audited_connection.drop_table audited_table.name . should_succeed
 
             # Retrying is needed as there may be some delay before the background thread finishes processing the logs.
             Test.with_retries <|
-                Thread.sleep 1000
                 all_events = get_audit_log_events
                 relevant_events = all_events.filter e-> e.message.contains table_name
+                Test.with_clue ((relevant_events.map .to_text).join '\n' 'Found relevant events are:\n' '\n') <|
+                    create = relevant_events.find (e-> e.message.contains "CREATE")
+                    create.should_succeed
+                    create.user_email . should_equal Enso_User.current.email
+                    create.metadata.get "connectionUri" . should_contain "jdbc:"
+                    create.metadata.get "projectName" . should_equal enso_project.namespace+"."+enso_project.name
 
-                create = relevant_events.find (e-> e.message.contains "CREATE")
-                create.should_succeed
-                create.user_email . should_equal Enso_User.current.email
-                create.metadata.get "connectionUri" . should_contain "jdbc:"
-                create.metadata.get "projectName" . should_equal enso_project.namespace+"."+enso_project.name
+                    insert = relevant_events.find (e-> e.message.contains "INSERT INTO")
+                    insert.should_succeed
+                    # The insert query should not contain column cell data - only column names / metadata.
+                    insert.message.should_not_contain "my_payload"
 
-                insert = relevant_events.find (e-> e.message.contains "INSERT INTO")
-                insert.should_succeed
-                # The insert query should not contain column cell data - only column names / metadata.
-                insert.message.should_not_contain "my_payload"
+                    create_sequence_number = create.metadata.get "sequenceNumber"
+                    insert_sequence_number = insert.metadata.get "sequenceNumber"
+                    create_sequence_number.should_be_a Integer
+                    insert_sequence_number.should_be_a Integer
+                    (create_sequence_number < insert_sequence_number) . should_be_true
 
-                create_sequence_number = create.metadata.get "sequenceNumber"
-                insert_sequence_number = insert.metadata.get "sequenceNumber"
-                create_sequence_number.should_be_a Integer
-                insert_sequence_number.should_be_a Integer
-                (create_sequence_number < insert_sequence_number) . should_be_true
-
-                relevant_events.find (e-> e.message.contains "SELECT") . should_succeed
-                relevant_events.find (e-> e.message.contains "DROP") . should_succeed
+                    relevant_events.find (e-> e.message.contains "SELECT") . should_succeed
+                    relevant_events.find (e-> e.message.contains "DROP") . should_succeed
 
         group_builder.specify "should see Database operations performed manually" <| cloud_setup.with_prepared_environment <|
             audited_connection = datalink_to_connection.read
@@ -83,15 +89,39 @@ add_specs suite_builder prefix ~datalink_to_connection database_pending =
                 locally_audited_connection = datalink_to_connection.read
 
                 # We just check that we can read queries through this connection:
-                locally_audited_connection.read (SQL_Query.Raw_SQL "SELECT 1") . at 0 . to_vector . should_equal [1]
+                locally_audited_connection.read (SQL_Query.Raw_SQL "SELECT 1 AS foo") . at 0 . to_vector . should_equal [1]
 
-        group_builder.specify "should know the asset id of the data link used for the connection" pending="TODO: https://github.com/enso-org/enso/issues/9869" <|
-            ## TODO:
-               1. write data link to Enso File
-               2. set up real cloud and establish the connection
-               3. switch to mock cloud (if wanted) and run some queries
-               4. inspect logs and search for the asset id
-            Error.throw "TODO"
+        # This test may only run on real cloud because the mock does not support creating datalinks.
+        # Once the tests above can be run on real cloud too (#10919), we can merge all 3 cloud setups into a single one.
+        real_cloud = Cloud_Tests_Setup.prepare
+        test_root = Temporary_Directory.make "Audit-Logs-Datalinks"
+        group_builder.specify "should know the asset id of the data link used for the connection" pending=real_cloud.real_cloud_pending <| real_cloud.with_prepared_environment <|
+            # Upload our local reference data link to the cloud
+            cloud_data_link = test_root.get / "audited-db.datalink"
+            Data_Link.copy datalink_to_connection cloud_data_link . should_succeed
+
+            # Set-up an audited connection through the Cloud data link
+            audited_connection = cloud_data_link.read
+
+            # Until https://github.com/enso-org/enso/issues/10919 is implemented, we switch over to cloud mock to force the audit logs to be sent there:
+            mock_setup = Cloud_Tests_Setup.prepare_mock_setup
+            mock_setup.with_prepared_environment <|
+                table_name = "audited-table-"+Random.uuid
+                mem_table = Table.new [["X", [1, 2]], ["Y", ["my_payload", "foo"]]]
+                mem_table.select_into_database_table audited_connection table_name temporary=True . should_succeed
+
+                Test.with_retries <|
+                    all_events = get_audit_log_events
+                    relevant_events = all_events.filter e-> e.message.contains table_name
+                    Test.with_clue ((relevant_events.map .to_text).join '\n' 'Found relevant events are:\n' '\n') <|
+                        create = relevant_events.find (e-> e.message.contains "CREATE")
+                        create.should_succeed
+
+                        create.metadata.get "connectionUri" . should_contain "jdbc:"
+                        # Verify that it contains an asset id field:
+                        asset_id = create.metadata.get "dataLinkAssetId"
+                        # We cannot really assume too much about the ID other than that it is a string:
+                        asset_id.should_be_a Text
 
 main filter=Nothing =
     connection_details = get_configured_connection_details

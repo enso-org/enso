@@ -1,0 +1,14 @@
+from Standard.Base import all
+
+from Standard.Base.Enso_Cloud.Data_Link_Helpers import Data_Link_Source_Metadata
+
+import project.Connection.Connection_Options.Connection_Options
+
+## PRIVATE
+data_link_connection_parameters (source : Data_Link_Source_Metadata) -> Connection_Options =
+    related_asset_id = case source of
+        Data_Link_Source_Metadata.Cloud_Asset id -> id
+        _ -> Nothing
+    audit_mode = if Enso_User.is_logged_in then "cloud" else "local"
+    options_vector = [["enso.internal.audit", audit_mode]] + (if related_asset_id.is_nothing then [] else [["enso.internal.relatedAssetId", related_asset_id]])
+    Connection_Options.Value options_vector

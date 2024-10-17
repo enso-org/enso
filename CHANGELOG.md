@@ -4,15 +4,21 @@
 
 - [Rows and Columns may be now removed in Table Input Widget][11151]. The option
   is available in right-click context menu.
+- [Rows and Columns may be now reordered by dragging in Table Input
+  Widget][11271]
 
 [11151]: https://github.com/enso-org/enso/pull/11151
+[11271]: https://github.com/enso-org/enso/pull/11271
 
 #### Enso Standard Library
 
 - [The `enso://~` path now resolves to user's home directory in the
   cloud.][11235]
+- [The user may set description and labels of an Enso Cloud asset
+  programmatically.][11255]
 
 [11235]: https://github.com/enso-org/enso/pull/11235
+[11255]: https://github.com/enso-org/enso/pull/11255
 
 # Enso 2024.4
 

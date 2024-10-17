@@ -7,6 +7,7 @@ import Standard.Base.Metadata.Widget.Text_Input
 
 import Standard.Database.Connection.Connection_Options.Connection_Options
 import Standard.Database.Connection.Credentials.Credentials
+import Standard.Database.Internal.Data_Link_Setup.Data_Link_Setup
 
 import project.Snowflake_Connection.Snowflake_Connection
 
@@ -36,15 +37,17 @@ type Snowflake_Details
 
        Arguments:
        - options: Overrides for the connection properties.
-    connect : Connection_Options -> Snowflake_Connection
-    connect self options =
+    connect : Connection_Options -> Boolean -> Snowflake_Connection
+    connect self options (allow_data_links : Boolean = True) =
+        data_link_setup = if allow_data_links then Data_Link_Setup.Available (create_data_link_structure self) else
+            Data_Link_Setup.already_a_data_link
         properties = options.merge self.jdbc_properties
 
         ## Cannot use default argument values as gets in an infinite loop if you do.
         make_new database schema warehouse =
-            Snowflake_Details.Snowflake self.account self.credentials (database.if_nothing self.database) (schema.if_nothing self.schema) (warehouse.if_nothing self.warehouse) . connect options
+            Snowflake_Details.Snowflake self.account self.credentials (database.if_nothing self.database) (schema.if_nothing self.schema) (warehouse.if_nothing self.warehouse) . connect options allow_data_links
 
-        Snowflake_Connection.create self.jdbc_url properties make_new
+        Snowflake_Connection.create self.jdbc_url properties make_new data_link_setup
 
     ## PRIVATE
        Provides the jdbc url for the connection.
@@ -69,3 +72,14 @@ type Snowflake_Details
         ## Control the format of TIMESTAMP and TIME fields
         formats = [Pair.new "TIME_OUTPUT_FORMAT" "HH24:MI:SS.FF9", Pair.new "TIMESTAMP_OUTPUT_FORMAT" "YYYY-MM-DD HH24:MI:SS.FF9 TZHTZM", Pair.new "TIMESTAMP_NTZ_OUTPUT_FORMAT" "YYYY-MM-DD HH24:MI:SS.FF9", Pair.new "TIMESTAMP_LTZ_OUTPUT_FORMAT" "YYYY-MM-DD HH24:MI:SS.FF9"]
         account + credentials + database + schema + warehouse + formats
+
+## PRIVATE
+private create_data_link_structure details:Snowflake_Details data_link_location:Enso_File -> JS_Object =
+    credentials_json = Data_Link_Setup.save_credentials_for_data_link data_link_location details.credentials
+    JS_Object.from_pairs <|
+        header = [["type", "Snowflake_Connection"], ["libraryName", "Standard.Snowflake"]]
+        connection_part = [["account", details.account], ["database_name", details.database]]
+        schema_part = if details.schema.not_empty then [["schema", details.schema]] else []
+        warehouse_part = if details.warehouse.not_empty then [["warehouse", details.warehouse]] else []
+        credential_part = [["credentials", credentials_json]]
+        header + connection_part + schema_part + warehouse_part + credential_part

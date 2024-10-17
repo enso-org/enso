@@ -21,13 +21,6 @@ use tempfile::TempDir;
 // === Export ===
 // ==============
 
-pub mod dejavu_font;
-pub mod enso_font;
-pub mod fonts;
-pub mod google_font;
-
-
-
 lazy_static! {
     /// Path to the file with build information that is consumed by the JS part of the IDE.
     ///

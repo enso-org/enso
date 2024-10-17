@@ -16,6 +16,7 @@ import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.core.ir.expression.{errors, Comment, Error}
 import org.enso.compiler.core.{CompilerError, IR}
 import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.IRProcessingPass
 import org.enso.compiler.pass.analyse._
 import org.enso.compiler.pass.lint.UnusedBindings
 
@@ -36,16 +37,16 @@ case object TypeSignatures extends IRPass {
   override type Metadata = Signature
   override type Config   = IRPass.Configuration.Default
 
-  override lazy val precursorPasses: Seq[IRPass] = List(
+  override lazy val precursorPasses: Seq[IRProcessingPass] = List(
     TypeFunctions,
     ModuleAnnotations
   )
-  override lazy val invalidatedPasses: Seq[IRPass] = List(
+  override lazy val invalidatedPasses: Seq[IRProcessingPass] = List(
     AliasAnalysis,
     CachePreferenceAnalysis,
     DataflowAnalysis,
     DemandAnalysis,
-    TailCall,
+    org.enso.compiler.pass.analyse.TailCall.INSTANCE,
     UnusedBindings
   )
 
@@ -315,7 +316,15 @@ case object TypeSignatures extends IRPass {
         lastSignature = None
         res
       case a => Some(resolveExpression(a))
-    } ::: lastSignature.map(errors.Unexpected.TypeSignature(_)).toList
+    } ::: lastSignature
+      .map({
+        case asc @ Type.Ascription(_: Name, sig, comment, _, _) =>
+          asc.updateMetadata(
+            new MetadataPair(this, Signature(sig, comment))
+          )
+        case any => errors.Unexpected.TypeSignature(any)
+      })
+      .toList
 
     block.copy(
       expressions = newExpressions.init,
