@@ -1,7 +1,8 @@
 package org.enso.interpreter.instrument
 
-import java.util.UUID
+import org.enso.common.CachePreferences
 
+import java.util.UUID
 import org.enso.compiler.pass.analyse.CachePreferenceAnalysis
 import org.enso.polyglot.runtime.Runtime.Api
 
@@ -57,6 +58,13 @@ object CacheInvalidation {
       */
     case class InvalidateKeys(keys: Iterable[UUID]) extends Command
 
+    /** A command to invalidate cache entries by preference kinds.
+      *
+      * @param kinds the kinds of entries that should be invalidated
+      */
+    case class InvalidateByKind(kinds: Iterable[CachePreferences.Kind])
+        extends Command
+
     /** A command to invalidate stale entries from the cache.
       *
       * @param scope all ids of the source
@@ -93,6 +101,9 @@ object CacheInvalidation {
 
     /** Select top stack element. */
     case object Top extends StackSelector
+
+    /** Select all except the top stack element. */
+    case object Tail extends StackSelector
   }
 
   /** Create an invalidation instruction using a stack selector and an
@@ -154,7 +165,7 @@ object CacheInvalidation {
     indexes: Set[IndexSelector] = Set()
   ): Unit =
     visualizations.foreach { visualization =>
-      run(visualization.cache, command, indexes)
+      run(visualization.cache, None, command, indexes)
     }
 
   /** Run a cache invalidation instruction on an execution stack.
@@ -167,8 +178,9 @@ object CacheInvalidation {
     instruction: CacheInvalidation
   ): Unit = {
     val frames = instruction.elements match {
-      case StackSelector.All => stack
-      case StackSelector.Top => stack.headOption.toSeq
+      case StackSelector.All  => stack
+      case StackSelector.Top  => stack.headOption.toSeq
+      case StackSelector.Tail => stack.tail
     }
     run(frames, instruction.command, instruction.indexes)
   }
@@ -184,38 +196,10 @@ object CacheInvalidation {
     command: Command,
     indexes: Set[IndexSelector]
   ): Unit = {
-    frames.foreach(frame => run(frame.cache, frame.syncState, command, indexes))
+    frames.foreach(frame =>
+      run(frame.cache, Some(frame.syncState), command, indexes)
+    )
   }
-
-  /** Run cache invalidation of a single instrument frame.
-    *
-    * @param cache the cache to invalidate
-    * @param command the invalidation instruction
-    * @param indexes the list of indexes to invalidate
-    */
-  private def run(
-    cache: RuntimeCache,
-    command: Command,
-    indexes: Set[IndexSelector]
-  ): Unit =
-    command match {
-      case Command.InvalidateAll =>
-        cache.clear()
-        indexes.foreach(clearIndex(_, cache))
-      case Command.InvalidateKeys(keys) =>
-        keys.foreach { key =>
-          cache.remove(key)
-          indexes.foreach(clearIndexKey(key, _, cache))
-        }
-      case Command.InvalidateStale(scope) =>
-        val staleKeys = cache.getKeys.asScala.diff(scope.toSet)
-        staleKeys.foreach { key =>
-          cache.remove(key)
-          indexes.foreach(clearIndexKey(key, _, cache))
-        }
-      case Command.SetMetadata(metadata) =>
-        cache.setWeights(metadata.asJavaWeights)
-    }
 
   /** Run cache invalidation of a single instrument frame.
     *
@@ -226,7 +210,7 @@ object CacheInvalidation {
     */
   private def run(
     cache: RuntimeCache,
-    syncState: UpdatesSynchronizationState,
+    syncState: Option[UpdatesSynchronizationState],
     command: Command,
     indexes: Set[IndexSelector]
   ): Unit =
@@ -239,15 +223,22 @@ object CacheInvalidation {
           cache.remove(key)
           indexes.foreach(clearIndexKey(key, _, cache))
         }
+      case Command.InvalidateByKind(kinds) =>
+        kinds.foreach { kind =>
+          val keys = cache.clear(kind)
+          keys.forEach { key =>
+            indexes.foreach(clearIndexKey(key, _, cache))
+          }
+        }
       case Command.InvalidateStale(scope) =>
         val staleKeys = cache.getKeys.asScala.diff(scope.toSet)
         staleKeys.foreach { key =>
           cache.remove(key)
           indexes.foreach(clearIndexKey(key, _, cache))
-          syncState.invalidate(key)
+          syncState.foreach(_.invalidate(key))
         }
       case Command.SetMetadata(metadata) =>
-        cache.setWeights(metadata.asJavaWeights)
+        cache.setPreferences(metadata.preferences)
     }
 
   /** Clear the selected index.
@@ -259,10 +250,10 @@ object CacheInvalidation {
     selector match {
       case IndexSelector.All =>
         cache.clearTypes()
-        cache.clearWeights()
+        cache.clearPreferences()
         cache.clearCalls()
       case IndexSelector.Weights =>
-        cache.clearWeights()
+        cache.clearPreferences()
       case IndexSelector.Types =>
         cache.clearTypes()
       case IndexSelector.Calls =>
@@ -283,10 +274,10 @@ object CacheInvalidation {
     selector match {
       case IndexSelector.All =>
         cache.removeType(key)
-        cache.removeWeight(key)
+        cache.removePreference(key)
         cache.removeCall(key)
       case IndexSelector.Weights =>
-        cache.removeWeight(key)
+        cache.removePreference(key)
       case IndexSelector.Types =>
         cache.removeType(key)
       case IndexSelector.Calls =>
