@@ -2127,7 +2127,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     setSelectedKeys(EMPTY_SET)
   })
 
-  const transferBetweenCategories = useTransferBetweenCategories(category)
+  const cutAndPaste = useCutAndPaste(category)
   const doPaste = useEventCallback((newParentKey: DirectoryId, newParentId: DirectoryId) => {
     unsetModal()
     const { pasteData } = driveStore.getState()
@@ -2150,13 +2150,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             newParentKey,
           })
         } else {
-          transferBetweenCategories(
-            pasteData.data.category,
-            category,
-            pasteData.data.ids,
-            newParentKey,
-            newParentId,
-          )
+          cutAndPaste(newParentKey, newParentId, pasteData.data, nodeMapRef.current)
         }
         setPasteData(null)
       }

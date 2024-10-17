@@ -158,7 +158,7 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
-  const cutAndPaste = useCutAndPaste()
+  const cutAndPaste = useCutAndPaste(category)
   const [isDraggedOver, setIsDraggedOver] = React.useState(false)
   const rootRef = React.useRef<HTMLElement | null>(null)
   const dragOverTimeoutHandle = React.useRef<number | null>(null)
@@ -759,7 +759,12 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
                       const ids = payload
                         .filter((payloadItem) => payloadItem.asset.parentId !== directoryId)
                         .map((dragItem) => dragItem.key)
-                      cutAndPaste(directoryKey, directoryId, ids, nodeMap.current)
+                      cutAndPaste(
+                        directoryKey,
+                        directoryId,
+                        { backendType: backend.type, ids: new Set(ids), category },
+                        nodeMap.current,
+                      )
                     } else if (event.dataTransfer.types.includes('Files')) {
                       event.preventDefault()
                       event.stopPropagation()
