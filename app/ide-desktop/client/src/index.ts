@@ -41,9 +41,7 @@ import * as urlAssociations from '@/urlAssociations'
 
 const logger = contentConfig.logger
 
-/**
- * Convert path to proper `file://` URL.
- */
+/** Convert path to proper `file://` URL. */
 function pathToURL(path: string): URL {
   if (process.platform === 'win32') {
     return new URL(encodeURI(`file:///${path.replaceAll('\\', '/')}`))
@@ -198,7 +196,7 @@ class App {
       if (urlToOpen != null) {
         urlAssociations.handleOpenUrl(urlToOpen)
       }
-    } catch (e) {
+    } catch {
       // If we failed to open the file, we should enter the usual welcome screen.
       // The `handleOpenFile` function will have already displayed an error message.
     }

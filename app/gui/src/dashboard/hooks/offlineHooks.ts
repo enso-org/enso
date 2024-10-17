@@ -9,9 +9,7 @@ import * as reactQuery from '@tanstack/react-query'
 
 import * as eventCallback from '#/hooks/eventCallbackHooks'
 
-/**
- * Hook to get the offline status
- */
+/** Hook to get the offline status */
 export function useOffline() {
   const isOnline = React.useSyncExternalStore(
     reactQuery.onlineManager.subscribe.bind(reactQuery.onlineManager),
@@ -22,17 +20,13 @@ export function useOffline() {
   return { isOffline: !isOnline }
 }
 
-/**
- * Props for the {@link useOfflineChange} hook
- */
+/** Props for the {@link useOfflineChange} hook */
 export interface UseOfflineChangeProps {
   readonly triggerImmediate?: boolean | 'if-offline' | 'if-online'
   readonly isDisabled?: boolean
 }
 
-/**
- * Hook to subscribe to online/offline changes
- */
+/** Hook to subscribe to online/offline changes */
 export function useOfflineChange(
   callback: (isOffline: boolean) => void,
   props: UseOfflineChangeProps = {},

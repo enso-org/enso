@@ -4,17 +4,19 @@
 // === AccessToken ===
 // ===================
 
-/** Payload for the `save-access-token` event that saves an access token to a credentials file. */
+/** Credentials to be saved to a credentials file. */
 export interface AccessToken {
-  /** The JWT token to save. */
+  /** The user's JWT token. */
   readonly accessToken: string
-  /** The Cognito app integration client id. */
+  /** The ID for the Cognito app integration. */
   readonly clientId: string
-  /** The refresh token taken from authorization flow. */
+  /** The refresh token taken from the authorization flow. */
   readonly refreshToken: string
-  /** The Cognito url to refresh the token. */
+  /** The Cognito URL to refresh the token. */
   readonly refreshUrl: string
-  /** The when the token will expire.
-   * This is a string representation of a date in ISO 8601 format (e.g. "2021-01-01T00:00:00Z"). */
+  /**
+   * The expiry time of the token.
+   * This is a string representation of a date in ISO 8601 format (e.g. "2021-01-01T00:00:00Z").
+   */
   readonly expireAt: string
 }

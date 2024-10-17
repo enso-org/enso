@@ -12,16 +12,12 @@ import * as stripe from '@stripe/stripe-js/pure'
 import * as reactQuery from '@tanstack/react-query'
 import invariant from 'tiny-invariant'
 
-/**
- * Props for a {@link StripeProvider}.
- */
+/** Props for a {@link StripeProvider}. */
 export interface StripeProviderProps {
   readonly children: React.ReactNode | ((props: StripeProviderRenderProps) => React.ReactNode)
 }
 
-/**
- * Render props for children of a {@link StripeProvider}.
- */
+/** Render props for children of a {@link StripeProvider}. */
 export interface StripeProviderRenderProps {
   readonly stripe: stripeTypes.Stripe
   readonly elements: stripeTypes.StripeElements
@@ -49,9 +45,7 @@ export const stripeQuery = reactQuery.queryOptions({
   },
 })
 
-/**
- * A component that provides a Stripe context.
- */
+/** A component that provides a Stripe context. */
 export function StripeProvider(props: StripeProviderProps) {
   const { children } = props
 
@@ -78,9 +72,7 @@ export function StripeProvider(props: StripeProviderProps) {
   )
 }
 
-/**
- * Hook that gets the Stripe instance and elements from the Stripe context.
- */
+/** Hook that gets the Stripe instance and elements from the Stripe context. */
 export function useStripe() {
   const stripeInstance = stripeReact.useStripe()
   const elements = stripeReact.useElements()

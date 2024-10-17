@@ -15,7 +15,8 @@ test.prop({
   expect(applyTextEdits(beforeString, edits)).toBe(afterString)
 })
 
-/** Test that `textChangeToEdits` and `applyTextEdits` work when inputs contain any special characters representable by
+/**
+ * Test that `textChangeToEdits` and `applyTextEdits` work when inputs contain any special characters representable by
  *  a `string`, including newlines and even incomplete surrogate pairs (invalid Unicode).
  */
 test.prop({
@@ -29,7 +30,8 @@ test.prop({
   expect(applyTextEdits(beforeString, edits)).toBe(afterString)
 })
 
-/** Tests that:
+/**
+ * Tests that:
  *  - When the code in `a[0]` is edited to become the code in `b[0]`,
  *    `applyTextEditsToSpans` followed by `trimEnd` transforms the spans in `a.slice(1)` into the spans in `b.slice(1)`.
  *  - The same holds when editing from `b` to `a`.
@@ -39,7 +41,8 @@ function checkCorrespondence(a: string[], b: string[]) {
   checkCorrespondenceForward(b, a)
 }
 
-/** Performs the same check as {@link checkCorrespondence}, for correspondences that are not expected to be reversible.
+/**
+  Performs the same check as {@link checkCorrespondence}, for correspondences that are not expected to be reversible.
  */
 function checkCorrespondenceForward(before: string[], after: string[]) {
   const leadingSpacesAndLength = (input: string): [number, number] => [

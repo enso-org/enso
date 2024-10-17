@@ -61,9 +61,7 @@ export interface AlertProps
   extends PropsWithChildren,
     VariantProps<typeof ALERT_STYLES>,
     HTMLAttributes<HTMLDivElement> {
-  /**
-   * The icon to display in the Alert
-   */
+  /** The icon to display in the Alert */
   readonly icon?: React.ReactElement | string | null | undefined
 }
 

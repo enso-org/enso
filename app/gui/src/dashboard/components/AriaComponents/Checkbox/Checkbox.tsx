@@ -33,9 +33,7 @@ import type { TestIdProps } from '../types'
 import { useCheckboxContext } from './CheckboxContext'
 import { CheckboxGroup } from './CheckboxGroup'
 
-/**
- * Props for the {@link Checkbox} component.
- */
+/** Props for the {@link Checkbox} component. */
 export type CheckboxProps<Schema extends TSchema, TFieldName extends FieldPath<Schema>> = Omit<
   VariantProps<typeof CHECKBOX_STYLES>,
   'isDisabled' | 'isInvalid'
@@ -46,18 +44,14 @@ export type CheckboxProps<Schema extends TSchema, TFieldName extends FieldPath<S
     readonly checkboxRef?: MutableRefObject<HTMLInputElement>
   } & (CheckboxGroupCheckboxProps | StandaloneCheckboxProps<Schema, TFieldName>)
 
-/**
- * Props for the {@link Checkbox} component when used inside a {@link CheckboxGroup}.
- */
+/** Props for the {@link Checkbox} component when used inside a {@link CheckboxGroup}. */
 interface CheckboxGroupCheckboxProps extends AriaCheckboxProps {
   readonly value: string
   readonly form?: never
   readonly name?: never
 }
 
-/**
- * Props for the {@link Checkbox} component when used outside of a {@link CheckboxGroup}.
- */
+/** Props for the {@link Checkbox} component when used outside of a {@link CheckboxGroup}. */
 type StandaloneCheckboxProps<
   Schema extends TSchema,
   TFieldName extends FieldPath<Schema>,
@@ -123,9 +117,7 @@ export const TICK_VARIANTS: Variants = {
   },
 }
 
-/**
- * Checkboxes allow users to select multiple items from a list of individual items, or to mark one individual item as selected.
- */
+/** Checkboxes allow users to select multiple items from a list of individual items, or to mark one individual item as selected. */
 // eslint-disable-next-line no-restricted-syntax
 export const Checkbox = forwardRef(function Checkbox<
   Schema extends TSchema,

@@ -13,7 +13,8 @@ export * from './token'
 export * from './tree'
 
 declare const brandOwned: unique symbol
-/** Used to mark references required to be unique.
+/**
+ * Used to mark references required to be unique.
  *
  *  Note that the typesystem cannot stop you from copying an `Owned`,
  *  but that is an easy mistake to see (because it occurs locally).
@@ -30,6 +31,7 @@ export function asOwned<T>(t: T): Owned<T> {
 export type NodeChild<T> = { whitespace: string | undefined; node: T }
 export type RawNodeChild = NodeChild<AstId> | NodeChild<SyncTokenId>
 
+/** Create a new random {@link ExternalId}. */
 export function newExternalId(): ExternalId {
   return random.uuidv4() as ExternalId
 }
@@ -72,7 +74,8 @@ function unwrapGroups(ast: Ast) {
   return ast
 }
 
-/** Tries to recognize inputs that are semantically-equivalent to a sequence of `App`s, and returns the arguments
+/**
+ * Tries to recognize inputs that are semantically-equivalent to a sequence of `App`s, and returns the arguments
  *  identified and LHS of the analyzable chain.
  *
  *  In particular, this function currently recognizes syntax used in visualization-preprocessor expressions.

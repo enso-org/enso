@@ -8,9 +8,7 @@ import * as React from 'react'
 import * as callbackHooks from './eventCallbackHooks'
 import * as unmountEffect from './unmountHooks'
 
-/**
- * Wrap a callback into debounce function
- */
+/** Wrap a callback into debounce function */
 export function useDebouncedCallback<Fn extends (...args: never[]) => unknown>(
   callback: Fn,
   deps: React.DependencyList,
@@ -83,9 +81,8 @@ export function useDebouncedCallback<Fn extends (...args: never[]) => unknown>(
   }, [stableCallback, delay, maxWait, ...deps])
 }
 
-/**
- *
- */
-export interface DebouncedFunction<Fn extends (...args: never[]) => unknown> {
-  (this: ThisParameterType<Fn>, ...args: Parameters<Fn>): void
-}
+/** The type of a wrapped function that has been debounced. */
+export type DebouncedFunction<Fn extends (...args: never[]) => unknown> = (
+  this: ThisParameterType<Fn>,
+  ...args: Parameters<Fn>
+) => void

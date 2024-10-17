@@ -40,9 +40,7 @@ export function createAddPaymentMethodFormSchema(z: typeof schema, getText: GetT
   })
 }
 
-/**
- * A form for adding a payment method.
- */
+/** A form for adding a payment method. */
 export function AddPaymentMethodForm<
   Schema extends ReturnType<typeof createAddPaymentMethodFormSchema> = ReturnType<
     typeof createAddPaymentMethodFormSchema

@@ -17,17 +17,13 @@ import * as ariaComponents from '#/components/AriaComponents'
 import * as components from './components'
 import * as upgradeButton from './UpgradeButton'
 
-/**
- * Props for a {@link PaywallScreen}.
- */
+/** Props for a {@link PaywallScreen}. */
 export interface PaywallScreenProps {
   readonly feature: billingHooks.PaywallFeatureName
   readonly className?: string
 }
 
-/**
- * A screen that shows a paywall.
- */
+/** A screen that shows a paywall. */
 export function PaywallScreen(props: PaywallScreenProps) {
   const { feature, className } = props
   const { getText } = textProvider.useText()

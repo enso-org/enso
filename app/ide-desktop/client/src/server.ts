@@ -75,8 +75,10 @@ export class Config {
 // === Port Finder ===
 // ===================
 
-/** Determine the initial available communication endpoint, starting from the specified port,
- * to provide file hosting services. */
+/**
+ * Determine the initial available communication endpoint, starting from the specified port,
+ * to provide file hosting services.
+ */
 async function findPort(port: number): Promise<number> {
   return await portfinder.getPortPromise({ port, startPort: port, stopPort: port + 4 })
 }
@@ -85,10 +87,12 @@ async function findPort(port: number): Promise<number> {
 // === Server ===
 // ==============
 
-/** A simple server implementation.
+/**
+ * A simple server implementation.
  *
  * Initially it was based on `union`, but later we migrated to `create-servers`.
- * Read this topic to learn why: https://github.com/http-party/http-server/issues/483 */
+ * Read this topic to learn why: https://github.com/http-party/http-server/issues/483
+ */
 export class Server {
   projectsRootDirectory: string
   devServer?: vite.ViteDevServer
@@ -168,9 +172,11 @@ export class Server {
     })
   }
 
-  /** Respond to an incoming request.
+  /**
+   * Respond to an incoming request.
    * @throws {Error} when passing invalid JSON to
-   * `/api/run-project-manager-command?cli-arguments=<urlencoded-json>`. */
+   * `/api/run-project-manager-command?cli-arguments=<urlencoded-json>`.
+   */
   process(request: http.IncomingMessage, response: http.ServerResponse) {
     const requestUrl = request.url
     const requestPath = requestUrl?.split('?')[0]?.split('#')[0]

@@ -99,9 +99,7 @@ export function useModal() {
 // === useModalRef ===
 // ===================
 
-/**
- * A React context hook exposing the currently active modal (if one is currently visible) as a ref.
- */
+/** A React context hook exposing the currently active modal (if one is currently visible) as a ref. */
 export function useModalRef() {
   const { modalRef } = React.useContext(ModalStaticContext)
   return { modalRef } as const

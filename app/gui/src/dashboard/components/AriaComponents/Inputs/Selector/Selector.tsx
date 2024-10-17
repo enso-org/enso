@@ -76,9 +76,7 @@ export const SELECTOR_STYLES = tv({
   },
 })
 
-/**
- * A horizontal selector.
- */
+/** A horizontal selector. */
 export const Selector = forwardRef(function Selector<
   Schema extends TSchema,
   TFieldName extends FieldPath<Schema>,

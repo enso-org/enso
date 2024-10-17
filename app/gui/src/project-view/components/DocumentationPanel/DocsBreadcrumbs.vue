@@ -18,9 +18,7 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{ click: [index: number]; backward: []; forward: [] }>()
 
-/**
- * Shrink first and middle elements in the breacrumbs, keeping the original size of others.
- */
+/** Shrink first and middle elements in the breacrumbs, keeping the original size of others. */
 function shrinkFactor(index: number): number {
   const middle = Math.floor(props.breadcrumbs.length / 2)
   return index === middle || index === 0 ? 100 : 0

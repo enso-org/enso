@@ -5,9 +5,7 @@
 import type { PaywallFeatureName } from '#/hooks/billing'
 import * as zustand from 'zustand'
 
-/**
- * Configuration for a paywall feature.
- */
+/** Configuration for a paywall feature. */
 export interface PaywallDevtoolsFeatureConfiguration {
   readonly isForceEnabled: boolean | null
 }
@@ -62,9 +60,7 @@ export function useSetEnableVersionChecker() {
   return zustand.useStore(ensoDevtoolsStore, (state) => state.setEnableVersionChecker)
 }
 
-/**
- * A hook that provides access to the paywall devtools.
- */
+/** A hook that provides access to the paywall devtools. */
 export function usePaywallDevtools() {
   return zustand.useStore(ensoDevtoolsStore, (state) => ({
     features: state.paywallFeatures,

@@ -17,16 +17,20 @@ interface Disposable {
   dispose(): void
 }
 
+/** A scope which controls */
 export class AbortScope {
   private ctrl: AbortController = new AbortController()
+  /** Get the {@link AbortSignal} for this {@link AbortScope}. */
   get signal() {
     return this.ctrl.signal
   }
 
+  /** Trigger an abort for all listeners of this {@link AbortScope}. */
   dispose(reason?: string) {
     this.ctrl.abort(reason)
   }
 
+  /** Trigger disposal of the given {@link Disposable} when this {@link AbortScope} is aborted. */
   handleDispose(disposable: Disposable) {
     this.signal.throwIfAborted()
     this.onAbort(disposable.dispose.bind(disposable))
@@ -42,6 +46,7 @@ export class AbortScope {
     return child
   }
 
+  /** Call the given callback when this {@link AbortScope} is aborted. */
   onAbort(listener: () => void) {
     if (this.signal.aborted) {
       queueMicrotask(listener)
@@ -50,6 +55,10 @@ export class AbortScope {
     }
   }
 
+  /**
+   * Add the given event listener on the given event on the given observable,
+   * removing the event listener when this {@link AbortScope} is aborted.
+   */
   handleObserve<
     EVENTS extends { [key in keyof EVENTS]: (...arg0: any[]) => void },
     NAME extends keyof EVENTS & string,
@@ -66,10 +75,12 @@ export interface BackoffOptions<E> {
   retryDelay?: number
   retryDelayMultiplier?: number
   retryDelayMax?: number
-  /** Called when the promise throws an error, and the next retry is about to be attempted.
+  /**
+   * Called when the promise throws an error, and the next retry is about to be attempted.
    * When this function returns `false`, the backoff is immediately aborted. When this function
    * is not provided, the backoff will always continue until the maximum number of retries
-   * is reached. * */
+   * is reached. *
+   */
   onBeforeRetry?: (
     error: ResultError<E>,
     retryCount: number,
@@ -78,9 +89,11 @@ export interface BackoffOptions<E> {
   ) => boolean | void
   /** Called right before returning. */
   onSuccess?: (retryCount: number) => void
-  /** Called after the final retry, right before throwing an error.
+  /**
+   * Called after the final retry, right before throwing an error.
    * Note that `onBeforeRetry` is *not* called on the final retry, as there is nothing after the
-   * final retry. */
+   * final retry.
+   */
   onFailure?: (error: ResultError<E>, retryCount: number) => void
 }
 
@@ -132,6 +145,7 @@ export async function exponentialBackoff<T, E>(
   }
 }
 
+/** An `onBeforeRetry` handler used in {@link printingCallbacks} that logs an error. */
 export function defaultOnBeforeRetry(
   description: string,
 ): NonNullable<BackoffOptions<any>['onBeforeRetry']> {
@@ -145,6 +159,7 @@ export function defaultOnBeforeRetry(
   }
 }
 
+/** An `onFailure` handler used in {@link printingCallbacks} that logs an error. */
 export function defaultOnFailure(
   description: string,
 ): NonNullable<BackoffOptions<any>['onFailure']> {
@@ -156,6 +171,7 @@ export function defaultOnFailure(
   }
 }
 
+/** An `onSuccess` handler used in {@link printingCallbacks} that logs a message. */
 export function defaultOnSuccess(
   description: string,
 ): NonNullable<BackoffOptions<any>['onSuccess']> {
@@ -169,8 +185,10 @@ export function defaultOnSuccess(
   }
 }
 
-/** @param successDescription Should be in past tense, without an initial capital letter.
- * @param errorDescription Should be in present tense, without an initial capital letter. */
+/**
+ * @param successDescription Should be in past tense, without an initial capital letter.
+ * @param errorDescription Should be in present tense, without an initial capital letter.
+ */
 export function printingCallbacks(successDescription: string, errorDescription: string) {
   return {
     onBeforeRetry: defaultOnBeforeRetry(errorDescription),

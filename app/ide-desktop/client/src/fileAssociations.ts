@@ -1,9 +1,11 @@
-/** @file
+/**
+ * @file
  * This module provides functionality for handling file opening events in the Enso IDE.
  *
  * It includes utilities for determining if a file can be opened, managing the file opening
  * process, and launching new instances of the IDE when necessary. The module also exports
- * constants related to file associations and project handling. */
+ * constants related to file associations and project handling.
+ */
 import * as fsSync from 'node:fs'
 import * as pathModule from 'node:path'
 import process from 'node:process'
@@ -39,13 +41,15 @@ export const SOURCE_FILE_SUFFIX = fileAssociations.SOURCE_FILE_SUFFIX
 // === Arguments Handling ===
 // ==========================
 
-/** Check if the given list of application startup arguments denotes an attempt to open a file.
+/**
+ * Check if the given list of application startup arguments denotes an attempt to open a file.
  *
  * For example, this happens when the user double-clicks on a file in the file explorer and the
  * application is launched with the file path as an argument.
  * @param clientArgs - A list of arguments passed to the application, stripped from the initial
  * executable name and any electron dev mode arguments.
- * @returns The path to the file to open, or `null` if no file was specified. */
+ * @returns The path to the file to open, or `null` if no file was specified.
+ */
 export function argsDenoteFileOpenAttempt(clientArgs: readonly string[]): string | null {
   const arg = clientArgs[0]
   let result: string | null = null
@@ -117,9 +121,11 @@ export function onFileOpened(event: electron.Event, path: string): string | null
   }
 }
 
-/** Set up the `open-file` event handler that might import a project and invoke the given callback,
+/**
+ * Set up the `open-file` event handler that might import a project and invoke the given callback,
  * if this IDE instance should load the project. See {@link onFileOpened} for more details.
- * @param setProjectToOpen - A function that will be called with the path of the project to open. */
+ * @param setProjectToOpen - A function that will be called with the path of the project to open.
+ */
 export function setOpenFileEventHandler(setProjectToOpen: (path: string) => void) {
   electron.app.on('open-file', (_event, path) => {
     logger.log(`Opening file '${path}'.`)
@@ -149,13 +155,15 @@ export function setOpenFileEventHandler(setProjectToOpen: (path: string) => void
   })
 }
 
-/** Handle the case where IDE is invoked with a file to open.
+/**
+ * Handle the case where IDE is invoked with a file to open.
  *
  * Imports project if necessary. Returns the ID of the project to open. In case of an error,
  * the error message is displayed and the error is re-thrown.
  * @param openedFile - The path to the file to open.
  * @returns The ID of the project to open.
- * @throws {Error} if the project from the file cannot be opened or imported. */
+ * @throws {Error} if the project from the file cannot be opened or imported.
+ */
 export function handleOpenFile(openedFile: string): project.ProjectInfo {
   try {
     return project.importProjectFromPath(openedFile)

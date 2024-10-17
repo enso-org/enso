@@ -15,9 +15,7 @@ import { getComponentPerPlan } from './getComponentForPlan'
 const USER_REFETCH_DELAY_MS = 3_000
 const USER_REFETCH_TIMEOUT_MS = 30_000
 
-/**
- * The mutation data for the `onCompleteMutation` mutation.
- */
+/** The mutation data for the `onCompleteMutation` mutation. */
 interface CreateCheckoutSessionMutation {
   readonly plan: Plan
   readonly paymentMethodId: string
@@ -25,9 +23,7 @@ interface CreateCheckoutSessionMutation {
   readonly period: number
 }
 
-/**
- * Props for {@link PlanSelector}
- */
+/** Props for {@link PlanSelector} */
 export interface PlanSelectorProps extends VariantProps<typeof PLAN_SELECTOR_STYLES> {
   readonly showFreePlan?: boolean
   readonly hasTrial?: boolean

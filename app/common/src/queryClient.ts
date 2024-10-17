@@ -10,9 +10,7 @@ import * as vueQuery from '@tanstack/vue-query'
 import * as idbKeyval from 'idb-keyval'
 
 declare module '@tanstack/query-core' {
-  /**
-   * Query client with additional methods.
-   */
+  /** Query client with additional methods. */
   interface QueryClient {
     /**
      * Clear the cache stored in Tanstack Query and the persister storage.
@@ -20,19 +18,13 @@ declare module '@tanstack/query-core' {
      * Usually you should use `queryClient.invalidateQueries` instead.
      */
     readonly clearWithPersister: () => Promise<void>
-    /**
-     * Clear the cache stored in the persister storage.
-     */
+    /** Clear the cache stored in the persister storage. */
     readonly nukePersister: () => Promise<void>
   }
-  /**
-   * Specifies the invalidation behavior of a mutation.
-   */
+  /** Specifies the invalidation behavior of a mutation. */
   interface Register {
     readonly mutationMeta: {
-      /**
-       * List of query keys to invalidate when the mutation succeeds.
-       */
+      /** List of query keys to invalidate when the mutation succeeds. */
       readonly invalidates?: queryCore.QueryKey[]
       /**
        * List of query keys to await invalidation before the mutation is considered successful.
@@ -71,9 +63,7 @@ const DEFAULT_QUERY_PERSIST_TIME_MS = 30 * 24 * 60 * 60 * 1000 // 30 days
 
 const DEFAULT_BUSTER = 'v1.1'
 
-/**
- * Create a new Tanstack Query client.
- */
+/** Create a new Tanstack Query client. */
 export function createQueryClient(): QueryClient {
   const store = idbKeyval.createStore('enso', 'query-persist-cache')
   queryCore.onlineManager.setOnline(navigator.onLine)

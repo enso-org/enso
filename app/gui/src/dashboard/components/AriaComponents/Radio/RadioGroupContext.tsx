@@ -18,9 +18,7 @@ import invariant from 'tiny-invariant'
 
 import * as eventCallback from '#/hooks/eventCallbackHooks'
 
-/**
- * Props for {@link RadioGroupContextProps}
- */
+/** Props for {@link RadioGroupContextProps} */
 export interface RadioGroupContextProps {
   /**
    * Tells if a Radio element is being pressed
@@ -28,13 +26,9 @@ export interface RadioGroupContextProps {
    * It's not the same as selected value, instead it stores the value user is clicking on at the moment
    */
   readonly pressedRadio: string | null
-  /**
-   * Sets the pressed Radio element
-   */
+  /** Sets the pressed Radio element */
   readonly setPressedRadio: (value: string) => void
-  /**
-   * Clears the pressed Radio element
-   */
+  /** Clears the pressed Radio element */
   readonly clearPressedRadio: () => void
 }
 
@@ -68,16 +62,12 @@ export function RadioGroupProvider(props: React.PropsWithChildren) {
   return <RadioGroupContext.Provider value={value}>{children}</RadioGroupContext.Provider>
 }
 
-/**
- * Props for {@link useRadioGroupContext}
- */
+/** Props for {@link useRadioGroupContext} */
 export interface UseRadioGroupContextProps {
   readonly value: string
 }
 
-/**
- * Provides useful information about sibling Radio elements within a RadioGroup
- */
+/** Provides useful information about sibling Radio elements within a RadioGroup */
 export function useRadioGroupContext(props: UseRadioGroupContextProps) {
   const { value } = props
   const context = React.useContext(RadioGroupContext)

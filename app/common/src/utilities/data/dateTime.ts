@@ -35,8 +35,10 @@ export type Rfc3339DateTime = newtype.Newtype<string, 'Rfc3339DateTime'>
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const Rfc3339DateTime = newtype.newtypeConstructor<Rfc3339DateTime>()
 
-/** Return a new {@link Date} with units below days (hours, minutes, seconds and milliseconds)
- * set to `0`. */
+/**
+ * Return a new {@link Date} with units below days (hours, minutes, seconds and milliseconds)
+ * set to `0`.
+ */
 export function toDate(dateTime: Date) {
   return new Date(dateTime.getFullYear(), dateTime.getMonth(), dateTime.getDate())
 }

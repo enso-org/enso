@@ -1,9 +1,11 @@
-/** @file This module defines a TS script that is responsible for invoking the Electron Builder
+/**
+ * @file This module defines a TS script that is responsible for invoking the Electron Builder
  * process to bundle the entire IDE distribution.
  *
  * There are two areas to this:
  * - Parsing CLI options as per our needs.
- * - The default configuration of the build process. */
+ * - The default configuration of the build process.
+ */
 /** @module */
 
 import * as childProcess from 'node:child_process'
@@ -26,8 +28,10 @@ import BUILD_INFO from './buildInfo'
 // === Types ===
 // =============
 
-/** The parts of the electron-builder configuration that we want to keep configurable.
- * @see `args` definition below for fields description. */
+/**
+ * The parts of the electron-builder configuration that we want to keep configurable.
+ * @see `args` definition below for fields description.
+ */
 export interface Arguments {
   // The types come from a third-party API and cannot be changed.
   // eslint-disable-next-line no-restricted-syntax
@@ -42,9 +46,11 @@ export interface Arguments {
 
 /** File association configuration, extended with information needed by the `enso-installer`. */
 interface ExtendedFileAssociation extends electronBuilder.FileAssociation {
-  /** The Windows registry key under which the file association is registered.
+  /**
+   * The Windows registry key under which the file association is registered.
    *
-   * Should follow the pattern `Enso.CamelCaseName`. */
+   * Should follow the pattern `Enso.CamelCaseName`.
+   */
   readonly progId: string
 }
 
@@ -61,8 +67,10 @@ interface InstallerAdditionalConfig {
 // === Argument parser configuration ===
 //======================================
 
-/** CLI argument parser (with support for environment variables) that provides
- * the necessary options. */
+/**
+ * CLI argument parser (with support for environment variables) that provides
+ * the necessary options.
+ */
 export const args: Arguments = await yargs(process.argv.slice(2))
   .env('ENSO_BUILD')
   .option({
@@ -132,10 +140,12 @@ export const EXTENDED_FILE_ASSOCIATIONS = [
   },
 ]
 
-/** Returns non-extended file associations, as required by the `electron-builder`.
+/**
+ * Returns non-extended file associations, as required by the `electron-builder`.
  *
  * Note that we need to actually remove any additional fields that we added to the file associations,
- * as the `electron-builder` will error out if it encounters unknown fields. */
+ * as the `electron-builder` will error out if it encounters unknown fields.
+ */
 function getFileAssociations(): electronBuilder.FileAssociation[] {
   return EXTENDED_FILE_ASSOCIATIONS.map(assoc => {
     const { ext, name, role, mimeType } = assoc
@@ -177,7 +187,8 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
     // simplified for the MSI installer to cope.
     artifactName: 'enso-${os}-${arch}-' + BUILD_INFO.version + '.${ext}',
 
-    /** Definitions of URL {@link electronBuilder.Protocol} schemes used by the IDE.
+    /**
+     * Definitions of URL {@link electronBuilder.Protocol} schemes used by the IDE.
      *
      * Electron will register all URL protocol schemes defined here with the OS.
      * Once a URL protocol scheme is registered with the OS, any links using that scheme
@@ -191,7 +202,8 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
      * - navigate to the location specified by the URL of the deep link.
      *
      * For details on how this works, see:
-     * https://www.electronjs.org/docs/latest/tutorial/launch-app-from-url-in-another-app. */
+     * https://www.electronjs.org/docs/latest/tutorial/launch-app-from-url-in-another-app.
+     */
     protocols: [
       /** Electron URL protocol scheme definition for deep links to authentication pages. */
       {
@@ -336,7 +348,8 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
   }
 }
 
-/** Write the configuration to a JSON file.
+/**
+ * Write the configuration to a JSON file.
  *
  * On Windows it is necessary to provide configuration to our installer. On other platforms, this may be useful for debugging.
  *

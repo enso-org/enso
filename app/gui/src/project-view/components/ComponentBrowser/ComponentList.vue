@@ -50,9 +50,7 @@ function componentStyle(index: number) {
   return { transform: `translateY(${componentPos(index)}px)` }
 }
 
-/**
- * Group colors are populated in `GraphEditor`, and for each group in suggestion database a CSS variable is created.
- */
+/** Group colors are populated in `GraphEditor`, and for each group in suggestion database a CSS variable is created. */
 function componentColor(component: Component): string {
   return groupColorStyle(tryGetIndex(suggestionDbStore.groups, component.group))
 }

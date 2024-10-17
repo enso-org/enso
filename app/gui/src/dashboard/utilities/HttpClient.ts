@@ -122,9 +122,7 @@ export default class HttpClient {
     })
   }
 
-  /**
-   * Set the session token to be included in the Authorization header of every request.
-   */
+  /** Set the session token to be included in the Authorization header of every request. */
   setSessionToken(token: string) {
     this.defaultHeaders = {
       ...this.defaultHeaders,

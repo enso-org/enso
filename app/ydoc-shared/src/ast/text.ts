@@ -52,7 +52,7 @@ function escapeChar(char: string) {
 /**
  * Escape a string so it can be safely spliced into an interpolated (`''`) Enso string.
  * Note: Escape sequences are NOT interpreted in raw (`""`) string literals.
- * */
+ */
 export function escapeTextLiteral(rawString: string) {
   return rawString.replace(escapeRegex, escapeChar)
 }

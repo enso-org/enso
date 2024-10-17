@@ -1,6 +1,4 @@
-/**
- * @file This file provides the DialogStackProvider component and related functionality.
- */
+/** @file This file provides the DialogStackProvider component and related functionality. */
 
 import * as React from 'react'
 
@@ -8,17 +6,13 @@ import invariant from 'tiny-invariant'
 
 import * as eventCallbackHooks from '#/hooks/eventCallbackHooks'
 
-/**
- * DialogStackItem represents an item in the dialog stack.
- */
+/** DialogStackItem represents an item in the dialog stack. */
 export interface DialogStackItem {
   readonly id: string
   readonly type: 'dialog-fullscreen' | 'dialog' | 'popover'
 }
 
-/**
- * DialogStackContextType represents the context for the dialog stack.
- */
+/** DialogStackContextType represents the context for the dialog stack. */
 export interface DialogStackContextType {
   readonly stack: DialogStackItem[]
   readonly dialogsStack: DialogStackItem[]
@@ -28,9 +22,7 @@ export interface DialogStackContextType {
 
 const DialogStackContext = React.createContext<DialogStackContextType | null>(null)
 
-/**
- * DialogStackProvider is a React component that provides the dialog stack context to its children.
- */
+/** DialogStackProvider is a React component that provides the dialog stack context to its children. */
 export function DialogStackProvider(props: React.PropsWithChildren) {
   const { children } = props
 
@@ -72,9 +64,7 @@ updated properly.`)
   return <DialogStackContext.Provider value={value}>{children}</DialogStackContext.Provider>
 }
 
-/**
- * DialogStackRegistrar is a React component that registers a dialog in the dialog stack.
- */
+/** DialogStackRegistrar is a React component that registers a dialog in the dialog stack. */
 export function DialogStackRegistrar(props: React.PropsWithChildren<DialogStackItem>) {
   const { children, id: idRaw, type: typeRaw } = props
   const idRef = React.useRef(idRaw)
@@ -100,16 +90,12 @@ export function DialogStackRegistrar(props: React.PropsWithChildren<DialogStackI
   return children
 }
 
-/**
- * Props for {@link useDialogStackState}
- */
+/** Props for {@link useDialogStackState} */
 export interface UseDialogStackStateProps {
   readonly id: string
 }
 
-/**
- * useDialogStackState is a custom hook that provides the state of the dialog stack.
- */
+/** useDialogStackState is a custom hook that provides the state of the dialog stack. */
 export function useDialogStackState(props: UseDialogStackStateProps) {
   const ctx = React.useContext(DialogStackContext)
 

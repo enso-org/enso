@@ -12,9 +12,7 @@ export default class EditorPageActions extends PageActions {
   get goToPage(): Omit<goToPageActions.GoToPageActions, 'editor'> {
     return goToPageActions.goToPageActions(this.step.bind(this))
   }
-  /**
-   * Waits for the editor to load.
-   */
+  /** Waits for the editor to load. */
   waitForEditorToLoad(): EditorPageActions {
     return this.step('wait for the editor to load', async () => {
       await this.page.waitForSelector('[data-testid=editor]', { state: 'visible' })

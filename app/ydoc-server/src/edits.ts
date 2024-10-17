@@ -41,6 +41,7 @@ interface AppliedUpdates {
   newMetadata: fileFormat.IdeMetadata['node'] | undefined
 }
 
+/** Return an object containing updated versions of relevant fields, given an update payload. */
 export function applyDocumentUpdates(
   doc: ModuleDoc,
   synced: EnsoFileParts,
@@ -122,6 +123,10 @@ function translateVisualizationToFile(
   }
 }
 
+/**
+ * Convert from the serialized file representation of visualization metadata
+ * to the internal representation.
+ */
 export function translateVisualizationFromFile(
   vis: fileFormat.VisualizationMetadata,
 ): VisualizationMetadata | undefined {
@@ -177,11 +182,12 @@ export function stupidFastDiff(oldString: string, newString: string): diff.Diff[
     .concat(commonSuffix ? [[0, commonSuffix]] : [])
 }
 
+/** Return a list of text edits describing how to turn one string into another. */
 export function applyDiffAsTextEdits(
   lineOffset: number,
   oldString: string,
   newString: string,
-): TextEdit[] {
+): readonly TextEdit[] {
   const changes =
     oldString.length + newString.length > MAX_SIZE_FOR_NORMAL_DIFF ?
       stupidFastDiff(oldString, newString)
@@ -230,6 +236,7 @@ export function applyDiffAsTextEdits(
   return edits
 }
 
+/** Pretty print a code diff for display in the terminal using ANSI escapes to control text colors. */
 export function prettyPrintDiff(from: string, to: string): string {
   const colReset = '\x1b[0m'
   const colRed = '\x1b[31m'

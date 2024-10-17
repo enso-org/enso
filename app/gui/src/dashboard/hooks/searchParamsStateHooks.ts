@@ -18,9 +18,7 @@ import * as safeJsonParse from '#/utilities/safeJsonParse'
 // === SearchParamsStateReturnType ===
 // ===================================
 
-/**
- * The return type of the `useSearchParamsState` hook.
- */
+/** The return type of the `useSearchParamsState` hook. */
 type SearchParamsStateReturnType<T> = Readonly<
   [
     value: T,
@@ -29,9 +27,7 @@ type SearchParamsStateReturnType<T> = Readonly<
   ]
 >
 
-/**
- * Set options for the `set` function.
- */
+/** Set options for the `set` function. */
 export interface SearchParamsSetOptions {
   readonly replace?: boolean
 }

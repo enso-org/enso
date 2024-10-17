@@ -18,9 +18,7 @@ import { useMutation } from '@tanstack/react-query'
 import * as schemaModule from './schema'
 import type * as types from './types'
 
-/**
- * Maps the value to the event object.
- */
+/** Maps the value to the event object. */
 function mapValueOnEvent(value: unknown) {
   if (typeof value === 'object' && value != null && 'target' in value && 'type' in value) {
     return value
@@ -241,9 +239,7 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
   }
 }
 
-/**
- * Get the type of arguments passed to the useForm hook
- */
+/** Get the type of arguments passed to the useForm hook */
 function getArgsType<Schema extends types.TSchema, SubmitResult = void>(
   args: types.UseFormProps<Schema, SubmitResult>,
 ) {

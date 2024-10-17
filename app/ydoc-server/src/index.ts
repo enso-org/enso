@@ -19,9 +19,7 @@ import { setupGatewayClient } from './ydoc'
 
 export { deserializeIdMap, docName, setupGatewayClient }
 
-/**
- * @param customLogger Optional external logger to use for all debug logs.
- */
+/** @param customLogger Optional external logger to use for all debug logs. */
 export function configureAllDebugLogs(
   forceEnable: boolean,
   customLogger?: (...args: any[]) => any,
@@ -33,6 +31,7 @@ export function configureAllDebugLogs(
   }
 }
 
+/** Create a WebSocket server to host the YDoc coordinating server. */
 export async function createGatewayServer(
   httpServer: Server | Http2SecureServer,
   overrideLanguageServerUrl?: string,

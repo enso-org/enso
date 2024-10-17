@@ -12,14 +12,10 @@ import * as eventCallback from '#/hooks/eventCallbackHooks'
 import * as button from '../Button'
 import * as dialogProvider from './DialogProvider'
 
-/**
- * Props for {@link Close} component.
- */
+/** Props for {@link Close} component. */
 export type CloseProps = button.ButtonProps
 
-/**
- * Close button for a dialog.
- */
+/** Close button for a dialog. */
 export function Close(props: CloseProps) {
   const dialogContext = dialogProvider.useDialogContext()
 

@@ -16,9 +16,7 @@ const orDefaultSize = (rect: Rect) => {
   return new Rect(rect.pos, new Vec2(width, height))
 }
 
-/**
- * A composable with logic related to nodes placement.
- */
+/** A composable with logic related to nodes placement. */
 export function usePlacement(nodeRects: ToValue<Iterable<Rect>>, screenBounds: ToValue<Rect>) {
   const gap = themeGap()
   const environment = (selectedNodeRects: Iterable<Rect>) => ({

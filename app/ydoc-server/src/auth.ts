@@ -1,6 +1,4 @@
-/**
- * @file Utility methods for ydoc server authentication.
- */
+/** @file Utility methods for ydoc server authentication. */
 
 export type ConnectionData = {
   lsUrl: string
@@ -10,6 +8,7 @@ export type ConnectionData = {
 
 const docNameRegex = /^[a-z0-9/-]+$/i
 
+/** Extract the document name from the path name extracted from the connection. */
 export function docName(pathname: string) {
   const prefix = '/project/'
   if (pathname != null && pathname.startsWith(prefix)) {
