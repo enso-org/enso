@@ -86,6 +86,8 @@ useEvent(window, 'pointerup', (e) => interaction.handlePointerEvent(e, 'pointeru
               v-model="item.selected.value"
               :options="item.options"
               :title="item.title"
+              :heading="item.heading ?? null"
+              :isTextDropdown="item.isTextDropdown ?? false"
               alwaysShowArrow
             />
             <div v-else>?</div>

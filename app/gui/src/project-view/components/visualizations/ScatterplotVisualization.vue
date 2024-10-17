@@ -297,7 +297,6 @@ const yLabelLeft = computed(
     getTextWidthBySizeAndFamily(data.value.axis.y.label, LABEL_FONT_STYLE) / 2,
 )
 const yLabelTop = computed(() => -margin.value.left + 15)
-const showYLabelText = computed(() => !data.value.is_multi_series)
 const xTickFormat = computed(() => {
   switch (data.value.x_value_type) {
     case 'Time':
@@ -307,6 +306,30 @@ const xTickFormat = computed(() => {
     default:
       return '%d/%m/%Y %H:%M:%S'
   }
+})
+const seriesLabels = computed(() =>
+  Object.keys(data.value.axis)
+    .filter((s) => s != 'x')
+    .map((s) => {
+      return data.value.axis[s as keyof AxesConfiguration].label
+    }),
+)
+const isCustomColorAndAxis = computed(() => {
+  return seriesLabels.value.length <= 2
+})
+const showYLabelText = computed(() => {
+  if (data.value.is_multi_series) {
+    return isCustomColorAndAxis
+  }
+  return true
+})
+const yLabelText = computed(() => {
+  if (!data.value.is_multi_series) {
+    return data.value.axis.y.label
+  }
+  if (isCustomColorAndAxis.value) {
+    return yAxisSelected.value === 'none' ? null : yAxisSelected.value
+  } else return null
 })
 const isUsingIndexForX = computed(() => data.value.axis.x.label === 'index')
 
@@ -722,26 +745,21 @@ watchPostEffect(() => {
 
 watchPostEffect(() => {
   if (data.value.is_multi_series) {
-    const seriesLabels = Object.keys(data.value.axis)
-      .filter((s) => s != 'x')
-      .map((s) => {
-        return data.value.axis[s as keyof AxesConfiguration].label
-      })
     const formatLabel = (string: string) =>
       string.length > 10 ? `${string.substr(0, 10)}...` : string
 
     const color = d3
       .scaleOrdinal<string>()
-      .domain(seriesLabels)
+      .domain(seriesLabels.value)
       .range(d3.schemeCategory10)
-      .domain(seriesLabels)
+      .domain(seriesLabels.value)
 
     d3Legend.value.selectAll('circle').remove()
     d3Legend.value.selectAll('text').remove()
 
     d3Legend.value
       .selectAll('dots')
-      .data(seriesLabels)
+      .data(seriesLabels.value)
       .enter()
       .append('circle')
       .attr('cx', function (d, i) {
@@ -753,7 +771,7 @@ watchPostEffect(() => {
 
     d3Legend.value
       .selectAll('labels')
-      .data(seriesLabels)
+      .data(seriesLabels.value)
       .enter()
       .append('text')
       .attr('x', function (d, i) {
@@ -834,6 +852,18 @@ function zoomToSelected(override?: boolean) {
 
 useEvent(document, 'keydown', bindings.handler({ zoomToSelected: () => zoomToSelected() }))
 
+const yAxisSelected = ref('none')
+const makeSeriesLabelOptions = () => {
+  const seriesOptions: { [key: string]: { label: string } } = {}
+  seriesLabels.value.forEach((label, index) => {
+    seriesOptions[index] = {
+      label: label,
+    }
+  })
+  return seriesOptions
+}
+console.log({ yAxisSelected: yAxisSelected.value })
+
 config.setToolbar([
   {
     icon: 'select',
@@ -856,6 +886,18 @@ config.setToolbar([
     title: 'Create component of selected points',
     disabled: () => !createNewFilterNodeEnabled.value,
     onClick: createNewFilterNode,
+  },
+  {
+    selected: yAxisSelected,
+    title: 'Choose Y Axis Label',
+    isTextDropdown: true,
+    heading: 'Y axis label: ',
+    options: {
+      none: {
+        label: 'No Y Axis Label',
+      },
+      ...makeSeriesLabelOptions(),
+    },
   },
 ])
 </script>
@@ -881,12 +923,12 @@ config.setToolbar([
           v-text="data.axis.x.label"
         ></text>
         <text
-          v-if="showYLabelText"
+          v-if="yLabelText"
           class="label label-y"
           text-anchor="end"
           :x="yLabelLeft"
           :y="yLabelTop"
-          v-text="data.axis.y.label"
+          v-text="yLabelText"
         ></text>
         <g ref="pointsNode" clip-path="url(#clip)"></g>
         <g ref="zoomNode" class="zoom" :width="boxWidth" :height="boxHeight" fill="none">
