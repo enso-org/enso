@@ -319,7 +319,7 @@ test('Selection widget with text widget as input', async ({ page }) => {
   await pathDropdown.expectVisibleWithOptions(['Choose file…', 'File 1', 'File 2'])
   await page.keyboard.insertText('Foo')
   await expect(pathArgInput).toHaveValue('Foo')
-  await page.mouse.click(200, 200)
+  await actions.clickAtBackground(page)
   await expect(pathArgInput).not.toBeFocused()
   await expect(pathArgInput).toHaveValue('Foo')
   await expect(pathDropdown.dropDown).not.toBeVisible()
@@ -347,7 +347,7 @@ test('File Browser widget', async ({ page }) => {
   await expect(pathArg.locator('.WidgetText > input')).toHaveValue('/path/to/some/mock/file')
 })
 
-test('Managing aggregates in `aggregate` node', async ({ page }) => {
+test('Manage aggregates in `aggregate` node', async ({ page }) => {
   await actions.goToGraph(page)
   await mockMethodCallInfo(page, 'aggregated', {
     methodPointer: {
@@ -537,29 +537,7 @@ test('Autoscoped constructors', async ({ page }) => {
 test('Table widget', async ({ page }) => {
   await actions.goToGraph(page)
 
-  // Adding `Table.new` component will display the widget
-  await locate.addNewNodeButton(page).click()
-  await expect(locate.componentBrowser(page)).toBeVisible()
-  await page.keyboard.type('Table.new')
-  // Wait for CB entry to appear; this way we're sure about node name (binding).
-  await expect(locate.componentBrowserSelectedEntry(page)).toHaveCount(1)
-  await expect(locate.componentBrowserSelectedEntry(page)).toHaveText('Table.new')
-  await page.keyboard.press('Enter')
-  const node = locate.selectedNodes(page)
-  await expect(node).toHaveCount(1)
-  await expect(node).toBeVisible()
-  await mockMethodCallInfo(
-    page,
-    { binding: 'table1', expr: 'Table.new' },
-    {
-      methodPointer: {
-        module: 'Standard.Table.Table',
-        definedOnType: 'Standard.Table.Table.Table',
-        name: 'new',
-      },
-      notAppliedArguments: [0],
-    },
-  )
+  const node = await actions.createTableNode(page)
   const widget = node.locator('.WidgetTableEditor')
   await expect(widget).toBeVisible()
   await expect(widget.locator('.ag-header-cell-text')).toHaveText(['#', 'New Column'])
@@ -575,25 +553,25 @@ test('Table widget', async ({ page }) => {
   await page.keyboard.press('Enter')
   // There will be new blank column and new blank row allowing adding new columns and rows
   // (so 4 cells in total)
-  await expect(widget.locator('.ag-header-cell-text')).toHaveText(['#', 'New Column', 'New Column'])
+  await expect(widget.locator('.ag-header-cell-text')).toHaveText(['#', 'Column #0', 'New Column'])
   await expect(widget.locator('.ag-cell')).toHaveText(['0', 'Value', '', '1', '', ''])
 
   // Renaming column
-  await widget.locator('.ag-header-cell-text', { hasText: 'New Column' }).first().click()
+  await widget.locator('.ag-header-cell-text', { hasText: 'Column #0' }).first().click()
   await page.keyboard.type('Header')
   await page.keyboard.press('Enter')
   await expect(widget.locator('.ag-header-cell-text')).toHaveText(['#', 'Header', 'New Column'])
 
   // Switching edit between cells and headers - check we will never edit two things at once.
   await expect(widget.locator('.ag-text-field-input')).toHaveCount(0)
-  await widget.locator('.ag-header-cell-text', { hasNotText: '#' }).first().click()
+  await widget.locator('.ag-header-cell-text', { hasNotText: /#/ }).first().click()
   await expect(widget.locator('.ag-text-field-input')).toHaveCount(1)
-  await widget.locator('.ag-cell', { hasNotText: /0|1/ }).first().click()
+  await widget.locator('.ag-cell', { hasNotText: /0|1/ }).first().dblclick()
   await expect(widget.locator('.ag-text-field-input')).toHaveCount(1)
-  await widget.locator('.ag-header-cell-text', { hasNotText: '#' }).first().click()
+  await widget.locator('.ag-header-cell-text', { hasNotText: /#/ }).first().click()
   await expect(widget.locator('.ag-text-field-input')).toHaveCount(1)
   // The header after click stops editing immediately. Tracked by #11150
-  // await widget.locator('.ag-header-cell-text', { hasNotText: '#' }).last().click()
+  // await widget.locator('.ag-header-cell-text', { hasNotText: /#/ }).last().dblclick()
   // await expect(widget.locator('.ag-text-field-input')).toHaveCount(1)
   await page.keyboard.press('Escape')
   await expect(widget.locator('.ag-text-field-input')).toHaveCount(0)
