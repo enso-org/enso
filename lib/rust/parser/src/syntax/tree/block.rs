@@ -56,6 +56,14 @@ pub fn parse_module<'s>(
     BodyBlockParser::default().parse_module(lines, precedence)
 }
 
+/// Parse a body block.
+pub fn parse_block<'s>(
+    lines: impl IntoIterator<Item = item::Line<'s>>,
+    precedence: &mut operator::Precedence<'s>,
+) -> Tree<'s> {
+    BodyBlockParser::default().parse_body_block(lines, precedence)
+}
+
 
 
 // === Multi-line expression construction ===

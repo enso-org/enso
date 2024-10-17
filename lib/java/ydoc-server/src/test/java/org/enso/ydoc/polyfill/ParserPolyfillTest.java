@@ -40,9 +40,21 @@ public class ParserPolyfillTest extends ExecutorSetup {
   }
 
   @Test
-  public void parseTree() throws Exception {
+  public void parseModule() throws Exception {
     var code = """
-        const arr = parse_tree(`main = 1 + 2`)
+        const arr = parse_module(`main = 1 + 2`)
+        arr.buffer
+        """;
+
+    var result = CompletableFuture.supplyAsync(() -> context.eval("js", code), executor).get();
+
+    Assert.assertTrue(result.as(ByteSequence.class).length() > 0);
+  }
+
+  @Test
+  public void parseBlock() throws Exception {
+    var code = """
+        const arr = parse_block(`value = 1 + 2`)
         arr.buffer
         """;
 

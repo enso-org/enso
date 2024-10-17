@@ -26,7 +26,7 @@ fn check_file(path: &str, mut code: &str) {
     if let Some((_meta, code_)) = enso_parser::metadata::parse(code) {
         code = code_;
     }
-    let ast = enso_parser::Parser::new().run(code);
+    let ast = enso_parser::Parser::new().parse_module(code);
     let expected_span = 0..(code.encode_utf16().count() as u32);
     let mut locations = enso_parser::source::code::debug::LocationCheck::new();
     enso_parser_debug::validate_spans(&ast, expected_span, &mut locations)

@@ -6,6 +6,7 @@ import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Location;
 import org.enso.compiler.core.ir.Module;
 import org.enso.syntax2.Parser;
+import scala.Option;
 
 public final class EnsoParser {
   private EnsoParser() {}
@@ -15,7 +16,7 @@ public final class EnsoParser {
   }
 
   public static Module compile(CharSequence src, Map<Location, UUID> idMap) {
-    var tree = Parser.parse(src);
+    var tree = Parser.parseModule(src);
     var treeToIr = TreeToIr.MODULE;
     if (idMap != null) {
       treeToIr = new TreeToIr(idMap);
@@ -23,8 +24,13 @@ public final class EnsoParser {
     return treeToIr.translate(tree);
   }
 
-  public static scala.Option<Expression> compileInline(CharSequence src) {
-    var tree = Parser.parse(src);
+  public static Expression.Block compileBlock(CharSequence src) {
+    var tree = Parser.parseBlock(src);
+    return TreeToIr.MODULE.translateBlock(tree);
+  }
+
+  public static Option<Expression> compileInline(CharSequence src) {
+    var tree = Parser.parseBlock(src);
     return TreeToIr.MODULE.translateInline(tree);
   }
 

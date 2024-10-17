@@ -42,7 +42,12 @@ impl<'s> BodyBlockParser<'s> {
     ) -> Tree<'s> {
         let lines = lines.into_iter().map(|item::Line { newline, mut items }| block::Line {
             newline,
-            expression: self.statement_parser.parse_body_block_statement(&mut items, 0, precedence),
+            expression: self.statement_parser.parse_statement(
+                &mut items,
+                0,
+                precedence,
+                EvaluationContext::Eager,
+            ),
         });
         Tree::body_block(block::compound_lines(lines).collect())
     }
@@ -67,18 +72,20 @@ struct StatementParser<'s> {
 }
 
 impl<'s> StatementParser<'s> {
-    fn parse_body_block_statement(
+    fn parse_statement(
         &mut self,
         items: &mut Vec<Item<'s>>,
         start: usize,
         precedence: &mut Precedence<'s>,
+        evaluation_context: EvaluationContext,
     ) -> Option<Tree<'s>> {
         let private_keywords = scan_private_keywords(&*items);
-        let mut statement = parse_body_block_statement(
+        let mut statement = parse_statement(
             items,
             start + private_keywords,
             precedence,
             &mut self.args_buffer,
+            evaluation_context,
         );
         for _ in 0..private_keywords {
             let Item::Token(keyword) = items.pop().unwrap() else { unreachable!() };
@@ -101,24 +108,34 @@ impl<'s> StatementParser<'s> {
         precedence: &mut Precedence<'s>,
     ) -> Option<Tree<'s>> {
         let private_keywords = scan_private_keywords(&*items);
-        let mut statement = parse_body_block_statement(
+        let mut statement = parse_statement(
             items,
             start + private_keywords,
             precedence,
             &mut self.args_buffer,
+            EvaluationContext::Lazy,
         );
+        let mut error = None;
+        if let Some(statement) = statement.as_ref() {
+            error = match &statement.variant {
+                tree::Variant::Assignment(_) =>
+                    SyntaxError::StmtUnexpectedAssignmentInModuleBody.into(),
+                _ => None,
+            };
+        }
         for _ in 0..private_keywords {
             let Item::Token(keyword) = items.pop().unwrap() else { unreachable!() };
             let token::Variant::Private(variant) = keyword.variant else { unreachable!() };
             let keyword = keyword.with_variant(variant);
-            let error = match statement.as_ref().map(|tree| &tree.variant) {
-                Some(tree::Variant::Invalid(_) | tree::Variant::Function(_)) | None => None,
-                _ => SyntaxError::StmtUnexpectedPrivateUsage.into(),
-            };
-            let private_stmt = Tree::private(keyword, statement.take());
-            statement = maybe_with_error(private_stmt, error).into();
+            if error.is_none() {
+                error = match statement.as_ref().map(|tree| &tree.variant) {
+                    Some(tree::Variant::Invalid(_) | tree::Variant::Function(_)) | None => None,
+                    _ => SyntaxError::StmtUnexpectedPrivateUsage.into(),
+                };
+            }
+            statement = Tree::private(keyword, statement.take()).into();
         }
-        statement
+        statement.map(|statement| maybe_with_error(statement, error))
     }
 }
 
@@ -131,11 +148,12 @@ fn scan_private_keywords<'s>(items: impl IntoIterator<Item = impl AsRef<Item<'s>
         .count()
 }
 
-fn parse_body_block_statement<'s>(
+fn parse_statement<'s>(
     items: &mut Vec<Item<'s>>,
     start: usize,
     precedence: &mut Precedence<'s>,
     args_buffer: &mut Vec<ArgumentDefinition<'s>>,
+    evaluation_context: EvaluationContext,
 ) -> Option<Tree<'s>> {
     use token::Variant;
     if let Some(type_def) = try_parse_type_def(items, start, precedence, args_buffer) {
@@ -152,7 +170,15 @@ fn parse_body_block_statement<'s>(
     };
     let statement = match top_level_operator {
         Some((i, Token { variant: Variant::AssignmentOperator(_), .. })) =>
-            parse_assignment_like_statement(items, start, i, precedence, args_buffer).into(),
+            parse_assignment_like_statement(
+                items,
+                start,
+                i,
+                precedence,
+                args_buffer,
+                evaluation_context,
+            )
+            .into(),
         Some((i, Token { variant: Variant::TypeAnnotationOperator(_), .. })) => {
             let type_ = precedence.resolve_non_section_offset(i + 1, items);
             let Some(Item::Token(operator)) = items.pop() else { unreachable!() };
@@ -179,12 +205,21 @@ fn parse_body_block_statement<'s>(
     statement
 }
 
+#[derive(Debug, Copy, Clone)]
+enum EvaluationContext {
+    /// A context in which variable assignments are allowed.
+    Eager,
+    /// A context in which variable assignments must not occur.
+    Lazy,
+}
+
 fn parse_assignment_like_statement<'s>(
     items: &mut Vec<Item<'s>>,
     start: usize,
     operator: usize,
     precedence: &mut Precedence<'s>,
     args_buffer: &mut Vec<ArgumentDefinition<'s>>,
+    evaluation_context: EvaluationContext,
 ) -> Tree<'s> {
     if operator == start {
         return precedence
@@ -199,7 +234,13 @@ fn parse_assignment_like_statement<'s>(
     let token::Variant::AssignmentOperator(variant) = operator.variant else { unreachable!() };
     let operator = operator.with_variant(variant);
 
-    let qn_len = scan_qn(&items[start..]);
+    let qn_len = match (evaluation_context, scan_qn(&items[start..])) {
+        (_, Some(Qn::Binding { len }))
+        // In a context where assignments are not allowed, even a name whose last identifier is
+        // capitalized can be a function definition (rather than an assignment pattern).
+        | (EvaluationContext::Lazy, Some(Qn::Type { len })) => len.into(),
+        _ => None,
+    };
 
     let mut operator = Some(operator);
     if let Some(function) = try_parse_foreign_function(
@@ -214,22 +255,29 @@ fn parse_assignment_like_statement<'s>(
     }
     let operator = operator.unwrap();
 
-    match (expression, qn_len) {
-        (Some(e), Some(qn_len)) if matches!(e.variant, tree::Variant::BodyBlock(_)) => {
+    enum Type<'s> {
+        Assignment { expression: Tree<'s> },
+        Function { expression: Option<Tree<'s>>, qn_len: usize },
+        InvalidNoExpressionNoQn,
+    }
+    match match (expression, qn_len) {
+        (Some(e), Some(qn_len))
+            if matches!(evaluation_context, EvaluationContext::Lazy)
+                || matches!(e.variant, tree::Variant::BodyBlock(_)) =>
+            Type::Function { expression: Some(e), qn_len },
+        (Some(expression), None) => Type::Assignment { expression },
+        (Some(expression), Some(1)) if items.len() == start + 1 => Type::Assignment { expression },
+        (expression, Some(qn_len)) => Type::Function { expression, qn_len },
+        (None, None) => Type::InvalidNoExpressionNoQn,
+    } {
+        Type::Assignment { expression } =>
+            parse_assignment(start, items, operator, expression, precedence),
+        Type::Function { expression, qn_len } => {
             let (qn, args, return_) =
                 parse_function_decl(items, start, qn_len, precedence, args_buffer);
-            Tree::function(qn, args, return_, operator, Some(e))
+            Tree::function(qn, args, return_, operator, expression)
         }
-        (Some(expression), None) =>
-            parse_assignment(start, items, operator, expression, precedence),
-        (Some(expression), Some(1)) if items.len() == start + 1 =>
-            parse_assignment(start, items, operator, expression, precedence),
-        (e, Some(qn_len)) => {
-            let (qn, args, return_) =
-                parse_function_decl(items, start, qn_len, precedence, args_buffer);
-            Tree::function(qn, args, return_, operator, e)
-        }
-        (None, None) => Tree::opr_app(
+        Type::InvalidNoExpressionNoQn => Tree::opr_app(
             precedence.resolve_non_section_offset(start, items),
             Ok(operator.with_variant(token::variant::Operator())),
             None,
@@ -360,10 +408,19 @@ fn next_spaced(items: &[Item]) -> Option<usize> {
     None
 }
 
+#[derive(Debug)]
+enum Qn {
+    /// A qualified-name whose last segment is capitalized; usually a type or module.
+    Type { len: usize },
+    /// A qualified-name whose last segment is lowercase; usually a variable or function.
+    Binding { len: usize },
+}
+
 /// Returns length of the QN.
-fn scan_qn<'s>(items: impl IntoIterator<Item = impl AsRef<Item<'s>>>) -> Option<usize> {
+fn scan_qn<'s>(items: impl IntoIterator<Item = impl AsRef<Item<'s>>>) -> Option<Qn> {
+    #[derive(Copy, Clone)]
     enum State {
-        ExpectingDot,
+        ExpectingDot { len: usize },
         ExpectingIdent,
     }
     use token::Variant::*;
@@ -374,17 +431,21 @@ fn scan_qn<'s>(items: impl IntoIterator<Item = impl AsRef<Item<'s>>>) -> Option<
         match item.as_ref() {
             Token(token) if i != 0 && token.is_spaced() => break,
             Token(token) => match (state, &token.variant) {
-                (ExpectingDot, DotOperator(_)) => state = ExpectingIdent,
-                (ExpectingIdent, Ident(ident)) if ident.is_type => state = ExpectingDot,
+                (ExpectingDot { .. }, DotOperator(_)) => state = ExpectingIdent,
+                (ExpectingIdent, Ident(ident)) if ident.is_type =>
+                    state = ExpectingDot { len: i + 1 },
                 (
                     ExpectingIdent,
                     Ident(_) | Operator(_) | NegationOperator(_) | UnaryOperator(_),
-                ) => return Some(i + 1),
+                ) => return Some(Qn::Binding { len: i + 1 }),
                 _ => break,
             },
             Group(_) | Tree(_) => break,
             Block(_) => unreachable!(),
         }
     }
-    None
+    match state {
+        ExpectingDot { len } => Some(Qn::Type { len }),
+        _ => None,
+    }
 }

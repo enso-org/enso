@@ -75,6 +75,10 @@ final class TreeToIr {
     return translateModule(ast);
   }
 
+  Expression.Block translateBlock(Tree.BodyBlock ast) {
+    return translateBodyBlock(ast, false);
+  }
+
   /**
    * Translates an inline program expression represented in the parser {@link Tree} to the
    * compiler's {@link IR} representation.
@@ -86,77 +90,68 @@ final class TreeToIr {
    * @return The {@link IR} representation of the given ast if it is valid, otherwise
    * {@link Option#empty()}.
    */
-  Option<Expression> translateInline(Tree ast) {
-    return switch (ast) {
-      case Tree.BodyBlock b -> {
-        List<Expression> expressions = nil();
-        java.util.List<IdentifiedLocation> locations = new ArrayList<>();
-        for (Line statement : b.getStatements()) {
-          Tree exprTree = statement.getExpression();
-          Expression expr = switch (exprTree) {
-            case null -> null;
-            case Tree.Export x -> null;
-            case Tree.Import x -> null;
-            case Tree.Invalid x -> null;
-            case Tree.TypeSignature sig -> {
-             Expression methodReference;
-             try {
-               methodReference = translateMethodReference(sig.getVariable(), true);
-             } catch (SyntaxException ex) {
-               methodReference = ex.toError();
-             }
-              var signature = translateType(sig.getType());
-              var ascription =
-                  new Type.Ascription(
-                      methodReference,
-                      signature,
-                      Option.empty(),
-                      getIdentifiedLocation(sig),
-                      meta());
-              yield ascription;
-            }
-            case Tree.TypeAnnotated anno -> translateTypeAnnotated(anno);
-            default -> translateExpression(exprTree);
-          };
-          if (expr != null) {
-            expressions = join(expr, expressions);
-            if (expr.location().isDefined()) {
-              locations.add(expr.location().get());
-            }
-          }
+  Option<Expression> translateInline(Tree.BodyBlock ast) {
+    List<Expression> expressions = nil();
+    java.util.List<IdentifiedLocation> locations = new ArrayList<>();
+    for (Line statement : ast.getStatements()) {
+      Tree exprTree = statement.getExpression();
+      Expression expr = switch (exprTree) {
+        case null -> null;
+        case Tree.Export x -> null;
+        case Tree.Import x -> null;
+        case Tree.Invalid x -> null;
+        case Tree.TypeSignature sig -> {
+         Expression methodReference;
+         try {
+           methodReference = translateMethodReference(sig.getVariable(), true);
+         } catch (SyntaxException ex) {
+           methodReference = ex.toError();
+         }
+          var signature = translateType(sig.getType());
+            yield new Type.Ascription(
+                  methodReference,
+                  signature,
+                  Option.empty(),
+                  getIdentifiedLocation(sig),
+                  meta());
         }
-        yield switch (expressions.size()) {
-          case 0 -> Option.empty();
-          case 1 -> Option.apply(expressions.head());
-          default -> {
-            IdentifiedLocation combinedLocation;
-            if (locations.isEmpty()) {
-              combinedLocation = null;
-            } else {
-              combinedLocation =
-                  new IdentifiedLocation(
-                      new Location(
-                          locations.get(1).start(),
-                          locations.get(locations.size() - 1).end()
-                      ),
-                      null
-                  );
-            }
-            var returnValue = expressions.head();
-            @SuppressWarnings("unchecked")
-            var statements = ((List<Expression>) expressions.tail()).reverse();
-            yield Option.apply(new Expression.Block(
-                statements,
-                returnValue,
-                combinedLocation,
-                false,
-                meta()
-            ));
-          }
-        };
+        case Tree.TypeAnnotated anno -> translateTypeAnnotated(anno);
+        default -> translateExpression(exprTree);
+      };
+      if (expr != null) {
+        expressions = join(expr, expressions);
+        if (expr.location().isDefined()) {
+          locations.add(expr.location().get());
+        }
       }
+    }
+    return switch (expressions.size()) {
+      case 0 -> Option.empty();
+      case 1 -> Option.apply(expressions.head());
       default -> {
-        throw new IllegalStateException();
+        IdentifiedLocation combinedLocation;
+        if (locations.isEmpty()) {
+          combinedLocation = null;
+        } else {
+          combinedLocation =
+              new IdentifiedLocation(
+                  new Location(
+                      locations.get(1).start(),
+                      locations.get(locations.size() - 1).end()
+                  ),
+                  null
+              );
+        }
+        var returnValue = expressions.head();
+        @SuppressWarnings("unchecked")
+        var statements = ((List<Expression>) expressions.tail()).reverse();
+        yield Option.apply(new Expression.Block(
+            statements,
+            returnValue,
+            combinedLocation,
+            false,
+            meta()
+        ));
       }
     };
   }
@@ -334,24 +329,6 @@ final class TreeToIr {
         yield translateModuleSymbol(doc.getExpression(), join(comment, appendTo));
       }
 
-      case Tree.Assignment a -> {
-        var reference = translateMethodReference(a.getPattern(), false);
-        var body = translateExpression(a.getExpr());
-        if (body == null) {
-          throw new NullPointerException();
-        }
-        var aLoc = expandToContain(getIdentifiedLocation(a.getExpr()), body.identifiedLocation());
-        var binding = new Method.Binding(
-            reference,
-            nil(),
-            false,
-            body.setLocation(Option.apply(aLoc)),
-            expandToContain(getIdentifiedLocation(a), aLoc),
-            meta()
-        );
-        yield join(binding, appendTo);
-      }
-
       case Tree.TypeSignature sig -> {
         var methodReference = translateMethodReference(sig.getVariable(), true);
         var signature = translateType(sig.getType());
@@ -454,16 +431,6 @@ final class TreeToIr {
 
       case Tree.Function fun -> {
         var ir = translateMethodInType(fun, false);
-        yield join(ir, appendTo);
-      }
-
-      // In some cases this is a `Function` in IR, but an `Assignment` in Tree.
-      // See: https://discord.com/channels/401396655599124480/1001476608957349917
-      case Tree.Assignment assignment -> {
-        var name = buildName(assignment.getPattern());
-        java.util.List<ArgumentDefinition> args = java.util.Collections.emptyList();
-        var ir = translateFunction(assignment, name, false, args, assignment.getExpr(), null,
-            false);
         yield join(ir, appendTo);
       }
 
@@ -595,15 +562,14 @@ final class TreeToIr {
 
     String functionName = fn.getName().codeRepr();
     var ascribedBody = addTypeAscription(functionName, body, returnSignature, loc);
-    var binding = new Method.Binding(
-        methodRef,
-        args,
-        isPrivate,
-        ascribedBody,
-        loc,
-        meta()
+    return new Method.Binding(
+      methodRef,
+      args,
+      isPrivate,
+      ascribedBody,
+      loc,
+      meta()
     );
-    return binding;
   }
 
   private Expression translateFunction(
@@ -617,30 +583,23 @@ final class TreeToIr {
     } catch (SyntaxException ex) {
       return ex.toError();
     }
-
     var loc = getIdentifiedLocation(fun);
-    var body = translateExpression(treeBody);
     String functionName = name.name();
     if (args.isEmpty()) {
-      if (body instanceof Expression.Block block) {
+      Expression body;
+      if (treeBody instanceof Tree.BodyBlock block) {
         // suspended block has a name and no arguments
-        body = block.copy(
-            block.copy$default$1(),
-            block.copy$default$2(),
-            block.copy$default$3(),
-            true,
-            block.copy$default$5(),
-            block.copy$default$6(),
-            block.copy$default$7()
-        );
+        body = translateBodyBlock(block, true);
+      } else {
+        body = translateExpression(treeBody);
       }
       if (body == null) {
         body = translateSyntaxError(fun, Syntax.UnexpectedExpression$.MODULE$);
       }
-
       var ascribedBody = addTypeAscription(functionName, body, returnType, loc);
       return new Expression.Binding(name, ascribedBody, loc, meta());
     } else {
+      var body = translateExpression(treeBody);
       if (body == null) {
         return translateSyntaxError(fun, Syntax.UnexpectedDeclarationInType$.MODULE$);
       }
@@ -1010,43 +969,7 @@ final class TreeToIr {
         }
         yield new Application.Prefix(fn, args.reverse(), false, getIdentifiedLocation(tree), meta());
       }
-      case Tree.BodyBlock body -> {
-        var expressions = new java.util.ArrayList<Expression>();
-        Expression last = null;
-        for (var line : body.getStatements()) {
-          Tree expr = line.getExpression();
-          if (expr == null) {
-            continue;
-          }
-          if (last != null) {
-            expressions.add(last);
-          }
-          while (expr instanceof Tree.Documented doc) {
-            expr = doc.getExpression();
-            expressions.add(translateComment(doc, doc.getDocumentation()));
-          }
-          last = translateExpression(expr, false);
-        }
-        var locationWithANewLine = getIdentifiedLocation(body, 0, 0, null);
-        if (last == null) {
-          if (expressions.isEmpty()) {
-            last = new Empty(locationWithANewLine, meta());
-          } else {
-            last = expressions.get(expressions.size() - 1);
-            expressions.remove(expressions.size() - 1);
-          }
-        }
-        var list = CollectionConverters.asScala(expressions.iterator()).toList();
-        if (last != null
-            && last.location().isDefined()
-            && last.location().get().end() != locationWithANewLine.end()) {
-          int start = last.location().get().start();
-          int end = locationWithANewLine.end() - 1;
-          var id = new IdentifiedLocation(start, end, last.location().get().uuid());
-          last = last.setLocation(Option.apply(id));
-        }
-        yield new Expression.Block(list, last, locationWithANewLine, false, meta());
-      }
+      case Tree.BodyBlock body -> translateBodyBlock(body, false);
       case Tree.Assignment assign -> {
         var name = buildNameOrQualifiedName(assign.getPattern());
         var expr = translateExpression(assign.getExpr(), false);
@@ -1156,7 +1079,7 @@ final class TreeToIr {
             case Literal.Number n -> n.copy(
                 n.copy$default$1(),
                 "-" + n.copy$default$2(),
-                n.copy$default$3(),
+                Option.apply(getIdentifiedLocation(un)),
                 n.copy$default$4(),
                 n.copy$default$5(),
                 n.copy$default$6()
@@ -1164,7 +1087,7 @@ final class TreeToIr {
             case Expression expr -> {
               var negate = new Name.Literal("negate", true, null, Option.empty(), meta());
               var arg = new CallArgument.Specified(Option.empty(), expr, expr.identifiedLocation(), meta());
-              yield new Application.Prefix(negate, join(arg, nil()), false, expr.identifiedLocation(), meta());
+              yield new Application.Prefix(negate, join(arg, nil()), false, getIdentifiedLocation(un), meta());
             }
             case null ->
                 translateSyntaxError(tree, new Syntax.UnsupportedSyntax("Strange unary -"));
@@ -1213,6 +1136,50 @@ final class TreeToIr {
       case Tree.Invalid __ -> translateSyntaxError(tree, Syntax.UnexpectedExpression$.MODULE$);
       default -> translateSyntaxError(tree, new Syntax.UnsupportedSyntax("translateExpression"));
     };
+  }
+
+  private Expression.Block translateBodyBlock(Tree.BodyBlock body, boolean suspended) {
+    var expressions = new java.util.ArrayList<Expression>();
+    Expression last = null;
+    for (var line : body.getStatements()) {
+      Tree expr = line.getExpression();
+      if (expr == null) {
+        continue;
+      }
+      if (last != null) {
+        expressions.add(last);
+      }
+      while (expr instanceof Tree.Documented doc) {
+        expr = doc.getExpression();
+        Expression commentIr;
+        try {
+          commentIr = translateComment(doc, doc.getDocumentation());
+        } catch (SyntaxException ex) {
+          commentIr = ex.toError();
+        }
+        expressions.add(commentIr);
+      }
+      last = translateExpression(expr, false);
+    }
+    var locationWithANewLine = getIdentifiedLocation(body, 0, 0, null);
+    if (last == null) {
+      if (expressions.isEmpty()) {
+        last = new Empty(locationWithANewLine, meta());
+      } else {
+        last = expressions.get(expressions.size() - 1);
+        expressions.remove(expressions.size() - 1);
+      }
+    }
+    var list = CollectionConverters.asScala(expressions.iterator()).toList();
+    if (last != null
+            && last.location().isDefined()
+            && last.location().get().end() != locationWithANewLine.end()) {
+      int start = last.location().get().start();
+      int end = locationWithANewLine.end() - 1;
+      var id = new IdentifiedLocation(start, end, last.location().get().uuid());
+      last = last.setLocation(Option.apply(id));
+    }
+    return new Expression.Block(list, last, locationWithANewLine, suspended, meta());
   }
 
   private void attachTranslatedWarnings(IR ir, Tree tree) {
@@ -1624,15 +1591,16 @@ final class TreeToIr {
           new Pattern.Literal((Literal) translateNumber(num), getIdentifiedLocation(num), meta());
       case Tree.UnaryOprApp num when num.getOpr().codeRepr().equals("-") -> {
         var n = (Literal.Number) translateExpression(num.getRhs());
+        var loc = getIdentifiedLocation(num);
         var t = n.copy(
             n.copy$default$1(),
             "-" + n.copy$default$2(),
-            n.copy$default$3(),
+            Option.apply(loc),
             n.copy$default$4(),
             n.copy$default$5(),
             n.copy$default$6()
         );
-        yield new Pattern.Literal(t, getIdentifiedLocation(num), meta());
+        yield new Pattern.Literal(t, loc, meta());
       }
       case Tree.TypeAnnotated anno -> {
         var type = buildNameOrQualifiedName(maybeManyParensed(anno.getType()));

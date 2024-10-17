@@ -817,6 +817,7 @@ pub enum SyntaxError {
     ForeignFnExpectedStringBody,
     StmtInvalidAssignmentOrMethod,
     StmtLhsInvalidOperatorSpacing,
+    StmtUnexpectedAssignmentInModuleBody,
     StmtUnexpectedPrivateUsage,
     TypeBodyUnexpectedPrivateUsage,
     TypeDefExpectedTypeName,
@@ -851,6 +852,8 @@ impl From<SyntaxError> for Cow<'static, str> {
             StmtInvalidAssignmentOrMethod => "Invalid assignment or method definition",
             StmtLhsInvalidOperatorSpacing =>
                 "Each operator on the left side of an assignment operator must be applied to two operands, with the same spacing on each side",
+            StmtUnexpectedAssignmentInModuleBody =>
+                "Unexpected variable assignment in module statement",
             StmtUnexpectedPrivateUsage =>
                 "In a body block, the `private` keyword can only be applied to a function definition",
             TypeBodyUnexpectedPrivateUsage =>
