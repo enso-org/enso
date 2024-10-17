@@ -19,8 +19,15 @@ public class DateTimeBuilder extends TypedBuilderImpl<ZonedDateTime> {
     return new ZonedDateTime[size];
   }
 
+  private final boolean allowDateToDateTimeConversion;
+
   public DateTimeBuilder(int size) {
+    this(size, false);
+  }
+
+  public DateTimeBuilder(int size, boolean allowDateToDateTimeConversion) {
     super(size);
+    this.allowDateToDateTimeConversion = allowDateToDateTimeConversion;
   }
 
   @Override
@@ -39,7 +46,11 @@ public class DateTimeBuilder extends TypedBuilderImpl<ZonedDateTime> {
   @Override
   public void appendNoGrow(Object o) {
     try {
-      data[currentSize++] = (ZonedDateTime) o;
+      if (allowDateToDateTimeConversion && o instanceof LocalDate localDate) {
+        data[currentSize++] = convertDate(localDate);
+      } else {
+        data[currentSize++] = (ZonedDateTime) o;
+      }
     } catch (ClassCastException e) {
       throw new ValueTypeMismatchException(getType(), o);
     }
@@ -75,7 +86,7 @@ public class DateTimeBuilder extends TypedBuilderImpl<ZonedDateTime> {
 
   @Override
   public boolean accepts(Object o) {
-    return o instanceof ZonedDateTime;
+    return o instanceof ZonedDateTime || (allowDateToDateTimeConversion && o instanceof LocalDate);
   }
 
   @Override

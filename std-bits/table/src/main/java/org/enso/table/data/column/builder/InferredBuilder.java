@@ -29,15 +29,30 @@ public class InferredBuilder extends Builder {
   private int currentSize = 0;
   private final int initialSize;
   private final ProblemAggregator problemAggregator;
+  private final boolean allowDateToDateTimeConversion;
 
   /**
    * Creates a new instance of this builder, with the given known result length.
    *
    * @param initialSize the result length
+   * @param problemAggregator the problem aggregator to use
    */
   public InferredBuilder(int initialSize, ProblemAggregator problemAggregator) {
+    this(initialSize, problemAggregator, false);
+  }
+
+  /**
+   * Creates a new instance of this builder, with the given known result length.
+   * This is a special constructor that allows for date to date-time conversion (for Excel).
+   *
+   * @param initialSize the result length
+   * @param problemAggregator the problem aggregator to use
+   * @param allowDateToDateTimeConversion whether to allow date to date-time conversion
+   */
+  public InferredBuilder(int initialSize, ProblemAggregator problemAggregator, boolean allowDateToDateTimeConversion) {
     this.initialSize = initialSize;
     this.problemAggregator = problemAggregator;
+    this.allowDateToDateTimeConversion = allowDateToDateTimeConversion;
   }
 
   @Override
@@ -124,7 +139,7 @@ public class InferredBuilder extends Builder {
     } else if (o instanceof LocalTime) {
       currentBuilder = new TimeOfDayBuilder(initialCapacity);
     } else if (o instanceof ZonedDateTime) {
-      currentBuilder = new DateTimeBuilder(initialCapacity);
+      currentBuilder = new DateTimeBuilder(initialCapacity, allowDateToDateTimeConversion);
     } else {
       currentBuilder = new MixedBuilder(initialCapacity);
     }
@@ -158,6 +173,12 @@ public class InferredBuilder extends Builder {
         currentBuilder.append(o);
         return;
       }
+    }
+
+    if (allowDateToDateTimeConversion && o instanceof LocalDate && currentBuilder.canRetypeTo(DateTimeType.INSTANCE)) {
+      currentBuilder = currentBuilder.retypeTo(DateTimeType.INSTANCE);
+      currentBuilder.append(o);
+      return;
     }
 
     retypeToMixed();
