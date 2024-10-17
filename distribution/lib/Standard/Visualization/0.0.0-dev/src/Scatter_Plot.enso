@@ -237,13 +237,14 @@ json_from_table table bounds limit =
     fields_for_axes = get_axes_field number_of_numeric_cols
     axes = table.axes fields_for_axes
     is_multi_series = number_of_numeric_cols > 0
-    JS_Object.from_pairs [[data_field, data], [axis_field, axes], ["is_multi_series", is_multi_series], ["get_row_method", "get_row"], ["x_value_type", x_value_type.to_name]] . to_json
+    error_message = if axes.length < 2 then "Two numeric columns required for Scatterplot" else Nothing
+    JS_Object.from_pairs [[data_field, data], [axis_field, axes], ["is_multi_series", is_multi_series], ["get_row_method", "get_row"], ["x_value_type", x_value_type.to_name], ["error_message", error_message]] . to_json
 
 ## PRIVATE
 json_from_vector : Vector Any -> Vector Integer | Nothing -> Integer | Nothing -> Text
 json_from_vector vec bounds limit =
     data = vec.point_data |> bound_data bounds |> limit_data limit
-    JS_Object.from_pairs [[data_field, data], [axis_field, Nothing], ["is_multi_series", False], ["get_row_method", "at"], ["x_value_type", Value_Type.Integer.to_name]] . to_json
+    JS_Object.from_pairs [[data_field, data], [axis_field, Nothing], ["is_multi_series", False], ["get_row_method", "at"], ["x_value_type", Value_Type.Integer.to_name], ["error_message", Nothing]] . to_json
 
 ## PRIVATE
 

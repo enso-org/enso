@@ -12,9 +12,9 @@ import project
 add_specs suite_builder =
     expect_text text axis_expected_text data_expected_text row_method is_multi =
         json = Json.parse text
-        json.field_names.should_equal ['data', 'axis', 'is_multi_series', 'get_row_method', 'x_value_type']
+        json.field_names.should_equal ['data', 'axis', 'is_multi_series', 'get_row_method', 'x_value_type', 'error_message']
 
-        expect_text = '{"axis": ' + axis_expected_text + ', "data": ' + data_expected_text + ', "is_multi_series": ' + is_multi + ', "get_row_method": ' + row_method + ', "x_value_type": "Integer"' + '}'
+        expect_text = '{"axis": ' + axis_expected_text + ', "data": ' + data_expected_text + ', "is_multi_series": ' + is_multi + ', "get_row_method": ' + row_method + ', "x_value_type": "Integer"' + ', "error_message":null}'
         expected_result = Json.parse expect_text
 
         json.should_equal expected_result
@@ -88,7 +88,7 @@ add_specs suite_builder =
             vector = [0,10,20,30]
             text = Scatter_Plot.process_to_json_text vector limit=2
             json = Json.parse text
-            json.field_names.should_equal ['data','axis', 'is_multi_series', 'get_row_method', 'x_value_type']
+            json.field_names.should_equal ['data','axis', 'is_multi_series', 'get_row_method', 'x_value_type', 'error_message']
             data = json.get 'data'
             data.should_be_a Vector
             data.length . should_equal 2
@@ -97,7 +97,7 @@ add_specs suite_builder =
             vector = (-15).up_to 15 . map (x -> x * x)
             text = Scatter_Plot.process_to_json_text vector limit=10
             json = Json.parse text
-            json.field_names.should_equal ['data','axis', 'is_multi_series', 'get_row_method', 'x_value_type']
+            json.field_names.should_equal ['data','axis', 'is_multi_series', 'get_row_method', 'x_value_type', 'error_message']
             data = json.get 'data'
             data.should_be_a Vector
             data.length . should_equal 10
