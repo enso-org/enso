@@ -2,6 +2,7 @@ from Standard.Base import all hiding Range
 from Standard.Test import Bench
 import project.Collections
 import project.Column_Numeric
+import project.Compiler.Compile
 import project.Decimal_Benchmark
 import project.Equality
 import project.Json_Bench
@@ -99,6 +100,7 @@ all_benchmarks =
         # Runtime
         builder.append Panics_And_Errors.collect_benches
 
+        builder.append Compile.collect_benches
         builder.append Startup.collect_benches
         builder.append Sieve.Main.collect_benches
 
