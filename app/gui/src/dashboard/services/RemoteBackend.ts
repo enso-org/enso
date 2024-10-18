@@ -171,7 +171,7 @@ export default class RemoteBackend extends Backend {
       throw textId
     } else {
       const error =
-        response == null ?
+        response == null || response.headers.get('Content-Type') !== 'application/json' ?
           { message: 'unknown error' }
           // This is SAFE only when the response has been confirmed to have an erroring status code.
           // eslint-disable-next-line no-restricted-syntax
