@@ -2,6 +2,7 @@ package org.enso.interpreter.test.instrument
 
 import org.enso.interpreter.runtime.`type`.ConstantsGen
 import org.enso.interpreter.test.Metadata
+
 import org.enso.pkg.QualifiedName
 import org.enso.common.RuntimeOptions
 import org.enso.polyglot._
@@ -4275,7 +4276,6 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       val afterIdMapUpdate = context.receiveN(3)
 
       // Can't do comparison directly because of Arrays https://github.com/scalatest/scalatest/issues/491
-      // TODO: should contain expression updates for idAArg and idBArg
       afterIdMapUpdate should contain allOf (
         TestMessages.update(
           contextId,
