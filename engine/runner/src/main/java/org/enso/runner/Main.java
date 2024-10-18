@@ -644,7 +644,7 @@ public class Main {
 
     var topScope = context.getTopScope();
     try {
-      topScope.compile(shouldCompileDependencies);
+      topScope.compile(shouldCompileDependencies, false);
       throw exitSuccess();
     } catch (Throwable t) {
       logger.error("Unexpected internal error", t);
@@ -812,16 +812,8 @@ public class Main {
 
     if (main.exists(x -> x.exists())) {
       var mainFile = main.get();
-      var mainModuleName = pkg.get().moduleNameForFile(mainFile).toString();
       var topScope = executionContext.getTopScope();
-      var mainModule = topScope.getModule(mainModuleName);
-      var generated = mainModule.generateDocs();
-      println(generated.toString());
-
-      // TODO:
-      // - go through executed code and get all HTML docs
-      //   with their corresponding atoms/methods etc.
-      // - Save those to files
+      topScope.compile(false, true);
     }
   }
 
