@@ -8,7 +8,7 @@ import project.Column_Description.Column_Description
 import project.DB_Table.DB_Table
 import project.Internal.In_Transaction.In_Transaction
 import project.SQL_Query.SQL_Query
-from project.Internal.Upload.Operations.Internal_Core import internal_create_table_structure
+from project.Internal.Upload.Operations.Internal_Core import Internal_Core_Helpers
 
 ## PRIVATE
    Level of support of DDL statements inside of a transaction.
@@ -47,7 +47,7 @@ type Transactional_Table_Description
        This operation creates the tables regardless of the Output Context setting.
        It is the responsibility of the caller to ensure that the operation may proceed.
     private create self connection -> DB_Table = Context.Output.with_enabled <|
-        created_name = internal_create_table_structure connection self.name self.structure primary_key=self.primary_key temporary=self.temporary on_problems=self.on_problems
+        created_name = Internal_Core_Helpers.internal_create_table_structure connection self.name self.structure primary_key=self.primary_key temporary=self.temporary on_problems=self.on_problems
         connection.query (SQL_Query.Table_Name created_name)
 
 ## PRIVATE

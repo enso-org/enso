@@ -22,20 +22,57 @@ from project.Internal.Upload.Helpers.Error_Helpers import handle_upload_errors, 
 from project.Internal.Upload.Helpers.Prepare_Structure import align_structure, validate_structure, verify_structure_hint
 from project.Internal.Upload.Helpers.SQL_Helpers import make_batched_insert_template, prepare_create_table_statement
 
-## PRIVATE
-   Assumes the output context is enabled for it to work.
-   Creates a table in the Database and returns its name.
-internal_create_table_structure connection table_name structure primary_key temporary on_problems:Problem_Behavior -> Text =
-    aligned_structure = align_structure connection structure
-    resolved_primary_key = resolve_primary_key aligned_structure primary_key
-    validate_structure connection.base_connection.column_naming_helper aligned_structure <|
-        create_table_statement = prepare_create_table_statement connection table_name aligned_structure resolved_primary_key temporary on_problems
-        update_result = create_table_statement.if_not_error <|
-            log_sql_if_enabled connection.jdbc_connection create_table_statement.to_text
-            connection.execute create_table_statement
-        final_result = update_result.if_not_error table_name
-        final_result.catch SQL_Error sql_error->
-            if connection.dialect.get_error_mapper.is_table_already_exists_error sql_error then Error.throw (Table_Already_Exists.Error table_name) else final_result
+type Internal_Core_Helpers
+    ## PRIVATE
+       Assumes the output context is enabled for it to work.
+       Creates a table in the Database and returns its name.
+    internal_create_table_structure connection table_name structure primary_key temporary on_problems:Problem_Behavior -> Text =
+        aligned_structure = align_structure connection structure
+        resolved_primary_key = resolve_primary_key aligned_structure primary_key
+        validate_structure connection.base_connection.column_naming_helper aligned_structure <|
+            create_table_statement = prepare_create_table_statement connection table_name aligned_structure resolved_primary_key temporary on_problems
+            update_result = create_table_statement.if_not_error <|
+                log_sql_if_enabled connection.jdbc_connection create_table_statement.to_text
+                connection.execute create_table_statement
+            final_result = update_result.if_not_error table_name
+            final_result.catch SQL_Error sql_error->
+                if connection.dialect.get_error_mapper.is_table_already_exists_error sql_error then Error.throw (Table_Already_Exists.Error table_name) else final_result
+    
+    ## PRIVATE
+    resolve_temp_table_name connection temporary:Boolean table_name:Text -> Text =
+        case temporary of
+            False -> case table_name.starts_with "#" of
+                True -> Error.throw <| Illegal_Argument.Error ("Table name cannot start with '#': " + table_name)
+                False -> table_name
+            True -> case connection.dialect.temp_table_style of
+                Temp_Table_Style.Temporary_Table -> table_name
+                Temp_Table_Style.Hash_Prefix -> case table_name.starts_with "#" of
+                    True -> table_name
+                    False -> "#" + table_name
+
+    ## PRIVATE
+       A helper to prepare an upload operation for a table.
+
+       Arguments:
+       - source_table: the table to be uploaded.
+           If it's a `DB_Table`, the query will be materialized as a new table.
+           If it's an In Memmory `Table`, the data will be uploaded to the newly created table.
+       - connection: the connection to the database.
+       - table_name: the name of the table to be created.
+       - primary_key: the primary key of the table to be created. Can be `Nothing` to set no key.
+       - temporary: if `True`, the table will be created as temporary.
+       - structure_hint: If set, it can be used to hint what types should be used for the columns of the table. Useful if the types slightly differ from the in-memory source types.
+       - row_limit: if set, only the first `row_limit` rows will be uploaded.
+    internal_upload_table : DB_Table | Table -> Connection -> Text -> Nothing | Vector Text -> Boolean -> Boolean -> Nothing | Vector Column_Description ->  Problem_Behavior -> Integer | Nothing -> Table_Upload_Operation
+    internal_upload_table source_table connection (table_name : Text) (primary_key : Nothing | Vector Text) (temporary : Boolean) (remove_after_transaction : Boolean = False) structure_hint=Nothing (on_problems:Problem_Behavior=..Report_Error) (row_limit : Integer | Nothing = Nothing) -> Table_Upload_Operation =
+        resolved_table_name = Internal_Core_Helpers.resolve_temp_table_name connection temporary table_name
+        case source_table of
+            _ : Table ->
+                internal_upload_in_memory_table source_table connection resolved_table_name primary_key temporary remove_after_transaction structure_hint on_problems row_limit
+            _ : DB_Table ->
+                internal_upload_database_table source_table connection resolved_table_name primary_key temporary remove_after_transaction structure_hint on_problems row_limit
+            _ ->
+                Panic.throw <| Illegal_Argument.Error ("Unsupported table type: " + Meta.get_qualified_type_name source_table)
 
 ## PRIVATE
    We split uploading a table within a transaction into two steps:
@@ -49,31 +86,6 @@ type Table_Upload_Operation
        This method should be called inside of `run_transaction_with_tables`
        block which had the `table_description` passed to it.
     perform_upload self -> DB_Table = self.internal_upload_callback Nothing
-
-## PRIVATE
-   A helper to prepare an upload operation for a table.
-
-   Arguments:
-   - source_table: the table to be uploaded.
-     If it's a `DB_Table`, the query will be materialized as a new table.
-     If it's an In Memmory `Table`, the data will be uploaded to the newly created table.
-   - connection: the connection to the database.
-   - table_name: the name of the table to be created.
-   - primary_key: the primary key of the table to be created. Can be `Nothing` to set no key.
-   - temporary: if `True`, the table will be created as temporary.
-   - structure_hint: If set, it can be used to hint what types should be used for the columns of the table. Useful if the types slightly differ from the in-memory source types.
-   - row_limit: if set, only the first `row_limit` rows will be uploaded.
-internal_upload_table : DB_Table | Table -> Connection -> Text -> Nothing | Vector Text -> Boolean -> Boolean -> Nothing | Vector Column_Description ->  Problem_Behavior -> Integer | Nothing -> Table_Upload_Operation
-internal_upload_table source_table connection (table_name : Text) (primary_key : Nothing | Vector Text) (temporary : Boolean) (remove_after_transaction : Boolean = False) structure_hint=Nothing (on_problems:Problem_Behavior=..Report_Error) (row_limit : Integer | Nothing = Nothing) -> Table_Upload_Operation =
-    resolved_table_name = resolve_temp_table_name connection temporary table_name
-    case source_table of
-        _ : Table ->
-            internal_upload_in_memory_table source_table connection resolved_table_name primary_key temporary remove_after_transaction structure_hint on_problems row_limit
-        _ : DB_Table ->
-            internal_upload_database_table source_table connection resolved_table_name primary_key temporary remove_after_transaction structure_hint on_problems row_limit
-        _ ->
-            Panic.throw <| Illegal_Argument.Error ("Unsupported table type: " + Meta.get_qualified_type_name source_table)
-
 
 ## PRIVATE
 internal_upload_in_memory_table (source_table : Table) connection table_name primary_key temporary remove_after_transaction structure_hint on_problems:Problem_Behavior row_limit = table_name.if_not_error <|
@@ -132,15 +144,3 @@ internal_upload_database_table (source_table : DB_Table) connection table_name p
 check_outside_transaction =
     if In_Transaction.is_in_transaction then
         Panic.throw (Illegal_State.Error "Preparing Table_Upload_Operation should itself be called outside of transaction. This is a bug in the Database library.")
-
-## PRIVATE
-resolve_temp_table_name connection temporary:Boolean table_name:Text -> Text =
-    case temporary of
-        False -> case table_name.starts_with "#" of
-            True -> Error.throw <| Illegal_Argument.Error ("Table name cannot start with '#': " + table_name)
-            False -> table_name
-        True -> case connection.dialect.temp_table_style of
-            Temp_Table_Style.Temporary_Table -> table_name
-            Temp_Table_Style.Hash_Prefix -> case table_name.starts_with "#" of
-                True -> table_name
-                False -> "#" + table_name

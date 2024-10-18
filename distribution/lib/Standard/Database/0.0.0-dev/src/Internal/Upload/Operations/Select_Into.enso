@@ -9,12 +9,12 @@ import project.Internal.DDL_Transaction
 from project.Errors import SQL_Error, Table_Already_Exists
 from project.Internal.Upload.Helpers.Constants import dry_run_row_limit
 from project.Internal.Upload.Helpers.Error_Helpers import handle_upload_errors
-from project.Internal.Upload.Operations.Internal_Core import internal_upload_table, resolve_temp_table_name
+from project.Internal.Upload.Operations.Internal_Core import Internal_Core_Helpers
 
 ## PRIVATE
 select_into_table_implementation source_table connection table_name primary_key temporary on_problems:Problem_Behavior =
     connection.base_connection.maybe_run_maintenance
-    resolved_table_name = resolve_temp_table_name connection temporary table_name
+    resolved_table_name = Internal_Core_Helpers.resolve_temp_table_name connection temporary table_name
     table_naming_helper = connection.base_connection.table_naming_helper
     table_naming_helper.verify_table_name resolved_table_name <|
         Panic.recover SQL_Error <| handle_upload_errors <|
@@ -45,6 +45,6 @@ select_into_table_implementation source_table connection table_name primary_key 
 
 ## PRIVATE
 upload_table_in_transaction source_table connection table_name primary_key temporary on_problems row_limit =
-    upload_operation = internal_upload_table source_table connection table_name primary_key=primary_key temporary=temporary on_problems=on_problems row_limit=row_limit
+    upload_operation = Internal_Core_Helpers.internal_upload_table source_table connection table_name primary_key=primary_key temporary=temporary on_problems=on_problems row_limit=row_limit
     DDL_Transaction.run_transaction_with_tables connection [upload_operation.table_description] _->
         upload_operation.perform_upload
