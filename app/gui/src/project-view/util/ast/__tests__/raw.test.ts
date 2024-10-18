@@ -2,8 +2,8 @@ import {
   astContainingChar,
   childrenAstNodes,
   debugAst,
-  parseEnsoLine,
-  parseEnsoModule,
+  rawParseLine,
+  rawParseModule,
   readAstOrTokenSpan,
   readAstSpan,
   readTokenSpan,
@@ -48,18 +48,18 @@ const parseCases = [
 ]
 
 test.each(parseCases)("Parsing '%s'", (code) => {
-  expect(debugAst(parseEnsoModule(code))).toMatchSnapshot()
+  expect(debugAst(rawParseModule(code))).toMatchSnapshot()
 })
 
 test.each(parseCases)("AST spans of '%s' are valid", (input) => {
-  const tree = parseEnsoModule(input)
+  const tree = rawParseModule(input)
   const endPos = validateSpans(tree)
   expect(endPos).toStrictEqual(input.length)
 })
 
 test("Reading AST node's code", () => {
   const code = 'Data.read File\n2 + 3'
-  const ast = parseEnsoModule(code)
+  const ast = rawParseModule(code)
   expect(readAstSpan(ast, code)).toStrictEqual(code)
   assert(ast.type === Tree.Type.BodyBlock)
   const statements = Array.from(ast.statements)
@@ -123,7 +123,7 @@ test.each([
   ['(', [{ type: Tree.Type.Group, repr: '(' }]],
   ['(foo', [{ type: Tree.Type.Group, repr: '(foo' }]],
 ])("Reading children of '%s'", (code, expected) => {
-  const ast = parseEnsoLine(code)
+  const ast = rawParseLine(code)
   const children = Array.from(childrenAstNodes(ast))
   const childrenWithExpected = children.map((child, i) => {
     return { child, expected: expected[i] }
@@ -147,7 +147,7 @@ test.each([
     ],
   ],
 ])("Walking AST of '%s'", (code, expected) => {
-  const ast = parseEnsoLine(code)
+  const ast = rawParseLine(code)
   const visited = Array.from(walkRecursive(ast))
   const visitedRepr = visited.map((visited) => {
     return {
@@ -206,7 +206,7 @@ test.each([
     ],
   ],
 ])("Reading AST from code '%s' and position %i", (code, position, expected) => {
-  const ast = parseEnsoModule(code)
+  const ast = rawParseModule(code)
   const astAtPosition = astContainingChar(position, ast)
   const resultWithExpected = astAtPosition.map((ast, i) => {
     return { ast, expected: expected[i] }

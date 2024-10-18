@@ -627,7 +627,7 @@ export function parse(code: string, module?: MutableModule): Owned {
 /** Parse a module, and return it along with a mapping from source locations to parsed objects. */
 export function parseModuleWithSpans(
   code: string,
-  module?: MutableModule | undefined
+  module?: MutableModule | undefined,
 ): { root: Owned<MutableBodyBlock>; spans: SpanMap } {
   const tree = rawParseModule(code)
   return abstract(module ?? MutableModule.Transient(), tree, code)

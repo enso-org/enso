@@ -7,7 +7,7 @@ import { tryGetSoleValue } from 'ydoc-shared/util/data/iterable'
 import { isResult, mapOk } from 'ydoc-shared/util/data/result'
 import type { SourceRange } from 'ydoc-shared/yjsModel'
 
-export { rawParseModule, RawAst }
+export { RawAst, rawParseModule }
 
 export type HasAstRange = SourceRange | RawAst.Tree | RawAst.Token
 
@@ -16,7 +16,7 @@ export type HasAstRange = SourceRange | RawAst.Tree | RawAst.Token
  *
  * Is meant to be a helper for tests. If the code is multiline, an exception is raised.
  */
-export function parseEnsoLine(code: string): RawAst.Tree {
+export function rawParseLine(code: string): RawAst.Tree {
   const block = rawParseModule(code)
   const soleExpression = tryGetSoleValue(block.statements)?.expression
   assertDefined(soleExpression)

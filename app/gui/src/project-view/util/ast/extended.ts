@@ -1,8 +1,8 @@
 import { assert, assertDefined } from '@/util/assert'
 import {
   childrenAstNodesOrTokens,
-  rawParseModule,
   parsedTreeOrTokenRange,
+  rawParseModule,
   readAstOrTokenSpan,
   visitGenerator,
   visitRecursive,

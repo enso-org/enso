@@ -2,8 +2,8 @@ import { assert } from '@/util/assert'
 import {
   RawAst,
   astPrettyPrintType,
-  rawParseModule,
   parsedTreeOrTokenRange,
+  rawParseModule,
   readAstOrTokenSpan,
   readTokenSpan,
 } from '@/util/ast/raw'
