@@ -6,9 +6,11 @@
   is available in right-click context menu.
 - [Rows and Columns may be now reordered by dragging in Table Input
   Widget][11271]
+- [Fix invisible selection in Table Input Widget][11358]
 
 [11151]: https://github.com/enso-org/enso/pull/11151
 [11271]: https://github.com/enso-org/enso/pull/11271
+[11358]: https://github.com/enso-org/enso/pull/11358
 
 #### Enso Standard Library
 

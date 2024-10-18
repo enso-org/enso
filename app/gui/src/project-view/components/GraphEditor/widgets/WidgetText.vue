@@ -132,5 +132,9 @@ export const widgetDefinition = defineWidget(
     outline: none;
     background: var(--color-widget-focus);
   }
+
+  &:deep(::selection) {
+    background: var(--color-widget-selection);
+  }
 }
 </style>

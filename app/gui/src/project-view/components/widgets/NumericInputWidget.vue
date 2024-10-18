@@ -159,6 +159,9 @@ defineExpose({
   &:focus {
     background: var(--color-widget-focus);
   }
+  &::selection {
+    background: var(--color-widget-selection);
+  }
 }
 
 .NumericInputWidget.slider {
