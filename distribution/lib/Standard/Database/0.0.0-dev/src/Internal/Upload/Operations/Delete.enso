@@ -14,7 +14,7 @@ from project.Errors import SQL_Error
 from project.Internal.Upload.Helpers.Argument_Checks import check_delete_rows_arguments
 from project.Internal.Upload.Helpers.Check_Queries import check_duplicate_key_matches_for_delete, check_for_null_keys
 from project.Internal.Upload.Helpers.Constants import dry_run_row_limit
-from project.Internal.Upload.Operations.Internal_Core import internal_upload_in_memory_table, internal_upload_table, Table_Upload_Operation
+from project.Internal.Upload.Operations.Internal_Core import internal_upload_table, Table_Upload_Operation
 
 ## PRIVATE
 common_delete_rows (target_table : DB_Table) (key_values_to_delete : Table | DB_Table) (key_columns : Vector Text) (allow_duplicate_matches : Boolean) -> Integer =
@@ -96,7 +96,7 @@ type Delete_Rows_Dry_Run_Source
                 Delete_Rows_Dry_Run_Source.Existing_DB_Query prepared_table
             _ : Table ->
                 tmp_table_name = connection.base_connection.table_naming_helper.generate_random_table_name "enso-temp-keys-table-"
-                upload_recipe = internal_upload_in_memory_table prepared_table connection tmp_table_name primary_key=key_columns temporary=True remove_after_transaction=True structure_hint=Nothing on_problems=Problem_Behavior.Report_Error row_limit=dry_run_row_limit
+                upload_recipe = internal_upload_table prepared_table connection tmp_table_name primary_key=key_columns temporary=True remove_after_transaction=True structure_hint=Nothing on_problems=Problem_Behavior.Report_Error row_limit=dry_run_row_limit
                 row_limit_exceeded = prepared_table.row_count > dry_run_row_limit
                 dry_run_message_suffix = case row_limit_exceeded of
                     False -> ""

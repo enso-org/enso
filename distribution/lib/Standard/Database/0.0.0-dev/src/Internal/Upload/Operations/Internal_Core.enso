@@ -68,16 +68,16 @@ internal_upload_table source_table connection (table_name : Text) (primary_key :
     resolved_table_name = resolve_temp_table_name connection temporary table_name
     case source_table of
         _ : Table ->
-            internal_upload_in_memory_table source_table connection resolved_table_name primary_key temporary remove_after_transaction structure_hint on_problems row_limit
+            _internal_upload_in_memory_table source_table connection resolved_table_name primary_key temporary remove_after_transaction structure_hint on_problems row_limit
         _ : DB_Table ->
-            internal_upload_database_table source_table connection resolved_table_name primary_key temporary remove_after_transaction structure_hint on_problems row_limit
+            _internal_upload_database_table source_table connection resolved_table_name primary_key temporary remove_after_transaction structure_hint on_problems row_limit
         _ ->
             Panic.throw <| Illegal_Argument.Error ("Unsupported table type: " + Meta.get_qualified_type_name source_table)
 
 
 ## PRIVATE
-internal_upload_in_memory_table (source_table : Table) connection table_name primary_key temporary remove_after_transaction structure_hint on_problems:Problem_Behavior row_limit = table_name.if_not_error <|
-    check_outside_transaction
+_internal_upload_in_memory_table (source_table : Table) connection table_name primary_key temporary remove_after_transaction structure_hint on_problems:Problem_Behavior row_limit = table_name.if_not_error <|
+    _check_outside_transaction
     verify_structure_hint structure_hint source_table.column_names
 
     column_names = source_table.column_names
@@ -99,8 +99,8 @@ internal_upload_in_memory_table (source_table : Table) connection table_name pri
     Table_Upload_Operation.Value table_description callback
 
 ## PRIVATE
-internal_upload_database_table (source_table : DB_Table) connection table_name primary_key temporary remove_after_transaction structure_hint on_problems:Problem_Behavior row_limit =
-    check_outside_transaction
+_internal_upload_database_table (source_table : DB_Table) connection table_name primary_key temporary remove_after_transaction structure_hint on_problems:Problem_Behavior row_limit =
+    _check_outside_transaction
     connection_check = if source_table.connection.jdbc_connection == connection.jdbc_connection then True else
         Error.throw Different_Connections.Error
     verify_structure_hint structure_hint source_table.column_names
@@ -129,7 +129,7 @@ internal_upload_database_table (source_table : DB_Table) connection table_name p
         Table_Upload_Operation.Value table_description callback
 
 ## PRIVATE
-check_outside_transaction =
+_check_outside_transaction =
     if In_Transaction.is_in_transaction then
         Panic.throw (Illegal_State.Error "Preparing Table_Upload_Operation should itself be called outside of transaction. This is a bug in the Database library.")
 
