@@ -304,9 +304,9 @@ type SQLServer_Dialect
         if raw_sql.contains "#" . not then
             jdbc.ensure_query_has_no_holes raw_sql
 
-    generate_expression self dialect expr_null_checks_pair = case expr_null_checks_pair.first of
+    generate_expression self base_gen expr_null_checks_pair = case expr_null_checks_pair.first of
         SQL_Expression.Column origin name ->
-            wrapped_name = dialect.wrap_identifier origin ++ '.' ++ dialect.wrap_identifier name
+            wrapped_name = self.wrap_identifier origin ++ '.' ++ self.wrap_identifier name
             pair wrapped_name expr_null_checks_pair.second+[wrapped_name]
         SQL_Expression.Constant value -> SQL_Builder.interpolation value
         SQL_Expression.Literal value -> SQL_Builder.code value
@@ -314,8 +314,8 @@ type SQLServer_Dialect
             escaped = value.replace "'" "''"
             SQL_Builder.code ("'" + escaped + "'")
         SQL_Expression.Operation kind arguments metadata ->
-            op = dialect.dialect_operations.operations_dict.get kind (Error.throw <| Unsupported_Database_Operation.Error kind)
-            parsed_args = arguments.map (c -> self.generate_expression dialect (pair c []))
+            op = self.dialect_operations.operations_dict.get kind (Error.throw <| Unsupported_Database_Operation.Error kind)
+            parsed_args = arguments.map (c -> self.generate_expression base_gen (pair c []))
             parsed_args2 = parsed_args.map .first
             result = op parsed_args2
             null_checks = parsed_args.map .second
@@ -325,11 +325,11 @@ type SQLServer_Dialect
                 _ -> result
             pair r null_checks
         SQL_Expression.Let _ binder bindee body ->
-            wrapped_binder = dialect.wrap_identifier binder
-            bindee_exp = SQL_Builder.code "SELECT " ++ (self.generate_expression dialect bindee).paren ++ " AS " ++ "x"
+            wrapped_binder = self.wrap_identifier binder
+            bindee_exp = SQL_Builder.code "SELECT " ++ (self.generate_expression base_gen bindee).paren ++ " AS " ++ "x"
 
             body_sql_builder = self.let_bindings_ref.with_modification (h-> h.insert binder) <|
-                self.generate_expression dialect body
+                self.generate_expression base_gen body
 
             body_exp = SQL_Builder.code "SELECT " ++ body_sql_builder ++ " FROM " ++ wrapped_binder
             (SQL_Builder.code "WITH " ++ wrapped_binder  ++ " AS " ++ bindee_exp.paren ++ " " ++ body_exp).paren
@@ -337,16 +337,16 @@ type SQLServer_Dialect
             binding_state = self.let_bindings_ref.get
             case binding_state.contains binder of
                 True ->
-                    wrapped_binder = dialect.wrap_identifier binder
+                    wrapped_binder = self.wrap_identifier binder
                     wrapped_binder ++ "." ++ "x"
                 False ->
-                    self.generate_expression dialect standalone_expression
-        query : Query -> self.generate_sub_query dialect query
-        descriptor : Order_Descriptor -> self.generate_order dialect descriptor
+                    self.generate_expression base_gen standalone_expression
+        query : Query -> self.generate_sub_query self query
+        descriptor : Order_Descriptor -> self.generate_order self descriptor
 
 
     generate_column self base_gen expr:(SQL_Expression | Order_Descriptor | Query) name:Text -> SQL_Builder =
-        expr_null_checks_pair = self.generate_expression self (pair expr [])
+        expr_null_checks_pair = self.generate_expression base_gen (pair expr [])
         base_expr = expr_null_checks_pair.first
         null_checks = expr_null_checks_pair.second
         null_check = (null_checks.map it->((it.at 0).paren ++ " IS NULL ")) . fold (SQL_Builder.code "1=0 ") acc-> i-> acc ++ "OR " ++ i
