@@ -23,14 +23,12 @@ const open = ref(false)
   <DropdownMenu v-model:open="open" :title="title" :alwaysShowArrow="alwaysShowArrow">
     <template #button>
       <template v-if="options[selected]">
-        <template v-if="options[selected]!.icon">
-          <SvgIcon :name="options[selected]!.icon!" :style="options[selected]!.iconStyle" />
-          <div
-            v-if="labelButton && options[selected]!.label"
-            class="iconLabel"
-            v-text="options[selected]!.label"
-          />
-        </template>
+        <SvgIcon :name="options[selected]!.icon!" :style="options[selected]!.iconStyle" />
+        <div
+          v-if="labelButton && options[selected]!.label"
+          class="iconLabel"
+          v-text="options[selected]!.label"
+        />
       </template>
     </template>
     <template #entries>
