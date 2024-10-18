@@ -181,11 +181,19 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
     readonly parentKeys: Map<backendModule.AssetId, backendModule.DirectoryId>
   } | null>(null)
 
-  const isDeleted =
+  const isDeleting =
     useMutationState({
       filters: {
         ...backendMutationOptions(backend, 'deleteAsset'),
         predicate: (mutation: BackendMutation<'deleteAsset'>) =>
+          mutation.state.variables?.[0] === asset.id,
+      },
+    }).length !== 0
+  const isRestoring =
+    useMutationState({
+      filters: {
+        ...backendMutationOptions(backend, 'undoDeleteAsset'),
+        predicate: (mutation: BackendMutation<'undoDeleteAsset'>) =>
           mutation.state.variables?.[0] === asset.id,
       },
     }).length !== 0
@@ -219,7 +227,7 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
     isRemovingSelf ? Visibility.hidden
     : outerVisibility === Visibility.visible ? insertionVisibility
     : outerVisibility ?? insertionVisibility
-  const hidden = isDeleted || hiddenRaw || visibility === Visibility.hidden
+  const hidden = isDeleting || isRestoring || hiddenRaw || visibility === Visibility.hidden
 
   const setSelected = useEventCallback((newSelected: boolean) => {
     const { selectedKeys } = driveStore.getState()
@@ -267,7 +275,11 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
   }, [item.item.id, updateAssetRef])
 
   React.useEffect(() => {
-    if (isSoleSelected && item.item.id !== driveStore.getState().assetPanelProps?.item?.item.id) {
+    if (
+      !hidden &&
+      isSoleSelected &&
+      item.item.id !== driveStore.getState().assetPanelProps?.item?.item.id
+    ) {
       setAssetPanelProps({ backend, item })
       setIsAssetPanelTemporarilyVisible(false)
     }
@@ -278,6 +290,7 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
     setAssetPanelProps,
     setIsAssetPanelTemporarilyVisible,
     driveStore,
+    hidden,
   ])
 
   const doDelete = React.useCallback(
