@@ -198,8 +198,8 @@ export abstract class Ast {
     return this.module.get(this.parentId)
   }
 
-  static parseBlock(source: string, inModule?: MutableModule) {
-    return parseBlock(source, { module: inModule })
+  static parseBlock(source: string, module?: MutableModule) {
+    return parseBlock(source, module)
   }
 
   static parse(source: string, module?: MutableModule) {

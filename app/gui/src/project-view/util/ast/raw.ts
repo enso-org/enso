@@ -1,13 +1,13 @@
 import { assertDefined } from '@/util/assert'
 import * as map from 'lib0/map'
 import * as RawAst from 'ydoc-shared/ast/generated/ast'
-import { parseEnsoModule } from 'ydoc-shared/ast/parse'
+import { rawParseModule } from 'ydoc-shared/ast/parse'
 import { LazyObject, LazySequence } from 'ydoc-shared/ast/parserSupport'
 import { tryGetSoleValue } from 'ydoc-shared/util/data/iterable'
 import { isResult, mapOk } from 'ydoc-shared/util/data/result'
 import type { SourceRange } from 'ydoc-shared/yjsModel'
 
-export { parseEnsoModule, RawAst }
+export { rawParseModule, RawAst }
 
 export type HasAstRange = SourceRange | RawAst.Tree | RawAst.Token
 
@@ -17,7 +17,7 @@ export type HasAstRange = SourceRange | RawAst.Tree | RawAst.Token
  * Is meant to be a helper for tests. If the code is multiline, an exception is raised.
  */
 export function parseEnsoLine(code: string): RawAst.Tree {
-  const block = parseEnsoModule(code)
+  const block = rawParseModule(code)
   const soleExpression = tryGetSoleValue(block.statements)?.expression
   assertDefined(soleExpression)
   return soleExpression

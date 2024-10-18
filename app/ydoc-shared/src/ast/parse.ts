@@ -63,12 +63,12 @@ import {
 } from './tree'
 
 /** Return the raw parser output for the given code, parsed as a module. */
-export function parseEnsoModule(code: string): RawAst.Tree.BodyBlock {
+export function rawParseModule(code: string): RawAst.Tree.BodyBlock {
   return deserializeBlock(parse_module(code))
 }
 
 /** Return the raw parser output for the given code, parsed as a body block. */
-export function parseEnsoBlock(code: string): RawAst.Tree.BodyBlock {
+export function rawParseBlock(code: string): RawAst.Tree.BodyBlock {
   return deserializeBlock(parse_block(code))
 }
 
@@ -84,7 +84,7 @@ export function normalize(rootIn: Ast): Ast {
   const printed = print(rootIn)
   const idMap = spanMapToIdMap(printed.info)
   const module = MutableModule.Transient()
-  const tree = parseEnsoModule(printed.code)
+  const tree = rawParseModule(printed.code)
   const { root: parsed, spans } = abstract(module, tree, printed.code)
   module.replaceRoot(parsed)
   setExternalIds(module, spans, idMap)
@@ -604,9 +604,10 @@ export function printDocumented(
   return code
 }
 
-/** Parse the input as a block. */
-export function parseBlock(code: string, options: ParseOptions = {}): Owned<MutableBodyBlock> {
-  return parseBlockWithSpans(code, options).root
+/** Parse the input as a body block, not the top level of a module. */
+export function parseBlock(code: string, module?: MutableModule): Owned<MutableBodyBlock> {
+  const tree = rawParseBlock(code)
+  return abstract(module ?? MutableModule.Transient(), tree, code).root
 }
 
 /**
@@ -614,7 +615,7 @@ export function parseBlock(code: string, options: ParseOptions = {}): Owned<Muta
  */
 export function parse(code: string, module?: MutableModule): Owned {
   const module_ = module ?? MutableModule.Transient()
-  const ast = parseBlock(code, { context: 'block', module: module_ })
+  const ast = parseBlock(code, module)
   const soleStatement = tryGetSoleValue(ast.statements())
   if (!soleStatement) return ast
   const parent = parentId(soleStatement)
@@ -623,30 +624,20 @@ export function parse(code: string, module?: MutableModule): Owned {
   return asOwned(soleStatement)
 }
 
-export interface ParseOptions {
-  /**
-   * Specifies whether the input should be parsed as if it contains the top-level statements of a file, or statements in
-   * a body block. If `undefined` or not specified, the default is `'module'`.
-   */
-  context?: 'module' | 'block' | undefined
-  module?: MutableModule | undefined
-}
-
-/** Parse a block, and return it along with a mapping from source locations to parsed objects. */
-export function parseBlockWithSpans(
+/** Parse a module, and return it along with a mapping from source locations to parsed objects. */
+export function parseModuleWithSpans(
   code: string,
-  options: ParseOptions = {},
+  module?: MutableModule | undefined
 ): { root: Owned<MutableBodyBlock>; spans: SpanMap } {
-  const tree = options.context === 'block' ? parseEnsoBlock(code) : parseEnsoModule(code)
-  const module = options.module ?? MutableModule.Transient()
-  return abstract(module, tree, code)
+  const tree = rawParseModule(code)
+  return abstract(module ?? MutableModule.Transient(), tree, code)
 }
 
 /** Parse the input, and apply the given `IdMap`. Return the parsed tree, the updated `IdMap`, the span map, and a
  *  mapping to the `RawAst` representation.
  */
 export function parseExtended(code: string, idMap?: IdMap | undefined, inModule?: MutableModule) {
-  const rawRoot = parseEnsoModule(code)
+  const rawRoot = rawParseModule(code)
   const module = inModule ?? MutableModule.Transient()
   const { root, spans, toRaw } = module.transact(() => {
     const { root, spans, toRaw } = abstract(module, rawRoot, code)
@@ -720,7 +711,7 @@ export function repair(
   // Print the input to see what spans its nodes expect to have in the output.
   const printed = print(root)
   // Parse the printed output to see what spans actually correspond to nodes in the printed code.
-  const reparsed = parseBlockWithSpans(printed.code)
+  const reparsed = parseModuleWithSpans(printed.code)
   // See if any span we expected to be a node isn't; if so, it likely merged with its parent due to wrong precedence.
   const { lostInline, lostBlock } = checkSpans(
     printed.info.nodes,
@@ -746,7 +737,7 @@ export function repair(
 
   // Verify that it's fixed.
   const printed2 = print(fixes.getVersion(root))
-  const reparsed2 = parseBlockWithSpans(printed2.code)
+  const reparsed2 = parseModuleWithSpans(printed2.code)
   const { lostInline: lostInline2, lostBlock: lostBlock2 } = checkSpans(
     printed2.info.nodes,
     reparsed2.spans.nodes,
@@ -938,7 +929,7 @@ export function applyTextEditsToAst(
 ) {
   const printed = print(ast)
   const code = applyTextEdits(printed.code, textEdits)
-  const rawParsedBlock = parseEnsoModule(code)
+  const rawParsedBlock = rawParseModule(code)
   const rawParsed =
     ast instanceof MutableBodyBlock ? rawParsedBlock : rawBlockToInline(rawParsedBlock)
   const parsed = abstract(ast.module, rawParsed, code)

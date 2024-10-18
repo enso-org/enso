@@ -19,7 +19,7 @@ import { findExpressions, testCase, tryFindExpressions } from './testCase'
 
 test('Raw block abstracts to Ast.BodyBlock', () => {
   const code = 'value = 2 + 2'
-  const rawBlock = Ast.parseEnsoModule(code)
+  const rawBlock = Ast.rawParseModule(code)
   const edit = MutableModule.Transient()
   const abstracted = Ast.abstract(edit, rawBlock, code)
   expect(abstracted.root).toBeInstanceOf(Ast.BodyBlock)
@@ -389,7 +389,7 @@ test.each(cases)('parse/print round trip: %s', (code) => {
   expect(Ast.repair(root).fixes).toBe(undefined)
 
   // Re-parse.
-  const { root: root1, spans: spans1 } = Ast.parseBlockWithSpans(printed.code)
+  const { root: root1, spans: spans1 } = Ast.parseModuleWithSpans(printed.code)
   Ast.setExternalIds(root1.module, spans1, idMap)
   // Check that Identities match original AST.
   const printed1 = Ast.print(root1)
