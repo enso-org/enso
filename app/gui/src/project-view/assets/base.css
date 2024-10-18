@@ -23,6 +23,7 @@
   --color-widget: rgb(255 255 255 / 0.12);
   --color-widget-focus: rgb(255 255 255 / 0.25);
   --color-widget-selected: rgb(255 255 255 / 0.58);
+  --color-widget-selection: rgba(255 255 255 / 0.2 );
   --color-port-connected: rgb(255 255 255 / 0.15);
 
   /* colors for specific icons */
