@@ -42,7 +42,7 @@ export function Cancel(props: CancelProps): JSX.Element {
   const dialogContext = useDialogContext()
 
   return (
-    <Form.Cancel
+    <Form.Submit
       testId="form-cancel-button"
       formnovalidate
       type="button"
@@ -56,6 +56,6 @@ export function Cancel(props: CancelProps): JSX.Element {
       {...(buttonProps as any)}
     >
       {getText('cancel')}
-    </Form.Cancel>
+    </Form.Submit>
   )
 }
