@@ -5,3 +5,5 @@ license: MIT
 author: enso-dev@enso.org
 maintainer: enso-dev@enso.org
 prefer-local-libraries: true
+requires:
+  - Standard.Microsoft

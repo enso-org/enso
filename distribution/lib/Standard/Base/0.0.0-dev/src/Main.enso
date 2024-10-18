@@ -170,7 +170,6 @@ export project.Nothing.Nothing
 
 export project.Panic.Panic
 
-export project.Polyglot.Java
 export project.Polyglot.Polyglot
 
 export project.Random.Random

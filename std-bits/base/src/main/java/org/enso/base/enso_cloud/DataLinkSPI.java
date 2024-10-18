@@ -2,6 +2,7 @@ package org.enso.base.enso_cloud;
 
 import java.util.ServiceLoader;
 import java.util.stream.Collectors;
+import org.enso.base.lookup.Lookup;
 import org.enso.base.polyglot.EnsoMeta;
 import org.graalvm.polyglot.Value;
 
@@ -11,8 +12,8 @@ import org.graalvm.polyglot.Value;
  * type should return a configured datalink instance that can later be `read`.
  */
 public abstract class DataLinkSPI {
-  private static final ServiceLoader<DataLinkSPI> loader =
-      ServiceLoader.load(DataLinkSPI.class, DataLinkSPI.class.getClassLoader());
+  private static final Lookup<DataLinkSPI> loader =
+      Lookup.lookup((layer) -> ServiceLoader.load(layer, DataLinkSPI.class));
 
   public void reload() {
     loader.reload();
