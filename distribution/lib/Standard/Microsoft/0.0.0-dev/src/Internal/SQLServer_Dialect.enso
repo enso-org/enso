@@ -228,7 +228,6 @@ type SQLServer_Dialect
         case feature of
             Feature.Select_Columns -> True
             Feature.Sort -> True
-            Feature.Filter -> True
             _ -> False
 
     ## PRIVATE
