@@ -24,10 +24,7 @@ import org.enso.table.error.ColumnNameMismatchException;
 import org.enso.table.error.ExistingDataException;
 import org.enso.table.error.InvalidLocationException;
 import org.enso.table.error.RangeExceededException;
-import org.enso.table.excel.ExcelHeaders;
-import org.enso.table.excel.ExcelRange;
-import org.enso.table.excel.ExcelRow;
-import org.enso.table.excel.ExcelSheet;
+import org.enso.table.excel.*;
 import org.enso.table.util.ColumnMapper;
 import org.enso.table.util.NameDeduplicator;
 
@@ -500,7 +497,7 @@ public class ExcelWriter {
     } else if (storage instanceof BoolStorage boolStorage) {
       cell.setCellValue(boolStorage.getItem(j));
     } else if (storage instanceof DateTimeStorage dateTimeStorage) {
-      cell.setCellValue(dateTimeStorage.getItem(j).toLocalDateTime());
+      cell.setCellValue(ExcelUtils.toExcelDateTime(dateTimeStorage.getItem(j)));
       cell.setCellStyle(getDateTimeStyle(workbook, "yyyy-MM-dd HH:mm:ss"));
     } else {
       Object value = storage.getItemBoxed(j);
@@ -510,15 +507,15 @@ public class ExcelWriter {
         case Double d -> cell.setCellValue(d);
         case Long l -> cell.setCellValue(l);
         case LocalDateTime ldt -> {
-          cell.setCellValue(ldt);
+          cell.setCellValue(ExcelUtils.toExcelDateTime(ldt));
           cell.setCellStyle(getDateTimeStyle(workbook, "yyyy-MM-dd HH:mm:ss"));
         }
         case LocalDate ld -> {
-          cell.setCellValue(ld);
+          cell.setCellValue(ExcelUtils.toExcelDateTime(ld));
           cell.setCellStyle(getDateTimeStyle(workbook, "yyyy-MM-dd"));
         }
         case LocalTime lt -> {
-          cell.setCellValue(lt.toSecondOfDay() / SECONDS_IN_A_DAY);
+          cell.setCellValue(ExcelUtils.toExcelDateTime(lt));
           cell.setCellStyle(getDateTimeStyle(workbook, "HH:mm:ss"));
         }
         default -> {
