@@ -169,7 +169,7 @@ function processDataFromClipboard({ data, api }: ProcessDataFromClipboardParams<
   if (focusedCell === null) console.warn('Pasting while no cell is focused!')
   else {
     pasteFromClipboard(data, {
-      rowIndex: focusedCell?.rowIndex,
+      rowIndex: focusedCell.rowIndex,
       colId: focusedCell.column.getColId(),
     })
   }
