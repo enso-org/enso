@@ -730,6 +730,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       } else {
         await route.fulfill({
           headers: {
+            'Access-Control-Expose-Headers': 'ETag',
             ETag: uniqueString.uniqueString(),
           },
         })
