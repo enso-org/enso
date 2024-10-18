@@ -7,23 +7,21 @@ export interface Button {
   iconStyle?: Record<string, string>
   title?: string
   dataTestid?: string
+  icon: Icon | URLString
 }
 
 export interface ActionButton extends Button {
   onClick: () => void
   disabled?: ToValue<boolean>
-  icon: Icon | URLString
 }
 
 export interface ToggleButton extends Button {
   toggle: Ref<boolean>
   disabled?: ToValue<boolean>
-  icon: Icon | URLString
 }
 
 export interface SelectionMenuOption extends Button {
   label?: string
-  icon?: Icon | URLString
 }
 
 export interface SelectionMenu {

@@ -1,9 +1,7 @@
 <script setup lang="ts">
 /** @file A dropdown menu supporting the pattern of selecting a single entry from a list. */
-
 import DropdownMenu from '@/components/DropdownMenu.vue'
 import MenuButton from '@/components/MenuButton.vue'
-import SvgIcon from '@/components/SvgIcon.vue'
 import { SelectionMenuOption } from '@/components/visualizations/toolbar'
 import { ref } from 'vue'
 
@@ -12,8 +10,8 @@ const selected = defineModel<Key>({ required: true })
 const _props = defineProps<{
   options: Record<Key, SelectionMenuOption>
   title?: string | undefined
-  labelButton?: boolean
   alwaysShowArrow?: boolean
+  heading: string
 }>()
 
 const open = ref(false)
@@ -23,14 +21,8 @@ const open = ref(false)
   <DropdownMenu v-model:open="open" :title="title" :alwaysShowArrow="alwaysShowArrow">
     <template #button>
       <template v-if="options[selected]">
-        <template v-if="options[selected]!.icon">
-          <SvgIcon :name="options[selected]!.icon!" :style="options[selected]!.iconStyle" />
-          <div
-            v-if="labelButton && options[selected]!.label"
-            class="iconLabel"
-            v-text="options[selected]!.label"
-          />
-        </template>
+        <div v-if="heading" v-text="heading" />
+        <div v-if="options[selected]?.label" class="iconLabel" v-text="options[selected]?.label" />
       </template>
     </template>
     <template #entries>
@@ -42,7 +34,6 @@ const open = ref(false)
         @update:modelValue="$event && (selected = key)"
         @click="open = false"
       >
-        <SvgIcon :name="option.icon" :style="option.iconStyle" :data-testid="option.dataTestid" />
         <div v-if="option.label" class="iconLabel" v-text="option.label" />
       </MenuButton>
     </template>
