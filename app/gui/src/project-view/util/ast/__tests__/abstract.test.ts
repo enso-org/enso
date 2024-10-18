@@ -376,7 +376,7 @@ const cases = [
 ]
 test.each(cases)('parse/print round trip: %s', (code) => {
   // Get an AST.
-  const root = Ast.parseBlock(code)
+  const { root } = Ast.parseModuleWithSpans(code)
   // Print AST back to source.
   const printed = Ast.print(root)
   expect(printed.code).toEqual(code)
@@ -784,7 +784,7 @@ describe('Code edit', () => {
   })
 
   test('Shifting whitespace ownership', () => {
-    const beforeRoot = Ast.parseBlock('value = 1 +\n')
+    const beforeRoot = Ast.parseModuleWithSpans('value = 1 +\n').root
     beforeRoot.module.replaceRoot(beforeRoot)
     const before = findExpressions(beforeRoot, {
       value: Ast.Ident,
@@ -808,7 +808,7 @@ describe('Code edit', () => {
   })
 
   test('merging', () => {
-    const block = Ast.parseBlock('a = 1\nb = 2')
+    const block = Ast.parseModuleWithSpans('a = 1\nb = 2').root
     const module = block.module
     module.replaceRoot(block)
 

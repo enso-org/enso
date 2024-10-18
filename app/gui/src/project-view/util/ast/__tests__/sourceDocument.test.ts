@@ -11,7 +11,7 @@ test('Test SourceDocument', () => {
   syncModule.observe((update) => sourceDoc.applyUpdate(syncModule, update))
   const code = '1 + 1'
   const edit1 = syncModule.edit()
-  const root = Ast.parseBlock(code, { module: edit1 })
+  const root = Ast.parseBlock(code, edit1)
   edit1.replaceRoot(root)
   syncModule.applyEdit(edit1)
   expect(sourceDoc.text).toBe(code)
