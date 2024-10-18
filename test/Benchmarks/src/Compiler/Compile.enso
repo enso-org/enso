@@ -9,9 +9,12 @@ type Data
     Value ~enso_bin:File ~std_base:File
 
     bench_compile_base self =
-        self.startup [ "--no-compile-dependencies", "--no-global-cache", "--compile", self.std_base.to_text]
+        self.startup [ "--no-compile-dependencies", "--log-level", "debug", "--no-global-cache", "--compile", self.std_base.to_text]
 
     startup self  args =
+        cache_dir = self.std_base / ".enso" / "cache"
+        cache_dir.delete recursive=True
+
         exe = self.enso_bin
         result = Process.run exe.path args
         case result.exit_code of
