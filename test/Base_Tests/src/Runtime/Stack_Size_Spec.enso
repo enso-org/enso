@@ -1,0 +1,129 @@
+# Tests regression of the overall stack trace size when calling nested
+# Vector.map. It is tested by invoking a subprocess with smaller thread
+# stack size (`-Xss` cmdline option).
+
+private
+
+from Standard.Base import all
+import Standard.Base.Runtime.Ref.Ref
+import Standard.Base.System.Process.Process_Builder.Process_Result
+
+
+## Find the Enso binary under the `built-distribution` directory
+enso_bin -> File =
+    find_prefix dir prefix =
+        vec = dir.list name_filter=prefix+"*"
+        if vec.length == 1 then vec.at 0 else
+            msg = "Cannot find " + prefix + "* in " + dir.to_text + '\n'
+            err = dir.list.fold msg t-> f->
+                t + f.to_text + '\n'
+            Panic.throw err
+
+    project_root = File.new enso_project.root.to_text
+    repository_root = project_root . parent . parent
+    built_distribution = find_prefix repository_root "built-distribution"
+    enso_engine = find_prefix built_distribution "enso-engine-"
+    enso = find_prefix enso_engine "enso-"
+    bin = find_prefix enso "bin"
+
+    exe = File.new bin / if Platform.os == Platform.OS.Windows then "enso.bat" else "enso"
+
+    if exe.is_regular_file.not then Panic.throw "Cannot find "+exe.to_text
+
+    exe
+
+## Generates code for mapping over a vector with the given nesting level.
+   Returns code of the main method that is meant to be pasted into a separate module.
+
+   Example of the code is (for nesting_level 2):
+   ```
+   main =
+       vec = [[42]]
+       vec.map e0->
+           e0.map e1->
+               e1 + 1
+   ```
+
+   Arguments:
+   - nesting_level How many times should the vector be nested
+generate_code nesting_level:Integer -> Text =
+    bldr = Vector.Builder.new
+    bldr.append "from Standard.Base import all"
+    bldr.append '\n'
+    bldr.append <| "main = "
+    bldr.append <| "    "
+                   + "vec = "
+                   + ("[" * nesting_level)
+                   + "42"
+                   + ("]" * nesting_level)
+    bldr.append <| "    "
+                   + "vec.map e0->"
+    0.up_to (nesting_level - 1) . each \i ->
+        bldr.append <| ("    " * (i + 2))
+                       + "e"
+                       + i.to_text
+                       + ".map e"
+                       + (i + 1).to_text
+                       + "-> "
+    bldr.append <| ("    " * (nesting_level + 1))
+                   + "e"
+                   + (nesting_level - 1).to_text
+                   + " + 1"
+                   + '\n'
+    vec = bldr.to_vector
+    vec.reduce \first_line:Text second_line:Text ->
+        first_line + '\n' + second_line
+
+
+run_with_stack_size stack_size:Text enso_args:Vector -> Process_Result =
+    java_opts = "-Xss" + stack_size
+                + " "
+                + "-Dpolyglot.engine.Compilation=false"
+    args = ["JAVA_OPTS="+java_opts, enso_bin.path] + enso_args
+    Process.run "env" (args + enso_args)
+
+
+failed_with_stack_overflow res:Process_Result -> Boolean =
+    case res.exit_code of
+        Exit_Code.Success -> False
+        Exit_Code.Failure _ ->
+            first_line = res.stdout.split '\n' . first
+            first_line.contains "Stack overflow"
+
+## Runs enso as a subprocess with specified stack size and nesting level of Vector.map
+   Returns False if the process failed with StackOverflowError, True if it succeeded.
+
+   Arguments:
+   - nesting Level of nesting of `Vector.map` method calls.
+   - stack_size Size of the stack, passed to `-Xss` cmd line opt.
+run nesting:Integer stack_size:Text -> Boolean =
+    tmp_file = File.create_temporary_file suffix=".enso"
+    code = generate_code nesting
+    code.write tmp_file
+    proc_res = run_with_stack_size stack_size ["--run", tmp_file.path]
+    failed_with_stack_overflow proc_res . not
+
+
+run_all =
+    stack_sizes = ["256k", "300k"]
+    nestings = [3, 6, 9]
+    stack_sizes.each \stack_size ->
+        so_encountered = Ref.new False
+        nestings.each \nesting ->
+            header_msg = "{nesting: " + nesting.to_text + ", stack_size: " + stack_size.to_text + "} "
+            case so_encountered.get of
+                True ->
+                    IO.println <| header_msg + "SKIPPED (SO already encountered with the same stack size in lower nesting levels)"
+                False ->
+                    result = run nesting stack_size
+                    case result of
+                        False ->
+                            IO.println <| header_msg + "FAILED with StackOverflow"
+                            # It is certain that the rest of nesting levels will fail now
+                            so_encountered.put True
+                        True ->
+                            IO.println <| header_msg + "SUCCEEDED"
+
+
+main =
+    run_all
