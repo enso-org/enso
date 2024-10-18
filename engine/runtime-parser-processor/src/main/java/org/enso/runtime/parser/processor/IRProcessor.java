@@ -12,10 +12,12 @@ import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.TypeMirror;
-import javax.tools.JavaFileObject;
+import javax.tools.FileObject;
+import javax.tools.StandardLocation;
 import org.enso.runtime.parser.dsl.IRChild;
 import org.enso.runtime.parser.dsl.IRNode;
 
+/** Generates Scala classes for every Java interface annotated with {@link IRNode}. */
 @SupportedAnnotationTypes({
   "org.enso.runtime.parser.dsl.IRNode",
   "org.enso.runtime.parser.dsl.IRChild"
@@ -47,47 +49,44 @@ public class IRProcessor extends AbstractProcessor {
     var irNodeTypeElem = (TypeElement) irNodeElem;
     var irNodeInterfaceName = irNodeTypeElem.getSimpleName().toString();
     var pkgName = packageName(irNodeTypeElem);
-    var newClassName = irNodeInterfaceName + "Gen";
-    String newBinaryName;
-    if (!pkgName.isEmpty()) {
-      newBinaryName = pkgName + "." + newClassName;
-    } else {
-      newBinaryName = newClassName;
-    }
-    JavaFileObject srcGen = null;
+    var newCaseClassName = irNodeInterfaceName + "Gen";
+    FileObject srcGen = null;
     try {
-      srcGen = processingEnv.getFiler().createSourceFile(newBinaryName, irNodeElem);
+      srcGen =
+          processingEnv
+              .getFiler()
+              .createResource(StandardLocation.SOURCE_OUTPUT, pkgName, newCaseClassName + ".scala");
     } catch (IOException e) {
       printError("Failed to create source file for IRNode", irNodeElem);
     }
     assert srcGen != null;
-    var irNodeElement = new IRNodeElement(processingEnv, irNodeTypeElem, newClassName);
+    var irNodeElement = new IRNodeElement(processingEnv, irNodeTypeElem, newCaseClassName);
     try {
       try (var lineWriter = new PrintWriter(srcGen.openWriter())) {
         var code =
             """
             $imports
 
-            public final class $className implements $interfaceName {
+            final class $className(
               $fields
-
-              $constructor
-
-              public static Builder builder() {
-                return new Builder();
-              }
+            ) extends $interfaceName {
 
               $overrideUserDefinedMethods
 
               $overrideIRMethods
+            }
+
+            final object $className {
+              def builder(): Builder = {
+                return new Builder();
+              }
 
               $builder
             }
             """
                 .replace("$imports", irNodeElement.imports())
-                .replace("$className", newClassName)
+                .replace("$className", newCaseClassName)
                 .replace("$fields", irNodeElement.fields())
-                .replace("$constructor", irNodeElement.constructor())
                 .replace("$interfaceName", irNodeInterfaceName)
                 .replace("$overrideUserDefinedMethods", irNodeElement.overrideUserDefinedMethods())
                 .replace("$overrideIRMethods", irNodeElement.overrideIRMethods())

@@ -43,10 +43,12 @@ final class Field {
   }
 
   /**
-   * Returns true if this field extends {@link org.enso.compiler.core.ir.Expression}
-   * ({@link org.enso.compiler.core.ir.JExpression}).
+   * Returns true if this field extends {@link org.enso.compiler.core.ir.Expression} ({@link
+   * org.enso.compiler.core.ir.JExpression}).
    *
-   * <p>This is useful, e.g., for the {@link org.enso.compiler.core.IR#mapExpressions(Function)} method.
+   * <p>This is useful, e.g., for the {@link org.enso.compiler.core.IR#mapExpressions(Function)}
+   * method.
+   *
    * @return true if this field extends {@link org.enso.compiler.core.ir.Expression}
    */
   boolean isExpression(ProcessingEnvironment processingEnv) {
