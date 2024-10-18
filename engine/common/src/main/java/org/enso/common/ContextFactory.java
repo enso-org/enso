@@ -3,6 +3,7 @@ package org.enso.common;
 import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.HashMap;
 import java.util.Map;
 import org.enso.logger.Converter;
 import org.enso.logger.JulHandler;
@@ -50,7 +51,7 @@ public final class ContextFactory {
   private String executionEnvironment;
   private String checkForWarnings;
   private int warningsLimit = 100;
-  private java.util.Map<String, String> options = java.util.Collections.emptyMap();
+  private java.util.Map<String, String> options = new HashMap<>();
   private boolean enableDebugServer;
 
   private ContextFactory() {}

@@ -39,7 +39,7 @@ jobs:
             target/lib/**
 
   build_mac_intel_parser:
-    runs-on: macos-12
+    runs-on: macos-13
 
     steps:
       - uses: actions/checkout@v4

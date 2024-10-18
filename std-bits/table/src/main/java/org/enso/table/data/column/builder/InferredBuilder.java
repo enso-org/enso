@@ -9,16 +9,7 @@ import java.util.List;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.type.BigDecimalType;
-import org.enso.table.data.column.storage.type.BigIntegerType;
-import org.enso.table.data.column.storage.type.BooleanType;
-import org.enso.table.data.column.storage.type.DateTimeType;
-import org.enso.table.data.column.storage.type.DateType;
-import org.enso.table.data.column.storage.type.FloatType;
-import org.enso.table.data.column.storage.type.IntegerType;
-import org.enso.table.data.column.storage.type.StorageType;
-import org.enso.table.data.column.storage.type.TextType;
-import org.enso.table.data.column.storage.type.TimeOfDayType;
+import org.enso.table.data.column.storage.type.*;
 import org.enso.table.problems.ProblemAggregator;
 
 /**
@@ -29,15 +20,31 @@ public class InferredBuilder extends Builder {
   private int currentSize = 0;
   private final int initialSize;
   private final ProblemAggregator problemAggregator;
+  private final boolean allowDateToDateTimeConversion;
 
   /**
    * Creates a new instance of this builder, with the given known result length.
    *
    * @param initialSize the result length
+   * @param problemAggregator the problem aggregator to use
    */
   public InferredBuilder(int initialSize, ProblemAggregator problemAggregator) {
+    this(initialSize, problemAggregator, false);
+  }
+
+  /**
+   * Creates a new instance of this builder, with the given known result length. This is a special
+   * constructor that allows for date to date-time conversion (for Excel).
+   *
+   * @param initialSize the result length
+   * @param problemAggregator the problem aggregator to use
+   * @param allowDateToDateTimeConversion whether to allow date to date-time conversion
+   */
+  public InferredBuilder(
+      int initialSize, ProblemAggregator problemAggregator, boolean allowDateToDateTimeConversion) {
     this.initialSize = initialSize;
     this.problemAggregator = problemAggregator;
+    this.allowDateToDateTimeConversion = allowDateToDateTimeConversion;
   }
 
   @Override
@@ -120,11 +127,11 @@ public class InferredBuilder extends Builder {
     } else if (o instanceof BigDecimal) {
       currentBuilder = new BigDecimalBuilder(initialCapacity);
     } else if (o instanceof LocalDate) {
-      currentBuilder = new DateBuilder(initialCapacity);
+      currentBuilder = new DateBuilder(initialCapacity, allowDateToDateTimeConversion);
     } else if (o instanceof LocalTime) {
       currentBuilder = new TimeOfDayBuilder(initialCapacity);
     } else if (o instanceof ZonedDateTime) {
-      currentBuilder = new DateTimeBuilder(initialCapacity);
+      currentBuilder = new DateTimeBuilder(initialCapacity, allowDateToDateTimeConversion);
     } else {
       currentBuilder = new MixedBuilder(initialCapacity);
     }
@@ -149,7 +156,9 @@ public class InferredBuilder extends Builder {
           new RetypeInfo(Integer.class, IntegerType.INT_64),
           new RetypeInfo(Short.class, IntegerType.INT_64),
           new RetypeInfo(Byte.class, IntegerType.INT_64),
-          new RetypeInfo(BigInteger.class, BigIntegerType.INSTANCE));
+          new RetypeInfo(BigInteger.class, BigIntegerType.INSTANCE),
+          // Will only return true if the date to date-time conversion is allowed.
+          new RetypeInfo(LocalDate.class, DateTimeType.INSTANCE));
 
   private void retypeAndAppend(Object o) {
     for (RetypeInfo info : retypePairs) {
