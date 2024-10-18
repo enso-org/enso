@@ -2,13 +2,13 @@
 /** @file A dropdown menu supporting the pattern of selecting a single entry from a list. */
 import DropdownMenu from '@/components/DropdownMenu.vue'
 import MenuButton from '@/components/MenuButton.vue'
-import { SelectionMenuOption } from '@/components/visualizations/toolbar'
+import { SelectionMenuTextOption } from '@/components/visualizations/toolbar'
 import { ref } from 'vue'
 
 type Key = number | string | symbol
 const selected = defineModel<Key>({ required: true })
 const _props = defineProps<{
-  options: Record<Key, SelectionMenuOption>
+  options: Record<Key, SelectionMenuTextOption>
   title?: string | undefined
   alwaysShowArrow?: boolean
   heading: string

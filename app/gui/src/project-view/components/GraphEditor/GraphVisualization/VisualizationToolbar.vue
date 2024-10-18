@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import FullscreenButton from '@/components/FullscreenButton.vue'
 import SelectionDropdown from '@/components/SelectionDropdown.vue'
+import SelectionDropdownText from '@/components/SelectionDropdownText.vue'
 import SvgButton from '@/components/SvgButton.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
 import {
   isActionButton,
   isSelectionMenu,
+  isSelectionTextMenu,
   isToggleButton,
   ToolbarItem,
 } from '@/components/visualizations/toolbar'
@@ -86,8 +88,14 @@ useEvent(window, 'pointerup', (e) => interaction.handlePointerEvent(e, 'pointeru
               v-model="item.selected.value"
               :options="item.options"
               :title="item.title"
-              :heading="item.heading ?? null"
-              :isTextDropdown="item.isTextDropdown ?? false"
+              alwaysShowArrow
+            />
+            <SelectionDropdownText
+              v-else-if="isSelectionTextMenu(item)"
+              v-model="item.selected.value"
+              :options="item.options"
+              :title="item.title"
+              :heading="item.heading"
               alwaysShowArrow
             />
             <div v-else>?</div>

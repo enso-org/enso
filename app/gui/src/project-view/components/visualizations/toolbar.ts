@@ -28,11 +28,22 @@ export interface SelectionMenu {
   selected: Ref<string>
   title?: string
   options: Record<string, SelectionMenuOption>
-  isTextDropdown?: boolean
-  heading?: string
 }
 
-export type ToolbarItem = ActionButton | ToggleButton | SelectionMenu
+export interface SelectionMenuTextOption {
+  title?: string
+  dataTestid?: string
+  label: string
+}
+
+export interface SelectionTextMenu {
+  selected: Ref<string>
+  title?: string
+  options: Record<string, SelectionMenuTextOption>
+  heading: string
+}
+
+export type ToolbarItem = ActionButton | ToggleButton | SelectionMenu | SelectionTextMenu
 
 /** {@link ActionButton} discriminant */
 export function isActionButton(item: Readonly<ToolbarItem>): item is ActionButton {
@@ -46,5 +57,10 @@ export function isToggleButton(item: Readonly<ToolbarItem>): item is ToggleButto
 
 /** {@link SelectionMenu} discriminant */
 export function isSelectionMenu(item: Readonly<ToolbarItem>): item is SelectionMenu {
+  return 'selected' in item
+}
+
+/** {@link SelectionMenu} discriminant */
+export function isSelectionTextMenu(item: Readonly<ToolbarItem>): item is SelectionTextMenu {
   return 'selected' in item
 }

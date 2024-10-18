@@ -881,7 +881,6 @@ config.setToolbar([
   {
     selected: yAxisSelected,
     title: 'Choose Y Axis Label',
-    isTextDropdown: true,
     heading: 'Y Axis Label: ',
     options: {
       none: {
