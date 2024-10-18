@@ -68,7 +68,6 @@ import {
   canTransferBetweenCategories,
   CATEGORY_TO_FILTER_BY,
   isLocalCategory,
-  useTransferBetweenCategories,
   type Category,
 } from '#/layouts/CategorySwitcher/Category'
 import DragModal from '#/modals/DragModal'
