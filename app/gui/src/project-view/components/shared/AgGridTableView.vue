@@ -41,6 +41,8 @@ const _props = defineProps<{
   suppressDragLeaveHidesColumns?: boolean
   suppressMoveWhenColumnDragging?: boolean
   textFormatOption?: TextFormatOptions
+  pinnedTopRowData?: TData[] | null
+  pinnedRowHeightMultiplier?: number
 }>()
 const emit = defineEmits<{
   cellEditingStarted: [event: CellEditingStartedEvent]
@@ -70,6 +72,10 @@ function getRowHeight(params: RowHeightParams): number {
 
   if (!textValues.length) {
     return DEFAULT_ROW_HEIGHT
+  }
+
+  if (params.node.rowPinned === 'top') {
+    return DEFAULT_ROW_HEIGHT * (_props.pinnedRowHeightMultiplier ?? 2)
   }
 
   const returnCharsCount = textValues.map((text: string) => {
@@ -194,6 +200,7 @@ const { AgGridVue } = await import('ag-grid-vue3')
     :stopEditingWhenCellsLoseFocus="stopEditingWhenCellsLoseFocus"
     :suppressDragLeaveHidesColumns="suppressDragLeaveHidesColumns"
     :suppressMoveWhenColumnDragging="suppressMoveWhenColumnDragging"
+    :pinnedTopRowData="pinnedTopRowData"
     @gridReady="onGridReady"
     @firstDataRendered="updateColumnWidths"
     @rowDataUpdated="updateColumnWidths($event), emit('rowDataUpdated', $event)"
