@@ -187,7 +187,7 @@ export function applyDiffAsTextEdits(
   lineOffset: number,
   oldString: string,
   newString: string,
-): readonly TextEdit[] {
+): TextEdit[] {
   const changes =
     oldString.length + newString.length > MAX_SIZE_FOR_NORMAL_DIFF ?
       stupidFastDiff(oldString, newString)

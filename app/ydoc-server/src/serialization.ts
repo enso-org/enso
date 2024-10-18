@@ -26,7 +26,7 @@ export function serializeIdMap(map: IdMap): string {
 }
 
 /** Convert an {@link IdMap} to an array of {@link fileFormat.IdMapEntry}. */
-export function idMapToArray(map: IdMap): readonly fileFormat.IdMapEntry[] {
+export function idMapToArray(map: IdMap): fileFormat.IdMapEntry[] {
   const entries: fileFormat.IdMapEntry[] = []
   map.entries().forEach(([rangeBuffer, id]) => {
     const decoded = sourceRangeFromKey(rangeBuffer)
