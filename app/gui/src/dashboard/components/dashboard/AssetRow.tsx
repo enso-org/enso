@@ -731,6 +731,7 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
                   props.onDragLeave?.(event, item)
                 }}
                 onDrop={(event) => {
+                  setAssetPanelProps(null)
                   if (state.category.type !== 'trash') {
                     props.onDrop?.(event, item)
                     clearDragState()
