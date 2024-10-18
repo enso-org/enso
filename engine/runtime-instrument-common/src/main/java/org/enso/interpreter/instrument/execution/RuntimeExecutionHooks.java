@@ -1,5 +1,6 @@
 package org.enso.interpreter.instrument.execution;
 
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import org.slf4j.Logger;
@@ -21,15 +22,26 @@ public final class RuntimeExecutionHooks implements ExecutionHooks {
 
   @Override
   public void run() {
+    Set<Runnable> hooksToRun;
     synchronized (hooks) {
-      for (Runnable hook : hooks) {
+      hooksToRun = new LinkedHashSet<>(hooks);
+    }
+
+    Set<Runnable> hooksExecuted = new HashSet<>();
+    try {
+      for (Runnable hook : hooksToRun) {
         try {
           hook.run();
         } catch (Exception e) {
           logger.error("Failed to run execution hook.", e);
+        } finally {
+          hooksExecuted.add(hook);
         }
       }
-      hooks.clear();
+    } finally {
+      synchronized (hooks) {
+        hooks.removeAll(hooksExecuted);
+      }
     }
   }
 }
