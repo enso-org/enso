@@ -470,7 +470,10 @@ export function print(ast: Ast): PrintedSource {
   return { info, code }
 }
 
-/** @internal */
+/**
+ * Used by `Ast.printSubtree`. Note that some AST types have overrides.
+ * @internal
+ */
 export function printAst(
   ast: Ast,
   info: SpanMap,

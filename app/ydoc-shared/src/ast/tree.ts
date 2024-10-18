@@ -231,7 +231,10 @@ export abstract class Ast {
     this.fields = fields
   }
 
-  /** @internal */
+  /**
+   * Returns child subtrees, including information about the whitespace between them.
+   * @internal
+   */
   abstract concreteChildren(verbatim?: boolean): IterableIterator<RawNodeChild>
 }
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
@@ -2865,7 +2868,10 @@ export function materialize(module: Module, fields: FixedMapView<AstFields>): As
 
 export interface FixedMapView<Fields> {
   get<Key extends string & keyof Fields>(key: Key): DeepReadonly<Fields[Key]>
-  /** @internal */
+  /**
+   * Unsafe. The caller must ensure the yielded values are not modified.
+   * @internal
+   */
   entries(): IterableIterator<readonly [string, unknown]>
   clone(): FixedMap<Fields>
   has(key: string): boolean
