@@ -29,6 +29,7 @@
     "test-dev:unit": "vitest",
     "test:e2e": "cross-env NODE_ENV=production playwright test",
     "test-dev:e2e": "cross-env NODE_ENV=production playwright test --ui",
+    "test-dev-dashboard:e2e": "cross-env NODE_ENV=production playwright test ./e2e/dashboard/ --ui",
     "preinstall": "corepack pnpm run generate-metadata",
     "postinstall": "playwright install",
     "build-rust-ffi": "wasm-pack build ./rust-ffi --release --target web && wasm-pack build ./rust-ffi --out-dir node-pkg --target nodejs",
