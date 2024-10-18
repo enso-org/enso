@@ -29,8 +29,10 @@ export const UserGroupId = newtype.newtypeConstructor<UserGroupId>()
 export type DirectoryId = newtype.Newtype<string, 'DirectoryId'>
 export const DirectoryId = newtype.newtypeConstructor<DirectoryId>()
 
-/** Unique identifier for an asset representing the items inside a directory for which the
- * request to retrive the items has not yet completed. */
+/**
+ * Unique identifier for an asset representing the items inside a directory for which the
+ * request to retrive the items has not yet completed.
+ */
 export type LoadingAssetId = newtype.Newtype<string, 'LoadingAssetId'>
 export const LoadingAssetId = newtype.newtypeConstructor<LoadingAssetId>()
 
@@ -38,8 +40,10 @@ export const LoadingAssetId = newtype.newtypeConstructor<LoadingAssetId>()
 export type EmptyAssetId = newtype.Newtype<string, 'EmptyAssetId'>
 export const EmptyAssetId = newtype.newtypeConstructor<EmptyAssetId>()
 
-/** Unique identifier for an asset representing the nonexistent children of a directory
- * that failed to fetch. */
+/**
+ * Unique identifier for an asset representing the nonexistent children of a directory
+ * that failed to fetch.
+ */
 export type ErrorAssetId = newtype.Newtype<string, 'ErrorAssetId'>
 export const ErrorAssetId = newtype.newtypeConstructor<ErrorAssetId>()
 
@@ -129,14 +133,18 @@ export function isUserGroupId(id: string): id is UserGroupId {
 
 const PLACEHOLDER_USER_GROUP_PREFIX = 'usergroup-placeholder-'
 
-/** Whether a given {@link UserGroupId} represents a user group that does not yet exist on the
- * server. */
+/**
+ * Whether a given {@link UserGroupId} represents a user group that does not yet exist on the
+ * server.
+ */
 export function isPlaceholderUserGroupId(id: string) {
   return id.startsWith(PLACEHOLDER_USER_GROUP_PREFIX)
 }
 
-/** Return a new {@link UserGroupId} that represents a placeholder user group that is yet to finish
- * being created on the backend. */
+/**
+ * Return a new {@link UserGroupId} that represents a placeholder user group that is yet to finish
+ * being created on the backend.
+ */
 export function newPlaceholderUserGroupId() {
   return UserGroupId(`${PLACEHOLDER_USER_GROUP_PREFIX}${uniqueString.uniqueString()}`)
 }
@@ -153,17 +161,21 @@ export enum BackendType {
 
 /** Metadata uniquely identifying a user inside an organization. */
 export interface UserInfo {
-  /** The ID of the parent organization. If this is a sole user, they are implicitly in an
-   * organization consisting of only themselves. */
+  /**
+   * The ID of the parent organization. If this is a sole user, they are implicitly in an
+   * organization consisting of only themselves.
+   */
   readonly organizationId: OrganizationId
   /** The name of the parent organization. */
   readonly organizationName?: string
-  /** The ID of this user.
+  /**
+   * The ID of this user.
    *
    * The user ID is globally unique. Thus, the user ID is always sufficient to uniquely identify a
    * user. The user ID is guaranteed to never change, once assigned. For these reasons, the user ID
    * should be the preferred way to uniquely refer to a user. That is, when referring to a user,
-   * prefer this field over `name`, `email`, `subject`, or any other mechanism, where possible. */
+   * prefer this field over `name`, `email`, `subject`, or any other mechanism, where possible.
+   */
   readonly userId: UserId
   readonly name: string
   readonly email: EmailAddress
@@ -173,8 +185,10 @@ export interface UserInfo {
 
 /** A user in the application. These are the primary owners of a project. */
 export interface User extends UserInfo {
-  /** If `false`, this account is awaiting acceptance from an administrator, and endpoints other than
-   * `usersMe` will not work. */
+  /**
+   * If `false`, this account is awaiting acceptance from an administrator, and endpoints other than
+   * `usersMe` will not work.
+   */
   readonly isEnabled: boolean
   readonly isOrganizationAdmin: boolean
   readonly rootDirectoryId: DirectoryId
@@ -200,11 +214,15 @@ export enum ProjectState {
   provisioned = 'Provisioned',
   opened = 'Opened',
   closed = 'Closed',
-  /** A frontend-specific state, representing a project that should be displayed as
-   * `openInProgress`, but has not yet been added to the backend. */
+  /**
+   * A frontend-specific state, representing a project that should be displayed as
+   * `openInProgress`, but has not yet been added to the backend.
+   */
   placeholder = 'Placeholder',
-  /** A frontend-specific state, representing a project that should be displayed as `closed`,
-   * but is still in the process of shutting down. */
+  /**
+   * A frontend-specific state, representing a project that should be displayed as `closed`,
+   * but is still in the process of shutting down.
+   */
   closing = 'Closing',
 }
 
@@ -374,11 +392,13 @@ export interface Label {
   readonly color: LChColor
 }
 
-/** Type of application that a {@link Version} applies to.
+/**
+ * Type of application that a {@link Version} applies to.
  *
  * We keep track of both backend and IDE versions, so that we can update the two independently.
  * However the format of the version numbers is the same for both, so we can use the same type for
- * both. We just need this enum to disambiguate. */
+ * both. We just need this enum to disambiguate.
+ */
 export enum VersionType {
   backend = 'Backend',
   ide = 'Ide',
@@ -711,8 +731,10 @@ export enum AssetType {
   secret = 'secret',
   datalink = 'datalink',
   directory = 'directory',
-  /** A special {@link AssetType} representing the unknown items of a directory, before the
-   * request to retrieve the items completes. */
+  /**
+   * A special {@link AssetType} representing the unknown items of a directory, before the
+   * request to retrieve the items completes.
+   */
   specialLoading = 'specialLoading',
   /** A special {@link AssetType} representing a directory listing that is empty. */
   specialEmpty = 'specialEmpty',
@@ -732,8 +754,10 @@ export interface IdType {
   readonly [AssetType.specialError]: ErrorAssetId
 }
 
-/** Integers (starting from 0) corresponding to the order in which each asset type should appear
- * in a directory listing. */
+/**
+ * Integers (starting from 0) corresponding to the order in which each asset type should appear
+ * in a directory listing.
+ */
 export const ASSET_TYPE_ORDER: Readonly<Record<AssetType, number>> = {
   // This is a sequence of numbers, not magic numbers. `1000` is an arbitrary number
   // that are higher than the number of possible asset types.
@@ -753,22 +777,28 @@ export const ASSET_TYPE_ORDER: Readonly<Record<AssetType, number>> = {
 // === Asset ===
 // =============
 
-/** Metadata uniquely identifying a directory entry.
- * These can be Projects, Files, Secrets, or other directories. */
+/**
+ * Metadata uniquely identifying a directory entry.
+ * These can be Projects, Files, Secrets, or other directories.
+ */
 export interface BaseAsset {
   readonly id: AssetId
   readonly title: string
   readonly modifiedAt: dateTime.Rfc3339DateTime
-  /** This is defined as a generic {@link AssetId} in the backend, however it is more convenient
-   * (and currently safe) to assume it is always a {@link DirectoryId}. */
+  /**
+   * This is defined as a generic {@link AssetId} in the backend, however it is more convenient
+   * (and currently safe) to assume it is always a {@link DirectoryId}.
+   */
   readonly parentId: DirectoryId
   readonly permissions: readonly AssetPermission[] | null
   readonly labels: readonly LabelName[] | null
   readonly description: string | null
 }
 
-/** Metadata uniquely identifying a directory entry.
- * These can be Projects, Files, Secrets, or other directories. */
+/**
+ * Metadata uniquely identifying a directory entry.
+ * These can be Projects, Files, Secrets, or other directories.
+ */
 export interface Asset<Type extends AssetType = AssetType> extends BaseAsset {
   readonly type: Type
   readonly id: IdType[Type]
@@ -799,8 +829,10 @@ export interface SpecialEmptyAsset extends Asset<AssetType.specialEmpty> {}
 /** A convenience alias for {@link Asset}<{@link AssetType.specialError}>. */
 export interface SpecialErrorAsset extends Asset<AssetType.specialError> {}
 
-/** Creates a {@link DirectoryAsset} representing the root directory for the organization,
- * with all irrelevant fields initialized to default values. */
+/**
+ * Creates a {@link DirectoryAsset} representing the root directory for the organization,
+ * with all irrelevant fields initialized to default values.
+ */
 export function createRootDirectoryAsset(directoryId: DirectoryId): DirectoryAsset {
   return {
     type: AssetType.directory,
@@ -860,8 +892,10 @@ export function createPlaceholderProjectAsset(
   }
 }
 
-/** Creates a {@link SpecialLoadingAsset}, with all irrelevant fields initialized to default
- * values. */
+/**
+ * Creates a {@link SpecialLoadingAsset}, with all irrelevant fields initialized to default
+ * values.
+ */
 export function createSpecialLoadingAsset(directoryId: DirectoryId): SpecialLoadingAsset {
   return {
     type: AssetType.specialLoading,
@@ -876,8 +910,10 @@ export function createSpecialLoadingAsset(directoryId: DirectoryId): SpecialLoad
   }
 }
 
-/** Creates a {@link SpecialEmptyAsset}, with all irrelevant fields initialized to default
- * values. */
+/**
+ * Creates a {@link SpecialEmptyAsset}, with all irrelevant fields initialized to default
+ * values.
+ */
 export function createSpecialEmptyAsset(directoryId: DirectoryId): SpecialEmptyAsset {
   return {
     type: AssetType.specialEmpty,
@@ -892,8 +928,10 @@ export function createSpecialEmptyAsset(directoryId: DirectoryId): SpecialEmptyA
   }
 }
 
-/** Creates a {@link SpecialErrorAsset}, with all irrelevant fields initialized to default
- * values. */
+/**
+ * Creates a {@link SpecialErrorAsset}, with all irrelevant fields initialized to default
+ * values.
+ */
 export function createSpecialErrorAsset(directoryId: DirectoryId): SpecialErrorAsset {
   return {
     type: AssetType.specialError,
@@ -1011,8 +1049,10 @@ export interface AssetVersions {
 // === compareAssetPermissions ===
 // ===============================
 
-/** Return a positive number when `a > b`, a negative number when `a < b`, and `0`
- * when `a === b`. */
+/**
+ * Return a positive number when `a > b`, a negative number when `a < b`, and `0`
+ * when `a === b`.
+ */
 export function compareAssetPermissions(a: AssetPermission, b: AssetPermission) {
   const relativePermissionPrecedence =
     permissions.PERMISSION_ACTION_PRECEDENCE[a.permission] -
@@ -1126,8 +1166,10 @@ export interface CreateProjectRequestBody {
   readonly datalinkId?: DatalinkId
 }
 
-/** HTTP request body for the "update project" endpoint.
- * Only updates of the `projectName` or `ami` are allowed. */
+/**
+ * HTTP request body for the "update project" endpoint.
+ * Only updates of the `projectName` or `ami` are allowed.
+ */
 export interface UpdateProjectRequestBody {
   readonly projectName: string | null
   readonly ami: Ami | null
@@ -1256,8 +1298,10 @@ export function compareAssets(a: AnyAsset, b: AnyAsset) {
 // === getAssetId ===
 // ==================
 
-/** A convenience function to get the `id` of an {@link Asset}.
- * This is useful to avoid React re-renders as it is not re-created on each function call. */
+/**
+ * A convenience function to get the `id` of an {@link Asset}.
+ * This is useful to avoid React re-renders as it is not re-created on each function call.
+ */
 export function getAssetId<Type extends AssetType>(asset: Asset<Type>) {
   return asset.id
 }
@@ -1313,8 +1357,17 @@ export function stripProjectExtension(name: string) {
   return name.replace(/[.](?:tar[.]gz|zip|enso-project)$/, '')
 }
 
-/** Return both the name and extension of the project file name (if any).
- * Otherwise, returns the entire name as the basename. */
+/**
+ * Escape special characters in a project name to prevent them from being interpreted as path or regex
+ */
+export function escapeSpecialCharacters(name: string): string {
+  return name.replace(/[*+?^${}()|[\]\\]/g, ':')
+}
+
+/**
+ * Return both the name and extension of the project file name (if any).
+ * Otherwise, returns the entire name as the basename.
+ */
 export function extractProjectExtension(name: string) {
   const [, basename, extension] = name.match(/^(.*)[.](tar[.]gz|zip|enso-project)$/) ?? []
   return { basename: basename ?? name, extension: extension ?? '' }
