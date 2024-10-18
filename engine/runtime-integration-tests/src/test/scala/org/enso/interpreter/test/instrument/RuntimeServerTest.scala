@@ -7472,6 +7472,199 @@ class RuntimeServerTest
     context.consumeOut shouldEqual List("16")
   }
 
+  it should "resolve multiple autoscoped atomconstructor with no IDs initially" in {
+    val contextId       = UUID.randomUUID()
+    val requestId       = UUID.randomUUID()
+    val moduleName      = "Enso_Test.Test.Main"
+    val moduleNameLib   = "Enso_Test.Test.Lib"
+    val moduleNameTypes = "Enso_Test.Test.Types"
+    val metadata        = new Metadata
+
+    val idS    = UUID.randomUUID()
+    val idX    = UUID.randomUUID()
+    val idAArg = UUID.randomUUID()
+    val idBArg = UUID.randomUUID()
+    val idRes  = UUID.randomUUID()
+
+    val typesMetadata = new Metadata
+    val codeTypes = typesMetadata.appendToCode(
+      """type Foo
+        |    A
+        |
+        |type Bar
+        |    B
+        |""".stripMargin.linesIterator.mkString("\n")
+    )
+    val typesFile = context.writeInSrcDir("Types", codeTypes)
+
+    val libMetadata = new Metadata
+    val codeLib = libMetadata.appendToCode(
+      """from project.Types import Foo, Bar
+        |from Standard.Base import all
+        |
+        |type Singleton
+        |    S value
+        |
+        |    test : Foo -> Bar -> Number
+        |    test self (x : Foo = ..A) (y : Bar = ..B) =
+        |        Singleton.from_test x y
+        |
+        |    from_test : Foo -> Bar -> Number
+        |    from_test (x : Foo = ..A) (y : Bar = ..B) =
+        |        _ = x
+        |        _ = y
+        |        42
+        |""".stripMargin.linesIterator.mkString("\n")
+    )
+
+    val libFile = context.writeInSrcDir("Lib", codeLib)
+
+    val code =
+      """from project.Lib import Singleton
+        |
+        |main =
+        |    s = Singleton.S 1
+        |    x = s.test ..A ..B
+        |    x
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open files
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(typesFile, codeTypes))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(libFile, codeLib))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    context.receiveNIgnorePendingExpressionUpdates(
+      2
+    ) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.executionComplete(contextId)
+    )
+
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(),
+          execute = true,
+          idMap = Some(
+            model.IdMap(
+              Vector(
+                model.Span(50, 63) -> idS,
+                model.Span(72, 86) -> idX,
+                model.Span(79, 82) -> idAArg,
+                model.Span(83, 86) -> idBArg,
+                model.Span(91, 92) -> idRes
+              )
+            )
+          )
+        )
+      )
+    )
+    val afterIdMapUpdate = context.receiveN(6)
+
+    afterIdMapUpdate shouldEqual Seq(
+      TestMessages.update(
+        contextId,
+        idS,
+        s"$moduleNameLib.Singleton",
+        methodCall = Some(
+          Api.MethodCall(
+            Api
+              .MethodPointer(moduleNameLib, s"$moduleNameLib.Singleton", "S")
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(None)
+      ),
+      TestMessages.update(
+        contextId,
+        idAArg,
+        s"$moduleNameTypes.Foo",
+        methodCall = Some(
+          Api.MethodCall(
+            Api
+              .MethodPointer(
+                moduleNameTypes,
+                s"$moduleNameTypes.Foo",
+                "A"
+              )
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(None)
+      ),
+      TestMessages.update(
+        contextId,
+        idBArg,
+        s"$moduleNameTypes.Bar",
+        methodCall = Some(
+          Api.MethodCall(
+            Api
+              .MethodPointer(
+                moduleNameTypes,
+                s"$moduleNameTypes.Bar",
+                "B"
+              )
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(None)
+      ),
+      TestMessages.update(
+        contextId,
+        idX,
+        s"Standard.Base.Data.Numbers.Integer",
+        methodCall = Some(
+          Api.MethodCall(
+            Api
+              .MethodPointer(
+                moduleNameLib,
+                s"$moduleNameLib.Singleton",
+                "test"
+              )
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(None)
+      ),
+      TestMessages.update(
+        contextId,
+        idRes,
+        s"Standard.Base.Data.Numbers.Integer",
+        payload = Api.ExpressionUpdate.Payload.Value(None)
+      ),
+      context.executionComplete(contextId)
+    )
+  }
+
 }
 object RuntimeServerTest {
 
