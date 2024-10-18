@@ -78,8 +78,8 @@ export async function deselectNodes(page: Page) {
 }
 
 /** Click at spot where no node is. */
-export function clickAtBackground(page: Page) {
-  return page.mouse.click(200, 200)
+export function clickAtBackground(page: Page, x = 300, y = 300) {
+  return locate.graphEditor(page).click({ position: { x, y } })
 }
 
 // ======================
