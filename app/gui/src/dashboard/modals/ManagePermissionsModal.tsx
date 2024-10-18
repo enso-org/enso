@@ -67,7 +67,7 @@ export default function ManagePermissionsModal<
   Asset extends backendModule.AnyAsset = backendModule.AnyAsset,
 >(props: ManagePermissionsModalProps<Asset>) {
   const { item, setItem, self, doRemoveSelf, eventTarget } = props
-  const remoteBackend = backendProvider.useRemoteBackendStrict()
+  const remoteBackend = backendProvider.useRemoteBackend()
   const { user } = authProvider.useFullUserSession()
   const { unsetModal } = modalProvider.useSetModal()
   const toastAndLog = toastAndLogHooks.useToastAndLog()

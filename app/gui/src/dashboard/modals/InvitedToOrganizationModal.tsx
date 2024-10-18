@@ -7,7 +7,7 @@ import { SUPPORT_EMAIL, SUPPORT_EMAIL_URL } from '#/appUtils'
 import { Alert, Button, ButtonGroup, Dialog, Form, Text } from '#/components/AriaComponents'
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useAuth, useFullUserSession } from '#/providers/AuthProvider'
-import { useRemoteBackendStrict } from '#/providers/BackendProvider'
+import { useRemoteBackend } from '#/providers/BackendProvider'
 import { useText } from '#/providers/TextProvider'
 import { useMutation } from '@tanstack/react-query'
 
@@ -19,7 +19,7 @@ import { useMutation } from '@tanstack/react-query'
 export function InvitedToOrganizationModal() {
   const { getText } = useText()
   const { session } = useAuth()
-  const backend = useRemoteBackendStrict()
+  const backend = useRemoteBackend()
   const { user } = useFullUserSession()
   const shouldDisplay = user.newOrganizationName != null && user.newOrganizationInvite != null
 

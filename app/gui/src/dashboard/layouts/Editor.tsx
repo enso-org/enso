@@ -82,7 +82,7 @@ export interface EditorProps {
 export default function Editor(props: EditorProps) {
   const { project, hidden, isOpening, startProject, isOpeningFailed, openingError } = props
 
-  const remoteBackend = backendProvider.useRemoteBackendStrict()
+  const remoteBackend = backendProvider.useRemoteBackend()
   const localBackend = backendProvider.useLocalBackend()
 
   const projectStatusQuery = projectHooks.createGetProjectDetailsQuery({
@@ -170,9 +170,7 @@ function EditorInternal(props: EditorInternalProps) {
 
   const logEvent = React.useCallback(
     (message: string, projectId?: string | null, metadata?: object | null) => {
-      if (remoteBackend) {
-        void remoteBackend.logEvent(message, projectId, metadata)
-      }
+      void remoteBackend.logEvent(message, projectId, metadata)
     },
     [remoteBackend],
   )

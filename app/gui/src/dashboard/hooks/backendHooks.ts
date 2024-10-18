@@ -2,11 +2,20 @@
 import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
+import { toast } from 'react-toastify'
 
 import * as backendQuery from 'enso-common/src/backendQuery'
 
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { useToastAndLog, useToastAndLogWithId } from '#/hooks/toastAndLogHooks'
+import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
+import { usePreventNavigation } from '#/utilities/preventNavigation'
+
+// The number of bytes in 1 megabyte.
+const MB_BYTES = 1_000_000
+const S3_CHUNK_SIZE_MB = Math.round(backendModule.S3_CHUNK_SIZE_BYTES / MB_BYTES)
 
 // ============================
 // === DefineBackendMethods ===
@@ -62,7 +71,9 @@ export type MutationMethod = DefineBackendMethods<
   | 'updateProject'
   | 'updateSecret'
   | 'updateUser'
-  | 'uploadFile'
+  | 'uploadFileChunk'
+  | 'uploadFileEnd'
+  | 'uploadFileStart'
   | 'uploadOrganizationPicture'
   | 'uploadUserPicture'
 >
@@ -142,7 +153,7 @@ const INVALIDATION_MAP: Partial<
   createSecret: ['listDirectory'],
   updateSecret: ['listDirectory'],
   createDatalink: ['listDirectory'],
-  uploadFile: ['listDirectory'],
+  uploadFileEnd: ['listDirectory'],
   copyAsset: ['listDirectory', 'listAssetVersions'],
   deleteAsset: ['listDirectory', 'listAssetVersions'],
   undoDeleteAsset: ['listDirectory'],
@@ -246,4 +257,212 @@ export function useListUserGroupsWithUsers(
       return result
     }
   }, [listUserGroupsQuery.data, listUsersQuery.data])
+}
+
+/**
+ * Upload progress for {@link useUploadFileMutation}.
+ */
+export interface UploadFileMutationProgress {
+  /**
+   * Whether this is the first progress update.
+   * Useful to determine whether to create a new toast or to update an existing toast.
+   */
+  readonly event: 'begin' | 'chunk' | 'end'
+  readonly sentMb: number
+  readonly totalMb: number
+}
+
+/**
+ * Options for {@link useUploadFileMutation}.
+ */
+export interface UploadFileMutationOptions {
+  /**
+   * Defaults to 3.
+   * Controls the default value of {@link UploadFileMutationOptions['chunkRetries']}
+   * and {@link UploadFileMutationOptions['endRetries']}.
+   */
+  readonly retries?: number
+  /** Defaults to {@link UploadFileMutationOptions['retries']}. */
+  readonly chunkRetries?: number
+  /** Defaults to {@link UploadFileMutationOptions['retries']}. */
+  readonly endRetries?: number
+  /** Called for all progress updates (`onBegin`, `onChunkSuccess` and `onSuccess`). */
+  readonly onProgress?: (progress: UploadFileMutationProgress) => void
+  /** Called before any mutations are sent. */
+  readonly onBegin?: (progress: UploadFileMutationProgress) => void
+  /** Called after each successful chunk upload mutation. */
+  readonly onChunkSuccess?: (progress: UploadFileMutationProgress) => void
+  /** Called after the entire mutation succeeds. */
+  readonly onSuccess?: (progress: UploadFileMutationProgress) => void
+  /** Called after any mutations fail. */
+  readonly onError?: (error: unknown) => void
+  /** Called after `onSuccess` or `onError`, depending on whether the mutation succeeded. */
+  readonly onSettled?: (progress: UploadFileMutationProgress | null, error: unknown) => void
+}
+
+/**
+ * Call "upload file" mutations for a file.
+ * Always uses multipart upload for Cloud backend.
+ * Shows toasts to update progress.
+ */
+export function useUploadFileWithToastMutation(
+  backend: Backend,
+  options: UploadFileMutationOptions = {},
+) {
+  const toastId = React.useId()
+  const { getText } = useText()
+  const toastAndLog = useToastAndLogWithId()
+  const { onBegin, onChunkSuccess, onSuccess, onError } = options
+
+  const mutation = useUploadFileMutation(backend, {
+    ...options,
+    onBegin: (progress) => {
+      onBegin?.(progress)
+      const { sentMb, totalMb } = progress
+      toast.loading(getText('uploadLargeFileStatus', sentMb, totalMb), {
+        toastId,
+        position: 'bottom-right',
+      })
+    },
+    onChunkSuccess: (progress) => {
+      onChunkSuccess?.(progress)
+      const { sentMb, totalMb } = progress
+      const text = getText('uploadLargeFileStatus', sentMb, totalMb)
+      toast.update(toastId, { render: text })
+    },
+    onSuccess: (progress) => {
+      onSuccess?.(progress)
+      toast.update(toastId, {
+        type: 'success',
+        render: getText('uploadLargeFileSuccess'),
+        isLoading: false,
+        autoClose: null,
+      })
+    },
+    onError: (error) => {
+      onError?.(error)
+      toastAndLog(toastId, 'uploadLargeFileError', error)
+    },
+  })
+
+  usePreventNavigation({ message: getText('anUploadIsInProgress'), isEnabled: mutation.isPending })
+
+  return mutation
+}
+
+/**
+ * Call "upload file" mutations for a file.
+ * Always uses multipart upload for Cloud backend.
+ */
+export function useUploadFileMutation(backend: Backend, options: UploadFileMutationOptions = {}) {
+  const toastAndLog = useToastAndLog()
+  const {
+    retries = 3,
+    chunkRetries = retries,
+    endRetries = retries,
+    onError = (error) => {
+      toastAndLog('uploadLargeFileError', error)
+    },
+  } = options
+  const uploadFileStartMutation = reactQuery.useMutation(
+    backendMutationOptions(backend, 'uploadFileStart'),
+  )
+  const uploadFileChunkMutation = reactQuery.useMutation(
+    backendMutationOptions(backend, 'uploadFileChunk', { retry: chunkRetries }),
+  )
+  const uploadFileEndMutation = reactQuery.useMutation(
+    backendMutationOptions(backend, 'uploadFileEnd', { retry: endRetries }),
+  )
+  const [variables, setVariables] =
+    React.useState<[params: backendModule.UploadFileRequestParams, file: File]>()
+  const [sentMb, setSentMb] = React.useState(0)
+  const [totalMb, setTotalMb] = React.useState(0)
+  const mutateAsync = useEventCallback(
+    async (body: backendModule.UploadFileRequestParams, file: File) => {
+      setVariables([body, file])
+      const fileSizeMb = Math.ceil(file.size / MB_BYTES)
+      options.onBegin?.({ event: 'begin', sentMb: 0, totalMb: fileSizeMb })
+      setSentMb(0)
+      setTotalMb(fileSizeMb)
+      try {
+        const { sourcePath, uploadId, presignedUrls } = await uploadFileStartMutation.mutateAsync([
+          body,
+          file,
+        ])
+        const parts: backendModule.S3MultipartPart[] = []
+        for (const [url, i] of Array.from(
+          presignedUrls,
+          (presignedUrl, index) => [presignedUrl, index] as const,
+        )) {
+          parts.push(await uploadFileChunkMutation.mutateAsync([url, file, i]))
+          const newSentMb = Math.min((i + 1) * S3_CHUNK_SIZE_MB, fileSizeMb)
+          setSentMb(newSentMb)
+          options.onChunkSuccess?.({
+            event: 'chunk',
+            sentMb: newSentMb,
+            totalMb: fileSizeMb,
+          })
+        }
+        const result = await uploadFileEndMutation.mutateAsync([
+          {
+            parentDirectoryId: body.parentDirectoryId,
+            parts,
+            sourcePath: sourcePath,
+            uploadId: uploadId,
+            assetId: body.fileId,
+            fileName: body.fileName,
+          },
+        ])
+        setSentMb(fileSizeMb)
+        const progress: UploadFileMutationProgress = {
+          event: 'end',
+          sentMb: fileSizeMb,
+          totalMb: fileSizeMb,
+        }
+        options.onSuccess?.(progress)
+        options.onSettled?.(progress, null)
+        return result
+      } catch (error) {
+        onError(error)
+        options.onSettled?.(null, error)
+        throw error
+      }
+    },
+  )
+  const mutate = useEventCallback((params: backendModule.UploadFileRequestParams, file: File) => {
+    void mutateAsync(params, file)
+  })
+
+  return {
+    sentMb,
+    totalMb,
+    variables,
+    mutate,
+    mutateAsync,
+    context: uploadFileEndMutation.context,
+    data: uploadFileEndMutation.data,
+    failureCount:
+      uploadFileEndMutation.failureCount +
+      uploadFileChunkMutation.failureCount +
+      uploadFileStartMutation.failureCount,
+    failureReason:
+      uploadFileEndMutation.failureReason ??
+      uploadFileChunkMutation.failureReason ??
+      uploadFileStartMutation.failureReason,
+    isError:
+      uploadFileStartMutation.isError ||
+      uploadFileChunkMutation.isError ||
+      uploadFileEndMutation.isError,
+    error:
+      uploadFileEndMutation.error ?? uploadFileChunkMutation.error ?? uploadFileStartMutation.error,
+    isPaused:
+      uploadFileStartMutation.isPaused ||
+      uploadFileChunkMutation.isPaused ||
+      uploadFileEndMutation.isPaused,
+    isPending:
+      uploadFileStartMutation.isPending ||
+      uploadFileChunkMutation.isPending ||
+      uploadFileEndMutation.isPending,
+    isSuccess: uploadFileEndMutation.isSuccess,
+  }
 }

@@ -144,6 +144,7 @@ interface PlaceholderOverrides {
 
   readonly arbitraryFieldTooLarge: [maxSize: string]
   readonly arbitraryFieldTooSmall: [minSize: string]
+  readonly uploadLargeFileStatus: [uploadedParts: number, totalParts: number]
 }
 
 /** An tuple of `string` for placeholders for each {@link TextId}. */
