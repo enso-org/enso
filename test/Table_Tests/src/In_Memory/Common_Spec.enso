@@ -4,6 +4,8 @@ from Standard.Table import Table
 
 from Standard.Test import Test
 
+import Standard.Database.Dialect_Flag.Dialect_Flag
+
 import project.Common_Table_Operations
 
 type Dummy_Connection
@@ -16,7 +18,7 @@ type Dummy_Connection
         Nothing
 
 in_memory_setup =
-    selection = Common_Table_Operations.Main.Test_Selection.Config supports_case_sensitive_columns=True natural_ordering=True case_insensitive_ordering=True order_by_unicode_normalization_by_default=True supports_unicode_normalization=True supports_decimal_type=True supports_time_duration=True supports_nanoseconds_in_time=True supports_mixed_columns=True text_length_limited_columns=True fixed_length_text_columns=True supports_8bit_integer=True
+    selection = Common_Table_Operations.Main.Test_Selection.Config natural_ordering=True case_insensitive_ordering=True order_by_unicode_normalization_by_default=True supports_unicode_normalization=True supports_decimal_type=True supports_time_duration=True supports_nanoseconds_in_time=True supports_mixed_columns=True text_length_limited_columns=True fixed_length_text_columns=True supports_8bit_integer=True
     aggregate_selection = Common_Table_Operations.Aggregate_Spec.Test_Selection.Config
 
     agg_table_fn _ = (enso_project.data / "data.csv") . read
@@ -33,8 +35,13 @@ in_memory_setup =
         Table.new columns
     create_connection_func _ =
         Dummy_Connection.Value
+    is_feature_supported_fn _ =
+        True
+    flagged_fn flag:Dialect_Flag =
+        case flag of
+            Dialect_Flag.Supports_Case_Sensitive_Columns -> True
 
-    Common_Table_Operations.Main.Test_Setup.Config "[In-Memory] " agg_table_fn empty_table_fn table_builder materialize is_database=False test_selection=selection aggregate_test_selection=aggregate_selection create_connection_func=create_connection_func light_table_builder=light_table_builder
+    Common_Table_Operations.Main.Test_Setup.Config "[In-Memory] " agg_table_fn empty_table_fn table_builder materialize is_database=False test_selection=selection aggregate_test_selection=aggregate_selection create_connection_func=create_connection_func light_table_builder=light_table_builder is_feature_supported=is_feature_supported_fn flagged=flagged_fn
 
 add_specs suite_builder =
     Common_Table_Operations.Main.add_specs suite_builder in_memory_setup

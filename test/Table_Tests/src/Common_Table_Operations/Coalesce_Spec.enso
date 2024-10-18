@@ -1,0 +1,85 @@
+from Standard.Base import all
+
+from Standard.Table import all hiding Table
+from Standard.Table.Errors import No_Common_Type
+from Standard.Database.Errors import Integrity_Error
+
+from Standard.Test import all
+
+from project.Common_Table_Operations.Util import run_default_backend
+import project.Common_Table_Operations.Util
+
+main filter=Nothing = run_default_backend add_specs filter
+
+add_specs suite_builder setup =
+    if setup.is_feature_supported ..Column_Operations then (add_coalesce_specs suite_builder setup)
+
+add_coalesce_specs suite_builder setup =
+    prefix = setup.prefix
+    table_builder = Util.build_sorted_table setup
+
+    suite_builder.group prefix+"Table.coalesce" group_builder->
+        group_builder.specify "2 columns" <|
+            t = table_builder [["A", [1, 2, Nothing, Nothing]], ["B", [3, Nothing, 4, Nothing]]]
+            colA = t.get "A"
+            colB = t.get "B"
+            result = colA.coalesce colB
+            result.to_vector . should_equal [1, 2, 4, Nothing]
+        group_builder.specify "2 columns passing second as vector" <|
+            t = table_builder [["A", [1, 2, Nothing, Nothing]], ["B", [3, Nothing, 4, Nothing]]]
+            colA = t.get "A"
+            colB = t.get "B"
+            result = colA.coalesce [colB]
+            result.to_vector . should_equal [1, 2, 4, Nothing]
+        group_builder.specify "2 columns passing second and third as vector" <|
+            t = table_builder [["A", [1, 2, Nothing, Nothing]], ["B", [3, Nothing, 4, Nothing]], ["C", [5, 6, 7, 8]]]
+            colA = t.get "A"
+            colB = t.get "B"
+            colC = t.get "C"
+            result = colA.coalesce [colB, colC]
+            result.to_vector . should_equal [1, 2, 4, 8]
+        group_builder.specify "column and constant" <|
+            t = table_builder [["A", [1, 2, Nothing, Nothing]]]
+            colA = t.get "A"
+            result = colA.coalesce 42
+            result.to_vector . should_equal [1, 2, 42, 42]
+        group_builder.specify "column and constant and column" <|
+            t = table_builder [["A", [1, 2, Nothing, Nothing]], ["B", [3, Nothing, 4, Nothing]]]
+            colA = t.get "A"
+            colB = t.get "B"
+            result = colA.coalesce [42, colB]
+            result.to_vector . should_equal [1, 2, 42, 42]
+        group_builder.specify "2 columns of diffferent types" <|
+            t = table_builder [["A", [1, 2, Nothing, Nothing]], ["B", ["3", Nothing, "4", Nothing]]]
+            colA = t.get "A"
+            colB = t.get "B"
+            result = colA.coalesce colB
+            result.should_fail_with No_Common_Type
+        group_builder.specify "2 columns from different tables only works In-Memory" <|
+            t1 = table_builder [["A", [1, 2, Nothing, Nothing]], ["B", [Nothing, Nothing, Nothing, 99]]]
+            t2 = table_builder [["A", [99, Nothing, Nothing, Nothing]], ["B", [3, Nothing, 4, Nothing]]]
+            colA = t1.get "A"
+            colB = t2.get "B"
+            result = colA.coalesce colB
+            result2 = colB.coalesce colA
+            case setup.is_database of
+                True ->
+                    result.should_fail_with Integrity_Error
+                    result2.should_fail_with Integrity_Error
+                False ->
+                    result.to_vector . should_equal [1, 2, 4, Nothing]
+                    result2.to_vector . should_equal [3, 2, 4, Nothing]
+        group_builder.specify "2 columns from different length tables only works In-Memory" <|
+            t1 = table_builder [["A", [1, 2, Nothing, Nothing, 3]], ["B", [Nothing, Nothing, Nothing, 99, 99]]]
+            t2 = table_builder [["A", [99, Nothing, Nothing, Nothing]], ["B", [3, Nothing, 4, Nothing]]]
+            colA = t1.get "A"
+            colB = t2.get "B"
+            result = colA.coalesce colB
+            result2 = colB.coalesce colA
+            case setup.is_database of
+                True ->
+                    result.should_fail_with Integrity_Error
+                    result2.should_fail_with Integrity_Error
+                False ->
+                    result.to_vector . should_equal [1, 2, 4, Nothing, 3]
+                    result2.to_vector . should_equal [3, 2, 4, Nothing]

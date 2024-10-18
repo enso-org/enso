@@ -43,10 +43,12 @@ module org.enso.scala.wrapper {
   exports cats.kernel.instances.string;
   exports cats.kernel.instances.sortedSet;
 
-  // "com.github.plokhotnyuk.jsoniter-scala" % ("jsoniter-scala-core_" + scalaVer) % jsoniterVersion,
+  // "com.github.plokhotnyuk.jsoniter-scala" % ("jsoniter-scala-core_" + scalaVer) %
+  // jsoniterVersion,
   exports com.github.plokhotnyuk.jsoniter_scala.core;
 
-  // "com.github.plokhotnyuk.jsoniter-scala" % ("jsoniter-scala-macros_" + scalaVer) % jsoniterVersion,
+  // "com.github.plokhotnyuk.jsoniter-scala" % ("jsoniter-scala-macros_" + scalaVer) %
+  // jsoniterVersion,
   exports com.github.plokhotnyuk.jsoniter_scala.macros;
 
   // "com.typesafe.scala-logging" % ("scala-logging_" + scalaVer) % scalaLoggingVersion,
@@ -61,7 +63,6 @@ module org.enso.scala.wrapper {
 
   // "io.circe" % ("circe-parser_" + scalaVer) % circeVersion,
   exports io.circe.parser;
-
 
   // "io.circe" % ("circe-generic_" + scalaVer) % circeVersion,
   exports io.circe.generic.decoding;

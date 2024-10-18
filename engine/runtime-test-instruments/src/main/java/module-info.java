@@ -9,7 +9,6 @@ module org.enso.runtime.test {
 
   provides org.graalvm.polyglot.tck.LanguageProvider with
       org.enso.interpreter.test.instruments.tck.EnsoTckLanguageProvider;
-
   provides com.oracle.truffle.api.instrumentation.provider.TruffleInstrumentProvider with
       org.enso.interpreter.test.instruments.CodeIdsTestInstrumentProvider,
       org.enso.interpreter.test.instruments.CodeLocationsTestInstrumentProvider,

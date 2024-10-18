@@ -303,12 +303,12 @@ object AutomaticParallelism extends IRPass {
         .Binding(
           _,
           Application.Prefix(
-            Name.Special(Name.Special.NewRef, None),
+            Name.Special(Name.Special.NewRef, null),
             List(),
             false,
-            None
+            null
           ),
-          None
+          null
         )
         .updateMetadata(
           new MetadataPair(IgnoredBindings, IgnoredBindings.State.Ignored)
@@ -320,32 +320,32 @@ object AutomaticParallelism extends IRPass {
         exprs.map(_.ir).flatMap {
           case bind: Expression.Binding =>
             val refWrite = Application.Prefix(
-              Name.Special(Name.Special.WriteRef, None),
+              Name.Special(Name.Special.WriteRef, null),
               List(
                 CallArgument
-                  .Specified(None, refVars(bind.name).duplicate(), None),
-                CallArgument.Specified(None, bind.name.duplicate(), None)
+                  .Specified(None, refVars(bind.name).duplicate(), null),
+                CallArgument.Specified(None, bind.name.duplicate(), null)
               ),
               false,
-              None
+              null
             )
             List(bind, refWrite)
           case other => List(other)
         }
       val spawn = Application.Prefix(
-        Name.Special(Name.Special.RunThread, None),
+        Name.Special(Name.Special.RunThread, null),
         List(
           CallArgument.Specified(
             None,
-            Expression.Block(blockBody.init, blockBody.last, None),
-            None
+            Expression.Block(blockBody.init, blockBody.last, null),
+            null
           )
         ),
         false,
-        None
+        null
       )
       Expression
-        .Binding(freshNameSupply.newName(), spawn, None)
+        .Binding(freshNameSupply.newName(), spawn, null)
         .updateMetadata(
           new MetadataPair(IgnoredBindings, IgnoredBindings.State.Ignored)
         )
@@ -353,10 +353,10 @@ object AutomaticParallelism extends IRPass {
 
     val threadJoins = threadSpawns.map { bind =>
       Application.Prefix(
-        Name.Special(Name.Special.JoinThread, None),
-        List(CallArgument.Specified(None, bind.name.duplicate(), None)),
+        Name.Special(Name.Special.JoinThread, null),
+        List(CallArgument.Specified(None, bind.name.duplicate(), null)),
         false,
-        None
+        null
       )
     }
 
@@ -365,12 +365,12 @@ object AutomaticParallelism extends IRPass {
         .Binding(
           name.duplicate(),
           Application.Prefix(
-            Name.Special(Name.Special.ReadRef, None),
-            List(CallArgument.Specified(None, ref.duplicate(), None)),
+            Name.Special(Name.Special.ReadRef, null),
+            List(CallArgument.Specified(None, ref.duplicate(), null)),
             false,
-            None
+            null
           ),
-          None
+          null
         )
         .updateMetadata(
           new MetadataPair(IgnoredBindings, IgnoredBindings.State.Ignored)

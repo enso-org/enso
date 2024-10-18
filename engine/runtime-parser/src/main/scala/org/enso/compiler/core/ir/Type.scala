@@ -36,7 +36,7 @@ object Type {
   sealed case class Function(
     args: List[Expression],
     result: Expression,
-    override val location: Option[IdentifiedLocation],
+    override val identifiedLocation: IdentifiedLocation,
     override val passData: MetadataStorage = new MetadataStorage()
   ) extends Type
       with LazyDiagnosticStorage
@@ -58,7 +58,7 @@ object Type {
         || diagnostics != this.diagnostics
         || id != this.id
       ) {
-        val res = Function(args, result, location, passData)
+        val res = Function(args, result, location.orNull, passData)
         res.diagnostics = diagnostics
         res.id          = id
         res
@@ -128,17 +128,17 @@ object Type {
 
   /** The ascription of a type to a value.
     *
-    * @param typed       the expression being ascribed a type
-    * @param signature   the signature being ascribed to `typed`
-    * @param comment     a comment that may be used to add context to the type error
-    * @param location    the source location that the node corresponds to
-    * @param passData    the pass metadata associated with this node
+    * @param typed the expression being ascribed a type
+    * @param signature the signature being ascribed to `typed`
+    * @param comment a comment that may be used to add context to the type error
+    * @param identifiedLocation the source location that the node corresponds to
+    * @param passData the pass metadata associated with this node
     */
   sealed case class Ascription(
     typed: Expression,
     signature: Expression,
     comment: Option[String],
-    override val location: Option[IdentifiedLocation],
+    override val identifiedLocation: IdentifiedLocation,
     override val passData: MetadataStorage = new MetadataStorage()
   ) extends Type
       with module.scope.Definition
@@ -175,7 +175,8 @@ object Type {
         || diagnostics != this.diagnostics
         || id != this.id
       ) {
-        val res = Ascription(typed, signature, comment, location, passData)
+        val res =
+          Ascription(typed, signature, comment, location.orNull, passData)
         res.diagnostics = diagnostics
         res.id          = id
         res
@@ -249,15 +250,15 @@ object Type {
   /** A representation of the `in` portion of a type signature that represents
     * the ascription of a monadic context.
     *
-    * @param typed       the type being ascribed a monadic context
-    * @param context     the context being ascribed to `typed`
-    * @param location    the source location that the node corresponds to
-    * @param passData    the pass metadata associated with this node
+    * @param typed the type being ascribed a monadic context
+    * @param context the context being ascribed to `typed`
+    * @param identifiedLocation the source location that the node corresponds to
+    * @param passData the pass metadata associated with this node
     */
   sealed case class Context(
     typed: Expression,
     context: Expression,
-    override val location: Option[IdentifiedLocation],
+    override val identifiedLocation: IdentifiedLocation,
     override val passData: MetadataStorage = new MetadataStorage()
   ) extends Type
       with IRKind.Primitive
@@ -290,7 +291,7 @@ object Type {
         || diagnostics != this.diagnostics
         || id != this.id
       ) {
-        val res = Context(typed, context, location, passData)
+        val res = Context(typed, context, location.orNull, passData)
         res.diagnostics = diagnostics
         res.id          = id
         res
@@ -363,13 +364,13 @@ object Type {
     *
     * @param typed the expression being ascribed an error context
     * @param error the error being ascribed
-    * @param location the source location that the node corresponds to
+    * @param identifiedLocation the source location that the node corresponds to
     * @param passData the pass metadata associated with this node
     */
   sealed case class Error(
     typed: Expression,
     error: Expression,
-    override val location: Option[IdentifiedLocation],
+    override val identifiedLocation: IdentifiedLocation,
     override val passData: MetadataStorage = new MetadataStorage()
   ) extends Type
       with IRKind.Primitive
@@ -402,7 +403,7 @@ object Type {
         || diagnostics != this.diagnostics
         || id != this.id
       ) {
-        val res = Error(typed, error, location, passData)
+        val res = Error(typed, error, location.orNull, passData)
         res.diagnostics = diagnostics
         res.id          = id
         res

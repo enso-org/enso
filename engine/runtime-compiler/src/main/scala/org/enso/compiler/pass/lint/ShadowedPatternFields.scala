@@ -7,6 +7,7 @@ import org.enso.compiler.core.ir.{Expression, Module, Name, Pattern}
 import org.enso.compiler.core.ir.expression.{errors, warnings, Case}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.IRProcessingPass
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
   DataflowAnalysis,
@@ -34,16 +35,16 @@ case object ShadowedPatternFields extends IRPass {
   override type Metadata = IRPass.Metadata.Empty
   override type Config   = IRPass.Configuration.Default
 
-  override lazy val precursorPasses: Seq[IRPass] = List(
+  override lazy val precursorPasses: Seq[IRProcessingPass] = List(
     GenerateMethodBodies
   )
-  override lazy val invalidatedPasses: Seq[IRPass] = List(
+  override lazy val invalidatedPasses: Seq[IRProcessingPass] = List(
     AliasAnalysis,
     DataflowAnalysis,
     DemandAnalysis,
     IgnoredBindings,
     NestedPatternMatch,
-    TailCall
+    TailCall.INSTANCE
   )
 
   /** Lints for shadowed pattern fields.
@@ -147,7 +148,7 @@ case object ShadowedPatternFields extends IRPass {
             lastSeen(name.name) = named
             named
               .copy(
-                name = Name.Blank(location = name.location)
+                name = Name.Blank(name.identifiedLocation())
               )
               .addDiagnostic(warning)
           } else if (!name.isInstanceOf[Name.Blank]) {
@@ -173,7 +174,7 @@ case object ShadowedPatternFields extends IRPass {
             lastSeen(name.name) = typed
             typed
               .copy(
-                name = Name.Blank(location = name.location)
+                name = Name.Blank(name.identifiedLocation())
               )
               .addDiagnostic(warning)
           } else if (!name.isInstanceOf[Name.Blank]) {

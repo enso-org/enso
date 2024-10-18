@@ -1,0 +1,21 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "env.d.ts",
+    "lib0-ext.d.ts",
+    "src/**/*.vue",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/util/theme.json",
+    "src/**/__tests__/*.json",
+    "templates/**/*"
+  ],
+  "exclude": ["src/**/__tests__/*", "public/**/__tests__/*"],
+  "compilerOptions": {
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "types": ["vitest/importMeta"],
+    "paths": { "@/*": ["./src/project-view/*"], "#/*": ["./src/dashboard/*"] }
+  },
+  "references": [{ "path": "../ydoc-shared" }]
+}

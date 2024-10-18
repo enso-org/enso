@@ -16,6 +16,7 @@ import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.IRProcessingPass
 import org.enso.compiler.pass.analyse._
 import org.enso.compiler.pass.desugar.ComplexType
 import org.enso.compiler.pass.lint.UnusedBindings
@@ -51,18 +52,18 @@ case object SuspendedArguments extends IRPass {
   override type Metadata = IRPass.Metadata.Empty
   override type Config   = IRPass.Configuration.Default
 
-  override lazy val precursorPasses: Seq[IRPass] = List(
+  override lazy val precursorPasses: Seq[IRProcessingPass] = List(
     ComplexType,
     TypeSignatures,
     LambdaConsolidate
   )
-  override lazy val invalidatedPasses: Seq[IRPass] = List(
+  override lazy val invalidatedPasses: Seq[IRProcessingPass] = List(
     AliasAnalysis,
     CachePreferenceAnalysis,
     DataflowAnalysis,
     DataflowAnalysis,
     DemandAnalysis,
-    TailCall,
+    TailCall.INSTANCE,
     UnusedBindings
   )
 
@@ -305,7 +306,7 @@ case object SuspendedArguments extends IRPass {
       } else if (args.length > signatureSegments.length) {
         val additionalSegments = signatureSegments ::: List.fill(
           args.length - signatureSegments.length
-        )(Empty(None))
+        )(Empty(identifiedLocation = null))
 
         args.zip(additionalSegments)
       } else {

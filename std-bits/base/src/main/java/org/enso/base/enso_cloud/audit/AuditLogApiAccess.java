@@ -6,6 +6,9 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
@@ -90,18 +93,50 @@ class AuditLogApiAccess {
         return;
       }
 
-      try {
-        // We use the request config from the first message.
-        // The request config may only change in test scenarios which just must take this into
-        // account.
-        var requestConfig = pendingMessages.get(0).requestConfig();
-        var request = buildRequest(requestConfig, pendingMessages);
-        sendLogRequest(request, MAX_RETRIES);
-        notifyJobsAboutSuccess(pendingMessages);
-      } catch (RequestFailureException e) {
-        notifyJobsAboutFailure(pendingMessages, e);
+      var batchesByConfig = splitMessagesByConfig(pendingMessages);
+      for (var batch : batchesByConfig) {
+        sendBatch(batch);
       }
     }
+  }
+
+  /**
+   * Sends a batch of log messages.
+   *
+   * <p>The batch must not be empty and all messages must share the same request config.
+   */
+  private void sendBatch(List<LogJob> batch) {
+    assert !batch.isEmpty() : "The batch must not be empty.";
+    // We use the request config from the first message - all messages in the batch should have the
+    // same request config.
+    var requestConfig = batch.get(0).requestConfig();
+    assert requestConfig != null
+        : "The request configuration must be set before building a request.";
+    assert batch.stream().allMatch(job -> job.requestConfig().equals(requestConfig))
+        : "All messages in a batch must have the same request configuration.";
+
+    try {
+      var request = buildRequest(requestConfig, batch);
+      sendLogRequest(request, MAX_RETRIES);
+      notifyJobsAboutSuccess(batch);
+    } catch (RequestFailureException e) {
+      notifyJobsAboutFailure(batch, e);
+    }
+  }
+
+  /**
+   * Only during testing, it is possible to encounter pending messages with different request
+   * configs (when the config changes between tests). To send each message where it is intended, we
+   * split up the batch by the config.
+   */
+  Collection<List<LogJob>> splitMessagesByConfig(List<LogJob> messages) {
+    HashMap<RequestConfig, List<LogJob>> hashMap = new HashMap<>();
+    for (var message : messages) {
+      var list = hashMap.computeIfAbsent(message.requestConfig(), k -> new ArrayList<>());
+      list.add(message);
+    }
+
+    return hashMap.values();
   }
 
   private void notifyJobsAboutSuccess(List<LogJob> jobs) {

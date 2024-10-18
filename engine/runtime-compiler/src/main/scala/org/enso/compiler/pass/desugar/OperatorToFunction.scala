@@ -1,86 +1,35 @@
 package org.enso.compiler.pass.desugar
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.ir.expression.{Application, Operator}
-import org.enso.compiler.core.ir.{Expression, Module}
-import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.{IRProcessingPass, MiniPassFactory}
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
   DataflowAnalysis,
   DemandAnalysis
 }
 
-/** This pass converts usages of operators to calls to standard functions.
-  *
-  * This pass requires the context to provide:
-  *
-  * - Nothing
+/** Implementation moved to `OperatorToFunctionTest`
   */
-case object OperatorToFunction extends IRPass {
+case object OperatorToFunction extends MiniPassFactory {
 
-  /** A purely desugaring pass has no analysis output. */
-  override type Metadata = IRPass.Metadata.Empty
-  override type Config   = IRPass.Configuration.Default
-
-  override lazy val precursorPasses: Seq[IRPass] = List(
+  override lazy val precursorPasses: Seq[IRProcessingPass] = List(
     GenerateMethodBodies,
-    SectionsToBinOp
+    SectionsToBinOp.INSTANCE
   )
-  override lazy val invalidatedPasses: Seq[IRPass] = List(
+  override lazy val invalidatedPasses: Seq[IRProcessingPass] = List(
     AliasAnalysis,
     DataflowAnalysis,
-    DemandAnalysis
+    DemandAnalysis,
+    LambdaShorthandToLambda
   )
 
-  /** Executes the conversion pass.
-    *
-    * @param ir the Enso IR to process
-    * @param moduleContext a context object that contains the information needed
-    *                      to process a module
-    * @return `ir`, possibly having made transformations or annotations to that
-    *         IR.
-    */
-  override def runModule(
-    ir: Module,
+  override def createForModuleCompilation(
     moduleContext: ModuleContext
-  ): Module = {
-    val new_bindings = ir.bindings.map { a =>
-      a.mapExpressions(
-        runExpression(
-          _,
-          new InlineContext(
-            moduleContext,
-            compilerConfig = moduleContext.compilerConfig
-          )
-        )
-      )
-    }
-    ir.copy(bindings = new_bindings)
-  }
+  ): OperatorToFunctionMini =
+    new OperatorToFunctionMini()
 
-  /** Executes the conversion pass in an inline context.
-    *
-    * @param ir the Enso IR to process
-    * @param inlineContext a context object that contains the information needed
-    *                      for inline evaluation
-    * @return `ir`, possibly having made transformations or annotations to that
-    *         IR.
-    */
-  override def runExpression(
-    ir: Expression,
+  override def createForInlineCompilation(
     inlineContext: InlineContext
-  ): Expression =
-    ir.transformExpressions { case operatorBinary: Operator.Binary =>
-      new Application.Prefix(
-        operatorBinary.operator,
-        List(
-          operatorBinary.left.mapExpressions(runExpression(_, inlineContext)),
-          operatorBinary.right.mapExpressions(runExpression(_, inlineContext))
-        ),
-        hasDefaultsSuspended = false,
-        operatorBinary.location,
-        operatorBinary.passData,
-        operatorBinary.diagnostics
-      )
-    }
+  ): OperatorToFunctionMini =
+    new OperatorToFunctionMini()
 }

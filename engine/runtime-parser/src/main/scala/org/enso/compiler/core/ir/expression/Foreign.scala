@@ -33,15 +33,15 @@ object Foreign {
 
   /** A foreign code definition in Enso.
     *
-    * @param lang        the foreign language being written
-    * @param code        the code written in `lang`
-    * @param location    the source location that the node corresponds to
-    * @param passData    the pass metadata associated with this node
+    * @param lang the foreign language being written
+    * @param code the code written in `lang`
+    * @param identifiedLocation the source location that the node corresponds to
+    * @param passData the pass metadata associated with this node
     */
   sealed case class Definition(
     lang: String,
     code: String,
-    override val location: Option[IdentifiedLocation],
+    override val identifiedLocation: IdentifiedLocation,
     override val passData: MetadataStorage = new MetadataStorage()
   ) extends Foreign
       with IRKind.Primitive
@@ -74,7 +74,7 @@ object Foreign {
         || diagnostics != this.diagnostics
         || id != this.id
       ) {
-        val res = Definition(lang, code, location, passData)
+        val res = Definition(lang, code, location.orNull, passData)
         res.diagnostics = diagnostics
         res.id          = id
         res

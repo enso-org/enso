@@ -1,7 +1,5 @@
 package org.enso.table.excel;
 
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.util.CellReference;
 import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.NameDeduplicator;
@@ -56,13 +54,10 @@ public class ExcelHeaders {
     }
 
     int currentEndCol = endCol == -1 ? row.getLastColumn() : endCol;
-    DataFormatter formatter = new DataFormatter();
 
     String[] output = new String[currentEndCol - startCol + 1];
     for (int col = startCol; col <= currentEndCol; col++) {
-      Cell cell = row.get(col);
-
-      String cellText = cell == null ? "" : formatter.formatCellValue(cell);
+      String cellText = row.getFormattedCell(col);
       String name = cellText.isEmpty() ? "" : deduplicator.makeUnique(cellText);
 
       output[col - startCol] = name;

@@ -15,6 +15,7 @@ import org.enso.compiler.core.ir.{
 import org.enso.compiler.core.ir.expression.{errors, warnings, Case, Foreign}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.IRProcessingPass
 import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.analyse.alias.{AliasMetadata => AliasInfo}
 import org.enso.compiler.pass.desugar._
@@ -32,7 +33,7 @@ case object UnusedBindings extends IRPass {
   override type Metadata = IRPass.Metadata.Empty
   override type Config   = IRPass.Configuration.Default
 
-  override lazy val precursorPasses: Seq[IRPass] = List(
+  override lazy val precursorPasses: Seq[IRProcessingPass] = List(
     ComplexType,
     GenerateMethodBodies,
     IgnoredBindings,
@@ -40,9 +41,9 @@ case object UnusedBindings extends IRPass {
     LambdaShorthandToLambda,
     NestedPatternMatch,
     OperatorToFunction,
-    SectionsToBinOp
+    SectionsToBinOp.INSTANCE
   )
-  override lazy val invalidatedPasses: Seq[IRPass] = List()
+  override lazy val invalidatedPasses: Seq[IRProcessingPass] = List()
 
   /** Lints a module.
     *
@@ -150,7 +151,7 @@ case object UnusedBindings extends IRPass {
                 body1
               case _ =>
                 body1.addDiagnostic(
-                  Warning.WrongBuiltinMethod(body.location)
+                  Warning.WrongBuiltinMethod(body.identifiedLocation())
                 )
             }
           else body1

@@ -40,18 +40,17 @@ object Function {
     * better optimisation.
     *
     * @param arguments the arguments to the lambda
-    * @param bodyReference the body of the lambda, stored as a reference to ensure
-    *                     laziness of storage
-    * @param location the source location that the node corresponds to
+    * @param bodyReference the body of the lambda, stored as a reference to ensure laziness of storage
+    * @param identifiedLocation the source location that the node corresponds to
     * @param canBeTCO whether or not the function can be tail-call optimised
     * @param passData the pass metadata associated with this node
     */
   sealed case class Lambda(
     override val arguments: List[DefinitionArgument],
     bodyReference: Persistance.Reference[Expression],
-    location: Option[IdentifiedLocation],
+    override val identifiedLocation: IdentifiedLocation,
     override val canBeTCO: Boolean,
-    passData: MetadataStorage
+    override val passData: MetadataStorage
   ) extends Function
       with IRKind.Primitive
       with LazyDiagnosticStorage
@@ -60,14 +59,14 @@ object Function {
     def this(
       arguments: List[DefinitionArgument],
       body: Expression,
-      location: Option[IdentifiedLocation],
+      identifiedLocation: IdentifiedLocation,
       canBeTCO: Boolean         = true,
       passData: MetadataStorage = new MetadataStorage()
     ) = {
       this(
         arguments,
         Persistance.Reference.of(body, true),
-        location,
+        identifiedLocation,
         canBeTCO,
         passData
       )
@@ -77,12 +76,12 @@ object Function {
       ir: expression.Case.Expr,
       arguments: List[DefinitionArgument],
       body: Expression,
-      location: Option[IdentifiedLocation]
+      identifiedLocation: IdentifiedLocation
     ) = {
       this(
         arguments,
         Persistance.Reference.of(body, true),
-        location,
+        identifiedLocation,
         true,
         ir.passData.duplicate()
       )
@@ -126,7 +125,7 @@ object Function {
           Lambda(
             arguments,
             Persistance.Reference.of(body, false),
-            location,
+            location.orNull,
             canBeTCO,
             passData
           )
@@ -245,9 +244,9 @@ object Function {
     override val arguments: List[DefinitionArgument],
     override val body: Expression,
     override val isPrivate: Boolean,
-    location: Option[IdentifiedLocation],
-    override val canBeTCO: Boolean = true,
-    passData: MetadataStorage      = new MetadataStorage()
+    override val identifiedLocation: IdentifiedLocation,
+    override val canBeTCO: Boolean         = true,
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends Function
       with IRKind.Sugar
       with LazyDiagnosticStorage
@@ -294,7 +293,7 @@ object Function {
             arguments,
             body,
             isPrivate,
-            location,
+            location.orNull,
             canBeTCO,
             passData
           )

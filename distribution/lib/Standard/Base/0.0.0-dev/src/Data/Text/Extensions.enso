@@ -25,6 +25,7 @@ import project.Data.Time.Time_Zone.Time_Zone
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Common.Index_Out_Of_Bounds
+import project.Errors.Common.Missing_Argument
 import project.Errors.Common.Syntax_Error
 import project.Errors.Encoding_Error.Encoding_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
@@ -452,7 +453,7 @@ Text.split self delimiter="," case_sensitivity=Case_Sensitivity.Sensitive use_re
         'Hello Big\r\nWide\tWorld\nGoodbye!' . tokenize "(\S+)(?:\s+|$)"
             == ["Hello","Big","Wide","World","Goodbye!"]
 Text.tokenize : Text -> Case_Sensitivity -> Vector Text
-Text.tokenize self pattern="." case_sensitivity=Case_Sensitivity.Sensitive =
+Text.tokenize self pattern:Text=(Missing_Argument.throw "pattern") case_sensitivity:Case_Sensitivity=..Sensitive =
     case_insensitive = case_sensitivity.is_case_insensitive_in_memory
     compiled_pattern = Regex.compile pattern case_insensitive=case_insensitive
     compiled_pattern.tokenize self
@@ -1536,7 +1537,7 @@ Text.last_index_of self term="" start=-1 case_sensitivity=Case_Sensitivity.Sensi
          "7.6".parse_float
 @locale Locale.default_widget
 Text.parse_float : Locale | Nothing -> Float ! Number_Parse_Error
-Text.parse_float self locale=Nothing = Float.parse self locale
+Text.parse_float self locale=Locale.default = Float.parse self locale
 
 ## ALIAS integer from text, to_integer
    GROUP Conversions

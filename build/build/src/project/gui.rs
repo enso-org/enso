@@ -1,12 +1,12 @@
 //! Build logic for the GUI project.
 //!
-//! The GUI is Vue.js-based and located under `app/gui2`.
+//! The GUI is Vue.js-based and located under `app/gui`.
 
 use crate::prelude::*;
 
 use crate::ide::web::IdeDesktop;
-use crate::paths::generated::RepoRootAppGui2Dist;
-use crate::paths::generated::RepoRootDistGui2Assets;
+use crate::paths::generated::RepoRootAppGuiDist;
+use crate::paths::generated::RepoRootDistGuiAssets;
 use crate::project::Context;
 use crate::project::IsArtifact;
 use crate::project::IsTarget;
@@ -20,7 +20,7 @@ use ide_ci::ok_ready_boxed;
 
 /// The [artifact](IsArtifact) for the new GUI.
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Deref)]
-pub struct Artifact(pub RepoRootAppGui2Dist);
+pub struct Artifact(pub RepoRootAppGuiDist);
 
 impl AsRef<Path> for Artifact {
     fn as_ref(&self) -> &Path {
@@ -32,7 +32,7 @@ impl IsArtifact for Artifact {}
 
 impl Artifact {
     pub fn new(path: impl AsRef<Path>) -> Self {
-        Artifact(RepoRootAppGui2Dist::new_root(path.as_ref()))
+        Artifact(RepoRootAppGuiDist::new_root(path.as_ref()))
     }
 }
 
@@ -64,37 +64,11 @@ impl IsTarget for Gui {
         let WithDestination { inner: _, destination } = job;
         async move {
             let repo_root = &context.repo_root;
-            crate::ide::web::google_font::install_with_css(
-                &context.cache,
-                &context.octocrab,
-                "mplus1",
-                "M PLUS 1",
-                "/font-mplus1",
-                &repo_root.app.gui_2.public.font_mplus_1,
-                &repo_root.app.gui_2.src.assets.font_mplus_1_css,
-            )
-            .await?;
-            crate::ide::web::dejavu_font::install_sans_mono_with_css(
-                &context.cache,
-                &context.octocrab,
-                "/font-dejavu",
-                &repo_root.app.gui_2.public.font_dejavu,
-                &repo_root.app.gui_2.src.assets.font_dejavu_css,
-            )
-            .await?;
-            crate::ide::web::enso_font::install_with_css(
-                &context.cache,
-                &context.octocrab,
-                "/font-enso",
-                &repo_root.app.gui_2.public.font_enso,
-                &repo_root.app.gui_2.src.assets.font_enso_css,
-            )
-            .await?;
             crate::web::install(repo_root).await?;
             crate::web::run_script(repo_root, crate::web::Script::Build).await?;
             ide_ci::fs::mirror_directory(
-                &repo_root.app.gui_2.dist,
-                &destination.join(RepoRootDistGui2Assets::segment_name()),
+                &repo_root.app.gui.dist,
+                &destination.join(RepoRootDistGuiAssets::segment_name()),
             )
             .await?;
             Ok(Artifact::new(destination))

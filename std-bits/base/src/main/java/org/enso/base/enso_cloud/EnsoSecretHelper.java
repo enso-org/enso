@@ -69,7 +69,7 @@ public final class EnsoSecretHelper extends SecretValueResolver {
       Builder builder,
       URIWithSecrets uri,
       List<Pair<String, HideableValue>> headers)
-      throws IOException, InterruptedException {
+      throws IllegalArgumentException, IOException, InterruptedException {
 
     // Build a new URI with the query arguments.
     URI resolvedURI = resolveURI(uri);

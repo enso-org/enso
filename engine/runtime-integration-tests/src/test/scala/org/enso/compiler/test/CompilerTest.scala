@@ -142,17 +142,27 @@ trait CompilerRunner {
           Name.MethodReference(
             Some(
               Name.Qualified(
-                List(Name.Literal("TestType", isMethod = false, None)),
-                None
+                List(
+                  Name.Literal(
+                    "TestType",
+                    isMethod           = false,
+                    identifiedLocation = null
+                  )
+                ),
+                identifiedLocation = null
               )
             ),
-            Name.Literal("testMethod", isMethod = false, None),
-            None
+            Name.Literal(
+              "testMethod",
+              isMethod           = false,
+              identifiedLocation = null
+            ),
+            identifiedLocation = null
           ),
           Nil,
           false,
           ir,
-          None
+          identifiedLocation = null
         ),
         ir
       )
@@ -164,21 +174,21 @@ trait CompilerRunner {
       */
     def asAtomDefaultArg: Definition.Data = {
       Definition.Data(
-        Name.Literal("TestAtom", isMethod = false, None),
+        Name.Literal("TestAtom", isMethod = false, identifiedLocation = null),
         List(
           DefinitionArgument
             .Specified(
               Name
-                .Literal("arg", isMethod = false, None),
+                .Literal("arg", isMethod = false, identifiedLocation = null),
               None,
               Some(ir),
-              suspended = false,
-              None
+              suspended          = false,
+              identifiedLocation = null
             )
         ),
         List(),
         false,
-        None
+        identifiedLocation = null
       )
     }
   }
@@ -249,7 +259,7 @@ trait CompilerRunner {
       runtime.Module.empty(QualifiedName.simpleName("Test_Module"), null)
     ModuleTestUtils.unsafeSetIr(
       mod,
-      Module(List(), List(), List(), false, None)
+      Module(List(), List(), List(), false, identifiedLocation = null)
         .updateMetadata(
           new MetadataPair(
             BindingAnalysis,

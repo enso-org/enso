@@ -19,13 +19,13 @@ import java.util.UUID
   *
   * @param entity language-specific information on the imported entity
   * @param rename the name this object should be visible under in the importing scope
-  * @param location the source location that the node corresponds to
+  * @param identifiedLocation the source location that the node corresponds to
   * @param passData the pass metadata associated with this node
   */
 sealed case class Polyglot(
   entity: Polyglot.Entity,
   rename: Option[String],
-  override val location: Option[IdentifiedLocation],
+  override val identifiedLocation: IdentifiedLocation,
   override val passData: MetadataStorage = new MetadataStorage()
 ) extends Import
     with IRKind.Primitive
@@ -59,7 +59,7 @@ sealed case class Polyglot(
       || diagnostics != this.diagnostics
       || id != this.id
     ) {
-      val res = Polyglot(entity, rename, location, passData)
+      val res = Polyglot(entity, rename, location.orNull, passData)
       res.diagnostics = diagnostics
       res.id          = id
       res

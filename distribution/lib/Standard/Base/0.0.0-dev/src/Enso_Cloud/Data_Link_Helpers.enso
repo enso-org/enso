@@ -6,8 +6,12 @@ import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Enso_Cloud.Data_Link.Data_Link
+import project.Enso_Cloud.Enso_File.Enso_Asset_Type
+import project.Enso_Cloud.Enso_File.Enso_File
 import project.Enso_Cloud.Enso_Secret.Enso_Secret
 import project.Enso_Cloud.Errors.Missing_Data_Link_Library
+import project.Enso_Cloud.Internal.Existing_Enso_Asset.Existing_Enso_Asset
+import project.Enso_Cloud.Internal.Utils
 import project.Error.Error
 import project.Errors.Common.No_Such_Conversion
 import project.Errors.Illegal_Argument.Illegal_Argument
@@ -15,8 +19,10 @@ import project.Errors.Illegal_State.Illegal_State
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Errors.Unimplemented.Unimplemented
 import project.Meta
+import project.Network.HTTP.HTTP_Method.HTTP_Method
 import project.Nothing.Nothing
 import project.Panic.Panic
+import project.Runtime
 import project.System.File.Data_Link_Access.Data_Link_Access
 import project.System.File.File
 import project.System.File.File_Access.File_Access
@@ -50,40 +56,67 @@ data_link_content_type = "application/x-enso-datalink"
 data_link_extension = ".datalink"
 
 ## PRIVATE
-interpret_json_as_data_link json =
+   Describes from where the data link is sourced.
+type Data_Link_Source_Metadata
+    ## A data link coming from Enso Cloud.
+    Cloud_Asset id:Text
+
+    ## No information is available about the source.
+    Unknown
+
+## PRIVATE
+interpret_json_as_data_link json source:Data_Link_Source_Metadata=..Unknown =
     typ = get_required_field "type" json expected_type=Text
     case DataLinkSPI.findDataLinkType typ of
         Nothing ->
             library_name = get_required_field "libraryName" json expected_type=Text
             Error.throw (Missing_Data_Link_Library.Error library_name typ)
         data_link_type ->
-            data_link_type.parse json
+            data_link_type.parse json source
+
+## PRIVATE
+read_and_interpret_data_link (file : File_Like) =
+    case file.underlying of
+        ## We have special handling of Cloud files, because for them we want to correlate the asset id of the data link to be used in the audit logs.
+           Only the Cloud-backed files have this special handling. All other backends behave uniformly.
+        cloud_file : Enso_File ->
+            asset = Existing_Enso_Asset.get_asset_reference_for cloud_file
+            if asset.asset_type != Enso_Asset_Type.Data_Link then Error.throw (Illegal_Argument.Error "Cannot interpret file "+cloud_file.to_text+" as a data link, because it is "+asset.asset_type.to_text+".") else
+                interpret_existing_asset_as_data_link asset
+        _ ->
+            json = Data_Link.read_config file
+            ## We don't register the source for other backends - we are not interested in Filesystem path or S3 URI - only Cloud asset id is important in the audit logs.
+            interpret_json_as_data_link json source=..Unknown
+
+## PRIVATE
+   This method should only be called on an asset that is known to be a data link.
+interpret_existing_asset_as_data_link asset:Existing_Enso_Asset =
+    Runtime.assert (asset.asset_type == Enso_Asset_Type.Data_Link)
+    source = Data_Link_Source_Metadata.Cloud_Asset asset.id
+    json = Utils.http_request_as_json HTTP_Method.Get asset.internal_uri
+    interpret_json_as_data_link json source
 
 ## PRIVATE
 read_data_link (file : File_Like) format (on_problems : Problem_Behavior) =
-    json = Data_Link.read_config file
-    data_link_instance = interpret_json_as_data_link json
+    data_link_instance = read_and_interpret_data_link file
     resolved_format = File_Format.resolve format
     data_link_instance.read resolved_format on_problems
 
 ## PRIVATE
 read_data_link_as_stream (file : File_Like) (open_options : Vector) (f : Input_Stream -> Any) =
-    json = Data_Link.read_config file
-    data_link_instance = interpret_json_as_data_link json
+    data_link_instance = read_and_interpret_data_link file
     data_link_with_input_stream = Data_Link_With_Input_Stream.find data_link_instance
     data_link_with_input_stream.with_input_stream open_options f
 
 ## PRIVATE
 write_data_link_as_stream (file : File_Like) (open_options : Vector) (f : Output_Stream -> Any) =
-    json = Data_Link.read_config file
-    data_link_instance = interpret_json_as_data_link json
+    data_link_instance = read_and_interpret_data_link file
     data_link_with_output_stream = Data_Link_With_Output_Stream.find data_link_instance
     data_link_with_output_stream.with_output_stream open_options f
 
 ## PRIVATE
 interpret_data_link_as_writable_file (file : File_Like) -> Writable_File =
-    json = Data_Link.read_config file
-    data_link_instance = interpret_json_as_data_link json
+    data_link_instance = read_and_interpret_data_link file
     ## We override the return value to return the original datalink, not the target.
        Ideally, we'd do this inside of the `as_writable_file` implementation,
        but there the data link does not know its 'origin', so it is impossible
@@ -149,3 +182,27 @@ disallow_links_in_move source target ~action =
     if is_source_data_link && is_target_data_link then Error.throw (Illegal_Argument.Error "The `move_to` operation cannot be used with data links. If you want to move the link, use `Data_Link.move`.") else
         if is_source_data_link || is_target_data_link then Error.throw (Illegal_Argument.Error "The `move_to` operation cannot be used with data links. Please `.read` the data link and then write the data to the destination using the appropriate method.") else
             action
+
+## PRIVATE
+   Takes a secure value (either a Text or Enso_Secret) and returns a secret representation of it.
+
+   If given an existing secret, it will be returned as-is.
+   However, if given a plain text, it will create a new secret in the provided directory.
+
+   Because it may be creating new secret, this should only be run within an enabled Output context.
+store_as_secret base_location:Enso_File name_hint:Text secure_value:Text|Enso_Secret -> Enso_Secret = case secure_value of
+    existing_secret : Enso_Secret -> existing_secret
+    plain_text : Text ->
+        create_fresh_secret ix =
+            secret_name = name_hint + (if ix == 0 then "" else "-"+ix.to_text)
+            r = Enso_Secret.create secret_name plain_text base_location
+            r.catch Illegal_Argument error->
+                if error.message.contains "already exists" then create_fresh_secret ix+1 else r
+        create_fresh_secret 0
+
+## PRIVATE
+save_password_for_data_link data_link_location:Enso_File secure_value:Text|Enso_Secret name_hint:Text="password" -> Enso_Secret =
+    secret_location = data_link_location.parent.if_nothing (Error.throw (Illegal_State.Error "Trying to create a secret to store the Data Link password, but the provided data link location: "+data_link_location.to_text+" does not have a parent directory. This should not happen."))
+    location_name = if data_link_location.name.ends_with data_link_extension then data_link_location.name.drop (..Last data_link_extension.length) else data_link_location.name
+    secret_location.if_not_error <|
+        store_as_secret secret_location location_name+"-"+name_hint secure_value

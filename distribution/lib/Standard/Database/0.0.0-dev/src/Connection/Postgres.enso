@@ -1,5 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Data.Numbers.Number_Parse_Error
+import Standard.Base.Errors.Common.Type_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
 import project.Connection.Client_Certificate.Client_Certificate
@@ -7,8 +9,8 @@ import project.Connection.Connection_Options.Connection_Options
 import project.Connection.Credentials.Credentials
 import project.Connection.Postgres_Connection.Postgres_Connection
 import project.Connection.SSL_Mode.SSL_Mode
+import project.Internal.Data_Link_Setup.Data_Link_Setup
 import project.Internal.Postgres.Pgpass
-import project.Internal.Postgres.Postgres_Data_Link_Setup.Postgres_Data_Link_Setup
 
 polyglot java import org.postgresql.Driver
 
@@ -34,7 +36,7 @@ type Postgres
        Attempt to resolve the constructor.
     resolve : Function -> Postgres | Nothing
     resolve constructor =
-        Panic.catch Any (constructor:Postgres) _->Nothing
+        Panic.catch Type_Error (constructor:Postgres) _->Nothing
 
     ## PRIVATE
        Build the Connection resource.
@@ -46,8 +48,8 @@ type Postgres
     connect self options (allow_data_links : Boolean = True) =
         if Driver.isRegistered.not then Driver.register
 
-        data_link_setup = if allow_data_links then Postgres_Data_Link_Setup.Available self else
-            Postgres_Data_Link_Setup.Unavailable "Saving connections established through a Data Link is not allowed. Please copy the Data Link instead."
+        data_link_setup = if allow_data_links then Data_Link_Setup.Available (create_data_link_structure self) else
+            Data_Link_Setup.already_a_data_link
         properties = options.merge self.jdbc_properties
 
         ## Cannot use default argument values as gets in an infinite loop if you do.
@@ -116,3 +118,15 @@ default_postgres_port =
 
 ## PRIVATE
 default_postgres_database = Environment.get "PGDATABASE" "postgres"
+
+## PRIVATE
+private create_data_link_structure details:Postgres data_link_location:Enso_File -> JS_Object =
+    credentials_json = details.credentials.if_not_nothing <|
+        Data_Link_Setup.save_credentials_for_data_link data_link_location details.credentials
+    if (details.use_ssl != SSL_Mode.Prefer) || details.client_cert.is_nothing.not then Error.throw (Illegal_Argument.Error "Cannot save connection as Data Link: custom SSL settings are currently unsupported.") else
+        JS_Object.from_pairs <|
+            header = [["type", "Postgres_Connection"], ["libraryName", "Standard.Database"]]
+            connection_part = [["host", details.host], ["port", details.port], ["database_name", details.database]]
+            schema_part = if details.schema.not_empty then [["schema", details.schema]] else []
+            credential_part = if credentials_json.is_nothing.not then [["credentials", credentials_json]] else []
+            header + connection_part + schema_part + credential_part

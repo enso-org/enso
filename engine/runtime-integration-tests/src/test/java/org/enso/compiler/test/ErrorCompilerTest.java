@@ -25,6 +25,17 @@ public class ErrorCompilerTest extends CompilerTests {
   }
 
   @Test
+  public void brokenAnnotation() throws Exception {
+    var ir = parse("""
+    @anno
+    fn = 10
+    """);
+
+    assertSingleSyntaxError(
+        ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 13);
+  }
+
+  @Test
   public void dotUnderscore() throws Exception {
     var ir = parse("""
     run op =
@@ -610,6 +621,28 @@ public class ErrorCompilerTest extends CompilerTests {
         """);
     assertSingleSyntaxError(
         ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 41);
+  }
+
+  @Test
+  public void inlineDocCommentIsNotAllowed_1() {
+    var ir = parse("""
+        main args =
+            v = 42 ## meh
+            v
+        """);
+    assertSingleSyntaxError(
+        ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 23, 29);
+  }
+
+  @Test
+  public void inlineDocCommentIsNotAllowed_2() {
+    var ir = parse("""
+        main args =
+            v = 42
+            v ## meh
+        """);
+    assertSingleSyntaxError(
+        ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 29, 35);
   }
 
   private void assertSingleSyntaxError(

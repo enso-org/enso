@@ -19,10 +19,7 @@ import scala.reflect.ClassTag
   * its header the requirements it has for pass configuration and for passes
   * that must run before it.
   */
-trait IRPass extends ProcessingPass {
-
-  /** An identifier for the pass. Useful for keying it in maps. */
-  val key: UUID @Identifier = IRPass.genId
+trait IRPass extends IRProcessingPass with ProcessingPass {
 
   /** The type of the metadata object that the pass writes to the IR. */
   type Metadata <: ProcessingPass.Metadata
@@ -31,10 +28,10 @@ trait IRPass extends ProcessingPass {
   type Config <: IRPass.Configuration
 
   /** The passes that this pass depends _directly_ on to run. */
-  val precursorPasses: Seq[IRPass]
+  val precursorPasses: Seq[IRProcessingPass]
 
   /** The passes that are invalidated by running this pass. */
-  val invalidatedPasses: Seq[IRPass]
+  val invalidatedPasses: Seq[IRProcessingPass]
 
   /** Executes the pass on the provided `ir`, and returns a possibly transformed
     * or annotated version of `ir`.

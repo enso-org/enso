@@ -16,7 +16,7 @@ class FreshNameSupply {
     Name.Literal(
       s"<internal-${numId}>",
       isMethod,
-      None,
+      null,
       from
     )
   }

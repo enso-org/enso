@@ -324,15 +324,10 @@ impl Processor {
                             .await;
                     if is_in_env() {
                         let gui_report = ide_ci::actions::artifacts::upload_directory_if_exists(
-                            &repo_root.app.gui_2.playwright_report,
+                            repo_root.app.gui.playwright_report,
                             "gui-playwright-report",
                         );
-                        let dashboard_report =
-                            ide_ci::actions::artifacts::upload_directory_if_exists(
-                                repo_root.app.dashboard.playwright_report,
-                                "dashboard-playwright-report",
-                            );
-                        try_join!(gui_report, dashboard_report)?;
+                        gui_report.await?;
                     }
                     check_result
                 }
@@ -405,6 +400,15 @@ impl Processor {
                         Tests::StdSnowflake => config.add_standard_library_test_selection(
                             StandardLibraryTestsSelection::Selected(vec![
                                 "Snowflake_Tests".to_string()
+                            ]),
+                        ),
+                        Tests::StdCloudRelated => config.add_standard_library_test_selection(
+                            StandardLibraryTestsSelection::Selected(vec![
+                                "Base_Tests".to_string(),
+                                // Table tests check integration of e.g. Postgres datalinks
+                                "Table_Tests".to_string(),
+                                // AWS tests check copying between Cloud and S3
+                                "AWS_Tests".to_string(),
                             ]),
                         ),
                     }
