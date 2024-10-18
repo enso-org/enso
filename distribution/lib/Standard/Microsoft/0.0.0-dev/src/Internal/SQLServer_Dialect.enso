@@ -304,10 +304,10 @@ type SQLServer_Dialect
         if raw_sql.contains "#" . not then
             jdbc.ensure_query_has_no_holes raw_sql
 
-    generate_expression self dialect expr = case expr.first of
+    generate_expression self dialect expr_null_checks_pair = case expr_null_checks_pair.first of
         SQL_Expression.Column origin name ->
-            r = dialect.wrap_identifier origin ++ '.' ++ dialect.wrap_identifier name
-            pair r expr.second+[r]
+            wrapped_name = dialect.wrap_identifier origin ++ '.' ++ dialect.wrap_identifier name
+            pair wrapped_name expr_null_checks_pair.second+[wrapped_name]
         SQL_Expression.Constant value -> SQL_Builder.interpolation value
         SQL_Expression.Literal value -> SQL_Builder.code value
         SQL_Expression.Text_Literal value ->
