@@ -190,12 +190,15 @@ defineExpose({ gridApi })
 
 const handler = gridBindings.handler({
   cutCells() {
+    if (gridApi.value?.getFocusedCell() == null) return false
     gridApi.value?.cutToClipboard()
   },
   copyCells() {
+    if (gridApi.value?.getFocusedCell() == null) return false
     gridApi.value?.copyToClipboard()
   },
   pasteCells() {
+    if (gridApi.value?.getFocusedCell() == null) return false
     gridApi.value?.pasteFromClipboard()
   },
 })
