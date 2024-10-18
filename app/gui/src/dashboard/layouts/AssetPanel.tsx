@@ -1,5 +1,5 @@
 /** @file A panel containing the description and settings for an asset. */
-import { type Dispatch, type SetStateAction, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import * as z from 'zod'
 
@@ -53,7 +53,6 @@ LocalStorage.register({
 export interface AssetPanelContextProps {
   readonly backend: Backend | null
   readonly item: AnyAssetTreeNode | null
-  readonly setItem: Dispatch<SetStateAction<AnyAssetTreeNode>> | null
   readonly spotlightOn?: AssetPropertiesSpotlight
 }
 
@@ -68,7 +67,7 @@ export default function AssetPanel(props: AssetPanelProps) {
   const { backendType, category } = props
   const contextPropsRaw = useAssetPanelProps()
   const contextProps = backendType === contextPropsRaw?.backend?.type ? contextPropsRaw : null
-  const { backend, item, setItem } = contextProps ?? {}
+  const { backend, item } = contextProps ?? {}
   const isReadonly = category.type === 'trash'
   const isCloud = backend?.type === BackendType.remote
   const isVisible = useIsAssetPanelVisible()
@@ -83,11 +82,11 @@ export default function AssetPanel(props: AssetPanelProps) {
     if (!isCloud) {
       return 'settings'
     } else if (
-      (item?.item.type === AssetType.secret || item?.item.type === AssetType.directory) &&
+      (item?.type === AssetType.secret || item?.type === AssetType.directory) &&
       tabRaw === 'versions'
     ) {
       return 'settings'
-    } else if (item?.item.type !== AssetType.project && tabRaw === 'sessions') {
+    } else if (item?.type !== AssetType.project && tabRaw === 'sessions') {
       return 'settings'
     } else {
       return tabRaw
@@ -131,7 +130,7 @@ export default function AssetPanel(props: AssetPanelProps) {
           }
         }}
       >
-        {item == null || setItem == null || backend == null ?
+        {item == null || backend == null ?
           <div className="grid grow place-items-center text-lg">
             {getText('selectExactlyOneAssetToViewItsDetails')}
           </div>
@@ -141,14 +140,12 @@ export default function AssetPanel(props: AssetPanelProps) {
               <Tab id="settings" labelId="settings" isActive={tab === 'settings'} icon={null}>
                 {getText('settings')}
               </Tab>
-              {isCloud &&
-                item.item.type !== AssetType.secret &&
-                item.item.type !== AssetType.directory && (
-                  <Tab id="versions" labelId="versions" isActive={tab === 'versions'} icon={null}>
-                    {getText('versions')}
-                  </Tab>
-                )}
-              {isCloud && item.item.type === AssetType.project && (
+              {isCloud && item.type !== AssetType.secret && item.type !== AssetType.directory && (
+                <Tab id="versions" labelId="versions" isActive={tab === 'versions'} icon={null}>
+                  {getText('versions')}
+                </Tab>
+              )}
+              {isCloud && item.type === AssetType.project && (
                 <Tab
                   id="sessions"
                   labelId="projectSessions"
@@ -165,7 +162,6 @@ export default function AssetPanel(props: AssetPanelProps) {
                 backend={backend}
                 isReadonly={isReadonly}
                 item={item}
-                setItem={setItem}
                 category={category}
                 spotlightOn={contextProps?.spotlightOn}
               />

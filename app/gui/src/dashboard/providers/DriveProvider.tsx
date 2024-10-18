@@ -91,6 +91,8 @@ export default function DriveProvider(props: ProjectsProviderProps) {
             targetDirectory: null,
             selectedKeys: EMPTY_SET,
             visuallySelectedKeys: null,
+            suggestions: EMPTY_ARRAY,
+            assetPanelProps: null,
           })
         }
       },

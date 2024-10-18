@@ -29,7 +29,7 @@ export function FormProvider<Schema extends types.TSchema>(
   const { children, form } = props
 
   return (
-    // eslint-disable-next-line no-restricted-syntax,@typescript-eslint/no-explicit-any
+    // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-explicit-any
     <FormContext.Provider value={{ form: form as types.UseFormReturn<any> }}>
       {children}
     </FormContext.Provider>
@@ -50,7 +50,7 @@ export function useFormContext<Schema extends types.TSchema>(
 
     invariant(ctx, 'FormContext not found')
 
-    // This is safe, as it's we pass the value transparently and it's typed outside
+    // This is safe, as we pass the value transparently and it is typed outside
     // eslint-disable-next-line no-restricted-syntax
     return ctx.form as unknown as types.UseFormReturn<Schema>
   }
