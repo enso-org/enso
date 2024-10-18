@@ -38,6 +38,7 @@ const GLOB_TAG_ID = backend.TagId('*')
 const GLOB_CHECKOUT_SESSION_ID = backend.CheckoutSessionId('*')
 /* eslint-enable no-restricted-syntax */
 const BASE_URL = 'https://mock/'
+const MOCK_S3_BUCKET_URL = 'https://mock-s3-bucket.com/'
 
 // ===============
 // === mockApi ===
@@ -723,30 +724,38 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         return
       }
     })
-    await post(remoteBackendPaths.UPLOAD_FILE_PATH + '*', (_route, request) => {
-      /** The type for the JSON request payload for this endpoint. */
-      interface SearchParams {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        readonly file_name: string
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        readonly file_id?: backend.FileId
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        readonly parent_directory_id?: backend.DirectoryId
+    await page.route(MOCK_S3_BUCKET_URL + '**', async (route, request) => {
+      if (request.method() !== 'PUT') {
+        await route.fallback()
+      } else {
+        await route.fulfill({
+          headers: {
+            ETag: uniqueString.uniqueString(),
+          },
+        })
       }
+    })
+    await post(remoteBackendPaths.UPLOAD_FILE_START_PATH + '*', () => {
+      return {
+        sourcePath: backend.S3FilePath(''),
+        uploadId: 'file-' + uniqueString.uniqueString(),
+        presignedUrls: Array.from({ length: 10 }, () =>
+          backend.HttpsUrl(`${MOCK_S3_BUCKET_URL}${uniqueString.uniqueString()}`),
+        ),
+      } satisfies backend.UploadLargeFileMetadata
+    })
+    await post(remoteBackendPaths.UPLOAD_FILE_END_PATH + '*', (_route, request) => {
       // The type of the search params sent by this app is statically known.
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, no-restricted-syntax
-      const searchParams: SearchParams = Object.fromEntries(
-        new URL(request.url()).searchParams.entries(),
-      ) as never
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const body: backend.UploadFileEndRequestBody = request.postDataJSON()
 
-      const file = addFile(
-        searchParams.file_name,
-        searchParams.parent_directory_id == null ?
-          {}
-        : { parentId: searchParams.parent_directory_id },
-      )
+      const file = addFile(body.fileName, {
+        id: backend.FileId(body.uploadId),
+        title: body.fileName,
+        ...(body.parentDirectoryId != null ? { parentId: body.parentDirectoryId } : {}),
+      })
 
-      return { path: '', id: file.id, project: null } satisfies backend.FileInfo
+      return { id: file.id, project: null } satisfies backend.UploadedLargeAsset
     })
 
     await post(remoteBackendPaths.CREATE_SECRET_PATH + '*', async (_route, request) => {
