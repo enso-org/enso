@@ -1,0 +1,61 @@
+private
+
+from Standard.Base import all
+
+## PRIVATE
+internal_upload_in_memory_table (source_table : Table) connection table_name primary_key temporary remove_after_transaction structure_hint on_problems:Problem_Behavior row_limit = table_name.if_not_error <|
+    check_outside_transaction
+    verify_structure_hint structure_hint source_table.column_names
+
+    column_names = source_table.column_names
+    insert_template = make_batched_insert_template connection table_name column_names
+    statement_setter = connection.dialect.get_statement_setter
+    structure = structure_hint.if_nothing source_table
+    aligned_structure = align_structure connection structure
+    expected_type_hints = aligned_structure.map .value_type
+    table_description = Transactional_Table_Description.Value table_name temporary=temporary structure=aligned_structure primary_key=primary_key remove_after_transaction=remove_after_transaction on_problems=on_problems
+
+    callback _ = In_Transaction.ensure_in_transaction <|
+        upload_status = internal_translate_known_upload_errors source_table connection primary_key <|
+            Panic.rethrow <|
+                connection.jdbc_connection.batch_insert insert_template statement_setter source_table batch_size=default_batch_size expected_type_hints=expected_type_hints row_limit=row_limit
+
+        upload_status.if_not_error <|
+            connection.query (SQL_Query.Table_Name table_name)
+
+    Table_Upload_Operation.Value table_description callback
+
+## PRIVATE
+internal_upload_database_table (source_table : DB_Table) connection table_name primary_key temporary remove_after_transaction structure_hint on_problems:Problem_Behavior row_limit =
+    check_outside_transaction
+    connection_check = if source_table.connection.jdbc_connection == connection.jdbc_connection then True else
+        Error.throw Different_Connections.Error
+    verify_structure_hint structure_hint source_table.column_names
+    connection_check.if_not_error <| table_name.if_not_error <|
+        structure = structure_hint.if_nothing source_table
+        aligned_structure = align_structure connection structure
+        table_description = Transactional_Table_Description.Value table_name temporary=temporary structure=aligned_structure primary_key=primary_key remove_after_transaction=remove_after_transaction on_problems=on_problems
+
+        effective_source_table = case row_limit of
+            Nothing -> source_table
+            _ : Integer -> source_table.limit row_limit
+        ## We need to ensure that the columns in this statement are
+           matching positionally the columns in the newly created
+           table. But we create both from the same source table, so
+           that is guaranteed.
+        copy_into_statement = connection.dialect.generate_sql <|
+            Query.Insert_From_Select table_name effective_source_table.column_names effective_source_table.to_select_query
+
+        callback _ = In_Transaction.ensure_in_transaction <|
+            upload_status =
+                internal_translate_known_upload_errors source_table connection primary_key <|
+                    Panic.rethrow <| connection.execute_update copy_into_statement
+            upload_status.if_not_error <|
+                connection.query (SQL_Query.Table_Name table_name)
+
+        Table_Upload_Operation.Value table_description callback
+
+## PRIVATE
+check_outside_transaction =
+    if In_Transaction.is_in_transaction then
+        Panic.throw (Illegal_State.Error "Preparing Table_Upload_Operation should itself be called outside of transaction. This is a bug in the Database library.")
