@@ -4,6 +4,7 @@ import project.Internal.IR.Context.Context
 import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
+import project.SQL_Statement.SQL_Statement
 
 ## PRIVATE
 
@@ -31,12 +32,13 @@ type From_Spec
        A query source that holds a raw SQL statement.
 
        Arguments:
-       - raw_sql: the raw SQL code of a query used as a source for this table.
+       - raw_sql: the raw SQL code of a query used as a source for this table,
+         or a SQL_Statement representing SQL code with interpolated values.
        - alias: the name upon which the table can be referred to in other
          parts of the query, this is especially useful for example in
          self-joins, allowing to differentiate between different instances of
          the same table.
-    Query (raw_sql : Text) (alias : Text)
+    Query (raw_sql : Text | SQL_Statement) (alias : Text)
 
     ## PRIVATE
 

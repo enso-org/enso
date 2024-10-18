@@ -19,6 +19,7 @@ import project.DB_Table as DB_Table_Module
 import project.DB_Table.DB_Table
 import project.Dialect.Dialect
 import project.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties
+import project.Internal.Data_Link_Setup.Data_Link_Setup
 import project.Internal.DDL_Transaction
 import project.Internal.Hidden_Table_Registry
 import project.Internal.In_Transaction.In_Transaction
@@ -59,7 +60,9 @@ type Connection
          `False`.
        - hidden_table_registry: a registry of hidden tables that are not
          shown to the user, but are used internally by the dry-run system.
-    Value jdbc_connection dialect (entity_naming_properties : Entity_Naming_Properties) (supports_large_update : Ref Boolean) (hidden_table_registry : Hidden_Table_Registry.Hidden_Table_Registry)
+       - data_link_setup: an optional setup allowing for saving the connection
+         as a data link.
+    Value jdbc_connection dialect (entity_naming_properties : Entity_Naming_Properties) (supports_large_update : Ref Boolean) (hidden_table_registry : Hidden_Table_Registry.Hidden_Table_Registry) (data_link_setup : Data_Link_Setup | Nothing = Nothing)
 
     ## PRIVATE
        Constructs a new Connection.
@@ -221,9 +224,7 @@ type Connection
                 make_table_for_name self name alias
         SQL_Query.Raw_SQL raw_sql -> handle_sql_errors <| alias.if_not_error <|
             self.dialect.ensure_query_has_no_holes self.jdbc_connection raw_sql . if_not_error <|
-                columns = self.fetch_columns raw_sql Statement_Setter.null
-                name = if alias == "" then (UUID.randomUUID.to_text) else alias
-                ctx = Context.for_query raw_sql name
+                r = make_table_from_query self raw_sql alias
                 ## Any problems are treated as errors - e.g. if the query
                    contains clashing column names, it may very likely lead to
                    data corruption. Our renaming mechanism is used to fix issues
@@ -233,7 +234,6 @@ type Connection
                    will actually result in both columns `A` and `A 1` containing
                    the value 1; and value 2 being lost. That is why such queries
                    must fail.
-                r = DB_Table_Module.make_table self name columns ctx on_problems=Problem_Behavior.Report_Error
                 r.catch Any error->
                     Error.throw (Illegal_Argument.Error "The provided custom SQL query is invalid and may suffer data corruption when being processed, especially if it contains aliased column names, it may not be interpreted correctly. Please ensure the names are unique. The original error was: "+error.to_display_text cause=error)
 
@@ -476,6 +476,14 @@ type Connection
     create_literal_table self (source : Table) (alias : Text) -> DB_Table =
         DB_Table_Module.make_literal_table self (source.columns.map .to_vector) source.column_names alias
 
+    ## ICON data_output
+       Creates a Data Link that will open the same connection.
+    @on_existing_file (Existing_File_Behavior.widget include_backup=False include_append=False)
+    save_as_data_link self destination (on_existing_file:Existing_File_Behavior = Existing_File_Behavior.Error) =
+        case self.data_link_setup of
+            Nothing -> Error.throw (Illegal_State.Error "This connection does not support saving it as a data link.")
+            data_link_setup -> data_link_setup.save_as_data_link destination on_existing_file
+
 
 ## PRIVATE
 make_table_types_selector : Connection -> Widget
@@ -509,6 +517,13 @@ make_structure_creator : Widget
 make_structure_creator =
     item_editor = Single_Choice display=Display.Always values=[Option "new column" "(Column_Description.Value)"]
     Vector_Editor item_editor=item_editor item_default=item_editor.values.first.value display=Display.Always
+
+## PRIVATE
+make_table_from_query connection query:Text|SQL_Statement alias:Text -> DB_Table =
+    columns = connection.fetch_columns raw_sql Statement_Setter.null
+    name = if alias == "" then (UUID.randomUUID.to_text) else alias
+    ctx = Context.for_query query name
+    DB_Table_Module.make_table connection name columns ctx on_problems=Problem_Behavior.Report_Error
 
 ## PRIVATE
 make_table_for_name connection name alias internal_temporary_keep_alive_reference=Nothing =
