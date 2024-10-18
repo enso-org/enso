@@ -89,6 +89,7 @@
 use crate::prelude::*;
 
 use crate::lexer::Lexer;
+use crate::macros::resolver::RootContext;
 use crate::source::Code;
 use crate::syntax::token;
 use crate::syntax::tree::SyntaxError;
@@ -163,9 +164,18 @@ impl Parser {
         Self { macros }
     }
 
-    /// Main entry point.
-    pub fn run<'s>(&self, code: &'s str) -> syntax::Tree<'s> {
-        let resolver = macros::resolver::Resolver::new(&self.macros);
+    /// Main entry point. Interprets the input as a module, and returns the resulting [`BodyBlock`].
+    pub fn parse_module<'s>(&self, code: &'s str) -> syntax::Tree<'s> {
+        self.run(code, RootContext::Module)
+    }
+
+    /// Parses the input as a block.
+    pub fn parse_block<'s>(&self, code: &'s str) -> syntax::Tree<'s> {
+        self.run(code, RootContext::Block)
+    }
+
+    fn run<'s>(&self, code: &'s str, root_context: RootContext) -> syntax::Tree<'s> {
+        let resolver = macros::resolver::Resolver::new(&self.macros, root_context);
         let ParseResult { value, internal_error } = Lexer::new(code, resolver).finish();
         if let Some(error) = internal_error {
             return value.with_error(format!("Internal error: {error}"));
@@ -294,7 +304,7 @@ mod benches {
         let str = "type Option a b c\n".repeat(reps);
         let parser = Parser::new();
         bencher.iter(move || {
-            parser.run(&str);
+            parser.parse_module(&str);
         });
     }
 
@@ -336,7 +346,7 @@ mod benches {
         let parser = Parser::new();
         bencher.bytes = str.len() as u64;
         bencher.iter(move || {
-            parser.run(&str);
+            parser.parse_module(&str);
         });
     }
 
@@ -371,7 +381,7 @@ mod benches {
         let parser = Parser::new();
         bencher.bytes = str.len() as u64;
         bencher.iter(move || {
-            parser.run(&str);
+            parser.parse_module(&str);
         });
     }
 }
