@@ -228,6 +228,7 @@ type SQLServer_Dialect
         case feature of
             Feature.Select_Columns -> True
             Feature.Sort -> True
+            Feature.Filter -> True
             _ -> False
 
     ## PRIVATE
@@ -302,6 +303,58 @@ type SQLServer_Dialect
            We can skip this check and still get a decent error message
         if raw_sql.contains "#" . not then
             jdbc.ensure_query_has_no_holes raw_sql
+
+    generate_expression self dialect expr = case expr.first of
+        SQL_Expression.Column origin name ->
+            r = dialect.wrap_identifier origin ++ '.' ++ dialect.wrap_identifier name
+            pair r expr.second+[r]
+        SQL_Expression.Constant value -> SQL_Builder.interpolation value
+        SQL_Expression.Literal value -> SQL_Builder.code value
+        SQL_Expression.Text_Literal value ->
+            escaped = value.replace "'" "''"
+            SQL_Builder.code ("'" + escaped + "'")
+        SQL_Expression.Operation kind arguments metadata ->
+            op = dialect.dialect_operations.operations_dict.get kind (Error.throw <| Unsupported_Database_Operation.Error kind)
+            parsed_args = arguments.map (c -> self.generate_expression dialect (pair c []))
+            parsed_args2 = parsed_args.map .first
+            result = op parsed_args2
+            null_checks = parsed_args.map .second
+            # If the function expects more arguments, we pass the metadata as the last argument.
+            r = case result of
+                _ : Function -> result metadata
+                _ -> result
+            pair r null_checks
+        SQL_Expression.Let _ binder bindee body ->
+            wrapped_binder = dialect.wrap_identifier binder
+            bindee_exp = SQL_Builder.code "SELECT " ++ (self.generate_expression dialect bindee).paren ++ " AS " ++ "x"
+
+            body_sql_builder = self.let_bindings_ref.with_modification (h-> h.insert binder) <|
+                self.generate_expression dialect body
+
+            body_exp = SQL_Builder.code "SELECT " ++ body_sql_builder ++ " FROM " ++ wrapped_binder
+            (SQL_Builder.code "WITH " ++ wrapped_binder  ++ " AS " ++ bindee_exp.paren ++ " " ++ body_exp).paren
+        SQL_Expression.Let_Ref _ binder standalone_expression ->
+            binding_state = self.let_bindings_ref.get
+            case binding_state.contains binder of
+                True ->
+                    wrapped_binder = dialect.wrap_identifier binder
+                    wrapped_binder ++ "." ++ "x"
+                False ->
+                    self.generate_expression dialect standalone_expression
+        query : Query -> self.generate_sub_query dialect query
+        descriptor : Order_Descriptor -> self.generate_order dialect descriptor
+
+
+    generate_column self base_gen expr:(SQL_Expression | Order_Descriptor | Query) name:Text -> SQL_Builder =
+        it = pair expr []
+        x = self.generate_expression self it
+        IO.println (x.second.at 0 . at 0)
+        null_check = (x.second.map it->((it.at 0).paren ++ " IS NULL ")) . fold (SQL_Builder.code "1=0 ") acc-> i-> acc ++ "OR " ++ i
+        
+        x1 = (SQL_Builder.code "CASE WHEN " ++ null_check ++ " THEN NULL WHEN " ++ x.first ++ " THEN 1 ELSE 0 END")
+        IO.println x1.build
+        y = Base_Generator.alias self name
+        x1 ++ y
 
 ## PRIVATE
 make_dialect_operations =
