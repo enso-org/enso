@@ -15,7 +15,8 @@
     "url": "https://github.com/enso-org/enso/issues"
   },
   "scripts": {
-    "build": "node src/index.js"
+    "build": "node src/index.js",
+    "lint": "eslint . --max-warnings=0"
   },
   "devDependencies": {
     "sharp": "^0.31.2",
