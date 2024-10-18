@@ -5,14 +5,18 @@
 import * as React from 'react'
 
 import * as authProvider from '#/providers/AuthProvider'
-import { useSelectedKeys, useSetSelectedKeys } from '#/providers/DriveProvider'
+import { useDriveStore, useSelectedKeys, useSetSelectedKeys } from '#/providers/DriveProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import AssetEventType from '#/events/AssetEventType'
 
 import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
-import { type Category, isCloudCategory } from '#/layouts/CategorySwitcher/Category'
+import {
+  canTransferBetweenCategories,
+  type Category,
+  isCloudCategory,
+} from '#/layouts/CategorySwitcher/Category'
 import GlobalContextMenu from '#/layouts/GlobalContextMenu'
 
 import ContextMenu from '#/components/ContextMenu'
@@ -25,10 +29,10 @@ import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 
 import type * as assetTreeNode from '#/utilities/AssetTreeNode'
-import type * as pasteDataModule from '#/utilities/pasteData'
 import * as permissions from '#/utilities/permissions'
 import { EMPTY_SET } from '#/utilities/set'
 import * as uniqueString from '#/utilities/uniqueString'
+import { useStore } from 'zustand'
 
 // =================
 // === Constants ===
@@ -40,7 +44,6 @@ export interface AssetsTableContextMenuProps {
   readonly backend: Backend
   readonly category: Category
   readonly rootDirectoryId: backendModule.DirectoryId
-  readonly pasteData: pasteDataModule.PasteData<ReadonlySet<backendModule.AssetId>> | null
   readonly nodeMapRef: React.MutableRefObject<
     ReadonlyMap<backendModule.AssetId, assetTreeNode.AnyAssetTreeNode>
   >
@@ -59,7 +62,7 @@ export interface AssetsTableContextMenuProps {
  * are selected.
  */
 export default function AssetsTableContextMenu(props: AssetsTableContextMenuProps) {
-  const { hidden = false, backend, category, pasteData } = props
+  const { hidden = false, backend, category } = props
   const { nodeMapRef, event, rootDirectoryId } = props
   const { doCopy, doCut, doPaste, doDelete } = props
   const { user } = authProvider.useFullUserSession()
@@ -69,6 +72,17 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const selectedKeys = useSelectedKeys()
   const setSelectedKeys = useSetSelectedKeys()
+  const driveStore = useDriveStore()
+  const hasPasteData = useStore(driveStore, ({ pasteData }) => {
+    const effectivePasteData =
+      (
+        pasteData?.data.backendType === backend.type &&
+        canTransferBetweenCategories(pasteData.data.category, category)
+      ) ?
+        pasteData
+      : null
+    return (effectivePasteData?.data.ids.size ?? 0) > 0
+  })
 
   // This works because all items are mutated, ensuring their value stays
   // up to date.
@@ -116,6 +130,24 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
     }
   }
 
+  const pasteAllMenuEntry = hasPasteData && (
+    <ContextMenuEntry
+      hidden={hidden}
+      action="paste"
+      label={getText('pasteAllShortcut')}
+      doAction={() => {
+        const [firstKey] = selectedKeys
+        const selectedNode =
+          selectedKeys.size === 1 && firstKey != null ? nodeMapRef.current.get(firstKey) : null
+        if (selectedNode?.type === backendModule.AssetType.directory) {
+          doPaste(selectedNode.key, selectedNode.item.id)
+        } else {
+          doPaste(rootDirectoryId, rootDirectoryId)
+        }
+      }}
+    />
+  )
+
   if (category.type === 'trash') {
     return selectedKeys.size === 0 ?
         null
@@ -161,6 +193,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
                 }}
               />
             )}
+            {pasteAllMenuEntry}
           </ContextMenu>
         </ContextMenus>
   } else if (category.type === 'recent') {
@@ -168,9 +201,9 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   } else {
     return (
       <ContextMenus key={uniqueString.uniqueString()} hidden={hidden} event={event}>
-        {selectedKeys.size !== 0 && (
+        {(selectedKeys.size !== 0 || pasteAllMenuEntry !== false) && (
           <ContextMenu aria-label={getText('assetsTableContextMenuLabel')} hidden={hidden}>
-            {ownsAllSelectedAssets && (
+            {selectedKeys.size !== 0 && ownsAllSelectedAssets && (
               <ContextMenuEntry
                 hidden={hidden}
                 action="delete"
@@ -178,7 +211,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
                 doAction={doDeleteAll}
               />
             )}
-            {isCloud && (
+            {selectedKeys.size !== 0 && isCloud && (
               <ContextMenuEntry
                 hidden={hidden}
                 action="copy"
@@ -186,7 +219,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
                 doAction={doCopy}
               />
             )}
-            {ownsAllSelectedAssets && (
+            {selectedKeys.size !== 0 && ownsAllSelectedAssets && (
               <ContextMenuEntry
                 hidden={hidden}
                 action="cut"
@@ -194,25 +227,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
                 doAction={doCut}
               />
             )}
-            {pasteData != null && pasteData.data.size > 0 && (
-              <ContextMenuEntry
-                hidden={hidden}
-                action="paste"
-                label={getText('pasteAllShortcut')}
-                doAction={() => {
-                  const [firstKey] = selectedKeys
-                  const selectedNode =
-                    selectedKeys.size === 1 && firstKey != null ?
-                      nodeMapRef.current.get(firstKey)
-                    : null
-                  if (selectedNode?.type === backendModule.AssetType.directory) {
-                    doPaste(selectedNode.key, selectedNode.item.id)
-                  } else {
-                    doPaste(rootDirectoryId, rootDirectoryId)
-                  }
-                }}
-              />
-            )}
+            {pasteAllMenuEntry}
           </ContextMenu>
         )}
         {(category.type !== 'cloud' ||
@@ -221,7 +236,6 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
           <GlobalContextMenu
             hidden={hidden}
             backend={backend}
-            hasPasteData={pasteData != null}
             rootDirectoryId={rootDirectoryId}
             directoryKey={null}
             directoryId={null}

@@ -75,7 +75,7 @@ jobs:
   enso-build-ci-gen-job-ci-check-backend-graal-vm-ce-macos-amd64:
     name: Engine (GraalVM CE) (macos, amd64)
     runs-on:
-      - macos-12
+      - macos-13
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
@@ -220,7 +220,7 @@ jobs:
   enso-build-ci-gen-job-jvm-tests-graal-vm-ce-macos-amd64:
     name: JVM Tests (GraalVM CE) (macos, amd64)
     runs-on:
-      - macos-12
+      - macos-13
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
@@ -390,7 +390,7 @@ jobs:
   enso-build-ci-gen-job-standard-library-tests-graal-vm-ce-macos-amd64:
     name: Standard Library Tests (GraalVM CE) (macos, amd64)
     runs-on:
-      - macos-12
+      - macos-13
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack

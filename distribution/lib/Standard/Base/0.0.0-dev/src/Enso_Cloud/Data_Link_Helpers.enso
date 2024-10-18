@@ -182,3 +182,27 @@ disallow_links_in_move source target ~action =
     if is_source_data_link && is_target_data_link then Error.throw (Illegal_Argument.Error "The `move_to` operation cannot be used with data links. If you want to move the link, use `Data_Link.move`.") else
         if is_source_data_link || is_target_data_link then Error.throw (Illegal_Argument.Error "The `move_to` operation cannot be used with data links. Please `.read` the data link and then write the data to the destination using the appropriate method.") else
             action
+
+## PRIVATE
+   Takes a secure value (either a Text or Enso_Secret) and returns a secret representation of it.
+
+   If given an existing secret, it will be returned as-is.
+   However, if given a plain text, it will create a new secret in the provided directory.
+
+   Because it may be creating new secret, this should only be run within an enabled Output context.
+store_as_secret base_location:Enso_File name_hint:Text secure_value:Text|Enso_Secret -> Enso_Secret = case secure_value of
+    existing_secret : Enso_Secret -> existing_secret
+    plain_text : Text ->
+        create_fresh_secret ix =
+            secret_name = name_hint + (if ix == 0 then "" else "-"+ix.to_text)
+            r = Enso_Secret.create secret_name plain_text base_location
+            r.catch Illegal_Argument error->
+                if error.message.contains "already exists" then create_fresh_secret ix+1 else r
+        create_fresh_secret 0
+
+## PRIVATE
+save_password_for_data_link data_link_location:Enso_File secure_value:Text|Enso_Secret name_hint:Text="password" -> Enso_Secret =
+    secret_location = data_link_location.parent.if_nothing (Error.throw (Illegal_State.Error "Trying to create a secret to store the Data Link password, but the provided data link location: "+data_link_location.to_text+" does not have a parent directory. This should not happen."))
+    location_name = if data_link_location.name.ends_with data_link_extension then data_link_location.name.drop (..Last data_link_extension.length) else data_link_location.name
+    secret_location.if_not_error <|
+        store_as_secret secret_location location_name+"-"+name_hint secure_value

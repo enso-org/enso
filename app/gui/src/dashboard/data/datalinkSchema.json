@@ -8,7 +8,8 @@
         { "$ref": "#/$defs/EnsoFileDataLink" },
         { "$ref": "#/$defs/HttpFetchDataLink" },
         { "$ref": "#/$defs/PostgresDataLink" },
-        { "$ref": "#/$defs/SnowflakeDataLink" }
+        { "$ref": "#/$defs/SnowflakeDataLink" },
+        { "$ref": "#/$defs/SQLServerDataLink" }
       ],
       "$comment": "The fields `type` and `libraryName` are required for all data link types, but we currently don't add a top-level `required` setting to the schema, because it was confusing the code that is generating the modal."
     },
@@ -235,6 +236,50 @@
         "table": { "title": "Table to access", "type": "string" }
       },
       "required": ["type", "libraryName", "account", "database_name", "credentials"]
+    },
+    "SQLServerDataLink": {
+      "title": "SQL Server Database Connection",
+      "type": "object",
+      "properties": {
+        "type": {
+          "title": "Type",
+          "const": "SQLServer_Connection",
+          "type": "string"
+        },
+        "libraryName": { "const": "Standard.Microsoft" },
+        "host": {
+          "title": "Hostname",
+          "type": "string"
+        },
+        "port": {
+          "title": "Port",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535,
+          "default": 1433
+        },
+        "database_name": {
+          "title": "Database Name",
+          "type": "string"
+        },
+        "credentials": {
+          "title": "Credentials",
+          "type": "object",
+          "properties": {
+            "username": {
+              "title": "Username",
+              "$ref": "#/$defs/SecureValue"
+            },
+            "password": {
+              "title": "Password",
+              "$ref": "#/$defs/SecureValue"
+            }
+          },
+          "required": ["username", "password"]
+        },
+        "table": { "title": "Table to access", "type": "string" }
+      },
+      "required": ["type", "libraryName", "host", "port", "database_name"]
     },
 
     "Format": {
