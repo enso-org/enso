@@ -299,7 +299,8 @@ export function useTableNewArgument(
     contextMenuItems: [removeRowMenuItem],
     cellStyle: { color: 'rgba(0, 0, 0, 0.4)' },
     lockPosition: 'left',
-    rowDrag: ({ data }) => data?.index != null && data.index < rowCount.value,
+    rowDrag: ({ data }: { data: RowData | undefined }) =>
+      data?.index != null && data.index < rowCount.value,
   }))
 
   const columnDefs = computed(() => {
