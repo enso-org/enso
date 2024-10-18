@@ -3101,6 +3101,11 @@ lazy val `runtime-parser` =
       frgaalJavaCompilerSetting,
       annotationProcSetting,
       commands += WithDebugCommand.withDebug,
+      // Java annotation processor in `runtime-parser-processor` generates scala
+      // case classes. This setting ensures that all the generated `*.scala` files
+      // are picked by the sbt for compilation.
+      Compile / managedSources ++=
+        Utils.listAllGeneratedScalaFiles.value,
       fork := true,
       libraryDependencies ++= Seq(
         "junit"            % "junit"                   % junitVersion       % Test,
