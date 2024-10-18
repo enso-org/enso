@@ -349,13 +349,12 @@ impl JobArchetype for SnowflakeTests {
                         crate::libraries_tests::snowflake::env::ENSO_SNOWFLAKE_WAREHOUSE,
                     );
 
-                // Temporarily disabled until we can get the Cloud auth fixed.
-                // Snowflake does not rely on cloud anyway, so it can be disabled.
-                // But it will rely once we add datalink tests, so this should be fixed soon.
-                // let updated_main_step = enable_cloud_tests(main_step);
+                // Snowflake tests are run only in the 'Extra' job, so it is okay to run it with
+                // Enso Cloud as well. They need it to test data link integration.
+                let updated_main_step = enable_cloud_tests(main_step);
 
                 vec![
-                    main_step,
+                    updated_main_step,
                     step::extra_stdlib_test_reporter(target, GRAAL_EDITION_FOR_EXTRA_TESTS),
                 ]
             })
