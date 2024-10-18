@@ -55,13 +55,9 @@ const PROJECT_SCHEMA = z
   .readonly()
 const LAUNCHED_PROJECT_SCHEMA = z.array(PROJECT_SCHEMA).readonly()
 
-/**
- * Launched project information.
- */
+/** Launched project information. */
 export type LaunchedProject = z.infer<typeof PROJECT_SCHEMA>
-/**
- * Launched project ID.
- */
+/** Launched project ID. */
 export type LaunchedProjectId = backendModule.ProjectId
 
 LocalStorage.registerKey('launchedProjects', {

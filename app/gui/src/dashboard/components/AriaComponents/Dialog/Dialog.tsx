@@ -23,9 +23,7 @@ import { DIALOG_BACKGROUND } from './variants'
 // =================
 // === Constants ===
 // =================
-/**
- * Props for the {@link Dialog} component.
- */
+/** Props for the {@link Dialog} component. */
 export interface DialogProps
   extends types.DialogProps,
     Omit<VariantProps<typeof DIALOG_STYLES>, 'scrolledToTop'> {}
@@ -177,9 +175,7 @@ export function Dialog(props: DialogProps) {
 
   const [isScrolledToTop, setIsScrolledToTop] = React.useState(true)
 
-  /**
-   * Handles the scroll event on the dialog content.
-   */
+  /** Handles the scroll event on the dialog content. */
   const handleScroll = (scrollTop: number) => {
     React.startTransition(() => {
       if (scrollTop > 0) {

@@ -35,9 +35,7 @@ test('Disconnect an edge from a port', async ({ page }) => {
   await expect(await edgesToNodeWithBinding(page, 'sum')).toHaveCount(EDGE_PARTS)
 })
 
-/**
- * Scenario: We replace the `sum` parameter in the `prod` node` with the `ten` node.
- */
+/** Scenario: We replace the `sum` parameter in the `prod` node` with the `ten` node. */
 test('Connect an node to a port', async ({ page }) => {
   await initGraph(page)
 
@@ -57,9 +55,7 @@ test('Connect an node to a port', async ({ page }) => {
   await expect(graphNodeByBinding(page, 'prod')).toContainText('ten')
 })
 
-/**
- * As above, but by dragging edge instead of clicking source and target separately.
- */
+/** As above, but by dragging edge instead of clicking source and target separately. */
 test('Connect an node to a port via dragging the edge', async ({ page }) => {
   await initGraph(page)
 

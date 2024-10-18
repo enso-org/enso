@@ -116,9 +116,7 @@ class TestCase {
   /** The expected unresolved symbols. */
   readonly expectedUnresolvedSymbols = new MappedSet<SourceRange>(sourceRangeKey)
 
-  /**
-   * @param code The code of the program to be tested, without annotations.
-   */
+  /** @param code The code of the program to be tested, without annotations. */
   constructor(public readonly code: string) {}
 
   /** Parse from the annotated code. */

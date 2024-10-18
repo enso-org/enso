@@ -74,9 +74,7 @@ interface UserAttributes {
 }
 /* eslint-enable @typescript-eslint/naming-convention */
 
-/**
- * The type of multi-factor authentication (MFA) that the user has set up.
- */
+/** The type of multi-factor authentication (MFA) that the user has set up. */
 export type MfaType = 'NOMFA' | 'SMS_MFA' | 'SOFTWARE_TOKEN_MFA' | 'TOTP'
 
 /**
@@ -244,9 +242,7 @@ export class Cognito {
     return userInfo.attributes['custom:organizationId'] ?? null
   }
 
-  /**
-   * Gets user email from cognito
-   */
+  /** Gets user email from cognito */
   async email() {
     // This `any` comes from a third-party API and cannot be avoided.
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -337,9 +333,7 @@ export class Cognito {
     return result.mapErr(intoAmplifyErrorOrThrow).mapErr(intoSignInWithPasswordErrorOrThrow)
   }
 
-  /**
-   * Refresh the current user session.
-   */
+  /** Refresh the current user session. */
   async refreshUserSession() {
     const result = await results.Result.wrapAsync(async () => {
       const currentUser = await currentAuthenticatedUser()
@@ -432,9 +426,7 @@ export class Cognito {
     }
   }
 
-  /**
-   * Start the TOTP setup process. Returns the secret and the URL to scan the QR code.
-   */
+  /** Start the TOTP setup process. Returns the secret and the URL to scan the QR code. */
   async setupTOTP() {
     const email = await this.email()
     const cognitoUserResult = await currentAuthenticatedUser()
@@ -472,9 +464,7 @@ export class Cognito {
     }
   }
 
-  /**
-   * Set the user's preferred MFA method.
-   */
+  /** Set the user's preferred MFA method. */
   async updateMFAPreference(mfaMethod: MfaType) {
     const cognitoUserResult = await currentAuthenticatedUser()
     if (cognitoUserResult.ok) {
@@ -488,9 +478,7 @@ export class Cognito {
     }
   }
 
-  /**
-   * Get the user's preferred MFA method.
-   */
+  /** Get the user's preferred MFA method. */
   async getMFAPreference() {
     const cognitoUserResult = await currentAuthenticatedUser()
     if (cognitoUserResult.ok) {
@@ -523,9 +511,7 @@ export class Cognito {
     }
   }
 
-  /**
-   * Confirm the sign in with the MFA token.
-   */
+  /** Confirm the sign in with the MFA token. */
   async confirmSignIn(
     user: amplify.CognitoUser,
     confirmationCode: string,

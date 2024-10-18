@@ -47,6 +47,7 @@ const EXTENSION = '.enso'
 
 const debugLog = createDebug('ydoc-server:session')
 
+/** TODO: Add docs */
 export class LanguageServerSession {
   clientId: Uuid
   indexDoc: WSSharedDoc
@@ -62,6 +63,7 @@ export class LanguageServerSession {
 
   static DEBUG = false
 
+  /** Create a {@link LanguageServerSession}. */
   constructor(url: string) {
     this.clientScope = new AbortScope()
     this.clientId = random.uuidv4() as Uuid
@@ -89,6 +91,8 @@ export class LanguageServerSession {
   }
 
   static sessions = new Map<string, LanguageServerSession>()
+
+  /** Get a {@link LanguageServerSession} by its URL. */
   static get(url: string): LanguageServerSession {
     const session = map.setIfUndefined(
       LanguageServerSession.sessions,
@@ -201,6 +205,7 @@ export class LanguageServerSession {
     )
   }
 
+  /** TODO: Add docs */
   async scanSourceFiles() {
     this.assertProjectRoot()
     const sourceDir: Path = { rootId: this.projectRootId, segments: [SOURCE_DIR] }
@@ -211,11 +216,13 @@ export class LanguageServerSession {
     )
   }
 
+  /** TODO: Add docs */
   tryGetExistingModuleModel(path: Path): ModulePersistence | undefined {
     const name = pathToModuleName(path)
     return this.authoritativeModules.get(name)
   }
 
+  /** TODO: Add docs */
   getModuleModel(path: Path): ModulePersistence {
     const name = pathToModuleName(path)
     return map.setIfUndefined(this.authoritativeModules, name, () => {
@@ -233,10 +240,12 @@ export class LanguageServerSession {
     })
   }
 
+  /** TODO: Add docs */
   retain() {
     this.retainCount += 1
   }
 
+  /** TODO: Add docs */
   async release(): Promise<void> {
     this.retainCount -= 1
     if (this.retainCount !== 0) return
@@ -249,6 +258,7 @@ export class LanguageServerSession {
     await Promise.all(moduleDisposePromises)
   }
 
+  /** Get a YDoc by its id. */
   getYDoc(guid: string): WSSharedDoc | undefined {
     return this.docs.get(guid)
   }
@@ -335,9 +345,8 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
   private setState(state: LsSyncState) {
     if (this.state !== LsSyncState.Disposed) {
       debugLog('State change: %o -> %o', LsSyncState[this.state], LsSyncState[state])
-      // This is SAFE. `this.state` is only `readonly` to ensure that this is the only place
-      // where it is mutated.
-      // @ts-expect-error
+      // @ts-expect-error This is SAFE. `this.state` is only `readonly` to ensure that
+      // this is the only place where it is mutated.
       this.state = state
       if (state === LsSyncState.Synchronized) this.trySyncRemoveUpdates()
     } else {
@@ -346,9 +355,8 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
   }
 
   private setLastAction<T>(lastAction: Promise<T>) {
-    // This is SAFE. `this.lastAction` is only `readonly` to ensure that this is the only place
-    // where it is mutated.
-    // @ts-expect-error
+    // @ts-expect-error This is SAFE. `this.lastAction` is only `readonly` to ensure that
+    // this is the only place where it is mutated.
     this.lastAction = lastAction.then(
       () => {},
       () => {},
@@ -356,8 +364,10 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
     return lastAction
   }
 
-  /** Set the current state to the given state while the callback is running.
-   * Set the current state back to {@link LsSyncState.Synchronized} when the callback finishes. */
+  /**
+   * Set the current state to the given state while the callback is running.
+   * Set the current state back to {@link LsSyncState.Synchronized} when the callback finishes.
+   */
   private async withState(state: LsSyncState, callback: () => void | Promise<void>): Promise<void>
   private async withState(
     state: LsSyncState,

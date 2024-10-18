@@ -379,9 +379,7 @@ export default class ProjectManager {
     this.rootDirectory = this.initialRootDirectory
   }
 
-  /**
-   * Dispose of the {@link ProjectManager}.
-   */
+  /** Dispose of the {@link ProjectManager}. */
   async dispose() {
     const socket = await this.socketPromise
     socket.close()

@@ -44,16 +44,12 @@ const RADIO_STYLES = twv.tv({
   ],
 })
 
-/**
- * Props for the {@link Radio} component.
- */
+/** Props for the {@link Radio} component. */
 export interface RadioProps extends aria.RadioProps {
   readonly label?: string
 }
 
-/**
- * A radio button.
- */
+/** A radio button. */
 // eslint-disable-next-line no-restricted-syntax
 export const Radio = forwardRef(function Radio(
   props: RadioProps,

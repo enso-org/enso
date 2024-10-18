@@ -16,9 +16,7 @@ export interface UploadingFile {
 
 // === Awareness wrapper ===
 
-/**
- * A thin wrapper around `Awareness` from `yjs`, providing helper methods for Enso IDE-specific state.
- */
+/** A thin wrapper around `Awareness` from `yjs`, providing helper methods for Enso IDE-specific state. */
 export class Awareness {
   public internal: YjsAwareness
   private uploadingFiles: Map<ClientId, Uploads>

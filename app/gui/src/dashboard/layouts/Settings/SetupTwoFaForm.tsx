@@ -166,9 +166,7 @@ export function SetupTwoFaForm() {
   }
 }
 
-/**
- * Two Factor Authentication Setup Form.
- */
+/** Two Factor Authentication Setup Form. */
 function TwoFa() {
   const { cognito } = useAuth()
   const { getText } = useText()

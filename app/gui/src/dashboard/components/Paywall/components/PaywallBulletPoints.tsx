@@ -16,17 +16,13 @@ import * as textProvider from '#/providers/TextProvider'
 import * as ariaComponents from '#/components/AriaComponents'
 import SvgMask from '#/components/SvgMask'
 
-/**
- * Props for a {@link PaywallBulletPoints}.
- */
+/** Props for a {@link PaywallBulletPoints}. */
 export interface PaywallBulletPointsProps {
   readonly bulletPointsTextId: text.TextId
   readonly className?: string
 }
 
-/**
- * A component that renders a list of bullet points for a paywall.
- */
+/** A component that renders a list of bullet points for a paywall. */
 export function PaywallBulletPoints(props: PaywallBulletPointsProps) {
   const { bulletPointsTextId, className } = props
 

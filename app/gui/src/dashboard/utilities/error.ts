@@ -64,9 +64,7 @@ export function tryGetError<T>(error: MustNotBeKnown<T>): string | null {
     : null
 }
 
-/**
- * Extracts the `stack` property of a value if it is a string. Intended to be used on {@link Error}s.
- */
+/** Extracts the `stack` property of a value if it is a string. Intended to be used on {@link Error}s. */
 export function tryGetStack<T, DefaultMessage extends string | null = null>(
   error: MustNotBeKnown<T>,
   // eslint-disable-next-line no-restricted-syntax
@@ -153,9 +151,7 @@ export function assert<T>(makeValue: () => T | '' | 0 | 0n | false | null | unde
   }
 }
 
-/**
- * Checks if the given error is a JavaScript execution error.
- */
+/** Checks if the given error is a JavaScript execution error. */
 export function isJSError(error: unknown): boolean {
   if (error instanceof TypeError) {
     return true

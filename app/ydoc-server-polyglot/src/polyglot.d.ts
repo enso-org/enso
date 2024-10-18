@@ -1,6 +1,4 @@
-/**
- * @file Type declarations for environment provided in polyglot JVM runtime.
- */
+/** @file Type declarations for environment provided in polyglot JVM runtime. */
 
 declare class WebSocketServer {
   constructor(config: any)

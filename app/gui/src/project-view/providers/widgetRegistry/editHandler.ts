@@ -280,9 +280,7 @@ export interface WidgetEditHooks extends Interaction {
   start?(origin: PortId): void
   end?(origin?: PortId | undefined): void
   childEnded?(origin?: PortId | undefined): void
-  /**
-   * Hook called when a child widget provides an updated value.
-   */
+  /** Hook called when a child widget provides an updated value. */
   edit?(origin: PortId, value: Ast.Owned | string): void
   /**
    * Hook enabling a widget to provide a handler for the add-item intent of a child widget. The parent can return true

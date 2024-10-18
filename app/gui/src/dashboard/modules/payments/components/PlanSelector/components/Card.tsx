@@ -15,21 +15,13 @@ import * as ariaComponents from '#/components/AriaComponents'
 import SvgMask from '#/components/SvgMask'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 
-/**
- * Card props
- */
+/** Card props */
 export interface CardProps extends React.PropsWithChildren, VariantProps<typeof CARD_STYLES> {
-  /**
-   * Card title
-   */
+  /** Card title */
   readonly title: text.TextId
-  /**
-   * Card subtitle
-   */
+  /** Card subtitle */
   readonly subtitle: text.TextId
-  /**
-   * Card features
-   */
+  /** Card features */
   readonly features: string[]
   readonly pricing?: text.TextId
   readonly submitButton?: React.ReactNode
@@ -79,9 +71,7 @@ export const CARD_STYLES = tv({
   },
 })
 
-/**
- * Card component
- */
+/** Card component */
 export function Card(props: CardProps) {
   const {
     children,

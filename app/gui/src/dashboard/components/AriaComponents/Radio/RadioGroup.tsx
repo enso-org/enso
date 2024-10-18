@@ -16,9 +16,7 @@ import type { FieldVariantProps } from '../Form'
 import * as formComponent from '../Form'
 import * as radioGroupContext from './RadioGroupContext'
 
-/**
- * Props for {@link RadioGroup}.
- */
+/** Props for {@link RadioGroup}. */
 export interface RadioGroupProps<
   Schema extends formComponent.TSchema,
   TFieldName extends formComponent.FieldPath<Schema>,
@@ -39,9 +37,7 @@ export const RADIO_GROUP_STYLES = twv.tv({
   variants: { fullWidth: { true: 'w-full' } },
 })
 
-/**
- * A radio group component.
- */
+/** A radio group component. */
 // eslint-disable-next-line no-restricted-syntax
 export const RadioGroup = forwardRef(function RadioGroup<
   Schema extends formComponent.TSchema,

@@ -15,16 +15,12 @@ import * as ariaComponents from '#/components/AriaComponents'
 import * as components from './components'
 import * as upgradeButton from './UpgradeButton'
 
-/**
- * Props for a {@link PaywallDialog}.
- */
+/** Props for a {@link PaywallDialog}. */
 export interface PaywallDialogProps extends ariaComponents.DialogProps {
   readonly feature: billingHooks.PaywallFeatureName
 }
 
-/**
- * A dialog that prompts the user to upgrade to a paid plan.
- */
+/** A dialog that prompts the user to upgrade to a paid plan. */
 export function PaywallDialog(props: PaywallDialogProps) {
   const { feature, type = 'modal', title, ...dialogProps } = props
 

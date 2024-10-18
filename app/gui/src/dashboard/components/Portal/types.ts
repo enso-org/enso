@@ -4,9 +4,7 @@
  */
 import type * as React from 'react'
 
-/**
- * The props for the Portal component
- */
+/** The props for the Portal component */
 export interface PortalProps {
   /**
    * Ref, where `<Portal />` should render its children
@@ -19,9 +17,7 @@ export interface PortalProps {
    * @default false
    */
   readonly isDisabled?: boolean
-  /**
-   * Callback, will be called after portal's children mounted
-   */
+  /** Callback, will be called after portal's children mounted */
   readonly onMount?: () => void
   readonly children?: React.ReactNode
 }

@@ -25,9 +25,7 @@ const props = withDefaults(
     width?: boolean
     /** Enable height transition. Implies `overflow-y: clip` during animation. */
     height?: boolean
-    /**
-     * Compensate for parent grid or flexbox `gap` by animating `margin-left` from negative value.
-     */
+    /** Compensate for parent grid or flexbox `gap` by animating `margin-left` from negative value. */
     leftGap?: boolean
     /** Total animation duration in milliseconds. */
     duration?: number

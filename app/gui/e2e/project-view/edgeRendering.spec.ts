@@ -34,9 +34,7 @@ test('Existence of edges between nodes', async ({ page }) => {
   await expect(await edgesToNodeWithBinding(page, 'five')).toHaveCount(0)
 })
 
-/**
- * Prepare the graph for the tests. We drag the `ten` node to the right for better access to its outgoing edge.
- */
+/** Prepare the graph for the tests. We drag the `ten` node to the right for better access to its outgoing edge. */
 async function initGraph(page: Page) {
   await actions.goToGraph(page)
   await actions.dragNodeByBinding(page, 'ten', 400, 0)

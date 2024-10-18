@@ -19,9 +19,7 @@ import type * as stepperState from './useStepperState'
 /** A prop with the given type, or a function to produce a value of the given type. */
 type StepProp<T> = T | ((props: RenderStepProps) => T)
 
-/**
- * Props for {@link Step} component.
- */
+/** Props for {@link Step} component. */
 export interface StepProps extends RenderStepProps {
   readonly className?: StepProp<string | null | undefined>
   readonly icon?: StepProp<React.ReactElement | string | null | undefined>
@@ -52,9 +50,7 @@ const STEP_STYLES = tv({
   },
 })
 
-/**
- * A step component is used to represent a single step in a stepper component.
- */
+/** A step component is used to represent a single step in a stepper component. */
 export function Step(props: StepProps) {
   const {
     index,

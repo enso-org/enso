@@ -1,10 +1,12 @@
-/** @file Logging utilities.
+/**
+ * @file Logging utilities.
  *
  * This module includes a special {@link addFileLog function} that adds a new log consumer that
  * writes to a file.
  *
  * This is the primary entry point, though its building blocks are also exported,
- * like {@link FileConsumer}. */
+ * like {@link FileConsumer}.
+ */
 
 import * as fsSync from 'node:fs'
 import * as pathModule from 'node:path'
@@ -18,12 +20,14 @@ import * as paths from '@/paths'
 // === Log File ===
 // ================
 
-/** Adds a new log consumer that writes to a file.
+/**
+ * Adds a new log consumer that writes to a file.
  *
  * The path of the log file is {@link generateUniqueLogFileName automatically generated}.
  *
  * The log file is created in the {@link paths.LOGS_DIRECTORY logs directory}
- * @returns The full path of the log file. */
+ * @returns The full path of the log file.
+ */
 export function addFileLog(): string {
   const dirname = paths.LOGS_DIRECTORY
   const filename = generateUniqueLogFileName()
@@ -33,8 +37,10 @@ export function addFileLog(): string {
   return logFilePath
 }
 
-/** Generate a unique log file name based on the current timestamp.
- * @returns The file name log file. */
+/**
+ * Generate a unique log file name based on the current timestamp.
+ * @returns The file name log file.
+ */
 export function generateUniqueLogFileName(): string {
   // Replace ':' with '-' because ':' is not allowed in file names.
   const timestamp = new Date().toISOString().replace(/:/g, '-')
@@ -51,8 +57,10 @@ export class FileConsumer extends linkedDist.log.Consumer {
   private readonly logFilePath: string
   private readonly logFileHandle: number
 
-  /** Create a log consumer that writes to a file.
-   * @param logPath - The path of the log file. Must be writeable. */
+  /**
+   * Create a log consumer that writes to a file.
+   * @param logPath - The path of the log file. Must be writeable.
+   */
   constructor(logPath: string) {
     super()
     // Create the directory if it doesn't exist, otherwise fsSync.openSync will fail.
@@ -85,8 +93,10 @@ export class FileConsumer extends linkedDist.log.Consumer {
     this.message('log', '[GROUP START]', ...args)
   }
 
-  /** Start a collapsed log group - for `FileConsumer`, this does the same thing
-   * as `startGroup`. */
+  /**
+   * Start a collapsed log group - for `FileConsumer`, this does the same thing
+   * as `startGroup`.
+   */
   override startGroupCollapsed(...args: unknown[]): void {
     // We don't have a way to collapse groups in the file logger, so we just use the same
     // function as startGroup.

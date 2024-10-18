@@ -1,6 +1,7 @@
 /** @file Functions for managing app configuration. */
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
+import * as process from 'node:process'
 import * as url from 'node:url'
 
 // ===============================
@@ -19,14 +20,13 @@ export async function readEnvironmentFromFile() {
   const filePath = path.join(url.fileURLToPath(new URL('../..', import.meta.url)), fileName)
   const buildInfo = await (async () => {
     try {
-      return await import('../../../../build.json', { with: { type: 'json' } })
+      return await import('../../../build.json', { with: { type: 'json' } })
     } catch {
       return { commit: '', version: '', engineVersion: '', name: '' }
     }
   })()
   try {
     const file = await fs.readFile(filePath, { encoding: 'utf-8' })
-    // eslint-disable-next-line jsdoc/valid-types
     /** @type {readonly (readonly [string, string])[]} */
     let entries = file.split('\n').flatMap(line => {
       if (/^\s*$|^.s*#/.test(line)) {
@@ -47,14 +47,10 @@ export async function readEnvironmentFromFile() {
     if (!isProduction || entries.length > 0) {
       Object.assign(process.env, variables)
     }
-    // @ts-expect-error This is the only file where `process.env` should be written to.
     process.env.ENSO_CLOUD_DASHBOARD_VERSION ??= buildInfo.version
-    // @ts-expect-error This is the only file where `process.env` should be written to.
     process.env.ENSO_CLOUD_DASHBOARD_COMMIT_HASH ??= buildInfo.commit
   } catch (error) {
-    // @ts-expect-error This is the only file where `process.env` should be written to.
     process.env.ENSO_CLOUD_DASHBOARD_VERSION ??= buildInfo.version
-    // @ts-expect-error This is the only file where `process.env` should be written to.
     process.env.ENSO_CLOUD_DASHBOARD_COMMIT_HASH ??= buildInfo.commit
     const expectedKeys = Object.keys(DUMMY_DEFINES)
       .map(key => key.replace(/^process[.]env[.]/, ''))
@@ -147,7 +143,6 @@ const DUMMY_DEFINES = {
 /** Load test environment variables, useful for when the Cloud backend is mocked or unnecessary. */
 export function loadTestEnvironmentVariables() {
   for (const [k, v] of Object.entries(DUMMY_DEFINES)) {
-    // @ts-expect-error This is the only file where `process.env` should be written to.
     process.env[k.replace(/^process[.]env[.]/, '')] = v
   }
 }

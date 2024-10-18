@@ -12,17 +12,13 @@ import type * as backend from '#/services/Backend'
 import * as paywallConfiguration from './FeaturesConfiguration'
 import * as paywallFeatures from './paywallFeaturesHooks'
 
-/**
- * Props for the {@link usePaywall} hook.
- */
+/** Props for the {@link usePaywall} hook. */
 export interface UsePaywallProps {
   // eslint-disable-next-line no-restricted-syntax
   readonly plan?: backend.Plan | undefined
 }
 
-/**
- * A hook that provides paywall-related functionality.
- */
+/** A hook that provides paywall-related functionality. */
 export function usePaywall(props: UsePaywallProps) {
   const { plan } = props
 

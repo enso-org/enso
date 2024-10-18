@@ -1,6 +1,8 @@
-/** @file Type definitions for modules that currently lack typings on DefinitelyTyped.
+/**
+ * @file Type definitions for modules that currently lack typings on DefinitelyTyped.
  *
- * This file MUST NOT `export {}` so that the modules are visible to other files. */
+ * This file MUST NOT `export {}` so that the modules are visible to other files.
+ */
 
 // Required because this is a build artifact, which does not exist on a clean repository.
 declare module '*/build.json' {

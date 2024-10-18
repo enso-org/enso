@@ -13,9 +13,7 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as textProvider from '#/providers/TextProvider'
 
-/**
- * Props for the useCopy hook.
- */
+/** Props for the useCopy hook. */
 export interface UseCopyProps {
   readonly copyText: string
   readonly onCopy?: () => void
@@ -24,9 +22,7 @@ export interface UseCopyProps {
 
 const DEFAULT_TIMEOUT = 2000
 
-/**
- * A hook for copying text to the clipboard.
- */
+/** A hook for copying text to the clipboard. */
 export function useCopy(props: UseCopyProps) {
   const { copyText, onCopy, successToastMessage = true } = props
 

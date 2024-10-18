@@ -23,16 +23,12 @@ const IGNORE_INTERACT_OUTSIDE_ELEMENTS = [
 
 const IGNORE_INTERACT_OUTSIDE_ELEMENTS_SELECTOR = `:is(${IGNORE_INTERACT_OUTSIDE_ELEMENTS.join(', ')})`
 
-/**
- * Check if the element is a part of a component that should ignore the interact outside event
- */
+/** Check if the element is a part of a component that should ignore the interact outside event */
 export function shouldIgnoreInteractOutside(element: HTMLElement) {
   return element.closest(IGNORE_INTERACT_OUTSIDE_ELEMENTS_SELECTOR)
 }
 
-/**
- * Props for {@link useInteractOutside}
- */
+/** Props for {@link useInteractOutside} */
 export interface UseInteractOutsideProps {
   readonly ref: React.RefObject<HTMLElement>
   readonly id: string
@@ -40,9 +36,7 @@ export interface UseInteractOutsideProps {
   readonly isDisabled?: boolean
 }
 
-/**
- * Hook that handles the interact outside event for the dialog
- */
+/** Hook that handles the interact outside event for the dialog */
 export function useInteractOutside(props: UseInteractOutsideProps) {
   const { ref, id, onInteractOutside, isDisabled = false } = props
   const shouldCloseOnInteractOutsideRef = React.useRef(false)

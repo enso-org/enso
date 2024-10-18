@@ -54,9 +54,7 @@ export function readTokenSpan(token: RawAst.Token, code: string): string {
   return code.substring(range[0], range[1])
 }
 
-/**
- * Read direct AST children.
- */
+/** Read direct AST children. */
 export function childrenAstNodes(obj: LazyObject): RawAst.Tree[] {
   const children: RawAst.Tree[] = []
   const visitor = (obj: LazyObject) => {

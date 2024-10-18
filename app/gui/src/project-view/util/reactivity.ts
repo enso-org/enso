@@ -38,9 +38,7 @@ export function evalWatchSource<T>(src: WatchSource<T>): T {
   return isRef(src) ? src.value : src()
 }
 
-/**
- * Create a `ReactiveEffect`. This is similar to the `effect` function, but doesn't immediately run the created effect.
- */
+/** Create a `ReactiveEffect`. This is similar to the `effect` function, but doesn't immediately run the created effect. */
 export function lazyEffect<T = any>(
   fn: () => T,
   options?: ReactiveEffectOptions,

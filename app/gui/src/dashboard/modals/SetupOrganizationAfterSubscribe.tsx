@@ -150,9 +150,7 @@ export function SetupOrganizationAfterSubscribe() {
   )
 }
 
-/**
- * Props for the SetOrganizationNameForm component.
- */
+/** Props for the SetOrganizationNameForm component. */
 export interface SetOrganizationNameFormProps {
   readonly onSubmit: (name: string) => Promise<void>
 }
@@ -168,9 +166,7 @@ export const SET_ORGANIZATION_NAME_FORM_SCHEMA = (getText: GetText) =>
       .max(ORGANIZATION_NAME_MAX_LENGTH, getText('arbitraryFieldTooLong')),
   })
 
-/**
- * Form for setting the organization name.
- */
+/** Form for setting the organization name. */
 export function SetOrganizationNameForm(props: SetOrganizationNameFormProps) {
   const { onSubmit } = props
   const { getText } = textProvider.useText()
@@ -202,16 +198,12 @@ export function SetOrganizationNameForm(props: SetOrganizationNameFormProps) {
   )
 }
 
-/**
- * Props for the CreateUserGroupForm component.
- */
+/** Props for the CreateUserGroupForm component. */
 export interface CreateUserGroupFormProps {
   readonly onSubmit: (name: string) => Promise<void>
 }
 
-/**
- * Form for creating a user group.
- */
+/** Form for creating a user group. */
 export function CreateUserGroupForm(props: CreateUserGroupFormProps) {
   const { onSubmit } = props
   const { getText } = textProvider.useText()

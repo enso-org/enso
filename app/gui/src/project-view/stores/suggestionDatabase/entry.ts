@@ -72,9 +72,7 @@ export interface SuggestionEntry {
   annotations: string[]
 }
 
-/**
- * Get the fully qualified name of the `SuggestionEntry`, disregarding reexports.
- */
+/** Get the fully qualified name of the `SuggestionEntry`, disregarding reexports. */
 export function entryQn(entry: SuggestionEntry): QualifiedName {
   if (entry.kind == SuggestionKind.Module) {
     return entry.definedIn
@@ -84,9 +82,7 @@ export function entryQn(entry: SuggestionEntry): QualifiedName {
   }
 }
 
-/**
- * Get the MethodPointer pointing to definition represented by the entry.
- */
+/** Get the MethodPointer pointing to definition represented by the entry. */
 export function entryMethodPointer(entry: SuggestionEntry): MethodPointer | undefined {
   if (entry.kind !== SuggestionKind.Method || !entry.memberOf) return
   return {

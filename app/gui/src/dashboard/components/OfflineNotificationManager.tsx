@@ -14,14 +14,10 @@ import * as offlineHooks from '#/hooks/offlineHooks'
 
 import * as textProvider from '#/providers/TextProvider'
 
-/**
- * Props for {@link OfflineNotificationManager}
- */
+/** Props for {@link OfflineNotificationManager} */
 export type OfflineNotificationManagerProps = Readonly<React.PropsWithChildren>
 
-/**
- * Context props for {@link OfflineNotificationManager}
- */
+/** Context props for {@link OfflineNotificationManager} */
 interface OfflineNotificationManagerContextProps {
   readonly isNested: boolean
   readonly toastId?: string
@@ -30,9 +26,7 @@ interface OfflineNotificationManagerContextProps {
 const OfflineNotificationManagerContext =
   React.createContext<OfflineNotificationManagerContextProps>({ isNested: false })
 
-/**
- * Offline Notification Manager component.
- */
+/** Offline Notification Manager component. */
 export function OfflineNotificationManager(props: OfflineNotificationManagerProps) {
   const { children } = props
   const toastId = 'offline'

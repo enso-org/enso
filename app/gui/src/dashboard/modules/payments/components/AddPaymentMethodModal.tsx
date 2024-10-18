@@ -12,18 +12,14 @@ import * as ariaComponents from '#/components/AriaComponents'
 import { AddPaymentMethodForm } from './AddPaymentMethodForm'
 import { StripeProvider } from './StripeProvider'
 
-/**
- * Props for {@link AddPaymentMethodModal}.
- */
+/** Props for {@link AddPaymentMethodModal}. */
 export interface AddPaymentMethodModalProps {
   readonly title: string
   readonly submitText: string
   readonly onSubmit: (paymentMethodId: stripeJs.PaymentMethod['id']) => Promise<void> | void
 }
 
-/**
- * A modal for adding a payment method.
- */
+/** A modal for adding a payment method. */
 export default function AddPaymentMethodModal(props: AddPaymentMethodModalProps) {
   const { title, onSubmit, submitText } = props
 

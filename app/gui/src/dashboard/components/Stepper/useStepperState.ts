@@ -9,30 +9,20 @@ import invariant from 'tiny-invariant'
 
 import * as eventCallbackHooks from '#/hooks/eventCallbackHooks'
 
-/**
- * Direction of the stepper
- */
+/** Direction of the stepper */
 type Direction = 'back-none' | 'back' | 'forward-none' | 'forward' | 'initial'
 
-/**
- * Props for {@link useStepperState}
- */
+/** Props for {@link useStepperState} */
 export interface StepperStateProps {
-  /**
-   * The default step to start on (0-indexed)
-   */
+  /** The default step to start on (0-indexed) */
   readonly defaultStep?: number
-  /**
-   * The number of steps in the stepper (amount of steps is 1-indexed)
-   */
+  /** The number of steps in the stepper (amount of steps is 1-indexed) */
   readonly steps: number
   readonly onStepChange?: (step: number, direction: 'back' | 'forward') => void
   readonly onCompleted?: () => void
 }
 
-/**
- * State for a stepper component
- */
+/** State for a stepper component */
 export interface StepperState {
   readonly currentStep: number
   readonly onStepChange: (step: number) => void
@@ -43,9 +33,7 @@ export interface StepperState {
   readonly percentComplete: number
 }
 
-/**
- * Result of {@link useStepperState}
- */
+/** Result of {@link useStepperState} */
 export interface UseStepperStateResult {
   readonly stepperState: StepperState
   readonly direction: Direction

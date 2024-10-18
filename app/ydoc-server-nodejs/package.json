@@ -12,7 +12,7 @@
     "compile": "node ./build.mjs build",
     "start": "node ./dist/main.mjs",
     "dev:watch": "node ./build.mjs watch",
-    "lint": "eslint .",
+    "lint": "eslint . --max-warnings=0",
     "format": "prettier --version && prettier --write src/ && eslint . --fix"
   },
   "dependencies": {

@@ -14,18 +14,14 @@ import type * as styles from './styles'
 
 export type * from './components'
 
-/**
- * Props for the Form component
- */
+/** Props for the Form component */
 export type FormProps<
   Schema extends components.TSchema,
   SubmitResult = void,
 > = BaseFormProps<Schema> &
   (FormPropsWithOptions<Schema, SubmitResult> | FormPropsWithParentForm<Schema>)
 
-/**
- * Base props for the Form component.
- */
+/** Base props for the Form component. */
 interface BaseFormProps<Schema extends components.TSchema>
   extends Omit<
       React.HTMLProps<HTMLFormElement>,
@@ -48,9 +44,7 @@ interface BaseFormProps<Schema extends components.TSchema>
 
   readonly className?: string | ((props: components.UseFormReturn<Schema>) => string)
 
-  /**
-   * When set to `dialog`, form submission will close the parent dialog on successful submission.
-   */
+  /** When set to `dialog`, form submission will close the parent dialog on successful submission. */
   readonly method?: 'dialog' | (NonNullable<unknown> & string)
 
   readonly canSubmitOffline?: boolean
@@ -93,9 +87,7 @@ interface FormPropsWithOptions<Schema extends components.TSchema, SubmitResult =
   readonly form?: never
 }
 
-/**
- * Register function for a form field.
- */
+/** Register function for a form field. */
 export type UseFormRegister<Schema extends components.TSchema> = <
   TFieldName extends components.FieldPath<Schema> = components.FieldPath<Schema>,
 >(
@@ -103,9 +95,7 @@ export type UseFormRegister<Schema extends components.TSchema> = <
   options?: reactHookForm.RegisterOptions<components.FieldValues<Schema>, TFieldName>,
 ) => UseFormRegisterReturn<Schema, TFieldName>
 
-/**
- * UseFormRegister return type.
- */
+/** UseFormRegister return type. */
 export interface UseFormRegisterReturn<
   Schema extends components.TSchema,
   TFieldName extends components.FieldPath<Schema> = components.FieldPath<Schema>,
@@ -119,9 +109,7 @@ export interface UseFormRegisterReturn<
   readonly isInvalid?: boolean
 }
 
-/**
- * Form Render Props.
- */
+/** Form Render Props. */
 export type FormStateRenderProps<Schema extends components.TSchema> = Pick<
   components.FormInstance<Schema>,
   | 'clearErrors'

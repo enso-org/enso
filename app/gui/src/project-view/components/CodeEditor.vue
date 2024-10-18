@@ -248,7 +248,7 @@ watch(
 )
 onUnmounted(() => graphStore.moduleSource.unobserve(observeSourceChange))
 
-function observeSourceChange(textEdits: SourceRangeEdit[], origin: Origin | undefined) {
+function observeSourceChange(textEdits: readonly SourceRangeEdit[], origin: Origin | undefined) {
   // If we received an update from outside the Code Editor while the editor contained uncommitted changes, we cannot
   // proceed incrementally; we wait for the changes to be merged as Y.Js AST updates, and then set the view to the
   // resulting code.

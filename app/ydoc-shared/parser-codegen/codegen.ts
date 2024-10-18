@@ -35,6 +35,7 @@ const viewIdent = tsf.createIdentifier('view')
 
 // === Public API ===
 
+/** Generate TypeScript code that implements a given schema. */
 export function implement(schema: Schema.Schema): string {
   const file = ts.createSourceFile('source.ts', '', ts.ScriptTarget.ESNext, false, ts.ScriptKind.TS)
   const printer = ts.createPrinter({
