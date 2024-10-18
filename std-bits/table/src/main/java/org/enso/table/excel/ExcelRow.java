@@ -2,7 +2,6 @@ package org.enso.table.excel;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.time.ZoneId;
 
 import org.apache.poi.ss.usermodel.Cell;

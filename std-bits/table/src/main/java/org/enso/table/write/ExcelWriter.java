@@ -29,8 +29,6 @@ import org.enso.table.util.ColumnMapper;
 import org.enso.table.util.NameDeduplicator;
 
 public class ExcelWriter {
-  private static final double SECONDS_IN_A_DAY = 86400.0;
-
   private static Function<Object, String> ensoToTextCallback;
 
   public static Function<Object, String> getEnsoToTextCallback() {
