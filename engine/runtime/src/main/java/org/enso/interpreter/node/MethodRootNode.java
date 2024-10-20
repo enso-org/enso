@@ -210,7 +210,6 @@ public class MethodRootNode extends ClosureRootNode {
     final ExpressionNode replaceItself() {
       try {
         ExpressionNode newNode = replace(provider.get());
-        System.err.println("Node inserted: " + newNode.getEncapsulatingSourceSection());
         notifyInserted(newNode);
         return newNode;
       } catch (CompilerError abnormalException) {
