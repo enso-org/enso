@@ -54,6 +54,16 @@ public class LiteralNode extends ExpressionNode implements Patchable {
   /**
    * Creates an instance of the literal node.
    *
+   * @param value boolean value for the node to represent
+   * @return a node representing the literal given by {@code value}
+   */
+  public static LiteralNode build(boolean value) {
+    return new LiteralNode(value);
+  }
+
+  /**
+   * Creates an instance of the literal node.
+   *
    * @param value big integer value for the node to represent
    * @return a node representing the literal given by {@code value}
    */
