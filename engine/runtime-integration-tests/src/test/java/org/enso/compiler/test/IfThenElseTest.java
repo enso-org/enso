@@ -2,6 +2,7 @@ package org.enso.compiler.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.file.Paths;
@@ -59,5 +60,17 @@ public class IfThenElseTest {
 
     assertEquals("Yes", check.execute(true).asString());
     assertEquals("No", check.execute(false).asString());
+  }
+
+  @Test
+  public void simpleIfThen() throws Exception {
+    var module = ctx.eval("enso", """
+    check x = if x then "Yes"
+    """);
+
+    var check = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "check");
+
+    assertEquals("Yes", check.execute(true).asString());
+    assertTrue("Expect Nothing", check.execute(false).isNull());
   }
 }

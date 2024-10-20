@@ -3,6 +3,7 @@ package org.enso.compiler.pass.desugar;
 import java.util.List;
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.context.ModuleContext;
+import org.enso.compiler.core.ir.Empty;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Literal;
 import org.enso.compiler.core.ir.MetadataStorage;
@@ -65,14 +66,11 @@ public final class IfThenElseToCase implements MiniPassFactory {
           var truePattern =
               new Pattern.Literal(new Literal.Bool(true, null, meta()), trueAt, meta());
           var trueBranch = new Case.Branch(truePattern, expr.trueBranch(), true, trueAt, meta());
-          var branches = Mini.<Case.Branch>nil();
-          if (expr.falseBranch().nonEmpty()) {
-            var falsePattern = new Pattern.Name(new Name.Blank(null, meta()), falseAt, meta());
-            var falseBranch =
-                new Case.Branch(falsePattern, orNull(expr.falseBranch()), true, falseAt, meta());
-            branches = join(falseBranch, nil());
-          }
-          branches = join(trueBranch, branches);
+          var falseCode =
+              expr.falseBranch().nonEmpty() ? expr.falseBranch().get() : new Empty(null, meta());
+          var falsePattern = new Pattern.Name(new Name.Blank(null, meta()), falseAt, meta());
+          var falseBranch = new Case.Branch(falsePattern, falseCode, true, falseAt, meta());
+          var branches = join(trueBranch, join(falseBranch, nil()));
           var caseExpr = new Case.Expr(condArg, branches, false, expr.identifiedLocation(), meta());
           yield caseExpr;
         }
