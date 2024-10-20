@@ -87,15 +87,25 @@ public abstract class EvalNode extends BaseNode {
     var sco = newInlineContext.localScope().getOrElse(LocalScope::empty);
     var mod = newInlineContext.getModule();
     var m = org.enso.interpreter.runtime.Module.fromCompilerModule(mod);
-    var toTruffle = new IrToTruffle(context, src, m.getScopeBuilder(), compiler.getConfig());
-    var expr = toTruffle.runInline(ir, sco, "<inline_source>");
-
-    if (shouldCaptureResultScope) {
-      expr = CaptureResultScopeNode.build(expr);
-    }
     ClosureRootNode framedNode =
         ClosureRootNode.build(
-            context.getLanguage(), localScope, moduleScope, expr, null, "<eval>", false, false);
+            context.getLanguage(),
+            localScope,
+            moduleScope,
+            () -> {
+              var toTruffle =
+                  new IrToTruffle(context, src, m.getScopeBuilder(), compiler.getConfig());
+              var expr = toTruffle.runInline(ir, sco, "<inline_source>");
+
+              if (shouldCaptureResultScope) {
+                expr = CaptureResultScopeNode.build(expr);
+              }
+              return expr;
+            },
+            null,
+            "<eval>",
+            false,
+            false);
     return framedNode.getCallTarget();
   }
 

@@ -336,14 +336,14 @@ class IrToTruffle(
         atomDefn.name.name,
         frameInfo
       )
-      val expressionNode =
+      def expressionNode =
         expressionProcessor.run(annotation.expression, true)
       val closureName = s"<default::$scopeName>"
       val closureRootNode = ClosureRootNode.build(
         language,
         expressionProcessor.scope,
         scopeBuilder.asModuleScope(),
-        expressionNode,
+        () => expressionNode,
         makeSection(scopeBuilder.getModule, annotation.location),
         closureName,
         true,
@@ -572,7 +572,7 @@ class IrToTruffle(
               methodDef.methodName.name,
               frameInfo
             )
-            val expressionNode =
+            def expressionNode =
               expressionProcessor.run(annotation.expression, true)
             val closureName =
               s"<default::${expressionProcessor.scopeName}>"
@@ -580,7 +580,7 @@ class IrToTruffle(
               language,
               expressionProcessor.scope,
               scopeBuilder.asModuleScope(),
-              expressionNode,
+              () => expressionNode,
               makeSection(
                 scopeBuilder.getModule,
                 annotation.location
@@ -1384,13 +1384,13 @@ class IrToTruffle(
         )
         val childScope = childFactory.scope
 
-        val blockNode = childFactory.processBlock(block.copy(suspended = false))
+        def blockNode = childFactory.processBlock(block.copy(suspended = false))
 
         val defaultRootNode = ClosureRootNode.build(
           language,
           childScope,
           scopeBuilder.asModuleScope(),
-          blockNode,
+          () => blockNode,
           makeSection(scopeBuilder.getModule, block.location),
           currentVarName,
           false,
@@ -2325,7 +2325,7 @@ class IrToTruffle(
         language,
         scope,
         scopeBuilder.asModuleScope(),
-        bodyBuilder.bodyNode(),
+        () => bodyBuilder.bodyNode(),
         makeSection(scopeBuilder.getModule, location),
         scopeName,
         false,
@@ -2501,7 +2501,7 @@ class IrToTruffle(
             // Note [Scope Flattening]
             scope.createChild(() => scopeInfo().scope, flattenToParent = true)
           }
-          val argumentExpression =
+          def argumentExpression =
             new ExpressionProcessor(childScope, scopeName, initialName)
               .run(value, subjectToInstrumentation)
 
@@ -2521,7 +2521,7 @@ class IrToTruffle(
               language,
               childScope,
               scopeBuilder.asModuleScope(),
-              argumentExpression,
+              () => argumentExpression,
               section,
               displayName,
               subjectToInstrumentation,
@@ -2593,7 +2593,7 @@ class IrToTruffle(
     ): ArgumentDefinition =
       inputArg match {
         case arg: DefinitionArgument.Specified =>
-          val defaultExpression = arg.defaultValue
+          def defaultExpression = arg.defaultValue
             .map(
               new ExpressionProcessor(scope, scopeName, initialName)
                 .run(_, false)
@@ -2607,7 +2607,7 @@ class IrToTruffle(
               language,
               scope,
               scopeBuilder.asModuleScope(),
-              defaultExpression,
+              () => defaultExpression,
               makeSection(
                 scopeBuilder.getModule,
                 arg.defaultValue.get.location()

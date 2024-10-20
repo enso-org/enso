@@ -5,6 +5,7 @@ import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.source.SourceSection;
+import java.util.function.Supplier;
 import org.enso.compiler.context.LocalScope;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.runtime.scope.ModuleScope;
@@ -44,7 +45,7 @@ public class ClosureRootNode extends EnsoRootNode {
    * @param language the language identifier
    * @param localScope a description of the local scope
    * @param moduleScope a description of the module scope
-   * @param body the program body to be executed
+   * @param body supplier of the program body to be executed
    * @param section a mapping from {@code body} to the program source
    * @param name a name for the node
    * @param subjectToInstrumentation shall this node be instrumented
@@ -55,7 +56,7 @@ public class ClosureRootNode extends EnsoRootNode {
       EnsoLanguage language,
       LocalScope localScope,
       ModuleScope moduleScope,
-      ExpressionNode body,
+      Supplier<ExpressionNode> body,
       SourceSection section,
       String name,
       Boolean subjectToInstrumentation,
@@ -64,7 +65,7 @@ public class ClosureRootNode extends EnsoRootNode {
         language,
         localScope,
         moduleScope,
-        body,
+        new MethodRootNode.LazyBodyNode(body),
         section,
         name,
         subjectToInstrumentation,

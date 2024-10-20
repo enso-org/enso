@@ -187,7 +187,7 @@ public class MethodRootNode extends ClosureRootNode {
     return super.copy();
   }
 
-  private static class LazyBodyNode extends ExpressionNode {
+  static class LazyBodyNode extends ExpressionNode {
     private final Supplier<ExpressionNode> provider;
 
     LazyBodyNode(Supplier<ExpressionNode> body) {
@@ -210,6 +210,7 @@ public class MethodRootNode extends ClosureRootNode {
     final ExpressionNode replaceItself() {
       try {
         ExpressionNode newNode = replace(provider.get());
+        System.err.println("Node inserted: " + newNode.getEncapsulatingSourceSection());
         notifyInserted(newNode);
         return newNode;
       } catch (CompilerError abnormalException) {
