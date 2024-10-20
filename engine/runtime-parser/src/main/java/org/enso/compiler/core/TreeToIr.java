@@ -961,6 +961,9 @@ final class TreeToIr {
           var ifArg = args.apply(2);
           var trueArg = args.apply(1);
           var falseArg = args.apply(0);
+          if (falseArg == null) {
+            yield translateSyntaxError(app, new Syntax.UnsupportedSyntax("Missing else branch"));
+          }
           yield new IfThenElse(ifArg.value(), trueArg.value(), falseArg.value(), getIdentifiedLocation(tree), meta());
         }
         if ("if_then".equals(fullName) && args.size() == 2) {
