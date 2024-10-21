@@ -70,11 +70,11 @@ add_specs suite_builder prefix connection_details pending =
 
         group_builder.specify "allows to save a data link to a database table or processed queries" <|
             raw_connection = Database.connect connection_details
-            table_name = "datalinks-test-table-"+test_root.get.name
+            table_name = test_root.get.name
             ## The table cannot be temporary as it will be 'viewed' through a separate Data Link connection.
                A temporary table could not be seen by other connection on some backends.
             table = (Table.new [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]]).select_into_database_table raw_connection table_name temporary=False
-            Panic.with_finalizer raw_connection.drop_table table.name <|
+            Panic.with_finalizer (raw_connection.drop_table table.name) <|
                 table_data_link = table.save_as_data_link (test_root.get / "table.datalink")
                 table_data_link.should_be_a Enso_File
 

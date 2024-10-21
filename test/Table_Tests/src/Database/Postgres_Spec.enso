@@ -1004,7 +1004,7 @@ add_data_link_specs suite_builder =
     data_link_file = Temporary_Data_Link_File.make connection_details
     ## We have common tests in Save_Connection_Data_Link, but these tests check some specific examples,
        e.g. data link formats that are also checked in Dashboard tests, to ensure consistency.
-    suite_builder.group "[PostgreSQL] DataLink" pending=pending group_builder->
+    suite_builder.group "[PostgreSQL] Data Link" pending=pending group_builder->
         ## datalink support
         group_builder.specify "should be able to open a datalink setting up a connection to the database" <|
             data_link_connection = Data.read data_link_file.get
