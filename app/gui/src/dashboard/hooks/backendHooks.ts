@@ -1,12 +1,37 @@
 /** @file Hooks for interacting with the backend. */
-import * as React from 'react'
+import { useMemo } from 'react'
 
-import * as reactQuery from '@tanstack/react-query'
+import {
+  queryOptions,
+  useMutationState,
+  useQuery,
+  type Mutation,
+  type MutationKey,
+  type UseMutationOptions,
+  type UseQueryOptions,
+  type UseQueryResult,
+} from '@tanstack/react-query'
+import invariant from 'tiny-invariant'
 
-import * as backendQuery from 'enso-common/src/backendQuery'
+import {
+  backendQueryOptions as backendQueryOptionsBase,
+  type BackendMethods,
+} from 'enso-common/src/backendQuery'
 
+import { CATEGORY_TO_FILTER_BY, type Category } from '#/layouts/CategorySwitcher/Category'
 import type Backend from '#/services/Backend'
-import * as backendModule from '#/services/Backend'
+import {
+  AssetType,
+  BackendType,
+  type AnyAsset,
+  type AssetId,
+  type DirectoryAsset,
+  type DirectoryId,
+  type User,
+  type UserGroupInfo,
+} from '#/services/Backend'
+import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from '#/services/remoteBackendPaths'
+import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 
 // ============================
 // === DefineBackendMethods ===
@@ -44,10 +69,6 @@ export type MutationMethod = DefineBackendMethods<
   | 'deleteUser'
   | 'deleteUserGroup'
   | 'duplicateProject'
-  // TODO: `get*` are not mutations, but are currently used in some places.
-  | 'getDatalink'
-  | 'getFileDetails'
-  | 'getProjectDetails'
   | 'inviteUser'
   | 'logEvent'
   | 'openProject'
@@ -71,46 +92,66 @@ export type MutationMethod = DefineBackendMethods<
 // === useBackendQuery ===
 // =======================
 
-export function useBackendQuery<Method extends backendQuery.BackendMethods>(
+export function backendQueryOptions<Method extends BackendMethods>(
   backend: Backend,
   method: Method,
   args: Parameters<Backend[Method]>,
-  options?: Omit<
-    reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>,
-    'queryFn' | 'queryKey'
-  > &
-    Partial<Pick<reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryKey'>>,
-): reactQuery.UseQueryResult<Awaited<ReturnType<Backend[Method]>>>
-export function useBackendQuery<Method extends backendQuery.BackendMethods>(
+  options?: Omit<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn' | 'queryKey'> &
+    Partial<Pick<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryKey'>>,
+): UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>
+export function backendQueryOptions<Method extends BackendMethods>(
   backend: Backend | null,
   method: Method,
   args: Parameters<Backend[Method]>,
-  options?: Omit<
-    reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>,
-    'queryFn' | 'queryKey'
-  > &
-    Partial<Pick<reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryKey'>>,
-): reactQuery.UseQueryResult<
+  options?: Omit<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn' | 'queryKey'> &
+    Partial<Pick<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryKey'>>,
+): UseQueryOptions<
   // eslint-disable-next-line no-restricted-syntax
   Awaited<ReturnType<Backend[Method]>> | undefined
 >
 /** Wrap a backend method call in a React Query. */
-export function useBackendQuery<Method extends backendQuery.BackendMethods>(
+export function backendQueryOptions<Method extends BackendMethods>(
   backend: Backend | null,
   method: Method,
   args: Parameters<Backend[Method]>,
-  options?: Omit<
-    reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>,
-    'queryFn' | 'queryKey'
-  > &
-    Partial<Pick<reactQuery.UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryKey'>>,
+  options?: Omit<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn' | 'queryKey'> &
+    Partial<Pick<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryKey'>>,
 ) {
-  return reactQuery.useQuery<Awaited<ReturnType<Backend[Method]>>>({
+  // @ts-expect-error This call is generic over the presence or absence of `inputData`.
+  return queryOptions<Awaited<ReturnType<Backend[Method]>>>({
     ...options,
-    ...backendQuery.backendQueryOptions(backend, method, args, options?.queryKey),
+    ...backendQueryOptionsBase(backend, method, args, options?.queryKey),
     // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
     queryFn: () => (backend?.[method] as any)?.(...args),
   })
+}
+
+export function useBackendQuery<Method extends BackendMethods>(
+  backend: Backend,
+  method: Method,
+  args: Parameters<Backend[Method]>,
+  options?: Omit<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn' | 'queryKey'> &
+    Partial<Pick<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryKey'>>,
+): UseQueryResult<Awaited<ReturnType<Backend[Method]>>>
+export function useBackendQuery<Method extends BackendMethods>(
+  backend: Backend | null,
+  method: Method,
+  args: Parameters<Backend[Method]>,
+  options?: Omit<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn' | 'queryKey'> &
+    Partial<Pick<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryKey'>>,
+): UseQueryResult<
+  // eslint-disable-next-line no-restricted-syntax
+  Awaited<ReturnType<Backend[Method]>> | undefined
+>
+/** Wrap a backend method call in a React Query. */
+export function useBackendQuery<Method extends BackendMethods>(
+  backend: Backend | null,
+  method: Method,
+  args: Parameters<Backend[Method]>,
+  options?: Omit<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn' | 'queryKey'> &
+    Partial<Pick<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryKey'>>,
+) {
+  return useQuery(backendQueryOptions(backend, method, args, options))
 }
 
 // ==========================
@@ -119,7 +160,7 @@ export function useBackendQuery<Method extends backendQuery.BackendMethods>(
 
 const INVALIDATE_ALL_QUERIES = Symbol('invalidate all queries')
 const INVALIDATION_MAP: Partial<
-  Record<MutationMethod, readonly (backendQuery.BackendMethods | typeof INVALIDATE_ALL_QUERIES)[]>
+  Record<MutationMethod, readonly (BackendMethods | typeof INVALIDATE_ALL_QUERIES)[]>
 > = {
   createUser: ['usersMe'],
   updateUser: ['usersMe'],
@@ -141,7 +182,7 @@ const INVALIDATION_MAP: Partial<
   createDirectory: ['listDirectory'],
   createSecret: ['listDirectory'],
   updateSecret: ['listDirectory'],
-  createDatalink: ['listDirectory'],
+  createDatalink: ['listDirectory', 'getDatalink'],
   uploadFile: ['listDirectory'],
   copyAsset: ['listDirectory', 'listAssetVersions'],
   deleteAsset: ['listDirectory', 'listAssetVersions'],
@@ -151,34 +192,29 @@ const INVALIDATION_MAP: Partial<
   updateDirectory: ['listDirectory'],
 }
 
-export function backendMutationOptions<Method extends MutationMethod>(
-  backend: Backend,
-  method: Method,
-  options?: Omit<
-    reactQuery.UseMutationOptions<
-      Awaited<ReturnType<Backend[Method]>>,
-      Error,
-      Parameters<Backend[Method]>
-    >,
-    'mutationFn'
-  >,
-): reactQuery.UseMutationOptions<
+/** The type of the corresponding mutation for the given backend method. */
+export type BackendMutation<Method extends MutationMethod> = Mutation<
   Awaited<ReturnType<Backend[Method]>>,
   Error,
   Parameters<Backend[Method]>
 >
+
+export function backendMutationOptions<Method extends MutationMethod>(
+  backend: Backend,
+  method: Method,
+  options?: Omit<
+    UseMutationOptions<Awaited<ReturnType<Backend[Method]>>, Error, Parameters<Backend[Method]>>,
+    'mutationFn'
+  >,
+): UseMutationOptions<Awaited<ReturnType<Backend[Method]>>, Error, Parameters<Backend[Method]>>
 export function backendMutationOptions<Method extends MutationMethod>(
   backend: Backend | null,
   method: Method,
   options?: Omit<
-    reactQuery.UseMutationOptions<
-      Awaited<ReturnType<Backend[Method]>>,
-      Error,
-      Parameters<Backend[Method]>
-    >,
+    UseMutationOptions<Awaited<ReturnType<Backend[Method]>>, Error, Parameters<Backend[Method]>>,
     'mutationFn'
   >,
-): reactQuery.UseMutationOptions<
+): UseMutationOptions<
   Awaited<ReturnType<Backend[Method]>> | undefined,
   Error,
   Parameters<Backend[Method]>
@@ -188,24 +224,16 @@ export function backendMutationOptions<Method extends MutationMethod>(
   backend: Backend | null,
   method: Method,
   options?: Omit<
-    reactQuery.UseMutationOptions<
-      Awaited<ReturnType<Backend[Method]>>,
-      Error,
-      Parameters<Backend[Method]>
-    >,
+    UseMutationOptions<Awaited<ReturnType<Backend[Method]>>, Error, Parameters<Backend[Method]>>,
     'mutationFn'
   >,
-): reactQuery.UseMutationOptions<
-  Awaited<ReturnType<Backend[Method]>>,
-  Error,
-  Parameters<Backend[Method]>
-> {
+): UseMutationOptions<Awaited<ReturnType<Backend[Method]>>, Error, Parameters<Backend[Method]>> {
   return {
     ...options,
     mutationKey: [backend?.type, method, ...(options?.mutationKey ?? [])],
     // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
     mutationFn: (args) => (backend?.[method] as any)?.(...args),
-    networkMode: backend?.type === backendModule.BackendType.local ? 'always' : 'online',
+    networkMode: backend?.type === BackendType.local ? 'always' : 'online',
     meta: {
       invalidates: [
         ...(options?.meta?.invalidates ?? []),
@@ -223,8 +251,8 @@ export function backendMutationOptions<Method extends MutationMethod>(
 // ==================================
 
 /** A user group, as well as the users that are a part of the user group. */
-export interface UserGroupInfoWithUsers extends backendModule.UserGroupInfo {
-  readonly users: readonly backendModule.User[]
+export interface UserGroupInfoWithUsers extends UserGroupInfo {
+  readonly users: readonly User[]
 }
 
 /** A list of user groups, taking into account optimistic state. */
@@ -233,12 +261,12 @@ export function useListUserGroupsWithUsers(
 ): readonly UserGroupInfoWithUsers[] | null {
   const listUserGroupsQuery = useBackendQuery(backend, 'listUserGroups', [])
   const listUsersQuery = useBackendQuery(backend, 'listUsers', [])
-  return React.useMemo(() => {
+  return useMemo(() => {
     if (listUserGroupsQuery.data == null || listUsersQuery.data == null) {
       return null
     } else {
       const result = listUserGroupsQuery.data.map((userGroup) => {
-        const usersInGroup: readonly backendModule.User[] = listUsersQuery.data.filter((user) =>
+        const usersInGroup: readonly User[] = listUsersQuery.data.filter((user) =>
           user.userGroups?.includes(userGroup.id),
         )
         return { ...userGroup, users: usersInGroup }
@@ -246,4 +274,97 @@ export function useListUserGroupsWithUsers(
       return result
     }
   }, [listUserGroupsQuery.data, listUsersQuery.data])
+}
+
+/** Data for a specific asset. */
+export function useAssetPassiveListener(
+  backendType: BackendType,
+  assetId: AssetId | null | undefined,
+  parentId: DirectoryId | null | undefined,
+  category: Category,
+) {
+  const listDirectoryQuery = useQuery<readonly AnyAsset<AssetType>[] | undefined>({
+    queryKey: [
+      backendType,
+      'listDirectory',
+      parentId,
+      {
+        labels: null,
+        filterBy: CATEGORY_TO_FILTER_BY[category.type],
+        recentProjects: category.type === 'recent',
+      },
+    ],
+    initialData: undefined,
+  })
+  const asset = listDirectoryQuery.data?.find((child) => child.id === assetId)
+  if (asset || !assetId || !parentId) {
+    return asset
+  }
+  switch (assetId) {
+    case USERS_DIRECTORY_ID: {
+      return {
+        id: assetId,
+        parentId,
+        type: AssetType.directory,
+        projectState: null,
+        title: 'Users',
+        description: '',
+        modifiedAt: toRfc3339(new Date()),
+        permissions: [],
+        labels: [],
+      } satisfies DirectoryAsset
+    }
+    case TEAMS_DIRECTORY_ID: {
+      return {
+        id: assetId,
+        parentId,
+        type: AssetType.directory,
+        projectState: null,
+        title: 'Teams',
+        description: '',
+        modifiedAt: toRfc3339(new Date()),
+        permissions: [],
+        labels: [],
+      } satisfies DirectoryAsset
+    }
+    default: {
+      return
+    }
+  }
+}
+
+/** Data for a specific asset. */
+export function useAssetPassiveListenerStrict(
+  backendType: BackendType,
+  assetId: AssetId | null | undefined,
+  parentId: DirectoryId | null | undefined,
+  category: Category,
+) {
+  const asset = useAssetPassiveListener(backendType, assetId, parentId, category)
+  invariant(asset, 'Asset not found')
+  return asset
+}
+
+/** Return matching in-flight mutations */
+export function useBackendMutationState<Method extends MutationMethod, Result>(
+  backend: Backend,
+  method: Method,
+  options: {
+    mutationKey?: MutationKey
+    predicate?: (mutation: BackendMutation<Method>) => boolean
+    select?: (mutation: BackendMutation<Method>) => Result
+  } = {},
+) {
+  const { mutationKey, predicate, select } = options
+  return useMutationState({
+    filters: {
+      ...backendMutationOptions(backend, method, mutationKey ? { mutationKey } : {}),
+      predicate: (mutation: BackendMutation<Method>) =>
+        mutation.state.status === 'pending' && (predicate?.(mutation) ?? true),
+    },
+    // This is UNSAFE when the `Result` parameter is explicitly specified in the
+    // generic parameter list.
+    // eslint-disable-next-line no-restricted-syntax
+    select: select as (mutation: Mutation<unknown, Error, unknown, unknown>) => Result,
+  })
 }

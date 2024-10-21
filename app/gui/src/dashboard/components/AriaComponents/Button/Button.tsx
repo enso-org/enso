@@ -206,7 +206,9 @@ export const BUTTON_STYLES = tv({
       end: { content: 'flex-row-reverse' },
     },
     showIconOnHover: {
-      true: { icon: 'opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100' },
+      true: {
+        icon: 'opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 disabled:opacity-0 aria-disabled:opacity-0 disabled:group-hover:opacity-50 aria-disabled:group-hover:opacity-50',
+      },
     },
     extraClickZone: {
       true: {
@@ -331,6 +333,7 @@ export const Button = forwardRef(function Button(
 
   const isLoading = loading || implicitlyLoading
   const isDisabled = props.isDisabled ?? isLoading
+  const shouldUseVisualTooltip = shouldShowTooltip && isDisabled
 
   React.useLayoutEffect(() => {
     const delay = 350
@@ -426,6 +429,13 @@ export const Button = forwardRef(function Button(
     }
   }
 
+  const { tooltip: visualTooltip, targetProps } = ariaComponents.useVisualTooltip({
+    targetRef: contentRef,
+    children: tooltipElement,
+    isDisabled: !shouldUseVisualTooltip,
+    ...(tooltipPlacement && { overlayPositionProps: { placement: tooltipPlacement } }),
+  })
+
   const button = (
     <Tag
       // @ts-expect-error ts errors are expected here because we are merging props with different types
@@ -446,7 +456,11 @@ export const Button = forwardRef(function Button(
     >
       {(render: aria.ButtonRenderProps | aria.LinkRenderProps) => (
         <span className={styles.wrapper()}>
-          <span ref={contentRef} className={styles.content({ className: contentClassName })}>
+          <span
+            ref={contentRef}
+            className={styles.content({ className: contentClassName })}
+            {...targetProps}
+          >
             {/* eslint-disable-next-line @typescript-eslint/no-unsafe-argument */}
             {childrenFactory(render)}
           </span>
@@ -461,8 +475,14 @@ export const Button = forwardRef(function Button(
     </Tag>
   )
 
-  return tooltipElement == null ? button : (
-      <ariaComponents.TooltipTrigger delay={0} closeDelay={0}>
+  return (
+    tooltipElement == null ? button
+    : shouldUseVisualTooltip ?
+      <>
+        {button}
+        {visualTooltip}
+      </>
+    : <ariaComponents.TooltipTrigger delay={0} closeDelay={0}>
         {button}
 
         <ariaComponents.Tooltip
@@ -471,5 +491,5 @@ export const Button = forwardRef(function Button(
           {tooltipElement}
         </ariaComponents.Tooltip>
       </ariaComponents.TooltipTrigger>
-    )
+  )
 })

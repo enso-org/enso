@@ -10,7 +10,7 @@ import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import * as ariaComponents from '#/components/AriaComponents'
+import { Button, DialogTrigger } from '#/components/AriaComponents'
 import ContextMenu from '#/components/ContextMenu'
 import ContextMenus from '#/components/ContextMenus'
 import type * as column from '#/components/dashboard/column'
@@ -23,7 +23,6 @@ import * as backendModule from '#/services/Backend'
 
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
-import * as uniqueString from '#/utilities/uniqueString'
 
 // ====================
 // === LabelsColumn ===
@@ -43,7 +42,6 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
   const labelsByName = React.useMemo(() => {
     return new Map(labels?.map((label) => [label.value, label]))
   }, [labels])
-  const plusButtonRef = React.useRef<HTMLButtonElement>(null)
   const self = permissions.tryFindSelfPermission(user, asset.permissions)
   const managesThisAsset =
     category.type !== 'trash' &&
@@ -130,23 +128,10 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
           </Label>
         ))}
       {managesThisAsset && (
-        <ariaComponents.Button
-          ref={plusButtonRef}
-          size="medium"
-          variant="ghost"
-          showIconOnHover
-          icon={Plus2Icon}
-          onPress={() => {
-            setModal(
-              <ManageLabelsModal
-                key={uniqueString.uniqueString()}
-                backend={backend}
-                item={asset}
-                eventTarget={plusButtonRef.current}
-              />,
-            )
-          }}
-        />
+        <DialogTrigger>
+          <Button variant="ghost" showIconOnHover icon={Plus2Icon} />
+          <ManageLabelsModal backend={backend} item={asset} />
+        </DialogTrigger>
       )}
     </div>
   )

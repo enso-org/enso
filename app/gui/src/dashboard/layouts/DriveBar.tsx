@@ -51,7 +51,6 @@ import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import { ProjectState, type CreatedProject, type Project, type ProjectId } from '#/services/Backend'
 import type AssetQuery from '#/utilities/AssetQuery'
-import PasteType from '#/utilities/PasteType'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 
 // ================
@@ -209,7 +208,7 @@ export default function DriveBar(props: DriveBarProps) {
   const pasteDataStatus = effectivePasteData && (
     <div className="flex items-center">
       <Text>
-        {effectivePasteData.type === PasteType.copy ?
+        {effectivePasteData.type === 'copy' ?
           getText('xItemsCopied', effectivePasteData.data.ids.size)
         : getText('xItemsCut', effectivePasteData.data.ids.size)}
       </Text>
