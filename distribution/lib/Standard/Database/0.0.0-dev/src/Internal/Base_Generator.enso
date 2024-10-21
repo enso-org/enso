@@ -123,7 +123,7 @@ type SQL_Generator
                     SQL_Builder.from_fragments prepared_statement.fragments
                 raw_code : Text ->
                     SQL_Builder.code raw_code
-             subquery.paren ++ alias dialect as_name
+            subquery.paren ++ alias dialect as_name
         From_Spec.Literal_Values vecs column_names as_name ->
             Runtime.assert (vecs.length == column_names.length) "Vectors and column names must have the same length"
             dialect.make_table_literal vecs column_names as_name

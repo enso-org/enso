@@ -1002,6 +1002,8 @@ add_data_link_specs suite_builder =
     connection_details = get_configured_connection_details
     pending = if connection_details.is_nothing then "PostgreSQL test database is not configured. See README.md for instructions."
     data_link_file = Temporary_Data_Link_File.make connection_details
+    ## We have common tests in Save_Connection_Data_Link, but these tests check some specific examples,
+       e.g. data link formats that are also checked in Dashboard tests, to ensure consistency.
     suite_builder.group "[PostgreSQL] DataLink" pending=pending group_builder->
         ## datalink support
         group_builder.specify "should be able to open a datalink setting up a connection to the database" <|
@@ -1040,7 +1042,7 @@ add_data_link_specs suite_builder =
             data_link_table.at "two" . to_vector . should_equal [2]
 
             table_data_link_file_2 = transform_file (enso_project.data / "datalinks" / "postgres-serialized-query.datalink") connection_details
-            data_link_table_2 = Data.read table_data_link_file
+            data_link_table_2 = Data.read table_data_link_file_2
             data_link_table_2.should_be_a DB_Table
             data_link_table_2.column_names . should_equal ["int", "text"]
             data_link_table_2.at "int" . to_vector . should_equal [1456]

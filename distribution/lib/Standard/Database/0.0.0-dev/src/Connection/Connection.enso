@@ -520,7 +520,7 @@ make_structure_creator =
 
 ## PRIVATE
 make_table_from_query connection query:Text|SQL_Statement alias:Text -> DB_Table =
-    columns = connection.fetch_columns raw_sql Statement_Setter.null
+    columns = connection.fetch_columns query Statement_Setter.null
     name = if alias == "" then (UUID.randomUUID.to_text) else alias
     ctx = Context.for_query query name
     DB_Table_Module.make_table connection name columns ctx on_problems=Problem_Behavior.Report_Error

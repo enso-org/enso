@@ -78,7 +78,7 @@ type DB_Data_Link_Type
     ## PRIVATE
        Serializes this data link type to an appropriate JSON representation that
        can be assigned to the `table` field in a data link.
-    to_js_object self =
+    to_js_object self = case self of
         DB_Data_Link_Type.Database ->
             Nothing
         DB_Data_Link_Type.Table name ->
