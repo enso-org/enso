@@ -1,6 +1,7 @@
 load("@aspect_bazel_lib//lib:write_source_files.bzl", "write_source_files")
 load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_run_binary")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_config")
+load("@env//:defs.bzl", "getenv")
 load("@npm//:defs.bzl", "npm_link_all_packages", "npm_link_targets")
 load("@npm//app/gui:vite/package_json.bzl", vite_bin = "bin")
 
@@ -131,7 +132,7 @@ js_run_binary(
         package_name(),
     ],
     env = {
-        "NODE_ENV": "production",
+        "NODE_ENV": getenv("NODE_ENV"),
     },
     out_dirs = ["env_replaced"],
     tool = ":script_env_replacer",

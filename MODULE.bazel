@@ -179,3 +179,15 @@ use_repo(
     "maven",
     "unpinned_maven",
 )
+
+###################
+### ENVIRONMENT ###
+###################
+secrets = use_extension("//:bazel_scripts/secrets.bzl", "secrets")
+secrets.environment_repo(
+    name = "env",
+    entries = {
+        "NODE_ENV": "production",
+    },
+)
+use_repo(secrets, "env")

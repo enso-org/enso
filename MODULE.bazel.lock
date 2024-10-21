@@ -122,6 +122,27 @@
   },
   "selectedYankedVersions": {},
   "moduleExtensions": {
+    "//:bazel_scripts/secrets.bzl%secrets": {
+      "general": {
+        "bzlTransitiveDigest": "ohtO/g2zVbvc2pT6feGQ4k/0wp+xnyj9O+c9v/ms5NM=",
+        "usagesDigest": "qs5HkE+6F8oLjmPczbnegyNwqa96tDrQborkVvcTxzA=",
+        "recordedFileInputs": {},
+        "recordedDirentsInputs": {},
+        "envVariables": {},
+        "generatedRepoSpecs": {
+          "env": {
+            "bzlFile": "@@//:bazel_scripts/secrets.bzl",
+            "ruleClassName": "environment_secrets_rule",
+            "attributes": {
+              "entries": {
+                "NODE_ENV": "production"
+              }
+            }
+          }
+        },
+        "recordedRepoMappingEntries": []
+      }
+    },
     "@@apple_support~//crosstool:setup.bzl%apple_cc_configure_extension": {
       "general": {
         "bzlTransitiveDigest": "Co35oEwSoYZFy42IHjYfE7VkKR1WykyxhRlbUGSa3XA=",
