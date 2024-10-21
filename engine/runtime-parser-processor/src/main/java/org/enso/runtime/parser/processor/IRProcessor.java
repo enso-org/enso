@@ -3,7 +3,6 @@ package org.enso.runtime.parser.processor;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Set;
-import java.util.stream.Collectors;
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.RoundEnvironment;
 import javax.annotation.processing.SupportedAnnotationTypes;
@@ -13,7 +12,6 @@ import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.TypeMirror;
 import javax.tools.JavaFileObject;
-import org.enso.runtime.parser.dsl.IRChild;
 import org.enso.runtime.parser.dsl.IRNode;
 
 @SupportedAnnotationTypes({
@@ -31,17 +29,22 @@ public class IRProcessor extends AbstractProcessor {
   public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
     var irNodeElems = roundEnv.getElementsAnnotatedWith(IRNode.class);
     for (var irNodeElem : irNodeElems) {
-      processIrNode(irNodeElem);
+      var suc = processIrNode(irNodeElem);
+      if (!suc) {
+        return false;
+      }
     }
     return true;
   }
 
-  private void processIrNode(Element irNodeElem) {
+  private boolean processIrNode(Element irNodeElem) {
     if (irNodeElem.getKind() != ElementKind.INTERFACE) {
       printError("IRNode annotation can only be applied to interfaces", irNodeElem);
+      return false;
     }
     if (!isSubtypeOfIR(irNodeElem.asType())) {
       printError("Interface annotated with @IRNode must be a subtype of IR interface", irNodeElem);
+      return false;
     }
     assert irNodeElem instanceof TypeElement;
     var irNodeTypeElem = (TypeElement) irNodeElem;
@@ -97,7 +100,9 @@ public class IRProcessor extends AbstractProcessor {
       }
     } catch (IOException e) {
       printError("Failed to write to source file for IRNode", irNodeElem);
+      return false;
     }
+    return true;
   }
 
   private String packageName(Element elem) {
