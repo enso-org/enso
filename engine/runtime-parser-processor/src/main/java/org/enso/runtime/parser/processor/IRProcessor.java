@@ -100,8 +100,6 @@ public class IRProcessor extends AbstractProcessor {
     }
   }
 
-  private void processChildElem(Element childElem) {}
-
   private String packageName(Element elem) {
     var pkg = processingEnv.getElementUtils().getPackageOf(elem);
     return pkg.getQualifiedName().toString();
@@ -109,12 +107,6 @@ public class IRProcessor extends AbstractProcessor {
 
   private boolean isSubtypeOfIR(TypeMirror type) {
     return Utils.isSubtypeOfIR(type, processingEnv);
-  }
-
-  private Set<Element> findChildElements(Element irNodeElem) {
-    return irNodeElem.getEnclosedElements().stream()
-        .filter(elem -> elem.getAnnotation(IRChild.class) != null)
-        .collect(Collectors.toUnmodifiableSet());
   }
 
   private void printError(String msg, Element elem) {
