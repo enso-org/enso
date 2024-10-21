@@ -1,26 +1,6 @@
 <script lang="ts">
 import { gridBindings } from '@/bindings'
-import { TextFormatOptions } from '@/components/visualizations/TableVisualization.vue'
-import { useAutoBlur } from '@/util/autoBlur'
-import type {
-  CellEditingStartedEvent,
-  CellEditingStoppedEvent,
-  ColDef,
-  ColGroupDef,
-  ColumnResizedEvent,
-  FirstDataRenderedEvent,
-  GetRowIdFunc,
-  GridApi,
-  GridReadyEvent,
-  MenuItemDef,
-  ProcessDataFromClipboardParams,
-  RowDataUpdatedEvent,
-  RowEditingStartedEvent,
-  RowEditingStoppedEvent,
-  RowHeightParams,
-  SortChangedEvent,
-} from 'ag-grid-enterprise'
-import { type ComponentInstance, reactive, ref, shallowRef, watch } from 'vue'
+import type { MenuItemDef } from 'ag-grid-enterprise'
 /**
  * A more specialized version of AGGrid's `MenuItemDef` to simplify testing (the tests need to provide
  * only values actually used by the composable)
@@ -58,13 +38,35 @@ export const commonContextMenuActions = {
 </script>
 
 <script setup lang="ts" generic="TData, TValue">
-
-// * Component adding some useful logic to AGGrid table component (like keeping track of colum sizes),
-// * and using common style for tables in our applicatioimport {
-clipboardNodeData,
-tsvTableToEnsoExpression,
-writeClipboard,
+/**
+ * Component adding some useful logic to AGGrid table component (like keeping track of colum sizes),
+ * and using common style for tables in our application.
+ */
+import {
+  clipboardNodeData,
+  tsvTableToEnsoExpression,
+  writeClipboard,
 } from '@/components/GraphEditor/clipboard'
+import { TextFormatOptions } from '@/components/visualizations/TableVisualization.vue'
+import { useAutoBlur } from '@/util/autoBlur'
+import type {
+  CellEditingStartedEvent,
+  CellEditingStoppedEvent,
+  ColDef,
+  ColGroupDef,
+  ColumnResizedEvent,
+  FirstDataRenderedEvent,
+  GetRowIdFunc,
+  GridApi,
+  GridReadyEvent,
+  ProcessDataFromClipboardParams,
+  RowDataUpdatedEvent,
+  RowEditingStartedEvent,
+  RowEditingStoppedEvent,
+  RowHeightParams,
+  SortChangedEvent,
+} from 'ag-grid-enterprise'
+import { type ComponentInstance, reactive, ref, shallowRef, watch } from 'vue'
 
 const DEFAULT_ROW_HEIGHT = 22
 
@@ -79,9 +81,9 @@ const _props = defineProps<{
   suppressDragLeaveHidesColumns?: boolean
   suppressMoveWhenColumnDragging?: boolean
   textFormatOption?: TextFormatOptions
-  pinnedTopRowData?: TData[] | null
-  pinnedRowHeightMultiplier?: number
   processDataFromClipboard?: (params: ProcessDataFromClipboardParams<TData>) => string[][] | null
+  pinnedTopRowData: TData[] | null
+  pinnedRowHeightMultiplier?: number
 }>()
 const emit = defineEmits<{
   cellEditingStarted: [event: CellEditingStartedEvent]
@@ -104,6 +106,10 @@ function onGridReady(event: GridReadyEvent<TData>) {
 }
 
 function getRowHeight(params: RowHeightParams): number {
+  if (params.node.rowPinned === 'top') {
+    return DEFAULT_ROW_HEIGHT * (_props.pinnedRowHeightMultiplier ?? 2)
+  }
+
   if (_props.textFormatOption === 'off') {
     return DEFAULT_ROW_HEIGHT
   }
@@ -112,10 +118,6 @@ function getRowHeight(params: RowHeightParams): number {
 
   if (!textValues.length) {
     return DEFAULT_ROW_HEIGHT
-  }
-
-  if (params.node.rowPinned === 'top') {
-    return DEFAULT_ROW_HEIGHT * (_props.pinnedRowHeightMultiplier ?? 2)
   }
 
   const returnCharsCount = textValues.map((text: string) => {
