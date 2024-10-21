@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime.state;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -44,6 +45,7 @@ public abstract class HasContextEnabledNode extends Node {
     } else if (runtimeCtxCtor == contextBuiltin.getDataflowStackTrace()) {
       return cachedEnv.permissions.dataflowStacktrace();
     } else {
+      CompilerDirectives.transferToInterpreter();
       throw ensoCtx.raiseAssertionPanic(this, "Unknown context: " + runtimeCtxCtor, null);
     }
   }
