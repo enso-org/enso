@@ -6,8 +6,7 @@ import static org.hamcrest.Matchers.is;
 import com.google.testing.compile.CompilationSubject;
 import com.google.testing.compile.Compiler;
 import com.google.testing.compile.JavaFileObjects;
-import javax.tools.FileObject;
-import javax.tools.StandardLocation;
+import javax.tools.JavaFileObject;
 import org.enso.runtime.parser.processor.IRProcessor;
 import org.junit.Test;
 
@@ -72,11 +71,11 @@ public class TestIRProcessor {
     var compiler = Compiler.javac().withProcessors(new IRProcessor());
     var compilation = compiler.compile(src);
     CompilationSubject.assertThat(compilation).succeeded();
-    var generatedScalaClass =
-        compilation.generatedFile(StandardLocation.SOURCE_OUTPUT, "JNameGen.scala");
-    assertThat(generatedScalaClass.isPresent(), is(true));
-    var srcContent = readSrcFile(generatedScalaClass.get());
-    assertThat("Generated just one source", compilation.generatedFiles().size(), is(1));
+    CompilationSubject.assertThat(compilation).generatedSourceFile("JNameGen").isNotNull();
+    var genSrc = compilation.generatedSourceFile("JNameGen");
+    assertThat(genSrc.isPresent(), is(true));
+    var srcContent = readSrcFile(genSrc.get());
+    assertThat("Generated just one source", compilation.generatedSourceFiles().size(), is(1));
   }
 
   @Test
@@ -98,16 +97,14 @@ public class TestIRProcessor {
     var compiler = Compiler.javac().withProcessors(new IRProcessor());
     var compilation = compiler.compile(src);
     CompilationSubject.assertThat(compilation).succeeded();
-    CompilationSubject.assertThat(compilation)
-        .generatedFile(StandardLocation.SOURCE_OUTPUT, "MyIRGen.scala")
-        .isNotNull();
-    var genSrc = compilation.generatedFile(StandardLocation.SOURCE_OUTPUT, "MyIRGen.scala");
+    CompilationSubject.assertThat(compilation).generatedSourceFile("MyIRGen").isNotNull();
+    var genSrc = compilation.generatedSourceFile("MyIRGen");
     assertThat(genSrc.isPresent(), is(true));
     var srcContent = readSrcFile(genSrc.get());
     assertThat("Generated just one source", compilation.generatedSourceFiles().size(), is(1));
   }
 
-  private static String readSrcFile(FileObject src) {
+  private static String readSrcFile(JavaFileObject src) {
     try {
       return src.getCharContent(true).toString();
     } catch (Exception e) {

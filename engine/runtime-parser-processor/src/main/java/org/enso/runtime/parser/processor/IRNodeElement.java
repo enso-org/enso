@@ -119,23 +119,23 @@ import scala.collection.immutable.List;
     }
   }
 
-  /** Returns string representation of the class fields. Meant to be in the default constructor. */
+  /**
+   * Returns string representation of the class fields. Meant to be at the beginning of the class
+   * body.
+   */
   String fields() {
     var userDefinedFields =
         fields.stream()
-                .map(field -> "private val " + field.getName() + ": " + field.getSimpleTypeName())
-                .collect(Collectors.joining("," + System.lineSeparator()))
-            + ",";
-    if (fields.isEmpty()) {
-      userDefinedFields = "";
-    }
+            .map(field -> "private final " + field.getSimpleTypeName() + " " + field.getName())
+            .collect(Collectors.joining(";" + System.lineSeparator()));
     var code =
         """
-        $userDefinedFields
-        private var diagnostics: DiagnosticStorage = null,
-        private var passData: MetadataStorage = null,
-        private var location: IdentifiedLocation = null,
-        private var id: UUID = null
+        $userDefinedFields;
+        // Not final on purpose
+        private DiagnosticStorage diagnostics;
+        private MetadataStorage passData;
+        private IdentifiedLocation location;
+        private UUID id;
         """
             .replace("$userDefinedFields", userDefinedFields);
     return indent(code, 2);
@@ -170,7 +170,7 @@ import scala.collection.immutable.List;
   private String childrenMethodBody() {
     var sb = new StringBuilder();
     var nl = System.lineSeparator();
-    sb.append("val list = new ArrayList<IR>();").append(nl);
+    sb.append("var list = new ArrayList<IR>();").append(nl);
     fields.stream()
         .filter(Field::isChild)
         .forEach(
@@ -204,53 +204,61 @@ import scala.collection.immutable.List;
     var code =
         """
 
-        override def passData(): MetadataStorage = {
+        @Override
+        public MetadataStorage passData() {
           throw new UnsupportedOperationException("unimplemented");
         }
 
-        override def location(): Option[IdentifiedLocation] {
+        @Override
+        public Option<IdentifiedLocation> location() {
           throw new UnsupportedOperationException("unimplemented");
         }
 
-        override def setLocation(location: Option[IdentifiedLocation]): IR = {
+        @Override
+        public IR setLocation(Option<IdentifiedLocation> location) {
           throw new UnsupportedOperationException("unimplemented");
         }
 
-        override def mapExpressions(fn: Function<Expression, Expression>): IR = {
+        @Override
+        public IR mapExpressions(Function<Expression, Expression> fn) {
           throw new UnsupportedOperationException("unimplemented");
         }
 
-        override def children(): List<IR> = {
+        @Override
+        public List<IR> children() {
         $childrenMethodBody
         }
 
-        @Identifier
-        override def getId(): Identifier = {
+        @Override
+        public @Identifier UUID getId() {
           if (id == null) {
             id = UUID.randomUUID();
           }
           return id;
         }
 
-        override def diagnostics(): DiagnosticStorage = {
-          throw new UnsupportedOperationException("unimplemented");
-        }
-
-        override def getDiagnostics(): DiagnosticStorage = {
-          throw new UnsupportedOperationException("unimplemented");
-        }
-
-        override def duplicate(
-          boolean keepLocations,
-          boolean keepMetadata,
-          boolean keepDiagnostics,
-          boolean keepIdentifiers
-        ): IR = {
+        @Override
+        public DiagnosticStorage diagnostics() {
           throw new UnsupportedOperationException("unimplemented");
         }
 
         @Override
-        override def showCode(indent: Int): String = {
+        public DiagnosticStorage getDiagnostics() {
+          throw new UnsupportedOperationException("unimplemented");
+        }
+
+        @Override
+        public IR duplicate(
+          boolean keepLocations,
+          boolean keepMetadata,
+          boolean keepDiagnostics,
+          boolean keepIdentifiers
+        ) {
+          throw new UnsupportedOperationException("unimplemented");
+        }
+
+        @Override
+        public String showCode(int indent) {
           throw new UnsupportedOperationException("unimplemented");
         }
         """
@@ -270,8 +278,9 @@ import scala.collection.immutable.List;
             .map(
                 field ->
                     """
-            override def $fieldName(): $returnType = {
-              return this.$fieldName;
+            @Override
+            public $returnType $fieldName() {
+              return $fieldName;
             }
             """
                         .replace("$returnType", field.getSimpleTypeName())
@@ -292,7 +301,7 @@ import scala.collection.immutable.List;
             .map(
                 field ->
                     """
-            private var $fieldName: $fieldType = null,
+            private $fieldType $fieldName;
             """
                         .replace("$fieldName", field.getName())
                         .replace("$fieldType", field.getSimpleTypeName()))
@@ -303,7 +312,7 @@ import scala.collection.immutable.List;
             .map(
                 field ->
                     """
-        def $fieldName($fieldName: $fieldType): Builder = {
+        public Builder $fieldName($fieldType $fieldName) {
           this.$fieldName = $fieldName;
           return this;
         }
@@ -330,18 +339,17 @@ import scala.collection.immutable.List;
 
     var code =
         """
-        final class Builder(
+        public static final class Builder {
           $fieldDeclarations
-        ) {
 
           $fieldSetters
 
-          def build(): $className = {
+          public $className build() {
             validate();
             return new $className($fieldList);
           }
 
-          private def validate(): Unit = {
+          private void validate() {
             $validationCode
           }
         }
