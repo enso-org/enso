@@ -36,8 +36,6 @@ import java.util.stream.Collectors;
  * Designed to be called by EnsoSecretHelper.makeRequest.
  */
 public class SignedHttpClient extends HttpClient {
-  private static final Logger LOGGER = Logger.getLogger("enso-aws-signer");
-
   private static final String SCHEME = "AWS4";
   private static final String ALGORITHM = "HMAC-SHA256";
   private static final String TERMINATOR = "aws4_request";
@@ -139,11 +137,9 @@ public class SignedHttpClient extends HttpClient {
     var canonicalHeaderNames = sortedHeaders.stream()
         .map(String::toLowerCase)
         .collect(Collectors.joining(";"));
-    LOGGER.log(Level.WARNING, "Canonical header names: " + canonicalHeaderNames);
     var canonicalHeaders = sortedHeaders.stream()
         .map(k -> k.toLowerCase().replaceAll("\\s+", " ") + ":" + output.getOrDefault(k, headerMap.containsKey(k) ? headerMap.get(k).get(0) : null))
         .collect(Collectors.joining("\n"));
-    LOGGER.log(Level.WARNING, "Canonical headers: " + canonicalHeaders);
 
     // Create canonical query string (not supported yet).
     if (url.getQuery() != null) {
@@ -167,7 +163,6 @@ public class SignedHttpClient extends HttpClient {
     String dateStamp = LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE);
     String scope = dateStamp + "/" + regionName + "/" + serviceName + "/" + TERMINATOR;
     String toSign = String.join("\n", SCHEME + "-" + ALGORITHM, output.get("x-amz-date"), scope, canonicalRequestHash);
-    LOGGER.log(Level.WARNING, "String to sign: " + toSign);
     var signature = sign(SCHEME + credentials.secretAccessKey(), dateStamp, regionName, serviceName, TERMINATOR, toSign);
 
     // Build the authorization header
