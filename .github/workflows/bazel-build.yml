@@ -18,43 +18,33 @@ jobs:
           repository-cache: true
       - uses: actions/checkout@v4
       - name: Expose env variables
-        env:
-          VITE_API_URL: "${{ vars.ENSO_CLOUD_API_URL }}"
-          VITE_CHAT_URL: "${{ vars.ENSO_CLOUD_CHAT_URL }}"
-          VITE_COGNITO_DOMAIN: "${{ vars.ENSO_CLOUD_COGNITO_DOMAIN }}"
-          VITE_COGNITO_REGION: "${{ vars.ENSO_CLOUD_COGNITO_REGION }}"
-          VITE_COGNITO_USER_POOL_ID: "${{ vars.ENSO_CLOUD_COGNITO_USER_POOL_ID }}"
-          VITE_COGNITO_USER_POOL_WEB_CLIENT_ID: "${{ vars.ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID }}"
-          VITE_ENVIRONMENT: "${{ vars.ENSO_CLOUD_ENVIRONMENT }}"
-          VITE_GOOGLE_ANALYTICS_TAG: "${{ vars.ENSO_CLOUD_GOOGLE_ANALYTICS_TAG }}"
-          VITE_SENTRY_DSN: "${{ vars.ENSO_CLOUD_SENTRY_DSN }}"
-          VITE_STRIPE_KEY: "${{ vars.ENSO_CLOUD_STRIPE_KEY }}"
-          VITE_ENSO_AG_GRID_LICENSE_KEY: "${{ vars.ENSO_AG_GRID_LICENSE_KEY }}"
-          VITE_ENSO_MAPBOX_API_TOKEN: "${{ vars.ENSO_MAPBOX_API_TOKEN }}"
         run: |
           cat << END > app/gui/.env.production
-          VITE_API_URL="$VITE_API_URL"
-          VITE_CHAT_URL="$VITE_CHAT_URL"
-          VITE_COGNITO_DOMAIN="$VITE_COGNITO_DOMAIN"
-          VITE_COGNITO_REGION="$VITE_COGNITO_REGION"
-          VITE_COGNITO_USER_POOL_ID="$VITE_COGNITO_USER_POOL_ID"
-          VITE_COGNITO_USER_POOL_WEB_CLIENT_ID="$VITE_COGNITO_USER_POOL_WEB_CLIENT_ID"
-          VITE_ENVIRONMENT="$VITE_ENVIRONMENT"
-          VITE_GOOGLE_ANALYTICS_TAG="$VITE_GOOGLE_ANALYTICS_TAG"
-          VITE_SENTRY_DSN="$VITE_SENTRY_DSN"
-          VITE_STRIPE_KEY="$VITE_STRIPE_KEY"
-          VITE_ENSO_AG_GRID_LICENSE_KEY="$VITE_ENSO_AG_GRID_LICENSE_KEY"
-          VITE_ENSO_MAPBOX_API_TOKEN="$VITE_ENSO_MAPBOX_API_TOKEN"
+          VITE_API_URL="${{ vars.ENSO_CLOUD_API_URL }}"
+          VITE_CHAT_URL="${{ vars.ENSO_CLOUD_CHAT_URL }}"
+          VITE_COGNITO_DOMAIN="${{ vars.ENSO_CLOUD_COGNITO_DOMAIN }}"
+          VITE_COGNITO_REGION="${{ vars.ENSO_CLOUD_COGNITO_REGION }}"
+          VITE_COGNITO_USER_POOL_ID="${{ vars.ENSO_CLOUD_COGNITO_USER_POOL_ID }}"
+          VITE_COGNITO_USER_POOL_WEB_CLIENT_ID="${{ vars.ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID }}"
+          VITE_ENVIRONMENT="${{ vars.ENSO_CLOUD_ENVIRONMENT }}"
+          VITE_GOOGLE_ANALYTICS_TAG="${{ vars.ENSO_CLOUD_GOOGLE_ANALYTICS_TAG }}"
+          VITE_SENTRY_DSN="${{ vars.ENSO_CLOUD_SENTRY_DSN }}"
+          VITE_STRIPE_KEY="${{ vars.ENSO_CLOUD_STRIPE_KEY }}"
+          VITE_ENSO_AG_GRID_LICENSE_KEY="${{ vars.ENSO_AG_GRID_LICENSE_KEY }}"
+          VITE_ENSO_MAPBOX_API_TOKEN="${{ vars.ENSO_MAPBOX_API_TOKEN }}"
+          VITE_DASHBOARD_COMMIT_HASH="${{ github.sha }}"
+          VITE_DASHBOARD_VERSION="SNAPSHOT-${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}"
           VITE_CLOUD_BUILD="false"
           END
       - run: bazel build //app/gui:dist
       - name: Get build output location
+        id: get_bazel_output
         run: |
           OUTPUT_SYMLINK=$(bazel cquery --output=files //app/gui:dist)
           BAZEL_OUTPUT=$(readlink -f "$OUTPUT_SYMLINK")
-          echo "BAZEL_OUTPUT=$BAZEL_OUTPUT" >> $GITHUB_ENV
+          echo "location=$BAZEL_OUTPUT" >> $GITHUB_OUTPUT
       - uses: actions/upload-artifact@v4
         with:
           name: gui-static
-          path: ${{ env.BAZEL_OUTPUT }}
+          path: ${{ steps.get_bazel_output.outputs.location }}
           if-no-files-found: error
