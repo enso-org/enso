@@ -308,7 +308,9 @@ type SQLServer_Dialect
             wrapped_name = base_gen.generate_expression self expr_null_checks_pair.first
             pair wrapped_name expr_null_checks_pair.second+[wrapped_name]
         SQL_Expression.Constant value -> 
-            wrapped = SQL_Builder.interpolation value
+            wrapped = case value of
+                Nothing -> SQL_Builder.code "NULL"
+                _ -> SQL_Builder.interpolation value
             pair (wrapped) [wrapped]
         SQL_Expression.Literal value -> 
             wrapped = SQL_Builder.code value
