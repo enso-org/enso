@@ -45,8 +45,8 @@ at array_like index = @Builtin_Method "Array_Like_Helpers.at"
 vector_to_array : (Vector | Array) -> Array
 vector_to_array array_like = @Builtin_Method "Array_Like_Helpers.vector_to_array"
 
-vector_from_function_primitive : Integer -> (Integer -> Any) -> Vector Any
-vector_from_function_primitive length constructor = @Builtin_Method "Array_Like_Helpers.vector_from_function"
+vector_from_function_primitive : Integer -> (Integer -> Any) -> Problem_Behavior -> Vector Any
+vector_from_function_primitive length constructor on_problems = @Builtin_Method "Array_Like_Helpers.vector_from_function"
 
 flatten : (Vector | Array) -> Vector
 flatten array_like = @Builtin_Method "Array_Like_Helpers.flatten"
@@ -85,27 +85,8 @@ slice vector start end = @Builtin_Method "Array_Like_Helpers.slice"
        ignored.
 vector_from_function : Integer -> (Integer -> Any) -> Problem_Behavior | No_Wrap -> Vector Any
 vector_from_function length function on_problems:(Problem_Behavior | No_Wrap)=..Report_Error =
-    num_errors = Ref.new 0
-    wrapped_function i =
-        result = function i
-        if result.is_error.not then result else
-            case on_problems of
-                Problem_Behavior.Ignore ->
-                    Nothing
-                Problem_Behavior.Report_Error ->
-                    result.catch_primitive caught->
-                        Error.throw (Map_Error.Error i caught)
-                No_Wrap -> result
-                Problem_Behavior.Report_Warning ->
-                    with_error_maybe = if num_errors.get >= MAX_MAP_WARNINGS then Nothing else
-                        result.catch_primitive caught->
-                            Warning.attach caught Nothing
-                    num_errors.modify (_+1)
-                    with_error_maybe
-    results = vector_from_function_primitive length wrapped_function
-    if num_errors.get <= MAX_MAP_WARNINGS then results else
-        err = Additional_Warnings.Error num_errors.get-MAX_MAP_WARNINGS
-        Warning.attach err results
+    vector_from_function_primitive length function on_problems
+
 
 ## PRIVATE
    The maximum number of warnings attached to result values in
