@@ -7,13 +7,13 @@ type Cache_Policy
     Default
 
     ## Use the response cache.
-    Cache_Responses
+    Use_Cache
 
     ## Don't use the response cache.
-    Dont_Cache_Responses
+    No_Cache
 
     # Default to using the cache for GET requests, unless explicitly disabled
     should_use_cache self request:Request -> Boolean = case self of
         Cache_Policy.Default -> if request.method == HTTP_Method.Get then True else False
-        Cache_Policy.Cache_Responses -> True
-        Cache_Policy.Dont_Cache_Responses -> False
+        Cache_Policy.Use_Cache -> True
+        Cache_Policy.No_Cache -> False

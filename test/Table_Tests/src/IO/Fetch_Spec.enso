@@ -147,18 +147,18 @@ add_specs suite_builder =
 
             HTTP.clear_response_cache
 
-            HTTP.fetch url0 cache_policy=Cache_Policy.Cache_Responses . decode_as_text . should_equal url0_body
-            HTTP.fetch url0 cache_policy=Cache_Policy.Cache_Responses . decode_as_text . should_equal url0_body
-            HTTP.fetch url1 cache_policy=Cache_Policy.Cache_Responses . decode_as_text . should_equal url1_body
-            HTTP.fetch url1 cache_policy=Cache_Policy.Cache_Responses . decode_as_text . should_equal url1_body
+            HTTP.fetch url0 cache_policy=Cache_Policy.Use_Cache . decode_as_text . should_equal url0_body
+            HTTP.fetch url0 cache_policy=Cache_Policy.Use_Cache . decode_as_text . should_equal url0_body
+            HTTP.fetch url1 cache_policy=Cache_Policy.Use_Cache . decode_as_text . should_equal url1_body
+            HTTP.fetch url1 cache_policy=Cache_Policy.Use_Cache . decode_as_text . should_equal url1_body
             get_num_response_cache_entries . should_equal 2
 
             HTTP.clear_response_cache
 
-            HTTP.fetch url0 cache_policy=Cache_Policy.Dont_Cache_Responses . decode_as_text . should_equal url0_body
-            HTTP.fetch url0 cache_policy=Cache_Policy.Dont_Cache_Responses . decode_as_text . should_equal url0_body
-            HTTP.fetch url1 cache_policy=Cache_Policy.Dont_Cache_Responses . decode_as_text . should_equal url1_body
-            HTTP.fetch url1 cache_policy=Cache_Policy.Dont_Cache_Responses . decode_as_text . should_equal url1_body
+            HTTP.fetch url0 cache_policy=Cache_Policy.No_Cache . decode_as_text . should_equal url0_body
+            HTTP.fetch url0 cache_policy=Cache_Policy.No_Cache . decode_as_text . should_equal url0_body
+            HTTP.fetch url1 cache_policy=Cache_Policy.No_Cache . decode_as_text . should_equal url1_body
+            HTTP.fetch url1 cache_policy=Cache_Policy.No_Cache . decode_as_text . should_equal url1_body
             get_num_response_cache_entries . should_equal 0
 
         group_builder.specify "Cache should handle many entries" pending=pending_has_url <| Test.with_retries <|
@@ -178,11 +178,11 @@ add_specs suite_builder =
         group_builder.specify "Cache policy should work for HTTP.fetch" pending=pending_has_url <| Test.with_retries <|
             HTTP.clear_response_cache
             expect_counts [0, 0] <|
-                HTTP.fetch url0 cache_policy=Cache_Policy.Dont_Cache_Responses
-                HTTP.fetch url1 cache_policy=Cache_Policy.Dont_Cache_Responses
+                HTTP.fetch url0 cache_policy=Cache_Policy.No_Cache
+                HTTP.fetch url1 cache_policy=Cache_Policy.No_Cache
             expect_counts [0, 2] <|
-                HTTP.fetch url0 cache_policy=Cache_Policy.Cache_Responses
-                HTTP.fetch url1 cache_policy=Cache_Policy.Cache_Responses
+                HTTP.fetch url0 cache_policy=Cache_Policy.Use_Cache
+                HTTP.fetch url1 cache_policy=Cache_Policy.Use_Cache
             HTTP.clear_response_cache
             expect_counts [0, 2] <|
                 HTTP.fetch url0
@@ -191,11 +191,11 @@ add_specs suite_builder =
         group_builder.specify "Cache policy should work for Data.fetch" pending=pending_has_url <| Test.with_retries <|
             HTTP.clear_response_cache
             expect_counts [0, 0] <|
-                Data.fetch url0 cache_policy=Cache_Policy.Dont_Cache_Responses
-                Data.fetch url1 cache_policy=Cache_Policy.Dont_Cache_Responses
+                Data.fetch url0 cache_policy=Cache_Policy.No_Cache
+                Data.fetch url1 cache_policy=Cache_Policy.No_Cache
             expect_counts [0, 2] <|
-                Data.fetch url0 cache_policy=Cache_Policy.Cache_Responses
-                Data.fetch url1 cache_policy=Cache_Policy.Cache_Responses
+                Data.fetch url0 cache_policy=Cache_Policy.Use_Cache
+                Data.fetch url1 cache_policy=Cache_Policy.Use_Cache
             HTTP.clear_response_cache
             expect_counts [0, 2] <|
                 Data.fetch url0
@@ -228,7 +228,7 @@ add_specs suite_builder =
 
         group_builder.specify "HTTP request with a non-GET method should reject a Cache_Policy argument" pending=pending_has_url <| Test.with_retries <|
             request = Request.new HTTP_Method.Post url_post [] Request_Body.Empty
-            HTTP.new.request request cache_policy=Cache_Policy.Cache_Responses . should_fail_with Illegal_Argument
+            HTTP.new.request request cache_policy=Cache_Policy.Use_Cache . should_fail_with Illegal_Argument
 
         group_builder.specify "Should be able to clear caches" pending=pending_has_url <| Test.with_retries <|
             HTTP.clear_response_cache

@@ -184,11 +184,11 @@ add_specs suite_builder =
 
         group_builder.specify "can select the version" <| Test.with_retries <|
             req = Request.get url_get
-            r2 = HTTP.new version=HTTP_Version.HTTP_2 . request req cache_policy=..Dont_Cache_Responses . decode_as_json
+            r2 = HTTP.new version=HTTP_Version.HTTP_2 . request req cache_policy=..No_Cache . decode_as_json
             r2.at "headers" . at "Connection" . should_equal "Upgrade, HTTP2-Settings"
             r2.at "headers" . at "Http2-Settings" . should_contain "AA"
 
-            r1 = HTTP.new version=HTTP_Version.HTTP_1_1 . request req cache_policy=..Dont_Cache_Responses . decode_as_json
+            r1 = HTTP.new version=HTTP_Version.HTTP_1_1 . request req cache_policy=..No_Cache . decode_as_json
             header_names = r1.at "headers" . field_names . map (s-> s.to_case Case.Lower)
             header_names.should_not_contain "connection"
             header_names.should_not_contain "http2-settings"
