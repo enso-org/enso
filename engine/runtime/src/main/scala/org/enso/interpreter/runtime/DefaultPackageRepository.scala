@@ -196,9 +196,6 @@ private class DefaultPackageRepository(
     pkg: Package[TruffleFile],
     isLibrary: Boolean
   ): Unit = {
-    val extensions = pkg.listPolyglotExtensions("java")
-    extensions.foreach(context.addToClassPath)
-
     val (regularModules, syntheticModulesMetadata) = pkg
       .listSources()
       .map(srcFile =>

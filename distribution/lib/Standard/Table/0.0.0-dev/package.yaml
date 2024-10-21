@@ -8,3 +8,5 @@ authors:
 maintainers:
   - name: Enso Team
     email: contact@enso.org
+requires:
+  - Standard.Base

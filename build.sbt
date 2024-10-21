@@ -1543,6 +1543,115 @@ lazy val `zio-wrapper` = project
     }
   )
 
+/** JPMS module wrapper for AWS SDK.
+  */
+lazy val `aws-wrapper` = project
+  .in(file("lib/java/aws-wrapper"))
+  .enablePlugins(JPMSPlugin)
+  .settings(
+    modularFatJarWrapperSettings,
+    javaModuleName := "org.enso.aws.wrapper",
+    libraryDependencies ++= Seq(
+      "com.amazon.redshift"              % "redshift-jdbc42"         % redshiftVersion,
+      "com.amazonaws"                    % "aws-java-sdk-core"       % awsJavaSdkV1Version,
+      "com.amazonaws"                    % "aws-java-sdk-redshift"   % awsJavaSdkV1Version,
+      "com.amazonaws"                    % "aws-java-sdk-sts"        % awsJavaSdkV1Version,
+      "software.amazon.awssdk"           % "aws-core"                % awsJavaSdkV2Version,
+      "software.amazon.awssdk"           % "auth"                    % awsJavaSdkV2Version,
+      "software.amazon.awssdk"           % "bom"                     % awsJavaSdkV2Version,
+      "software.amazon.awssdk"           % "s3"                      % awsJavaSdkV2Version,
+      "software.amazon.awssdk"           % "sso"                     % awsJavaSdkV2Version,
+      "software.amazon.awssdk"           % "ssooidc"                 % awsJavaSdkV2Version,
+      "com.fasterxml.jackson.core"       % "jackson-databind"        % "2.12.7.1",
+      "com.fasterxml.jackson.core"       % "jackson-annotations"     % "2.12.7",
+      "com.fasterxml.jackson.core"       % "jackson-core"            % "2.12.7",
+      "com.fasterxml.jackson.dataformat" % "jackson-dataformat-cbor" % "2.12.6",
+      "org.slf4j"                        % "slf4j-api"               % slf4jVersion,
+      "commons-logging"                  % "commons-logging"         % "1.2",
+      "commons-codec"                    % "commons-codec"           % "1.15"
+    ),
+    Compile / moduleDependencies := Seq(
+      "org.slf4j"                 % "slf4j-api"        % slf4jVersion,
+      "org.reactivestreams"       % "reactive-streams" % "1.0.4",
+      "org.apache.httpcomponents" % "httpcore"         % "4.4.13",
+      "org.apache.httpcomponents" % "httpclient"       % "4.5.13",
+      "commons-logging"           % "commons-logging"  % "1.2"
+    ),
+    // Remove all the transitive dependencies of AWS SDK and leave only those that
+    // include `software.amazon.awssdk.*` classes.
+    assembly / assemblyExcludedJars := {
+      val excludedJars = JPMSUtils.filterModulesFromClasspath(
+        (Compile / dependencyClasspath).value,
+        Seq(
+          "com.fasterxml.jackson.core"       % "jackson-databind"                   % "2.12.7.1",
+          "com.fasterxml.jackson.core"       % "jackson-annotations"                % "2.12.7",
+          "com.fasterxml.jackson.core"       % "jackson-core"                       % "2.12.7",
+          "com.fasterxml.jackson.dataformat" % "jackson-dataformat-cbor"            % "2.12.6",
+          "org.slf4j"                        % "slf4j-api"                          % slf4jVersion,
+          "org.apache.httpcomponents"        % "httpclient"                         % "4.5.13",
+          "org.apache.httpcomponents"        % "httpcore"                           % "4.4.13",
+          "commons-logging"                  % "commons-logging"                    % "1.2",
+          "commons-codec"                    % "commons-codec"                      % "1.15",
+          "org.reactivestreams"              % "reactive-streams"                   % "1.0.4",
+          "joda-time"                        % "joda-time"                          % "2.8.1",
+          "io.netty"                         % "netty-common"                       % "4.1.108.Final",
+          "io.netty"                         % "netty-codec"                        % "4.1.108.Final",
+          "io.netty"                         % "netty-codec-http"                   % "4.1.108.Final",
+          "io.netty"                         % "netty-codec-http2"                  % "4.1.108.Final",
+          "io.netty"                         % "netty-buffer"                       % "4.1.108.Final",
+          "io.netty"                         % "netty-handler"                      % "4.1.108.Final",
+          "io.netty"                         % "netty-resolver"                     % "4.1.108.Final",
+          "io.netty"                         % "netty-transport"                    % "4.1.108.Final",
+          "io.netty"                         % "netty-transport-classes-epoll"      % "4.1.108.Final",
+          "io.netty"                         % "netty-transport-native-unix-common" % "4.1.108.Final"
+        ),
+        streams.value.log,
+        scalaBinaryVersion.value,
+        moduleName.value,
+        shouldContainAll = true
+      )
+      excludedJars
+    },
+    assembly / assemblyMergeStrategy := {
+      case PathList("META-INF", "io.netty.versions.properties") =>
+        MergeStrategy.first
+      case PathList("META-INF", "MANIFEST.MF")  => MergeStrategy.discard
+      case PathList("META-INF", "LICENSE")      => MergeStrategy.concat
+      case PathList("META-INF", "LICENSE.txt")  => MergeStrategy.concat
+      case PathList("META-INF", "NOTICE")       => MergeStrategy.concat
+      case PathList("META-INF", "NOTICE.txt")   => MergeStrategy.concat
+      case PathList("META-INF", "DEPENDENCIES") => MergeStrategy.discard
+      case PathList("META-INF", "INDEX.LIST")   => MergeStrategy.discard
+      case PathList("META-INF", "SIGNER.RSA")   => MergeStrategy.discard
+      case PathList("META-INF", "SIGNER.SF")    => MergeStrategy.discard
+      case PathList("module-info.class")        => MergeStrategy.preferProject
+      case _                                    => MergeStrategy.deduplicate
+    },
+    autoScalaLibrary := false,
+    Compile / patchModules := {
+      val aws = JPMSUtils.filterModulesFromUpdate(
+        update.value,
+        Seq(
+          "software.amazon.awssdk" % "auth"            % awsJavaSdkV2Version,
+          "software.amazon.awssdk" % "aws-core"        % awsJavaSdkV2Version,
+          "software.amazon.awssdk" % "sdk-core"        % awsJavaSdkV2Version,
+          "software.amazon.awssdk" % "profiles"        % awsJavaSdkV2Version,
+          "software.amazon.awssdk" % "regions"         % awsJavaSdkV2Version,
+          "software.amazon.awssdk" % "http-client-spi" % awsJavaSdkV2Version,
+          "software.amazon.awssdk" % "apache-client"   % awsJavaSdkV2Version,
+          "software.amazon.awssdk" % "s3"              % awsJavaSdkV2Version
+        ),
+        streams.value.log,
+        moduleName.value,
+        scalaBinaryVersion.value,
+        shouldContainAll = true
+      )
+      Map(
+        javaModuleName.value -> aws
+      )
+    }
+  )
+
 lazy val cli = project
   .in(file("lib/scala/cli"))
   .enablePlugins(JPMSPlugin)
@@ -3463,7 +3572,7 @@ lazy val `engine-runner` = project
     Compile / run / mainClass := Some("org.enso.runner.Main"),
     commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
-    libraryDependencies ++= GraalVM.modules ++ Seq(
+    libraryDependencies ++= GraalVM.modules ++ GraalVM.toolsPkgs ++ Seq(
       "org.graalvm.polyglot"    % "polyglot"                % graalMavenPackagesVersion,
       "org.graalvm.sdk"         % "polyglot-tck"            % graalMavenPackagesVersion % Provided,
       "commons-cli"             % "commons-cli"             % commonsCliVersion,
@@ -3546,7 +3655,7 @@ lazy val `engine-runner` = project
       val NI_MODULES =
         "org.graalvm.nativeimage,org.graalvm.nativeimage.builder,org.graalvm.nativeimage.base,org.graalvm.nativeimage.driver,org.graalvm.nativeimage.librarysupport,org.graalvm.nativeimage.objectfile,org.graalvm.nativeimage.pointsto,com.oracle.graal.graal_enterprise,com.oracle.svm.svm_enterprise"
       val JDK_MODULES =
-        "jdk.localedata,jdk.httpserver,java.naming,java.net.http"
+        "jdk.localedata,jdk.httpserver,java.naming,java.net.http,java.xml"
       val DEBUG_MODULES  = "jdk.jdwp.agent"
       val PYTHON_MODULES = "jdk.security.auth,java.naming"
 
@@ -3999,7 +4108,7 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
         (Compile / run).toTask("").tag(Exclusive).value
       }
       .dependsOn(
-        buildEngineDistribution
+        buildEngineDistributionNoIndex
       )
       .value,
     benchOnly := Def.inputTaskDyn {
@@ -4382,6 +4491,7 @@ val `std-tableau-polyglot-root` =
 
 lazy val `std-base` = project
   .in(file("std-bits") / "base")
+  .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
@@ -4391,9 +4501,19 @@ lazy val `std-base` = project
     Compile / packageBin / artifactPath :=
       `base-polyglot-root` / "std-base.jar",
     libraryDependencies ++= Seq(
-      "org.graalvm.polyglot"       % "polyglot"                % graalMavenPackagesVersion,
-      "org.netbeans.api"           % "org-openide-util-lookup" % netbeansApiVersion % "provided",
-      "com.fasterxml.jackson.core" % "jackson-databind"        % jacksonVersion
+      "org.graalvm.polyglot"       % "polyglot"         % graalMavenPackagesVersion,
+      "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion
+    ),
+    Compile / moduleDependencies ++= Seq(
+      "org.graalvm.polyglot"       % "polyglot"            % graalMavenPackagesVersion,
+      "org.graalvm.sdk"            % "collections"         % graalMavenPackagesVersion,
+      "com.ibm.icu"                % "icu4j"               % icuVersion,
+      "com.fasterxml.jackson.core" % "jackson-databind"    % jacksonVersion,
+      "com.fasterxml.jackson.core" % "jackson-annotations" % jacksonVersion,
+      "com.fasterxml.jackson.core" % "jackson-core"        % jacksonVersion
+    ),
+    Compile / internalModuleDependencies := Seq(
+      (`common-polyglot-core-utils` / Compile / exportedModule).value
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
@@ -4430,6 +4550,7 @@ lazy val `common-polyglot-core-utils` = project
 
 lazy val `enso-test-java-helpers` = project
   .in(file("test/Base_Tests/polyglot-sources/enso-test-java-helpers"))
+  .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
@@ -4437,6 +4558,13 @@ lazy val `enso-test-java-helpers` = project
       file("test/Base_Tests/polyglot/java/helpers.jar"),
     libraryDependencies ++= Seq(
       "org.graalvm.polyglot" % "polyglot" % graalMavenPackagesVersion % "provided"
+    ),
+    Compile / moduleDependencies ++= Seq(
+      "org.graalvm.polyglot" % "polyglot" % graalMavenPackagesVersion
+    ),
+    Compile / internalModuleDependencies := Seq(
+      (`std-base` / Compile / exportedModule).value,
+      (`std-table` / Compile / exportedModule).value
     ),
     Compile / packageBin := Def.task {
       val result          = (Compile / packageBin).value
@@ -4496,6 +4624,7 @@ lazy val `benchmark-java-helpers` = project
 lazy val `std-table` = project
   .in(file("std-bits") / "table")
   .enablePlugins(Antlr4Plugin)
+  .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
@@ -4520,6 +4649,21 @@ lazy val `std-table` = project
       "org.antlr"                % "antlr4-runtime"          % antlrVersion,
       "org.apache.logging.log4j" % "log4j-to-slf4j"          % "2.18.0" // org.apache.poi uses log4j
     ),
+    Compile / moduleDependencies ++= Seq(
+      "org.graalvm.polyglot" % "polyglot"          % graalMavenPackagesVersion,
+      "org.antlr"            % "antlr4-runtime"    % antlrVersion,
+      "com.univocity"        % "univocity-parsers" % univocityParsersVersion,
+      "org.apache.poi"       % "poi"               % poiOoxmlVersion,
+      "org.apache.poi"       % "poi-ooxml"         % poiOoxmlVersion,
+      "org.apache.poi"       % "poi-ooxml-lite"    % poiOoxmlVersion,
+      "org.apache.xmlbeans"  % "xmlbeans"          % xmlbeansVersion,
+      "org.graalvm.sdk"      % "collections"       % graalMavenPackagesVersion,
+      "com.ibm.icu"          % "icu4j"             % icuVersion
+    ),
+    Compile / internalModuleDependencies := Seq(
+      (`common-polyglot-core-utils` / Compile / exportedModule).value,
+      (`std-base` / Compile / exportedModule).value
+    ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
       val _ = StdBits
@@ -4536,6 +4680,7 @@ lazy val `std-table` = project
 
 lazy val `std-image` = project
   .in(file("std-bits") / "image")
+  .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
@@ -4545,9 +4690,15 @@ lazy val `std-image` = project
     Compile / packageBin / artifactPath :=
       `image-polyglot-root` / "std-image.jar",
     libraryDependencies ++= Seq(
-      "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion % "provided",
-      "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion        % "provided",
-      "org.openpnp"          % "opencv"                  % opencvVersion
+      "org.graalvm.polyglot" % "polyglot" % graalMavenPackagesVersion % "provided",
+      "org.openpnp"          % "opencv"   % opencvVersion
+    ),
+    Compile / moduleDependencies ++= Seq(
+      "org.graalvm.polyglot" % "polyglot" % graalMavenPackagesVersion,
+      "org.openpnp"          % "opencv"   % opencvVersion
+    ),
+    Compile / internalModuleDependencies := Seq(
+      (`std-base` / Compile / exportedModule).value
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
@@ -4593,6 +4744,7 @@ lazy val `std-google-api` = project
 
 lazy val `std-database` = project
   .in(file("std-bits") / "database")
+  .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
@@ -4602,10 +4754,20 @@ lazy val `std-database` = project
     Compile / packageBin / artifactPath :=
       `database-polyglot-root` / "std-database.jar",
     libraryDependencies ++= Seq(
-      "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion % "provided",
-      "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion        % "provided",
-      "org.xerial"           % "sqlite-jdbc"             % sqliteVersion,
-      "org.postgresql"       % "postgresql"              % postgresVersion
+      "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided",
+      "org.xerial"       % "sqlite-jdbc"             % sqliteVersion,
+      "org.postgresql"   % "postgresql"              % postgresVersion
+    ),
+    Compile / moduleDependencies ++= Seq(
+      "org.graalvm.sdk"            % "collections"         % graalMavenPackagesVersion,
+      "org.graalvm.polyglot"       % "polyglot"            % graalMavenPackagesVersion,
+      "com.fasterxml.jackson.core" % "jackson-databind"    % jacksonVersion,
+      "com.fasterxml.jackson.core" % "jackson-annotations" % jacksonVersion,
+      "com.fasterxml.jackson.core" % "jackson-core"        % jacksonVersion
+    ),
+    Compile / internalModuleDependencies := Seq(
+      (`common-polyglot-core-utils` / Compile / exportedModule).value,
+      (`std-base` / Compile / exportedModule).value
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
@@ -4624,6 +4786,7 @@ lazy val `std-database` = project
 
 lazy val `std-aws` = project
   .in(file("std-bits") / "aws")
+  .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
@@ -4632,18 +4795,18 @@ lazy val `std-aws` = project
       .value,
     Compile / packageBin / artifactPath :=
       `std-aws-polyglot-root` / "std-aws.jar",
-    libraryDependencies ++= Seq(
-      "org.netbeans.api"       % "org-openide-util-lookup" % netbeansApiVersion % "provided",
-      "com.amazon.redshift"    % "redshift-jdbc42"         % redshiftVersion,
-      "com.amazonaws"          % "aws-java-sdk-core"       % awsJavaSdkV1Version,
-      "com.amazonaws"          % "aws-java-sdk-redshift"   % awsJavaSdkV1Version,
-      "com.amazonaws"          % "aws-java-sdk-sts"        % awsJavaSdkV1Version,
-      "software.amazon.awssdk" % "auth"                    % awsJavaSdkV2Version,
-      "software.amazon.awssdk" % "bom"                     % awsJavaSdkV2Version,
-      "software.amazon.awssdk" % "s3"                      % awsJavaSdkV2Version,
-      "software.amazon.awssdk" % "sso"                     % awsJavaSdkV2Version,
-      "software.amazon.awssdk" % "ssooidc"                 % awsJavaSdkV2Version
+    Compile / internalModuleDependencies := Seq(
+      (`aws-wrapper` / Compile / exportedModule).value,
+      (`std-base` / Compile / exportedModule).value,
+      (`std-database` / Compile / exportedModule).value
     ),
+    // This will cause `aws-wrapper-assembly.jar` and its dependencies to be copied into the
+    // `AWS/polyglot/java` directory.
+    Compile / unmanagedJars := {
+      val wrapperJar  = (`aws-wrapper` / Compile / exportedModuleBin).value
+      val wrapperDeps = (`aws-wrapper` / Compile / modulePath).value
+      Seq(Attributed.blank(wrapperJar)) ++ wrapperDeps.map(Attributed.blank)
+    },
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
       val _ = StdBits
@@ -4656,12 +4819,14 @@ lazy val `std-aws` = project
       result
     }.value
   )
+  .dependsOn(`aws-wrapper` % "provided")
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
   .dependsOn(`std-database` % "provided")
 
 lazy val `std-snowflake` = project
   .in(file("std-bits") / "snowflake")
+  .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
@@ -4692,6 +4857,7 @@ lazy val `std-snowflake` = project
 
 lazy val `std-microsoft` = project
   .in(file("std-bits") / "microsoft")
+  .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
@@ -4701,8 +4867,10 @@ lazy val `std-microsoft` = project
     Compile / packageBin / artifactPath :=
       `std-microsoft-polyglot-root` / "std-microsoft.jar",
     libraryDependencies ++= Seq(
-      "org.netbeans.api"        % "org-openide-util-lookup" % netbeansApiVersion % "provided",
-      "com.microsoft.sqlserver" % "mssql-jdbc"              % mssqlserverJDBCVersion
+      "com.microsoft.sqlserver" % "mssql-jdbc" % mssqlserverJDBCVersion
+    ),
+    Compile / moduleDependencies ++= Seq(
+      "com.microsoft.sqlserver" % "mssql-jdbc" % mssqlserverJDBCVersion
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
@@ -4714,7 +4882,11 @@ lazy val `std-microsoft` = project
         )
         .value
       result
-    }.value
+    }.value,
+    Compile / internalModuleDependencies := Seq(
+      (`std-base` / Compile / exportedModule).value,
+      (`std-database` / Compile / exportedModule).value
+    )
   )
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
@@ -4818,7 +4990,7 @@ lazy val `std-tableau` = project
       `std-tableau-polyglot-root` / "std-tableau.jar",
     libraryDependencies ++= Seq(
       "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided",
-      "net.java.dev.jna" % "jna-platform"            % jnaVersion
+      "net.java.dev.jna" % "jna-platform"            % jnaVersion         % "provided"
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
