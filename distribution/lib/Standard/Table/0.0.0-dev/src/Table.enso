@@ -2269,7 +2269,7 @@ type Table
     @order_by (Widget_Helpers.make_order_by_selector display=..When_Modified)
     add_row_number : Text -> Integer -> Integer -> Vector (Text | Integer | Regex) | Text | Integer | Regex -> Vector (Text | Sort_Column) | Text -> Problem_Behavior -> Table
     add_row_number self (name:Text="Row") (from:Integer=0) (step:Integer=1) (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (on_problems:Problem_Behavior=..Report_Warning) =
-        Add_Row_Number.add_row_number self name from step group_by order_by on_problems
+        Incomparable_Values.handle_errors <| Add_Row_Number.add_row_number self name from step group_by order_by on_problems
 
     ## ALIAS add column, expression, formula, new column, update column
        GROUP Standard.Base.Values
@@ -3634,7 +3634,7 @@ type Table
     @of Widget_Helpers.make_column_name_selector
     running : Statistic -> (Text | Integer) -> Text -> Set_Mode -> Vector (Text | Integer | Regex) | Text | Integer | Regex -> Vector (Text | Sort_Column) | Text -> Problem_Behavior -> Table
     running self (statistic:Statistic=..Count) (of:(Text | Integer)=0) (as:Text='') (set_mode:Set_Mode=..Add) (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (on_problems:Problem_Behavior=..Report_Warning) =
-        Add_Running.add_running self statistic of as set_mode group_by order_by on_problems
+        Incomparable_Values.handle_errors <| Add_Running.add_running self statistic of as set_mode group_by order_by on_problems
 
     ## PRIVATE
     column_naming_helper : Column_Naming_Helper

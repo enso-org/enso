@@ -19,11 +19,15 @@ import * as ariaComponents from '#/components/AriaComponents'
 import { Badge } from '#/components/Badge'
 import SvgMask from '#/components/SvgMask'
 import * as mimeTypes from '#/data/mimeTypes'
-import AssetEventType from '#/events/AssetEventType'
 import { useBackendQuery } from '#/hooks/backendHooks'
 import * as offlineHooks from '#/hooks/offlineHooks'
 import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
-import { areCategoriesEqual, type Category } from '#/layouts/CategorySwitcher/Category'
+import {
+  areCategoriesEqual,
+  canTransferBetweenCategories,
+  useTransferBetweenCategories,
+  type Category,
+} from '#/layouts/CategorySwitcher/Category'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
@@ -38,7 +42,6 @@ import { getFileName } from '#/utilities/fileInfo'
 import LocalStorage from '#/utilities/LocalStorage'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import { twMerge } from 'tailwind-merge'
-import invariant from 'tiny-invariant'
 
 // ============================
 // === Global configuration ===
@@ -88,12 +91,10 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
   const { user } = authProvider.useFullUserSession()
   const { unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
-  const remoteBackend = backendProvider.useRemoteBackendStrict()
-  const { data: organization = null } = useBackendQuery(remoteBackend, 'getOrganization', [])
   const localBackend = backendProvider.useLocalBackend()
   const { isOffline } = offlineHooks.useOffline()
   const isCurrent = areCategoriesEqual(currentCategory, category)
-  const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
+  const transferBetweenCategories = useTransferBetweenCategories(currentCategory)
   const getCategoryError = (otherCategory: Category) => {
     switch (otherCategory.type) {
       case 'local':
@@ -123,32 +124,9 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
   const isDisabled = error != null
   const tooltip = error ?? false
 
-  const isDropTarget = (() => {
-    if (areCategoriesEqual(category, currentCategory)) {
-      return false
-    } else {
-      switch (currentCategory.type) {
-        case 'cloud':
-        case 'recent':
-        case 'team':
-        case 'user': {
-          return (
-            category.type === 'trash' ||
-            category.type === 'cloud' ||
-            category.type === 'team' ||
-            category.type === 'user'
-          )
-        }
-        case 'trash': {
-          return category.type === 'cloud'
-        }
-        case 'local':
-        case 'local-directory': {
-          return category.type === 'local' || category.type === 'local-directory'
-        }
-      }
-    }
-  })()
+  const isDropTarget =
+    !areCategoriesEqual(currentCategory, category) &&
+    canTransferBetweenCategories(currentCategory, category)
   const acceptedDragTypes = isDropTarget ? [mimeTypes.ASSETS_MIME_TYPE] : []
 
   const onPress = () => {
@@ -177,52 +155,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
         }
       }),
     ).then((keys) => {
-      switch (currentCategory.type) {
-        case 'cloud':
-        case 'recent':
-        case 'team':
-        case 'user': {
-          if (category.type === 'trash') {
-            dispatchAssetEvent({ type: AssetEventType.delete, ids: new Set(keys.flat(1)) })
-          } else if (
-            category.type === 'cloud' ||
-            category.type === 'team' ||
-            category.type === 'user'
-          ) {
-            const newParentId =
-              category.type === 'cloud' ?
-                remoteBackend.rootDirectoryId(user, organization)
-              : category.homeDirectoryId
-            invariant(newParentId != null, 'The Cloud backend is missing a root directory.')
-            dispatchAssetEvent({
-              type: AssetEventType.move,
-              newParentKey: newParentId,
-              newParentId,
-              ids: new Set(keys.flat(1)),
-            })
-          }
-          break
-        }
-        case 'trash': {
-          dispatchAssetEvent({ type: AssetEventType.restore, ids: new Set(keys.flat(1)) })
-          break
-        }
-        case 'local':
-        case 'local-directory': {
-          if (category.type === 'local' || category.type === 'local-directory') {
-            const parentDirectory =
-              category.type === 'local' ? localBackend?.rootPath() : category.rootPath
-            invariant(parentDirectory != null, 'The Local backend is missing a root directory.')
-            const newParentId = newDirectoryId(parentDirectory)
-            dispatchAssetEvent({
-              type: AssetEventType.move,
-              newParentKey: newParentId,
-              newParentId,
-              ids: new Set(keys.flat(1)),
-            })
-          }
-        }
-      }
+      transferBetweenCategories(currentCategory, category, keys.flat(1))
     })
   }
 
@@ -334,9 +267,9 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
     'listDirectory',
     [
       {
-        parentId: backend.DirectoryId(USERS_DIRECTORY_ID),
+        parentId: USERS_DIRECTORY_ID,
         filterBy: backend.FilterBy.active,
-        labels: [],
+        labels: null,
         recentProjects: false,
       },
       'Users',
@@ -348,9 +281,9 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
     'listDirectory',
     [
       {
-        parentId: backend.DirectoryId(TEAMS_DIRECTORY_ID),
+        parentId: TEAMS_DIRECTORY_ID,
         filterBy: backend.FilterBy.active,
-        labels: [],
+        labels: null,
         recentProjects: false,
       },
       'Teams',

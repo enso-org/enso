@@ -17,7 +17,8 @@
   },
   "scripts": {
     "test": "vitest run",
-    "compile": "tsc"
+    "compile": "tsc",
+    "lint": "eslint . --max-warnings=0"
   },
   "peerDependencies": {
     "@tanstack/query-core": "5.54.1",

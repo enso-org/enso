@@ -6,18 +6,34 @@ import * as zustand from 'zustand'
 
 import type { AssetPanelContextProps } from '#/layouts/AssetPanel'
 import type { Suggestion } from '#/layouts/AssetSearchBar'
+import type { Category } from '#/layouts/CategorySwitcher/Category'
 import { useLocalStorage } from '#/providers/LocalStorageProvider'
 import type AssetTreeNode from '#/utilities/AssetTreeNode'
+import type { PasteData } from '#/utilities/pasteData'
 import { EMPTY_SET } from '#/utilities/set'
-import type { AssetId, DirectoryAsset, DirectoryId } from 'enso-common/src/services/Backend'
+import type {
+  AssetId,
+  BackendType,
+  DirectoryAsset,
+  DirectoryId,
+} from 'enso-common/src/services/Backend'
 import { EMPTY_ARRAY } from 'enso-common/src/utilities/data/array'
 
 // ==================
 // === DriveStore ===
 // ==================
 
+/** Attached data for a paste payload. */
+export interface DrivePastePayload {
+  readonly backendType: BackendType
+  readonly category: Category
+  readonly ids: ReadonlySet<AssetId>
+}
+
 /** The state of this zustand store. */
 interface DriveStore {
+  readonly category: Category
+  readonly setCategory: (category: Category) => void
   readonly targetDirectory: AssetTreeNode<DirectoryAsset> | null
   readonly setTargetDirectory: (targetDirectory: AssetTreeNode<DirectoryAsset> | null) => void
   readonly newestFolderId: DirectoryId | null
@@ -26,6 +42,8 @@ interface DriveStore {
   readonly setCanCreateAssets: (canCreateAssets: boolean) => void
   readonly canDownload: boolean
   readonly setCanDownload: (canDownload: boolean) => void
+  readonly pasteData: PasteData<DrivePastePayload> | null
+  readonly setPasteData: (pasteData: PasteData<DrivePastePayload> | null) => void
   readonly selectedKeys: ReadonlySet<AssetId>
   readonly setSelectedKeys: (selectedKeys: ReadonlySet<AssetId>) => void
   readonly visuallySelectedKeys: ReadonlySet<AssetId> | null
@@ -65,13 +83,30 @@ export default function DriveProvider(props: ProjectsProviderProps) {
   const { localStorage } = useLocalStorage()
   const [store] = React.useState(() =>
     zustand.createStore<DriveStore>((set, get) => ({
+      category: { type: 'cloud' },
+      setCategory: (category) => {
+        if (get().category !== category) {
+          set({
+            category,
+            targetDirectory: null,
+            selectedKeys: EMPTY_SET,
+            visuallySelectedKeys: null,
+            suggestions: EMPTY_ARRAY,
+            assetPanelProps: null,
+          })
+        }
+      },
       targetDirectory: null,
       setTargetDirectory: (targetDirectory) => {
-        set({ targetDirectory })
+        if (get().targetDirectory !== targetDirectory) {
+          set({ targetDirectory })
+        }
       },
       newestFolderId: null,
       setNewestFolderId: (newestFolderId) => {
-        set({ newestFolderId })
+        if (get().newestFolderId !== newestFolderId) {
+          set({ newestFolderId })
+        }
       },
       canCreateAssets: true,
       setCanCreateAssets: (canCreateAssets) => {
@@ -85,21 +120,21 @@ export default function DriveProvider(props: ProjectsProviderProps) {
           set({ canDownload })
         }
       },
+      pasteData: null,
+      setPasteData: (pasteData) => {
+        if (get().pasteData !== pasteData) {
+          set({ pasteData })
+        }
+      },
       selectedKeys: EMPTY_SET,
       setSelectedKeys: (selectedKeys) => {
-        if (
-          get().selectedKeys !== selectedKeys &&
-          (selectedKeys.size !== 0 || get().selectedKeys.size !== 0)
-        ) {
+        if (get().selectedKeys !== selectedKeys) {
           set({ selectedKeys })
         }
       },
       visuallySelectedKeys: null,
       setVisuallySelectedKeys: (visuallySelectedKeys) => {
-        if (
-          get().visuallySelectedKeys !== visuallySelectedKeys &&
-          (visuallySelectedKeys?.size !== 0 || get().visuallySelectedKeys?.size !== 0)
-        ) {
+        if (get().visuallySelectedKeys !== visuallySelectedKeys) {
           set({ visuallySelectedKeys })
         }
       },
@@ -124,10 +159,7 @@ export default function DriveProvider(props: ProjectsProviderProps) {
       },
       suggestions: EMPTY_ARRAY,
       setSuggestions: (suggestions) => {
-        if (
-          get().suggestions !== suggestions &&
-          (suggestions.length !== 0 || get().suggestions.length !== 0)
-        ) {
+        if (get().suggestions !== suggestions) {
           set({ suggestions })
         }
       },
@@ -146,7 +178,19 @@ export function useDriveStore() {
   return store
 }
 
-/** Get the target directory of the Asset Table selection. */
+/** The category of the Asset Table. */
+export function useCategory() {
+  const store = useDriveStore()
+  return zustand.useStore(store, (state) => state.category)
+}
+
+/** A function to set the category of the Asset Table. */
+export function useSetCategory() {
+  const store = useDriveStore()
+  return zustand.useStore(store, (state) => state.setCategory)
+}
+
+/** The target directory of the Asset Table selection. */
 export function useTargetDirectory() {
   const store = useDriveStore()
   return zustand.useStore(store, (state) => state.targetDirectory)
@@ -158,7 +202,7 @@ export function useSetTargetDirectory() {
   return zustand.useStore(store, (state) => state.setTargetDirectory)
 }
 
-/** Get the ID of the most newly created folder. */
+/** The ID of the most newly created folder. */
 export function useNewestFolderId() {
   const store = useDriveStore()
   return zustand.useStore(store, (state) => state.newestFolderId)
@@ -192,6 +236,18 @@ export function useCanDownload() {
 export function useSetCanDownload() {
   const store = useDriveStore()
   return zustand.useStore(store, (state) => state.setCanDownload)
+}
+
+/** The paste data for the Asset Table. */
+export function usePasteData() {
+  const store = useDriveStore()
+  return zustand.useStore(store, (state) => state.pasteData)
+}
+
+/** A function to set the paste data for the Asset Table. */
+export function useSetPasteData() {
+  const store = useDriveStore()
+  return zustand.useStore(store, (state) => state.setPasteData)
 }
 
 /** The selected keys in the Asset Table. */

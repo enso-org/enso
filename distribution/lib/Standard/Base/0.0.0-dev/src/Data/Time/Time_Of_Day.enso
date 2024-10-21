@@ -494,7 +494,7 @@ type Time_Of_Day
     ## PRIVATE
        Convert to a Enso code representation of this Time_Of_Day.
     pretty : Text
-    pretty self = "(Time_Of_Day.new "
+    pretty self = "(Time_Of_Day.new"
         + (if self.hour == 0 then "" else " hour="+self.hour.to_text)
         + (if self.minute == 0 then "" else " minute="+self.minute.to_text)
         + (if self.second == 0 then "" else " second="+self.second.to_text)

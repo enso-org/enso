@@ -13,13 +13,15 @@ const logger = contentConfig.logger
 // === Protocol Association ===
 // ============================
 
-/** Register the application as a handler for our [deep link scheme]{@link common.DEEP_LINK_SCHEME}.
+/**
+ * Register the application as a handler for our [deep link scheme]{@link common.DEEP_LINK_SCHEME}.
  *
  * This method is no-op when used under the Electron dev mode, as it requires special handling to
  * set up the process.
  *
  * It is also no-op on macOS, as the OS handles the URL opening by passing the `open-url` event to
- * the application, thanks to the information baked in our application by `electron-builder`. */
+ * the application, thanks to the information baked in our application by `electron-builder`.
+ */
 export function registerAssociations() {
   if (!electron.app.isDefaultProtocolClient(common.DEEP_LINK_SCHEME)) {
     if (electronIsDev) {
@@ -40,14 +42,16 @@ export function registerAssociations() {
 // === URL handling ===
 // ====================
 
-/** Check if the given list of application startup arguments denotes an attempt to open a URL.
+/**
+ * Check if the given list of application startup arguments denotes an attempt to open a URL.
  *
  * For example, this happens on Windows when the browser redirects user using our
  * [deep link scheme]{@link common.DEEP_LINK_SCHEME}. On macOS this is not used, as the OS
  * handles the URL opening by passing the `open-url` event to the application.
  * @param clientArgs - A list of arguments passed to the application, stripped from the initial
  * executable name and any electron dev mode arguments.
- * @returns The URL to open, or `null` if no file was specified. */
+ * @returns The URL to open, or `null` if no file was specified.
+ */
 export function argsDenoteUrlOpenAttempt(clientArgs: readonly string[]): URL | null {
   const arg = clientArgs[0]
   let result: URL | null = null
@@ -69,22 +73,26 @@ export function argsDenoteUrlOpenAttempt(clientArgs: readonly string[]): URL | n
 
 let initialUrl: URL | null = null
 
-/** Handle the case where IDE is invoked with a URL to open.
+/**
+ * Handle the case where IDE is invoked with a URL to open.
  *
  * This happens on Windows when the browser redirects user using the deep link scheme.
- * @param openedUrl - The URL to open. */
+ * @param openedUrl - The URL to open.
+ */
 export function handleOpenUrl(openedUrl: URL) {
   logger.log(`Opening URL '${openedUrl.toString()}'.`)
   // We must wait for the application to be ready and then send the URL to the renderer process.
   initialUrl = openedUrl
 }
 
-/** Register the callback that will be called when the application is requested to open a URL.
+/**
+ * Register the callback that will be called when the application is requested to open a URL.
  *
  * This method serves to unify the url handling between macOS and Windows. On macOS, the OS
  * handles the URL opening by passing the `open-url` event to the application. On Windows, a
  * new instance of the application is started and the URL is passed as a command line argument.
- * @param callback - The callback to call when the application is requested to open a URL. */
+ * @param callback - The callback to call when the application is requested to open a URL.
+ */
 export function registerUrlCallback(callback: (url: URL) => void) {
   if (initialUrl != null) {
     logger.log(`Got URL from command line: '${initialUrl.toString()}'.`)

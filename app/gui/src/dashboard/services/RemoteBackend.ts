@@ -505,11 +505,14 @@ export default class RemoteBackend extends Backend {
         return await this.throw(response, 'listRootFolderBackendError')
       }
     } else {
-      return (await response.json()).assets
+      const ret = (await response.json()).assets
         .map((asset) =>
           object.merge(asset, {
             // eslint-disable-next-line no-restricted-syntax
             type: asset.id.match(/^(.+?)-/)?.[1] as backend.AssetType,
+            // `Users` and `Teams` folders are virtual, so their children incorrectly have
+            // the organization root id as their parent id.
+            parentId: query.parentId ?? asset.parentId,
           }),
         )
         .map((asset) =>
@@ -518,6 +521,7 @@ export default class RemoteBackend extends Backend {
           }),
         )
         .map((asset) => this.dynamicAssetUser(asset))
+      return ret
     }
   }
 
@@ -1245,9 +1249,7 @@ export default class RemoteBackend extends Backend {
     await download.downloadWithHeaders(url, this.client.defaultHeaders, name)
   }
 
-  /**
-   * Fetch the URL of the customer portal.
-   */
+  /** Fetch the URL of the customer portal. */
   override async createCustomerPortalSession() {
     const response = await this.post<backend.CreateCustomerPortalSessionResponse>(
       remoteBackendPaths.getCustomerPortalSessionPath(),

@@ -7,7 +7,6 @@ import * as toast from 'react-toastify'
 import * as billingHooks from '#/hooks/billing'
 import * as copyHooks from '#/hooks/copyHooks'
 import * as projectHooks from '#/hooks/projectHooks'
-import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -36,7 +35,9 @@ import ManagePermissionsModal from '#/modals/ManagePermissionsModal'
 import * as backendModule from '#/services/Backend'
 import * as localBackendModule from '#/services/LocalBackend'
 
+import { backendMutationOptions } from '#/hooks/backendHooks'
 import {
+  usePasteData,
   useSetAssetPanelProps,
   useSetIsAssetPanelTemporarilyVisible,
 } from '#/providers/DriveProvider'
@@ -54,6 +55,7 @@ export interface AssetContextMenuProps {
   readonly hidden?: boolean
   readonly innerProps: assetRow.AssetRowInnerProps
   readonly rootDirectoryId: backendModule.DirectoryId
+  readonly triggerRef: React.MutableRefObject<HTMLElement | null>
   readonly event: Pick<React.MouseEvent, 'pageX' | 'pageY'>
   readonly eventTarget: HTMLElement | null
   readonly doDelete: () => void
@@ -67,10 +69,10 @@ export interface AssetContextMenuProps {
 
 /** The context menu for an arbitrary {@link backendModule.Asset}. */
 export default function AssetContextMenu(props: AssetContextMenuProps) {
-  const { innerProps, rootDirectoryId, event, eventTarget, hidden = false } = props
+  const { innerProps, rootDirectoryId, event, eventTarget, hidden = false, triggerRef } = props
   const { doCopy, doCut, doPaste, doDelete } = props
   const { item, setItem, state, setRowState } = innerProps
-  const { backend, category, hasPasteData, pasteData, nodeMap } = state
+  const { backend, category, nodeMap } = state
 
   const { user } = authProvider.useFullUserSession()
   const { setModal } = modalProvider.useSetModal()
@@ -99,6 +101,9 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     : isCloud ? encodeURI(pathRaw)
     : pathRaw
   const copyMutation = copyHooks.useCopy({ copyText: path ?? '' })
+  const uploadFileMutation = reactQuery.useMutation(
+    backendMutationOptions(remoteBackend, 'uploadFile'),
+  )
 
   const { isFeatureUnderPaywall } = billingHooks.usePaywall({ plan: user.plan })
   const isUnderPaywall = isFeatureUnderPaywall('share')
@@ -112,8 +117,10 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     category.type !== 'recent' &&
     asset.type === backendModule.AssetType.directory &&
     canEditThisAsset
+  const pasteData = usePasteData()
+  const hasPasteData = (pasteData?.data.ids.size ?? 0) > 0
   const pasteDataParentKeys =
-    !pasteData.current ? null : (
+    !pasteData ? null : (
       new Map(
         Array.from(nodeMap.current.entries()).map(([id, otherAsset]) => [
           id,
@@ -122,14 +129,23 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
       )
     )
   const canPaste =
-    !pasteData.current || !pasteDataParentKeys || !isCloud ?
+    !pasteData || !pasteDataParentKeys || !isCloud ?
       true
-    : !Array.from(pasteData.current.data).some((assetId) => {
-        const parentKey = pasteDataParentKeys.get(assetId)
+    : Array.from(pasteData.data.ids).every((key) => {
+        const parentKey = pasteDataParentKeys.get(key)
         const parent = parentKey == null ? null : nodeMap.current.get(parentKey)
-        return !parent ? true : (
-            permissions.isTeamPath(parent.path) && permissions.isUserPath(item.path)
+        if (!parent) {
+          return false
+        } else if (permissions.isTeamPath(parent.path)) {
+          return true
+        } else {
+          // Assume user path; check permissions
+          const permission = permissions.tryFindSelfPermission(user, item.item.permissions)
+          return (
+            permission != null &&
+            permissions.canPermissionModifyDirectoryContents(permission.permission)
           )
+        }
       })
 
   const { data } = reactQuery.useQuery(
@@ -154,7 +170,19 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     asset.projectState.openedBy != null &&
     asset.projectState.openedBy !== user.email
 
-  const setAsset = setAssetHooks.useSetAsset(asset, setItem)
+  const pasteMenuEntry = hasPasteData && canPaste && (
+    <ContextMenuEntry
+      hidden={hidden}
+      action="paste"
+      doAction={() => {
+        const [directoryKey, directoryId] =
+          item.type === backendModule.AssetType.directory ?
+            [item.key, item.item.id]
+          : [item.directoryKey, item.directoryId]
+        doPaste(directoryKey, directoryId)
+      }}
+    />
+  )
 
   return (
     category.type === 'trash' ?
@@ -186,6 +214,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 )
               }}
             />
+            {pasteMenuEntry}
           </ContextMenu>
         </ContextMenus>
     : <ContextMenus hidden={hidden} key={asset.id} event={event}>
@@ -276,19 +305,14 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                     const projectResponse = await fetch(
                       `./api/project-manager/projects/${localBackendModule.extractTypeAndId(asset.id).id}/enso-project`,
                     )
-                    // This DOES NOT update the cloud assets list when it
-                    // completes, as the current backend is not the remote
-                    // (cloud) backend. The user may change to the cloud backend
-                    // while this request is in progress, however this is
-                    // uncommon enough that it is not worth the added complexity.
-                    await remoteBackend.uploadFile(
+                    await uploadFileMutation.mutateAsync([
                       {
                         fileName: `${asset.title}.enso-project`,
                         fileId: null,
                         parentDirectoryId: null,
                       },
                       await projectResponse.blob(),
-                    )
+                    ])
                     toast.toast.success(getText('uploadProjectToCloudSuccess'))
                   } catch (error) {
                     toastAndLog('uploadProjectToCloudError', error)
@@ -341,7 +365,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               label={getText('editDescriptionShortcut')}
               doAction={() => {
                 setIsAssetPanelTemporarilyVisible(true)
-                setAssetPanelProps({ backend, item, setItem, spotlightOn: 'description' })
+                setAssetPanelProps({ backend, item, spotlightOn: 'description' })
               }}
             />
           )}
@@ -400,8 +424,9 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                   doAction={() => {
                     setModal(
                       <ManagePermissionsModal
+                        backend={backend}
+                        category={category}
                         item={asset}
-                        setItem={setAsset}
                         self={self}
                         eventTarget={eventTarget}
                         doRemoveSelf={() => {
@@ -424,7 +449,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               action="label"
               doAction={() => {
                 setModal(
-                  <ManageLabelsModal backend={backend} item={asset} eventTarget={eventTarget} />,
+                  <ManageLabelsModal backend={backend} item={asset} triggerRef={triggerRef} />,
                 )
               }}
             />
@@ -467,25 +492,12 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               }}
             />
           )}
-          {hasPasteData && canPaste && (
-            <ContextMenuEntry
-              hidden={hidden}
-              action="paste"
-              doAction={() => {
-                const [directoryKey, directoryId] =
-                  item.type === backendModule.AssetType.directory ?
-                    [item.key, item.item.id]
-                  : [item.directoryKey, item.directoryId]
-                doPaste(directoryKey, directoryId)
-              }}
-            />
-          )}
+          {pasteMenuEntry}
         </ContextMenu>
         {canAddToThisDirectory && (
           <GlobalContextMenu
             hidden={hidden}
             backend={backend}
-            hasPasteData={hasPasteData}
             rootDirectoryId={rootDirectoryId}
             directoryKey={
               // This is SAFE, as both branches are guaranteed to be `DirectoryId`s

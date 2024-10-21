@@ -9,9 +9,7 @@ import invariant from 'tiny-invariant'
 
 import type { StepperState } from './useStepperState'
 
-/**
- * StepperProvider props
- */
+/** StepperProvider props */
 export interface StepperContextType {
   readonly currentStep: number
   readonly goToStep: (step: number) => void

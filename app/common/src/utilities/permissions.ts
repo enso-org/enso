@@ -111,8 +111,10 @@ export const FROM_PERMISSION_ACTION: Readonly<Record<PermissionAction, Permissio
   },
 }
 
-/** The corresponding {@link PermissionAction} for each {@link Permission}.
- * Assumes no docs sub-permission and no execute sub-permission. */
+/**
+ * The corresponding {@link PermissionAction} for each {@link Permission}.
+ * Assumes no docs sub-permission and no execute sub-permission.
+ */
 export const TYPE_TO_PERMISSION_ACTION: Readonly<Record<Permission, PermissionAction>> = {
   [Permission.owner]: PermissionAction.own,
   [Permission.admin]: PermissionAction.admin,
@@ -123,8 +125,10 @@ export const TYPE_TO_PERMISSION_ACTION: Readonly<Record<Permission, PermissionAc
   [Permission.delete]: PermissionAction.view,
 }
 
-/** The corresponding {@link text.TextId} for each {@link Permission}.
- * Assumes no docs sub-permission and no execute sub-permission. */
+/**
+ * The corresponding {@link text.TextId} for each {@link Permission}.
+ * Assumes no docs sub-permission and no execute sub-permission.
+ */
 export const TYPE_TO_TEXT_ID: Readonly<Record<Permission, text.TextId>> = {
   [Permission.owner]: 'ownerPermissionType',
   [Permission.admin]: 'adminPermissionType',
@@ -181,13 +185,13 @@ interface BasePermissions<T extends Permission> {
 }
 
 /** Owner permissions for an asset. */
-interface OwnerPermissions extends BasePermissions<Permission.owner> {}
+type OwnerPermissions = BasePermissions<Permission.owner>
 
 /** Admin permissions for an asset. */
-interface AdminPermissions extends BasePermissions<Permission.admin> {}
+type AdminPermissions = BasePermissions<Permission.admin>
 
 /** Editor permissions for an asset. */
-interface EditPermissions extends BasePermissions<Permission.edit> {}
+type EditPermissions = BasePermissions<Permission.edit>
 
 /** Reader permissions for an asset. */
 interface ReadPermissions extends BasePermissions<Permission.read> {

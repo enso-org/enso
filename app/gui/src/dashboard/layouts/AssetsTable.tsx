@@ -52,10 +52,10 @@ import FocusArea from '#/components/styled/FocusArea'
 import SvgMask from '#/components/SvgMask'
 import { ASSETS_MIME_TYPE } from '#/data/mimeTypes'
 import AssetEventType from '#/events/AssetEventType'
-import type { AssetListEvent } from '#/events/assetListEvent'
+import { useCutAndPaste, type AssetListEvent } from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
 import { useAutoScroll } from '#/hooks/autoScrollHooks'
-import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
+import { backendMutationOptions, backendQueryOptions, useBackendQuery } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useIntersectionRatio } from '#/hooks/intersectionHooks'
 import { useOpenProject } from '#/hooks/projectHooks'
@@ -64,7 +64,12 @@ import useOnScroll from '#/hooks/useOnScroll'
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 import AssetsTableContextMenu from '#/layouts/AssetsTableContextMenu'
-import { isLocalCategory, type Category } from '#/layouts/CategorySwitcher/Category'
+import {
+  canTransferBetweenCategories,
+  CATEGORY_TO_FILTER_BY,
+  isLocalCategory,
+  type Category,
+} from '#/layouts/CategorySwitcher/Category'
 import DragModal from '#/modals/DragModal'
 import DuplicateAssetsModal from '#/modals/DuplicateAssetsModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
@@ -81,6 +86,7 @@ import {
   useSetCanDownload,
   useSetIsAssetPanelTemporarilyVisible,
   useSetNewestFolderId,
+  useSetPasteData,
   useSetSelectedKeys,
   useSetSuggestions,
   useSetTargetDirectory,
@@ -111,7 +117,6 @@ import {
   extractProjectExtension,
   fileIsNotProject,
   fileIsProject,
-  FilterBy,
   getAssetPermissionName,
   Path,
   Plan,
@@ -130,6 +135,7 @@ import {
 import LocalBackend, { extractTypeAndId, newProjectId } from '#/services/LocalBackend'
 import { UUID } from '#/services/ProjectManager'
 import { isSpecialReadonlyDirectoryId } from '#/services/RemoteBackend'
+import { ROOT_PARENT_DIRECTORY_ID } from '#/services/remoteBackendPaths'
 import type { AssetQueryKey } from '#/utilities/AssetQuery'
 import AssetQuery from '#/utilities/AssetQuery'
 import type { AnyAssetTreeNode } from '#/utilities/AssetTreeNode'
@@ -141,8 +147,6 @@ import { fileExtension } from '#/utilities/fileInfo'
 import type { DetailedRectangle } from '#/utilities/geometry'
 import { DEFAULT_HANDLER } from '#/utilities/inputBindings'
 import LocalStorage from '#/utilities/LocalStorage'
-import type { PasteData } from '#/utilities/pasteData'
-import PasteType from '#/utilities/PasteType'
 import {
   canPermissionModifyDirectoryContents,
   PermissionAction,
@@ -155,8 +159,8 @@ import type { SortInfo } from '#/utilities/sorting'
 import { SortDirection } from '#/utilities/sorting'
 import { regexEscape } from '#/utilities/string'
 import { twJoin, twMerge } from '#/utilities/tailwindMerge'
-import { uniqueString } from '#/utilities/uniqueString'
 import Visibility from '#/utilities/Visibility'
+import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 
 // ============================
 // === Global configuration ===
@@ -282,21 +286,6 @@ interface DragSelectionInfo {
   readonly end: number
 }
 
-// =============================
-// === Category to filter by ===
-// =============================
-
-const CATEGORY_TO_FILTER_BY: Readonly<Record<Category['type'], FilterBy | null>> = {
-  cloud: FilterBy.active,
-  local: FilterBy.active,
-  recent: null,
-  trash: FilterBy.trashed,
-  user: FilterBy.active,
-  team: FilterBy.active,
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  'local-directory': FilterBy.active,
-}
-
 // ===================
 // === AssetsTable ===
 // ===================
@@ -309,14 +298,11 @@ export interface AssetsTableState {
   readonly scrollContainerRef: RefObject<HTMLElement>
   readonly visibilities: ReadonlyMap<AssetId, Visibility>
   readonly category: Category
-  readonly hasPasteData: boolean
-  readonly setPasteData: (pasteData: PasteData<Set<AssetId>>) => void
   readonly sortInfo: SortInfo<SortableColumn> | null
   readonly setSortInfo: (sortInfo: SortInfo<SortableColumn> | null) => void
   readonly query: AssetQuery
   readonly setQuery: Dispatch<SetStateAction<AssetQuery>>
   readonly nodeMap: Readonly<MutableRefObject<ReadonlyMap<AssetId, AnyAssetTreeNode>>>
-  readonly pasteData: Readonly<MutableRefObject<PasteData<ReadonlySet<AssetId>> | null>>
   readonly hideColumn: (column: Column) => void
   readonly doToggleDirectoryExpansion: (
     directoryId: DirectoryId,
@@ -333,7 +319,6 @@ export interface AssetsTableState {
 
 /** Data associated with a {@link AssetRow}, used for rendering. */
 export interface AssetRowState {
-  readonly setVisibility: (visibility: Visibility) => void
   readonly isEditingName: boolean
   readonly temporarilyAddedLabels: ReadonlySet<LabelName>
   readonly temporarilyRemovedLabels: ReadonlySet<LabelName>
@@ -349,9 +334,7 @@ export interface AssetsTableProps {
   readonly assetManagementApiRef: Ref<AssetManagementApi>
 }
 
-/**
- * The API for managing assets in the table.
- */
+/** The API for managing assets in the table. */
 export interface AssetManagementApi {
   readonly getAsset: (id: AssetId) => AnyAsset | null
   readonly setAsset: (id: AssetId, asset: AnyAsset) => void
@@ -396,7 +379,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const setSelectedKeys = useSetSelectedKeys()
   const setVisuallySelectedKeys = useSetVisuallySelectedKeys()
   const updateAssetRef = useRef<Record<AnyAsset['id'], (asset: AnyAsset) => void>>({})
-  const [pasteData, setPasteData] = useState<PasteData<ReadonlySet<AssetId>> | null>(null)
+  const setPasteData = useSetPasteData()
 
   const { data: users } = useBackendQuery(backend, 'listUsers', [])
   const { data: userGroups } = useBackendQuery(backend, 'listUserGroups', [])
@@ -419,7 +402,6 @@ export default function AssetsTable(props: AssetsTableProps) {
     return id
   }, [category, backend, user, organization, localRootDirectory])
 
-  const rootParentDirectoryId = DirectoryId('')
   const rootDirectory = useMemo(() => createRootDirectoryAsset(rootDirectoryId), [rootDirectoryId])
 
   const enableAssetsTableBackgroundRefresh = useFeatureFlag('enableAssetsTableBackgroundRefresh')
@@ -434,7 +416,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const [privateExpandedDirectoryIds, setExpandedDirectoryIds] = useState<DirectoryId[]>(() => [])
 
   const expandedDirectoryIds = useMemo(
-    () => privateExpandedDirectoryIds.concat(rootDirectoryId),
+    () => [rootDirectoryId].concat(privateExpandedDirectoryIds),
     [privateExpandedDirectoryIds, rootDirectoryId],
   )
 
@@ -450,9 +432,6 @@ export default function AssetsTable(props: AssetsTableProps) {
   const updateSecretMutation = useMutation(backendMutationOptions(backend, 'updateSecret'))
   const createDatalinkMutation = useMutation(backendMutationOptions(backend, 'createDatalink'))
   const uploadFileMutation = useMutation(backendMutationOptions(backend, 'uploadFile'))
-  const getProjectDetailsMutation = useMutation(
-    backendMutationOptions(backend, 'getProjectDetails'),
-  )
   const copyAssetMutation = useMutation(backendMutationOptions(backend, 'copyAsset'))
   const deleteAssetMutation = useMutation(backendMutationOptions(backend, 'deleteAsset'))
   const undoDeleteAssetMutation = useMutation(backendMutationOptions(backend, 'undoDeleteAsset'))
@@ -470,7 +449,6 @@ export default function AssetsTable(props: AssetsTableProps) {
               'listDirectory',
               directoryId,
               {
-                parentId: directoryId,
                 labels: null,
                 filterBy: CATEGORY_TO_FILTER_BY[category.type],
                 recentProjects: category.type === 'recent',
@@ -478,7 +456,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             ] as const,
             queryFn: async ({ queryKey: [, , parentId, params] }) => {
               try {
-                return { parentId, children: await backend.listDirectory(params, parentId) }
+                return await backend.listDirectory({ ...params, parentId }, parentId)
               } catch {
                 throw Object.assign(new Error(), { parentId })
               }
@@ -504,13 +482,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       ],
     ),
     combine: (results) => {
-      const rootQuery = results.find(
-        (directory) =>
-          directory.data?.parentId === rootDirectory.id ||
-          // eslint-disable-next-line no-restricted-syntax
-          (directory.error as unknown as { parentId: string } | null)?.parentId ===
-            rootDirectory.id,
-      )
+      const rootQuery = results[expandedDirectoryIds.indexOf(rootDirectory.id)]
 
       return {
         rootDirectory: {
@@ -520,8 +492,8 @@ export default function AssetsTable(props: AssetsTableProps) {
           data: rootQuery?.data,
         },
         directories: new Map(
-          results.map((res) => [
-            res.data?.parentId,
+          results.map((res, i) => [
+            expandedDirectoryIds[i],
             {
               isFetching: res.isFetching,
               isLoading: res.isLoading,
@@ -534,12 +506,10 @@ export default function AssetsTable(props: AssetsTableProps) {
     },
   })
 
-  /**
-   * Return type of the query function for the listDirectory query.
-   */
+  /** Return type of the query function for the listDirectory query. */
   type DirectoryQuery = typeof directories.rootDirectory.data
 
-  const rootDirectoryContent = directories.rootDirectory.data?.children
+  const rootDirectoryContent = directories.rootDirectory.data
   const isLoading = directories.rootDirectory.isLoading && !directories.rootDirectory.isError
 
   const assetTree = useMemo(() => {
@@ -551,8 +521,8 @@ export default function AssetsTable(props: AssetsTableProps) {
       // eslint-disable-next-line no-restricted-syntax
       return AssetTreeNode.fromAsset(
         createRootDirectoryAsset(rootDirectoryId),
-        rootParentDirectoryId,
-        rootParentDirectoryId,
+        ROOT_PARENT_DIRECTORY_ID,
+        ROOT_PARENT_DIRECTORY_ID,
         -1,
         rootPath,
         null,
@@ -561,8 +531,8 @@ export default function AssetsTable(props: AssetsTableProps) {
       // eslint-disable-next-line no-restricted-syntax
       return AssetTreeNode.fromAsset(
         createRootDirectoryAsset(rootDirectoryId),
-        rootParentDirectoryId,
-        rootParentDirectoryId,
+        ROOT_PARENT_DIRECTORY_ID,
+        ROOT_PARENT_DIRECTORY_ID,
         -1,
         rootPath,
         null,
@@ -593,7 +563,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         if (assetIsDirectory(item)) {
           const childrenAssetsQuery = directories.directories.get(item.id)
 
-          const nestedChildren = childrenAssetsQuery?.data?.children.map((child) =>
+          const nestedChildren = childrenAssetsQuery?.data?.map((child) =>
             AssetTreeNode.fromAsset(
               child,
               item.id,
@@ -667,8 +637,8 @@ export default function AssetsTable(props: AssetsTableProps) {
 
     return new AssetTreeNode(
       rootDirectory,
-      rootParentDirectoryId,
-      rootParentDirectoryId,
+      ROOT_PARENT_DIRECTORY_ID,
+      ROOT_PARENT_DIRECTORY_ID,
       children,
       -1,
       rootPath,
@@ -683,7 +653,6 @@ export default function AssetsTable(props: AssetsTableProps) {
     directories.rootDirectory.isError,
     directories.directories,
     rootDirectory,
-    rootParentDirectoryId,
     rootDirectoryId,
   ])
 
@@ -864,7 +833,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const lastSelectedIdsRef = useRef<AssetId | ReadonlySet<AssetId> | null>(null)
   const headerRowRef = useRef<HTMLTableRowElement>(null)
   const assetTreeRef = useRef<AnyAssetTreeNode>(assetTree)
-  const pasteDataRef = useRef<PasteData<ReadonlySet<AssetId>> | null>(null)
+  const getPasteData = useEventCallback(() => driveStore.getState().pasteData)
   const nodeMapRef = useRef<ReadonlyMap<AssetId, AnyAssetTreeNode>>(
     new Map<AssetId, AnyAssetTreeNode>(),
   )
@@ -914,9 +883,13 @@ export default function AssetsTable(props: AssetsTableProps) {
             setTargetDirectory(null)
           } else if (selectedKeys.size === 1) {
             const [soleKey] = selectedKeys
-            const node = soleKey == null ? null : nodeMapRef.current.get(soleKey)
-            if (node != null && node.isType(AssetType.directory)) {
-              setTargetDirectory(node)
+            const item = soleKey == null ? null : nodeMapRef.current.get(soleKey)
+            if (item != null && item.isType(AssetType.directory)) {
+              setTargetDirectory(item)
+            }
+            if (item && item.item.id !== driveStore.getState().assetPanelProps?.item?.item.id) {
+              setAssetPanelProps({ backend, item })
+              setIsAssetPanelTemporarilyVisible(false)
             }
           } else {
             let commonDirectoryKey: AssetId | null = null
@@ -955,7 +928,13 @@ export default function AssetsTable(props: AssetsTableProps) {
           }
         }
       }),
-    [driveStore, setTargetDirectory],
+    [
+      backend,
+      driveStore,
+      setAssetPanelProps,
+      setIsAssetPanelTemporarilyVisible,
+      setTargetDirectory,
+    ],
   )
 
   useEffect(() => {
@@ -1142,24 +1121,21 @@ export default function AssetsTable(props: AssetsTableProps) {
   }, [assetTree])
 
   useEffect(() => {
-    pasteDataRef.current = pasteData
-  }, [pasteData])
-
-  useEffect(() => {
     if (!hidden) {
       return inputBindings.attach(document.body, 'keydown', {
         cancelCut: () => {
-          if (pasteDataRef.current == null) {
+          const pasteData = getPasteData()
+          if (pasteData == null) {
             return false
           } else {
-            dispatchAssetEvent({ type: AssetEventType.cancelCut, ids: pasteDataRef.current.data })
+            dispatchAssetEvent({ type: AssetEventType.cancelCut, ids: pasteData.data.ids })
             setPasteData(null)
             return
           }
         },
       })
     }
-  }, [hidden, inputBindings, dispatchAssetEvent])
+  }, [dispatchAssetEvent, getPasteData, hidden, inputBindings, setPasteData])
 
   useEffect(
     () =>
@@ -1283,6 +1259,9 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   const doMove = useEventCallback(async (newParentId: DirectoryId | null, asset: AnyAsset) => {
     try {
+      if (asset.id === driveStore.getState().assetPanelProps?.item?.item.id) {
+        setAssetPanelProps(null)
+      }
       await updateAssetMutation.mutateAsync([
         asset.id,
         { parentDirectoryId: newParentId ?? rootDirectoryId, description: null },
@@ -1294,6 +1273,9 @@ export default function AssetsTable(props: AssetsTableProps) {
   })
 
   const doDelete = useEventCallback(async (asset: AnyAsset, forever: boolean = false) => {
+    if (asset.id === driveStore.getState().assetPanelProps?.item?.item.id) {
+      setAssetPanelProps(null)
+    }
     if (asset.type === AssetType.directory) {
       dispatchAssetListEvent({
         type: AssetListEventType.closeFolder,
@@ -1304,7 +1286,6 @@ export default function AssetsTable(props: AssetsTableProps) {
       })
     }
     try {
-      dispatchAssetListEvent({ type: AssetListEventType.willDelete, key: asset.id })
       if (asset.type === AssetType.project && backend.type === BackendType.local) {
         try {
           await closeProjectMutation.mutateAsync([asset.id, asset.title])
@@ -1319,6 +1300,9 @@ export default function AssetsTable(props: AssetsTableProps) {
   })
 
   const doDeleteById = useEventCallback(async (assetId: AssetId, forever: boolean = false) => {
+    if (assetId === driveStore.getState().assetPanelProps?.item?.item.id) {
+      setAssetPanelProps(null)
+    }
     const asset = nodeMapRef.current.get(assetId)?.item
 
     if (asset != null) {
@@ -1567,10 +1551,9 @@ export default function AssetsTable(props: AssetsTableProps) {
       })
 
       if (listDirectoryQuery?.state.data) {
-        listDirectoryQuery.setData({
-          ...listDirectoryQuery.state.data,
-          children: listDirectoryQuery.state.data.children.filter((child) => child.id !== assetId),
-        })
+        listDirectoryQuery.setData(
+          listDirectoryQuery.state.data.filter((child) => child.id !== assetId),
+        )
       }
     }
   })
@@ -1586,10 +1569,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       })
 
       if (listDirectoryQuery?.state.data) {
-        listDirectoryQuery.setData({
-          ...listDirectoryQuery.state.data,
-          children: [...listDirectoryQuery.state.data.children, ...assets],
-        })
+        listDirectoryQuery.setData([...listDirectoryQuery.state.data, ...assets])
       }
     },
   )
@@ -1776,8 +1756,14 @@ export default function AssetsTable(props: AssetsTableProps) {
                   const projectId = newProjectId(UUID(id))
                   addIdToSelection(projectId)
 
-                  await getProjectDetailsMutation
-                    .mutateAsync([projectId, asset.parentId, asset.title])
+                  await queryClient
+                    .fetchQuery(
+                      backendQueryOptions(backend, 'getProjectDetails', [
+                        projectId,
+                        asset.parentId,
+                        asset.title,
+                      ]),
+                    )
                     .catch((error) => {
                       deleteAsset(projectId)
                       toastAndLog('uploadProjectError', error)
@@ -2012,10 +1998,6 @@ export default function AssetsTable(props: AssetsTableProps) {
 
         break
       }
-      case AssetListEventType.insertAssets: {
-        insertAssets(event.assets, event.parentId)
-        break
-      }
       case AssetListEventType.duplicateProject: {
         const parent = nodeMapRef.current.get(event.parentKey)
         const siblings = parent?.children ?? []
@@ -2070,38 +2052,19 @@ export default function AssetsTable(props: AssetsTableProps) {
 
         break
       }
-      case AssetListEventType.willDelete: {
-        const { selectedKeys } = driveStore.getState()
-        if (selectedKeys.has(event.key)) {
-          const newSelectedKeys = new Set(selectedKeys)
-          newSelectedKeys.delete(event.key)
-          setSelectedKeys(newSelectedKeys)
-        }
-
-        deleteAsset(event.key)
-
-        break
-      }
       case AssetListEventType.copy: {
-        insertAssets(event.items, event.newParentId)
-
         for (const item of event.items) {
           void doCopyOnBackend(event.newParentId, item)
         }
         break
       }
       case AssetListEventType.move: {
-        deleteAsset(event.key)
-        insertAssets(event.items, event.newParentId)
-
         for (const item of event.items) {
           void doMove(event.newParentId, item)
         }
-
         break
       }
       case AssetListEventType.delete: {
-        deleteAsset(event.key)
         const asset = nodeMapRef.current.get(event.key)?.item
         if (asset) {
           void doDelete(asset, false)
@@ -2145,29 +2108,40 @@ export default function AssetsTable(props: AssetsTableProps) {
   const doCopy = useEventCallback(() => {
     unsetModal()
     const { selectedKeys } = driveStore.getState()
-    setPasteData({ type: PasteType.copy, data: selectedKeys })
+    setPasteData({
+      type: 'copy',
+      data: { backendType: backend.type, category, ids: selectedKeys },
+    })
   })
 
   const doCut = useEventCallback(() => {
     unsetModal()
+    const { selectedKeys, pasteData } = driveStore.getState()
     if (pasteData != null) {
-      dispatchAssetEvent({ type: AssetEventType.cancelCut, ids: pasteData.data })
+      dispatchAssetEvent({ type: AssetEventType.cancelCut, ids: pasteData.data.ids })
     }
-    const { selectedKeys } = driveStore.getState()
-    setPasteData({ type: PasteType.move, data: selectedKeys })
+    setPasteData({
+      type: 'move',
+      data: { backendType: backend.type, category, ids: selectedKeys },
+    })
     dispatchAssetEvent({ type: AssetEventType.cut, ids: selectedKeys })
     setSelectedKeys(EMPTY_SET)
   })
 
+  const cutAndPaste = useCutAndPaste(category)
   const doPaste = useEventCallback((newParentKey: DirectoryId, newParentId: DirectoryId) => {
     unsetModal()
-    if (pasteData != null) {
-      if (pasteData.data.has(newParentKey)) {
+    const { pasteData } = driveStore.getState()
+    if (
+      pasteData?.data.backendType === backend.type &&
+      canTransferBetweenCategories(pasteData.data.category, category)
+    ) {
+      if (pasteData.data.ids.has(newParentKey)) {
         toast.error('Cannot paste a folder into itself.')
       } else {
         doToggleDirectoryExpansion(newParentId, newParentKey, true)
-        if (pasteData.type === PasteType.copy) {
-          const assets = Array.from(pasteData.data, (id) => nodeMapRef.current.get(id)).flatMap(
+        if (pasteData.type === 'copy') {
+          const assets = Array.from(pasteData.data.ids, (id) => nodeMapRef.current.get(id)).flatMap(
             (asset) => (asset ? [asset.item] : []),
           )
           dispatchAssetListEvent({
@@ -2177,12 +2151,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             newParentKey,
           })
         } else {
-          dispatchAssetEvent({
-            type: AssetEventType.move,
-            ids: pasteData.data,
-            newParentKey,
-            newParentId,
-          })
+          cutAndPaste(newParentKey, newParentId, pasteData.data, nodeMapRef.current)
         }
         setPasteData(null)
       }
@@ -2191,6 +2160,9 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   const doRestore = useEventCallback(async (asset: AnyAsset) => {
     try {
+      if (asset.id === driveStore.getState().assetPanelProps?.item?.item.id) {
+        setAssetPanelProps(null)
+      }
       await undoDeleteAssetMutation.mutateAsync([asset.id, asset.title])
     } catch (error) {
       toastAndLog('restoreAssetError', error, asset.title)
@@ -2207,7 +2179,6 @@ export default function AssetsTable(props: AssetsTableProps) {
         hidden
         backend={backend}
         category={category}
-        pasteData={pasteData}
         nodeMapRef={nodeMapRef}
         rootDirectoryId={rootDirectoryId}
         event={{ pageX: 0, pageY: 0 }}
@@ -2217,7 +2188,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         doDelete={doDeleteById}
       />
     ),
-    [backend, category, pasteData, rootDirectoryId, doCopy, doCut, doPaste, doDeleteById],
+    [backend, category, rootDirectoryId, doCopy, doCut, doPaste, doDeleteById],
   )
 
   const onDropzoneDragOver = (event: DragEvent<Element>) => {
@@ -2260,14 +2231,11 @@ export default function AssetsTable(props: AssetsTableProps) {
       visibilities,
       scrollContainerRef: rootRef,
       category,
-      hasPasteData: pasteData != null,
-      setPasteData,
       sortInfo,
       setSortInfo,
       query,
       setQuery,
       nodeMap: nodeMapRef,
-      pasteData: pasteDataRef,
       hideColumn,
       doToggleDirectoryExpansion,
       doCopy,
@@ -2283,7 +2251,6 @@ export default function AssetsTable(props: AssetsTableProps) {
       rootDirectoryId,
       visibilities,
       category,
-      pasteData,
       sortInfo,
       query,
       doToggleDirectoryExpansion,
@@ -2676,12 +2643,9 @@ export default function AssetsTable(props: AssetsTableProps) {
     })
 
     if (listDirectoryQuery?.state.data) {
-      listDirectoryQuery.setData({
-        ...listDirectoryQuery.state.data,
-        children: listDirectoryQuery.state.data.children.map((child) =>
-          child.id === assetId ? asset : child,
-        ),
-      })
+      listDirectoryQuery.setData(
+        listDirectoryQuery.state.data.map((child) => (child.id === assetId ? asset : child)),
+      )
     }
   })
 
@@ -2762,7 +2726,6 @@ export default function AssetsTable(props: AssetsTableProps) {
             <AssetsTableContextMenu
               backend={backend}
               category={category}
-              pasteData={pasteData}
               nodeMapRef={nodeMapRef}
               event={event}
               rootDirectoryId={rootDirectoryId}
@@ -2934,7 +2897,7 @@ export default function AssetsTable(props: AssetsTableProps) {
               {!hidden && (
                 <SelectionBrush
                   targetRef={rootRef}
-                  margin={8}
+                  margin={16}
                   onDrag={onSelectionDrag}
                   onDragEnd={onSelectionDragEnd}
                   onDragCancel={onSelectionDragCancel}

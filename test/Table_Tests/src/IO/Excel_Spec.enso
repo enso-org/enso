@@ -8,7 +8,7 @@ import Standard.Base.Runtime.Context
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 import Standard.Base.Runtime.Ref.Ref
 
-from Standard.Table import Table, Match_Columns, Excel_Format, Excel_Range, Data_Formatter, Delimited_Format, Excel_Workbook
+from Standard.Table import Table, Match_Columns, Excel_Format, Excel_Range, Data_Formatter, Delimited_Format, Excel_Workbook, Value_Type
 
 from Standard.Table.Errors import Invalid_Column_Names, Duplicate_Output_Column_Names, Invalid_Location, Range_Exceeded, Existing_Data, Column_Count_Mismatch, Column_Name_Mismatch, Empty_Sheet
 
@@ -1011,6 +1011,19 @@ add_specs suite_builder =
             workbook.sheet_count . should_fail_with Illegal_State
             workbook.close . should_equal Nothing
             workbook.read "Sheet1" . should_fail_with Illegal_State
+
+        group_builder.specify "should be able to read a mixed Date and DateTime column" <|
+            table = (enso_project.data / "MixedExcel.xlsx") . read ..Sheet
+            table.row_count . should_equal 5
+            table.column_names . should_equal ["Number","Date","DateTimes","Time","MixDates","InvMixDates","Mixed"]
+            table.columns.map .value_type . should_equal [Value_Type.Integer, Value_Type.Date, Value_Type.Date_Time, Value_Type.Time, Value_Type.Date_Time, Value_Type.Date_Time, Value_Type.Mixed]
+            table.at "Number" . to_vector . should_equal [15,24,43,1,85]
+            table.at "Date" . to_vector . should_equal [(Date.new 1997 7 25), (Date.new 1993 5 3), (Date.new 2010 8 1), (Date.new 1988 7 12), (Date.new 2009 10 22)]
+            table.at "DateTimes" . to_vector . should_equal [(Date_Time.new 1997 7 25 22 23 28 millisecond=34), (Date_Time.new 1993 5 3 10 58 45 millisecond=980), (Date_Time.new 2010 8 1 17 9 29 millisecond=923), (Date_Time.new 1988 7 12 12 39 20 millisecond=185), (Date_Time.new 2009 10 22 12 33 7 millisecond=157)]
+            table.at "Time" . to_vector . should_equal [(Time_Of_Day.new 16 43 42 millisecond=486), (Time_Of_Day.new 1 39 30 millisecond=506), (Time_Of_Day.new 7 44 4 millisecond=567), (Time_Of_Day.new 18 39 24 millisecond=572), (Time_Of_Day.new 10 6 32 millisecond=917)]
+            table.at "MixDates" . to_vector . should_equal [(Date_Time.new 1997 7 25 22 23 28 millisecond=34), (Date_Time.new 1993 5 3), (Date_Time.new 2010 8 1), (Date_Time.new 1988 7 12), (Date_Time.new 2009 10 22 12 33 7 millisecond=157)]
+            table.at "InvMixDates" . to_vector . should_equal [(Date_Time.new 1997 7 25), (Date_Time.new 1993 5 3 10 58 45 millisecond=980), (Date_Time.new 2010 8 1 17 9 29 millisecond=923), (Date_Time.new 1988 7 12 12 39 20 millisecond=185), (Date_Time.new 2009 10 22)]
+            table.at "Mixed" . to_vector . should_equal [(Date.new 1997 7 25), (Date_Time.new 1993 5 3 10 58 45 millisecond=980), (Date_Time.new 2010 8 1 17 9 29 millisecond=923), (Time_Of_Day.new 18 39 24 millisecond=572), 85]
 
         ci_pending = if Environment.get "CI" != Nothing then "This test takes a lot of time so it is disabled on CI."
         group_builder.specify "should be able to write and read a big XLSX file (>110MB)" pending=ci_pending <|

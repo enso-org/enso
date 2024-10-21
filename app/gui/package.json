@@ -21,7 +21,7 @@
     "build": "vite build",
     "build-cloud": "cross-env CLOUD_BUILD=true corepack pnpm run build",
     "preview": "vite preview",
-    "lint": "cross-env eslint . --max-warnings=0",
+    "lint": "eslint . --max-warnings=0",
     "format": "prettier --version && prettier --write src/ && eslint . --fix",
     "dev:vite": "vite",
     "test": "corepack pnpm run /^^^^test:.*/",
@@ -29,6 +29,7 @@
     "test-dev:unit": "vitest",
     "test:e2e": "cross-env NODE_ENV=production playwright test",
     "test-dev:e2e": "cross-env NODE_ENV=production playwright test --ui",
+    "test-dev-dashboard:e2e": "cross-env NODE_ENV=production playwright test ./e2e/dashboard/ --ui",
     "postinstall": "playwright install"
   },
   "dependencies": {

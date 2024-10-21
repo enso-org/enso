@@ -14,14 +14,24 @@ import DataUploadIcon from '#/assets/data_upload.svg'
 import Plus2Icon from '#/assets/plus2.svg'
 import RightPanelIcon from '#/assets/right_panel.svg'
 import { Input as AriaInput } from '#/components/aria'
-import { Button, ButtonGroup, DialogTrigger, useVisualTooltip } from '#/components/AriaComponents'
+import {
+  Button,
+  ButtonGroup,
+  DialogTrigger,
+  Text,
+  useVisualTooltip,
+} from '#/components/AriaComponents'
 import AssetEventType from '#/events/AssetEventType'
 import { useOffline } from '#/hooks/offlineHooks'
 import { createGetProjectDetailsQuery } from '#/hooks/projectHooks'
 import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
 import AssetSearchBar from '#/layouts/AssetSearchBar'
 import { useDispatchAssetEvent } from '#/layouts/AssetsTable/EventListProvider'
-import { isCloudCategory, type Category } from '#/layouts/CategorySwitcher/Category'
+import {
+  canTransferBetweenCategories,
+  isCloudCategory,
+  type Category,
+} from '#/layouts/CategorySwitcher/Category'
 import StartModal from '#/layouts/StartModal'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
@@ -31,6 +41,7 @@ import {
   useCanDownload,
   useDriveStore,
   useIsAssetPanelVisible,
+  usePasteData,
   useSetIsAssetPanelPermanentlyVisible,
   useSetIsAssetPanelTemporarilyVisible,
 } from '#/providers/DriveProvider'
@@ -107,6 +118,14 @@ export default function DriveBar(props: DriveBarProps) {
   const [isCreatingProjectFromTemplate, setIsCreatingProjectFromTemplate] = React.useState(false)
   const [isCreatingProject, setIsCreatingProject] = React.useState(false)
   const [createdProjectId, setCreatedProjectId] = React.useState<ProjectId | null>(null)
+  const pasteData = usePasteData()
+  const effectivePasteData =
+    (
+      pasteData?.data.backendType === backend.type &&
+      canTransferBetweenCategories(pasteData.data.category, category)
+    ) ?
+      pasteData
+    : null
 
   React.useEffect(() => {
     return inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
@@ -186,10 +205,21 @@ export default function DriveBar(props: DriveBarProps) {
     </>
   )
 
+  const pasteDataStatus = effectivePasteData && (
+    <div className="flex items-center">
+      <Text>
+        {effectivePasteData.type === 'copy' ?
+          getText('xItemsCopied', effectivePasteData.data.ids.size)
+        : getText('xItemsCut', effectivePasteData.data.ids.size)}
+      </Text>
+    </div>
+  )
+
   switch (category.type) {
     case 'recent': {
       return (
         <ButtonGroup className="my-0.5 grow-0">
+          {pasteDataStatus}
           {searchBar}
           {assetPanelToggle}
         </ButtonGroup>
@@ -207,6 +237,7 @@ export default function DriveBar(props: DriveBarProps) {
               doDelete={doEmptyTrash}
             />
           </DialogTrigger>
+          {pasteDataStatus}
           {searchBar}
           {assetPanelToggle}
         </ButtonGroup>
@@ -355,6 +386,7 @@ export default function DriveBar(props: DriveBarProps) {
             </div>
             {createAssetsVisualTooltip.tooltip}
           </ButtonGroup>
+          {pasteDataStatus}
           {searchBar}
           {assetPanelToggle}
         </ButtonGroup>

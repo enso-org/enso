@@ -1,6 +1,8 @@
 /** @file ESLint configuration file. */
-/** NOTE: The "Experimental: Use Flat Config" option must be enabled.
- * Flat config is still not quite mature, so is disabled by default. */
+/**
+ * NOTE: The "Experimental: Use Flat Config" option must be enabled.
+ * Flat config is still not quite mature, so is disabled by default.
+ */
 import * as path from 'node:path'
 import * as url from 'node:url'
 
@@ -24,13 +26,15 @@ import globals from 'globals'
 const DEBUG_STATEMENTS_MESSAGE = 'Avoid leaving debugging statements when committing code'
 const DIR_NAME = path.dirname(url.fileURLToPath(import.meta.url))
 const NAME = 'enso'
-/** An explicit whitelist of CommonJS modules, which do not support namespace imports.
+/**
+ * An explicit whitelist of CommonJS modules, which do not support namespace imports.
  * Many of these have incorrect types, so no type error may not mean they support ESM,
  * and conversely type errors may not mean they don't support ESM -
  * but we add those to the whitelist anyway otherwise we get type errors.
  * In particular, `string-length` supports ESM but its type definitions don't.
  * `yargs` is a modules we explicitly want the default imports of.
- * `node:process` is here because `process.on` does not exist on the namespace import. */
+ * `node:process` is here because `process.on` does not exist on the namespace import.
+ */
 const DEFAULT_IMPORT_ONLY_MODULES =
   '@vitejs\\u002Fplugin-react|node:process|chalk|string-length|yargs|yargs\\u002Fyargs|sharp|to-ico|connect|morgan|serve-static|tiny-invariant|clsx|create-servers|electron-is-dev|fast-glob|esbuild-plugin-.+|opener|tailwindcss.*|@modyfi\\u002Fvite-plugin-yaml|build-info|is-network-error|validator.+|.*[.]json$'
 const RELATIVE_MODULES =
@@ -48,7 +52,6 @@ const NOT_CONSTANT_CASE = `/^(?!${WHITELISTED_CONSTANTS}$|_?[A-Z][A-Z0-9]*(_[A-Z
 // Extracted to a variable because it needs to be used twice:
 // - once as-is for `.d.ts`
 // - once explicitly disallowing `declare`s in regular `.ts`.
-/** @type {{ selector: string; message: string; }[]} */
 const RESTRICTED_SYNTAXES = [
   {
     selector: `ImportDeclaration[source.value=/^(?!(${ALLOWED_DEFAULT_IMPORT_MODULES})$)[^.]/] > ImportDefaultSpecifier`,
@@ -195,6 +198,8 @@ export default [
       '**/build.mjs',
       '**/*.timestamp-*.mjs',
       '**/node_modules',
+      '**/generated',
+      'app/rust-ffi/pkg/',
     ],
   },
   eslintJs.configs.recommended,
@@ -207,7 +212,12 @@ export default [
         tsconfigRootDir: DIR_NAME,
         ecmaVersion: 'latest',
         extraFileExtensions: ['.vue'],
-        projectService: true,
+        projectService: {
+          allowDefaultProject: [
+            'app/ydoc-server/vitest.config.ts',
+            'app/ydoc-shared/vitest.config.ts',
+          ],
+        },
       },
     },
     rules: {
