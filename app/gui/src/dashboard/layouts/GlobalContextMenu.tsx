@@ -34,8 +34,8 @@ export interface GlobalContextMenuProps {
 
 /** A context menu available everywhere in the directory. */
 export default function GlobalContextMenu(props: GlobalContextMenuProps) {
-  const { hidden = false, backend, directoryKey, directoryId } = props
-  const { rootDirectoryId, doPaste } = props
+  const { hidden = false, backend, directoryKey, directoryId, rootDirectoryId } = props
+  const { doPaste } = props
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()

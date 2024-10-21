@@ -33,3 +33,51 @@ test('Load Table Visualisation', async ({ page }) => {
   await expect(tableVisualization).toContainText('2,0')
   await expect(tableVisualization).toContainText('3,0')
 })
+
+test('Copy from Table Visualization', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+  await actions.goToGraph(page)
+
+  actions.openVisualization(page, 'Table')
+  const tableVisualization = locate.tableVisualization(page)
+  await expect(tableVisualization).toExist()
+  await tableVisualization.getByText('0,0').hover()
+  await page.mouse.down()
+  await tableVisualization.getByText('2,1').hover()
+  await page.mouse.up()
+  await page.keyboard.press('Control+C')
+
+  // Paste to Node.
+  await actions.clickAtBackground(page)
+  const nodesCount = await locate.graphNode(page).count()
+  await page.keyboard.press('Control+V')
+  await expect(locate.graphNode(page)).toHaveCount(nodesCount + 1)
+  await expect(locate.graphNode(page).last().locator('input')).toHaveValue(
+    '0,0\t0,11,0\t1,12,0\t2,1',
+  )
+
+  // Paste to Table Widget.
+  const node = await actions.createTableNode(page)
+  const widget = node.locator('.WidgetTableEditor')
+  await expect(widget).toBeVisible()
+  await widget.locator('.ag-cell', { hasNotText: /0/ }).first().click()
+  await page.keyboard.press('Control+V')
+  await expect(widget.locator('.ag-cell')).toHaveText([
+    '0',
+    '0,0',
+    '0,1',
+    '',
+    '1',
+    '1,0',
+    '1,1',
+    '',
+    '2',
+    '2,0',
+    '2,1',
+    '',
+    '3',
+    '',
+    '',
+    '',
+  ])
+})
