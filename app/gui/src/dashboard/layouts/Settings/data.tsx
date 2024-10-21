@@ -165,8 +165,8 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
           settingsFormEntryData({
             type: 'form',
             schema: z.object({
-              name: z.string().regex(/.*\S.*/),
-              email: z.string().email(),
+              name: z.string().regex(/^.*\S.*$|^$/),
+              email: z.string().email().or(z.literal('')),
               website: z.string(),
               address: z.string(),
             }),

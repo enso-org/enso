@@ -10,6 +10,7 @@
     "tailwind.config.js",
     "e2e/**/*",
     "src/dashboard/hooks/eventCallbackHooks.ts",
+    "src/dashboard/modules/payments/constants.ts",
     "src/dashboard/services/Backend.ts",
     "src/dashboard/services/RemoteBackend.ts",
     "src/dashboard/utilities/**/*",
