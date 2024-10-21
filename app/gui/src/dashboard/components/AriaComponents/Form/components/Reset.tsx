@@ -1,8 +1,4 @@
-/**
- * @file
- *
- * Reset button for forms.
- */
+/** @file Reset button for forms. */
 import * as React from 'react'
 
 import * as ariaComponents from '#/components/AriaComponents'
@@ -40,12 +36,6 @@ export function Reset(props: ResetProps): React.JSX.Element {
 
   return (
     <ariaComponents.Button
-      onPress={() => {
-        form.reset()
-      }}
-      /* This is safe because we are passing all props to the button */
-      /* eslint-disable-next-line @typescript-eslint/no-explicit-any,no-restricted-syntax */
-      {...(buttonProps as any)}
       variant={variant}
       size={size}
       isDisabled={formState.isSubmitting || !formState.isDirty}
@@ -56,6 +46,9 @@ export function Reset(props: ResetProps): React.JSX.Element {
         // rather than resetting them to default values.
         form.reset()
       }}
+      /* This is safe because we are passing all props to the button */
+      /* eslint-disable-next-line @typescript-eslint/no-explicit-any,no-restricted-syntax */
+      {...(buttonProps as any)}
     />
   )
 }
