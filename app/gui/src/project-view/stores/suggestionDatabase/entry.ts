@@ -1,6 +1,6 @@
 import { assert } from '@/util/assert'
 import type { Doc } from '@/util/docParser'
-import type { Icon } from '@/util/iconName'
+import type { Icon } from '@/util/iconMetadata/iconName'
 import type { IdentifierOrOperatorIdentifier, QualifiedName } from '@/util/qualifiedName'
 import {
   isIdentifierOrOperatorIdentifier,

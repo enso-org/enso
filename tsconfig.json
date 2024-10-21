@@ -8,7 +8,6 @@
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "noEmit": true,
-    "allowJs": true,
     "strict": true,
     "noImplicitAny": true,
     "exactOptionalPropertyTypes": true,
@@ -16,8 +15,6 @@
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
     "removeComments": true,
-    "resolveJsonModule": true,
-    "sourceMap": true,
     "skipLibCheck": true,
     "target": "ES2021",
     "jsx": "react-jsx"

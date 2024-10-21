@@ -23,7 +23,8 @@
   "name": "root",
   "scripts": {
     "dev:gui": "corepack pnpm run --parallel -r --filter enso-gui --filter ydoc-server-nodejs  --aggregate-output /^^^^dev:/",
-    "build:gui": "corepack pnpm run -r --filter enso-gui build",
+    "compile": "corepack pnpm run -r compile",
+    "build:gui": "corepack pnpm run -r compile && corepack pnpm run -r --filter enso-gui build",
     "build:ide": "corepack pnpm run -r compile && corepack pnpm run -r --filter enso build",
     "build:icons": "corepack pnpm run -r --filter enso-icons build",
     "dist:ide": "corepack pnpm run -r --filter enso dist",
@@ -33,7 +34,9 @@
     "ci:prettier": "prettier --check .",
     "ci:lint": "corepack pnpm run -r lint",
     "ci:test": "corepack pnpm run -r --parallel test",
-    "ci:typecheck": "corepack pnpm run -r typecheck"
+    "ci:typecheck": "corepack pnpm run -r typecheck",
+    "git-clean": "git clean -xfd --exclude='.env*'",
+    "postinstall": "bazel run //:write_all"
   },
   "pnpm": {
     "//": "To completely ignore deep dependencies, see .pnpmfile.cjs",
@@ -58,8 +61,90 @@
         "dependencies": {
           "events": "^3.3.0"
         }
+      },
+      "react-error-boundary": {
+        "dependencies": {
+          "@types/react": "*"
+        }
+      },
+      "react-aria-components": {
+        "dependencies": {
+          "@types/react": "*"
+        }
+      },
+      "react-aria": {
+        "dependencies": {
+          "@types/react": "*"
+        }
+      },
+      "input-otp": {
+        "dependencies": {
+          "@types/react": "*"
+        }
+      },
+      "@tanstack/react-query": {
+        "dependencies": {
+          "@types/react": "*"
+        }
+      },
+      "@react-types/shared": {
+        "dependencies": {
+          "@types/react": "*"
+        }
+      },
+      "@monaco-editor/react": {
+        "dependencies": {
+          "@types/react": "*"
+        }
+      },
+      "@stripe/react-stripe-js": {
+        "dependencies": {
+          "@types/react": "*"
+        }
+      },
+      "react-toastify": {
+        "dependencies": {
+          "@types/react": "*"
+        }
+      },
+      "react-hook-form": {
+        "dependencies": {
+          "@types/react": "*"
+        }
+      },
+      "@hookform/resolvers": {
+        "dependencies": {
+          "zod": "*"
+        }
+      },
+      "enso-support": {
+        "dependencies": {
+          "@types/ws": "^8.5.5",
+          "@types/validator": "^13.11.7"
+        },
+        "exports": {
+          "./chat": "./src/chat.ts"
+        }
+      },
+      "@aws-crypto/sha256-browser": {
+        "dependencies": {
+          "@aws-sdk/util-utf8-browser": "*"
+        }
+      },
+      "@vue/compiler-core": {
+        "dependencies": {
+          "@babel/types": "*"
+        }
+      },
+      "undici-types": {
+        "dependencies": {
+          "@types/node": "*"
+        }
       }
-    }
+    },
+    "onlyBuiltDependencies": [
+      "fsevents"
+    ]
   },
   "packageManager": "pnpm@9.4.0+sha256.b6fd0bfda555e7e584ad7e56b30c68b01d5a04f9ee93989f4b93ca8473c49c74"
 }

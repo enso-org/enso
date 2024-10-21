@@ -7,7 +7,7 @@
     "project-manager-shim-middleware/*.ts",
     "playwright.config.*",
     "eslint.config.js",
-    "tailwind.config.js",
+    "tailwind.config.ts",
     "e2e/**/*",
     "src/dashboard/hooks/eventCallbackHooks.ts",
     "src/dashboard/services/Backend.ts",

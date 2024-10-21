@@ -2,7 +2,7 @@
 import SvgIcon from '@/components/SvgIcon.vue'
 import AutoSizedInput, { type Range } from '@/components/widgets/AutoSizedInput.vue'
 import type { useNavigator } from '@/composables/navigator'
-import type { Icon } from '@/util/iconName'
+import type { Icon } from '@/util/iconMetadata/iconName'
 import { computed, ref, watch, type DeepReadonly } from 'vue'
 import { ComponentExposed } from 'vue-component-type-helpers'
 

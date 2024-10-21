@@ -2,7 +2,7 @@ import type { Group } from '@/stores/suggestionDatabase'
 import { findIndexOpt } from '@/util/data/array'
 import { isSome, type Opt } from '@/util/data/opt'
 import { parseDocs, type Doc } from '@/util/docParser'
-import type { Icon } from '@/util/iconName'
+import type { Icon } from '@/util/iconMetadata/iconName'
 import { type QualifiedName } from '@/util/qualifiedName'
 
 export interface DocumentationData {

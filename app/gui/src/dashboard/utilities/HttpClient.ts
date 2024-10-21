@@ -137,16 +137,10 @@ export default class HttpClient {
    */
   private async request<T = void>(options: HttpClientRequestOptions) {
     const headers = new Headers(this.defaultHeaders)
-    let payload = options.payload
+    const payload = options.payload
     if (payload != null) {
       const contentType = options.mimetype ?? 'application/json'
       headers.set('Content-Type', contentType)
-    }
-
-    // `Blob` request payloads are NOT VISIBLE in Playwright due to a Chromium bug.
-    // https://github.com/microsoft/playwright/issues/6479#issuecomment-1574627457
-    if (process.env.IS_IN_PLAYWRIGHT_TEST === 'true' && payload instanceof Blob) {
-      payload = await payload.arrayBuffer()
     }
 
     try {

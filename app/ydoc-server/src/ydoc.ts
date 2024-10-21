@@ -7,7 +7,7 @@ import {
 import { readSyncMessage, writeSyncStep1, writeUpdate } from 'y-protocols/sync'
 import * as Y from 'yjs'
 
-import WebSocket from 'isomorphic-ws'
+import WS from 'isomorphic-ws'
 import * as decoding from 'lib0/decoding'
 import * as encoding from 'lib0/encoding'
 import { ObservableV2 } from 'lib0/observable'
@@ -91,7 +91,7 @@ export class WSSharedDoc {
  * @param docName The name of the document to synchronize. When the document name is `index`, the
  * document is considered to be the root document of the `DistributedProject` data model.
  */
-export function setupGatewayClient(ws: WebSocket, lsUrl: string, docName: string) {
+export function setupGatewayClient(ws: WS.WebSocket, lsUrl: string, docName: string) {
   const lsSession = LanguageServerSession.get(lsUrl)
   const wsDoc = lsSession.getYDoc(docName)
   if (wsDoc == null) {
@@ -110,9 +110,9 @@ export function setupGatewayClient(ws: WebSocket, lsUrl: string, docName: string
 }
 
 class YjsConnection extends ObservableV2<{ close(): void }> {
-  ws: WebSocket
+  ws: WS.WebSocket
   wsDoc: WSSharedDoc
-  constructor(ws: WebSocket, wsDoc: WSSharedDoc) {
+  constructor(ws: WS.WebSocket, wsDoc: WSSharedDoc) {
     super()
     this.ws = ws
     this.wsDoc = wsDoc
@@ -166,7 +166,10 @@ class YjsConnection extends ObservableV2<{ close(): void }> {
   }
 
   send(message: Uint8Array) {
-    if (this.ws.readyState !== WebSocket.CONNECTING && this.ws.readyState !== WebSocket.OPEN) {
+    if (
+      this.ws.readyState !== WS.WebSocket.CONNECTING &&
+      this.ws.readyState !== WS.WebSocket.OPEN
+    ) {
       this.close()
     }
     try {

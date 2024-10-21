@@ -1,0 +1,40 @@
+## JS
+
+# passes an argument `--skipLibCheck` to *every* spawn of tsc
+common --@aspect_rules_ts//ts:skipLibCheck=always
+common --@aspect_rules_ts//ts:default_to_tsc_transpiler
+
+# Allow the Bazel server to check directory sources for changes. Ensures that the Bazel server
+# notices when a directory changes, if you have a directory listed in the srcs of some target.
+# Recommended when using
+# [copy_directory](https://github.com/aspect-build/bazel-lib/blob/main/docs/copy_directory.md) and
+# [rules_js](https://github.com/aspect-build/rules_js) since npm package are source directories
+# inputs to copy_directory actions.
+# Docs: https://bazel.build/reference/command-line-reference#flag--host_jvm_args
+startup --host_jvm_args=-DBAZEL_TRACK_SOURCE_DIRECTORIES=1
+
+## GraalVM toolchain
+build --extra_toolchains=@graalvm//:bootstrap_runtime_toolchain
+
+## GraalVM versions
+common --tool_java_runtime_version=graalvm_21
+common --tool_java_language_version=21
+
+common --java_runtime_version=graalvm_21
+common --java_language_version=21
+
+## Rust
+startup --windows_enable_symlinks
+build --enable_runfiles
+
+## other
+# build --experimental_output_directory_naming_scheme=diff_against_dynamic_baseline
+# build --incompatible_disallow_empty_glob
+# build --verbose_failures
+# build --worker_sandboxing
+# build:linux --sandbox_add_mount_pair=/tmp
+# build:macos --sandbox_add_mount_pair=/var/tmp
+# build:windows --sandbox_add_mount_pair=C:\Temp
+
+# test --sandbox_default_allow_network=false
+# test --test_output=errors

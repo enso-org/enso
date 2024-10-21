@@ -1,0 +1,12 @@
+load("@rules_rust//wasm_bindgen:defs.bzl", "rust_wasm_bindgen_toolchain")
+
+rust_wasm_bindgen_toolchain(
+    name = "cli_impl",
+    bindgen = "@wasm_bindgen_cli_crate//:wasm-bindgen-cli",
+)
+
+toolchain(
+    name = "cli",
+    toolchain = "cli_impl",
+    toolchain_type = "@rules_rust//wasm_bindgen:toolchain_type",
+)
