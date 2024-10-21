@@ -887,9 +887,13 @@ export default function AssetsTable(props: AssetsTableProps) {
             setTargetDirectory(null)
           } else if (selectedKeys.size === 1) {
             const [soleKey] = selectedKeys
-            const node = soleKey == null ? null : nodeMapRef.current.get(soleKey)
-            if (node != null && node.isType(AssetType.directory)) {
-              setTargetDirectory(node)
+            const item = soleKey == null ? null : nodeMapRef.current.get(soleKey)
+            if (item != null && item.isType(AssetType.directory)) {
+              setTargetDirectory(item)
+            }
+            if (item && item.item.id !== driveStore.getState().assetPanelProps?.item?.item.id) {
+              setAssetPanelProps({ backend, item })
+              setIsAssetPanelTemporarilyVisible(false)
             }
           } else {
             let commonDirectoryKey: AssetId | null = null
@@ -928,7 +932,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           }
         }
       }),
-    [driveStore, setTargetDirectory],
+    [backend, driveStore, setAssetPanelProps, setIsAssetPanelTemporarilyVisible, setTargetDirectory],
   )
 
   useEffect(() => {

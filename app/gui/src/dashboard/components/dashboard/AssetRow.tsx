@@ -10,12 +10,7 @@ import * as dragAndDropHooks from '#/hooks/dragAndDropHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 
-import {
-  useDriveStore,
-  useSetAssetPanelProps,
-  useSetIsAssetPanelTemporarilyVisible,
-  useSetSelectedKeys,
-} from '#/providers/DriveProvider'
+import { useDriveStore, useSetSelectedKeys } from '#/providers/DriveProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -141,7 +136,6 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
   const queryClient = useQueryClient()
   const { user } = useFullUserSession()
   const setSelectedKeys = useSetSelectedKeys()
-  const setAssetPanelProps = useSetAssetPanelProps()
   const selected = useStore(driveStore, ({ visuallySelectedKeys, selectedKeys }) =>
     (visuallySelectedKeys ?? selectedKeys).has(item.key),
   )
@@ -162,7 +156,6 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
   const [isDraggedOver, setIsDraggedOver] = React.useState(false)
   const rootRef = React.useRef<HTMLElement | null>(null)
   const dragOverTimeoutHandle = React.useRef<number | null>(null)
-  const setIsAssetPanelTemporarilyVisible = useSetIsAssetPanelTemporarilyVisible()
   const grabKeyboardFocusRef = useSyncRef(grabKeyboardFocus)
   const asset = item.item
   const [innerRowState, setRowState] = React.useState<assetsTable.AssetRowState>(
@@ -265,25 +258,6 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
       }
     }
   }, [item.item.id, updateAssetRef])
-
-  React.useEffect(() => {
-    if (
-      !hidden &&
-      isSoleSelected &&
-      item.item.id !== driveStore.getState().assetPanelProps?.item?.item.id
-    ) {
-      setAssetPanelProps({ backend, item })
-      setIsAssetPanelTemporarilyVisible(false)
-    }
-  }, [
-    item,
-    isSoleSelected,
-    backend,
-    setAssetPanelProps,
-    setIsAssetPanelTemporarilyVisible,
-    driveStore,
-    hidden,
-  ])
 
   const doDelete = React.useCallback(
     (forever = false) => {
