@@ -115,6 +115,18 @@ add_specs suite_builder prefix connection_details pending =
                         m3.at "Z" . to_vector . should_equal_ignoring_order [10045, 20045, 30045]
                         m3.at "W" . to_vector . should_equal_ignoring_order ['a...', 'b...', 'c...']
 
+                ## We test cross-join because it returns a table with an internal name that does not exist in the DB.
+                   This used to break some logic, so to ensure no regressions after a fix - we added this test.
+                cross_join_test_enabled = raw_connection.dialect.is_feature_supported ..Cross_Join
+                case cross_join_test_enabled of
+                    False ->
+                        IO.println "Skipping cross-join data link tests, because the dialect does not support cross-join."
+                    True ->
+                        cross_joined_table = table.cross_join table
+                        cross_joined_table_data_link = cross_joined_table.save_as_data_link (test_root.get / "cross-join.datalink")
+                        cross_joined_table_data_link.should_be_a Enso_File
+                        Problems.assume_no_problems cross_joined_table_data_link
+
         group_builder.specify "warns if a query to a temporary table is saved as data link" <|
             raw_connection = Database.connect connection_details
             table_name = test_root.get.name

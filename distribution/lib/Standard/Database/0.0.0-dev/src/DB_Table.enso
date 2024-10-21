@@ -2746,10 +2746,9 @@ type DB_Table
 
        Some operations, like writing to tables, require their target to be a
        trivial query.
-    is_trivial_query : Boolean ! Table_Not_Found
-    is_trivial_query self =
+    is_trivial_query self -> Boolean ! Table_Not_Found =
          trivial_counterpart = self.connection.query (SQL_Query.Table_Name self.name)
-         trivial_counterpart.if_not_error <|
+         if trivial_counterpart.is_error then False else
              if self.context != trivial_counterpart.context then False else
                 column_descriptor internal_column = [internal_column.name, internal_column.expression]
                 my_columns = self.internal_columns.map column_descriptor
