@@ -2,6 +2,15 @@ from Standard.Base import all
 
 polyglot java import software.amazon.awssdk.core.exception.SdkClientException
 
+## An invalid URI was provided.
+type Invalid_AWS_URI
+    ## PRIVATE
+    Error uri:Text
+
+    ## PRIVATE
+    to_display_text : Text
+    to_display_text self = "Invalid AWS URI: " + self.uri
+
 ## An error in the core AWS SDK
 type AWS_SDK_Error
     ## PRIVATE

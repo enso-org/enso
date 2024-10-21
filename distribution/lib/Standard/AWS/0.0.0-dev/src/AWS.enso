@@ -1,0 +1,68 @@
+from Standard.Base import all
+import Standard.Base.Errors.Common.Missing_Argument
+import Standard.Base.Network.HTTP.HTTP_Error.HTTP_Error
+import Standard.Base.Network.HTTP.Request.Request
+import Standard.Base.Network.HTTP.Request_Body.Request_Body
+import Standard.Base.Network.HTTP.Request_Error
+import Standard.Base.Network.HTTP.Response.Response
+from Standard.Base.Network.HTTP import if_fetch_method, if_post_method, internal_http_client, with_hash_and_client
+
+import project.AWS_Credential.AWS_Credential
+import project.AWS_Region.AWS_Region
+import project.Errors.Invalid_AWS_URI
+
+polyglot java import org.enso.aws.ClientBuilder
+polyglot java import org.enso.aws.SignedHttpClient
+
+## Methods for interacting with AWS services.
+type AWS
+    ## Sends a request to AWS with the given URI, method, and headers.
+    signed_fetch : URI -> HTTP_Method -> (Vector (Header | Pair Text Text)) -> File_Format -> AWS_Credential -> AWS_Region_Service -> Any
+    signed_fetch (uri:URI=(Missing_Argument.throw "uri")) (method:HTTP_Method=..Get) (headers:(Vector (Header | Pair Text Text))=[]) (format = Auto_Detect) credentials:AWS_Credential=..Default (region_service:AWS_Region_Service=(AWS.resolve_region_and_service uri)) =
+        if_fetch_method method <|
+            _ = [format]
+            request = Request.new method uri (Header.unify_vector headers) Request_Body.Empty
+
+            http = with_hash_and_client HTTP.new hash_method=AWS.hash_bytes make_client=(_make_client credentials region_service)
+            http.request request
+
+    ## Sends a request to AWS with the given URI, method, and headers.
+    signed_post : (URI | Text) -> Request_Body -> HTTP_Method -> Vector (Header | Pair Text Text) -> Response ! Request_Error | HTTP_Error
+    signed_post (uri:URI=(Missing_Argument.throw "uri")) (body:Request_Body=Request_Body.Empty) (method:HTTP_Method=..Post) (headers:(Vector (Header | Pair Text Text))=[]) (format = Auto_Detect) credentials:AWS_Credential=..Default (region_service:AWS_Region_Service=(AWS.resolve_region_and_service uri)) =
+        if_post_method method <|
+            _ = [format]
+            request = Request.new method uri (Header.unify_vector headers) body
+
+            http = with_hash_and_client HTTP.new hash_method=AWS.hash_bytes make_client=(_make_client credentials region_service)
+            http.request request
+
+    ## Hash a Vector of bytes
+    hash_bytes : Vector Integer -> Text
+    hash_bytes bytes:Vector = SignedHttpClient.getSHA256 bytes
+
+    ## Resolve the region and service from an AWS based URI.
+       Splits a standard form AWS URI into the region and service.
+
+       The URI must be in the forms:
+       - `https://(*.)<service>.<region>.amazonaws.com`.
+       - `https://(*.)<region>.<service>.amazonaws.com`.
+
+       Arguments:
+         - uri: The URI to resolve.
+    resolve_region_and_service : URI -> AWS_Region_Service
+    resolve_region_and_service (uri:URI=(Missing_Argument.throw "uri")) =
+        region_regex = regex "^(([a-z]{2}-[^.]+?-\d+)|(global))$"
+        domain = uri.host.split '.'
+        if (domain.length < 4 || (domain.at -1) != "com" || (domain.at -2) != "amazonaws") then Error.throw (Invalid_AWS_URI.Error domain.length.to_text+":"+uri.to_text) else
+            if (domain.at -3).match region_regex then AWS_Region_Service.Region_Service region=(domain.at -3) service=(domain.at -4) else
+                if (domain.at -4).match region_regex then AWS_Region_Service.Region_Service region=(domain.at -4) service=(domain.at -3) else
+                    Error.throw (Invalid_AWS_URI.Error domain.to_display_text)
+
+## Holds the region and service of an AWS URI.
+type AWS_Region_Service
+    ## Holds the region and service of an AWS URI.
+    Region_Service region:Text service:Text
+
+private _make_client credentials region_service http hash =
+    builder = ClientBuilder.new credentials.as_java (AWS_Region.Region region_service.region).as_java
+    builder.createSignedClient region_service.region region_service.service (internal_http_client http "") hash

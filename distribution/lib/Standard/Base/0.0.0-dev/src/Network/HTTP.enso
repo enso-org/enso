@@ -28,6 +28,7 @@ import project.Runtime.Context
 import project.System.File.File
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Json.Extensions import all
+from project.Data.Text.Extensions import all
 
 polyglot java import java.lang.IllegalArgumentException
 polyglot java import java.io.IOException
@@ -48,6 +49,20 @@ polyglot java import org.enso.base.net.http.MultipartBodyBuilder
 polyglot java import org.enso.base.net.http.UrlencodedBodyBuilder
 
 type HTTP
+    ## PRIVATE
+       Static helper for get-like methods
+    fetch : (URI | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> Response ! Request_Error | HTTP_Error
+    fetch (uri:(URI | Text)) (method:HTTP_Method=..Get) (headers:(Vector (Header | Pair Text Text))=[]) = if_fetch_method method <|
+        request = Request.new method uri (Header.unify_vector headers) Request_Body.Empty
+        HTTP.new.request request
+
+    ## PRIVATE
+       Static helper for post-like methods
+    post : (URI | Text) -> Request_Body -> HTTP_Method -> Vector (Header | Pair Text Text) -> Response ! Request_Error | HTTP_Error
+    post (uri:(URI | Text)) (body:Request_Body=Request_Body.Empty) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector (Header | Pair Text Text))=[]) = if_post_method method <|
+        request = Request.new method uri (Header.unify_vector headers) body
+        HTTP.new.request request
+
     ## PRIVATE
        ADVANCED
        Create a new instance of the HTTP client.
@@ -76,7 +91,7 @@ type HTTP
              example_new =
                 HTTP.new (timeout = (Duration.new seconds=30)) (proxy = Proxy.Address "example.com" 8080)
     new : Duration -> Boolean -> Proxy -> HTTP_Version -> HTTP
-    new (timeout:Duration=(Duration.new seconds=10)) (follow_redirects:Boolean=True) (proxy:Proxy=Proxy.System) (version:HTTP_Version=HTTP_Version.HTTP_2) =
+    new (timeout:Duration=(Duration.new seconds=10)) (follow_redirects:Boolean=True) (proxy:Proxy=..System) (version:HTTP_Version=..HTTP_2) =
         HTTP.Value timeout follow_redirects proxy version Nothing
 
     ## PRIVATE
@@ -90,7 +105,9 @@ type HTTP
        - custom_ssl_context: A custom SSL context to use for requests, or
          Nothing if the default should be used. For most use cases, it is
          recommended to use the default.
-    Value timeout follow_redirects proxy version custom_ssl_context
+       - hash_method: The hash method to use for body hashing.
+       - make_client: Creates the Java HTTPClient.
+    private Value timeout follow_redirects:Boolean proxy:Proxy version:HTTP_Version custom_ssl_context hash_method=Nothing make_client=internal_http_client
 
     ## ADVANCED
        ICON data_download
@@ -107,7 +124,7 @@ type HTTP
     request self req error_on_failure_code=True =
         # Prevent request if the method is a write-like method and output context is disabled.
         check_output_context ~action =
-            if fetch_methods.contains req.method || Context.Output.is_enabled then action else
+            if (if_fetch_method req.method True if_not=Context.Output.is_enabled) then action else
                 Error.throw (Forbidden_Operation.Error ("As writing is disabled, " + req.method.to_text + " request not sent. Press the Write button ▶ to send it."))
         handle_request_error =
             handler caught_panic =
@@ -116,65 +133,27 @@ type HTTP
             Panic.catch IllegalArgumentException handler=handler <| Panic.catch IOException handler=handler
 
         handle_request_error <| Illegal_Argument.handle_java_exception <| check_output_context <|
-            headers = resolve_headers req
+            headers = _resolve_headers req
             headers.if_not_error <|
-                body_publisher_and_boundary = resolve_body_to_publisher_and_boundary req.body
-                body_publisher_and_boundary.if_not_error <|
+                body_publisher_boundary_and_hash = _resolve_body req.body self.hash_method
+                body_publisher_boundary_and_hash.if_not_error <|
                     # Create builder and set method and body
                     builder = HttpRequest.newBuilder
-                    builder.method req.method.to_http_method_name body_publisher_and_boundary.first
+                    builder.method req.method.to_http_method_name body_publisher_boundary_and_hash.first
 
                     # Create Unified Header list
-                    boundary = body_publisher_and_boundary.second
+                    boundary = body_publisher_boundary_and_hash.get 1
                     boundary_header_list = if boundary.is_nothing then [] else [Header.multipart_form_data boundary]
                     all_headers = headers + boundary_header_list
                     mapped_headers = all_headers.map on_problems=No_Wrap .to_java_pair
 
-                    response = Response.Value (EnsoSecretHelper.makeRequest self.internal_http_client builder req.uri.to_java_representation mapped_headers)
+                    hash = body_publisher_boundary_and_hash.get 2
+
+                    response = Response.Value (EnsoSecretHelper.makeRequest (self.make_client self hash) builder req.uri.to_java_representation mapped_headers)
                     if error_on_failure_code.not || response.code.is_success then response else
                         body = response.body.decode_as_text.catch Any _->""
                         message = if body.is_empty then Nothing else body
                         Error.throw (HTTP_Error.Status_Error response.code message response.uri)
-
-    ## PRIVATE
-       Static helper for get-like methods
-    fetch : (URI | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> Response ! Request_Error | HTTP_Error
-    fetch (uri:(URI | Text)) (method:HTTP_Method=..Get) (headers:(Vector (Header | Pair Text Text))=[]) =
-        check_method fetch_methods method <|
-            request = Request.new method uri (parse_headers headers) Request_Body.Empty
-            HTTP.new.request request
-
-    ## PRIVATE
-       Static helper for post-like methods
-    post : (URI | Text) -> Request_Body -> HTTP_Method -> Vector (Header | Pair Text Text) -> Response ! Request_Error | HTTP_Error
-    post (uri:(URI | Text)) (body:Request_Body=Request_Body.Empty) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector (Header | Pair Text Text))=[]) =
-        check_method post_methods method <|
-            request = Request.new method uri (parse_headers headers) body
-            HTTP.new.request request
-
-    ## PRIVATE
-
-       Build an HTTP client.
-    internal_http_client : HttpClient
-    internal_http_client self =
-        builder = HttpClient.newBuilder.connectTimeout self.timeout
-
-        redirect_policy = if self.follow_redirects then HttpClient.Redirect.ALWAYS else HttpClient.Redirect.NEVER
-        builder.followRedirects redirect_policy
-
-        case self.proxy of
-            Proxy.Address proxy_host proxy_port -> builder.proxy (ProxySelector.of (InetSocketAddress.new proxy_host proxy_port))
-            Proxy.System -> builder.proxy ProxySelector.getDefault
-            Proxy.None -> Nothing
-
-        case self.version of
-            HTTP_Version.HTTP_1_1 -> builder.version HttpClient.Version.HTTP_1_1
-            HTTP_Version.HTTP_2 -> builder.version HttpClient.Version.HTTP_2
-
-        if self.custom_ssl_context.is_nothing.not then
-            builder.sslContext self.custom_ssl_context
-
-        builder.build
 
     ## PRIVATE
        ADVANCED
@@ -184,22 +163,12 @@ type HTTP
         HTTP.Value self.timeout self.follow_redirects self.proxy self.version ssl_context
 
 ## PRIVATE
-parse_headers : Vector (Header | Pair Text Text) -> Vector Header
-parse_headers headers =
-    headers . map on_problems=No_Wrap h-> case h of
-        _ : Vector -> Header.new (h.at 0) (h.at 1)
-        _ : Pair -> Header.new (h.at 0) (h.at 1)
-        _ : Function -> h:Header
-        _ : Header -> h
-        _ -> Error.throw (Illegal_Argument.Error "Invalid header type - all values must be Vector, Pair or Header (got "+(Meta.get_simple_type_name h)+").")
-
-## PRIVATE
    If either encoding or content type is specified in the Request_Body, that is used as the content type header.
    If encoding is specified without content type, "text/plain" is used as the content type.
    It is an error to specify the content type in both the request body and the header list.
    If the body is not Request_Body.Empty, and no content type is specified, a default is used.
-resolve_headers : Request -> Vector Header
-resolve_headers req =
+_resolve_headers : Request -> Vector Header
+private _resolve_headers req =
     is_content_type_header h = h.name . equals_ignore_case Header.content_type_header_name
 
     # Check for content type and encoding in the Request_Body.
@@ -235,44 +204,45 @@ resolve_headers req =
         all_headers + default_content_type
 
 ## PRIVATE
-   Generate body publisher and optional form content boundary
-resolve_body_to_publisher_and_boundary : Request_Body -> Pair BodyPublisher Text
-resolve_body_to_publisher_and_boundary body:Request_Body =
+   Generate body publisher, optional form content boundary and optional hash from the body
+_resolve_body : Request_Body -> Function | Nothing -> Pair BodyPublisher Text
+private _resolve_body body:Request_Body hash_function =
     body_publishers = HttpRequest.BodyPublishers
     case body of
         Request_Body.Text text encoding _ ->
             body_publisher = case encoding of
                 Nothing -> body_publishers.ofString text
                 _ : Encoding ->  body_publishers.ofString text encoding.to_java_charset
-            Pair.new body_publisher Nothing
+            hash = if hash_function.is_nothing then "" else hash_function (text.bytes (encoding.if_nothing Encoding.utf_8))
+            [body_publisher, Nothing, hash]
         Request_Body.Json x ->
             json = x.to_json
-            json.if_not_error <|
-                Pair.new (body_publishers.ofString json) Nothing
+            hash = if hash_function.is_nothing then "" else hash_function json.bytes
+            json.if_not_error <| [body_publishers.ofString json, Nothing, hash]
         Request_Body.Binary file ->
             path = File_Utils.toPath file.path
-            Pair.new (body_publishers.ofFile path) Nothing
+            ## ToDo: Support hashing a file.
+            [body_publishers.ofFile path, Nothing, Nothing]
         Request_Body.Form_Data form_data url_encoded ->
-            build_form_body_publisher form_data url_encoded
+            _resolve_form_body form_data url_encoded
         Request_Body.Empty ->
-            Pair.new (body_publishers.noBody) Nothing
+            hash = if hash_function.is_nothing then "" else hash_function []
+            [body_publishers.noBody, Nothing, hash]
         _ ->
-            Error.throw (Illegal_Argument.Error ("Unsupported POST body: " + body.to_display_text + "; this is a bug in the Data library"))
-
+            Error.throw (Illegal_Argument.Error ("Unsupported POST body: " + body.to_display_text + "; this is a bug library."))
 
 ## PRIVATE
-
    Build a BodyPublisher from the given form data.
    The pair's second value is a content boundary in the case of a `multipart/form-data` form; otherwise, Nothing
-build_form_body_publisher : Dictionary Text (Text | File) -> Boolean -> Pair BodyPublisher Text
-build_form_body_publisher (form_data:(Dictionary Text (Text | File))) (url_encoded:Boolean=False) = case url_encoded of
+_resolve_form_body : Dictionary Text (Text | File) -> Boolean -> Pair BodyPublisher Text
+private _resolve_form_body (form_data:(Dictionary Text (Text | File))) (url_encoded:Boolean=False) = case url_encoded of
     True ->
         body_builder = UrlencodedBodyBuilder.new
         form_data.map_with_key key-> value->
             case value of
                 _ : Text -> body_builder.add_part_text key value
                 _ : File -> body_builder.add_part_file key value.path
-        Pair.new body_builder.build Nothing
+        [body_builder.build, Nothing, Nothing]
     False ->
         body_builder = MultipartBodyBuilder.new
         form_data.map_with_key key-> value->
@@ -280,21 +250,49 @@ build_form_body_publisher (form_data:(Dictionary Text (Text | File))) (url_encod
                 _ : Text -> body_builder.add_part_text key value
                 _ : File -> body_builder.add_part_file key value.path
         boundary = body_builder.get_boundary
-        Pair.new body_builder.build boundary
+        [body_builder.build, boundary, Nothing]
 
 ## PRIVATE
-fetch_methods : Hashset HTTP_Method
-fetch_methods = Hashset.from_vector [HTTP_Method.Get, HTTP_Method.Head, HTTP_Method.Options]
+if_fetch_method : HTTP_Method -> Function -> Any -> Any ! Illegal_Argument
+if_fetch_method method:HTTP_Method ~action ~if_not=(Error.throw (Illegal_Argument.Error ("Unsupported method " + method.to_display_text))) =
+    if [HTTP_Method.Get, HTTP_Method.Head, HTTP_Method.Options].contains method then action else
+        if_not
 
 ## PRIVATE
-post_methods : Hashset HTTP_Method
-post_methods = Hashset.from_vector [HTTP_Method.Post, HTTP_Method.Put, HTTP_Method.Patch, HTTP_Method.Delete]
+if_post_method : HTTP_Method -> Function -> Any -> Any ! Illegal_Argument
+if_post_method method:HTTP_Method ~action ~if_not=(Error.throw (Illegal_Argument.Error ("Unsupported method " + method.to_display_text))) =
+    if [HTTP_Method.Post, HTTP_Method.Put, HTTP_Method.Patch, HTTP_Method.Delete].contains method then action else
+        if_not
 
 ## PRIVATE
-check_method : Hashset HTTP_Method -> Any -> Any -> Any ! Illegal_Argument
-check_method allowed_methods method ~action =
-    if allowed_methods.contains method then action else
-        Error.throw (Illegal_Argument.Error ("Unsupported method " + method.to_display_text))
+   Build a custom HTTP with hash function and make_client function.
+with_hash_and_client : HTTP -> Function -> Function -> HTTP
+with_hash_and_client http hash_method make_client =
+    HTTP.Value http.timeout http.follow_redirects http.proxy http.version http.custom_ssl_context hash_method make_client
+
+## PRIVATE
+   Build an HTTP client.
+internal_http_client : HTTP -> Text -> HttpClient
+internal_http_client http hash =
+    _ = hash
+    builder = HttpClient.newBuilder.connectTimeout http.timeout
+
+    redirect_policy = if http.follow_redirects then HttpClient.Redirect.ALWAYS else HttpClient.Redirect.NEVER
+    builder.followRedirects redirect_policy
+
+    case http.proxy of
+        Proxy.Address proxy_host proxy_port -> builder.proxy (ProxySelector.of (InetSocketAddress.new proxy_host proxy_port))
+        Proxy.System -> builder.proxy ProxySelector.getDefault
+        Proxy.None -> Nothing
+
+    case http.version of
+        HTTP_Version.HTTP_1_1 -> builder.version HttpClient.Version.HTTP_1_1
+        HTTP_Version.HTTP_2 -> builder.version HttpClient.Version.HTTP_2
+
+    if http.custom_ssl_context.is_nothing.not then
+        builder.sslContext http.custom_ssl_context
+
+    builder.build
 
 ## PRIVATE
    An error when sending an HTTP request.
