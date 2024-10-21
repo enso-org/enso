@@ -932,7 +932,13 @@ export default function AssetsTable(props: AssetsTableProps) {
           }
         }
       }),
-    [backend, driveStore, setAssetPanelProps, setIsAssetPanelTemporarilyVisible, setTargetDirectory],
+    [
+      backend,
+      driveStore,
+      setAssetPanelProps,
+      setIsAssetPanelTemporarilyVisible,
+      setTargetDirectory,
+    ],
   )
 
   useEffect(() => {
