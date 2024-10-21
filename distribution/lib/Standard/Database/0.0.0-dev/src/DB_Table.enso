@@ -6,7 +6,6 @@ import Standard.Base.Data.Vector.Builder
 import Standard.Base.Errors.Common.Additional_Warnings
 import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
-import Standard.Base.Errors.Common.No_Such_Method
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Deprecated.Deprecated
 import Standard.Base.Errors.File_Error.File_Error
@@ -54,6 +53,7 @@ import project.Internal.Base_Generator
 import project.Internal.Common.Database_Join_Helper
 import project.Internal.Common.Lookup_Query_Helper
 import project.Internal.Common.Row_Number_Helpers
+import project.Internal.DB_Data_Link_Helpers
 import project.Internal.Helpers
 import project.Internal.IR.Context.Context
 import project.Internal.IR.From_Spec.From_Spec
@@ -2833,18 +2833,7 @@ type DB_Table
        this table.
     @on_existing_file (Existing_File_Behavior.widget include_backup=False include_append=False)
     save_as_data_link self destination (on_existing_file:Existing_File_Behavior = Existing_File_Behavior.Error) =
-        no_data_link_setup _ =
-            Error.throw (Illegal_Argument.Error "Saving a Table as data link is currently not supported in "+(Meta.type_of self.connection).to_text+".")
-        data_link_setup = Panic.catch No_Such_Method handler=no_data_link_setup self.connection.data_link_setup
-        # For a trivial query we return the table name.
-        link_type = if self.is_trivial_query then ..Table self.name else
-            sql_statement = self.to_sql
-            prepared = sql_statement.prepare
-            # If there are no interpolations, we can do a raw query represented by Text (more friendly in the GUI).
-            if prepared.second.is_empty then ..Query prepared.first else
-                # Lastly, if there are interpolations, we need to fully serialize
-                ..SQL_Statement sql_statement
-        data_link_setup.save_as_data_link destination on_existing_file link_type
+        DB_Data_Link_Helpers.save_table_as_data_link self destination on_existing_file
 
     ## ALIAS fill missing, if_nothing
        GROUP Standard.Base.Values
