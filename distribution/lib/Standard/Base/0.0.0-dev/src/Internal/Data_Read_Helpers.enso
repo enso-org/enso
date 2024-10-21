@@ -10,10 +10,12 @@ import project.Errors.Deprecated.Deprecated
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Metadata.Display
 import project.Metadata.Widget
+import project.Network.HTTP.Cache_Policy.Cache_Policy
 import project.Network.HTTP.HTTP
 import project.Network.HTTP.HTTP_Error.HTTP_Error
 import project.Network.HTTP.HTTP_Method.HTTP_Method
 import project.Network.URI.URI
+import project.Nothing.Nothing
 import project.Warning.Warning
 from project.Data import Raw_Response
 from project.Data.Boolean import Boolean, False, True
@@ -31,9 +33,9 @@ looks_like_uri path:Text -> Boolean =
 ## PRIVATE
    A common implementation for fetching a resource and decoding it,
    following encountered data links.
-fetch_following_data_links (uri:URI) (method:HTTP_Method = HTTP_Method.Get) (headers:Vector = []) format =
+fetch_following_data_links (uri:URI) (method:HTTP_Method = ..Get) (headers:Vector = []) format (cache_policy:Cache_Policy = ..Default) =
     fetch_and_decode =
-        response = HTTP.fetch uri method headers
+        response = HTTP.fetch uri method headers cache_policy=cache_policy
         decode_http_response_following_data_links response format
 
     error_handler attempt =

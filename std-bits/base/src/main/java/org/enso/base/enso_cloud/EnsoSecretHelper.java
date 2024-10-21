@@ -58,13 +58,46 @@ public final class EnsoSecretHelper extends SecretValueResolver {
       HttpClient client,
       Builder builder,
       URIWithSecrets uri,
-      List<Pair<String, HideableValue>> headers)
-      throws IllegalArgumentException, IOException, InterruptedException {
+      List<Pair<String, HideableValue>> headers,
+      boolean useCache)
+      throws IllegalArgumentException,
+          IOException,
+          InterruptedException,
+          ResponseTooLargeException {
 
     // Build a new URI with the query arguments.
     URI resolvedURI = resolveURI(uri);
-    URI renderedURI = uri.render();
 
+    List<Pair<String, String>> resolvedHeaders =
+        headers.stream()
+            .map(
+                pair -> {
+                  return Pair.create(pair.getLeft(), resolveValue(pair.getRight()));
+                })
+            .toList();
+
+    TransientHTTPResponseCache.RequestMaker requestMaker =
+        () ->
+            makeRequestWithResolvedSecrets(
+                client, builder, uri, resolvedURI, headers, resolvedHeaders);
+
+    if (!useCache) {
+      return requestMaker.run();
+    } else {
+      return TransientHTTPResponseCache.makeRequest(
+          uri, resolvedURI, resolvedHeaders, requestMaker);
+    }
+  }
+
+  /** Makes a request with secrets resolved to their actual values. * */
+  static EnsoHttpResponse makeRequestWithResolvedSecrets(
+      HttpClient client,
+      Builder builder,
+      URIWithSecrets uri,
+      URI resolvedURI,
+      List<Pair<String, HideableValue>> headers,
+      List<Pair<String, String>> resolvedHeaders)
+      throws IOException, InterruptedException {
     boolean hasSecrets =
         uri.containsSecrets() || headers.stream().anyMatch(p -> p.getRight().containsSecrets());
     if (hasSecrets) {
@@ -80,9 +113,8 @@ public final class EnsoSecretHelper extends SecretValueResolver {
 
     builder.uri(resolvedURI);
 
-    // Resolve the header arguments.
-    for (Pair<String, HideableValue> header : headers) {
-      builder.header(header.getLeft(), resolveValue(header.getRight()));
+    for (Pair<String, String> resolvedHeader : resolvedHeaders) {
+      builder.header(resolvedHeader.getLeft(), resolvedHeader.getRight());
     }
 
     // Build and Send the request.
@@ -90,7 +122,8 @@ public final class EnsoSecretHelper extends SecretValueResolver {
     var bodyHandler = HttpResponse.BodyHandlers.ofInputStream();
     var javaResponse = client.send(httpRequest, bodyHandler);
 
-    // Extract parts of the response
+    URI renderedURI = uri.render();
+
     return new EnsoHttpResponse(
         renderedURI, javaResponse.headers(), javaResponse.body(), javaResponse.statusCode());
   }

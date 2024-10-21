@@ -98,6 +98,7 @@ public class HTTPTestHelperServer {
     server.addHandler("/test_basic_auth", new BasicAuthTestHandler());
     server.addHandler("/crash", new CrashingTestHandler());
     server.addHandler("/test_redirect", new RedirectTestHandler("/testfiles/js.txt"));
+    server.addHandler("/test_download", new DownloadTestHandler());
 
     // Cloud mock
     if (cloudMockSetup != null) {
