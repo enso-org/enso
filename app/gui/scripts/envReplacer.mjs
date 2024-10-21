@@ -56,10 +56,6 @@ const envs = await Promise.all(
 
 const combinedEnvs = Object.assign({}, ...envs)
 
-console.error('==============')
-console.error('ENVS:')
-console.error(combinedEnvs)
-
 /**
  * Map of calls mkdir performed so far, to avoid calling it twice on the same path.
  * @type {Map<string, Promise<unknown>>}
@@ -213,9 +209,6 @@ await processAllFiles()
 
 if (errors.length > 0) {
   console.error('==========================')
-  console.error('cwd:', process.cwd())
-  console.error('inputDirectory:', inputDirectory)
-  console.error('outputDirectory:', outputDirectory)
   console.error(
     `Found ${errors.length} error${errors.length > 1 ? 's' : ''} during bundle postprocessing:`,
   )
