@@ -31,7 +31,7 @@ type Postgres_Data_Link
             Credentials.Username_And_Password username password
 
         details = Postgres.Server host=host port=port database=db_name schema=schema credentials=credentials
-        link_type = DB_Data_Link_Type.parse (get_optional_field "table" json)
+        link_type = DB_Data_Link_Type.from_js (get_optional_field "table" json)
         Postgres_Data_Link.Value details source link_type
 
     ## PRIVATE

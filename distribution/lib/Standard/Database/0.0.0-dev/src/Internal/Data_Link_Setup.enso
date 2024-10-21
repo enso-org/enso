@@ -33,7 +33,8 @@ type Data_Link_Setup
                         _ -> Error.throw (Illegal_Argument.Error "Invalid value for `on_existing_file` parameter, only `Overwrite` and `Error` are supported here.")
                     exists_checked = if replace_existing.not && destination.exists then Error.throw (File_Error.Already_Exists destination)
                     exists_checked.if_not_error <|
-                        json = link_type.alter (create_fn destination)
+                        connection_description = create_fn destination
+                        json = link_type.add_to_data_link_description connection_description
                         Data_Link.write_config destination json replace_existing
                 _ -> Error.throw (Illegal_Argument.Error "Currently a connection can only be saved as a Data Link into the Enso Cloud. Please provide an `Enso_File` as destination.")
 
@@ -70,7 +71,7 @@ type DB_Data_Link_Type
     ## PRIVATE
        Alters the connection description JSON, adding information dependent on
        the data link type (table name or query to fetch, when applicable).
-    alter self connection_description:JS_Object -> JS_Object =
+    add_to_data_link_description self connection_description:JS_Object -> JS_Object =
         as_js_object = self.to_js_object
         if as_js_object.is_nothing then connection_description else
             connection_description.set_value "table" as_js_object
@@ -97,7 +98,7 @@ type DB_Data_Link_Type
        Parse the `table` field of a data link JSON, returning the appropriate link type.
 
        This is the inverse to `to_js_object`.
-    parse json -> DB_Data_Link_Type ! Illegal_Argument = case json of
+    from_js value:Any -> DB_Data_Link_Type ! Illegal_Argument = case value of
         Nothing ->
             DB_Data_Link_Type.Database
         table_name : Text ->
@@ -115,7 +116,7 @@ type DB_Data_Link_Type
             if fields == ["query"] then parse_simple_query else
                 if fields == ["sql_statement"] then parse_serialized_statement else
                     Error.throw (Illegal_Argument.Error "Invalid JSON inside of data link: expected exactly one field: `query` or `sql_statement`, but got: "+obj.to_display_text)
-        _ -> Error.throw (Illegal_Argument.Error "Invalid JSON inside of data link: expected Text or object but got: "+json.to_display_text)
+        _ -> Error.throw (Illegal_Argument.Error "Invalid JSON inside of data link: expected Text or object but got: "+value.to_display_text)
 
     ## PRIVATE
        Interprets this data link setup according to its type.
