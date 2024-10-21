@@ -3572,7 +3572,7 @@ lazy val `engine-runner` = project
     Compile / run / mainClass := Some("org.enso.runner.Main"),
     commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
-    libraryDependencies ++= GraalVM.modules ++ Seq(
+    libraryDependencies ++= GraalVM.modules ++ GraalVM.toolsPkgs ++ Seq(
       "org.graalvm.polyglot"    % "polyglot"                % graalMavenPackagesVersion,
       "org.graalvm.sdk"         % "polyglot-tck"            % graalMavenPackagesVersion % Provided,
       "commons-cli"             % "commons-cli"             % commonsCliVersion,
@@ -3655,7 +3655,7 @@ lazy val `engine-runner` = project
       val NI_MODULES =
         "org.graalvm.nativeimage,org.graalvm.nativeimage.builder,org.graalvm.nativeimage.base,org.graalvm.nativeimage.driver,org.graalvm.nativeimage.librarysupport,org.graalvm.nativeimage.objectfile,org.graalvm.nativeimage.pointsto,com.oracle.graal.graal_enterprise,com.oracle.svm.svm_enterprise"
       val JDK_MODULES =
-        "jdk.localedata,jdk.httpserver,java.naming,java.net.http"
+        "jdk.localedata,jdk.httpserver,java.naming,java.net.http,java.xml"
       val DEBUG_MODULES  = "jdk.jdwp.agent"
       val PYTHON_MODULES = "jdk.security.auth,java.naming"
 
