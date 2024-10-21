@@ -1214,7 +1214,7 @@ export default class RemoteBackend extends Backend {
   async logEvent(message: string, projectId?: string | null, metadata?: object | null) {
     // Prevent events from being logged in dev mode, since we are often using production environment
     // and are polluting real logs.
-    if (detect.IS_DEV_MODE && $config.ENVIRONMENT === 'production') {
+    if (detect.IS_DEV_MODE) {
       // eslint-disable-next-line no-restricted-syntax
       return
     }

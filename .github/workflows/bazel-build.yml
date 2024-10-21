@@ -31,6 +31,7 @@ jobs:
           ENSO_CLOUD_STRIPE_KEY: ${{ vars.ENSO_CLOUD_STRIPE_KEY }}
           VITE_ENSO_AG_GRID_LICENSE_KEY: ${{ vars.ENSO_AG_GRID_LICENSE_KEY }}
           VITE_ENSO_MAPBOX_API_TOKEN: ${{ vars.ENSO_MAPBOX_API_TOKEN }}
+          CLOUD_BUILD: false
       - name: Get build output location
         run: |
           OUTPUT_SYMLINK=$(bazel cquery --output=files //app/gui:dist)

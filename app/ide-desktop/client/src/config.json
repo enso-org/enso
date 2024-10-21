@@ -6,21 +6,6 @@
     }
   },
   "groups": {
-    "dataCollection": {
-      "description": "Controls the collection of anonymous usage data.",
-      "options": {
-        "usageStatistics": {
-          "value": "",
-          "description": "Determines whether anonymous usage statistics are to be collected.",
-          "primary": false
-        },
-        "crashReports": {
-          "value": "",
-          "description": "Determines whether anonymous crash reports are to be collected.",
-          "primary": false
-        }
-      }
-    },
     "window": {
       "description": "The visual and tactile configurations of the application window.",
       "options": {
@@ -28,11 +13,6 @@
           "value": true,
           "defaultDescription": "false on MacOS, true otherwise",
           "description": "Draw window frame."
-        },
-        "topBarOffset": {
-          "value": 0,
-          "description": "The offset of rust-rendered toolbar from window's left edge.",
-          "primary": false
         },
         "vibrancy": {
           "value": false,
@@ -134,11 +114,6 @@
         "workflow": {
           "value": "",
           "description": "Specify a workflow for profiling. A workflow is a script of automated actions, such as adding nodes or opening visualizations. To view the list of available workflows, use '-profile.workflow=help'. This option must be used with '-startup.entry=profile'.",
-          "primary": false
-        },
-        "emitUserTimingMeasurements": {
-          "value": false,
-          "description": "When enabled, profiling measurements will be submitted continuously to the User Timing Web API, which can be viewed using standard developer tools. Note that this mode significantly affects performance.",
           "primary": false
         }
       }

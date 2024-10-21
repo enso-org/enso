@@ -37,9 +37,6 @@ AsyncApp().then(({ default: App }) => {
         namespace: 'local',
         projectManagerUrl: '',
       },
-      window: {
-        topBarOffset: '96',
-      },
     },
     projectId: 'project-135af445-bcfb-42fe-aa74-96f95e99c28b',
     logEvent: () => {},

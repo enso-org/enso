@@ -178,10 +178,9 @@ function loadAmplifyConfig(
     setDeepLinkHandler(logger, navigate)
   }
 
-  const redirectUrl = $config.REDIRECT ?? window.location.origin
-
   /** Load the platform-specific Amplify configuration. */
-  const signInOutRedirect = supportsDeepLinks ? `${common.DEEP_LINK_SCHEME}://auth` : redirectUrl
+  const signInOutRedirect =
+    supportsDeepLinks ? `${common.DEEP_LINK_SCHEME}://auth` : window.location.origin
   return {
     userPoolId: $config.COGNITO_USER_POOL_ID ?? '',
     userPoolWebClientId: $config.COGNITO_USER_POOL_WEB_CLIENT_ID ?? '',

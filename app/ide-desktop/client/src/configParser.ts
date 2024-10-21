@@ -366,7 +366,6 @@ export function parseArgs(clientArgs: readonly string[] = fileAssociations.CLIEN
     printHelp({
       args,
       groupsOrdering: [
-        args.groups.loader.name,
         args.groups.startup.name,
         args.groups.style.name,
         args.groups.featurePreview.name,
@@ -377,7 +376,6 @@ export function parseArgs(clientArgs: readonly string[] = fileAssociations.CLIEN
         args.groups.debug.name,
         args.groups.profile.name,
         args.groups.authentication.name,
-        args.groups.dataCollection.name,
         args.groups.chrome.name,
       ],
       helpExtended: args.options.helpExtended.value,

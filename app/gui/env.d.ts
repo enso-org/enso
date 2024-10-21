@@ -4,8 +4,8 @@
  * monkeypatching on `window` and generated code.
  */
 /// <reference types="vite/client" />
-/// <reference types="enso-common/src/config" />
 import type * as saveAccessToken from 'enso-common/src/accessToken'
+import { $Config } from './src/config'
 
 // =============
 // === Types ===
@@ -162,6 +162,8 @@ interface VersionInfo {
 
 // JSDocs here are intentionally empty as these interfaces originate from elsewhere.
 declare global {
+  const $config: $Config
+
   interface Window {
     readonly backendApi?: BackendApi
     readonly authenticationApi: AuthenticationApi
@@ -172,14 +174,6 @@ declare global {
     readonly fileBrowserApi?: FileBrowserApi
     readonly versionInfo?: VersionInfo
     toggleDevtools: () => void
-  }
-
-  namespace NodeJS {
-    /** Environment variables. */
-    interface ProcessEnv {
-      // === E2E test variables ===
-      readonly IS_IN_PLAYWRIGHT_TEST?: `${boolean}`
-    }
   }
 
   // const PROJECT_MANAGER_IN_BUNDLE_PATH: StringConstructor

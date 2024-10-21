@@ -1,7 +1,6 @@
 import react from '@vitejs/plugin-react'
 import vue from '@vitejs/plugin-vue'
 import { COOP_COEP_CORP_HEADERS } from 'enso-common'
-import { getDefines, readEnvironmentFromFile } from 'enso-common/src/appConfig'
 import { fileURLToPath } from 'node:url'
 import postcssNesting from 'postcss-nesting'
 import tailwindcss from 'tailwindcss'
@@ -11,17 +10,15 @@ import VueDevTools from 'vite-plugin-vue-devtools'
 import wasm from 'vite-plugin-wasm'
 import tailwindConfig from './tailwind.config'
 
+const isE2E = process.env.E2E === 'true'
 const dynHostnameWsUrl = (port: number) => JSON.stringify(`ws://__HOSTNAME__:${port}`)
-const projectManagerUrl = dynHostnameWsUrl(process.env.E2E === 'true' ? 30536 : 30535)
-const ydocServerUrl =
+const entrypoint = isE2E ? './src/project-view/e2e-entrypoint.ts' : './src/entrypoint.ts'
+
+process.env.VITE_DEV_PROJECT_MANAGER_URL ??= dynHostnameWsUrl(isE2E ? 30536 : 30535)
+process.env.VITE_YDOC_SERVER_URL ??=
   process.env.ENSO_POLYGLOT_YDOC_SERVER ? JSON.stringify(process.env.ENSO_POLYGLOT_YDOC_SERVER)
   : process.env.NODE_ENV === 'development' ? dynHostnameWsUrl(5976)
   : undefined
-
-await readEnvironmentFromFile()
-
-const entrypoint =
-  process.env.E2E === 'true' ? './src/project-view/e2e-entrypoint.ts' : './src/entrypoint.ts'
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -68,10 +65,6 @@ export default defineConfig({
     },
   },
   define: {
-    ...getDefines(),
-    'process.env.PROJECT_MANAGER_URL': projectManagerUrl,
-    'process.env.YDOC_SERVER_URL': ydocServerUrl,
-    'import.meta.vitest': false,
     // Single hardcoded usage of `global` in aws-amplify.
     'global.TYPED_ARRAY_SUPPORT': true,
   },
@@ -94,7 +87,7 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          config: ['enso-common/src/config'],
+          config: ['./src/config'],
         },
       },
     },

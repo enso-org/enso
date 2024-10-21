@@ -52,9 +52,6 @@ pub mod env {
 
     // Cloud environment configuration
     define_env_var! {
-        /// The domain where the login link should redirect, without path or trailing slash.
-        ENSO_CLOUD_REDIRECT, String;
-
         /// The name of the backend environment, typically 'production' for production builds.
         ENSO_CLOUD_ENVIRONMENT, String;
 

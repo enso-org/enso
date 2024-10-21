@@ -68,7 +68,7 @@ function run(props: DashboardProps) {
   if (!detect.IS_DEV_MODE && $config.SENTRY_DSN != null && $config.API_URL != null) {
     sentry.init({
       dsn: $config.SENTRY_DSN,
-      environment: $config.ENVIRONMENT ?? '',
+      environment: $config.ENVIRONMENT,
       integrations: [
         new sentry.BrowserTracing({
           routingInstrumentation: sentry.reactRouterV6Instrumentation(
