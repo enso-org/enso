@@ -50,7 +50,7 @@ where Inner: ItemConsumer<'s> + Finish
             };
             items.push(Item::Tree(match block_context {
                 BlockContext::Body =>
-                    self.block_parser.parse_body_block(lines.into_vec(), &mut child),
+                    self.block_parser.parse_body_block(&mut lines.into_vec(), &mut child),
                 BlockContext::ArgumentOrOperator => {
                     for item::Line { newline, items } in lines.into_vec() {
                         self.block_builder.push(newline, items, &mut child);
