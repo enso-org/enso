@@ -4,6 +4,7 @@ from Standard.Base.Enso_Cloud.Data_Link_Helpers import Data_Link_Source_Metadata
 from Standard.Base.Enso_Cloud.Public_Utils import get_optional_field, get_required_field
 
 import Standard.Database.Connection.Credentials.Credentials
+import Standard.Database.Internal.Data_Link_Setup.DB_Data_Link_Type
 import Standard.Database.Internal.DB_Data_Link_Helpers
 
 import project.Connection.SQLServer_Details.SQLServer_Details
@@ -11,12 +12,7 @@ import project.Connection.SQLServer_Details.SQLServer_Details
 ## PRIVATE
 type SQLServer_Data_Link
     ## PRIVATE
-       A data-link returning a connection to the specified database.
-    Connection details:SQLServer_Details source:Data_Link_Source_Metadata
-
-    ## PRIVATE
-       A data-link returning a query to a specific table within a database.
-    Table name:Text details:SQLServer_Details source:Data_Link_Source_Metadata
+    Value details:SQLServer_Details source:Data_Link_Source_Metadata link_type:DB_Data_Link_Type
 
     ## PRIVATE
     parse json source -> SQLServer_Data_Link =
@@ -30,11 +26,8 @@ type SQLServer_Data_Link
         credentials = Credentials.Username_And_Password username password
 
         details = SQLServer_Details.SQLServer host=host credentials=credentials port=port database=db_name
-        case get_optional_field "table" json expected_type=Text of
-            Nothing ->
-                SQLServer_Data_Link.Connection details source
-            table_name : Text ->
-                SQLServer_Data_Link.Table table_name details source
+        link_type = DB_Data_Link_Type.from_js (get_optional_field "table" json)
+        SQLServer_Data_Link.Value details source link_type
 
     ## PRIVATE
     read self (format = Auto_Detect) (on_problems : Problem_Behavior) =
@@ -42,7 +35,4 @@ type SQLServer_Data_Link
         if format != Auto_Detect then Error.throw (Illegal_Argument.Error "Only Auto_Detect can be used with a SQLServer Data Link, as it points to a database.") else
             default_options = DB_Data_Link_Helpers.data_link_connection_parameters self.source
             connection = self.details.connect default_options allow_data_links=False
-            case self of
-                SQLServer_Data_Link.Connection _ _ -> connection
-                SQLServer_Data_Link.Table table_name _ _ ->
-                    connection.query table_name
+            self.link_type.interpret connection
