@@ -11,6 +11,12 @@ jobs:
     runs-on:
       - ubuntu-latest
     steps:
+      - uses: bazel-contrib/setup-bazel@0.9.0
+        with:
+          bazelisk-cache: true
+          disk-cache: true
+          repository-cache: true
+      - uses: actions/checkout@v4
       - name: Expose env variables
         run: |
           cat << END > app/gui/.env.production
@@ -28,12 +34,6 @@ jobs:
           VITE_ENSO_MAPBOX_API_TOKEN="${{ vars.ENSO_MAPBOX_API_TOKEN }}"
           VITE_CLOUD_BUILD="false"
           END
-      - uses: bazel-contrib/setup-bazel@0.9.0
-        with:
-          bazelisk-cache: true
-          disk-cache: true
-          repository-cache: true
-      - uses: actions/checkout@v4
       - run: bazel build //app/gui:dist
       - name: Get build output location
         run: |
