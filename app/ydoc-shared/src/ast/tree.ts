@@ -451,6 +451,8 @@ type StructuralField<T extends TreeRefs = RawRefs> =
   | VectorElement<T>
   | TypeSignature<T>
   | SignatureLine<T>
+  | FunctionAnnotation<T>
+  | AnnotationLine<T>
 
 /** Type whose fields are all suitable for storage as `Ast` fields. */
 interface FieldObject<T extends TreeRefs> {
@@ -568,6 +570,10 @@ function mapRefs<T extends TreeRefs, U extends TreeRefs>(
   field: VectorElement<T>,
   f: MapRef<T, U>,
 ): VectorElement<U>
+function mapRefs<T extends TreeRefs, U extends TreeRefs>(
+  field: AnnotationLine<T>,
+  f: MapRef<T, U>,
+): AnnotationLine<U>
 function mapRefs<T extends TreeRefs, U extends TreeRefs>(
   field: SignatureLine<T>,
   f: MapRef<T, U>,
@@ -2035,6 +2041,17 @@ interface ArgumentType<T extends TreeRefs = RawRefs> {
   type: T['ast']
 }
 
+interface FunctionAnnotation<T extends TreeRefs = RawRefs> {
+  operator: T['token']
+  annotation: T['token']
+  argument: T['ast'] | undefined
+}
+
+interface AnnotationLine<T extends TreeRefs = RawRefs> {
+  annotation: FunctionAnnotation<T>
+  newlines: T['token'][]
+}
+
 interface TypeSignature<T extends TreeRefs = RawRefs> {
   name: T['ast']
   operator: T['token']
@@ -2046,13 +2063,14 @@ interface SignatureLine<T extends TreeRefs = RawRefs> {
   newlines: T['token'][]
 }
 
-export interface FunctionFields {
-  signatureLine: SignatureLine | undefined
-  private_: NodeChild<SyncTokenId> | undefined
-  name: NodeChild<AstId>
-  argumentDefinitions: ArgumentDefinition[]
-  equals: NodeChild<SyncTokenId>
-  body: NodeChild<AstId> | undefined
+export interface FunctionFields<T extends TreeRefs = RawRefs> {
+  annotationLines: AnnotationLine<T>[]
+  signatureLine: SignatureLine<T> | undefined
+  private_: T['token'] | undefined
+  name: T['ast']
+  argumentDefinitions: ArgumentDefinition<T>[]
+  equals: T['token']
+  body: T['ast'] | undefined
 }
 /** TODO: Add docs */
 export class Function extends Ast {
@@ -2086,24 +2104,24 @@ export class Function extends Ast {
   /** TODO: Add docs */
   static concrete(
     module: MutableModule,
-    signatureLine: SignatureLine<OwnedRefs> | undefined,
-    private_: NodeChild<Token> | undefined,
-    name: NodeChild<Owned>,
-    argumentDefinitions: ArgumentDefinition<OwnedRefs>[],
-    equals: NodeChild<Token>,
-    body: NodeChild<Owned> | undefined,
+    fields: Partial<FunctionFields<OwnedRefs>> & { name: object } & { equals: object },
   ) {
     const base = module.baseObject('Function')
     const id_ = base.get('id')
-    const fields = composeFieldData(base, {
-      signatureLine: signatureLine && mapRefs(signatureLine, ownedToRaw(module, id_)),
-      private_,
-      name: concreteChild(module, name, id_),
-      argumentDefinitions: argumentDefinitions.map(def => mapRefs(def, ownedToRaw(module, id_))),
-      equals,
-      body: concreteChild(module, body, id_),
+    const rawFields = composeFieldData(base, {
+      annotationLines: (fields.annotationLines ?? []).map(anno =>
+        mapRefs(anno, ownedToRaw(module, id_)),
+      ),
+      signatureLine: fields.signatureLine && mapRefs(fields.signatureLine, ownedToRaw(module, id_)),
+      private_: fields.private_,
+      name: concreteChild(module, fields.name, id_),
+      argumentDefinitions: (fields.argumentDefinitions ?? []).map(def =>
+        mapRefs(def, ownedToRaw(module, id_)),
+      ),
+      equals: fields.equals,
+      body: concreteChild(module, fields.body, id_),
     })
-    return asOwned(new MutableFunction(module, fields))
+    return asOwned(new MutableFunction(module, rawFields))
   }
 
   /** TODO: Add docs */
@@ -2116,15 +2134,12 @@ export class Function extends Ast {
     // Note that a function name may not be an operator if the function is not in the body of a type definition, but we
     // can't easily enforce that because we don't currently make a syntactic distinction between top-level functions and
     // type methods.
-    return MutableFunction.concrete(
-      module,
-      undefined,
-      undefined,
-      unspaced(Ident.newAllowingOperators(module, name)),
+    return MutableFunction.concrete(module, {
+      name: unspaced(Ident.newAllowingOperators(module, name)),
       argumentDefinitions,
-      spaced(makeEquals()),
-      autospaced(body),
-    )
+      equals: spaced(makeEquals()),
+      body: autospaced(body),
+    })
   }
 
   /** Construct a function with simple (name-only) arguments and a body block. */
@@ -2161,7 +2176,15 @@ export class Function extends Ast {
 
   /** TODO: Add docs */
   *concreteChildren(_verbatim?: boolean): IterableIterator<RawNodeChild> {
-    const { signatureLine, private_, name, argumentDefinitions, equals, body } = getAll(this.fields)
+    const { annotationLines, signatureLine, private_, name, argumentDefinitions, equals, body } =
+      getAll(this.fields)
+    for (const anno of annotationLines) {
+      const { operator, annotation, argument } = anno.annotation
+      yield operator
+      yield annotation
+      if (argument) yield argument
+      yield* anno.newlines
+    }
     if (signatureLine) {
       const { signature, newlines } = signatureLine
       const { name, operator, type } = signature

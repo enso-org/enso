@@ -215,6 +215,8 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         },
         /// A function definition, like `add x y = x + y`.
         Function {
+            /// Annotations applied to the function.
+            pub annotation_lines: Vec<AnnotationLine<'s>>,
             /// A type signature for the function, on its own line.
             pub signature_line: Option<TypeSignatureLine<'s>>,
             /// The `private` keyword, if present. This is allowed at top level and in type
@@ -313,17 +315,9 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             pub rest:  Vec<OperatorDelimitedTree<'s>>,
             pub right: token::CloseSymbol<'s>,
         },
-        /// An expression preceded by an annotation. For example:
-        /// ```enso
-        /// @on_problems Problem_Behavior.get_widget_attribute
-        /// Table.select_columns : Vector Text | Column_Selector -> Boolean -> Problem_Behavior -> Table
-        /// ```
-        Annotated {
-            pub token:      token::AnnotationOperator<'s>,
-            pub annotation: token::Ident<'s>,
-            pub argument:   Option<Tree<'s>>,
-            pub newlines:   Vec<token::Newline<'s>>,
-            pub expression: Option<Tree<'s>>,
+        /// An annotation without a following function definition.
+        Annotation {
+            pub annotation: FunctionAnnotation<'s>,
         },
         /// An expression preceded by a special built-in annotation, e.g. `@Tail_Call foo 4`.
         AnnotatedBuiltin {
@@ -341,14 +335,16 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         },
         /// Defines a type constructor.
         ConstructorDefinition {
+            /// Annotations applied to the constructor.
+            pub annotation_lines: Vec<AnnotationLine<'s>>,
             /// The `private` keyword, if present.
-            pub private:       Option<token::PrivateKeyword<'s>>,
+            pub private:          Option<token::PrivateKeyword<'s>>,
             /// The identifier naming the type constructor.
-            pub constructor:   token::Ident<'s>,
+            pub constructor:      token::Ident<'s>,
             /// The arguments the type constructor accepts, specified inline.
-            pub arguments:     Vec<ArgumentDefinition<'s>>,
+            pub arguments:        Vec<ArgumentDefinition<'s>>,
             /// The arguments the type constructor accepts, specified on their own lines.
-            pub block:         Vec<ArgumentDefinitionLine<'s>>,
+            pub block:            Vec<ArgumentDefinitionLine<'s>>,
         },
     }
 }};}
@@ -367,6 +363,7 @@ macro_rules! generate_variant_constructors {
         impl<'s> Tree<'s> {
             $(
                 /// Constructor.
+                #[allow(clippy::too_many_arguments)]
                 pub fn [<$variant:snake:lower>]($($(mut $field : $field_ty),*)?) -> Self {
                     let span = span_builder![$($($field),*)?];
                     Tree(span, $variant($($($field),*)?))
@@ -528,6 +525,51 @@ impl<'s> span::Builder<'s> for FractionalDigits<'s> {
 
 
 // === Functions ===
+
+/// A function annotation line.
+///
+/// For example, the `@on_problems` line in:
+/// ```enso
+/// @on_problems Problem_Behavior.get_widget_attribute
+/// Table.select_columns : Vector Text | Column_Selector -> Boolean -> Problem_Behavior -> Table
+/// ```
+#[cfg_attr(feature = "debug", derive(Visitor))]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Reflect, Deserialize)]
+pub struct AnnotationLine<'s> {
+    /// The annotation.
+    pub annotation: FunctionAnnotation<'s>,
+    /// The end of the line.
+    pub newlines:   NonEmptyVec<token::Newline<'s>>,
+}
+
+impl<'s> span::Builder<'s> for AnnotationLine<'s> {
+    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
+        span.add(&mut self.annotation).add(&mut self.newlines)
+    }
+}
+
+/// Contents of a function annotation line.
+///
+/// For example:
+/// ```enso
+/// @on_problems Problem_Behavior.get_widget_attribute
+/// ```
+#[cfg_attr(feature = "debug", derive(Visitor))]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Reflect, Deserialize)]
+pub struct FunctionAnnotation<'s> {
+    /// The `@` token.
+    pub operator:   token::AnnotationOperator<'s>,
+    /// The annotation.
+    pub annotation: token::Ident<'s>,
+    /// An argument to the annotation.
+    pub argument:   Option<Tree<'s>>,
+}
+
+impl<'s> span::Builder<'s> for FunctionAnnotation<'s> {
+    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
+        span.add(&mut self.operator).add(&mut self.annotation).add(&mut self.argument)
+    }
+}
 
 /// A function type signature line.
 #[cfg_attr(feature = "debug", derive(Visitor))]
@@ -840,7 +882,7 @@ pub const WARNINGS: [&str; WarningId::NUM_WARNINGS as usize] =
     ["Spacing is inconsistent with operator precedence"];
 
 #[allow(missing_copy_implementations)] // Future errors may have attached information.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[allow(missing_docs)] // See associated messages defined below.
 pub enum SyntaxError {
     ArgDefUnexpectedOpInParenClause,
@@ -871,6 +913,8 @@ pub enum SyntaxError {
     PatternUnexpectedDot,
     CaseOfInvalidCase,
     DocumentationUnexpectedNonInitial,
+    AnnotationUnexpectedInExpression,
+    AnnotationExpectedDefinition,
 }
 
 impl From<SyntaxError> for Cow<'static, str> {
@@ -908,6 +952,10 @@ impl From<SyntaxError> for Cow<'static, str> {
             PatternUnexpectedDot => "In a pattern, the dot operator can only be used in a qualified name",
             CaseOfInvalidCase => "Invalid case expression.",
             DocumentationUnexpectedNonInitial => "Unexpected documentation at end of line",
+            AnnotationUnexpectedInExpression =>
+                "A function annotation is only allowed in statement context, not in an expression",
+            AnnotationExpectedDefinition =>
+                "A function annotation must be followed by a function definition or constructor definition",
         })
         .into()
     }
