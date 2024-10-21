@@ -33,9 +33,10 @@ import org.graalvm.collections.Pair;
  * HTTP headers received in the original repsonse to a request.
  *
  * <p>It also puts limits on the size of files that can be requested, and on the total cache size,
- * deleting entries to make space for new ones.
+ * deleting entries to make space for new ones. All cache files are set to be
+ * deleted automatically on JVM exit.
  *
- * <p>Without cachineg, EnsoHttpResponse contains an InputStream providing the response data. When
+ * <p>Without caching, EnsoHttpResponse contains an InputStream providing the response data. When
  * there is a cache hit, this stream reads from the local file storing the cached data. When there
  * is no cache hit, the InputStream is connected directly to the remote server.
  */
@@ -75,7 +76,7 @@ public class TransientHTTPResponseCache {
       return returnCachedResponse(cacheKey);
     } else {
       return makeRequestAndCache(
-          unresolvedURI, resolvedURI, resolvedHeaders, cacheKey, requestMaker);
+          unresolvedURI, cacheKey, requestMaker);
     }
   }
 
@@ -92,8 +93,6 @@ public class TransientHTTPResponseCache {
    */
   private static EnsoHttpResponse makeRequestAndCache(
       URIWithSecrets unresolvedURI,
-      URI resolvedURI,
-      List<Pair<String, String>> resolvedHeaders,
       String cacheKey,
       RequestMaker requestMaker)
       throws InterruptedException, IOException, ResponseTooLargeException {
@@ -125,13 +124,12 @@ public class TransientHTTPResponseCache {
       ZonedDateTime expiry = getNow().plus(Duration.ofSeconds(ttl));
       int statusCode = response.statusCode();
       var headers = response.headers();
-      String responseDataPath = downloadResponseData(cacheKey, unresolvedURI, response);
-      long size = new File(responseDataPath).length();
+      File responseData = downloadResponseData(cacheKey, unresolvedURI, response);
+      long size = responseData.length();
 
-      // Create a cache entry. Remove old files if we are over the cache size
-      // limit.
+      // Create a cache entry.
       var cacheEntry =
-          new CacheEntry(resolvedURI, headers, responseDataPath, size, statusCode, expiry);
+          new CacheEntry(unresolvedURI.render(), headers, responseData, size, statusCode, expiry);
       cache.put(cacheKey, cacheEntry);
       markCacheEntryUsed(cacheKey);
 
@@ -152,16 +150,16 @@ public class TransientHTTPResponseCache {
   /** Create an EnsoHttpResponse with an InputStream reading from the cache file. */
   private static EnsoHttpResponse buildEnsoHttpResponseFromCacheEntry(CacheEntry cacheEntry)
       throws IOException {
-    InputStream inputStream = new FileInputStream(cacheEntry.responseDataPath);
+    InputStream inputStream = new FileInputStream(cacheEntry.responseData);
     return new EnsoHttpResponse(
-        cacheEntry.uri(), cacheEntry.headers(), inputStream, cacheEntry.statusCode());
+        cacheEntry.unresolvedURI(), cacheEntry.headers(), inputStream, cacheEntry.statusCode());
   }
 
   /**
    * Read the repsonse data from the remote server into the cache file. If the downloaded data is
    * over the file size limit, throw a ResponseTooLargeException.
    */
-  private static String downloadResponseData(
+  private static File downloadResponseData(
       String cacheKey, URIWithSecrets unresolvedURI, EnsoHttpResponse response)
       throws IOException, ResponseTooLargeException {
     File temp = File.createTempFile("TransientHTTPResponseCache-"+cacheKey, "");
@@ -185,7 +183,7 @@ public class TransientHTTPResponseCache {
 
       outputStream.close();
       temp.deleteOnExit();
-      return temp.getAbsolutePath();
+      return temp;
     } catch (IOException e) {
       temp.delete();
       throw e;
@@ -235,8 +233,7 @@ public class TransientHTTPResponseCache {
 
   /** Remove a cache file. */
   private static void removeCacheFile(String key, CacheEntry cacheEntry) {
-    File file = new File(cacheEntry.responseDataPath);
-    boolean removed = file.delete();
+    boolean removed = cacheEntry.responseData.delete();
     if (!removed) {
       logger.log(Level.WARNING, "Unable to delete cache file for key {0}", key);
     }
@@ -405,9 +402,9 @@ public class TransientHTTPResponseCache {
   }
 
   private record CacheEntry(
-      URI uri,
+      URI unresolvedURI,
       HttpHeaders headers,
-      String responseDataPath,
+      File responseData,
       long size,
       int statusCode,
       ZonedDateTime expiry) {}
