@@ -1,8 +1,14 @@
 import project.Data.Numbers.Integer
+import project.Data.Pair.Pair
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
+import project.Data.Vector.No_Wrap
+import project.Data.Vector.Vector
 import project.Enso_Cloud.Enso_Secret.Derived_Secret_Value
 import project.Enso_Cloud.Enso_Secret.Enso_Secret
+import project.Error.Error
+import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Function.Function
 import project.Meta
 import project.Metadata.Display
 import project.Metadata.Widget
@@ -19,6 +25,17 @@ from project.Widget_Helpers import make_text_secret_selector
 polyglot java import org.graalvm.collections.Pair as Java_Pair
 
 type Header
+    ## PRIVATE
+       Normalize a vector of headers into a vector of `Header` values.
+    unify_vector : Vector (Header | Pair Text Text) -> Vector Header
+    unify_vector headers =
+        headers . map on_problems=No_Wrap h-> case h of
+            _ : Vector -> Header.new (h.at 0) (h.at 1)
+            _ : Pair -> Header.new (h.at 0) (h.at 1)
+            _ : Function -> h:Header
+            _ : Header -> h
+            _ -> Error.throw (Illegal_Argument.Error "Invalid header type - all values must be Vector, Pair or Header (got "+(Meta.get_simple_type_name h)+").")
+
     ## PRIVATE
 
        A type representing a header.

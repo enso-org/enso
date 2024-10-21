@@ -195,7 +195,7 @@ list (directory:(Text | File)=enso_project.root) (name_filter:Text="") recursive
          import Standard.Base.Data
          file = enso_project.data / "spreadsheet.xls"
          Data.fetch URL . body . write file
-@uri Text_Input
+@uri (Text_Input display=..Always)
 @format Data_Read_Helpers.format_widget_with_raw_response
 @headers Header.default_widget
 fetch : (URI | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> File_Format -> Any ! Request_Error | HTTP_Error
@@ -322,7 +322,7 @@ fetch (uri:(URI | Text)=(Missing_Argument.throw "uri")) (method:HTTP_Method=..Ge
          test_file = enso_project.data / "sample.txt"
          form_data = Dictionary.from_vector [["key", "val"], ["a_file", test_file]]
          response = Data.post url_post (Request_Body.Form_Data form_data url_encoded=True)
-@uri Text_Input
+@uri (Text_Input display=..Always)
 @headers Header.default_widget
 @response_format Data_Read_Helpers.format_widget_with_raw_response
 post : (URI | Text) -> Request_Body -> HTTP_Method -> Vector (Header | Pair Text Text) -> File_Format -> Any ! Request_Error | HTTP_Error
@@ -342,7 +342,7 @@ post (uri:(URI | Text)=(Missing_Argument.throw "uri")) (body:Request_Body=..Empt
      `HTTP_Method.Head`, `HTTP_Method.Delete`, `HTTP_Method.Options`.
      Defaults to `HTTP_Method.Get`.
    - headers: The headers to send with the request. Defaults to an empty vector.
-@uri Text_Input
+@uri (Text_Input display=..Always)
 @headers Header.default_widget
 download : (URI | Text) -> Writable_File -> HTTP_Method -> Vector (Header | Pair Text Text) -> File ! Request_Error | HTTP_Error
 download (uri:(URI | Text)=(Missing_Argument.throw "uri")) file:Writable_File (method:HTTP_Method=..Get) (headers:(Vector (Header | Pair Text Text))=[]) =
