@@ -20,9 +20,7 @@ import * as backendModule from '#/services/Backend'
 import * as constants from '../../constants'
 import { SubscribeButton, type SubscribeButtonProps } from './components'
 
-/**
- * The component for a plan.
- */
+/** The component for a plan. */
 export interface ComponentForPlan {
   readonly pricing: text.TextId
   readonly features: text.TextId

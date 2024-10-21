@@ -7,7 +7,8 @@ import { applyDiffAsTextEdits, stupidFastDiff } from '../edits'
 // === Test utilities ===
 // ======================
 
-/** Apply text edits intended for language server to a given starting text. Used for verification
+/**
+ * Apply text edits intended for language server to a given starting text. Used for verification
  * during testing if generated edits were correct. This is intentionally a very simple, not
  * performant implementation.
  */

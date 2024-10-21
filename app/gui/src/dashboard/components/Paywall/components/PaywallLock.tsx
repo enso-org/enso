@@ -1,6 +1,4 @@
-/**
- * @file A lock icon with a label indicating the paywall level required to access a feature.
- */
+/** @file A lock icon with a label indicating the paywall level required to access a feature. */
 import * as tw from 'tailwind-merge'
 
 import LockIcon from '#/assets/lock.svg'
@@ -12,17 +10,13 @@ import * as textProvider from '#/providers/TextProvider'
 import * as ariaComponents from '#/components/AriaComponents'
 import SvgMask from '#/components/SvgMask'
 
-/**
- * Props for a {@link PaywallLock}.
- */
+/** Props for a {@link PaywallLock}. */
 export interface PaywallLockProps {
   readonly feature: billingHooks.PaywallFeatureName
   readonly className?: string
 }
 
-/**
- * A lock icon with a label indicating the paywall level required to access a feature.
- */
+/** A lock icon with a label indicating the paywall level required to access a feature. */
 export function PaywallLock(props: PaywallLockProps) {
   const { feature, className } = props
   const { getText } = textProvider.useText()

@@ -49,6 +49,7 @@ type YNodes = Y.Map<YNode>
 type UpdateObserver = (update: ModuleUpdate) => void
 type YjsObserver = (events: Y.YEvent<any>[], transaction: Y.Transaction) => void
 
+/** TODO: Add docs */
 export class MutableModule implements Module {
   private readonly nodes: YNodes
   private updateObservers: UpdateObserver[] | undefined
@@ -66,24 +67,29 @@ export class MutableModule implements Module {
     return instance as Mutable<T>
   }
 
+  /** TODO: Add docs */
   edit(): MutableModule {
     const doc = new Y.Doc()
     Y.applyUpdateV2(doc, Y.encodeStateAsUpdateV2(this.ydoc))
     return new MutableModule(doc)
   }
 
+  /** TODO: Add docs */
   applyEdit(edit: MutableModule, origin: Origin = defaultLocalOrigin) {
     Y.applyUpdateV2(this.ydoc, Y.encodeStateAsUpdateV2(edit.ydoc), origin)
   }
 
+  /** TODO: Add docs */
   transact<T>(f: () => T, origin: Origin = defaultLocalOrigin): T {
     return this.ydoc.transact(f, origin)
   }
 
+  /** TODO: Add docs */
   root(): MutableAst | undefined {
     return this.rootPointer()?.expression
   }
 
+  /** TODO: Add docs */
   replaceRoot(newRoot: Owned | undefined): Owned | undefined {
     if (newRoot) {
       const rootPointer = this.rootPointer()
@@ -105,11 +111,13 @@ export class MutableModule implements Module {
     }
   }
 
+  /** TODO: Add docs */
   syncRoot(root: Owned) {
     this.replaceRoot(root)
     this.gc()
   }
 
+  /** TODO: Add docs */
   syncToCode(code: string) {
     const root = this.root()
     if (root) {
@@ -167,10 +175,12 @@ export class MutableModule implements Module {
     return materializeMutable(this, fields) as Owned<Mutable<typeof ast>>
   }
 
+  /** TODO: Add docs */
   static Transient() {
     return new this(new Y.Doc())
   }
 
+  /** TODO: Add docs */
   observe(observer: (update: ModuleUpdate) => void) {
     this.updateObservers ??= []
     this.updateObservers.push(observer)
@@ -190,6 +200,7 @@ export class MutableModule implements Module {
     this.nodes.observeDeep(this.yjsObserver)
   }
 
+  /** TODO: Add docs */
   unobserve(handle: UpdateObserver) {
     const i = this.updateObservers?.indexOf(handle)
     if (i == null || i < 0) return
@@ -204,6 +215,7 @@ export class MutableModule implements Module {
     return !!this.updateObservers?.length
   }
 
+  /** TODO: Add docs */
   getStateAsUpdate(): ModuleUpdate {
     const updateBuilder = new UpdateBuilder(this, this.nodes, undefined)
     for (const id of this.nodes.keys()) {
@@ -213,6 +225,7 @@ export class MutableModule implements Module {
     return updateBuilder.finish()
   }
 
+  /** TODO: Add docs */
   applyUpdate(update: Uint8Array, origin: Origin): ModuleUpdate | undefined {
     let summary: ModuleUpdate | undefined
     const observer = (events: Y.YEvent<any>[]) => {
@@ -272,12 +285,16 @@ export class MutableModule implements Module {
     return updateBuilder.finish()
   }
 
+  /** TODO: Add docs */
   clear() {
     this.nodes.clear()
   }
 
+  /** TODO: Add docs */
   get(id: AstId): Mutable
+  /** TODO: Add docs */
   get(id: AstId | undefined): Mutable | undefined
+  /** TODO: Add docs */
   get(id: AstId | undefined): Mutable | undefined {
     if (!id) return undefined
     const ast = this.tryGet(id)
@@ -285,6 +302,7 @@ export class MutableModule implements Module {
     return ast
   }
 
+  /** TODO: Add docs */
   tryGet(id: AstId | undefined): Mutable | undefined {
     if (!id) return undefined
     const nodeData = this.nodes.get(id)
@@ -293,24 +311,29 @@ export class MutableModule implements Module {
     return materializeMutable(this, fields)
   }
 
+  /** TODO: Add docs */
   replace(id: AstId, value: Owned): Owned | undefined {
     return this.tryGet(id)?.replace(value)
   }
 
+  /** TODO: Add docs */
   replaceValue(id: AstId, value: Owned): Owned | undefined {
     return this.tryGet(id)?.replaceValue(value)
   }
 
+  /** TODO: Add docs */
   take(id: AstId): Owned {
     return this.replace(id, Wildcard.new(this)) || asOwned(this.get(id))
   }
 
+  /** TODO: Add docs */
   updateValue<T extends MutableAst>(id: AstId, f: (x: Owned) => Owned<T>): T | undefined {
     return this.tryGet(id)?.updateValue(f)
   }
 
   /////////////////////////////////////////////
 
+  /** TODO: Add docs */
   constructor(doc: Y.Doc) {
     this.nodes = doc.getMap<YNode>('nodes')
   }
@@ -323,9 +346,9 @@ export class MutableModule implements Module {
   /** @internal */
   baseObject(type: string, externalId?: ExternalId, overrideId?: AstId): FixedMap<AstFields> {
     const map = new Y.Map()
-    const map_ = map as unknown as FixedMap<{}>
+    const map_ = map as unknown as FixedMap<object>
     const id = overrideId ?? newAstId(type)
-    const metadata = new Y.Map() as unknown as FixedMap<{}>
+    const metadata = new Y.Map() as unknown as FixedMap<object>
     const metadataFields = setAll(metadata, {
       externalId: externalId ?? newExternalId(),
     })
@@ -342,25 +365,33 @@ export class MutableModule implements Module {
 
   /** @internal */
   getToken(token: SyncTokenId): Token
+  /** TODO: Add docs */
   getToken(token: SyncTokenId | undefined): Token | undefined
+  /** TODO: Add docs */
   getToken(token: SyncTokenId | undefined): Token | undefined {
     if (!token) return token
     if (token instanceof Token) return token
     return Token.withId(token.code_, token.tokenType_, token.id)
   }
 
+  /** TODO: Add docs */
   getAny(node: AstId | SyncTokenId): MutableAst | Token {
     return isTokenId(node) ? this.getToken(node) : this.get(node)
   }
 
+  /** TODO: Add docs */
   getConcrete(child: RawNodeChild): NodeChild<Ast> | NodeChild<Token> {
     if (isTokenId(child.node))
       return { whitespace: child.whitespace, node: this.getToken(child.node) }
     else return { whitespace: child.whitespace, node: this.get(child.node) }
   }
 
-  /** @internal Copy a node into the module, if it is bound to a different module. */
+  /**
+   * Copy a node into the module, if it is bound to a different module.
+   * @internal
+   */
   copyIfForeign<T extends MutableAst>(ast: Owned<T>): Owned<T>
+  /** TODO: Add docs */
   copyIfForeign<T extends MutableAst>(ast: Owned<T> | undefined): Owned<T> | undefined {
     if (!ast) return ast
     if (ast.module === this) return ast
@@ -390,10 +421,12 @@ export const __TEST = { newAstId }
 
 /** Checks whether the input looks like an AstId. */
 const astIdRegex = /^ast:[A-Za-z]+#[0-9]+$/
+/** TODO: Add docs */
 export function isAstId(value: string): value is AstId {
   return astIdRegex.test(value)
 }
 
+/** TODO: Add docs */
 export function assertAstId(value: string): asserts value is AstId {
   assert(isAstId(value), `Incorrect AST ID: ${value}`)
 }

@@ -11,9 +11,7 @@ import { useText } from '#/providers/TextProvider'
 import { useFormContext } from './FormProvider'
 import type { FormInstance } from './types'
 
-/**
- * Additional props for the Submit component.
- */
+/** Additional props for the Submit component. */
 interface SubmitButtonBaseProps {
   readonly variant?: ButtonProps['variant']
   /**
@@ -29,9 +27,7 @@ interface SubmitButtonBaseProps {
   readonly action?: 'cancel' | 'submit' | 'update'
 }
 
-/**
- * Props for the Submit component.
- */
+/** Props for the Submit component. */
 export type SubmitProps = Omit<ButtonProps, 'formnovalidate' | 'href' | 'variant'> &
   SubmitButtonBaseProps
 

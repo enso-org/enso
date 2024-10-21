@@ -350,9 +350,7 @@ export type AutocompleteKeybind<T extends string, FoundKeyName extends string = 
   : [FoundKeyName] extends [never] ? SuggestedKeybindSegment
   : FoundKeyName
 
-/**
- * A helper type used to autocomplete and validate an array of keyboard shortcuts in the editor.
- */
+/** A helper type used to autocomplete and validate an array of keyboard shortcuts in the editor. */
 type AutocompleteKeybinds<T extends readonly string[]> = {
   [K in keyof T]: AutocompleteKeybind<T[K]>
 }

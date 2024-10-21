@@ -13,9 +13,7 @@ import * as textProvider from '#/providers/TextProvider'
 
 import * as ariaComponents from '#/components/AriaComponents'
 
-/**
- * Props for {@link PaywallButton}.
- */
+/** Props for {@link PaywallButton}. */
 // eslint-disable-next-line no-restricted-syntax
 export type PaywallButtonProps = ariaComponents.ButtonProps & {
   readonly feature: billingHooks.PaywallFeatureName
@@ -23,9 +21,7 @@ export type PaywallButtonProps = ariaComponents.ButtonProps & {
   readonly showIcon?: boolean
 }
 
-/**
- * A styled button that shows that a feature is behind a paywall
- */
+/** A styled button that shows that a feature is behind a paywall */
 export function PaywallButton(props: PaywallButtonProps) {
   const { feature, iconOnly = false, showIcon = true, children, ...buttonProps } = props
 

@@ -19,7 +19,7 @@ import { findExpressions, testCase, tryFindExpressions } from './testCase'
 
 test('Raw block abstracts to Ast.BodyBlock', () => {
   const code = 'value = 2 + 2'
-  const rawBlock = Ast.parseEnso(code)
+  const rawBlock = Ast.rawParseModule(code)
   const edit = MutableModule.Transient()
   const abstracted = Ast.abstract(edit, rawBlock, code)
   expect(abstracted.root).toBeInstanceOf(Ast.BodyBlock)
@@ -376,7 +376,7 @@ const cases = [
 ]
 test.each(cases)('parse/print round trip: %s', (code) => {
   // Get an AST.
-  const root = Ast.parseBlock(code)
+  const { root } = Ast.parseModuleWithSpans(code)
   // Print AST back to source.
   const printed = Ast.print(root)
   expect(printed.code).toEqual(code)
@@ -389,7 +389,7 @@ test.each(cases)('parse/print round trip: %s', (code) => {
   expect(Ast.repair(root).fixes).toBe(undefined)
 
   // Re-parse.
-  const { root: root1, spans: spans1 } = Ast.parseBlockWithSpans(printed.code)
+  const { root: root1, spans: spans1 } = Ast.parseModuleWithSpans(printed.code)
   Ast.setExternalIds(root1.module, spans1, idMap)
   // Check that Identities match original AST.
   const printed1 = Ast.print(root1)
@@ -815,12 +815,12 @@ describe('Code edit', () => {
   })
 
   test('Shifting whitespace ownership', () => {
-    const beforeRoot = Ast.parseBlock('value = 1 +\n')
+    const beforeRoot = Ast.parseModuleWithSpans('value = 1 +\n').root
     beforeRoot.module.replaceRoot(beforeRoot)
     const before = findExpressions(beforeRoot, {
       value: Ast.Ident,
       '1': Ast.NumericLiteral,
-      'value = 1 +': Ast.Assignment,
+      'value = 1 +': Ast.Function,
     })
     const edit = beforeRoot.module.edit()
     const newCode = 'value = 1 \n'
@@ -831,7 +831,7 @@ describe('Code edit', () => {
     const after = findExpressions(edit.root()!, {
       value: Ast.Ident,
       '1': Ast.NumericLiteral,
-      'value = 1': Ast.Assignment,
+      'value = 1': Ast.Function,
     })
     expect(after.value.id).toBe(before.value.id)
     expect(after['1'].id).toBe(before['1'].id)
@@ -839,7 +839,7 @@ describe('Code edit', () => {
   })
 
   test('merging', () => {
-    const block = Ast.parseBlock('a = 1\nb = 2')
+    const block = Ast.parseModuleWithSpans('a = 1\nb = 2').root
     const module = block.module
     module.replaceRoot(block)
 

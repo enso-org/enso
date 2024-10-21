@@ -17,17 +17,13 @@ import ContextMenuEntryBase from '#/components/ContextMenuEntry'
 
 import * as paywallDialog from './PaywallDialog'
 
-/**
- * Props for {@link ContextMenuEntry}.
- */
+/** Props for {@link ContextMenuEntry}. */
 export interface ContextMenuEntryProps
   extends Omit<contextMenuEntry.ContextMenuEntryProps, 'doAction' | 'isDisabled'> {
   readonly feature: billingHooks.PaywallFeatureName
 }
 
-/**
- * A context menu entry that opens a paywall dialog.
- */
+/** A context menu entry that opens a paywall dialog. */
 export function ContextMenuEntry(props: ContextMenuEntryProps) {
   const { feature, ...rest } = props
   const { setModal } = modalProvider.useSetModal()

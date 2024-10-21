@@ -34,9 +34,7 @@ export function useMounted(callback: () => void) {
   }, [stableCallback])
 }
 
-/**
- * Returns a function that returns `true` if the component renders for the first time.
- */
+/** Returns a function that returns `true` if the component renders for the first time. */
 export function useIsFirstRender() {
   const isFirstMount = useRef(true)
   const stableCallbackTrue = useEventCallback(() => true)
