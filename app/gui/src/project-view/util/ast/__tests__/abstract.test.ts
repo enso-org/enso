@@ -418,7 +418,7 @@ test('Insert new expression', () => {
   expect(main).toBeDefined()
   const edit = root.module.edit()
   const rhs = Ast.parse('42', edit)
-  const assignment = Ast.Assignment.new(edit, 'baz' as Identifier, rhs)
+  const assignment = Ast.Assignment.new('baz' as Identifier, rhs, edit)
   edit.getVersion(main).push(assignment)
   const printed = edit.getVersion(root).code()
   expect(printed).toEqual('main =\n    text1 = "foo"\n    baz = 42\n')
@@ -1066,7 +1066,7 @@ const docEditCases = [
 ]
 test.each(docEditCases)('Documentation edit round trip: $code', (docCase) => {
   const { code, documentation } = docCase
-  const parsed = Ast.Documented.tryParse(code)
+  const parsed = Ast.ExpressionStatement.tryParse(code)
   assert(parsed != null)
   const parsedDocumentation = parsed.documentation()
   expect(parsedDocumentation).toBe(documentation)
@@ -1106,7 +1106,7 @@ test.each([
 test('Creating comments', () => {
   const expr = Ast.parse('2 + 2')
   expr.module.replaceRoot(expr)
-  expr.update((expr) => Ast.Documented.new('Calculate five', expr))
+  expr.update((expr) => Ast.ExpressionStatement.new('Calculate five', expr))
   expect(expr.module.root()?.code()).toBe('## Calculate five\n2 + 2')
 })
 

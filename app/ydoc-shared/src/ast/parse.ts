@@ -50,7 +50,8 @@ import {
   Ast,
   AutoscopedIdentifier,
   BodyBlock,
-  Documented,
+  DocLine,
+  ExpressionStatement,
   Function,
   Generic,
   Group,
@@ -175,47 +176,7 @@ class Abstractor {
         break
       }
       case RawAst.Tree.Type.Function: {
-        const annotationLines = Array.from(tree.annotationLines, anno => ({
-          annotation: {
-            operator: this.abstractToken(anno.annotation.operator),
-            annotation: this.abstractToken(anno.annotation.annotation),
-            argument: anno.annotation.argument && this.abstractTree(anno.annotation.argument),
-          },
-          newlines: Array.from(anno.newlines, this.abstractToken.bind(this)),
-        }))
-        const signatureLine = tree.signatureLine && {
-          signature: this.abstractTypeSignature(tree.signatureLine.signature),
-          newlines: Array.from(tree.signatureLine.newlines, this.abstractToken.bind(this)),
-        }
-        const private_ = tree.private && this.abstractToken(tree.private)
-        const name = this.abstractTree(tree.name)
-        const argumentDefinitions = Array.from(tree.args, arg => ({
-          open: arg.open && this.abstractToken(arg.open),
-          open2: arg.open2 && this.abstractToken(arg.open2),
-          suspension: arg.suspension && this.abstractToken(arg.suspension),
-          pattern: this.abstractTree(arg.pattern),
-          type: arg.typeNode && {
-            operator: this.abstractToken(arg.typeNode.operator),
-            type: this.abstractTree(arg.typeNode.typeNode),
-          },
-          close2: arg.close2 && this.abstractToken(arg.close2),
-          defaultValue: arg.default && {
-            equals: this.abstractToken(arg.default.equals),
-            expression: this.abstractTree(arg.default.expression),
-          },
-          close: arg.close && this.abstractToken(arg.close),
-        }))
-        const equals = this.abstractToken(tree.equals)
-        const body = tree.body !== undefined ? this.abstractTree(tree.body) : undefined
-        node = Function.concrete(this.module, {
-          annotationLines,
-          signatureLine,
-          private_,
-          name,
-          argumentDefinitions,
-          equals,
-          body,
-        } satisfies FunctionFields<OwnedRefs>)
+        node = this.abstractFunction(tree)
         break
       }
       case RawAst.Tree.Type.Ident: {
@@ -224,10 +185,11 @@ class Abstractor {
         break
       }
       case RawAst.Tree.Type.Assignment: {
+        const docLine = tree.docLine && this.abstractDocLine(tree.docLine)
         const pattern = this.abstractTree(tree.pattern)
         const equals = this.abstractToken(tree.equals)
         const value = this.abstractTree(tree.expr)
-        node = Assignment.concrete(this.module, pattern, equals, value)
+        node = Assignment.concrete(this.module, docLine, pattern, equals, value)
         break
       }
       case RawAst.Tree.Type.App: {
@@ -323,12 +285,10 @@ class Abstractor {
         node = TextLiteral.concrete(this.module, open, newline, elements, close)
         break
       }
-      case RawAst.Tree.Type.Documented: {
-        const open = this.abstractToken(tree.documentation.open)
-        const elements = Array.from(tree.documentation.elements, this.abstractTextToken.bind(this))
-        const newlines = Array.from(tree.documentation.newlines, this.abstractToken.bind(this))
-        const expression = tree.expression ? this.abstractTree(tree.expression) : undefined
-        node = Documented.concrete(this.module, open, elements, newlines, expression)
+      case RawAst.Tree.Type.ExpressionStatement: {
+        const docLine = tree.docLine && this.abstractDocLine(tree.docLine)
+        const expression = this.abstractTree(tree.expression)
+        node = ExpressionStatement.concrete(this.module, docLine, expression)
         break
       }
       case RawAst.Tree.Type.Import: {
@@ -372,6 +332,52 @@ class Abstractor {
     this.toRaw.set(node.id, tree)
     map.setIfUndefined(this.nodes, spanKey, (): Ast[] => []).unshift(node)
     return { node, whitespace }
+  }
+
+  private abstractFunction(tree: RawAst.Tree.Function) {
+    const docLine = tree.docLine && this.abstractDocLine(tree.docLine)
+    const annotationLines = Array.from(tree.annotationLines, anno => ({
+      annotation: {
+        operator: this.abstractToken(anno.annotation.operator),
+        annotation: this.abstractToken(anno.annotation.annotation),
+        argument: anno.annotation.argument && this.abstractTree(anno.annotation.argument),
+      },
+      newlines: Array.from(anno.newlines, this.abstractToken.bind(this)),
+    }))
+    const signatureLine = tree.signatureLine && {
+      signature: this.abstractTypeSignature(tree.signatureLine.signature),
+      newlines: Array.from(tree.signatureLine.newlines, this.abstractToken.bind(this)),
+    }
+    const private_ = tree.private && this.abstractToken(tree.private)
+    const name = this.abstractTree(tree.name)
+    const argumentDefinitions = Array.from(tree.args, arg => ({
+      open: arg.open && this.abstractToken(arg.open),
+      open2: arg.open2 && this.abstractToken(arg.open2),
+      suspension: arg.suspension && this.abstractToken(arg.suspension),
+      pattern: this.abstractTree(arg.pattern),
+      type: arg.typeNode && {
+        operator: this.abstractToken(arg.typeNode.operator),
+        type: this.abstractTree(arg.typeNode.typeNode),
+      },
+      close2: arg.close2 && this.abstractToken(arg.close2),
+      defaultValue: arg.default && {
+        equals: this.abstractToken(arg.default.equals),
+        expression: this.abstractTree(arg.default.expression),
+      },
+      close: arg.close && this.abstractToken(arg.close),
+    }))
+    const equals = this.abstractToken(tree.equals)
+    const body = tree.body !== undefined ? this.abstractTree(tree.body) : undefined
+    return Function.concrete(this.module, {
+      docLine,
+      annotationLines,
+      signatureLine,
+      private_,
+      name,
+      argumentDefinitions,
+      equals,
+      body,
+    } satisfies FunctionFields<OwnedRefs>)
   }
 
   private abstractToken(token: RawAst.Token): { whitespace: string; node: Token } {
@@ -443,6 +449,16 @@ class Abstractor {
       name: this.abstractTree(signature.name),
       operator: this.abstractToken(signature.operator),
       type: this.abstractTree(signature.typeNode),
+    }
+  }
+
+  private abstractDocLine(docLine: RawAst.DocLine) {
+    return {
+      docs: {
+        open: this.abstractToken(docLine.docs.open),
+        elements: Array.from(docLine.docs.elements, this.abstractTextToken.bind(this)),
+      },
+      newlines: Array.from(docLine.newlines, this.abstractToken.bind(this)),
     }
   }
 }
@@ -607,23 +623,18 @@ export function printBlock(
 }
 
 /**
- * Use `Ast.code()' to stringify.
- * @internal
+ * @internal Use `Ast.code()' to stringify.
  */
-export function printDocumented(
-  documented: Documented,
-  info: SpanMap,
-  offset: number,
-  parentIndent: string | undefined,
+export function printDocLine(
+  { docs: { open, elements }, newlines }: DocLine,
+  topIndent: string,
   verbatim?: boolean,
 ): string {
-  const open = documented.fields.get('open')
-  const topIndent = parentIndent ?? open.whitespace ?? ''
   let code = ''
   code += open.node.code_
   const minWhitespaceLength = topIndent.length + 1
   let preferredWhitespace = topIndent + '  '
-  documented.fields.get('elements').forEach(({ token }, i) => {
+  elements.forEach(({ token }, i) => {
     if (i === 0) {
       const whitespace = token.whitespace ?? ' '
       code += whitespace
@@ -639,14 +650,28 @@ export function printDocumented(
       code += token.node.code_
     }
   })
-  code += documented.fields
-    .get('newlines')
-    .map(({ whitespace, node }) => (whitespace ?? '') + node.code_)
-    .join('')
-  if (documented.expression) {
-    code += documented.fields.get('expression')?.whitespace ?? topIndent
-    code += documented.expression.printSubtree(info, offset + code.length, topIndent, verbatim)
+  code += newlines.map(({ whitespace, node }) => (whitespace ?? '') + node.code_).join('')
+  return code
+}
+
+/**
+ * @internal Use `Ast.code()' to stringify.
+ */
+export function printDocumented(
+  documented: ExpressionStatement,
+  info: SpanMap,
+  offset: number,
+  parentIndent: string | undefined,
+  verbatim?: boolean,
+): string {
+  const docLine = documented.fields.get('docLine')
+  const topIndent = parentIndent ?? docLine?.docs.open.whitespace ?? ''
+  let code = ''
+  if (docLine) {
+    code += printDocLine(docLine, topIndent, verbatim)
   }
+  code += documented.fields.get('expression')?.whitespace ?? topIndent
+  code += documented.expression.printSubtree(info, offset + code.length, topIndent, verbatim)
   const span = nodeKey(offset, code.length)
   map.setIfUndefined(info.nodes, span, (): Ast[] => []).unshift(documented)
   return code

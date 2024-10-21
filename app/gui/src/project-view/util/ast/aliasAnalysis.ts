@@ -323,7 +323,7 @@ export class AliasAnalyzer {
           }
         }
         break
-      case RawAst.Tree.Type.Documented:
+      case RawAst.Tree.Type.ExpressionStatement:
         // Intentionally omit documentation, as it is not a "real" code.
         this.processTree(node.expression)
         break

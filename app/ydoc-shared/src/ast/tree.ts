@@ -142,7 +142,7 @@ export abstract class Ast {
   }
 
   /** TODO: Add docs */
-  documentingAncestor(): Documented | undefined {
+  documentingAncestor(): ExpressionStatement | undefined {
     return this.wrappingExpression()?.documentingAncestor()
   }
 
@@ -389,12 +389,12 @@ export abstract class MutableAst extends Ast {
   }
 
   /** TODO: Add docs */
-  getOrInitDocumentation(): MutableDocumented {
+  getOrInitDocumentation(): MutableExpressionStatement {
     const existing = this.documentingAncestor()
     if (existing) return this.module.getVersion(existing)
     return this.module
       .getVersion(this.wrappingExpressionRoot())
-      .updateValue(ast => Documented.new('', ast))
+      .updateValue(ast => ExpressionStatement.new('', ast))
   }
 
   ///////////////////
@@ -453,6 +453,8 @@ type StructuralField<T extends TreeRefs = RawRefs> =
   | SignatureLine<T>
   | FunctionAnnotation<T>
   | AnnotationLine<T>
+  | DocComment<T>
+  | DocLine<T>
 
 /** Type whose fields are all suitable for storage as `Ast` fields. */
 interface FieldObject<T extends TreeRefs> {
@@ -570,6 +572,10 @@ function mapRefs<T extends TreeRefs, U extends TreeRefs>(
   field: VectorElement<T>,
   f: MapRef<T, U>,
 ): VectorElement<U>
+function mapRefs<T extends TreeRefs, U extends TreeRefs>(
+  field: DocLine<T>,
+  f: MapRef<T, U>,
+): DocLine<U>
 function mapRefs<T extends TreeRefs, U extends TreeRefs>(
   field: AnnotationLine<T>,
   f: MapRef<T, U>,
@@ -1699,33 +1705,32 @@ export class MutableTextLiteral extends TextLiteral implements MutableAst {
 export interface MutableTextLiteral extends TextLiteral, MutableAst {}
 applyMixins(MutableTextLiteral, [MutableAst])
 
-interface DocumentedFields {
-  open: NodeChild<SyncTokenId>
-  elements: TextToken[]
-  newlines: NodeChild<SyncTokenId>[]
-  expression: NodeChild<AstId> | undefined
+interface ExpressionStatementFields {
+  docLine: DocLine | undefined
+  expression: NodeChild<AstId>
 }
 /** TODO: Add docs */
-export class Documented extends Ast {
-  declare fields: FixedMapView<AstFields & DocumentedFields>
+export class ExpressionStatement extends Ast {
+  declare fields: FixedMapView<AstFields & ExpressionStatementFields>
   /** TODO: Add docs */
-  constructor(module: Module, fields: FixedMapView<AstFields & DocumentedFields>) {
+  constructor(module: Module, fields: FixedMapView<AstFields & ExpressionStatementFields>) {
     super(module, fields)
   }
 
   /** TODO: Add docs */
-  static tryParse(source: string, module?: MutableModule): Owned<MutableDocumented> | undefined {
+  static tryParse(
+    source: string,
+    module?: MutableModule,
+  ): Owned<MutableExpressionStatement> | undefined {
     const parsed = parse(source, module)
-    if (parsed instanceof MutableDocumented) return parsed
+    if (parsed instanceof MutableExpressionStatement) return parsed
   }
 
   /** TODO: Add docs */
   static new(text: string, expression: Owned) {
     return this.concrete(
       expression.module,
-      undefined,
-      textToUninterpolatedElements(text),
-      undefined,
+      elementsToDocLine(textToUninterpolatedElements(text)),
       autospaced(expression),
     )
   }
@@ -1733,30 +1738,28 @@ export class Documented extends Ast {
   /** TODO: Add docs */
   static concrete(
     module: MutableModule,
-    open: NodeChild<Token> | undefined,
-    elements: TextToken<OwnedRefs>[],
-    newlines: NodeChild<Token>[] | undefined,
-    expression: NodeChild<Owned> | undefined,
+    docLine: DocLine<OwnedRefs> | undefined,
+    expression: NodeChild<Owned>,
   ) {
-    const base = module.baseObject('Documented')
+    const base = module.baseObject('ExpressionStatement')
     const id_ = base.get('id')
     const fields = composeFieldData(base, {
-      open: open ?? unspaced(Token.new('##', RawAst.Token.Type.Operator)),
-      elements: elements.map(e => mapRefs(e, ownedToRaw(module, id_))),
-      newlines: newlines ?? [unspaced(Token.new('\n', RawAst.Token.Type.Newline))],
+      docLine: docLine && mapRefs(docLine, ownedToRaw(module, id_)),
       expression: concreteChild(module, expression, id_),
     })
-    return asOwned(new MutableDocumented(module, fields))
+    return asOwned(new MutableExpressionStatement(module, fields))
   }
 
   /** TODO: Add docs */
-  get expression(): Ast | undefined {
-    return this.module.get(this.fields.get('expression')?.node)
+  get expression(): Ast {
+    return this.module.get(this.fields.get('expression').node)
   }
 
   /** Return the string value of the documentation. */
-  documentation(): string {
-    const raw = uninterpolatedText(this.fields.get('elements'), this.module)
+  documentation(): string | undefined {
+    const docLine = this.fields.get('docLine')
+    if (!docLine) return
+    const raw = uninterpolatedText(docLine.docs.elements, this.module)
     return raw.startsWith(' ') ? raw.slice(1) : raw
   }
 
@@ -1766,16 +1769,14 @@ export class Documented extends Ast {
   }
 
   /** TODO: Add docs */
-  override documentingAncestor(): Documented | undefined {
+  override documentingAncestor(): ExpressionStatement | undefined {
     return this
   }
 
   /** TODO: Add docs */
   *concreteChildren(_verbatim?: boolean): IterableIterator<RawNodeChild> {
-    const { open, elements, newlines, expression } = getAll(this.fields)
-    yield open
-    for (const { token } of elements) yield token
-    yield* newlines
+    const { docLine, expression } = getAll(this.fields)
+    yield* fieldConcreteChildren(docLine)
     if (expression) yield expression
   }
 
@@ -1790,27 +1791,28 @@ export class Documented extends Ast {
   }
 }
 /** TODO: Add docs */
-export class MutableDocumented extends Documented implements MutableAst {
+export class MutableExpressionStatement extends ExpressionStatement implements MutableAst {
   declare readonly module: MutableModule
-  declare readonly fields: FixedMap<AstFields & DocumentedFields>
+  declare readonly fields: FixedMap<AstFields & ExpressionStatementFields>
 
   setDocumentationText(text: string) {
     this.fields.set(
-      'elements',
-      textToUninterpolatedElements(text).map(owned =>
-        mapRefs(owned, ownedToRaw(this.module, this.id)),
+      'docLine',
+      mapRefs(
+        elementsToDocLine(textToUninterpolatedElements(text)),
+        ownedToRaw(this.module, this.id),
       ),
     )
   }
 
-  setExpression<T extends MutableAst>(value: Owned<T> | undefined) {
+  setExpression<T extends MutableAst>(value: Owned<T>) {
     this.fields.set('expression', unspaced(this.claimChild(value)))
   }
 }
-export interface MutableDocumented extends Documented, MutableAst {
-  get expression(): MutableAst | undefined
+export interface MutableExpressionStatement extends ExpressionStatement, MutableAst {
+  get expression(): MutableAst
 }
-applyMixins(MutableDocumented, [MutableAst])
+applyMixins(MutableExpressionStatement, [MutableAst])
 
 function textToUninterpolatedElements(text: string): TextToken<OwnedRefs>[] {
   const elements = new Array<TextToken<OwnedRefs>>()
@@ -1826,6 +1828,16 @@ function textToUninterpolatedElements(text: string): TextToken<OwnedRefs>[] {
     })
   })
   return elements
+}
+
+function elementsToDocLine(elements: TextToken<OwnedRefs>[]): DocLine<OwnedRefs> {
+  return {
+    docs: {
+      open: unspaced(Token.new('##', RawAst.Token.Type.TextStart)),
+      elements,
+    },
+    newlines: [unspaced(Token.new('\n', RawAst.Token.Type.TextNewline))],
+  }
 }
 
 interface InvalidFields {
@@ -2041,6 +2053,16 @@ interface ArgumentType<T extends TreeRefs = RawRefs> {
   type: T['ast']
 }
 
+interface DocComment<T extends TreeRefs = RawRefs> {
+  open: T['token']
+  elements: TextToken<T>[]
+}
+
+export interface DocLine<T extends TreeRefs = RawRefs> {
+  docs: DocComment<T>
+  newlines: T['token'][]
+}
+
 interface FunctionAnnotation<T extends TreeRefs = RawRefs> {
   operator: T['token']
   annotation: T['token']
@@ -2064,6 +2086,7 @@ interface SignatureLine<T extends TreeRefs = RawRefs> {
 }
 
 export interface FunctionFields<T extends TreeRefs = RawRefs> {
+  docLine: DocLine<T> | undefined
   annotationLines: AnnotationLine<T>[]
   signatureLine: SignatureLine<T> | undefined
   private_: T['token'] | undefined
@@ -2109,6 +2132,7 @@ export class Function extends Ast {
     const base = module.baseObject('Function')
     const id_ = base.get('id')
     const rawFields = composeFieldData(base, {
+      docLine: fields.docLine && mapRefs(fields.docLine, ownedToRaw(module, id_)),
       annotationLines: (fields.annotationLines ?? []).map(anno =>
         mapRefs(anno, ownedToRaw(module, id_)),
       ),
@@ -2176,8 +2200,17 @@ export class Function extends Ast {
 
   /** TODO: Add docs */
   *concreteChildren(_verbatim?: boolean): IterableIterator<RawNodeChild> {
-    const { annotationLines, signatureLine, private_, name, argumentDefinitions, equals, body } =
-      getAll(this.fields)
+    const {
+      docLine,
+      annotationLines,
+      signatureLine,
+      private_,
+      name,
+      argumentDefinitions,
+      equals,
+      body,
+    } = getAll(this.fields)
+    if (docLine) yield* fieldConcreteChildren(docLine)
     for (const anno of annotationLines) {
       const { operator, annotation, argument } = anno.annotation
       yield operator
@@ -2251,6 +2284,7 @@ export interface MutableFunction extends Function, MutableAst {
 applyMixins(MutableFunction, [MutableAst])
 
 interface AssignmentFields {
+  docLine: DocLine<RawRefs> | undefined
   pattern: NodeChild<AstId>
   equals: NodeChild<SyncTokenId>
   expression: NodeChild<AstId>
@@ -2272,6 +2306,7 @@ export class Assignment extends Ast {
   /** TODO: Add docs */
   static concrete(
     module: MutableModule,
+    docLine: DocLine<OwnedRefs> | undefined,
     pattern: NodeChild<Owned>,
     equals: NodeChild<Token>,
     expression: NodeChild<Owned>,
@@ -2279,6 +2314,7 @@ export class Assignment extends Ast {
     const base = module.baseObject('Assignment')
     const id_ = base.get('id')
     const fields = composeFieldData(base, {
+      docLine: docLine && mapRefs(docLine, ownedToRaw(module, id_)),
       pattern: concreteChild(module, pattern, id_),
       equals,
       expression: concreteChild(module, expression, id_),
@@ -2287,9 +2323,10 @@ export class Assignment extends Ast {
   }
 
   /** TODO: Add docs */
-  static new(module: MutableModule, ident: StrictIdentLike, expression: Owned) {
+  static new(ident: StrictIdentLike, expression: Owned, module: MutableModule) {
     return Assignment.concrete(
       module,
+      undefined,
       unspaced(Ident.new(module, ident)),
       spaced(makeEquals()),
       spaced(expression),
@@ -2312,7 +2349,8 @@ export class Assignment extends Ast {
 
   /** TODO: Add docs */
   *concreteChildren(verbatim?: boolean): IterableIterator<RawNodeChild> {
-    const { pattern, equals, expression } = getAll(this.fields)
+    const { docLine, pattern, equals, expression } = getAll(this.fields)
+    if (docLine) yield* fieldConcreteChildren(docLine)
     yield ensureUnspaced(pattern, verbatim)
     yield ensureSpacedOnlyIf(equals, expression.whitespace !== '', verbatim)
     yield preferSpaced(expression)
@@ -2849,7 +2887,7 @@ export type Mutable<T extends Ast = Ast> =
   T extends App ? MutableApp
   : T extends Assignment ? MutableAssignment
   : T extends BodyBlock ? MutableBodyBlock
-  : T extends Documented ? MutableDocumented
+  : T extends ExpressionStatement ? MutableExpressionStatement
   : T extends Function ? MutableFunction
   : T extends Generic ? MutableGeneric
   : T extends Group ? MutableGroup
@@ -2877,8 +2915,8 @@ export function materializeMutable(module: MutableModule, fields: FixedMap<AstFi
       return new MutableAssignment(module, fieldsForType)
     case 'BodyBlock':
       return new MutableBodyBlock(module, fieldsForType)
-    case 'Documented':
-      return new MutableDocumented(module, fieldsForType)
+    case 'ExpressionStatement':
+      return new MutableExpressionStatement(module, fieldsForType)
     case 'Function':
       return new MutableFunction(module, fieldsForType)
     case 'Generic':
@@ -2924,8 +2962,8 @@ export function materialize(module: Module, fields: FixedMapView<AstFields>): As
       return new Assignment(module, fields_)
     case 'BodyBlock':
       return new BodyBlock(module, fields_)
-    case 'Documented':
-      return new Documented(module, fields_)
+    case 'ExpressionStatement':
+      return new ExpressionStatement(module, fields_)
     case 'Function':
       return new Function(module, fields_)
     case 'Generic':

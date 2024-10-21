@@ -5,14 +5,16 @@ import type { SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import { assert } from '@/util/assert'
 import { Ast, RawAst } from '@/util/ast'
 import type { AstId, NodeMetadata } from '@/util/ast/abstract'
-import { autospaced, MutableModule } from '@/util/ast/abstract'
+import { MutableModule } from '@/util/ast/abstract'
 import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
 import { inputNodeFromAst, nodeFromAst, nodeRootExpr } from '@/util/ast/node'
 import { MappedKeyMap, MappedSet } from '@/util/containers'
 import { tryGetIndex } from '@/util/data/array'
 import { recordEqual } from '@/util/data/object'
+import { unwrap } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
 import { ReactiveDb, ReactiveIndex, ReactiveMapping } from '@/util/database/reactiveDb'
+import { tryIdentifier } from '@/util/qualifiedName'
 import {
   nonReactiveView,
   resumeReactivity,
@@ -540,14 +542,10 @@ export class GraphDb {
   /** TODO: Add docs */
   mockNode(binding: string, id: NodeId, code?: string): Node {
     const edit = MutableModule.Transient()
-    const pattern = Ast.parse(binding, edit)
+    const ident = unwrap(tryIdentifier(binding))
     const expression = Ast.parse(code ?? '0', edit)
-    const outerExpr = Ast.Assignment.concrete(
-      edit,
-      autospaced(pattern),
-      { node: Ast.Token.new('='), whitespace: ' ' },
-      { node: expression, whitespace: ' ' },
-    )
+    const outerExpr = Ast.Assignment.new(ident, expression, edit)
+    const pattern = outerExpr.pattern
 
     const node: Node = {
       type: 'component',
@@ -633,7 +631,7 @@ export interface NodeDataFromAst {
   /** Ports that are not targetable by default; they can be targeted while holding the modifier key. */
   conditionalPorts: Set<Ast.AstId>
   /** An AST node containing the node's documentation comment. */
-  docs: Ast.Documented | undefined
+  docs: Ast.ExpressionStatement | undefined
   /** The index of the argument in the function's argument list, if the node is an input node. */
   argIndex: number | undefined
 }

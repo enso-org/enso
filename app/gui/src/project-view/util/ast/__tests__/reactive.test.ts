@@ -61,7 +61,8 @@ test('Module reactivity: Tracking access to ancestors', async () => {
   expect(module.root()!.code()).toBe(beforeEdit.code())
 
   const block = module.root() as any as Ast.BodyBlock
-  const expression = ([...block.statements()][0] as Ast.Documented).expression as Ast.Function
+  const expression = ([...block.statements()][0] as Ast.ExpressionStatement)
+    .expression as Ast.Function
   expect(expression.name.code()).toBe('main')
   let mainDocs: string | undefined = undefined
   watchEffect(() => (mainDocs = expression.documentingAncestor()?.documentation()))

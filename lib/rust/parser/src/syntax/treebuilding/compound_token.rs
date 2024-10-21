@@ -287,8 +287,7 @@ impl<'s> TextLiteralBuilder<'s> {
         let Self { open, newline, elements, has_preceding_item } = self;
         if open.code.starts_with('#') {
             assert_eq!(newline, None);
-            let doc = syntax::tree::DocComment { open, elements, newlines: default() };
-            let tree = Tree::documented(doc, default());
+            let tree = Tree::documentation(syntax::tree::DocComment { open, elements });
             let error =
                 has_preceding_item.then_some(SyntaxError::DocumentationUnexpectedNonInitial);
             maybe_with_error(tree, error)

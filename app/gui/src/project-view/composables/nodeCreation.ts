@@ -197,12 +197,12 @@ export function useNodeCreation(
     identifiersRenameMap: Map<Ast.Identifier, Ast.Identifier>,
   ) {
     rhs.setNodeMetadata(options.metadata ?? {})
-    const assignment = Ast.Assignment.new(edit, ident, rhs)
+    const assignment = Ast.Assignment.new(ident, rhs, edit)
     afterCreation(edit, assignment, ident, options, identifiersRenameMap)
     const id = asNodeId(rhs.externalId)
     const rootExpression =
       options.documentation != null ?
-        Ast.Documented.new(options.documentation, assignment)
+        Ast.ExpressionStatement.new(options.documentation, assignment)
       : assignment
     return { rootExpression, id }
   }

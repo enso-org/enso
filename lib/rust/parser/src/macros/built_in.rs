@@ -9,6 +9,7 @@ use crate::expression_to_pattern;
 use crate::source::Code;
 use crate::syntax::maybe_with_error;
 use crate::syntax::operator;
+use crate::syntax::statement::try_parse_doc_comment;
 use crate::syntax::token;
 use crate::syntax::tree::SyntaxError;
 use crate::syntax::Item;
@@ -333,11 +334,12 @@ fn parse_case_line<'s>(
     precedence: &mut operator::Precedence<'s>,
 ) -> (syntax::tree::CaseLine<'s>, Option<SyntaxError>) {
     let syntax::item::Line { newline, mut items } = line;
-    if let documentation @ Some(_) = try_parse_doc_comment(&mut items, precedence) {
+    if let Some(docs) = try_parse_doc_comment(&mut items) {
+        let doc_line = Some(syntax::tree::DocLine { docs, newlines: vec![] });
         return (
             syntax::tree::CaseLine {
                 newline: newline.into(),
-                case:    Some(syntax::tree::Case { documentation, ..default() }),
+                case:    Some(syntax::tree::Case { doc_line, ..default() }),
             },
             default(),
         );
@@ -395,30 +397,6 @@ fn find_top_level_arrow(items: &[Item]) -> Option<usize> {
         })
     } else {
         arrow_i
-    }
-}
-
-fn try_parse_doc_comment<'s>(
-    items: &mut Vec<Item<'s>>,
-    precedence: &mut operator::Precedence<'s>,
-) -> Option<syntax::tree::DocComment<'s>> {
-    if matches!(
-        items.first(),
-        Some(Item::Token(token @ Token { variant: token::Variant::TextStart(_), .. })) if token.code == "##"
-    ) {
-        let Some(syntax::Tree {
-            variant: syntax::tree::Variant::Documented(mut documented),
-            span,
-            ..
-        }) = precedence.resolve(items)
-        else {
-            unreachable!()
-        };
-        debug_assert_eq!(documented.expression, None);
-        documented.documentation.open.left_offset += span.left_offset;
-        Some(documented.documentation)
-    } else {
-        None
     }
 }
 

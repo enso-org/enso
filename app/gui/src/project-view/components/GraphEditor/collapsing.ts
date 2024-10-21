@@ -216,7 +216,7 @@ export function performCollapse(
   }
   const argNames = info.extracted.inputs
   const collapsedFunction = Ast.Function.fromStatements(edit, collapsedName, argNames, collapsed)
-  const collapsedFunctionWithIcon = Ast.Documented.new('ICON group', collapsedFunction)
+  const collapsedFunctionWithIcon = Ast.ExpressionStatement.new('ICON group', collapsedFunction)
   topLevel.insert(posToInsert, collapsedFunctionWithIcon, undefined)
   return { refactoredNodeId, refactoredExpressionAstId, collapsedNodeIds, outputAstId }
 }
@@ -232,7 +232,7 @@ function collapsedCallAst(
   const functionName = `${MODULE_NAME}.${collapsedName}`
   const expression = functionName + (args.length > 0 ? ' ' : '') + args.join(' ')
   const expressionAst = Ast.parse(expression, edit)
-  const ast = Ast.Assignment.new(edit, pattern, expressionAst)
+  const ast = Ast.Assignment.new(pattern, expressionAst, edit)
   return { ast, expressionAstId: expressionAst.id, nodeId: asNodeId(expressionAst.externalId) }
 }
 

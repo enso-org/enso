@@ -206,6 +206,8 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         },
         /// A variable assignment, like `foo = bar 23`.
         Assignment {
+            /// Documentation applied to the variable.
+            pub doc_line: Option<DocLine<'s>>,
             /// The pattern which should be unified with the expression.
             pub pattern: Tree<'s>,
             /// The `=` token.
@@ -215,6 +217,8 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         },
         /// A function definition, like `add x y = x + y`.
         Function {
+            /// Documentation applied to the function.
+            pub doc_line: Option<DocLine<'s>>,
             /// Annotations applied to the function.
             pub annotation_lines: Vec<AnnotationLine<'s>>,
             /// A type signature for the function, on its own line.
@@ -326,15 +330,21 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             pub newlines:   Vec<token::Newline<'s>>,
             pub expression: Option<Tree<'s>>,
         },
-        /// An expression preceded by a doc comment.
-        Documented {
-            /// The documentation.
-            pub documentation: DocComment<'s>,
-            /// The item being documented.
-            pub expression: Option<Tree<'s>>,
+        /// A documentation comment that wasn't attached to a following documentable item.
+        Documentation {
+            pub docs: DocComment<'s>,
+        },
+        /// An expression at the top level of a block.
+        ExpressionStatement {
+            /// Documentation applied to the expression.
+            pub doc_line: Option<DocLine<'s>>,
+            /// The expression.
+            pub expression: Tree<'s>,
         },
         /// Defines a type constructor.
         ConstructorDefinition {
+            /// Documentation applied to the constructor.
+            pub doc_line:         Option<DocLine<'s>>,
             /// Annotations applied to the constructor.
             pub annotation_lines: Vec<AnnotationLine<'s>>,
             /// The `private` keyword, if present.
@@ -486,7 +496,23 @@ impl<'s> span::Builder<'s> for TextElement<'s> {
 
 // === Documentation ===
 
-/// A documentation comment.
+/// A documentation comment line.
+#[cfg_attr(feature = "debug", derive(Visitor))]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Reflect, Deserialize)]
+pub struct DocLine<'s> {
+    /// The documentation.
+    pub docs:     DocComment<'s>,
+    /// Empty lines between the comment and the item.
+    pub newlines: Vec<token::Newline<'s>>,
+}
+
+impl<'s> span::Builder<'s> for DocLine<'s> {
+    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
+        span.add(&mut self.docs).add(&mut self.newlines)
+    }
+}
+
+/// A documentation comment line.
 #[cfg_attr(feature = "debug", derive(Visitor))]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Reflect, Deserialize)]
 pub struct DocComment<'s> {
@@ -494,13 +520,11 @@ pub struct DocComment<'s> {
     pub open:     token::TextStart<'s>,
     /// The documentation text.
     pub elements: Vec<TextElement<'s>>,
-    /// Empty lines between the comment and the item.
-    pub newlines: Vec<token::Newline<'s>>,
 }
 
 impl<'s> span::Builder<'s> for DocComment<'s> {
     fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
-        span.add(&mut self.open).add(&mut self.elements).add(&mut self.newlines)
+        span.add(&mut self.open).add(&mut self.elements)
     }
 }
 
@@ -728,20 +752,20 @@ impl<'s> span::Builder<'s> for CaseLine<'s> {
 #[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Reflect, Deserialize)]
 pub struct Case<'s> {
     /// Documentation, if present.
-    pub documentation: Option<DocComment<'s>>,
+    pub doc_line:   Option<DocLine<'s>>,
     /// The pattern being matched. It is an error for this to be absent.
-    pub pattern:       Option<Tree<'s>>,
+    pub pattern:    Option<Tree<'s>>,
     /// Token.
-    pub arrow:         Option<token::ArrowOperator<'s>>,
+    pub arrow:      Option<token::ArrowOperator<'s>>,
     /// The expression associated with the pattern. It is an error for this to be empty.
-    pub expression:    Option<Tree<'s>>,
+    pub expression: Option<Tree<'s>>,
 }
 
 impl<'s> Case<'s> {
     /// Return a mutable reference to the `left_offset` of this object (which will actually belong
     /// to one of the object's children, if it has any).
     pub fn left_offset_mut(&mut self) -> Option<&mut Offset<'s>> {
-        None.or_else(|| self.documentation.as_mut().map(|t| &mut t.open.left_offset))
+        None.or_else(|| self.doc_line.as_mut().map(|t| &mut t.docs.open.left_offset))
             .or_else(|| self.pattern.as_mut().map(|t| &mut t.span.left_offset))
             .or_else(|| self.arrow.as_mut().map(|t| &mut t.left_offset))
             .or_else(|| self.expression.as_mut().map(|e| &mut e.span.left_offset))
@@ -750,7 +774,7 @@ impl<'s> Case<'s> {
 
 impl<'s> span::Builder<'s> for Case<'s> {
     fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
-        span.add(&mut self.documentation)
+        span.add(&mut self.doc_line)
             .add(&mut self.pattern)
             .add(&mut self.arrow)
             .add(&mut self.expression)

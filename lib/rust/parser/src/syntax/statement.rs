@@ -19,6 +19,8 @@ use crate::syntax::token;
 use crate::syntax::tree;
 use crate::syntax::tree::block;
 use crate::syntax::tree::ArgumentDefinition;
+use crate::syntax::tree::DocComment;
+use crate::syntax::tree::DocLine;
 use crate::syntax::tree::FunctionAnnotation;
 use crate::syntax::tree::SyntaxError;
 use crate::syntax::tree::TypeSignature;
@@ -44,7 +46,7 @@ impl<'s> BodyBlockParser<'s> {
     ) -> Tree<'s> {
         let lines = compound_lines_with_tail_expression(lines, |prefixes, line, is_tail| {
             if is_tail {
-                self.statement_parser.parse_tail_expression(line, precedence)
+                self.statement_parser.parse_tail_expression(prefixes, line, precedence)
             } else {
                 self.statement_parser.parse_statement(prefixes, line, precedence)
             }
@@ -170,10 +172,11 @@ impl<'s> StatementParser<'s> {
 
     fn parse_tail_expression(
         &mut self,
+        prefixes: &mut Vec<Line<'s, StatementPrefix<'s>>>,
         line: item::Line<'s>,
         precedence: &mut Precedence<'s>,
     ) -> Line<'s, StatementOrPrefix<'s>> {
-        parse_statement(&mut vec![], line, precedence, &mut self.args_buffer, StatementContext {
+        parse_statement(prefixes, line, precedence, &mut self.args_buffer, StatementContext {
             evaluation_context: EvaluationContext::Eager,
             visibility_context: VisibilityContext::Private,
             tail_expression:    true,
@@ -219,6 +222,7 @@ fn scan_private_keywords<'s>(items: impl IntoIterator<Item = impl AsRef<Item<'s>
 enum StatementPrefix<'s> {
     TypeSignature(TypeSignature<'s>),
     Annotation(FunctionAnnotation<'s>),
+    Documentation(DocComment<'s>),
 }
 
 impl<'s> From<StatementPrefix<'s>> for Tree<'s> {
@@ -228,6 +232,7 @@ impl<'s> From<StatementPrefix<'s>> for Tree<'s> {
                 Tree::type_signature_declaration(signature),
             StatementPrefix::Annotation(annotation) =>
                 Tree::annotation(annotation).with_error(SyntaxError::AnnotationExpectedDefinition),
+            StatementPrefix::Documentation(docs) => Tree::documentation(docs),
         }
     }
 }
@@ -273,27 +278,29 @@ fn parse_statement<'s>(
     let private_keywords = scan_private_keywords(&line.items);
     let start = private_keywords;
     let items = &mut line.items;
-    if let Some(annotation) = try_parse_annotation(items, start, precedence) {
+    let mut parsed = None;
+    parsed = parsed.or_else(|| {
+        try_parse_annotation(items, start, precedence)
+            .map(StatementPrefix::Annotation)
+            .map(StatementOrPrefix::Prefix)
+    });
+    parsed = parsed.or_else(|| {
+        try_parse_type_def(items, start, precedence, args_buffer).map(StatementOrPrefix::Statement)
+    });
+    parsed = parsed.or_else(|| {
+        try_parse_doc_comment(items)
+            .map(StatementPrefix::Documentation)
+            .map(StatementOrPrefix::Prefix)
+    });
+    if let Some(parsed) = parsed {
         debug_assert_eq!(items.len(), start);
         return Line {
             newline,
             content: apply_private_keywords(
-                Some(StatementOrPrefix::Prefix(StatementPrefix::Annotation(annotation))),
+                Some(parsed),
                 items.drain(..),
                 statement_context.visibility_context,
             ),
-        };
-    }
-    if let Some(type_def) = try_parse_type_def(items, start, precedence, args_buffer) {
-        debug_assert_eq!(items.len(), start);
-        return Line {
-            newline,
-            content: apply_private_keywords(
-                Some(type_def),
-                items.drain(..),
-                statement_context.visibility_context,
-            )
-            .map(StatementOrPrefix::Statement),
         };
     }
     let top_level_operator = match find_top_level_operator(&items[start..]) {
@@ -334,19 +341,88 @@ fn parse_statement<'s>(
             }
         }
         Some(_) => unreachable!(),
-        None => {
-            let statement = precedence.resolve_offset(start, items);
-            debug_assert!(items.len() <= start);
-            Line {
-                newline,
-                content: apply_private_keywords(
-                    statement,
-                    items.drain(..),
-                    statement_context.visibility_context,
-                )
-                .map(StatementOrPrefix::Statement),
+        None => parse_expression_statement(
+            prefixes,
+            start,
+            item::Line { newline, items: mem::take(items) },
+            precedence,
+            statement_context.visibility_context,
+        )
+        .map_content(StatementOrPrefix::Statement),
+    }
+}
+
+fn take_doc_line<'s>(
+    prefixes: &mut Vec<Line<'s, StatementPrefix<'s>>>,
+    outermost_newline: &mut token::Newline<'s>,
+) -> Option<DocLine<'s>> {
+    if let Some(Line { content: Some(StatementPrefix::Documentation(_)), .. }) = prefixes.last() {
+        let Some(Line { newline, content: Some(StatementPrefix::Documentation(docs)) }) =
+            prefixes.pop()
+        else {
+            unreachable!()
+        };
+        let newline = mem::replace(outermost_newline, newline);
+        Some(DocLine { docs, newlines: vec![newline] })
+    } else {
+        None
+    }
+}
+
+fn parse_expression_statement<'s>(
+    prefixes: &mut Vec<Line<'s, StatementPrefix<'s>>>,
+    start: usize,
+    mut line: item::Line<'s>,
+    precedence: &mut Precedence<'s>,
+    visibility_context: VisibilityContext,
+) -> Line<'s, Tree<'s>> {
+    let expression = precedence.resolve_offset(start, &mut line.items);
+    debug_assert!(line.items.len() <= start);
+    let expression = apply_private_keywords(expression, line.items.drain(..), visibility_context);
+    let mut outermost_newline = line.newline;
+    let expression = expression.map(|expression| {
+        if !matches!(&expression.variant, tree::Variant::Import(_) | tree::Variant::Export(_)) {
+            if let Some(doc_line) = take_doc_line(prefixes, &mut outermost_newline) {
+                return Tree::expression_statement(Some(doc_line), expression);
             }
         }
+        expression
+    });
+    Line { newline: outermost_newline, content: expression }
+}
+
+/// Parse the input as a documentation comment, if it matches the syntax.
+pub fn try_parse_doc_comment<'s>(items: &mut Vec<Item<'s>>) -> Option<DocComment<'s>> {
+    match items.first() {
+        Some(Item::Token(token @ Token { variant: token::Variant::TextStart(_), .. }))
+            if token.code.repr.0 == "##" =>
+        {
+            let mut items = items.drain(..);
+            let Some(Item::Token(open)) = items.next() else { unreachable!() };
+            let elements = items
+                .filter_map(|item| {
+                    let Item::Token(token) = item else { unreachable!() };
+                    match token.variant {
+                        token::Variant::TextSection(variant) => {
+                            let token = token.with_variant(variant);
+                            Some(tree::TextElement::Section { text: token })
+                        }
+                        token::Variant::TextEscape(variant) => {
+                            let token = token.with_variant(variant);
+                            Some(tree::TextElement::Escape { token })
+                        }
+                        token::Variant::TextNewline(_) => {
+                            let token = token::newline(token.left_offset, token.code);
+                            Some(tree::TextElement::Newline { newline: token })
+                        }
+                        token::Variant::TextEnd(_) => None,
+                        _ => unreachable!(),
+                    }
+                })
+                .collect();
+            Some(DocComment { open: open.with_variant(token::variant::TextStart()), elements })
+        }
+        _ => None,
     }
 }
 
@@ -537,14 +613,14 @@ fn parse_assignment_like_statement<'s>(
         (expression, Some(qn_len)) => Type::Function { expression, qn_len },
         (None, None) => Type::InvalidNoExpressionNoQn,
     } {
-        Type::Assignment { expression } => Line {
-            newline,
-            content: apply_private_keywords(
-                Some(parse_assignment(start, items, operator, expression, precedence)),
-                items.drain(..),
-                visibility_context,
-            ),
-        },
+        Type::Assignment { expression } => AssignmentBuilder::new(
+            start,
+            item::Line { newline, items: mem::take(items) },
+            operator,
+            expression,
+            precedence,
+        )
+        .build(prefixes, visibility_context),
         Type::Function { expression, qn_len } => FunctionBuilder::new(
             item::Line { newline, items: mem::take(items) },
             start,
@@ -567,16 +643,45 @@ fn parse_assignment_like_statement<'s>(
     }
 }
 
-fn parse_assignment<'s>(
-    start: usize,
-    items: &mut Vec<Item<'s>>,
-    operator: token::AssignmentOperator<'s>,
-    expression: Tree<'s>,
-    precedence: &mut Precedence<'s>,
-) -> Tree<'s> {
-    let pattern =
-        expression_to_pattern(precedence.resolve_non_section_offset(start, items).unwrap());
-    Tree::assignment(pattern, operator, expression)
+struct AssignmentBuilder<'s> {
+    newline:      token::Newline<'s>,
+    pattern:      Tree<'s>,
+    operator:     token::AssignmentOperator<'s>,
+    expression:   Tree<'s>,
+    excess_items: Vec<Item<'s>>,
+}
+
+impl<'s> AssignmentBuilder<'s> {
+    fn new(
+        start: usize,
+        mut line: item::Line<'s>,
+        operator: token::AssignmentOperator<'s>,
+        expression: Tree<'s>,
+        precedence: &mut Precedence<'s>,
+    ) -> Self {
+        let pattern = expression_to_pattern(
+            precedence.resolve_non_section_offset(start, &mut line.items).unwrap(),
+        );
+        Self { newline: line.newline, pattern, operator, expression, excess_items: line.items }
+    }
+
+    fn build(
+        self,
+        prefixes: &mut Vec<Line<'s, StatementPrefix<'s>>>,
+        visibility_context: VisibilityContext,
+    ) -> Line<'s, Tree<'s>> {
+        let Self { newline, pattern, operator, expression, excess_items } = self;
+        let mut outermost_newline = newline;
+        let doc_line = take_doc_line(prefixes, &mut outermost_newline);
+        Line {
+            newline: outermost_newline,
+            content: apply_private_keywords(
+                Some(Tree::assignment(doc_line, pattern, operator, expression)),
+                excess_items.into_iter(),
+                visibility_context,
+            ),
+        }
+    }
 }
 
 fn parse_pattern<'s>(

@@ -121,7 +121,8 @@ fn parse_type_body_statement<'s>(
                     tree::Variant::Function(_)
                     | tree::Variant::ForeignFunction(_)
                     | tree::Variant::Assignment(_)
-                    | tree::Variant::Documented(_)
+                    | tree::Variant::Documentation(_)
+                    | tree::Variant::ExpressionStatement(_)
                     | tree::Variant::Annotation(_)
                     | tree::Variant::AnnotatedBuiltin(_) => None,
                     tree::Variant::TypeSignatureDeclaration(_) => None,

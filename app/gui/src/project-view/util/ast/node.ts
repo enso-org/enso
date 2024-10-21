@@ -10,11 +10,11 @@ export const prefixes = Prefixes.FromLines({
 /** Given a node's outer expression, find the root expression and any statements wrapping it. */
 export function nodeRootExpr(ast: Ast.Ast): {
   root: Ast.Ast | undefined
-  docs: Ast.Documented | undefined
+  docs: Ast.ExpressionStatement | undefined
   assignment: Ast.Assignment | undefined
 } {
   const [withinDocs, docs] =
-    ast instanceof Ast.Documented ? [ast.expression, ast] : [ast, undefined]
+    ast instanceof Ast.ExpressionStatement ? [ast.expression, ast] : [ast, undefined]
   const [withinAssignment, assignment] =
     withinDocs instanceof Ast.Assignment ?
       [withinDocs.expression, withinDocs]

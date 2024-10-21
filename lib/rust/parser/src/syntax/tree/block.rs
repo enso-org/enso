@@ -141,7 +141,6 @@ where I: Iterator<Item = Line<'s>>
 #[derive(Debug)]
 enum Prefix<'s> {
     BuiltinAnnotation { node: Box<AnnotatedBuiltin<'s>>, span: Span<'s> },
-    Documentation { node: Box<Documented<'s>>, span: Span<'s> },
 }
 
 impl<'s> TryFrom<Tree<'s>> for Prefix<'s> {
@@ -150,7 +149,6 @@ impl<'s> TryFrom<Tree<'s>> for Prefix<'s> {
         match tree.variant {
             Variant::AnnotatedBuiltin(node) if node.expression.is_none() =>
                 Ok(Prefix::BuiltinAnnotation { node, span: tree.span }),
-            Variant::Documented(node) => Ok(Prefix::Documentation { node, span: tree.span }),
             _ => Err(tree),
         }
     }
@@ -160,7 +158,6 @@ impl<'s> Prefix<'s> {
     fn push_newline(&mut self, newline: token::Newline<'s>) {
         let (newlines, span) = match self {
             Prefix::BuiltinAnnotation { node, span } => (&mut node.newlines, span),
-            Prefix::Documentation { node, span } => (&mut node.documentation.newlines, span),
         };
         span.code_length += newline.left_offset.code.length() + newline.code.length();
         newlines.push(newline);
@@ -169,7 +166,6 @@ impl<'s> Prefix<'s> {
     fn apply_to(mut self, expression: Tree<'s>) -> Tree<'s> {
         let (expr, span) = match &mut self {
             Prefix::BuiltinAnnotation { node, span } => (&mut node.expression, span),
-            Prefix::Documentation { node, span } => (&mut node.expression, span),
         };
         span.code_length += expression.span.left_offset.code.length() + expression.span.code_length;
         *expr = Some(expression);
@@ -182,8 +178,6 @@ impl<'s> From<Prefix<'s>> for Tree<'s> {
         match prefix {
             Prefix::BuiltinAnnotation { node, span } =>
                 Tree { variant: Variant::AnnotatedBuiltin(node), span, warnings: default() },
-            Prefix::Documentation { node, span } =>
-                Tree { variant: Variant::Documented(node), span, warnings: default() },
         }
     }
 }
