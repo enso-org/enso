@@ -39,6 +39,7 @@ test.test('organization settings', async ({ page }) => {
     await nameInput.press('Enter')
     await test.expect(nameInput).toHaveValue('')
     test.expect(api.currentOrganization()?.name).toBe(newName)
+    await page.getByRole('button', { name: actions.TEXT.cancel }).click()
   })
 
   const invalidEmail = 'invalid@email'
@@ -47,7 +48,7 @@ test.test('organization settings', async ({ page }) => {
   await test.test.step('Set invalid email', async () => {
     await emailInput.fill(invalidEmail)
     await emailInput.press('Enter')
-    test.expect(api.currentOrganization()?.email).toBe(null)
+    test.expect(api.currentOrganization()?.email).toBe('')
   })
 
   const newEmail = 'organization@email.com'

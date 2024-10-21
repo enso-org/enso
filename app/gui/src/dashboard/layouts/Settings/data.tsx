@@ -2,7 +2,7 @@
 import type { ReactNode } from 'react'
 
 import type { QueryClient } from '@tanstack/react-query'
-import isEmail from 'validator/lib/isEmail'
+import * as z from 'zod'
 
 import type { TextId } from 'enso-common/src/text'
 
@@ -30,7 +30,7 @@ import {
 import type LocalBackend from '#/services/LocalBackend'
 import type RemoteBackend from '#/services/RemoteBackend'
 import { normalizePath } from '#/utilities/fileInfo'
-import { unsafeEntries } from '#/utilities/object'
+import { pick, unsafeEntries } from '#/utilities/object'
 import ActivityLogSettingsSection from './ActivityLogSettingsSection'
 import ChangePasswordForm from './ChangePasswordForm'
 import DeleteUserAccountSettingsSection from './DeleteUserAccountSettingsSection'
@@ -47,12 +47,6 @@ import UserGroupsSettingsSection from './UserGroupsSettingsSection'
 // === SettingsEntryType ===
 // =========================
 
-/** The tag for the {@link SettingsEntryData} discriminated union. */
-export enum SettingsEntryType {
-  input = 'input',
-  custom = 'custom',
-}
-
 // =================
 // === Constants ===
 // =================
@@ -62,7 +56,7 @@ export const SETTINGS_NO_RESULTS_SECTION_DATA: SettingsSectionData = {
   heading: false,
   entries: [
     {
-      type: SettingsEntryType.custom,
+      type: 'custom',
       render: (context) => (
         <div className="grid max-w-[512px] justify-center">{context.getText('noResultsFound')}</div>
       ),
@@ -79,38 +73,31 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
       {
         nameId: 'userAccountSettingsSection',
         entries: [
-          {
-            type: SettingsEntryType.input,
-            nameId: 'userNameSettingsInput',
-            getValue: (context) => context.user.name,
-            setValue: async (context, newName) => {
+          settingsFormEntryData({
+            type: 'form',
+            schema: z.object({
+              name: z.string().regex(/.*\S.*/),
+              email: z.string().email(),
+            }),
+            getValue: (context) => pick(context.user, 'name', 'email'),
+            onSubmit: async (context, { name }) => {
               const oldName = context.user.name
-              if (newName !== oldName) {
-                await context.updateUser([{ username: newName }])
+              if (name !== oldName) {
+                await context.updateUser([{ username: name }])
               }
             },
-            validate: (name) => (/\S/.test(name) ? true : ''),
-            getEditable: () => true,
-          },
-          {
-            type: SettingsEntryType.input,
-            nameId: 'userEmailSettingsInput',
-            getValue: (context) => context.user.email,
-            // A user's email currently cannot be changed.
-            setValue: async () => {},
-            validate: (email, context) =>
-              isEmail(email) ? true
-              : email === '' ? ''
-              : context.getText('invalidEmailValidationError'),
-            getEditable: () => false,
-          },
+            inputs: [
+              { nameId: 'userNameSettingsInput', name: 'name' },
+              { nameId: 'userEmailSettingsInput', name: 'email', editable: false },
+            ],
+          }),
         ],
       },
       {
         nameId: 'changePasswordSettingsSection',
         entries: [
           {
-            type: SettingsEntryType.custom,
+            type: 'custom',
             aliasesId: 'changePasswordSettingsCustomEntryAliases',
             render: ChangePasswordForm,
             getVisible: (context) => {
@@ -128,7 +115,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
         nameId: 'setup2FASettingsSection',
         entries: [
           {
-            type: SettingsEntryType.custom,
+            type: 'custom',
             render: SetupTwoFaForm,
             getVisible: (context) => {
               // The shape of the JWT payload is statically known.
@@ -146,7 +133,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
         heading: false,
         entries: [
           {
-            type: SettingsEntryType.custom,
+            type: 'custom',
             aliasesId: 'deleteUserAccountSettingsCustomEntryAliases',
             render: () => <DeleteUserAccountSettingsSection />,
           },
@@ -157,7 +144,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
         column: 2,
         entries: [
           {
-            type: SettingsEntryType.custom,
+            type: 'custom',
             aliasesId: 'profilePictureSettingsCustomEntryAliases',
             render: (context) => <ProfilePictureInput backend={context.backend} />,
           },
@@ -175,61 +162,56 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
       {
         nameId: 'organizationSettingsSection',
         entries: [
-          {
-            type: SettingsEntryType.input,
-            nameId: 'organizationNameSettingsInput',
-            getValue: (context) => context.organization?.name ?? '',
-            setValue: async (context, newName) => {
-              const oldName = context.organization?.name ?? null
-              if (oldName !== newName) {
-                await context.updateOrganization([{ name: newName }])
+          settingsFormEntryData({
+            type: 'form',
+            schema: z.object({
+              name: z.string().regex(/^.*\S.*$|^$/),
+              email: z.string().email().or(z.literal('')),
+              website: z.string(),
+              address: z.string(),
+            }),
+            getValue: (context) => {
+              const { name, email, website, address } = context.organization ?? {}
+              return {
+                name: name ?? '',
+                email: String(email ?? ''),
+                website: String(website ?? ''),
+                address: address ?? '',
               }
             },
-            validate: (name) => (/\S/.test(name) ? true : ''),
-            getEditable: (context) => context.user.isOrganizationAdmin,
-          },
-          {
-            type: SettingsEntryType.input,
-            nameId: 'organizationEmailSettingsInput',
-            getValue: (context) => context.organization?.email ?? '',
-            setValue: async (context, newValue) => {
-              const newEmail = EmailAddress(newValue)
-              const oldEmail = context.organization?.email ?? null
-              if (oldEmail !== newEmail) {
-                await context.updateOrganization([{ email: newEmail }])
-              }
+            onSubmit: async (context, { name, email, website, address }) => {
+              await context.updateOrganization([
+                {
+                  name,
+                  email: EmailAddress(email),
+                  website: HttpsUrl(website),
+                  address,
+                },
+              ])
             },
-            validate: (email, context) =>
-              isEmail(email) ? true
-              : email === '' ? ''
-              : context.getText('invalidEmailValidationError'),
-            getEditable: (context) => context.user.isOrganizationAdmin,
-          },
-          {
-            type: SettingsEntryType.input,
-            nameId: 'organizationWebsiteSettingsInput',
-            getValue: (context) => context.organization?.website ?? '',
-            setValue: async (context, newValue) => {
-              const newWebsite = HttpsUrl(newValue)
-              const oldWebsite = context.organization?.website ?? null
-              if (oldWebsite !== newWebsite) {
-                await context.updateOrganization([{ website: newWebsite }])
-              }
-            },
-            getEditable: (context) => context.user.isOrganizationAdmin,
-          },
-          {
-            type: SettingsEntryType.input,
-            nameId: 'organizationLocationSettingsInput',
-            getValue: (context) => context.organization?.address ?? '',
-            setValue: async (context, newLocation) => {
-              const oldLocation = context.organization?.address ?? null
-              if (oldLocation !== newLocation) {
-                await context.updateOrganization([{ address: newLocation }])
-              }
-            },
-            getEditable: (context) => context.user.isOrganizationAdmin,
-          },
+            inputs: [
+              {
+                nameId: 'organizationNameSettingsInput',
+                name: 'name',
+                editable: (context) => context.user.isOrganizationAdmin,
+              },
+              {
+                nameId: 'organizationEmailSettingsInput',
+                name: 'email',
+                editable: (context) => context.user.isOrganizationAdmin,
+              },
+              {
+                nameId: 'organizationWebsiteSettingsInput',
+                name: 'website',
+                editable: (context) => context.user.isOrganizationAdmin,
+              },
+              {
+                nameId: 'organizationLocationSettingsInput',
+                name: 'address',
+                editable: (context) => context.user.isOrganizationAdmin,
+              },
+            ],
+          }),
         ],
       },
       {
@@ -237,7 +219,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
         column: 2,
         entries: [
           {
-            type: SettingsEntryType.custom,
+            type: 'custom',
             aliasesId: 'organizationProfilePictureSettingsCustomEntryAliases',
             render: (context) => <OrganizationProfilePictureInput backend={context.backend} />,
           },
@@ -254,18 +236,19 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
       {
         nameId: 'localSettingsSection',
         entries: [
-          {
-            type: SettingsEntryType.input,
-            nameId: 'localRootPathSettingsInput',
-            getValue: (context) => context.localBackend?.rootPath() ?? '',
-            setValue: async (context, value) => {
-              context.updateLocalRootPath(value)
-              await Promise.resolve()
+          settingsFormEntryData({
+            type: 'form',
+            schema: z.object({
+              localRootPath: z.string(),
+            }),
+            getValue: (context) => ({ localRootPath: context.localBackend?.rootPath() ?? '' }),
+            onSubmit: (context, { localRootPath }) => {
+              context.updateLocalRootPath(localRootPath)
             },
-            getEditable: () => true,
-          },
+            inputs: [{ nameId: 'localRootPathSettingsInput', name: 'localRootPath' }],
+          }),
           {
-            type: SettingsEntryType.custom,
+            type: 'custom',
             aliasesId: 'localRootPathButtonSettingsCustomEntryAliases',
             render: (context) => (
               <ButtonGroup>
@@ -337,7 +320,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     sections: [
       {
         nameId: 'membersSettingsSection',
-        entries: [{ type: SettingsEntryType.custom, render: () => <MembersSettingsSection /> }],
+        entries: [{ type: 'custom', render: () => <MembersSettingsSection /> }],
       },
     ],
   },
@@ -354,7 +337,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
         columnClassName: 'h-3/5 lg:h-[unset] overflow-auto',
         entries: [
           {
-            type: SettingsEntryType.custom,
+            type: 'custom',
             render: (context) => <UserGroupsSettingsSection backend={context.backend} />,
           },
         ],
@@ -365,7 +348,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
         columnClassName: 'h-2/5 lg:h-[unset] overflow-auto',
         entries: [
           {
-            type: SettingsEntryType.custom,
+            type: 'custom',
             render: (context) => (
               <MembersTable
                 backend={context.backend}
@@ -387,7 +370,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
         nameId: 'keyboardShortcutsSettingsSection',
         entries: [
           {
-            type: SettingsEntryType.custom,
+            type: 'custom',
             aliasesId: 'keyboardShortcutsSettingsCustomEntryAliases',
             getExtraAliases: (context) => {
               const rebindableBindings = unsafeEntries(BINDINGS).flatMap((kv) => {
@@ -417,7 +400,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
         nameId: 'activityLogSettingsSection',
         entries: [
           {
-            type: SettingsEntryType.custom,
+            type: 'custom',
             render: (context) => <ActivityLogSettingsSection backend={context.backend} />,
           },
         ],
@@ -477,21 +460,33 @@ export interface SettingsContext {
   readonly toastAndLog: ToastAndLogCallback
   readonly getText: GetText
   readonly queryClient: QueryClient
+  readonly isMatch: (name: string) => boolean
 }
 
 // ==============================
 // === SettingsInputEntryData ===
 // ==============================
 
-/** Metadata describing a settings entry that is an input. */
-export interface SettingsInputEntryData {
-  readonly type: SettingsEntryType.input
+/** Metadata describing an input in a {@link SettingsFormEntryData}. */
+export interface SettingsInputData<T extends Record<keyof T, string>> {
   readonly nameId: TextId & `${string}SettingsInput`
-  readonly getValue: (context: SettingsContext) => string
-  readonly setValue: (context: SettingsContext, value: string) => Promise<void>
-  readonly validate?: (value: string, context: SettingsContext) => string | true
-  readonly getEditable: (context: SettingsContext) => boolean
-  readonly getVisible?: (context: SettingsContext) => boolean
+  readonly name: string & keyof T
+  /** Defaults to true. */
+  readonly editable?: boolean | ((context: SettingsContext) => boolean)
+}
+
+/** Metadata describing a settings entry that is a form. */
+export interface SettingsFormEntryData<T extends Record<keyof T, string>> {
+  readonly type: 'form'
+  readonly schema: z.ZodType<T> | ((context: SettingsContext) => z.ZodType<T>)
+  readonly getValue: (context: SettingsContext) => T
+  readonly onSubmit: (context: SettingsContext, value: T) => Promise<void> | void
+  readonly inputs: readonly SettingsInputData<NoInfer<T>>[]
+}
+
+/** A type-safe function to define a {@link SettingsFormEntryData}. */
+function settingsFormEntryData<T extends Record<keyof T, string>>(data: SettingsFormEntryData<T>) {
+  return data
 }
 
 // ===============================
@@ -500,7 +495,7 @@ export interface SettingsInputEntryData {
 
 /** Metadata describing a settings entry that needs custom rendering. */
 export interface SettingsCustomEntryData {
-  readonly type: SettingsEntryType.custom
+  readonly type: 'custom'
   readonly aliasesId?: TextId & `${string}SettingsCustomEntryAliases`
   readonly getExtraAliases?: (context: SettingsContext) => readonly string[]
   readonly render: (context: SettingsContext) => ReactNode
@@ -512,7 +507,8 @@ export interface SettingsCustomEntryData {
 // =========================
 
 /** A settings entry of an arbitrary type. */
-export type SettingsEntryData = SettingsCustomEntryData | SettingsInputEntryData
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type SettingsEntryData = SettingsCustomEntryData | SettingsFormEntryData<any>
 
 // =======================
 // === SettingsTabData ===

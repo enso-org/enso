@@ -54,7 +54,7 @@ export default function UpsertDatalinkModal(props: UpsertDatalinkModalProps) {
 
         <ButtonGroup>
           <Form.Submit>{getText('create')}</Form.Submit>
-          <Form.Submit action="cancel" />
+          <Form.Cancel />
         </ButtonGroup>
 
         <Form.FormError />

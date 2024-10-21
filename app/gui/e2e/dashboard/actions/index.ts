@@ -450,7 +450,7 @@ export namespace settings {
 
     /** Find a "name" input in the "user account" settings section. */
     export function locateNameInput(page: test.Page) {
-      return locate(page).getByLabel('Name')
+      return locate(page).getByLabel(TEXT.userNameSettingsInput).getByRole('textbox')
     }
   }
 
@@ -530,23 +530,23 @@ export namespace settings {
 
     /** Find a "name" input in the "organization" settings section. */
     export function locateNameInput(page: test.Page) {
-      return locate(page).getByLabel('Organization display name')
+      return locate(page).getByLabel(TEXT.organizationNameSettingsInput).getByRole('textbox')
     }
 
     /** Find an "email" input in the "organization" settings section. */
     // eslint-disable-next-line @typescript-eslint/no-shadow
     export function locateEmailInput(page: test.Page) {
-      return locate(page).getByLabel('Email')
+      return locate(page).getByLabel(TEXT.organizationEmailSettingsInput).getByRole('textbox')
     }
 
     /** Find an "website" input in the "organization" settings section. */
     export function locateWebsiteInput(page: test.Page) {
-      return locate(page).getByLabel('Website')
+      return locate(page).getByLabel(TEXT.organizationWebsiteSettingsInput).getByRole('textbox')
     }
 
     /** Find an "location" input in the "organization" settings section. */
     export function locateLocationInput(page: test.Page) {
-      return locate(page).getByLabel('Location')
+      return locate(page).getByLabel(TEXT.organizationLocationSettingsInput).getByRole('textbox')
     }
   }
 
