@@ -120,6 +120,7 @@ export default function Labels(props: LabelsProps) {
                         variant="icon"
                         icon={Trash2Icon}
                         aria-label={getText('delete')}
+                        tooltipPlacement="right"
                         className="relative flex size-4 text-delete opacity-0 transition-all after:absolute after:-inset-1 after:rounded-button-focus-ring group-has-[[data-focus-visible]]:active group-hover:active"
                       />
                       <ConfirmDeleteModal

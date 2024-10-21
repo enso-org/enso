@@ -569,7 +569,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
           if (editedRoot instanceof Ast.BodyBlock) Ast.repair(editedRoot, edit)
           syncModule.applyEdit(edit)
         } else {
-          const { root, spans } = Ast.parseBlockWithSpans(code, syncModule)
+          const { root, spans } = Ast.parseModuleWithSpans(code, syncModule)
           syncModule.syncRoot(root)
           parsedSpans = spans
         }

@@ -1,20 +1,23 @@
+import { commonContextMenuActions, type MenuItem } from '@/components/shared/AgGridTableView.vue'
 import type { WidgetInput, WidgetUpdate } from '@/providers/widgetRegistry'
 import { requiredImportsByFQN, type RequiredImport } from '@/stores/graph/imports'
 import type { SuggestionDb } from '@/stores/suggestionDatabase'
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { tryEnsoToNumber, tryNumberToEnso } from '@/util/ast/abstract'
+import { findIndexOpt } from '@/util/data/array'
 import * as iterable from '@/util/data/iterable'
 import { Err, Ok, transposeResult, unwrapOrWithLog, type Result } from '@/util/data/result'
 import { qnLastSegment, type QualifiedName } from '@/util/qualifiedName'
 import type { ToValue } from '@/util/reactivity'
-import type { ColDef, MenuItemDef } from 'ag-grid-enterprise'
+import type { ColDef } from 'ag-grid-enterprise'
 import { computed, toValue } from 'vue'
 
 const NEW_COLUMN_ID = 'NewColumn'
 const ROW_INDEX_COLUMN_ID = 'RowIndex'
 const NEW_COLUMN_HEADER = 'New Column'
 const ROW_INDEX_HEADER = '#'
+const DEFAULT_COLUMN_PREFIX = 'Column #'
 const NOTHING_PATH = 'Standard.Base.Nothing.Nothing' as QualifiedName
 const NOTHING_NAME = qnLastSegment(NOTHING_PATH)
 
@@ -25,27 +28,19 @@ export type RowData = {
 }
 
 /**
- * A more specialized version of AGGrid's `MenuItemDef` to simplify testing (the tests need to provide
- * only values actually used by the composable)
- */
-export interface MenuItem extends MenuItemDef<RowData> {
-  action: (params: { node: { data: RowData | undefined } | null }) => void
-}
-
-/**
  * A more specialized version of AGGrid's `ColDef` to simplify testing (the tests need to provide
  * only values actually used by the composable)
  */
 export interface ColumnDef extends ColDef<RowData> {
   valueGetter: ({ data }: { data: RowData | undefined }) => any
   valueSetter?: ({ data, newValue }: { data: RowData; newValue: any }) => boolean
-  mainMenuItems: (string | MenuItem)[]
-  contextMenuItems: (string | MenuItem)[]
+  mainMenuItems: (string | MenuItem<RowData>)[]
+  contextMenuItems: (string | MenuItem<RowData>)[]
   rowDrag?: ({ data }: { data: RowData | undefined }) => boolean
 }
 
 namespace cellValueConversion {
-  /** TODO: Add docs */
+  /** Convert AST node to a value for Grid (to be returned from valueGetter, for example). */
   export function astToAgGrid(ast: Ast.Ast) {
     if (ast instanceof Ast.TextLiteral) return Ok(ast.rawTextContent)
     else if (ast instanceof Ast.Ident && ast.code() === NOTHING_NAME) return Ok(null)
@@ -57,7 +52,11 @@ namespace cellValueConversion {
     }
   }
 
-  /** TODO: Add docs */
+  /**
+   * Convert value of Grid cell (received, for example, from valueSetter) to AST module.
+   *
+   * Empty values are converted to `Nothing`, which may require appropriate import to work properly.
+   */
   export function agGridToAst(
     value: unknown,
     module: Ast.MutableModule,
@@ -177,14 +176,13 @@ export function useTableNewArgument(
     }
   }
 
-  function addRow(edit: Ast.MutableModule, columnWithValue?: Ast.AstId, value?: unknown) {
-    for (const column of columns.value) {
+  function addRow(
+    edit: Ast.MutableModule,
+    valueGetter: (column: Ast.AstId, index: number) => unknown = () => null,
+  ) {
+    for (const [index, column] of columns.value.entries()) {
       const editedCol = edit.getVersion(column.data)
-      if (column.data.id === columnWithValue) {
-        editedCol.push(convertWithImport(value, edit))
-      } else {
-        editedCol.push(convertWithImport(null, edit))
-      }
+      editedCol.push(convertWithImport(valueGetter(column.data.id, index), edit))
     }
   }
 
@@ -198,21 +196,21 @@ export function useTableNewArgument(
   function addColumn(
     edit: Ast.MutableModule,
     name: string,
-    rowWithValue?: number,
-    value?: unknown,
+    valueGetter: (index: number) => unknown = () => null,
+    size: number = rowCount.value,
+    columns?: Ast.Vector,
   ) {
-    const newColumnSize = Math.max(rowCount.value, rowWithValue != null ? rowWithValue + 1 : 0)
     function* cellsGenerator() {
-      for (let i = 0; i < newColumnSize; ++i) {
-        if (i === rowWithValue) yield convertWithImport(value, edit)
-        else yield convertWithImport(null, edit)
+      for (let i = 0; i < size; ++i) {
+        yield convertWithImport(valueGetter(i), edit)
       }
     }
     const cells = Ast.Vector.new(edit, Array.from(cellsGenerator()))
     const newCol = Ast.Vector.new(edit, [Ast.TextLiteral.new(name), cells])
-    const ast = unwrapOrWithLog(columnsAst.value, undefined, errorMessagePreamble)
+    const ast = columns ?? unwrapOrWithLog(columnsAst.value, undefined, errorMessagePreamble)
     if (ast) {
       edit.getVersion(ast).push(newCol)
+      return ast
     } else {
       const inputAst = edit.getVersion(toValue(input).value)
       const newArg = Ast.Vector.new(edit, [newCol])
@@ -221,6 +219,7 @@ export function useTableNewArgument(
       } else {
         inputAst.updateValue((func) => Ast.App.new(edit, func, undefined, newArg))
       }
+      return newArg
     }
   }
 
@@ -268,7 +267,12 @@ export function useTableNewArgument(
       if (data.index === rowCount.value) {
         addRow(edit)
       }
-      addColumn(edit, NEW_COLUMN_HEADER, data.index, newValue)
+      addColumn(
+        edit,
+        `${DEFAULT_COLUMN_PREFIX}${columns.value.length}`,
+        (index) => (index === data.index ? newValue : null),
+        Math.max(rowCount.value, data.index + 1),
+      )
       onUpdate({ edit })
       return true
     },
@@ -282,7 +286,7 @@ export function useTableNewArgument(
       virtualColumn: true,
     },
     mainMenuItems: ['autoSizeThis', 'autoSizeAll'],
-    contextMenuItems: ['paste', 'separator', removeRowMenuItem],
+    contextMenuItems: [commonContextMenuActions.paste, 'separator', removeRowMenuItem],
     lockPosition: 'right',
   }))
 
@@ -324,7 +328,7 @@ export function useTableNewArgument(
             const edit = graph.startEdit()
             fixColumns(edit)
             if (data.index === rowCount.value) {
-              addRow(edit, col.data.id, newValue)
+              addRow(edit, (colId) => (colId === col.data.id ? newValue : null))
             } else {
               const newValueAst = convertWithImport(newValue, edit)
               if (astId != null) edit.replaceValue(astId, newValueAst)
@@ -343,10 +347,10 @@ export function useTableNewArgument(
           },
           mainMenuItems: ['autoSizeThis', 'autoSizeAll', removeColumnMenuItem(col.id)],
           contextMenuItems: [
-            'cut',
-            'copy',
+            commonContextMenuActions.cut,
+            commonContextMenuActions.copy,
             'copyWithHeaders',
-            'paste',
+            commonContextMenuActions.paste,
             'separator',
             removeRowMenuItem,
             removeColumnMenuItem(col.id),
@@ -425,6 +429,57 @@ export function useTableNewArgument(
     onUpdate({ edit })
   }
 
+  function pasteFromClipboard(data: string[][], focusedCell: { rowIndex: number; colId: string }) {
+    if (data.length === 0) return
+    const edit = graph.startEdit()
+    const focusedColIndex =
+      findIndexOpt(columns.value, ({ id }) => id === focusedCell.colId) ?? columns.value.length
+
+    const newValueGetter = (rowIndex: number, colIndex: number) => {
+      if (rowIndex < focusedCell.rowIndex) return undefined
+      if (colIndex < focusedColIndex) return undefined
+      return data[rowIndex - focusedCell.rowIndex]?.[colIndex - focusedColIndex]
+    }
+    const pastedRowsEnd = focusedCell.rowIndex + data.length
+    const pastedColsEnd = focusedColIndex + data[0]!.length
+
+    // Set data in existing cells.
+    for (
+      let rowIndex = focusedCell.rowIndex;
+      rowIndex < Math.min(pastedRowsEnd, rowCount.value);
+      ++rowIndex
+    ) {
+      for (
+        let colIndex = focusedColIndex;
+        colIndex < Math.min(pastedColsEnd, columns.value.length);
+        ++colIndex
+      ) {
+        const column = columns.value[colIndex]!
+        const newValueAst = convertWithImport(newValueGetter(rowIndex, colIndex), edit)
+        edit.getVersion(column.data).set(rowIndex, newValueAst)
+      }
+    }
+
+    // Extend the table if necessary.
+    const newRowCount = Math.max(pastedRowsEnd, rowCount.value)
+    for (let i = rowCount.value; i < newRowCount; ++i) {
+      addRow(edit, (_colId, index) => newValueGetter(i, index))
+    }
+    const newColCount = Math.max(pastedColsEnd, columns.value.length)
+    let modifiedColumnsAst: Ast.Vector | undefined
+    for (let i = columns.value.length; i < newColCount; ++i) {
+      modifiedColumnsAst = addColumn(
+        edit,
+        `${DEFAULT_COLUMN_PREFIX}${i}`,
+        (index) => newValueGetter(index, i),
+        newRowCount,
+        modifiedColumnsAst,
+      )
+    }
+    onUpdate({ edit })
+    return
+  }
+
   return {
     /** All column definitions, to be passed to AgGrid component. */
     columnDefs,
@@ -446,5 +501,15 @@ export function useTableNewArgument(
      * `overIndex` (the -1 case is handled)
      */
     moveRow,
+    /**
+     * Paste data from clipboard to grid in AST. Do not change rowData, its updated upon
+     * expected WidgetInput change.
+     *
+     * This updates the data in a single update, so it replaces the standard AgGrid paste handlers.
+     * If the pasted data are to be placed outside current table, the table is extended.
+     * @param data the clipboard data, as retrieved in `processDataFromClipboard`.
+     * @param focusedCell the currently focused cell: will become the left-top cell of pasted data.
+     */
+    pasteFromClipboard,
   }
 }
