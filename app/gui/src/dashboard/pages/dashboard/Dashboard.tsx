@@ -232,7 +232,7 @@ function DashboardInner(props: DashboardProps) {
             return null
           })
           if (modalRef.current == null) {
-            // eslint-disable-next-line no-restricted-syntax
+             
             return false
           }
         },
@@ -243,7 +243,7 @@ function DashboardInner(props: DashboardProps) {
   React.useEffect(() => {
     if (detect.isOnElectron()) {
       // We want to handle the back and forward buttons in electron the same way as in the browser.
-      // eslint-disable-next-line no-restricted-syntax
+       
       return inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
         goBack: () => {
           window.navigationApi.goBack()

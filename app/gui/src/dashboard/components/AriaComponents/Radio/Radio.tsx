@@ -145,7 +145,7 @@ export const Radio = forwardRef(function Radio(
   )
 }) as unknown as ((
   props: RadioProps & React.RefAttributes<HTMLLabelElement>,
-  // eslint-disable-next-line no-restricted-syntax
+   
 ) => React.JSX.Element) & {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   Group: typeof radioGroup.RadioGroup

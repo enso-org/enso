@@ -186,7 +186,7 @@ function constantValueOfSchemaHelper(
             }
             const value = constantValueOfSchema(defs, childSchema, partial)
             if (value.length === 0 && !partial) {
-              // eslint-disable-next-line no-restricted-syntax
+               
               return invalid
             } else {
               Object.defineProperty(object, key, { value: value[0] ?? null, enumerable: true })
@@ -197,7 +197,7 @@ function constantValueOfSchemaHelper(
         case 'array': {
           if (!partial && (!('items' in schema) || schema.items !== false)) {
             // This array may contain extra items.
-            // eslint-disable-next-line no-restricted-syntax
+             
             return invalid
           } else if (!('prefixItems' in schema) || !Array.isArray(schema.prefixItems)) {
             results.push([])
@@ -212,7 +212,7 @@ function constantValueOfSchemaHelper(
                   []
                 : constantValueOfSchema(defs, childSchemaObject, partial)
               if (childValue.length === 0 && !partial) {
-                // eslint-disable-next-line no-restricted-syntax
+                 
                 return invalid
               }
               array.push(childValue[0] ?? null)
@@ -224,12 +224,12 @@ function constantValueOfSchemaHelper(
     } else if ('$ref' in schema) {
       const referencedSchema = lookupDef(defs, schema)
       if (referencedSchema == null) {
-        // eslint-disable-next-line no-restricted-syntax
+         
         return invalid
       } else {
         const value = constantValueOfSchema(defs, referencedSchema, partial)
         if (!partial && value.length === 0) {
-          // eslint-disable-next-line no-restricted-syntax
+           
           return invalid
         }
         if (value.length === 1) {
@@ -238,17 +238,17 @@ function constantValueOfSchemaHelper(
       }
     } else if ('anyOf' in schema) {
       if (!Array.isArray(schema.anyOf) || (!partial && schema.anyOf.length !== 1)) {
-        // eslint-disable-next-line no-restricted-syntax
+         
         return invalid
       } else {
         const firstMember = objectModule.asObject(schema.anyOf[0])
         if (firstMember == null) {
-          // eslint-disable-next-line no-restricted-syntax
+           
           return invalid
         } else {
           const value = constantValueOfSchema(defs, firstMember, partial)
           if (!partial && value.length === 0) {
-            // eslint-disable-next-line no-restricted-syntax
+             
             return invalid
           }
           if (value.length === 1) {
@@ -266,7 +266,7 @@ function constantValueOfSchemaHelper(
           const value =
             schemaObject == null ? [] : constantValueOfSchema(defs, schemaObject, partial)
           if (!partial && value.length === 0) {
-            // eslint-disable-next-line no-restricted-syntax
+             
             return invalid
           }
           if (value.length === 1) {

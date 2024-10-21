@@ -214,7 +214,7 @@ export default class LocalBackend extends Backend {
           await this.projectManager.createDirectory(this.projectManager.rootDirectory)
           result = []
         } else {
-          // eslint-disable-next-line no-restricted-syntax
+           
           throw new Error('Directory does not exist.')
         }
       }

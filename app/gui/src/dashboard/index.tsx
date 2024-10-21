@@ -62,7 +62,7 @@ export interface DashboardProps extends app.AppProps {
  */
 export // This export declaration must be broken up to satisfy the `require-jsdoc` rule.
 // This is not a React component even though it contains JSX.
-// eslint-disable-next-line no-restricted-syntax
+ 
 function run(props: DashboardProps) {
   const { vibrancy, supportsDeepLinks, queryClient, logger } = props
   if (

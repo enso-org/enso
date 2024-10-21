@@ -1,6 +1,6 @@
 /** @file Emulates `newtype`s in TypeScript. */
 
-/* eslint-disable @typescript-eslint/consistent-type-definitions */
+ 
 
 // ===============
 // === Newtype ===
@@ -8,7 +8,7 @@
 
 /** An interface specifying the variant of a newtype. */
 type NewtypeVariant<TypeName extends string> = {
-  // eslint-disable-next-line @typescript-eslint/naming-convention
+   
   readonly _$type: TypeName
 }
 
@@ -17,9 +17,9 @@ type NewtypeVariant<TypeName extends string> = {
  * This is safe, as the discriminator should be a string literal type anyway.
  */
 // This is required for compatibility with the dependency `enso-chat`.
-// eslint-disable-next-line no-restricted-syntax
+ 
 type MutableNewtypeVariant<TypeName extends string> = {
-  // eslint-disable-next-line @typescript-eslint/naming-convention
+   
   _$type: TypeName
 }
 
@@ -53,7 +53,7 @@ type UnNewtype<T extends Newtype<unknown, string>> =
 
 /** An interface that matches a type if and only if it is not a newtype. */
 type NotNewtype = {
-  // eslint-disable-next-line @typescript-eslint/naming-convention
+   
   readonly _$type?: never
 }
 
@@ -69,6 +69,6 @@ export function newtypeConstructor<T extends Newtype<unknown, string>>() {
   //
   // The property name is specifically chosen to trigger eslint's `naming-convention` lint,
   // so it should not be possible to accidentally create a value with such a type.
-  // eslint-disable-next-line no-restricted-syntax
+   
   return (s: NotNewtype & UnNewtype<T>) => s as unknown as T
 }

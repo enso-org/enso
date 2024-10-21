@@ -26,7 +26,7 @@ declare module 'create-servers' {
   interface CreateServersOptions {
     readonly http?: number
     readonly handler: http.RequestListener
-    // eslint-disable-next-line no-restricted-syntax
+     
     readonly https?: {
       readonly port: number
       readonly key: string
@@ -48,7 +48,7 @@ declare module 'create-servers' {
   export default function (
     option: CreateServersOptions,
     // The types come from a third-party API and cannot be changed.
-    // eslint-disable-next-line no-restricted-syntax
+     
     handler: (err: HttpError | undefined, servers: CreatedServers) => void,
   ): unknown
 }

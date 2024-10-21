@@ -41,11 +41,11 @@ function useRenderProps<T>(props: RenderPropsHookOptions<T>) {
   const { className, style, children, defaultClassName, defaultChildren, values } = props
 
   return React.useMemo(() => {
-    // eslint-disable-next-line no-restricted-syntax
+     
     let computedClassName: string | undefined
-    // eslint-disable-next-line no-restricted-syntax
+     
     let computedStyle: React.CSSProperties | undefined
-    // eslint-disable-next-line no-restricted-syntax
+     
     let computedChildren: React.ReactNode | undefined
 
     if (typeof className === 'function') {
@@ -101,7 +101,7 @@ function useSlot(): [React.RefCallback<Element>, boolean] {
   return [ref, hasSlot]
 }
 
-// eslint-disable-next-line no-restricted-syntax
+ 
 const UNDEFINED = undefined
 
 /** A radio group allows a user to select a single item from a list of mutually exclusive options. */

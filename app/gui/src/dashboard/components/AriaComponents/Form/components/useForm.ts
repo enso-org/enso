@@ -172,7 +172,7 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
 
           setFormError(message)
           // We need to throw the error to make the mutation fail
-          // eslint-disable-next-line no-restricted-syntax
+           
           throw error
         }
       },

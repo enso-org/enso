@@ -152,7 +152,7 @@ export const Selector = forwardRef(function Selector<
                 aria-label={props['aria-label'] ?? (typeof label === 'string' ? label : '')}
                 value={String(items.indexOf(value))}
                 onChange={(newValue) => {
-                  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+                   
                   renderProps.field.onChange(items[Number(newValue)])
                 }}
               >

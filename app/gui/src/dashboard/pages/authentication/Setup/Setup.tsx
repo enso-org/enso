@@ -168,7 +168,7 @@ const BASE_STEPS: Step[] = [
           className="max-w-96"
           onSubmit={({ organizationName }) => {
             if (organizationName !== defaultOrgName) {
-              // eslint-disable-next-line no-restricted-syntax
+               
               return updateOrganizationMutation.mutateAsync([{ name: organizationName }])
             }
           }}
@@ -402,7 +402,7 @@ export function Setup() {
   }
 
   if (session?.type !== UserSessionType.full && session?.type !== UserSessionType.partial) {
-    // eslint-disable-next-line no-restricted-syntax
+     
     return <Navigate to={LOGIN_PATH} />
   }
 

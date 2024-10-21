@@ -1,6 +1,8 @@
-/** @file Type definitions for modules that currently lack typings on DefinitelyTyped.
+/**
+ * @file Type definitions for modules that currently lack typings on DefinitelyTyped.
  *
- * This file MUST NOT `export {}` so that the modules are visible to other files. */
+ * This file MUST NOT `export {}` so that the modules are visible to other files.
+ */
 
 // ===========================
 // === Module declarations ===
@@ -15,7 +17,7 @@ declare module 'eslint-plugin-react' {
   }
 
   // The names come from a third-party API and cannot be changed.
-  /* eslint-disable @typescript-eslint/naming-convention */
+   
   /** Configurations defined by this ESLint plugin. */
   interface Configs {
     readonly recommended: Config
@@ -29,7 +31,7 @@ declare module 'eslint-plugin-react' {
     readonly 'jsx-space-before-closing': object
   }
 
-  /* eslint-enable @typescript-eslint/naming-convention */
+   
 
   /** The default export of this ESLint plugin. */
   export interface Default {
@@ -39,7 +41,7 @@ declare module 'eslint-plugin-react' {
   }
 
   // The names come from a third-party API and cannot be changed.
-  // eslint-disable-next-line no-restricted-syntax
+   
   export const deprecatedRules: DeprecatedRules
 
   const DEFAULT: Default
@@ -61,10 +63,10 @@ declare module 'eslint-plugin-react-hooks' {
   /** Rules defined by this ESLint plugin. */
   interface ReactHooksRules {
     // The names come from a third-party API and cannot be changed.
-    /* eslint-disable @typescript-eslint/naming-convention */
+     
     readonly 'rules-of-hooks': object
     readonly 'exhaustive-deps': object
-    /* eslint-enable @typescript-eslint/naming-convention */
+     
   }
 
   /** The default export of this ESLint plugin. */
@@ -74,10 +76,10 @@ declare module 'eslint-plugin-react-hooks' {
   }
 
   // The names come from a third-party API and cannot be changed.
-  /* eslint-disable no-restricted-syntax */
+   
   export const configs: Configs
   export const rules: ReactHooksRules
-  /* eslint-enable no-restricted-syntax */
+   
 
   const DEFAULT: Default
   export default DEFAULT

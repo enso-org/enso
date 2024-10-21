@@ -6,14 +6,14 @@ import * as linkedDist from 'enso-runner/src/runner'
 import BUILD_INFO from '../buildInfo'
 
 // Aliases with the same name as the original.
-// eslint-disable-next-line no-restricted-syntax
+ 
 export const Option = linkedDist.config.Option
-// eslint-disable-next-line no-restricted-syntax
+ 
 export const Group = linkedDist.config.Group
 export const logger = linkedDist.log.logger
 /** A configuration option. */
 // This type has the same name as a variable.
-// eslint-disable-next-line @typescript-eslint/no-redeclare
+ 
 export type Option<T> = linkedDist.config.Option<T>
 
 // ===============
@@ -45,6 +45,6 @@ import CONFIG from './config.json' assert { type: 'json' }
 
 export const OPTIONS = linkedDist.config.options.merge(
   // `valueEval` in `config.json` uses PascalCase scope variables for some reason.
-  // eslint-disable-next-line @typescript-eslint/naming-convention
+   
   linkedDist.config.objectToGroup(CONFIG),
 )

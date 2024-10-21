@@ -1,6 +1,6 @@
 /** @file A test for basic flow of the application: open project and see if nodes appear. */
 
-/* eslint-disable @typescript-eslint/no-magic-numbers */
+ 
 
 import { expect } from '@playwright/test'
 import { electronTest, loginAsTestUser } from './electronTest'
