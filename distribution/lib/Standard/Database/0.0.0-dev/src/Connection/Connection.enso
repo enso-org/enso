@@ -71,12 +71,15 @@ type Connection
        - jdbc_connection: the resource managing the underlying JDBC
          connection.
        - dialect: the dialect associated with the database we are connected to.
+       - entity_naming_properties: a helper allowing to manage properties of
+         entity naming rules of the given backend.
+       - data_link_setup: an optional setup allowing for saving the connection
+         as a data link.
        - try_large_update: whether the connection should try to use
          `executeLargeUpdate`.
-    new : JDBC_Connection -> Dialect -> Entity_Naming_Properties -> Boolean -> Connection
-    new jdbc_connection dialect entity_naming_properties try_large_update=True =
+    new jdbc_connection:JDBC_Connection dialect entity_naming_properties:Entity_Naming_Properties (data_link_setup : Data_Link_Setup | Nothing = Nothing) (try_large_update : Boolean = True) -> Connection =
         registry = Hidden_Table_Registry.new
-        Connection.Value jdbc_connection dialect entity_naming_properties (Ref.new try_large_update) registry
+        Connection.Value jdbc_connection dialect entity_naming_properties (Ref.new try_large_update) registry data_link_setup
 
     ## PRIVATE
        Closes the connection releasing the underlying database resources
@@ -481,7 +484,7 @@ type Connection
     @on_existing_file (Existing_File_Behavior.widget include_backup=False include_append=False)
     save_as_data_link self destination (on_existing_file:Existing_File_Behavior = Existing_File_Behavior.Error) =
         case self.data_link_setup of
-            Nothing -> Error.throw (Illegal_State.Error "This connection does not support saving it as a data link.")
+            Nothing -> Error.throw (Illegal_State.Error "This Database connection does not support saving it as a data link.")
             data_link_setup -> data_link_setup.save_as_data_link destination on_existing_file
 
 
@@ -520,7 +523,7 @@ make_structure_creator =
 
 ## PRIVATE
 make_table_from_query connection query:Text|SQL_Statement alias:Text -> DB_Table =
-    columns = connection.fetch_columns query Statement_Setter.null
+    columns = connection.base_connection.fetch_columns query Statement_Setter.null
     name = if alias == "" then (UUID.randomUUID.to_text) else alias
     ctx = Context.for_query query name
     DB_Table_Module.make_table connection name columns ctx on_problems=Problem_Behavior.Report_Error
@@ -531,7 +534,7 @@ make_table_for_name connection name alias internal_temporary_keep_alive_referenc
         ctx = Context.for_table name (if alias == "" then name else alias) internal_temporary_keep_alive_reference
         statement = connection.dialect.generate_sql (Query.Select Nothing ctx)
         statement_setter = connection.dialect.get_statement_setter
-        columns = connection.fetch_columns statement statement_setter
+        columns = connection.base_connection.fetch_columns statement statement_setter
         ## In case of accessing an existing table, we assume that column names
            are distinguishable by the backend, so any issues that are caught
            only affect Enso columns, and just renaming Enso columns is enough to

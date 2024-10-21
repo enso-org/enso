@@ -106,8 +106,8 @@ type SQL_Statement
                 parsed = Json.parse json
                 if parsed.is_a JS_Object then parsed else
                     Error.throw (Illegal_Argument.Error "Error parsing SQL_Statement: expected a JSON object, but got: "+parsed.to_display_text+".")
-        fragments = parsed_json.get "query" if_missing=(Error.throw (Illegal_Argument.Error "Error parsing SQL_Statement: It should contain a `query` field."))
-        if fragments.is_a Vector . not then Error.throw (Illegal_Argument.Error "Error parsing SQL_Statement: The 'query' field should be an array.") else
+        fragments = parsed_json.get "query" if_missing=(Error.throw (Illegal_Argument.Error "Error parsing SQL_Statement: It should contain a `query` field. Fields were: "+parsed_json.field_names.to_display_text+"."))
+        if fragments.is_a Vector . not then Error.throw (Illegal_Argument.Error "Error parsing SQL_Statement: The 'query' field should be an array, but got:"+fragments.to_display_text+".") else
             parse_fragment fragment = case fragment of
                 _ : JS_Object ->
                     fields = fragment.field_names

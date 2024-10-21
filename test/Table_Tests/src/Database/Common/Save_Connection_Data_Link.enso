@@ -93,7 +93,7 @@ add_specs suite_builder prefix connection_details pending =
                 r2.column_names . should_equal ["X"]
                 r2.at "X" . to_vector . should_equal_ignoring_order [1, 2, 3]
 
-                complex_query_test_enabled = raw_connection.is_feature_supported ..Column_Operations
+                complex_query_test_enabled = raw_connection.dialect.is_feature_supported ..Column_Operations
                 case complex_query_test_enabled of
                     False ->
                         IO.println "Skipping complex query data link tests, because the dialect does not support minimal column operations needed to prepare it."

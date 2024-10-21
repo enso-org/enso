@@ -7,8 +7,8 @@ import Standard.Base.Runtime.Context
 from Standard.Base.Enso_Cloud.Data_Link_Helpers import data_link_extension, secure_value_to_json, save_password_for_data_link
 
 import project.Connection.Credentials.Credentials
-import project.Connection.Connection.Connection
 import project.SQL_Statement.SQL_Statement
+from project.Connection.Connection import make_table_from_query
 
 ## PRIVATE
 type Data_Link_Setup
@@ -129,5 +129,5 @@ type DB_Data_Link_Type
         DB_Data_Link_Type.Query raw_sql ->
             connection.query (..Raw_SQL raw_sql)
         DB_Data_Link_Type.SQL_Statement sql_statement ->
-            Connection.make_table_from_query connection sql_statement alias=""
+            make_table_from_query connection sql_statement alias=""
                 . catch Any error-> Error.throw (Illegal_State.Error "Failed to read back the SQL statement from the data link: "+error.to_display_text)

@@ -2841,7 +2841,7 @@ type DB_Table
             sql_statement = self.to_sql
             prepared = sql_statement.prepare
             # If there are no interpolations, we can do a raw query represented by Text (more friendly in the GUI).
-            if prepared.second.is_empty then ..Query sql_statement.first else
+            if prepared.second.is_empty then ..Query prepared.first else
                 # Lastly, if there are interpolations, we need to fully serialize
                 ..SQL_Statement sql_statement
         data_link_setup.save_as_data_link destination on_existing_file link_type
