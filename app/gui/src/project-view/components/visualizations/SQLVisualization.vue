@@ -92,9 +92,7 @@ function replaceAlpha(color: RGBA, newAlpha: number) {
   }
 }
 
-/**
- * Renders HTML for displaying an Enso parameter that is interpolated into the SQL code.
- */
+/** Renders HTML for displaying an Enso parameter that is interpolated into the SQL code. */
 function renderInterpolationParameter(theme: Theme, param: { enso_type: string; value: string }) {
   const actualType = param.enso_type
   let value = param.value
@@ -110,9 +108,7 @@ function renderInterpolationParameter(theme: Theme, param: { enso_type: string; 
   return renderRegularInterpolation(value, fgColor, bgColor)
 }
 
-/**
- * A helper that renders the HTML representation of a regular SQL interpolation.
- */
+/** A helper that renders the HTML representation of a regular SQL interpolation. */
 function renderRegularInterpolation(value: string, fgColor: RGBA, bgColor: RGBA) {
   let html = `<div class="interpolation" style="color:${convertColorToRgba(
     fgColor,

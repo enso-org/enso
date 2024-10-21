@@ -11,9 +11,7 @@ import { useText } from '#/providers/TextProvider'
 import * as formContext from './FormProvider'
 import type * as types from './types'
 
-/**
- * Props for the Reset component.
- */
+/** Props for the Reset component. */
 export interface ResetProps extends Omit<ariaComponents.ButtonProps, 'loading'> {
   /**
    * Connects the reset button to a form.
@@ -26,9 +24,7 @@ export interface ResetProps extends Omit<ariaComponents.ButtonProps, 'loading'> 
   readonly form?: types.FormInstance<any>
 }
 
-/**
- * Reset button for forms.
- */
+/** Reset button for forms. */
 export function Reset(props: ResetProps): React.JSX.Element {
   const { getText } = useText()
   const {
@@ -44,6 +40,9 @@ export function Reset(props: ResetProps): React.JSX.Element {
 
   return (
     <ariaComponents.Button
+      onPress={() => {
+        form.reset()
+      }}
       /* This is safe because we are passing all props to the button */
       /* eslint-disable-next-line @typescript-eslint/no-explicit-any,no-restricted-syntax */
       {...(buttonProps as any)}

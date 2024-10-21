@@ -518,7 +518,7 @@ public class Main {
   }
 
   /** Prints the help message to the standard output. */
-  private static void printHelp() {
+  void printHelp() {
     new HelpFormatter().printHelp(LanguageInfo.ID, CLI_OPTIONS);
   }
 
@@ -960,6 +960,7 @@ public class Main {
                 .messageTransport(replTransport())
                 .enableDebugServer(true)
                 .logLevel(logLevel)
+                .executionEnvironment("live")
                 .logMasking(logMasking)
                 .enableIrCaches(enableIrCaches)
                 .disableLinting(true)
@@ -1435,6 +1436,7 @@ public class Main {
           System.currentTimeMillis() - startParsing);
       return line;
     } catch (Exception e) {
+      println(e.getMessage());
       printHelp();
       throw exitFail();
     }

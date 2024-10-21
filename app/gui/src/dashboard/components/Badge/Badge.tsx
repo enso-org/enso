@@ -8,9 +8,7 @@ import { tv } from '#/utilities/tailwindVariants'
 import type { ReactNode } from 'react'
 import { TEXT_STYLE } from '../AriaComponents'
 
-/**
- * Props for the {@link Badge} component.
- */
+/** Props for the {@link Badge} component. */
 export interface BadgeProps extends VariantProps<typeof BADGE_STYLES> {
   readonly children?: ReactNode
   readonly className?: string
@@ -61,9 +59,7 @@ export const BADGE_STYLES = tv({
   },
 })
 
-/**
- * Badges are used to highlight an item's status for quick recognition.
- */
+/** Badges are used to highlight an item's status for quick recognition. */
 export function Badge(props: BadgeProps) {
   const { children, color, rounded, className, variant } = props
 

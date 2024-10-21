@@ -11,9 +11,7 @@ import { createContext, useContext, useId } from 'react'
 import { twJoin } from '#/utilities/tailwindMerge'
 import invariant from 'tiny-invariant'
 
-/**
- * Props for {@link AnimatedBackground}.
- */
+/** Props for {@link AnimatedBackground}. */
 interface AnimatedBackgroundProps extends PropsWithChildren {
   readonly value: string
   readonly transition?: Transition
@@ -37,9 +35,7 @@ const DEFAULT_TRANSITION: Transition = {
   velocity: 12,
 }
 
-/**
- * `<AnimatedBackground />` component visually highlights selected items by sliding a background into view when hovered over or clicked.
- */
+/** `<AnimatedBackground />` component visually highlights selected items by sliding a background into view when hovered over or clicked. */
 export function AnimatedBackground(props: AnimatedBackgroundProps) {
   const { value, transition = DEFAULT_TRANSITION, children } = props
   const layoutId = useId()
@@ -51,18 +47,14 @@ export function AnimatedBackground(props: AnimatedBackgroundProps) {
   )
 }
 
-/**
- * Props for {@link AnimatedBackground.Item}.
- */
+/** Props for {@link AnimatedBackground.Item}. */
 interface AnimatedBackgroundItemProps extends PropsWithChildren {
   readonly value: string
   readonly className?: string
   readonly animationClassName?: string
 }
 
-/**
- * Item within an {@link AnimatedBackground}.
- */
+/** Item within an {@link AnimatedBackground}. */
 AnimatedBackground.Item = function AnimatedBackgroundItem(props: AnimatedBackgroundItemProps) {
   const context = useContext(AnimatedBackgroundContext)
   invariant(context, 'useAnimatedBackground must be used within an AnimatedBackgroundProvider')

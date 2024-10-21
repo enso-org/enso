@@ -7,9 +7,7 @@ import type { GetText } from '#/providers/TextProvider'
 import { PASSWORD_REGEX } from '#/utilities/validation'
 import { z } from 'zod'
 
-/**
- * A schema for validating passwords.
- */
+/** A schema for validating passwords. */
 export function passwordSchema(getText: GetText) {
   return (
     z
@@ -21,9 +19,7 @@ export function passwordSchema(getText: GetText) {
   )
 }
 
-/**
- * A schema for validating passwords that match the required pattern.
- */
+/** A schema for validating passwords that match the required pattern. */
 export function passwordWithPatternSchema(getText: GetText) {
   return passwordSchema(getText).refine(
     (password) => PASSWORD_REGEX.test(password),

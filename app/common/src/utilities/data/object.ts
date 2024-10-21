@@ -16,8 +16,10 @@ export type Mutable<T> = {
 /** Prevents generic parameter inference by hiding the type parameter behind a conditional type. */
 type NoInfer<T> = [T][T extends T ? 0 : never]
 
-/** Immutably shallowly merge an object with a partial update.
- * Does not preserve classes. Useful for preserving order of properties. */
+/**
+ * Immutably shallowly merge an object with a partial update.
+ * Does not preserve classes. Useful for preserving order of properties.
+ */
 export function merge<T extends object>(object: T, update: Partial<T>): T {
   for (const [key, value] of Object.entries(update)) {
     // eslint-disable-next-line no-restricted-syntax
@@ -57,8 +59,10 @@ export function unsafeMutable<T extends object>(object: T): { -readonly [K in ke
 // === unsafeEntries ===
 // =====================
 
-/** Return the entries of an object. UNSAFE only when it is possible for an object to have
- * extra keys. */
+/**
+ * Return the entries of an object. UNSAFE only when it is possible for an object to have
+ * extra keys.
+ */
 export function unsafeEntries<T extends object>(
   object: T,
 ): readonly { [K in keyof T]: readonly [K, T[K]] }[keyof T][] {
@@ -83,8 +87,10 @@ export function unsafeRemoveUndefined<T extends object>(
 // === mapEntries ===
 // ==================
 
-/** Return the entries of an object. UNSAFE only when it is possible for an object to have
- * extra keys. */
+/**
+ * Return the entries of an object. UNSAFE only when it is possible for an object to have
+ * extra keys.
+ */
 export function mapEntries<K extends PropertyKey, V, W>(
   object: Record<K, V>,
   map: (key: K, value: V) => W,

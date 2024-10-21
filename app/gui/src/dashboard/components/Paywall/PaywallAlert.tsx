@@ -16,9 +16,7 @@ import * as ariaComponents from '#/components/AriaComponents'
 import * as paywall from '#/components/Paywall'
 import SvgMask from '#/components/SvgMask'
 
-/**
- * Props for {@link PaywallAlert}.
- */
+/** Props for {@link PaywallAlert}. */
 export interface PaywallAlertProps extends Omit<ariaComponents.AlertProps, 'children'> {
   readonly feature: billingHooks.PaywallFeatureName
   readonly label: string
@@ -26,9 +24,7 @@ export interface PaywallAlertProps extends Omit<ariaComponents.AlertProps, 'chil
   readonly upgradeButtonProps?: Omit<paywall.UpgradeButtonProps, 'feature'>
 }
 
-/**
- * A paywall alert.
- */
+/** A paywall alert. */
 export function PaywallAlert(props: PaywallAlertProps) {
   const {
     label,

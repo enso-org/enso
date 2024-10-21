@@ -38,9 +38,7 @@ import { AddPaymentMethodForm, createAddPaymentMethodFormSchema } from '../../Ad
 import { StripeProvider } from '../../StripeProvider'
 import { PlanFeatures } from './PlanFeatures'
 
-/**
- * Props for {@link PlanSelectorDialog}.
- */
+/** Props for {@link PlanSelectorDialog}. */
 export interface PlanSelectorDialogProps {
   readonly plan: Plan
   readonly planName: string
@@ -53,9 +51,7 @@ export interface PlanSelectorDialogProps {
         interval: number,
       ) => Promise<void> | void)
     | undefined
-  /**
-   * Whether the user clicked on the trial button.
-   */
+  /** Whether the user clicked on the trial button. */
   readonly isTrialing?: boolean
 }
 
@@ -67,9 +63,7 @@ function billingPeriodToString(getText: GetText, item: number) {
   )
 }
 
-/**
- * Dialog that shows the plan details, price, and the payment form.
- */
+/** Dialog that shows the plan details, price, and the payment form. */
 export function PlanSelectorDialog(props: PlanSelectorDialogProps) {
   const { title, planName, features, plan, isTrialing = false, onSubmit } = props
   const { getText, locale } = useText()
@@ -228,9 +222,7 @@ export function PlanSelectorDialog(props: PlanSelectorDialogProps) {
   )
 }
 
-/**
- * Props for {@link Summary}.
- */
+/** Props for {@link Summary}. */
 interface SummaryProps {
   readonly plan: Plan
   readonly seats: number
@@ -240,9 +232,7 @@ interface SummaryProps {
   readonly isTrialing?: boolean
 }
 
-/**
- * Displays a summary of the plan details and the total price.
- */
+/** Displays a summary of the plan details and the total price. */
 function Summary(props: SummaryProps) {
   const { plan, seats, period, formatter, isInvalid = false } = props
   const { getText } = useText()

@@ -1,8 +1,10 @@
 package org.enso.table.data.column.builder;
 
 import java.time.LocalDate;
+import java.util.Objects;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.datetime.DateStorage;
+import org.enso.table.data.column.storage.type.DateTimeType;
 import org.enso.table.data.column.storage.type.DateType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.error.ValueTypeMismatchException;
@@ -14,8 +16,15 @@ public class DateBuilder extends TypedBuilderImpl<LocalDate> {
     return new LocalDate[size];
   }
 
+  private final boolean allowDateToDateTimeConversion;
+
   public DateBuilder(int size) {
+    this(size, false);
+  }
+
+  public DateBuilder(int size, boolean allowDateToDateTimeConversion) {
     super(size);
+    this.allowDateToDateTimeConversion = allowDateToDateTimeConversion;
   }
 
   @Override
@@ -44,5 +53,25 @@ public class DateBuilder extends TypedBuilderImpl<LocalDate> {
   @Override
   protected Storage<LocalDate> doSeal() {
     return new DateStorage(data, currentSize);
+  }
+
+  @Override
+  public boolean canRetypeTo(StorageType type) {
+    if (allowDateToDateTimeConversion && Objects.equals(type, DateTimeType.INSTANCE)) {
+      return true;
+    }
+    return super.canRetypeTo(type);
+  }
+
+  @Override
+  public TypedBuilder retypeTo(StorageType type) {
+    if (allowDateToDateTimeConversion && Objects.equals(type, DateTimeType.INSTANCE)) {
+      DateTimeBuilder res = new DateTimeBuilder(data.length, true);
+      for (int i = 0; i < currentSize; i++) {
+        res.appendNoGrow(data[i]);
+      }
+      return res;
+    }
+    return super.retypeTo(type);
   }
 }

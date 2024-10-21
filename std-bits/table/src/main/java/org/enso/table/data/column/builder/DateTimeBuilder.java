@@ -3,6 +3,7 @@ package org.enso.table.data.column.builder;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.BitSet;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.datetime.DateStorage;
 import org.enso.table.data.column.storage.datetime.DateTimeStorage;
@@ -19,8 +20,17 @@ public class DateTimeBuilder extends TypedBuilderImpl<ZonedDateTime> {
     return new ZonedDateTime[size];
   }
 
+  private final boolean allowDateToDateTimeConversion;
+  private final BitSet wasLocalDate;
+
   public DateTimeBuilder(int size) {
+    this(size, false);
+  }
+
+  public DateTimeBuilder(int size, boolean allowDateToDateTimeConversion) {
     super(size);
+    this.allowDateToDateTimeConversion = allowDateToDateTimeConversion;
+    this.wasLocalDate = allowDateToDateTimeConversion ? new BitSet(size) : null;
   }
 
   @Override
@@ -39,7 +49,12 @@ public class DateTimeBuilder extends TypedBuilderImpl<ZonedDateTime> {
   @Override
   public void appendNoGrow(Object o) {
     try {
-      data[currentSize++] = (ZonedDateTime) o;
+      if (allowDateToDateTimeConversion && o instanceof LocalDate localDate) {
+        data[currentSize++] = convertDate(localDate);
+        wasLocalDate.set(currentSize - 1);
+      } else {
+        data[currentSize++] = (ZonedDateTime) o;
+      }
     } catch (ClassCastException e) {
       throw new ValueTypeMismatchException(getType(), o);
     }
@@ -75,11 +90,29 @@ public class DateTimeBuilder extends TypedBuilderImpl<ZonedDateTime> {
 
   @Override
   public boolean accepts(Object o) {
-    return o instanceof ZonedDateTime;
+    return o instanceof ZonedDateTime || (allowDateToDateTimeConversion && o instanceof LocalDate);
   }
 
   @Override
   protected Storage<ZonedDateTime> doSeal() {
     return new DateTimeStorage(data, currentSize);
+  }
+
+  @Override
+  public void retypeToMixed(Object[] items) {
+    if (allowDateToDateTimeConversion) {
+      if (currentSize >= 0) {
+        System.arraycopy(data, 0, items, 0, currentSize);
+
+        // Replace ZonedDateTime with LocalDate where necessary.
+        int next = this.wasLocalDate.nextSetBit(0);
+        while (next != -1) {
+          items[next] = data[next].toLocalDate();
+          next = this.wasLocalDate.nextSetBit(next + 1);
+        }
+      }
+    } else {
+      super.retypeToMixed(items);
+    }
   }
 }

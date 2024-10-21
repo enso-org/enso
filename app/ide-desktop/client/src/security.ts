@@ -1,5 +1,7 @@
-/** @file Security configuration of Electron. Most of the options are based on the official security
- * guide: https://www.electronjs.org/docs/latest/tutorial/security. */
+/**
+ * @file Security configuration of Electron. Most of the options are based on the official security
+ * guide: https://www.electronjs.org/docs/latest/tutorial/security.
+ */
 
 import * as electron from 'electron'
 
@@ -36,8 +38,10 @@ const WEBVIEW_URL_WHITELIST: string[] = []
 // === Utils ===
 // =============
 
-/** Secure the web preferences of a new window. It deletes potentially unsecure options, making them
- * revert to secure defaults. */
+/**
+ * Secure the web preferences of a new window. It deletes potentially unsecure options, making them
+ * revert to secure defaults.
+ */
 export function secureWebPreferences(webPreferences: electron.WebPreferences) {
   delete webPreferences.preload
   delete webPreferences.nodeIntegration
@@ -54,16 +58,20 @@ export function secureWebPreferences(webPreferences: electron.WebPreferences) {
 // === Security ===
 // ================
 
-/** Enabling sandbox globally. Follow the link to learn more:
- * https://www.electronjs.org/docs/latest/tutorial/sandbox. */
+/**
+ * Enabling sandbox globally. Follow the link to learn more:
+ * https://www.electronjs.org/docs/latest/tutorial/sandbox.
+ */
 function enableGlobalSandbox() {
   electron.app.enableSandbox()
 }
 
-/** By default, Electron will automatically approve all permission requests unless the developer has
+/**
+ * By default, Electron will automatically approve all permission requests unless the developer has
  * manually configured a custom handler. While a solid default, security-conscious developers might
  * want to assume the very opposite. Follow the link to learn more:
- * https://www.electronjs.org/docs/latest/tutorial/security#5-handle-session-permission-requests-from-remote-content. */
+ * https://www.electronjs.org/docs/latest/tutorial/security#5-handle-session-permission-requests-from-remote-content.
+ */
 function rejectPermissionRequests() {
   void electron.app.whenReady().then(() => {
     electron.session.defaultSession.setPermissionRequestHandler((_webContents, permission) => {
@@ -72,7 +80,8 @@ function rejectPermissionRequests() {
   })
 }
 
-/** This Electron app is configured with extra CORS headers. Those headers are added because they
+/**
+ * This Electron app is configured with extra CORS headers. Those headers are added because they
  * increase security and enable higher resolution for `performance.now()` timers. However, one of
  * these headers (i.e., `Cross-Origin-Embedder-Policy: require-corp`), breaks the Stripe.js library.
  * This is because Stripe.js does not provide a `Cross-Origin-Resource-Policy` header or
@@ -89,7 +98,8 @@ function rejectPermissionRequests() {
  *
  * The missing headers are added more generally to all resources hosted at `https://js.stripe.com`.
  * This is because the resources are fingerprinted and the fingerprint changes every time the
- * resources are updated. Additionally, Stripe.js may choose to add more resources in the future. */
+ * resources are updated. Additionally, Stripe.js may choose to add more resources in the future.
+ */
 function addMissingCorsHeaders() {
   void electron.app.whenReady().then(() => {
     electron.session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
@@ -103,12 +113,14 @@ function addMissingCorsHeaders() {
   })
 }
 
-/** A WebView created in a renderer process that does not have Node.js integration enabled will not
+/**
+ * A WebView created in a renderer process that does not have Node.js integration enabled will not
  * be able to enable integration itself. However, a WebView will always create an independent
  * renderer process with its own webPreferences. It is a good idea to control the creation of new
  * <webview> tags from the main process and to verify that their webPreferences do not disable
  * security features. Follow the link to learn more:
- * https://www.electronjs.org/docs/tutorial/security#11-verify-webview-options-before-creation. */
+ * https://www.electronjs.org/docs/tutorial/security#11-verify-webview-options-before-creation.
+ */
 function limitWebViewCreation() {
   electron.app.on('web-contents-created', (_event, contents) => {
     contents.on('will-attach-webview', (event, webPreferences, params) => {
@@ -121,10 +133,12 @@ function limitWebViewCreation() {
   })
 }
 
-/** Navigation is a common attack vector. If an attacker can convince your app to navigate away from
+/**
+ * Navigation is a common attack vector. If an attacker can convince your app to navigate away from
  * its current page, they can possibly force your app to open web sites on the Internet. Follow the
  * link to learn more:
- * https://www.electronjs.org/docs/tutorial/security#12-disable-or-limit-navigation. */
+ * https://www.electronjs.org/docs/tutorial/security#12-disable-or-limit-navigation.
+ */
 function preventNavigation() {
   let lastFocusedWindow = electron.BrowserWindow.getFocusedWindow()
   electron.app.on('browser-window-focus', () => {
@@ -146,11 +160,13 @@ function preventNavigation() {
   })
 }
 
-/** Much like navigation, the creation of new webContents is a common attack vector. Attackers
+/**
+ * Much like navigation, the creation of new webContents is a common attack vector. Attackers
  * attempt to convince your app to create new windows, frames, or other renderer processes with
  * more privileges than they had before or with pages opened that they couldn't open before.
  * Follow the link to learn more:
- * https://www.electronjs.org/docs/tutorial/security#13-disable-or-limit-creation-of-new-windows. */
+ * https://www.electronjs.org/docs/tutorial/security#13-disable-or-limit-creation-of-new-windows.
+ */
 function disableNewWindowsCreation() {
   electron.app.on('web-contents-created', (_event, contents) => {
     contents.setWindowOpenHandler(details => {
