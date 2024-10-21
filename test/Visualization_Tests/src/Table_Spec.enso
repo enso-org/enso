@@ -21,13 +21,17 @@ type Data
 
     t self = self.data.at 0
     t2 self = self.data.at 1
+    t3_with_nulls self = self.data.at 2
+    t4_with_space self = self.data.at 3
 
     setup = Data.Value <|
         connection = Database.connect (SQLite.In_Memory)
         in_mem = Table.new [["A", ['a', 'a', 'a']], ["B", [2, 2, 3]], ["C", [3, 5, 6]]]
         t = in_mem.select_into_database_table connection "T" primary_key=Nothing temporary=True
         t2 = Table.new [["A", [1, 2, 3]], ["B", [4, 5, 6]], ["C", [7, 8, 9]]]
-        [t, t2]
+        t3_with_nulls = Table.new [["A", [1, Nothing, 3]], ["B", [4, Nothing, Nothing]], ["C", [7, Nothing, Nothing]]]
+        t4_with_space = Table.new [["A", ['hello', '   leading space', 'trailing space    ']], ["B", ['a', 'b', 'c']], ["C", [7, 8, 9]]]
+        [t, t2, t3_with_nulls, t4_with_space]
 
 
 type Foo
@@ -43,16 +47,19 @@ type Foo_Link
     to_js_object self = JS_Object.from_pairs [["x", self.x], ["links", ["a", "b", "c"]]]
 
 add_specs suite_builder =
-    make_json header data all_rows value_type has_index_col get_child_node =
+    make_json header data all_rows value_type has_index_col get_child_node number_of_nothing number_of_whitespace =
         p_header      = ["header", header]
         p_data        = ["data",   data]
         p_all_rows    = ["all_rows_count", all_rows]
         p_value_type  = ["value_type", value_type]
         p_has_index_col = ["has_index_col", has_index_col]
         p_get_child_node = ["get_child_node_action", get_child_node]
-        pairs    = [p_header, p_value_type, p_data, p_all_rows, p_has_index_col, p_get_child_node, ["type", "Table"]]
+        p_number_of_nothing = ["number_of_nothing", number_of_nothing]
+        p_number_of_whitespace = ["number_of_whitespace", number_of_whitespace]
+        data_quality_pairs = JS_Object.from_pairs [p_number_of_nothing, p_number_of_whitespace]
+        pairs    = [p_header, p_value_type, p_data, p_all_rows, p_has_index_col, p_get_child_node, ["data_quality_pairs", data_quality_pairs], ["type", "Table"]]
         JS_Object.from_pairs pairs . to_text
-
+    
     suite_builder.group "Table Visualization" group_builder->
         data = Data.setup
 
@@ -60,31 +67,31 @@ add_specs suite_builder =
             vis = Visualization.prepare_visualization data.t 1
             value_type_int = JS_Object.from_pairs [["type", "Value_Type"], ["constructor", "Integer"], ["display_text", "Integer (64 bits)"], ["bits", 64]]
             value_type_char = JS_Object.from_pairs [["type", "Value_Type"], ["constructor", "Char"], ["display_text", "Char (variable length, max_size=unlimited)"], ["size", Nothing], ["variable_length", True]]
-            json = make_json header=["A", "B", "C"] data=[['a'], [2], [3]] all_rows=3 value_type=[value_type_char, value_type_int, value_type_int] has_index_col=True get_child_node="get_row"
+            json = make_json header=["A", "B", "C"] data=[['a'], [2], [3]] all_rows=3 value_type=[value_type_char, value_type_int, value_type_int] has_index_col=True get_child_node="get_row" number_of_nothing=Nothing number_of_whitespace=Nothing
             vis . should_equal json
 
         group_builder.specify "should visualize database columns" <|
             vis = Visualization.prepare_visualization (data.t.at "A") 2
             value_type_char = JS_Object.from_pairs [["type", "Value_Type"], ["constructor", "Char"], ["display_text", "Char (variable length, max_size=unlimited)"], ["size", Nothing], ["variable_length", True]]
             value_type_float = JS_Object.from_pairs [["type", "Value_Type"], ["constructor", "Float"], ["display_text", "Float (64 bits)"], ["bits", 64]]
-            json = make_json header=["A"] data=[['a', 'a']] all_rows=3 value_type=[value_type_char] has_index_col=True get_child_node="get_row"
+            json = make_json header=["A"] data=[['a', 'a']] all_rows=3 value_type=[value_type_char] has_index_col=True get_child_node="get_row" number_of_nothing=Nothing number_of_whitespace=Nothing
             vis . should_equal json
 
             g = data.t.aggregate ["A", "B"] [Aggregate_Column.Average "C"] . at "Average C"
             vis2 = Visualization.prepare_visualization g 1
-            json2 = make_json header=["Average C"] data=[[4.0]] all_rows=2 value_type=[value_type_float] has_index_col=True get_child_node="get_row"
+            json2 = make_json header=["Average C"] data=[[4.0]] all_rows=2 value_type=[value_type_float] has_index_col=True get_child_node="get_row" number_of_nothing=Nothing number_of_whitespace=Nothing
             vis2 . should_equal json2
 
         group_builder.specify "should visualize dataframe tables" <|
             vis = Visualization.prepare_visualization data.t2 1
             value_type_int = JS_Object.from_pairs [["type", "Value_Type"], ["constructor", "Integer"], ["display_text", "Integer (64 bits)"], ["bits", 64]]
-            json = make_json header=["A", "B", "C"] data=[[1], [4], [7]] all_rows=3 value_type=[value_type_int, value_type_int, value_type_int] has_index_col=True get_child_node="get_row"
+            json = make_json header=["A", "B", "C"] data=[[1], [4], [7]] all_rows=3 value_type=[value_type_int, value_type_int, value_type_int] has_index_col=True get_child_node="get_row" number_of_nothing=[0,0,0] number_of_whitespace=[Nothing, Nothing, Nothing]
             vis . should_equal json
 
         group_builder.specify "should visualize dataframe columns" <|
             vis = Visualization.prepare_visualization (data.t2.at "A") 2
             value_type_int = JS_Object.from_pairs [["type", "Value_Type"], ["constructor", "Integer"], ["display_text", "Integer (64 bits)"], ["bits", 64]]
-            json = make_json header=["A"] data=[[1, 2]] all_rows=3 value_type=[value_type_int] has_index_col=True get_child_node="get_row"
+            json = make_json header=["A"] data=[[1, 2]] all_rows=3 value_type=[value_type_int] has_index_col=True get_child_node="get_row" number_of_nothing=[0] number_of_whitespace=[Nothing]
             vis . should_equal json
 
         group_builder.specify "should handle Vectors" <|
@@ -124,8 +131,20 @@ add_specs suite_builder =
             Visualization.prepare_visualization Value_Type.Char . should_equal (make_json Value_Type.Char)
             Visualization.prepare_visualization Value_Type.Unsupported_Data_Type . should_equal (make_json Value_Type.Unsupported_Data_Type)
 
+        group_builder.specify "should indicate number of Nothing/Nulls" <|
+            vis = Visualization.prepare_visualization data.t3_with_nulls 3
+            value_type_int = JS_Object.from_pairs [["type", "Value_Type"], ["constructor", "Integer"], ["display_text", "Integer (64 bits)"], ["bits", 64]]
+            json = make_json header=["A", "B", "C"] data=[[1,Nothing,3],[4,Nothing,Nothing],[7,Nothing,Nothing]] all_rows=3 value_type=[value_type_int, value_type_int, value_type_int] has_index_col=True get_child_node="get_row" number_of_nothing=[1, 2, 2] number_of_whitespace=[Nothing, Nothing, Nothing]
+            vis . should_equal json
+
+        group_builder.specify "should indicate number of leading/trailing whitespace" <|
+            vis = Visualization.prepare_visualization data.t4_with_space 3
+            value_type_char = JS_Object.from_pairs [["type", "Value_Type"], ["constructor", "Char"], ["display_text", "Char (variable length, max_size=unlimited)"], ["size", Nothing], ["variable_length", True]]
+            value_type_int = JS_Object.from_pairs [["type", "Value_Type"], ["constructor", "Integer"], ["display_text", "Integer (64 bits)"], ["bits", 64]]
+            json = make_json header=["A", "B", "C"] data=[['hello', '   leading space', 'trailing space    '],['a', 'b', 'c'],[7, 8, 9]] all_rows=3 value_type=[value_type_char, value_type_char, value_type_int] has_index_col=True get_child_node="get_row" number_of_nothing=[0, 0, 0] number_of_whitespace=[2, 0, Nothing]
+            vis . should_equal json
+
 main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
     suite.run_with_filter filter
-

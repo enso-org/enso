@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Data.Vector.Builder
 
 import Standard.Table.Row.Row
-from Standard.Table import Column, Excel_Workbook, Table
+from Standard.Table import Column, Excel_Workbook, Table, Value_Type
 
 import Standard.Database.DB_Column.DB_Column
 import Standard.Database.DB_Table.DB_Table
@@ -34,12 +34,12 @@ prepare_visualization y max_rows=1000 =
         _ : Table ->
             dataframe = x.take max_rows
             all_rows_count = x.row_count
-            make_json_for_table dataframe all_rows_count True
+            make_json_for_table dataframe all_rows_count True False
         _ : DB_Column -> prepare_visualization x.to_table max_rows
         _ : DB_Table ->
             dataframe = x.read (..First max_rows)
             all_rows_count = x.row_count
-            make_json_for_table dataframe all_rows_count True
+            make_json_for_table dataframe all_rows_count True True
         _ : Function ->
             pairs = [['_display_text_', '[Function '+x.to_text+']']]
             value = JS_Object.from_pairs pairs
@@ -58,6 +58,14 @@ prepare_visualization y max_rows=1000 =
 ## PRIVATE
    Column Limit
 max_columns = 250
+
+##PRIVATE
+whitespace_count : Column -> Integer | Nothing
+whitespace_count col =
+    find_whitespace col = 
+        filtered = col.to_vector.filter (c-> c.is_a Text && (c.first.is_whitespace || c.last.is_whitespace))
+        filtered.length
+    if (col.value_type == Value_Type.Mixed || col.value_type.is_text) then find_whitespace col else Nothing 
 
 ## PRIVATE
    Render Vector to JSON
@@ -172,8 +180,8 @@ make_json_for_xml_element xml_element max_items type:Text="XML_Element" =
      to display.
    - all_rows_count: the number of all rows in the underlying data, useful if
      only a fragment is displayed.
-make_json_for_table : Table -> Integer -> Boolean -> JS_Object
-make_json_for_table dataframe all_rows_count include_index_col =
+make_json_for_table : Table -> Integer -> Boolean -> Boolean -> JS_Object
+make_json_for_table dataframe all_rows_count include_index_col is_db_table =
     get_vector c = Warning.set (c.to_vector.map v-> make_json_for_value v) []
     columns     = dataframe.columns
     header      = ["header", columns.map .name]
@@ -182,7 +190,10 @@ make_json_for_table dataframe all_rows_count include_index_col =
     all_rows    = ["all_rows_count", all_rows_count]
     has_index_col = ["has_index_col", include_index_col]
     links       = ["get_child_node_action", "get_row"]
-    pairs       = [header, value_type, data, all_rows, has_index_col, links, ["type", "Table"]]
+    number_of_nothing = if is_db_table then Nothing else columns.map c-> c.count_nothing
+    number_of_whitespace= if is_db_table then Nothing else columns.map c-> whitespace_count c
+    data_quality_pairs = JS_Object.from_pairs [["number_of_nothing", number_of_nothing], ["number_of_whitespace", number_of_whitespace]]
+    pairs       = [header, value_type, data, all_rows, has_index_col, links, ["data_quality_pairs", data_quality_pairs] ,["type", "Table"]]
     JS_Object.from_pairs pairs
 
 ## PRIVATE
