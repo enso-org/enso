@@ -444,7 +444,9 @@
   -webkit-text-size-adjust: 100%;
   -moz-tab-size: 4;
   tab-size: 4;
-  font-family: 'Enso Prose', 'Enso', 'M PLUS 1', 'Roboto Light', sans-serif;
+  --font-family: 'Enso Prose', 'Enso', 'M PLUS 1', 'Roboto Light', sans-serif;
+  font-family: var(--font-family);
+  --toastify-font-family: var(--font-family);
   font-feature-settings: normal;
 
   @apply font-medium;

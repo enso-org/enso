@@ -1,6 +1,4 @@
-/**
- * @file This module contains the logic for the detection of user-specific desktop environment attributes.
- */
+/** @file This module contains the logic for the detection of user-specific desktop environment attributes. */
 
 import * as childProcess from 'node:child_process'
 import * as os from 'node:os'
@@ -10,9 +8,7 @@ export const DOCUMENTS = getDocumentsPath()
 
 const CHILD_PROCESS_TIMEOUT = 3000
 
-/**
- * Detects path of the user documents directory depending on the operating system.
- */
+/** Detects path of the user documents directory depending on the operating system. */
 function getDocumentsPath(): string | undefined {
   if (process.platform === 'linux') {
     return getLinuxDocumentsPath()
@@ -25,18 +21,14 @@ function getDocumentsPath(): string | undefined {
   }
 }
 
-/**
- * Returns the user documents path on Linux.
- */
+/** Returns the user documents path on Linux. */
 function getLinuxDocumentsPath(): string {
   const xdgDocumentsPath = getXdgDocumentsPath()
 
   return xdgDocumentsPath ?? path.join(os.homedir(), 'enso')
 }
 
-/**
- * Gets the documents directory from the XDG directory management system.
- */
+/** Gets the documents directory from the XDG directory management system. */
 function getXdgDocumentsPath(): string | undefined {
   const out = childProcess.spawnSync('xdg-user-dir', ['DOCUMENTS'], {
     timeout: CHILD_PROCESS_TIMEOUT,
@@ -57,9 +49,7 @@ function getMacOsDocumentsPath(): string {
   return path.join(os.homedir(), 'Documents')
 }
 
-/**
- * Get the path to the `My Documents` Windows directory.
- */
+/** Get the path to the `My Documents` Windows directory. */
 function getWindowsDocumentsPath(): string | undefined {
   const out = childProcess.spawnSync(
     'reg',

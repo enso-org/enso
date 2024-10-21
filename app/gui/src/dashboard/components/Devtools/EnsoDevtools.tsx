@@ -48,9 +48,7 @@ import * as backend from '#/services/Backend'
 import LocalStorage, { type LocalStorageData } from '#/utilities/LocalStorage'
 import { unsafeEntries } from 'enso-common/src/utilities/data/object'
 
-/**
- * A component that provides a UI for toggling paywall features.
- */
+/** A component that provides a UI for toggling paywall features. */
 export function EnsoDevtools() {
   const { getText } = textProvider.useText()
   const { authQueryKey, session } = authProvider.useAuth()

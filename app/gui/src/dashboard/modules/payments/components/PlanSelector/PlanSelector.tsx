@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { DIALOG_BACKGROUND } from '#/components/AriaComponents'
 import { usePaywall } from '#/hooks/billing'
 import { useAuth } from '#/providers/AuthProvider'
-import { useRemoteBackendStrict } from '#/providers/BackendProvider'
+import { useRemoteBackend } from '#/providers/BackendProvider'
 import { useText } from '#/providers/TextProvider'
 import { Plan, PLANS } from '#/services/Backend'
 import type { VariantProps } from '#/utilities/tailwindVariants'
@@ -15,9 +15,7 @@ import { getComponentPerPlan } from './getComponentForPlan'
 const USER_REFETCH_DELAY_MS = 3_000
 const USER_REFETCH_TIMEOUT_MS = 30_000
 
-/**
- * The mutation data for the `onCompleteMutation` mutation.
- */
+/** The mutation data for the `onCompleteMutation` mutation. */
 interface CreateCheckoutSessionMutation {
   readonly plan: Plan
   readonly paymentMethodId: string
@@ -25,9 +23,7 @@ interface CreateCheckoutSessionMutation {
   readonly period: number
 }
 
-/**
- * Props for {@link PlanSelector}
- */
+/** Props for {@link PlanSelector} */
 export interface PlanSelectorProps extends VariantProps<typeof PLAN_SELECTOR_STYLES> {
   readonly showFreePlan?: boolean
   readonly hasTrial?: boolean
@@ -75,7 +71,7 @@ export function PlanSelector(props: PlanSelectorProps) {
   } = props
 
   const { getText } = useText()
-  const backend = useRemoteBackendStrict()
+  const backend = useRemoteBackend()
   const { refetchSession } = useAuth()
   const { getPaywallLevel } = usePaywall({ plan: userPlan })
 

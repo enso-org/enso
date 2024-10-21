@@ -7,9 +7,7 @@ import type { SuggestionEntryArgument } from 'ydoc-shared/languageServerTypes/su
 
 // === Types ===
 
-/**
- * Intermediate representation of the entries documentation.
- */
+/** Intermediate representation of the entries documentation. */
 
 export type Docs = FunctionDocs | TypeDocs | ModuleDocs | LocalDocs | Placeholder
 
@@ -59,9 +57,7 @@ export interface Example {
   body: Doc.HtmlString
 }
 
-/**
- * Placeholder constructor.
- */
+/** Placeholder constructor. */
 export function placeholder(text: string): Placeholder {
   return { kind: 'Placeholder', text }
 }
@@ -99,9 +95,7 @@ function filterSections(sections: Iterable<Doc.Section>): Sections {
 
 // === Lookup ===
 
-/**
- * The main function for getting documentation page for given entry.
- */
+/** The main function for getting documentation page for given entry. */
 export function lookupDocumentation(db: SuggestionDb, id: SuggestionId): Docs {
   const entry = db.get(id)
   if (!entry)

@@ -111,9 +111,7 @@ interface AuthContextType {
   readonly changePassword: (oldPassword: string, newPassword: string) => Promise<boolean>
   readonly resetPassword: (email: string, code: string, password: string) => Promise<void>
   readonly signOut: () => Promise<void>
-  /**
-   * @deprecated Never use this function. Prefer particular functions like `setUsername` or `deleteUser`.
-   */
+  /** @deprecated Never use this function. Prefer particular functions like `setUsername` or `deleteUser`. */
   readonly setUser: (user: Partial<backendModule.User>) => void
   readonly deleteUser: () => Promise<boolean>
   readonly restoreUser: () => Promise<boolean>
@@ -141,9 +139,7 @@ const AuthContext = React.createContext<AuthContextType | null>(null)
 // === AuthProvider ===
 // ====================
 
-/**
- * Query to fetch the user's session data from the backend.
- */
+/** Query to fetch the user's session data from the backend. */
 function createUsersMeQuery(
   session: cognitoModule.UserSession | null,
   remoteBackend: RemoteBackend,
@@ -190,7 +186,7 @@ export interface AuthProviderProps {
 export default function AuthProvider(props: AuthProviderProps) {
   const { authService, onAuthenticated } = props
   const { children } = props
-  const remoteBackend = backendProvider.useRemoteBackendStrict()
+  const remoteBackend = backendProvider.useRemoteBackend()
   const { cognito } = authService
   const { session, sessionQueryKey } = sessionProvider.useSession()
   const { localStorage } = localStorageProvider.useLocalStorage()

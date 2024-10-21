@@ -12,9 +12,7 @@ import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import Portal from '#/components/Portal'
 
-/**
- * Props for {@link useVisualTooltip}.
- */
+/** Props for {@link useVisualTooltip}. */
 export interface VisualTooltipProps
   extends Pick<ariaComponents.TooltipProps, 'maxWidth' | 'rounded' | 'size' | 'variant'> {
   readonly children: React.ReactNode
@@ -41,9 +39,7 @@ export interface VisualTooltipReturn {
   readonly tooltip: JSX.Element | null
 }
 
-/**
- * The display strategy for the tooltip.
- */
+/** The display strategy for the tooltip. */
 type DisplayStrategy = 'always' | 'whenOverflowing'
 
 const DEFAULT_OFFSET = 6

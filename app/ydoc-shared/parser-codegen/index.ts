@@ -27,7 +27,7 @@ function usage(): never {
 }
 
 const schemaContents = await fs.readFile(schemaPath, 'utf8')
-var hash = crypto.createHash('sha1')
+const hash = crypto.createHash('sha1')
 hash.update(schemaContents)
 const schemaHash = hash.digest()
 
@@ -45,7 +45,7 @@ const checkSchemaChanged = async () => {
   try {
     const lastDigest = await fs.readFile(`${outputPath}.schema-digest`)
     return !lastDigest.equals(schemaHash)
-  } catch (e) {
+  } catch {
     return true
   }
 }

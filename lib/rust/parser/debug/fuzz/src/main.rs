@@ -12,7 +12,7 @@ fn main() {
     fuzz!(|code: &[u8]| {
         if let Ok(code) = std::str::from_utf8(code) {
             let parser = enso_parser::Parser::new();
-            let ast = parser.run(code);
+            let ast = parser.parse_module(code);
             assert_eq!(ast.code(), code);
         }
     });

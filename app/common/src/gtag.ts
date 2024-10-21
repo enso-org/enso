@@ -17,7 +17,7 @@ window.dataLayer = window.dataLayer || []
 export function gtag(_action: 'config' | 'event' | 'js' | 'set', ..._args: unknown[]) {
   // @ts-expect-error This is explicitly not given types as it is a mistake to acess this
   // anywhere else.
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, prefer-rest-params
   window.dataLayer.push(arguments)
 }
 
@@ -27,7 +27,7 @@ export function event(name: string, params?: object) {
 }
 
 gtag('js', new Date())
-// eslint-disable-next-line @typescript-eslint/naming-convention
+// eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
 gtag('set', 'linker', { accept_incoming: true })
 gtag('config', GOOGLE_ANALYTICS_TAG)
 if (GOOGLE_ANALYTICS_TAG === 'G-CLTBJ37MDM') {

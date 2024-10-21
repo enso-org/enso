@@ -11,9 +11,7 @@ import type HttpClient from '#/utilities/HttpClient'
 
 const HTTPClientContext = React.createContext<HttpClient | null>(null)
 
-/**
- * Props for an {@link HttpClientProvider}.
- */
+/** Props for an {@link HttpClientProvider}. */
 export interface HttpClientProviderProps extends React.PropsWithChildren {
   readonly httpClient: HttpClient
 }
@@ -27,9 +25,7 @@ export function HttpClientProvider(props: HttpClientProviderProps) {
   return <HTTPClientContext.Provider value={httpClient}>{children}</HTTPClientContext.Provider>
 }
 
-/**
- * Returns the HTTP client.
- */
+/** Returns the HTTP client. */
 export function useHttpClient() {
   const httpClient = React.useContext(HTTPClientContext)
 

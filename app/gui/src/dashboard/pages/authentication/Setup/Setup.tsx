@@ -17,7 +17,7 @@ import { DASHBOARD_PATH, LOGIN_PATH } from '#/appUtils'
 import { useIsFirstRender } from '#/hooks/mountHooks'
 
 import { useAuth, UserSessionType, useUserSession } from '#/providers/AuthProvider'
-import { useRemoteBackendStrict } from '#/providers/BackendProvider'
+import { useRemoteBackend } from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as ariaComponents from '#/components/AriaComponents'
@@ -31,9 +31,7 @@ import { InviteUsersForm } from '#/modals/InviteUsersModal'
 import { PlanSelector } from '#/modules/payments'
 import { Plan } from '#/services/Backend'
 
-/**
- * Step in the setup process
- */
+/** Step in the setup process */
 interface Step {
   readonly title: text.TextId
   readonly description?: text.TextId
@@ -45,9 +43,7 @@ interface Step {
   readonly ignore?: (context: Context) => boolean
 }
 
-/**
- * Context for the setup process
- */
+/** Context for the setup process */
 interface Context {
   readonly session: ReturnType<typeof useAuth>['session']
   readonly plan: Plan
@@ -146,7 +142,7 @@ const BASE_STEPS: Step[] = [
     /** Setup step for setting organization name. */
     component: function SetOrganizationNameStep({ goToNextStep, goToPreviousStep, session }) {
       const { getText } = textProvider.useText()
-      const remoteBackend = useRemoteBackendStrict()
+      const remoteBackend = useRemoteBackend()
       const userId = session && 'user' in session ? session.user.userId : null
 
       const { data: defaultOrgName } = useSuspenseQuery({
@@ -252,7 +248,7 @@ const BASE_STEPS: Step[] = [
     /** Setup step for creating the first user group. */
     component: function CreateUserGroupStep({ goToNextStep, goToPreviousStep }) {
       const { getText } = textProvider.useText()
-      const remoteBackend = useRemoteBackendStrict()
+      const remoteBackend = useRemoteBackend()
 
       const defaultUserGroupMaxLength = 64
 
@@ -351,9 +347,7 @@ const BASE_STEPS: Step[] = [
   },
 ]
 
-/**
- * Setup page
- */
+/** Setup page */
 export function Setup() {
   const { getText } = textProvider.useText()
   const { session } = useAuth()

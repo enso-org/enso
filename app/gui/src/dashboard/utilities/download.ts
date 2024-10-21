@@ -27,12 +27,10 @@ export async function downloadWithHeaders(
   name?: string,
 ) {
   url = new URL(url, location.toString()).toString()
-  if ('systemApi' in window) {
-    window.systemApi.downloadURL(url, headers)
-  } else {
-    const response = await fetch(url, { headers })
-    const body = await response.blob()
-    const objectUrl = URL.createObjectURL(body)
-    download(objectUrl, name ?? url.match(/[^/]+$/)?.[0] ?? '')
-  }
+  // Avoid using `window.systemApi` because the name is lost.
+  // Also, `systemApi.downloadURL` seems to not work at all currently.
+  const response = await fetch(url, { headers })
+  const body = await response.blob()
+  const objectUrl = URL.createObjectURL(body)
+  download(objectUrl, name)
 }

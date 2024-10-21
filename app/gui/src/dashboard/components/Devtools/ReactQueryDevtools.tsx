@@ -1,6 +1,4 @@
-/**
- * @file Show the React Query Devtools.
- */
+/** @file Show the React Query Devtools. */
 import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
