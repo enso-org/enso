@@ -23,6 +23,8 @@ const $config = {
   PROJECT_MANAGER_URL: import.meta.env.DEV_PROJECT_MANAGER_URL,
   YDOC_SERVER_URL: import.meta.env.YDOC_SERVER_URL,
   CLOUD_BUILD: import.meta.env.CLOUD_BUILD,
+  AG_GRID_LICENSE_KEY: import.meta.env.VITE_ENSO_AG_GRID_LICENSE_KEY,
+  MAPBOX_API_TOKEN: import.meta.env.VITE_ENSO_MAPBOX_API_TOKEN,
 } as const
 
 // Undefined import.meta.env variables are typed as `any`, but we want them to be `string | undefined`.
