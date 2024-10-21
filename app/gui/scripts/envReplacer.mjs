@@ -197,7 +197,7 @@ async function updateHashInFilename(projectPath, fileContents) {
     const contentHash = createHash('sha256')
       .update(fileContents)
       .digest()
-      .toString('base64')
+      .toString('base64url')
       .substring(0, oldHash.length)
     return `-${contentHash}.${ext}`
   })
