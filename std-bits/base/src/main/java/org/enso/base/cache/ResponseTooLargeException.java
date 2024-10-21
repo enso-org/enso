@@ -1,4 +1,4 @@
-package org.enso.base.enso_cloud;
+package org.enso.base.cache;
 
 public class ResponseTooLargeException extends Exception {
   private final long size;

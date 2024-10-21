@@ -25,24 +25,25 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import org.apache.commons.io.IOUtils;
+import org.enso.base.cache.StreamCache.StreamMaker;
 import org.enso.base.net.URIWithSecrets;
 import org.graalvm.collections.Pair;
 import org.enso.base.enso_cloud.EnsoHttpResponse;
 
 public class EnsoHTTPResponseCache {
-  private static StreamCache<EnsoHTTPResponseMetadata> streamCache = new StreamCache<>();
+  private static StreamCache<Metadata> streamCache = new StreamCache<>();
 
   private static final int DEFAULT_TTL_SECONDS = 31536000;
 
   public static EnsoHttpResponse makeRequest(RequestMaker requestMaker) {
-      StreamMaker streamMaker = new EnsoHTTPResponseCacheThing(requestMaker);
+      StreamMaker<Metadata> streamMaker = new EnsoHTTPResponseCacheThing(requestMaker);
 
-      CacheResult cacheResult = streamCache.getResult(streamMaker);
+      CacheResult<Metadata> cacheResult = streamCache.getResult(streamMaker);
 
       return requestMaker.reconstructResponseFromCachedStream(inputStream, cacheResult.metadata());
   }
 
-  public class EnsoHTTPResponseCacheThing implements StreamMaker {
+  public static class EnsoHTTPResponseCacheThing implements StreamMaker {
       private RequestMaker requestMaker;
 
       EnsoHTTPResponseCacheThing(RequestMaker requestMaker) {
@@ -60,12 +61,12 @@ public class EnsoHTTPResponseCache {
             // Don't cache non-200 repsonses.
             return new Thing(
                 response.body(),
-                new EnsoHTTPResponseMetadata(response.headers(), response.statusCode()),
+                new Metadata(response.headers(), response.statusCode()),
                 Optional.empty(),
                 Optional.empty());
           } else {
             InputStream inputStream = response.body();
-            var metadata = new EnsoHTTPResponseMetadata(response.headers(), response.statusCode());
+            var metadata = new Metadata(response.headers(), response.statusCode());
             var sizeMaybe = getResponseDataSize(response.headers());
             int ttl = calculateTTL(response.headers());
             return new Thing(inputStream, metadata, sizeMaybe , Optional.of(ttl));
@@ -131,5 +132,5 @@ public class EnsoHTTPResponseCache {
       EnsoHttpResponse reconstructResponseFromCachedStream(InputStream inputStream, CacheResult cacheResult);
   }
 
-  public record EnsoHTTPResponseMetadata(HttpHeaders headers, int statusCode) {}
+  public record Metadata(HttpHeaders headers, int statusCode) {}
 }

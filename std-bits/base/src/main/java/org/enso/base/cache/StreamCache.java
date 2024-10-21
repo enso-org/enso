@@ -5,16 +5,11 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URI;
-import java.net.http.HttpHeaders;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -25,14 +20,12 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import org.apache.commons.io.IOUtils;
-import org.enso.base.net.URIWithSecrets;
-import org.graalvm.collections.Pair;
 
 public class StreamCache<M> {
-  private final Logger logger = Logger.getLogger(StreamCache .class.getName());
+  private static final Logger logger = Logger.getLogger(StreamCache .class.getName());
 
-  private long MAX_FILE_SIZE = 10L * 1024 * 1024;
-  private long MAX_TOTAL_CACHE_SIZE = 10L * 1024 * 1024 * 1024;
+  private final long MAX_FILE_SIZE = 10L * 1024 * 1024;
+  private final long MAX_TOTAL_CACHE_SIZE = 10L * 1024 * 1024 * 1024;
 
   /** This value is used for the current time when deciding if a cache entry is stale. */
   private ZonedDateTime nowOverrideTestOnly = null;
@@ -45,29 +38,29 @@ public class StreamCache<M> {
 
   private Optional<Long> maxTotalCacheSizeOverrideTestOnly = Optional.empty();
 
-  private final Map<String, CacheEntry> cache = new HashMap<>();
+  private final Map<String, CacheEntry<M>> cache = new HashMap<>();
   private final Map<String, ZonedDateTime> lastUsed = new HashMap<>();
 
-  public CacheResult getResult(StreamMaker streamMaker) throws IOException {
+  public CacheResult<M> getResult(StreamMaker<M> streamMaker) throws IOException, ResponseTooLargeException {
       String cacheKey = streamMaker.makeCacheKey();
-      if (cache.containsKey(cacheKey) {
+      if (cache.containsKey(cacheKey)) {
         return getResultForCacheEntry(cacheKey);
       } else {
         return makeRequestAndCache(cacheKey, streamMaker);
       }
   }
 
-  private CacheResult makeRequestAndCache(String cacheKey, StreamMaker streamMaker) {
+  private CacheResult<M> makeRequestAndCache(String cacheKey, StreamMaker<M> streamMaker) throws ResponseTooLargeException {
     assert !cache.containsKey(cacheKey);
 
-    Thing thing = streamMaker.makeThing();
+    Thing<M> thing = streamMaker.makeThing();
 
     if (!thing.shouldCache()) {
-        return new CacheResult(thing.stream(), thing.metadata());
+        return new CacheResult<>(thing.stream(), thing.metadata());
     }
 
     if (thing.sizeMaybe.isPresent()) {
-      long size = this.sizeMaybe.get();
+      long size = thing.sizeMaybe().get();
       if (size > getMaxFileSize()) {
         throw new ResponseTooLargeException(size, getMaxFileSize());
       }
@@ -79,10 +72,10 @@ public class StreamCache<M> {
       File responseData = downloadResponseData(cacheKey, thing);
       M metadata = thing.metadata();
       long size = responseData.length();
-      ZonedDateTime expiry = getNow().plus(Duration.ofSeconds(thing.ttl()));
+      ZonedDateTime expiry = getNow().plus(Duration.ofSeconds(thing.ttl().get()));
 
       // Create a cache entry.
-      var cacheEntry = new CacheEntry(responseData, metadata, size, expiry);
+      var cacheEntry = new CacheEntry<>(responseData, metadata, size, expiry);
       cache.put(cacheKey, cacheEntry);
       markCacheEntryUsed(cacheKey);
 
@@ -90,21 +83,21 @@ public class StreamCache<M> {
       // be necessary here if we didn't receive a correct content size value.
       removeFilesToSatisfyLimit();
 
-      return getResultForCacheEntry(cacheEntry);
+      return getResultForCacheEntry(cacheKey);
     } catch (IOException e) {
       logger.log(
           Level.WARNING,
           "Failure storing cache entry; will re-execute without caching: " + e);
       // Re-issue the request since we don't know if we've consumed any of the response.
-      Thing thing = streamMaker.makeThing();
-      return new CacheResult(thing.stream(), thing.metadata());
+      Thing<M> rerequested = streamMaker.makeThing();
+      return new CacheResult<>(rerequested .stream(), rerequested .metadata());
     }
   }
 
   /** Mark cache entry used and return a stream reading from the cache file. */
-  private CacheResult getResultForCacheEntry(String cacheKey) throws IOException {
+  private CacheResult<M> getResultForCacheEntry(String cacheKey) throws IOException {
     markCacheEntryUsed(cacheKey);
-    return new CacheResult(
+    return new CacheResult<>(
         new FileInputStream(cache.get(cacheKey).responseData),
         cache.get(cacheKey).metadata());
   }
@@ -159,8 +152,8 @@ public class StreamCache<M> {
   }
 
   /** Remove all cache entries (and their cache files) that match the predicate. */
-  private void removeCacheEntriesByPredicate(Predicate<CacheEntry> predicate) {
-    List<Map.Entry<String, CacheEntry>> toRemove =
+  private void removeCacheEntriesByPredicate(Predicate<CacheEntry<M>> predicate) {
+    List<Map.Entry<String, CacheEntry<M>>> toRemove =
         cache.entrySet().stream()
             .filter(me -> predicate.test(me.getValue()))
             .collect(Collectors.toList());
@@ -168,14 +161,14 @@ public class StreamCache<M> {
   }
 
   /** Remove a set of cache entries. */
-  private void removeCacheEntries(List<Map.Entry<String, CacheEntry>> toRemove) {
+  private void removeCacheEntries(List<Map.Entry<String, CacheEntry<M>>> toRemove) {
     for (var entry : toRemove) {
       removeCacheEntry(entry);
     }
   }
 
   /** Remove a cache entry: from `cache`, `lastUsed`, and the filesystem. */
-  private void removeCacheEntry(Map.Entry<String, CacheEntry> toRemove) {
+  private void removeCacheEntry(Map.Entry<String, CacheEntry<M>> toRemove) {
     var key = toRemove.getKey();
     var value = toRemove.getValue();
     cache.remove(key);
@@ -184,7 +177,7 @@ public class StreamCache<M> {
   }
 
   /** Remove a cache file. */
-  private void removeCacheFile(String key, CacheEntry cacheEntry) {
+  private void removeCacheFile(String key, CacheEntry<M> cacheEntry) {
     boolean removed = cacheEntry.responseData.delete();
     if (!removed) {
       logger.log(Level.WARNING, "Unable to delete cache file for key {0}", key);
@@ -203,7 +196,7 @@ public class StreamCache<M> {
 
     // Remove least-recently used entries first.
     var sortedEntries = getSortedEntries();
-    var toRemove = new ArrayList<Map.Entry<String, CacheEntry>>();
+    var toRemove = new ArrayList<Map.Entry<String, CacheEntry<M>>>();
     for (var mapEntry : sortedEntries) {
       if (totalSize <= maxTotalCacheSize) {
         break;
@@ -215,8 +208,8 @@ public class StreamCache<M> {
     removeCacheEntries(toRemove);
   }
 
-  private SortedSet<Map.Entry<String, CacheEntry>> getSortedEntries() {
-    var sortedEntries = new TreeSet<Map.Entry<String, CacheEntry>>(cacheEntryLRUComparator);
+  private SortedSet<Map.Entry<String, CacheEntry<M>>> getSortedEntries() {
+    var sortedEntries = new TreeSet<Map.Entry<String, CacheEntry<M>>>(cacheEntryLRUComparator);
     sortedEntries.addAll(cache.entrySet());
     return sortedEntries;
   }
@@ -278,27 +271,32 @@ public class StreamCache<M> {
     }
   }
 
-  private record CacheEntry(
+  private record CacheEntry<M> (
       File responseData,
       M metadata,
       long size,
       ZonedDateTime expiry) {}
 
-  public record Thing (
+  public record Thing<M> (
       InputStream stream,
       Optional<Long> sizeMaybe,
       Optional<Integer> ttl,
-      M metadata) {}
+      M metadata) {
+
+      public boolean shouldCache() {
+        return ttl.isPresent();
+      }
+    }
 
   public record CacheResult<M> (
     InputStream inputStream,
     M metadata) {}
 
-  public interface StreamMaker {
+  public interface StreamMaker<M> {
       String makeCacheKey();
-      Thing makeThing();
+      Thing<M> makeThing();
   }
 
-  private static final Comparator<Map.Entry<String, CacheEntry>> cacheEntryLRUComparator =
+  private final Comparator<Map.Entry<String, CacheEntry<M>>> cacheEntryLRUComparator =
       Comparator.comparing(me -> lastUsed.get(me.getKey()));
 }
