@@ -42,7 +42,6 @@ import scala.collection.immutable.List;
       """;
 
   /**
-   * @param processingEnv
    * @param irNodeInterface Type element of the interface annotated with {@link IRNode}.
    * @param className Simple name (non-qualified) of the newly generated class.
    */
@@ -58,6 +57,7 @@ import scala.collection.immutable.List;
   String imports() {
     var importsForFields =
         fields.stream()
+            .filter(field -> !field.isPrimitive())
             .map(field -> "import " + field.getQualifiedTypeName() + ";")
             .distinct()
             .collect(Collectors.joining(System.lineSeparator()));
@@ -91,17 +91,23 @@ import scala.collection.immutable.List;
           public Void visitExecutable(ExecutableElement e, Void unused) {
             if (e.getParameters().isEmpty()) {
               var retType = e.getReturnType();
-              var retTypeElem = (TypeElement) processingEnv.getTypeUtils().asElement(retType);
               var name = e.getSimpleName().toString();
-              var childAnnot = e.getAnnotation(IRChild.class);
-              boolean isChild = false;
-              boolean isNullable = false;
-              if (childAnnot != null) {
-                ensureIsSubtypeOfIR(retTypeElem);
-                isChild = true;
-                isNullable = !childAnnot.required();
+              if (retType.getKind().isPrimitive()) {
+                fields.add(new PrimitiveField(retType, name));
+              } else {
+                var retTypeElem = (TypeElement) processingEnv.getTypeUtils().asElement(retType);
+                assert retTypeElem != null;
+                var childAnnot = e.getAnnotation(IRChild.class);
+                boolean isChild = false;
+                boolean isNullable = false;
+                if (childAnnot != null) {
+                  ensureIsSubtypeOfIR(retTypeElem);
+                  isChild = true;
+                  isNullable = !childAnnot.required();
+                }
+                fields.add(
+                    new ReferenceField(processingEnv, retTypeElem, name, isNullable, isChild));
               }
-              fields.add(new Field(retTypeElem, name, isNullable, isChild));
             }
             return super.visitExecutable(e, unused);
           }
@@ -324,7 +330,7 @@ import scala.collection.immutable.List;
     // Validation code for all non-nullable fields
     var validationCode =
         fields.stream()
-            .filter(field -> !field.isNullable())
+            .filter(field -> !field.isNullable() && !field.isPrimitive())
             .map(
                 field ->
                     """

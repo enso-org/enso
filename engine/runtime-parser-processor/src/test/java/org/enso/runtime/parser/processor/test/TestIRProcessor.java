@@ -72,6 +72,11 @@ public class TestIRProcessor {
     var compilation = compiler.compile(src);
     CompilationSubject.assertThat(compilation).succeeded();
     CompilationSubject.assertThat(compilation).generatedSourceFile("JNameGen").isNotNull();
+    var srcSubject =
+        CompilationSubject.assertThat(compilation)
+            .generatedSourceFile("JNameGen")
+            .contentsAsUtf8String();
+    srcSubject.containsMatch("");
     var genSrc = compilation.generatedSourceFile("JNameGen");
     assertThat(genSrc.isPresent(), is(true));
     var srcContent = readSrcFile(genSrc.get());
@@ -98,10 +103,39 @@ public class TestIRProcessor {
     var compilation = compiler.compile(src);
     CompilationSubject.assertThat(compilation).succeeded();
     CompilationSubject.assertThat(compilation).generatedSourceFile("MyIRGen").isNotNull();
-    var genSrc = compilation.generatedSourceFile("MyIRGen");
-    assertThat(genSrc.isPresent(), is(true));
-    var srcContent = readSrcFile(genSrc.get());
     assertThat("Generated just one source", compilation.generatedSourceFiles().size(), is(1));
+    var srcSubject =
+        CompilationSubject.assertThat(compilation)
+            .generatedSourceFile("MyIRGen")
+            .contentsAsUtf8String();
+    srcSubject.containsMatch("JExpression expression\\(\\)");
+  }
+
+  @Test
+  public void irNodeWithMultipleFields_PrimitiveField() {
+    var src =
+        JavaFileObjects.forSourceString(
+            "MyIR",
+            """
+        import org.enso.runtime.parser.dsl.IRNode;
+        import org.enso.runtime.parser.dsl.IRChild;
+        import org.enso.compiler.core.IR;
+        import org.enso.compiler.core.ir.JExpression;
+
+        @IRNode
+        public interface MyIR extends IR {
+          boolean suspended();
+        }
+        """);
+    var compiler = Compiler.javac().withProcessors(new IRProcessor());
+    var compilation = compiler.compile(src);
+    CompilationSubject.assertThat(compilation).succeeded();
+    assertThat("Generated just one source", compilation.generatedSourceFiles().size(), is(1));
+    var srcSubject =
+        CompilationSubject.assertThat(compilation)
+            .generatedSourceFile("MyIRGen")
+            .contentsAsUtf8String();
+    srcSubject.containsMatch("boolean suspended\\(\\)");
   }
 
   private static String readSrcFile(JavaFileObject src) {
