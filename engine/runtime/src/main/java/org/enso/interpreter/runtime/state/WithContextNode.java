@@ -39,6 +39,22 @@ public abstract class WithContextNode extends Node {
       throw ensoCtx.raiseAssertionPanic(this, "Invalid context type", null);
     }
     var ctor = context.getConstructor();
-    return current.update(ctor, contextBuiltin, enabled);
+    ContextPermissions newPermissions;
+    if (ctor == contextBuiltin.getInput()) {
+      newPermissions =
+          new ContextPermissions(
+              enabled, current.permissions.output(), current.permissions.dataflowStacktrace());
+    } else if (ctor == contextBuiltin.getOutput()) {
+      newPermissions =
+          new ContextPermissions(
+              current.permissions.input(), enabled, current.permissions.dataflowStacktrace());
+    } else if (ctor == contextBuiltin.getDataflowStackTrace()) {
+      newPermissions =
+          new ContextPermissions(
+              current.permissions.input(), current.permissions.output(), enabled);
+    } else {
+      throw ensoCtx.raiseAssertionPanic(this, "Unknown context: " + ctor, null);
+    }
+    return new ExecutionEnvironment(current.getName(), newPermissions);
   }
 }
