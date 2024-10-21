@@ -130,6 +130,9 @@ js_run_binary(
         package_name() + "/env_replaced",
         package_name(),
     ],
+    env = {
+        "NODE_ENV": "production",
+    },
     out_dirs = ["env_replaced"],
     tool = ":script_env_replacer",
     visibility = ["//visibility:public"],
