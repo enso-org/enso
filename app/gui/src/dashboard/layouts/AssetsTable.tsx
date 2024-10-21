@@ -1992,10 +1992,6 @@ export default function AssetsTable(props: AssetsTableProps) {
 
         break
       }
-      case AssetListEventType.insertAssets: {
-        insertAssets(event.assets, event.parentId)
-        break
-      }
       case AssetListEventType.duplicateProject: {
         const parent = nodeMapRef.current.get(event.parentKey)
         const siblings = parent?.children ?? []

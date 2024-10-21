@@ -186,7 +186,7 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
       filters: {
         ...backendMutationOptions(backend, 'deleteAsset'),
         predicate: (mutation: BackendMutation<'deleteAsset'>) =>
-          mutation.state.variables?.[0] === asset.id,
+          mutation.state.status === 'pending' && mutation.state.variables?.[0] === asset.id,
       },
     }).length !== 0
   const isRestoring =
@@ -194,7 +194,7 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
       filters: {
         ...backendMutationOptions(backend, 'undoDeleteAsset'),
         predicate: (mutation: BackendMutation<'undoDeleteAsset'>) =>
-          mutation.state.variables?.[0] === asset.id,
+          mutation.state.status === 'pending' && mutation.state.variables?.[0] === asset.id,
       },
     }).length !== 0
   const isCloud = isCloudCategory(category)
@@ -731,7 +731,6 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
                   props.onDragLeave?.(event, item)
                 }}
                 onDrop={(event) => {
-                  setAssetPanelProps(null)
                   if (state.category.type !== 'trash') {
                     props.onDrop?.(event, item)
                     clearDragState()

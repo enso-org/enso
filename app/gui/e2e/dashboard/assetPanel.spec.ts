@@ -72,6 +72,7 @@ test.test('asset panel contents', ({ page }) =>
     .do(async () => {
       await test.expect(actions.locateAssetPanelDescription(page)).toHaveText(DESCRIPTION)
       // `getByText` is required so that this assertion works if there are multiple permissions.
-      await test.expect(actions.locateAssetPanelPermissions(page).getByText(USERNAME)).toBeVisible()
+      // This is not visible; "Shared with" should only be visible on the Enterprise plan.
+      // await test.expect(actions.locateAssetPanelPermissions(page).getByText(USERNAME)).toBeVisible()
     }),
 )

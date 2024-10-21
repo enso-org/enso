@@ -25,7 +25,6 @@ interface AssetListEvents {
   readonly uploadFiles: AssetListUploadFilesEvent
   readonly newSecret: AssetListNewSecretEvent
   readonly newDatalink: AssetListNewDatalinkEvent
-  readonly insertAssets: AssetListInsertAssetsEvent
   readonly duplicateProject: AssetListDuplicateProjectEvent
   readonly closeFolder: AssetListCloseFolderEvent
   readonly copy: AssetListCopyEvent
@@ -84,13 +83,6 @@ interface AssetListNewSecretEvent extends AssetListBaseEvent<AssetListEventType.
   readonly parentId: backend.DirectoryId
   readonly name: string
   readonly value: string
-}
-
-/** A signal to insert new assets. The assets themselves need to be created by the caller. */
-interface AssetListInsertAssetsEvent extends AssetListBaseEvent<AssetListEventType.insertAssets> {
-  readonly parentKey: backend.DirectoryId
-  readonly parentId: backend.DirectoryId
-  readonly assets: backend.AnyAsset[]
 }
 
 /** A signal to duplicate a project. */

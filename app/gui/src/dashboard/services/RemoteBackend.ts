@@ -505,7 +505,7 @@ export default class RemoteBackend extends Backend {
         return await this.throw(response, 'listRootFolderBackendError')
       }
     } else {
-      return (await response.json()).assets
+      const ret = (await response.json()).assets
         .map((asset) =>
           object.merge(asset, {
             // eslint-disable-next-line no-restricted-syntax
@@ -521,6 +521,7 @@ export default class RemoteBackend extends Backend {
           }),
         )
         .map((asset) => this.dynamicAssetUser(asset))
+      return ret
     }
   }
 
