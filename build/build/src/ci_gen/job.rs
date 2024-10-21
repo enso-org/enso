@@ -535,6 +535,9 @@ impl JobArchetype for PackageIde {
                 shell(format!("xvfb-run {TEST_COMMAND}"))
                     // See https://askubuntu.com/questions/1512287/obsidian-appimage-the-suid-sandbox-helper-binary-was-found-but-is-not-configu
                     .with_env("ENSO_TEST_APP_ARGS", "--no-sandbox")
+            } else if target.0 == OS::MacOS {
+                shell(TEST_COMMAND)
+                    .with_env("ENSO_TEST_APP_ARGS", "--log-level DEBUG")
             } else {
                 shell(TEST_COMMAND)
             };
