@@ -2,6 +2,7 @@ module org.enso.runtime.parser {
   requires org.enso.syntax;
   requires scala.library;
   requires org.enso.persistance;
+  requires static org.enso.runtime.parser.dsl;
 
   exports org.enso.compiler.core;
   exports org.enso.compiler.core.ir;
