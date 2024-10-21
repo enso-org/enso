@@ -15,6 +15,7 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.warning.AppendWarningNode;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
@@ -33,11 +34,12 @@ public abstract class VectorFromFunctionNode extends Node {
   /**
    * @param length Length of the vector to create.
    * @param func Callback function called with index as argument.
-   * @param onProblems Can be either {@code Problem_Behavior} or {@code No_Wrap}.
+   * @param onProblems Can be either an atom of type {@code Problem_Behavior} or {@code No_Wrap}
+   *     type.
    * @return Vector constructed from the given function.
    */
   abstract Object execute(
-      VirtualFrame frame, State state, long length, Function func, Atom onProblems);
+      VirtualFrame frame, State state, long length, Function func, Object onProblems);
 
   @Specialization
   Object doIt(
@@ -45,13 +47,14 @@ public abstract class VectorFromFunctionNode extends Node {
       State state,
       long length,
       Function func,
-      Atom onProblemsAtom,
+      Object onProblemsAtom,
       @Cached("buildWithArity(1)") InvokeFunctionNode invokeFunctionNode,
       @Cached("build()") AppendWarningNode appendWarningNode,
       @CachedLibrary(limit = "3") WarningsLibrary warnsLib,
+      @CachedLibrary(limit = "3") TypesLibrary typesLib,
       @Cached BranchProfile errorEncounteredProfile) {
     var ctx = EnsoContext.get(this);
-    var onProblems = processOnProblemsArg(onProblemsAtom);
+    var onProblems = processOnProblemsArg(onProblemsAtom, typesLib);
     var len = Math.toIntExact(length);
     var nothing = ctx.getNothing();
     var target = ArrayBuilder.newBuilder(len);
@@ -87,28 +90,31 @@ public abstract class VectorFromFunctionNode extends Node {
     return target.asVector(true);
   }
 
-  private OnProblems processOnProblemsArg(Atom onProblems) {
+  private OnProblems processOnProblemsArg(Object onProblems, TypesLibrary typesLib) {
     var ctx = EnsoContext.get(this);
     var problemBehaviorBuiltin = ctx.getBuiltins().getBuiltinType(ProblemBehavior.class);
     var noWrapBuiltin = ctx.getBuiltins().getBuiltinType(NoWrap.class);
-    if (isIgnore(onProblems, problemBehaviorBuiltin)) {
-      return OnProblems.IGNORE;
-    } else if (isReportError(onProblems, problemBehaviorBuiltin)) {
-      return OnProblems.REPORT_ERROR;
-    } else if (isReportWarning(onProblems, problemBehaviorBuiltin)) {
-      return OnProblems.REPORT_WARNING;
-    } else if (isNoWrap(onProblems, noWrapBuiltin)) {
-      return OnProblems.NO_WRAP;
-    }
     var typeError =
         ctx.getBuiltins()
             .error()
             .makeTypeError(problemBehaviorBuiltin.getType(), onProblems, "onProblems");
+    if (onProblems instanceof Atom onProblemsAtom) {
+      if (isIgnore(onProblemsAtom, problemBehaviorBuiltin)) {
+        return OnProblems.IGNORE;
+      } else if (isReportError(onProblemsAtom, problemBehaviorBuiltin)) {
+        return OnProblems.REPORT_ERROR;
+      } else if (isReportWarning(onProblemsAtom, problemBehaviorBuiltin)) {
+        return OnProblems.REPORT_WARNING;
+      }
+    }
+    if (!typesLib.hasType(onProblems)) {
+      throw new PanicException(typeError, this);
+    }
+    var onProblemsType = typesLib.getType(onProblems);
+    if (onProblemsType == noWrapBuiltin.getType()) {
+      return OnProblems.NO_WRAP;
+    }
     throw new PanicException(typeError, this);
-  }
-
-  private static boolean isNoWrap(Atom onProblems, NoWrap noWrapBuiltin) {
-    return onProblems.getConstructor().getType() == noWrapBuiltin.getType();
   }
 
   private static boolean isReportWarning(Atom onProblems, ProblemBehavior problemBehaviorBuiltin) {
