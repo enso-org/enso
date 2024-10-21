@@ -470,6 +470,9 @@ importers:
       d3:
         specifier: ^7.4.0
         version: 7.9.0
+      dotenv:
+        specifier: ^9.0.2
+        version: 9.0.2
       enso-support:
         specifier: git://github.com/enso-org/enso-bot
         version: https://codeload.github.com/enso-org/enso-bot/tar.gz/aa903b6e639a31930ee4fff55c5639e4471fa48d

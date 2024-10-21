@@ -15,7 +15,7 @@ window.dataLayer = window.dataLayer || []
 
 /** Google Analytics tag function. */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-function gtag(action: 'config' | 'event' | 'js' | 'set', ...args: unknown[]) {
+export function gtag(action: 'config' | 'event' | 'js' | 'set', ...args: unknown[]) {
   // @ts-expect-error This is explicitly not given types as it is a mistake to acess this
   // anywhere else.
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
@@ -23,7 +23,7 @@ function gtag(action: 'config' | 'event' | 'js' | 'set', ...args: unknown[]) {
 }
 
 /** Send event to Google Analytics. */
-function event(name: string, params?: object) {
+export function event(name: string, params?: object) {
   gtag('event', name, params)
 }
 

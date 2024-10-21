@@ -1,35 +1,57 @@
+load("@aspect_bazel_lib//lib:write_source_files.bzl", "write_source_files")
+load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_run_binary")
+load("@aspect_rules_ts//ts:defs.bzl", "ts_config")
+load("@env//:defs.bzl", "getenv")
 load("@npm//:defs.bzl", "npm_link_all_packages", "npm_link_targets")
 load("@npm//app/gui:vite/package_json.bzl", vite_bin = "bin")
-load("@aspect_rules_ts//ts:defs.bzl", "ts_config")
-load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_run_binary")
-load("@aspect_bazel_lib//lib:write_source_files.bzl", "write_source_files")
-load("@env//:defs.bzl", "getenv")
 
 npm_link_all_packages(name = "node_modules")
 
-ts_config(name = "tsconfig", src = "tsconfig.json", deps = ["//:tsconfig"])
-ts_config(name = "tsconfig_node", src = "tsconfig.node.json", deps = [":tsconfig"])
-ts_config(name = "tsconfig_app", src = "tsconfig.app.json", deps = [":tsconfig"])
-ts_config(name = "tsconfig_scripts", src = "tsconfig.scripts.json")
-ts_config(name = "tsconfig_app_vitest", src = "tsconfig.app.vitest.json", deps = [":tsconfig_app"])
+ts_config(
+    name = "tsconfig",
+    src = "tsconfig.json",
+    deps = ["//:tsconfig"],
+)
 
+ts_config(
+    name = "tsconfig_node",
+    src = "tsconfig.node.json",
+    deps = [":tsconfig"],
+)
 
-BUILD_ENV_VARS = [
-    "BUILD_INFO_VERSION",
-    "BUILD_INFO_COMMIT_HASH",
-    "ENSO_CLOUD_ENVIRONMENT",
-    "ENSO_CLOUD_API_URL",
-    "ENSO_CLOUD_CHAT_URL",
-    "ENSO_CLOUD_SENTRY_DSN",
-    "ENSO_CLOUD_STRIPE_KEY",
-    "ENSO_CLOUD_COGNITO_USER_POOL_ID",
-    "ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID",
-    "ENSO_CLOUD_COGNITO_DOMAIN",
-    "ENSO_CLOUD_COGNITO_REGION",
-    "PROJECT_MANAGER_URL",
-    "YDOC_SERVER_URL",
-    "CLOUD_BUILD",
-]
+ts_config(
+    name = "tsconfig_app",
+    src = "tsconfig.app.json",
+    deps = [":tsconfig"],
+)
+
+ts_config(
+    name = "tsconfig_scripts",
+    src = "tsconfig.scripts.json",
+)
+
+ts_config(
+    name = "tsconfig_app_vitest",
+    src = "tsconfig.app.vitest.json",
+    deps = [":tsconfig_app"],
+)
+
+# BUILD_ENV_VARS = [
+#     "BUILD_INFO_VERSION",
+#     "BUILD_INFO_COMMIT_HASH",
+#     "ENSO_CLOUD_ENVIRONMENT",
+#     "ENSO_CLOUD_API_URL",
+#     "ENSO_CLOUD_CHAT_URL",
+#     "ENSO_CLOUD_SENTRY_DSN",
+#     "ENSO_CLOUD_STRIPE_KEY",
+#     "ENSO_CLOUD_COGNITO_USER_POOL_ID",
+#     "ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID",
+#     "ENSO_CLOUD_COGNITO_DOMAIN",
+#     "ENSO_CLOUD_COGNITO_REGION",
+#     "PROJECT_MANAGER_URL",
+#     "YDOC_SERVER_URL",
+#     "CLOUD_BUILD",
+# ]
 
 ICON_GENERATED_DIR = "src/project-view/util/iconMetadata"
 
@@ -45,25 +67,38 @@ SRCS = [
     "tailwind.config.ts",
     "package.json",
     "index.html",
-] + glob(["src/**", "public/**", "project-manager-shim-middleware/**"], [ICON_GENERATED_DIR + "/**"])
-
+    ".env.bazel",
+] + glob(
+    [
+        "src/**",
+        "public/**",
+        "project-manager-shim-middleware/**",
+    ],
+    [ICON_GENERATED_DIR + "/**"],
+)
 
 vite_bin.vite(
     name = "vite_build",
     srcs = SRCS + npm_link_targets(),
-    args = ["build"],
+    args = [
+        "build",
+        "--mode=bazel",
+    ],
     chdir = package_name(),
-    out_dirs = ["dist"],
     env = {
-        "TRY_LOAD_ENV_FILE": "false",
-    } | {e: '((%__{}__%))'.format(e) for e in BUILD_ENV_VARS}
+        "NODE_ENV": "production",
+    },
+    out_dirs = ["dist"],
 )
 
 vite_bin.vite_binary(
     name = "vite_preview",
     args = ["preview"],
     chdir = package_name(),
-    data = [":vite_build", "vite.config.ts"],
+    data = [
+        "vite.config.ts",
+        ":vite_build",
+    ],
 )
 
 js_binary(
@@ -73,10 +108,10 @@ js_binary(
 
 js_run_binary(
     name = "icon_metadata",
-    tool = ":script_generate_icon_metadata",
-    chdir = package_name(),
     srcs = ["src/project-view/assets/icons.svg"],
+    chdir = package_name(),
     out_dirs = [ICON_GENERATED_DIR],
+    tool = ":script_generate_icon_metadata",
     visibility = ["//visibility:public"],
 )
 
@@ -85,15 +120,24 @@ js_binary(
     entry_point = "scripts/envReplacer.mjs",
 )
 
-DEFINED_ENVS = {k: v for k,v in [(e, getenv(e, False)) for e in BUILD_ENV_VARS] if v != None}
+# DEFINED_ENVS = {k: v for k, v in [(
+#     e,
+#     getenv(e, False),
+# ) for e in BUILD_ENV_VARS] if v != None}
 
 js_run_binary(
     name = "dist",
-    tool = ":script_env_replacer",
-    srcs = [":vite_build"],
-    args = ["$(rootpath :vite_build)", package_name() + "/env_replaced"],
+    srcs = [
+        "node_modules/dotenv",
+        ":vite_build",
+    ] + glob([".env*"]),
+    args = [
+        "$(rootpath :vite_build)",
+        package_name() + "/env_replaced",
+        package_name(),
+    ],
     out_dirs = ["env_replaced"],
-    env = DEFINED_ENVS,
+    tool = ":script_env_replacer",
     visibility = ["//visibility:public"],
 )
 
@@ -108,7 +152,6 @@ write_source_files(
     suggested_update_target = "//:write_all",
     visibility = ["//visibility:public"],
 )
-
 
 # vue_tsc_bin.vue_tsc_test(
 #     name = "type-check",

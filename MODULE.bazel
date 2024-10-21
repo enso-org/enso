@@ -179,28 +179,3 @@ use_repo(
     "maven",
     "unpinned_maven",
 )
-
-###################
-### ENVIRONMENT ###
-###################
-secrets = use_extension("//:bazel_scripts/secrets.bzl", "secrets")
-secrets.environment_repo(
-    name = "env",
-    entries = {
-        "BUILD_INFO_VERSION": "SNAPSHOT",
-        "BUILD_INFO_COMMIT_HASH": "SNAPSHOT",
-        "ENSO_CLOUD_ENVIRONMENT": "production",
-        "ENSO_CLOUD_API_URL": "<REQUIRED>",
-        "ENSO_CLOUD_CHAT_URL": "<REQUIRED>",
-        "ENSO_CLOUD_SENTRY_DSN": "<REQUIRED>",
-        "ENSO_CLOUD_STRIPE_KEY": "<REQUIRED>",
-        "ENSO_CLOUD_COGNITO_USER_POOL_ID": "<REQUIRED>",
-        "ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID": "<REQUIRED>",
-        "ENSO_CLOUD_COGNITO_DOMAIN": "<REQUIRED>",
-        "ENSO_CLOUD_COGNITO_REGION": "<REQUIRED>",
-        "PROJECT_MANAGER_URL": "",
-        "YDOC_SERVER_URL": "",
-        "CLOUD_BUILD": "false",
-    }
-)
-use_repo(secrets, "env")

@@ -35,6 +35,7 @@
     "ci:lint": "corepack pnpm run -r lint",
     "ci:test": "corepack pnpm run -r --parallel test",
     "ci:typecheck": "corepack pnpm run -r typecheck",
+    "git-clean": "git clean -xfd --exclude='.env*'",
     "postinstall": "bazel run //:write_all"
   },
   "pnpm": {

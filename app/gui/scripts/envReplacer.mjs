@@ -1,23 +1,70 @@
 /* eslint-disable jsdoc/check-tag-names */
 
+// @ts-expect-error missing dotenv typings
+import * as dotenv from 'dotenv'
 import Buffer from 'node:buffer'
 import { createHash } from 'node:crypto'
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path/posix'
 import * as process from 'node:process'
 
-if (process.argv.length !== 4 || process.argv[2] == null || process.argv[3] == null)
+/**
+ *
+ * @param {string} mode current environment mode
+ * @param {string} envDir directory with dotenv file
+ * @returns {string[]} list of dotenv file names
+ */
+function getEnvFilesForMode(mode, envDir) {
+  return [
+    /** default file */ `.env`,
+    /** local file */ `.env.local`,
+    /** mode file */ `.env.${mode}`,
+    /** mode local file */ `.env.${mode}.local`,
+  ].map((file) => path.normalize(path.join(envDir, file)))
+}
+
+if (
+  process.argv.length !== 5 ||
+  process.argv[2] == null ||
+  process.argv[3] == null ||
+  process.argv[4] == null
+)
   throw new Error(
-    `Invalid arguments.\nusage:\n  ${process.argv[0]} ${process.argv[1]} <inputDirectory> <outputDirectory>`,
+    `Invalid arguments.\nusage:\n  ${process.argv[0]} ${process.argv[1]} <inputDirectory> <outputDirectory> <dotenvDirectory>`,
   )
 const inputDirectory = process.argv[2]
 const outputDirectory = process.argv[3]
+const dotenvDirectory = process.argv[4]
+
+dotenv.config()
+
+const envFiles = getEnvFilesForMode(process.env.NODE_ENV ?? 'development', dotenvDirectory)
+const envs = await Promise.all(
+  envFiles.map(async (filename) => {
+    try {
+      const envContents = await fs.readFile(filename, 'utf-8')
+      /**
+       * @type {Record<string, string>}
+       */
+      const parsed = dotenv.parse(envContents)
+      return parsed
+    } catch {
+      return {}
+    }
+  }),
+)
+
+const combinedEnvs = Object.assign({}, ...envs)
+
+console.error('==============')
+console.error('ENVS:')
+console.error(combinedEnvs)
 
 /**
  * Map of calls mkdir performed so far, to avoid calling it twice on the same path.
  * @type {Map<string, Promise<unknown>>}
  */
-var mkdirPromises = new Map()
+const mkdirPromises = new Map()
 
 /**
  * All path renames performed so far, mapping old to new relative project paths.
@@ -66,12 +113,20 @@ async function processReplacements(projectPath) {
   const newContent = (await readOriginalFile(projectPath))
     .toString()
     .replace(patternRegex, (pattern, envName) => {
+      const envValue = process.env[pattern]
       if (
-        Object.hasOwnProperty.call(process.env, envName) &&
-        typeof process.env[envName] == 'string'
-      )
-        return process.env[envName]
-      else {
+        Object.prototype.hasOwnProperty.call(process.env, envName) &&
+        typeof envValue === 'string'
+      ) {
+        return envValue
+      }
+      const envFileValue = combinedEnvs[envName]
+      if (
+        Object.prototype.hasOwnProperty.call(combinedEnvs, envName) &&
+        typeof envFileValue === 'string'
+      ) {
+        return envFileValue
+      } else {
         errors.push(
           new Error(
             `Missing environment variable for replacemnet pattern ${pattern} in file ${projectPath}`,

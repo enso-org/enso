@@ -25,7 +25,11 @@ const $config = {
   CLOUD_BUILD: import.meta.env.CLOUD_BUILD,
 } as const
 
-export type $Config = typeof $config
+// Undefined import.meta.env variables are typed as `any`, but we want them to be `string | undefined`.
+export type $Config = {
+  [K in keyof typeof $config]: unknown extends (typeof $config)[K] ? string | undefined
+  : (typeof $config)[K]
+}
 
 Object.defineProperty(window, '$config', {
   writable: false,
@@ -33,8 +37,3 @@ Object.defineProperty(window, '$config', {
   enumerable: false,
   value: $config,
 })
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-interface ImportMetaEnv {
-  [key: string]: string
-}

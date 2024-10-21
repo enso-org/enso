@@ -14,7 +14,6 @@ import * as toast from 'react-toastify'
 import invariant from 'tiny-invariant'
 
 import * as detect from 'enso-common/src/detect'
-import * as gtag from 'enso-common/src/gtag'
 
 import * as appUtils from '#/appUtils'
 
@@ -204,7 +203,7 @@ export default function AuthProvider(props: AuthProviderProps) {
   // This component cannot use `useGtagEvent` because `useGtagEvent` depends on the React Context
   // defined by this component.
   const gtagEvent = React.useCallback((name: string, params?: object) => {
-    gtag.event(name, params)
+    gtagHooks.event(name, params)
   }, [])
 
   const performLogout = async () => {
@@ -487,7 +486,7 @@ export default function AuthProvider(props: AuthProviderProps) {
   }, [userData])
 
   React.useEffect(() => {
-    gtag.gtag('set', { platform: detect.platform(), architecture: detect.architecture() })
+    gtagHooks.gtag('set', { platform: detect.platform(), architecture: detect.architecture() })
     return gtagHooks.gtagOpenCloseCallback(gtagEvent, 'open_app', 'close_app')
   }, [gtagEvent])
 
