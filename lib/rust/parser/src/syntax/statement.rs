@@ -19,6 +19,7 @@ use crate::syntax::token;
 use crate::syntax::tree;
 use crate::syntax::tree::block;
 use crate::syntax::tree::ArgumentDefinition;
+use crate::syntax::tree::FunctionAnnotation;
 use crate::syntax::tree::FunctionTypeSignature;
 use crate::syntax::tree::SyntaxError;
 use crate::syntax::treebuilding::Spacing;
@@ -217,12 +218,15 @@ fn scan_private_keywords<'s>(items: impl IntoIterator<Item = impl AsRef<Item<'s>
 
 enum StatementPrefix<'s> {
     TypeSignature(FunctionTypeSignature<'s>),
+    Annotation(FunctionAnnotation<'s>),
 }
 
 impl<'s> From<StatementPrefix<'s>> for Tree<'s> {
     fn from(value: StatementPrefix<'s>) -> Self {
         match value {
             StatementPrefix::TypeSignature(signature) => Tree::type_signature(signature),
+            StatementPrefix::Annotation(annotation) =>
+                Tree::annotation(annotation).with_error(SyntaxError::AnnotationExpectedDefinition),
         }
     }
 }
@@ -263,11 +267,22 @@ fn parse_statement<'s>(
     args_buffer: &mut Vec<ArgumentDefinition<'s>>,
     statement_context: StatementContext,
 ) -> Line<'s, StatementOrPrefix<'s>> {
-    let newline = line.newline;
     use token::Variant;
+    let newline = line.newline;
     let private_keywords = scan_private_keywords(&line.items);
     let start = private_keywords;
     let items = &mut line.items;
+    if let Some(annotation) = try_parse_annotation(items, start, precedence) {
+        debug_assert_eq!(items.len(), start);
+        return Line {
+            newline,
+            content: apply_private_keywords(
+                Some(StatementOrPrefix::Prefix(StatementPrefix::Annotation(annotation))),
+                items.drain(..),
+                statement_context.visibility_context,
+            ),
+        };
+    }
     if let Some(type_def) = try_parse_type_def(items, start, precedence, args_buffer) {
         debug_assert_eq!(items.len(), start);
         return Line {
@@ -301,33 +316,17 @@ fn parse_statement<'s>(
             )
             .map_content(StatementOrPrefix::Statement),
         Some((i, Token { variant: Variant::TypeAnnotationOperator(_), .. })) => {
-            let type_ = precedence.resolve_non_section_offset(i + 1, items);
-            let Some(Item::Token(operator)) = items.pop() else { unreachable!() };
-            let Variant::TypeAnnotationOperator(variant) = operator.variant else { unreachable!() };
-            let operator = operator.with_variant(variant);
-            let lhs = precedence.resolve_non_section_offset(start, items);
-            let type_ = type_.unwrap_or_else(|| {
-                empty_tree(operator.code.position_after()).with_error(SyntaxError::ExpectedType)
-            });
-            debug_assert!(items.len() <= start);
-            let statement = Some(
-                if lhs.as_ref().is_some_and(is_qualified_name) && !statement_context.tail_expression
-                {
-                    StatementOrPrefix::Prefix(StatementPrefix::TypeSignature(
-                        FunctionTypeSignature { name: lhs.unwrap(), operator, type_ },
-                    ))
-                } else {
-                    let lhs = lhs.unwrap_or_else(|| {
-                        empty_tree(operator.left_offset.code.position_before())
-                            .with_error(SyntaxError::ExpectedExpression)
-                    });
-                    Tree::type_annotated(lhs, operator, type_).into()
-                },
+            let statement = parse_type_annotation_statement(
+                items,
+                start,
+                i,
+                precedence,
+                statement_context.tail_expression,
             );
             Line {
                 newline,
                 content: apply_private_keywords(
-                    statement,
+                    Some(statement),
                     items.drain(..),
                     statement_context.visibility_context,
                 ),
@@ -347,6 +346,60 @@ fn parse_statement<'s>(
                 .map(StatementOrPrefix::Statement),
             }
         }
+    }
+}
+
+fn try_parse_annotation<'s>(
+    items: &mut Vec<Item<'s>>,
+    start: usize,
+    precedence: &mut Precedence<'s>,
+) -> Option<FunctionAnnotation<'s>> {
+    match &items[..] {
+        [Item::Token(Token { variant: token::Variant::AnnotationOperator(_), .. }), Item::Token(Token { variant: token::Variant::Ident(ident), .. }), ..]
+            if !ident.is_type =>
+        {
+            let ident = *ident;
+            let argument = precedence.resolve_non_section_offset(start + 2, items);
+            let Some(Item::Token(annotation)) = items.pop() else { unreachable!() };
+            let Some(Item::Token(operator)) = items.pop() else { unreachable!() };
+            Some(FunctionAnnotation {
+                operator: operator.with_variant(token::variant::AnnotationOperator()),
+                annotation: annotation.with_variant(ident),
+                argument,
+            })
+        }
+        _ => None,
+    }
+}
+
+fn parse_type_annotation_statement<'s>(
+    items: &mut Vec<Item<'s>>,
+    start: usize,
+    operator_index: usize,
+    precedence: &mut Precedence<'s>,
+    tail_expression: bool,
+) -> StatementOrPrefix<'s> {
+    let type_ = precedence.resolve_non_section_offset(operator_index + 1, items);
+    let Some(Item::Token(operator)) = items.pop() else { unreachable!() };
+    let token::Variant::TypeAnnotationOperator(variant) = operator.variant else { unreachable!() };
+    let operator = operator.with_variant(variant);
+    let lhs = precedence.resolve_non_section_offset(start, items);
+    let type_ = type_.unwrap_or_else(|| {
+        empty_tree(operator.code.position_after()).with_error(SyntaxError::ExpectedType)
+    });
+    debug_assert!(items.len() <= start);
+    if lhs.as_ref().is_some_and(is_qualified_name) && !tail_expression {
+        StatementOrPrefix::Prefix(StatementPrefix::TypeSignature(FunctionTypeSignature {
+            name: lhs.unwrap(),
+            operator,
+            type_,
+        }))
+    } else {
+        let lhs = lhs.unwrap_or_else(|| {
+            empty_tree(operator.left_offset.code.position_before())
+                .with_error(SyntaxError::ExpectedExpression)
+        });
+        Tree::type_annotated(lhs, operator, type_).into()
     }
 }
 
@@ -382,6 +435,22 @@ fn into_private_keyword(item: Item) -> token::PrivateKeyword {
     let Item::Token(keyword) = item else { unreachable!() };
     let token::Variant::PrivateKeyword(variant) = keyword.variant else { unreachable!() };
     keyword.with_variant(variant)
+}
+fn apply_excess_private_keywords<'s>(
+    mut statement: Option<Tree<'s>>,
+    keywords: impl Iterator<Item = Item<'s>>,
+    error: SyntaxError,
+) -> Option<Tree<'s>> {
+    for token in keywords {
+        let keyword = into_private_keyword(token);
+        let private = Tree::private(keyword).with_error(error.clone());
+        statement = match statement.take() {
+            Some(statement) => Tree::app(private, statement),
+            None => private,
+        }
+        .into();
+    }
+    statement
 }
 
 #[derive(Debug, Copy, Clone)]

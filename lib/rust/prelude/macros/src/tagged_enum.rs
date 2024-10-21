@@ -245,6 +245,7 @@ pub fn run(
             impl #impl_generics #enum_name #ty_generics #where_clause {
                 /// Constructor.
                 #[inline(always)]
+                #[allow(clippy::too_many_arguments)]
                 pub fn #variant_snake_ident(#(#names: #types),*) -> Self {
                     Self::#variant_name (#cons)
                 }
@@ -267,6 +268,7 @@ pub fn run(
             /// Constructor.
             #[inline(always)]
             #[allow(non_snake_case)]
+            #[allow(clippy::too_many_arguments)]
             pub fn #variant_name #impl_generics (#(#names: #types),*)
             -> #variant_name #ty_generics #where_clause {
                 #variant_name { #(#names),* }

@@ -3,6 +3,7 @@ use crate::prelude::*;
 use crate::syntax::item;
 use crate::syntax::maybe_with_error;
 use crate::syntax::operator::Precedence;
+use crate::syntax::statement::apply_excess_private_keywords;
 use crate::syntax::statement::compound_lines;
 use crate::syntax::statement::function_def::parse_constructor_definition;
 use crate::syntax::statement::function_def::parse_type_args;
@@ -95,25 +96,23 @@ fn parse_type_body_statement<'s>(
                     .items
                     .get(private_keywords + 1)
                     .is_some_and(|item| Spacing::of_item(item) == Spacing::Unspaced) =>
-        {
-            let item::Line { newline, mut items } = line;
-            let def = parse_constructor_definition(
-                &mut items,
+            parse_constructor_definition(
+                prefixes,
+                line,
                 0,
                 private_keywords,
                 precedence,
                 args_buffer,
-            );
-            Line {
-                newline,
-                content: apply_excess_private_keywords(Some(def), items.drain(..))
-                    .map(StatementOrPrefix::from),
-            }
-        }
+            )
+            .map_content(StatementOrPrefix::from),
         None => Line {
             newline: line.newline,
-            content: apply_excess_private_keywords(None, line.items.drain(..))
-                .map(StatementOrPrefix::from),
+            content: apply_excess_private_keywords(
+                None,
+                line.items.drain(..),
+                SyntaxError::TypeBodyUnexpectedPrivateUsage,
+            )
+            .map(StatementOrPrefix::from),
         },
         _ => parse_statement(prefixes, line, precedence, args_buffer, StatementContext {
             evaluation_context: EvaluationContext::Lazy,
@@ -127,7 +126,7 @@ fn parse_type_body_statement<'s>(
                     | tree::Variant::ForeignFunction(_)
                     | tree::Variant::Assignment(_)
                     | tree::Variant::Documented(_)
-                    | tree::Variant::Annotated(_)
+                    | tree::Variant::Annotation(_)
                     | tree::Variant::AnnotatedBuiltin(_) => None,
                     tree::Variant::TypeSignature(_) => None,
                     tree::Variant::TypeDef(_) => None,
@@ -137,23 +136,4 @@ fn parse_type_body_statement<'s>(
             })
         }),
     }
-}
-
-fn apply_excess_private_keywords<'s>(
-    mut statement: Option<Tree<'s>>,
-    keywords: impl Iterator<Item = Item<'s>>,
-) -> Option<Tree<'s>> {
-    for token in keywords {
-        let Item::Token(keyword) = token else { unreachable!() };
-        let token::Variant::PrivateKeyword(variant) = keyword.variant else { unreachable!() };
-        let keyword = keyword.with_variant(variant);
-        let private =
-            Tree::private(keyword).with_error(SyntaxError::TypeBodyUnexpectedPrivateUsage);
-        statement = match statement.take() {
-            Some(statement) => Tree::app(private, statement),
-            None => private,
-        }
-        .into();
-    }
-    statement
 }
