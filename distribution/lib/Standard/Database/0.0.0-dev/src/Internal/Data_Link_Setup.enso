@@ -70,17 +70,52 @@ type DB_Data_Link_Type
     ## PRIVATE
        Alters the connection description JSON, adding information dependent on
        the data link type (table name or query to fetch, when applicable).
-    alter self connection_description:JS_Object -> JS_Object = case self of
-        DB_Data_Link_Type.Database -> connection_description
+    alter self connection_description:JS_Object -> JS_Object =
+        as_js_object = self.to_js_object
+        if as_js_object.is_nothing then connection_description else
+            connection_description.set_value "table" as_js_object
+
+    ## PRIVATE
+       Serializes this data link type to an appropriate JSON representation that
+       can be assigned to the `table` field in a data link.
+    to_js_object self =
+        DB_Data_Link_Type.Database ->
+            Nothing
         DB_Data_Link_Type.Table name ->
-            connection_description.set_value "table" name
+            name
         DB_Data_Link_Type.Query query ->
-            connection_description.set_value "table" (JS_Object.from_pairs [["query", query]])
+            JS_Object.from_pairs [["query", query]]
         DB_Data_Link_Type.SQL_Statement sql_statement ->
             serialized = sql_statement.serialize ensure_roundtrip=True
             serialized.if_not_error <|
-                # Instead of nesting the serialized query as a JSON object, we store its JSON representation as a string - this will be more friendly in the GUI.
-                connection_description.set_value "table" (JS_Object.from_pairs [["sql_statement", serialized.to_json]])
+                ## Instead of nesting the serialized query as a JSON object,
+                   we store its JSON representation as a string - this will be
+                   more friendly for the data link modal in the dashboard.
+                JS_Object.from_pairs [["sql_statement", serialized.to_json]]
+
+    ## PRIVATE
+       Parse the `table` field of a data link JSON, returning the appropriate link type.
+
+       This is the inverse to `to_js_object`.
+    parse json -> DB_Data_Link_Type ! Illegal_Argument = case json of
+        Nothing ->
+            DB_Data_Link_Type.Database
+        table_name : Text ->
+            DB_Data_Link_Type.Table table_name
+        obj : JS_Object ->
+            fields = obj.field_names
+            parse_simple_query =
+                query = obj.get "query"
+                if query.is_a Text then DB_Data_Link_Type.Query query else
+                    Error.throw (Illegal_Argument.Error "Invalid JSON inside of data link: expected `query` field to be Text but got: "+query.to_display_text)
+            parse_serialized_statement =
+                sql_statement_json = obj.get "sql_statement"
+                if sql_statement_json.is_a Text then DB_Data_Link_Type.SQL_Statement (SQL_Statement.deserialize sql_statement_json) else
+                    Error.throw (Illegal_Argument.Error "Invalid JSON inside of data link: expected `sql_statement` field to be a Text containing JSON but got: "+sql_statement_json.to_display_text)
+            if fields == ["query"] then parse_simple_query else
+                if fields == ["sql_statement"] then parse_serialized_statement else
+                    Error.throw (Illegal_Argument.Error "Invalid JSON inside of data link: expected exactly one field: `query` or `sql_statement`, but got: "+obj.to_display_text)
+        _ -> Error.throw (Illegal_Argument.Error "Invalid JSON inside of data link: expected Text or object but got: "+json.to_display_text)
 
     ## PRIVATE
        Interprets this data link setup according to its type.
