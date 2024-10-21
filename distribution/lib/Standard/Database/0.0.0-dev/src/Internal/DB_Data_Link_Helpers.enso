@@ -6,6 +6,7 @@ from Standard.Base.Enso_Cloud.Data_Link_Helpers import Data_Link_Source_Metadata
 from Standard.Table import Table
 
 import project.Connection.Connection_Options.Connection_Options
+import project.Dialect.Temp_Table_Style
 import project.Internal.IR.From_Spec.From_Spec
 
 ## PRIVATE
@@ -52,11 +53,20 @@ private _find_referred_temporary_tables connection context -> Nothing | Vector T
                 x
             _ -> x
 
-    table_info = connection.get_tables_advanced include_hidden=True
-    # If types are unknown, we cannot tell anything.
-    if table_info.column_names.contains "Type" . not then Nothing else
-        encountered_table_info = table_info.join (Table.new [["Name", encountered_table_names]]) join_kind=..Inner on="Name"
-        temporary_indicator = encountered_table_info.at "Type" . map type_name->
-            type_name.contains "temp" case_sensitivity=..Insensitive
-        encountered_temporary_tables = encountered_table_info.filter temporary_indicator . at "Name" . to_vector
-        if encountered_temporary_tables.is_empty then Nothing else encountered_temporary_tables
+    return_nothing_if_empty vec = if vec.is_empty then Nothing else vec
+    case connection.dialect.temp_table_style of
+        # For prefix-style, we just inspect names.
+        Temp_Table_Style.Hash_Prefix ->
+            encountered_temporary_tables = encountered_table_names.filter name->
+                name.starts_with "#"
+            return_nothing_if_empty encountered_temporary_tables
+        # For CREATE TEMPORARY we query `getTables` and try to check table Type
+        Temp_Table_Style.Temporary_Table ->
+            table_info = connection.get_tables_advanced include_hidden=True
+            # If types are unknown, we cannot tell anything.
+            if table_info.column_names.contains "Type" . not then Nothing else
+                encountered_table_info = table_info.join (Table.new [["Name", encountered_table_names]]) join_kind=..Inner on="Name"
+                temporary_indicator = encountered_table_info.at "Type" . map type_name->
+                    type_name.contains "temp" case_sensitivity=..Insensitive
+                encountered_temporary_tables = encountered_table_info.filter temporary_indicator . at "Name" . to_vector
+                return_nothing_if_empty encountered_temporary_tables
