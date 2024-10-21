@@ -20,9 +20,11 @@
   cloud.][11235]
 - [The user may set description and labels of an Enso Cloud asset
   programmatically.][11255]
+- [DB_Table may be saved as a Data Link.][11371]
 
 [11235]: https://github.com/enso-org/enso/pull/11235
 [11255]: https://github.com/enso-org/enso/pull/11255
+[11371]: https://github.com/enso-org/enso/pull/11371
 
 # Enso 2024.4
 
