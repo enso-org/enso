@@ -30,24 +30,16 @@ import org.graalvm.collections.Pair;
 import org.enso.base.enso_cloud.EnsoHttpResponse;
 
 public class EnsoHTTPResponseCache {
-  private StreamCache streamCache = new StreamCache();
+  private static StreamCache<EnsoHTTPResponseMetadata> streamCache = new StreamCache<>();
 
-  private final int DEFAULT_TTL_SECONDS = 31536000;
+  private static final int DEFAULT_TTL_SECONDS = 31536000;
 
-  interface RequestMaker {
-      EnsoHttpResponse run() throws IOException, InterruptedException;
-
-      String hashKey();
-
-      EnsoHttpResponse reconstructResponseFromCachedStream(InputStream cachedResponseData);
-  }
-
-  EnsoHttpResponse makeRequest(RequestMaker requestMaker) {
+  public static EnsoHttpResponse makeRequest(RequestMaker requestMaker) {
       StreamMaker streamMaker = new EnsoHTTPResponseCacheThing(requestMaker);
 
-      InputStream inputStream = streamCache.getStream(streamMaker);
+      CacheResult cacheResult = streamCache.getResult(streamMaker);
 
-      return requestMaker.reconstructResponseFromCachedStream(inputStream);
+      return requestMaker.reconstructResponseFromCachedStream(inputStream, cacheResult.metadata());
   }
 
   public class EnsoHTTPResponseCacheThing implements StreamMaker {
@@ -64,16 +56,26 @@ public class EnsoHTTPResponseCache {
       Thing makeThing() {
           EnsoHTTPResponse response = requestMaker.run();
 
-          // Don't cache non-200 repsonses.
           if (response.statusCode() != 200) {
-            return response;
+            // Don't cache non-200 repsonses.
+            return new Thing(
+                response.body(),
+                new EnsoHTTPResponseMetadata(response.headers(), response.statusCode()),
+                Optional.empty(),
+                Optional.empty());
+          } else {
+            InputStream inputStream = response.body();
+            var metadata = new EnsoHTTPResponseMetadata(response.headers(), response.statusCode());
+            var sizeMaybe = getResponseDataSize(response.headers());
+            int ttl = calculateTTL(response.headers());
+            return new Thing(inputStream, metadata, sizeMaybe , Optional.of(ttl));
           }
-
-          InputStream inputStream = response.body();
-          int ttl = calculateTTL(response.headers());
-          size  <- response.headers()
-          return new Thing(inputStream, size, ttl);
       }
+  }
+
+  /** Get the size of the response data, if available. */
+  private static Optional<Long> getResponseDataSize(HttpHeaders headers) {
+    return headers.firstValue("content-length").map(Long::parseLong);
   }
 
   /**
@@ -120,4 +122,14 @@ public class EnsoHTTPResponseCache {
     }
     return maxAge;
   }
+
+  public interface RequestMaker {
+      EnsoHttpResponse run() throws IOException, InterruptedException;
+
+      String hashKey();
+
+      EnsoHttpResponse reconstructResponseFromCachedStream(InputStream inputStream, CacheResult cacheResult);
+  }
+
+  public record EnsoHTTPResponseMetadata(HttpHeaders headers, int statusCode) {}
 }

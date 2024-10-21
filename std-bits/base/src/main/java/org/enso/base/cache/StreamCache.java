@@ -28,7 +28,7 @@ import org.apache.commons.io.IOUtils;
 import org.enso.base.net.URIWithSecrets;
 import org.graalvm.collections.Pair;
 
-public class StreamCache {
+public class StreamCache<M> {
   private final Logger logger = Logger.getLogger(StreamCache .class.getName());
 
   private long MAX_FILE_SIZE = 10L * 1024 * 1024;
@@ -48,19 +48,23 @@ public class StreamCache {
   private final Map<String, CacheEntry> cache = new HashMap<>();
   private final Map<String, ZonedDateTime> lastUsed = new HashMap<>();
 
-  public InputStream getStream(StreamMaker streamMaker) throws IOException {
+  public CacheResult getResult(StreamMaker streamMaker) throws IOException {
       String cacheKey = streamMaker.makeCacheKey();
       if (cache.containsKey(cacheKey) {
-        return getInputStreamForCacheEntry(cacheKey);
+        return getResultForCacheEntry(cacheKey);
       } else {
         return makeRequestAndCache(cacheKey, streamMaker);
       }
   }
 
-  private InputStream makeRequestAndCache(String cacheKey, StreamMaker streamMaker) {
+  private CacheResult makeRequestAndCache(String cacheKey, StreamMaker streamMaker) {
     assert !cache.containsKey(cacheKey);
 
     Thing thing = streamMaker.makeThing();
+
+    if (!thing.shouldCache()) {
+        return new CacheResult(thing.stream(), thing.metadata());
+    }
 
     if (thing.sizeMaybe.isPresent()) {
       long size = this.sizeMaybe.get();
@@ -72,12 +76,13 @@ public class StreamCache {
 
     try {
       // Download the response data.
-      ZonedDateTime expiry = getNow().plus(Duration.ofSeconds(thing.ttl()));
       File responseData = downloadResponseData(cacheKey, thing);
+      M metadata = thing.metadata();
       long size = responseData.length();
+      ZonedDateTime expiry = getNow().plus(Duration.ofSeconds(thing.ttl()));
 
       // Create a cache entry.
-      var cacheEntry = new CacheEntry(responseData, size, expiry);
+      var cacheEntry = new CacheEntry(responseData, metadata, size, expiry);
       cache.put(cacheKey, cacheEntry);
       markCacheEntryUsed(cacheKey);
 
@@ -85,20 +90,23 @@ public class StreamCache {
       // be necessary here if we didn't receive a correct content size value.
       removeFilesToSatisfyLimit();
 
-      return getInputStreamForCacheEntry(cacheEntry);
+      return getResultForCacheEntry(cacheEntry);
     } catch (IOException e) {
       logger.log(
           Level.WARNING,
           "Failure storing cache entry; will re-execute without caching: " + e);
       // Re-issue the request since we don't know if we've consumed any of the response.
-      return streamMaker.makeThing().stream();
+      Thing thing = streamMaker.makeThing();
+      return new CacheResult(thing.stream(), thing.metadata());
     }
   }
 
   /** Mark cache entry used and return a stream reading from the cache file. */
-  private InputStream getInputStreamForCacheEntry(String cacheKey) throws IOException {
+  private CacheResult getResultForCacheEntry(String cacheKey) throws IOException {
     markCacheEntryUsed(cacheKey);
-    return new FileInputStream(cache.get(cacheKey).responseData);
+    return new CacheResult(
+        new FileInputStream(cache.get(cacheKey).responseData),
+        cache.get(cacheKey).metadata());
   }
 
   /**
@@ -272,13 +280,19 @@ public class StreamCache {
 
   private record CacheEntry(
       File responseData,
+      M metadata,
       long size,
       ZonedDateTime expiry) {}
 
   public record Thing (
       InputStream stream,
-      Optional<long> sizeMaybe,
-      int ttl) {}
+      Optional<Long> sizeMaybe,
+      Optional<Integer> ttl,
+      M metadata) {}
+
+  public record CacheResult<M> (
+    InputStream inputStream,
+    M metadata) {}
 
   public interface StreamMaker {
       String makeCacheKey();

@@ -11,6 +11,7 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Properties;
+import org.enso.base.cache.EnsoHTTPResponseCache;
 import org.enso.base.net.URISchematic;
 import org.enso.base.net.URIWithSecrets;
 import org.graalvm.collections.Pair;
@@ -76,16 +77,12 @@ public final class EnsoSecretHelper extends SecretValueResolver {
                 })
             .toList();
 
-    TransientHTTPResponseCache.RequestMaker requestMaker =
-        () ->
-            makeRequestWithResolvedSecrets(
-                client, builder, uri, resolvedURI, headers, resolvedHeaders);
-
     if (!useCache) {
       return requestMaker.run();
     } else {
-      return TransientHTTPResponseCache.makeRequest(
-          uri, resolvedURI, resolvedHeaders, requestMaker);
+      var requestMaker = new EnsoSecretHelperRequestMaker(
+        client, builder, uri, resolvedURI, headers, resolvedHeaders);
+      return EnsoHTTPResponseCache.makeRequest(requestMaker);
     }
   }
 
@@ -130,5 +127,61 @@ public final class EnsoSecretHelper extends SecretValueResolver {
 
   public static void deleteSecretFromCache(String secretId) {
     EnsoSecretReader.removeFromCache(secretId);
+  }
+
+  private class EnsoSecretHelperRequestMaker implements EnsoHTTPResponseCache.RequestMaker {
+      private HttpClient client;
+      private Builder builder;
+      private URIWithSecrets uri;
+      private URI resolvedURI;
+      private List<Pair<String, HideableValue>> headers;
+      private List<Pair<String, String>> resolvedHeaders;
+
+      EnsoSecretHelperRequestMaker(
+        HttpClient client,
+        Builder builder,
+        URIWithSecrets uri,
+        URI resolvedURI,
+        List<Pair<String, HideableValue>> headers,
+        List<Pair<String, String>> resolvedHeaders) {
+          this.client = client;
+          this.builder = builder;
+          this.uri = uri;
+          this.resolvedURI = resolvedURI;
+          this.headers = headers;
+          this.resolvedHeaders = resolvedHeaders;
+      }
+
+      public EnsoHttpResponse run() throws IOException, InterruptedException {
+        makeRequestWithResolvedSecrets(
+            client, builder, uri, resolvedURI, headers, resolvedHeaders);
+      }
+
+      /**
+       * Sorts the header by header name, so we don't depend on header order. Multiple-valued headers
+       * might hash differently, but it's a rare case.
+       */
+      public String makeHashKey() {
+        try {
+          MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
+          messageDigest.update(resolvedURI.toString().getBytes());
+
+          var sortedHeaders = resolvedHeaders.stream().sorted(headerNameComparator).toList();
+          for (Pair<String, String> resolvedHeader : sortedHeaders) {
+            messageDigest.update(resolvedHeader.getLeft().getBytes());
+            messageDigest.update(resolvedHeader.getRight().getBytes());
+          }
+          return HexFormat.of().formatHex(messageDigest.digest());
+        } catch (NoSuchAlgorithmException ex) {
+          throw raise(RuntimeException.class, ex);
+        }
+      }
+
+      public EnsoHttpResponse reconstructResponseFromCachedStream(InputStream inputStream, CacheResult<EnsoHTTPResponseMetadata> cacheResult) {
+        URI renderedURI = uri.render();
+
+        return new EnsoHttpResponse(
+            renderedURI, cacheResult.metadata().headers(), inputStream, cacheResult.metadata().statusCode());
+      }
   }
 }
