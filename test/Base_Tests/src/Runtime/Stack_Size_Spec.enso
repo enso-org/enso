@@ -105,8 +105,8 @@ run nesting:Integer stack_size:Text -> Boolean =
 
 
 run_all =
-    stack_sizes = ["256k", "300k"]
-    nestings = [3, 6, 9]
+    stack_sizes = ["256k"]
+    nestings = 1.up_to 20 . to_vector
     stack_sizes.each \stack_size ->
         so_encountered = Ref.new False
         nestings.each \nesting ->
@@ -124,6 +124,6 @@ run_all =
                         True ->
                             IO.println <| header_msg + "SUCCEEDED"
 
-
+# TODO: Convert this to test - we will require at least, e.g., 12 nesting levels to succeed with stack 256k
 main =
     run_all
