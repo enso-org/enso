@@ -4,6 +4,7 @@ import project.Error.Error
 import project.Warning.Warning
 
 ## Specifies how to handle problems.
+@Builtin_Type
 type Problem_Behavior
     ## Ignore the problem and attempt to complete the operation
     Ignore

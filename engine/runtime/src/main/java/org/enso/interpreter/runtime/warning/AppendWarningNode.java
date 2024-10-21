@@ -4,6 +4,7 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.GenerateUncached;
+import com.oracle.truffle.api.dsl.NeverDefault;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -24,6 +25,7 @@ import org.enso.interpreter.runtime.error.DataflowError;
 @GenerateUncached
 public abstract class AppendWarningNode extends Node {
 
+  @NeverDefault
   public static AppendWarningNode build() {
     return AppendWarningNodeGen.create();
   }

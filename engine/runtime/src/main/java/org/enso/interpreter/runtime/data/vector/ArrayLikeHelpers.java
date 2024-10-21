@@ -1,18 +1,11 @@
 package org.enso.interpreter.runtime.data.vector;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.library.CachedLibrary;
 import java.nio.ByteBuffer;
 import org.enso.interpreter.dsl.Builtin;
-import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
-import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.EnsoObject;
-import org.enso.interpreter.runtime.error.DataflowError;
-import org.enso.interpreter.runtime.state.State;
-import org.enso.interpreter.runtime.warning.WarningsLibrary;
 
 /** Publicly available operations on array-like classes. */
 @Builtin(pkg = "immutable", stdlibName = "Standard.Base.Internal.Array_Like_Helpers")
@@ -73,31 +66,6 @@ public final class ArrayLikeHelpers {
    */
   public static EnsoObject allocate(long size) {
     return Array.allocate(size);
-  }
-
-  @Builtin.Method(
-      name = "vector_from_function",
-      description = "Creates new Vector with given length and provided elements.",
-      autoRegister = false)
-  @Builtin.Specialize()
-  @SuppressWarnings("generic-enso-builtin-type")
-  public static Object vectorFromFunction(
-      VirtualFrame frame,
-      long length,
-      Function fun,
-      State state,
-      @Cached("buildWithArity(1)") InvokeFunctionNode invokeFunctionNode,
-      @CachedLibrary(limit = "3") WarningsLibrary warnings) {
-    var len = Math.toIntExact(length);
-    var target = ArrayBuilder.newBuilder(len);
-    for (int i = 0; i < len; i++) {
-      var value = invokeFunctionNode.execute(fun, frame, state, new Long[] {(long) i});
-      if (value instanceof DataflowError) {
-        return value;
-      }
-      target.add(value, warnings);
-    }
-    return target.asVector(true);
   }
 
   @Builtin.Method(

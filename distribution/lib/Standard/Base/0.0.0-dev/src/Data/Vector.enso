@@ -1548,6 +1548,7 @@ type Map_Error
 
 ## PRIVATE
    Indicates that a method should not wrap thrown errors in `Map_Error`.
+@Builtin_Type
 type No_Wrap
 
 ## PRIVATE
