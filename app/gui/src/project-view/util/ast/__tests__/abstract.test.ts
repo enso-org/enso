@@ -19,7 +19,7 @@ import { findExpressions, testCase, tryFindExpressions } from './testCase'
 
 test('Raw block abstracts to Ast.BodyBlock', () => {
   const code = 'value = 2 + 2'
-  const rawBlock = Ast.parseEnso(code)
+  const rawBlock = Ast.rawParseModule(code)
   const edit = MutableModule.Transient()
   const abstracted = Ast.abstract(edit, rawBlock, code)
   expect(abstracted.root).toBeInstanceOf(Ast.BodyBlock)
@@ -376,7 +376,7 @@ const cases = [
 ]
 test.each(cases)('parse/print round trip: %s', (code) => {
   // Get an AST.
-  const root = Ast.parseBlock(code)
+  const { root } = Ast.parseModuleWithSpans(code)
   // Print AST back to source.
   const printed = Ast.print(root)
   expect(printed.code).toEqual(code)
@@ -389,7 +389,7 @@ test.each(cases)('parse/print round trip: %s', (code) => {
   expect(Ast.repair(root).fixes).toBe(undefined)
 
   // Re-parse.
-  const { root: root1, spans: spans1 } = Ast.parseBlockWithSpans(printed.code)
+  const { root: root1, spans: spans1 } = Ast.parseModuleWithSpans(printed.code)
   Ast.setExternalIds(root1.module, spans1, idMap)
   // Check that Identities match original AST.
   const printed1 = Ast.print(root1)
@@ -734,6 +734,37 @@ describe('Code edit', () => {
     expect(after['value = 42']?.id).toBe(before['    value = 42'].id)
   })
 
+  test('Rename binding', () => {
+    const beforeCase = testCase({
+      'main =': Ast.Function,
+      '    value = 42': Ast.Assignment,
+      '    sum = value + 23': Ast.Assignment,
+      '    call_result = func sum 12': Ast.Assignment,
+    })
+    const before = beforeCase.statements
+
+    const edit = beforeCase.module.edit()
+    const newCode = [
+      'main =',
+      '\n    the_number = 42',
+      '\n    sum = the_number + 23',
+      '\n    call_result = func sum 12',
+    ].join('')
+    edit.root()!.syncToCode(newCode)
+    // Ensure the change was made.
+    expect(edit.root()?.code()).toBe(newCode)
+    // Ensure the identities of all the original nodes were maintained.
+    const after = tryFindExpressions(edit.root()!, {
+      'main =': Ast.Function,
+      'call_result = func sum 12': Ast.Assignment,
+      'sum = the_number + 23': Ast.Assignment,
+      'the_number = 42': Ast.Assignment,
+    })
+    expect(after['call_result = func sum 12']?.id).toBe(before['    call_result = func sum 12'].id)
+    expect(after['sum = the_number + 23']?.id).toBe(before['    sum = value + 23'].id)
+    expect(after['the_number = 42']?.id).toBe(before['    value = 42'].id)
+  })
+
   test('Inline expression change', () => {
     const beforeRoot = Ast.parse('func name1=arg1 name2=arg2')
     beforeRoot.module.replaceRoot(beforeRoot)
@@ -784,12 +815,12 @@ describe('Code edit', () => {
   })
 
   test('Shifting whitespace ownership', () => {
-    const beforeRoot = Ast.parseBlock('value = 1 +\n')
+    const beforeRoot = Ast.parseModuleWithSpans('value = 1 +\n').root
     beforeRoot.module.replaceRoot(beforeRoot)
     const before = findExpressions(beforeRoot, {
       value: Ast.Ident,
       '1': Ast.NumericLiteral,
-      'value = 1 +': Ast.Assignment,
+      'value = 1 +': Ast.Function,
     })
     const edit = beforeRoot.module.edit()
     const newCode = 'value = 1 \n'
@@ -800,7 +831,7 @@ describe('Code edit', () => {
     const after = findExpressions(edit.root()!, {
       value: Ast.Ident,
       '1': Ast.NumericLiteral,
-      'value = 1': Ast.Assignment,
+      'value = 1': Ast.Function,
     })
     expect(after.value.id).toBe(before.value.id)
     expect(after['1'].id).toBe(before['1'].id)
@@ -808,7 +839,7 @@ describe('Code edit', () => {
   })
 
   test('merging', () => {
-    const block = Ast.parseBlock('a = 1\nb = 2')
+    const block = Ast.parseModuleWithSpans('a = 1\nb = 2').root
     const module = block.module
     module.replaceRoot(block)
 
@@ -1119,14 +1150,13 @@ test.each`
   expect(vector.code()).toBe(expected)
 })
 
-// TODO[ao]: Fix cases where expected spacing feels odd.
 test.each`
   initial            | predicate                                                 | expected
   ${'[1, 2, "Foo"]'} | ${(ast: Ast.Ast) => ast instanceof Ast.NumericLiteral}    | ${'[1, 2]'}
   ${'[1, "Foo", 3]'} | ${(ast: Ast.Ast) => ast instanceof Ast.NumericLiteral}    | ${'[1, 3]'}
-  ${'["Foo", 2, 3]'} | ${(ast: Ast.Ast) => ast instanceof Ast.NumericLiteral}    | ${'[ 2, 3]'}
-  ${'[1, 2, "Foo"]'} | ${(ast: Ast.Ast) => !(ast instanceof Ast.NumericLiteral)} | ${'[ "Foo"]'}
-  ${'[1, "Foo", 3]'} | ${(ast: Ast.Ast) => !(ast instanceof Ast.NumericLiteral)} | ${'[ "Foo"]'}
+  ${'["Foo", 2, 3]'} | ${(ast: Ast.Ast) => ast instanceof Ast.NumericLiteral}    | ${'[2, 3]'}
+  ${'[1, 2, "Foo"]'} | ${(ast: Ast.Ast) => !(ast instanceof Ast.NumericLiteral)} | ${'["Foo"]'}
+  ${'[1, "Foo", 3]'} | ${(ast: Ast.Ast) => !(ast instanceof Ast.NumericLiteral)} | ${'["Foo"]'}
   ${'["Foo", 2, 3]'} | ${(ast: Ast.Ast) => !(ast instanceof Ast.NumericLiteral)} | ${'["Foo"]'}
   ${'[]'}            | ${(ast: Ast.Ast) => ast instanceof Ast.NumericLiteral}    | ${'[]'}
   ${'[1, 2, 3]'}     | ${(ast: Ast.Ast) => ast.code() != '4'}                    | ${'[1, 2, 3]'}
@@ -1138,7 +1168,6 @@ test.each`
   expect(vector.code()).toBe(expected)
 })
 
-// TODO[ao]: Fix cases where expected spacing feels odd.
 test.each`
   initial        | expectedVector | expectedValue
   ${'[1, 2, 3]'} | ${'[1, 2]'}    | ${'3'}
@@ -1152,12 +1181,11 @@ test.each`
   expect(vector.code()).toBe(expectedVector)
 })
 
-// TODO[ao]: Fix cases where expected spacing feels odd.
 test.each`
   initial        | start | deletedCount | expectedVector
   ${'[1, 2, 3]'} | ${1}  | ${1}         | ${'[1, 3]'}
-  ${'[1, 2, 3]'} | ${0}  | ${1}         | ${'[ 2, 3]'}
-  ${'[1, 2, 3]'} | ${0}  | ${2}         | ${'[ 3]'}
+  ${'[1, 2, 3]'} | ${0}  | ${1}         | ${'[2, 3]'}
+  ${'[1, 2, 3]'} | ${0}  | ${2}         | ${'[3]'}
   ${'[1, 2, 3]'} | ${0}  | ${3}         | ${'[]'}
   ${'[3]'}       | ${0}  | ${1}         | ${'[]'}
   ${'[1, 2, 3]'} | ${2}  | ${1}         | ${'[1, 2]'}
@@ -1167,6 +1195,23 @@ test.each`
   vector.splice(start, deletedCount)
   expect(vector.code()).toBe(expectedVector)
 })
+
+test.each`
+  initial        | fromIndex | toIndex | expectedVector
+  ${'[1, 2, 3]'} | ${0}      | ${1}    | ${'[2, 1, 3]'}
+  ${'[1, 2, 3]'} | ${2}      | ${0}    | ${'[3, 1, 2]'}
+  ${'[1, 2, 3]'} | ${1}      | ${3}    | ${'[1, 3, 2]'}
+  ${'[1, 2, 3]'} | ${3}      | ${0}    | ${'[1, 2, 3]'}
+  ${'[]'}        | ${0}      | ${0}    | ${'[]'}
+`(
+  'Moving element in vector $initial -> $expectedVector',
+  ({ initial, fromIndex, toIndex, expectedVector }) => {
+    const vector = Ast.Vector.tryParse(initial)
+    assertDefined(vector)
+    vector.move(fromIndex, toIndex)
+    expect(vector.code()).toBe(expectedVector)
+  },
+)
 
 test.each`
   initial        | index | value  | expected

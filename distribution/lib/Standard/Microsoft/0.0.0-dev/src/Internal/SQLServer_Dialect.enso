@@ -92,7 +92,7 @@ type SQLServer_Dialect
        Generates SQL modifier for limiting the number of rows and its position in the query
     get_limit_sql_modifier : Integer -> Any
     get_limit_sql_modifier self limit =
-        [150, SQL_Builder.code (" TOP " + limit.to_text)]
+        [150, SQL_Builder.code (" TOP " + limit.to_text + " ")]
 
     ## PRIVATE
        Wraps and possibly escapes the identifier so that it can be used in a

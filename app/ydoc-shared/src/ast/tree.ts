@@ -215,8 +215,8 @@ export abstract class Ast {
   }
 
   /** TODO: Add docs */
-  static parseBlock(source: string, inModule?: MutableModule) {
-    return parseBlock(source, inModule)
+  static parseBlock(source: string, module?: MutableModule) {
+    return parseBlock(source, module)
   }
 
   /** TODO: Add docs */
@@ -2703,10 +2703,7 @@ export class MutableVector extends Vector implements MutableAst {
 
   push(value: Owned) {
     const elements = this.fields.get('elements')
-    const element = mapRefs(
-      delimitVectorElement({ value: autospaced(value) }),
-      ownedToRaw(this.module, this.id),
-    )
+    const element = this.valueToElement(value)
     this.fields.set('elements', [...elements, element])
   }
 
@@ -2732,18 +2729,58 @@ export class MutableVector extends Vector implements MutableAst {
     this.fields.set('elements', elements)
   }
 
-  splice(start: number, deletedCount: number) {
+  splice(start: number, deletedCount: number, ...newValues: Owned[]) {
     const elements = [...this.fields.get('elements')]
-    elements.splice(start, deletedCount)
+    const newElements = newValues.map(value => this.valueToElement(value))
+    elements.splice(start, deletedCount, ...newElements)
+    MutableVector.autospaceElement(elements[start + newValues.length])
     this.fields.set('elements', elements)
+  }
+
+  /**
+   * Move an element inside vector.
+   * @param fromIndex index of moved element.
+   * @param toIndex new index of moved element.
+   *
+   * If any index is outside array index range, it's interpreted same as in {@link Array.splice}.
+   */
+  move(fromIndex: number, toIndex: number) {
+    const elements = [...this.fields.get('elements')]
+    const [element] = elements.splice(fromIndex, 1)
+    if (element != null) {
+      MutableVector.autospaceElement(element)
+      elements.splice(toIndex, 0, element)
+      MutableVector.autospaceElement(elements[fromIndex])
+      MutableVector.autospaceElement(elements[toIndex + 1])
+      this.fields.set('elements', elements)
+    }
   }
 
   keep(predicate: (ast: Ast) => boolean) {
     const elements = this.fields.get('elements')
+    // Spacing around opening brackets should be preserved, as it's more natural (see tests).
+    const firstSpacing = elements[0]?.value?.whitespace
     const filtered = elements.filter(
       element => element.value && predicate(this.module.get(element.value.node)),
     )
+    if (firstSpacing != null && filtered[0]?.value != null) {
+      filtered[0].value.whitespace = firstSpacing
+    }
     this.fields.set('elements', filtered)
+  }
+
+  private valueToElement(value: Owned) {
+    return mapRefs(
+      delimitVectorElement({ value: autospaced(value) }),
+      ownedToRaw(this.module, this.id),
+    )
+  }
+
+  private static autospaceElement(element: VectorElement<RawRefs> | undefined) {
+    if (element != null) {
+      element.delimiter.whitespace = undefined
+      element.value = autospaced(element.value?.node)
+    }
   }
 }
 export interface MutableVector extends Vector, MutableAst {

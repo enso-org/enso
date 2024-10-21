@@ -10,6 +10,7 @@ export const {
   is_ident_or_operator,
   is_numeric_literal,
   parse_doc_to_json,
-  parse_tree,
+  parse_block,
+  parse_module,
   xxHash128,
 } = globalThis

@@ -35,6 +35,7 @@ const BASE_DATA_LINKS_ROOT = path.resolve(REPO_ROOT, 'test/Base_Tests/data/datal
 const S3_DATA_LINKS_ROOT = path.resolve(REPO_ROOT, 'test/AWS_Tests/data/')
 const TABLE_DATA_LINKS_ROOT = path.resolve(REPO_ROOT, 'test/Table_Tests/data/datalinks/')
 const SNOWFLAKE_DATA_LINKS_ROOT = path.resolve(REPO_ROOT, 'test/Snowflake_Tests/data/datalinks/')
+const SQLSERVER_DATA_LINKS_ROOT = path.resolve(REPO_ROOT, 'test/Microsoft_Tests/data/datalinks/')
 
 v.test('correctly validates example HTTP .datalink files with the schema', () => {
   const schemas = [
@@ -103,6 +104,14 @@ v.test('correctly validates example Snowflake .datalink files with the schema', 
   const schemas = ['snowflake-db.datalink']
   for (const schema of schemas) {
     const json = loadDataLinkFile(path.resolve(SNOWFLAKE_DATA_LINKS_ROOT, schema))
+    testSchema(json, schema)
+  }
+})
+
+v.test('correctly validates example SQLServer .datalink files with the schema', () => {
+  const schemas = ['sqlserver-db.datalink']
+  for (const schema of schemas) {
+    const json = loadDataLinkFile(path.resolve(SQLSERVER_DATA_LINKS_ROOT, schema))
     testSchema(json, schema)
   }
 })
