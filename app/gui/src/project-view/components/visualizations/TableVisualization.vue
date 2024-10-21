@@ -1,6 +1,6 @@
 <script lang="ts">
 import icons from '@/assets/icons.svg'
-import AgGridTableView from '@/components/shared/AgGridTableView.vue'
+import AgGridTableView, { commonContextMenuActions } from '@/components/shared/AgGridTableView.vue'
 import { SortModel, useTableVizToolbar } from '@/components/visualizations/tableVizToolbar'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
@@ -129,6 +129,7 @@ const defaultColDef: Ref<ColDef> = ref({
     return params.node.rowPinned === 'top' ? customCellRenderer(params) : cellRenderer(params)
   },
   cellClass: cellClass,
+  contextMenuItems: [commonContextMenuActions.copy, 'copyWithHeaders', 'separator', 'export'],
 } satisfies ColDef)
 const rowData = ref<Record<string, any>[]>([])
 const columnDefs: Ref<ColDef[]> = ref([])

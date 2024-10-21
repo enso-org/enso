@@ -42,7 +42,7 @@ const guiTabCases = [
 v.test.each([
   { group: 'Dashboard', cases: dashboardTabCases },
   { group: 'GUI', cases: guiTabCases },
-])('Tab clip path: $group', ({ group, cases }) => {
+])('Tab clip path: $group', ({ cases }) => {
   cases.forEach(({ input, expected }) => {
     const result = tabBar.tabClipPath(input.bounds, input.radius, (input as TabClipPathInput)?.side)
     v.expect(result).toBe(expected)

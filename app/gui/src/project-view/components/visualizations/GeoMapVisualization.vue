@@ -236,9 +236,7 @@ function initDeckGl() {
   }
 }
 
-/**
- * Reset the internal state of the visualization, discarding all previous data updates.
- */
+/** Reset the internal state of the visualization, discarding all previous data updates. */
 function resetState() {
   // We only need to reset the data points as everything else will be overwritten when new data
   // arrives.
@@ -334,9 +332,7 @@ function centerPoint() {
   return { latitude, longitude, minX, maxX, minY, maxY }
 }
 
-/**
- * Extract the visualization data from a full configuration object.
- */
+/** Extract the visualization data from a full configuration object. */
 function extractVisualizationDataFromFullConfig(parsedData: RegularData | Layer) {
   if ('type' in parsedData && parsedData.type === SCATTERPLOT_LAYER && parsedData.data.length) {
     pushPoints(parsedData.data)
@@ -354,9 +350,7 @@ function extractVisualizationDataFromFullConfig(parsedData: RegularData | Layer)
   dataPoints.value = dataPoints.value
 }
 
-/**
- * Extract the visualization data from a dataframe.
- */
+/** Extract the visualization data from a dataframe. */
 function extractVisualizationDataFromDataFrame(parsedData: DataFrame) {
   const newPoints: Location[] = []
   for (let i = 0; i < parsedData.df_latitude.length; i += 1) {
