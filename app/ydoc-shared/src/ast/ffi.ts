@@ -1,6 +1,5 @@
 /**
  * @file Provides the Rust ffi interface. The interface should be kept in sync with polyglot ffi inteface {@link module:ffiPolyglot}.
- *
  * @module ffi
  */
 
@@ -15,6 +14,7 @@ import {
 } from 'rust-ffi'
 
 const xxHasher128 = await createXXHash128()
+/** Return the xxhash hash for the given buffer. */
 export function xxHash128(input: IDataType) {
   xxHasher128.init()
   xxHasher128.update(input)

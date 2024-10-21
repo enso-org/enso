@@ -18,7 +18,7 @@ export default function setup() {
     try {
       fs.accessSync(path, fs.constants.X_OK)
       return true
-    } catch (err) {
+    } catch {
       return false
     }
   })

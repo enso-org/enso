@@ -337,9 +337,7 @@ export interface AssetsTableProps {
   readonly assetManagementApiRef: Ref<AssetManagementApi>
 }
 
-/**
- * The API for managing assets in the table.
- */
+/** The API for managing assets in the table. */
 export interface AssetManagementApi {
   readonly getAsset: (id: AssetId) => AnyAsset | null
   readonly setAsset: (id: AssetId, asset: AnyAsset) => void
@@ -511,9 +509,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     },
   })
 
-  /**
-   * Return type of the query function for the listDirectory query.
-   */
+  /** Return type of the query function for the listDirectory query. */
   type DirectoryQuery = typeof directories.rootDirectory.data
 
   const rootDirectoryContent = directories.rootDirectory.data

@@ -5,7 +5,8 @@ import { offsetEdit, textChangeToEdits } from '../util/data/text'
 import type { Origin, SourceRange } from '../yjsModel'
 import { rangeEquals, sourceRangeFromKey } from '../yjsModel'
 
-/** Provides a view of the text representation of a module,
+/**
+ * Provides a view of the text representation of a module,
  *  and information about the correspondence between the text and the ASTs,
  *  that can be kept up-to-date by applying AST changes.
  */
@@ -20,10 +21,12 @@ export class SourceDocument {
     this.observers = []
   }
 
+  /** Create an empty {@link SourceDocument}. */
   static Empty() {
     return new this('', new Map())
   }
 
+  /** Reset this {@link SourceDocument} to an empty state. */
   clear() {
     if (this.spans.size !== 0) this.spans.clear()
     if (this.text_ !== '') {
@@ -33,6 +36,7 @@ export class SourceDocument {
     }
   }
 
+  /** Apply a {@link ModuleUpdate} and notify observers of the edits. */
   applyUpdate(module: Module, update: ModuleUpdate) {
     for (const id of update.nodesDeleted) this.spans.delete(id)
     const root = module.root()
@@ -65,30 +69,34 @@ export class SourceDocument {
     }
   }
 
+  /** Get the entire text representation of this module. */
   get text(): string {
     return this.text_
   }
 
+  /** Get a span in this document by its {@link AstId}. */
   getSpan(id: AstId): SourceRange | undefined {
     return this.spans.get(id)
   }
 
+  /** Add a callback to be called with a list of edits on every update. */
   observe(observer: SourceDocumentObserver) {
     this.observers.push(observer)
     if (this.text_.length) observer([{ range: [0, 0], insert: this.text_ }], undefined)
   }
 
+  /** Remove a callback to no longer be called with a list of edits on every update. */
   unobserve(observer: SourceDocumentObserver) {
     const index = this.observers.indexOf(observer)
     if (index !== undefined) this.observers.splice(index, 1)
   }
 
-  private notifyObservers(textEdits: SourceRangeEdit[], origin: Origin | undefined) {
+  private notifyObservers(textEdits: readonly SourceRangeEdit[], origin: Origin | undefined) {
     for (const o of this.observers) o(textEdits, origin)
   }
 }
 
 export type SourceDocumentObserver = (
-  textEdits: SourceRangeEdit[],
+  textEdits: readonly SourceRangeEdit[],
   origin: Origin | undefined,
 ) => void

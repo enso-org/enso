@@ -14,9 +14,7 @@ import { z } from 'zod'
 import { createStore, useStore } from 'zustand'
 
 declare module '#/utilities/LocalStorage' {
-  /**
-   * Local storage data structure.
-   */
+  /** Local storage data structure. */
   interface LocalStorageData {
     readonly featureFlags: z.infer<typeof FEATURE_FLAGS_SCHEMA>
   }
@@ -31,9 +29,7 @@ export const FEATURE_FLAGS_SCHEMA = z.object({
 
 LocalStorage.registerKey('featureFlags', { schema: FEATURE_FLAGS_SCHEMA })
 
-/**
- * Feature flags store.
- */
+/** Feature flags store. */
 export interface FeatureFlags {
   readonly featureFlags: {
     readonly enableMultitabs: boolean
@@ -58,25 +54,19 @@ const flagsStore = createStore<FeatureFlags>((set) => ({
   },
 }))
 
-/**
- * Hook to get all feature flags.
- */
+/** Hook to get all feature flags. */
 export function useFeatureFlags() {
   return useStore(flagsStore, (state) => state.featureFlags)
 }
 
-/**
- * Hook to get a specific feature flag.
- */
+/** Hook to get a specific feature flag. */
 export function useFeatureFlag<Key extends keyof FeatureFlags['featureFlags']>(
   key: Key,
 ): FeatureFlags['featureFlags'][Key] {
   return useStore(flagsStore, ({ featureFlags }) => featureFlags[key])
 }
 
-/**
- * Hook to set feature flags.
- */
+/** Hook to set feature flags. */
 export function useSetFeatureFlags() {
   return useStore(flagsStore, ({ setFeatureFlags }) => setFeatureFlags)
 }

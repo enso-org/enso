@@ -37,8 +37,10 @@ const USAGE =
   `the application from a web-browser, the creation of a window can be suppressed by ` +
   `entering either '-window=false' or '-no-window'.`
 
-/** Contains information for a category of command line options and the options
- * it is comprised of. */
+/**
+ * Contains information for a category of command line options and the options
+ * it is comprised of.
+ */
 class Section<T> {
   description = ''
   entries: (readonly [cmdOption: string, option: config.Option<T>])[] = []
@@ -51,7 +53,8 @@ interface PrintHelpConfig {
   readonly helpExtended: boolean
 }
 
-/** Command line help printer. The `groupsOrdering` parameter specifies the order in which the
+/**
+ * Command line help printer. The `groupsOrdering` parameter specifies the order in which the
  * option groups should be printed. Groups not specified will be printed in the definition order.
  *
  * We use a custom help printer because Yargs has several issues:
@@ -60,7 +63,8 @@ interface PrintHelpConfig {
  * 3. Every option has a `[type`] annotation and there is no API to disable it.
  * 4. There is no option to print commands with single dash instead of double-dash.
  * 5. Help coloring is not supported, and they do not want to support it:
- * https://github.com/yargs/yargs/issues/251. */
+ * https://github.com/yargs/yargs/issues/251.
+ */
 function printHelp(cfg: PrintHelpConfig) {
   console.log(USAGE)
   const totalWidth = logger.terminalWidth() ?? DEFAULT_TERMINAL_WIDTH
@@ -146,8 +150,10 @@ function printHelp(cfg: PrintHelpConfig) {
   }
 }
 
-/** Wrap the text to a specific output width. If a word is longer than the output width, it will be
- * split. */
+/**
+ * Wrap the text to a specific output width. If a word is longer than the output width, it will be
+ * split.
+ */
 function wordWrap(str: string, width: number): string[] {
   if (width <= 0) {
     logger.error(`Cannot perform word wrap. The output width is set to '${width}'.`)
@@ -217,8 +223,10 @@ export class ChromeOption {
   }
 }
 
-/** Replace `-no-...` with `--no-...`. This is a hotfix for a Yargs bug:
- * https://github.com/yargs/yargs-parser/issues/468. */
+/**
+ * Replace `-no-...` with `--no-...`. This is a hotfix for a Yargs bug:
+ * https://github.com/yargs/yargs-parser/issues/468.
+ */
 function fixArgvNoPrefix(argv: readonly string[]): readonly string[] {
   const singleDashPrefix = '-no-'
   const doubleDashPrefix = '--no-'
@@ -237,8 +245,10 @@ interface ArgvAndChromeOptions {
   readonly chromeOptions: ChromeOption[]
 }
 
-/** Parse the given list of arguments into two distinct sets: regular arguments and those specific
- * to Chrome. */
+/**
+ * Parse the given list of arguments into two distinct sets: regular arguments and those specific
+ * to Chrome.
+ */
 function argvAndChromeOptions(processArgs: readonly string[]): ArgvAndChromeOptions {
   const chromeOptionRegex = /--?chrome.([^=]*)(?:=(.*))?/
   const argv = []

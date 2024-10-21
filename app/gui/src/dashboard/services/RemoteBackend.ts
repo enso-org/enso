@@ -1283,9 +1283,7 @@ export default class RemoteBackend extends Backend {
     return Promise.resolve()
   }
 
-  /**
-   * Fetch the URL of the customer portal.
-   */
+  /** Fetch the URL of the customer portal. */
   override async createCustomerPortalSession() {
     const response = await this.post<backend.CreateCustomerPortalSessionResponse>(
       remoteBackendPaths.getCustomerPortalSessionPath(),

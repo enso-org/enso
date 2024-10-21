@@ -103,9 +103,7 @@ export default function Dashboard(props: DashboardProps) {
   )
 }
 
-/**
- * Extract proper path from `file://` URL.
- */
+/** Extract proper path from `file://` URL. */
 function fileURLToPath(url: string): string | null {
   if (URL.canParse(url)) {
     const parsed = new URL(url)

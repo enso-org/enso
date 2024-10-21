@@ -58,9 +58,7 @@ export interface SessionProviderProps {
 const FIVE_MINUTES_MS = 300_000
 const SIX_HOURS_MS = 21_600_000
 
-/**
- * Create a query for the user session.
- */
+/** Create a query for the user session. */
 function createSessionQuery(userSession: (() => Promise<cognito.UserSession | null>) | null) {
   return reactQuery.queryOptions({
     queryKey: ['userSession'],

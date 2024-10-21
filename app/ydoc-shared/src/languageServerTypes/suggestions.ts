@@ -19,9 +19,7 @@ export interface SuggestionEntryArgument {
 }
 
 export interface Position {
-  /**
-   * Line position in a document (zero-based).
-   */
+  /** Line position in a document (zero-based). */
   line: number
 
   /**
@@ -202,28 +200,20 @@ namespace suggestionEntryVariant {
 }
 
 export interface SuggestionsDatabaseEntry {
-  /**
-   * The suggestion entry id.
-   */
+  /** The suggestion entry id. */
   id: SuggestionId
 
-  /**
-   * The suggestion entry.
-   */
+  /** The suggestion entry. */
   suggestion: SuggestionEntry
 }
 
 type FieldAction = 'Remove' | 'Set'
 
 export interface FieldUpdate<T> {
-  /**
-   * The modifying action.
-   */
+  /** The modifying action. */
   tag: FieldAction
 
-  /**
-   * The updated value.
-   */
+  /** The updated value. */
   value?: T
 }
 
@@ -235,55 +225,37 @@ export type SuggestionArgumentUpdate =
 namespace suggestionArgumentUpdateVariant {
   export interface Add {
     type: 'Add'
-    /**
-     * The position of the argument.
-     */
+    /** The position of the argument. */
     index: number
 
-    /**
-     * The argument to add.
-     */
+    /** The argument to add. */
     argument: SuggestionEntryArgument
   }
 
   export interface Remove {
     type: 'Remove'
-    /**
-     * The position of the argument.
-     */
+    /** The position of the argument. */
     index: number
   }
 
   export interface Modify {
     type: 'Modify'
-    /**
-     * The position of the argument.
-     */
+    /** The position of the argument. */
     index: number
 
-    /**
-     * The name to update.
-     */
+    /** The name to update. */
     name?: FieldUpdate<string>
 
-    /**
-     * The argument type to update.
-     */
+    /** The argument type to update. */
     reprType?: FieldUpdate<string>
 
-    /**
-     * The isSuspended flag to update.
-     */
+    /** The isSuspended flag to update. */
     isSuspended?: FieldUpdate<boolean>
 
-    /**
-     * The hasDefault flag to update.
-     */
+    /** The hasDefault flag to update. */
     hasDefault?: FieldUpdate<boolean>
 
-    /**
-     * The default value to update.
-     */
+    /** The default value to update. */
     defaultValue?: FieldUpdate<string>
   }
 }
@@ -296,70 +268,46 @@ export type SuggestionsDatabaseUpdate =
 namespace suggestionDatabaseUpdateVariant {
   export interface Add {
     type: 'Add'
-    /**
-     * Suggestion entry id.
-     */
+    /** Suggestion entry id. */
     id: SuggestionId
 
-    /**
-     * Suggestion entry.
-     */
+    /** Suggestion entry. */
     suggestion: SuggestionEntry
   }
 
   export interface Remove {
     type: 'Remove'
-    /**
-     * Suggestion entry id.
-     */
+    /** Suggestion entry id. */
     id: SuggestionId
   }
 
   export interface Modify {
     type: 'Modify'
-    /**
-     * Suggestion entry id.
-     */
+    /** Suggestion entry id. */
     id: SuggestionId
 
-    /**
-     * The external id to update.
-     */
+    /** The external id to update. */
     externalId?: FieldUpdate<Uuid>
 
-    /**
-     * The list of argument updates.
-     */
+    /** The list of argument updates. */
     arguments?: SuggestionArgumentUpdate[]
 
-    /**
-     * The module name to update.
-     */
+    /** The module name to update. */
     module?: FieldUpdate<string>
 
-    /**
-     * The self type to update.
-     */
+    /** The self type to update. */
     selfType?: FieldUpdate<string>
 
-    /**
-     * The return type to update.
-     */
+    /** The return type to update. */
     returnType?: FieldUpdate<string>
 
-    /**
-     * The documentation string to update.
-     */
+    /** The documentation string to update. */
     documentation?: FieldUpdate<string>
 
-    /**
-     * The scope to update.
-     */
+    /** The scope to update. */
     scope?: FieldUpdate<SuggestionEntryScope>
 
-    /**
-     * The reexport field to update.
-     */
+    /** The reexport field to update. */
     reexport?: FieldUpdate<string>
   }
 }

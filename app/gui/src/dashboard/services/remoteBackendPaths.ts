@@ -80,9 +80,7 @@ export const GET_LOG_EVENTS_PATH = 'log_events'
 /** Relative HTTP path to the "post log event" endpoint of the Cloud backend API. */
 export const POST_LOG_EVENT_PATH = 'logs'
 
-/**
- * Relative HTTP path to the "get customer portal session" endpoint of the Cloud backend API.
- */
+/** Relative HTTP path to the "get customer portal session" endpoint of the Cloud backend API. */
 export function getCustomerPortalSessionPath(returnUrl?: string) {
   const baseUrl = 'payments/customer-portal-sessions/create'
 
