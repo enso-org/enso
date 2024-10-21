@@ -1,12 +1,15 @@
 package org.enso.runtime.parser.processor;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.List;
 import java.util.stream.Collectors;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
+import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.SimpleElementVisitor14;
 import org.enso.runtime.parser.dsl.IRChild;
 import org.enso.runtime.parser.dsl.IRNode;
@@ -77,7 +80,7 @@ import scala.collection.immutable.List;
   private List<Field> getAllFields(TypeElement irNodeInterface) {
     var fields = new ArrayList<Field>();
 
-    var elemVisitor =
+    var fieldCollector =
         new SimpleElementVisitor14<Void, Void>() {
           @Override
           protected Void defaultAction(Element e, Void unused) {
@@ -112,7 +115,17 @@ import scala.collection.immutable.List;
             return super.visitExecutable(e, unused);
           }
         };
-    irNodeInterface.accept(elemVisitor, null);
+    var superInterfaces = irNodeInterface.getInterfaces();
+    Deque<? extends TypeMirror> toProcess = new ArrayDeque<>(superInterfaces);
+    while (!toProcess.isEmpty()) {
+      var current = toProcess.pop();
+      // Skip processing of IR.
+      if (processingEnv.getTypeUtils().isSameType(getIrType().asType(), current)) {
+        continue;
+      }
+      var currentElem = processingEnv.getTypeUtils().asElement(current);
+      currentElem.accept(fieldCollector, null);
+    }
     return fields;
   }
 
@@ -123,6 +136,12 @@ import scala.collection.immutable.List;
           typeElem,
           processingEnv.getMessager());
     }
+  }
+
+  private TypeElement getIrType() {
+    var typeElem = processingEnv.getElementUtils().getTypeElement("org.enso.compiler.core.IR");
+    assert typeElem != null;
+    return typeElem;
   }
 
   /**

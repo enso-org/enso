@@ -138,6 +138,38 @@ public class TestIRProcessor {
     srcSubject.containsMatch("boolean suspended\\(\\)");
   }
 
+  @Test
+  public void irNodeWithInheritedField() {
+
+    var src =
+        JavaFileObjects.forSourceString(
+            "MyIR",
+            """
+        import org.enso.runtime.parser.dsl.IRNode;
+        import org.enso.runtime.parser.dsl.IRChild;
+        import org.enso.compiler.core.IR;
+        import org.enso.compiler.core.ir.JExpression;
+
+        interface MySuperIR extends IR {
+          boolean suspended();
+        }
+
+        @IRNode
+        public interface MyIR extends MySuperIR {
+        }
+
+        """);
+    var compiler = Compiler.javac().withProcessors(new IRProcessor());
+    var compilation = compiler.compile(src);
+    CompilationSubject.assertThat(compilation).succeeded();
+    assertThat("Generated just one source", compilation.generatedSourceFiles().size(), is(1));
+    var srcSubject =
+        CompilationSubject.assertThat(compilation)
+            .generatedSourceFile("MyIRGen")
+            .contentsAsUtf8String();
+    srcSubject.containsMatch("boolean suspended\\(\\)");
+  }
+
   private static String readSrcFile(JavaFileObject src) {
     try {
       return src.getCharContent(true).toString();
