@@ -3,8 +3,10 @@ import { useMemo } from 'react'
 
 import {
   queryOptions,
+  useMutationState,
   useQuery,
   type Mutation,
+  type MutationKey,
   type UseMutationOptions,
   type UseQueryOptions,
   type UseQueryResult,
@@ -341,4 +343,28 @@ export function useAssetPassiveListenerStrict(
   const asset = useAssetPassiveListener(backendType, assetId, parentId, category)
   invariant(asset, 'Asset not found')
   return asset
+}
+
+/** Return matching in-flight mutations */
+export function useBackendMutationState<Method extends MutationMethod, Result>(
+  backend: Backend,
+  method: Method,
+  options: {
+    mutationKey?: MutationKey
+    predicate?: (mutation: BackendMutation<Method>) => boolean
+    select?: (mutation: BackendMutation<Method>) => Result
+  } = {},
+) {
+  const { mutationKey, predicate, select } = options
+  return useMutationState({
+    filters: {
+      ...backendMutationOptions(backend, method, mutationKey ? { mutationKey } : {}),
+      predicate: (mutation: BackendMutation<Method>) =>
+        mutation.state.status === 'pending' && (predicate?.(mutation) ?? true),
+    },
+    // This is UNSAFE when the `Result` parameter is explicitly specified in the
+    // generic parameter list.
+    // eslint-disable-next-line no-restricted-syntax
+    select: select as (mutation: Mutation<unknown, Error, unknown, unknown>) => Result,
+  })
 }

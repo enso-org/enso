@@ -1,6 +1,7 @@
 /** @file A table row for an arbitrary asset. */
 import * as React from 'react'
 
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useStore } from 'zustand'
 
 import BlankIcon from '#/assets/blank.svg'
@@ -38,7 +39,7 @@ import { useCutAndPaste } from '#/events/assetListEvent'
 import {
   backendMutationOptions,
   backendQueryOptions,
-  type BackendMutation,
+  useBackendMutationState,
 } from '#/hooks/backendHooks'
 import { createGetProjectDetailsQuery } from '#/hooks/projectHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
@@ -54,7 +55,6 @@ import * as permissions from '#/utilities/permissions'
 import * as set from '#/utilities/set'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import Visibility from '#/utilities/Visibility'
-import { useMutation, useMutationState, useQuery, useQueryClient } from '@tanstack/react-query'
 
 // =================
 // === Constants ===
@@ -182,20 +182,12 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
   } | null>(null)
 
   const isDeleting =
-    useMutationState({
-      filters: {
-        ...backendMutationOptions(backend, 'deleteAsset'),
-        predicate: (mutation: BackendMutation<'deleteAsset'>) =>
-          mutation.state.status === 'pending' && mutation.state.variables?.[0] === asset.id,
-      },
+    useBackendMutationState(backend, 'deleteAsset', {
+      predicate: ({ state: { variables: [assetId] = [] } }) => assetId === asset.id,
     }).length !== 0
   const isRestoring =
-    useMutationState({
-      filters: {
-        ...backendMutationOptions(backend, 'undoDeleteAsset'),
-        predicate: (mutation: BackendMutation<'undoDeleteAsset'>) =>
-          mutation.state.status === 'pending' && mutation.state.variables?.[0] === asset.id,
-      },
+    useBackendMutationState(backend, 'undoDeleteAsset', {
+      predicate: ({ state: { variables: [assetId] = [] } }) => assetId === asset.id,
     }).length !== 0
   const isCloud = isCloudCategory(category)
 
