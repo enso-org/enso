@@ -33,8 +33,8 @@ import org.graalvm.collections.Pair;
  * HTTP headers received in the original repsonse to a request.
  *
  * <p>It also puts limits on the size of files that can be requested, and on the total cache size,
- * deleting entries to make space for new ones. All cache files are set to be
- * deleted automatically on JVM exit.
+ * deleting entries to make space for new ones. All cache files are set to be deleted automatically
+ * on JVM exit.
  *
  * <p>Without caching, EnsoHttpResponse contains an InputStream providing the response data. When
  * there is a cache hit, this stream reads from the local file storing the cached data. When there
@@ -75,8 +75,7 @@ public class TransientHTTPResponseCache {
     if (cache.containsKey(cacheKey)) {
       return returnCachedResponse(cacheKey);
     } else {
-      return makeRequestAndCache(
-          unresolvedURI, cacheKey, requestMaker);
+      return makeRequestAndCache(unresolvedURI, cacheKey, requestMaker);
     }
   }
 
@@ -92,9 +91,7 @@ public class TransientHTTPResponseCache {
    * <p>Only HTTP 200 responses are cached; all others are returned uncached.
    */
   private static EnsoHttpResponse makeRequestAndCache(
-      URIWithSecrets unresolvedURI,
-      String cacheKey,
-      RequestMaker requestMaker)
+      URIWithSecrets unresolvedURI, String cacheKey, RequestMaker requestMaker)
       throws InterruptedException, IOException, ResponseTooLargeException {
     assert !cache.containsKey(cacheKey);
 
@@ -162,7 +159,7 @@ public class TransientHTTPResponseCache {
   private static File downloadResponseData(
       String cacheKey, URIWithSecrets unresolvedURI, EnsoHttpResponse response)
       throws IOException, ResponseTooLargeException {
-    File temp = File.createTempFile("TransientHTTPResponseCache-"+cacheKey, "");
+    File temp = File.createTempFile("TransientHTTPResponseCache-" + cacheKey, "");
     try {
       var inputStream = response.body();
       var outputStream = new FileOutputStream(temp);
