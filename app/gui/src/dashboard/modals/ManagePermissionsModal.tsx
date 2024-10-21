@@ -18,7 +18,7 @@ import { usePaywall } from '#/hooks/billing'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
 import { useFullUserSession } from '#/providers/AuthProvider'
-import { useRemoteBackendStrict } from '#/providers/BackendProvider'
+import { useRemoteBackend } from '#/providers/BackendProvider'
 import { useSetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
@@ -76,7 +76,7 @@ export default function ManagePermissionsModal<Asset extends AnyAsset = AnyAsset
 ) {
   const { backend, category, item: itemRaw, self, doRemoveSelf, eventTarget } = props
   const item = useAssetPassiveListenerStrict(backend.type, itemRaw.id, itemRaw.parentId, category)
-  const remoteBackend = useRemoteBackendStrict()
+  const remoteBackend = useRemoteBackend()
   const { user } = useFullUserSession()
   const { unsetModal } = useSetModal()
   const toastAndLog = useToastAndLog()

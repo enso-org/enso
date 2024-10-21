@@ -171,7 +171,7 @@ export default class RemoteBackend extends Backend {
       throw textId
     } else {
       const error =
-        response == null ?
+        response == null || response.headers.get('Content-Type') !== 'application/json' ?
           { message: 'unknown error' }
           // This is SAFE only when the response has been confirmed to have an erroring status code.
           // eslint-disable-next-line no-restricted-syntax
@@ -889,25 +889,58 @@ export default class RemoteBackend extends Backend {
   }
 
   /**
-   * Upload a file.
+   * Begin uploading a large file.
    * @throws An error if a non-successful status code (not 200-299) was received.
    */
-  override async uploadFile(
-    params: backend.UploadFileRequestParams,
-    file: Blob,
-  ): Promise<backend.FileInfo> {
-    const paramsString = new URLSearchParams({
-      // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
-      file_name: params.fileName,
-      // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
-      ...(params.fileId != null ? { file_id: params.fileId } : {}),
-      // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
-      ...(params.parentDirectoryId ? { parent_directory_id: params.parentDirectoryId } : {}),
-    }).toString()
-    const path = `${remoteBackendPaths.UPLOAD_FILE_PATH}?${paramsString}`
-    const response = await this.postBinary<backend.FileInfo>(path, file)
+  override async uploadFileStart(
+    body: backend.UploadFileRequestParams,
+    file: File,
+  ): Promise<backend.UploadLargeFileMetadata> {
+    const path = remoteBackendPaths.UPLOAD_FILE_START_PATH
+    const requestBody: backend.UploadFileStartRequestBody = {
+      fileName: body.fileName,
+      size: file.size,
+    }
+    const response = await this.post<backend.UploadLargeFileMetadata>(path, requestBody)
     if (!responseIsSuccessful(response)) {
-      return await this.throw(response, 'uploadFileBackendError')
+      return await this.throw(response, 'uploadFileStartBackendError')
+    } else {
+      return await response.json()
+    }
+  }
+
+  /**
+   * Upload a chunk of a large file.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  override async uploadFileChunk(
+    url: backend.HttpsUrl,
+    file: Blob,
+    index: number,
+  ): Promise<backend.S3MultipartPart> {
+    const start = index * backend.S3_CHUNK_SIZE_BYTES
+    const end = Math.min(start + backend.S3_CHUNK_SIZE_BYTES, file.size)
+    const body = file.slice(start, end)
+    const response = await fetch(url, { method: 'PUT', body })
+    const eTag = response.headers.get('ETag')
+    if (!responseIsSuccessful(response) || eTag == null) {
+      return await this.throw(response, 'uploadFileChunkBackendError')
+    } else {
+      return { eTag, partNumber: index + 1 }
+    }
+  }
+
+  /**
+   * Finish uploading a large file.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  override async uploadFileEnd(
+    body: backend.UploadFileEndRequestBody,
+  ): Promise<backend.UploadedLargeAsset> {
+    const path = remoteBackendPaths.UPLOAD_FILE_END_PATH
+    const response = await this.post<backend.UploadedLargeAsset>(path, body)
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'uploadFileEndBackendError')
     } else {
       return await response.json()
     }
@@ -1246,7 +1279,8 @@ export default class RemoteBackend extends Backend {
 
   /** Download from an arbitrary URL that is assumed to originate from this backend. */
   override async download(url: string, name?: string) {
-    await download.downloadWithHeaders(url, this.client.defaultHeaders, name)
+    download.download(url, name)
+    return Promise.resolve()
   }
 
   /** Fetch the URL of the customer portal. */
