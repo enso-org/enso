@@ -9,12 +9,7 @@ import { useStore } from 'zustand'
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 
 import * as authProvider from '#/providers/AuthProvider'
-import {
-  useDriveStore,
-  usePasteData,
-  useSelectedKeys,
-  useSetSelectedKeys,
-} from '#/providers/DriveProvider'
+import { useDriveStore, useSelectedKeys, useSetSelectedKeys } from '#/providers/DriveProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -72,7 +67,6 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   const { hidden = false, backend, category } = props
   const { nodeMapRef, event, rootDirectoryId } = props
   const { doCopy, doCut, doPaste, doDelete } = props
-  const pasteData = usePasteData()
   const { user } = authProvider.useFullUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
