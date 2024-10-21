@@ -1,3 +1,4 @@
+import { Base64 } from 'js-base64'
 import createDebug from 'debug'
 import * as json from 'lib0/json'
 import * as map from 'lib0/map'
@@ -473,6 +474,10 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
     }
   }
 
+  private static makeCodeSnapshot(code: string): string {
+    return Base64.encode(code)
+  }
+
   private sendLsUpdate(
     synced: EnsoFileParts,
     newCode: string | undefined,
@@ -481,17 +486,24 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
   ) {
     if (this.syncedContent == null || this.syncedVersion == null) return
 
-    const code = newCode ?? synced.code
+    const newSnapshot = newCode && {
+      snapshot: ModulePersistence.makeCodeSnapshot(newCode)
+    }
     const newMetadataJson =
       newMetadata &&
       json.stringify({
         ...this.syncedMeta,
-        ide: { ...this.syncedMeta.ide, node: newMetadata },
+        ide: {
+          ...this.syncedMeta.ide,
+          ...newSnapshot,
+          node: newMetadata,
+        },
       })
     const idMapToPersist =
       (newIdMap || newMetadata) &&
       ModulePersistence.getIdMapToPersist(newIdMap, newMetadata ?? this.syncedMeta.ide.node)
     const newIdMapToPersistJson = idMapToPersist && serializeIdMap(idMapToPersist)
+    const code = newCode ?? synced.code
     const newContent = combineFileParts({
       code,
       idMapJson: newIdMapToPersistJson ?? synced.idMapJson ?? '[]',
@@ -500,7 +512,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
 
     const edits: TextEdit[] = []
     if (newCode) edits.push(...applyDiffAsTextEdits(0, synced.code, newCode))
-    if (newIdMap || newMetadata) {
+    if (newIdMap || newMetadata || newSnapshot) {
       const oldMetaContent = this.syncedContent.slice(synced.code.length)
       const metaContent = newContent.slice(code.length)
       const metaStartLine = (code.match(/\n/g) ?? []).length

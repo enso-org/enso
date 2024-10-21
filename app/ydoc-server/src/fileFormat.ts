@@ -42,6 +42,7 @@ export const ideMetadata = z
   .object({
     node: z.record(z.string().uuid(), nodeMetadata),
     import: z.record(z.string(), importMetadata),
+    snapshot: z.string().optional(),
   })
   .passthrough()
   .default(() => defaultMetadata().ide)
