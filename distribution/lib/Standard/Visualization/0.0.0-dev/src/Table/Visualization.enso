@@ -63,7 +63,7 @@ max_columns = 250
 whitespace_count : Column -> Integer | Nothing
 whitespace_count col =
     find_whitespace col = 
-        filtered = col.to_vector.filter (c-> c!=Nothing && c.is_a Text && (c.first.is_whitespace || c.last.is_whitespace))
+        filtered = col.to_vector.filter (c-> c.is_a Text && (c.first.is_whitespace || c.last.is_whitespace))
         filtered.length
     if (col.value_type == Value_Type.Mixed || col.value_type.is_text) then find_whitespace col else Nothing 
 
