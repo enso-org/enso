@@ -523,10 +523,15 @@ make_structure_creator =
 
 ## PRIVATE
 make_table_from_query connection query:Text|SQL_Statement alias:Text -> DB_Table =
-    columns = connection.base_connection.fetch_columns query Statement_Setter.null
+    expect_interpolations = case query of
+        # If the statement is given as a Text, then it should not contain `?` holes.
+        _ : Text -> False
+        _ : SQL_Statement -> True
+    statement_setter = if expect_interpolations then connection.dialect.get_statement_setter else Statement_Setter.null
+    columns = connection.base_connection.fetch_columns query statement_setter
     name = if alias == "" then (UUID.randomUUID.to_text) else alias
     ctx = Context.for_query query name
-    DB_Table_Module.make_table connection name columns ctx on_problems=Problem_Behavior.Report_Error
+    DB_Table_Module.make_table connection.base_connection name columns ctx on_problems=Problem_Behavior.Report_Error
 
 ## PRIVATE
 make_table_for_name connection name alias internal_temporary_keep_alive_reference=Nothing =
