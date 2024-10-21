@@ -1,6 +1,26 @@
 <script lang="ts">
 import { gridBindings } from '@/bindings'
-import type { MenuItemDef } from 'ag-grid-enterprise'
+import { TextFormatOptions } from '@/components/visualizations/TableVisualization.vue'
+import { useAutoBlur } from '@/util/autoBlur'
+import type {
+  CellEditingStartedEvent,
+  CellEditingStoppedEvent,
+  ColDef,
+  ColGroupDef,
+  ColumnResizedEvent,
+  FirstDataRenderedEvent,
+  GetRowIdFunc,
+  GridApi,
+  GridReadyEvent,
+  MenuItemDef,
+  ProcessDataFromClipboardParams,
+  RowDataUpdatedEvent,
+  RowEditingStartedEvent,
+  RowEditingStoppedEvent,
+  RowHeightParams,
+  SortChangedEvent,
+} from 'ag-grid-enterprise'
+import { type ComponentInstance, reactive, ref, shallowRef, watch } from 'vue'
 /**
  * A more specialized version of AGGrid's `MenuItemDef` to simplify testing (the tests need to provide
  * only values actually used by the composable)
@@ -38,35 +58,13 @@ export const commonContextMenuActions = {
 </script>
 
 <script setup lang="ts" generic="TData, TValue">
-/**
- * Component adding some useful logic to AGGrid table component (like keeping track of colum sizes),
- * and using common style for tables in our application.
- *import {
+
+// * Component adding some useful logic to AGGrid table component (like keeping track of colum sizes),
+// * and using common style for tables in our applicatioimport {
 clipboardNodeData,
 tsvTableToEnsoExpression,
 writeClipboard,
 } from '@/components/GraphEditor/clipboard'
-import { TextFormatOptions } from '@/components/visualizations/TableVisualization.vue'
-import { useAutoBlur } from '@/util/autoBlur'
-import type {
-CellEditingStartedEvent,
-CellEditingStoppedEvent,
-ColDef,
-ColGroupDef,
-ColumnResizedEvent,
-FirstDataRenderedEvent,
-GetRowIdFunc,
-GridApi,
-GridReadyEvent,
-ProcessDataFromClipboardParams,
-RowDataUpdatedEvent,
-RowEditingStartedEvent,
-RowEditingStoppedEvent,
-RowHeightParams,
-SortChangedEvent,
-} from 'ag-grid-enterprise'
-import { type ComponentInstance,reactive,ref,shallowRef,watch } from 'vue'
-'
 
 const DEFAULT_ROW_HEIGHT = 22
 
