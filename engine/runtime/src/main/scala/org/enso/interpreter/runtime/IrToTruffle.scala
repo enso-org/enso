@@ -1731,6 +1731,14 @@ class IrToTruffle(
                   branch.terminalBranch
                 )
               )
+            case bool: Literal.Bool =>
+              Right(
+                BooleanBranchNode.build(
+                  bool.bool,
+                  branchCodeNode.getCallTarget,
+                  branch.terminalBranch
+                )
+              )
           }
         case typePattern: Pattern.Type =>
           typePattern.tpe.getMetadata(Patterns) match {
@@ -2095,6 +2103,7 @@ class IrToTruffle(
           setLocation(node, lit.location)
         case lit: Literal.Text =>
           setLocation(LiteralNode.build(lit.text), lit.location)
+        case bool: Literal.Bool => LiteralNode.build(bool.bool)
       }
 
     private def fileLocationFromSection(loc: IdentifiedLocation) = {
