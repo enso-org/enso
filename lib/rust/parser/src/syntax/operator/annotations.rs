@@ -12,6 +12,7 @@ use crate::syntax::token::Associativity;
 use crate::syntax::token::Ident;
 use crate::syntax::token::Variant;
 use crate::syntax::tree;
+use crate::syntax::tree::FunctionAnnotation;
 use crate::syntax::tree::SyntaxError;
 use crate::syntax::treebuilding::Spacing;
 use crate::syntax::treebuilding::SpacingLookaheadTokenConsumer;
@@ -49,7 +50,8 @@ impl<'s> Annotation<'s> {
         if ident.is_type {
             Tree::annotated_builtin(operator, ident, default(), operand)
         } else {
-            Tree::annotated(operator, ident, operand, default(), default())
+            Tree::annotation(FunctionAnnotation { operator, annotation: ident, argument: operand })
+                .with_error(SyntaxError::AnnotationUnexpectedInExpression)
         }
     }
 }

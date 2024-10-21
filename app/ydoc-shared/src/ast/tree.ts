@@ -449,6 +449,10 @@ type StructuralField<T extends TreeRefs = RawRefs> =
   | TextElement<T>
   | ArgumentDefinition<T>
   | VectorElement<T>
+  | TypeSignature<T>
+  | SignatureLine<T>
+  | FunctionAnnotation<T>
+  | AnnotationLine<T>
 
 /** Type whose fields are all suitable for storage as `Ast` fields. */
 interface FieldObject<T extends TreeRefs> {
@@ -566,6 +570,14 @@ function mapRefs<T extends TreeRefs, U extends TreeRefs>(
   field: VectorElement<T>,
   f: MapRef<T, U>,
 ): VectorElement<U>
+function mapRefs<T extends TreeRefs, U extends TreeRefs>(
+  field: AnnotationLine<T>,
+  f: MapRef<T, U>,
+): AnnotationLine<U>
+function mapRefs<T extends TreeRefs, U extends TreeRefs>(
+  field: SignatureLine<T>,
+  f: MapRef<T, U>,
+): SignatureLine<U>
 function mapRefs<T extends TreeRefs, U extends TreeRefs>(
   field: FieldData<T>,
   f: MapRef<T, U>,
@@ -2029,7 +2041,31 @@ interface ArgumentType<T extends TreeRefs = RawRefs> {
   type: T['ast']
 }
 
+interface FunctionAnnotation<T extends TreeRefs = RawRefs> {
+  operator: T['token']
+  annotation: T['token']
+  argument: T['ast'] | undefined
+}
+
+interface AnnotationLine<T extends TreeRefs = RawRefs> {
+  annotation: FunctionAnnotation<T>
+  newlines: T['token'][]
+}
+
+interface TypeSignature<T extends TreeRefs = RawRefs> {
+  name: T['ast']
+  operator: T['token']
+  type: T['ast']
+}
+
+interface SignatureLine<T extends TreeRefs = RawRefs> {
+  signature: TypeSignature<T>
+  newlines: T['token'][]
+}
+
 export interface FunctionFields {
+  signatureLine: SignatureLine | undefined
+  private_: NodeChild<SyncTokenId> | undefined
   name: NodeChild<AstId>
   argumentDefinitions: ArgumentDefinition[]
   equals: NodeChild<SyncTokenId>
@@ -2067,6 +2103,9 @@ export class Function extends Ast {
   /** TODO: Add docs */
   static concrete(
     module: MutableModule,
+    annotationLines: AnnotationLine<OwnedRefs>[],
+    signatureLine: SignatureLine<OwnedRefs> | undefined,
+    private_: NodeChild<Token> | undefined,
     name: NodeChild<Owned>,
     argumentDefinitions: ArgumentDefinition<OwnedRefs>[],
     equals: NodeChild<Token>,
@@ -2075,6 +2114,9 @@ export class Function extends Ast {
     const base = module.baseObject('Function')
     const id_ = base.get('id')
     const fields = composeFieldData(base, {
+      annotationLines: annotationLines.map(anno => mapRefs(anno, ownedToRaw(module, id_))),
+      signatureLine: signatureLine && mapRefs(signatureLine, ownedToRaw(module, id_)),
+      private_,
       name: concreteChild(module, name, id_),
       argumentDefinitions: argumentDefinitions.map(def => mapRefs(def, ownedToRaw(module, id_))),
       equals,
@@ -2095,6 +2137,9 @@ export class Function extends Ast {
     // type methods.
     return MutableFunction.concrete(
       module,
+      [],
+      undefined,
+      undefined,
       unspaced(Ident.newAllowingOperators(module, name)),
       argumentDefinitions,
       spaced(makeEquals()),
@@ -2136,7 +2181,16 @@ export class Function extends Ast {
 
   /** TODO: Add docs */
   *concreteChildren(_verbatim?: boolean): IterableIterator<RawNodeChild> {
-    const { name, argumentDefinitions, equals, body } = getAll(this.fields)
+    const { signatureLine, private_, name, argumentDefinitions, equals, body } = getAll(this.fields)
+    if (signatureLine) {
+      const { signature, newlines } = signatureLine
+      const { name, operator, type } = signature
+      yield name
+      yield operator
+      yield type
+      yield* newlines
+    }
+    if (private_) yield private_
     yield name
     for (const def of argumentDefinitions) {
       const { open, open2, suspension, pattern, type, close2, defaultValue, close } = def
