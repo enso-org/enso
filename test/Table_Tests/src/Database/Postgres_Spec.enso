@@ -1032,6 +1032,21 @@ add_data_link_specs suite_builder =
                     data_link_table.at "Y" . to_vector . should_equal ["o"]
 
         ## datalink support
+        group_builder.specify "should be able to open a datalink to a DB query" <|
+            table_data_link_file = transform_file (enso_project.data / "datalinks" / "postgres-simple-query.datalink") connection_details
+            data_link_table = Data.read table_data_link_file
+            data_link_table.should_be_a DB_Table
+            data_link_table.column_names . should_equal ["two"]
+            data_link_table.at "two" . to_vector . should_equal [2]
+
+            table_data_link_file_2 = transform_file (enso_project.data / "datalinks" / "postgres-serialized-query.datalink") connection_details
+            data_link_table_2 = Data.read table_data_link_file
+            data_link_table_2.should_be_a DB_Table
+            data_link_table_2.column_names . should_equal ["int", "text"]
+            data_link_table_2.at "int" . to_vector . should_equal [1456]
+            data_link_table_2.at "text" . to_vector . should_equal ["my text"]
+
+        ## datalink support
         group_builder.specify "will reject any format overrides or stream operations on the data link" <|
             r1 = Data.read data_link_file.get ..Plain_Text
             r1.should_fail_with Illegal_Argument
