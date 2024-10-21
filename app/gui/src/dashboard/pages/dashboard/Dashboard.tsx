@@ -162,6 +162,7 @@ function DashboardInner(props: DashboardProps) {
     setCategoryRaw(newCategory)
     setStoreCategory(newCategory)
   })
+  const backend = backendProvider.useBackend(category)
 
   const projectsStore = useProjectsStore()
   const page = usePage()
@@ -275,11 +276,9 @@ function DashboardInner(props: DashboardProps) {
       if (asset != null && self != null) {
         setModal(
           <ManagePermissionsModal
+            backend={backend}
+            category={category}
             item={asset}
-            setItem={(updater) => {
-              const nextAsset = updater instanceof Function ? updater(asset) : updater
-              assetManagementApiRef.current?.setAsset(asset.id, nextAsset)
-            }}
             self={self}
             doRemoveSelf={() => {
               doRemoveSelf(selectedProject)

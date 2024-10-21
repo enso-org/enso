@@ -8,7 +8,7 @@ import * as remoteBackendPaths from '#/services/remoteBackendPaths'
 import * as dateTime from '#/utilities/dateTime'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
-import * as uniqueString from '#/utilities/uniqueString'
+import * as uniqueString from 'enso-common/src/utilities/uniqueString'
 
 import * as actions from './actions'
 
