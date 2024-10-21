@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import project.SQL.SQL_Fragment
 
@@ -13,7 +14,7 @@ type SQL_Statement
 
        The statement consists of SQL code with parameters and values that will be
        interpolated for these parameters.
-    Value (internal_fragments:(Vector SQL_Fragment))
+    private Value (internal_fragments:(Vector SQL_Fragment))
 
     ## PRIVATE
        ADVANCED
@@ -68,15 +69,64 @@ type SQL_Statement
        Returns a JS_Object representation of the statement.
     to_js_object : JS_Object
     to_js_object self =
+        self.serialize ensure_roundtrip=False
+
+    ## PRIVATE
+       Serializes this SQL statement to JSON.
+
+       Arguments:
+       - ensure_roundtrip: If true, interpolated objects will be checked if they
+         can be deserialized back. If any object cannot make a round-trip, an
+         error will be thrown. If false, no checks are performed.
+    serialize self (ensure_roundtrip : Boolean) -> JS_Object ! Unable_To_Serialize_SQL_Statement = Panic.recover Unable_To_Serialize_SQL_Statement <|
         jsonify fragment = case fragment of
-            SQL_Fragment.Code_Part code -> JS_Object.from_pairs [["sql_code", code]]
+            SQL_Fragment.Code_Part code ->
+                JS_Object.from_pairs [["sql_code", code]]
             SQL_Fragment.Interpolation obj ->
-                inner = JS_Object.from_pairs [["value", obj]]
-                JS_Object.from_pairs [["sql_interpolation", inner]]
+                obj_as_js = obj.to_js_object
+                if ensure_roundtrip then
+                    reconstructed = Json.parse (Json.stringify obj_as_js)
+                    valid_roundtrip = reconstructed == obj
+                    if valid_roundtrip.not then
+                        Panic.throw (Unable_To_Serialize_SQL_Statement.Error obj)
+                obj_as_js.if_not_error
+                    JS_Object.from_pairs [["sql_interpolation", obj_as_js]]
         fragments = self.internal_fragments.map jsonify
-        JS_Object.from_pairs [["query", fragments]]
+        result = fragments.if_not_error <| JS_Object.from_pairs [["query", fragments]]
+        result.if_not_error <|
+            if ensure_roundtrip then
+                Runtime.assert (SQL_Statement.deserialize result == self) "SQL_Fragment serialization does not round-trip as expected: "+result.to_display_text+" did not deserialize back."
+            result
+
+    ## PRIVATE
+    deserialize (json : Text | JS_Object) -> SQL_Statement ! Illegal_Argument =
+        parsed_json = case json of
+            _ : JS_Object -> json
+            _ : Text ->
+                parsed = Json.parse json
+                if parsed.is_a JS_Object then parsed else
+                    Error.throw (Illegal_Argument.Error "Error parsing SQL_Statement: expected a JSON object, but got: "+parsed.to_display_text+".")
+        fragments = parsed_json.get "query" if_missing=(Error.throw (Illegal_Argument.Error "Error parsing SQL_Statement: It should contain a `query` field. Fields were: "+parsed_json.field_names.to_display_text+"."))
+        if fragments.is_a Vector . not then Error.throw (Illegal_Argument.Error "Error parsing SQL_Statement: The 'query' field should be an array, but got:"+fragments.to_display_text+".") else
+            parse_fragment fragment = case fragment of
+                _ : JS_Object ->
+                    fields = fragment.field_names
+                    if fields == ["sql_code"] then SQL_Fragment.Code_Part (fragment.get "sql_code") else
+                        if fields == ["sql_interpolation"] then SQL_Fragment.Interpolation (fragment.get "sql_interpolation") else
+                            Error.throw (Illegal_Argument.Error "Error parsing SQL_Statement: a fragment should contain exactly one field of either `sql_code` or `sql_interpolation`, but got: "+fragment.to_display_text+".")
+                _ -> Error.throw (Illegal_Argument.Error "Error parsing SQL_Statement: expected `sql_code` or `sql_interpolation` object, but got:"+fragment.to_display_text+".")
+            SQL_Statement.Value (fragments.map parse_fragment)
 
     ## PRIVATE
     to_text self -> Text =
         prepared = self.prepare
         "SQL_Statement " + prepared.first + " with values " + prepared.second.to_text
+
+## PRIVATE
+type Unable_To_Serialize_SQL_Statement
+    ## PRIVATE
+    Error obj
+
+    ## PRIVATE
+    to_display_text self =
+        "Unable to serialize an SQL statement, because it contains an interpolated object [" + self.obj.to_display_text + " (" + (Meta.type_of self.obj).to_text + ")] that cannot be deserialized back."

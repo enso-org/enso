@@ -267,7 +267,7 @@ Text.characters self =
              ## This matches `aBc` @ character 11
              "aabbbbccccaaBcaaaa".find "a[ab]c" Case_Sensitivity.Insensitive
 Text.find : (Regex | Text) -> Case_Sensitivity -> Match | Nothing ! Regex_Syntax_Error | Illegal_Argument
-Text.find self pattern:(Regex | Text)=".*" case_sensitivity=Case_Sensitivity.Sensitive =
+Text.find self pattern:(Regex | Text)=".*" case_sensitivity:Case_Sensitivity=..Sensitive =
     case_insensitive = case_sensitivity.is_case_insensitive_in_memory
     compiled_pattern = Regex.compile pattern case_insensitive=case_insensitive
     compiled_pattern.match self
@@ -300,7 +300,7 @@ Text.find self pattern:(Regex | Text)=".*" case_sensitivity=Case_Sensitivity.Sen
               ## This matches `aABbbbc` @ character 0 and `aBC` @ character 11
              "aABbbbccccaaBCaaaa".find_all "a[ab]+c" Case_Sensitivity.Insensitive
 Text.find_all : Text -> Case_Sensitivity -> Vector Match ! Regex_Syntax_Error | Illegal_Argument
-Text.find_all self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
+Text.find_all self pattern=".*" case_sensitivity:Case_Sensitivity=..Sensitive =
     case_insensitive = case_sensitivity.is_case_insensitive_in_memory
     compiled_pattern = Regex.compile pattern case_insensitive=case_insensitive
     compiled_pattern.match_all self
@@ -335,7 +335,7 @@ Text.find_all self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
              # Evaluates to true
              "CONTACT@enso.org".match regex Case_Sensitivity.Insensitive
 Text.match : Text -> Case_Sensitivity -> Boolean ! Regex_Syntax_Error | Illegal_Argument
-Text.match self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
+Text.match self pattern=".*" case_sensitivity:Case_Sensitivity=..Sensitive =
     case_insensitive = case_sensitivity.is_case_insensitive_in_memory
     compiled_pattern = Regex.compile pattern case_insensitive=case_insensitive
     compiled_pattern.matches self
@@ -394,7 +394,7 @@ Text.to_regex self case_insensitive=False = Regex.compile self case_insensitive
          'azbzczdzezfzg'.split ['b', 'zez'] == ['az', 'zczd', 'fzg']
 @delimiter make_delimiter_selector
 Text.split : Text | Vector Text -> Case_Sensitivity -> Boolean -> Vector Text ! Illegal_Argument
-Text.split self delimiter="," case_sensitivity=Case_Sensitivity.Sensitive use_regex=False =
+Text.split self delimiter="," case_sensitivity:Case_Sensitivity=..Sensitive use_regex=False =
     delimiter_is_empty = case delimiter of
         _ : Text -> delimiter.is_empty
         _ : Vector -> delimiter.is_empty || delimiter.any (.is_empty)
@@ -903,7 +903,7 @@ Text.from_codepoints codepoints = Text_Utils.from_codepoints codepoints
          "Hello!".starts_with "hello" == False
          "Hello!".starts_with "hello" Case_Sensitivity.Insensitive == True
 Text.starts_with : Text -> Case_Sensitivity -> Boolean
-Text.starts_with self prefix case_sensitivity=Case_Sensitivity.Sensitive = case case_sensitivity of
+Text.starts_with self prefix case_sensitivity:Case_Sensitivity=..Sensitive = case case_sensitivity of
     Case_Sensitivity.Default -> self.starts_with prefix Case_Sensitivity.Sensitive
     Case_Sensitivity.Sensitive -> Text_Utils.starts_with self prefix
     Case_Sensitivity.Insensitive locale ->
@@ -933,7 +933,7 @@ Text.starts_with self prefix case_sensitivity=Case_Sensitivity.Sensitive = case 
          "Hello World".ends_with "world" == False
          "Hello World".ends_with "world" Case_Sensitivity.Insensitive == True
 Text.ends_with : Text -> Case_Sensitivity -> Boolean
-Text.ends_with self suffix case_sensitivity=Case_Sensitivity.Sensitive = case case_sensitivity of
+Text.ends_with self suffix case_sensitivity:Case_Sensitivity=..Sensitive = case case_sensitivity of
     Case_Sensitivity.Default -> self.ends_with suffix Case_Sensitivity.Sensitive
     Case_Sensitivity.Sensitive -> Text_Utils.ends_with self suffix
     Case_Sensitivity.Insensitive locale ->
@@ -979,7 +979,7 @@ Text.ends_with self suffix case_sensitivity=Case_Sensitivity.Sensitive = case ca
 
          "Hello!".contains "LO" Case_Sensitivity.Insensitive
 Text.contains : Text -> Case_Sensitivity -> Boolean
-Text.contains self term="" case_sensitivity=Case_Sensitivity.Sensitive = case case_sensitivity of
+Text.contains self term:Text="" case_sensitivity:Case_Sensitivity=..Sensitive = case case_sensitivity of
     Case_Sensitivity.Default -> self.contains term Case_Sensitivity.Sensitive
     Case_Sensitivity.Sensitive -> Text_Utils.contains self term
     Case_Sensitivity.Insensitive locale ->
@@ -1343,7 +1343,7 @@ Text.trim self where:Location=..Both what=_.is_whitespace =
          match_1 == match_2
 
 Text.locate : Text -> Matching_Mode -> Case_Sensitivity -> Span | Nothing
-Text.locate self term="" mode=Matching_Mode.First case_sensitivity=Case_Sensitivity.Sensitive = case case_sensitivity of
+Text.locate self term:Text="" mode=Matching_Mode.First case_sensitivity:Case_Sensitivity=..Sensitive = case case_sensitivity of
     Case_Sensitivity.Default -> self.locate term mode Case_Sensitivity.Sensitive
     Case_Sensitivity.Sensitive ->
         codepoint_span = case mode of
@@ -1434,7 +1434,7 @@ Text.locate self term="" mode=Matching_Mode.First case_sensitivity=Case_Sensitiv
          match_2 = ligatures . locate_all "ffiff" case_sensitivity=Case_Sensitive.Insensitive
          match_2 . map .length == [2, 5]
 Text.locate_all : Text -> Case_Sensitivity -> Vector Span
-Text.locate_all self term="" case_sensitivity=Case_Sensitivity.Sensitive = if term.is_empty then Vector.new (self.length + 1) (ix -> Span.Value (ix.up_to ix) self) else case case_sensitivity of
+Text.locate_all self term:Text="" case_sensitivity:Case_Sensitivity=..Sensitive = if term.is_empty then Vector.new (self.length + 1) (ix -> Span.Value (ix.up_to ix) self) else case case_sensitivity of
     Case_Sensitivity.Default -> self.locate term Case_Sensitivity.Sensitive
     Case_Sensitivity.Sensitive ->
         codepoint_spans = Vector.from_polyglot_array <| Text_Utils.span_of_all self term
@@ -1479,7 +1479,7 @@ Text.locate_all self term="" case_sensitivity=Case_Sensitivity.Sensitive = if te
          "Hello World!".index_of "J" == Nothing
          "Hello World!".index_of "o" == 4
 Text.index_of : Text -> Integer -> Case_Sensitivity -> Integer | Nothing
-Text.index_of self term="" (start : Integer = 0) case_sensitivity=Case_Sensitivity.Sensitive =
+Text.index_of self term:Text="" (start : Integer = 0) case_sensitivity:Case_Sensitivity=..Sensitive =
     used_start = if start < 0 then start+self.length else start
     if used_start < 0 || used_start > self.length then Error.throw (Index_Out_Of_Bounds.Error start self.length+1) else
         used = if used_start == 0 then self else self.drop used_start
@@ -1514,7 +1514,7 @@ Text.index_of self term="" (start : Integer = 0) case_sensitivity=Case_Sensitivi
          "Hello World!".last_index_of "J" == Nothing
          "Hello World!".last_index_of "o" == 7
 Text.last_index_of : Text -> Integer -> Case_Sensitivity -> Integer | Nothing
-Text.last_index_of self term="" start=-1 case_sensitivity=Case_Sensitivity.Sensitive =
+Text.last_index_of self term:Text="" start=-1 case_sensitivity:Case_Sensitivity=..Sensitive =
     used_start = if start < 0 then start+self.length else start
     if used_start < 0 || used_start >= self.length then Error.throw (Index_Out_Of_Bounds.Error start self.length) else
         used = if used_start == self.length-1 then self else self.take used_start+1

@@ -6,6 +6,7 @@ import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.SQL.SQL_Builder
+import project.SQL_Statement.SQL_Statement
 
 ## PRIVATE
 
@@ -22,7 +23,7 @@ type Context
        - internal_temporary_keep_alive_reference: See `From_Spec.Table` for more
          details.
     for_table : Text -> Text -> Any -> Context
-    for_table table_name alias=table_name internal_temporary_keep_alive_reference=Nothing =
+    for_table table_name:Text alias:Text=table_name internal_temporary_keep_alive_reference=Nothing =
         Context.Value (From_Spec.Table table_name alias internal_temporary_keep_alive_reference=internal_temporary_keep_alive_reference) [] [] [] Nothing []
 
     ## PRIVATE
@@ -30,10 +31,9 @@ type Context
        Creates a query context that runs a raw SQL query.
 
        Arguments:
-       - raw_sql: The name of the table for which the context is being created.
+       - raw_sql: The SQL statement (either as prepared statement or text).
        - alias: An alias name to use for table within the query.
-    for_query : Text -> Text -> Context
-    for_query raw_sql alias =
+    for_query (raw_sql:Text|SQL_Statement) (alias:Text) -> Context =
         Context.Value (From_Spec.Query raw_sql alias) [] [] [] Nothing []
 
     ## PRIVATE
@@ -42,8 +42,7 @@ type Context
 
        Arguments:
        - subquery: The subquery to lift into a context.
-    for_subquery : From_Spec -> Context
-    for_subquery subquery =
+    for_subquery subquery:From_Spec -> Context =
         Context.Value subquery [] [] [] Nothing []
 
     ## PRIVATE

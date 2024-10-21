@@ -1,0 +1,14 @@
+{
+  "type": "Postgres_Connection",
+  "libraryName": "Standard.Database",
+  "host": "HOSTNAME",
+  "port": 12345,
+  "database_name": "DBNAME",
+  "credentials": {
+    "username": "USERNAME",
+    "password": "PASSWORD"
+  },
+  "table": {
+    "query": "SELECT 1+1 AS \"two\""
+  }
+}

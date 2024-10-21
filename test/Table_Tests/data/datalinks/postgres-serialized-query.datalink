@@ -1,0 +1,14 @@
+{
+  "type": "Postgres_Connection",
+  "libraryName": "Standard.Database",
+  "host": "HOSTNAME",
+  "port": 12345,
+  "database_name": "DBNAME",
+  "credentials": {
+    "username": "USERNAME",
+    "password": "PASSWORD"
+  },
+  "table": {
+    "sql_statement": "{\"query\": [{\"sql_code\": \"SELECT 1000+\"}, {\"sql_interpolation\": 456}, {\"sql_code\": \" AS \\\"int\\\", \"}, {\"sql_interpolation\": \"my text\"}, {\"sql_code\": \" AS \\\"text\\\"\"}]}"
+  }
+}
