@@ -2,8 +2,8 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "lib": ["DOM", "es2023"],
-    "allowJs": false,
-    "checkJs": false,
+    "allowJs": true,
+    "checkJs": true,
     "skipLibCheck": false
   },
   "include": ["./src/", "./src/text/english.json", "../types/"]

@@ -8,9 +8,7 @@ import * as React from 'react'
 
 const UNSET_VALUE = Symbol('unset')
 
-/**
- * A hook that returns a memoized function that will only be called once
- */
+/** A hook that returns a memoized function that will only be called once */
 export function useLazyMemoHooks<T>(factory: T | (() => T), deps: React.DependencyList): () => T {
   return React.useMemo(() => {
     let cachedValue: T | typeof UNSET_VALUE = UNSET_VALUE

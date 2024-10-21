@@ -11,9 +11,7 @@ import { useText } from '#/providers/TextProvider'
 import * as formContext from './FormProvider'
 import type * as types from './types'
 
-/**
- * Props for the Reset component.
- */
+/** Props for the Reset component. */
 export interface ResetProps extends Omit<ariaComponents.ButtonProps, 'loading'> {
   /**
    * Connects the submit button to a form.
@@ -28,9 +26,7 @@ export interface ResetProps extends Omit<ariaComponents.ButtonProps, 'loading'> 
   readonly action?: 'cancel' | 'reset'
 }
 
-/**
- * Reset button for forms.
- */
+/** Reset button for forms. */
 export function Reset(props: ResetProps): React.JSX.Element {
   const { getText } = useText()
   const {

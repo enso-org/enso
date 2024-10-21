@@ -6,8 +6,10 @@ import * as buildUtils from 'enso-common/src/buildUtils'
 // === Paths to resources ===
 // ==========================
 
-/** Path to the Project Manager bundle within the electron distribution
- * (relative to electron's resources directory). */
+/**
+ * Path to the Project Manager bundle within the electron distribution
+ * (relative to electron's resources directory).
+ */
 export const PROJECT_MANAGER_BUNDLE = 'enso'
 
 /** Distribution directory for IDE. */

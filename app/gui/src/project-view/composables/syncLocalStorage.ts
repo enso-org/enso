@@ -6,13 +6,9 @@ import { xxHash128 } from 'ydoc-shared/ast/ffi'
 import { AbortScope } from 'ydoc-shared/util/net'
 
 export interface SyncLocalStorageOptions<StoredState> {
-  /**
-   * The main localStorage key under which a map of saved states will be stored.
-   */
+  /** The main localStorage key under which a map of saved states will be stored. */
   storageKey: string
-  /**
-   * The minimum amount of time a serialized state is stable before it is written to localStorage.
-   */
+  /** The minimum amount of time a serialized state is stable before it is written to localStorage. */
   debounce: number
   /**
    * A **reactive** key encoder used for distinguishing between separate stored map entries. Data

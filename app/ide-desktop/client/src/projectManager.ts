@@ -17,8 +17,10 @@ const execFile = util.promisify(childProcess.execFile)
 // === Project Manager ===
 // =======================
 
-/** Return the Project Manager path.
- * @throws If the Project Manager path is invalid. */
+/**
+ * Return the Project Manager path.
+ * @throws If the Project Manager path is invalid.
+ */
 export function pathOrPanic(args: config.Args): string {
   const binPath = args.groups.engine.options.projectManagerPath.value
   const binExists = fsSync.existsSync(binPath)
@@ -35,11 +37,13 @@ async function exec(args: config.Args, processArgs: string[], env?: NodeJS.Proce
   return await execFile(binPath, processArgs, { env })
 }
 
-/** Spawn the Project Manager process.
+/**
+ * Spawn the Project Manager process.
  *
  * The standard output and error handles will be redirected to the output and error handles of the
  * Electron app. Input is piped to this process, so it will not be closed until this process
- * finishes. */
+ * finishes.
+ */
 export function spawn(
   args: config.Args,
   processArgs: string[],

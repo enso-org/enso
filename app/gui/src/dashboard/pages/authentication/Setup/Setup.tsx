@@ -31,9 +31,7 @@ import { InviteUsersForm } from '#/modals/InviteUsersModal'
 import { PlanSelector } from '#/modules/payments'
 import { Plan } from '#/services/Backend'
 
-/**
- * Step in the setup process
- */
+/** Step in the setup process */
 interface Step {
   readonly title: text.TextId
   readonly description?: text.TextId
@@ -45,9 +43,7 @@ interface Step {
   readonly ignore?: (context: Context) => boolean
 }
 
-/**
- * Context for the setup process
- */
+/** Context for the setup process */
 interface Context {
   readonly session: ReturnType<typeof useAuth>['session']
   readonly plan: Plan
@@ -351,9 +347,7 @@ const BASE_STEPS: Step[] = [
   },
 ]
 
-/**
- * Setup page
- */
+/** Setup page */
 export function Setup() {
   const { getText } = textProvider.useText()
   const { session } = useAuth()

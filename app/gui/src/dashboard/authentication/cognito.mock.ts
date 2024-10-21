@@ -306,16 +306,12 @@ export class Cognito {
     }
   }
 
-  /**
-   * Refresh the current user's session.
-   */
+  /** Refresh the current user's session. */
   async refreshUserSession() {
     return Promise.resolve(results.Ok(null))
   }
 
-  /**
-   * Returns MFA preference for the current user.
-   */
+  /** Returns MFA preference for the current user. */
   async getMFAPreference() {
     return Promise.resolve(results.Ok('NOMFA'))
   }
