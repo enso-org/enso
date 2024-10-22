@@ -9,6 +9,7 @@ import org.enso.common.MethodNames;
 import org.enso.common.RuntimeOptions;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Diagnostic;
+import org.enso.compiler.core.ir.DiagnosticStorage;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
@@ -84,7 +85,16 @@ public abstract class StaticAnalysisTest {
 
   protected final List<Diagnostic> getDescendantsDiagnostics(IR ir) {
     return CollectionConverters.asJava(
-        ir.preorder().flatMap((node) -> node.diagnostics().toList()));
+        ir.preorder()
+            .flatMap(
+                (node) -> {
+                  DiagnosticStorage diagnostics = node.diagnostics();
+                  if (diagnostics != null) {
+                    return diagnostics.toList();
+                  } else {
+                    return scala.collection.immutable.List$.MODULE$.empty();
+                  }
+                }));
   }
 
   protected final Method findStaticMethod(Module module, String name) {
