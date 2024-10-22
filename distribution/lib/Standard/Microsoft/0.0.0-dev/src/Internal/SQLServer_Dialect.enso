@@ -310,6 +310,8 @@ type SQLServer_Dialect
             jdbc.ensure_query_has_no_holes raw_sql
 
     ## PRIVATE
+       Returns a pair of a SQL_Builder for the given expression and a vector of columns
+       that have been used in the expression and need to be checked for nulls.
     generate_expression self base_gen expr = case expr of
         SQL_Expression.Column _ _ ->
             wrapped_name = base_gen.generate_expression self expr
@@ -332,6 +334,9 @@ type SQLServer_Dialect
             null_checks = parsed_args_and_null_checks.map .second  . flatten
 
             expr_result = case kind of
+                ## In the case that we actually want to check for null then we need to generate the null
+                   check sql for all the columns that have been used up to this point and that 
+                   becomes the expression.
                 "IS_NULL" -> _generate_null_check_sql_builder null_checks
                 _ -> 
                     result = op parsed_args
@@ -339,10 +344,8 @@ type SQLServer_Dialect
                     case result of
                         _ : Function -> result metadata
                         _ -> result
+            null_checks_result = if kind == "IS_NULL" then [] else null_checks
 
-            null_checks_result = case kind of
-                "IS_NULL" -> []
-                _ -> null_checks
             
             pair expr_result null_checks_result
         query : Query -> pair (base_gen.generate_sub_query self query) []
