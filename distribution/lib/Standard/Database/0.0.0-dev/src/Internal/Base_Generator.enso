@@ -161,10 +161,8 @@ type SQL_Generator
         base_expression ++ collation ++ order_suffix ++ nulls_suffix
 
     ## PRIVATE
-    generate_column self dialect expr:(SQL_Expression | Order_Descriptor | Query) name:Text -> SQL_Builder =
-        x = self.generate_expression dialect expr
-        y = alias dialect name
-        x ++ y
+    default_generate_column self dialect expr:(SQL_Expression | Order_Descriptor | Query) name:Text -> SQL_Builder =
+        self.generate_expression dialect expr ++ alias dialect name
 
     ## PRIVATE
         Generates SQL code corresponding to a SELECT statement.
