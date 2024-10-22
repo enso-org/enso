@@ -139,8 +139,9 @@ async function processReplacements(projectPath) {
  * @param {string} projectPath File path relative to input directory, used for error reporting.
  */
 async function reportUnexpectedPatterns(fileContents, projectPath) {
+  console.log(projectPath, Buffer.isUtf8(fileContents))
   if (Buffer.isUtf8(fileContents)) {
-    for (const match in fileContents.toString('utf8').matchAll(patternRegex)) {
+    for (const match of fileContents.toString().matchAll(patternRegex)) {
       errors.push(new Error(`Found unexpected pattern ${match} in file "${projectPath}"`))
     }
   }

@@ -1,9 +1,9 @@
-load("@rules_rust//rust:defs.bzl", "rust_shared_library")
-load("@aspect_rules_js//npm:defs.bzl", "npm_package")
-load("@rules_rust//wasm_bindgen:defs.bzl", "rust_wasm_bindgen")
-load("@crates//:defs.bzl", "aliases", "all_crate_deps")
 load("@aspect_bazel_lib//lib:copy_to_directory.bzl", "copy_to_directory")
 load("@aspect_bazel_lib//lib:write_source_files.bzl", "write_source_files")
+load("@aspect_rules_js//npm:defs.bzl", "npm_package")
+load("@crates//:defs.bzl", "aliases", "all_crate_deps")
+load("@rules_rust//rust:defs.bzl", "rust_shared_library")
+load("@rules_rust//wasm_bindgen:defs.bzl", "rust_wasm_bindgen")
 
 rust_shared_library(
     name = "rust_lib",
@@ -31,7 +31,10 @@ copy_to_directory(
 
 npm_package(
     name = "pkg",
-    srcs = ["package.json", ":rust-ffi-dist"],
+    srcs = [
+        "package.json",
+        ":rust-ffi-dist",
+    ],
     visibility = ["//visibility:public"],
 )
 
@@ -40,7 +43,7 @@ npm_package(
 write_source_files(
     name = "write_wasm_dist",
     files = {
-        "dist": ":rust-ffi-dist"
+        "dist": ":rust-ffi-dist",
     },
     suggested_update_target = "//:write_all",
     visibility = ["//visibility:public"],

@@ -124,7 +124,7 @@
   "moduleExtensions": {
     "//:bazel_scripts/secrets.bzl%secrets": {
       "general": {
-        "bzlTransitiveDigest": "ohtO/g2zVbvc2pT6feGQ4k/0wp+xnyj9O+c9v/ms5NM=",
+        "bzlTransitiveDigest": "gAEoCrisX9JFPj8WI9Db0nShQ/mwAWt8x3lA90BT6NU=",
         "usagesDigest": "qs5HkE+6F8oLjmPczbnegyNwqa96tDrQborkVvcTxzA=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
@@ -798,7 +798,7 @@
     "@@rules_graalvm~//:extensions.bzl%graalvm": {
       "general": {
         "bzlTransitiveDigest": "7TRnLGgMZtLIlqn0gwKri3T+KOm/9pO2nb9Tyb8sGJY=",
-        "usagesDigest": "CKuMjRggH51ebo3jvgU+Rx3zZhT+oMzeO3syMJ2M8vA=",
+        "usagesDigest": "nl0Lmgf+iZOCEuxWqt3QUp3kUE6zNv0VoJUcGUX/QCc=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
         "envVariables": {},
@@ -1186,7 +1186,7 @@
     "@@rules_rust~//rust:extensions.bzl%rust": {
       "general": {
         "bzlTransitiveDigest": "5Fhm4e8fu/NfMW757ZpxfoALzKqLkdWu/bnnCs61WW4=",
-        "usagesDigest": "CX9eGyp/EOLsU70O2sS80JnmG8+o4ofImnux4Y0BJF0=",
+        "usagesDigest": "+rql58LIJRAOtd23kPp/1+AkAxOqYsnb7cfWZixYhBo=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
         "envVariables": {},

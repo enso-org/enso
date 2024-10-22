@@ -1,16 +1,16 @@
+load("@aspect_bazel_lib//lib:write_source_files.bzl", "write_source_files")
+load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_run_binary")
 load("@aspect_rules_js//npm:defs.bzl", "npm_package")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
 load("@npm//:defs.bzl", "npm_link_all_packages", "npm_link_targets")
-load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_run_binary")
-load("@aspect_bazel_lib//lib:write_source_files.bzl", "write_source_files")
 
 npm_link_all_packages(name = "node_modules")
 
 ts_config(
     name = "tsconfig",
     src = "tsconfig.json",
-    deps = ["//:tsconfig"],
     visibility = ["//visibility:public"],
+    deps = ["//:tsconfig"],
 )
 
 IGNORED_GENERATED_FILES = [
@@ -19,13 +19,16 @@ IGNORED_GENERATED_FILES = [
 
 ts_project(
     name = "tsc",
+    srcs = glob(
+        ["src/**/*.ts"],
+        IGNORED_GENERATED_FILES,
+    ) + [":generate_ast_typedefs"],
     composite = True,
-    tsconfig = ":tsconfig",
     out_dir = "dist",
     root_dir = "src",
-    srcs = glob(["src/**/*.ts"], IGNORED_GENERATED_FILES) + [":generate_ast_typedefs"],
-    deps = npm_link_targets(),
+    tsconfig = ":tsconfig",
     visibility = ["//visibility:public"],
+    deps = npm_link_targets(),
 )
 
 npm_package(
@@ -47,26 +50,26 @@ ts_config(
 
 ts_project(
     name = "parser-codegen-tsc",
-    tsconfig = ":parser-codegen-tsconfig",
     srcs = glob(["parser-codegen/*.ts"]),
+    tsconfig = ":parser-codegen-tsconfig",
     deps = npm_link_targets(),
 )
 
 js_binary(
     name = "parser-codegen-bin",
     data = [
-        ":parser-codegen-tsc",
         "package.json",
+        ":parser-codegen-tsc",
     ],
     entry_point = "parser-codegen/index.js",
 )
 
 js_run_binary(
     name = "generate_ast_typedefs",
-    tool = ":parser-codegen-bin",
     srcs = ["//lib/rust/parser/schema:generate"],
     args = ["$(rootpath //lib/rust/parser/schema:generate)"],
     stdout = "src/ast/generated/ast.ts",
+    tool = ":parser-codegen-bin",
     visibility = ["//visibility:public"],
 )
 
@@ -77,7 +80,7 @@ js_run_binary(
 write_source_files(
     name = "write_ast_codegen",
     files = {
-        "src/ast/generated/ast.ts": ":generate_ast_typedefs"
+        "src/ast/generated/ast.ts": ":generate_ast_typedefs",
     },
     suggested_update_target = "//:write_all",
     visibility = ["//visibility:public"],

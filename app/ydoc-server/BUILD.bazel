@@ -12,11 +12,11 @@ ts_config(
 
 ts_project(
     name = "tsc",
+    srcs = glob(["src/**/*.ts"]),
     composite = True,
-    tsconfig = ":tsconfig",
     out_dir = "dist",
     root_dir = "src",
-    srcs = glob(["src/**/*.ts"]),
+    tsconfig = ":tsconfig",
     deps = npm_link_targets(),
 )
 

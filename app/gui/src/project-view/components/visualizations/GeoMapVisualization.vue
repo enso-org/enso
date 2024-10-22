@@ -101,7 +101,7 @@ const props = defineProps<{ data: Data }>()
  * All the limits of API are listed here: https://docs.mapbox.com/api/#rate-limits
  */
 const TOKEN = $config.MAPBOX_API_TOKEN
-if (TOKEN == null) {
+if (!TOKEN) {
   console.warn(
     'Mapbox API token is missing, to use Geo Map visualization please provide VITE_ENSO_MAPBOX_API_TOKEN.',
   )

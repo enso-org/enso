@@ -29,7 +29,7 @@ Then in build scripts you can reference these by importing a custom bzl file.
 
 """
 
-BUILD_BZL_CONTENTS='''
+BUILD_BZL_CONTENTS = '''
 filegroup(
     name="secrets",
     srcs=["defs.bzl"],
@@ -39,7 +39,6 @@ filegroup(
 
 UNSET_VALUE = "______UNSET______"
 REQUIRED_VALUE = "<REQUIRED>"
-
 
 def _environment_secrets_impl(repository_ctx):
     entries = repository_ctx.attr.entries
@@ -60,7 +59,7 @@ def _environment_secrets_impl(repository_ctx):
             value = defaultValue
 
         # Escape quotes and backslashes
-        value = value.replace("\\","\\\\").replace("\"","\\\"")
+        value = value.replace("\\", "\\\\").replace("\"", "\\\"")
         lines.append("    return \"{}\"".format(value))
 
     lines.append("  else:")
@@ -81,10 +80,10 @@ def _secrets_impl(ctx):
     environment_repo = module.tags.environment_repo
     environment_secrets_rule(
         name = environment_repo[0].name,
-        entries = environment_repo[0].entries
+        entries = environment_repo[0].entries,
     )
 
-environment_repo = tag_class(attrs={
+environment_repo = tag_class(attrs = {
     "name": attr.string(default = "env"),
     "entries": attr.string_dict(default = {}),
 })

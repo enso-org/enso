@@ -17,9 +17,9 @@ node.toolchain(node_version = "20.11.1")
 npm = use_extension("@aspect_rules_js//npm:extensions.bzl", "npm", dev_dependency = True)
 npm.npm_translate_lock(
     name = "npm",
+    npmrc = "//:.npmrc",
     pnpm_lock = "//:pnpm-lock.yaml",
     verify_node_modules_ignored = "//:.bazelignore",
-    npmrc = "//:.npmrc",
 )
 use_repo(npm, "npm")
 
@@ -32,23 +32,27 @@ use_repo(rules_ts_ext, "npm_typescript")
 ### RUST ###
 ############
 bazel_dep(name = "rules_rust", version = "0.48.0")
-single_version_override(module_name = "rules_rust", patches = ["patches/rules_rust_msvc_maxpath.patch"])
+single_version_override(
+    module_name = "rules_rust",
+    patches = ["patches/rules_rust_msvc_maxpath.patch"],
+)
 
 rust = use_extension("@rules_rust//rust:extensions.bzl", "rust")
 rust.toolchain(
     edition = "2021",
-    versions = ["nightly/2024-08-08"],
     extra_target_triples = ["wasm32-unknown-unknown"],
+    versions = ["nightly/2024-08-08"],
 )
 use_repo(rust, "rust_toolchains")
+
 register_toolchains("@rust_toolchains//:all")
 
 # print( manifests.MANIFESTS )
 crate = use_extension("@rules_rust//crate_universe:extension.bzl", "crate")
 crate.from_cargo(
     name = "crates",
-    cargo_lockfile = "//:Cargo.lock",
     cargo_config = "//:.cargo/config.toml",
+    cargo_lockfile = "//:Cargo.lock",
     manifests = [
         "//:build_tools/ci-gen/Cargo.toml",
         "//:build_tools/cli/Cargo.toml",
@@ -82,26 +86,30 @@ use_repo(crate, "crates")
 wb_crates = use_extension("@rules_rust//crate_universe:extension.bzl", "crate")
 wb_crates.from_cargo(
     name = "wb_crates",
-    cargo_lockfile = "@wasm_bindgen_cli_crate//:Cargo.lock",
     cargo_config = "//:.cargo/config.toml",
+    cargo_lockfile = "@wasm_bindgen_cli_crate//:Cargo.lock",
     manifests = [
         "@wasm_bindgen_cli_crate//:Cargo.toml",
     ],
 )
 use_repo(wb_crates, "wb_crates")
+
 http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
 WASM_BINDGEN_VERSION = "0.2.93"
+
 http_archive(
     name = "wasm_bindgen_cli_crate",
+    build_file = "//toolchains/wasm_bindgen:BUILD.wasm-bindgen-cli.bazel",
     integrity = "sha256-uwX54YM2X1zzrATWC1Sw4z9JTpNzAme1r4JjNEPugDU=",
+    strip_prefix = "wasm-bindgen-cli-{}".format(WASM_BINDGEN_VERSION),
+    type = "tar.gz",
     # sha256 = "08f61e21873f51e3059a8c7c3eef81ede7513d161cfc60751c7b2ffa6ed28270",
     urls = ["https://static.crates.io/crates/wasm-bindgen-cli/wasm-bindgen-cli-{}.crate".format(WASM_BINDGEN_VERSION)],
-    type = "tar.gz",
-    strip_prefix = "wasm-bindgen-cli-{}".format(WASM_BINDGEN_VERSION),
-    build_file = "//toolchains/wasm_bindgen:BUILD.wasm-bindgen-cli.bazel",
 )
 
 register_toolchains("//toolchains/wasm_bindgen:cli")
+
 register_toolchains("//toolchains/dummy_cc:dummy_cc_wasm32_toolchain")
 
 ###########
@@ -111,35 +119,56 @@ bazel_dep(name = "rules_java", version = "7.6.1")
 bazel_dep(name = "rules_graalvm", version = "0.11.1")  ## upgrade to 0.11.2 once available in bazel central
 
 gvm = use_extension("@rules_graalvm//:extensions.bzl", "graalvm")
-
 gvm.graalvm(
     name = "graalvm",
-    version = "23.1.0",  # gvm sdk version format like `24.x.x` also supported
     distribution = "ce",  # `oracle`, `ce`, or `community`
     java_version = "21",  # `17`, `20`, `21`, or `22` as supported by the version provided
+    version = "23.1.0",  # gvm sdk version format like `24.x.x` also supported
 )
 use_repo(gvm, "graalvm")
+
 register_toolchains("@graalvm//:jvm")
+
 register_toolchains("@graalvm//:sdk")  ## Native-image
+
 register_toolchains("@graalvm//:toolchain")
 
 bazel_dep(name = "rules_jvm_external", version = "6.0")
 
 scala_logging_version = "3.9.4"
+
 scalatest_version = "3.3.0-SNAP4"
+
 cats_version = "2.9.0"
+
 circe_version = "0.14.5"
-circe_libs = ["circe-core", "circe-generic", "circe-parser"]
+
+circe_libs = [
+    "circe-core",
+    "circe-generic",
+    "circe-parser",
+]
+
 circe = ["io.circe:%s_2.13:%s" % (x, circe_version) for x in circe_libs]
+
 commons_text_version = "1.10.0"
+
 http_components_version = "4.4.1"
+
 jackson_version = "2.15.2"
+
 commons_io_version = "2.12.0"
+
 commons_compress_version = "1.23.0"
+
 commons_lang_version = "3.12.0"
+
 junit_version = "4.13.2"
+
 hamcrest_version = "1.3"
+
 picocli_version = "4.6.1"
+
 minimal_json_version = "0.9.5"
 
 ## TODO: Consider replacing maven extension with

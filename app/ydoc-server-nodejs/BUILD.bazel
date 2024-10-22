@@ -1,16 +1,16 @@
+load("@aspect_bazel_lib//lib:directory_path.bzl", "directory_path")
+load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_run_binary")
 load("@aspect_rules_js//npm:defs.bzl", "npm_package")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_config")
 load("@npm//:defs.bzl", "npm_link_all_packages", "npm_link_targets")
-load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_run_binary")
-load("@aspect_bazel_lib//lib:directory_path.bzl", "directory_path")
 
 npm_link_all_packages(name = "node_modules")
 
 ts_config(
     name = "tsconfig",
     src = "tsconfig.json",
-    deps = ["//:tsconfig"],
     visibility = ["//visibility:public"],
+    deps = ["//:tsconfig"],
 )
 
 npm_package(
@@ -24,17 +24,20 @@ npm_package(
 
 js_binary(
     name = "esbuild-bin",
-    data = ["package.json", ":tsconfig"] + npm_link_targets(),
+    data = [
+        "package.json",
+        ":tsconfig",
+    ] + npm_link_targets(),
     entry_point = "build.mjs",
 )
 
 js_run_binary(
     name = "esbuild",
-    tool = ":esbuild-bin",
     srcs = glob(["src/**/*.ts"]),
     args = ["build"],
-    out_dirs = ["dist"],
     chdir = package_name(),
+    out_dirs = ["dist"],
+    tool = ":esbuild-bin",
 )
 
 directory_path(

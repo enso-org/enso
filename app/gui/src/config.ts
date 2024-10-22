@@ -8,7 +8,7 @@
  * When running dev server, the config variables are grabbed from appropriate .env file.
  */
 const $config = {
-  ENVIRONMENT: import.meta.env.MODE,
+  ENVIRONMENT: import.meta.env.VITE_ENVIRONMENT,
   API_URL: import.meta.env.VITE_API_URL,
   SENTRY_DSN: import.meta.env.VITE_SENTRY_DSN,
   STRIPE_KEY: import.meta.env.VITE_STRIPE_KEY,
@@ -27,7 +27,9 @@ const $config = {
   MAPBOX_API_TOKEN: import.meta.env.VITE_ENSO_MAPBOX_API_TOKEN,
 } as const
 
-// Undefined import.meta.env variables are typed as `any`, but we want them to be `string | undefined`.
+console.log($config)
+
+// Undefined env variables are typed as `any`, but we want them to be `string | undefined`.
 export type $Config = {
   [K in keyof typeof $config]: unknown extends (typeof $config)[K] ? string | undefined
   : (typeof $config)[K]

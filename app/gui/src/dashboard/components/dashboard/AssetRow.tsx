@@ -176,11 +176,11 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
 
   const isDeleting =
     useBackendMutationState(backend, 'deleteAsset', {
-      predicate: ({ state: { variables: [assetId] = [] } }) => assetId === asset.id,
+      predicate: ({ state: { variables } }) => variables?.[0] === asset.id,
     }).length !== 0
   const isRestoring =
     useBackendMutationState(backend, 'undoDeleteAsset', {
-      predicate: ({ state: { variables: [assetId] = [] } }) => assetId === asset.id,
+      predicate: ({ state: { variables } }) => variables?.[0] === asset.id,
     }).length !== 0
   const isCloud = isCloudCategory(category)
 

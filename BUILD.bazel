@@ -1,16 +1,20 @@
 load("@aspect_bazel_lib//lib:write_source_files.bzl", "write_source_files")
-load("@npm//:defs.bzl", "npm_link_all_packages")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_config")
+load("@npm//:defs.bzl", "npm_link_all_packages")
 
 npm_link_all_packages()
 
-ts_config(name = "tsconfig", src = "tsconfig.json", visibility = [":__subpackages__"])
+ts_config(
+    name = "tsconfig",
+    src = "tsconfig.json",
+    visibility = [":__subpackages__"],
+)
 
 write_source_files(
     name = "write_all",
-        additional_update_targets = [
+    additional_update_targets = [
         "//app/rust-ffi:write_wasm_dist",
         "//app/ydoc-shared:write_ast_codegen",
         "//app/gui:write_icon_metadata",
-    ]
+    ],
 )

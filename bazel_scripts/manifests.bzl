@@ -8,10 +8,11 @@ def _impl(repository_ctx):
     contents = repository_ctx.read(repository_ctx.attr.manifest)
 
     repository_ctx.report_progress("Fetching manifests")
+
     # Read the Cargo.toml's `members`; does this by reading
     # all lines between 'members = [' and the closing ']'
     [_, contents] = contents.split("members = [\n")
-    [contents,_] = contents.split("]",1)
+    [contents, _] = contents.split("]", 1)
     packages = contents.splitlines()
 
     # turn the manifest path into a Bazel label

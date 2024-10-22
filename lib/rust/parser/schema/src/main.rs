@@ -3,8 +3,8 @@
 //!
 //! The JSON schema data will be emitted to standard output.
 
-use std::fs;
 use std::env;
+use std::fs;
 use std::path::Path;
 
 // =========================

@@ -221,7 +221,7 @@ function supressCopy(event: KeyboardEvent) {
 
 const { LicenseManager } = await import('ag-grid-enterprise')
 
-if (typeof $config.AG_GRID_LICENSE_KEY !== 'string') {
+if (!$config.AG_GRID_LICENSE_KEY) {
   console.warn('The AG_GRID_LICENSE_KEY is not defined.')
   if (import.meta.env.DEV) {
     // Hide annoying license validation errors in dev mode when the license is not defined. The

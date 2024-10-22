@@ -1,6 +1,6 @@
-load("@rules_rust//rust:defs.bzl", "rust_library", "rust_binary")
-load("@crates//:defs.bzl", "aliases", "all_crate_deps")
 load("@aspect_bazel_lib//lib:run_binary.bzl", "run_binary")
+load("@crates//:defs.bzl", "aliases", "all_crate_deps")
+load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_library")
 
 rust_library(
     name = "enso_parser_schema",
@@ -8,14 +8,13 @@ rust_library(
     aliases = aliases(),
     edition = "2021",
     proc_macro_deps = all_crate_deps(proc_macro = True),
+    visibility = ["//visibility:public"],
     deps = all_crate_deps(normal = True) + [
         "//lib/rust/metamodel:enso-metamodel",
         "//lib/rust/parser:enso-parser",
         "//lib/rust/reflect:enso-reflect",
     ],
-    visibility = ["//visibility:public"]
 )
-
 
 rust_binary(
     name = "bin",
@@ -23,14 +22,14 @@ rust_binary(
     aliases = aliases(),
     edition = "2021",
     proc_macro_deps = all_crate_deps(proc_macro = True),
+    visibility = ["//visibility:public"],
     deps = all_crate_deps(normal = True) + [":enso_parser_schema"],
-    visibility = ["//visibility:public"]
 )
 
 run_binary(
     name = "generate",
-    tool = ":bin",
-    args = ["$(@)"],
     outs = ["ast-schema.json"],
-    visibility = ["//visibility:public"]
+    args = ["$(@)"],
+    tool = ":bin",
+    visibility = ["//visibility:public"],
 )

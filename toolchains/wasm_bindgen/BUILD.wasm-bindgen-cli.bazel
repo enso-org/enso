@@ -15,11 +15,11 @@ rust_binary(
     crate_root = "src/bin/wasm-bindgen.rs",
     data = [],
     edition = "2021",
+    proc_macro_deps = all_crate_deps(proc_macro = True),
     rustc_flags = [
         # Don't produce warnings for this crate
         "--cap-lints=allow",
     ],
-    deps = all_crate_deps(),
-    proc_macro_deps = all_crate_deps(proc_macro = True),
     visibility = ["//visibility:public"],
+    deps = all_crate_deps(),
 )
