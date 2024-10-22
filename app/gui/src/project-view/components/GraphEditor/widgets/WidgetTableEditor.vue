@@ -9,6 +9,7 @@ import {
 import ResizeHandles from '@/components/ResizeHandles.vue'
 import AgGridTableView from '@/components/shared/AgGridTableView.vue'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
+import { useTooltipRegistry } from '@/providers/tooltipState'
 import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { useGraphStore } from '@/stores/graph'
@@ -20,6 +21,7 @@ import '@ag-grid-community/styles/ag-theme-alpine.css'
 import type {
   CellEditingStartedEvent,
   CellEditingStoppedEvent,
+  ColDef,
   Column,
   ColumnMovedEvent,
   ProcessDataFromClipboardParams,
@@ -178,14 +180,18 @@ function processDataFromClipboard({ data, api }: ProcessDataFromClipboardParams<
 
 // === Column Default Definition ===
 
-const defaultColDef = {
+const defaultColDef: ColDef<RowData> = {
   editable: true,
   resizable: true,
   sortable: false,
   lockPinned: true,
+  menuTabs: ['generalMenuTab'],
   headerComponentParams: {
-    onHeaderEditingStarted: headerEditHandler.headerEditedInGrid.bind(headerEditHandler),
-    onHeaderEditingStopped: headerEditHandler.headerEditingStoppedInGrid.bind(headerEditHandler),
+    tooltipRegistry: useTooltipRegistry(),
+    editHandlers: {
+      onHeaderEditingStarted: headerEditHandler.headerEditedInGrid.bind(headerEditHandler),
+      onHeaderEditingStopped: headerEditHandler.headerEditingStoppedInGrid.bind(headerEditHandler),
+    },
   },
 }
 </script>
