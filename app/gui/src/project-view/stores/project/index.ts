@@ -119,12 +119,6 @@ export const { provideFn: provideProjectStore, injectFn: useProjectStore } = cre
     const projectNameFromCfg = config.value.startup?.project
     if (projectNameFromCfg == null) throw new Error('Missing project name.')
     const projectName = ref(projectNameFromCfg)
-    // Note that `config` is not deeply reactive. This is fine as the config is an immutable object
-    // passed in from the dashboard, so the entire object will change if any of its nested
-    // properties change.
-    const projectDisplayName = computed(
-      () => config.value.startup?.displayedProjectName ?? projectName,
-    )
 
     const clientId = random.uuidv4() as Uuid
     const lsUrls = resolveLsUrl(config.value)
@@ -400,7 +394,6 @@ export const { provideFn: provideProjectStore, injectFn: useProjectStore } = cre
       },
       id: projectId,
       name: readonly(projectName),
-      displayName: readonly(projectDisplayName),
       isOnLocalBackend,
       executionContext,
       firstExecution,
