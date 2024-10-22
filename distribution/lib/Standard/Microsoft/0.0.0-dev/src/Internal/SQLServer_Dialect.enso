@@ -309,10 +309,10 @@ type SQLServer_Dialect
         if raw_sql.contains "#" . not then
             jdbc.ensure_query_has_no_holes raw_sql
 
-    generate_expression self base_gen expr_null_checks_pair = case expr_null_checks_pair.first of
+    generate_expression self base_gen expr = case expr of
         SQL_Expression.Column _ _ ->
-            wrapped_name = base_gen.generate_expression self expr_null_checks_pair.first
-            pair wrapped_name expr_null_checks_pair.second+[wrapped_name]
+            wrapped_name = base_gen.generate_expression self expr
+            pair wrapped_name [wrapped_name]
         SQL_Expression.Constant value -> 
             wrapped = case value of
                 Nothing -> SQL_Builder.code "NULL"
@@ -326,7 +326,7 @@ type SQLServer_Dialect
             pair (SQL_Builder.code ("'" + escaped + "'")) []
         SQL_Expression.Operation kind arguments metadata ->
             op = self.dialect_operations.operations_dict.get kind (Error.throw <| Unsupported_Database_Operation.Error kind)
-            parsed_args = arguments.map (c -> self.generate_expression base_gen (pair c []))
+            parsed_args = arguments.map (c -> self.generate_expression base_gen c)
             parsed_args2 = parsed_args.map .first
             result = op parsed_args2
             null_checks = parsed_args.map .second
@@ -336,11 +336,9 @@ type SQLServer_Dialect
                 _ -> result
             pair r null_checks
         query : Query -> pair (base_gen.generate_sub_query self query) []
-        descriptor : Order_Descriptor -> pair (base_gen.generate_order self descriptor) []
-
 
     generate_column self base_gen expr:(SQL_Expression | Order_Descriptor | Query) name:Text -> SQL_Builder =
-        expr_null_checks_pair = self.generate_expression base_gen (pair expr [])
+        expr_null_checks_pair = self.generate_expression base_gen expr
         base_expr = expr_null_checks_pair.first
         built_expr = case expr of
             SQL_Expression.Operation kind _ _ ->
