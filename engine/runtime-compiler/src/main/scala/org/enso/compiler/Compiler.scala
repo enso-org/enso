@@ -133,12 +133,17 @@ class Compiler(
     *
     * @param shouldCompileDependencies whether compilation should also compile
     *                                  the dependencies of the requested package
+    * @param shouldWriteCache whether the compilation results should be written
+    *                         to the cache; if set to False, a 'lint' compilation
+    *                         will be performed, reporting any problems,
+    *                         but no results will be written
     * @param useGlobalCacheLocations whether or not the compilation result should
     *                                  be written to the global cache
     * @return future to track subsequent serialization of the library
     */
   def compile(
     shouldCompileDependencies: Boolean,
+    shouldWriteCache: Boolean,
     useGlobalCacheLocations: Boolean
   ): Future[java.lang.Boolean] = {
     getPackageRepository.getMainProjectPackage match {
@@ -181,11 +186,13 @@ class Compiler(
               shouldCompileDependencies
             )
 
-            context.serializeLibrary(
-              this,
-              pkg.libraryName,
-              useGlobalCacheLocations
-            )
+            if (shouldWriteCache) {
+              context.serializeLibrary(
+                this,
+                pkg.libraryName,
+                useGlobalCacheLocations
+              )
+            } else CompletableFuture.completedFuture(true)
         }
     }
   }
