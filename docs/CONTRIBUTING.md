@@ -519,9 +519,14 @@ The above running options also work when debugging.
 Alternatively to run the test outisde of sbt you need to first build the engine,
 the easiest way to do so is to run `sbt buildEngineDistributionNoIndex`. That
 will create a distribution in the directory `built-distribution`. The engine
-runner that can be used for running the tests is located at
-`built-distribution/enso-engine-<VERSION>-linux-amd64/enso-<VERSION>/bin/enso`
-(or `enso.bat` for Windows).
+runner that can be used for running the tests is located at:
+
+- on Windows
+  `built-distribution/enso-engine<VERSION>-windows-amd64/enso-<VERSION>/bin/enso.bat`
+- on ARM mac -
+  `built-distribution/enso-engine-<VERSION>-macos-aarch64/enso-<VERSION>/bin/enso`
+- on Linux -
+  `built-distribution/enso-engine-<VERSION>-linux-amd64/enso-<VERSION>/bin/enso`
 
 you can run the following commands (where `enso` refers to the built runner
 executable as explained above):
@@ -535,7 +540,14 @@ enso --run test/Table_Tests
 Or to run just a single test file (e.g., `Duration_Spec.enso`):
 
 ```bash
-enso --in-project test/Base_Tests --run test/Base_Tests/src/Data/Time/Duration_Spec.enso
+enso --run test/Base_Tests/src/Data/Time/Duration_Spec.enso
+```
+
+To run with a debugger first start the debugger listening on 5005, add a
+breakpoint in a test then run with
+
+```bash
+JAVA_OPTS='-agentlib:jdwp=transport=dt_socket,server=n,address=5005' enso --run test/Base_Tests/src/Data/Time/Duration_Spec.enso
 ```
 
 The Database tests will by default only test the SQLite backend, to test other
