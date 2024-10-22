@@ -55,13 +55,13 @@ public class LRUCache<M> {
     this.maxTotalCacheSize = maxTotalCacheSize;
   }
 
-  public CacheResult<M> getResult(ItemBuilder<M> streamMaker)
+  public CacheResult<M> getResult(ItemBuilder<M> itemBuilder)
       throws IOException, InterruptedException, ResponseTooLargeException {
-    String cacheKey = streamMaker.makeCacheKey();
+    String cacheKey = itemBuilder.makeCacheKey();
     if (cache.containsKey(cacheKey)) {
       return getResultForCacheEntry(cacheKey);
     } else {
-      return makeRequestAndCache(cacheKey, streamMaker);
+      return makeRequestAndCache(cacheKey, itemBuilder);
     }
   }
 
@@ -69,18 +69,18 @@ public class LRUCache<M> {
    * IOExceptions thrown by the HTTP request are propagated; IOExceptions thrown while storing the
    * data in the cache are caught.
    */
-  private CacheResult<M> makeRequestAndCache(String cacheKey, ItemBuilder<M> streamMaker)
+  private CacheResult<M> makeRequestAndCache(String cacheKey, ItemBuilder<M> itemBuilder)
       throws IOException, InterruptedException, ResponseTooLargeException {
     assert !cache.containsKey(cacheKey);
 
-    Item<M> thing = streamMaker.makeItem();
+    Item<M> item = itemBuilder.buildItem();
 
-    if (!thing.shouldCache()) {
-      return new CacheResult<>(thing.stream(), thing.metadata());
+    if (!item.shouldCache()) {
+      return new CacheResult<>(item.stream(), item.metadata());
     }
 
-    if (thing.sizeMaybe.isPresent()) {
-      long size = thing.sizeMaybe().get();
+    if (item.sizeMaybe.isPresent()) {
+      long size = item.sizeMaybe().get();
       if (size > getMaxFileSize()) {
         throw new ResponseTooLargeException(size, getMaxFileSize());
       }
@@ -89,10 +89,10 @@ public class LRUCache<M> {
 
     try {
       // Download the response data.
-      File responseData = downloadResponseData(cacheKey, thing);
-      M metadata = thing.metadata();
+      File responseData = downloadResponseData(cacheKey, item);
+      M metadata = item.metadata();
       long size = responseData.length();
-      ZonedDateTime expiry = getNow().plus(Duration.ofSeconds(thing.ttl().get()));
+      ZonedDateTime expiry = getNow().plus(Duration.ofSeconds(item.ttl().get()));
 
       // Create a cache entry.
       var cacheEntry = new CacheEntry<>(responseData, metadata, size, expiry);
@@ -108,7 +108,7 @@ public class LRUCache<M> {
       logger.log(
           Level.WARNING, "Failure storing cache entry; will re-execute without caching: {}", e);
       // Re-issue the request since we don't know if we've consumed any of the response.
-      Item<M> rerequested = streamMaker.makeItem();
+      Item<M> rerequested = itemBuilder.buildItem();
       return new CacheResult<>(rerequested.stream(), rerequested.metadata());
     }
   }
@@ -124,12 +124,12 @@ public class LRUCache<M> {
    * Read the repsonse data from the remote server into the cache file. If the downloaded data is
    * over the file size limit, throw a ResponseTooLargeException.
    */
-  private File downloadResponseData(String cacheKey, Item thing)
+  private File downloadResponseData(String cacheKey, Item item)
       throws IOException, ResponseTooLargeException {
     File temp = File.createTempFile("LRUCache-" + cacheKey, "");
     temp.deleteOnExit();
     try {
-      var inputStream = thing.stream();
+      var inputStream = item.stream();
       try (var outputStream = new FileOutputStream(temp)) {
 
         // Limit the download to getMaxFileSize().
@@ -306,7 +306,7 @@ public class LRUCache<M> {
     /**
      * Returning an Item with no TTL indicates that the data should not be cached.
      */
-    Item<M> makeItem() throws IOException, InterruptedException;
+    Item<M> buildItem() throws IOException, InterruptedException;
   }
 
   private final Comparator<Map.Entry<String, CacheEntry<M>>> cacheEntryLRUComparator =

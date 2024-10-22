@@ -83,11 +83,11 @@ public final class EnsoSecretHelper extends SecretValueResolver {
             .toList();
 
     var requestMaker =
-        new EnsoSecretHelperRequestMaker(
+        new RequestMaker(
             client, builder, uri, resolvedURI, headers, resolvedHeaders);
 
     if (!useCache) {
-      return requestMaker.run();
+      return requestMaker.makeRequest();
     } else {
       return EnsoHTTPResponseCache.makeRequest(requestMaker);
     }
@@ -97,7 +97,7 @@ public final class EnsoSecretHelper extends SecretValueResolver {
     EnsoSecretReader.removeFromCache(secretId);
   }
 
-  private static class EnsoSecretHelperRequestMaker implements EnsoHTTPResponseCache.RequestMaker {
+  private static class RequestMaker implements EnsoHTTPResponseCache.RequestMaker {
     private final HttpClient client;
     private final Builder builder;
     private final URIWithSecrets uri;
@@ -105,7 +105,7 @@ public final class EnsoSecretHelper extends SecretValueResolver {
     private final List<Pair<String, HideableValue>> headers;
     private final List<Pair<String, String>> resolvedHeaders;
 
-    EnsoSecretHelperRequestMaker(
+    RequestMaker(
         HttpClient client,
         Builder builder,
         URIWithSecrets uri,
@@ -121,7 +121,7 @@ public final class EnsoSecretHelper extends SecretValueResolver {
     }
 
     @Override
-    public EnsoHttpResponse run() throws IOException, InterruptedException {
+    public EnsoHttpResponse makeRequest() throws IOException, InterruptedException {
       boolean hasSecrets =
           uri.containsSecrets() || headers.stream().anyMatch(p -> p.getRight().containsSecrets());
       if (hasSecrets) {

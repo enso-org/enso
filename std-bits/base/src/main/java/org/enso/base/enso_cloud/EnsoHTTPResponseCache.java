@@ -6,10 +6,9 @@ import java.net.http.HttpHeaders;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Optional;
+
 import org.enso.base.cache.ResponseTooLargeException;
 import org.enso.base.cache.LRUCache;
-import org.enso.base.cache.LRUCache.CacheResult;
-import org.enso.base.cache.LRUCache.ItemBuilder;
 
 /**
  * EnsoHTTPResponseCache  is a cache for EnsoHttpResponse values that respects the cache control
@@ -28,20 +27,20 @@ public class EnsoHTTPResponseCache {
   private static final long MAX_FILE_SIZE = 10L * 1024 * 1024;
   private static final long MAX_TOTAL_CACHE_SIZE = 10L * 1024 * 1024 * 1024;
 
-  private static final LRUCache<Metadata> streamCache = new LRUCache<>(MAX_FILE_SIZE, MAX_TOTAL_CACHE_SIZE);
+  private static final LRUCache<Metadata> lruCache = new LRUCache<>(MAX_FILE_SIZE, MAX_TOTAL_CACHE_SIZE);
 
   public static EnsoHttpResponse makeRequest(RequestMaker requestMaker) throws IOException, InterruptedException, ResponseTooLargeException {
-    ItemBuilder<Metadata> streamMaker = new EnsoHTTPResponseCacheItem(requestMaker);
+    var itemBuilder = new ItemBuilder(requestMaker);
 
-    CacheResult<Metadata> cacheResult = streamCache.getResult(streamMaker);
+    LRUCache.CacheResult<Metadata> cacheResult = lruCache.getResult(itemBuilder);
 
     return requestMaker.reconstructResponseFromCachedStream(cacheResult.inputStream(), cacheResult.metadata());
   }
 
-  public static class EnsoHTTPResponseCacheItem implements ItemBuilder<Metadata> {
+  public static class ItemBuilder implements LRUCache.ItemBuilder<Metadata> {
     private final RequestMaker requestMaker;
 
-    EnsoHTTPResponseCacheItem(RequestMaker requestMaker) {
+    ItemBuilder(RequestMaker requestMaker) {
       this.requestMaker = requestMaker;
     }
 
@@ -54,8 +53,8 @@ public class EnsoHTTPResponseCache {
      * <p>Only HTTP 200 responses are cached; all others are returned uncached.
      */
     @Override
-    public LRUCache.Item<Metadata> makeItem() throws IOException, InterruptedException {
-      var response = requestMaker.run();
+    public LRUCache.Item<Metadata> buildItem() throws IOException, InterruptedException {
+      var response = requestMaker.makeRequest();
 
       if (response.statusCode() != 200) {
         // Don't cache non-200 repsonses.
@@ -125,43 +124,43 @@ public class EnsoHTTPResponseCache {
   }
 
   public static void clear() {
-    streamCache.clear();
+    lruCache.clear();
   }
 
   public static int getNumEntries() {
-    return streamCache.getNumEntries();
+    return lruCache.getNumEntries();
   }
 
   public static List<Long> getFileSizesTestOnly() {
-    return streamCache.getFileSizesTestOnly();
+    return lruCache.getFileSizesTestOnly();
   }
 
   public static void setNowOverrideTestOnly(ZonedDateTime nowOverride) {
-    streamCache.setNowOverrideTestOnly(nowOverride);
+    lruCache.setNowOverrideTestOnly(nowOverride);
   }
 
   public static void clearNowOverrideTestOnly() {
-    streamCache.clearNowOverrideTestOnly();
+    lruCache.clearNowOverrideTestOnly();
   }
 
   public static void setMaxFileSizeOverrideTestOnly(long maxFileSizeOverrideTestOnly) {
-    streamCache.setMaxFileSizeOverrideTestOnly(maxFileSizeOverrideTestOnly);
+    lruCache.setMaxFileSizeOverrideTestOnly(maxFileSizeOverrideTestOnly);
   }
 
   public static void clearMaxFileSizeOverrideTestOnly() {
-    streamCache.clearMaxFileSizeOverrideTestOnly();
+    lruCache.clearMaxFileSizeOverrideTestOnly();
   }
 
   public static void setMaxTotalCacheSizeOverrideTestOnly(long maxTotalCacheSizeOverrideTestOnly_) {
-    streamCache.setMaxTotalCacheSizeOverrideTestOnly(maxTotalCacheSizeOverrideTestOnly_);
+    lruCache.setMaxTotalCacheSizeOverrideTestOnly(maxTotalCacheSizeOverrideTestOnly_);
   }
 
   public static void clearMaxTotalCacheSizeOverrideTestOnly() {
-    streamCache.clearMaxTotalCacheSizeOverrideTestOnly();
+    lruCache.clearMaxTotalCacheSizeOverrideTestOnly();
   }
 
   public interface RequestMaker {
-    EnsoHttpResponse run() throws IOException, InterruptedException;
+    EnsoHttpResponse makeRequest() throws IOException, InterruptedException;
 
     String hashKey();
 
