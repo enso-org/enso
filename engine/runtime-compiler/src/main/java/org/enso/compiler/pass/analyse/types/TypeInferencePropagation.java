@@ -109,7 +109,7 @@ public final class TypeInferencePropagation implements IRPass {
               case MODULE -> "method `" + methodName + "` on module " + type;
             };
         relatedIr
-            .diagnostics()
+            .getDiagnostics()
             .add(new Warning.NoSuchMethod(relatedIr.identifiedLocation(), methodDescription));
       }
     };
