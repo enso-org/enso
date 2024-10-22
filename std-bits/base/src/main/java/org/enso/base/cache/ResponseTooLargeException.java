@@ -1,23 +1,13 @@
 package org.enso.base.cache;
 
 public class ResponseTooLargeException extends Exception {
-  private final long size;
   private final long limit;
 
-  public ResponseTooLargeException(long size, long limit) {
+  public ResponseTooLargeException(long limit) {
     super(
-        "Response too large: repsonse size ("
-            + size
-            + ") is over the limit ("
-            + limit
-            + ")");
+        "Response too large: repsonse size is over the limit (" + limit + ")");
 
-    this.size = size;
     this.limit = limit;
-  }
-
-  public long getSize() {
-    return size;
   }
 
   public long getLimit() {

@@ -19,7 +19,7 @@ import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
-import org.apache.commons.io.IOUtils;
+import org.enso.base.Stream_Utils;
 
 /**
  * LRUCache is a cache for data presented via InputStreams. Files are deleted on JVM exit.
@@ -82,7 +82,7 @@ public class LRUCache<M> {
     if (item.sizeMaybe.isPresent()) {
       long size = item.sizeMaybe().get();
       if (size > getMaxFileSize()) {
-        throw new ResponseTooLargeException(size, getMaxFileSize());
+        throw new ResponseTooLargeException(getMaxFileSize());
       }
       makeRoomFor(size);
     }
@@ -133,15 +133,14 @@ public class LRUCache<M> {
       try (var outputStream = new FileOutputStream(temp)) {
 
         // Limit the download to getMaxFileSize().
-        long tooMany = getMaxFileSize() + 1;
-        long bytesCopied = IOUtils.copyLarge(inputStream, outputStream, 0, tooMany);
-        if (bytesCopied >= tooMany) {
+        boolean sizeOK = Stream_Utils.limitedCopy(inputStream, outputStream, getMaxFileSize());
+        if (!sizeOK) {
           try {
             temp.delete();
             outputStream.close();
           } finally {
             // catch block below will delete the temp file.
-            throw new ResponseTooLargeException(tooMany, getMaxFileSize());
+            throw new ResponseTooLargeException(getMaxFileSize());
           }
         }
 

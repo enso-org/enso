@@ -367,7 +367,7 @@ add_specs suite_builder =
             Panic.with_finalizer reset_size_limits <|
                 reset_size_limits
                 EnsoHTTPResponseCache.setMaxFileSizeOverrideTestOnly 100
-                download 110 . should_fail_with (Response_Too_Large.Error 110 100)
+                download 110 . should_fail_with (Response_Too_Large.Error 100)
 
 
         group_builder.specify "Will not cache a file without a content length, but which is greater than the single file limit" pending=pending_has_url <| Test.with_retries <|
@@ -376,7 +376,7 @@ add_specs suite_builder =
                 reset_size_limits
                 EnsoHTTPResponseCache.setMaxFileSizeOverrideTestOnly 100
                 url = base_url_with_slash+'test_download?omit-content-length=1&length=110'
-                Data.fetch url . should_fail_with (Response_Too_Large.Error 101 100)
+                Data.fetch url . should_fail_with (Response_Too_Large.Error 100)
 
         group_builder.specify "Should not cache if the request fails" pending=pending_has_url <| Test.with_retries <|
             HTTP.clear_response_cache

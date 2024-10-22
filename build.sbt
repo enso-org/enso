@@ -4391,7 +4391,6 @@ lazy val `std-base` = project
     Compile / packageBin / artifactPath :=
       `base-polyglot-root` / "std-base.jar",
     libraryDependencies ++= Seq(
-      "commons-io"         % "commons-io"           % commonsIoVersion,
       "org.graalvm.polyglot"       % "polyglot"                % graalMavenPackagesVersion,
       "org.netbeans.api"           % "org-openide-util-lookup" % netbeansApiVersion % "provided",
       "com.fasterxml.jackson.core" % "jackson-databind"        % jacksonVersion
