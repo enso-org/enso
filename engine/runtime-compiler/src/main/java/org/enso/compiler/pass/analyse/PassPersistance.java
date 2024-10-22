@@ -69,8 +69,8 @@ import scala.Tuple2$;
 @Persistable(clazz = TypeInferencePropagation.class, id = 1280)
 @Persistable(clazz = TypeInferenceSignatures.class, id = 1281)
 @Persistable(clazz = FramePointerAnalysis$.class, id = 1282)
-@Persistable(clazz = TailCall.TailPosition.class, id = 1283)
-@Persistable(clazz = CachePreferences.class, id = 1284)
+@Persistable(clazz = TailCall.TailPosition.class, id = 1284)
+@Persistable(clazz = CachePreferences.class, id = 1285)
 public final class PassPersistance {
   private PassPersistance() {}
 
