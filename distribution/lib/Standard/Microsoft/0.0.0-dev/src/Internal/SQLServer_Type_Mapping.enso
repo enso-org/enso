@@ -159,7 +159,7 @@ on_unknown_type sql_type =
 ## PRIVATE
    Maps operation names to functions that infer its result type.
 operations_dict : Dictionary Text (Vector -> SQL_Type)
-operations_dict = Dictionary.from_vector [["IS_NULL", const (SQL_Type.Value Types.BIT "BIT")],["==", const (SQL_Type.Value Types.BIT "BIT")]]
+operations_dict = Dictionary.from_vector [["IS_NULL", const (SQL_Type.Value Types.BIT "BIT")],["==", const (SQL_Type.Value Types.BIT "BIT")],["NOT", const (SQL_Type.Value Types.BIT "BIT")]]
 
 ## PRIVATE
    This is the maximum size that JDBC driver reports for 'unbounded' types in

@@ -131,7 +131,7 @@ add_nothing_specs suite_builder setup =
             table = setup.light_table_builder [["x", [True, False, Nothing]]]
             table.at "x" . not . to_vector . should_equal [False, True, Nothing]
 
-    suite_builder.group prefix+"(Nothing_Spec) is_in" group_builder->
+    if setup.is_operation_supported "IS_IN" then suite_builder.group prefix+"(Nothing_Spec) is_in" group_builder->
         values_with_nothing.map triple->
             value = triple.at 0
             other_value = triple.at 1
@@ -176,7 +176,7 @@ add_nothing_specs suite_builder setup =
                     table = table_builder_typed [["x", [value, Nothing]], ["y", [other_value, Nothing]], ["z", [value, other_value]], ["n", [Nothing, Nothing]]] value_type
                     table.at "x" . is_in [] . to_vector . should_equal [False, False]
 
-    if setup.test_selection.run_advanced_edge_case_tests then suite_builder.group prefix+"(Nothing_Spec) is_in: Boolean+Nothing edge cases" group_builder->
+    if setup.test_selection.run_advanced_edge_case_tests && setup.is_operation_supported "IS_IN" then suite_builder.group prefix+"(Nothing_Spec) is_in: Boolean+Nothing edge cases" group_builder->
         make_containing_values had_null had_true had_false =
             null_maybe = if had_null then [Nothing] else []
             true_maybe = if had_true then [True] else []
@@ -222,7 +222,7 @@ add_nothing_specs suite_builder setup =
 
                     c.to_vector . should_equal [output]
 
-                group_builder.specify "Boolean is_in: edge cases (Column), "+negation_desc+" "+cs.to_text <|
+                if setup.is_feature_supported Feature.Distinct then group_builder.specify "Boolean is_in: edge cases (Column), "+negation_desc+" "+cs.to_text <|
                     input_column = transform_input (Vector.fill containing_values.length input)
                     t = table_builder_typed [["input", input_column], ["containing", transform_argument containing_values]] Value_Type.Boolean
                     expected_output = if input_column.is_empty then [] else [output]
@@ -232,7 +232,7 @@ add_nothing_specs suite_builder setup =
                     c.to_vector . length . should_equal input_column.length
                     c.to_vector.distinct . should_equal expected_output
 
-    suite_builder.group prefix+"(Nothing_Spec) distinct" group_builder->
+    if setup.is_feature_supported Feature.Distinct then suite_builder.group prefix+"(Nothing_Spec) distinct" group_builder->
         values_without_nothing.map triple->
             value = triple.at 0
             other_value = triple.at 1

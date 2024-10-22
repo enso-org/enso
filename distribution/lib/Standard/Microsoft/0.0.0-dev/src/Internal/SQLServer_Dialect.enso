@@ -103,6 +103,12 @@ type SQLServer_Dialect
         Base_Generator.wrap_in_quotes identifier
 
     ## PRIVATE
+       Generates a SQL expression for a table literal.
+    make_table_literal : Vector (Vector Text) -> Vector Text -> Text -> SQL_Builder
+    make_table_literal self vecs column_names as_name =
+        Base_Generator.default_make_table_literal self.wrap_identifier vecs column_names as_name
+
+    ## PRIVATE
        Prepares an ordering descriptor.
 
        One of the purposes of this method is to verify if the expected ordering
@@ -328,7 +334,7 @@ type SQLServer_Dialect
             r = case result of
                 _ : Function -> result metadata
                 _ -> result
-            if (kind == "IS_IN" && arguments.length == 1) then (pair (SQL_Builder.code "1=0") []) else (pair r null_checks)
+            pair r null_checks
         SQL_Expression.Let _ binder bindee body ->
             wrapped_binder = self.wrap_identifier binder
             bindee_exp = SQL_Builder.code "SELECT " ++ (self.generate_expression base_gen bindee).paren ++ " AS " ++ "x"
@@ -354,10 +360,13 @@ type SQLServer_Dialect
         expr_null_checks_pair = self.generate_expression base_gen (pair expr [])
         base_expr = expr_null_checks_pair.first
         built_expr = case expr of
-            SQL_Expression.Operation _ _ _ ->
+            SQL_Expression.Operation kind _ _ ->
                 null_checks = expr_null_checks_pair.second . flatten
                 null_check = (null_checks.map it->(it.paren ++ " IS NULL ")) . fold (SQL_Builder.code "1=0 ") acc-> i-> acc ++ "OR " ++ i
-                SQL_Builder.code "CASE WHEN " ++ null_check ++ " THEN NULL WHEN " ++ base_expr ++ " THEN 1 ELSE 0 END"
+                case kind of
+                    ## TODO move deeper
+                    "IS_NULL" -> SQL_Builder.code "CASE WHEN " ++ null_check ++ " THEN 1 ELSE 0 END"
+                    _ -> SQL_Builder.code "CASE WHEN " ++ null_check ++ " THEN NULL WHEN " ++ base_expr ++ " THEN 1 ELSE 0 END"
             _ -> base_expr
         built_expr ++ Base_Generator.alias self name
 
@@ -367,7 +376,7 @@ make_dialect_operations =
     text = [starts_with, contains, ends_with, agg_shortest, agg_longest, make_case_sensitive, ["REPLACE", replace], left, right]+concat_ops+cases+trim_ops
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
     arith_extensions = [is_nan, is_inf, is_finite, floating_point_div, mod_op, decimal_div, decimal_mod, ["ROW_MIN", Base_Generator.make_function "LEAST"], ["ROW_MAX", Base_Generator.make_function "GREATEST"]]
-    bool = [bool_or]
+    bool = [bool_or, bool_not]
     eq = lift_binary_op "==" make_equals
     compare = [eq]
 
@@ -378,7 +387,8 @@ make_dialect_operations =
     special_overrides = [is_null]
     other = [["RUNTIME_ERROR", make_runtime_error_op]]
     my_mappings = text + counts + stats + first_last_aggregators + arith_extensions + bool + compare + date_ops + special_overrides + other
-    Base_Generator.base_dialect_operations . extend_with my_mappings
+    base = Base_Generator.base_dialect_operations . extend_with my_mappings
+    Base_Generator.Dialect_Operations.Value (base.operations_dict.remove "IS_IN")
 
 ## PRIVATE
 is_null = Base_Generator.lift_unary_op "IS_NULL" arg->
@@ -558,6 +568,10 @@ is_finite = Base_Generator.lift_unary_op "IS_FINITE" arg->
 ## PRIVATE
 bool_or = Base_Generator.lift_unary_op "BOOL_OR" arg->
     SQL_Builder.code "bool_or(" ++ arg ++ ")"
+
+## PRIVATE
+bool_not = Base_Generator.lift_unary_op "NOT" arg->
+    SQL_Builder.code "(" ++ arg ++ ")=0"
 
 ## PRIVATE
 floating_point_div = Base_Generator.lift_binary_op "/" x-> y->
