@@ -18,6 +18,7 @@ import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.warning.AppendWarningNode;
+import org.enso.interpreter.runtime.warning.Warning;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
 
 @BuiltinMethod(
@@ -75,7 +76,8 @@ public abstract class VectorFromFunctionNode extends Node {
             if (errorsEncountered >= MAX_MAP_WARNINGS) {
               valueToAdd = nothing;
             } else {
-              var wrappedInWarn = appendWarningNode.executeAppend(frame, nothing, err);
+              var wrappedInWarn =
+                  Warning.attach(ctx, nothing, err.getPayload(), null, appendWarningNode);
               valueToAdd = wrappedInWarn;
             }
           }
