@@ -109,18 +109,20 @@ export function tryParseMetadataOrFallback(metadataJson: string | undefined | nu
   return metadata.parse(parsedMeta)
 }
 
+/** Return a parsed {@link IdMap} from a JSON string, or a default value if parsing failed. */
 export function tryParseIdMapOrFallback(idMapJson: string | undefined | null): IdMap {
   if (idMapJson == null) return []
   const parsedIdMap = tryParseJson(idMapJson)
   return idMap.parse(parsedIdMap)
 }
 
+/** Parse a JSON string, or return `null` if parsing failed instead of throwing an error. */
 function tryParseJson(jsonString: string) {
   try {
     return json.parse(jsonString)
-  } catch (e) {
+  } catch (error) {
     console.error('Failed to parse metadata JSON:')
-    console.error(e)
+    console.error(error)
     return null
   }
 }

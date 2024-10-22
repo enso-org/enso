@@ -6,6 +6,7 @@ import * as fsSync from 'node:fs'
 import * as fs from 'node:fs/promises'
 import * as os from 'node:os'
 import * as path from 'node:path'
+import * as process from 'node:process'
 import * as url from 'node:url'
 
 import sharp from 'sharp'

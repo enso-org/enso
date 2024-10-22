@@ -10,11 +10,18 @@ import java.nio.file.StandardOpenOption;
 import java.util.function.Function;
 import org.enso.compiler.core.EnsoParser;
 import org.enso.compiler.core.IR;
+import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Module;
 
 public abstract class CompilerTests {
   protected static Module parse(CharSequence code) {
     Module ir = EnsoParser.compile(code);
+    assertNotNull("IR was generated", ir);
+    return ir;
+  }
+
+  protected static Expression.Block parseBlock(CharSequence code) {
+    Expression.Block ir = EnsoParser.compileBlock(code);
     assertNotNull("IR was generated", ir);
     return ir;
   }

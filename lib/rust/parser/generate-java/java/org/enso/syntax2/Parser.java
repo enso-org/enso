@@ -23,12 +23,20 @@ public final class Parser {
     return getWorker().isIdentOrOperator(input);
   }
 
-  public static ByteBuffer parseInputLazy(CharSequence input) {
-    return getWorker().parseInputLazy(input);
+  public static ByteBuffer parseModuleLazy(CharSequence input) {
+    return getWorker().parseLazy(input, false);
   }
 
-  public static Tree parse(CharSequence input) {
-    return getWorker().parse(input);
+  public static ByteBuffer parseBlockLazy(CharSequence input) {
+    return getWorker().parseLazy(input, true);
+  }
+
+  public static Tree.BodyBlock parseModule(CharSequence input) {
+    return getWorker().parse(input, false);
+  }
+
+  public static Tree.BodyBlock parseBlock(CharSequence input) {
+    return getWorker().parse(input, true);
   }
 
   public static UUID getUuid(long metadata, long nodeOffset, long nodeLength) {
@@ -191,31 +199,47 @@ public final class Parser {
       return Parser.isIdentOrOperator(inputBuf);
     }
 
-    ByteBuffer parseInputLazy(CharSequence input) {
-      byte[] inputBytes = input.toString().getBytes(StandardCharsets.UTF_8);
-      ByteBuffer inputBuf = ByteBuffer.allocateDirect(inputBytes.length);
-      inputBuf.put(inputBytes);
-      return withState(state -> parseTreeLazy(state, inputBuf));
-    }
-
-    Tree parse(CharSequence input) {
+    ByteBuffer parseLazy(CharSequence input, boolean isInternalBlock) {
       byte[] inputBytes = input.toString().getBytes(StandardCharsets.UTF_8);
       ByteBuffer inputBuf = ByteBuffer.allocateDirect(inputBytes.length);
       inputBuf.put(inputBytes);
       return withState(
           state -> {
-            var serializedTree = parseTree(state, inputBuf);
+            ByteBuffer serializedTree;
+            if (isInternalBlock) {
+              serializedTree = parseBlockLazy(state, inputBuf);
+            } else {
+              serializedTree = parseModuleLazy(state, inputBuf);
+            }
+            return serializedTree;
+          });
+    }
+
+    Tree.BodyBlock parse(CharSequence input, boolean isInternalBlock) {
+      byte[] inputBytes = input.toString().getBytes(StandardCharsets.UTF_8);
+      ByteBuffer inputBuf = ByteBuffer.allocateDirect(inputBytes.length);
+      inputBuf.put(inputBytes);
+      return withState(
+          state -> {
+            ByteBuffer serializedTree;
+            if (isInternalBlock) {
+              serializedTree = parseBlock(state, inputBuf);
+            } else {
+              serializedTree = parseModule(state, inputBuf);
+            }
             var base = getLastInputBase(state);
             var metadata = getMetadata(state);
             serializedTree.order(ByteOrder.LITTLE_ENDIAN);
             var message = new Message(serializedTree, input, base, metadata);
+            Tree parsed;
             try {
-              return Tree.deserialize(message);
+              parsed = Tree.deserialize(message);
             } catch (BufferUnderflowException | IllegalArgumentException e) {
               LoggerFactory.getLogger(this.getClass())
                   .error("Unrecoverable parser failure for: {}", input, e);
               throw e;
             }
+            return (Tree.BodyBlock) parsed;
           });
     }
   }
@@ -226,9 +250,13 @@ public final class Parser {
 
   private static native void freeState(long state);
 
-  private static native ByteBuffer parseTree(long state, ByteBuffer input);
+  private static native ByteBuffer parseModule(long state, ByteBuffer input);
 
-  private static native ByteBuffer parseTreeLazy(long state, ByteBuffer input);
+  private static native ByteBuffer parseBlock(long state, ByteBuffer input);
+
+  private static native ByteBuffer parseModuleLazy(long state, ByteBuffer input);
+
+  private static native ByteBuffer parseBlockLazy(long state, ByteBuffer input);
 
   private static native long isIdentOrOperator(ByteBuffer input);
 

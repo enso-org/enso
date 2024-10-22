@@ -166,7 +166,7 @@ public final class DataflowError extends AbstractTruffleException implements Ens
   @ExportMessage
   Object getExceptionMessage(
       @Cached IndirectInvokeMethodNode payloads,
-      @Cached(value = "toDisplayText(payloads)", allowUncached = true)
+      @Cached(value = "toDisplayText(this.getPayload(), payloads)", allowUncached = true)
           UnresolvedSymbol toDisplayText,
       @CachedLibrary(limit = "3") InteropLibrary strings,
       @Cached TypeToDisplayTextNode typeToDisplayTextNode) {

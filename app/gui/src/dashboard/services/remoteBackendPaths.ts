@@ -1,5 +1,6 @@
 /** @file Paths used by the `RemoteBackend`. */
 import type * as backend from '#/services/Backend'
+import { newtypeConstructor, type Newtype } from 'enso-common/src/utilities/data/newtype'
 
 // =============
 // === Paths ===
@@ -47,8 +48,10 @@ export const LIST_PROJECTS_PATH = 'projects'
 export const CREATE_PROJECT_PATH = 'projects'
 /** Relative HTTP path to the "list files" endpoint of the Cloud backend API. */
 export const LIST_FILES_PATH = 'files'
-/** Relative HTTP path to the "upload file" endpoint of the Cloud backend API. */
-export const UPLOAD_FILE_PATH = 'files'
+/** Relative HTTP path to the "upload file start" endpoint of the Cloud backend API. */
+export const UPLOAD_FILE_START_PATH = 'files/upload/start'
+/** Relative HTTP path to the "upload file end" endpoint of the Cloud backend API. */
+export const UPLOAD_FILE_END_PATH = 'files/upload/end'
 /** Relative HTTP path to the "create secret" endpoint of the Cloud backend API. */
 export const CREATE_SECRET_PATH = 'secrets'
 /** Relative HTTP path to the "list secrets" endpoint of the Cloud backend API. */
@@ -77,9 +80,7 @@ export const GET_LOG_EVENTS_PATH = 'log_events'
 /** Relative HTTP path to the "post log event" endpoint of the Cloud backend API. */
 export const POST_LOG_EVENT_PATH = 'logs'
 
-/**
- * Relative HTTP path to the "get customer portal session" endpoint of the Cloud backend API.
- */
+/** Relative HTTP path to the "get customer portal session" endpoint of the Cloud backend API. */
 export function getCustomerPortalSessionPath(returnUrl?: string) {
   const baseUrl = 'payments/customer-portal-sessions/create'
 
@@ -187,7 +188,12 @@ export function getCheckoutSessionPath(checkoutSessionId: backend.CheckoutSessio
 // === IDs ===
 // ===========
 
+/** Unique identifier for a directory. */
+type DirectoryId = Newtype<string, 'DirectoryId'>
+// eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-redeclare
+const DirectoryId = newtypeConstructor<DirectoryId>()
+export const ROOT_PARENT_DIRECTORY_ID = DirectoryId('')
 /** The ID of the directory containing the home directories of all users. */
-export const USERS_DIRECTORY_ID = 'directory-0000000000000000000000users'
+export const USERS_DIRECTORY_ID = DirectoryId('directory-0000000000000000000000users')
 /** The ID of the directory containing home directories of all teams. */
-export const TEAMS_DIRECTORY_ID = 'directory-0000000000000000000000teams'
+export const TEAMS_DIRECTORY_ID = DirectoryId('directory-0000000000000000000000teams')

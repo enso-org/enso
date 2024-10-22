@@ -8,9 +8,7 @@ import * as reactHookForm from 'react-hook-form'
 import * as formContext from './FormProvider'
 import type * as types from './types'
 
-/**
- * Options for {@link useField} hook.
- */
+/** Options for {@link useField} hook. */
 export interface UseFieldOptions<
   BaseValueType,
   Schema extends types.TSchema,
@@ -21,9 +19,7 @@ export interface UseFieldOptions<
   readonly defaultValue?: types.FieldValues<Schema>[TFieldName] | undefined
 }
 
-/**
- * A hook that connects a field to a form state.
- */
+/** A hook that connects a field to a form state. */
 export function useField<
   BaseValueType,
   Schema extends types.TSchema,

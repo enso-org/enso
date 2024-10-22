@@ -7,9 +7,7 @@ import { useInteractOutside } from '#/components/aria'
 import { useEffect, useRef } from 'react'
 import { useEventCallback } from './eventCallbackHooks'
 
-/**
- * Props for the {@link useAutoFocus} hook.
- */
+/** Props for the {@link useAutoFocus} hook. */
 export interface UseAutoFocusProps {
   readonly ref: React.RefObject<HTMLElement>
   readonly disabled?: boolean | undefined

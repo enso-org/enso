@@ -208,7 +208,7 @@ add_specs suite_builder =
 
         group_builder.specify "should correctly handle storage of results" <|
             c_int = Column.from_vector 'year' [2022, 2000, 1999]
-            r = c_int . map Date_Time.new
+            r = c_int . map (i-> Date_Time.new i)
             r.to_vector . should_equal [Date_Time.new 2022, Date_Time.new 2000, Date_Time.new 1999]
             r.value_type . should_equal Value_Type.Date_Time
 

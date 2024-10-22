@@ -189,6 +189,9 @@ public final class ContextUtils {
     var source = Source.newBuilder(LanguageInfo.ID, src, moduleName + ".enso").buildLiteral();
     var module = ctx.eval(source);
     var runtimeMod = (org.enso.interpreter.runtime.Module) unwrapValue(ctx, module);
+    if (runtimeMod.getIr() == null) {
+      runtimeMod.compileScope(leakContext(ctx));
+    }
     return runtimeMod.getIr();
   }
 

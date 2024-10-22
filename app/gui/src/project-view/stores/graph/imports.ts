@@ -145,7 +145,8 @@ function newImportsLocation(scope: Ast.BodyBlock): number {
 
 /**
  * Create an AST representing the required import statement.
-  @internal */
+ * @internal
+ */
 export function requiredImportToAst(value: RequiredImport, module?: MutableModule) {
   const module_ = module ?? MutableModule.Transient()
   switch (value.kind) {
@@ -156,7 +157,7 @@ export function requiredImportToAst(value: RequiredImport, module?: MutableModul
   }
 }
 
-/** A list of required imports for specific suggestion entry */
+/** A list of required imports for a specific suggestion entry. */
 export function requiredImports(
   db: SuggestionDb,
   entry: SuggestionEntry,

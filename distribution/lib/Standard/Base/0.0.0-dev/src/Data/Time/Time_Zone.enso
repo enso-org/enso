@@ -213,6 +213,12 @@ type Time_Zone
     zone_names : Vector Text
     zone_names = Time_Utils.getZoneNames
 
+    ## PRIVATE
+       Convert to a Enso code representation of this Time_Of_Day.
+    pretty : Text
+    pretty self = "(Time_Zone.parse '" + self.zone_id + "')"
+
+
 ## PRIVATE
 Time_Zone.from (that:JS_Object) =
     if that.get "type" == "Time_Zone" && ["id"].all that.contains_key then Time_Zone.parse (that.get "id") else

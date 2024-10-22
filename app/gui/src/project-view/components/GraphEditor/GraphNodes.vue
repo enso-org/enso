@@ -106,8 +106,4 @@ const graphNodeSelections = shallowRef<HTMLElement>()
   contain: layout size style;
   will-change: transform;
 }
-
-.layer:deep(::selection) {
-  background-color: rgba(255, 255, 255, 20%);
-}
 </style>

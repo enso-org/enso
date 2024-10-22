@@ -13,7 +13,7 @@ import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import SearchBar from '#/layouts/SearchBar'
 import { useFullUserSession } from '#/providers/AuthProvider'
-import { useLocalBackend, useRemoteBackendStrict } from '#/providers/BackendProvider'
+import { useLocalBackend, useRemoteBackend } from '#/providers/BackendProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
@@ -46,7 +46,7 @@ export interface SettingsProps {
 /** Settings screen. */
 export default function Settings() {
   const queryClient = useQueryClient()
-  const backend = useRemoteBackendStrict()
+  const backend = useRemoteBackend()
   const localBackend = useLocalBackend()
   const [tab, setTab] = useSearchParamsState(
     'SettingsTab',

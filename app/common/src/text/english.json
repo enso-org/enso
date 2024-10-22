@@ -142,6 +142,9 @@
   "checkResourcesBackendError": "Could not get resource usage for project '$0'",
   "listFilesBackendError": "Could not list files",
   "uploadFileBackendError": "Could not upload file",
+  "uploadFileStartBackendError": "Could not begin uploading large file",
+  "uploadFileChunkBackendError": "Could not upload chunk of large file",
+  "uploadFileEndBackendError": "Could not finish uploading large file",
   "updateFileNotImplementedBackendError": "Files currently cannot be renamed on the Cloud backend",
   "uploadFileWithNameBackendError": "Could not upload file '$0'",
   "getFileDetailsBackendError": "Could not get details of project '$0'",
@@ -271,6 +274,7 @@
   "options": "Options",
   "googleIcon": "Google icon",
   "gitHubIcon": "GitHub icon",
+  "close": "Close",
 
   "enterSecretPath": "Enter secret path",
   "enterText": "Enter text",
@@ -481,6 +485,11 @@
   "youHaveNoUserGroupsAdmin": "This organization has no user groups. You can create one using the button above.",
   "youHaveNoUserGroupsNonAdmin": "This organization has no user groups. You can create one using the button above.",
   "xIsUsingTheProject": "'$0' is currently using the project",
+  "uploadLargeFileStatus": "Uploading file... ($0/$1MB)",
+  "uploadLargeFileSuccess": "Finished uploading file.",
+  "uploadLargeFileError": "Could not upload file",
+  "closeWindowDialogTitle": "Close window?",
+  "anUploadIsInProgress": "An upload is in progress.",
 
   "enableMultitabs": "Enable Multi-Tabs",
   "enableMultitabsDescription": "Open multiple projects at the same time.",
@@ -629,6 +638,8 @@
   "slsaLicenseAgreementDescription1": "This Order is governed by the Software License and Service Agreement found at",
   "slsaLicenseAgreementDescription2": ", (the “Agreement”). All capitalized terms used in this Customer Order but not otherwise defined herein shall have the meanings set forth in the Agreement.\n                      Except as expressly provided in the Agreement, Products and Services purchased under this Customer Order are non-cancelable and non-refundable.",
   "downgradeInfo": "to downgrade",
+  "xItemsCopied": "$0 item(s) copied",
+  "xItemsCut": "$0 item(s) cut",
 
   "someAgreementsHaveBeenUpdated": "Some agreements have been updated. Please re-read and agree to continue.",
   "licenseAgreementTitle": "Enso Terms of Service",

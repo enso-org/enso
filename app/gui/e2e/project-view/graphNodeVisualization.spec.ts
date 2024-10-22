@@ -57,12 +57,7 @@ test('Warnings visualization', async ({ page }) => {
   await input.fill('Warning.attach "Uh oh" 42')
   await page.keyboard.press('Enter')
   await expect(locate.componentBrowser(page)).toBeHidden()
-  await expect(locate.circularMenu(page)).toExist()
-  await locate.toggleVisualizationButton(page).click()
-  await expect(locate.anyVisualization(page)).toExist()
-  await expect(locate.loadingVisualization(page)).toHaveCount(0)
-  await locate.toggleVisualizationSelectorButton(page).click()
-  await page.locator('.VisualizationSelector').getByRole('button', { name: 'Warnings' }).click()
+  await actions.openVisualization(page, 'Warnings')
   await expect(locate.warningsVisualization(page)).toExist()
   // Click the remove-warnings button, and ensure a node is created.
   const nodeCount = await locate.graphNode(page).count()

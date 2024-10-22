@@ -8,16 +8,12 @@ import Check from '#/assets/check_mark.svg'
 import { Text } from '#/components/AriaComponents'
 import SvgMask from '#/components/SvgMask'
 
-/**
- * Props for the PlanFeatures component
- */
+/** Props for the PlanFeatures component */
 export interface PlanFeaturesProps {
   readonly features: string[]
 }
 
-/**
- * Render a list of features
- */
+/** Render a list of features */
 export function PlanFeatures(props: PlanFeaturesProps) {
   const { features } = props
 

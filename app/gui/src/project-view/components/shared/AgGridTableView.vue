@@ -1,3 +1,42 @@
+<script lang="ts">
+import { gridBindings } from '@/bindings'
+import type { MenuItemDef } from 'ag-grid-enterprise'
+/**
+ * A more specialized version of AGGrid's `MenuItemDef` to simplify testing (the tests need to provide
+ * only values actually used by the composable)
+ */
+export interface MenuItem<TData> extends MenuItemDef<TData> {
+  action: (params: {
+    node: { data: TData | undefined } | null
+    api: { copyToClipboard: () => void; cutToClipboard: () => void; pasteFromClipboard: () => void }
+  }) => void
+}
+
+const AGGRID_DEFAULT_COPY_ICON =
+  '<span class="ag-icon ag-icon-copy" unselectable="on" role="presentation"></span>'
+
+export const commonContextMenuActions = {
+  cut: {
+    name: 'Cut',
+    shortcut: gridBindings.bindings['cutCells'].humanReadable,
+    action: ({ api }) => api.cutToClipboard(),
+    icon: AGGRID_DEFAULT_COPY_ICON,
+  },
+  copy: {
+    name: 'Copy',
+    shortcut: gridBindings.bindings['copyCells'].humanReadable,
+    action: ({ api }) => api.copyToClipboard(),
+    icon: AGGRID_DEFAULT_COPY_ICON,
+  },
+  paste: {
+    name: 'Paste',
+    shortcut: gridBindings.bindings['pasteCells'].humanReadable,
+    action: ({ api }) => api.pasteFromClipboard(),
+    icon: AGGRID_DEFAULT_COPY_ICON,
+  },
+} satisfies Record<string, MenuItem<unknown>>
+</script>
+
 <script setup lang="ts" generic="TData, TValue">
 /**
  * Component adding some useful logic to AGGrid table component (like keeping track of colum sizes),
@@ -20,6 +59,7 @@ import type {
   GetRowIdFunc,
   GridApi,
   GridReadyEvent,
+  ProcessDataFromClipboardParams,
   RowDataUpdatedEvent,
   RowEditingStartedEvent,
   RowEditingStoppedEvent,
@@ -38,7 +78,10 @@ const _props = defineProps<{
   components?: Record<string, unknown>
   singleClickEdit?: boolean
   stopEditingWhenCellsLoseFocus?: boolean
+  suppressDragLeaveHidesColumns?: boolean
+  suppressMoveWhenColumnDragging?: boolean
   textFormatOption?: TextFormatOptions
+  processDataFromClipboard?: (params: ProcessDataFromClipboardParams<TData>) => string[][] | null
 }>()
 const emit = defineEmits<{
   cellEditingStarted: [event: CellEditingStartedEvent]
@@ -50,6 +93,7 @@ const emit = defineEmits<{
 }>()
 
 const widths = reactive(new Map<string, number>())
+const wrapper = ref<HTMLElement>()
 const grid = ref<ComponentInstance<typeof AgGridVue>>()
 const gridApi = shallowRef<GridApi<TData>>()
 const popupParent = document.body
@@ -142,6 +186,37 @@ function sendToClipboard({ data }: { data: string }) {
 
 defineExpose({ gridApi })
 
+// === Keybinds ===
+
+const handler = gridBindings.handler({
+  cutCells() {
+    if (gridApi.value?.getFocusedCell() == null) return false
+    gridApi.value?.cutToClipboard()
+  },
+  copyCells() {
+    if (gridApi.value?.getFocusedCell() == null) return false
+    gridApi.value?.copyToClipboard()
+  },
+  pasteCells() {
+    if (gridApi.value?.getFocusedCell() == null) return false
+    gridApi.value?.pasteFromClipboard()
+  },
+})
+
+function supressCopy(event: KeyboardEvent) {
+  // Suppress the default keybindings of AgGrid, because we want to use our own handlers (and bindings),
+  // and AgGrid API does not allow copy suppression.
+  if (
+    (event.code === 'KeyX' || event.code === 'KeyC' || event.code === 'KeyV') &&
+    event.ctrlKey &&
+    wrapper.value != null &&
+    event.target != wrapper.value
+  ) {
+    event.stopPropagation()
+    wrapper.value.dispatchEvent(new KeyboardEvent(event.type, event))
+  }
+}
+
 // === Loading AGGrid and its license ===
 
 const { LicenseManager } = await import('ag-grid-enterprise')
@@ -174,38 +249,48 @@ const { AgGridVue } = await import('ag-grid-vue3')
 </script>
 
 <template>
-  <AgGridVue
-    v-bind="$attrs"
-    ref="grid"
-    class="ag-theme-alpine grid"
-    :headerHeight="26"
-    :getRowHeight="getRowHeight"
-    :rowData="rowData"
-    :columnDefs="columnDefs"
-    :defaultColDef="defaultColDef"
-    :sendToClipboard="sendToClipboard"
-    :suppressFieldDotNotation="true"
-    :enableRangeSelection="true"
-    :popupParent="popupParent"
-    :components="components"
-    :singleClickEdit="singleClickEdit"
-    :stopEditingWhenCellsLoseFocus="stopEditingWhenCellsLoseFocus"
-    @gridReady="onGridReady"
-    @firstDataRendered="updateColumnWidths"
-    @rowDataUpdated="updateColumnWidths($event), emit('rowDataUpdated', $event)"
-    @columnResized="lockColumnSize"
-    @cellEditingStarted="emit('cellEditingStarted', $event)"
-    @cellEditingStopped="emit('cellEditingStopped', $event)"
-    @rowEditingStarted="emit('rowEditingStarted', $event)"
-    @rowEditingStopped="emit('rowEditingStopped', $event)"
-    @sortChanged="emit('sortOrFilterUpdated', $event)"
-    @filterChanged="emit('sortOrFilterUpdated', $event)"
-  />
+  <div ref="wrapper" @keydown="handler" @keydown.capture="supressCopy">
+    <AgGridVue
+      v-bind="$attrs"
+      ref="grid"
+      class="ag-theme-alpine grid"
+      :headerHeight="26"
+      :getRowHeight="getRowHeight"
+      :rowData="rowData"
+      :columnDefs="columnDefs"
+      :defaultColDef="defaultColDef"
+      :sendToClipboard="sendToClipboard"
+      :suppressFieldDotNotation="true"
+      :enableRangeSelection="true"
+      :popupParent="popupParent"
+      :components="components"
+      :singleClickEdit="singleClickEdit"
+      :stopEditingWhenCellsLoseFocus="stopEditingWhenCellsLoseFocus"
+      :suppressDragLeaveHidesColumns="suppressDragLeaveHidesColumns"
+      :suppressMoveWhenColumnDragging="suppressMoveWhenColumnDragging"
+      :processDataFromClipboard="processDataFromClipboard"
+      @gridReady="onGridReady"
+      @firstDataRendered="updateColumnWidths"
+      @rowDataUpdated="updateColumnWidths($event), emit('rowDataUpdated', $event)"
+      @columnResized="lockColumnSize"
+      @cellEditingStarted="emit('cellEditingStarted', $event)"
+      @cellEditingStopped="emit('cellEditingStopped', $event)"
+      @rowEditingStarted="emit('rowEditingStarted', $event)"
+      @rowEditingStopped="emit('rowEditingStopped', $event)"
+      @sortChanged="emit('sortOrFilterUpdated', $event)"
+      @filterChanged="emit('sortOrFilterUpdated', $event)"
+    />
+  </div>
 </template>
 
 <style src="@ag-grid-community/styles/ag-grid.css" />
 <style src="@ag-grid-community/styles/ag-theme-alpine.css" />
 <style scoped>
+.grid {
+  width: 100%;
+  height: 100%;
+}
+
 .ag-theme-alpine {
   --ag-grid-size: 3px;
   --ag-list-item-height: 20px;

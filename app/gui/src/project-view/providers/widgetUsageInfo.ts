@@ -24,9 +24,7 @@ interface WidgetUsageInfo {
   nesting: number
 }
 
-/**
- * Get usage key for given input. See {@link WidgetUsageInfo} for details.
- */
+/** Get usage key for given input. See {@link WidgetUsageInfo} for details. */
 export function usageKeyForInput(widget: WidgetInput): unknown {
   return widget.portId
 }

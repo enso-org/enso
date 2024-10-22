@@ -958,9 +958,8 @@ type DB_Table
              t2.read
     limit : Integer -> DB_Table
     limit self max_rows:Integer=1000 =
-        Feature.Sample.if_supported_else_throw self.connection.dialect "limit" <|
-            new_ctx = self.context.set_limit max_rows
-            self.updated_context new_ctx
+        new_ctx = self.context.set_limit max_rows
+        self.updated_context new_ctx
 
     ## ALIAS add column, expression, formula, new column, update column
        GROUP Standard.Base.Values

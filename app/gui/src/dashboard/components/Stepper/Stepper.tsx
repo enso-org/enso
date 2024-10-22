@@ -19,9 +19,7 @@ import * as stepperProvider from './StepperProvider'
 import type { BaseRenderProps, RenderChildrenProps, RenderStepProps } from './types'
 import * as stepperState from './useStepperState'
 
-/**
- * Props for {@link Stepper} component.
- */
+/** Props for {@link Stepper} component. */
 export interface StepperProps {
   readonly state: stepperState.StepperState
   readonly children: React.ReactNode | ((props: RenderChildrenProps) => React.ReactNode)
@@ -48,9 +46,7 @@ const STEPPER_STYLES = tv({
 
 const ANIMATION_OFFSET = 15
 
-/**
- * A stepper component is used to indicate progress through a multi-step process.
- */
+/** A stepper component is used to indicate progress through a multi-step process. */
 export function Stepper(props: StepperProps) {
   const { renderStep, children, state } = props
 
@@ -77,9 +73,7 @@ export function Stepper(props: StepperProps) {
 
   const style = typeof props.style === 'function' ? props.style(baseRenderProps) : props.style
 
-  /**
-   * Render children of the stepper component.
-   */
+  /** Render children of the stepper component. */
   const renderChildren = () => {
     const renderProps = {
       currentStep,

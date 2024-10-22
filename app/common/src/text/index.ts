@@ -139,9 +139,12 @@ interface PlaceholderOverrides {
   readonly trialDescription: [days: number]
   readonly groupNameSettingsInputDescription: [howLong: number]
   readonly xIsUsingTheProject: [userName: string]
+  readonly xItemsCopied: [count: number]
+  readonly xItemsCut: [count: number]
 
   readonly arbitraryFieldTooLarge: [maxSize: string]
   readonly arbitraryFieldTooSmall: [minSize: string]
+  readonly uploadLargeFileStatus: [uploadedParts: number, totalParts: number]
 }
 
 /** An tuple of `string` for placeholders for each {@link TextId}. */
