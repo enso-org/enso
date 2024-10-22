@@ -11,6 +11,7 @@ import project.Enso_Cloud.Enso_Secret.Enso_Secret
 import project.Error.Error
 import project.Errors.Common.Forbidden_Operation
 import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Errors.Unimplemented.Unimplemented
 import project.Function.Function
 import project.Meta
 import project.Network.HTTP.Header.Header
@@ -135,21 +136,18 @@ type HTTP
         handle_request_error <| Illegal_Argument.handle_java_exception <| check_output_context <|
             headers = _resolve_headers req
             headers.if_not_error <|
-                body_publisher_boundary_and_hash = _resolve_body req.body self.hash_method
-                body_publisher_boundary_and_hash.if_not_error <|
+                resolved_body = _resolve_body req.body self.hash_method
+                resolved_body.if_not_error <|
                     # Create builder and set method and body
                     builder = HttpRequest.newBuilder
-                    builder.method req.method.to_http_method_name body_publisher_boundary_and_hash.first
+                    builder.method req.method.to_http_method_name resolved_body.publisher
 
                     # Create Unified Header list
-                    boundary = body_publisher_boundary_and_hash.get 1
-                    boundary_header_list = if boundary.is_nothing then [] else [Header.multipart_form_data boundary]
+                    boundary_header_list = if resolved_body.boundary.is_nothing then [] else [Header.multipart_form_data resolved_body.boundary]
                     all_headers = headers + boundary_header_list
                     mapped_headers = all_headers.map on_problems=No_Wrap .to_java_pair
 
-                    hash = body_publisher_boundary_and_hash.get 2
-
-                    response = Response.Value (EnsoSecretHelper.makeRequest (self.make_client self hash) builder req.uri.to_java_representation mapped_headers)
+                    response = Response.Value (EnsoSecretHelper.makeRequest (self.make_client self resolved_body.hash) builder req.uri.to_java_representation mapped_headers)
                     if error_on_failure_code.not || response.code.is_success then response else
                         body = response.body.decode_as_text.catch Any _->""
                         message = if body.is_empty then Nothing else body
@@ -204,8 +202,12 @@ private _resolve_headers req =
         all_headers + default_content_type
 
 ## PRIVATE
-   Generate body publisher, optional form content boundary and optional hash from the body
-_resolve_body : Request_Body -> Function | Nothing -> Pair BodyPublisher Text
+type Resolved_Body
+    private Value publisher:BodyPublisher boundary:Text|Nothing hash:Text|Nothing
+
+## PRIVATE
+   Generate body publisher, optional form content boundary and optionally hash from the body
+_resolve_body : Request_Body -> Function | Nothing -> Resolved_Body
 private _resolve_body body:Request_Body hash_function =
     body_publishers = HttpRequest.BodyPublishers
     case body of
@@ -214,43 +216,47 @@ private _resolve_body body:Request_Body hash_function =
                 Nothing -> body_publishers.ofString text
                 _ : Encoding ->  body_publishers.ofString text encoding.to_java_charset
             hash = if hash_function.is_nothing then "" else hash_function (text.bytes (encoding.if_nothing Encoding.utf_8))
-            [body_publisher, Nothing, hash]
+            Resolved_Body.Value body_publisher Nothing hash
         Request_Body.Json x ->
             json = x.to_json
             hash = if hash_function.is_nothing then "" else hash_function json.bytes
-            json.if_not_error <| [body_publishers.ofString json, Nothing, hash]
+            json.if_not_error <| Resolved_Body.Value (body_publishers.ofString json) Nothing hash
         Request_Body.Binary file ->
             path = File_Utils.toPath file.path
             ## ToDo: Support hashing a file.
-            [body_publishers.ofFile path, Nothing, Nothing]
+            hash = if hash_function.is_nothing then "" else Unimplemented.throw "Hashing a file body is not yet supported."
+            Resolved_Body.Value (body_publishers.ofFile path) Nothing hash
         Request_Body.Form_Data form_data url_encoded ->
-            _resolve_form_body form_data url_encoded
+            _resolve_form_body form_data url_encoded hash_function
         Request_Body.Empty ->
             hash = if hash_function.is_nothing then "" else hash_function []
-            [body_publishers.noBody, Nothing, hash]
+            Resolved_Body.Value body_publishers.noBody Nothing hash
         _ ->
             Error.throw (Illegal_Argument.Error ("Unsupported POST body: " + body.to_display_text + "; this is a bug library."))
 
 ## PRIVATE
    Build a BodyPublisher from the given form data.
    The pair's second value is a content boundary in the case of a `multipart/form-data` form; otherwise, Nothing
-_resolve_form_body : Dictionary Text (Text | File) -> Boolean -> Pair BodyPublisher Text
-private _resolve_form_body (form_data:(Dictionary Text (Text | File))) (url_encoded:Boolean=False) = case url_encoded of
+_resolve_form_body : Dictionary Text (Text | File) -> Boolean -> Function | Nothing -> Resolved_Body
+private _resolve_form_body (form_data:(Dictionary Text (Text | File))) (url_encoded:Boolean=False) hash_function = case url_encoded of
     True ->
         body_builder = UrlencodedBodyBuilder.new
         form_data.map_with_key key-> value->
             case value of
                 _ : Text -> body_builder.add_part_text key value
                 _ : File -> body_builder.add_part_file key value.path
-        [body_builder.build, Nothing, Nothing]
+        publisher = body_builder.build
+        hash = if hash_function.is_nothing then "" else hash_function body_builder.getContents.bytes
+        Resolved_Body.Value publisher Nothing hash
     False ->
         body_builder = MultipartBodyBuilder.new
         form_data.map_with_key key-> value->
             case value of
                 _ : Text -> body_builder.add_part_text key value
                 _ : File -> body_builder.add_part_file key value.path
-        boundary = body_builder.get_boundary
-        [body_builder.build, boundary, Nothing]
+        ## ToDo: Support hashing a MultipartBodyBuilder.
+        hash = if hash_function.is_nothing then "" else Unimplemented.throw "Hashing a multi-part body is not yet supported."
+        Resolved_Body.Value body_builder.build body_builder.get_boundary hash
 
 ## PRIVATE
 if_fetch_method : HTTP_Method -> Function -> Any -> Any ! Illegal_Argument

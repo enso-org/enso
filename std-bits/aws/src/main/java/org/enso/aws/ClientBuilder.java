@@ -61,16 +61,14 @@ public class ClientBuilder {
         .build();
   }
 
-
   /**
-   * Signs an AWS request using the provided credentials.
-   * AccessKey is returned in header plain text, will reject if credential is AccessKey/SecretKey and AccessKey is secret.
+   * Signs an AWS request using the provided credentials. AccessKey is returned in header plain
+   * text, will reject if credential is AccessKey/SecretKey and AccessKey is secret.
    */
-  public HttpClient createSignedClient(String regionName,
-                                       String serviceName,
-                                       HttpClient baseClient,
-                                       String bodySHA256) throws IOException, InterruptedException {
-    return new SignedHttpClient(regionName, serviceName, unsafeBuildCredentialProvider(), baseClient, bodySHA256);
+  public HttpClient createSignedClient(
+      String regionName, String serviceName, HttpClient baseClient, String bodySHA256) {
+    return new SignedHttpClient(
+        regionName, serviceName, unsafeBuildCredentialProvider(), baseClient, bodySHA256);
   }
 
   /**

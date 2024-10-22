@@ -1,10 +1,5 @@
 package org.enso.aws;
 
-import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
-
-import javax.crypto.Mac;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLParameters;
 import java.io.IOException;
 import java.net.Authenticator;
 import java.net.CookieHandler;
@@ -27,12 +22,14 @@ import java.util.HashMap;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import javax.crypto.Mac;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLParameters;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 
 /**
- * Makes HTTP requests with AWS signature v4.
+ * Wraps an HttpClient to sign requests with AWS signature v4.
  * Designed to be called by EnsoSecretHelper.makeRequest.
  */
 public class SignedHttpClient extends HttpClient {
@@ -46,7 +43,12 @@ public class SignedHttpClient extends HttpClient {
   private final HttpClient parent;
   private final String bodyHash;
 
-  public SignedHttpClient(String regionName, String serviceName, AwsCredentialsProvider credentialsProvider, HttpClient parent, String bodyHash) {
+  public SignedHttpClient(
+      String regionName,
+      String serviceName,
+      AwsCredentialsProvider credentialsProvider,
+      HttpClient parent,
+      String bodyHash) {
     this.regionName = regionName;
     this.serviceName = serviceName;
     this.credentialsProvider = credentialsProvider;
@@ -100,17 +102,23 @@ public class SignedHttpClient extends HttpClient {
   }
 
   @Override
-  public <T> CompletableFuture<HttpResponse<T>> sendAsync(HttpRequest request, HttpResponse.BodyHandler<T> responseBodyHandler) {
+  public <T> CompletableFuture<HttpResponse<T>> sendAsync(
+      HttpRequest request, HttpResponse.BodyHandler<T> responseBodyHandler) {
     throw new UnsupportedOperationException("Not implemented");
   }
 
   @Override
-  public <T> CompletableFuture<HttpResponse<T>> sendAsync(HttpRequest request, HttpResponse.BodyHandler<T> responseBodyHandler, HttpResponse.PushPromiseHandler<T> pushPromiseHandler) {
+  public <T> CompletableFuture<HttpResponse<T>> sendAsync(
+      HttpRequest request,
+      HttpResponse.BodyHandler<T> responseBodyHandler,
+      HttpResponse.PushPromiseHandler<T> pushPromiseHandler) {
     throw new UnsupportedOperationException("Not implemented");
   }
 
   @Override
-  public <T> HttpResponse<T> send(HttpRequest request, HttpResponse.BodyHandler<T> responseBodyHandler) throws IOException, InterruptedException {
+  public <T> HttpResponse<T> send(
+      HttpRequest request, HttpResponse.BodyHandler<T> responseBodyHandler)
+      throws IOException, InterruptedException {
     URL url = request.uri().toURL();
 
     var headerMap = request.headers().map();
@@ -122,11 +130,13 @@ public class SignedHttpClient extends HttpClient {
 
     output.put("x-amz-content-sha256", bodyHash);
 
-    output.put("x-amz-date",
-        ZonedDateTime.now(ZoneId.of("UTC")).format(DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'")));
+    output.put(
+        "x-amz-date",
+        ZonedDateTime.now(ZoneId.of("UTC"))
+            .format(DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'")));
 
     int port = url.getPort();
-    String hostHeader =  url.getHost() + (port == -1 ? "" : ":" + port);
+    String hostHeader = url.getHost() + (port == -1 ? "" : ":" + port);
     output.put("Host", hostHeader);
 
     // Create canonical headers
@@ -134,12 +144,17 @@ public class SignedHttpClient extends HttpClient {
     sortedHeaders.addAll(headerMap.keySet());
     sortedHeaders.addAll(output.keySet());
     sortedHeaders.sort(String.CASE_INSENSITIVE_ORDER);
-    var canonicalHeaderNames = sortedHeaders.stream()
-        .map(String::toLowerCase)
-        .collect(Collectors.joining(";"));
-    var canonicalHeaders = sortedHeaders.stream()
-        .map(k -> k.toLowerCase().replaceAll("\\s+", " ") + ":" + output.getOrDefault(k, headerMap.containsKey(k) ? headerMap.get(k).get(0) : null))
-        .collect(Collectors.joining("\n"));
+    var canonicalHeaderNames =
+        sortedHeaders.stream().map(String::toLowerCase).collect(Collectors.joining(";"));
+    var canonicalHeaders =
+        sortedHeaders.stream()
+            .map(
+                k ->
+                    k.toLowerCase().replaceAll("\\s+", " ")
+                        + ":"
+                        + output.getOrDefault(
+                            k, headerMap.containsKey(k) ? headerMap.get(k).get(0) : null))
+            .collect(Collectors.joining("\n"));
 
     // Create canonical query string (not supported yet).
     if (url.getQuery() != null) {
@@ -153,7 +168,16 @@ public class SignedHttpClient extends HttpClient {
       canonicalPath = "/" + canonicalPath;
     }
     canonicalPath = URLEncoder.encode(canonicalPath, StandardCharsets.UTF_8).replace("%2F", "/");
-    var canonicalRequest = String.join("\n", request.method(), canonicalPath, queryParameters, canonicalHeaders, "", canonicalHeaderNames, bodyHash);
+    var canonicalRequest =
+        String.join(
+            "\n",
+            request.method(),
+            canonicalPath,
+            queryParameters,
+            canonicalHeaders,
+            "",
+            canonicalHeaderNames,
+            bodyHash);
     var canonicalRequestHash = getSHA256(canonicalRequest.getBytes(StandardCharsets.UTF_8));
 
     // Need the credentials
@@ -162,14 +186,34 @@ public class SignedHttpClient extends HttpClient {
     // Create signing string
     String dateStamp = LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE);
     String scope = dateStamp + "/" + regionName + "/" + serviceName + "/" + TERMINATOR;
-    String toSign = String.join("\n", SCHEME + "-" + ALGORITHM, output.get("x-amz-date"), scope, canonicalRequestHash);
-    var signature = sign(SCHEME + credentials.secretAccessKey(), dateStamp, regionName, serviceName, TERMINATOR, toSign);
+    String toSign =
+        String.join(
+            "\n", SCHEME + "-" + ALGORITHM, output.get("x-amz-date"), scope, canonicalRequestHash);
+    var signature =
+        sign(
+            SCHEME + credentials.secretAccessKey(),
+            dateStamp,
+            regionName,
+            serviceName,
+            TERMINATOR,
+            toSign);
 
     // Build the authorization header
-    var authorizationHeader = SCHEME + "-" + ALGORITHM + " "
-        + "Credential=" + credentials.accessKeyId() + "/" + scope + ", "
-        + "SignedHeaders=" + canonicalHeaderNames + ", "
-        + "Signature=" + signature;
+    var authorizationHeader =
+        SCHEME
+            + "-"
+            + ALGORITHM
+            + " "
+            + "Credential="
+            + credentials.accessKeyId()
+            + "/"
+            + scope
+            + ", "
+            + "SignedHeaders="
+            + canonicalHeaderNames
+            + ", "
+            + "Signature="
+            + signature;
     output.put("Authorization", authorizationHeader);
 
     // Build a new request with the additional headers
