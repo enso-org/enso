@@ -183,7 +183,7 @@ const pinnedTopRowData = computed(() => {
       },
     ]
   }
-  return null
+  return []
 })
 
 const pinnedRowHeight = computed(() => {
