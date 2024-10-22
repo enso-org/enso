@@ -14,10 +14,9 @@ on:
         default: false
 jobs:
   enso-build-ci-gen-job-snowflake-tests-linux-amd64:
-    name: Snowflake Tests (linux, amd64)
+    name: Snowflake Tests (LinuxLatest)
     runs-on:
-      - self-hosted
-      - Linux
+      - ubuntu-latest
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack

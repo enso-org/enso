@@ -1,3 +1,5 @@
+use core::panic;
+
 use crate::prelude::*;
 
 use crate::ci_gen::not_default_branch;
@@ -307,6 +309,10 @@ fn build_job_ensuring_cloud_tests_run_on_github(
     cloud_tests_enabled: bool,
 ) -> Job {
     if cloud_tests_enabled {
+        if target.0 != OS::Linux {
+            panic!("If the Cloud tests are enabled, they require GitHub hosted runner for Cloud auth, so they only run on Linux.");
+        }
+
         run_steps_builder.build_job(job_name, RunnerLabel::LinuxLatest)
     } else {
         run_steps_builder.build_job(job_name, target)
@@ -320,6 +326,9 @@ const GRAAL_EDITION_FOR_EXTRA_TESTS: graalvm::Edition = graalvm::Edition::Commun
 
 impl JobArchetype for SnowflakeTests {
     fn job(&self, target: Target) -> Job {
+        if target.0 != OS::Linux {
+            panic!("Snowflake tests currently require GitHub hosted runner for Cloud auth, so they only run on Linux.");
+        }
         let job_name = "Snowflake Tests";
         let mut job = RunStepsBuilder::new("backend test std-snowflake")
             .customize(move |step| {
@@ -358,7 +367,7 @@ impl JobArchetype for SnowflakeTests {
                     step::extra_stdlib_test_reporter(target, GRAAL_EDITION_FOR_EXTRA_TESTS),
                 ]
             })
-            .build_job(job_name, target)
+            .build_job(job_name, RunnerLabel::LinuxLatest)
             .with_permission(Permission::Checks, Access::Write);
         job.env(env::GRAAL_EDITION, GRAAL_EDITION_FOR_EXTRA_TESTS);
         job
