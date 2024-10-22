@@ -42,7 +42,7 @@ public class StreamCache<M> {
   private final Map<String, ZonedDateTime> lastUsed = new HashMap<>();
 
   public CacheResult<M> getResult(StreamMaker<M> streamMaker)
-      throws IOException, ResponseTooLargeException {
+      throws IOException, InterruptedException, ResponseTooLargeException {
     String cacheKey = streamMaker.makeCacheKey();
     if (cache.containsKey(cacheKey)) {
       return getResultForCacheEntry(cacheKey);
@@ -52,7 +52,7 @@ public class StreamCache<M> {
   }
 
   private CacheResult<M> makeRequestAndCache(String cacheKey, StreamMaker<M> streamMaker)
-      throws ResponseTooLargeException {
+      throws IOException, InterruptedException, ResponseTooLargeException {
     assert !cache.containsKey(cacheKey);
 
     Thing<M> thing = streamMaker.makeThing();
@@ -88,7 +88,7 @@ public class StreamCache<M> {
       return getResultForCacheEntry(cacheKey);
     } catch (IOException e) {
       logger.log(
-          Level.WARNING, "Failure storing cache entry; will re-execute without caching: " + e);
+          Level.WARNING, "Failure storing cache entry; will re-execute without caching: {}", e);
       // Re-issue the request since we don't know if we've consumed any of the response.
       Thing<M> rerequested = streamMaker.makeThing();
       return new CacheResult<>(rerequested.stream(), rerequested.metadata());
@@ -108,7 +108,7 @@ public class StreamCache<M> {
    */
   private File downloadResponseData(String cacheKey, Thing thing)
       throws IOException, ResponseTooLargeException {
-    File temp = File.createTempFile("TransientHTTPResponseCache-" + cacheKey, "");
+    File temp = File.createTempFile("StreamCache-" + cacheKey, "");
     temp.deleteOnExit();
     try {
       var inputStream = thing.stream();
@@ -274,7 +274,7 @@ public class StreamCache<M> {
   private record CacheEntry<M>(File responseData, M metadata, long size, ZonedDateTime expiry) {}
 
   public record Thing<M>(
-      InputStream stream, Optional<Long> sizeMaybe, Optional<Integer> ttl, M metadata) {
+      InputStream stream, M metadata, Optional<Long> sizeMaybe, Optional<Integer> ttl) {
 
     public boolean shouldCache() {
       return ttl.isPresent();
@@ -286,7 +286,7 @@ public class StreamCache<M> {
   public interface StreamMaker<M> {
     String makeCacheKey();
 
-    Thing<M> makeThing();
+    Thing<M> makeThing() throws IOException, InterruptedException  ;
   }
 
   private final Comparator<Map.Entry<String, CacheEntry<M>>> cacheEntryLRUComparator =

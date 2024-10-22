@@ -10,7 +10,7 @@ public class ResponseTooLargeException extends Exception {
             + size
             + ") is over the limit ("
             + limit
-            + ")"
+            + ")");
 
     this.size = size;
     this.limit = limit;

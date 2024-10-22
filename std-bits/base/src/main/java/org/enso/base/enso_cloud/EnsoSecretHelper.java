@@ -1,17 +1,23 @@
 package org.enso.base.enso_cloud;
 
+import java.io.InputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest.Builder;
 import java.net.http.HttpResponse;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.Comparator;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Properties;
 import org.enso.base.cache.EnsoHTTPResponseCache;
+import org.enso.base.cache.ResponseTooLargeException;
 import org.enso.base.net.URISchematic;
 import org.enso.base.net.URIWithSecrets;
 import org.graalvm.collections.Pair;
@@ -77,12 +83,12 @@ public final class EnsoSecretHelper extends SecretValueResolver {
                 })
             .toList();
 
+    var requestMaker =
+        new EnsoSecretHelperRequestMaker(
+            client, builder, uri, resolvedURI, headers, resolvedHeaders);
     if (!useCache) {
       return requestMaker.run();
     } else {
-      var requestMaker =
-          new EnsoSecretHelperRequestMaker(
-              client, builder, uri, resolvedURI, headers, resolvedHeaders);
       return EnsoHTTPResponseCache.makeRequest(requestMaker);
     }
   }
@@ -130,13 +136,13 @@ public final class EnsoSecretHelper extends SecretValueResolver {
     EnsoSecretReader.removeFromCache(secretId);
   }
 
-  private class EnsoSecretHelperRequestMaker implements EnsoHTTPResponseCache.RequestMaker {
-    private HttpClient client;
-    private Builder builder;
-    private URIWithSecrets uri;
-    private URI resolvedURI;
-    private List<Pair<String, HideableValue>> headers;
-    private List<Pair<String, String>> resolvedHeaders;
+  private static class EnsoSecretHelperRequestMaker implements EnsoHTTPResponseCache.RequestMaker {
+    private final HttpClient client;
+    private final Builder builder;
+    private final URIWithSecrets uri;
+    private final URI resolvedURI;
+    private final List<Pair<String, HideableValue>> headers;
+    private final List<Pair<String, String>> resolvedHeaders;
 
     EnsoSecretHelperRequestMaker(
         HttpClient client,
@@ -153,15 +159,17 @@ public final class EnsoSecretHelper extends SecretValueResolver {
       this.resolvedHeaders = resolvedHeaders;
     }
 
+    @Override
     public EnsoHttpResponse run() throws IOException, InterruptedException {
-      makeRequestWithResolvedSecrets(client, builder, uri, resolvedURI, headers, resolvedHeaders);
+      return makeRequestWithResolvedSecrets(client, builder, uri, resolvedURI, headers, resolvedHeaders);
     }
 
     /**
      * Sorts the header by header name, so we don't depend on header order. Multiple-valued headers
      * might hash differently, but it's a rare case.
      */
-    public String makeHashKey() {
+    @Override
+    public String hashKey() {
       try {
         MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
         messageDigest.update(resolvedURI.toString().getBytes());
@@ -177,15 +185,24 @@ public final class EnsoSecretHelper extends SecretValueResolver {
       }
     }
 
+    @Override
     public EnsoHttpResponse reconstructResponseFromCachedStream(
-        InputStream inputStream, CacheResult<EnsoHTTPResponseMetadata> cacheResult) {
+        InputStream inputStream, EnsoHTTPResponseCache.Metadata metadata) {
       URI renderedURI = uri.render();
 
       return new EnsoHttpResponse(
           renderedURI,
-          cacheResult.metadata().headers(),
+          metadata.headers(),
           inputStream,
-          cacheResult.metadata().statusCode());
+          metadata.statusCode());
     }
   }
+
+  @SuppressWarnings("unchecked")
+  private static <E extends Exception> E raise(Class<E> type, Exception ex) throws E {
+    throw (E) ex;
+  }
+
+  private static final Comparator<Pair<String, String>> headerNameComparator =
+      Comparator.comparing(pair -> pair.getLeft());
 }

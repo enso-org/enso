@@ -25,6 +25,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import org.apache.commons.io.IOUtils;
+import org.enso.base.cache.ResponseTooLargeException;
 import org.enso.base.net.URIWithSecrets;
 import org.graalvm.collections.Pair;
 
@@ -110,7 +111,7 @@ public class TransientHTTPResponseCache {
       long size = sizeMaybe.get();
       if (size > getMaxFileSize()) {
         throw new ResponseTooLargeException(
-            size, getMaxFileSize(), unresolvedURI.render().toString());
+            size, getMaxFileSize());
       }
       makeRoomFor(size);
     }
@@ -174,7 +175,7 @@ public class TransientHTTPResponseCache {
         } finally {
           // catch block below will delete the temp file.
           throw new ResponseTooLargeException(
-              tooMany, getMaxFileSize(), unresolvedURI.render().toString());
+              tooMany, getMaxFileSize());
         }
       }
 

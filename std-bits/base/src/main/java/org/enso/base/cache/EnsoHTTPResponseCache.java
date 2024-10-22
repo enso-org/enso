@@ -3,40 +3,45 @@ package org.enso.base.cache;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.http.HttpHeaders;
+import java.time.ZonedDateTime;
+import java.util.List;
 import java.util.Optional;
+import org.enso.base.cache.StreamCache.CacheResult;
 import org.enso.base.cache.StreamCache.StreamMaker;
 import org.enso.base.enso_cloud.EnsoHttpResponse;
 
 public class EnsoHTTPResponseCache {
-  private static StreamCache<Metadata> streamCache = new StreamCache<>();
+  private static final StreamCache<Metadata> streamCache = new StreamCache<>();
 
   private static final int DEFAULT_TTL_SECONDS = 31536000;
 
-  public static EnsoHttpResponse makeRequest(RequestMaker requestMaker) {
+  public static EnsoHttpResponse makeRequest(RequestMaker requestMaker) throws IOException, InterruptedException, ResponseTooLargeException {
     StreamMaker<Metadata> streamMaker = new EnsoHTTPResponseCacheThing(requestMaker);
 
     CacheResult<Metadata> cacheResult = streamCache.getResult(streamMaker);
 
-    return requestMaker.reconstructResponseFromCachedStream(inputStream, cacheResult.metadata());
+    return requestMaker.reconstructResponseFromCachedStream(cacheResult.inputStream(), cacheResult.metadata());
   }
 
-  public static class EnsoHTTPResponseCacheThing implements StreamMaker {
-    private RequestMaker requestMaker;
+  public static class EnsoHTTPResponseCacheThing implements StreamMaker<Metadata> {
+    private final RequestMaker requestMaker;
 
     EnsoHTTPResponseCacheThing(RequestMaker requestMaker) {
       this.requestMaker = requestMaker;
     }
 
-    String makeCacheKey() {
+    @Override
+    public String makeCacheKey() {
       return requestMaker.hashKey();
     }
 
-    Thing makeThing() {
-      EnsoHTTPResponse response = requestMaker.run();
+    @Override
+    public StreamCache.Thing<Metadata> makeThing() throws IOException, InterruptedException {
+      var response = requestMaker.run();
 
       if (response.statusCode() != 200) {
         // Don't cache non-200 repsonses.
-        return new Thing(
+        return new StreamCache.Thing<>(
             response.body(),
             new Metadata(response.headers(), response.statusCode()),
             Optional.empty(),
@@ -46,7 +51,7 @@ public class EnsoHTTPResponseCache {
         var metadata = new Metadata(response.headers(), response.statusCode());
         var sizeMaybe = getResponseDataSize(response.headers());
         int ttl = calculateTTL(response.headers());
-        return new Thing(inputStream, metadata, sizeMaybe, Optional.of(ttl));
+        return new StreamCache.Thing<>(inputStream, metadata, sizeMaybe, Optional.of(ttl));
       }
     }
   }
@@ -92,7 +97,7 @@ public class EnsoHTTPResponseCache {
         if (entry.trim().toLowerCase().startsWith("max-age")) {
           var maxAgeBinding = entry.split("=");
           if (maxAgeBinding.length > 1) {
-            maxAge = Integer.parseInt(maxAgeBinding[1]);
+            maxAge = Integer.valueOf(maxAgeBinding[1]);
           }
           break;
         }
@@ -101,13 +106,45 @@ public class EnsoHTTPResponseCache {
     return maxAge;
   }
 
+  public static void clear() {
+    streamCache.clear();
+  }
+
+  public int getNumEntries() {
+    return streamCache.getNumEntries();
+  }
+
+  public List<Long> getFileSizesTestOnly() {
+    return streamCache.getFileSizesTestOnly();
+  }
+
+  public void setNowOverrideTestOnly(ZonedDateTime nowOverride) {
+    streamCache.setNowOverrideTestOnly(nowOverride);
+  }
+
+  public void setMaxFileSizeOverrideTestOnly(long maxFileSizeOverrideTestOnly) {
+    streamCache.setMaxFileSizeOverrideTestOnly(maxFileSizeOverrideTestOnly);
+  }
+
+  public void clearMaxFileSizeOverrideTestOnly() {
+    streamCache.clearMaxFileSizeOverrideTestOnly();
+  }
+
+  public void setMaxTotalCacheSizeOverrideTestOnly(long maxTotalCacheSizeOverrideTestOnly_) {
+    streamCache.setMaxTotalCacheSizeOverrideTestOnly(maxTotalCacheSizeOverrideTestOnly_);
+  }
+
+  public void clearMaxTotalCacheSizeOverrideTestOnly() {
+    streamCache.clearMaxTotalCacheSizeOverrideTestOnly();
+  }
+
   public interface RequestMaker {
     EnsoHttpResponse run() throws IOException, InterruptedException;
 
     String hashKey();
 
     EnsoHttpResponse reconstructResponseFromCachedStream(
-        InputStream inputStream, CacheResult cacheResult);
+        InputStream inputStream, Metadata metadata);
   }
 
   public record Metadata(HttpHeaders headers, int statusCode) {}
