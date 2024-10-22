@@ -15,7 +15,7 @@ polyglot java import java.lang.ArithmeticException
 polyglot java import java.lang.ClassCastException
 polyglot java import java.lang.OutOfMemoryError
 polyglot java import org.enso.base.CompareException
-polyglot java import org.enso.base.enso_cloud.ResponseTooLargeException
+polyglot java import org.enso.base.cache.ResponseTooLargeException
 
 ## An error indicating that no value was found.
 type Not_Found
