@@ -1,7 +1,6 @@
 package org.enso.compiler.pass.analyse.types;
 
 import java.util.List;
-import java.util.UUID;
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.context.ModuleContext;
 import org.enso.compiler.core.ir.Expression;
