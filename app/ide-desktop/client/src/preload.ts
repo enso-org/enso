@@ -37,7 +37,7 @@ const VERSION_INFO_KEY = 'versionInfo'
 // =========================
 
 /** A type-safe wrapper around {@link electron.contextBridge.exposeInMainWorld}. */
-function exposeInMainWorld<Key extends string & keyof typeof window>(
+function exposeInMainWorld<Key extends string & keyof Window>(
   key: Key,
   value: NonNullable<(typeof window)[Key]>,
 ) {
