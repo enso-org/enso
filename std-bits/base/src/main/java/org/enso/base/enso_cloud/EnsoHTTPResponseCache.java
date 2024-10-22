@@ -160,10 +160,21 @@ public class EnsoHTTPResponseCache {
   }
 
   public interface RequestMaker {
+    /** Executes the HTTP request and returns the response. */
     EnsoHttpResponse makeRequest() throws IOException, InterruptedException;
 
+    /**
+     * Returns a hash key that can be used to uniquely identify this request.
+     * This will be used to decide if the `run` method should be executed, or if
+     * a cached response will be returned.  The hash key should not be
+     * reversible.
+     */
     String hashKey();
 
+    /**
+     * When a cached response is returned, instead of executing `makeRequest`,
+     * this method is used to construct the response.
+     */
     EnsoHttpResponse reconstructResponseFromCachedStream(
         InputStream inputStream, Metadata metadata);
   }
