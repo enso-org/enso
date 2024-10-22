@@ -74,6 +74,7 @@ pub fn parse_args<'s>(
 
 pub fn parse_constructor_definition<'s>(
     items: &mut Vec<Item<'s>>,
+    private_keywords_start: usize,
     start: usize,
     precedence: &mut Precedence<'s>,
     args_buffer: &mut Vec<ArgumentDefinition<'s>>,
@@ -87,7 +88,10 @@ pub fn parse_constructor_definition<'s>(
         }))
     }
     let (name, inline_args) = parse_constructor_decl(items, start, precedence, args_buffer);
-    Tree::constructor_definition(name, inline_args, block_args)
+    let private = (private_keywords_start < start)
+        .then(|| items.pop().unwrap().into_token().unwrap().try_into().unwrap());
+
+    Tree::constructor_definition(private, name, inline_args, block_args)
 }
 
 fn parse_constructor_decl<'s>(
@@ -97,9 +101,7 @@ fn parse_constructor_decl<'s>(
     args_buffer: &mut Vec<ArgumentDefinition<'s>>,
 ) -> (token::Ident<'s>, Vec<ArgumentDefinition<'s>>) {
     let args = parse_type_args(items, start + 1, precedence, args_buffer);
-    let Item::Token(name) = items.pop().unwrap() else { unreachable!() };
-    let Token { variant: token::Variant::Ident(variant), .. } = name else { unreachable!() };
-    let name = name.with_variant(variant);
+    let name = items.pop().unwrap().into_token().unwrap().try_into().unwrap();
     debug_assert_eq!(items.len(), start);
     (name, args)
 }
@@ -200,17 +202,10 @@ pub fn try_parse_foreign_function<'s>(
     );
     let args = args_buffer.drain(..).rev().collect();
 
-    let Item::Token(name) = items.pop().unwrap() else { unreachable!() };
-    let token::Variant::Ident(variant) = name.variant else { unreachable!() };
-    let name = name.with_variant(variant);
-
-    let Item::Token(language) = items.pop().unwrap() else { unreachable!() };
-    let token::Variant::Ident(variant) = language.variant else { unreachable!() };
-    let language = language.with_variant(variant);
-
-    let Item::Token(keyword) = items.pop().unwrap() else { unreachable!() };
-    let keyword = keyword.with_variant(token::variant::ForeignKeyword());
-
+    let name = items.pop().unwrap().into_token().unwrap().try_into().unwrap();
+    let language = items.pop().unwrap().into_token().unwrap().try_into().unwrap();
+    let keyword =
+        items.pop().unwrap().into_token().unwrap().with_variant(token::variant::ForeignKeyword());
     Tree::foreign_function(keyword, language, name, args, operator, body).into()
 }
 
@@ -232,9 +227,8 @@ fn parse_return_spec<'s>(
     precedence: &mut Precedence<'s>,
 ) -> ReturnSpecification<'s> {
     let r#type = precedence.resolve_non_section_offset(arrow + 1, items);
-    let Item::Token(arrow) = items.pop().unwrap() else { unreachable!() };
-    let token::Variant::ArrowOperator(variant) = arrow.variant else { unreachable!() };
-    let arrow = arrow.with_variant(variant);
+    let arrow: token::ArrowOperator =
+        items.pop().unwrap().into_token().unwrap().try_into().unwrap();
     let r#type = r#type.unwrap_or_else(|| {
         empty_tree(arrow.code.position_after()).with_error(SyntaxError::ExpectedExpression)
     });
@@ -279,7 +273,7 @@ fn parse_arg_def<'s>(
     };
     let default = default.map(|default| {
         let tree = precedence.resolve_offset(start + default + 1, items);
-        let Item::Token(equals) = items.pop().unwrap() else { unreachable!() };
+        let equals = items.pop().unwrap().into_token().unwrap();
         let expression = tree.unwrap_or_else(|| {
             empty_tree(equals.code.position_after()).with_error(SyntaxError::ExpectedExpression)
         });
@@ -308,7 +302,7 @@ fn parse_arg_def<'s>(
         }
         let items = parenthesized_body.as_mut().unwrap_or(items);
         let tree = precedence.resolve_non_section_offset(start + type_ + 1, items);
-        let Item::Token(operator) = items.pop().unwrap() else { unreachable!() };
+        let operator = items.pop().unwrap().into_token().unwrap();
         let type_ = tree.unwrap_or_else(|| {
             empty_tree(operator.code.position_after()).with_error(SyntaxError::ExpectedType)
         });

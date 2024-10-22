@@ -42,7 +42,6 @@ import org.enso.syntax2.TextElement;
 import org.enso.syntax2.Token;
 import org.enso.syntax2.Tree;
 import org.enso.syntax2.Tree.Invalid;
-import org.enso.syntax2.Tree.Private;
 
 import scala.Option;
 import scala.collection.immutable.LinearSeq;
@@ -71,7 +70,7 @@ final class TreeToIr {
    * @param ast the tree representing the program to translate
    * @return the IR representation of `inputAST`
    */
-  Module translate(Tree ast) {
+  Module translate(Tree.BodyBlock ast) {
     return translateModule(ast);
   }
 
@@ -162,63 +161,48 @@ final class TreeToIr {
    * @param module the [[AST]] representation of the module to translate
    * @return the [[IR]] representation of `module`
    */
-  Module translateModule(Tree module) {
-    return switch (module) {
-      case Tree.BodyBlock b -> {
-        boolean isPrivate = false;
-        List<Definition> bindings = nil();
-        List<Import> imports = nil();
-        List<Export> exports = nil();
-        List<Diagnostic> diag = nil();
-        for (Line line : b.getStatements()) {
-          var expr = line.getExpression();
-          // Documentation found among imports/exports or at the top of the module (if it starts with imports) is
-          // placed in `bindings` by AstToIr.
-          while (expr instanceof Tree.Documented doc) {
-            Definition c;
-            try {
-              c = translateComment(doc, doc.getDocumentation());
-            } catch (SyntaxException ex) {
-              c = ex.toError();
-            }
-            bindings = join(c, bindings);
-            expr = doc.getExpression();
-          }
-          // Private keyword with an empty body is valid - that is how a private module is declared.
-          if (expr instanceof Private priv && priv.getBody() == null) {
-            if (isPrivate) {
-              var error = translateSyntaxError(priv, new Syntax.UnsupportedSyntax(
-                  "Private token specified more than once in the module"));
-              diag = join(error, diag);
-            }
-            isPrivate = true;
-            continue;
-          }
-          switch (expr) {
-            case Tree.Import imp -> imports = join(translateImport(imp), imports);
-            case Tree.Export exp -> exports = join(translateExport(exp), exports);
-            case null -> {
-            }
-            default -> bindings = translateModuleSymbol(expr, bindings);
-          }
+  Module translateModule(Tree.BodyBlock module) {
+    boolean isPrivate = false;
+    List<Definition> bindings = nil();
+    List<Import> imports = nil();
+    List<Export> exports = nil();
+    List<Diagnostic> diag = nil();
+    for (Line line : module.getStatements()) {
+      var expr = line.getExpression();
+      // Documentation found among imports/exports or at the top of the module (if it starts with imports) is
+      // placed in `bindings` because that's what the Scala parser used to do.
+      while (expr instanceof Tree.Documented doc) {
+        Definition c;
+        try {
+          c = translateComment(doc, doc.getDocumentation());
+        } catch (SyntaxException ex) {
+          c = ex.toError();
         }
-        if (diag.isEmpty()) {
-          yield new Module(imports.reverse(), exports.reverse(), bindings.reverse(), isPrivate,
-            getIdentifiedLocation(module), meta(), new DiagnosticStorage(diag));
-        } else {
-          yield new Module(imports.reverse(), exports.reverse(), bindings.reverse(), isPrivate,
-              getIdentifiedLocation(module), meta());
-        }
+        bindings = join(c, bindings);
+        expr = doc.getExpression();
       }
-      default -> new Module(
-          nil(), nil(),
-          join(translateSyntaxError(module, new Syntax.UnsupportedSyntax("translateModule")),
-              nil()),
-          false,
-          getIdentifiedLocation(module),
-          meta()
-      );
-    };
+      switch (expr) {
+        case Tree.Import imp -> imports = join(translateImport(imp), imports);
+        case Tree.Export exp -> exports = join(translateExport(exp), exports);
+        case Tree.Private priv -> {
+          if (isPrivate) {
+            var error = translateSyntaxError(priv, Syntax.UnexpectedExpression$.MODULE$);
+            diag = join(error, diag);
+          }
+          isPrivate = true;
+        }
+        case null -> {
+        }
+        default -> bindings = translateModuleSymbol(expr, bindings);
+      }
+    }
+    if (!diag.isEmpty()) {
+      return new Module(imports.reverse(), exports.reverse(), bindings.reverse(), isPrivate,
+        getIdentifiedLocation(module), meta(), new DiagnosticStorage(diag));
+    } else {
+      return new Module(imports.reverse(), exports.reverse(), bindings.reverse(), isPrivate,
+        getIdentifiedLocation(module), meta());
+    }
   }
 
   /**
@@ -241,29 +225,6 @@ final class TreeToIr {
     return switch (inputAst) {
       case null -> appendTo;
 
-      case Tree.Private priv when priv.getBody() == null -> {
-        var err = translateSyntaxError(priv, new Syntax.UnsupportedSyntax(
-            "Private declaration without body at unexpected location. " +
-                "Note that empty private declaration is allowed only at the top of the module"));
-        yield join(err, appendTo);
-      }
-
-      case Tree.Private priv -> {
-        assert priv.getBody() != null;
-        var privBody = priv.getBody();
-        switch (privBody) {
-          case Tree.Function func -> {
-            var binding = translateMethodBinding(func, true);
-            yield join(binding, appendTo);
-          }
-          default -> {
-            var err = translateSyntaxError(privBody,
-                new Syntax.UnsupportedSyntax("Unexpected private entity"));
-            yield join(err, appendTo);
-          }
-        }
-      }
-
       case Tree.TypeDef def -> {
         var typeName = buildName(def.getName(), true);
         List<IR> irBody = nil();
@@ -282,7 +243,7 @@ final class TreeToIr {
       }
 
       case Tree.Function fn -> {
-        var binding = translateMethodBinding(fn, false);
+        var binding = translateMethodBinding(fn);
         yield join(binding, appendTo);
       }
 
@@ -354,16 +315,17 @@ final class TreeToIr {
     return res.reverse();
   }
 
-  IR translateConstructorDefinition(Tree.ConstructorDefinition cons, Tree inputAst,
-      boolean isPrivate) {
+  IR translateConstructorDefinition(Tree.ConstructorDefinition cons) {
+    var constructorName = buildName(cons, cons.getConstructor());
+    var cAt = getIdentifiedLocation(cons);
+    var isPrivate = cons.getPrivate() != null;
+    List<DefinitionArgument> args;
     try {
-      var constructorName = buildName(inputAst, cons.getConstructor());
-      List<DefinitionArgument> args = translateArgumentsDefinition(cons.getArguments());
-      var cAt = getIdentifiedLocation(inputAst);
-      return new Definition.Data(constructorName, args, nil(), isPrivate, cAt, meta());
+      args = translateArgumentsDefinition(cons.getArguments());
     } catch (SyntaxException ex) {
       return ex.toError();
     }
+    return new Definition.Data(constructorName, args, nil(), isPrivate, cAt, meta());
   }
 
   /**
@@ -388,26 +350,8 @@ final class TreeToIr {
     return switch (inputAst) {
       case null -> appendTo;
 
-      // Only private constructors and methods are supported.
-      case Tree.Private priv -> {
-        switch (priv.getBody()) {
-          case Tree.ConstructorDefinition consDef -> {
-            var translated = translateConstructorDefinition(consDef, priv, true);
-            yield join(translated, appendTo);
-          }
-          case Tree.Function func -> {
-            var translated = translateMethodInType(func, true);
-            yield join(translated, appendTo);
-          }
-          default -> {
-            var errorIr = translateSyntaxError(priv, Syntax.UnexpectedDeclarationInType$.MODULE$);
-            yield join(errorIr, appendTo);
-          }
-        }
-      }
-
       case Tree.ConstructorDefinition cons ->
-          join(translateConstructorDefinition(cons, inputAst, false), appendTo);
+          join(translateConstructorDefinition(cons), appendTo);
 
       case Tree.TypeDef def -> {
         var ir = translateSyntaxError(def, Syntax.UnexpectedDeclarationInType$.MODULE$);
@@ -430,7 +374,7 @@ final class TreeToIr {
       }
 
       case Tree.Function fun -> {
-        var ir = translateMethodInType(fun, false);
+        var ir = translateFunction(fun);
         yield join(ir, appendTo);
       }
 
@@ -475,21 +419,6 @@ final class TreeToIr {
         yield join(ir, appendTo);
       }
     };
-  }
-
-  private Expression translateMethodInType(Tree.Function func, boolean isPrivate)
-      throws SyntaxException {
-    Name name;
-    boolean isOperator = false;
-    if (func.getName() instanceof Tree.Ident ident) {
-      isOperator = ident.getToken().isOperatorLexically();
-      name = buildName(getIdentifiedLocation(func.getName()), ident.getToken(), isOperator);
-    } else {
-      name = buildNameOrQualifiedName(func.getName());
-    }
-    var ir = translateFunction(func, name, isOperator, func.getArgs(), func.getBody(),
-        resolveReturnTypeSignature(func), isPrivate);
-    return ir;
   }
 
   @SuppressWarnings("unchecked")
@@ -543,10 +472,11 @@ final class TreeToIr {
     }
   }
 
-  private Definition translateMethodBinding(Tree.Function fn, boolean isPrivate)
+  private Definition translateMethodBinding(Tree.Function fn)
       throws SyntaxException {
     var methodRef = translateMethodReference(fn.getName(), false);
     var args = translateArgumentsDefinition(fn.getArgs());
+    var isPrivate = fn.getPrivate() != null;
     var body = translateExpression(fn.getBody());
     var loc = getIdentifiedLocation(fn, 0, 0, null);
     var returnSignature = resolveReturnTypeSignature(fn);
@@ -572,42 +502,41 @@ final class TreeToIr {
     );
   }
 
-  private Expression translateFunction(
-      Tree fun, Name name, boolean isOperator,
-      java.util.List<ArgumentDefinition> arguments, final Tree treeBody, Expression returnType,
-      boolean isPrivate
-  ) {
+  private Expression translateFunction(Tree.Function fun) {
+    Name name;
     List<DefinitionArgument> args;
     try {
-      args = translateArgumentsDefinition(arguments);
+      name = buildNameOrQualifiedName(fun.getName());
+      args = translateArgumentsDefinition(fun.getArgs());
     } catch (SyntaxException ex) {
       return ex.toError();
     }
-    var loc = getIdentifiedLocation(fun);
-    String functionName = name.name();
+    final Expression returnType = resolveReturnTypeSignature(fun);
+    final var loc = getIdentifiedLocation(fun);
     if (args.isEmpty()) {
       Expression body;
-      if (treeBody instanceof Tree.BodyBlock block) {
+      if (fun.getBody() instanceof Tree.BodyBlock block) {
         // suspended block has a name and no arguments
         body = translateBodyBlock(block, true);
       } else {
-        body = translateExpression(treeBody);
+        body = translateExpression(fun.getBody());
       }
       if (body == null) {
         body = translateSyntaxError(fun, Syntax.UnexpectedExpression$.MODULE$);
       }
-      var ascribedBody = addTypeAscription(functionName, body, returnType, loc);
+      final var ascribedBody = addTypeAscription(name.name(), body, returnType, loc);
       return new Expression.Binding(name, ascribedBody, loc, meta());
     } else {
-      var body = translateExpression(treeBody);
+      final var body = translateExpression(fun.getBody());
       if (body == null) {
         return translateSyntaxError(fun, Syntax.UnexpectedDeclarationInType$.MODULE$);
       }
+      final boolean isOperator = fun.getName() instanceof Tree.Ident ident && ident.getToken().isOperatorLexically();
       if (isOperator && args.size() != 2) {
         return translateSyntaxError(fun, Syntax.InvalidOperator$.MODULE$);
       }
-
-      var ascribedBody = addTypeAscription(functionName, body, returnType, loc);
+      final var ascribedBody = addTypeAscription(name.name(), body, returnType, loc);
+      final var isPrivate = fun.getPrivate() != null;
       return new Function.Binding(name, args, ascribedBody, isPrivate, loc, true, meta());
     }
   }
@@ -1064,15 +993,7 @@ final class TreeToIr {
         }
         yield new Case.Expr(expr, branches.reverse(), false, getIdentifiedLocation(tree), meta());
       }
-      case Tree.Function fun -> {
-        var name = buildName(fun.getName());
-        boolean isOperator = false;
-        if (fun.getName() instanceof Tree.Ident ident) {
-          isOperator = ident.getToken().isOperatorLexically();
-        }
-        yield translateFunction(fun, name, isOperator, fun.getArgs(), fun.getBody(),
-            resolveReturnTypeSignature(fun), false);
-      }
+      case Tree.Function fun -> translateFunction(fun);
       case Tree.OprSectionBoundary bound -> translateExpression(bound.getAst(), false);
       case Tree.UnaryOprApp un when "-".equals(un.getOpr().codeRepr()) ->
           switch (translateExpression(un.getRhs(), false)) {
@@ -1132,7 +1053,6 @@ final class TreeToIr {
             meta()
         );
       }
-      case Tree.Private __ -> translateSyntaxError(tree, Syntax.UnexpectedExpression$.MODULE$);
       case Tree.Invalid __ -> translateSyntaxError(tree, Syntax.UnexpectedExpression$.MODULE$);
       default -> translateSyntaxError(tree, new Syntax.UnsupportedSyntax("translateExpression"));
     };

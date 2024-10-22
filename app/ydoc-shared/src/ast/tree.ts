@@ -2030,6 +2030,7 @@ interface ArgumentType<T extends TreeRefs = RawRefs> {
 }
 
 export interface FunctionFields {
+  private_: NodeChild<SyncTokenId> | undefined
   name: NodeChild<AstId>
   argumentDefinitions: ArgumentDefinition[]
   equals: NodeChild<SyncTokenId>
@@ -2067,6 +2068,7 @@ export class Function extends Ast {
   /** TODO: Add docs */
   static concrete(
     module: MutableModule,
+    private_: NodeChild<Token> | undefined,
     name: NodeChild<Owned>,
     argumentDefinitions: ArgumentDefinition<OwnedRefs>[],
     equals: NodeChild<Token>,
@@ -2075,6 +2077,7 @@ export class Function extends Ast {
     const base = module.baseObject('Function')
     const id_ = base.get('id')
     const fields = composeFieldData(base, {
+      private_,
       name: concreteChild(module, name, id_),
       argumentDefinitions: argumentDefinitions.map(def => mapRefs(def, ownedToRaw(module, id_))),
       equals,
@@ -2095,6 +2098,7 @@ export class Function extends Ast {
     // type methods.
     return MutableFunction.concrete(
       module,
+      undefined,
       unspaced(Ident.newAllowingOperators(module, name)),
       argumentDefinitions,
       spaced(makeEquals()),
@@ -2136,7 +2140,8 @@ export class Function extends Ast {
 
   /** TODO: Add docs */
   *concreteChildren(_verbatim?: boolean): IterableIterator<RawNodeChild> {
-    const { name, argumentDefinitions, equals, body } = getAll(this.fields)
+    const { private_, name, argumentDefinitions, equals, body } = getAll(this.fields)
+    if (private_) yield private_
     yield name
     for (const def of argumentDefinitions) {
       const { open, open2, suspension, pattern, type, close2, defaultValue, close } = def

@@ -348,13 +348,16 @@ impl Pattern {
             }
             PatternData::Identifier => match input.pop_front() {
                 None => Err(default()),
-                Some(t) =>
-                    if t.is_variant(syntax::token::variant::VariantMarker::Ident) {
-                        Ok(MatchResult::new(Match::Identifier(t), input))
-                    } else {
-                        input.push_front(t);
-                        Err(input)
-                    },
+                Some(
+                    t @ syntax::Item::Token(syntax::Token {
+                        variant: syntax::token::Variant::Ident(_),
+                        ..
+                    }),
+                ) => Ok(MatchResult::new(Match::Identifier(t), input)),
+                Some(t) => {
+                    input.push_front(t);
+                    Err(input)
+                }
             },
             PatternData::Block => match input.pop_front() {
                 None => Err(default()),
