@@ -350,9 +350,8 @@ type SQLServer_Dialect
         base_expr = expr_null_checks_pair.first
         null_checks = expr_null_checks_pair.second
         null_check = (null_checks.map it->((it.at 0).paren ++ " IS NULL ")) . fold (SQL_Builder.code "1=0 ") acc-> i-> acc ++ "OR " ++ i
-        x1 = (SQL_Builder.code "CASE WHEN " ++ null_check ++ " THEN NULL WHEN " ++ base_expr ++ " THEN 1 ELSE 0 END")
-        y = Base_Generator.alias self name
-        x1 ++ y
+        built_expr = (SQL_Builder.code "CASE WHEN " ++ null_check ++ " THEN NULL WHEN " ++ base_expr ++ " THEN 1 ELSE 0 END")
+        built_expr ++ Base_Generator.alias self name
 
 ## PRIVATE
 make_dialect_operations =
