@@ -8,6 +8,7 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
+import org.enso.interpreter.node.expression.builtin.error.AdditionalWarnings;
 import org.enso.interpreter.node.expression.builtin.error.NoWrap;
 import org.enso.interpreter.node.expression.builtin.error.ProblemBehavior;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -73,7 +74,7 @@ public abstract class VectorFromFunctionNode extends Node {
           }
           case REPORT_WARNING -> {
             errorsEncountered++;
-            if (errorsEncountered >= MAX_MAP_WARNINGS) {
+            if (errorsEncountered > MAX_MAP_WARNINGS) {
               valueToAdd = nothing;
             } else {
               var wrappedInWarn =
@@ -88,8 +89,17 @@ public abstract class VectorFromFunctionNode extends Node {
       }
       target.add(valueToAdd, warnsLib);
     }
-    // TODO: Add additional warn if number of errors exceeds MAX_MAP_WARNINGS
-    return target.asVector(true);
+    var vector = target.asVector(true);
+    if (errorsEncountered >= MAX_MAP_WARNINGS) {
+      var additionalWarnsBuiltin = ctx.getBuiltins().getBuiltinType(AdditionalWarnings.class);
+      long additionalWarnsCnt = errorsEncountered - MAX_MAP_WARNINGS;
+      var additionalWarns = additionalWarnsBuiltin.newInstance(additionalWarnsCnt);
+      var vecWithAdditionalWarns =
+          Warning.attach(ctx, vector, additionalWarns, null, appendWarningNode);
+      return vecWithAdditionalWarns;
+    } else {
+      return vector;
+    }
   }
 
   private OnProblems processOnProblemsArg(Object onProblems, TypesLibrary typesLib) {
