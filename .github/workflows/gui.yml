@@ -441,7 +441,7 @@ jobs:
       - run: corepack pnpm -r --filter enso exec playwright test
         env:
           DEBUG: "pw:browser log:"
-          ENSO_TEST_APP_ARGS: --log-level=DEBUG
+          ENSO_TEST_APP_ARGS: -debug
           ENSO_TEST_USER: ${{ secrets.ENSO_CLOUD_TEST_ACCOUNT_USERNAME }}
           ENSO_TEST_USER_PASSWORD: ${{ secrets.ENSO_CLOUD_TEST_ACCOUNT_PASSWORD }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
