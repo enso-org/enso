@@ -4,8 +4,12 @@ use crate::empty_tree;
 use crate::syntax::item;
 use crate::syntax::maybe_with_error;
 use crate::syntax::operator::Precedence;
+use crate::syntax::statement::apply_private_keywords;
 use crate::syntax::statement::find_top_level_operator;
 use crate::syntax::statement::parse_pattern;
+use crate::syntax::statement::Line;
+use crate::syntax::statement::StatementPrefix;
+use crate::syntax::statement::VisibilityContext;
 use crate::syntax::token;
 use crate::syntax::tree;
 use crate::syntax::tree::ArgumentDefault;
@@ -14,6 +18,7 @@ use crate::syntax::tree::ArgumentDefinitionLine;
 use crate::syntax::tree::ArgumentType;
 use crate::syntax::tree::ReturnSpecification;
 use crate::syntax::tree::SyntaxError;
+use crate::syntax::tree::TypeSignatureLine;
 use crate::syntax::treebuilding::Spacing;
 use crate::syntax::Item;
 use crate::syntax::Token;
@@ -21,34 +26,114 @@ use crate::syntax::Tree;
 
 
 
-pub fn parse_function_decl<'s>(
-    items: &mut Vec<Item<'s>>,
-    start: usize,
-    qn_len: usize,
-    precedence: &mut Precedence<'s>,
-    args_buffer: &mut Vec<ArgumentDefinition<'s>>,
-) -> (Tree<'s>, Vec<ArgumentDefinition<'s>>, Option<ReturnSpecification<'s>>) {
-    let mut arg_starts = vec![];
-    let mut arrow = None;
-    for (i, item) in items.iter().enumerate().skip(start + qn_len) {
-        if let Item::Token(Token { variant: token::Variant::ArrowOperator(_), .. }) = item {
-            arrow = Some(i);
-            break;
+pub struct FunctionBuilder<'s> {
+    name:    Tree<'s>,
+    return_: Option<ReturnSpecification<'s>>,
+    args:    Vec<ArgumentDefinition<'s>>,
+    line:    item::Line<'s>,
+    start:   usize,
+}
+
+impl<'s> FunctionBuilder<'s> {
+    pub fn new(
+        mut line: item::Line<'s>,
+        start: usize,
+        qn_len: usize,
+        precedence: &mut Precedence<'s>,
+        args_buffer: &mut Vec<ArgumentDefinition<'s>>,
+    ) -> Self {
+        let mut arg_starts = vec![];
+        let mut arrow = None;
+        let items = &mut line.items;
+        for (i, item) in items.iter().enumerate().skip(start + qn_len) {
+            if let Item::Token(Token { variant: token::Variant::ArrowOperator(_), .. }) = item {
+                arrow = Some(i);
+                break;
+            }
+            if i == start + qn_len || matches!(Spacing::of_item(item), Spacing::Spaced) {
+                arg_starts.push(i);
+            }
         }
-        if i == start + qn_len || matches!(Spacing::of_item(item), Spacing::Spaced) {
-            arg_starts.push(i);
+        let return_ = arrow.map(|arrow| parse_return_spec(items, arrow, precedence));
+
+        args_buffer.extend(
+            arg_starts.drain(..).rev().map(|arg_start| parse_arg_def(items, arg_start, precedence)),
+        );
+        let args = args_buffer.drain(..).rev().collect();
+
+        let name = precedence.resolve_non_section_offset(start, items).unwrap();
+
+        Self { name, return_, args, line, start }
+    }
+
+    pub fn build(
+        mut self,
+        prefixes: &mut Vec<Line<'s, StatementPrefix<'s>>>,
+        operator: token::AssignmentOperator<'s>,
+        expression: Option<Tree<'s>>,
+        visibility_context: VisibilityContext,
+    ) -> Line<'s, Tree<'s>> {
+        let items = &mut self.line.items;
+        let private_keywords_start = 0;
+
+        let private = (visibility_context != VisibilityContext::Private
+            && self.start > private_keywords_start)
+            .then(|| items.pop().unwrap().into_token().unwrap().try_into().unwrap());
+
+        let mut first_newline = self.line.newline;
+        let mut signature_line = None;
+        if let Some(Line { content: Some(StatementPrefix::TypeSignature(signature)), .. }) =
+            prefixes.last()
+        {
+            if qn_equivalent(&self.name, &signature.name) {
+                let Some(Line {
+                    newline: outer_newline,
+                    content: Some(StatementPrefix::TypeSignature(signature)),
+                }) = prefixes.pop()
+                else {
+                    unreachable!()
+                };
+                let newline = mem::replace(&mut first_newline, outer_newline);
+                signature_line =
+                    Some(TypeSignatureLine { signature, newlines: NonEmptyVec::singleton(newline) })
+            }
+        }
+
+        Line {
+            newline: first_newline,
+            content: apply_private_keywords(
+                Some(Tree::function(
+                    signature_line,
+                    private,
+                    self.name,
+                    self.args,
+                    self.return_,
+                    operator,
+                    expression,
+                )),
+                items.drain(..),
+                visibility_context,
+            ),
         }
     }
-    let return_ = arrow.map(|arrow| parse_return_spec(items, arrow, precedence));
+}
 
-    args_buffer.extend(
-        arg_starts.drain(..).rev().map(|arg_start| parse_arg_def(items, arg_start, precedence)),
-    );
-    let args = args_buffer.drain(..).rev().collect();
+fn qn_equivalent(a: &Tree, b: &Tree) -> bool {
+    use tree::Variant::*;
+    match (&a.variant, &b.variant) {
+        (Ident(a), Ident(b)) => a.token.code.repr == b.token.code.repr,
+        (OprApp(a), OprApp(b)) =>
+            opt_qn_equivalent(&a.lhs, &b.lhs) && opt_qn_equivalent(&a.rhs, &b.rhs),
+        _ => false,
+    }
+}
 
-    let qn = precedence.resolve_non_section_offset(start, items).unwrap();
-
-    (qn, args, return_)
+fn opt_qn_equivalent(a: &Option<Tree>, b: &Option<Tree>) -> bool {
+    match (a, b) {
+        (Some(a), Some(b)) => qn_equivalent(a, b),
+        (None, None) => true,
+        _ => false,
+    }
 }
 
 /// Parse a sequence of argument definitions.
