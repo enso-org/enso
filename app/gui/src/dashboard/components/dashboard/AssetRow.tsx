@@ -116,7 +116,7 @@ export interface AssetRowProps {
 }
 
 /** A row containing an {@link backendModule.AnyAsset}. */
-export function AssetRow(props: AssetRowProps) {
+export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
   const { id, parentId, isKeyboardSelected, isOpened, select, state, columns, onClick } = props
   const { path, hidden: hiddenRaw, grabKeyboardFocus, visibility: visibilityRaw, depth } = props
   const { initialAssetEvents } = props
@@ -775,4 +775,4 @@ export function AssetRow(props: AssetRowProps) {
         )
     }
   }
-}
+})
