@@ -85,50 +85,12 @@ public final class EnsoSecretHelper extends SecretValueResolver {
     var requestMaker =
         new EnsoSecretHelperRequestMaker(
             client, builder, uri, resolvedURI, headers, resolvedHeaders);
+
     if (!useCache) {
       return requestMaker.run();
     } else {
       return EnsoHTTPResponseCache.makeRequest(requestMaker);
     }
-  }
-
-  /** Makes a request with secrets resolved to their actual values. * */
-  static EnsoHttpResponse makeRequestWithResolvedSecrets(
-      HttpClient client,
-      Builder builder,
-      URIWithSecrets uri,
-      URI resolvedURI,
-      List<Pair<String, HideableValue>> headers,
-      List<Pair<String, String>> resolvedHeaders)
-      throws IOException, InterruptedException {
-    boolean hasSecrets =
-        uri.containsSecrets() || headers.stream().anyMatch(p -> p.getRight().containsSecrets());
-    if (hasSecrets) {
-      if (resolvedURI.getScheme() == null) {
-        throw new IllegalArgumentException("The URI must have a scheme.");
-      }
-
-      if (!resolvedURI.getScheme().equalsIgnoreCase("https")) {
-        throw new IllegalArgumentException(
-            "Secrets are not allowed in HTTP connections, use HTTPS instead.");
-      }
-    }
-
-    builder.uri(resolvedURI);
-
-    for (Pair<String, String> resolvedHeader : resolvedHeaders) {
-      builder.header(resolvedHeader.getLeft(), resolvedHeader.getRight());
-    }
-
-    // Build and Send the request.
-    var httpRequest = builder.build();
-    var bodyHandler = HttpResponse.BodyHandlers.ofInputStream();
-    var javaResponse = client.send(httpRequest, bodyHandler);
-
-    URI renderedURI = uri.render();
-
-    return new EnsoHttpResponse(
-        renderedURI, javaResponse.headers(), javaResponse.body(), javaResponse.statusCode());
   }
 
   public static void deleteSecretFromCache(String secretId) {
@@ -160,7 +122,34 @@ public final class EnsoSecretHelper extends SecretValueResolver {
 
     @Override
     public EnsoHttpResponse run() throws IOException, InterruptedException {
-      return makeRequestWithResolvedSecrets(client, builder, uri, resolvedURI, headers, resolvedHeaders);
+      boolean hasSecrets =
+          uri.containsSecrets() || headers.stream().anyMatch(p -> p.getRight().containsSecrets());
+      if (hasSecrets) {
+        if (resolvedURI.getScheme() == null) {
+          throw new IllegalArgumentException("The URI must have a scheme.");
+        }
+
+        if (!resolvedURI.getScheme().equalsIgnoreCase("https")) {
+          throw new IllegalArgumentException(
+              "Secrets are not allowed in HTTP connections, use HTTPS instead.");
+        }
+      }
+
+      builder.uri(resolvedURI);
+
+      for (Pair<String, String> resolvedHeader : resolvedHeaders) {
+        builder.header(resolvedHeader.getLeft(), resolvedHeader.getRight());
+      }
+
+      // Build and Send the request.
+      var httpRequest = builder.build();
+      var bodyHandler = HttpResponse.BodyHandlers.ofInputStream();
+      var javaResponse = client.send(httpRequest, bodyHandler);
+
+      URI renderedURI = uri.render();
+
+      return new EnsoHttpResponse(
+          renderedURI, javaResponse.headers(), javaResponse.body(), javaResponse.statusCode());
     }
 
     /**
