@@ -302,9 +302,7 @@ public class LRUCache<M> {
   public interface ItemBuilder<M> {
     String makeCacheKey();
 
-    /**
-     * Returning an Item with no TTL indicates that the data should not be cached.
-     */
+    /** Returning an Item with no TTL indicates that the data should not be cached. */
     Item<M> buildItem() throws IOException, InterruptedException;
   }
 

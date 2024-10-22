@@ -162,11 +162,11 @@ public final class Stream_Utils {
   }
 
   /**
-   * Copies the contents of the input sream to the output stream. If the number
-   * of bytes copied is greater than maxLength, abort the cpoy and return false;
-   * otherwise return true.
+   * Copies the contents of the input sream to the output stream. If the number of bytes copied is
+   * greater than maxLength, abort the cpoy and return false; otherwise return true.
    */
-  public static boolean limitedCopy(InputStream inputStream, OutputStream outputStream, long maxLength) throws IOException {
+  public static boolean limitedCopy(
+      InputStream inputStream, OutputStream outputStream, long maxLength) throws IOException {
     byte buffer[] = new byte[4096];
     long numBytesRead = 0;
     while (true) {

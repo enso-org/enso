@@ -1,7 +1,7 @@
 package org.enso.base.enso_cloud;
 
-import java.io.InputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.http.HttpClient;
@@ -13,7 +13,6 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.HexFormat;
 import java.util.List;
 import java.util.Properties;
 import org.enso.base.cache.ResponseTooLargeException;
@@ -83,8 +82,7 @@ public final class EnsoSecretHelper extends SecretValueResolver {
             .toList();
 
     var requestMaker =
-        new RequestMaker(
-            client, builder, uri, resolvedURI, headers, resolvedHeaders);
+        new RequestMaker(client, builder, uri, resolvedURI, headers, resolvedHeaders);
 
     if (!useCache) {
       return requestMaker.makeRequest();
@@ -176,10 +174,7 @@ public final class EnsoSecretHelper extends SecretValueResolver {
       URI renderedURI = uri.render();
 
       return new EnsoHttpResponse(
-          renderedURI,
-          metadata.headers(),
-          inputStream,
-          metadata.statusCode());
+          renderedURI, metadata.headers(), inputStream, metadata.statusCode());
     }
   }
 

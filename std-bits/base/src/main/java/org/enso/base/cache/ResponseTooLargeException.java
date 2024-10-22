@@ -4,8 +4,7 @@ public class ResponseTooLargeException extends Exception {
   private final long limit;
 
   public ResponseTooLargeException(long limit) {
-    super(
-        "Response too large: repsonse size is over the limit (" + limit + ")");
+    super("Response too large: repsonse size is over the limit (" + limit + ")");
 
     this.limit = limit;
   }

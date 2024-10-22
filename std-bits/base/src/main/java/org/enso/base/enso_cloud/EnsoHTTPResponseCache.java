@@ -6,17 +6,16 @@ import java.net.http.HttpHeaders;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Optional;
-
-import org.enso.base.cache.ResponseTooLargeException;
 import org.enso.base.cache.LRUCache;
+import org.enso.base.cache.ResponseTooLargeException;
 
 /**
- * EnsoHTTPResponseCache  is a cache for EnsoHttpResponse values that respects the cache control
- * HTTP headers received in the original repsonse to a request.
+ * EnsoHTTPResponseCache is a cache for EnsoHttpResponse values that respects the cache control HTTP
+ * headers received in the original repsonse to a request.
  *
- * <p>It uses LRUCache, so it also puts limits on the size of files that can
- * be requested, and on the total cache size, deleting entries to make space for
- * new ones. All cache files are set to be deleted automatically on JVM exit.
+ * <p>It uses LRUCache, so it also puts limits on the size of files that can be requested, and on
+ * the total cache size, deleting entries to make space for new ones. All cache files are set to be
+ * deleted automatically on JVM exit.
  *
  * <p>Without caching, EnsoHttpResponse contains an InputStream providing the response data. When
  * there is a cache hit, this stream reads from the local file storing the cached data. When there
@@ -27,14 +26,17 @@ public class EnsoHTTPResponseCache {
   private static final long MAX_FILE_SIZE = 10L * 1024 * 1024;
   private static final long MAX_TOTAL_CACHE_SIZE = 10L * 1024 * 1024 * 1024;
 
-  private static final LRUCache<Metadata> lruCache = new LRUCache<>(MAX_FILE_SIZE, MAX_TOTAL_CACHE_SIZE);
+  private static final LRUCache<Metadata> lruCache =
+      new LRUCache<>(MAX_FILE_SIZE, MAX_TOTAL_CACHE_SIZE);
 
-  public static EnsoHttpResponse makeRequest(RequestMaker requestMaker) throws IOException, InterruptedException, ResponseTooLargeException {
+  public static EnsoHttpResponse makeRequest(RequestMaker requestMaker)
+      throws IOException, InterruptedException, ResponseTooLargeException {
     var itemBuilder = new ItemBuilder(requestMaker);
 
     LRUCache.CacheResult<Metadata> cacheResult = lruCache.getResult(itemBuilder);
 
-    return requestMaker.reconstructResponseFromCachedStream(cacheResult.inputStream(), cacheResult.metadata());
+    return requestMaker.reconstructResponseFromCachedStream(
+        cacheResult.inputStream(), cacheResult.metadata());
   }
 
   public static class ItemBuilder implements LRUCache.ItemBuilder<Metadata> {
@@ -49,9 +51,7 @@ public class EnsoHTTPResponseCache {
       return requestMaker.hashKey();
     }
 
-    /**
-     * <p>Only HTTP 200 responses are cached; all others are returned uncached.
-     */
+    /** Only HTTP 200 responses are cached; all others are returned uncached. */
     @Override
     public LRUCache.Item<Metadata> buildItem() throws IOException, InterruptedException {
       var response = requestMaker.makeRequest();
@@ -164,16 +164,15 @@ public class EnsoHTTPResponseCache {
     EnsoHttpResponse makeRequest() throws IOException, InterruptedException;
 
     /**
-     * Returns a hash key that can be used to uniquely identify this request.
-     * This will be used to decide if the `run` method should be executed, or if
-     * a cached response will be returned.  The hash key should not be
-     * reversible.
+     * Returns a hash key that can be used to uniquely identify this request. This will be used to
+     * decide if the `run` method should be executed, or if a cached response will be returned. The
+     * hash key should not be reversible.
      */
     String hashKey();
 
     /**
-     * When a cached response is returned, instead of executing `makeRequest`,
-     * this method is used to construct the response.
+     * When a cached response is returned, instead of executing `makeRequest`, this method is used
+     * to construct the response.
      */
     EnsoHttpResponse reconstructResponseFromCachedStream(
         InputStream inputStream, Metadata metadata);
