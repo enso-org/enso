@@ -327,7 +327,7 @@ type Postgres_Dialect
 
     ## PRIVATE
     generate_column self expr:(SQL_Expression | Order_Descriptor | Query) name:Text -> SQL_Builder =
-        Base_Generator.default_generate_column
+        Base_Generator.default_generate_column self expr name
 
     ## PRIVATE
     ensure_query_has_no_holes : JDBC_Connection -> Text -> Nothing ! Illegal_Argument
