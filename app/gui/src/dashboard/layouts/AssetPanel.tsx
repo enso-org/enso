@@ -13,8 +13,7 @@ import { useAssetPanelProps, useIsAssetPanelVisible } from '#/providers/DrivePro
 import { useLocalStorage } from '#/providers/LocalStorageProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
-import { AssetType, BackendType } from '#/services/Backend'
-import type { AnyAssetTreeNode } from '#/utilities/AssetTreeNode'
+import { AssetType, BackendType, type AnyAsset } from '#/services/Backend'
 import LocalStorage from '#/utilities/LocalStorage'
 import { twMerge } from '#/utilities/tailwindMerge'
 
@@ -52,7 +51,8 @@ LocalStorage.register({
 /** Props supplied by the row. */
 export interface AssetPanelContextProps {
   readonly backend: Backend | null
-  readonly item: AnyAssetTreeNode | null
+  readonly item: AnyAsset | null
+  readonly path: string | null
   readonly spotlightOn?: AssetPropertiesSpotlight
 }
 
@@ -67,7 +67,7 @@ export default function AssetPanel(props: AssetPanelProps) {
   const { backendType, category } = props
   const contextPropsRaw = useAssetPanelProps()
   const contextProps = backendType === contextPropsRaw?.backend?.type ? contextPropsRaw : null
-  const { backend, item } = contextProps ?? {}
+  const { backend, item, path } = contextProps ?? {}
   const isReadonly = category.type === 'trash'
   const isCloud = backend?.type === BackendType.remote
   const isVisible = useIsAssetPanelVisible()
@@ -130,7 +130,7 @@ export default function AssetPanel(props: AssetPanelProps) {
           }
         }}
       >
-        {item == null || backend == null ?
+        {item == null || backend == null || path == null ?
           <div className="grid grow place-items-center text-lg">
             {getText('selectExactlyOneAssetToViewItsDetails')}
           </div>
@@ -158,10 +158,10 @@ export default function AssetPanel(props: AssetPanelProps) {
             </TabBar>
             <TabPanel id="settings" className="p-4 pl-asset-panel-l">
               <AssetProperties
-                key={item.item.id}
                 backend={backend}
                 isReadonly={isReadonly}
                 item={item}
+                path={path}
                 category={category}
                 spotlightOn={contextProps?.spotlightOn}
               />

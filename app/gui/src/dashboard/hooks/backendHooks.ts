@@ -326,32 +326,57 @@ export function useAssetPassiveListener(
   if (asset || !assetId || !parentId) {
     return asset
   }
-  switch (assetId) {
-    case USERS_DIRECTORY_ID: {
+  const shared = {
+    parentId,
+    projectState: null,
+    extension: null,
+    description: '',
+    modifiedAt: toRfc3339(new Date()),
+    permissions: [],
+    labels: [],
+    parentsPath: '',
+    virtualParentsPath: '',
+  }
+  switch (true) {
+    case assetId === USERS_DIRECTORY_ID: {
       return {
+        ...shared,
         id: assetId,
-        parentId,
-        type: AssetType.directory,
-        projectState: null,
         title: 'Users',
-        description: '',
-        modifiedAt: toRfc3339(new Date()),
-        permissions: [],
-        labels: [],
+        type: AssetType.directory,
       } satisfies DirectoryAsset
     }
-    case TEAMS_DIRECTORY_ID: {
+    case assetId === TEAMS_DIRECTORY_ID: {
       return {
+        ...shared,
         id: assetId,
-        parentId,
-        type: AssetType.directory,
-        projectState: null,
         title: 'Teams',
-        description: '',
-        modifiedAt: toRfc3339(new Date()),
-        permissions: [],
-        labels: [],
+        type: AssetType.directory,
       } satisfies DirectoryAsset
+    }
+    case backendModule.isLoadingAssetId(assetId): {
+      return {
+        ...shared,
+        id: assetId,
+        title: '',
+        type: AssetType.specialLoading,
+      } satisfies backendModule.SpecialLoadingAsset
+    }
+    case backendModule.isEmptyAssetId(assetId): {
+      return {
+        ...shared,
+        id: assetId,
+        title: '',
+        type: AssetType.specialEmpty,
+      } satisfies backendModule.SpecialEmptyAsset
+    }
+    case backendModule.isErrorAssetId(assetId): {
+      return {
+        ...shared,
+        id: assetId,
+        title: '',
+        type: AssetType.specialError,
+      } satisfies backendModule.SpecialErrorAsset
     }
     default: {
       return

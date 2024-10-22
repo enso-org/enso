@@ -5,8 +5,6 @@ import FolderIcon from '#/assets/folder.svg'
 import FolderArrowIcon from '#/assets/folder_arrow.svg'
 
 import { backendMutationOptions } from '#/hooks/backendHooks'
-import * as setAssetHooks from '#/hooks/setAssetHooks'
-import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import { useDriveStore } from '#/providers/DriveProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -16,9 +14,8 @@ import type * as column from '#/components/dashboard/column'
 import EditableSpan from '#/components/EditableSpan'
 import SvgMask from '#/components/SvgMask'
 
-import type * as backendModule from '#/services/Backend'
+import * as backendModule from '#/services/Backend'
 
-import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
@@ -32,7 +29,7 @@ import * as validation from '#/utilities/validation'
 
 /** Props for a {@link DirectoryNameColumn}. */
 export interface DirectoryNameColumnProps extends column.AssetColumnProps {
-  readonly item: AssetTreeNode<backendModule.DirectoryAsset>
+  readonly item: backendModule.DirectoryAsset
 }
 
 /**
@@ -41,16 +38,11 @@ export interface DirectoryNameColumnProps extends column.AssetColumnProps {
  * This should never happen.
  */
 export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
-  const { item, setItem, selected, state, rowState, setRowState, isEditable } = props
-  const { backend, nodeMap } = state
-  const { doToggleDirectoryExpansion, expandedDirectoryIds } = state
-  const toastAndLog = toastAndLogHooks.useToastAndLog()
+  const { item, selected, state, rowState, setRowState, isEditable, depth } = props
+  const { backend, nodeMap, doToggleDirectoryExpansion, expandedDirectoryIds } = state
   const { getText } = textProvider.useText()
   const driveStore = useDriveStore()
-  const asset = item.item
-  const setAsset = setAssetHooks.useSetAsset(asset, setItem)
-
-  const isExpanded = item.children != null && expandedDirectoryIds.includes(asset.id)
+  const isExpanded = expandedDirectoryIds.includes(item.id)
 
   const updateDirectoryMutation = useMutation(backendMutationOptions(backend, 'updateDirectory'))
 
@@ -67,17 +59,8 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
   const doRename = async (newTitle: string) => {
     if (isEditable) {
       setIsEditing(false)
-      if (string.isWhitespaceOnly(newTitle)) {
-        // Do nothing.
-      } else if (newTitle !== asset.title) {
-        const oldTitle = asset.title
-        setAsset(object.merger({ title: newTitle }))
-        try {
-          await updateDirectoryMutation.mutateAsync([asset.id, { title: newTitle }, asset.title])
-        } catch (error) {
-          toastAndLog('renameFolderError', error)
-          setAsset(object.merger({ title: oldTitle }))
-        }
+      if (!string.isWhitespaceOnly(newTitle) && newTitle !== item.title) {
+        await updateDirectoryMutation.mutateAsync([item.id, { title: newTitle }, item.title])
       }
     }
   }
@@ -86,7 +69,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
     <div
       className={tailwindMerge.twMerge(
         'group flex h-table-row min-w-max items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y',
-        indent.indentClass(item.depth),
+        indent.indentClass(depth),
       )}
       onKeyDown={(event) => {
         if (rowState.isEditingName && event.key === 'Enter') {
@@ -115,7 +98,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
           isExpanded && 'rotate-90',
         )}
         onPress={() => {
-          doToggleDirectoryExpansion(asset.id, item.key)
+          doToggleDirectoryExpansion(item.id, item.id)
         }}
       />
       <SvgMask src={FolderIcon} className="m-name-column-icon size-4 group-hover:hidden" />
@@ -128,14 +111,18 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         )}
         checkSubmittable={(newTitle) =>
           validation.DIRECTORY_NAME_REGEX.test(newTitle) &&
-          item.isNewTitleValid(newTitle, nodeMap.current.get(item.directoryKey)?.children)
+          backendModule.isNewTitleValid(
+            item,
+            newTitle,
+            nodeMap.current.get(item.parentId)?.children?.map((child) => child.item),
+          )
         }
         onSubmit={doRename}
         onCancel={() => {
           setIsEditing(false)
         }}
       >
-        {asset.title}
+        {item.title}
       </EditableSpan>
     </div>
   )

@@ -34,9 +34,8 @@ import { useDriveStore, useSetAssetPanelProps } from '#/providers/DriveProvider'
 import { useFeatureFlags } from '#/providers/FeatureFlagsProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
-import { AssetType, BackendType, Plan, type DatalinkId } from '#/services/Backend'
+import { AssetType, BackendType, Plan, type AnyAsset, type DatalinkId } from '#/services/Backend'
 import { extractTypeAndId } from '#/services/LocalBackend'
-import type { AnyAssetTreeNode } from '#/utilities/AssetTreeNode'
 import { normalizePath } from '#/utilities/fileInfo'
 import { mapNonNullish } from '#/utilities/nullable'
 import * as permissions from '#/utilities/permissions'
@@ -59,7 +58,8 @@ export type AssetPropertiesSpotlight = 'datalink' | 'description' | 'secret'
 /** Props for an {@link AssetPropertiesProps}. */
 export interface AssetPropertiesProps {
   readonly backend: Backend
-  readonly item: AnyAssetTreeNode
+  readonly item: AnyAsset
+  readonly path: string
   readonly category: Category
   readonly isReadonly?: boolean
   readonly spotlightOn: AssetPropertiesSpotlight | undefined
@@ -67,15 +67,10 @@ export interface AssetPropertiesProps {
 
 /** Display and modify the properties of an asset. */
 export default function AssetProperties(props: AssetPropertiesProps) {
-  const { backend, item, category, spotlightOn, isReadonly = false } = props
+  const { backend, item, category, spotlightOn, isReadonly = false, path: pathRaw } = props
   const styles = ASSET_PROPERTIES_VARIANTS({})
 
-  const asset = useAssetPassiveListenerStrict(
-    backend.type,
-    item.item.id,
-    item.item.parentId,
-    category,
-  )
+  const asset = useAssetPassiveListenerStrict(backend.type, item.id, item.parentId, category)
   const setAssetPanelProps = useSetAssetPanelProps()
   const closeSpotlight = useEventCallback(() => {
     const assetPanelProps = driveStore.getState().assetPanelProps
@@ -148,16 +143,16 @@ export default function AssetProperties(props: AssetPropertiesProps) {
   const isSecret = asset.type === AssetType.secret
   const isDatalink = asset.type === AssetType.datalink
   const isCloud = backend.type === BackendType.remote
-  const pathRaw =
+  const pathComputed =
     category.type === 'recent' || category.type === 'trash' ? null
-    : isCloud ? `${item.path}${item.type === AssetType.datalink ? '.datalink' : ''}`
+    : isCloud ? `${pathRaw}${item.type === AssetType.datalink ? '.datalink' : ''}`
     : asset.type === AssetType.project ?
       mapNonNullish(localBackend?.getProjectPath(asset.id) ?? null, normalizePath)
     : normalizePath(extractTypeAndId(asset.id).id)
   const path =
-    pathRaw == null ? null
-    : isCloud ? encodeURI(pathRaw)
-    : pathRaw
+    pathComputed == null ? null
+    : isCloud ? encodeURI(pathComputed)
+    : pathComputed
   const createDatalinkMutation = useMutation(backendMutationOptions(backend, 'createDatalink'))
   const editDescriptionMutation = useMutation(
     // Provide an extra `mutationKey` so that it has its own loading state.

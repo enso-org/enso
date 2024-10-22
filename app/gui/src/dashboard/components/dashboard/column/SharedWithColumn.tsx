@@ -36,12 +36,7 @@ interface SharedWithColumnPropsInternal extends Pick<AssetColumnProps, 'item'> {
 export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
   const { item, state, isReadonly = false } = props
   const { backend, category, setQuery } = state
-  const asset = useAssetPassiveListenerStrict(
-    backend.type,
-    item.item.id,
-    item.item.parentId,
-    category,
-  )
+  const asset = useAssetPassiveListenerStrict(backend.type, item.id, item.parentId, category)
   const { user } = useFullUserSession()
   const dispatchAssetEvent = useDispatchAssetEvent()
   const { isFeatureUnderPaywall } = usePaywall({ plan: user.plan })

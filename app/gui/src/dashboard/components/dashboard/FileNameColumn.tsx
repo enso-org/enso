@@ -2,8 +2,6 @@
 import { useMutation } from '@tanstack/react-query'
 
 import { backendMutationOptions } from '#/hooks/backendHooks'
-import * as setAssetHooks from '#/hooks/setAssetHooks'
-import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import type * as column from '#/components/dashboard/column'
 import EditableSpan from '#/components/EditableSpan'
@@ -11,7 +9,6 @@ import SvgMask from '#/components/SvgMask'
 
 import * as backendModule from '#/services/Backend'
 
-import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as eventModule from '#/utilities/event'
 import * as fileIcon from '#/utilities/fileIcon'
 import * as indent from '#/utilities/indent'
@@ -25,7 +22,7 @@ import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 /** Props for a {@link FileNameColumn}. */
 export interface FileNameColumnProps extends column.AssetColumnProps {
-  readonly item: AssetTreeNode<backendModule.FileAsset>
+  readonly item: backendModule.FileAsset
 }
 
 /**
@@ -34,11 +31,8 @@ export interface FileNameColumnProps extends column.AssetColumnProps {
  * This should never happen.
  */
 export default function FileNameColumn(props: FileNameColumnProps) {
-  const { item, setItem, selected, state, rowState, setRowState, isEditable } = props
+  const { item, selected, state, rowState, setRowState, isEditable, depth } = props
   const { backend, nodeMap } = state
-  const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const asset = item.item
-  const setAsset = setAssetHooks.useSetAsset(asset, setItem)
   const isCloud = backend.type === backendModule.BackendType.remote
 
   const updateFileMutation = useMutation(backendMutationOptions(backend, 'updateFile'))
@@ -57,15 +51,8 @@ export default function FileNameColumn(props: FileNameColumnProps) {
       setIsEditing(false)
       if (string.isWhitespaceOnly(newTitle)) {
         // Do nothing.
-      } else if (!isCloud && newTitle !== asset.title) {
-        const oldTitle = asset.title
-        setAsset(object.merger({ title: newTitle }))
-        try {
-          await updateFileMutation.mutateAsync([asset.id, { title: newTitle }, asset.title])
-        } catch (error) {
-          toastAndLog('renameFolderError', error)
-          setAsset(object.merger({ title: oldTitle }))
-        }
+      } else if (!isCloud && newTitle !== item.title) {
+        await updateFileMutation.mutateAsync([item.id, { title: newTitle }, item.title])
       }
     }
   }
@@ -74,7 +61,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
     <div
       className={tailwindMerge.twMerge(
         'flex h-table-row min-w-max items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y',
-        indent.indentClass(item.depth),
+        indent.indentClass(depth),
       )}
       onKeyDown={(event) => {
         if (rowState.isEditingName && event.key === 'Enter') {
@@ -95,14 +82,18 @@ export default function FileNameColumn(props: FileNameColumnProps) {
         editable={rowState.isEditingName}
         className="grow bg-transparent font-naming"
         checkSubmittable={(newTitle) =>
-          item.isNewTitleValid(newTitle, nodeMap.current.get(item.directoryKey)?.children)
+          backendModule.isNewTitleValid(
+            item,
+            newTitle,
+            nodeMap.current.get(item.parentId)?.children?.map((child) => child.item),
+          )
         }
         onSubmit={doRename}
         onCancel={() => {
           setIsEditing(false)
         }}
       >
-        {asset.title}
+        {item.title}
       </EditableSpan>
     </div>
   )
