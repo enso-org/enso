@@ -358,7 +358,7 @@ fn parse_case<'s>(
         } else {
             None
         };
-        let Some(Item::Token(op)) = items.pop() else { unreachable!() };
+        let op = items.pop().unwrap().into_token().unwrap();
         arrow = Some(op.with_variant(token::variant::ArrowOperator()));
         pattern = precedence.resolve(items).map(expression_to_pattern);
     } else {
@@ -480,8 +480,12 @@ fn sequence<'s>(
             {
                 let body =
                     if i < tokens.len() { precedence.resolve_offset(i + 1, tokens) } else { None };
-                let Some(Item::Token(operator)) = tokens.pop() else { unreachable!() };
-                let operator = operator.with_variant(token::variant::Operator());
+                let operator = tokens
+                    .pop()
+                    .unwrap()
+                    .into_token()
+                    .unwrap()
+                    .with_variant(token::variant::Operator());
                 rest.push(OperatorDelimitedTree { operator, body });
             }
             if i == 0 {

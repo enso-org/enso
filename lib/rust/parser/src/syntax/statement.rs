@@ -153,9 +153,8 @@ fn parse_statement<'s>(
             .into(),
         Some((i, Token { variant: Variant::TypeAnnotationOperator(_), .. })) => {
             let type_ = precedence.resolve_non_section_offset(i + 1, items);
-            let Some(Item::Token(operator)) = items.pop() else { unreachable!() };
-            let Variant::TypeAnnotationOperator(variant) = operator.variant else { unreachable!() };
-            let operator = operator.with_variant(variant);
+            let operator: token::TypeAnnotationOperator =
+                items.pop().unwrap().into_token().unwrap().try_into().unwrap();
             let lhs = precedence.resolve_non_section_offset(start, items);
             let type_ = type_.unwrap_or_else(|| {
                 empty_tree(operator.code.position_after()).with_error(SyntaxError::ExpectedType)
@@ -181,14 +180,15 @@ fn parse_statement<'s>(
     )
 }
 
+/// Apply any private keywords that were not already consumed by a statement parser that recognizes
+/// them specifically (such as in a function definition).
 fn apply_private_keywords<'s>(
     mut statement: Option<Tree<'s>>,
     keywords: impl Iterator<Item = Item<'s>>,
     visibility_context: VisibilityContext,
 ) -> Option<Tree<'s>> {
-    for token in keywords {
-        let keyword = into_private_keyword(token);
-        let private = Tree::private(keyword);
+    for item in keywords {
+        let private = Tree::private(item.into_token().unwrap().try_into().unwrap());
         statement = match statement.take() {
             Some(statement) => Tree::app(
                 private.with_error(match visibility_context {
@@ -198,6 +198,9 @@ fn apply_private_keywords<'s>(
                 statement,
             ),
             None => maybe_with_error(private, match visibility_context {
+                // This is the only non-error case in this function: A `private` keyword was found
+                // not modifying any other statement, and in a context where a `private` declaration
+                // is allowed; in this case, we emit a `Private` declaration without error.
                 VisibilityContext::Public => None,
                 VisibilityContext::Private => Some(SyntaxError::StmtUnexpectedPrivateContext),
             }),
@@ -205,12 +208,6 @@ fn apply_private_keywords<'s>(
         .into();
     }
     statement
-}
-
-fn into_private_keyword(item: Item) -> token::PrivateKeyword {
-    let Item::Token(keyword) = item else { unreachable!() };
-    let token::Variant::PrivateKeyword(variant) = keyword.variant else { unreachable!() };
-    keyword.with_variant(variant)
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -253,9 +250,7 @@ fn parse_assignment_like_statement<'s>(
 
     let mut expression = precedence.resolve_offset(operator + 1, items);
 
-    let Some(Item::Token(operator)) = items.pop() else { unreachable!() };
-    let token::Variant::AssignmentOperator(variant) = operator.variant else { unreachable!() };
-    let operator = operator.with_variant(variant);
+    let operator = items.pop().unwrap().into_token().unwrap().try_into().unwrap();
 
     let qn_len = match (evaluation_context, scan_qn(&items[start..])) {
         (_, Some(Qn::Binding { len }))
@@ -300,7 +295,8 @@ fn parse_assignment_like_statement<'s>(
                 parse_function_decl(items, start, qn_len, precedence, args_buffer);
             let private = (visibility_context != VisibilityContext::Private
                 && private_keywords_start < start)
-                .then(|| into_private_keyword(items.pop().unwrap()));
+                .then(|| items.pop().unwrap().into_token().unwrap().try_into().unwrap());
+
             Tree::function(private, qn, args, return_, operator, expression)
         }
         Type::InvalidNoExpressionNoQn => Tree::opr_app(
@@ -337,7 +333,7 @@ fn parse_pattern<'s>(
     let pattern = if items.len() - pattern_start == 1 {
         Some(match items.last().unwrap() {
             Item::Token(_) => {
-                let Some(Item::Token(token)) = items.pop() else { unreachable!() };
+                let token = items.pop().unwrap().into_token().unwrap();
                 match token.variant {
                     token::Variant::Ident(variant) => Tree::ident(token.with_variant(variant)),
                     token::Variant::Wildcard(variant) =>
@@ -355,11 +351,8 @@ fn parse_pattern<'s>(
             .resolve_non_section_offset(pattern_start, items)
             .map(|tree| tree.with_error(SyntaxError::ArgDefExpectedPattern))
     };
-    let suspension = have_suspension.then(|| {
-        let Item::Token(token) = items.pop().unwrap() else { unreachable!() };
-        let token::Variant::SuspensionOperator(variant) = token.variant else { unreachable!() };
-        token.with_variant(variant)
-    });
+    let suspension =
+        have_suspension.then(|| items.pop().unwrap().into_token().unwrap().try_into().unwrap());
     (suspension, pattern)
 }
 

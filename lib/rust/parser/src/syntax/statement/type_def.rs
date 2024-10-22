@@ -66,13 +66,9 @@ pub fn try_parse_type_def<'s>(
 
     let params = parse_type_args(items, start + 2, precedence, args_buffer);
 
-    let name = {
-        let Item::Token(name) = items.pop().unwrap() else { unreachable!() };
-        let token::Variant::Ident(variant) = name.variant else { unreachable!() };
-        name.with_variant(variant)
-    };
+    let name = items.pop().unwrap().into_token().unwrap().try_into().unwrap();
 
-    let Item::Token(keyword) = items.pop().unwrap() else { unreachable!() };
+    let keyword = items.pop().unwrap().into_token().unwrap();
     let keyword = keyword.with_variant(token::variant::TypeKeyword());
 
     debug_assert_eq!(items.len(), start);
@@ -127,10 +123,8 @@ fn apply_excess_private_keywords<'s>(
     mut statement: Option<Tree<'s>>,
     keywords: impl Iterator<Item = Item<'s>>,
 ) -> Option<Tree<'s>> {
-    for token in keywords {
-        let Item::Token(keyword) = token else { unreachable!() };
-        let token::Variant::PrivateKeyword(variant) = keyword.variant else { unreachable!() };
-        let keyword = keyword.with_variant(variant);
+    for item in keywords {
+        let keyword = item.into_token().unwrap().try_into().unwrap();
         let private =
             Tree::private(keyword).with_error(SyntaxError::TypeBodyUnexpectedPrivateUsage);
         statement = match statement.take() {

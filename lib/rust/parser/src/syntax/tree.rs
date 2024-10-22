@@ -104,7 +104,9 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         Ident {
             pub token: token::Ident<'s>,
         },
-        /// A `private` declaration.
+        /// A private-module declaration. This must be at the top level of a module. It also should
+        /// be before any other declarations or statements (this is not currently enforced in the
+        /// parser).
         Private {
             pub keyword: token::PrivateKeyword<'s>,
         },
