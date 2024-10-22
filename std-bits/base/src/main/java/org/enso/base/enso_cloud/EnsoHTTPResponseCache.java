@@ -7,15 +7,15 @@ import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.enso.base.cache.ResponseTooLargeException;
-import org.enso.base.cache.StreamCache;
-import org.enso.base.cache.StreamCache.CacheResult;
-import org.enso.base.cache.StreamCache.StreamMaker;
+import org.enso.base.cache.LRUCache;
+import org.enso.base.cache.LRUCache.CacheResult;
+import org.enso.base.cache.LRUCache.ItemBuilder;
 
 /**
  * EnsoHTTPResponseCache  is a cache for EnsoHttpResponse values that respects the cache control
  * HTTP headers received in the original repsonse to a request.
  *
- * <p>It uses StreamCache, so it also puts limits on the size of files that can
+ * <p>It uses LRUCache, so it also puts limits on the size of files that can
  * be requested, and on the total cache size, deleting entries to make space for
  * new ones. All cache files are set to be deleted automatically on JVM exit.
  *
@@ -28,20 +28,20 @@ public class EnsoHTTPResponseCache {
   private static final long MAX_FILE_SIZE = 10L * 1024 * 1024;
   private static final long MAX_TOTAL_CACHE_SIZE = 10L * 1024 * 1024 * 1024;
 
-  private static final StreamCache<Metadata> streamCache = new StreamCache<>(MAX_FILE_SIZE, MAX_TOTAL_CACHE_SIZE);
+  private static final LRUCache<Metadata> streamCache = new LRUCache<>(MAX_FILE_SIZE, MAX_TOTAL_CACHE_SIZE);
 
   public static EnsoHttpResponse makeRequest(RequestMaker requestMaker) throws IOException, InterruptedException, ResponseTooLargeException {
-    StreamMaker<Metadata> streamMaker = new EnsoHTTPResponseCacheThing(requestMaker);
+    ItemBuilder<Metadata> streamMaker = new EnsoHTTPResponseCacheItem(requestMaker);
 
     CacheResult<Metadata> cacheResult = streamCache.getResult(streamMaker);
 
     return requestMaker.reconstructResponseFromCachedStream(cacheResult.inputStream(), cacheResult.metadata());
   }
 
-  public static class EnsoHTTPResponseCacheThing implements StreamMaker<Metadata> {
+  public static class EnsoHTTPResponseCacheItem implements ItemBuilder<Metadata> {
     private final RequestMaker requestMaker;
 
-    EnsoHTTPResponseCacheThing(RequestMaker requestMaker) {
+    EnsoHTTPResponseCacheItem(RequestMaker requestMaker) {
       this.requestMaker = requestMaker;
     }
 
@@ -54,12 +54,12 @@ public class EnsoHTTPResponseCache {
      * <p>Only HTTP 200 responses are cached; all others are returned uncached.
      */
     @Override
-    public StreamCache.Thing<Metadata> makeThing() throws IOException, InterruptedException {
+    public LRUCache.Item<Metadata> makeItem() throws IOException, InterruptedException {
       var response = requestMaker.run();
 
       if (response.statusCode() != 200) {
         // Don't cache non-200 repsonses.
-        return new StreamCache.Thing<>(
+        return new LRUCache.Item<>(
             response.body(),
             new Metadata(response.headers(), response.statusCode()),
             Optional.empty(),
@@ -69,7 +69,7 @@ public class EnsoHTTPResponseCache {
         var metadata = new Metadata(response.headers(), response.statusCode());
         var sizeMaybe = getResponseDataSize(response.headers());
         int ttl = calculateTTL(response.headers());
-        return new StreamCache.Thing<>(inputStream, metadata, sizeMaybe, Optional.of(ttl));
+        return new LRUCache.Item<>(inputStream, metadata, sizeMaybe, Optional.of(ttl));
       }
     }
   }

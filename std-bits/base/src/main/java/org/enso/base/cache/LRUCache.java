@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.io.IOUtils;
 
 /**
- * StreamCache is a cache for data presented via InputStreams. Files are deleted on JVM exit.
+ * LRUCache is a cache for data presented via InputStreams. Files are deleted on JVM exit.
  *
  * <p>It puts limits on the size of files that can be requested, and on the total cache size,
  * deleting entries to make space for new ones. All cache files are set to be deleted automatically
@@ -30,8 +30,8 @@ import org.apache.commons.io.IOUtils;
  *
  * @param <M> Additional metadata to associate with the data.
  */
-public class StreamCache<M> {
-  private static final Logger logger = Logger.getLogger(StreamCache.class.getName());
+public class LRUCache<M> {
+  private static final Logger logger = Logger.getLogger(LRUCache.class.getName());
 
   private final long maxFileSize;
   private final long maxTotalCacheSize;
@@ -50,12 +50,12 @@ public class StreamCache<M> {
   private final Map<String, CacheEntry<M>> cache = new HashMap<>();
   private final Map<String, ZonedDateTime> lastUsed = new HashMap<>();
 
-  public StreamCache(long maxFileSize, long maxTotalCacheSize) {
+  public LRUCache(long maxFileSize, long maxTotalCacheSize) {
     this.maxFileSize = maxFileSize;
     this.maxTotalCacheSize = maxTotalCacheSize;
   }
 
-  public CacheResult<M> getResult(StreamMaker<M> streamMaker)
+  public CacheResult<M> getResult(ItemBuilder<M> streamMaker)
       throws IOException, InterruptedException, ResponseTooLargeException {
     String cacheKey = streamMaker.makeCacheKey();
     if (cache.containsKey(cacheKey)) {
@@ -69,11 +69,11 @@ public class StreamCache<M> {
    * IOExceptions thrown by the HTTP request are propagated; IOExceptions thrown while storing the
    * data in the cache are caught.
    */
-  private CacheResult<M> makeRequestAndCache(String cacheKey, StreamMaker<M> streamMaker)
+  private CacheResult<M> makeRequestAndCache(String cacheKey, ItemBuilder<M> streamMaker)
       throws IOException, InterruptedException, ResponseTooLargeException {
     assert !cache.containsKey(cacheKey);
 
-    Thing<M> thing = streamMaker.makeThing();
+    Item<M> thing = streamMaker.makeItem();
 
     if (!thing.shouldCache()) {
       return new CacheResult<>(thing.stream(), thing.metadata());
@@ -108,7 +108,7 @@ public class StreamCache<M> {
       logger.log(
           Level.WARNING, "Failure storing cache entry; will re-execute without caching: {}", e);
       // Re-issue the request since we don't know if we've consumed any of the response.
-      Thing<M> rerequested = streamMaker.makeThing();
+      Item<M> rerequested = streamMaker.makeItem();
       return new CacheResult<>(rerequested.stream(), rerequested.metadata());
     }
   }
@@ -124,9 +124,9 @@ public class StreamCache<M> {
    * Read the repsonse data from the remote server into the cache file. If the downloaded data is
    * over the file size limit, throw a ResponseTooLargeException.
    */
-  private File downloadResponseData(String cacheKey, Thing thing)
+  private File downloadResponseData(String cacheKey, Item thing)
       throws IOException, ResponseTooLargeException {
-    File temp = File.createTempFile("StreamCache-" + cacheKey, "");
+    File temp = File.createTempFile("LRUCache-" + cacheKey, "");
     temp.deleteOnExit();
     try {
       var inputStream = thing.stream();
@@ -290,7 +290,7 @@ public class StreamCache<M> {
 
   private record CacheEntry<M>(File responseData, M metadata, long size, ZonedDateTime expiry) {}
 
-  public record Thing<M>(
+  public record Item<M>(
       InputStream stream, M metadata, Optional<Long> sizeMaybe, Optional<Integer> ttl) {
 
     public boolean shouldCache() {
@@ -300,13 +300,13 @@ public class StreamCache<M> {
 
   public record CacheResult<M>(InputStream inputStream, M metadata) {}
 
-  public interface StreamMaker<M> {
+  public interface ItemBuilder<M> {
     String makeCacheKey();
 
     /**
-     * Returning a Thing with no TTL indicates that the data should not be cached.
+     * Returning an Item with no TTL indicates that the data should not be cached.
      */
-    Thing<M> makeThing() throws IOException, InterruptedException;
+    Item<M> makeItem() throws IOException, InterruptedException;
   }
 
   private final Comparator<Map.Entry<String, CacheEntry<M>>> cacheEntryLRUComparator =
