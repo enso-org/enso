@@ -11,7 +11,6 @@ import * as backendModule from '#/services/Backend'
 export type AssetTreeNodeData = Pick<
   AssetTreeNode,
   | 'children'
-  | 'createdAt'
   | 'depth'
   | 'directoryId'
   | 'directoryKey'
@@ -58,7 +57,6 @@ export default class AssetTreeNode<Item extends backendModule.AnyAsset = backend
      * from the backend.
      */
     public readonly key: Item['id'] = item.id,
-    public readonly createdAt = new Date(),
   ) {
     this.type = item.type
   }
@@ -122,7 +120,6 @@ export default class AssetTreeNode<Item extends backendModule.AnyAsset = backend
       update.path ?? this.path,
       update.initialAssetEvents ?? this.initialAssetEvents,
       update.key ?? this.key,
-      update.createdAt ?? this.createdAt,
     ).asUnion()
   }
 
