@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.State
 
 import Standard.Table.Internal.Vector_Builder.Vector_Builder
@@ -122,6 +123,13 @@ type SQL_Builder
                     SQL_Fragment.Interpolation _ -> True
                     _ -> False
                 _ -> False
+
+    ## PRIVATE
+       Extracts the interpolated constant from the builder.
+       This can only be called if `is_constant` returns `True`.
+    extract_constant self =
+        if self.is_constant.not then Panic.throw (Illegal_State.Error "`SQL_Builder.extract_constant called on a builder that is not a constant.") else
+            self.fragments.vec.first.object
 
     ## PRIVATE
        ADVANCED
