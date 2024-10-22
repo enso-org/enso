@@ -87,12 +87,6 @@ vector_from_function : Integer -> (Integer -> Any) -> Problem_Behavior | No_Wrap
 vector_from_function length function on_problems:(Problem_Behavior | No_Wrap)=..Report_Error =
     vector_from_function_primitive length function on_problems
 
-
-## PRIVATE
-   The maximum number of warnings attached to result values in
-   `vector_from_function`.
-MAX_MAP_WARNINGS = 10
-
 ## PRIVATE
    Creates a new vector where for each range, a corresponding section of the
    source vector is added to the result.
