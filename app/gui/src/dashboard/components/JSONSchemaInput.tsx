@@ -250,7 +250,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                                 newValue = unsafeValue!
                               }
                               const fullObject =
-                                value ?? constantValueOfSchema(defs, childSchema, true)[0]
+                                value ?? constantValueOfSchema(defs, schema, true)[0]
                               onChange(
                                 (
                                   typeof fullObject === 'object' &&
