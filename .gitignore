@@ -188,12 +188,3 @@ test-results
 test-results/
 playwright-report/
 playwright/.cache/
-
-#################
-## Environment ##
-#################
-.env.local
-.env.*.local
-
-# We used to have this file treated as local. Keep it in gitignore to avoid accidental checkin.
-.env
