@@ -335,23 +335,6 @@ type SQLServer_Dialect
                 _ : Function -> result metadata
                 _ -> result
             pair r null_checks
-        SQL_Expression.Let _ binder bindee body ->
-            wrapped_binder = self.wrap_identifier binder
-            bindee_exp = SQL_Builder.code "SELECT " ++ (self.generate_expression base_gen bindee).paren ++ " AS " ++ "x"
-
-            body_sql_builder = self.let_bindings_ref.with_modification (h-> h.insert binder) <|
-                self.generate_expression base_gen body
-
-            body_exp = SQL_Builder.code "SELECT " ++ body_sql_builder ++ " FROM " ++ wrapped_binder
-            (SQL_Builder.code "WITH " ++ wrapped_binder  ++ " AS " ++ bindee_exp.paren ++ " " ++ body_exp).paren
-        SQL_Expression.Let_Ref _ binder standalone_expression ->
-            binding_state = self.let_bindings_ref.get
-            case binding_state.contains binder of
-                True ->
-                    wrapped_binder = self.wrap_identifier binder
-                    wrapped_binder ++ "." ++ "x"
-                False ->
-                    self.generate_expression base_gen standalone_expression
         query : Query -> pair (base_gen.generate_sub_query self query) []
         descriptor : Order_Descriptor -> pair (base_gen.generate_order self descriptor) []
 
