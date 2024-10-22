@@ -271,9 +271,9 @@ fn type_methods() {
         (TypeDef Problem_Builder #() #(
          (Documented
           (#((Section " Returns a vector containing all reported problems, aggregated.")) #(()))
-          (TypeSignature (Ident build_problemset) ":" (Ident Vector)))
-         ,(Function::new("build_problemset", block![(Ident self)])
-           .with_arg("self")))));
+          ,(Function::new("build_problemset", block![(Ident self)])
+            .with_sig(sexp![(Ident Vector)])
+            .with_arg("self"))))));
     test!("[foo., bar.]",
         (Array (OprSectionBoundary 1 (OprApp (Ident foo) (Ok ".") ()))
                #(("," (OprSectionBoundary 1 (OprApp (Ident bar) (Ok ".") ()))))));
@@ -288,12 +288,15 @@ fn type_operator_methods() {
             "    Foo.+ self b = b",
         ].join("\n"),
         (TypeDef Foo #()
-         #((TypeSignature (Ident #"+") ":"
-            (OprApp (Ident Foo) (Ok "->") (OprApp (Ident Foo) (Ok "->") (Ident Foo))))
-           ,(Function::new("+", sexp![(Ident b)]).with_arg("self").with_arg("b"))
-           (TypeSignature (OprApp (Ident Foo) (Ok ".") (Ident #"+")) ":" (Ident Foo))
+         #(,(Function::new("+", sexp![(Ident b)])
+             .with_sig(sexp![
+              (OprApp (Ident Foo) (Ok "->") (OprApp (Ident Foo) (Ok "->") (Ident Foo)))])
+             .with_arg("self")
+             .with_arg("b"))
            ,(Function::named(sexp![(OprApp (Ident Foo) (Ok ".") (Ident #"+"))], sexp![(Ident b)])
-             .with_arg("self").with_arg("b")))));
+             .with_sig(sexp![(Ident Foo)])
+             .with_arg("self")
+             .with_arg("b")))));
     test!("Any.==", (OprApp (Ident Any) (Ok ".") (Ident #"==")));
     expect_invalid_node("x.-y");
     expect_invalid_node("x.-1");
@@ -871,7 +874,7 @@ fn method_app_in_minus_unary() {
 
 #[test]
 fn autoscope_operator() {
-    test_block!("x : ..True", (TypeSignature (Ident x) ":" (AutoscopedIdentifier ".." True)));
+    test!("x : ..True", (TypeSignatureDeclaration ((Ident x) ":" (AutoscopedIdentifier ".." True))));
     test_block!("x = ..True", (Assignment (Ident x) (AutoscopedIdentifier ".." True)));
     test_block!("x = f ..True",
         (Assignment (Ident x) (App (Ident f) (AutoscopedIdentifier ".." True))));
@@ -997,13 +1000,21 @@ fn metadata_parsing() {
 
 #[test]
 fn type_signatures() {
-    test!("val : Bool", (TypeSignature (Ident val) ":" (Ident Bool)));
-    test!("val : List Int", (TypeSignature (Ident val) ":" (App (Ident List) (Ident Int))));
+    test!("val : Bool", (TypeSignatureDeclaration ((Ident val) ":" (Ident Bool))));
+    test_block!("val : Bool\nval", (TypeSignatureDeclaration ((Ident val) ":" (Ident Bool))) (Ident val));
+    test_block!("val : Bool", (TypeAnnotated (Ident val) ":" (Ident Bool)));
+    test!("val : Bool\nval = True",
+        ,(Function::new("val", sexp![(Ident True)])
+          .with_sig(sexp![(Ident Bool)])));
+    test!("val : Bool\ndifferent_name = True",
+        (TypeSignatureDeclaration ((Ident val) ":" (Ident Bool)))
+        ,(Function::new("different_name", sexp![(Ident True)])));
+    test!("val : List Int", (TypeSignatureDeclaration ((Ident val) ":" (App (Ident List) (Ident Int)))));
     test!("foo : [Integer | Text] -> (Integer | Text)",
-        (TypeSignature (Ident foo) ":"
+        (TypeSignatureDeclaration ((Ident foo) ":"
          (OprApp (Array (OprApp (Ident Integer) (Ok "|") (Ident Text)) #())
                  (Ok "->")
-                 (Group (OprApp (Ident Integer) (Ok "|") (Ident Text))))));
+                 (Group (OprApp (Ident Integer) (Ok "|") (Ident Text)))))));
     test!("f a (b : Int) : Double",
         (TypeAnnotated
          (App (App (Ident f) (Ident a)) (Group (TypeAnnotated (Ident b) ":" (Ident Int))))
@@ -1028,8 +1039,8 @@ fn type_annotations() {
                         ":"
                         (App (Ident My_Type) (TemplateFunction 1 (Wildcard 0))))));
     test!("x : List Int -> Int",
-        (TypeSignature (Ident x) ":"
-         (OprApp (App (Ident List) (Ident Int)) (Ok "->") (Ident Int))));
+        (TypeSignatureDeclaration ((Ident x) ":"
+         (OprApp (App (Ident List) (Ident Int)) (Ok "->") (Ident Int)))));
     test!("p:Plus + m:Plus",
         (OprApp (TypeAnnotated (Ident p) ":" (Ident Plus))
          (Ok "+") (TypeAnnotated (Ident m) ":" (Ident Plus))));
@@ -1476,9 +1487,9 @@ fn attributes() {
         (Annotated on_problems
          (OprApp (Ident P) (Ok ".") (Ident g))
          #(())
-         (TypeSignature (OprApp (Ident Table) (Ok ".") (Ident select_columns))
-                        ":"
-                        (OprApp (Ident Text) (Ok "->") (Ident Table)))));
+         (TypeSignatureDeclaration ((OprApp (Ident Table) (Ok ".") (Ident select_columns))
+                         ":"
+                         (OprApp (Ident Text) (Ok "->") (Ident Table))))));
     test!("@a z\n@b\nx", (Annotated a (Ident z) #(()) (Annotated b () #(()) (Ident x))));
     test!("@a\n@b\nx", (Annotated a () #(()) (Annotated b () #(()) (Ident x))));
 }
@@ -1838,11 +1849,12 @@ fn expect_valid(code: &str) {
 
 /// Builder for function definitions.
 struct Function {
-    private: lexpr::Value,
-    name:    lexpr::Value,
-    args:    Vec<lexpr::Value>,
-    body:    lexpr::Value,
-    ret:     lexpr::Value,
+    signature: lexpr::Value,
+    private:   lexpr::Value,
+    name:      lexpr::Value,
+    args:      Vec<lexpr::Value>,
+    body:      lexpr::Value,
+    ret:       lexpr::Value,
 }
 
 impl Function {
@@ -1852,7 +1864,13 @@ impl Function {
     }
 
     fn named(name: lexpr::Value, body: lexpr::Value) -> Self {
-        Self { private: sexp![()], name, args: vec![], body, ret: sexp![()] }
+        Self { signature: sexp![()], private: sexp![()], name, args: vec![], body, ret: sexp![()] }
+    }
+
+    #[rustfmt::skip]
+    fn with_sig(self, signature: lexpr::Value) -> Self {
+        let name = self.name.clone();
+        Self { signature: sexp![(,name ":" ,signature)], ..self }
     }
 
     fn with_arg(mut self, arg: impl Into<Arg>) -> Self {
@@ -1871,8 +1889,8 @@ impl Function {
 
 impl From<Function> for lexpr::Value {
     #[rustfmt::skip]
-    fn from(Function { private, name, args, ret, body }: Function) -> Self {
-        sexp![(Function ,private ,name ,args ,ret ,body)]
+    fn from(Function { signature, private, name, args, ret, body }: Function) -> Self {
+        sexp![(Function ,signature ,private ,name ,args ,ret ,body)]
     }
 }
 
