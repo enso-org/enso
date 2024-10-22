@@ -38,7 +38,6 @@ import org.enso.syntax2.ArgumentDefinition;
 import org.enso.syntax2.Base;
 import org.enso.syntax2.DocComment;
 import org.enso.syntax2.FunctionAnnotation;
-import org.enso.syntax2.FunctionTypeSignature;
 import org.enso.syntax2.Line;
 import org.enso.syntax2.Parser;
 import org.enso.syntax2.TextElement;
