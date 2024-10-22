@@ -215,6 +215,8 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         },
         /// A function definition, like `add x y = x + y`.
         Function {
+            /// A type signature for the function, on its own line.
+            pub signature_line: Option<TypeSignatureLine<'s>>,
             /// The `private` keyword, if present. This is allowed at top level and in type
             /// definitions, must be `None` if the context is a function body.
             pub private: Option<token::PrivateKeyword<'s>>,
@@ -268,15 +270,10 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             pub body:  Option<Tree<'s>>,
             pub close: Option<token::CloseSymbol<'s>>,
         },
-        /// Statement declaring the type of a variable.
-        TypeSignature {
-            /// (Qualified) name of the item whose type is being declared.
-            pub variable: Tree<'s>,
-            /// The `:` token.
-            pub operator: token::TypeAnnotationOperator<'s>,
-            /// The variable's type.
-            #[reflect(rename = "type")]
-            pub type_:    Tree<'s>,
+        /// Declaration of the type of a function, that was not able to be attached to a subsequent
+        /// function definition.
+        TypeSignatureDeclaration {
+            pub signature: TypeSignature<'s>,
         },
         /// An expression with explicit type information attached.
         TypeAnnotated {
@@ -531,6 +528,41 @@ impl<'s> span::Builder<'s> for FractionalDigits<'s> {
 
 
 // === Functions ===
+
+/// A function type signature line.
+#[cfg_attr(feature = "debug", derive(Visitor))]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Reflect, Deserialize)]
+pub struct TypeSignatureLine<'s> {
+    /// The type signature.
+    pub signature: TypeSignature<'s>,
+    /// The end of the type signature line.
+    pub newlines:  NonEmptyVec<token::Newline<'s>>,
+}
+
+impl<'s> span::Builder<'s> for TypeSignatureLine<'s> {
+    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
+        span.add(&mut self.signature).add(&mut self.newlines)
+    }
+}
+
+/// Specification of the type of an item.
+#[cfg_attr(feature = "debug", derive(Visitor))]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Reflect, Deserialize)]
+pub struct TypeSignature<'s> {
+    /// (Qualified) name of the item whose type is being declared.
+    pub name:     Tree<'s>,
+    /// The `:` token.
+    pub operator: token::TypeAnnotationOperator<'s>,
+    /// The declared type.
+    #[reflect(rename = "type")]
+    pub type_:    Tree<'s>,
+}
+
+impl<'s> span::Builder<'s> for TypeSignature<'s> {
+    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
+        span.add(&mut self.name).add(&mut self.operator).add(&mut self.type_)
+    }
+}
 
 /// A function argument definition.
 #[cfg_attr(feature = "debug", derive(Visitor))]

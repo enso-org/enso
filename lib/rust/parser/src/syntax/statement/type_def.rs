@@ -3,12 +3,16 @@ use crate::prelude::*;
 use crate::syntax::item;
 use crate::syntax::maybe_with_error;
 use crate::syntax::operator::Precedence;
+use crate::syntax::statement::compound_lines;
 use crate::syntax::statement::function_def::parse_constructor_definition;
 use crate::syntax::statement::function_def::parse_type_args;
 use crate::syntax::statement::parse_statement;
 use crate::syntax::statement::scan_private_keywords;
 use crate::syntax::statement::EvaluationContext;
+use crate::syntax::statement::Line;
 use crate::syntax::statement::StatementContext;
+use crate::syntax::statement::StatementOrPrefix;
+use crate::syntax::statement::StatementPrefix;
 use crate::syntax::statement::VisibilityContext;
 use crate::syntax::token;
 use crate::syntax::tree;
@@ -44,20 +48,17 @@ pub fn try_parse_type_def<'s>(
     }
 
     let body = if let Some(Item::Block(lines)) = items.last_mut() {
-        let block = mem::take(lines).into_vec();
+        let mut block = mem::take(lines).into_vec();
         items.pop();
-        let lines = block.into_iter().map(|item::Line { newline, mut items }| block::Line {
-            newline,
-            expression: {
-                if let Some(Item::Token(token)) = items.first_mut() {
-                    if matches!(token.variant, token::Variant::Operator(_)) {
-                        let opr_ident =
-                            token::variant::Ident { is_operator_lexically: true, ..default() };
-                        token.variant = token::Variant::Ident(opr_ident);
-                    }
+        let lines = compound_lines(&mut block, |prefixes, mut line| {
+            if let Some(Item::Token(token)) = line.items.first_mut() {
+                if matches!(token.variant, token::Variant::Operator(_)) {
+                    let opr_ident =
+                        token::variant::Ident { is_operator_lexically: true, ..default() };
+                    token.variant = token::Variant::Ident(opr_ident);
                 }
-                parse_type_body_statement(items, precedence, args_buffer)
-            },
+            }
+            parse_type_body_statement(prefixes, line, precedence, args_buffer)
         });
         block::compound_lines(lines).collect()
     } else {
@@ -77,46 +78,61 @@ pub fn try_parse_type_def<'s>(
 }
 
 fn parse_type_body_statement<'s>(
-    mut items: Vec<Item<'s>>,
+    prefixes: &mut Vec<Line<'s, StatementPrefix<'s>>>,
+    mut line: item::Line<'s>,
     precedence: &mut Precedence<'s>,
     args_buffer: &mut Vec<ArgumentDefinition<'s>>,
-) -> Option<Tree<'s>> {
-    let private_keywords = scan_private_keywords(&items);
-    let statement = match items.get(private_keywords) {
+) -> Line<'s, StatementOrPrefix<'s>> {
+    let private_keywords = scan_private_keywords(&line.items);
+    match line.items.get(private_keywords) {
         Some(Item::Token(Token { variant: token::Variant::Ident(ident), .. }))
             if ident.is_type
-                && !items
+                && !line
+                    .items
                     .get(private_keywords + 1)
                     .is_some_and(|item| Spacing::of_item(item) == Spacing::Unspaced) =>
-            Some(parse_constructor_definition(
+        {
+            let item::Line { newline, mut items } = line;
+            let def = parse_constructor_definition(
                 &mut items,
                 0,
                 private_keywords,
                 precedence,
                 args_buffer,
-            )),
-        None => None,
-        _ => {
-            let tree = parse_statement(&mut items, 0, precedence, args_buffer, StatementContext {
-                evaluation_context: EvaluationContext::Lazy,
-                visibility_context: VisibilityContext::Public,
-            })
-            .unwrap();
-            let error = match &tree.variant {
-                tree::Variant::Function(_)
-                | tree::Variant::ForeignFunction(_)
-                | tree::Variant::Assignment(_)
-                | tree::Variant::Documented(_)
-                | tree::Variant::Annotated(_)
-                | tree::Variant::AnnotatedBuiltin(_) => None,
-                tree::Variant::TypeSignature(_) => None,
-                tree::Variant::TypeDef(_) => None,
-                _ => Some(SyntaxError::UnexpectedExpressionInTypeBody),
-            };
-            maybe_with_error(tree, error).into()
+            );
+            Line {
+                newline,
+                content: apply_excess_private_keywords(Some(def), items.drain(..))
+                    .map(StatementOrPrefix::from),
+            }
         }
-    };
-    apply_excess_private_keywords(statement, items.drain(..))
+        None => Line {
+            newline: line.newline,
+            content: apply_excess_private_keywords(None, line.items.drain(..))
+                .map(StatementOrPrefix::from),
+        },
+        _ => parse_statement(prefixes, line, precedence, args_buffer, StatementContext {
+            evaluation_context: EvaluationContext::Lazy,
+            visibility_context: VisibilityContext::Public,
+            tail_expression:    false,
+        })
+        .map_content(|statement_or_prefix| {
+            statement_or_prefix.map_statement(|tree| {
+                let error = match &tree.variant {
+                    tree::Variant::Function(_)
+                    | tree::Variant::ForeignFunction(_)
+                    | tree::Variant::Assignment(_)
+                    | tree::Variant::Documented(_)
+                    | tree::Variant::Annotated(_)
+                    | tree::Variant::AnnotatedBuiltin(_) => None,
+                    tree::Variant::TypeSignatureDeclaration(_) => None,
+                    tree::Variant::TypeDef(_) => None,
+                    _ => Some(SyntaxError::UnexpectedExpressionInTypeBody),
+                };
+                maybe_with_error(tree, error)
+            })
+        }),
+    }
 }
 
 fn apply_excess_private_keywords<'s>(
