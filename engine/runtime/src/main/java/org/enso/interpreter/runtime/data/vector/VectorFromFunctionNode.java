@@ -68,7 +68,7 @@ public abstract class VectorFromFunctionNode extends Node {
           case IGNORE -> valueToAdd = nothing;
           case REPORT_ERROR -> {
             var mapErr = ctx.getBuiltins().error().makeMapError(i, err.getPayload());
-            return mapErr;
+            return DataflowError.withDefaultTrace(state, mapErr, this);
           }
           case REPORT_WARNING -> {
             errorsEncountered++;
