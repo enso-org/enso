@@ -307,13 +307,19 @@ final class TreeToIr {
     var constructorName = buildName(cons, cons.getConstructor());
     var cAt = getIdentifiedLocation(cons);
     var isPrivate = cons.getPrivate() != null;
-    List<DefinitionArgument> args;
+    ArrayList<DefinitionArgument> args = new ArrayList<>();
     try {
-      args = translateArgumentsDefinition(cons.getArguments());
+      for (var arg : cons.getArguments())
+        args.add(translateArgumentDefinition(arg));
+      for (var argLine : cons.getBlock()) {
+        if (argLine.getArgument() instanceof ArgumentDefinition arg)
+          args.add(translateArgumentDefinition(arg));
+      }
     } catch (SyntaxException ex) {
       return join(ex.toError(), appendTo);
     }
-    final var def = new Definition.Data(constructorName, args, nil(), isPrivate, cAt, meta());
+    var argList = CollectionConverters.asScala(args.iterator()).toList();
+    var def = new Definition.Data(constructorName, argList, nil(), isPrivate, cAt, meta());
     return join(def, appendTo);
   }
 
