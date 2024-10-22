@@ -1,6 +1,5 @@
 /** @file Configuration options for the application. */
 
-import * as jsonCfg from './config.json' assert { type: 'json' }
 import { logger } from './log'
 
 export const DEFAULT_ENTRY_POINT = 'ide'
@@ -9,9 +8,11 @@ export const DEFAULT_ENTRY_POINT = 'ide'
 // === Utils ===
 // =============
 
-/** Parses the provided value as boolean. If it was a boolean value, it is left intact. If it was
+/**
+ * Parses the provided value as boolean. If it was a boolean value, it is left intact. If it was
  * a string 'true', 'false', '1', or '0', it is converted to a boolean value. Otherwise, null is
- * returned. */
+ * returned.
+ */
 // prettier-ignore
 function parseBoolean(value: any): boolean | null {
     switch(value) {
@@ -64,19 +65,28 @@ export class Option<T> {
   value: T
   type: OptionType
   description: string
-  /** The description of the default argument that should be shown to the user. For example,
+  /**
+   * The description of the default argument that should be shown to the user. For example,
    * it can be set to `'true' on macOS and 'false' otherwise` to better explain mechanics for the
-   * default value. */
+   * default value.
+   */
   defaultDescription: null | string = null
-  /** If set to false, the option will not be passed to the web application. This is useful when
+  /**
+   * If set to false, the option will not be passed to the web application. This is useful when
    * creating meta configuration options, that control some behavior, like the window style, but
-   * are not designed to control the web app behavior. */
+   * are not designed to control the web app behavior.
+   */
   passToWebApplication = true
   setByUser = false
   hidden: boolean
-  /** Controls whether this option should be visible by default in the help message. Non-primary
-   * options will be displayed on-demand only. */
+  /**
+   * Controls whether this option should be visible by default in the help message. Non-primary
+   * options will be displayed on-demand only.
+   */
   primary = true
+  /**
+   *
+   */
   constructor(cfg: OptionObject<T>) {
     this.default = cfg.value
     this.value = cfg.value
@@ -116,6 +126,9 @@ export class Option<T> {
     }
   }
 
+  /**
+   *
+   */
   load(input: string) {
     if (typeof this.value === 'boolean') {
       const newVal = parseBoolean(input)
@@ -139,6 +152,9 @@ export class Option<T> {
     }
   }
 
+  /**
+   *
+   */
   printValueUpdateError(input: string) {
     logger.error(
       `The provided value for '${this.qualifiedName()}' is invalid. Expected ${this.type}, ` +
@@ -183,13 +199,18 @@ export interface AnyGroup {
   optionsRecursive(): AnyOption[]
 }
 
-/** Options group. Allows defining nested options. The class is generic in order to allow TypeScript
- * to infer the types of its children and thus allow accessing them in a type-safe way. */
+/**
+ * Options group. Allows defining nested options. The class is generic in order to allow TypeScript
+ * to infer the types of its children and thus allow accessing them in a type-safe way.
+ */
 export class Group<Options extends OptionsRecord, Groups extends GroupsRecord> {
   name = 'unnamed'
   description: string
   options: Options = {} as Options
   groups: Groups = {} as Groups
+  /**
+   *
+   */
   constructor(cfg?: {
     description?: string | undefined
     options?: Options | undefined
@@ -210,6 +231,9 @@ export class Group<Options extends OptionsRecord, Groups extends GroupsRecord> {
     }
   }
 
+  /**
+   *
+   */
   addOption(name: string, option: AnyOption) {
     const existingOption = this.options[name]
     if (existingOption != null) {
@@ -220,6 +244,9 @@ export class Group<Options extends OptionsRecord, Groups extends GroupsRecord> {
     option.name = name
   }
 
+  /**
+   *
+   */
   addGroup(name: string, group: AnyGroup) {
     const existingGroup = this.groups[name]
     if (existingGroup != null) {
@@ -232,8 +259,10 @@ export class Group<Options extends OptionsRecord, Groups extends GroupsRecord> {
     group.setPath([name])
   }
 
-  /** Set the path of this group. If this group was placed in another group, the path will contain
-   * all the parent group names. */
+  /**
+   * Set the path of this group. If this group was placed in another group, the path will contain
+   * all the parent group names.
+   */
   setPath(path: string[]) {
     for (const option of Object.values(this.options)) {
       option.path = path
@@ -255,8 +284,10 @@ export class Group<Options extends OptionsRecord, Groups extends GroupsRecord> {
     return result as this
   }
 
-  /** Merge this group definition with another group definition. Returns a deeply merged group. In
-   * case the argument will override some options, errors will be logged. */
+  /**
+   * Merge this group definition with another group definition. Returns a deeply merged group. In
+   * case the argument will override some options, errors will be logged.
+   */
   merge<Other extends AnyGroup>(other?: Other | null): this & Other {
     if (other == null) {
       return this as this & Other
@@ -285,6 +316,9 @@ export class Group<Options extends OptionsRecord, Groups extends GroupsRecord> {
     }
   }
 
+  /**
+   *
+   */
   load(config: StringConfig, stack: string[] = []): string[] {
     let unrecognized: string[] = []
     const addUnrecognized = (name: string) => {
@@ -311,6 +345,9 @@ export class Group<Options extends OptionsRecord, Groups extends GroupsRecord> {
     return unrecognized
   }
 
+  /**
+   *
+   */
   stringify(): StringConfig {
     const config: StringConfig = {}
     const groupsEntries = Object.entries(this.groups)
@@ -330,6 +367,9 @@ export class Group<Options extends OptionsRecord, Groups extends GroupsRecord> {
     return config
   }
 
+  /**
+   *
+   */
   prettyPrint(indent = 0): string {
     // The number is used for sorting in ordering to put options before groups.
     const entries: [string, number, string][] = []
@@ -354,6 +394,9 @@ export class Group<Options extends OptionsRecord, Groups extends GroupsRecord> {
     )
   }
 
+  /**
+   *
+   */
   optionsRecursive(): AnyOption[] {
     const options: AnyOption[] = []
     for (const option of Object.values(this.options)) {
@@ -401,13 +444,3 @@ export function objectToGroup<T extends GroupObject>(obj: T): ToGroup<T> {
 export function objectToOption<T extends AnyOptionObject>(obj: T): ToOption<T> {
   return new Option(obj)
 }
-
-/** The configuration of the EnsoGL application. The options can be overriden by the user. The
- * implementation automatically casts the values to the correct types. For example, if an option
- * override for type boolean was provided as `'true'`, it will be parsed automatically. Moreover,
- * it is possible to extend the provided option list with custom options. See the `extend` method
- * to learn more. */
-export const options = objectToGroup(jsonCfg)
-
-/** Type of configuration options. */
-export type Options = typeof options & AnyGroup
