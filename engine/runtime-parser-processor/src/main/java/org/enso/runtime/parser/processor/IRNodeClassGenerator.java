@@ -69,13 +69,27 @@ final class IRNodeClassGenerator {
     this.interfaceType = interfaceType;
     this.className = className;
     this.fields = getAllFields(interfaceType);
-    var nestedTypesCnt =
+    var nestedTypes =
         interfaceType.getEnclosedElements().stream()
             .filter(
                 elem ->
                     elem.getKind() == ElementKind.INTERFACE || elem.getKind() == ElementKind.CLASS)
-            .count();
-    assert nestedTypesCnt == 0 : "Nested types must be handled separately";
+            .toList();
+    if (!nestedTypes.isEmpty()) {
+      throw new RuntimeException("Nested types must be handled separately: " + nestedTypes);
+    }
+  }
+
+  /** Returns simple name of the generated class. */
+  String getClassName() {
+    return className;
+  }
+
+  /**
+   * Returns the simple name of the interface for which an implementing class is being generated.
+   */
+  String getInterfaceName() {
+    return interfaceType.getSimpleName().toString();
   }
 
   /** Returns set of import statements that should be included in the generated class. */

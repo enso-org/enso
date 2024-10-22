@@ -257,7 +257,7 @@ public class TestIRProcessor {
         CompilationSubject.assertThat(compilation)
             .generatedSourceFile("JNameGen")
             .contentsAsUtf8String();
-    srcSubject.contains("public class JNameGen");
-    srcSubject.contains("public final class JBlankGen");
+    srcSubject.contains("public final class JNameGen");
+    srcSubject.contains("public static final class JBlankGen implements JName.JBlank");
   }
 }

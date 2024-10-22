@@ -1,5 +1,6 @@
 package org.enso.runtime.parser.processor;
 
+import java.util.stream.Collectors;
 import javax.annotation.processing.Messager;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Element;
@@ -27,5 +28,11 @@ final class Utils {
 
   static void printError(String msg, Element elem, Messager messager) {
     messager.printMessage(Kind.ERROR, msg, elem);
+  }
+
+  static String indent(String code, int indentation) {
+    return code.lines()
+        .map(line -> " ".repeat(indentation) + line)
+        .collect(Collectors.joining(System.lineSeparator()));
   }
 }
