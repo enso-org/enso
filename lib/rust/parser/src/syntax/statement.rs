@@ -42,12 +42,7 @@ impl<'s> BodyBlockParser<'s> {
     ) -> Tree<'s> {
         let lines = lines.into_iter().map(|item::Line { newline, mut items }| block::Line {
             newline,
-            expression: self.statement_parser.parse_statement(
-                &mut items,
-                0,
-                precedence,
-                EvaluationContext::Eager,
-            ),
+            expression: self.statement_parser.parse_statement(&mut items, 0, precedence),
         });
         Tree::body_block(block::compound_lines(lines).collect())
     }
@@ -77,28 +72,11 @@ impl<'s> StatementParser<'s> {
         items: &mut Vec<Item<'s>>,
         start: usize,
         precedence: &mut Precedence<'s>,
-        evaluation_context: EvaluationContext,
     ) -> Option<Tree<'s>> {
-        let private_keywords = scan_private_keywords(&*items);
-        let mut statement = parse_statement(
-            items,
-            start + private_keywords,
-            precedence,
-            &mut self.args_buffer,
-            evaluation_context,
-        );
-        for _ in 0..private_keywords {
-            let Item::Token(keyword) = items.pop().unwrap() else { unreachable!() };
-            let token::Variant::Private(variant) = keyword.variant else { unreachable!() };
-            let keyword = keyword.with_variant(variant);
-            let error = match statement.as_ref().map(|tree| &tree.variant) {
-                Some(tree::Variant::Invalid(_) | tree::Variant::Function(_)) => None,
-                _ => SyntaxError::StmtUnexpectedPrivateUsage.into(),
-            };
-            let private_stmt = Tree::private(keyword, statement.take());
-            statement = maybe_with_error(private_stmt, error).into();
-        }
-        statement
+        parse_statement(items, start, precedence, &mut self.args_buffer, StatementContext {
+            evaluation_context: EvaluationContext::Eager,
+            visibility_context: VisibilityContext::Private,
+        })
     }
 
     fn parse_module_statement(
@@ -107,35 +85,18 @@ impl<'s> StatementParser<'s> {
         start: usize,
         precedence: &mut Precedence<'s>,
     ) -> Option<Tree<'s>> {
-        let private_keywords = scan_private_keywords(&*items);
-        let mut statement = parse_statement(
-            items,
-            start + private_keywords,
-            precedence,
-            &mut self.args_buffer,
-            EvaluationContext::Lazy,
-        );
-        let mut error = None;
-        if let Some(statement) = statement.as_ref() {
-            error = match &statement.variant {
+        parse_statement(items, start, precedence, &mut self.args_buffer, StatementContext {
+            evaluation_context: EvaluationContext::Lazy,
+            visibility_context: VisibilityContext::Public,
+        })
+        .map(|statement| {
+            let error = match &statement.variant {
                 tree::Variant::Assignment(_) =>
                     SyntaxError::StmtUnexpectedAssignmentInModuleBody.into(),
                 _ => None,
             };
-        }
-        for _ in 0..private_keywords {
-            let Item::Token(keyword) = items.pop().unwrap() else { unreachable!() };
-            let token::Variant::Private(variant) = keyword.variant else { unreachable!() };
-            let keyword = keyword.with_variant(variant);
-            if error.is_none() {
-                error = match statement.as_ref().map(|tree| &tree.variant) {
-                    Some(tree::Variant::Invalid(_) | tree::Variant::Function(_)) | None => None,
-                    _ => SyntaxError::StmtUnexpectedPrivateUsage.into(),
-                };
-            }
-            statement = Tree::private(keyword, statement.take()).into();
-        }
-        statement.map(|statement| maybe_with_error(statement, error))
+            maybe_with_error(statement, error)
+        })
     }
 }
 
@@ -143,27 +104,37 @@ fn scan_private_keywords<'s>(items: impl IntoIterator<Item = impl AsRef<Item<'s>
     items
         .into_iter()
         .take_while(|item| {
-            matches!(item.as_ref(), Item::Token(Token { variant: token::Variant::Private(_), .. }))
+            matches!(
+                item.as_ref(),
+                Item::Token(Token { variant: token::Variant::PrivateKeyword(_), .. })
+            )
         })
         .count()
 }
 
 fn parse_statement<'s>(
     items: &mut Vec<Item<'s>>,
-    start: usize,
+    statement_start: usize,
     precedence: &mut Precedence<'s>,
     args_buffer: &mut Vec<ArgumentDefinition<'s>>,
-    evaluation_context: EvaluationContext,
+    statement_context: StatementContext,
 ) -> Option<Tree<'s>> {
     use token::Variant;
+    let private_keywords = scan_private_keywords(&items[statement_start..]);
+    let start = statement_start + private_keywords;
     if let Some(type_def) = try_parse_type_def(items, start, precedence, args_buffer) {
-        return Some(type_def);
+        debug_assert_eq!(items.len(), start);
+        return apply_private_keywords(
+            Some(type_def),
+            items.drain(statement_start..),
+            statement_context.visibility_context,
+        );
     }
     let top_level_operator = match find_top_level_operator(&items[start..]) {
         Ok(top_level_operator) => top_level_operator.map(|(i, t)| (i + start, t)),
         Err(e) =>
             return precedence
-                .resolve_non_section_offset(start, items)
+                .resolve_non_section_offset(statement_start, items)
                 .unwrap()
                 .with_error(e)
                 .into(),
@@ -172,18 +143,18 @@ fn parse_statement<'s>(
         Some((i, Token { variant: Variant::AssignmentOperator(_), .. })) =>
             parse_assignment_like_statement(
                 items,
+                statement_start,
                 start,
                 i,
                 precedence,
                 args_buffer,
-                evaluation_context,
+                statement_context,
             )
             .into(),
         Some((i, Token { variant: Variant::TypeAnnotationOperator(_), .. })) => {
             let type_ = precedence.resolve_non_section_offset(i + 1, items);
-            let Some(Item::Token(operator)) = items.pop() else { unreachable!() };
-            let Variant::TypeAnnotationOperator(variant) = operator.variant else { unreachable!() };
-            let operator = operator.with_variant(variant);
+            let operator: token::TypeAnnotationOperator =
+                items.pop().unwrap().into_token().unwrap().try_into().unwrap();
             let lhs = precedence.resolve_non_section_offset(start, items);
             let type_ = type_.unwrap_or_else(|| {
                 empty_tree(operator.code.position_after()).with_error(SyntaxError::ExpectedType)
@@ -201,11 +172,51 @@ fn parse_statement<'s>(
         Some(_) => unreachable!(),
         None => precedence.resolve_offset(start, items),
     };
-    debug_assert_eq!(items.len(), start);
+    debug_assert!(items.len() <= start);
+    apply_private_keywords(
+        statement,
+        items.drain(statement_start..),
+        statement_context.visibility_context,
+    )
+}
+
+/// Apply any private keywords that were not already consumed by a statement parser that recognizes
+/// them specifically (such as in a function definition).
+fn apply_private_keywords<'s>(
+    mut statement: Option<Tree<'s>>,
+    keywords: impl Iterator<Item = Item<'s>>,
+    visibility_context: VisibilityContext,
+) -> Option<Tree<'s>> {
+    for item in keywords {
+        let private = Tree::private(item.into_token().unwrap().try_into().unwrap());
+        statement = match statement.take() {
+            Some(statement) => Tree::app(
+                private.with_error(match visibility_context {
+                    VisibilityContext::Public => SyntaxError::StmtUnexpectedPrivateSubject,
+                    VisibilityContext::Private => SyntaxError::StmtUnexpectedPrivateContext,
+                }),
+                statement,
+            ),
+            None => maybe_with_error(private, match visibility_context {
+                // This is the only non-error case in this function: A `private` keyword was found
+                // not modifying any other statement, and in a context where a `private` declaration
+                // is allowed; in this case, we emit a `Private` declaration without error.
+                VisibilityContext::Public => None,
+                VisibilityContext::Private => Some(SyntaxError::StmtUnexpectedPrivateContext),
+            }),
+        }
+        .into();
+    }
     statement
 }
 
 #[derive(Debug, Copy, Clone)]
+struct StatementContext {
+    evaluation_context: EvaluationContext,
+    visibility_context: VisibilityContext,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 enum EvaluationContext {
     /// A context in which variable assignments are allowed.
     Eager,
@@ -213,13 +224,22 @@ enum EvaluationContext {
     Lazy,
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+enum VisibilityContext {
+    /// A context in which declared symbols are exported unless marked `private`.
+    Public,
+    /// A context in which declared symbols are not exported, and may not be marked `private`.
+    Private,
+}
+
 fn parse_assignment_like_statement<'s>(
     items: &mut Vec<Item<'s>>,
+    private_keywords_start: usize,
     start: usize,
     operator: usize,
     precedence: &mut Precedence<'s>,
     args_buffer: &mut Vec<ArgumentDefinition<'s>>,
-    evaluation_context: EvaluationContext,
+    StatementContext { evaluation_context, visibility_context }: StatementContext,
 ) -> Tree<'s> {
     if operator == start {
         return precedence
@@ -230,9 +250,7 @@ fn parse_assignment_like_statement<'s>(
 
     let mut expression = precedence.resolve_offset(operator + 1, items);
 
-    let Some(Item::Token(operator)) = items.pop() else { unreachable!() };
-    let token::Variant::AssignmentOperator(variant) = operator.variant else { unreachable!() };
-    let operator = operator.with_variant(variant);
+    let operator = items.pop().unwrap().into_token().unwrap().try_into().unwrap();
 
     let qn_len = match (evaluation_context, scan_qn(&items[start..])) {
         (_, Some(Qn::Binding { len }))
@@ -275,7 +293,11 @@ fn parse_assignment_like_statement<'s>(
         Type::Function { expression, qn_len } => {
             let (qn, args, return_) =
                 parse_function_decl(items, start, qn_len, precedence, args_buffer);
-            Tree::function(qn, args, return_, operator, expression)
+            let private = (visibility_context != VisibilityContext::Private
+                && private_keywords_start < start)
+                .then(|| items.pop().unwrap().into_token().unwrap().try_into().unwrap());
+
+            Tree::function(private, qn, args, return_, operator, expression)
         }
         Type::InvalidNoExpressionNoQn => Tree::opr_app(
             precedence.resolve_non_section_offset(start, items),
@@ -311,7 +333,7 @@ fn parse_pattern<'s>(
     let pattern = if items.len() - pattern_start == 1 {
         Some(match items.last().unwrap() {
             Item::Token(_) => {
-                let Some(Item::Token(token)) = items.pop() else { unreachable!() };
+                let token = items.pop().unwrap().into_token().unwrap();
                 match token.variant {
                     token::Variant::Ident(variant) => Tree::ident(token.with_variant(variant)),
                     token::Variant::Wildcard(variant) =>
@@ -329,11 +351,8 @@ fn parse_pattern<'s>(
             .resolve_non_section_offset(pattern_start, items)
             .map(|tree| tree.with_error(SyntaxError::ArgDefExpectedPattern))
     };
-    let suspension = have_suspension.then(|| {
-        let Item::Token(token) = items.pop().unwrap() else { unreachable!() };
-        let token::Variant::SuspensionOperator(variant) = token.variant else { unreachable!() };
-        token.with_variant(variant)
-    });
+    let suspension =
+        have_suspension.then(|| items.pop().unwrap().into_token().unwrap().try_into().unwrap());
     (suspension, pattern)
 }
 

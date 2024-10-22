@@ -54,7 +54,6 @@ where T: serde::Serialize + Reflect {
         TextEnd::reflect(),
         TextStart::reflect(),
         Wildcard::reflect(),
-        Private::reflect(),
         TypeKeyword::reflect(),
         ForeignKeyword::reflect(),
         CaseKeyword::reflect(),
@@ -63,7 +62,7 @@ where T: serde::Serialize + Reflect {
         AssignmentOperator::reflect(),
     ];
     skip_tokens.into_iter().for_each(|token| to_s_expr.skip(rust_to_meta[&token.id]));
-    let identish_tokens = vec![Ident::reflect(), AllKeyword::reflect()];
+    let identish_tokens = vec![Ident::reflect(), AllKeyword::reflect(), PrivateKeyword::reflect()];
     let identish_tokens = identish_tokens.into_iter().map(|t| rust_to_meta[&t.id]);
     let text_escape_token = rust_to_meta[&TextEscape::reflect().id];
     let token_to_str = move |token: Value| {

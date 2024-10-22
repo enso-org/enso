@@ -8,6 +8,8 @@ use crate::syntax::statement::function_def::parse_type_args;
 use crate::syntax::statement::parse_statement;
 use crate::syntax::statement::scan_private_keywords;
 use crate::syntax::statement::EvaluationContext;
+use crate::syntax::statement::StatementContext;
+use crate::syntax::statement::VisibilityContext;
 use crate::syntax::token;
 use crate::syntax::tree;
 use crate::syntax::tree::block;
@@ -64,13 +66,9 @@ pub fn try_parse_type_def<'s>(
 
     let params = parse_type_args(items, start + 2, precedence, args_buffer);
 
-    let name = {
-        let Item::Token(name) = items.pop().unwrap() else { unreachable!() };
-        let token::Variant::Ident(variant) = name.variant else { unreachable!() };
-        name.with_variant(variant)
-    };
+    let name = items.pop().unwrap().into_token().unwrap().try_into().unwrap();
 
-    let Item::Token(keyword) = items.pop().unwrap() else { unreachable!() };
+    let keyword = items.pop().unwrap().into_token().unwrap();
     let keyword = keyword.with_variant(token::variant::TypeKeyword());
 
     debug_assert_eq!(items.len(), start);
@@ -84,7 +82,7 @@ fn parse_type_body_statement<'s>(
     args_buffer: &mut Vec<ArgumentDefinition<'s>>,
 ) -> Option<Tree<'s>> {
     let private_keywords = scan_private_keywords(&items);
-    let mut statement = match items.get(private_keywords) {
+    let statement = match items.get(private_keywords) {
         Some(Item::Token(Token { variant: token::Variant::Ident(ident), .. }))
             if ident.is_type
                 && !items
@@ -92,19 +90,17 @@ fn parse_type_body_statement<'s>(
                     .is_some_and(|item| Spacing::of_item(item) == Spacing::Unspaced) =>
             Some(parse_constructor_definition(
                 &mut items,
+                0,
                 private_keywords,
                 precedence,
                 args_buffer,
             )),
         None => None,
         _ => {
-            let tree = parse_statement(
-                &mut items,
-                private_keywords,
-                precedence,
-                args_buffer,
-                EvaluationContext::Lazy,
-            )
+            let tree = parse_statement(&mut items, 0, precedence, args_buffer, StatementContext {
+                evaluation_context: EvaluationContext::Lazy,
+                visibility_context: VisibilityContext::Public,
+            })
             .unwrap();
             let error = match &tree.variant {
                 tree::Variant::Function(_)
@@ -120,20 +116,22 @@ fn parse_type_body_statement<'s>(
             maybe_with_error(tree, error).into()
         }
     };
-    for _ in 0..private_keywords {
-        let Item::Token(keyword) = items.pop().unwrap() else { unreachable!() };
-        let token::Variant::Private(variant) = keyword.variant else { unreachable!() };
-        let keyword = keyword.with_variant(variant);
-        let error = match statement.as_ref().map(|tree| &tree.variant) {
-            Some(
-                tree::Variant::Invalid(_)
-                | tree::Variant::ConstructorDefinition(_)
-                | tree::Variant::Function(_),
-            ) => None,
-            _ => SyntaxError::TypeBodyUnexpectedPrivateUsage.into(),
-        };
-        let private_stmt = Tree::private(keyword, statement.take());
-        statement = maybe_with_error(private_stmt, error).into();
+    apply_excess_private_keywords(statement, items.drain(..))
+}
+
+fn apply_excess_private_keywords<'s>(
+    mut statement: Option<Tree<'s>>,
+    keywords: impl Iterator<Item = Item<'s>>,
+) -> Option<Tree<'s>> {
+    for item in keywords {
+        let keyword = item.into_token().unwrap().try_into().unwrap();
+        let private =
+            Tree::private(keyword).with_error(SyntaxError::TypeBodyUnexpectedPrivateUsage);
+        statement = match statement.take() {
+            Some(statement) => Tree::app(private, statement),
+            None => private,
+        }
+        .into();
     }
     statement
 }

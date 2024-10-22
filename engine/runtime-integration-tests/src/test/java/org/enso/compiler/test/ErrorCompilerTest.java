@@ -468,7 +468,7 @@ public class ErrorCompilerTest extends CompilerTests {
   public void illegalPrivateVariableDeclaration() throws Exception {
     var ir = parseBlock("private var = 42");
     assertSingleSyntaxError(
-        ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 16);
+        ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 7);
   }
 
   @Test
@@ -486,13 +486,23 @@ public class ErrorCompilerTest extends CompilerTests {
   }
 
   @Test
+  public void illegalPrivateKeywordRepeatedDeclarations() throws Exception {
+    var ir = parse("""
+        private
+        private
+        """);
+    assertSingleSyntaxError(
+        ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 8, 15);
+  }
+
+  @Test
   public void illegalPrivateKeywordUseInMethodBody() throws Exception {
     var ir = parse("""
         method =
             private priv_nested_method x = x
         """);
     assertSingleSyntaxError(
-        ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 13, 45);
+        ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 13, 20);
   }
 
   @Test
@@ -656,6 +666,9 @@ public class ErrorCompilerTest extends CompilerTests {
 
   private List<Syntax> assertIR(IR ir, Class<Syntax> type, int count) {
     var errors = ir.preorder().filter(type::isInstance).map(type::cast);
+    if (ir.diagnostics() != null)
+      errors =
+          errors.prependedAll(ir.diagnostics().toList().filter(type::isInstance).map(type::cast));
     assertEquals("Expecting errors: " + errors, count, errors.size());
     return errors;
   }
