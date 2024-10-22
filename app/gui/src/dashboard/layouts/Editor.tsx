@@ -188,7 +188,8 @@ function EditorInternal(props: EditorInternalProps) {
     const jsonAddress = openedProject.jsonAddress
     const binaryAddress = openedProject.binaryAddress
     const ydocAddress = openedProject.ydocAddress ?? ydocUrl ?? ''
-    const projectBackend = backendType === backendModule.BackendType.remote ? remoteBackend : localBackend
+    const projectBackend =
+      backendType === backendModule.BackendType.remote ? remoteBackend : localBackend
 
     if (jsonAddress == null) {
       throw new Error(getText('noJSONEndpointError'))
