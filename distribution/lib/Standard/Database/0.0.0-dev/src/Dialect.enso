@@ -271,7 +271,7 @@ type Dialect
 
     generate_column self expr:(SQL_Expression | Order_Descriptor | Query) name:Text -> SQL_Builder =
         _ = [expr, name]
-         Unimplemented.throw "This is an interface only."
+        Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
     ensure_query_has_no_holes : JDBC_Connection -> Text -> Nothing ! Illegal_Argument

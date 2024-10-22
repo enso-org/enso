@@ -328,7 +328,7 @@ type SQLServer_Dialect
             r = case result of
                 _ : Function -> result metadata
                 _ -> result
-            pair r null_checks
+            if (kind == "IS_IN" && arguments.length == 1) then (pair (SQL_Builder.code "1=0") []) else (pair r null_checks)
         SQL_Expression.Let _ binder bindee body ->
             wrapped_binder = self.wrap_identifier binder
             bindee_exp = SQL_Builder.code "SELECT " ++ (self.generate_expression base_gen bindee).paren ++ " AS " ++ "x"
@@ -346,8 +346,8 @@ type SQLServer_Dialect
                     wrapped_binder ++ "." ++ "x"
                 False ->
                     self.generate_expression base_gen standalone_expression
-        query : Query -> self.generate_sub_query self query
-        descriptor : Order_Descriptor -> self.generate_order self descriptor
+        query : Query -> pair (base_gen.generate_sub_query self query) []
+        descriptor : Order_Descriptor -> pair (base_gen.generate_order self descriptor) []
 
 
     generate_column self base_gen expr:(SQL_Expression | Order_Descriptor | Query) name:Text -> SQL_Builder =
