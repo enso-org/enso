@@ -126,23 +126,23 @@ public class StreamCache<M> {
     temp.deleteOnExit();
     try {
       var inputStream = thing.stream();
-      var outputStream = new FileOutputStream(temp);
+      try (var outputStream = new FileOutputStream(temp)) {
 
-      // Limit the download to getMaxFileSize().
-      long tooMany = getMaxFileSize() + 1;
-      long bytesCopied = IOUtils.copyLarge(inputStream, outputStream, 0, tooMany);
-      if (bytesCopied >= tooMany) {
-        try {
-          temp.delete();
-          outputStream.close();
-        } finally {
-          // catch block below will delete the temp file.
-          throw new ResponseTooLargeException(tooMany, getMaxFileSize());
+        // Limit the download to getMaxFileSize().
+        long tooMany = getMaxFileSize() + 1;
+        long bytesCopied = IOUtils.copyLarge(inputStream, outputStream, 0, tooMany);
+        if (bytesCopied >= tooMany) {
+          try {
+            temp.delete();
+            outputStream.close();
+          } finally {
+            // catch block below will delete the temp file.
+            throw new ResponseTooLargeException(tooMany, getMaxFileSize());
+          }
         }
-      }
 
-      outputStream.close();
-      return temp;
+        return temp;
+      }
     } catch (IOException e) {
       temp.delete();
       throw e;
