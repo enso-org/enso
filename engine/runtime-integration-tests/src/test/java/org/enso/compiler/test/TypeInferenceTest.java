@@ -10,10 +10,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-
-import org.enso.compiler.StaticAnalysisTest;
 import org.enso.compiler.core.IR;
-import org.enso.compiler.core.ir.Diagnostic;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.ProcessingPass;
 import org.enso.compiler.core.ir.Warning;
@@ -26,7 +23,6 @@ import org.graalvm.polyglot.Source;
 import org.junit.Ignore;
 import org.junit.Test;
 import scala.Option;
-import scala.jdk.javaapi.CollectionConverters;
 
 public class TypeInferenceTest extends StaticAnalysisTest {
   @Test
@@ -1118,7 +1114,8 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     var foo = findStaticMethod(module, "foo");
 
     var x1 = findAssignment(foo, "x1");
-    var typeError = new Warning.TypeMismatch(x1.expression().identifiedLocation(), "My_Type", "Other_Type");
+    var typeError =
+        new Warning.TypeMismatch(x1.expression().identifiedLocation(), "My_Type", "Other_Type");
     assertEquals(List.of(typeError), getDescendantsDiagnostics(x1.expression()));
   }
 
@@ -1212,7 +1209,8 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     assertEquals(
         List.of(
             new Warning.NoSuchMethod(
-                x2.expression().identifiedLocation(), "member method `method_two` on type My_Type")),
+                x2.expression().identifiedLocation(),
+                "member method `method_two` on type My_Type")),
         getImmediateDiagnostics(x2.expression()));
 
     // delegating to Any
@@ -1224,7 +1222,8 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     assertEquals(
         List.of(
             new Warning.NoSuchMethod(
-                x5.expression().identifiedLocation(), "member method `static_method` on type My_Type")),
+                x5.expression().identifiedLocation(),
+                "member method `static_method` on type My_Type")),
         getImmediateDiagnostics(x5.expression()));
   }
 
