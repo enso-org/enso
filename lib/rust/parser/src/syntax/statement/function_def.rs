@@ -204,7 +204,8 @@ pub fn try_parse_foreign_function<'s>(
 
     let name = items.pop().unwrap().into_token().unwrap().try_into().unwrap();
     let language = items.pop().unwrap().into_token().unwrap().try_into().unwrap();
-    let keyword = items.pop().unwrap().into_token().unwrap().try_into().unwrap();
+    let keyword =
+        items.pop().unwrap().into_token().unwrap().with_variant(token::variant::ForeignKeyword());
     Tree::foreign_function(keyword, language, name, args, operator, body).into()
 }
 
