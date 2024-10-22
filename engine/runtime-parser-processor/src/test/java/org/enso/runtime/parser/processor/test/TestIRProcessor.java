@@ -6,7 +6,6 @@ import static org.hamcrest.Matchers.is;
 import com.google.testing.compile.CompilationSubject;
 import com.google.testing.compile.Compiler;
 import com.google.testing.compile.JavaFileObjects;
-import javax.tools.JavaFileObject;
 import org.enso.runtime.parser.processor.IRProcessor;
 import org.junit.Test;
 
@@ -79,7 +78,6 @@ public class TestIRProcessor {
     srcSubject.containsMatch("");
     var genSrc = compilation.generatedSourceFile("JNameGen");
     assertThat(genSrc.isPresent(), is(true));
-    var srcContent = readSrcFile(genSrc.get());
     assertThat("Generated just one source", compilation.generatedSourceFiles().size(), is(1));
   }
 
@@ -203,7 +201,6 @@ public class TestIRProcessor {
 
   @Test
   public void irNodeWithInheritedField_Transitive() {
-
     var src =
         JavaFileObjects.forSourceString(
             "MyIR",
@@ -236,11 +233,31 @@ public class TestIRProcessor {
     srcSubject.containsMatch("boolean suspended\\(\\)");
   }
 
-  private static String readSrcFile(JavaFileObject src) {
-    try {
-      return src.getCharContent(true).toString();
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
+  @Test
+  public void irNodeAsNestedInterface() {
+    var src =
+        JavaFileObjects.forSourceString(
+            "JName",
+            """
+        import org.enso.runtime.parser.dsl.IRNode;
+        import org.enso.compiler.core.IR;
+
+        @IRNode
+        public interface JName extends IR {
+          String name();
+
+          interface JBlank extends JName {}
+        }
+        """);
+    var compiler = Compiler.javac().withProcessors(new IRProcessor());
+    var compilation = compiler.compile(src);
+    CompilationSubject.assertThat(compilation).succeeded();
+    assertThat("Generated just one source", compilation.generatedSourceFiles().size(), is(1));
+    var srcSubject =
+        CompilationSubject.assertThat(compilation)
+            .generatedSourceFile("JNameGen")
+            .contentsAsUtf8String();
+    srcSubject.contains("public class JNameGen");
+    srcSubject.contains("public final class JBlankGen");
   }
 }

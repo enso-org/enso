@@ -3,6 +3,7 @@ package org.enso.runtime.parser.processor;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Set;
+import java.util.stream.Collectors;
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.RoundEnvironment;
 import javax.annotation.processing.SupportedAnnotationTypes;
@@ -46,6 +47,11 @@ public class IRProcessor extends AbstractProcessor {
       printError("Interface annotated with @IRNode must be a subtype of IR interface", irNodeElem);
       return false;
     }
+    var enclosingElem = irNodeElem.getEnclosingElement();
+    if (enclosingElem != null && enclosingElem.getKind() != ElementKind.PACKAGE) {
+      printError("Interface annotated with @IRNode must not be nested", irNodeElem);
+      return false;
+    }
     assert irNodeElem instanceof TypeElement;
     var irNodeTypeElem = (TypeElement) irNodeElem;
     var irNodeInterfaceName = irNodeTypeElem.getSimpleName().toString();
@@ -64,37 +70,23 @@ public class IRProcessor extends AbstractProcessor {
       printError("Failed to create source file for IRNode", irNodeElem);
     }
     assert srcGen != null;
-    var irNodeElement = new IRNodeElement(processingEnv, irNodeTypeElem, newClassName);
+    var irNodeClassGen = new IRNodeClassGenerator(processingEnv, irNodeTypeElem, newClassName);
     try {
       try (var lineWriter = new PrintWriter(srcGen.openWriter())) {
+        var imports =
+            irNodeClassGen.imports().stream().collect(Collectors.joining(System.lineSeparator()));
         var code =
             """
             $imports
 
             public final class $className implements $interfaceName {
-              $fields
-
-              $constructor
-
-              public static Builder builder() {
-                return new Builder();
-              }
-
-              $overrideUserDefinedMethods
-
-              $overrideIRMethods
-
-              $builder
+              $classBody
             }
             """
-                .replace("$imports", irNodeElement.imports())
+                .replace("$imports", imports)
                 .replace("$className", newClassName)
-                .replace("$fields", irNodeElement.fields())
-                .replace("$constructor", irNodeElement.constructor())
                 .replace("$interfaceName", irNodeInterfaceName)
-                .replace("$overrideUserDefinedMethods", irNodeElement.overrideUserDefinedMethods())
-                .replace("$overrideIRMethods", irNodeElement.overrideIRMethods())
-                .replace("$builder", irNodeElement.builder());
+                .replace("$classBody", irNodeClassGen.classBody());
         lineWriter.println(code);
         lineWriter.println();
       }

@@ -2,70 +2,117 @@ package org.enso.runtime.parser.processor;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Element;
+import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.SimpleElementVisitor14;
+import org.enso.compiler.core.IR;
 import org.enso.runtime.parser.dsl.IRChild;
 import org.enso.runtime.parser.dsl.IRNode;
 
 /**
- * Representation of an interface annotated with {@link org.enso.runtime.parser.dsl.IRNode}. Takes
- * care of - Methods from {@code org.enso.compiler.core.IR} with no default implementation. -
- * Methods annotated with {@link org.enso.runtime.parser.dsl.IRChild} (child elements). - Other
- * methods (will be fields of the record, not children).
+ * Generates code for interfaces annotated with {@link org.enso.runtime.parser.dsl.IRNode}.
+ * Technically, the interface does not have to be annotated with {@link
+ * org.enso.runtime.parser.dsl.IRNode}, it can just be enclosed by another interface with that
+ * annotation.
+ *
+ * <p>It is expected that the interface (passed as {@link javax.lang.model.element.TypeElement} in
+ * this class) extends {@link org.enso.compiler.core.IR}, either directly or via a hierarchy of
+ * other super interfaces.
+ *
+ * <p>Every parameterless abstract method defined by the interface (or any super interface) is
+ * treated as a field of the IR node. If the parameterless method is annotated with {@link
+ * org.enso.runtime.parser.dsl.IRChild}, it is treated as a <emph>child</emph> and will get into the
+ * generated code for, e.g., methods like {@link IR#children()}.
  */
-final class IRNodeElement {
+final class IRNodeClassGenerator {
   private final ProcessingEnvironment processingEnv;
+  private final TypeElement interfaceType;
 
-  /** Name of the class that is being generated. */
+  /** Name of the class that is being generated */
   private final String className;
 
   /** User defined fields - all the abstract parameterless methods, including the inherited ones. */
   private final List<Field> fields;
 
-  private static final String IMPORTS =
-      """
-import java.util.UUID;
-import java.util.ArrayList;
-import java.util.function.Function;
-import org.enso.compiler.core.Identifier;
-import org.enso.compiler.core.IR;
-import org.enso.compiler.core.ir.DiagnosticStorage;
-import org.enso.compiler.core.ir.Expression;
-import org.enso.compiler.core.ir.IdentifiedLocation;
-import org.enso.compiler.core.ir.MetadataStorage;
-import scala.Option;
-import scala.collection.immutable.List;
-      """;
+  private static final Set<String> defaultImports =
+      Set.of(
+          "import java.util.UUID;",
+          "import java.util.ArrayList;",
+          "import java.util.function.Function;",
+          "import org.enso.compiler.core.Identifier;",
+          "import org.enso.compiler.core.IR;",
+          "import org.enso.compiler.core.ir.DiagnosticStorage;",
+          "import org.enso.compiler.core.ir.Expression;",
+          "import org.enso.compiler.core.ir.IdentifiedLocation;",
+          "import org.enso.compiler.core.ir.MetadataStorage;",
+          "import scala.Option;",
+          "import scala.collection.immutable.List;");
 
   /**
-   * @param irNodeInterface Type element of the interface annotated with {@link IRNode}.
-   * @param className Simple name (non-qualified) of the newly generated class.
+   * @param interfaceType Type of the interface for which we are generating code. It is expected
+   *     that the interface does not contain any nested interfaces or classes, just methods.
+   * @param className Name of the generated class. Non qualified.
    */
-  IRNodeElement(
-      ProcessingEnvironment processingEnv, TypeElement irNodeInterface, String className) {
+  IRNodeClassGenerator(
+      ProcessingEnvironment processingEnv, TypeElement interfaceType, String className) {
     assert !className.contains(".") : "Class name should be simple, not qualified";
     this.processingEnv = processingEnv;
+    this.interfaceType = interfaceType;
     this.className = className;
-    this.fields = getAllFields(irNodeInterface);
+    this.fields = getAllFields(interfaceType);
+    var nestedTypesCnt =
+        interfaceType.getEnclosedElements().stream()
+            .filter(
+                elem ->
+                    elem.getKind() == ElementKind.INTERFACE || elem.getKind() == ElementKind.CLASS)
+            .count();
+    assert nestedTypesCnt == 0 : "Nested types must be handled separately";
   }
 
-  /** Returns string representation of all necessary imports. */
-  String imports() {
+  /** Returns set of import statements that should be included in the generated class. */
+  Set<String> imports() {
     var importsForFields =
         fields.stream()
             .filter(field -> !field.isPrimitive())
             .map(field -> "import " + field.getQualifiedTypeName() + ";")
-            .distinct()
-            .collect(Collectors.joining(System.lineSeparator()));
-    var allImports = IMPORTS + System.lineSeparator() + importsForFields;
+            .collect(Collectors.toUnmodifiableSet());
+    var allImports = new HashSet<String>();
+    allImports.addAll(defaultImports);
+    allImports.addAll(importsForFields);
     return allImports;
+  }
+
+  /** Generates the body of the class - fields, field setters, method overrides, builder, etc. */
+  String classBody() {
+    return """
+        $fields
+
+        $constructor
+
+        public static Builder builder() {
+          return new Builder();
+        }
+
+        $overrideUserDefinedMethods
+
+        $overrideIRMethods
+
+        $builder
+        """
+        .replace("$fields", fieldsCode())
+        .replace("$constructor", constructor())
+        .replace("$overrideUserDefinedMethods", overrideUserDefinedMethods())
+        .replace("$overrideIRMethods", overrideIRMethods())
+        .replace("$builder", builder());
   }
 
   /**
@@ -143,26 +190,11 @@ import scala.collection.immutable.List;
     return fields.values().stream().toList();
   }
 
-  private void ensureIsSubtypeOfIR(TypeElement typeElem) {
-    if (!Utils.isSubtypeOfIR(typeElem.asType(), processingEnv)) {
-      Utils.printError(
-          "Method annotated with @IRChild must return a subtype of IR interface",
-          typeElem,
-          processingEnv.getMessager());
-    }
-  }
-
-  private TypeElement getIrType() {
-    var typeElem = processingEnv.getElementUtils().getTypeElement("org.enso.compiler.core.IR");
-    assert typeElem != null;
-    return typeElem;
-  }
-
   /**
    * Returns string representation of the class fields. Meant to be at the beginning of the class
    * body.
    */
-  String fields() {
+  private String fieldsCode() {
     var userDefinedFields =
         fields.stream()
             .map(field -> "private final " + field.getSimpleTypeName() + " " + field.getName())
@@ -184,7 +216,7 @@ import scala.collection.immutable.List;
    * Returns string representation of the package-private constructor of the generated class. Note
    * that the constructor is meant to be invoked only by the internal Builder class.
    */
-  String constructor() {
+  private String constructor() {
     var sb = new StringBuilder();
     sb.append("private ").append(className).append("(");
     var inParens =
@@ -239,7 +271,7 @@ import scala.collection.immutable.List;
    * Returns a String representing all the overriden methods from {@link org.enso.compiler.core.IR}.
    * Meant to be inside the generated record definition.
    */
-  String overrideIRMethods() {
+  private String overrideIRMethods() {
     var code =
         """
 
@@ -311,7 +343,7 @@ import scala.collection.immutable.List;
    *
    * @return Code of the overriden methods
    */
-  String overrideUserDefinedMethods() {
+  private String overrideUserDefinedMethods() {
     var code =
         fields.stream()
             .map(
@@ -334,7 +366,7 @@ import scala.collection.immutable.List;
    *
    * @return Code of the builder
    */
-  String builder() {
+  private String builder() {
     var fieldDeclarations =
         fields.stream()
             .map(
@@ -405,5 +437,20 @@ import scala.collection.immutable.List;
     return code.lines()
         .map(line -> " ".repeat(indentation) + line)
         .collect(Collectors.joining(System.lineSeparator()));
+  }
+
+  private void ensureIsSubtypeOfIR(TypeElement typeElem) {
+    if (!Utils.isSubtypeOfIR(typeElem.asType(), processingEnv)) {
+      Utils.printError(
+          "Method annotated with @IRChild must return a subtype of IR interface",
+          typeElem,
+          processingEnv.getMessager());
+    }
+  }
+
+  private TypeElement getIrType() {
+    var typeElem = processingEnv.getElementUtils().getTypeElement("org.enso.compiler.core.IR");
+    assert typeElem != null;
+    return typeElem;
   }
 }
