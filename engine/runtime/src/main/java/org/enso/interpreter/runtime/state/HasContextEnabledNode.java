@@ -32,18 +32,28 @@ public abstract class HasContextEnabledNode extends Node {
       ExecutionEnvironment executionEnvironment, AtomConstructor runtimeCtxCtor);
 
   @Specialization(guards = "executionEnvironment == cachedEnv", limit = "3")
-  boolean doIt(
+  boolean cachedHasContextEnabled(
       ExecutionEnvironment executionEnvironment,
       AtomConstructor runtimeCtxCtor,
       @Cached("executionEnvironment") ExecutionEnvironment cachedEnv) {
+    return doIt(cachedEnv, runtimeCtxCtor);
+  }
+
+  @Specialization(replaces = "cachedHasContextEnabled")
+  boolean uncachedHasContextEnabled(
+      ExecutionEnvironment executionEnvironment, AtomConstructor runtimeCtxCtor) {
+    return doIt(executionEnvironment, runtimeCtxCtor);
+  }
+
+  private boolean doIt(ExecutionEnvironment executionEnvironment, AtomConstructor runtimeCtxCtor) {
     var ensoCtx = EnsoContext.get(this);
     var contextBuiltin = ensoCtx.getBuiltins().context();
     if (runtimeCtxCtor == contextBuiltin.getInput()) {
-      return cachedEnv.permissions.input();
+      return executionEnvironment.permissions.input();
     } else if (runtimeCtxCtor == contextBuiltin.getOutput()) {
-      return cachedEnv.permissions.output();
+      return executionEnvironment.permissions.output();
     } else if (runtimeCtxCtor == contextBuiltin.getDataflowStackTrace()) {
-      return cachedEnv.permissions.dataflowStacktrace();
+      return executionEnvironment.permissions.dataflowStacktrace();
     } else {
       CompilerDirectives.transferToInterpreter();
       throw ensoCtx.raiseAssertionPanic(this, "Unknown context: " + runtimeCtxCtor, null);
