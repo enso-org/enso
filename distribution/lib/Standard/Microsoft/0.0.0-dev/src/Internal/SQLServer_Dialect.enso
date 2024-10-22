@@ -329,13 +329,22 @@ type SQLServer_Dialect
             op = self.dialect_operations.operations_dict.get kind (Error.throw <| Unsupported_Database_Operation.Error kind)
             parsed_args_and_null_checks = arguments.map (c -> self.generate_expression base_gen c)
             parsed_args = parsed_args_and_null_checks.map .first
-            result = op parsed_args
-            null_checks = parsed_args_and_null_checks.map .second
-            # If the function expects more arguments, we pass the metadata as the last argument.
-            r = case result of
-                _ : Function -> result metadata
-                _ -> result
-            pair r null_checks
+            null_checks = parsed_args_and_null_checks.map .second  . flatten
+
+            expr_result = case kind of
+                "IS_NULL" -> _generate_null_check_sql_builder null_checks
+                _ -> 
+                    result = op parsed_args
+                    # If the function expects more arguments, we pass the metadata as the last argument.
+                    case result of
+                        _ : Function -> result metadata
+                        _ -> result
+
+            null_checks_result = case kind of
+                "IS_NULL" -> []
+                _ -> null_checks
+            
+            pair expr_result null_checks_result
         query : Query -> pair (base_gen.generate_sub_query self query) []
 
     ## PRIVATE
@@ -344,14 +353,14 @@ type SQLServer_Dialect
         base_expr = expr_null_checks_pair.first
         built_expr = case expr of
             SQL_Expression.Operation kind _ _ ->
-                null_checks = expr_null_checks_pair.second . flatten
-                null_check = (null_checks.map it->(it.paren ++ " IS NULL ")) . fold (SQL_Builder.code "1=0 ") acc-> i-> acc ++ "OR " ++ i
-                case kind of
-                    ## TODO move deeper
-                    "IS_NULL" -> SQL_Builder.code "CASE WHEN " ++ null_check ++ " THEN 1 ELSE 0 END"
-                    _ -> SQL_Builder.code "CASE WHEN " ++ null_check ++ " THEN NULL WHEN " ++ base_expr ++ " THEN 1 ELSE 0 END"
+                null_check = _generate_null_check_sql_builder expr_null_checks_pair.second
+                SQL_Builder.code "CASE WHEN " ++ null_check ++ " THEN NULL WHEN " ++ base_expr ++ " THEN 1 ELSE 0 END"
             _ -> base_expr
         built_expr ++ Base_Generator.alias self name
+
+## PRIVATE
+private _generate_null_check_sql_builder null_checks:Vector -> SQL_Builder =
+    (null_checks.map it->(it.paren ++ " IS NULL ")) . fold (SQL_Builder.code "1=0 ") acc-> i-> acc ++ "OR " ++ i
 
 ## PRIVATE
 make_dialect_operations =
