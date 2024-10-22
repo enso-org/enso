@@ -2,13 +2,16 @@
   "extends": "../../../tsconfig.json",
   "compilerOptions": {
     "esModuleInterop": true,
-    "paths": { "@/*": ["./src/*"] }
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
+    }
   },
   "include": [
     ".",
     "../content",
     "../types",
-    "../../build.json",
     "src/config.json"
   ]
 }

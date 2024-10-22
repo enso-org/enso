@@ -1,4 +1,4 @@
 export default {
-  version: process.env.BUILD_INFO_VERSION ?? 'snapshot',
-  commit: process.env.BUILD_INFO_COMMIT_HASH ?? '<snapshot>',
+  version: process.env.ENSO_VERSION ?? '0.0.0-dev',
+  commit: process.env.GITHUB_SHA ?? '<snapshot>',
 }
