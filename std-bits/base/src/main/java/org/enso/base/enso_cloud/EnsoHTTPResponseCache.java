@@ -11,6 +11,18 @@ import org.enso.base.cache.StreamCache;
 import org.enso.base.cache.StreamCache.CacheResult;
 import org.enso.base.cache.StreamCache.StreamMaker;
 
+/**
+ * EnsoHTTPResponseCache  is a cache for EnsoHttpResponse values that respects the cache control
+ * HTTP headers received in the original repsonse to a request.
+ *
+ * <p>It uses StreamCache, so it also puts limits on the size of files that can
+ * be requested, and on the total cache size, deleting entries to make space for
+ * new ones. All cache files are set to be deleted automatically on JVM exit.
+ *
+ * <p>Without caching, EnsoHttpResponse contains an InputStream providing the response data. When
+ * there is a cache hit, this stream reads from the local file storing the cached data. When there
+ * is no cache hit, the InputStream is connected directly to the remote server.
+ */
 public class EnsoHTTPResponseCache {
   private static final int DEFAULT_TTL_SECONDS = 31536000;
   private static final long MAX_FILE_SIZE = 10L * 1024 * 1024;

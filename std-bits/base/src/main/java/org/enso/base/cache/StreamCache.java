@@ -21,6 +21,15 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import org.apache.commons.io.IOUtils;
 
+/**
+ * StreamCache is a cache for data presented via InputStreams. Files are deleted on JVM exit.
+ *
+ * <p>It puts limits on the size of files that can be requested, and on the total cache size,
+ * deleting entries to make space for new ones. All cache files are set to be deleted automatically
+ * on JVM exit.
+ *
+ * @param <M> Additional metadata to associate with the data.
+ */
 public class StreamCache<M> {
   private static final Logger logger = Logger.getLogger(StreamCache.class.getName());
 
@@ -291,7 +300,10 @@ public class StreamCache<M> {
   public interface StreamMaker<M> {
     String makeCacheKey();
 
-    Thing<M> makeThing() throws IOException, InterruptedException  ;
+    /**
+     * Returning a Thing with no TTL indicates that the data should not be cached.
+     */
+    Thing<M> makeThing() throws IOException, InterruptedException;
   }
 
   private final Comparator<Map.Entry<String, CacheEntry<M>>> cacheEntryLRUComparator =
