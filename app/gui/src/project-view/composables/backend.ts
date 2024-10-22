@@ -32,12 +32,18 @@ function backendQueryOptions<Method extends BackendMethods>(
   }
 }
 
-/** TODO: Add docs */
+/**
+ * Composable providing access to the backend API.
+ *
+ * @param which - Whether to use the remote backend, or the current project's backend (which may be the remote backend,
+ * or a local backend).
+ */
 export function useBackend(which: 'remote' | 'project') {
   const queryClient = useQueryClient()
   const { project, remote } = injectBackend()
   const backend = which === 'project' ? project : remote
 
+  /** Perform the specified query, and keep the result up-to-date if the provided arguments change. */
   function query<Method extends BackendMethods>(
     method: Method,
     args: ToValue<Parameters<Backend[Method]> | undefined>,
@@ -45,6 +51,7 @@ export function useBackend(which: 'remote' | 'project') {
     return useQuery(backendQueryOptions(method, args, backend))
   }
 
+  /** Enable prefetching of the specified query. */
   function prefetch<Method extends BackendMethods>(
     method: Method,
     args: ToValue<Parameters<Backend[Method]> | undefined>,
@@ -52,6 +59,7 @@ export function useBackend(which: 'remote' | 'project') {
     return queryClient.prefetchQuery(backendQueryOptions(method, args, backend))
   }
 
+  /** Return query results from the cache (even if stale), or if no cached data is available fetch the data. */
   function ensureQueryData<Method extends BackendMethods>(
     method: Method,
     args: ToValue<Parameters<Backend[Method]> | undefined>,
