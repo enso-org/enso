@@ -86,7 +86,7 @@ class MethodTypeResolver {
                     }
                   })
               .toList();
-      logger.warn("Method {} is defined in multiple imports: {}", methodName, foundImports);
+      logger.debug("Method {} is defined in multiple imports: {}", methodName, foundImports);
       var foundTypes = foundInImports.stream().distinct();
       if (foundTypes.count() > 1) {
         logger.error(
