@@ -82,7 +82,7 @@ const _props = defineProps<{
   suppressMoveWhenColumnDragging?: boolean
   textFormatOption?: TextFormatOptions
   processDataFromClipboard?: (params: ProcessDataFromClipboardParams<TData>) => string[][] | null
-  pinnedTopRowData?: TData[]
+  pinnedTopRowData?: TData[] | null
   pinnedRowHeightMultiplier?: number
 }>()
 const emit = defineEmits<{
