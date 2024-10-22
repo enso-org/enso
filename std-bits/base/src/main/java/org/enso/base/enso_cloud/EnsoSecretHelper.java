@@ -7,11 +7,11 @@ import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest.Builder;
 import java.net.http.HttpResponse;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HexFormat;
 import java.util.List;
@@ -158,19 +158,16 @@ public final class EnsoSecretHelper extends SecretValueResolver {
      */
     @Override
     public String hashKey() {
-      try {
-        MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
-        messageDigest.update(resolvedURI.toString().getBytes());
+      var sortedHeaders = resolvedHeaders.stream().sorted(headerNameComparator).toList();
+      List<String> keyStrings = new ArrayList<>(sortedHeaders.size() + 1);
+      keyStrings.add(resolvedURI.toString());
 
-        var sortedHeaders = resolvedHeaders.stream().sorted(headerNameComparator).toList();
-        for (Pair<String, String> resolvedHeader : sortedHeaders) {
-          messageDigest.update(resolvedHeader.getLeft().getBytes());
-          messageDigest.update(resolvedHeader.getRight().getBytes());
-        }
-        return HexFormat.of().formatHex(messageDigest.digest());
-      } catch (NoSuchAlgorithmException ex) {
-        throw raise(RuntimeException.class, ex);
+      for (Pair<String, String> resolvedHeader : sortedHeaders) {
+        keyStrings.add(resolvedHeader.getLeft());
+        keyStrings.add(resolvedHeader.getRight());
       }
+
+      return Integer.toString(Arrays.deepHashCode(keyStrings.toArray()));
     }
 
     @Override
@@ -184,11 +181,6 @@ public final class EnsoSecretHelper extends SecretValueResolver {
           inputStream,
           metadata.statusCode());
     }
-  }
-
-  @SuppressWarnings("unchecked")
-  private static <E extends Exception> E raise(Class<E> type, Exception ex) throws E {
-    throw (E) ex;
   }
 
   private static final Comparator<Pair<String, String>> headerNameComparator =
