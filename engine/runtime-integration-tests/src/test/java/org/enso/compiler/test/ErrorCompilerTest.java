@@ -12,11 +12,7 @@ import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.junit.Test;
 import scala.collection.immutable.List;
 
-<<<<<<<< HEAD:engine/runtime-integration-tests/src/test/java/org/enso/compiler/ErrorParserTest.java
-public class ErrorParserTest extends ParserTest {
-========
 public class ErrorCompilerTest extends CompilerTests {
->>>>>>>> develop:engine/runtime-integration-tests/src/test/java/org/enso/compiler/test/ErrorCompilerTest.java
 
   @Test
   public void unfinishedLiteral1() throws Exception {

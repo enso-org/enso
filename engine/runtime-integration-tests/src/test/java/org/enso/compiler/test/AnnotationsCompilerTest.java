@@ -9,11 +9,7 @@ import org.enso.compiler.core.ir.expression.errors.Syntax;
 import org.enso.compiler.core.ir.module.scope.Definition;
 import org.junit.Test;
 
-<<<<<<<< HEAD:engine/runtime-integration-tests/src/test/java/org/enso/compiler/AnnotationsParserTest.java
-public class AnnotationsParserTest extends ParserTest {
-========
 public class AnnotationsCompilerTest extends CompilerTests {
->>>>>>>> develop:engine/runtime-integration-tests/src/test/java/org/enso/compiler/test/AnnotationsCompilerTest.java
 
   @Test
   public void testModuleMethod() throws Exception {

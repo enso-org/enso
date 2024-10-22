@@ -12,33 +12,10 @@ import org.enso.compiler.core.EnsoParser;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Module;
-<<<<<<<< HEAD:engine/runtime-integration-tests/src/test/java/org/enso/compiler/ParserTest.java
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-
-public abstract class ParserTest {
-
-  protected static EnsoParser ensoParser;
-
-  @BeforeClass
-  public static void initEnsoParser() {
-    ensoParser = new EnsoParser();
-  }
-
-  @AfterClass
-  public static void closeEnsoParser() throws Exception {
-    ensoParser.close();
-  }
-========
->>>>>>>> develop:engine/runtime-integration-tests/src/test/java/org/enso/compiler/test/CompilerTests.java
 
 public abstract class CompilerTests {
   protected static Module parse(CharSequence code) {
-<<<<<<<< HEAD:engine/runtime-integration-tests/src/test/java/org/enso/compiler/ParserTest.java
-    Module ir = ensoParser.compile(code);
-========
     Module ir = EnsoParser.compile(code);
->>>>>>>> develop:engine/runtime-integration-tests/src/test/java/org/enso/compiler/test/CompilerTests.java
     assertNotNull("IR was generated", ir);
     return ir;
   }
