@@ -1,4 +1,4 @@
-package org.enso.base.cache;
+package org.enso.base.enso_cloud;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -6,6 +6,8 @@ import java.net.http.HttpHeaders;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Optional;
+import org.enso.base.cache.ResponseTooLargeException;
+import org.enso.base.cache.StreamCache;
 import org.enso.base.cache.StreamCache.CacheResult;
 import org.enso.base.cache.StreamCache.StreamMaker;
 import org.enso.base.enso_cloud.EnsoHttpResponse;
@@ -110,31 +112,31 @@ public class EnsoHTTPResponseCache {
     streamCache.clear();
   }
 
-  public int getNumEntries() {
+  public static int getNumEntries() {
     return streamCache.getNumEntries();
   }
 
-  public List<Long> getFileSizesTestOnly() {
+  public static List<Long> getFileSizesTestOnly() {
     return streamCache.getFileSizesTestOnly();
   }
 
-  public void setNowOverrideTestOnly(ZonedDateTime nowOverride) {
+  public static void setNowOverrideTestOnly(ZonedDateTime nowOverride) {
     streamCache.setNowOverrideTestOnly(nowOverride);
   }
 
-  public void setMaxFileSizeOverrideTestOnly(long maxFileSizeOverrideTestOnly) {
+  public static void setMaxFileSizeOverrideTestOnly(long maxFileSizeOverrideTestOnly) {
     streamCache.setMaxFileSizeOverrideTestOnly(maxFileSizeOverrideTestOnly);
   }
 
-  public void clearMaxFileSizeOverrideTestOnly() {
+  public static void clearMaxFileSizeOverrideTestOnly() {
     streamCache.clearMaxFileSizeOverrideTestOnly();
   }
 
-  public void setMaxTotalCacheSizeOverrideTestOnly(long maxTotalCacheSizeOverrideTestOnly_) {
+  public static void setMaxTotalCacheSizeOverrideTestOnly(long maxTotalCacheSizeOverrideTestOnly_) {
     streamCache.setMaxTotalCacheSizeOverrideTestOnly(maxTotalCacheSizeOverrideTestOnly_);
   }
 
-  public void clearMaxTotalCacheSizeOverrideTestOnly() {
+  public static void clearMaxTotalCacheSizeOverrideTestOnly() {
     streamCache.clearMaxTotalCacheSizeOverrideTestOnly();
   }
 

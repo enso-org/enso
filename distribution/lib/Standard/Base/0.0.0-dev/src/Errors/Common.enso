@@ -558,23 +558,21 @@ type Out_Of_Range
 ## Indiciates that the response from a remote endpoint is over the size limit.
 type Response_Too_Large
     ## PRIVATE
-    Error size:Integer limit:Integer url:(Text|Nothing)
+    Error size:Integer limit:Integer
 
     ## PRIVATE
        Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self =
-        url_maybe = if self.url.is_nothing then "" else "(URL "+self.url+")"
         suggestion = " Use `Data.fetch` with `cache_policy=No_Cache`, or use `Data.download` to fetch the data to a local file, and `Data.read` to read the file."
-        "Response too large: repsonse size ("+self.size.to_text+") is over the limit ("+self.limit.to_text+")" + url_maybe + suggestion
+        "Response too large: repsonse size ("+self.size.to_text+") is over the limit ("+self.limit.to_text+")" + suggestion
 
     ## PRIVATE
     to_text : Text
     to_text self =
-        url_maybe = if self.url.is_nothing then "" else " (URL = "+self.url+")"
-        "(Response_Too_Large (size = "+self.size.to_text+") (limit = "+self.limit.to_text+")" + url_maybe + ")"
+        "(Response_Too_Large (size = "+self.size.to_text+") (limit = "+self.limit.to_text+")" + ")"
 
     ## PRIVATE
        Convert the Java exception to an Enso dataflow error.
     handle_java_exception ~action =
-        Panic.catch ResponseTooLargeException action (cause-> Error.throw (Response_Too_Large.Error cause.payload.getSize cause.payload.getLimit cause.payload.getURL))
+        Panic.catch ResponseTooLargeException action (cause-> Error.throw (Response_Too_Large.Error cause.payload.getSize cause.payload.getLimit))
