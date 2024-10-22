@@ -3129,9 +3129,8 @@ lazy val `runtime-parser-dsl` =
       frgaalJavaCompilerSetting
     )
 
-lazy val `runtime-parser-processor` =
-  (project in file("engine/runtime-parser-processor"))
-    .enablePlugins(JPMSPlugin)
+lazy val `runtime-parser-processor-tests` =
+  (project in file("engine/runtime-parser-processor-tests"))
     .settings(
       frgaalJavaCompilerSetting,
       commands += WithDebugCommand.withDebug,
@@ -3141,7 +3140,16 @@ lazy val `runtime-parser-processor` =
         "com.github.sbt"             % "junit-interface" % junitIfVersion  % Test,
         "org.hamcrest"               % "hamcrest-all"    % hamcrestVersion % Test,
         "com.google.testing.compile" % "compile-testing" % "0.21.0"        % Test
-      ),
+      )
+    )
+    .dependsOn(`runtime-parser-processor`)
+    .dependsOn(`runtime-parser` % Test)
+
+lazy val `runtime-parser-processor` =
+  (project in file("engine/runtime-parser-processor"))
+    .enablePlugins(JPMSPlugin)
+    .settings(
+      frgaalJavaCompilerSetting,
       Compile / internalModuleDependencies := Seq(
         (`runtime-parser-dsl` / Compile / exportedModule).value
       )
