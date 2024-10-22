@@ -3143,11 +3143,9 @@ lazy val `runtime-parser-processor` =
         "com.google.testing.compile" % "compile-testing" % "0.21.0"        % Test
       ),
       Compile / internalModuleDependencies := Seq(
-        (`runtime-parser` / Compile / exportedModule).value,
         (`runtime-parser-dsl` / Compile / exportedModule).value
       )
     )
-    .dependsOn(`runtime-parser`)
     .dependsOn(`runtime-parser-dsl`)
 
 lazy val `runtime-compiler` =

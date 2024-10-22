@@ -13,7 +13,6 @@ import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.TypeElement;
-import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.SimpleElementVisitor14;
 import javax.tools.JavaFileObject;
 import org.enso.runtime.parser.dsl.IRNode;
@@ -46,7 +45,9 @@ public class IRProcessor extends AbstractProcessor {
       printError("IRNode annotation can only be applied to interfaces", irNodeElem);
       return false;
     }
-    if (!isSubtypeOfIR(irNodeElem.asType())) {
+    assert irNodeElem instanceof TypeElement;
+    var irNodeTypeElem = (TypeElement) irNodeElem;
+    if (!Utils.isSubtypeOfIR(irNodeTypeElem, processingEnv)) {
       printError("Interface annotated with @IRNode must be a subtype of IR interface", irNodeElem);
       return false;
     }
@@ -55,8 +56,6 @@ public class IRProcessor extends AbstractProcessor {
       printError("Interface annotated with @IRNode must not be nested", irNodeElem);
       return false;
     }
-    assert irNodeElem instanceof TypeElement;
-    var irNodeTypeElem = (TypeElement) irNodeElem;
     var nestedInterfaces = collectNestedInterfaces(irNodeTypeElem);
     var irNodeInterfaceName = irNodeTypeElem.getSimpleName().toString();
     var pkgName = packageName(irNodeTypeElem);
@@ -107,10 +106,6 @@ public class IRProcessor extends AbstractProcessor {
   private String packageName(Element elem) {
     var pkg = processingEnv.getElementUtils().getPackageOf(elem);
     return pkg.getQualifiedName().toString();
-  }
-
-  private boolean isSubtypeOfIR(TypeMirror type) {
-    return Utils.isSubtypeOfIR(type, processingEnv);
   }
 
   private void printError(String msg, Element elem) {

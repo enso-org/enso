@@ -14,7 +14,6 @@ import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.SimpleElementVisitor14;
-import org.enso.compiler.core.IR;
 import org.enso.runtime.parser.dsl.IRChild;
 import org.enso.runtime.parser.dsl.IRNode;
 
@@ -31,7 +30,7 @@ import org.enso.runtime.parser.dsl.IRNode;
  * <p>Every parameterless abstract method defined by the interface (or any super interface) is
  * treated as a field of the IR node. If the parameterless method is annotated with {@link
  * org.enso.runtime.parser.dsl.IRChild}, it is treated as a <emph>child</emph> and will get into the
- * generated code for, e.g., methods like {@link IR#children()}.
+ * generated code for, e.g., methods like {@link org.enso.compiler.core.IR#children()}.
  */
 final class IRNodeClassGenerator {
   private final ProcessingEnvironment processingEnv;
@@ -454,7 +453,7 @@ final class IRNodeClassGenerator {
   }
 
   private void ensureIsSubtypeOfIR(TypeElement typeElem) {
-    if (!Utils.isSubtypeOfIR(typeElem.asType(), processingEnv)) {
+    if (!Utils.isSubtypeOfIR(typeElem, processingEnv)) {
       Utils.printError(
           "Method annotated with @IRChild must return a subtype of IR interface",
           typeElem,
