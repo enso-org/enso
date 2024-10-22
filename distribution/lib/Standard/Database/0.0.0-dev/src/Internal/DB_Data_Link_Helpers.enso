@@ -24,7 +24,7 @@ save_table_as_data_link table destination on_existing_file:Existing_File_Behavio
         Error.throw (Illegal_Argument.Error "Saving a Table as data link is currently not supported in this backend.")
 
     # For a trivial query we return the table name.
-    link_type = if table.is_trivial_query then ..Table table.name else
+    link_type = if table.is_trivial_query fail_if_not_found=False then ..Table table.name else
         sql_statement = table.to_sql
         prepared = sql_statement.prepare
         # If there are no interpolations, we can do a raw query represented by Text (more friendly in the GUI).

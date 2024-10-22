@@ -2746,18 +2746,24 @@ type DB_Table
 
        Some operations, like writing to tables, require their target to be a
        trivial query.
-    is_trivial_query self -> Boolean ! Table_Not_Found =
+
+       Arguments:
+       - fail_if_not_found: If `True`, a `Table_Not_Found` error is raised if the
+         table does not exist in the database. Otherwise, `False` is returned.
+    is_trivial_query self (fail_if_not_found : Boolean = True) -> Boolean ! Table_Not_Found =
         case self.context.from_spec of
             From_Spec.Table internal_table_name _ _ ->
                 if self.name != internal_table_name then False else
                     trivial_counterpart = self.connection.query (SQL_Query.Table_Name self.name)
                     # If the table spec seems trivial, but the underlying table does not exist, we propagate the Table_Not_Found error.
-                    trivial_counterpart.if_not_error <|
+                    check_context_and_columns =
                         if self.context != trivial_counterpart.context then False else
                            column_descriptor internal_column = [internal_column.name, internal_column.expression]
                            my_columns = self.internal_columns.map column_descriptor
                            trivial_columns = trivial_counterpart.internal_columns.map column_descriptor
                            my_columns == trivial_columns
+                    if fail_if_not_found then trivial_counterpart.if_not_error check_context_and_columns else
+                        if trivial_counterpart.is_error then False else check_context_and_columns
             _ -> False
 
     ## PRIVATE
