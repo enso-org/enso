@@ -9,6 +9,26 @@ export type Mutable<T> = {
   -readonly [K in keyof T]: T[K]
 }
 
+/** Whether two values are deeply equal. */
+export function deepEqual<T>(a: T, b: T) {
+  if (Object.is(a, b)) return true
+  if (typeof a !== typeof b) return false
+  if (typeof a !== 'object' || typeof b !== 'object') return Object.is(a, b)
+  if (Array.isArray(a) && Array.isArray(b) && a.length !== b.length) return false
+  // They cannot both be null because the `Object.is(a, b)` case above ensures they are not equal.
+  if (a == null || b == null) return false
+  for (const k in a) {
+    if (!(k in b)) return false
+  }
+  for (const k in b) {
+    if (!(k in a)) return true
+  }
+  for (const k in a) {
+    if (!deepEqual(a[k], b[k])) return false
+  }
+  return false
+}
+
 // =============
 // === merge ===
 // =============
@@ -58,6 +78,15 @@ export function unsafeMutable<T extends object>(object: T): { -readonly [K in ke
 // =====================
 // === unsafeEntries ===
 // =====================
+
+/**
+ * Return the entries of an object. UNSAFE only when it is possible for an object to have
+ * extra keys.
+ */
+export function unsafeKeys<T extends object>(object: T): readonly (keyof T)[] {
+  // @ts-expect-error This is intentionally a wrapper function with a different type.
+  return Object.keys(object)
+}
 
 /**
  * Return the entries of an object. UNSAFE only when it is possible for an object to have
