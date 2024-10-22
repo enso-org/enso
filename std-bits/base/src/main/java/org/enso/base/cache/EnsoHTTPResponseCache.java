@@ -1,33 +1,10 @@
 package org.enso.base.cache;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URI;
 import java.net.http.HttpHeaders;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.time.Duration;
-import java.time.ZonedDateTime;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HexFormat;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.SortedSet;
-import java.util.TreeSet;
-import java.util.function.Predicate;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import java.util.stream.Collectors;
-import org.apache.commons.io.IOUtils;
 import org.enso.base.cache.StreamCache.StreamMaker;
-import org.enso.base.net.URIWithSecrets;
-import org.graalvm.collections.Pair;
 import org.enso.base.enso_cloud.EnsoHttpResponse;
 
 public class EnsoHTTPResponseCache {
@@ -36,42 +13,42 @@ public class EnsoHTTPResponseCache {
   private static final int DEFAULT_TTL_SECONDS = 31536000;
 
   public static EnsoHttpResponse makeRequest(RequestMaker requestMaker) {
-      StreamMaker<Metadata> streamMaker = new EnsoHTTPResponseCacheThing(requestMaker);
+    StreamMaker<Metadata> streamMaker = new EnsoHTTPResponseCacheThing(requestMaker);
 
-      CacheResult<Metadata> cacheResult = streamCache.getResult(streamMaker);
+    CacheResult<Metadata> cacheResult = streamCache.getResult(streamMaker);
 
-      return requestMaker.reconstructResponseFromCachedStream(inputStream, cacheResult.metadata());
+    return requestMaker.reconstructResponseFromCachedStream(inputStream, cacheResult.metadata());
   }
 
   public static class EnsoHTTPResponseCacheThing implements StreamMaker {
-      private RequestMaker requestMaker;
+    private RequestMaker requestMaker;
 
-      EnsoHTTPResponseCacheThing(RequestMaker requestMaker) {
-          this.requestMaker = requestMaker;
+    EnsoHTTPResponseCacheThing(RequestMaker requestMaker) {
+      this.requestMaker = requestMaker;
+    }
+
+    String makeCacheKey() {
+      return requestMaker.hashKey();
+    }
+
+    Thing makeThing() {
+      EnsoHTTPResponse response = requestMaker.run();
+
+      if (response.statusCode() != 200) {
+        // Don't cache non-200 repsonses.
+        return new Thing(
+            response.body(),
+            new Metadata(response.headers(), response.statusCode()),
+            Optional.empty(),
+            Optional.empty());
+      } else {
+        InputStream inputStream = response.body();
+        var metadata = new Metadata(response.headers(), response.statusCode());
+        var sizeMaybe = getResponseDataSize(response.headers());
+        int ttl = calculateTTL(response.headers());
+        return new Thing(inputStream, metadata, sizeMaybe, Optional.of(ttl));
       }
-
-      String makeCacheKey() {
-          return requestMaker.hashKey();
-      }
-
-      Thing makeThing() {
-          EnsoHTTPResponse response = requestMaker.run();
-
-          if (response.statusCode() != 200) {
-            // Don't cache non-200 repsonses.
-            return new Thing(
-                response.body(),
-                new Metadata(response.headers(), response.statusCode()),
-                Optional.empty(),
-                Optional.empty());
-          } else {
-            InputStream inputStream = response.body();
-            var metadata = new Metadata(response.headers(), response.statusCode());
-            var sizeMaybe = getResponseDataSize(response.headers());
-            int ttl = calculateTTL(response.headers());
-            return new Thing(inputStream, metadata, sizeMaybe , Optional.of(ttl));
-          }
-      }
+    }
   }
 
   /** Get the size of the response data, if available. */
@@ -125,11 +102,12 @@ public class EnsoHTTPResponseCache {
   }
 
   public interface RequestMaker {
-      EnsoHttpResponse run() throws IOException, InterruptedException;
+    EnsoHttpResponse run() throws IOException, InterruptedException;
 
-      String hashKey();
+    String hashKey();
 
-      EnsoHttpResponse reconstructResponseFromCachedStream(InputStream inputStream, CacheResult cacheResult);
+    EnsoHttpResponse reconstructResponseFromCachedStream(
+        InputStream inputStream, CacheResult cacheResult);
   }
 
   public record Metadata(HttpHeaders headers, int statusCode) {}

@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.io.IOUtils;
 
 public class StreamCache<M> {
-  private static final Logger logger = Logger.getLogger(StreamCache .class.getName());
+  private static final Logger logger = Logger.getLogger(StreamCache.class.getName());
 
   private final long MAX_FILE_SIZE = 10L * 1024 * 1024;
   private final long MAX_TOTAL_CACHE_SIZE = 10L * 1024 * 1024 * 1024;
@@ -41,22 +41,24 @@ public class StreamCache<M> {
   private final Map<String, CacheEntry<M>> cache = new HashMap<>();
   private final Map<String, ZonedDateTime> lastUsed = new HashMap<>();
 
-  public CacheResult<M> getResult(StreamMaker<M> streamMaker) throws IOException, ResponseTooLargeException {
-      String cacheKey = streamMaker.makeCacheKey();
-      if (cache.containsKey(cacheKey)) {
-        return getResultForCacheEntry(cacheKey);
-      } else {
-        return makeRequestAndCache(cacheKey, streamMaker);
-      }
+  public CacheResult<M> getResult(StreamMaker<M> streamMaker)
+      throws IOException, ResponseTooLargeException {
+    String cacheKey = streamMaker.makeCacheKey();
+    if (cache.containsKey(cacheKey)) {
+      return getResultForCacheEntry(cacheKey);
+    } else {
+      return makeRequestAndCache(cacheKey, streamMaker);
+    }
   }
 
-  private CacheResult<M> makeRequestAndCache(String cacheKey, StreamMaker<M> streamMaker) throws ResponseTooLargeException {
+  private CacheResult<M> makeRequestAndCache(String cacheKey, StreamMaker<M> streamMaker)
+      throws ResponseTooLargeException {
     assert !cache.containsKey(cacheKey);
 
     Thing<M> thing = streamMaker.makeThing();
 
     if (!thing.shouldCache()) {
-        return new CacheResult<>(thing.stream(), thing.metadata());
+      return new CacheResult<>(thing.stream(), thing.metadata());
     }
 
     if (thing.sizeMaybe.isPresent()) {
@@ -86,11 +88,10 @@ public class StreamCache<M> {
       return getResultForCacheEntry(cacheKey);
     } catch (IOException e) {
       logger.log(
-          Level.WARNING,
-          "Failure storing cache entry; will re-execute without caching: " + e);
+          Level.WARNING, "Failure storing cache entry; will re-execute without caching: " + e);
       // Re-issue the request since we don't know if we've consumed any of the response.
       Thing<M> rerequested = streamMaker.makeThing();
-      return new CacheResult<>(rerequested .stream(), rerequested .metadata());
+      return new CacheResult<>(rerequested.stream(), rerequested.metadata());
     }
   }
 
@@ -98,8 +99,7 @@ public class StreamCache<M> {
   private CacheResult<M> getResultForCacheEntry(String cacheKey) throws IOException {
     markCacheEntryUsed(cacheKey);
     return new CacheResult<>(
-        new FileInputStream(cache.get(cacheKey).responseData),
-        cache.get(cacheKey).metadata());
+        new FileInputStream(cache.get(cacheKey).responseData), cache.get(cacheKey).metadata());
   }
 
   /**
@@ -271,30 +271,22 @@ public class StreamCache<M> {
     }
   }
 
-  private record CacheEntry<M> (
-      File responseData,
-      M metadata,
-      long size,
-      ZonedDateTime expiry) {}
+  private record CacheEntry<M>(File responseData, M metadata, long size, ZonedDateTime expiry) {}
 
-  public record Thing<M> (
-      InputStream stream,
-      Optional<Long> sizeMaybe,
-      Optional<Integer> ttl,
-      M metadata) {
+  public record Thing<M>(
+      InputStream stream, Optional<Long> sizeMaybe, Optional<Integer> ttl, M metadata) {
 
-      public boolean shouldCache() {
-        return ttl.isPresent();
-      }
+    public boolean shouldCache() {
+      return ttl.isPresent();
     }
+  }
 
-  public record CacheResult<M> (
-    InputStream inputStream,
-    M metadata) {}
+  public record CacheResult<M>(InputStream inputStream, M metadata) {}
 
   public interface StreamMaker<M> {
-      String makeCacheKey();
-      Thing<M> makeThing();
+    String makeCacheKey();
+
+    Thing<M> makeThing();
   }
 
   private final Comparator<Map.Entry<String, CacheEntry<M>>> cacheEntryLRUComparator =
