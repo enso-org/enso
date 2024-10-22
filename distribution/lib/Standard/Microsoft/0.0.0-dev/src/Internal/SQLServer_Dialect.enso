@@ -305,8 +305,8 @@ type SQLServer_Dialect
             jdbc.ensure_query_has_no_holes raw_sql
 
     generate_expression self base_gen expr_null_checks_pair = case expr_null_checks_pair.first of
-        SQL_Expression.Column origin name ->
-            wrapped_name = self.wrap_identifier origin ++ '.' ++ self.wrap_identifier name
+        SQL_Expression.Column _ _ ->
+            wrapped_name = base_gen.generate_expression self expr_null_checks_pair.first
             pair wrapped_name expr_null_checks_pair.second+[wrapped_name]
         SQL_Expression.Constant value -> SQL_Builder.interpolation value
         SQL_Expression.Literal value -> SQL_Builder.code value
