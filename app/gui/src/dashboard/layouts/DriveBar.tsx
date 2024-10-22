@@ -51,6 +51,7 @@ import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import { ProjectState, type CreatedProject, type Project, type ProjectId } from '#/services/Backend'
 import type AssetQuery from '#/utilities/AssetQuery'
+import { inputFiles } from '#/utilities/input'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 
 // ================
@@ -367,9 +368,9 @@ export default function DriveBar(props: DriveBarProps) {
                 icon={DataUploadIcon}
                 isDisabled={shouldBeDisabled}
                 aria-label={getText('uploadFiles')}
-                onPress={() => {
-                  unsetModal()
-                  uploadFilesRef.current?.click()
+                onPress={async () => {
+                  const files = await inputFiles()
+                  doUploadFiles(Array.from(files))
                 }}
               />
               <Button

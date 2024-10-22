@@ -8,7 +8,7 @@ import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useDispatchAssetEvent } from '#/layouts/AssetsTable/EventListProvider'
 import { useFullUserSession } from '#/providers/AuthProvider'
-import { useBackend, useLocalBackend, useRemoteBackendStrict } from '#/providers/BackendProvider'
+import { useBackend, useLocalBackend, useRemoteBackend } from '#/providers/BackendProvider'
 import {
   FilterBy,
   type AssetId,
@@ -155,7 +155,7 @@ export function canTransferBetweenCategories(from: Category, to: Category) {
 
 /** A function to transfer a list of assets between categories. */
 export function useTransferBetweenCategories(currentCategory: Category) {
-  const remoteBackend = useRemoteBackendStrict()
+  const remoteBackend = useRemoteBackend()
   const localBackend = useLocalBackend()
   const backend = useBackend(currentCategory)
   const { user } = useFullUserSession()

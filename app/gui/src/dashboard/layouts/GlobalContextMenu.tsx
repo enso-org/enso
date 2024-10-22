@@ -1,6 +1,4 @@
 /** @file A context menu available everywhere in the directory. */
-import * as React from 'react'
-
 import { useStore } from 'zustand'
 
 import * as modalProvider from '#/providers/ModalProvider'
@@ -10,7 +8,6 @@ import AssetListEventType from '#/events/AssetListEventType'
 
 import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 
-import * as aria from '#/components/aria'
 import ContextMenu from '#/components/ContextMenu'
 import ContextMenuEntry from '#/components/ContextMenuEntry'
 
@@ -20,6 +17,7 @@ import UpsertSecretModal from '#/modals/UpsertSecretModal'
 import { useDriveStore } from '#/providers/DriveProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
+import { inputFiles } from '#/utilities/input'
 
 /** Props for a {@link GlobalContextMenu}. */
 export interface GlobalContextMenuProps {
@@ -41,7 +39,6 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
-  const filesInputRef = React.useRef<HTMLInputElement>(null)
   const isCloud = backend.type === backendModule.BackendType.remote
   const driveStore = useDriveStore()
   const hasPasteData = useStore(
@@ -51,51 +48,17 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
 
   return (
     <ContextMenu aria-label={getText('globalContextMenuLabel')} hidden={hidden}>
-      {!hidden && (
-        <aria.Input
-          ref={filesInputRef}
-          multiple
-          type="file"
-          id="context_menu_file_input"
-          className="hidden"
-          onInput={(event) => {
-            if (event.currentTarget.files != null) {
-              dispatchAssetListEvent({
-                type: AssetListEventType.uploadFiles,
-                parentKey: directoryKey ?? rootDirectoryId,
-                parentId: directoryId ?? rootDirectoryId,
-                files: Array.from(event.currentTarget.files),
-              })
-              unsetModal()
-            }
-          }}
-        />
-      )}
       <ContextMenuEntry
         hidden={hidden}
         action="uploadFiles"
-        doAction={() => {
-          if (filesInputRef.current?.isConnected === true) {
-            filesInputRef.current.click()
-          } else {
-            const input = document.createElement('input')
-            input.type = 'file'
-            input.style.display = 'none'
-            document.body.appendChild(input)
-            input.addEventListener('input', () => {
-              if (input.files != null) {
-                dispatchAssetListEvent({
-                  type: AssetListEventType.uploadFiles,
-                  parentKey: directoryKey ?? rootDirectoryId,
-                  parentId: directoryId ?? rootDirectoryId,
-                  files: Array.from(input.files),
-                })
-                unsetModal()
-              }
-            })
-            input.click()
-            input.remove()
-          }
+        doAction={async () => {
+          const files = await inputFiles()
+          dispatchAssetListEvent({
+            type: AssetListEventType.uploadFiles,
+            parentKey: directoryKey ?? rootDirectoryId,
+            parentId: directoryId ?? rootDirectoryId,
+            files: Array.from(files),
+          })
         }}
       />
       <ContextMenuEntry
