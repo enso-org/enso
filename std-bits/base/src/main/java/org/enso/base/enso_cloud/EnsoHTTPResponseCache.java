@@ -10,12 +10,13 @@ import org.enso.base.cache.ResponseTooLargeException;
 import org.enso.base.cache.StreamCache;
 import org.enso.base.cache.StreamCache.CacheResult;
 import org.enso.base.cache.StreamCache.StreamMaker;
-import org.enso.base.enso_cloud.EnsoHttpResponse;
 
 public class EnsoHTTPResponseCache {
-  private static final StreamCache<Metadata> streamCache = new StreamCache<>();
-
   private static final int DEFAULT_TTL_SECONDS = 31536000;
+  private static final long MAX_FILE_SIZE = 10L * 1024 * 1024;
+  private static final long MAX_TOTAL_CACHE_SIZE = 10L * 1024 * 1024 * 1024;
+
+  private static final StreamCache<Metadata> streamCache = new StreamCache<>(MAX_FILE_SIZE, MAX_TOTAL_CACHE_SIZE);
 
   public static EnsoHttpResponse makeRequest(RequestMaker requestMaker) throws IOException, InterruptedException, ResponseTooLargeException {
     StreamMaker<Metadata> streamMaker = new EnsoHTTPResponseCacheThing(requestMaker);

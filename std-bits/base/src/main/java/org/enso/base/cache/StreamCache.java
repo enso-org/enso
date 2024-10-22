@@ -24,8 +24,8 @@ import org.apache.commons.io.IOUtils;
 public class StreamCache<M> {
   private static final Logger logger = Logger.getLogger(StreamCache.class.getName());
 
-  private final long MAX_FILE_SIZE = 10L * 1024 * 1024;
-  private final long MAX_TOTAL_CACHE_SIZE = 10L * 1024 * 1024 * 1024;
+  private final long maxFileSize;
+  private final long maxTotalCacheSize;
 
   /** This value is used for the current time when deciding if a cache entry is stale. */
   private ZonedDateTime nowOverrideTestOnly = null;
@@ -40,6 +40,11 @@ public class StreamCache<M> {
 
   private final Map<String, CacheEntry<M>> cache = new HashMap<>();
   private final Map<String, ZonedDateTime> lastUsed = new HashMap<>();
+
+  public StreamCache(long maxFileSize, long maxTotalCacheSize) {
+    this.maxFileSize = maxFileSize;
+    this.maxTotalCacheSize = maxTotalCacheSize;
+  }
 
   public CacheResult<M> getResult(StreamMaker<M> streamMaker)
       throws IOException, InterruptedException, ResponseTooLargeException {
@@ -224,11 +229,11 @@ public class StreamCache<M> {
   }
 
   private long getMaxFileSize() {
-    return maxFileSizeOverrideTestOnly.orElse(MAX_FILE_SIZE);
+    return maxFileSizeOverrideTestOnly.orElse(maxFileSize);
   }
 
   private long getMaxTotalCacheSize() {
-    return maxTotalCacheSizeOverrideTestOnly.orElse(MAX_TOTAL_CACHE_SIZE);
+    return maxTotalCacheSizeOverrideTestOnly.orElse(maxTotalCacheSize);
   }
 
   public int getNumEntries() {
@@ -245,7 +250,7 @@ public class StreamCache<M> {
   }
 
   public void setMaxFileSizeOverrideTestOnly(long maxFileSizeOverrideTestOnly_) {
-    assert maxFileSizeOverrideTestOnly_ <= MAX_FILE_SIZE;
+    assert maxFileSizeOverrideTestOnly_ <= maxFileSize;
     maxFileSizeOverrideTestOnly = Optional.of(maxFileSizeOverrideTestOnly_);
   }
 
@@ -254,7 +259,7 @@ public class StreamCache<M> {
   }
 
   public void setMaxTotalCacheSizeOverrideTestOnly(long maxTotalCacheSizeOverrideTestOnly_) {
-    assert maxTotalCacheSizeOverrideTestOnly_ <= MAX_TOTAL_CACHE_SIZE;
+    assert maxTotalCacheSizeOverrideTestOnly_ <= maxTotalCacheSize;
     maxTotalCacheSizeOverrideTestOnly = Optional.of(maxTotalCacheSizeOverrideTestOnly_);
   }
 

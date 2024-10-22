@@ -219,6 +219,7 @@ add_specs suite_builder =
                 EnsoHTTPResponseCache.setMaxFileSizeOverrideTestOnly 100
                 Data.download base_url_with_slash+"test_download?length=200" target_file
                 target_file.read.length . should_equal 200
+                target_file.delete_if_exists
 
         group_builder.specify "Should not cache for methods other than GET" pending=pending_has_url <| Test.with_retries <|
             HTTP.clear_response_cache
