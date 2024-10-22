@@ -155,7 +155,7 @@ public class LRUCache<M> {
 
   /** Mark the entry with the current time, to maintain LRU data. */
   private void markCacheEntryUsed(String cacheKey) {
-    lastUsed.put(cacheKey, ZonedDateTime.now());
+    lastUsed.put(cacheKey, getNow());
   }
 
   /** Remove all cache entries (and their files) that have passed their TTL. */
