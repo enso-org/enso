@@ -186,7 +186,7 @@ final class IRNodeClassGenerator {
     while (!toProcess.isEmpty()) {
       var current = toProcess.pop();
       // Skip processing of IR root interface.
-      if (processingEnv.getTypeUtils().isSameType(getIrType().asType(), current)) {
+      if (Utils.isIRInterface(current, processingEnv)) {
         continue;
       }
       var currentElem = processingEnv.getTypeUtils().asElement(current);
@@ -459,11 +459,5 @@ final class IRNodeClassGenerator {
           typeElem,
           processingEnv.getMessager());
     }
-  }
-
-  private TypeElement getIrType() {
-    var typeElem = processingEnv.getElementUtils().getTypeElement("org.enso.compiler.core.IR");
-    assert typeElem != null;
-    return typeElem;
   }
 }

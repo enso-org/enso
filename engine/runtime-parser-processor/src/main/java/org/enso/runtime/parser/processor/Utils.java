@@ -5,6 +5,7 @@ import java.util.stream.Collectors;
 import javax.annotation.processing.Messager;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Element;
+import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.TypeMirror;
 import javax.tools.Diagnostic.Kind;
@@ -33,6 +34,12 @@ final class Utils {
       }
     }
     return false;
+  }
+
+  /** Returns true if the given {@code type} is an {@code org.enso.compiler.core.IR} interface. */
+  static boolean isIRInterface(TypeMirror type, ProcessingEnvironment processingEnv) {
+    var elem = processingEnv.getTypeUtils().asElement(type);
+    return elem.getKind() == ElementKind.INTERFACE && elem.getSimpleName().toString().equals("IR");
   }
 
   /** Returns true if the given type extends {@link org.enso.compiler.core.ir.Expression} */
