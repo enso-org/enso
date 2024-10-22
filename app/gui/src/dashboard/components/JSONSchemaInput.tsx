@@ -186,7 +186,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
               >
                 {propertyDefinitions.map((definition) => {
                   const { key, schema: childSchema } = definition
-                  const isOptional = !requiredProperties.includes(key)
+                  const isOptional = !requiredProperties.includes(key) || isAbsent
                   const isPresent = !isAbsent && value != null && key in value
                   return constantValueOfSchema(defs, childSchema).length === 1 ?
                       null
@@ -346,6 +346,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
               path={selectedChildPath}
               getValidator={getValidator}
               noBorder={noChildBorder}
+              isAbsent={isAbsent}
               value={value}
               onChange={onChange}
             />
@@ -364,6 +365,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
           path={`${path}/allOf/${i}`}
           getValidator={getValidator}
           noBorder={noChildBorder}
+          isAbsent={isAbsent}
           value={value}
           onChange={onChange}
         />
