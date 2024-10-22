@@ -7,6 +7,7 @@ import org.enso.compiler.pass.analyse.alias.graph.Graph;
 import org.enso.compiler.pass.analyse.alias.graph.GraphOccurrence;
 import org.enso.compiler.pass.analyse.types.TypeInferencePropagation;
 import org.enso.compiler.pass.analyse.types.TypeInferenceSignatures;
+import org.enso.compiler.pass.analyse.types.scope.StaticModuleScopeAnalysis;
 import org.enso.compiler.pass.resolve.DocumentationComments;
 import org.enso.compiler.pass.resolve.DocumentationComments$;
 import org.enso.compiler.pass.resolve.ExpressionAnnotations$;
@@ -71,6 +72,7 @@ import scala.Tuple2$;
 @Persistable(clazz = FramePointerAnalysis$.class, id = 1282)
 @Persistable(clazz = TailCall.TailPosition.class, id = 1284)
 @Persistable(clazz = CachePreferences.class, id = 1285)
+@Persistable(clazz = StaticModuleScopeAnalysis.class, id = 1287)
 public final class PassPersistance {
   private PassPersistance() {}
 
