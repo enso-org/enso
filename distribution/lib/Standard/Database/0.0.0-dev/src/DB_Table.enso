@@ -2747,13 +2747,18 @@ type DB_Table
        Some operations, like writing to tables, require their target to be a
        trivial query.
     is_trivial_query self -> Boolean ! Table_Not_Found =
-         trivial_counterpart = self.connection.query (SQL_Query.Table_Name self.name)
-         if trivial_counterpart.is_error then False else
-             if self.context != trivial_counterpart.context then False else
-                column_descriptor internal_column = [internal_column.name, internal_column.expression]
-                my_columns = self.internal_columns.map column_descriptor
-                trivial_columns = trivial_counterpart.internal_columns.map column_descriptor
-                my_columns == trivial_columns
+        case self.context.from_spec of
+            From_Spec.Table internal_table_name _ _ ->
+                if self.name != internal_table_name then False else
+                    trivial_counterpart = self.connection.query (SQL_Query.Table_Name self.name)
+                    # If the table spec seems trivial, but the underlying table does not exist, we propagate the Table_Not_Found error.
+                    trivial_counterpart.if_not_error <|
+                        if self.context != trivial_counterpart.context then False else
+                           column_descriptor internal_column = [internal_column.name, internal_column.expression]
+                           my_columns = self.internal_columns.map column_descriptor
+                           trivial_columns = trivial_counterpart.internal_columns.map column_descriptor
+                           my_columns == trivial_columns
+            _ -> False
 
     ## PRIVATE
        Provides a simplified text representation for display in the REPL and errors.
