@@ -300,7 +300,6 @@ export interface AssetsTableState {
   readonly rootDirectoryId: DirectoryId
   readonly expandedDirectoryIds: readonly DirectoryId[]
   readonly scrollContainerRef: RefObject<HTMLElement>
-  readonly visibilities: ReadonlyMap<AssetId, Visibility>
   readonly category: Category
   readonly sortInfo: SortInfo<SortableColumn> | null
   readonly setSortInfo: (sortInfo: SortInfo<SortableColumn> | null) => void
@@ -2175,7 +2174,6 @@ export default function AssetsTable(props: AssetsTableProps) {
       backend,
       expandedDirectoryIds,
       rootDirectoryId,
-      visibilities,
       scrollContainerRef: rootRef,
       category,
       sortInfo,
@@ -2196,7 +2194,6 @@ export default function AssetsTable(props: AssetsTableProps) {
       backend,
       expandedDirectoryIds,
       rootDirectoryId,
-      visibilities,
       category,
       sortInfo,
       query,
@@ -2637,6 +2634,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             key={item.key + item.path}
             updateAssetRef={updateAssetRef}
             isOpened={openedProjects.some(({ id }) => item.item.id === id)}
+            visibility={visibilities.get(item.key)}
             columns={columns}
             item={item}
             state={state}

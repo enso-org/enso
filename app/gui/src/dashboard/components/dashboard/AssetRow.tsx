@@ -80,6 +80,7 @@ export interface AssetRowInnerProps {
 /** Props for an {@link AssetRow}. */
 export interface AssetRowProps {
   readonly isOpened: boolean
+  readonly visibility: Visibility | undefined
   readonly item: assetTreeNode.AnyAssetTreeNode
   readonly state: assetsTable.AssetsTableState
   readonly hidden: boolean
@@ -118,19 +119,10 @@ export const AssetRow = React.memo(
   function AssetRow(props: AssetRowProps) {
     const { isKeyboardSelected, isOpened, select, state, columns, onClick } = props
     const { item: rawItem, hidden: hiddenRaw, updateAssetRef, grabKeyboardFocus } = props
-    const {
-      nodeMap,
-      doToggleDirectoryExpansion,
-      doCopy,
-      doCut,
-      doPaste,
-      doDelete: doDeleteRaw,
-      doRestore,
-      doMove,
-      category,
-    } = state
-    const { scrollContainerRef, rootDirectoryId, backend } = state
-    const { visibilities } = state
+    const { visibility: visibilityRaw } = props
+    const { nodeMap, doCopy, doCut, doPaste, doDelete: doDeleteRaw } = state
+    const { doRestore, doMove, category, scrollContainerRef, rootDirectoryId, backend } = state
+    const { doToggleDirectoryExpansion } = state
 
     const [item, setItem] = React.useState(rawItem)
     const driveStore = useDriveStore()
@@ -202,7 +194,6 @@ export const AssetRow = React.memo(
     )
     const associateTagMutation = useMutation(backendMutationOptions(backend, 'associateTag'))
 
-    const outerVisibility = visibilities.get(item.key)
     const insertionVisibility = useStore(driveStore, (driveState) =>
       driveState.pasteData?.type === 'move' && driveState.pasteData.data.ids.has(item.key) ?
         Visibility.faded
@@ -215,8 +206,8 @@ export const AssetRow = React.memo(
       createPermissionVariables.actorsIds[0] === user.userId
     const visibility =
       isRemovingSelf ? Visibility.hidden
-      : outerVisibility === Visibility.visible ? insertionVisibility
-      : outerVisibility ?? insertionVisibility
+      : visibilityRaw === Visibility.visible ? insertionVisibility
+      : visibilityRaw ?? insertionVisibility
     const hidden = isDeleting || isRestoring || hiddenRaw || visibility === Visibility.hidden
 
     const setSelected = useEventCallback((newSelected: boolean) => {
