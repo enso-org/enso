@@ -5,6 +5,7 @@ from Standard.Table import all hiding Table
 from Standard.Table.Errors import Clashing_Column_Name, Duplicate_Output_Column_Names
 
 from Standard.Database.Errors import Unsupported_Database_Operation
+import Standard.Database.Feature.Feature
 
 from Standard.Test import all
 
@@ -21,11 +22,13 @@ type Data
     teardown self =
         self.connection.close
 
-
 add_specs suite_builder setup =
+    if setup.is_feature_supported Feature.Integration_Tests then (add_column_name_edge_cases_specs suite_builder setup)
+
+add_column_name_edge_cases_specs suite_builder setup =
     materialize = setup.materialize
     create_connection_fn = setup.create_connection_func
-    is_case_sensitive = setup.test_selection.supports_case_sensitive_columns
+    is_case_sensitive = setup.flagged ..Supports_Case_Sensitive_Columns
     suite_builder.group setup.prefix+"Column Naming edge cases" group_builder->
         data = Data.setup create_connection_fn
 

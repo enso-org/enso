@@ -1,0 +1,19 @@
+{
+  "extends": "../../tsconfig.json",
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.node.json" },
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.app.vitest.json" },
+    { "path": "./tsconfig.scripts.json" }
+  ],
+  "compilerOptions": {
+    "module": "Preserve",
+    "customConditions": ["source"],
+    "composite": true,
+    "strict": true,
+    "strictNullChecks": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true
+  }
+}

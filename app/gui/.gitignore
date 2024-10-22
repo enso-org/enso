@@ -1,0 +1,30 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+
+node_modules
+.DS_Store
+dist
+dist-ssr
+coverage
+mockDist
+*.local
+*.tsbuildinfo
+
+# Editor directories and files
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+test-results/
+playwright-report/
+
+src/project-view/util/iconList.json
+src/project-view/util/iconName.ts

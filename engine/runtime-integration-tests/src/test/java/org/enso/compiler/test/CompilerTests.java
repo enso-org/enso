@@ -1,7 +1,7 @@
 package org.enso.compiler.test;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
@@ -10,6 +10,7 @@ import java.nio.file.StandardOpenOption;
 import java.util.function.Function;
 import org.enso.compiler.core.EnsoParser;
 import org.enso.compiler.core.IR;
+import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Module;
 
 public abstract class CompilerTests {
@@ -19,15 +20,26 @@ public abstract class CompilerTests {
     return ir;
   }
 
-  public static void assertIR(String msg, Module old, Module now) throws IOException {
+  protected static Expression.Block parseBlock(CharSequence code) {
+    Expression.Block ir = EnsoParser.compileBlock(code);
+    assertNotNull("IR was generated", ir);
+    return ir;
+  }
+
+  public static void assertIR(String msg, IR old, IR now) throws IOException {
+    assertEqualsIR(msg, null, old, now);
+  }
+
+  public static void assertEqualsIR(String msg, String testName, IR old, IR now)
+      throws IOException {
     Function<IR, String> filter = f -> simplifyIR(f, true, true, false);
     String ir1 = filter.apply(old);
     String ir2 = filter.apply(now);
     if (!ir1.equals(ir2)) {
-      String name = findTestMethodName();
       var home = new File(System.getProperty("java.io.tmpdir")).toPath();
-      var file1 = home.resolve(name + ".1");
-      var file2 = home.resolve(name + ".2");
+      var fname = testName == null ? findTestMethodName() : testName;
+      var file1 = home.resolve(fname + ".1");
+      var file2 = home.resolve(fname + ".2");
       Files.writeString(
           file1,
           ir1,
@@ -40,9 +52,11 @@ public abstract class CompilerTests {
           StandardOpenOption.TRUNCATE_EXISTING,
           StandardOpenOption.CREATE,
           StandardOpenOption.WRITE);
-      assertEquals(msg, file1, file2);
+      fail("IRs contained in files " + file1 + " and " + file2 + " should equal: " + msg);
     }
   }
+
+  private static int counter = 'A';
 
   private static String findTestMethodName() {
     for (var e : new Exception().getStackTrace()) {
@@ -50,7 +64,7 @@ public abstract class CompilerTests {
         return e.getMethodName();
       }
     }
-    throw new IllegalStateException();
+    return "test" + (char) counter++;
   }
 
   /**

@@ -304,7 +304,7 @@ type DB_Column
                 times_ten + product_a_b + 100
     let : Text -> (DB_Column -> DB_Column) -> DB_Column
     let self (name : Text) (callback : (DB_Column -> DB_Column)) -> DB_Column =
-        use_ctes = self.connection.dialect.supports_nested_with_clause
+        use_ctes = self.connection.dialect.flagged ..Supports_Nested_With_Clause
 
         if use_ctes.not then callback self else
             binder = self.connection.base_connection.table_naming_helper.generate_random_table_name
@@ -327,7 +327,7 @@ type DB_Column
        - metadata: Optional metadata for the `SQL_Expression.Operation`.
     make_op : Text -> Vector Text -> (Text | Nothing) -> (Any | Nothing) -> DB_Column
     make_op self op_kind operands new_name metadata=Nothing =
-        checked_support = if self.connection.dialect.is_supported op_kind then True else
+        checked_support = if self.connection.dialect.is_operation_supported op_kind then True else
             Error.throw (Unsupported_Database_Operation.Error op_kind)
         checked_support.if_not_error <|
             type_mapping = self.connection.dialect.get_type_mapping
@@ -931,11 +931,11 @@ type DB_Column
     should_use_builtin_round : Integer -> Boolean -> Boolean
     should_use_builtin_round self decimal_places use_bankers =
         # Don't use for banker's rounding (unless the dialect has a builtin for it)
-        bankers_ok = self.connection.dialect.dialect_flags.rounding.use_builtin_bankers || use_bankers.not
+        bankers_ok = self.connection.dialect.flagged ..Use_Builtin_Bankers || use_bankers.not
         # Don't use for negative decimal places, if the backend doesn't support it
-        negative_dp_ok = decimal_places >= 0 || self.connection.dialect.dialect_flags.rounding.supports_negative_decimal_places
+        negative_dp_ok = decimal_places >= 0 || self.connection.dialect.flagged ..Supports_Negative_Decimal_Places
         # Don't use for floating-point inputs if decimal_places != 0, for Postgres
-        dp_param_ok = decimal_places == 0 || self.value_type.is_floating_point.not || self.connection.dialect.dialect_flags.rounding.supports_float_decimal_places
+        dp_param_ok = decimal_places == 0 || self.value_type.is_floating_point.not || self.connection.dialect.flagged ..Supports_Float_Decimal_Places
         bankers_ok && negative_dp_ok && dp_param_ok
 
     ## PRIVATE
@@ -1047,7 +1047,7 @@ type DB_Column
             False -> case precise_value_type == Value_Type.Date_Time of
                 True ->
                     op = "date_trunc_to_day"
-                    case self.connection.dialect.is_supported op of
+                    case self.connection.dialect.is_operation_supported op of
                         True ->
                             self.make_unary_op op new_name
                         False ->
@@ -1255,7 +1255,7 @@ type DB_Column
         is_blank = case self_type.is_text of
             True -> self.is_empty
             False -> self.is_nothing
-        result = case treat_nans_as_blank && self_type.is_floating_point && self.connection.dialect.supports_separate_nan of
+        result = case treat_nans_as_blank && self_type.is_floating_point && self.connection.dialect.flagged ..Supports_Separate_NaN of
             True -> is_blank || self.is_nan
             False -> is_blank
         result.rename new_name
@@ -1541,7 +1541,7 @@ type DB_Column
                 Location.Both -> "TRIM"
                 Location.Left -> "LTRIM"
                 Location.Right -> "RTRIM"
-            if self.connection.dialect.is_supported operator then self.make_binary_op operator what new_name else
+            if self.connection.dialect.is_operation_supported operator then self.make_binary_op operator what new_name else
                 Error.throw (Unsupported_Database_Operation.Error ("`trim "+where.to_text+"`"))
 
     ## GROUP Standard.Base.Text

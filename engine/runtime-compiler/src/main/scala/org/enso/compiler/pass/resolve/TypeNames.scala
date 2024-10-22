@@ -101,7 +101,9 @@ case object TypeNames extends IRPass {
               resolution.target match {
                 case typ: BindingsMap.ResolvedType =>
                   val params =
-                    typ.tp.params.map(Name.Literal(_, false, None)).toList
+                    typ.tp.params
+                      .map(Name.Literal(_, false, identifiedLocation = null))
+                      .toList
                   SelfTypeInfo(Some(typ), params)
                 case _: BindingsMap.ResolvedModule =>
                   SelfTypeInfo.empty

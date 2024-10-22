@@ -6,8 +6,13 @@ import org.enso.common.RuntimeOptions
 import org.enso.interpreter.runtime.`type`.ConstantsGen
 import org.enso.polyglot.RuntimeServerInfo
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.polyglot.runtime.Runtime.Api.{MethodCall, MethodPointer}
+import org.enso.polyglot.runtime.Runtime.Api.{
+  InvalidatedExpressions,
+  MethodCall,
+  MethodPointer
+}
 import org.enso.text.{ContentVersion, Sha3_224VersionCalculator}
+import org.enso.text.editing.model
 import org.graalvm.polyglot.Context
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.flatspec.AnyFlatSpec
@@ -27,6 +32,19 @@ class RuntimeAsyncCommandsTest
   // === Test Utilities =======================================================
 
   var context: TestContext = _
+
+  object Visualization {
+
+    val metadata = new Metadata
+
+    val code =
+      metadata.appendToCode(
+        """
+          |encode x = (x + 1).to_text
+          |""".stripMargin.linesIterator.mkString("\n")
+      )
+
+  }
 
   class TestContext(packageName: String)
       extends InstrumentTestContext(packageName) {
@@ -245,7 +263,154 @@ class RuntimeAsyncCommandsTest
     diagnostic.stack should not be empty
   }
 
-  it should "interrupt running execution context without raising Panic" in {
+  it should "recompute expression in context after interruption" in {
+    val moduleName = "Enso_Test.Test.Main"
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+
+    val metadata = new Metadata
+    val idOut    = metadata.addItem(179, 17, "aa")
+
+    val code =
+      """from Standard.Base import all
+        |from Standard.Base.Runtime.Context import Input, Output
+        |polyglot java import java.lang.Thread
+        |
+        |main =
+        |    IO.println "started"
+        |    loop 50
+        |    out = Output.is_enabled
+        |    IO.println out
+        |
+        |loop n=0 s=0 =
+        |    if (s > n) then s else
+        |        Thread.sleep 100
+        |        loop n s+1
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(moduleName, moduleName, "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    context.receiveNIgnoreStdLib(
+      3
+    ) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(
+        contextId,
+        idOut,
+        ConstantsGen.BOOLEAN,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.Runtime",
+              "Standard.Base.Runtime.Context",
+              "is_enabled"
+            ),
+            Vector(1)
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("started", "False")
+
+    // recompute
+    context.send(
+      Api.Request(
+        requestId,
+        Api.RecomputeContextRequest(
+          contextId,
+          None,
+          None,
+          Seq(
+            Api.ExpressionConfig(idOut, Some(Api.ExecutionEnvironment.Live()))
+          )
+        )
+      )
+    )
+
+    val responses = context.receiveNIgnorePendingExpressionUpdates(1)
+    responses should contain(
+      Api.Response(requestId, Api.RecomputeContextResponse(contextId))
+    )
+
+    // wait for program to start and interrupt
+    var isProgramStarted = false
+    var iteration        = 0
+    while (!isProgramStarted && iteration < 100) {
+      val out = context.consumeOut
+      Thread.sleep(200)
+      isProgramStarted = out == List("started")
+      iteration += 1
+    }
+    if (!isProgramStarted) {
+      fail("Program start timed out")
+    }
+    context.consumeOut shouldEqual List()
+
+    // trigger re-computation
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            model.TextEdit(
+              model.Range(model.Position(10, 7), model.Position(10, 8)),
+              "0"
+            )
+          ),
+          execute = true,
+          idMap   = None
+        )
+      )
+    )
+    val responses1 = context.receiveNIgnorePendingExpressionUpdates(3)
+    responses1 should contain allOf (
+      TestMessages.update(
+        contextId,
+        idOut,
+        ConstantsGen.BOOLEAN,
+        fromCache   = false,
+        typeChanged = false,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.Runtime",
+              "Standard.Base.Runtime.Context",
+              "is_enabled"
+            ),
+            Vector(1)
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut should contain("True")
+  }
+
+  it should "interrupt running execution context without sending Panic in expression updates" in {
     val moduleName = "Enso_Test.Test.Main"
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
@@ -303,7 +468,7 @@ class RuntimeAsyncCommandsTest
     var iteration        = 0
     while (!isProgramStarted && iteration < 100) {
       val out = context.consumeOut
-      Thread.sleep(200)
+      Thread.sleep(100)
       isProgramStarted = out == List("started")
       iteration += 1
     }
@@ -313,7 +478,10 @@ class RuntimeAsyncCommandsTest
 
     // recompute/interrupt
     context.send(
-      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None, None))
+      Api.Request(
+        requestId,
+        Api.RecomputeContextRequest(contextId, None, None, Seq())
+      )
     )
     val responses = context.receiveNIgnoreStdLib(
       3
@@ -335,4 +503,176 @@ class RuntimeAsyncCommandsTest
       context.executionComplete(contextId)
     )
   }
+
+  it should "interrupt running execution context without sending Panic in visualization updates" in {
+    val contextId       = UUID.randomUUID()
+    val requestId       = UUID.randomUUID()
+    val visualizationId = UUID.randomUUID()
+    val moduleName      = "Enso_Test.Test.Main"
+    val metadata        = new Metadata("import Standard.Base.Data.Numbers\n\n")
+
+    val visualizationFile =
+      context.writeInSrcDir("Visualization", Visualization.code)
+
+    val idOp1 = metadata.addItem(203, 7)
+    val idOp2 = metadata.addItem(227, 13)
+
+    val code =
+      """from Standard.Base import all
+        |
+        |polyglot java import java.lang.Thread
+        |
+        |loop n s=0 =
+        |    if (s > n) then s else
+        |        Thread.sleep 200
+        |        loop n s+1
+        |
+        |main =
+        |    IO.println "started"
+        |    operator1 = loop 50
+        |    operator2 = operator1 + 1
+        |    operator2
+        |
+        |fun1 x = x.to_text
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open visualizations
+    context.send(
+      Api.Request(
+        requestId,
+        Api.OpenFileRequest(
+          visualizationFile,
+          Visualization.code
+        )
+      )
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(moduleName, moduleName, "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+
+    // attach visualizations to both expressions
+    context.send(
+      Api.Request(
+        requestId,
+        Api.AttachVisualization(
+          visualizationId,
+          idOp2,
+          Api.VisualizationConfiguration(
+            contextId,
+            Api.VisualizationExpression.Text(
+              "Enso_Test.Test.Visualization",
+              "x -> encode x",
+              Vector()
+            ),
+            "Enso_Test.Test.Visualization"
+          )
+        )
+      )
+    )
+    context.send(
+      Api.Request(
+        requestId,
+        Api.AttachVisualization(
+          visualizationId,
+          idOp1,
+          Api.VisualizationConfiguration(
+            contextId,
+            Api.VisualizationExpression.Text(
+              "Enso_Test.Test.Visualization",
+              "x -> encode x",
+              Vector()
+            ),
+            "Enso_Test.Test.Visualization"
+          )
+        )
+      )
+    )
+
+    val response1 = context.receiveNIgnoreExpressionUpdates(
+      6,
+      timeoutSeconds = 20
+    )
+    response1 should contain allOf (
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(requestId, Api.VisualizationAttached()),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut
+    response1
+      .map(_.payload)
+      .count(_.isInstanceOf[Api.VisualizationAttached]) should be(2)
+    response1
+      .map(_.payload)
+      .count(_.isInstanceOf[Api.VisualizationUpdate]) should be(2)
+
+    context.send(
+      Api.Request(
+        requestId,
+        Api.RecomputeContextRequest(
+          contextId,
+          Some(InvalidatedExpressions.Expressions(Vector(idOp1, idOp2))),
+          None,
+          Seq()
+        )
+      )
+    )
+    var isProgramStarted = false
+    var iteration        = 0
+    while (!isProgramStarted && iteration < 100) {
+      val out = context.consumeOut
+      Thread.sleep(100)
+      isProgramStarted = out == List("started")
+      iteration += 1
+    }
+    if (!isProgramStarted) {
+      fail("Program start timed out")
+    }
+
+    // Trigger interruption
+    context.send(
+      Api.Request(requestId, Api.InterruptContextRequest(contextId))
+    )
+    val response2 = context.receiveNIgnoreExpressionUpdates(
+      5,
+      timeoutSeconds = 20
+    )
+    response2 should contain allOf (
+      Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
+      Api.Response(requestId, Api.InterruptContextResponse(contextId)),
+      context.executionComplete(contextId)
+    )
+
+    val failure = response2.collectFirst({
+      case Api.Response(None, Api.VisualizationEvaluationFailed(_, msg, _)) =>
+        msg
+    })
+    failure should be(Symbol("empty"))
+  }
+
 }

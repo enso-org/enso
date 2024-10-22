@@ -19,6 +19,7 @@ import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.expression.Error
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.IRProcessingPass
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
   DataflowAnalysis,
@@ -51,8 +52,10 @@ case object ComplexType extends IRPass {
   override type Metadata = IRPass.Metadata.Empty
   override type Config   = IRPass.Configuration.Default
 
-  override lazy val precursorPasses: Seq[IRPass] = List(ModuleAnnotations)
-  override lazy val invalidatedPasses: Seq[IRPass] =
+  override lazy val precursorPasses: Seq[IRProcessingPass] = List(
+    ModuleAnnotations
+  )
+  override lazy val invalidatedPasses: Seq[IRProcessingPass] =
     List(
       AliasAnalysis,
       DataflowAnalysis,
@@ -64,8 +67,8 @@ case object ComplexType extends IRPass {
       LambdaShorthandToLambda,
       NestedPatternMatch,
       OperatorToFunction,
-      SectionsToBinOp,
-      TailCall,
+      SectionsToBinOp.INSTANCE,
+      TailCall.INSTANCE,
       UnusedBindings
     )
 
@@ -212,7 +215,7 @@ case object ComplexType extends IRPass {
       typ.name,
       typ.arguments,
       atomDefs,
-      typ.location
+      typ.identifiedLocation
     )
 
     val withAnnotations = annotations
@@ -304,7 +307,7 @@ case object ComplexType extends IRPass {
     * @param name the method being defined
     * @param args the definition arguments to the method
     * @param body the body of the method
-    * @param location the source location of the method
+    * @param identifiedLocation the source location of the method
     * @param signature the method's type signature, if it exists
     * @return a top-level method definition
     */
@@ -314,15 +317,15 @@ case object ComplexType extends IRPass {
     args: List[DefinitionArgument],
     body: Expression,
     isPrivate: Boolean,
-    location: Option[IdentifiedLocation],
+    identifiedLocation: IdentifiedLocation,
     passData: MetadataStorage,
     diagnostics: DiagnosticStorage,
     signature: Option[Type.Ascription]
   ): List[Definition] = {
     val methodRef = Name.MethodReference(
-      Some(Name.Qualified(List(typeName), typeName.location)),
+      Some(Name.Qualified(List(typeName), typeName.identifiedLocation())),
       name,
-      Name.MethodReference.genLocation(List(typeName, name))
+      Name.MethodReference.genLocation(List(typeName, name)).orNull
     )
 
     val newSig =
@@ -333,7 +336,7 @@ case object ComplexType extends IRPass {
       args.map(_.duplicate()),
       isPrivate,
       body.duplicate(),
-      location,
+      identifiedLocation,
       passData.duplicate,
       diagnostics
     )

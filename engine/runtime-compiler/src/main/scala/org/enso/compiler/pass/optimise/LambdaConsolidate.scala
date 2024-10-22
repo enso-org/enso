@@ -9,13 +9,13 @@ import org.enso.compiler.core.ir.{
   Expression,
   Function,
   IdentifiedLocation,
-  Location,
   Module,
   Name
 }
 import org.enso.compiler.core.ir.expression.warnings
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.IRProcessingPass
 import org.enso.compiler.pass.analyse.alias.graph.{
   GraphOccurrence,
   Graph => AliasGraph
@@ -64,7 +64,7 @@ case object LambdaConsolidate extends IRPass {
   override type Metadata = IRPass.Metadata.Empty
   override type Config   = IRPass.Configuration.Default
 
-  override lazy val precursorPasses: Seq[IRPass] = List(
+  override lazy val precursorPasses: Seq[IRProcessingPass] = List(
     AliasAnalysis,
     ComplexType,
     FunctionBinding,
@@ -72,13 +72,13 @@ case object LambdaConsolidate extends IRPass {
     IgnoredBindings,
     LambdaShorthandToLambda,
     OperatorToFunction,
-    SectionsToBinOp
+    SectionsToBinOp.INSTANCE
   )
-  override lazy val invalidatedPasses: Seq[IRPass] = List(
+  override lazy val invalidatedPasses: Seq[IRProcessingPass] = List(
     AliasAnalysis,
     DataflowAnalysis,
     DemandAnalysis,
-    TailCall
+    TailCall.INSTANCE
   )
 
   /** Performs lambda consolidation on a module.
@@ -176,12 +176,10 @@ case object LambdaConsolidate extends IRPass {
         val newLocation = chainedLambdas.head.location match {
           case Some(location) =>
             Some(
-              IdentifiedLocation.create(
-                new Location(
-                  location.start,
-                  chainedLambdas.last.location.getOrElse(location).location.end
-                ),
-                location.id
+              new IdentifiedLocation(
+                location.start,
+                chainedLambdas.last.location.getOrElse(location).location.end,
+                location.uuid
               )
             )
           case None => None
@@ -228,11 +226,12 @@ case object LambdaConsolidate extends IRPass {
                 s
             }
 
-            val shadower: IR = mShadower.getOrElse(Empty(spec.location))
+            val shadower: IR =
+              mShadower.getOrElse(Empty(spec.identifiedLocation))
 
             spec.getDiagnostics.add(
               warnings.Shadowed
-                .FunctionParam(argName.name, shadower, spec.location)
+                .FunctionParam(argName.name, shadower, spec.identifiedLocation)
             )
 
             (spec, isShadowed)

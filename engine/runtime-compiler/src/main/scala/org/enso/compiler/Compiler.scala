@@ -696,7 +696,7 @@ class Compiler(
     * @return A Tree representation of `source`
     */
   def parseInline(source: CharSequence): Tree =
-    Parser.parse(source)
+    Parser.parseBlock(source)
 
   /** Enhances the provided IR with import/export statements for the provided list
     * of fully qualified names of modules. The statements are considered to be "synthetic" i.e. compiler-generated.
@@ -737,31 +737,31 @@ class Compiler(
 
     val moduleNames = modules.asScala.map { q =>
       val name = q.path.foldRight(
-        List(Name.Literal(q.item, isMethod = false, location = None))
+        List(Name.Literal(q.item, isMethod = false, identifiedLocation = null))
       ) { case (part, acc) =>
-        Name.Literal(part, isMethod = false, location = None) :: acc
+        Name.Literal(part, isMethod = false, identifiedLocation = null) :: acc
       }
-      Name.Qualified(name, location = None)
+      Name.Qualified(name, identifiedLocation = null)
     }.toList
     ir.copy(
       imports = ir.imports ::: moduleNames.map(m =>
         Import.Module(
           m,
-          rename      = None,
-          isAll       = false,
-          onlyNames   = None,
-          hiddenNames = None,
-          location    = None,
-          isSynthetic = true
+          rename             = None,
+          isAll              = false,
+          onlyNames          = None,
+          hiddenNames        = None,
+          identifiedLocation = null,
+          isSynthetic        = true
         )
       ),
       exports = ir.exports ::: moduleNames.map(m =>
         Export.Module(
           m,
-          rename      = None,
-          onlyNames   = None,
-          location    = None,
-          isSynthetic = true
+          rename             = None,
+          onlyNames          = None,
+          identifiedLocation = null,
+          isSynthetic        = true
         )
       )
     )

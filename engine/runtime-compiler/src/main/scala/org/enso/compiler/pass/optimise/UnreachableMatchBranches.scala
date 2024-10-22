@@ -5,13 +5,13 @@ import org.enso.compiler.core.Implicits.AsDiagnostics
 import org.enso.compiler.core.ir.{
   Expression,
   IdentifiedLocation,
-  Location,
   Module,
   Pattern
 }
 import org.enso.compiler.core.ir.expression.{errors, warnings, Case}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.IRProcessingPass
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
   DataflowAnalysis,
@@ -47,20 +47,20 @@ case object UnreachableMatchBranches extends IRPass {
   override type Metadata = IRPass.Metadata.Empty
   override type Config   = IRPass.Configuration.Default
 
-  override lazy val precursorPasses: Seq[IRPass] = List(
+  override lazy val precursorPasses: Seq[IRProcessingPass] = List(
     ComplexType,
     DocumentationComments,
     FunctionBinding,
     GenerateMethodBodies,
     LambdaShorthandToLambda
   )
-  override lazy val invalidatedPasses: Seq[IRPass] = List(
+  override lazy val invalidatedPasses: Seq[IRProcessingPass] = List(
     AliasAnalysis,
     DataflowAnalysis,
     DemandAnalysis,
     IgnoredBindings,
     NestedPatternMatch,
-    TailCall
+    TailCall.INSTANCE
   )
 
   /** Runs unreachable branch optimisation on a module.
@@ -146,9 +146,10 @@ case object UnreachableMatchBranches extends IRPass {
                     branch.location match {
                       case Some(branchLoc) =>
                         Some(
-                          IdentifiedLocation.create(
-                            new Location(loc.start, branchLoc.end),
-                            loc.id
+                          new IdentifiedLocation(
+                            loc.start,
+                            branchLoc.end,
+                            loc.uuid
                           )
                         )
                       case None => Some(loc)
@@ -158,7 +159,8 @@ case object UnreachableMatchBranches extends IRPass {
               }
             )
 
-          val diagnostic = warnings.Unreachable.Branches(unreachableLocation)
+          val diagnostic =
+            warnings.Unreachable.Branches(unreachableLocation.orNull)
 
           expr
             .copy(

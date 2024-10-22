@@ -7,6 +7,7 @@ import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
+import project.Errors.Common.Type_Error
 import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
@@ -140,7 +141,7 @@ type Plain_Text_Format
        Resolve an unresolved constructor to the actual type.
     resolve : Function -> Plain_Text_Format | Nothing
     resolve constructor =
-        Panic.catch Any (constructor:Plain_Text_Format) _->Nothing
+        Panic.catch Type_Error (constructor:Plain_Text_Format) _->Nothing
 
     ## PRIVATE
        If the File_Format supports reading from the file, return a configured instance.

@@ -49,6 +49,7 @@ import java.io.File
 import java.util.UUID
 import java.util.function.Consumer
 import java.util.logging.Level
+
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.Try
 
@@ -57,7 +58,7 @@ import scala.util.Try
   */
 object ProgramExecutionSupport {
 
-  /** Runs an Enso program.
+  /** Runs the program.
     *
     * @param contextId an identifier of an execution context
     * @param executionFrame an execution frame
@@ -142,6 +143,7 @@ object ProgramExecutionSupport {
           methodCallsCache,
           syncState,
           callStack.headOption.map(_.expressionId).orNull,
+          ctx.state.expressionExecutionState,
           callablesCallback,
           onComputedValueCallback,
           onCachedValueCallback,
@@ -183,6 +185,7 @@ object ProgramExecutionSupport {
           methodCallsCache,
           syncState,
           callStack.headOption.map(_.expressionId).orNull,
+          ctx.state.expressionExecutionState,
           callablesCallback,
           onComputedValueCallback,
           onCachedValueCallback,
@@ -226,7 +229,7 @@ object ProgramExecutionSupport {
     }
   }
 
-  /** Runs an Enso program.
+  /** Runs the program.
     *
     * @param contextId an identifier of an execution context
     * @param stack a call stack
@@ -271,7 +274,9 @@ object ProgramExecutionSupport {
           Some(Api.ExecutionResult.Failure("Execution stack is empty.", None))
         )
       _ <-
-        Try(executeProgram(contextId, stackItem, localCalls)).toEither.left
+        Try(
+          executeProgram(contextId, stackItem, localCalls)
+        ).toEither.left
           .map(onExecutionError(stackItem.item, _))
     } yield ()
     logger.log(Level.FINEST, s"Execution finished: $executionResult")
@@ -514,6 +519,7 @@ object ProgramExecutionSupport {
       }
 
       syncState.setExpressionSync(expressionId)
+      ctx.state.expressionExecutionState.setExpressionExecuted(expressionId)
       if (methodCall.isDefined) {
         syncState.setMethodPointerSync(expressionId)
       }
@@ -545,7 +551,7 @@ object ProgramExecutionSupport {
         } else {
           runtimeCache.getAnyValue(visualization.expressionId)
         }
-        if (v != null) {
+        if (v != null && !VisualizationResult.isInterruptedException(v)) {
           executeAndSendVisualizationUpdate(
             contextId,
             runtimeCache,

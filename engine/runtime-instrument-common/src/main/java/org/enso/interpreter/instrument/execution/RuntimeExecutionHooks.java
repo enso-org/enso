@@ -21,15 +21,21 @@ public final class RuntimeExecutionHooks implements ExecutionHooks {
 
   @Override
   public void run() {
+    Runnable[] hooksToRun;
     synchronized (hooks) {
-      for (Runnable hook : hooks) {
-        try {
-          hook.run();
-        } catch (Exception e) {
-          logger.error("Failed to run execution hook.", e);
+      hooksToRun = hooks.toArray(new Runnable[0]);
+    }
+
+    for (Runnable hook : hooksToRun) {
+      try {
+        hook.run();
+      } catch (Exception e) {
+        logger.error("Failed to run execution hook.", e);
+      } finally {
+        synchronized (hooks) {
+          hooks.remove(hook);
         }
       }
-      hooks.clear();
     }
   }
 }

@@ -30,17 +30,17 @@ object Operator {
 
   /** A representation of a generic binary operator application in Enso.
     *
-    * @param left        the left operand to `operator`
-    * @param operator    the operator function being called
-    * @param right       the right operand to `operator`
-    * @param location    the source location that the node corresponds to
-    * @param passData    the pass metadata associated with this node
+    * @param left the left operand to `operator`
+    * @param operator the operator function being called
+    * @param right the right operand to `operator`
+    * @param identifiedLocation the source location that the node corresponds to
+    * @param passData the pass metadata associated with this node
     */
   sealed case class Binary(
     left: CallArgument,
     operator: Name,
     right: CallArgument,
-    override val location: Option[IdentifiedLocation],
+    override val identifiedLocation: IdentifiedLocation,
     override val passData: MetadataStorage = new MetadataStorage()
   ) extends Operator
       with IRKind.Sugar
@@ -76,7 +76,7 @@ object Operator {
         || diagnostics != this.diagnostics
         || id != this.id
       ) {
-        val res = Binary(left, operator, right, location, passData)
+        val res = Binary(left, operator, right, location.orNull, passData)
         res.diagnostics = diagnostics
         res.id          = id
         res

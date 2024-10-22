@@ -2,6 +2,7 @@ package org.enso.interpreter.test.instrument
 
 import org.enso.interpreter.runtime.`type`.ConstantsGen
 import org.enso.interpreter.test.Metadata
+
 import org.enso.pkg.QualifiedName
 import org.enso.common.RuntimeOptions
 import org.enso.polyglot._
@@ -423,7 +424,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       context.send(
         Api.Request(
           requestId,
-          Api.RecomputeContextRequest(contextId, None, None)
+          Api.RecomputeContextRequest(contextId, None, None, Seq())
         )
       )
 
@@ -551,7 +552,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       context.send(
         Api.Request(
           requestId,
-          Api.RecomputeContextRequest(contextId, None, None)
+          Api.RecomputeContextRequest(contextId, None, None, Seq())
         )
       )
       context.receiveNIgnoreExpressionUpdates(2) should contain allOf (
@@ -570,7 +571,8 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
                 Vector(context.Main.idMainX)
               )
             ),
-            None
+            None,
+            Seq()
           )
         )
       )
@@ -1577,7 +1579,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       context.send(
         Api.Request(
           requestId,
-          Api.RecomputeContextRequest(contextId, None, None)
+          Api.RecomputeContextRequest(contextId, None, None, Seq())
         )
       )
       context.receiveNIgnoreExpressionUpdates(
@@ -1598,7 +1600,8 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
                 Vector(context.Main.idMainX)
               )
             ),
-            None
+            None,
+            Seq()
           )
         )
       )
@@ -2905,7 +2908,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       context.send(
         Api.Request(
           requestId,
-          Api.RecomputeContextRequest(contextId, None, None)
+          Api.RecomputeContextRequest(contextId, None, None, Seq())
         )
       )
 
@@ -3079,7 +3082,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       context.send(
         Api.Request(
           requestId,
-          Api.RecomputeContextRequest(contextId, None, None)
+          Api.RecomputeContextRequest(contextId, None, None, Seq())
         )
       )
 
@@ -3218,7 +3221,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       context.send(
         Api.Request(
           requestId,
-          Api.RecomputeContextRequest(contextId, None, None)
+          Api.RecomputeContextRequest(contextId, None, None, Seq())
         )
       )
 
@@ -3402,7 +3405,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       context.send(
         Api.Request(
           requestId,
-          Api.RecomputeContextRequest(contextId, None, None)
+          Api.RecomputeContextRequest(contextId, None, None, Seq())
         )
       )
 
@@ -4070,6 +4073,237 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         data
     }
     new String(data, StandardCharsets.UTF_8) shouldEqual "(Mk_Newtype 42)"
+  }
+
+  it should "resolve multiple autoscoped atomconstructor" in withContext() {
+    context =>
+      val contextId       = UUID.randomUUID()
+      val requestId       = UUID.randomUUID()
+      val visualizationId = UUID.randomUUID()
+      val moduleName      = "Enso_Test.Test.Main"
+      val moduleNameLib   = "Enso_Test.Test.Lib"
+      val metadata        = new Metadata
+
+      val idS    = metadata.addItem(50, 13, "eeee")
+      val idX    = metadata.addItem(72, 14, "aaaa")
+      val idAArg = UUID.randomUUID()
+      val idBArg = UUID.randomUUID()
+      val idRes  = metadata.addItem(91, 1, "dddd")
+
+      val typesMetadata = new Metadata
+      val codeTypes = typesMetadata.appendToCode(
+        """type Foo
+          |    A
+          |
+          |type Bar
+          |    B
+          |""".stripMargin.linesIterator.mkString("\n")
+      )
+      val typesFile = context.writeInSrcDir("Types", codeTypes)
+
+      val libMetadata = new Metadata
+      val codeLib = libMetadata.appendToCode(
+        """from project.Types import Foo, Bar
+          |from Standard.Base import all
+          |
+          |type Singleton
+          |    S value
+          |
+          |    test : Foo -> Bar -> Number
+          |    test self (x : Foo = ..A) (y : Bar = ..B) =
+          |        Singleton.from_test x y
+          |
+          |    from_test : Foo -> Bar -> Number
+          |    from_test (x : Foo = ..A) (y : Bar = ..B) =
+          |        _ = x
+          |        _ = y
+          |        42
+          |""".stripMargin.linesIterator.mkString("\n")
+      )
+
+      val libFile = context.writeInSrcDir("Lib", codeLib)
+
+      val code =
+        """from project.Lib import Singleton
+          |
+          |main =
+          |    s = Singleton.S 1
+          |    x = s.test ..A ..B
+          |    x
+          |""".stripMargin.linesIterator.mkString("\n")
+      val contents = metadata.appendToCode(code)
+      val mainFile = context.writeMain(contents)
+
+      metadata.assertInCode(idS, code, "Singleton.S 1")
+      metadata.assertInCode(idX, code, "s.test ..A ..B")
+      metadata.assertInCode(idRes, code, "x")
+
+      // create context
+      context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+      context.receive shouldEqual Some(
+        Api.Response(requestId, Api.CreateContextResponse(contextId))
+      )
+
+      // Open files
+      context.send(
+        Api.Request(requestId, Api.OpenFileRequest(typesFile, codeTypes))
+      )
+      context.receive shouldEqual Some(
+        Api.Response(Some(requestId), Api.OpenFileResponse)
+      )
+      context.send(
+        Api.Request(requestId, Api.OpenFileRequest(libFile, codeLib))
+      )
+      context.receive shouldEqual Some(
+        Api.Response(Some(requestId), Api.OpenFileResponse)
+      )
+      context.send(
+        Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+      )
+      context.receive shouldEqual Some(
+        Api.Response(Some(requestId), Api.OpenFileResponse)
+      )
+
+      // push main
+      val item1 = Api.StackItem.ExplicitCall(
+        Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+        None,
+        Vector()
+      )
+      context.send(
+        Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+      )
+      context.receiveNIgnorePendingExpressionUpdates(
+        5
+      ) should contain theSameElementsAs Seq(
+        Api.Response(requestId, Api.PushContextResponse(contextId)),
+        TestMessages.update(
+          contextId,
+          idS,
+          s"$moduleNameLib.Singleton",
+          methodCall = Some(
+            Api.MethodCall(
+              Api
+                .MethodPointer(moduleNameLib, s"$moduleNameLib.Singleton", "S")
+            )
+          ),
+          payload = Api.ExpressionUpdate.Payload.Value(None)
+        ),
+        TestMessages.update(
+          contextId,
+          idX,
+          s"Standard.Base.Data.Numbers.Integer",
+          methodCall = Some(
+            Api.MethodCall(
+              Api
+                .MethodPointer(
+                  moduleNameLib,
+                  s"$moduleNameLib.Singleton",
+                  "test"
+                )
+            )
+          ),
+          payload = Api.ExpressionUpdate.Payload.Value(None)
+        ),
+        TestMessages.update(
+          contextId,
+          idRes,
+          s"Standard.Base.Data.Numbers.Integer",
+          payload = Api.ExpressionUpdate.Payload.Value(None)
+        ),
+        context.executionComplete(contextId)
+      )
+
+      // attach visualization
+      context.send(
+        Api.Request(
+          requestId,
+          Api.AttachVisualization(
+            visualizationId,
+            idRes,
+            Api.VisualizationConfiguration(
+              contextId,
+              Api.VisualizationExpression.Text(
+                "Enso_Test.Test.Main",
+                "x -> x.to_text",
+                Vector()
+              ),
+              "Enso_Test.Test.Main"
+            )
+          )
+        )
+      )
+
+      val attachVisualizationResponses =
+        context.receiveNIgnoreExpressionUpdates(3)
+      attachVisualizationResponses should contain allOf (
+        Api.Response(requestId, Api.VisualizationAttached()),
+        context.executionComplete(contextId)
+      )
+      val Some(data) = attachVisualizationResponses.collectFirst {
+        case Api.Response(
+              None,
+              Api.VisualizationUpdate(
+                Api.VisualizationContext(
+                  `visualizationId`,
+                  `contextId`,
+                  `idRes`
+                ),
+                data
+              )
+            ) =>
+          data
+      }
+      new String(data, StandardCharsets.UTF_8) shouldEqual "42"
+
+      context.send(
+        Api.Request(
+          Api.EditFileNotification(
+            mainFile,
+            Seq(),
+            execute = true,
+            idMap = Some(
+              model.IdMap(
+                Vector(
+                  model.Span(79, 82) -> idAArg,
+                  model.Span(83, 86) -> idBArg
+                )
+              )
+            )
+          )
+        )
+      )
+      val afterIdMapUpdate = context.receiveN(3)
+
+      // Can't do comparison directly because of Arrays https://github.com/scalatest/scalatest/issues/491
+      afterIdMapUpdate should contain allOf (
+        TestMessages.update(
+          contextId,
+          idRes,
+          s"Standard.Base.Data.Numbers.Integer",
+          typeChanged = false,
+          payload     = Api.ExpressionUpdate.Payload.Value(None)
+        ),
+        context.executionComplete(contextId)
+      )
+
+      val Some(data2) = afterIdMapUpdate.collectFirst {
+        case Api.Response(
+              None,
+              Api.VisualizationUpdate(
+                Api.VisualizationContext(
+                  `visualizationId`,
+                  `contextId`,
+                  `idRes`
+                ),
+                data
+              )
+            ) =>
+          data
+      }
+
+      new String(data2, StandardCharsets.UTF_8) shouldEqual "42"
+
   }
 
   it should "emit visualization update for the target of a method call (subexpression)" in withContext() {

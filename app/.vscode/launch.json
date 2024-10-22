@@ -46,7 +46,7 @@
       "request": "launch",
       "name": "GUI (Storybook)",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["run", "--filter", "enso-gui2", "story:dev"],
+      "runtimeArgs": ["run", "--filter", "enso-gui", "story:dev"],
       "outputCapture": "std"
     },
     {
@@ -70,7 +70,7 @@
       "request": "launch",
       "name": "GUI (E2E UI)",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["run", "--filter", "enso-gui2", "test:e2e", "--", "--ui"],
+      "runtimeArgs": ["run", "--filter", "enso-gui", "test:e2e", "--", "--ui"],
       "outputCapture": "std"
     },
     {
@@ -102,14 +102,14 @@
       "request": "launch",
       "name": "GUI (All tests)",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["run", "--filter", "enso-gui2", "test"]
+      "runtimeArgs": ["run", "--filter", "enso-gui", "test"]
     },
     {
       "type": "node",
       "request": "launch",
       "name": "GUI (E2E tests)",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["run", "--filter", "enso-gui2", "test:e2e"],
+      "runtimeArgs": ["run", "--filter", "enso-gui", "test:e2e"],
       "outputCapture": "std"
     },
     {
@@ -117,7 +117,7 @@
       "request": "launch",
       "name": "GUI (Unit tests)",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["run", "--filter", "enso-gui2", "test:unit", "--", "run"],
+      "runtimeArgs": ["run", "--filter", "enso-gui", "test:unit", "--", "run"],
       "outputCapture": "std"
     }
   ]

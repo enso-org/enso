@@ -13,7 +13,8 @@ public final class ParserPolyfill implements ProxyExecutable, Polyfill {
 
   private static final Logger log = LoggerFactory.getLogger(ParserPolyfill.class);
 
-  private static final String PARSE_TREE = "parse-tree";
+  private static final String PARSE_BLOCK = "parse-block";
+  private static final String PARSE_MODULE = "parse-module";
   private static final String XX_HASH_128 = "xx-hash-128";
   private static final String IS_IDENT_OR_OPERATOR = "is-ident-or-operator";
 
@@ -36,10 +37,16 @@ public final class ParserPolyfill implements ProxyExecutable, Polyfill {
     log.debug(Arguments.toString(arguments));
 
     return switch (command) {
-      case PARSE_TREE -> {
+      case PARSE_BLOCK -> {
         var input = arguments[1].asString();
 
-        yield Parser.parseInputLazy(input);
+        yield Parser.parseBlockLazy(input);
+      }
+
+      case PARSE_MODULE -> {
+        var input = arguments[1].asString();
+
+        yield Parser.parseModuleLazy(input);
       }
 
       case XX_HASH_128 -> {

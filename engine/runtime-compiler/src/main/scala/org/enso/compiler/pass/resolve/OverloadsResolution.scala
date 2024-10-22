@@ -66,7 +66,7 @@ case object OverloadsResolution extends IRPass {
     val newBindings = ir.bindings.map {
       case tp: Definition.Type =>
         if (seenTypes.contains(tp.name.name)) {
-          errors.Redefined.Type(tp.name, tp.location)
+          errors.Redefined.Type(tp.name, tp.identifiedLocation)
         } else {
           seenTypes += tp.name.name
           tp
@@ -77,15 +77,18 @@ case object OverloadsResolution extends IRPass {
           seenMethods(method.typeName.map(_.name))
             .contains((method.methodName.name, method.isStatic))
         ) {
-          errors.Redefined
-            .Method(method.typeName, method.methodName, method.location)
+          errors.Redefined.Method(
+            method.typeName,
+            method.methodName,
+            method.identifiedLocation
+          )
         } else {
           types.find(_.name.name.equals(method.methodName.name)) match {
             case Some(clashedAtom) if method.typeName.isEmpty =>
               errors.Redefined.MethodClashWithAtom(
                 clashedAtom.name,
                 method.methodName,
-                method.location
+                method.identifiedLocation
               )
             case _ =>
               val currentMethods: Set[(String, Boolean)] =
@@ -101,7 +104,11 @@ case object OverloadsResolution extends IRPass {
         conversionsForType.get(m.typeName.map(_.name)) match {
           case Some(elems) =>
             if (elems.contains(fromName.name)) {
-              errors.Redefined.Conversion(m.typeName, fromName, m.location)
+              errors.Redefined.Conversion(
+                m.typeName,
+                fromName,
+                m.identifiedLocation
+              )
             } else {
               conversionsForType.update(
                 m.typeName.map(_.name),

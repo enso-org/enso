@@ -4,15 +4,25 @@
 
 - [Rows and Columns may be now removed in Table Input Widget][11151]. The option
   is available in right-click context menu.
+- [Rows and Columns may be now reordered by dragging in Table Input
+  Widget][11271]
+- [Copying and pasting in Table Editor Widget now works properly][11332]
+- [Fix invisible selection in Table Input Widget][11358]
 
 [11151]: https://github.com/enso-org/enso/pull/11151
+[11271]: https://github.com/enso-org/enso/pull/11271
+[11332]: https://github.com/enso-org/enso/pull/11332
+[11358]: https://github.com/enso-org/enso/pull/11358
 
 #### Enso Standard Library
 
 - [The `enso://~` path now resolves to user's home directory in the
   cloud.][11235]
+- [The user may set description and labels of an Enso Cloud asset
+  programmatically.][11255]
 
 [11235]: https://github.com/enso-org/enso/pull/11235
+[11255]: https://github.com/enso-org/enso/pull/11255
 
 # Enso 2024.4
 
@@ -68,11 +78,14 @@
 - [Support for creating Atoms in expressions.][10820]
 - [IO.print without new line][10858]
 - [Add `Text.to_decimal`.][10874]
-- [Added .floor, .ceil, .trunc to the in-memory `Decimal` column.][10887]
+- [Added `floor`, `ceil`, `trunc` to the in-memory `Decimal` column.][10887]
 - [Added vectorized .round to the in-memory `Decimal` column.][10912]
 - [`select_into_database_table` no longer defaults the primary key to the first
   column.][11120]
+- [Extend the range of `floor`, `ceil`, `trunc` to values outside the `Long`
+  range.][11135]
 - [Added `format` parameter to `Decimal.parse`.][11205]
+- [Added `format` parameter to `Float.parse`.][11229]
 
 [10614]: https://github.com/enso-org/enso/pull/10614
 [10660]: https://github.com/enso-org/enso/pull/10660
@@ -85,7 +98,9 @@
 [10887]: https://github.com/enso-org/enso/pull/10887
 [10912]: https://github.com/enso-org/enso/pull/10912
 [11120]: https://github.com/enso-org/enso/pull/11120
+[11135]: https://github.com/enso-org/enso/pull/11135
 [11205]: https://github.com/enso-org/enso/pull/11205
+[11229]: https://github.com/enso-org/enso/pull/11229
 
 #### Enso Language & Runtime
 

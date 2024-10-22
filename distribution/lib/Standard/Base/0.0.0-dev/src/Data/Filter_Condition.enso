@@ -9,6 +9,7 @@ import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Common.Incomparable_Values
 import project.Errors.Common.Missing_Argument
+import project.Errors.Common.Type_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Function.Function
 import project.Meta
@@ -167,7 +168,7 @@ type Filter_Condition
     resolve_auto_scoped filter =
         resolve filter:Filter_Condition = filter
         case filter of
-            _ : Function -> Panic.catch Any (resolve filter) _->filter
+            _ : Function -> Panic.catch Type_Error (resolve filter) _->filter
             _ : Filter_Condition -> filter
             _ -> Panic.throw (Illegal_Argument.Error "The filter condition can either be a Function or a Filter_Condition, but got: "+filter.to_display_text)
 

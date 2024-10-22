@@ -1,13 +1,20 @@
 package org.enso.interpreter.instrument.command
 
-import org.enso.interpreter.instrument.{CacheInvalidation, InstrumentFrame}
+import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.pass.analyse.DataflowAnalysis
+import org.enso.compiler.refactoring.IRUtils
+import org.enso.interpreter.instrument.command.RecomputeContextCmd.InvalidateExpressions
+import org.enso.interpreter.instrument.{
+  CacheInvalidation,
+  ExecutionConfig,
+  InstrumentFrame
+}
 import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.interpreter.instrument.job.{EnsureCompiledJob, ExecuteJob}
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.RequestId
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.jdk.CollectionConverters._
 
 /** A command that forces a recomputation of the current position.
   *
@@ -41,53 +48,16 @@ class RecomputeContextCmd(
         reply(Api.EmptyStackError(request.contextId))
         false
       } else {
-        val cacheInvalidationCommands = request.expressions.toSeq
-          .map(CacheInvalidation.Command(_))
-          .map(CacheInvalidation(CacheInvalidation.StackSelector.Top, _))
-        CacheInvalidation.runAll(
-          stack,
-          cacheInvalidationCommands
+        ctx.state.executionHooks.add(
+          InvalidateExpressions(
+            request.contextId,
+            request.expressions,
+            request.expressionConfigs
+          )
         )
-
-        sendPendingUpdates(stack)
         reply(Api.RecomputeContextResponse(request.contextId))
         true
       }
-    }
-  }
-
-  private def sendPendingUpdates(
-    stack: Iterable[InstrumentFrame]
-  )(implicit ctx: RuntimeContext): Unit = {
-    val invalidatedExpressions =
-      request.expressions
-        .map {
-          case expressions: Api.InvalidatedExpressions.Expressions =>
-            expressions.value.toSet
-          case _: Api.InvalidatedExpressions.All =>
-            stack.headOption
-              .map { frame =>
-                frame.cache.getWeights.keySet().asScala.toSet
-              }
-              .getOrElse(Set())
-        }
-        .getOrElse(Set())
-    if (invalidatedExpressions.nonEmpty) {
-      val updates = invalidatedExpressions.collect {
-        case expressionId if expressionId ne null =>
-          Api.ExpressionUpdate(
-            expressionId,
-            None,
-            None,
-            Vector.empty,
-            true,
-            false,
-            Api.ExpressionUpdate.Payload.Pending(None, None)
-          )
-      }
-      ctx.endpoint.sendToClient(
-        Api.Response(Api.ExpressionUpdates(request.contextId, updates))
-      )
     }
   }
 
@@ -109,6 +79,13 @@ class RecomputeContextCmd(
   ): Future[Unit] = {
     if (isStackNonEmpty) {
       val stack = ctx.contextManager.getStack(request.contextId)
+      val executionConfig =
+        ExecutionConfig.create(
+          request.executionEnvironment,
+          request.expressionConfigs
+        )
+      ctx.state.expressionExecutionState
+        .setExpressionConfigs(executionConfig.expressionConfigs)
       for {
         _ <- ctx.jobProcessor.run(EnsureCompiledJob(stack))
         _ <- ctx.jobProcessor.run(
@@ -124,4 +101,117 @@ class RecomputeContextCmd(
     }
   }
 
+}
+
+object RecomputeContextCmd {
+
+  /** Invalidate caches for the request. */
+  sealed private case class InvalidateExpressions(
+    contextId: Api.ContextId,
+    expressions: Option[Api.InvalidatedExpressions],
+    expressionConfigs: Seq[Api.ExpressionConfig]
+  )(implicit ctx: RuntimeContext)
+      extends Runnable {
+
+    override def run(): Unit = {
+      val stack = ctx.contextManager.getStack(contextId)
+
+      val invalidationCommands =
+        ctx.locking.withWriteCompilationLock(
+          classOf[RecomputeContextCmd],
+          () => {
+            val expressionsInvalidationCommands = expressions.toSeq
+              .map(CacheInvalidation.Command(_))
+              .map(CacheInvalidation(CacheInvalidation.StackSelector.All, _))
+            val expressionConfigsDependentInvalidationCommands =
+              expressionConfigs
+                .map(_.expressionId)
+                .flatMap(RecomputeContextCmd.invalidateDependent)
+            val allInvalidationCommands =
+              expressionsInvalidationCommands ++ expressionConfigsDependentInvalidationCommands
+
+            CacheInvalidation.runAll(stack, allInvalidationCommands)
+
+            allInvalidationCommands
+          }
+        )
+
+      sendPendingUpdates(stack, contextId, invalidationCommands)
+    }
+  }
+
+  /** Invalidate dependent nodes of the provided expression.
+    *
+    * @param expressionId the expression id
+    * @return commands to invalidate dependent nodes of the provided expression
+    */
+  private def invalidateDependent(
+    expressionId: Api.ExpressionId
+  )(implicit ctx: RuntimeContext): Seq[CacheInvalidation] = {
+    val builder = Vector.newBuilder[CacheInvalidation]
+    ctx.executionService.getContext
+      .findModuleByExpressionId(expressionId)
+      .ifPresent { module =>
+        module.getIr
+          .getMetadata(DataflowAnalysis)
+          .foreach { metadata =>
+            val dependents =
+              IRUtils
+                .findByExternalId(module.getIr, expressionId)
+                .map { ir =>
+                  DataflowAnalysis.DependencyInfo.Type
+                    .Static(ir.getId, ir.getExternalId)
+                }
+                .flatMap { expressionKey =>
+                  metadata.dependents.getExternal(expressionKey)
+                }
+                .fold(Set(expressionId))(_ + expressionId)
+            builder += CacheInvalidation(
+              CacheInvalidation.StackSelector.All,
+              CacheInvalidation.Command.InvalidateKeys(dependents)
+            )
+          }
+      }
+
+    builder.result()
+  }
+
+  private def sendPendingUpdates(
+    stack: Iterable[InstrumentFrame],
+    contextId: Api.ContextId,
+    cacheInvalidations: Seq[CacheInvalidation]
+  )(implicit ctx: RuntimeContext): Unit = {
+    val builder = Set.newBuilder[Api.ExpressionId]
+    cacheInvalidations.map(_.command).foreach {
+      case CacheInvalidation.Command.InvalidateAll =>
+        stack.headOption
+          .map { frame =>
+            frame.cache.getPreferences.preferences
+              .keySet()
+              .forEach(builder.addOne)
+          }
+      case CacheInvalidation.Command.InvalidateKeys(expressionIds) =>
+        builder ++= expressionIds
+      case _ =>
+    }
+
+    val invalidatedExpressions = builder.result()
+    if (invalidatedExpressions.nonEmpty) {
+      val updates = invalidatedExpressions.collect {
+        case expressionId if expressionId ne null =>
+          Api.ExpressionUpdate(
+            expressionId,
+            None,
+            None,
+            Vector.empty,
+            true,
+            false,
+            Api.ExpressionUpdate.Payload.Pending(None, None)
+          )
+      }
+      ctx.endpoint.sendToClient(
+        Api.Response(Api.ExpressionUpdates(contextId, updates))
+      )
+    }
+  }
 }

@@ -61,7 +61,7 @@ jobs:
   enso-build-ci-gen-job-build-backend-macos-amd64:
     name: Build Backend (macos, amd64)
     runs-on:
-      - macos-12
+      - macos-13
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
@@ -213,7 +213,7 @@ jobs:
   enso-build-ci-gen-job-gui-build-macos-amd64:
     name: GUI build (macos, amd64)
     runs-on:
-      - macos-12
+      - macos-13
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
@@ -372,6 +372,9 @@ jobs:
           ENSO_TEST_USER: ${{ secrets.ENSO_CLOUD_TEST_ACCOUNT_USERNAME }}
           ENSO_TEST_USER_PASSWORD: ${{ secrets.ENSO_CLOUD_TEST_ACCOUNT_PASSWORD }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: rm $HOME/.enso/credentials
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
@@ -388,7 +391,7 @@ jobs:
     needs:
       - enso-build-ci-gen-job-build-backend-macos-amd64
     runs-on:
-      - macos-12
+      - macos-13
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
@@ -440,6 +443,9 @@ jobs:
           DEBUG: "pw:browser log:"
           ENSO_TEST_USER: ${{ secrets.ENSO_CLOUD_TEST_ACCOUNT_USERNAME }}
           ENSO_TEST_USER_PASSWORD: ${{ secrets.ENSO_CLOUD_TEST_ACCOUNT_PASSWORD }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: rm $HOME/.enso/credentials
+        env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
@@ -505,6 +511,9 @@ jobs:
           DEBUG: "pw:browser log:"
           ENSO_TEST_USER: ${{ secrets.ENSO_CLOUD_TEST_ACCOUNT_USERNAME }}
           ENSO_TEST_USER_PASSWORD: ${{ secrets.ENSO_CLOUD_TEST_ACCOUNT_PASSWORD }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: rm $HOME/.enso/credentials
+        env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)

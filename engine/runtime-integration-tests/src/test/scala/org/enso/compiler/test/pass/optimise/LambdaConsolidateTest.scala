@@ -231,35 +231,35 @@ class LambdaConsolidateTest extends CompilerTest {
           DefinitionArgument
             .Specified(
               Name
-                .Literal("a", isMethod = false, None),
+                .Literal("a", isMethod = false, identifiedLocation = null),
               None,
               None,
-              suspended = false,
-              None
+              suspended          = false,
+              identifiedLocation = null
             ),
           DefinitionArgument.Specified(
-            Name.Literal("b", isMethod = false, None),
+            Name.Literal("b", isMethod = false, identifiedLocation = null),
             None,
             None,
-            suspended = false,
-            None
+            suspended          = false,
+            identifiedLocation = null
           )
         ),
         new Function.Lambda(
           List(
             DefinitionArgument.Specified(
               Name
-                .Literal("c", isMethod = false, None),
+                .Literal("c", isMethod = false, identifiedLocation = null),
               None,
               None,
-              suspended = false,
-              None
+              suspended          = false,
+              identifiedLocation = null
             )
           ),
-          Name.Literal("c", isMethod = false, None),
-          None
+          Name.Literal("c", isMethod = false, identifiedLocation = null),
+          identifiedLocation = null
         ),
-        None
+        identifiedLocation = null
       )
         .runPasses(passManager, inlineContext)
         .optimise

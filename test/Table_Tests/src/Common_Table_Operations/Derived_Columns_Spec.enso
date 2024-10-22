@@ -6,6 +6,9 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Table import all
 from Standard.Table.Errors import all
 
+from Standard.Database.Errors import all
+import Standard.Database.Feature.Feature
+
 from Standard.Test import all
 
 
@@ -14,6 +17,9 @@ from project.Common_Table_Operations.Util import all
 main filter=Nothing = run_default_backend add_specs filter
 
 add_specs suite_builder setup =
+    if setup.is_feature_supported Feature.Column_Operations then (add_derived_columns_specs suite_builder setup)
+
+add_derived_columns_specs suite_builder setup =
     prefix = setup.prefix
     table_builder = setup.light_table_builder
     pending_datetime = if setup.test_selection.date_time.not then "Date/Time operations are not supported by this backend."

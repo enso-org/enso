@@ -121,7 +121,8 @@ sealed case class Resolution(
   override def diagnosticKeys(): Array[Any] = Array(reason)
 
   /** @inheritdoc */
-  override val location: Option[IdentifiedLocation] = originalName.location
+  override def identifiedLocation: IdentifiedLocation =
+    originalName.identifiedLocation()
 }
 
 object Resolution {

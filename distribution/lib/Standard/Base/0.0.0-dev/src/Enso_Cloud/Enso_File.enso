@@ -1,4 +1,5 @@
 import project.Any.Any
+import project.Data.Color.Color
 import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
 import project.Data.Text.Encoding.Encoding
@@ -55,7 +56,8 @@ type Enso_File
        - path: The `enso://` path to a file or directory.
     new : Text -> Enso_File ! Not_Found
     new (path : Text) =
-        Enso_File.Value (Enso_Path.parse path)
+        resolved_path = Enso_Path.parse path
+        resolved_path.if_not_error <| Enso_File.Value resolved_path
 
     ## PRIVATE
     private Value (enso_path : Enso_Path)
@@ -65,7 +67,6 @@ type Enso_File
     home : Enso_File
     home -> Enso_File =
         Enso_File.root / "Users" / Enso_User.current.name
-
 
     ## ICON folder
        Represents the root folder of the organization.
@@ -138,12 +139,126 @@ type Enso_File
        ICON metadata
        Gets the last modified time of a file.
     last_modified_time : Date_Time
-    last_modified_time self =
-        asset = Existing_Enso_Asset.get_asset_reference_for self
-        if asset.is_regular_file.not then Error.throw (Illegal_Argument.Error "`last_modified_time` can only be queried for files.") else
-            metadata = asset.get_file_description |> get_required_field "metadata"
-            Date_Time.parse (get_required_field "modifiedAt" metadata expected_type=Text) Date_Time_Formatter.iso_offset_date_time
-                . catch Time_Error error-> Error.throw (Enso_Cloud_Error.Invalid_Response_Payload error)
+    last_modified_time self -> Date_Time =
+        asset = Existing_Enso_Asset.get_asset_reference_for self want_metadata=True
+        asset.metadata.modified_at
+
+    ## GROUP Metadata
+       ICON metadata
+       Gets the description associated with the file in Enso Cloud.
+
+       By default, the description is empty. It can be set in the Dashboard, or
+       using the `set_description` method.
+    description : Text
+    description self -> Text =
+        asset = Existing_Enso_Asset.get_asset_reference_for self want_metadata=True
+        asset.metadata.description.if_nothing ""
+
+    ## GROUP Metadata
+       ICON data_output
+       Sets the description associated with the file in Enso Cloud.
+
+       Arguments:
+       - description: The new description to set.
+
+       Returns:
+       - The file on which it was called.
+    set_description : Text -> Enso_File
+    set_description self (description : Text) -> Enso_File =
+        Context.Output.if_enabled disabled_message="Cannot set a description when writing is disabled. Press the Write button ▶ to perform the operation." panic=False <|
+            update_asset_description self description . if_not_error self
+
+    ## GROUP Metadata
+       ICON metadata
+       Gets the labels associated with the file in Enso Cloud.
+    labels : Vector Text
+    labels self -> Vector Text =
+        asset = Existing_Enso_Asset.get_asset_reference_for self want_metadata=True
+        asset.metadata.labels
+
+    ## GROUP Metadata
+       ICON data_output
+       Adds a label to the file in Enso Cloud.
+
+       If the label with the given name did not exist before, it is created with
+       a random color associated with it. If you want to set a specific color,
+       use `Enso_File.create_label` before calling this method.
+
+       Arguments:
+       - label: The name of the label to add to the file.
+
+       Returns:
+       - The file on which it was called.
+
+       ? Race Conditions
+
+         Adding labels is not atomic. If two processes are modifying labels of
+         the same asset at the same time, some changes may be lost.
+    add_label : Text -> Enso_File
+    add_label self (label : Text) -> Enso_File =
+        labels = self.labels
+        if labels.contains label then self else
+            Context.Output.if_enabled disabled_message="Cannot add a label when writing is disabled. Press the Write button ▶ to perform the operation." panic=False <|
+                create_tags_if_not_exist [label] . if_not_error <|
+                    new_labels = labels+[label]
+                    update_asset_labels self new_labels . if_not_error self
+
+    ## GROUP Metadata
+       ICON data_output
+       Removes a label from the file in Enso Cloud.
+
+       Arguments:
+       - label: The name of the label to remove from the file.
+
+       Returns:
+       - A boolean value indicating if the file had the label before the operation.
+
+       ? Race Conditions
+
+         Removing labels is not atomic. If two processes are modifying labels of
+         the same asset at the same time, some changes may be lost.
+    remove_label : Text -> Boolean
+    remove_label self (label : Text) -> Boolean =
+        labels = self.labels
+        if labels.contains label . not then False else
+            Context.Output.if_enabled disabled_message="Cannot remove a label when writing is disabled. Press the Write button ▶ to perform the operation." panic=False <|
+                new_labels = labels.filter l-> l != label
+                update_asset_labels self new_labels . if_not_error True
+
+    ## GROUP Metadata
+       ICON data_output
+       Sets the set of labels associated with the file in Enso Cloud.
+       Any other labels than the ones provided are removed from the file.
+
+       If any of the provided labels did not exist before, it is created with
+       a random color associated with it. If you want to set a specific color,
+       use `Enso_File.create_label` before calling this method.
+
+       Arguments:
+       - labels: The new set of labels to associate with the file.
+
+       Returns:
+       - The file on which it was called.
+    set_labels : Vector Text -> Enso_File
+    set_labels self (labels : Vector Text) -> Enso_File =
+        Context.Output.if_enabled disabled_message="Cannot update labels when writing is disabled. Press the Write button ▶ to perform the operation." panic=False <|
+            create_tags_if_not_exist labels . if_not_error <|
+                update_asset_labels self labels . if_not_error self
+
+    ## GROUP Metadata
+       ICON data_output
+       Creates a new label with the given name and color.
+
+       Arguments:
+       - name: The name of the label to create.
+       - color: The color of the label to create.
+    create_label : Text -> Text -> Nothing
+    create_label (name : Text) (color : Color) -> Nothing =
+        # TODO once cloud also checks for tag existance, if the Write context is enabled we could avoid this check as cloud will do it anyway - then we'll have only one request instead of 2 each time
+        # Cloud ticket: https://github.com/enso-org/cloud-v2/issues/1544
+        if does_tag_exist name then Error.throw (Illegal_Argument.Error "A label with name "+name+" already exists.") else
+            Context.Output.if_enabled disabled_message="Cannot create a label when writing is disabled. Press the Write button ▶ to perform the operation." panic=False <|
+                create_tag name color . if_not_error Nothing
 
     ## GROUP Metadata
        ICON metadata
@@ -266,8 +381,7 @@ type Enso_File
             Enso_Asset_Type.Project -> Error.throw (Illegal_Argument.Error "Projects cannot be read within Enso code. Open using the IDE.")
             Enso_Asset_Type.Secret -> Error.throw (Illegal_Argument.Error "Secrets cannot be read directly.")
             Enso_Asset_Type.Data_Link ->
-                json = Utils.http_request_as_json HTTP_Method.Get asset.internal_uri
-                datalink = Data_Link_Helpers.interpret_json_as_data_link json
+                datalink = Data_Link_Helpers.interpret_existing_asset_as_data_link asset
                 datalink.read format on_problems
             Enso_Asset_Type.Directory -> Error.throw (Illegal_Argument.Error "Cannot `read` a directory, use `list`.")
             Enso_Asset_Type.File ->
