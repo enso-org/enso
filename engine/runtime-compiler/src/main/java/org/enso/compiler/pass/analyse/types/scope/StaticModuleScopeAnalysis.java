@@ -16,6 +16,7 @@ import org.enso.compiler.core.ir.module.scope.Definition;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.pass.IRPass;
+import org.enso.compiler.pass.IRProcessingPass;
 import org.enso.compiler.pass.analyse.BindingAnalysis$;
 import org.enso.compiler.pass.analyse.types.InferredType;
 import org.enso.compiler.pass.analyse.types.TypeInferenceSignatures;
@@ -36,26 +37,14 @@ public class StaticModuleScopeAnalysis implements IRPass {
 
   private StaticModuleScopeAnalysis() {}
 
-  private UUID uuid;
-
-  @Override
-  public void org$enso$compiler$pass$IRPass$_setter_$key_$eq(UUID v) {
-    this.uuid = v;
-  }
-
-  @Override
-  public UUID key() {
-    return uuid;
-  }
-
   @Override
   public String toString() {
     return "StaticModuleScopeAnalysis";
   }
 
   @Override
-  public Seq<IRPass> precursorPasses() {
-    List<IRPass> passes =
+  public Seq<IRProcessingPass> precursorPasses() {
+    List<IRProcessingPass> passes =
         List.of(
             GlobalNames$.MODULE$,
             BindingAnalysis$.MODULE$,
@@ -66,9 +55,8 @@ public class StaticModuleScopeAnalysis implements IRPass {
   }
 
   @Override
-  @SuppressWarnings("unchecked")
-  public Seq<IRPass> invalidatedPasses() {
-    List<IRPass> passes = List.of();
+  public Seq<IRProcessingPass> invalidatedPasses() {
+    List<IRProcessingPass> passes = List.of();
     return CollectionConverters.asScala(passes).toList();
   }
 

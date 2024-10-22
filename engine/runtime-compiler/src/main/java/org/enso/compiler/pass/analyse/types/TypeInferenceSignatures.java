@@ -12,6 +12,7 @@ import org.enso.compiler.core.ir.expression.Application;
 import org.enso.compiler.core.ir.module.scope.Definition;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.compiler.pass.IRPass;
+import org.enso.compiler.pass.IRProcessingPass;
 import org.enso.compiler.pass.analyse.BindingAnalysis$;
 import org.enso.compiler.pass.resolve.FullyQualifiedNames$;
 import org.enso.compiler.pass.resolve.GlobalNames$;
@@ -53,18 +54,7 @@ import scala.jdk.javaapi.CollectionConverters$;
 public class TypeInferenceSignatures implements IRPass {
   public static final TypeInferenceSignatures INSTANCE = new TypeInferenceSignatures();
   private static final Logger logger = LoggerFactory.getLogger(TypeInferenceSignatures.class);
-  private UUID uuid;
   private final TypeResolver typeResolver = new TypeResolver();
-
-  @Override
-  public void org$enso$compiler$pass$IRPass$_setter_$key_$eq(UUID v) {
-    this.uuid = v;
-  }
-
-  @Override
-  public UUID key() {
-    return uuid;
-  }
 
   @Override
   public String toString() {
@@ -72,8 +62,8 @@ public class TypeInferenceSignatures implements IRPass {
   }
 
   @Override
-  public Seq<IRPass> precursorPasses() {
-    List<IRPass> passes =
+  public Seq<IRProcessingPass> precursorPasses() {
+    List<IRProcessingPass> passes =
         List.of(
             BindingAnalysis$.MODULE$,
             GlobalNames$.MODULE$,
@@ -86,8 +76,8 @@ public class TypeInferenceSignatures implements IRPass {
 
   @Override
   @SuppressWarnings("unchecked")
-  public Seq<IRPass> invalidatedPasses() {
-    return (Seq<IRPass>) Seq$.MODULE$.empty();
+  public Seq<IRProcessingPass> invalidatedPasses() {
+    return (Seq<IRProcessingPass>) Seq$.MODULE$.empty();
   }
 
   @Override

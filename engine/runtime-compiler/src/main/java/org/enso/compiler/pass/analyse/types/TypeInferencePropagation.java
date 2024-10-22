@@ -110,7 +110,7 @@ public final class TypeInferencePropagation implements IRPass {
             };
         relatedIr
             .diagnostics()
-            .add(new Warning.NoSuchMethod(relatedIr.location(), methodDescription));
+            .add(new Warning.NoSuchMethod(relatedIr.identifiedLocation(), methodDescription));
       }
     };
   }
