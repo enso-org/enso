@@ -1,8 +1,8 @@
 package org.enso.runtime.parser.processor;
 
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Deque;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 import javax.annotation.processing.ProcessingEnvironment;
@@ -78,7 +78,8 @@ import scala.collection.immutable.List;
    * @return List of fields
    */
   private List<Field> getAllFields(TypeElement irNodeInterface) {
-    var fields = new ArrayList<Field>();
+    // Mapped by field name
+    var fields = new LinkedHashMap<String, Field>();
 
     var fieldCollector =
         new SimpleElementVisitor14<Void, Void>() {
@@ -96,7 +97,8 @@ import scala.collection.immutable.List;
               var retType = e.getReturnType();
               var name = e.getSimpleName().toString();
               if (retType.getKind().isPrimitive()) {
-                fields.add(new PrimitiveField(retType, name));
+                var primField = new PrimitiveField(retType, name);
+                fields.put(name, primField);
               } else {
                 var retTypeElem = (TypeElement) processingEnv.getTypeUtils().asElement(retType);
                 assert retTypeElem != null;
@@ -108,25 +110,37 @@ import scala.collection.immutable.List;
                   isChild = true;
                   isNullable = !childAnnot.required();
                 }
-                fields.add(
-                    new ReferenceField(processingEnv, retTypeElem, name, isNullable, isChild));
+                var refField =
+                    new ReferenceField(processingEnv, retTypeElem, name, isNullable, isChild);
+                fields.put(name, refField);
               }
             }
             return super.visitExecutable(e, unused);
           }
         };
     var superInterfaces = irNodeInterface.getInterfaces();
-    Deque<? extends TypeMirror> toProcess = new ArrayDeque<>(superInterfaces);
+    Deque<TypeMirror> toProcess = new ArrayDeque<>();
+    toProcess.add(irNodeInterface.asType());
+    toProcess.addAll(superInterfaces);
+    // Process transitively all the super interface until the parent IR is reached.
     while (!toProcess.isEmpty()) {
       var current = toProcess.pop();
-      // Skip processing of IR.
+      // Skip processing of IR root interface.
       if (processingEnv.getTypeUtils().isSameType(getIrType().asType(), current)) {
         continue;
       }
       var currentElem = processingEnv.getTypeUtils().asElement(current);
       currentElem.accept(fieldCollector, null);
+      // Add all super interfaces to the processing queue, if they are not there already.
+      if (currentElem instanceof TypeElement currentTypeElem) {
+        for (var superInterface : currentTypeElem.getInterfaces()) {
+          if (!toProcess.contains(superInterface)) {
+            toProcess.add(superInterface);
+          }
+        }
+      }
     }
-    return fields;
+    return fields.values().stream().toList();
   }
 
   private void ensureIsSubtypeOfIR(TypeElement typeElem) {
