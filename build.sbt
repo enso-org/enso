@@ -3114,13 +3114,15 @@ lazy val `runtime-parser` =
       Compile / internalModuleDependencies := Seq(
         (`syntax-rust-definition` / Compile / exportedModule).value,
         (`persistance` / Compile / exportedModule).value,
-        (`runtime-parser-dsl` / Compile / exportedModule).value
+        (`runtime-parser-dsl` / Compile / exportedModule).value,
+        (`runtime-parser-processor` / Compile / exportedModule).value
       )
     )
     .dependsOn(`syntax-rust-definition`)
     .dependsOn(`persistance`)
     .dependsOn(`persistance-dsl` % "provided")
     .dependsOn(`runtime-parser-dsl`)
+    .dependsOn(`runtime-parser-processor`)
 
 lazy val `runtime-parser-dsl` =
   (project in file("engine/runtime-parser-dsl"))
