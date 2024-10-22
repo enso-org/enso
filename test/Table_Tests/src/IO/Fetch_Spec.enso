@@ -282,7 +282,7 @@ add_specs suite_builder =
             Data.fetch trigger_uri
             get_num_response_cache_entries
         fake_time_resetter =
-            EnsoHTTPResponseCache.setNowOverrideTestOnly Nothing
+            EnsoHTTPResponseCache.clearNowOverrideTestOnly
 
         group_builder.specify "The cache should expire stale entries" pending=pending_has_url <| Test.with_retries <|
             HTTP.clear_response_cache

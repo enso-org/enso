@@ -36,8 +36,8 @@ public class StreamCache<M> {
   private final long maxFileSize;
   private final long maxTotalCacheSize;
 
-  /** This value is used for the current time when deciding if a cache entry is stale. */
-  private ZonedDateTime nowOverrideTestOnly = null;
+  /** This value is used for the current time when testing TTL expiration logic. */
+  private Optional<ZonedDateTime> nowOverrideTestOnly = Optional.empty();
 
   /**
    * Used for testing file and cache size limits. These cannot be set to values larger than the real
@@ -65,6 +65,10 @@ public class StreamCache<M> {
     }
   }
 
+  /**
+   * IOExceptions thrown by the HTTP request are propagated; IOExceptions thrown while storing the
+   * data in the cache are caught.
+   */
   private CacheResult<M> makeRequestAndCache(String cacheKey, StreamMaker<M> streamMaker)
       throws IOException, InterruptedException, ResponseTooLargeException {
     assert !cache.containsKey(cacheKey);
@@ -255,7 +259,11 @@ public class StreamCache<M> {
   }
 
   public void setNowOverrideTestOnly(ZonedDateTime nowOverride) {
-    nowOverrideTestOnly = nowOverride;
+    nowOverrideTestOnly = Optional.of(nowOverride);
+  }
+
+  public void clearNowOverrideTestOnly() {
+    nowOverrideTestOnly = Optional.empty();
   }
 
   public void setMaxFileSizeOverrideTestOnly(long maxFileSizeOverrideTestOnly_) {
@@ -277,12 +285,7 @@ public class StreamCache<M> {
   }
 
   private ZonedDateTime getNow() {
-    // The 'nowOverrideTestOnly ' field is used for testing TTL expiration logic.
-    if (nowOverrideTestOnly != null) {
-      return nowOverrideTestOnly;
-    } else {
-      return ZonedDateTime.now();
-    }
+    return nowOverrideTestOnly.orElse(ZonedDateTime.now());
   }
 
   private record CacheEntry<M>(File responseData, M metadata, long size, ZonedDateTime expiry) {}

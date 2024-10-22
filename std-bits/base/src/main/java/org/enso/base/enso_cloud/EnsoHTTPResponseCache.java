@@ -50,6 +50,9 @@ public class EnsoHTTPResponseCache {
       return requestMaker.hashKey();
     }
 
+    /**
+     * <p>Only HTTP 200 responses are cached; all others are returned uncached.
+     */
     @Override
     public StreamCache.Thing<Metadata> makeThing() throws IOException, InterruptedException {
       var response = requestMaker.run();
@@ -135,6 +138,10 @@ public class EnsoHTTPResponseCache {
 
   public static void setNowOverrideTestOnly(ZonedDateTime nowOverride) {
     streamCache.setNowOverrideTestOnly(nowOverride);
+  }
+
+  public static void clearNowOverrideTestOnly() {
+    streamCache.clearNowOverrideTestOnly();
   }
 
   public static void setMaxFileSizeOverrideTestOnly(long maxFileSizeOverrideTestOnly) {
