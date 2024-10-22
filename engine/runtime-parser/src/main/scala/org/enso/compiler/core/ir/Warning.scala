@@ -79,11 +79,11 @@ object Warning {
     *
     * This warning indicates a place that will result in a No_Such_Method error in runtime.
     *
-    * @param location the location of the call
+    * @param identifiedLocation the location of the call
     * @param methodDescription the description of the method
     */
   case class NoSuchMethod(
-    override val location: Option[IdentifiedLocation],
+    override val identifiedLocation: IdentifiedLocation,
     methodDescription: String
   ) extends Warning {
     override def message(source: (IdentifiedLocation => String)): String = {

@@ -23,9 +23,11 @@ public class BuiltinsFallbackScope {
     scope.registerMethod(TypeScopeReference.ANY, "pretty", builtinTypes.TEXT);
 
     var any = new TypeRepresentation.TopType();
-    scope.registerMethod(TypeScopeReference.ANY, "==", new TypeRepresentation.ArrowType(any, builtinTypes.BOOLEAN));
+    scope.registerMethod(
+        TypeScopeReference.ANY, "==", new TypeRepresentation.ArrowType(any, builtinTypes.BOOLEAN));
 
-    var catchType = new TypeRepresentation.ArrowType(new TypeRepresentation.ArrowType(any, any), any);
+    var catchType =
+        new TypeRepresentation.ArrowType(new TypeRepresentation.ArrowType(any, any), any);
     scope.registerMethod(TypeScopeReference.ANY, "catch_primitive", catchType);
 
     cachedAnyScope = scope;

@@ -107,9 +107,9 @@ class Passes(config: CompilerConfig) {
           }) ++ (if (config.staticTypeInferenceEnabled) {
                    List(
                      TypeInferenceSignatures.INSTANCE,
-              StaticModuleScopeAnalysis.INSTANCE
-            )
-          } else Nil) ++ (if (config.dumpIrs) {
+                     StaticModuleScopeAnalysis.INSTANCE
+                   )
+                 } else Nil) ++ (if (config.dumpIrs) {
                                    List(IRDumperPass.INSTANCE)
                                  } else Nil)
   )
@@ -121,7 +121,6 @@ class Passes(config: CompilerConfig) {
       )
     } else List()
   )
-
 
   /** A list of the compiler phases, in the order they should be run.
     *

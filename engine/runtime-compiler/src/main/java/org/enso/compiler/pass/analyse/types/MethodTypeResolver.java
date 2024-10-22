@@ -1,15 +1,13 @@
 package org.enso.compiler.pass.analyse.types;
 
+import java.util.stream.Stream;
 import org.enso.compiler.pass.analyse.types.scope.BuiltinsFallbackScope;
 import org.enso.compiler.pass.analyse.types.scope.ModuleResolver;
 import org.enso.compiler.pass.analyse.types.scope.StaticModuleScope;
 import org.enso.compiler.pass.analyse.types.scope.TypeHierarchy;
 import org.enso.compiler.pass.analyse.types.scope.TypeScopeReference;
-import org.enso.pkg.QualifiedName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.stream.Stream;
 
 class MethodTypeResolver {
   private static final Logger logger = LoggerFactory.getLogger(MethodTypeResolver.class);
@@ -18,7 +16,10 @@ class MethodTypeResolver {
   private final StaticModuleScope currentModuleScope;
   private final BuiltinsFallbackScope builtinsFallbackScope;
 
-  MethodTypeResolver(ModuleResolver moduleResolver, StaticModuleScope currentModuleScope, BuiltinTypes builtinTypes) {
+  MethodTypeResolver(
+      ModuleResolver moduleResolver,
+      StaticModuleScope currentModuleScope,
+      BuiltinTypes builtinTypes) {
     this.moduleResolver = moduleResolver;
     this.currentModuleScope = currentModuleScope;
     this.builtinsFallbackScope = new BuiltinsFallbackScope(builtinTypes);
@@ -72,22 +73,26 @@ class MethodTypeResolver {
       return foundInImports.get(0);
     } else if (foundInImports.size() > 1) {
       // TODO in some cases it seems like this may be normal?
-      var foundImports = currentModuleScope.getImports().stream()
-          .flatMap(
-              staticImportExportScope -> {
-                var materialized = staticImportExportScope.materialize(moduleResolver);
-                var found = materialized.getMethodForType(type, methodName);
-                if (found != null) {
-                  return Stream.of(staticImportExportScope.getReferredModuleName());
-                } else {
-                  return Stream.of();
-                }
-              })
-          .toList();
+      var foundImports =
+          currentModuleScope.getImports().stream()
+              .flatMap(
+                  staticImportExportScope -> {
+                    var materialized = staticImportExportScope.materialize(moduleResolver);
+                    var found = materialized.getMethodForType(type, methodName);
+                    if (found != null) {
+                      return Stream.of(staticImportExportScope.getReferredModuleName());
+                    } else {
+                      return Stream.of();
+                    }
+                  })
+              .toList();
       logger.warn("Method {} is defined in multiple imports: {}", methodName, foundImports);
       var foundTypes = foundInImports.stream().distinct();
       if (foundTypes.count() > 1) {
-        logger.error("Method {} is defined in multiple imports with different types: {}", methodName, foundTypes);
+        logger.error(
+            "Method {} is defined in multiple imports with different types: {}",
+            methodName,
+            foundTypes);
         return null;
       } else {
         // If all types are the same, just return the first one
@@ -104,8 +109,10 @@ class MethodTypeResolver {
       return StaticModuleScope.forIR(definitionModule);
     } else {
       if (type.equals(TypeScopeReference.ANY)) {
-        // We have special handling for ANY: it points to Standard.Base.Any.Any, but that may not always be imported.
-        // The runtime falls back to Standard.Builtins.Main, but that modules does not contain any type information, so it is not useful for us.
+        // We have special handling for ANY: it points to Standard.Base.Any.Any, but that may not
+        // always be imported.
+        // The runtime falls back to Standard.Builtins.Main, but that modules does not contain any
+        // type information, so it is not useful for us.
         // Instead we fall back to the hardcoded definitions of the 5 builtins of Any.
         return builtinsFallbackScope.fallbackAnyScope();
       } else {

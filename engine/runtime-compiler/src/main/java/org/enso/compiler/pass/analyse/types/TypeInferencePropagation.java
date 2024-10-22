@@ -2,8 +2,6 @@ package org.enso.compiler.pass.analyse.types;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.UUID;
-
 import org.enso.compiler.PackageRepository;
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.context.ModuleContext;
@@ -79,7 +77,8 @@ public final class TypeInferencePropagation implements IRPass {
   private final TypeResolver typeResolver = new TypeResolver();
   private final TypeCompatibility checker = new TypeCompatibility(builtinTypes);
 
-  private TypePropagation propagationResolverInModule(Module module, Option<PackageRepository> packageRepository) {
+  private TypePropagation propagationResolverInModule(
+      Module module, Option<PackageRepository> packageRepository) {
     var packageRepo = packageRepository.isDefined() ? packageRepository.get() : null;
     ModuleResolver moduleResolver = new ModuleResolver(packageRepo);
     return new TypePropagation(typeResolver, checker, builtinTypes, module, moduleResolver) {
@@ -171,8 +170,7 @@ public final class TypeInferencePropagation implements IRPass {
   @Override
   public Expression runExpression(Expression ir, InlineContext inlineContext) {
     var typePropagation =
-        propagationResolverInModule(
-            inlineContext.getModule().getIr(), inlineContext.pkgRepo());
+        propagationResolverInModule(inlineContext.getModule().getIr(), inlineContext.pkgRepo());
     TypeRepresentation inferredType =
         typePropagation.tryInferringType(ir, LocalBindingsTyping.create());
     if (inferredType != null) {

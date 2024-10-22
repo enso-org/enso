@@ -55,7 +55,8 @@ abstract class TypePropagation {
     this.builtinTypes = builtinTypes;
 
     var currentModuleScope = StaticModuleScope.forIR(currentModule);
-    this.methodTypeResolver = new MethodTypeResolver(moduleResolver, currentModuleScope, builtinTypes);
+    this.methodTypeResolver =
+        new MethodTypeResolver(moduleResolver, currentModuleScope, builtinTypes);
   }
 
   /**
@@ -366,7 +367,8 @@ abstract class TypePropagation {
         var typeScope = TypeScopeReference.moduleAssociatedType(moduleReference.name());
 
         if (isConstructorOrType(function.name())) {
-          // This is a special case when we are accessing a type inside a module, e.g. Mod.Type 'call' should resolve to the type
+          // This is a special case when we are accessing a type inside a module, e.g. Mod.Type
+          // 'call' should resolve to the type
           // TODO
           return null;
         } else {
@@ -395,7 +397,8 @@ abstract class TypePropagation {
         return methodTypeResolver.resolveMethod(TypeScopeReference.ANY, function.name());
       }
 
-      // This is not calling this function, instead it is calling the _method_ represented by the UnresolvedSymbol on this Function object.
+        // This is not calling this function, instead it is calling the _method_ represented by the
+        // UnresolvedSymbol on this Function object.
       case TypeRepresentation.ArrowType functionAsObject -> {
         var typeScope = TypeScopeReference.atomType(functionAsObject.getAssociatedType());
         var resolvedMethod = methodTypeResolver.resolveMethod(typeScope, function.name());

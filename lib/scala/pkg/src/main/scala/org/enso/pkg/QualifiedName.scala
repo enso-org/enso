@@ -70,7 +70,9 @@ object QualifiedName {
   /** Builds a qualified name from a list of name parts. */
   def fromParts(parts: List[String]): QualifiedName = {
     if (parts.isEmpty) {
-      throw new IllegalArgumentException("Cannot create a qualified name from an empty list of parts.")
+      throw new IllegalArgumentException(
+        "Cannot create a qualified name from an empty list of parts."
+      )
     }
     QualifiedName(parts.dropRight(1), parts.last)
   }

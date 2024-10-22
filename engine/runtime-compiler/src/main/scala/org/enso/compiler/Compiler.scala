@@ -835,10 +835,14 @@ class Compiler(
   }
 
   private def runFinalTypeInferencePasses(
-                                   ir: IRModule,
-                                   moduleContext: ModuleContext
-                                 ): IRModule = {
-    passManager.runPassesOnModule(ir, moduleContext, passes.typeInferenceFinalPasses)
+    ir: IRModule,
+    moduleContext: ModuleContext
+  ): IRModule = {
+    passManager.runPassesOnModule(
+      ir,
+      moduleContext,
+      passes.typeInferenceFinalPasses
+    )
   }
 
   /** Runs the various compiler passes in an inline context.
