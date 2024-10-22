@@ -80,7 +80,7 @@ public abstract class VectorFromFunctionNode extends Node {
             }
           }
           case NO_WRAP -> {
-            // nop
+            return err;
           }
         }
       }
