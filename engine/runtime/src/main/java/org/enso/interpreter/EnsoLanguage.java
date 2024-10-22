@@ -1,6 +1,7 @@
 package org.enso.interpreter;
 
 import com.oracle.truffle.api.CallTarget;
+import com.oracle.truffle.api.ContextThreadLocal;
 import com.oracle.truffle.api.Option;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLogger;
@@ -27,16 +28,16 @@ import org.enso.distribution.DistributionManager;
 import org.enso.distribution.Environment;
 import org.enso.distribution.locking.LockManager;
 import org.enso.distribution.locking.ThreadSafeFileLockManager;
-import org.enso.interpreter.instrument.NotificationHandler;
-import org.enso.interpreter.instrument.NotificationHandler.Forwarder;
-import org.enso.interpreter.instrument.NotificationHandler.TextMode$;
-import org.enso.interpreter.instrument.Timer;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.ProgramRootNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.IrToTruffle;
 import org.enso.interpreter.runtime.data.atom.AtomNewInstanceNode;
+import org.enso.interpreter.runtime.instrument.NotificationHandler;
+import org.enso.interpreter.runtime.instrument.NotificationHandler.Forwarder;
+import org.enso.interpreter.runtime.instrument.NotificationHandler.TextMode$;
+import org.enso.interpreter.runtime.instrument.Timer;
 import org.enso.interpreter.runtime.state.ExecutionEnvironment;
 import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
@@ -86,6 +87,9 @@ import org.graalvm.options.OptionType;
 public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
   private static final LanguageReference<EnsoLanguage> REFERENCE =
       LanguageReference.create(EnsoLanguage.class);
+
+  private final ContextThreadLocal<ExecutionEnvironment[]> executionEnvironment =
+      locals.createContextThreadLocal((ctx, thread) -> new ExecutionEnvironment[1]);
 
   public static EnsoLanguage get(Node node) {
     return REFERENCE.get(node);
@@ -267,7 +271,7 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
         if (optionTupple.nonEmpty()) {
           var newInlineContext = optionTupple.get()._1();
           var ir = optionTupple.get()._2();
-          var sco = newInlineContext.localScope().getOrElse(LocalScope::root);
+          var sco = newInlineContext.localScope().getOrElse(LocalScope::empty);
           var mod = newInlineContext.getModule();
           var m = org.enso.interpreter.runtime.Module.fromCompilerModule(mod);
           var toTruffle =
@@ -362,6 +366,7 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
   }
 
   /** Conversions of primitive values */
+  @Override
   protected Object getLanguageView(EnsoContext context, Object value) {
     if (value instanceof Boolean b) {
       var bool = context.getBuiltins().bool();
@@ -369,5 +374,13 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
       return AtomNewInstanceNode.getUncached().newInstance(cons);
     }
     return null;
+  }
+
+  public ExecutionEnvironment getExecutionEnvironment() {
+    return executionEnvironment.get()[0];
+  }
+
+  public void setExecutionEnvironment(ExecutionEnvironment executionEnvironment) {
+    this.executionEnvironment.get()[0] = executionEnvironment;
   }
 }

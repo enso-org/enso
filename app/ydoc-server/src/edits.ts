@@ -41,6 +41,7 @@ interface AppliedUpdates {
   newMetadata: fileFormat.IdeMetadata['node'] | undefined
 }
 
+/** Return an object containing updated versions of relevant fields, given an update payload. */
 export function applyDocumentUpdates(
   doc: ModuleDoc,
   synced: EnsoFileParts,
@@ -111,7 +112,6 @@ function translateVisualizationToFile(
   }
   return {
     show: vis.visible,
-    fullscreen: vis.fullscreen,
     width: vis.width ?? undefined,
     height: vis.height ?? undefined,
     ...(project == null || vis.identifier == null ?
@@ -123,6 +123,10 @@ function translateVisualizationToFile(
   }
 }
 
+/**
+ * Convert from the serialized file representation of visualization metadata
+ * to the internal representation.
+ */
 export function translateVisualizationFromFile(
   vis: fileFormat.VisualizationMetadata,
 ): VisualizationMetadata | undefined {
@@ -143,7 +147,6 @@ export function translateVisualizationFromFile(
   return {
     identifier: module && vis.name ? { name: vis.name, module } : null,
     visible: vis.show,
-    fullscreen: vis.fullscreen ?? false,
     width: vis.width ?? null,
     height: vis.height ?? null,
   }
@@ -179,6 +182,7 @@ export function stupidFastDiff(oldString: string, newString: string): diff.Diff[
     .concat(commonSuffix ? [[0, commonSuffix]] : [])
 }
 
+/** Return a list of text edits describing how to turn one string into another. */
 export function applyDiffAsTextEdits(
   lineOffset: number,
   oldString: string,
@@ -232,6 +236,7 @@ export function applyDiffAsTextEdits(
   return edits
 }
 
+/** Pretty print a code diff for display in the terminal using ANSI escapes to control text colors. */
 export function prettyPrintDiff(from: string, to: string): string {
   const colReset = '\x1b[0m'
   const colRed = '\x1b[31m'

@@ -7,7 +7,6 @@ import org.enso.logger.masking.MaskedPath
 import org.enso.polyglot.runtime.Runtime.Api
 
 import java.util.logging.Level
-
 import scala.concurrent.ExecutionContext
 
 /** A command that performs edition of a file.
@@ -35,7 +34,7 @@ class EditFileCmd(request: Api.EditFileNotification)
           () => {
             logger.log(
               Level.FINEST,
-              "Adding pending file [{0}] edits [{1}] idMap [{2}]",
+              "Adding pending file [{0}] edits [{1}] and IdMap of length {2}",
               Array[Any](
                 MaskedPath(request.path.toPath),
                 request.edits.map(e => (e.range, e.text.length)),
@@ -51,18 +50,23 @@ class EditFileCmd(request: Api.EditFileNotification)
               ctx.state.pendingEdits.updateIdMap(request.path, idMap)
             }
             if (request.execute) {
-              ctx.jobControlPlane.abortAllJobs()
-              ctx.jobProcessor.run(new EnsureCompiledJob(Seq(request.path)))
-              executeJobs.foreach(ctx.jobProcessor.run)
+              ctx.jobControlPlane.abortAllJobs("edit file")
+              ctx.jobProcessor
+                .run(compileJob())
+                .foreach(_ => executeJobs.foreach(ctx.jobProcessor.run))
             } else if (request.idMap.isDefined) {
-              ctx.jobProcessor.run(new EnsureCompiledJob(Seq(request.path)))
+              ctx.jobProcessor.run(compileJob())
             }
           }
         )
     )
   }
 
-  private def executeJobs(implicit
+  protected def compileJob(): EnsureCompiledJob = {
+    new EnsureCompiledJob(Seq(request.path))
+  }
+
+  protected def executeJobs(implicit
     ctx: RuntimeContext
   ): Iterable[ExecuteJob] = {
     ctx.contextManager.getAllContexts

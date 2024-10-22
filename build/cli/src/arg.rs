@@ -10,8 +10,7 @@ use clap::Args;
 use clap::Parser;
 use clap::Subcommand;
 use clap::ValueEnum;
-use derivative::Derivative;
-use enso_build_base::extensions::path::display_fmt;
+use derive_where::derive_where;
 use ide_ci::cache;
 use ide_ci::github::Repo;
 use octocrab::models::RunId;
@@ -118,14 +117,12 @@ pub enum Target {
     /// Build/Test the Rust part of the GUI.
     Wasm(wasm::Target),
     /// Build/Run the Vue-based GUI.
-    #[clap(alias = "gui2")]
     Gui(gui::Target),
     /// Enso Engine Runtime.
     Runtime(runtime::Target),
     /// Build/Get Project Manager bundle (includes Enso Engine with GraalVM Runtime).
     Backend(backend::Target),
     /// Build/Run/Test IDE bundle (includes Vue-based GUI and Project Manager).
-    #[clap(alias = "ide2")]
     Ide(ide::Target),
     /// Clean the repository. Keeps the IntelliJ's .idea directory intact. WARNING: This removes
     /// files that are not under version control in the repository subtree.
@@ -184,8 +181,8 @@ pub struct Cli {
 /// Describe where to get a target artifacts from.
 ///
 /// This is the CLI representation of a [crate::source::Source] for a given target.
-#[derive(Args, Clone, Debug, Derivative)]
-#[derivative(PartialEq)]
+#[derive(Args, Clone, Debug)]
+#[derive_where(PartialEq)]
 #[group(skip)]
 pub struct Source<Target: IsTargetSource> {
     /// How the given target should be acquired.
@@ -220,11 +217,9 @@ pub struct Source<Target: IsTargetSource> {
     pub release: Option<String>,
 
     /// Used when `SourceKind::Build` is used.
-    #[derivative(PartialEq(bound = ""))]
     #[clap(flatten)]
     pub build_args: BuildDescription<Target>,
 
-    #[derivative(PartialEq(bound = ""))]
     #[clap(flatten)]
     pub output_path: OutputPath<Target>,
 }
@@ -245,15 +240,14 @@ pub enum SourceKind {
 }
 
 /// Strongly typed argument for an output directory of a given build target.
-#[derive(Args, Clone, Derivative)]
+#[derive(Args, Clone)]
 #[group(skip)]
-#[derivative(Debug, PartialEq)]
+#[derive_where(Debug, PartialEq)]
 pub struct OutputPath<Target: IsTargetSource> {
     /// Directory where artifacts should be placed.
-    #[derivative(Debug(format_with = "display_fmt"))]
     #[clap(name = Target::OUTPUT_PATH_NAME, long, value_parser(normalize_path), default_value = Target::DEFAULT_OUTPUT_PATH, enso_env())]
     pub output_path: PathBuf,
-    #[derivative(Debug = "ignore", PartialEq(bound = ""))]
+    #[derive_where(skip(Debug))]
     #[allow(missing_docs)]
     #[clap(skip)]
     pub phantom:     PhantomData<Target>,
@@ -265,11 +259,10 @@ impl<Target: IsTargetSource> AsRef<Path> for OutputPath<Target> {
     }
 }
 
-#[derive(Args, Clone, Derivative)]
+#[derive(Args, Clone)]
 #[group(skip)]
-#[derivative(Debug, PartialEq)]
+#[derive_where(Debug, PartialEq)]
 pub struct BuildDescription<Target: IsTargetSource> {
-    #[derivative(PartialEq(bound = ""))]
     #[clap(flatten)]
     pub input:           Target::BuildInput,
     // Cumbersome way of defining a bool argument that can take explicit value.
@@ -286,9 +279,8 @@ pub struct BuildDescription<Target: IsTargetSource> {
     pub upload_artifact: bool,
 }
 
-#[derive(Args, Clone, PartialEq, Derivative)]
+#[derive(Args, Clone, PartialEq, Debug)]
 #[group(skip)]
-#[derivative(Debug)]
 pub struct BuildJob<Target: IsTargetSource> {
     #[clap(flatten)]
     pub input:       BuildDescription<Target>,
@@ -296,9 +288,8 @@ pub struct BuildJob<Target: IsTargetSource> {
     pub output_path: OutputPath<Target>,
 }
 
-#[derive(Args, Clone, PartialEq, Derivative)]
+#[derive(Args, Clone, PartialEq, Debug)]
 #[group(skip)]
-#[derivative(Debug)]
 pub struct WatchJob<Target: IsWatchableSource> {
     #[clap(flatten)]
     pub build:       BuildJob<Target>,
@@ -308,8 +299,5 @@ pub struct WatchJob<Target: IsWatchableSource> {
 
 /// Clap parser supporting a given set of [`OS`] values.
 pub fn possible_os_parser(possible_os: &[OS]) -> impl TypedValueParser<Value = OS> {
-    PossibleValuesParser::new(possible_os.iter().map(|os| os.as_str()))
-        // Unwrap below is safe, because it is symmetric to the `as_str` conversion above, and
-        // we'll get only the values that were generated from the `possible_os` array.
-        .map(|s| s.parse::<OS>().unwrap())
+    PossibleValuesParser::new(possible_os.iter().map(|os| os.as_str())).map(|s| OS::from_str(&s))
 }

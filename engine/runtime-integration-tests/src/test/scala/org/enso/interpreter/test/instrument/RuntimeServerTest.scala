@@ -9,6 +9,7 @@ import org.enso.common.MethodNames
 import org.enso.polyglot.data.TypeGraph
 import org.enso.common.RuntimeOptions
 import org.enso.polyglot.RuntimeServerInfo
+import org.enso.polyglot.debugger.IdExecutionService
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.editing.model
 import org.enso.text.editing.model.TextEdit
@@ -32,7 +33,8 @@ class RuntimeServerTest
   var context: TestContext = _
 
   class TestContext(packageName: String)
-      extends InstrumentTestContext(packageName) {
+      extends InstrumentTestContext(packageName)
+      with RuntimeServerTest.TestMain {
 
     val out: ByteArrayOutputStream    = new ByteArrayOutputStream()
     val logOut: ByteArrayOutputStream = new ByteArrayOutputStream()
@@ -75,6 +77,22 @@ class RuntimeServerTest
       .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
       .asHostObject[EnsoContext]
 
+    private def ensureInstrumentsAvailable() = {
+      val instruments = context.getEngine.getInstruments
+      if (instruments.get(IdExecutionService.INSTRUMENT_ID) == null) {
+        throw new IllegalStateException(
+          "RuntimeServerTest cannot be initialized: IdExecutionService instrument must be available on module-path"
+        )
+      }
+      if (instruments.get(RuntimeServerInfo.INSTRUMENT_NAME) == null) {
+        throw new IllegalStateException(
+          "RuntimeServerTest cannot be initialized: RuntimeServer instrument must be available on module-path"
+        )
+      }
+    }
+
+    ensureInstrumentsAvailable()
+
     def writeMain(contents: String): File =
       Files.write(pkg.mainFile.toPath, contents.getBytes).toFile
 
@@ -96,286 +114,6 @@ class RuntimeServerTest
 
     def executionComplete(contextId: UUID): Api.Response =
       Api.Response(Api.ExecutionComplete(contextId))
-
-    // === The Tests ==========================================================
-
-    object Main {
-
-      val metadata = new Metadata
-
-      val idMainX = metadata.addItem(63, 1, "aa1")
-      val idMainY = metadata.addItem(73, 7, "aa2")
-      val idMainZ = metadata.addItem(89, 5, "aa3")
-      val idFooY  = metadata.addItem(133, 8, "ff2")
-      val idFooZ  = metadata.addItem(150, 5, "ff3")
-
-      def code =
-        metadata.appendToCode(
-          """
-            |from Standard.Base.Data.Numbers import    all
-            |
-            |main =
-            |    x = 6
-            |    y = x.foo 5
-            |    z = y + 5
-            |    z
-            |
-            |Number.foo self = x ->
-            |    y = self + 3
-            |    z = y * x
-            |    z
-            |""".stripMargin.linesIterator.mkString("\n")
-        )
-
-      object Update {
-
-        def mainX(
-          contextId: UUID,
-          fromCache: Boolean   = false,
-          typeChanged: Boolean = true
-        ): Api.Response =
-          Api.Response(
-            Api.ExpressionUpdates(
-              contextId,
-              Set(
-                Api.ExpressionUpdate(
-                  Main.idMainX,
-                  Some(ConstantsGen.INTEGER),
-                  None,
-                  Vector(Api.ProfilingInfo.ExecutionTime(0)),
-                  fromCache,
-                  typeChanged,
-                  Api.ExpressionUpdate.Payload.Value()
-                )
-              )
-            )
-          )
-
-        def pendingZ(): Api.ExpressionUpdate =
-          Api.ExpressionUpdate(
-            Main.idFooZ,
-            None,
-            None,
-            Vector(),
-            true,
-            false,
-            Api.ExpressionUpdate.Payload.Pending(None, None)
-          )
-
-        def pendingY(): Api.ExpressionUpdate =
-          Api.ExpressionUpdate(
-            Main.idFooY,
-            None,
-            None,
-            Vector(),
-            true,
-            false,
-            Api.ExpressionUpdate.Payload.Pending(None, None)
-          )
-
-        def mainY(
-          contextId: UUID,
-          fromCache: Boolean   = false,
-          typeChanged: Boolean = true
-        ): Api.Response =
-          Api.Response(
-            Api.ExpressionUpdates(
-              contextId,
-              Set(
-                Api.ExpressionUpdate(
-                  Main.idMainY,
-                  Some(ConstantsGen.INTEGER),
-                  Some(
-                    Api.MethodCall(
-                      Api.MethodPointer(
-                        "Enso_Test.Test.Main",
-                        ConstantsGen.NUMBER,
-                        "foo"
-                      )
-                    )
-                  ),
-                  Vector(Api.ProfilingInfo.ExecutionTime(0)),
-                  fromCache,
-                  typeChanged,
-                  Api.ExpressionUpdate.Payload.Value()
-                )
-              )
-            )
-          )
-
-        def mainZ(
-          contextId: UUID,
-          fromCache: Boolean   = false,
-          typeChanged: Boolean = true
-        ): Api.Response =
-          Api.Response(
-            Api.ExpressionUpdates(
-              contextId,
-              Set(
-                Api.ExpressionUpdate(
-                  Main.idMainZ,
-                  Some(ConstantsGen.INTEGER),
-                  Some(
-                    Api.MethodCall(
-                      Api.MethodPointer(
-                        "Standard.Base.Data.Numbers",
-                        ConstantsGen.INTEGER,
-                        "+"
-                      )
-                    )
-                  ),
-                  Vector(Api.ProfilingInfo.ExecutionTime(0)),
-                  fromCache,
-                  typeChanged,
-                  Api.ExpressionUpdate.Payload.Value()
-                )
-              )
-            )
-          )
-
-        def fooY(
-          contextId: UUID,
-          fromCache: Boolean   = false,
-          typeChanged: Boolean = true
-        ): Api.Response =
-          Api.Response(
-            Api.ExpressionUpdates(
-              contextId,
-              Set(
-                Api.ExpressionUpdate(
-                  Main.idFooY,
-                  Some(ConstantsGen.INTEGER),
-                  Some(
-                    Api.MethodCall(
-                      Api.MethodPointer(
-                        "Standard.Base.Data.Numbers",
-                        ConstantsGen.INTEGER,
-                        "+"
-                      )
-                    )
-                  ),
-                  Vector(Api.ProfilingInfo.ExecutionTime(0)),
-                  fromCache,
-                  typeChanged,
-                  Api.ExpressionUpdate.Payload.Value()
-                )
-              )
-            )
-          )
-
-        def fooZ(
-          contextId: UUID,
-          fromCache: Boolean   = false,
-          typeChanged: Boolean = true
-        ): Api.Response =
-          Api.Response(
-            Api.ExpressionUpdates(
-              contextId,
-              Set(
-                Api.ExpressionUpdate(
-                  Main.idFooZ,
-                  Some(ConstantsGen.INTEGER),
-                  Some(
-                    Api.MethodCall(
-                      Api.MethodPointer(
-                        "Standard.Base.Data.Numbers",
-                        ConstantsGen.INTEGER,
-                        "*"
-                      )
-                    )
-                  ),
-                  Vector(Api.ProfilingInfo.ExecutionTime(0)),
-                  fromCache,
-                  typeChanged,
-                  Api.ExpressionUpdate.Payload.Value()
-                )
-              )
-            )
-          )
-      }
-    }
-
-    object Main2 {
-
-      val metadata = new Metadata
-      val idMainY  = metadata.addItem(178, 5)
-      val idMainZ  = metadata.addItem(192, 5)
-
-      val code = metadata.appendToCode(
-        """from Standard.Base import all
-          |
-          |foo = arg ->
-          |    IO.println "I'm expensive!"
-          |    arg + 5
-          |
-          |bar = arg ->
-          |    IO.println "I'm more expensive!"
-          |    arg * 5
-          |
-          |main =
-          |    x = 10
-          |    y = foo x
-          |    z = bar y
-          |    z
-          |""".stripMargin.linesIterator.mkString("\n")
-      )
-
-      object Update {
-
-        def mainY(contextId: UUID) =
-          Api.Response(
-            Api.ExpressionUpdates(
-              contextId,
-              Set(
-                Api.ExpressionUpdate(
-                  idMainY,
-                  Some(ConstantsGen.INTEGER),
-                  Some(
-                    Api.MethodCall(
-                      Api.MethodPointer(
-                        "Enso_Test.Test.Main",
-                        "Enso_Test.Test.Main",
-                        "foo"
-                      )
-                    )
-                  ),
-                  Vector(Api.ProfilingInfo.ExecutionTime(0)),
-                  false,
-                  true,
-                  Api.ExpressionUpdate.Payload.Value()
-                )
-              )
-            )
-          )
-
-        def mainZ(contextId: UUID) =
-          Api.Response(
-            Api.ExpressionUpdates(
-              contextId,
-              Set(
-                Api.ExpressionUpdate(
-                  idMainZ,
-                  Some(ConstantsGen.INTEGER),
-                  Some(
-                    Api.MethodCall(
-                      Api.MethodPointer(
-                        "Enso_Test.Test.Main",
-                        "Enso_Test.Test.Main",
-                        "bar"
-                      )
-                    )
-                  ),
-                  Vector(Api.ProfilingInfo.ExecutionTime(0)),
-                  false,
-                  true,
-                  Api.ExpressionUpdate.Payload.Value()
-                )
-              )
-            )
-          )
-      }
-    }
-
   }
 
   override protected def beforeEach(): Unit = {
@@ -487,6 +225,96 @@ class RuntimeServerTest
     context.receive shouldEqual Some(
       Api.Response(requestId, Api.EmptyStackError(contextId))
     )
+  }
+
+  it should "substitute Nothing when pushing method with unapplied arguments" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val metadata         = new Metadata
+    val identityResultId = metadata.addItem(13, 1, "aa")
+    val identityCallId   = metadata.addItem(27, 8, "ab")
+
+    val code =
+      """identity x = x
+        |
+        |main =
+        |    identity
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveN(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(
+        contextId,
+        identityCallId,
+        ConstantsGen.FUNCTION_BUILTIN,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(moduleName, moduleName, "identity"),
+            Vector(0)
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(
+          functionSchema = Some(
+            Api.FunctionSchema(
+              Api.MethodPointer(moduleName, moduleName, "identity"),
+              Vector(0)
+            )
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List()
+
+    // push identity
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.LocalCall(identityCallId)
+        )
+      )
+    )
+    context.receiveN(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages
+        .update(contextId, identityResultId, ConstantsGen.NOTHING_BUILTIN),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List()
   }
 
   it should "push method with default arguments on top of the stack" in {
@@ -1065,6 +893,127 @@ class RuntimeServerTest
         Api.MethodCall(
           Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main.T", "C")
         )
+      ),
+      context.executionComplete(contextId)
+    )
+  }
+
+  it should "send method pointer updates of when autoscope constructor changes to a value" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val metadata = new Metadata
+    val idA      = metadata.addItem(44, 3, "aa")
+
+    val code =
+      """type Xyz
+        |
+        |type T
+        |    A
+        |
+        |main =
+        |    a = test Xyz
+        |    a
+        |
+        |test t:(Xyz | T) = t
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    metadata.assertInCode(idA, code, "Xyz")
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveN(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(
+        contextId,
+        idA,
+        "Enso_Test.Test.Main.Xyz"
+      ),
+      context.executionComplete(contextId)
+    )
+
+    // Modify the file /Xyz/..A/
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            model.TextEdit(
+              model.Range(model.Position(6, 13), model.Position(6, 16)),
+              "..A"
+            )
+          ),
+          execute = true,
+          idMap   = None
+        )
+      )
+    )
+
+    context.receiveN(3) should contain theSameElementsAs Seq(
+      TestMessages.pending(contextId, idA),
+      TestMessages.update(
+        contextId,
+        idA,
+        "Enso_Test.Test.Main.T",
+        Api.MethodCall(
+          Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main.T", "A")
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+
+    // Modify the file /..A/Xyz/
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            model.TextEdit(
+              model.Range(model.Position(6, 13), model.Position(6, 16)),
+              "Xyz"
+            )
+          ),
+          execute = true,
+          idMap   = None
+        )
+      )
+    )
+
+    context.receiveN(3) should contain theSameElementsAs Seq(
+      TestMessages.pending(contextId, idA),
+      TestMessages.update(
+        contextId,
+        idA,
+        "Enso_Test.Test.Main.Xyz"
       ),
       context.executionComplete(contextId)
     )
@@ -2845,7 +2794,20 @@ class RuntimeServerTest
         ConstantsGen.INTEGER,
         Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "bar"))
       ),
-      TestMessages.update(contextId, idMain, ConstantsGen.NOTHING),
+      TestMessages.update(
+        contextId,
+        idMain,
+        ConstantsGen.NOTHING,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.IO",
+              "Standard.Base.IO",
+              "println"
+            )
+          )
+        )
+      ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("42")
@@ -2909,7 +2871,20 @@ class RuntimeServerTest
         ConstantsGen.INTEGER,
         Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "bar"))
       ),
-      TestMessages.update(contextId, idMain, ConstantsGen.NOTHING),
+      TestMessages.update(
+        contextId,
+        idMain,
+        ConstantsGen.NOTHING,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.IO",
+              "Standard.Base.IO",
+              "println"
+            )
+          )
+        )
+      ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("10")
@@ -3041,7 +3016,20 @@ class RuntimeServerTest
           ConstantsGen.INTEGER,
           Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "foo"))
         ),
-      TestMessages.update(contextId, mainRes, ConstantsGen.NOTHING),
+      TestMessages.update(
+        contextId,
+        mainRes,
+        ConstantsGen.NOTHING,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.IO",
+              "Standard.Base.IO",
+              "println"
+            )
+          )
+        )
+      ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("4")
@@ -3096,6 +3084,15 @@ class RuntimeServerTest
           contextId,
           mainRes,
           ConstantsGen.NOTHING,
+          methodCall = Some(
+            Api.MethodCall(
+              Api.MethodPointer(
+                "Standard.Base.IO",
+                "Standard.Base.IO",
+                "println"
+              )
+            )
+          ),
           typeChanged = false
         ),
       TestMessages.update(
@@ -3174,7 +3171,20 @@ class RuntimeServerTest
         ConstantsGen.INTEGER,
         Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "foo"))
       ),
-      TestMessages.update(contextId, mainRes, ConstantsGen.NOTHING),
+      TestMessages.update(
+        contextId,
+        mainRes,
+        ConstantsGen.NOTHING,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.IO",
+              "Standard.Base.IO",
+              "println"
+            )
+          )
+        )
+      ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("4")
@@ -3227,6 +3237,15 @@ class RuntimeServerTest
         contextId,
         mainRes,
         ConstantsGen.NOTHING,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.IO",
+              "Standard.Base.IO",
+              "println"
+            )
+          )
+        ),
         typeChanged = false
       ),
       context.executionComplete(contextId)
@@ -3359,7 +3378,20 @@ class RuntimeServerTest
     context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, idResult, ConstantsGen.INTEGER),
-      TestMessages.update(contextId, idPrintln, ConstantsGen.NOTHING),
+      TestMessages.update(
+        contextId,
+        idPrintln,
+        ConstantsGen.NOTHING,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.IO",
+              "Standard.Base.IO",
+              "println"
+            )
+          )
+        )
+      ),
       TestMessages.update(contextId, idMain, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
     )
@@ -3388,6 +3420,15 @@ class RuntimeServerTest
         contextId,
         idPrintln,
         ConstantsGen.NOTHING,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.IO",
+              "Standard.Base.IO",
+              "println"
+            )
+          )
+        ),
         typeChanged = false
       ),
       TestMessages
@@ -3472,7 +3513,20 @@ class RuntimeServerTest
           )
         )
       ),
-      TestMessages.update(contextId, idMainP, ConstantsGen.NOTHING),
+      TestMessages.update(
+        contextId,
+        idMainP,
+        ConstantsGen.NOTHING,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.IO",
+              "Standard.Base.IO",
+              "println"
+            )
+          )
+        )
+      ),
       TestMessages.update(contextId, idMain, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
     )
@@ -3506,6 +3560,15 @@ class RuntimeServerTest
         contextId,
         idMainP,
         ConstantsGen.NOTHING,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.IO",
+              "Standard.Base.IO",
+              "println"
+            )
+          )
+        ),
         typeChanged = false
       ),
       TestMessages
@@ -3544,6 +3607,15 @@ class RuntimeServerTest
         contextId,
         idMainP,
         ConstantsGen.NOTHING,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.IO",
+              "Standard.Base.IO",
+              "println"
+            )
+          )
+        ),
         typeChanged = false
       ),
       TestMessages
@@ -3582,6 +3654,15 @@ class RuntimeServerTest
         contextId,
         idMainP,
         ConstantsGen.NOTHING,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.IO",
+              "Standard.Base.IO",
+              "println"
+            )
+          )
+        ),
         typeChanged = false
       ),
       TestMessages
@@ -3620,6 +3701,15 @@ class RuntimeServerTest
         contextId,
         idMainP,
         ConstantsGen.NOTHING,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.IO",
+              "Standard.Base.IO",
+              "println"
+            )
+          )
+        ),
         typeChanged = false
       ),
       TestMessages
@@ -3656,6 +3746,15 @@ class RuntimeServerTest
         contextId,
         idMainP,
         ConstantsGen.NOTHING,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.IO",
+              "Standard.Base.IO",
+              "println"
+            )
+          )
+        ),
         typeChanged = false
       ),
       TestMessages
@@ -3686,7 +3785,6 @@ class RuntimeServerTest
         contextId,
         idMainA,
         ConstantsGen.TEXT,
-        Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "hie")),
         fromCache   = false,
         typeChanged = true
       ),
@@ -3694,6 +3792,15 @@ class RuntimeServerTest
         contextId,
         idMainP,
         ConstantsGen.NOTHING,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.IO",
+              "Standard.Base.IO",
+              "println"
+            )
+          )
+        ),
         typeChanged = false
       ),
       TestMessages
@@ -4018,7 +4125,20 @@ class RuntimeServerTest
     context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, xId, ConstantsGen.FUNCTION),
-      TestMessages.update(contextId, mainRes, ConstantsGen.NOTHING),
+      TestMessages.update(
+        contextId,
+        mainRes,
+        ConstantsGen.NOTHING,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.IO",
+              "Standard.Base.IO",
+              "println"
+            )
+          )
+        )
+      ),
       context.executionComplete(contextId)
     )
   }
@@ -4544,7 +4664,20 @@ class RuntimeServerTest
     context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, idText, ConstantsGen.TEXT),
-      TestMessages.update(contextId, idRes, ConstantsGen.NOTHING),
+      TestMessages.update(
+        contextId,
+        idRes,
+        ConstantsGen.NOTHING,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.IO",
+              "Standard.Base.IO",
+              "println"
+            )
+          )
+        )
+      ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List(prompt1)
@@ -4578,6 +4711,15 @@ class RuntimeServerTest
         contextId,
         idRes,
         ConstantsGen.NOTHING,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.IO",
+              "Standard.Base.IO",
+              "println"
+            )
+          )
+        ),
         typeChanged = false
       ),
       context.executionComplete(contextId)
@@ -4588,251 +4730,6 @@ class RuntimeServerTest
     context.send(Api.Request(Api.CloseFileNotification(mainFile)))
     context.receiveNone shouldEqual None
     context.consumeOut shouldEqual List()
-  }
-
-  it should "recompute expressions without invalidation" in {
-    val contents   = context.Main.code
-    val mainFile   = context.writeMain(contents)
-    val moduleName = "Enso_Test.Test.Main"
-    val contextId  = UUID.randomUUID()
-    val requestId  = UUID.randomUUID()
-
-    // create context
-    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receive shouldEqual Some(
-      Api.Response(requestId, Api.CreateContextResponse(contextId))
-    )
-
-    // Set sources for the module
-    context.send(
-      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
-    )
-    context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenFileResponse)
-    )
-
-    // push main
-    val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer(moduleName, moduleName, "main"),
-      None,
-      Vector()
-    )
-    context.send(
-      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
-    )
-    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.PushContextResponse(contextId)),
-      context.Main.Update.mainX(contextId),
-      context.Main.Update.mainY(contextId),
-      context.Main.Update.mainZ(contextId),
-      context.executionComplete(contextId)
-    )
-
-    // recompute
-    context.send(
-      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None, None))
-    )
-    context.receiveN(2) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
-      context.executionComplete(contextId)
-    )
-  }
-
-  it should "recompute expressions invalidating all" in {
-    val contents   = context.Main.code
-    val mainFile   = context.writeMain(contents)
-    val moduleName = "Enso_Test.Test.Main"
-    val contextId  = UUID.randomUUID()
-    val requestId  = UUID.randomUUID()
-
-    // create context
-    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receive shouldEqual Some(
-      Api.Response(requestId, Api.CreateContextResponse(contextId))
-    )
-
-    // Set sources for the module
-    context.send(
-      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
-    )
-    context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenFileResponse)
-    )
-
-    // push main
-    val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer(moduleName, moduleName, "main"),
-      None,
-      Vector()
-    )
-    context.send(
-      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
-    )
-    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.PushContextResponse(contextId)),
-      context.Main.Update.mainX(contextId),
-      context.Main.Update.mainY(contextId),
-      context.Main.Update.mainZ(contextId),
-      context.executionComplete(contextId)
-    )
-
-    // recompute
-    context.send(
-      Api.Request(
-        requestId,
-        Api.RecomputeContextRequest(
-          contextId,
-          Some(Api.InvalidatedExpressions.All()),
-          None
-        )
-      )
-    )
-    context.receiveN(6) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
-      TestMessages.pending(
-        contextId,
-        context.Main.idMainX,
-        context.Main.idMainY,
-        context.Main.idMainZ,
-        context.Main.idFooY,
-        context.Main.idFooZ
-      ),
-      context.Main.Update.mainX(contextId, typeChanged = false),
-      context.Main.Update.mainY(contextId, typeChanged = false),
-      context.Main.Update.mainZ(contextId, typeChanged = false),
-      context.executionComplete(contextId)
-    )
-  }
-
-  it should "recompute expressions invalidating some" in {
-    val contents   = context.Main.code
-    val mainFile   = context.writeMain(contents)
-    val moduleName = "Enso_Test.Test.Main"
-    val contextId  = UUID.randomUUID()
-    val requestId  = UUID.randomUUID()
-
-    // create context
-    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receive shouldEqual Some(
-      Api.Response(requestId, Api.CreateContextResponse(contextId))
-    )
-
-    // Set sources for the module
-    context.send(
-      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
-    )
-    context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenFileResponse)
-    )
-    context.receiveNone shouldEqual None
-    // push main
-    val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer(moduleName, moduleName, "main"),
-      None,
-      Vector()
-    )
-    context.send(
-      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
-    )
-    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.PushContextResponse(contextId)),
-      context.Main.Update.mainX(contextId),
-      context.Main.Update.mainY(contextId),
-      context.Main.Update.mainZ(contextId),
-      context.executionComplete(contextId)
-    )
-
-    // recompute
-    context.send(
-      Api.Request(
-        requestId,
-        Api.RecomputeContextRequest(
-          contextId,
-          Some(
-            Api.InvalidatedExpressions.Expressions(Vector(context.Main.idMainZ))
-          ),
-          None
-        )
-      )
-    )
-    context.receiveN(4) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
-      TestMessages.pending(contextId, context.Main.idMainZ),
-      context.Main.Update.mainZ(contextId, typeChanged = false),
-      context.executionComplete(contextId)
-    )
-  }
-
-  it should "recompute expressions changing an execution environment" in {
-    val contents   = context.Main.code
-    val mainFile   = context.writeMain(contents)
-    val moduleName = "Enso_Test.Test.Main"
-    val contextId  = UUID.randomUUID()
-    val requestId  = UUID.randomUUID()
-
-    // create context
-    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receive shouldEqual Some(
-      Api.Response(requestId, Api.CreateContextResponse(contextId))
-    )
-
-    // Set sources for the module
-    context.send(
-      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
-    )
-    context.receive shouldEqual Some(
-      Api.Response(Some(requestId), Api.OpenFileResponse)
-    )
-
-    // push main
-    val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer(moduleName, moduleName, "main"),
-      None,
-      Vector()
-    )
-    context.send(
-      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
-    )
-    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.PushContextResponse(contextId)),
-      context.Main.Update.mainX(contextId),
-      context.Main.Update.mainY(contextId),
-      context.Main.Update.mainZ(contextId),
-      context.executionComplete(contextId)
-    )
-
-    // recompute
-    context.languageContext.getExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
-      .Design()
-      .name
-    context.send(
-      Api.Request(
-        requestId,
-        Api.RecomputeContextRequest(
-          contextId,
-          Some(Api.InvalidatedExpressions.All()),
-          Some(Api.ExecutionEnvironment.Live())
-        )
-      )
-    )
-    context.receiveN(6) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
-      TestMessages.pending(
-        contextId,
-        context.Main.idMainX,
-        context.Main.idMainY,
-        context.Main.idMainZ,
-        context.Main.idFooY,
-        context.Main.idFooZ
-      ),
-      context.Main.Update.mainX(contextId, typeChanged = false),
-      context.Main.Update.mainY(contextId, typeChanged = false),
-      context.Main.Update.mainZ(contextId, typeChanged = false),
-      context.executionComplete(contextId)
-    )
-    context.languageContext.getExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
-      .Design()
-      .name
   }
 
   it should "return error when module not found" in {
@@ -6246,7 +6143,10 @@ class RuntimeServerTest
 
     // recompute
     context.send(
-      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None, None))
+      Api.Request(
+        requestId,
+        Api.RecomputeContextRequest(contextId, None, None, Seq())
+      )
     )
     context.receiveN(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
@@ -6336,7 +6236,10 @@ class RuntimeServerTest
 
     // recompute existing stack
     context.send(
-      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None, None))
+      Api.Request(
+        requestId,
+        Api.RecomputeContextRequest(contextId, None, None, Seq())
+      )
     )
     context.receiveN(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
@@ -6350,7 +6253,8 @@ class RuntimeServerTest
         Api.RecomputeContextRequest(
           contextId,
           Some(Api.InvalidatedExpressions.All()),
-          None
+          None,
+          Seq()
         )
       )
     )
@@ -6699,6 +6603,15 @@ class RuntimeServerTest
           contextId,
           idRes,
           ConstantsGen.NOTHING,
+          methodCall = Some(
+            Api.MethodCall(
+              Api.MethodPointer(
+                "Standard.Base.IO",
+                "Standard.Base.IO",
+                "println"
+              )
+            )
+          ),
           payload = Api.ExpressionUpdate.Payload.Value(
             Some(
               Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("y"), false)
@@ -7038,7 +6951,7 @@ class RuntimeServerTest
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("Hello World!")
-    context.languageContext.getExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
+    context.languageContext.getGlobalExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
       .Design()
       .name
 
@@ -7059,7 +6972,7 @@ class RuntimeServerTest
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("Hello World!")
-    context.languageContext.getExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
+    context.languageContext.getGlobalExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
       .Live()
       .name
   }
@@ -7132,6 +7045,54 @@ class RuntimeServerTest
     val moduleName = "Enso_Test.Test.Main"
     val code =
       """main =
+        |""".stripMargin.linesIterator.mkString("\n")
+
+    val mainFile = context.writeMain(code)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Set sources for the module
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, code))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.executionComplete(contextId)
+    )
+  }
+
+  it should "run methods with empty body ending with comment" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+    val code =
+      """foo =
+        |    # TODO
+        |
+        |main =
+        |    foo
         |""".stripMargin.linesIterator.mkString("\n")
 
     val mainFile = context.writeMain(code)
@@ -7243,5 +7204,746 @@ class RuntimeServerTest
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("Hello World!")
+  }
+
+  it should "edit local call with cached self" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val metadata   = new Metadata
+    val idX        = metadata.addItem(46, 11, "aa")
+    val idSelfMain = metadata.addItem(46, 4, "ab")
+    val idIncZ     = new UUID(0, 1)
+
+    val code =
+      """from Standard.Base import all
+        |
+        |main =
+        |    x = Main.inc 41
+        |    IO.println x
+        |
+        |inc a =
+        |    y = 1
+        |    r = a + y
+        |    r
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(
+        contextId,
+        idX,
+        ConstantsGen.INTEGER,
+        methodCall =
+          Some(Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "inc")))
+      ),
+      TestMessages.update(contextId, idSelfMain, moduleName),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("42")
+
+    // push inc call
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(contextId, Api.StackItem.LocalCall(idX))
+      )
+    )
+    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("42")
+
+    // Modify the file
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            model.TextEdit(
+              model.Range(model.Position(8, 4), model.Position(8, 9)),
+              "z = 2\n    r = a + z"
+            )
+          ),
+          execute = true,
+          idMap   = Some(model.IdMap(Vector(model.Span(102, 103) -> idIncZ)))
+        )
+      )
+    )
+    context.receiveNIgnorePendingExpressionUpdates(2, 10) shouldEqual Seq(
+      TestMessages.update(
+        contextId,
+        idIncZ,
+        ConstantsGen.INTEGER
+      ),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("44")
+  }
+
+  it should "edit two local calls with cached self" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val metadata    = new Metadata
+    val idX         = metadata.addItem(46, 10, "aa")
+    val idY         = metadata.addItem(65, 10, "ab")
+    val idXSelfMain = metadata.addItem(46, 4, "ac")
+    val idYSelfMain = metadata.addItem(65, 4, "ad")
+    val idIncZ      = new UUID(0, 1)
+
+    val code =
+      """from Standard.Base import all
+        |
+        |main =
+        |    x = Main.inc 3
+        |    y = Main.inc 7
+        |    IO.println x+y
+        |
+        |inc a =
+        |    y = 1
+        |    r = a + y
+        |    r
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnoreStdLib(6) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(
+        contextId,
+        idX,
+        ConstantsGen.INTEGER,
+        methodCall =
+          Some(Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "inc")))
+      ),
+      TestMessages.update(
+        contextId,
+        idY,
+        ConstantsGen.INTEGER,
+        methodCall =
+          Some(Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "inc")))
+      ),
+      TestMessages.update(contextId, idXSelfMain, moduleName),
+      TestMessages.update(contextId, idYSelfMain, moduleName),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("12")
+
+    // push inc call
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(contextId, Api.StackItem.LocalCall(idX))
+      )
+    )
+    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("12")
+
+    // Modify the file
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            model.TextEdit(
+              model.Range(model.Position(9, 4), model.Position(9, 9)),
+              "z = 2\n    r = a + z"
+            )
+          ),
+          execute = true,
+          idMap   = Some(model.IdMap(Vector(model.Span(122, 123) -> idIncZ)))
+        )
+      )
+    )
+    context.receiveNIgnorePendingExpressionUpdates(2, 10) shouldEqual Seq(
+      TestMessages.update(
+        contextId,
+        idIncZ,
+        ConstantsGen.INTEGER
+      ),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("16")
+
+    // pop the inc call
+    context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
+
+    context.receiveNIgnoreStdLib(6) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PopContextResponse(contextId)),
+      TestMessages.update(
+        contextId,
+        idX,
+        ConstantsGen.INTEGER,
+        fromCache   = false,
+        typeChanged = false,
+        methodCall =
+          Some(Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "inc")))
+      ),
+      TestMessages.update(
+        contextId,
+        idY,
+        ConstantsGen.INTEGER,
+        fromCache   = false,
+        typeChanged = false,
+        methodCall =
+          Some(Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "inc")))
+      ),
+      TestMessages.update(
+        contextId,
+        idXSelfMain,
+        moduleName,
+        fromCache   = true,
+        typeChanged = false
+      ),
+      TestMessages.update(
+        contextId,
+        idYSelfMain,
+        moduleName,
+        fromCache   = true,
+        typeChanged = false
+      ),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("16")
+  }
+
+  it should "resolve multiple autoscoped atomconstructor with no IDs initially" in {
+    val contextId       = UUID.randomUUID()
+    val requestId       = UUID.randomUUID()
+    val moduleName      = "Enso_Test.Test.Main"
+    val moduleNameLib   = "Enso_Test.Test.Lib"
+    val moduleNameTypes = "Enso_Test.Test.Types"
+    val metadata        = new Metadata
+
+    val idS    = UUID.randomUUID()
+    val idX    = UUID.randomUUID()
+    val idAArg = UUID.randomUUID()
+    val idBArg = UUID.randomUUID()
+    val idRes  = UUID.randomUUID()
+
+    val typesMetadata = new Metadata
+    val codeTypes = typesMetadata.appendToCode(
+      """type Foo
+        |    A
+        |
+        |type Bar
+        |    B
+        |""".stripMargin.linesIterator.mkString("\n")
+    )
+    val typesFile = context.writeInSrcDir("Types", codeTypes)
+
+    val libMetadata = new Metadata
+    val codeLib = libMetadata.appendToCode(
+      """from project.Types import Foo, Bar
+        |from Standard.Base import all
+        |
+        |type Singleton
+        |    S value
+        |
+        |    test : Foo -> Bar -> Number
+        |    test self (x : Foo = ..A) (y : Bar = ..B) =
+        |        Singleton.from_test x y
+        |
+        |    from_test : Foo -> Bar -> Number
+        |    from_test (x : Foo = ..A) (y : Bar = ..B) =
+        |        _ = x
+        |        _ = y
+        |        42
+        |""".stripMargin.linesIterator.mkString("\n")
+    )
+
+    val libFile = context.writeInSrcDir("Lib", codeLib)
+
+    val code =
+      """from project.Lib import Singleton
+        |
+        |main =
+        |    s = Singleton.S 1
+        |    x = s.test ..A ..B
+        |    x
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open files
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(typesFile, codeTypes))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(libFile, codeLib))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    context.receiveNIgnorePendingExpressionUpdates(
+      2
+    ) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.executionComplete(contextId)
+    )
+
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(),
+          execute = true,
+          idMap = Some(
+            model.IdMap(
+              Vector(
+                model.Span(50, 63) -> idS,
+                model.Span(72, 86) -> idX,
+                model.Span(79, 82) -> idAArg,
+                model.Span(83, 86) -> idBArg,
+                model.Span(91, 92) -> idRes
+              )
+            )
+          )
+        )
+      )
+    )
+    val afterIdMapUpdate = context.receiveN(6)
+
+    afterIdMapUpdate shouldEqual Seq(
+      TestMessages.update(
+        contextId,
+        idS,
+        s"$moduleNameLib.Singleton",
+        methodCall = Some(
+          Api.MethodCall(
+            Api
+              .MethodPointer(moduleNameLib, s"$moduleNameLib.Singleton", "S")
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(None)
+      ),
+      TestMessages.update(
+        contextId,
+        idAArg,
+        s"$moduleNameTypes.Foo",
+        methodCall = Some(
+          Api.MethodCall(
+            Api
+              .MethodPointer(
+                moduleNameTypes,
+                s"$moduleNameTypes.Foo",
+                "A"
+              )
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(None)
+      ),
+      TestMessages.update(
+        contextId,
+        idBArg,
+        s"$moduleNameTypes.Bar",
+        methodCall = Some(
+          Api.MethodCall(
+            Api
+              .MethodPointer(
+                moduleNameTypes,
+                s"$moduleNameTypes.Bar",
+                "B"
+              )
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(None)
+      ),
+      TestMessages.update(
+        contextId,
+        idX,
+        s"Standard.Base.Data.Numbers.Integer",
+        methodCall = Some(
+          Api.MethodCall(
+            Api
+              .MethodPointer(
+                moduleNameLib,
+                s"$moduleNameLib.Singleton",
+                "test"
+              )
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(None)
+      ),
+      TestMessages.update(
+        contextId,
+        idRes,
+        s"Standard.Base.Data.Numbers.Integer",
+        payload = Api.ExpressionUpdate.Payload.Value(None)
+      ),
+      context.executionComplete(contextId)
+    )
+  }
+
+}
+object RuntimeServerTest {
+
+  trait TestMain {
+    object Main {
+
+      val metadata = new Metadata
+
+      val idMainX = metadata.addItem(63, 1, "aa1")
+      val idMainY = metadata.addItem(73, 7, "aa2")
+      val idMainZ = metadata.addItem(89, 5, "aa3")
+      val idFooY  = metadata.addItem(133, 8, "ff2")
+      val idFooZ  = metadata.addItem(150, 5, "ff3")
+
+      def code =
+        metadata.appendToCode(
+          """
+            |from Standard.Base.Data.Numbers import    all
+            |
+            |main =
+            |    x = 6
+            |    y = x.foo 5
+            |    z = y + 5
+            |    z
+            |
+            |Number.foo self = x ->
+            |    y = self + 3
+            |    z = y * x
+            |    z
+            |""".stripMargin.linesIterator.mkString("\n")
+        )
+
+      object Update {
+
+        def mainX(
+          contextId: UUID,
+          fromCache: Boolean   = false,
+          typeChanged: Boolean = true
+        ): Api.Response =
+          Api.Response(
+            Api.ExpressionUpdates(
+              contextId,
+              Set(
+                Api.ExpressionUpdate(
+                  Main.idMainX,
+                  Some(ConstantsGen.INTEGER),
+                  None,
+                  Vector(Api.ProfilingInfo.ExecutionTime(0)),
+                  fromCache,
+                  typeChanged,
+                  Api.ExpressionUpdate.Payload.Value()
+                )
+              )
+            )
+          )
+
+        def pendingZ(): Api.ExpressionUpdate =
+          Api.ExpressionUpdate(
+            Main.idFooZ,
+            None,
+            None,
+            Vector(),
+            true,
+            false,
+            Api.ExpressionUpdate.Payload.Pending(None, None)
+          )
+
+        def pendingY(): Api.ExpressionUpdate =
+          Api.ExpressionUpdate(
+            Main.idFooY,
+            None,
+            None,
+            Vector(),
+            true,
+            false,
+            Api.ExpressionUpdate.Payload.Pending(None, None)
+          )
+
+        def mainY(
+          contextId: UUID,
+          fromCache: Boolean   = false,
+          typeChanged: Boolean = true
+        ): Api.Response =
+          Api.Response(
+            Api.ExpressionUpdates(
+              contextId,
+              Set(
+                Api.ExpressionUpdate(
+                  Main.idMainY,
+                  Some(ConstantsGen.INTEGER),
+                  Some(
+                    Api.MethodCall(
+                      Api.MethodPointer(
+                        "Enso_Test.Test.Main",
+                        ConstantsGen.NUMBER,
+                        "foo"
+                      )
+                    )
+                  ),
+                  Vector(Api.ProfilingInfo.ExecutionTime(0)),
+                  fromCache,
+                  typeChanged,
+                  Api.ExpressionUpdate.Payload.Value()
+                )
+              )
+            )
+          )
+
+        def mainZ(
+          contextId: UUID,
+          fromCache: Boolean   = false,
+          typeChanged: Boolean = true
+        ): Api.Response =
+          Api.Response(
+            Api.ExpressionUpdates(
+              contextId,
+              Set(
+                Api.ExpressionUpdate(
+                  Main.idMainZ,
+                  Some(ConstantsGen.INTEGER),
+                  Some(
+                    Api.MethodCall(
+                      Api.MethodPointer(
+                        "Standard.Base.Data.Numbers",
+                        ConstantsGen.INTEGER,
+                        "+"
+                      )
+                    )
+                  ),
+                  Vector(Api.ProfilingInfo.ExecutionTime(0)),
+                  fromCache,
+                  typeChanged,
+                  Api.ExpressionUpdate.Payload.Value()
+                )
+              )
+            )
+          )
+
+        def fooY(
+          contextId: UUID,
+          fromCache: Boolean   = false,
+          typeChanged: Boolean = true
+        ): Api.Response =
+          Api.Response(
+            Api.ExpressionUpdates(
+              contextId,
+              Set(
+                Api.ExpressionUpdate(
+                  Main.idFooY,
+                  Some(ConstantsGen.INTEGER),
+                  Some(
+                    Api.MethodCall(
+                      Api.MethodPointer(
+                        "Standard.Base.Data.Numbers",
+                        ConstantsGen.INTEGER,
+                        "+"
+                      )
+                    )
+                  ),
+                  Vector(Api.ProfilingInfo.ExecutionTime(0)),
+                  fromCache,
+                  typeChanged,
+                  Api.ExpressionUpdate.Payload.Value()
+                )
+              )
+            )
+          )
+
+        def fooZ(
+          contextId: UUID,
+          fromCache: Boolean   = false,
+          typeChanged: Boolean = true
+        ): Api.Response =
+          Api.Response(
+            Api.ExpressionUpdates(
+              contextId,
+              Set(
+                Api.ExpressionUpdate(
+                  Main.idFooZ,
+                  Some(ConstantsGen.INTEGER),
+                  Some(
+                    Api.MethodCall(
+                      Api.MethodPointer(
+                        "Standard.Base.Data.Numbers",
+                        ConstantsGen.INTEGER,
+                        "*"
+                      )
+                    )
+                  ),
+                  Vector(Api.ProfilingInfo.ExecutionTime(0)),
+                  fromCache,
+                  typeChanged,
+                  Api.ExpressionUpdate.Payload.Value()
+                )
+              )
+            )
+          )
+      }
+    }
+
+    object Main2 {
+
+      val metadata = new Metadata
+      val idMainY  = metadata.addItem(178, 5)
+      val idMainZ  = metadata.addItem(192, 5)
+
+      val code = metadata.appendToCode(
+        """from Standard.Base import all
+          |
+          |foo = arg ->
+          |    IO.println "I'm expensive!"
+          |    arg + 5
+          |
+          |bar = arg ->
+          |    IO.println "I'm more expensive!"
+          |    arg * 5
+          |
+          |main =
+          |    x = 10
+          |    y = foo x
+          |    z = bar y
+          |    z
+          |""".stripMargin.linesIterator.mkString("\n")
+      )
+
+      object Update {
+
+        def mainY(contextId: UUID) =
+          Api.Response(
+            Api.ExpressionUpdates(
+              contextId,
+              Set(
+                Api.ExpressionUpdate(
+                  idMainY,
+                  Some(ConstantsGen.INTEGER),
+                  Some(
+                    Api.MethodCall(
+                      Api.MethodPointer(
+                        "Enso_Test.Test.Main",
+                        "Enso_Test.Test.Main",
+                        "foo"
+                      )
+                    )
+                  ),
+                  Vector(Api.ProfilingInfo.ExecutionTime(0)),
+                  false,
+                  true,
+                  Api.ExpressionUpdate.Payload.Value()
+                )
+              )
+            )
+          )
+
+        def mainZ(contextId: UUID) =
+          Api.Response(
+            Api.ExpressionUpdates(
+              contextId,
+              Set(
+                Api.ExpressionUpdate(
+                  idMainZ,
+                  Some(ConstantsGen.INTEGER),
+                  Some(
+                    Api.MethodCall(
+                      Api.MethodPointer(
+                        "Enso_Test.Test.Main",
+                        "Enso_Test.Test.Main",
+                        "bar"
+                      )
+                    )
+                  ),
+                  Vector(Api.ProfilingInfo.ExecutionTime(0)),
+                  false,
+                  true,
+                  Api.ExpressionUpdate.Payload.Value()
+                )
+              )
+            )
+          )
+      }
+    }
   }
 }

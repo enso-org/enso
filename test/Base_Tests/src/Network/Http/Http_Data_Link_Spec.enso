@@ -45,8 +45,7 @@ add_specs suite_builder =
             r.catch.to_display_text.should_contain "Unknown format"
 
         group_builder.specify "will fail if an unloaded format is used" <| Test.with_retries <|
-            # We assume that Base_Tests _do not_ import Standard.Table
-            f = replace_url_in_data_link (data_link_root / "example-http-format-delimited.datalink")
+            f = replace_url_in_data_link (data_link_root / "example-http-format-notreal.datalink")
             r = f.read
             r.should_fail_with Illegal_State
             r.catch.to_display_text.should_contain "Unknown format"

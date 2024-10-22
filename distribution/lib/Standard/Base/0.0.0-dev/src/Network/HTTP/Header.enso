@@ -3,11 +3,18 @@ import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
 import project.Enso_Cloud.Enso_Secret.Derived_Secret_Value
 import project.Enso_Cloud.Enso_Secret.Enso_Secret
+import project.Meta
+import project.Metadata.Display
+import project.Metadata.Widget
 import project.Nothing.Nothing
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Ordering import all
 from project.Data.Text.Extensions import all
 from project.Enso_Cloud.Enso_Secret import as_hideable_value
+from project.Metadata import make_single_choice
+from project.Metadata.Choice import Option
+from project.Metadata.Widget import Single_Choice, Vector_Editor
+from project.Widget_Helpers import make_text_secret_selector
 
 polyglot java import org.graalvm.collections.Pair as Java_Pair
 
@@ -36,6 +43,7 @@ type Header
              import Standard.Base.Network.HTTP.Header.Header
 
              example_new = Header.new "My_Header" "my header's value"
+    @value make_text_secret_selector
     new : Text -> Text | Enso_Secret | Derived_Secret_Value -> Header
     new name:Text value:(Text | Enso_Secret | Derived_Secret_Value) = Header.Value name value
 
@@ -80,6 +88,7 @@ type Header
              import Standard.Base.Network.HTTP.Header.Header
 
              example_auth = Header.authorization "foo"
+    @value make_text_secret_selector
     authorization : Text | Enso_Secret | Derived_Secret_Value -> Header
     authorization (value : Text | Enso_Secret | Derived_Secret_Value) = Header.Value "Authorization" value
 
@@ -96,6 +105,8 @@ type Header
              import Standard.Base.Network.HTTP.Header.Header
 
              example_auth_basic = Header.authorization_basic "user" "pass"
+    @user make_text_secret_selector
+    @pass make_text_secret_selector
     authorization_basic : Text | Enso_Secret | Derived_Secret_Value -> Text | Enso_Secret | Derived_Secret_Value -> Header
     authorization_basic (user : Text | Enso_Secret | Derived_Secret_Value) (pass : Text | Enso_Secret | Derived_Secret_Value) =
         pair = (Derived_Secret_Value.from user) + (Derived_Secret_Value.from ":") + (Derived_Secret_Value.from pass)
@@ -107,6 +118,7 @@ type Header
 
        Arguments:
        - token: The token.
+    @token make_text_secret_selector
     authorization_bearer : Text | Enso_Secret | Derived_Secret_Value -> Header
     authorization_bearer (token : Text | Enso_Secret | Derived_Secret_Value) =
         value = ((Derived_Secret_Value.from "Bearer ") + (Derived_Secret_Value.from token))
@@ -127,6 +139,8 @@ type Header
              import Standard.Base.Network.HTTP.Header.Header
 
              example_content_type = Header.content_type "my_type"
+    @value content_type_widget
+    @encoding Encoding.default_widget
     content_type : Text -> Encoding | Nothing -> Header
     content_type value:Text encoding:(Encoding | Nothing)=Nothing =
         charset = if encoding.is_nothing then "" else "; charset="+encoding.character_set_name
@@ -197,7 +211,6 @@ type Header
     text_plain : Header
     text_plain = Header.content_type "text/plain"
 
-
     ## PRIVATE
        Convert to a display representation of this Header.
     to_display_text : Text
@@ -212,6 +225,22 @@ type Header
     to_java_pair : Java_Pair
     to_java_pair self =
         Java_Pair.create self.name (as_hideable_value self.value)
+
+    ## PRIVATE
+    default_widget (display : Display = ..When_Modified) -> Widget =
+        fqn = "Header"
+        secret_selector = make_text_secret_selector
+
+        custom = [Option "Custom" fqn+".new '' ''"]
+        accept = [Option "Accept" fqn+".accept '*/*'"]
+        authorization = [Option "Authorization" fqn+".authorization ''" [["value", secret_selector]]]
+        basic_auth = [Option "HTTP Basic Auth" fqn+".authorization_basic '' ''" [["user", secret_selector], ["pass", secret_selector]]]
+        bearer_auth = [Option "Bearer Auth" fqn+".authorization_bearer ''" [["token", secret_selector]]]
+        content_type = [Option "Content-Type" fqn+".content_type ''" [["value", content_type_widget], ["encoding", Encoding.default_widget]]]
+        values = custom + accept + authorization + basic_auth + bearer_auth + content_type
+
+        item_editor = Single_Choice values=values display=..Always
+        Vector_Editor item_editor item_default='Header.new "header" "value"' display=display
 
 ## PRIVATE
 type Header_Comparator
@@ -229,3 +258,7 @@ type Header_Comparator
 
 ## PRIVATE
 Comparable.from (that:Header) = Comparable.new that Header_Comparator
+
+## PRIVATE
+content_type_widget -> Widget =
+    make_single_choice [["Custom", "*"], "application/json", "application/octet-stream", "application/x-www-form-urlencoded", "multipart/form-data", "text/csv", "text/html", "text/plain", "text/xml"]

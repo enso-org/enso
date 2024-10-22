@@ -8,6 +8,7 @@ import org.enso.compiler.core.ir.{
   Expression,
   IRKind,
   IdentifiedLocation,
+  LazyDiagnosticStorage,
   LazyId,
   MetadataStorage,
   Name
@@ -39,15 +40,14 @@ object Import {
 
   /** An import statement.
     *
-    * @param name        the full path representing the import
-    * @param rename      the name this import is visible as
-    * @param isAll       is this importing exported names
-    * @param onlyNames   exported names selected from the imported module
+    * @param name the full path representing the import
+    * @param rename the name this import is visible as
+    * @param isAll is this importing exported names
+    * @param onlyNames exported names selected from the imported module
     * @param hiddenNames exported names hidden from the imported module
-    * @param location    the source location that the node corresponds to
+    * @param identifiedLocation the source location that the node corresponds to
     * @param isSynthetic is this import compiler-generated
-    * @param passData    the pass metadata associated with this node
-    * @param diagnostics compiler diagnostics for this node
+    * @param passData the pass metadata associated with this node
     */
   sealed case class Module(
     name: Name.Qualified,
@@ -55,12 +55,12 @@ object Import {
     isAll: Boolean,
     onlyNames: Option[List[Name.Literal]],
     hiddenNames: Option[List[Name.Literal]],
-    override val location: Option[IdentifiedLocation],
-    isSynthetic: Boolean                        = false,
-    override val passData: MetadataStorage      = new MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    override val identifiedLocation: IdentifiedLocation,
+    isSynthetic: Boolean                   = false,
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends Import
       with IRKind.Primitive
+      with LazyDiagnosticStorage
       with LazyId {
 
     /** Creates a copy of `this`.
@@ -83,25 +83,38 @@ object Import {
       isAll: Boolean                          = isAll,
       onlyNames: Option[List[Name.Literal]]   = onlyNames,
       hiddenNames: Option[List[Name.Literal]] = hiddenNames,
-      location: Option[IdentifiedLocation]    = location,
       isSynthetic: Boolean                    = isSynthetic,
+      location: Option[IdentifiedLocation]    = location,
       passData: MetadataStorage               = passData,
       diagnostics: DiagnosticStorage          = diagnostics,
       id: UUID @Identifier                    = id
     ): Module = {
-      val res = Module(
-        name,
-        rename,
-        isAll,
-        onlyNames,
-        hiddenNames,
-        location,
-        isSynthetic,
-        passData,
-        diagnostics
-      )
-      res.id = id
-      res
+      if (
+        name != this.name
+        || rename != this.rename
+        || isAll != this.isAll
+        || onlyNames != this.onlyNames
+        || hiddenNames != this.hiddenNames
+        || isSynthetic != this.isSynthetic
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res = Module(
+          name,
+          rename,
+          isAll,
+          onlyNames,
+          hiddenNames,
+          location.orNull,
+          isSynthetic,
+          passData
+        )
+        res.diagnostics = diagnostics
+        res.id          = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -131,9 +144,8 @@ object Import {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */

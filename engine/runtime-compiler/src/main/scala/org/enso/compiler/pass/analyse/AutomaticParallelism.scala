@@ -13,7 +13,7 @@ import org.enso.compiler.core.ir.{
 }
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.data.BindingsMap.{Resolution, ResolvedModuleMethod}
-import org.enso.compiler.core.CompilerError
+import org.enso.compiler.core.{CompilerError, IR}
 import org.enso.compiler.core.ir.expression.{Application, Operator}
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.alias.graph.Graph
@@ -24,6 +24,8 @@ import org.enso.compiler.pass.resolve.{
   ModuleAnnotations,
   TypeSignatures
 }
+
+import java.util.function.Consumer
 
 import scala.annotation.{tailrec, unused}
 
@@ -229,18 +231,23 @@ object AutomaticParallelism extends IRPass {
       line.assignment.map { _ -> line.id }
     }: _*)
     val linesWithDeps = segment.parallelizable.map { line =>
-      val deps = line.ir.preorder
-        .collect { case n: Name.Literal =>
-          n
-        }
-        .flatMap(_.getMetadata(AliasAnalysis))
-        .collect { case occ: alias.AliasMetadata.Occurrence =>
-          occ
-        }
-        .flatMap(occ => occ.graph.defLinkFor(occ.id))
-        .flatMap(link => depMap.get(link.target))
-        .filter(_ != line.id)
-      line.copy(dependencies = Set(deps: _*))
+      val builder = Set.newBuilder[Int]
+      IR.preorder(
+        line.ir,
+        {
+          case n: Name.Literal =>
+            for {
+              occ @ alias.AliasMetadata.Occurrence(_, _) <-
+                n.getMetadata(AliasAnalysis)
+              link <- occ.graph.defLinkFor(occ.id)
+              id   <- depMap.get(link.target)
+              if id != line.id
+            } builder.addOne(id)
+          case _ =>
+        }: Consumer[IR]
+      )
+
+      line.copy(dependencies = builder.result())
     }
     segment.copy(parallelizable = linesWithDeps)
   }
@@ -296,12 +303,12 @@ object AutomaticParallelism extends IRPass {
         .Binding(
           _,
           Application.Prefix(
-            Name.Special(Name.Special.NewRef, None),
+            Name.Special(Name.Special.NewRef, null),
             List(),
             false,
-            None
+            null
           ),
-          None
+          null
         )
         .updateMetadata(
           new MetadataPair(IgnoredBindings, IgnoredBindings.State.Ignored)
@@ -313,32 +320,32 @@ object AutomaticParallelism extends IRPass {
         exprs.map(_.ir).flatMap {
           case bind: Expression.Binding =>
             val refWrite = Application.Prefix(
-              Name.Special(Name.Special.WriteRef, None),
+              Name.Special(Name.Special.WriteRef, null),
               List(
                 CallArgument
-                  .Specified(None, refVars(bind.name).duplicate(), None),
-                CallArgument.Specified(None, bind.name.duplicate(), None)
+                  .Specified(None, refVars(bind.name).duplicate(), null),
+                CallArgument.Specified(None, bind.name.duplicate(), null)
               ),
               false,
-              None
+              null
             )
             List(bind, refWrite)
           case other => List(other)
         }
       val spawn = Application.Prefix(
-        Name.Special(Name.Special.RunThread, None),
+        Name.Special(Name.Special.RunThread, null),
         List(
           CallArgument.Specified(
             None,
-            Expression.Block(blockBody.init, blockBody.last, None),
-            None
+            Expression.Block(blockBody.init, blockBody.last, null),
+            null
           )
         ),
         false,
-        None
+        null
       )
       Expression
-        .Binding(freshNameSupply.newName(), spawn, None)
+        .Binding(freshNameSupply.newName(), spawn, null)
         .updateMetadata(
           new MetadataPair(IgnoredBindings, IgnoredBindings.State.Ignored)
         )
@@ -346,10 +353,10 @@ object AutomaticParallelism extends IRPass {
 
     val threadJoins = threadSpawns.map { bind =>
       Application.Prefix(
-        Name.Special(Name.Special.JoinThread, None),
-        List(CallArgument.Specified(None, bind.name.duplicate(), None)),
+        Name.Special(Name.Special.JoinThread, null),
+        List(CallArgument.Specified(None, bind.name.duplicate(), null)),
         false,
-        None
+        null
       )
     }
 
@@ -358,12 +365,12 @@ object AutomaticParallelism extends IRPass {
         .Binding(
           name.duplicate(),
           Application.Prefix(
-            Name.Special(Name.Special.ReadRef, None),
-            List(CallArgument.Specified(None, ref.duplicate(), None)),
+            Name.Special(Name.Special.ReadRef, null),
+            List(CallArgument.Specified(None, ref.duplicate(), null)),
             false,
-            None
+            null
           ),
-          None
+          null
         )
         .updateMetadata(
           new MetadataPair(IgnoredBindings, IgnoredBindings.State.Ignored)

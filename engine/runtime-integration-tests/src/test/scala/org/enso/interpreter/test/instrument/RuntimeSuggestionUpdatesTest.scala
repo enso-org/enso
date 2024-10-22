@@ -1414,7 +1414,10 @@ class RuntimeSuggestionUpdatesTest
 
     // recompute
     context.send(
-      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None, None))
+      Api.Request(
+        requestId,
+        Api.RecomputeContextRequest(contextId, None, None, Seq())
+      )
     )
     val updates2 = context.receiveNIgnoreExpressionUpdates(3)
     updates2.length shouldEqual 3

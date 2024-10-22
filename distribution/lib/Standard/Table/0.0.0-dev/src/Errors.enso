@@ -290,13 +290,14 @@ type Invalid_Location
      format.
 type Invalid_Format
     ## PRIVATE
-    Error column:(Text|Nothing) (value_type:Value_Type|Integer|Number|Date|Date_Time|Time_Of_Day|Boolean|Any) (cells:(Vector Text))
+    Error column:(Text|Nothing) (value_type:Value_Type|Integer|Number|Date|Date_Time|Time_Of_Day|Boolean|Any) (count:Integer) (cells:(Vector Text))
 
     ## PRIVATE
        Pretty print the invalid format error.
     to_display_text : Text
     to_display_text self =
-        self.cells.length.to_text+" cells in column "+self.column+" had invalid format for type "+self.value_type.to_text+"."
+        examples = (self.cells.take 3 . join ", ") + (if self.cells.length > 3 then ", ..." else "")
+        self.count.to_text+" cells in column "+self.column+" had invalid format for "+self.value_type.to_text+" (" + examples + ")."
 
 ## Indicates that an empty file was encountered, so no data could be loaded.
 type Empty_File_Error

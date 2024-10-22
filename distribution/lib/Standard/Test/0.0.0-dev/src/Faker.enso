@@ -1,5 +1,6 @@
 from Standard.Base import all
 
+polyglot java import java.math.BigInteger
 polyglot java import java.util.Random as Java_Random
 polyglot java import org.enso.base.Text_Utils
 
@@ -13,9 +14,9 @@ type Faker
        Set of lower case letters.
     lower_case_letters = "abcdefghijklmnopqrstuvwxyz".char_vector
 
-    ## ICON input_number
+    ## ICON text
        Set of numerical digits.
-    numbers = "0123456789".char_vector
+    digits = "0123456789".char_vector
 
     ## ICON random
        Creates a new Faker which can be used for creating test values.
@@ -37,7 +38,7 @@ type Faker
        Arguments:
        - template: Vector of vectors that represent the possible characters for each
          letter, as UTF-16 code units or a Text value made up of `A` for upper case,
-         `a` for lower case, `0` for numbers, and any other character for itself.
+         `a` for lower case, `0` for digits, and any other character for itself.
 
        > Example
          Creates a fake UK National Insurance number:
@@ -54,7 +55,7 @@ type Faker
                  char_vector = template.characters.map c-> case c of
                     "A" -> Faker.upper_case_letters
                     "a" -> Faker.lower_case_letters
-                    "0" -> Faker.numbers
+                    "0" -> Faker.digits
                     _ -> [c]
                  self.text_value char_vector
             _ ->
@@ -84,7 +85,7 @@ type Faker
        - upper_case: use upper_case letters
     alpha_numeric : Integer -> Boolean -> Text
     alpha_numeric self length=1 upper_case=False =
-        alphabet = (if upper_case then Faker.upper_case_letters else Faker.lower_case_letters) + Faker.numbers
+        alphabet = (if upper_case then Faker.upper_case_letters else Faker.lower_case_letters) + Faker.digits
         self.text_value <| 0.up_to length . map _->alphabet
 
     ## GROUP Standard.Base.Random
@@ -114,12 +115,45 @@ type Faker
 
     ## GROUP Standard.Base.Random
        ICON random
+       Create a random large Integer value (represented internally as a Java
+       `BigInteger`.
+
+       The values provided by this method are selected from a sparse set within
+       the specified range. For example, with `bit_length=4`, the possible range
+       is -16 to 16, but the actual values only include 9, 11, 13 and 15.
+
+       Arguments
+       - bit_length: specifies the range of values to select from. The values
+         will be between -2^bit_length and 2^bit_length.
+    large_integer : Integer -> Integer -> Integer
+    large_integer self bit_length =
+        BigInteger.new bit_length 0 self.generator
+
+    ## GROUP Standard.Base.Random
+       ICON random
+       Create a random Decimal value (represented internally as a Java
+       `BigDecimal`.
+
+       This generator uses `large_integer` to generate an `Integer`, and then
+       adds a random `Float`. See `large_integer` for a description of the range
+       of values that this can return.
+
+       Arguments
+       - bit_length: specifies the range of values to select from. The values
+         will be between -2^bit_length and 2^bit_length.
+    decimal : Integer -> Integer -> Integer
+    decimal self bit_length =
+        (self.large_integer bit_length) + self.float
+
+    ## GROUP Standard.Base.Random
+       ICON random
        Create a random Float value
     float : Float -> Float -> Float
     float self minimum=0.0 maximum=1.0 =
         minimum + self.generator.nextDouble * (maximum - minimum)
 
     ## GROUP Standard.Base.Random
+       ICON random
        Create a random Float value in full range of allowed values,
        exponentially distributed (exponents are uniformly distributed).
     float_full_range_exp : Float

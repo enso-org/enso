@@ -1,7 +1,6 @@
 package org.enso.compiler.pass.analyse;
 
 import java.util.List;
-import java.util.UUID;
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.context.ModuleContext;
 import org.enso.compiler.core.IR;
@@ -17,6 +16,7 @@ import org.enso.compiler.data.BindingsMap.ResolvedConstructor;
 import org.enso.compiler.data.BindingsMap.ResolvedModule;
 import org.enso.compiler.data.BindingsMap.ResolvedName;
 import org.enso.compiler.pass.IRPass;
+import org.enso.compiler.pass.IRProcessingPass;
 import org.enso.compiler.pass.resolve.Patterns$;
 import org.enso.pkg.QualifiedName;
 import scala.collection.immutable.Seq;
@@ -30,30 +30,19 @@ import scala.jdk.javaapi.CollectionConverters;
  */
 public class PrivateSymbolsAnalysis implements IRPass {
   public static final PrivateSymbolsAnalysis INSTANCE = new PrivateSymbolsAnalysis();
-  private UUID uuid;
 
   private PrivateSymbolsAnalysis() {}
 
   @Override
-  public void org$enso$compiler$pass$IRPass$_setter_$key_$eq(UUID v) {
-    this.uuid = v;
-  }
-
-  @Override
-  public UUID key() {
-    return uuid;
-  }
-
-  @Override
-  public Seq<IRPass> precursorPasses() {
-    List<IRPass> passes =
+  public Seq<IRProcessingPass> precursorPasses() {
+    List<IRProcessingPass> passes =
         List.of(
             PrivateModuleAnalysis.INSTANCE, PrivateConstructorAnalysis.INSTANCE, Patterns$.MODULE$);
     return CollectionConverters.asScala(passes).toList();
   }
 
   @Override
-  public Seq<IRPass> invalidatedPasses() {
+  public Seq<IRProcessingPass> invalidatedPasses() {
     return nil();
   }
 
@@ -72,13 +61,14 @@ public class PrivateSymbolsAnalysis implements IRPass {
         ir.bindings()
             .map(binding -> binding.mapExpressions(expr -> processExpression(expr, bindingsMap)));
     return ir.copy(
-        ir.imports(),
-        ir.exports(),
+        ir.copy$default$1(),
+        ir.copy$default$2(),
         newBindings,
-        ir.location(),
-        ir.passData(),
-        ir.diagnostics(),
-        ir.id());
+        ir.copy$default$4(),
+        ir.copy$default$5(),
+        ir.copy$default$6(),
+        ir.copy$default$7(),
+        ir.copy$default$8());
   }
 
   /** Not supported for expressions. */
@@ -97,11 +87,11 @@ public class PrivateSymbolsAnalysis implements IRPass {
         yield caseExpr.copy(
             newScrutinee,
             newBranches,
-            caseExpr.isNested(),
-            caseExpr.location(),
-            caseExpr.passData(),
-            caseExpr.diagnostics(),
-            caseExpr.id());
+            caseExpr.copy$default$3(),
+            caseExpr.copy$default$4(),
+            caseExpr.copy$default$5(),
+            caseExpr.copy$default$6(),
+            caseExpr.copy$default$7());
       }
       case Name name -> processName(name, bindingsMap);
       default -> expr.mapExpressions(e -> processExpression(e, bindingsMap));
@@ -115,11 +105,11 @@ public class PrivateSymbolsAnalysis implements IRPass {
     return branch.copy(
         newPat,
         newExpr,
-        branch.terminalBranch(),
-        branch.location(),
-        branch.passData(),
-        branch.diagnostics(),
-        branch.id());
+        branch.copy$default$3(),
+        branch.copy$default$4(),
+        branch.copy$default$5(),
+        branch.copy$default$6(),
+        branch.copy$default$7());
   }
 
   private Pattern processCasePattern(Pattern pattern, BindingsMap bindingsMap) {

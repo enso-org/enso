@@ -15,6 +15,7 @@ import Standard.Test.Suite.Suite_Builder
 
 import project.Database.Common.Default_Ordering_Spec
 import project.Database.Common.Names_Length_Limits_Spec
+import Standard.Database.Feature.Feature
 
 import project.Util
 import project.Database.Helpers.Name_Generator
@@ -142,14 +143,16 @@ type Missing_Values_Data
     teardown self =
         drop_table self.connection self.t4.name
 
+add_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connection_fn : (Nothing -> Any)) default_connection setup =
+    if setup.is_feature_supported Feature.Integration_Tests then (add_commmon_specs suite_builder prefix create_connection_fn default_connection setup)
 
 ## Adds common database tests specs to the suite builder.
 
    Arguments:
    - create_connection_fn: A function that creates an appropriate Connection to the database backend.
-add_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connection_fn : (Nothing -> Any)) default_connection =
+add_commmon_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connection_fn : (Nothing -> Any)) default_connection setup =
 
-    Default_Ordering_Spec.add_specs suite_builder prefix create_connection_fn
+    Default_Ordering_Spec.add_specs suite_builder prefix create_connection_fn setup
     Names_Length_Limits_Spec.add_specs suite_builder prefix create_connection_fn
 
     suite_builder.group (prefix + "Basic Table Access") group_builder->
@@ -197,15 +200,6 @@ add_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connection_fn 
             name = data.t1.name
             tmp = data.connection.query (SQL_Query.Table_Name name)
             tmp.read . should_equal data.t1.read
-            
-        group_builder.specify "should allow to access a Table by an SQL query" <|
-            name = data.t1.name
-            t2 = data.connection.query (SQL_Query.Raw_SQL ('SELECT "a", "b" FROM "' + name + '" WHERE "a" >= 3'))
-            m2 = t2.read
-            m2.column_names . should_equal ["a", "b"]
-            m2.at "a" . to_vector . should_equal [4]
-            m2.at "b" . to_vector . should_equal [5]
-            m2.at "c" . should_fail_with No_Such_Column
 
         group_builder.specify "should allow to access a Table by an SQL query" <|
             name = data.t1.name
@@ -216,7 +210,7 @@ add_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connection_fn 
             m2.at "b" . to_vector . should_equal [5]
             m2.at "c" . should_fail_with No_Such_Column
 
-            t3 = data.connection.query (SQL_Query.Raw_SQL ('SELECT 1+2'))
+            t3 = data.connection.query (SQL_Query.Raw_SQL ('SELECT 1+2 AS "a"'))
             m3 = t3.read
             m3.at 0 . to_vector . should_equal [3]
 
@@ -244,16 +238,15 @@ add_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connection_fn 
 
         group_builder.specify "will fail if the table is modified and a column gets removed" <|
             name = Name_Generator.random_name "removing-column"
-            Problems.assume_no_problems <|
-                (Table.new [["a", [1, 2, 3]], ["b", [4, 5, 6]]]).select_into_database_table data.connection name temporary=True
 
-            t1 = data.connection.query name
+            t0 = (Table.new [["a", [1, 2, 3]], ["b", [4, 5, 6]]]).select_into_database_table data.connection name temporary=True
+            t1 = data.connection.query t0.name
             m1 = t1.read.sort "a"
             Problems.assume_no_problems m1
             m1.at "a" . to_vector . should_equal [1, 2, 3]
             m1.at "b" . to_vector . should_equal [4, 5, 6]
 
-            Problems.assume_no_problems <| data.connection.drop_table name
+            Problems.assume_no_problems <| data.connection.drop_table t0.name
             Problems.assume_no_problems <|
                 (Table.new [["a", [100, 200]]]).select_into_database_table data.connection name temporary=True
 
@@ -266,16 +259,16 @@ add_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connection_fn 
 
         group_builder.specify "will not fail if the table is modified and a column gets added" <|
             name = Name_Generator.random_name "adding-column"
-            Problems.assume_no_problems <|
-                (Table.new [["a", [1, 2, 3]], ["b", [4, 5, 6]]]).select_into_database_table data.connection name temporary=True
 
-            t1 = data.connection.query name
+            t0 = (Table.new [["a", [1, 2, 3]], ["b", [4, 5, 6]]]).select_into_database_table data.connection name temporary=True
+
+            t1 = data.connection.query t0.name
             m1 = t1.read.sort "a"
             Problems.assume_no_problems m1
             m1.at "a" . to_vector . should_equal [1, 2, 3]
             m1.at "b" . to_vector . should_equal [4, 5, 6]
 
-            Problems.assume_no_problems <| data.connection.drop_table name
+            Problems.assume_no_problems <| data.connection.drop_table t0.name
             Problems.assume_no_problems <|
                 (Table.new [["a", [100, 200]], ["b", [300, 400]], ["c", [500, 600]]]).select_into_database_table data.connection name temporary=True
 
@@ -287,7 +280,7 @@ add_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connection_fn 
 
             t1.at "c" . should_fail_with No_Such_Column
 
-            t2 = data.connection.query name
+            t2 = data.connection.query t0.name
             t2.column_names . should_equal ["a", "b", "c"]
 
 

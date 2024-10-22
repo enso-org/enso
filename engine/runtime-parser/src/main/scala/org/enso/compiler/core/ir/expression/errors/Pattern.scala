@@ -11,18 +11,35 @@ import java.util.UUID
   * @param originalPattern pattern that resulted in the error
   * @param reason          the cause of this error
   * @param passData        the pass metadata associated with this node
-  * @param diagnostics     compiler diagnostics for this node
   * @return a copy of `this`, updated with the specified values
   */
 sealed case class Pattern(
   originalPattern: org.enso.compiler.core.ir.Pattern,
   reason: Pattern.Reason,
-  passData: MetadataStorage      = new MetadataStorage(),
-  diagnostics: DiagnosticStorage = DiagnosticStorage()
+  passData: MetadataStorage = new MetadataStorage()
 ) extends Error
     with Diagnostic.Kind.Interactive
     with org.enso.compiler.core.ir.Pattern
+    with LazyDiagnosticStorage
     with LazyId {
+
+  /** Create a [[Pattern]] object.
+    *
+    * @param originalPattern pattern that resulted in the error
+    * @param reason the cause of this error
+    * @param passData the pass metadata associated with this node
+    * @param diagnostics the compiler diagnostics
+    */
+  def this(
+    originalPattern: org.enso.compiler.core.ir.Pattern,
+    reason: Pattern.Reason,
+    passData: MetadataStorage,
+    diagnostics: DiagnosticStorage
+  ) = {
+    this(originalPattern, reason, passData)
+    this.diagnostics = diagnostics
+  }
+
   override def mapExpressions(
     fn: java.util.function.Function[Expression, Expression]
   ): Pattern =
@@ -47,9 +64,18 @@ sealed case class Pattern(
     diagnostics: DiagnosticStorage                     = diagnostics,
     id: UUID @Identifier                               = id
   ): Pattern = {
-    val res = Pattern(originalPattern, reason, passData, diagnostics)
-    res.id = id
-    res
+    if (
+      originalPattern != this.originalPattern
+      || reason != this.reason
+      || passData != this.passData
+      || diagnostics != this.diagnostics
+      || id != this.id
+    ) {
+      val res = Pattern(originalPattern, reason, passData)
+      res.diagnostics = diagnostics
+      res.id          = id
+      res
+    } else this
   }
 
   /** @inheritdoc */
@@ -69,18 +95,17 @@ sealed case class Pattern(
         ),
       passData =
         if (keepMetadata) passData.duplicate else new MetadataStorage(),
-      diagnostics =
-        if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-      id = if (keepIdentifiers) id else null
+      diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+      id          = if (keepIdentifiers) id else null
     )
 
-  override def message(source: (IdentifiedLocation => String)): String =
+  override def message(source: IdentifiedLocation => String): String =
     reason.explain
 
   override def diagnosticKeys(): Array[Any] = Array(reason)
 
-  override val location: Option[IdentifiedLocation] =
-    originalPattern.location
+  override def identifiedLocation: IdentifiedLocation =
+    originalPattern.identifiedLocation()
 
   override def children: List[IR] = List(originalPattern)
 
@@ -90,8 +115,7 @@ sealed case class Pattern(
 
 object Pattern {
 
-  /** A representation of the reason the pattern is erroneous.
-    */
+  /** A representation of the reason the pattern is erroneous. */
   sealed trait Reason {
 
     /** Provides a human-readable explanation of the error.

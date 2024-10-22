@@ -1,11 +1,13 @@
-/** @file This script is for watching the whole IDE and spawning the electron process.
+/**
+ * @file This script is for watching the whole IDE and spawning the electron process.
  *
  * It sets up watchers for the client and content, and spawns the electron process with the IDE.
  * The spawned electron process can then use its refresh capability to pull the latest changes
  * from the watchers.
  *
  * If the electron app is closed, the script will restart it, allowing to test the IDE setup.
- * To stop, use Ctrl+C. */
+ * To stop, use Ctrl+C.
+ */
 import * as childProcess from 'node:child_process'
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
@@ -94,7 +96,7 @@ const ELECTRON_ARGS = [
   path.join(IDE_DIR_PATH, 'index.mjs'),
   ...ELECTRON_FLAGS,
   '--',
-  ...process.argv.slice(2),
+  ...process.argv.slice(2).map(arg => `'${arg}'`),
 ]
 
 process.on('SIGINT', () => {
@@ -107,9 +109,7 @@ process.on('SIGINT', () => {
   })
 })
 
-/**
- * Starts the electron process with the IDE.
- */
+/** Starts the electron process with the IDE. */
 function startElectronProcess() {
   console.log('Spawning Electron process.')
 

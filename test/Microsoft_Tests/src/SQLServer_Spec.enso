@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Enso_Cloud.Data_Link.Data_Link
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Ref.Ref
@@ -8,6 +9,8 @@ from Standard.Table.Errors import Invalid_Column_Names, Inexact_Type_Coercion, D
 
 import Standard.Database.DB_Column.DB_Column
 import Standard.Database.DB_Table.DB_Table
+import Standard.Database.Feature.Feature
+import Standard.Database.Dialect_Flag.Dialect_Flag
 import Standard.Database.SQL_Type.SQL_Type
 import Standard.Database.Internal.Replace_Params.Replace_Params
 from Standard.Database import all
@@ -19,7 +22,9 @@ from Standard.Test import all
 import Standard.Test.Test_Environment
 
 import enso_dev.Table_Tests
+import enso_dev.Table_Tests.Database.Common.Audit_Spec
 import enso_dev.Table_Tests.Database.Common.Common_Spec
+import enso_dev.Table_Tests.Database.Common.Save_Connection_Data_Link
 import enso_dev.Table_Tests.Database.Transaction_Spec
 import enso_dev.Table_Tests.Database.Upload_Spec
 import enso_dev.Table_Tests.Database.Helpers.Name_Generator
@@ -61,89 +66,153 @@ type SQLServer_Info_Data
 
 get_configured_connection_details =
     host = Environment.get "ENSO_SQLSERVER_HOST" if_missing="localhost"
-    port = Environment.get "ENSO_SQLSERVER_PORT" if_missing="1433"
+    port = Integer.parse (Environment.get "ENSO_SQLSERVER_PORT" if_missing="1433")
     user = Environment.get "ENSO_SQLSERVER_USER" if_missing="sa"
     password = Environment.get "ENSO_SQLSERVER_PASSWORD" if_missing="<YourStrong@Passw0rd>"
     database = Environment.get "ENSO_SQLSERVER_DATABASE"
     resolved_password = if password.starts_with "enso://" then Enso_Secret.get password else password
     credentials = Credentials.Username_And_Password user resolved_password
     if database.is_nothing then Nothing else
-        SQLServer_Details.SQLServer host port credentials database
+        SQLServer_Details.SQLServer host credentials port database
 
-## Returns a function that takes anything and returns a new connection.
-   The function creates a _new_ connection on each invocation
-   (this is needed for some tests that need multiple distinct connections).
-create_connection_builder =
-    connection_details = get_configured_connection_details
-    connection_details.if_not_nothing <|
-        _ -> Database.connect connection_details
+transform_file base_file connection_details =
+    content = Data_Link.read_raw_config base_file
+    new_content = content
+        . replace "HOSTNAME" connection_details.host
+        . replace "12345" connection_details.port.to_text
+        . replace "DBNAME" connection_details.database
+        . replace "USERNAME" connection_details.credentials.username
+        . replace "PASSWORD" connection_details.credentials.password
+    temp_file = File.create_temporary_file "sqlserver-test-db" ".datalink"
+    Data_Link.write_raw_config temp_file new_content replace_existing=True . if_not_error temp_file
+
+type Temporary_Data_Link_File
+    Value ~get
+
+    make connection_details = Temporary_Data_Link_File.Value <|
+        transform_file (enso_project.data / "datalinks" / "sqlserver-db.datalink") connection_details
 
 add_specs suite_builder =
-    case create_connection_builder of
+    case get_configured_connection_details of
         Nothing ->
             message = "SQLServer test database is not configured. See README.md for instructions."
             suite_builder.group "[SQLServer] Database tests" pending=message (_-> Nothing)
-        connection_builder ->
-            _ = connection_builder
-            suite_builder.group "[SQLServer] Info" group_builder->
-                default_connection = Database.connect get_configured_connection_details
-                data = SQLServer_Info_Data.setup default_connection
+        connection_details ->
+            connection_builder = _ -> Database.connect connection_details
+            add_sqlserver_specs suite_builder connection_builder
+            prefix = "[SQLServer] "
+            data_link_file = Temporary_Data_Link_File.make connection_details
+            Audit_Spec.add_specs suite_builder prefix data_link_file.get database_pending=Nothing
+            Save_Connection_Data_Link.add_specs suite_builder prefix connection_details pending=Nothing
 
-                group_builder.teardown <|
-                    data.teardown
+            default_connection = Database.connect connection_details
+            if default_connection.dialect.is_feature_supported Feature.Integration_Tests then
+                suite_builder.group "[SQLServer] Info" group_builder->
+                    data = SQLServer_Info_Data.setup default_connection
 
-                group_builder.specify "should return Table information" <|
-                    i = data.t.column_info
-                    i.at "Column" . to_vector . should_equal ["strs", "ints", "bools", "reals", "floats", "tinyints", "smallints", "bigints", "times", "dates", "datetimes", "smalldatetimes", "datetime2s", "datetimeoffsets"]
-                    i.at "Items Count" . to_vector . should_equal [3, 1, 2, 3, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2]
-                    i.at "Value Type" . to_vector . should_equal [Value_Type.Char 255, Value_Type.Integer ..Bits_32, Value_Type.Boolean, Value_Type.Float ..Bits_32, Value_Type.Float, Value_Type.Integer Bits.Bits_16, Value_Type.Integer Bits.Bits_16, Value_Type.Integer Bits.Bits_64, Value_Type.Time, Value_Type.Date, Value_Type.Date_Time False, Value_Type.Date_Time False, Value_Type.Date_Time False, Value_Type.Date_Time True]
+                    group_builder.teardown <|
+                        data.teardown
 
-                group_builder.specify "should return Table information, also for aggregated results" <|
-                    i = data.t.aggregate columns=[Aggregate_Column.Sum "ints", Aggregate_Column.Count_Distinct "bools"] . column_info
-                    i.at "Column" . to_vector . should_equal ["Sum ints", "Count Distinct bools"]
-                    i.at "Items Count" . to_vector . should_equal [1, 1]
-                    i.at "Value Type" . to_vector . should_equal [Value_Type.Integer ..Bits_32, Value_Type.Integer ..Bits_32]
+                    group_builder.specify "should return Table information" <|
+                        i = data.t.column_info
+                        i.at "Column" . to_vector . should_equal ["strs", "ints", "bools", "reals", "floats", "tinyints", "smallints", "bigints", "times", "dates", "datetimes", "smalldatetimes", "datetime2s", "datetimeoffsets"]
+                        i.at "Items Count" . to_vector . should_equal [3, 1, 2, 3, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2]
+                        i.at "Value Type" . to_vector . should_equal [Value_Type.Char 255, Value_Type.Integer ..Bits_32, Value_Type.Boolean, Value_Type.Float ..Bits_32, Value_Type.Float, Value_Type.Integer Bits.Bits_16, Value_Type.Integer Bits.Bits_16, Value_Type.Integer Bits.Bits_64, Value_Type.Time, Value_Type.Date, Value_Type.Date_Time False, Value_Type.Date_Time False, Value_Type.Date_Time False, Value_Type.Date_Time True]
 
-                group_builder.specify "should infer standard types correctly" <|
-                    data.t.at "strs" . value_type . is_text . should_be_true
-                    data.t.at "ints" . value_type . is_integer . should_be_true
-                    data.t.at "bools" . value_type . is_boolean . should_be_true
-                    data.t.at "floats" . value_type . is_floating_point . should_be_true
+                    group_builder.specify "should return Table information, also for aggregated results" <|
+                        i = data.t.aggregate columns=[Aggregate_Column.Sum "ints", Aggregate_Column.Count_Distinct "bools"] . column_info
+                        i.at "Column" . to_vector . should_equal ["Sum ints", "Count Distinct bools"]
+                        i.at "Items Count" . to_vector . should_equal [1, 1]
+                        i.at "Value Type" . to_vector . should_equal [Value_Type.Integer ..Bits_32, Value_Type.Integer ..Bits_32]
 
-                group_builder.specify "should preserve SQLServer types when table is materialized, where possible" pending="TODO" <|
-                    name = Name_Generator.random_name "types-test"
-                    Problems.assume_no_problems <|
-                        data.connection.execute_update 'CREATE TABLE "#'+name+'" ("int4" int4, "int2" int2, "txt-limited" varchar(10), "txt-fixed" char(3))'
-                    t1 = data.connection.query (SQL_Query.Table_Name name)
-                    t1.at "int4" . value_type . should_equal (Value_Type.Integer Bits.Bits_32)
-                    t1.at "int2" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
-                    t1.at "txt-limited" . value_type . should_equal (Value_Type.Char size=10 variable_length=True)
-                    t1.at "txt-fixed" . value_type . should_equal (Value_Type.Char size=3 variable_length=False)
+                    group_builder.specify "should infer standard types correctly" <|
+                        data.t.at "strs" . value_type . is_text . should_be_true
+                        data.t.at "ints" . value_type . is_integer . should_be_true
+                        data.t.at "bools" . value_type . is_boolean . should_be_true
+                        data.t.at "floats" . value_type . is_floating_point . should_be_true
 
-                    in_memory = t1.read
-                    in_memory.at "int4" . value_type . should_equal (Value_Type.Integer Bits.Bits_32)
-                    in_memory.at "int2" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
-                    in_memory.at "txt-limited" . value_type . should_equal (Value_Type.Char size=10 variable_length=True)
-                    in_memory.at "txt-fixed" . value_type . should_equal (Value_Type.Char size=3 variable_length=False)
+                    group_builder.specify "should preserve SQLServer types when table is materialized, where possible" pending="TODO" <|
+                        name = Name_Generator.random_name "types-test"
+                        Problems.assume_no_problems <|
+                            data.connection.execute_update 'CREATE TABLE "#'+name+'" ("int4" int4, "int2" int2, "txt-limited" varchar(10), "txt-fixed" char(3))'
+                        t1 = data.connection.query (SQL_Query.Table_Name name)
+                        t1.at "int4" . value_type . should_equal (Value_Type.Integer Bits.Bits_32)
+                        t1.at "int2" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
+                        t1.at "txt-limited" . value_type . should_equal (Value_Type.Char size=10 variable_length=True)
+                        t1.at "txt-fixed" . value_type . should_equal (Value_Type.Char size=3 variable_length=False)
 
-                group_builder.specify "test datetime2 precision round trip" <|
-                    name = "#" + (Name_Generator.random_name "datetime2-test")
-                    Problems.assume_no_problems <|
-                        data.connection.execute 'CREATE TABLE "'+name+'" ("dt2" DATETIME2)'
-                    t = data.connection.query (SQL_Query.Table_Name name)
-                    row1 = [Date_Time.new 2021 1 1 12 13 14 500 1 1]
-                    row2 = [Date_Time.new 2021 1 1 9 12 12 987 654 321]
-                    row3 = [Nothing]
-                    source_table = Table.from_rows ["dt2"] [row1, row2, row3]
-                    t.update_rows source_table update_action=Update_Action.Insert
-                    ## SQLServer only supports precision to 100 nanoseconds
-                    expected_row1 = [Date_Time.new 2021 1 1 12 13 14 500 1 0]
-                    expected_row2 = [Date_Time.new 2021 1 1 9 12 12 987 654 300]
-                    expected_row3 = [Nothing]
-                    expected_table = Table.from_rows ["dt2"] [expected_row1, expected_row2, expected_row3]
-                    returned_table = t.read
-                    returned_table.should_equal expected_table
-                    data.connection.execute 'DROP TABLE "'+name+'"'
+                        in_memory = t1.read
+                        in_memory.at "int4" . value_type . should_equal (Value_Type.Integer Bits.Bits_32)
+                        in_memory.at "int2" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
+                        in_memory.at "txt-limited" . value_type . should_equal (Value_Type.Char size=10 variable_length=True)
+                        in_memory.at "txt-fixed" . value_type . should_equal (Value_Type.Char size=3 variable_length=False)
+
+                    group_builder.specify "test datetime2 precision round trip" <|
+                        name = "#" + (Name_Generator.random_name "datetime2-test")
+                        Problems.assume_no_problems <|
+                            data.connection.execute 'CREATE TABLE "'+name+'" ("dt2" DATETIME2)'
+                        t = data.connection.query (SQL_Query.Table_Name name)
+                        row1 = [Date_Time.new 2021 1 1 12 13 14 500 1 1]
+                        row2 = [Date_Time.new 2021 1 1 9 12 12 987 654 321]
+                        row3 = [Nothing]
+                        source_table = Table.from_rows ["dt2"] [row1, row2, row3]
+                        t.update_rows source_table update_action=Update_Action.Insert
+                        ## SQLServer only supports precision to 100 nanoseconds
+                        expected_row1 = [Date_Time.new 2021 1 1 12 13 14 500 1 0]
+                        expected_row2 = [Date_Time.new 2021 1 1 9 12 12 987 654 300]
+                        expected_row3 = [Nothing]
+                        expected_table = Table.from_rows ["dt2"] [expected_row1, expected_row2, expected_row3]
+                        returned_table = t.read
+                        returned_table.should_equal expected_table
+                        data.connection.execute 'DROP TABLE "'+name+'"'
+
+type Lazy_Ref
+   Value ~get
+
+## PRIVATE
+supported_replace_params : Hashset Replace_Params
+supported_replace_params =
+    e0 = [Replace_Params.Value Text Case_Sensitivity.Default False, Replace_Params.Value Text Case_Sensitivity.Default True, Replace_Params.Value Text Case_Sensitivity.Sensitive False]
+    e1 = [Replace_Params.Value Text Case_Sensitivity.Sensitive True, Replace_Params.Value Text Case_Sensitivity.Insensitive False, Replace_Params.Value Text Case_Sensitivity.Insensitive True]
+    e2 = [Replace_Params.Value Regex Case_Sensitivity.Default False, Replace_Params.Value Regex Case_Sensitivity.Default True, Replace_Params.Value Regex Case_Sensitivity.Sensitive False]
+    e3 = [Replace_Params.Value Regex Case_Sensitivity.Sensitive True, Replace_Params.Value Regex Case_Sensitivity.Insensitive False, Replace_Params.Value Regex Case_Sensitivity.Insensitive True]
+    e4 = [Replace_Params.Value DB_Column Case_Sensitivity.Default False, Replace_Params.Value DB_Column Case_Sensitivity.Sensitive False]
+    Hashset.from_vector <| e0 + e1 + e2 + e3 + e4
+
+add_sqlserver_specs suite_builder create_connection_fn =
+    prefix = "[SQLServer] "
+    name_counter = Ref.new 0
+    default_connection = Lazy_Ref.Value (create_connection_fn Nothing)
+
+    table_builder columns connection=Nothing =
+        ix = name_counter.get
+        name_counter . put ix+1
+        name = Name_Generator.random_name "table_"+ix.to_text
+
+        in_mem_table = Table.new columns
+        in_mem_table.select_into_database_table (connection.if_nothing default_connection.get) name primary_key=Nothing temporary=True
+    light_table_builder columns =
+        default_connection.get.base_connection.create_literal_table (Table.new columns) "literal_table"
+
+    materialize = .read
+
+    common_selection = Common_Table_Operations.Main.Test_Selection.Config order_by_unicode_normalization_by_default=True allows_mixed_type_comparisons=False text_length_limited_columns=True fixed_length_text_columns=True removes_trailing_whitespace_casting_from_char_to_varchar=True char_max_size_after_substring=..Reset supports_decimal_type=True supported_replace_params=supported_replace_params run_advanced_edge_case_tests_by_default=True supports_date_time_without_timezone=False date_time=False is_nan_comparable=True
+    aggregate_selection = Common_Table_Operations.Aggregate_Spec.Test_Selection.Config first_last_row_order=False aggregation_problems=False
+    agg_in_memory_table = (enso_project.data / "data.csv") . read
+
+    agg_table_fn = _->
+        agg_in_memory_table.select_into_database_table default_connection.get (Name_Generator.random_name "Agg1") primary_key=Nothing temporary=True
+
+    empty_agg_table_fn = _->
+        (agg_in_memory_table.take (..First 0)).select_into_database_table default_connection.get (Name_Generator.random_name "Agg_Empty") primary_key=Nothing temporary=True
+
+    is_feature_supported_fn feature:Feature = default_connection.get.dialect.is_feature_supported feature
+    flagged_fn = default_connection.get.dialect.flagged
+
+    setup = Common_Table_Operations.Main.Test_Setup.Config prefix agg_table_fn empty_agg_table_fn table_builder materialize is_database=True test_selection=common_selection aggregate_test_selection=aggregate_selection create_connection_func=create_connection_fn light_table_builder=light_table_builder is_feature_supported=is_feature_supported_fn flagged=flagged_fn
+
+    Common_Spec.add_specs suite_builder prefix create_connection_fn default_connection setup
+    Common_Table_Operations.Main.add_specs suite_builder setup
 
 main filter=Nothing =
     suite = Test.build suite_builder->

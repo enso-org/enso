@@ -14,6 +14,7 @@ import org.enso.compiler.core.ir.Warning;
 import org.enso.compiler.core.ir.module.scope.Definition;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.compiler.pass.IRPass;
+import org.enso.compiler.pass.IRProcessingPass;
 import org.enso.compiler.pass.analyse.BindingAnalysis$;
 import org.enso.compiler.pass.analyse.types.scope.ModuleResolver;
 import org.enso.compiler.pass.analyse.types.scope.StaticModuleScopeAnalysis;
@@ -86,17 +87,17 @@ public final class TypeInferencePropagation implements IRPass {
       protected void encounteredIncompatibleTypes(
           IR relatedIr, TypeRepresentation expected, TypeRepresentation provided) {
         relatedIr
-            .diagnostics()
+            .getDiagnostics()
             .add(
                 new Warning.TypeMismatch(
-                    relatedIr.location(), expected.toString(), provided.toString()));
+                    relatedIr.identifiedLocation(), expected.toString(), provided.toString()));
       }
 
       @Override
       protected void encounteredInvocationOfNonFunctionType(IR relatedIr, TypeRepresentation type) {
         relatedIr
-            .diagnostics()
-            .add(new Warning.NotInvokable(relatedIr.location(), type.toString()));
+            .getDiagnostics()
+            .add(new Warning.NotInvokable(relatedIr.identifiedLocation(), type.toString()));
       }
 
       @Override
@@ -115,26 +116,14 @@ public final class TypeInferencePropagation implements IRPass {
     };
   }
 
-  private UUID uuid;
-
-  @Override
-  public void org$enso$compiler$pass$IRPass$_setter_$key_$eq(UUID v) {
-    this.uuid = v;
-  }
-
-  @Override
-  public UUID key() {
-    return uuid;
-  }
-
   @Override
   public String toString() {
     return "TypeInferencePropagation";
   }
 
   @Override
-  public Seq<IRPass> precursorPasses() {
-    List<IRPass> passes =
+  public Seq<IRProcessingPass> precursorPasses() {
+    List<IRProcessingPass> passes =
         List.of(
             BindingAnalysis$.MODULE$,
             GlobalNames$.MODULE$,
@@ -149,8 +138,8 @@ public final class TypeInferencePropagation implements IRPass {
 
   @Override
   @SuppressWarnings("unchecked")
-  public Seq<IRPass> invalidatedPasses() {
-    return (Seq<IRPass>) Seq$.MODULE$.empty();
+  public Seq<IRProcessingPass> invalidatedPasses() {
+    return (Seq<IRProcessingPass>) Seq$.MODULE$.empty();
   }
 
   @Override

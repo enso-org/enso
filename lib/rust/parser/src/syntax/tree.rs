@@ -120,7 +120,7 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             pub token: token::Wildcard<'s>,
             #[serde(serialize_with = "crate::serialization::serialize_optional_int")]
             #[serde(deserialize_with = "crate::serialization::deserialize_optional_int")]
-            #[reflect(as = "i32")]
+            #[reflect(as = i32)]
             pub de_bruijn_index: Option<u32>,
         },
         /// The suspended-default-arguments marker, `...`.
@@ -817,6 +817,7 @@ pub enum SyntaxError {
     ForeignFnExpectedStringBody,
     StmtInvalidAssignmentOrMethod,
     StmtLhsInvalidOperatorSpacing,
+    StmtUnexpectedAssignmentInModuleBody,
     StmtUnexpectedPrivateUsage,
     TypeBodyUnexpectedPrivateUsage,
     TypeDefExpectedTypeName,
@@ -830,6 +831,7 @@ pub enum SyntaxError {
     PatternUnexpectedExpression,
     PatternUnexpectedDot,
     CaseOfInvalidCase,
+    DocumentationUnexpectedNonInitial,
 }
 
 impl From<SyntaxError> for Cow<'static, str> {
@@ -850,6 +852,8 @@ impl From<SyntaxError> for Cow<'static, str> {
             StmtInvalidAssignmentOrMethod => "Invalid assignment or method definition",
             StmtLhsInvalidOperatorSpacing =>
                 "Each operator on the left side of an assignment operator must be applied to two operands, with the same spacing on each side",
+            StmtUnexpectedAssignmentInModuleBody =>
+                "Unexpected variable assignment in module statement",
             StmtUnexpectedPrivateUsage =>
                 "In a body block, the `private` keyword can only be applied to a function definition",
             TypeBodyUnexpectedPrivateUsage =>
@@ -864,6 +868,7 @@ impl From<SyntaxError> for Cow<'static, str> {
             PatternUnexpectedExpression => "Expression invalid in a pattern",
             PatternUnexpectedDot => "In a pattern, the dot operator can only be used in a qualified name",
             CaseOfInvalidCase => "Invalid case expression.",
+            DocumentationUnexpectedNonInitial => "Unexpected documentation at end of line",
         })
         .into()
     }

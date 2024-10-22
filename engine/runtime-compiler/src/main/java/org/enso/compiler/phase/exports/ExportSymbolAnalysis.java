@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 import org.enso.compiler.PackageRepository;
 import org.enso.compiler.context.CompilerContext;
-import org.enso.compiler.core.ir.Diagnostic;
 import org.enso.compiler.core.ir.DiagnosticStorage;
 import org.enso.compiler.core.ir.MetadataStorage;
 import org.enso.compiler.core.ir.Module;
@@ -14,8 +13,6 @@ import org.enso.compiler.core.ir.expression.errors.ImportExport;
 import org.enso.compiler.core.ir.module.scope.Export;
 import org.enso.compiler.data.BindingsMap.ResolvedType;
 import org.enso.compiler.pass.IRPass;
-import scala.collection.immutable.Seq;
-import scala.collection.immutable.Seq$;
 import scala.jdk.javaapi.CollectionConverters;
 
 /**
@@ -148,6 +145,7 @@ public final class ExportSymbolAnalysis {
           moduleIr.imports(),
           CollectionConverters.asScala(exportErrors).toList(),
           moduleIr.bindings(),
+          moduleIr.isPrivate(),
           moduleIr.location(),
           moduleIr.passData(),
           moduleIr.diagnostics(),
@@ -223,15 +221,14 @@ public final class ExportSymbolAnalysis {
 
   private static ImportExport createModuleDoesNotExistError(Export.Module exportIr, String modFQN) {
     assert modFQN.contains(".");
-    return ImportExport.apply(
-        exportIr, new ImportExport.ModuleDoesNotExist(modFQN), emptyPassData(), emptyDiagnostics());
+    return new ImportExport(exportIr, new ImportExport.ModuleDoesNotExist(modFQN), emptyPassData());
   }
 
   private static ImportExport createSymbolDoesNotExistError(
       Name symbolIr, String symbolName, String modFQN) {
     assert modFQN.contains(".");
     assert !symbolName.contains(".");
-    return ImportExport.apply(
+    return new ImportExport(
         symbolIr,
         new ImportExport.SymbolDoesNotExist(symbolName, modFQN),
         emptyPassData(),
@@ -241,7 +238,7 @@ public final class ExportSymbolAnalysis {
   private static ImportExport createNoSuchConstructorError(
       Name symbolIr, String typeName, String consName) {
     assert !consName.contains(".");
-    return ImportExport.apply(
+    return new ImportExport(
         symbolIr,
         new ImportExport.NoSuchConstructor(typeName, consName),
         emptyPassData(),
@@ -252,7 +249,7 @@ public final class ExportSymbolAnalysis {
       Export.Module exportIr, String modFQN, String typeName) {
     assert modFQN.contains(".");
     assert !typeName.contains(".");
-    return ImportExport.apply(
+    return new ImportExport(
         exportIr,
         new ImportExport.TypeDoesNotExist(typeName, modFQN),
         emptyPassData(),
@@ -265,6 +262,6 @@ public final class ExportSymbolAnalysis {
 
   @SuppressWarnings("unchecked")
   private static DiagnosticStorage emptyDiagnostics() {
-    return DiagnosticStorage.apply((Seq<Diagnostic>) Seq$.MODULE$.empty());
+    return new DiagnosticStorage(DiagnosticStorage.$lessinit$greater$default$1());
   }
 }

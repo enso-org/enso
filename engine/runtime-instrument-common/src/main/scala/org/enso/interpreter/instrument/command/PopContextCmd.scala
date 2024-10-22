@@ -43,7 +43,7 @@ class PopContextCmd(
     ec: ExecutionContext
   ): Future[Unit] =
     Future {
-      ctx.jobControlPlane.abortJobs(request.contextId)
+      ctx.jobControlPlane.abortJobs(request.contextId, "pop context")
       val maybeTopItem = ctx.contextManager.pop(request.contextId)
       if (maybeTopItem.isDefined) {
         reply(Api.PopContextResponse(request.contextId))

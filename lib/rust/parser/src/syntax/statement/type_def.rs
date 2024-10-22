@@ -5,8 +5,9 @@ use crate::syntax::maybe_with_error;
 use crate::syntax::operator::Precedence;
 use crate::syntax::statement::function_def::parse_constructor_definition;
 use crate::syntax::statement::function_def::parse_type_args;
-use crate::syntax::statement::parse_body_block_statement;
+use crate::syntax::statement::parse_statement;
 use crate::syntax::statement::scan_private_keywords;
+use crate::syntax::statement::EvaluationContext;
 use crate::syntax::token;
 use crate::syntax::tree;
 use crate::syntax::tree::block;
@@ -46,12 +47,12 @@ pub fn try_parse_type_def<'s>(
         let lines = block.into_iter().map(|item::Line { newline, mut items }| block::Line {
             newline,
             expression: {
-                if let Some(Item::Token(token)) = items.first_mut()
-                    && matches!(token.variant, token::Variant::Operator(_))
-                {
-                    let opr_ident =
-                        token::variant::Ident { is_operator_lexically: true, ..default() };
-                    token.variant = token::Variant::Ident(opr_ident);
+                if let Some(Item::Token(token)) = items.first_mut() {
+                    if matches!(token.variant, token::Variant::Operator(_)) {
+                        let opr_ident =
+                            token::variant::Ident { is_operator_lexically: true, ..default() };
+                        token.variant = token::Variant::Ident(opr_ident);
+                    }
                 }
                 parse_type_body_statement(items, precedence, args_buffer)
             },
@@ -97,9 +98,14 @@ fn parse_type_body_statement<'s>(
             )),
         None => None,
         _ => {
-            let tree =
-                parse_body_block_statement(&mut items, private_keywords, precedence, args_buffer)
-                    .unwrap();
+            let tree = parse_statement(
+                &mut items,
+                private_keywords,
+                precedence,
+                args_buffer,
+                EvaluationContext::Lazy,
+            )
+            .unwrap();
             let error = match &tree.variant {
                 tree::Variant::Function(_)
                 | tree::Variant::ForeignFunction(_)

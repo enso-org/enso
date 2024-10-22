@@ -1,8 +1,8 @@
-/** @file Globals defined outside of TypeScript files.
+/**
+ * @file Globals defined outside of TypeScript files.
  * These are from variables defined at build time, environment variables,
- * monkeypatching on `window` and generated code. */
-import type * as dashboard from 'enso-dashboard'
-
+ * monkeypatching on `window` and generated code.
+ */
 // This file is being imported for its types.
 // eslint-disable-next-line no-restricted-syntax
 import * as buildJson from './../../build.json' assert { type: 'json' }
@@ -25,22 +25,25 @@ interface Enso {
 // === Backend API ===
 // ===================
 
-/** `window.backendApi` is a context bridge to the main process, when we're running in an
- * Electron context. It contains non-authentication-related functionality. */
+/**
+ * `window.backendApi` is a context bridge to the main process, when we're running in an
+ * Electron context. It contains non-authentication-related functionality.
+ */
 interface BackendApi {
   /** Return the ID of the new project. */
   readonly importProjectFromPath: (
     openedPath: string,
     directory: string | null,
     name: string,
-  ) => Promise<string>
+  ) => Promise<ProjectInfo>
 }
 
 // ==========================
 // === Authentication API ===
 // ==========================
 
-/** `window.authenticationApi` is a context bridge to the main process, when we're running in an
+/**
+ * `window.authenticationApi` is a context bridge to the main process, when we're running in an
  * Electron context.
  *
  * # Safety
@@ -48,12 +51,15 @@ interface BackendApi {
  * We're assuming that the main process has exposed the `authenticationApi` context bridge (see
  * `lib/client/src/preload.ts` for details), and that it contains the functions defined in this
  * interface. Our app can't function if these assumptions are not met, so we're disabling the
- * TypeScript checks for this interface when we use it. */
+ * TypeScript checks for this interface when we use it.
+ */
 interface AuthenticationApi {
   /** Open a URL in the system browser. */
   readonly openUrlInSystemBrowser: (url: string) => void
-  /** Set the callback to be called when the system browser redirects back to a URL in the app,
-   * via a deep link. See `setDeepLinkHandler` for details. */
+  /**
+   * Set the callback to be called when the system browser redirects back to a URL in the app,
+   * via a deep link. See `setDeepLinkHandler` for details.
+   */
   readonly setDeepLinkHandler: (callback: (url: string) => void) => void
   /** Saves the access token to a file. */
   readonly saveAccessToken: (accessToken: dashboard.AccessToken | null) => void
@@ -63,8 +69,10 @@ interface AuthenticationApi {
 // === Navigation API ===
 // ======================
 
-/** `window.navigationApi` is a context bridge to the main process, when we're running in an
- * Electron context. It contains navigation-related functionality. */
+/**
+ * `window.navigationApi` is a context bridge to the main process, when we're running in an
+ * Electron context. It contains navigation-related functionality.
+ */
 interface NavigationApi {
   /** Go back in the navigation history. */
   readonly goBack: () => void
@@ -115,8 +123,10 @@ interface ProjectInfo {
   readonly parentDirectory: string
 }
 
-/** `window.projectManagementApi` exposes functionality related to system events related to
- * project management. */
+/**
+ * `window.projectManagementApi` exposes functionality related to system events related to
+ * project management.
+ */
 interface ProjectManagementApi {
   readonly setOpenProjectHandler: (handler: (projectInfo: ProjectInfo) => void) => void
 }
@@ -188,12 +198,13 @@ declare global {
       // @ts-expect-error The index signature is intentional to disallow unknown env vars.
       readonly ENSO_SUPPORTS_VIBRANCY?: string
 
-      // === E2E test variables ===
+      // === Integration test variables ===
 
-      // @ts-expect-error The index signature is intentional to disallow unknown env vars.
-      readonly IS_IN_PLAYWRIGHT_TEST?: `${boolean}`
-      // @ts-expect-error The index signature is intentional to disallow unknown env vars.
-      readonly PWDEBUG?: '1'
+      readonly ENSO_TEST?: string
+      readonly ENSO_TEST_APP_ARGS?: string
+      readonly ENSO_TEST_USER?: string
+      readonly ENSO_TEST_USER_PASSWORD?: string
+      ENSO_TEST_EXEC_PATH?: string
 
       // === Electron watch script variables ===
 

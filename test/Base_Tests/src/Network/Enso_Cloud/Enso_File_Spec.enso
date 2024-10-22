@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Enso_Cloud.Cloud_Caching_Settings
+import Standard.Base.Enso_Cloud.Errors.Enso_Cloud_Error
 import Standard.Base.Errors.Common.Forbidden_Operation
 import Standard.Base.Errors.Common.Not_Found
 import Standard.Base.Errors.File_Error.File_Error
@@ -25,8 +26,8 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
         Panic.rethrow <| "Hello Another!".write (sub / "another.txt")
     group_builder.teardown test_root.cleanup
 
-    group_builder.specify "should be able to list the root directory" <|
-        assets = Enso_File.root.list
+    group_builder.specify "should be able to list a directory" <|
+        assets = Enso_File.home.list
         # We don't a priori know the contents, so we can only check very generic properties
         assets . should_be_a Vector
         assets.each f-> f.should_be_a Enso_File
@@ -36,7 +37,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
 
     group_builder.specify "should allow to create and delete a directory" <|
         my_name = "my_test_dir-" + (Random.uuid.take 5)
-        my_dir = (Enso_File.root / my_name).create_directory
+        my_dir = (test_root.get / my_name).create_directory
         my_dir.should_succeed
         delete_on_fail caught_panic =
             my_dir.delete
@@ -45,19 +46,19 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
             my_dir.is_directory . should_be_true
             my_dir.exists . should_be_true
             my_dir.name . should_equal my_name
-            Enso_File.root.list . should_contain my_dir
+            test_root.get.list . should_contain my_dir
 
         my_dir.delete . should_succeed
 
         Test.with_retries <|
-            Enso_File.root.list . should_not_contain my_dir
+            test_root.get.list . should_not_contain my_dir
             my_dir.exists . should_be_false
 
     group_builder.specify "should set the current working directory by environment variable" <|
         # If nothing set, defaults to root:
-        Enso_File.current_working_directory . should_equal Enso_File.root
+        Enso_File.current_working_directory . should_equal Enso_File.home
 
-        subdir = (Enso_File.root / ("my_test_CWD-" + Random.uuid.take 5)).create_directory
+        subdir = (test_root.get / ("my_test_CWD-" + Random.uuid.take 5)).create_directory
         subdir.should_succeed
         cleanup =
             Enso_User.flush_caches
@@ -70,7 +71,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
                 Enso_File.current_working_directory . should_equal subdir
 
         # It should be back to default afterwards:
-        Enso_File.current_working_directory . should_equal Enso_File.root
+        Enso_File.current_working_directory . should_equal Enso_File.home
 
     group_builder.specify "should allow to find a file by name" <|
         f = test_root.get / "test_file.json"
@@ -96,9 +97,9 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
                     f.size.should_equal 16
 
     group_builder.specify "should be able to find a file by path" <|
-        File.new "enso://"+Enso_User.current.organization_name+"/" . should_equal Enso_File.root
-        File.new "enso://"+Enso_User.current.organization_name+"/test_file.json" . should_equal (Enso_File.root / "test_file.json")
-        File.new "enso://"+Enso_User.current.organization_name+"/abc/" . should_equal (Enso_File.root / "abc")
+        File.new "enso://" . should_equal Enso_File.root
+        File.new "enso://test_file.json" . should_equal (Enso_File.root / "test_file.json")
+        File.new "enso://abc/" . should_equal (Enso_File.root / "abc")
 
     group_builder.specify "should fail to read nonexistent files" <|
         f = Enso_File.root / "nonexistent_file.json"
@@ -108,8 +109,9 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
         r.should_fail_with File_Error
         r.catch.should_be_a File_Error.Not_Found
 
-    group_builder.specify "should not allow to delete the root directory" <|
+    group_builder.specify "should not allow to delete the root or home directory" <|
         Enso_File.root.delete . should_fail_with Illegal_Argument
+        Enso_File.home.delete . should_fail_with Any
 
     # See Inter_Backend_File_Operations_Spec for copy/move tests
     group_builder.specify "should be able to write a file using with_output_stream" <|
@@ -175,7 +177,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
         Context.Output.with_disabled <|
             r = "ABC".write f
             r.should_fail_with Forbidden_Operation
-            r.catch.to_display_text . should_contain "Currently dry-run is not supported for Enso_File"
+            r.catch.to_display_text . should_contain "As writing is disabled, no action has been performed"
         # The file should not have been created
         f.exists . should_be_false
 
@@ -239,7 +241,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
         nested_file.last_modified_time . should_be_a Date_Time
 
         Enso_File.root.parent . should_equal Nothing
-        Enso_File.root.path . should_equal ("enso://"+Enso_User.current.organization_name+"/")
+        Enso_File.root.path . should_equal "enso://"
 
         dir.path . should_contain "enso://"
         dir.path . should_contain "/test-directory"
@@ -259,6 +261,78 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
         (Enso_File.root / "test-directory" / "non-existent") . is_descendant_of (Enso_File.root / "test-directory") . should_be_true
         (Enso_File.root / "test-directory") . is_descendant_of (Enso_File.root / "test-directory" / "non-existent") . should_be_false
 
+    group_builder.specify "supports partial metadata for directories" <|
+        dir = test_root.get / "test-directory"
+        dir.last_modified_time.should_be_a Date_Time
+
+        # TODO this test should be 'reversed' and merged with above once the metadata is implemented
+        dir.creation_time.should_fail_with Illegal_Argument
+
+    group_builder.specify "should be able to read and modify asset description" <|
+        nested_file = test_root.get / "test-directory" / "another.txt"
+        nested_file.description . should_equal ""
+
+        my_description = "This is a test file."
+        nested_file.set_description my_description . should_equal nested_file
+        nested_file.description . should_equal my_description
+
+        # We can also set description back to empty
+        nested_file.set_description "" . should_equal nested_file
+        nested_file.description . should_equal ""
+
+        Context.Output.with_disabled <|
+            nested_file.set_description "ABC" . should_fail_with Forbidden_Operation
+
+    group_builder.specify "should be able to get and modify labels on assets" <|
+        f = test_root.get / "test_file.json"
+        f.labels . should_equal []
+
+        f.set_labels ["A", "B", "C", "D"] . should_equal f
+        f.labels . should_equal_ignoring_order ["A", "B", "C", "D"]
+
+        f.add_label "E" . should_equal f
+        f.add_label "A" . should_equal f
+        f.labels . should_equal_ignoring_order ["A", "B", "C", "D", "E"]
+
+        f.remove_label "B" . should_equal True
+        f.remove_label "C" . should_equal True
+        f.labels . should_equal_ignoring_order ["A", "D", "E"]
+
+        f.remove_label "non-existent" . should_equal False
+        # B is also already removed
+        f.remove_label "B" . should_equal False
+        f.labels . should_equal_ignoring_order ["A", "D", "E"]
+
+        Context.Output.with_disabled <|
+            # Adding new label with disabled context fails
+            f.add_label "new" . should_fail_with Forbidden_Operation
+
+            # Removing a label that is there also fails
+            f.remove_label "A" . should_fail_with Forbidden_Operation
+
+            f.labels . should_equal_ignoring_order ["A", "D", "E"]
+
+            # But adding a label that is already there or removing one that is not (so no effective change), succeeds:
+            f.add_label "A" . should_equal f
+            f.remove_label "non-existent" . should_equal False
+
+    group_builder.specify "can get and set metadata on just-created asset" <|
+        ## This is a bit of a white-box test - we know that just-created assets are cached without metadata,
+           so we want to test this case to ensure nothing breaks here.
+        f = (test_root.get / "my-directory-for-metadata").create_directory
+        f.should_succeed
+
+        f.description . should_equal ""
+        f.labels . should_equal []
+
+        f.set_description "ABC" . should_succeed
+        f.description . should_equal "ABC"
+
+        # Also test setting metadata before querying it:
+        g = (test_root.get / "my-directory-for-metadata-2").create_directory
+        g.set_labels ["A"] . should_succeed
+        g.labels . should_equal ["A"]
+
     group_builder.specify "allows / as well as .. and . in resolve" <|
         (Enso_File.root / "a/b/c") . should_equal (Enso_File.root / "a" / "b" / "c")
         (Enso_File.root / "a///b/c") . should_equal (Enso_File.root / "a" / "b" / "c")
@@ -268,20 +342,20 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
         r.should_fail_with Illegal_Argument
         r.catch.to_display_text . should_contain "Cannot move above root"
 
-    group_builder.specify "currently does not support metadata for directories" <|
-        # TODO this test should be 'reversed' and merged with above once the metadata is implemented
-        dir = test_root.get / "test-directory"
-        dir.creation_time.should_fail_with Illegal_Argument
-        dir.last_modified_time.should_fail_with Illegal_Argument
+    group_builder.specify "resolves ~ to user home" <|
+        Enso_File.new "enso://~" . should_equal Enso_File.home
+        Enso_File.new "enso://~/a/b/c" . should_equal (Enso_File.home / "a/b/c")
 
-    group_builder.specify "should be able to read other file metadata" pending="TODO needs further design" <|
-        nested_file = Enso_File.root / "test-directory" / "another.txt"
+        # It also works when resolving a path
+        (Enso_File.root / "~") . should_equal Enso_File.home
+        (Enso_File.root / "a/../~/b/c") . should_equal (Enso_File.home / "b/c")
+        Enso_File.new "enso://a/../~/b/c" . should_equal (Enso_File.home / "b/c")
 
-        nested_file.is_absolute.should_be_true
-        nested_file.absolute . should_equal nested_file
-        nested_file.normalize . should_equal nested_file
-        nested_file.posix_permissions . should_be_a File_Permissions
-        nested_file.is_writable . should_be_a Boolean
+        # But a filename only containing ~ is not resolved
+        Enso_File.new "enso://~~~" . should_not_equal Enso_File.home
+
+        # If the `~` is not at the beginning, it is not resolved
+        Enso_File.new "enso://a/b/c/~" . should_not_equal Enso_File.home
 
     Local_File_Spec.add_create_and_delete_directory_specs group_builder test_root.get
     Local_File_Spec.add_copy_edge_cases_specs group_builder test_root.get

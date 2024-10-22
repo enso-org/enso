@@ -93,9 +93,9 @@ public class InsightForEnsoTest {
     assertNotEquals("4th step: " + msgs, -1, msgs.indexOf("n=2 v=60 acc=function"));
 
     assertNotEquals(
-        "Uninitialized variables are seen as JavaScript null: " + msgs,
+        "Uninitialized variables (seen as JavaScript null) aren't there: " + msgs,
         -1,
-        msgs.indexOf("n=null v=null acc=function"));
+        msgs.indexOf("null"));
   }
 
   @Test
@@ -123,16 +123,19 @@ public class InsightForEnsoTest {
         Source.newBuilder(
                 "enso",
                 """
+                id x = x
+                init_first_switch_arg x = x
+
                 type Complex
                     Number re im
 
-                    switch n:Complex = Complex.Number n.im n.re
-                    switch_lazy (~n:Complex) = Complex.Number n.im n.re
+                    switch f=(init_first_switch_arg id) n:Complex = Complex.Number (f n.im) (f n.re)
+                    switch_lazy f=(init_first_switch_arg id) (~n:Complex) = Complex.Number (f n.im) (f n.re)
 
-                alloc1 a b = Complex.switch (Complex.Number a b)
-                alloc2 a b = Complex.switch (..Number a b)
-                alloc3 a b = Complex.switch_lazy (Complex.Number a b)
-                alloc4 a b = Complex.switch_lazy (..Number a b)
+                alloc1 a b = Complex.switch n=(Complex.Number a b)
+                alloc2 a b = Complex.switch n=(..Number a b)
+                alloc3 a b = Complex.switch_lazy n=(Complex.Number a b)
+                alloc4 a b = Complex.switch_lazy n=(..Number a b)
                 """,
                 "complex.enso")
             .build();
@@ -153,19 +156,27 @@ public class InsightForEnsoTest {
 
     var firstCons = msgs.indexOf("complex::complex.Complex::Number");
     var secondCons = msgs.lastIndexOf("complex::complex.Complex::Number");
-    var switchCall = msgs.indexOf("complex::complex.Complex.type::switch");
+    var switchInitCall = msgs.indexOf("complex::complex::init_first_switch_arg");
 
-    assertNotEquals(msgs, -1, switchCall);
+    assertNotEquals(msgs, -1, switchInitCall);
     assertNotEquals(msgs, -1, firstCons);
     assertNotEquals(msgs, -1, secondCons);
     assertTrue(
         "First constructor call must be sooner than second:\n" + msgs, firstCons < secondCons);
 
     if (useAutoscoping || lazy) {
-      assertTrue("Switch call first and then both constructors:\n" + msgs, switchCall < firstCons);
+      assertTrue(
+          "Switch call ("
+              + switchInitCall
+              + ") first and then both constructors ("
+              + firstCons
+              + "):\n"
+              + msgs,
+          switchInitCall < firstCons);
     } else {
-      assertTrue("First constructor sooner than switch call:\n" + msgs, firstCons < switchCall);
-      assertTrue("Switch call sooner than second constructor:\n" + msgs, switchCall < secondCons);
+      assertTrue("First constructor sooner than switch call:\n" + msgs, firstCons < switchInitCall);
+      assertTrue(
+          "Switch call sooner than second constructor:\n" + msgs, switchInitCall < secondCons);
     }
   }
 }

@@ -5,7 +5,7 @@ from Standard.Table import all hiding Table
 
 from Standard.Test import all
 
-
+import Standard.Database.Feature.Feature
 
 from project.Common_Table_Operations.Util import run_default_backend
 from project.Common_Table_Operations.Core_Spec import weird_names
@@ -21,8 +21,10 @@ type Data
     teardown self =
         self.connection.close
 
-
 add_specs suite_builder setup =
+    if setup.is_feature_supported Feature.Integration_Tests then (add_integration_specs suite_builder setup)
+
+add_integration_specs suite_builder setup =
     create_connection_fn = setup.create_connection_func
     materialize = setup.materialize
     suite_builder.group setup.prefix+" Interactions Between various operations" group_builder->
@@ -168,7 +170,7 @@ add_specs suite_builder setup =
                 t1 = table_builder [["X", ["a", "b", "c"]], ["Y", [1, 2, 3]], ["Z", [0.25, 0.5, 0.75]]]
                 t2 = table_builder [["X", ["ddd", "eee", "fff"]]]
 
-                t11 = t1.add_row_number
+                t11 = t1.add_row_number from=1
                 (t11.at "Row" + 2) . to_vector . should_equal [3, 4, 5]
                 (t11.at "Row" + 0.5) . to_vector . should_equal [1.5, 2.5, 3.5]
                 ((t11.at "Y") + (t11.at "Row")) . to_vector . should_equal [2, 4, 6]
@@ -180,14 +182,14 @@ add_specs suite_builder setup =
                 t11_loaded = workbook.read workbook.sheet_names.first
                 t11_loaded.at "Row" . to_vector . should_equal [1, 2, 3]
 
-                t12 = (t1.add_row_number) . union (t2.add_row_number from=100)
+                t12 = (t1.add_row_number from=1) . union (t2.add_row_number from=100)
                 r12 = t12 |> materialize
                 r12.at "X" . to_vector . should_equal ["a", "b", "c", "ddd", "eee", "fff"]
                 r12.at "Row" . to_vector . should_equal [1, 2, 3, 100, 101, 102]
 
                 t3 = table_builder [["X", ["a", "b", "c"]], ["Row", [1.5, 2.5, 3.5]]]
 
-                t123 = ((t1.add_row_number).union [(t2.add_row_number), t3])
+                t123 = ((t1.add_row_number from=1).union [(t2.add_row_number from=1), t3])
                 r123 = t123 |> materialize
                 r123.at "X" . to_vector . should_equal ["a", "b", "c", "ddd", "eee", "fff", "a", "b", "c"]
                 r123.at "Row" . to_vector . should_equal [1, 2, 3, 1, 2, 3, 1.5, 2.5, 3.5]

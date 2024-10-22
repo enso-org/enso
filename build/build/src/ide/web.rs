@@ -17,17 +17,9 @@ use sha2::Digest;
 use std::process::Stdio;
 use tempfile::TempDir;
 
-
 // ==============
 // === Export ===
 // ==============
-
-pub mod dejavu_font;
-pub mod enso_font;
-pub mod fonts;
-pub mod google_font;
-
-
 
 lazy_static! {
     /// Path to the file with build information that is consumed by the JS part of the IDE.
@@ -46,6 +38,7 @@ pub mod env {
         ENSO_BUILD_PROJECT_MANAGER, PathBuf;
         ENSO_BUILD_GUI, PathBuf;
         ENSO_BUILD_ICONS, PathBuf;
+        ENSO_BUILD_SIGN, bool;
         /// List of files that should be copied to the Gui.
         ENSO_BUILD_GUI_WASM_ARTIFACTS, Vec<PathBuf>;
         ENSO_BUILD_GUI_ASSETS, PathBuf;
@@ -162,10 +155,11 @@ pub struct RemoveEmptyCscEnvVars;
 impl Manipulator for RemoveEmptyCscEnvVars {
     fn apply<C: IsCommandWrapper + ?Sized>(&self, command: &mut C) {
         for var in ide_ci::env::known::electron_builder::CI_CSC_SECRETS {
-            if let Ok(value) = std::env::var(var)
-                && value.is_empty()
-            {
-                command.env_remove(var);
+            match std::env::var(var) {
+                Ok(value) if value.is_empty() => {
+                    command.env_remove(var);
+                }
+                _ => {}
             }
         }
     }
@@ -176,7 +170,6 @@ pub fn target_os_flag(os: OS) -> Result<&'static str> {
         OS::Windows => Ok("--win"),
         OS::Linux => Ok("--linux"),
         OS::MacOS => Ok("--mac"),
-        _ => bail!("Not supported target for Electron client: {os}."),
     }
 }
 
@@ -210,12 +203,12 @@ impl FallibleManipulator for ProjectManagerInfo {
     }
 }
 
-#[derive(Clone, Derivative)]
-#[derivative(Debug)]
+#[derive(Clone)]
+#[derive_where(Debug)]
 pub struct IdeDesktop {
     pub build_sbt: generated::RepoRootBuildSbt,
     pub repo_root: generated::RepoRoot,
-    #[derivative(Debug = "ignore")]
+    #[derive_where(skip)]
     pub octocrab:  Octocrab,
     pub cache:     ide_ci::cache::Cache,
 }
@@ -262,6 +255,7 @@ impl IdeDesktop {
         ?project_manager,
         ?target_os,
         ?target,
+        ?sign,
         err))]
     pub async fn dist(
         &self,
@@ -270,6 +264,7 @@ impl IdeDesktop {
         output_path: impl AsRef<Path>,
         target_os: OS,
         target: Option<String>,
+        sign: bool,
     ) -> Result {
         let output_path = output_path.as_ref();
         let electron_config = output_path.join("electron-builder.json");
@@ -284,9 +279,11 @@ impl IdeDesktop {
 
         crate::web::install(&self.repo_root).await?;
         let pm_bundle = ProjectManagerInfo::new(project_manager)?;
+        let sign_artifacts = &sign;
         self.pnpm()?
             .set_env(env::ENSO_BUILD_GUI, gui.as_ref())?
             .set_env(env::ENSO_BUILD_IDE, output_path)?
+            .set_env(env::ENSO_BUILD_SIGN, sign_artifacts)?
             .try_applying(&pm_bundle)?
             .run("build:ide")
             .run_ok()
@@ -302,12 +299,14 @@ impl IdeDesktop {
             None => vec![],
         };
 
+
         self.pnpm()?
             .try_applying(&icons)?
             .apply(&RemoveEmptyCscEnvVars)
             // .env("DEBUG", "electron-builder")
             .set_env(env::ENSO_BUILD_GUI, gui.as_ref())?
             .set_env(env::ENSO_BUILD_IDE, output_path)?
+            .set_env(env::ENSO_BUILD_SIGN, sign_artifacts)?
             .set_env(env::ENSO_BUILD_PROJECT_MANAGER, project_manager.as_ref())?
             .set_env(enso_install_config::ENSO_BUILD_ELECTRON_BUILDER_CONFIG, &electron_config)?
             .run("dist:ide")

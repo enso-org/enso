@@ -188,7 +188,7 @@ class RuntimeExecutionEnvironmentTest
         IF_ENABLED_METH_CALL,
         Api.ExpressionUpdate.Payload
           .Panic(
-            "Forbidden operation: The Output context is disabled.",
+            "The Output context is disabled.",
             Seq(idRes)
           ),
         false
@@ -196,7 +196,7 @@ class RuntimeExecutionEnvironmentTest
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List()
-    context.languageContext.getExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
+    context.languageContext.getGlobalExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
       .Design()
       .name
 
@@ -232,7 +232,7 @@ class RuntimeExecutionEnvironmentTest
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("Hello World!")
-    context.languageContext.getExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
+    context.languageContext.getGlobalExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
       .Live()
       .name
   }
@@ -292,7 +292,7 @@ class RuntimeExecutionEnvironmentTest
         IF_ENABLED_METH_CALL,
         Api.ExpressionUpdate.Payload
           .Panic(
-            "Forbidden operation: The Input context is disabled.",
+            "The Input context is disabled.",
             Seq(idRes)
           ),
         false
@@ -300,7 +300,7 @@ class RuntimeExecutionEnvironmentTest
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List()
-    context.languageContext.getExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
+    context.languageContext.getGlobalExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
       .Design()
       .name
 
@@ -318,7 +318,7 @@ class RuntimeExecutionEnvironmentTest
     context.receiveNIgnoreStdLib(1) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.SetExecutionEnvironmentResponse(contextId))
     )
-    context.languageContext.getExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
+    context.languageContext.getGlobalExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
       .Design()
       .name
 
@@ -353,7 +353,7 @@ class RuntimeExecutionEnvironmentTest
       ),
       context.executionComplete(contextId)
     )
-    context.languageContext.getExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
+    context.languageContext.getGlobalExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
       .Live()
       .name
   }

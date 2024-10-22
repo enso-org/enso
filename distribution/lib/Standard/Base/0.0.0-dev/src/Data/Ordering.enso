@@ -114,7 +114,8 @@ type Comparable
     ## PRIVATE
     private By value:Any comparator:Any
 
-    ## Creates new opaque `Comparable` instance for given `value` and
+    ## PRIVATE
+       Creates new opaque `Comparable` instance for given `value` and
        a `Comparator` with two static methods what work on the
        type `T` of the provided `value`:
 
@@ -147,12 +148,14 @@ type Ordering
     ## A representation that the first value orders as greater than the second.
     Greater
 
-    ## Compares values and returns an `Ordering` representing their order
+    ## ICON operators
+       Compares values and returns an `Ordering` representing their order
        or yields an `Incomparable_Values` error when the values aren't
        comparable.
     compare x y -> Ordering ! Incomparable_Values = compare_with_comparators x y
 
-    ## Computes a hash number for a given value
+    ## ICON metadata
+       Computes a hash number for a given value
     hash x = Comparable.from x . comparator . hash x
 
     ## GROUP Conversions

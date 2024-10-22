@@ -3,7 +3,7 @@ package org.enso.compiler.phase
 import org.enso.compiler.Compiler
 import org.enso.compiler.context.CompilerContext.Module
 import org.enso.compiler.core.Implicits.AsMetadata
-import org.enso.compiler.core.ir.{DiagnosticStorage, MetadataStorage}
+import org.enso.compiler.core.ir.MetadataStorage
 import org.enso.compiler.core.ir.module.scope.{Export, Import}
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.pass.analyse.BindingAnalysis
@@ -11,6 +11,7 @@ import org.enso.common.CompilationStage
 
 import scala.collection.mutable
 import java.io.IOException
+import java.util.logging.Level
 
 /** Runs imports resolution. Starts from a given module and then recursively
   * collects all modules that are reachable from it.
@@ -46,7 +47,12 @@ final class ImportResolver(compiler: Compiler) extends ImportResolverForIR {
           )
           (ir, currentLocal)
         } catch {
-          case _: IOException =>
+          case ex: IOException =>
+            context.logSerializationManager(
+              Level.WARNING,
+              "Deserialization of " + module.getName() + " failed",
+              ex
+            )
             context.updateModule(
               current,
               u => {
@@ -85,6 +91,7 @@ final class ImportResolver(compiler: Compiler) extends ImportResolverForIR {
 
         currentLocal.resolvedImports =
           resolvedImports ++ resolvedSyntheticImports
+
         val newIr = ir.copy(imports = newImportIRs)
         context.updateModule(
           current,
@@ -187,7 +194,6 @@ final class ImportResolver(compiler: Compiler) extends ImportResolverForIR {
             onlyNames,
             _,
             isSynthetic,
-            _,
             _
           ) if !isSynthetic =>
         val exportsItself = curModName.equals(expName.name)
@@ -199,10 +205,9 @@ final class ImportResolver(compiler: Compiler) extends ImportResolverForIR {
             false,
             onlyNames,
             None,
-            location    = None,
-            isSynthetic = true,
-            passData    = new MetadataStorage(),
-            diagnostics = DiagnosticStorage()
+            identifiedLocation = null,
+            isSynthetic        = true,
+            passData           = new MetadataStorage()
           )
           tryResolveImport(module.getIr, syntheticImport) match {
             case (_, Some(resolvedImp)) =>

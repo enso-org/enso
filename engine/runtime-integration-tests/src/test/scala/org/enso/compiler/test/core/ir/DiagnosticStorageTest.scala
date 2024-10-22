@@ -1,7 +1,6 @@
 package org.enso.compiler.test.core.ir
 
 import org.enso.compiler.core.ir.{Diagnostic, DiagnosticStorage, Empty}
-import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.expression.warnings
 import org.enso.compiler.test.CompilerTest
 
@@ -15,7 +14,11 @@ class DiagnosticStorageTest extends CompilerTest {
     * @return a new diagnostic
     */
   def mkDiagnostic(name: String): Diagnostic = {
-    warnings.Shadowed.FunctionParam(name, Empty(None), None)
+    warnings.Shadowed.FunctionParam(
+      name,
+      Empty(identifiedLocation = null),
+      identifiedLocation = null
+    )
   }
 
   // === The Tests ============================================================
@@ -41,116 +44,6 @@ class DiagnosticStorageTest extends CompilerTest {
       diagnostics.toList should contain(mkDiagnostic("a"))
       diagnostics.toList should contain(mkDiagnostic("b"))
       diagnostics.toList should contain(mkDiagnostic("c"))
-    }
-
-    "mapping across the diagnostics to produce a new sequence" in {
-      val diagnostics = new DiagnosticStorage(
-        List(
-          mkDiagnostic("a"),
-          mkDiagnostic("b"),
-          mkDiagnostic("c")
-        )
-      )
-
-      diagnostics.map(d => d.location) shouldEqual Seq(None, None, None)
-    }
-
-    "mapping across the diagnostics in place" in {
-      val diagnostics = new DiagnosticStorage(
-        List(
-          mkDiagnostic("a"),
-          mkDiagnostic("b"),
-          mkDiagnostic("c")
-        )
-      )
-
-      val expectedResult = List(
-        mkDiagnostic("aaa"),
-        mkDiagnostic("aaa"),
-        mkDiagnostic("aaa")
-      )
-
-      diagnostics.mapInPlace {
-        case s: warnings.Shadowed.FunctionParam =>
-          s.copy(shadowedName = "aaa")
-        case x => x
-      }
-
-      diagnostics.toList shouldEqual expectedResult
-    }
-
-    "collecting across the diagnostics to produce a new sequence" in {
-      val err = errors.Syntax(null, errors.Syntax.UnsupportedSyntax("aa"))
-
-      val diagnostics = new DiagnosticStorage(
-        List(
-          mkDiagnostic("a"),
-          mkDiagnostic("b"),
-          mkDiagnostic("c"),
-          err
-        )
-      )
-
-      diagnostics.collect { case e: errors.Syntax =>
-        e
-      } shouldEqual Seq(err)
-    }
-
-    "filtering the diagnostics" in {
-      val diagnostics = new DiagnosticStorage(
-        List(
-          mkDiagnostic("aa"),
-          mkDiagnostic("ba"),
-          mkDiagnostic("cd")
-        )
-      )
-
-      val result = new DiagnosticStorage(
-        List(mkDiagnostic("aa"), mkDiagnostic("ba"))
-      )
-
-      diagnostics.filter {
-        case s: warnings.Shadowed.FunctionParam =>
-          s.shadowedName.contains("a")
-        case _ => false
-      } shouldEqual result
-    }
-
-    "filtering the diagnostics in place" in {
-      val diagnostics = new DiagnosticStorage(
-        List(
-          mkDiagnostic("aa"),
-          mkDiagnostic("ba"),
-          mkDiagnostic("cd")
-        )
-      )
-
-      val result = List(mkDiagnostic("aa"), mkDiagnostic("ba"))
-
-      diagnostics.filterInPlace {
-        case s: warnings.Shadowed.FunctionParam =>
-          s.shadowedName.contains("a")
-        case _ => false
-      }
-
-      diagnostics.toList shouldEqual result
-    }
-
-    "folding over the diagnostics" in {
-      val diagnostics = new DiagnosticStorage(
-        List(
-          mkDiagnostic("a"),
-          mkDiagnostic("b"),
-          mkDiagnostic("cd")
-        )
-      )
-
-      diagnostics.foldLeft("")((str, d) =>
-        d match {
-          case f: warnings.Shadowed.FunctionParam => str + f.shadowedName
-          case _                                  => str
-        }
-      ) shouldEqual "abcd"
     }
   }
 }

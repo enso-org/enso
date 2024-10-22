@@ -5,13 +5,13 @@ import org.enso.compiler.core.Implicits.AsDiagnostics
 import org.enso.compiler.core.ir.{
   Expression,
   IdentifiedLocation,
-  Location,
   Module,
   Pattern
 }
 import org.enso.compiler.core.ir.expression.{errors, warnings, Case}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.IRProcessingPass
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
   DataflowAnalysis,
@@ -47,20 +47,20 @@ case object UnreachableMatchBranches extends IRPass {
   override type Metadata = IRPass.Metadata.Empty
   override type Config   = IRPass.Configuration.Default
 
-  override lazy val precursorPasses: Seq[IRPass] = List(
+  override lazy val precursorPasses: Seq[IRProcessingPass] = List(
     ComplexType,
     DocumentationComments,
     FunctionBinding,
     GenerateMethodBodies,
     LambdaShorthandToLambda
   )
-  override lazy val invalidatedPasses: Seq[IRPass] = List(
+  override lazy val invalidatedPasses: Seq[IRProcessingPass] = List(
     AliasAnalysis,
     DataflowAnalysis,
     DemandAnalysis,
     IgnoredBindings,
     NestedPatternMatch,
-    TailCall
+    TailCall.INSTANCE
   )
 
   /** Runs unreachable branch optimisation on a module.
@@ -103,7 +103,7 @@ case object UnreachableMatchBranches extends IRPass {
     * @param expression the expression to optimize
     * @return `expression` with unreachable case branches removed
     */
-  def optimizeExpression(expression: Expression): Expression = {
+  private def optimizeExpression(expression: Expression): Expression = {
     expression.transformExpressions { case cse: Case =>
       optimizeCase(cse)
     }
@@ -118,9 +118,9 @@ case object UnreachableMatchBranches extends IRPass {
     * @return `cse` with unreachable branches removed
     */
   //noinspection DuplicatedCode
-  def optimizeCase(cse: Case): Case = {
+  private def optimizeCase(cse: Case): Case = {
     cse match {
-      case expr @ Case.Expr(scrutinee, branches, _, _, _, _) =>
+      case expr @ Case.Expr(scrutinee, branches, _, _, _) =>
         val reachableNonCatchAllBranches = branches.takeWhile(!isCatchAll(_))
         val firstCatchAll                = branches.find(isCatchAll)
         val unreachableBranches =
@@ -146,9 +146,10 @@ case object UnreachableMatchBranches extends IRPass {
                     branch.location match {
                       case Some(branchLoc) =>
                         Some(
-                          IdentifiedLocation.create(
-                            new Location(loc.start, branchLoc.end),
-                            loc.id
+                          new IdentifiedLocation(
+                            loc.start,
+                            branchLoc.end,
+                            loc.uuid
                           )
                         )
                       case None => Some(loc)
@@ -158,7 +159,8 @@ case object UnreachableMatchBranches extends IRPass {
               }
             )
 
-          val diagnostic = warnings.Unreachable.Branches(unreachableLocation)
+          val diagnostic =
+            warnings.Unreachable.Branches(unreachableLocation.orNull)
 
           expr
             .copy(
@@ -178,7 +180,7 @@ case object UnreachableMatchBranches extends IRPass {
     * @param branch the branch to check
     * @return `true` if `branch` is catch-all, otherwise `false`
     */
-  def isCatchAll(branch: Case.Branch): Boolean = {
+  private def isCatchAll(branch: Case.Branch): Boolean = {
     branch.pattern match {
       case _: Pattern.Name          => true
       case _: Pattern.Constructor   => false

@@ -10,6 +10,7 @@ import Standard.Database.Column_Description.Column_Description
 import Standard.Database.Connection.Connection.Connection
 import Standard.Database.DB_Table.DB_Table
 import Standard.Database.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties
+import Standard.Database.Internal.Data_Link_Setup.Data_Link_Setup
 import Standard.Database.Internal.JDBC_Connection
 import Standard.Database.SQL_Query.SQL_Query
 import Standard.Database.SQL_Statement.SQL_Statement
@@ -28,14 +29,15 @@ type Snowflake_Connection
        - url: The URL to connect to.
        - properties: A vector of properties for the connection.
        - make_new: A function that returns a new connection.
-    create : Text -> Vector -> (Text -> Text -> Snowflake_Connection) -> Snowflake_Connection
-    create url properties make_new =
+       - data_link_setup: the setup for saving the connection as a data link.
+    create : Text -> Vector -> (Text -> Text -> Snowflake_Connection) -> Data_Link_Setup -> Snowflake_Connection
+    create url properties make_new data_link_setup =
         jdbc_connection = JDBC_Connection.create url properties
         ## As long as names are quoted, the Snowflake SQL dialect is case sensitive.
            Our generator always quotes identifiers, so we can rely on the case sensitivity.
            This is the same as in Postgres.
         entity_naming_properties = Entity_Naming_Properties.from_jdbc_connection jdbc_connection is_case_sensitive=True
-        Snowflake_Connection.Value (Connection.new jdbc_connection Snowflake_Dialect.snowflake entity_naming_properties) make_new
+        Snowflake_Connection.Value (Connection.new jdbc_connection Snowflake_Dialect.snowflake entity_naming_properties) make_new data_link_setup
 
     ## PRIVATE
 
@@ -44,9 +46,10 @@ type Snowflake_Connection
        Arguments:
        - connection: the underlying connection.
        - make_new: a function that returns a new connection.
-    Value connection make_new
+       - data_link_setup: the setup for saving the connection as a data link.
+    Value connection make_new data_link_setup
 
-    ## ICON data_input
+    ## ICON close
        Closes the connection releasing the underlying database resources
        immediately instead of waiting for them to be automatically released.
 
@@ -156,7 +159,8 @@ type Snowflake_Connection
         parsed_schema = if schema == "*" then Nothing else (if schema == "" then self.schema else schema)
         self.connection.tables (if name_like == "" then Nothing else name_like) parsed_database parsed_schema types all_fields
 
-    ## GROUP Standard.Base.Input
+    ## ALIAS read, load, open, import
+       GROUP Standard.Base.Input
        ICON data_input
        Set up a query returning a Table object, which can be used to work with
        data within the database or load it into memory.
@@ -177,7 +181,8 @@ type Snowflake_Connection
     query : SQL_Query -> Text -> DB_Table ! Table_Not_Found
     query self query:SQL_Query alias="" = self.connection.query query alias
 
-    ## GROUP Standard.Base.Input
+    ## ALIAS query, load, open, import
+       GROUP Standard.Base.Input
        ICON data_input
        Execute the query and load the results into memory as a Table.
 
@@ -312,6 +317,12 @@ type Snowflake_Connection
        on the 'subclasses'.
     base_connection : Connection
     base_connection self = self.connection
+
+    ## ICON data_output
+       Creates a Data Link that will open the same connection.
+    @on_existing_file (Existing_File_Behavior.widget include_backup=False include_append=False)
+    save_as_data_link self destination (on_existing_file:Existing_File_Behavior = Existing_File_Behavior.Error) =
+        self.data_link_setup.save_as_data_link destination on_existing_file
 
     ## PRIVATE
        Converts this value to a JSON serializable object.

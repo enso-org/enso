@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Unimplemented.Unimplemented
 
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
@@ -8,6 +9,7 @@ import project.Connection.Connection.Connection
 import project.DB_Column.DB_Column
 import project.DB_Table.DB_Table
 import project.Internal.Column_Fetcher.Column_Fetcher
+import project.Internal.DB_Wrapped_Error.DB_Wrapped_Error
 import project.Internal.Error_Mapper.Error_Mapper
 import project.Internal.IR.Context.Context
 import project.Internal.IR.From_Spec.From_Spec
@@ -21,10 +23,13 @@ import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.SQLite.SQLite_Dialect
 import project.Internal.Statement_Setter.Statement_Setter
+import project.Dialect_Flag.Dialect_Flag
 import project.SQL.SQL_Builder
 import project.SQL_Statement.SQL_Statement
 import project.SQL_Type.SQL_Type
 from project.Errors import SQL_Error, Unsupported_Database_Operation
+from project.Feature import Feature
+from project.Internal.JDBC_Connection import JDBC_Connection
 from project.Internal.Result_Set import result_set_to_table
 
 ## PRIVATE
@@ -135,27 +140,6 @@ type Dialect
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
-       Specifies if the Database distinguishes a separate `NaN` value for
-       floating point columns. Some databases will not be able to distinguish
-       NaN from NULL.
-    supports_separate_nan : Boolean
-    supports_separate_nan self =
-        Unimplemented.throw "This is an interface only."
-
-    ## PRIVATE
-       Specifies whether the Database ROUND() function supports negative
-       decimal places.
-    supports_negative_round_decimal_places : Boolean
-    supports_negative_round_decimal_places self =
-        Unimplemented.throw "This is an interface only."
-
-    ## PRIVATE
-       Specifies whether round() can take a decimal_places argument for floating point values.
-    supports_float_round_decimal_places : Boolean
-    supports_float_round_decimal_places self =
-        Unimplemented.throw "This is an interface only."
-
-    ## PRIVATE
        Specifies how the database creates temp tables.
     temp_table_style : Temp_Table_Style
     temp_table_style self =
@@ -198,9 +182,20 @@ type Dialect
 
     ## PRIVATE
        Checks if an operation is supported by the dialect.
-    is_supported : Text -> Boolean
-    is_supported self operation =
+    is_operation_supported self operation:Text -> Boolean =
         _ = operation
+        Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
+       Checks if a feature is supported by the dialect.
+    is_feature_supported self feature:Feature -> Boolean =
+        _ = feature
+        Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
+       Checks a dialect flag
+    flagged self flag:Dialect_Flag -> Boolean =
+        _ = flag
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
@@ -263,6 +258,23 @@ type Dialect
     should_check_table_integrity_at_beginning_of_transaction self -> Boolean =
         Unimplemented.throw "This is an interface only."
 
+    ## PRIVATE
+       An optional method adding custom handling for the `aggregate` operation.
+
+       This method may be left undefined, in which case the default
+       implementation defined in `Aggregate_Helper.default_build_aggregate` will
+       be used. The method should be defined only if the dialect requires custom
+       logic.
+    custom_build_aggregate self (base_table : DB_Table) (key_columns : Vector Internal_Column) (resolved_aggregates : Vector (Pair Text Aggregate_Column)) (problem_builder : Problem_Builder) -> Pair Context (Vector (Internal_Column | DB_Wrapped_Error)) =
+        _ = [base_table, key_columns, resolved_aggregates, problem_builder]
+        Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
+    ensure_query_has_no_holes : JDBC_Connection -> Text -> Nothing ! Illegal_Argument
+    ensure_query_has_no_holes jdbc:JDBC_Connection raw_sql:Text =
+        _ = [jdbc, raw_sql]
+        Unimplemented.throw "This is an interface only."
+
 ## PRIVATE
 
    The dialect of SQLite databases.
@@ -288,10 +300,10 @@ default_fetch_primary_key connection table_name =
 
 ## PRIVATE
 type Temp_Table_Style
-      ## PRIVATE
-         The temporary table is created using a create table statement.
-      Temporary_Table
-      
-      ## PRIVATE
-         The temporary table is created using a # table name.
-      Hash_Prefix
+    ## PRIVATE
+       The temporary table is created using a create table statement.
+    Temporary_Table
+
+    ## PRIVATE
+       The temporary table is created using a # table name.
+    Hash_Prefix

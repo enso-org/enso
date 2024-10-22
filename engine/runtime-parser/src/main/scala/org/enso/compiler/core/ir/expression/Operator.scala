@@ -4,7 +4,7 @@ package expression
 import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
 import org.enso.compiler.core.{IR, Identifier}
 
-import java.util.UUID;
+import java.util.UUID
 
 /** Operator applications in Enso. */
 trait Operator extends Application {
@@ -30,22 +30,21 @@ object Operator {
 
   /** A representation of a generic binary operator application in Enso.
     *
-    * @param left        the left operand to `operator`
-    * @param operator    the operator function being called
-    * @param right       the right operand to `operator`
-    * @param location    the source location that the node corresponds to
-    * @param passData    the pass metadata associated with this node
-    * @param diagnostics compiler diagnostics for this node
+    * @param left the left operand to `operator`
+    * @param operator the operator function being called
+    * @param right the right operand to `operator`
+    * @param identifiedLocation the source location that the node corresponds to
+    * @param passData the pass metadata associated with this node
     */
   sealed case class Binary(
     left: CallArgument,
     operator: Name,
     right: CallArgument,
-    override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = new MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    override val identifiedLocation: IdentifiedLocation,
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends Operator
       with IRKind.Sugar
+      with LazyDiagnosticStorage
       with LazyId {
 
     /** Creates a copy of `this`.
@@ -68,10 +67,20 @@ object Operator {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Binary = {
-      val res =
-        Binary(left, operator, right, location, passData, diagnostics)
-      res.id = id
-      res
+      if (
+        left != this.left
+        || operator != this.operator
+        || right != this.right
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res = Binary(left, operator, right, location.orNull, passData)
+        res.diagnostics = diagnostics
+        res.id          = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -103,9 +112,8 @@ object Operator {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */

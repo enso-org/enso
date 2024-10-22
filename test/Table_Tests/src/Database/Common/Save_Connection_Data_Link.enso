@@ -1,0 +1,68 @@
+from Standard.Base import all
+import Standard.Base.Errors.File_Error.File_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+from Standard.Table import Table
+
+from Standard.Database import all
+
+from Standard.Test import all
+
+import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
+import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Temporary_Directory
+
+add_specs suite_builder prefix connection_details pending =
+    cloud_setup = Cloud_Tests_Setup.prepare
+    suite_builder.group prefix+"Saving to Data Link" pending=(pending.if_nothing cloud_setup.real_cloud_pending) group_builder->
+        test_root = Temporary_Directory.make "DB-DataLinks"
+        group_builder.teardown test_root.cleanup
+        ## datalink support
+        group_builder.specify "allows to save an established connection as a Data Link" <|
+            cloud_location = test_root.get / "my-db.datalink"
+            raw_connection = Database.connect connection_details
+            Panic.with_finalizer raw_connection.close <|
+                r1 = raw_connection.save_as_data_link cloud_location
+                # The written data link location is returned
+                r1.should_equal cloud_location
+
+                # A secret for the plain-text password is created:
+                secrets = Enso_Secret.list test_root.get
+                secrets.length . should_equal 1
+                secrets.first.name . should_contain "my-db"
+                secrets.first.name . should_contain "password"
+
+                written_data_link_connection = cloud_location.read
+                Panic.with_finalizer written_data_link_connection.close <|
+                    written_data_link_connection.tables.column_names . should_contain "Name"
+                    q = written_data_link_connection.query (..Raw_SQL 'SELECT 1 AS "A"')
+                    q.column_names . should_equal ["A"]
+                    q.at "A" . to_vector . should_equal [1]
+
+                # Also test existing file behaviour
+                r2 = raw_connection.save_as_data_link cloud_location
+                r2.should_fail_with File_Error
+                r2.catch.should_be_a File_Error.Already_Exists
+
+                r3 = raw_connection.save_as_data_link cloud_location on_existing_file=Existing_File_Behavior.Overwrite
+                r3.should_succeed
+
+        ## datalink support
+        group_builder.specify "does not allow Backup or Append modes in save_as_data_link" <|
+            cloud_location = test_root.get / "my-db-2.datalink"
+            raw_connection = Database.connect connection_details
+            Panic.with_finalizer raw_connection.close <|
+                raw_connection.save_as_data_link cloud_location on_existing_file=Existing_File_Behavior.Backup . should_fail_with Illegal_Argument
+                raw_connection.save_as_data_link cloud_location on_existing_file=Existing_File_Behavior.Append . should_fail_with Illegal_Argument
+
+        ## datalink support
+        group_builder.specify "but will not allow to save a connection from a Data Link as a new Data Link" <|
+            ## (Because the Data Link connection is hiding its connection details from the user.)
+            raw_connection = Database.connect connection_details
+            data_link_file = raw_connection.save_as_data_link (test_root.get / "my-db-3.datalink")
+            data_link_file.should_be_a Enso_File
+
+            other_data_link_location = test_root.get / "my-db-new-4.datalink"
+            data_link_connection = Data.read data_link_file
+            Panic.with_finalizer data_link_connection.close <|
+                r = data_link_connection.save_as_data_link other_data_link_location
+                r.should_fail_with Illegal_Argument

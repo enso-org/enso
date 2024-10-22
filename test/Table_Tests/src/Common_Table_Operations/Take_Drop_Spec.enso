@@ -7,6 +7,9 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Table import Aggregate_Column
 from Standard.Table.Errors import all
 
+import Standard.Database.Feature.Feature
+from Standard.Database.Errors import all
+
 from Standard.Test import all
 
 from project.Util import all
@@ -62,8 +65,21 @@ type Column_Take_Drop_Data
     teardown self =
         self.connection.close
 
-
 add_specs suite_builder setup =
+    if setup.is_feature_supported Feature.Sample then (add_take_drop_specs suite_builder setup) else
+        suite_builder.group setup.prefix+"Table.take/drop" group_builder->
+            group_builder.specify "take should report unsupported" <|
+                table_builder = setup.light_table_builder
+                t1 = table_builder [["X", [1, 2, 3, 2]]]
+                t2 = t1.take
+                t2.should_fail_with (Unsupported_Database_Operation.Error "take")
+            group_builder.specify "drop should report unsupported" <|
+                table_builder = setup.light_table_builder
+                t1 = table_builder [["X", [1, 2, 3, 2]]]
+                t2 = t1.drop
+                t2.should_fail_with (Unsupported_Database_Operation.Error "drop")
+
+add_take_drop_specs suite_builder setup =
     prefix = setup.prefix
     create_connection_fn = setup.create_connection_func
 

@@ -5,7 +5,8 @@ from Standard.Table.Aggregate_Column.Aggregate_Column import all
 import Standard.Table.Expression.Expression_Error
 from Standard.Table.Errors import all
 
-from Standard.Database.Errors import Unsupported_Database_Operation
+import Standard.Database.Feature.Feature
+from Standard.Database.Errors import Unsupported_Database_Operation, Aggregagtion_Requires_Order
 
 from Standard.Test import all
 
@@ -16,7 +17,7 @@ import project.Common_Table_Operations.Util
 polyglot java import java.lang.Double
 
 type Test_Selection
-    Config problem_handling=True advanced_stats=True text_concat=True text_shortest_longest=True first_last=True first_last_row_order=True std_dev=True multi_distinct=True aggregation_problems=True nan=True date_support=True
+    Config problem_handling=True advanced_stats=True text_concat=True text_shortest_longest=True first_last=True first_last_row_order=True first_last_multi_order=True first_last_ignore_nothing=True std_dev=True multi_distinct=True aggregation_problems=True nan=True date_support=True
 
 main filter=Nothing =
     run_default_backend add_specs filter
@@ -32,8 +33,20 @@ type Data
         empty_table = empty_table_fn Nothing
         [table, empty_table]
 
-## Runs the common aggregate tests.
+type Lazy_Ref
+    Value ~get
+
 add_specs suite_builder setup =
+    if setup.is_feature_supported Feature.Aggregate then (add_aggregate_specs suite_builder setup) else
+        suite_builder.group setup.prefix+"Table.select_columns" group_builder->
+            group_builder.specify "aggregate should report unsupported" <|
+                table_builder = setup.light_table_builder
+                t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", [100, 3, Nothing, 4, 12]], ["Y", [100, 4, 2, Nothing, 11]]]
+                grouped = t.aggregate columns=[Count]
+                grouped.should_fail_with (Unsupported_Database_Operation.Error "aggregate")
+
+## Runs the common aggregate tests.
+add_aggregate_specs suite_builder setup =
     prefix = setup.prefix
     table_fn = setup.table_fn
     empty_table_fn = setup.empty_table_fn
@@ -174,17 +187,28 @@ add_specs suite_builder setup =
             materialized.columns.at 5 . at 0 . should_equal -17.960000 epsilon=0.000001
 
         group_builder.specify "should be able to get first and last values" (pending = resolve_pending test_selection.first_last) <|
-            grouped = data.table.aggregate columns=[First "Index" (order_by = [Sort_Column.Name "Value", Sort_Column.Name "TextWithNothing"]), Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value"])]
+            grouped = data.table.aggregate columns=[First ignore_nothing=False "Index" (order_by = [Sort_Column.Name "Value"]), Last ignore_nothing=False "ValueWithNothing" (order_by = [Sort_Column.Name "Value"])]
             materialized = materialize grouped
-            Problems.assume_no_problems materialized
+            within_table grouped <|
+                Problems.assume_no_problems materialized
+                grouped.row_count . should_equal 1
+                materialized.column_count . should_equal 2
+                materialized.columns.at 0 . name . should_equal "First Index"
+                materialized.columns.at 0 . at 0 . should_equal 9
+                materialized.columns.at 1 . name . should_equal "Last ValueWithNothing"
+                materialized.columns.at 1 . at 0 . should_equal -89.78 epsilon=0.000001
+
+        group_builder.specify "should be able to get first and last values ordering by a single column" (pending = resolve_pending test_selection.first_last_ignore_nothing) <|
+            grouped = data.table.aggregate columns=[First "TextWithNothing" (order_by = [Sort_Column.Name "Value" Sort_Direction.Descending]), Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value" Sort_Direction.Descending])]
+            materialized = materialize grouped
             grouped.row_count . should_equal 1
             materialized.column_count . should_equal 2
-            materialized.columns.at 0 . name . should_equal "First Index"
-            materialized.columns.at 0 . at 0 . should_equal 9
+            materialized.columns.at 0 . name . should_equal "First TextWithNothing"
+            materialized.columns.at 0 . at 0 . should_equal "riwaiqq1io"
             materialized.columns.at 1 . name . should_equal "Last ValueWithNothing"
-            materialized.columns.at 1 . at 0 . should_equal -89.78 epsilon=0.000001
+            materialized.columns.at 1 . at 0 . should_equal -38.56 epsilon=0.000001
 
-        group_builder.specify "should be able to get first and last values with mixed ordering" (pending = resolve_pending test_selection.first_last) <|
+        group_builder.specify "should be able to get first and last values with mixed ordering by many columns" (pending = resolve_pending (test_selection.first_last_multi_order && test_selection.first_last_ignore_nothing)) <|
             grouped = data.table.aggregate columns=[First "TextWithNothing" (order_by = [Sort_Column.Name "Value" Sort_Direction.Descending, Sort_Column.Name "Code"]), First "TextWithNothing" (order_by = [Sort_Column.Name "Code", Sort_Column.Name "Value" Sort_Direction.Descending]), Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value" Sort_Direction.Descending])]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
@@ -313,7 +337,7 @@ add_specs suite_builder setup =
             materialized.columns.at 2 . at 0 . should_equal Nothing
 
         group_builder.specify "should be able to get first and last values" (pending = resolve_pending test_selection.first_last) <|
-            grouped = data.empty_table.aggregate columns=[First "Index" (order_by = [Sort_Column.Name "Hexadecimal", Sort_Column.Name "TextWithNothing"]), Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value"])]
+            grouped = data.empty_table.aggregate columns=[First "Index" ignore_nothing=False (order_by = [Sort_Column.Name "Hexadecimal"]), Last "ValueWithNothing" ignore_nothing=False (order_by = [Sort_Column.Name "Value"])]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 1
@@ -430,7 +454,7 @@ add_specs suite_builder setup =
             materialized.columns.at 3 . name . should_equal "25%-ile Value"
 
         group_builder.specify "should be able to get first and last values" (pending = resolve_pending test_selection.first_last) <|
-            grouped = data.empty_table.aggregate [0] [First "Index" (order_by = [Sort_Column.Name "Hexadecimal", Sort_Column.Name "TextWithNothing"]), Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value"])]
+            grouped = data.empty_table.aggregate [0] [First "Index" ignore_nothing=False (order_by = [Sort_Column.Name "Hexadecimal"]), Last "ValueWithNothing" ignore_nothing=False (order_by = [Sort_Column.Name "Value"])]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 0
@@ -595,7 +619,7 @@ add_specs suite_builder setup =
             materialized.columns.at 6 . at idx . should_equal -18.802000 epsilon=0.000001
 
         group_builder.specify "should be able to get first and last values" (pending = resolve_pending test_selection.first_last) <|
-            grouped = data.table.aggregate ["Index"] [First "TextWithNothing" (order_by = [Sort_Column.Name "Value", Sort_Column.Name "Flag"]), Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value"])]
+            grouped = data.table.aggregate ["Index"] [First "TextWithNothing" ignore_nothing=False (order_by = [Sort_Column.Name "Value"]), Last "ValueWithNothing" ignore_nothing=False (order_by = [Sort_Column.Name "Value"])]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 10
@@ -608,8 +632,8 @@ add_specs suite_builder setup =
             materialized.columns.at 2 . name . should_equal "Last ValueWithNothing"
             materialized.columns.at 2 . at idx . should_equal -89.78 epsilon=0.000001
 
-        group_builder.specify "should be able to get first and last values with mixed ordering" (pending = resolve_pending test_selection.first_last) <|
-            grouped = data.table.aggregate ["Index"] [First "TextWithNothing" (order_by = [Sort_Column.Name "Value" Sort_Direction.Descending, Sort_Column.Name "Flag"]), Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value" Sort_Direction.Descending])]
+        group_builder.specify "should be able to get first and last values with mixed ordering" (pending = resolve_pending test_selection.first_last_multi_order) <|
+            grouped = data.table.aggregate ["Index"] [First "TextWithNothing" ignore_nothing=False (order_by = [Sort_Column.Name "Value" Sort_Direction.Descending, Sort_Column.Name "Flag"]), Last "ValueWithNothing" ignore_nothing=False (order_by = [Sort_Column.Name "Value" Sort_Direction.Descending])]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 10
@@ -804,7 +828,7 @@ add_specs suite_builder setup =
             materialized.columns.at 7 . at idx . should_equal -17.174000 epsilon=0.000001
 
         group_builder.specify "should be able to get first and last values" (pending = resolve_pending test_selection.first_last) <|
-            grouped = data.table.aggregate ["Flag", "Index"] [First "TextWithNothing" (order_by = [Sort_Column.Name "Value", Sort_Column.Name "Flag"]), Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value"])]
+            grouped = data.table.aggregate ["Flag", "Index"] [First "TextWithNothing" ignore_nothing=False (order_by = [Sort_Column.Name "Value"]), Last ignore_nothing=False "ValueWithNothing" (order_by = [Sort_Column.Name "Value"])]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 20
@@ -818,7 +842,7 @@ add_specs suite_builder setup =
             materialized.columns.at 3 . name . should_equal "Last ValueWithNothing"
             materialized.columns.at 3 . at idx . should_equal -89.78 epsilon=0.000001
 
-        group_builder.specify "should be able to get first and last values with mixed ordering" (pending = resolve_pending test_selection.first_last) <|
+        group_builder.specify "should be able to get first and last values with mixed ordering" (pending = resolve_pending (test_selection.first_last_multi_order && test_selection.first_last_ignore_nothing)) <|
             grouped = data.table.aggregate ["Flag", "Index"] [First "TextWithNothing" (order_by = [Sort_Column.Name "Value" Sort_Direction.Descending, Sort_Column.Name "Flag"]), Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value" Sort_Direction.Descending])]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
@@ -1061,9 +1085,10 @@ add_specs suite_builder setup =
             m1.columns.first.name . should_equal "Count Distinct A B"
             m1.columns.first.to_vector . should_equal [3]
 
-        group_builder.specify "should work correctly with Boolean columns" pending=(if prefix.contains "Snowflake" then "TODO: fix https://github.com/enso-org/enso/issues/10611") <|
-            table = table_builder [["A", [True, True, True]], ["B", [False, False, False]], ["C", [True, False, True]], ["D", [Nothing, False, True]]]
-
+        table_for_boolean_tests = Lazy_Ref.Value <|
+            table_builder [["A", [True, True, True]], ["B", [False, False, False]], ["C", [True, False, True]], ["D", [Nothing, False, True]], ["E", [1, 1, 2]]]
+        group_builder.specify "should work correctly with Boolean columns" <|
+            table = table_for_boolean_tests.get
             t_with_nulls = table.aggregate columns=[..Count_Distinct "A", ..Count_Distinct "B", ..Count_Distinct "C", ..Count_Distinct "D"]
             m1 = materialize t_with_nulls
             m1.column_count . should_equal 4
@@ -1080,6 +1105,15 @@ add_specs suite_builder setup =
             m2.at "Count Distinct C" . to_vector . should_equal [2]
             # The NULL is ignored, and not counted towards the total
             m2.at "Count Distinct D" . to_vector . should_equal [2]
+
+        group_builder.specify "should work correctly with Boolean columns (multi-column mode)" (pending = resolve_pending test_selection.multi_distinct) <|
+            table = table_for_boolean_tests.get
+            # It should also work if multiple columns are used for the criteria and if the columns are mixed boolean-and-non-boolean
+            t_many_and_mixed = table.aggregate columns=[..Count_Distinct ["A", "B"], ..Count_Distinct ["C", "E"]]
+            m3 = materialize t_many_and_mixed
+            m3.column_count . should_equal 2
+            m3.at "Count Distinct A B" . to_vector . should_equal [1]
+            m3.at "Count Distinct C E" . to_vector . should_equal [3]
 
     suite_builder.group prefix+"Table.aggregate Standard_Deviation" pending=(resolve_pending test_selection.std_dev) group_builder->
         group_builder.specify "should correctly handle single elements" <|
@@ -1271,17 +1305,63 @@ add_specs suite_builder setup =
             m1.column_count . should_equal 1
             m1.columns.first.at 0 . should_equal 2
 
-    suite_builder.group prefix+"Table.aggregate First and Last" group_builder->
-        group_builder.specify "should not return the same value for groups with different values but equal ordering keys" (pending = resolve_pending test_selection.first_last) <|
+    suite_builder.group prefix+"Table.aggregate First and Last" (pending = resolve_pending test_selection.first_last) group_builder->
+        group_builder.specify "should not return the same value for groups with different values but equal ordering keys" <|
             t1 = table_builder [["G", ["a", "a"]], ["X", [1, 2]]]
             order = [Sort_Column.Name "G"]
-            r1 = t1.aggregate columns=[First "X" (order_by=order), Last "X" (order_by=order)]
+            r1 = t1.aggregate columns=[First "X" ignore_nothing=False (order_by=order), Last "X" ignore_nothing=False (order_by=order)]
             r1.row_count.should_equal 1
             m1 = materialize r1
             m1.column_count . should_equal 2
             first = m1.columns.first.at 0
             last = m1.columns.second.at 0
             (first != last).should_be_true
+
+        group_builder.specify "should work with grouping and ordering, and other aggregates" <|
+            t1 = table_builder [["Group", ["A", "A", "B", "C", "C", "C"]], ["Order", [1, 2, 3, 50, 40, 20]], ["Value", ["a", "b", "c", "d", "e", "f"]]]
+            aggregates = [First "Value" ignore_nothing=False order_by="Order", Last "Value" ignore_nothing=False order_by="Order", Count, Sum "Order"]
+            r1 = t1.aggregate group_by=["Group"] aggregates
+            within_table r1 <|
+                r1.row_count.should_equal 3
+                m1 = materialize r1 . sort "Group"
+                m1.column_count . should_equal 5
+                m1.at "Group" . to_vector . should_equal ["A", "B", "C"]
+                m1.at "First Value" . to_vector . should_equal ["a", "c", "f"]
+                m1.at "Last Value" . to_vector . should_equal ["b", "c", "d"]
+                m1.at "Count" . to_vector . should_equal [2, 1, 3]
+                m1.at "Sum Order" . to_vector . should_equal [3, 3, 110]
+
+            r2 = t1.aggregate group_by=[] aggregates
+            within_table r2 <|
+                r2.row_count.should_equal 1
+                m2 = materialize r2
+                m2.column_count . should_equal 4
+                m2.at "First Value" . to_vector . should_equal ["a"]
+                m2.at "Last Value" . to_vector . should_equal ["d"]
+                m2.at "Count" . to_vector . should_equal [6]
+                m2.at "Sum Order" . to_vector . should_equal [116]
+
+        group_builder.specify "should respect the `ignore_nothing` setting" (pending = resolve_pending test_selection.first_last_ignore_nothing) <|
+            t1 = table_builder [["ix", [1, 2, 3, 4, 5]], ["A", [Nothing, "a", "b", "c", Nothing]]]
+            r1 = t1.aggregate columns=[First "A" order_by="ix" ignore_nothing=False, Last "A" order_by="ix" ignore_nothing=False, First "A" order_by="ix" ignore_nothing=True, Last "A" order_by="ix" ignore_nothing=True]
+            r1.column_names . should_equal ["First A", "Last A", "First A 1", "Last A 1"]
+            m1 = materialize r1
+            m1.row_count . should_equal 1
+            m1.at "First A" . to_vector . should_equal [Nothing]
+            m1.at "Last A" . to_vector . should_equal [Nothing]
+            m1.at "First A 1" . to_vector . should_equal ["a"]
+            m1.at "Last A 1" . to_vector . should_equal ["c"]
+
+        group_builder.specify "may return Nothing even if `ignore_nothing=True` if there are no values" (pending = resolve_pending test_selection.first_last_ignore_nothing) <|
+            # We create a non-empty table because all-Nothing columns are problematic in some backends:
+            t1 = table_builder [["ix", [Nothing, 1, 2, 3]], ["A", [1, Nothing, Nothing, Nothing]]]
+                . filter "ix" ..Not_Nothing
+            r1 = t1.aggregate columns=[First "A" order_by="ix" ignore_nothing=True, Last "A" order_by="ix" ignore_nothing=True]
+            r1.column_names . should_equal ["First A", "Last A"]
+            m1 = materialize r1
+            m1.row_count . should_equal 1
+            m1.at "First A" . to_vector . should_equal [Nothing]
+            m1.at "Last A" . to_vector . should_equal [Nothing]
 
     suite_builder.group prefix+"Table.aggregate" group_builder->
         group_builder.specify "should work even if no aggregations apart from groupings are specified" <|
@@ -1357,21 +1437,21 @@ add_specs suite_builder setup =
         if test_selection.first_last && test_selection.first_last_row_order.not then
             group_builder.specify "should report a warning and ignore problematic columns if a feature is not supported" <|
                 table = table_builder [["A", [1,2,Nothing,3]]]
-                action = table.aggregate columns=[Sum "A", First "A", Last "A"] on_problems=_
+                action = table.aggregate columns=[Sum "A", First ignore_nothing=False "A", Last ignore_nothing=False "A"] on_problems=_
                 tester result =
                     result.row_count . should_equal 1
                     materialized = materialize result
                     materialized.column_count . should_equal 1
                     materialized.columns.first.name . should_equal "Sum A"
                     materialized.columns.first.to_vector . should_equal [6]
-                problems = [Unsupported_Database_Operation.Error "`First` aggregation requires at least one `order_by` column.", Unsupported_Database_Operation.Error "`Last` aggregation requires at least one `order_by` column."]
+                problems = [Aggregagtion_Requires_Order.Error "First", Aggregagtion_Requires_Order.Error "Last"]
                 Problems.test_problem_handling action problems tester
 
             group_builder.specify "will include unsupported feature problem in No_Output_Columns" <|
                 table = table_builder [["A", [1,2,Nothing,3]]]
-                r1 = table.aggregate columns=[First "A"]
+                r1 = table.aggregate columns=[First ignore_nothing=False "A"]
                 r1.should_fail_with No_Output_Columns
-                r1.catch.cause . should_be_a Unsupported_Database_Operation
+                r1.catch.cause . should_be_a Aggregagtion_Requires_Order.Error
                 r1.to_display_text . should_contain "No columns in the result"
                 r1.to_display_text . should_contain "`First`"
 
@@ -1610,8 +1690,6 @@ add_specs suite_builder setup =
                 result.columns.first.to_vector . should_equal [6]
                 warnings = Problems.get_attached_warnings result
                 warnings.length . should_equal error_count
-                warnings.each warning->
-                    warning.should_be_a Unsupported_Database_Operation.Error
 
             if test_selection.first_last_row_order.not then
                 group_builder.specify "with First and Last in row order" <|
@@ -1621,6 +1699,13 @@ add_specs suite_builder setup =
 
             if test_selection.first_last.not then
                 group_builder.specify "with First and Last with ordering" <|
+                    table = table_builder [["A", [3,2,1]], ["X", [1,2,3]]]
+                    order = [Sort_Column.Name "A"]
+                    expect_sum_and_unsupported_errors 2 <|
+                        table.aggregate columns=[Sum "X", First ignore_nothing=False "X" (order_by=order), Last ignore_nothing=False "X" (order_by=order)]
+
+            if test_selection.first_last_ignore_nothing.not then
+                group_builder.specify "with First and Last with ignore_nothing=True" <|
                     table = table_builder [["A", [3,2,1]], ["X", [1,2,3]]]
                     order = [Sort_Column.Name "A"]
                     expect_sum_and_unsupported_errors 2 <|

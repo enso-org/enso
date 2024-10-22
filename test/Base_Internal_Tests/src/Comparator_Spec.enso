@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Incomparable_Values
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Test import all
 
@@ -33,6 +34,19 @@ type No_Ord_Comparator
         0
 
 Comparable.from (that:No_Ord) = Comparable.new that No_Ord_Comparator
+
+type Attach_Warning
+    Value (n : Integer)
+    Value2 (n : Integer)
+
+type Attach_Warning_Comparator
+    compare (x : Attach_Warning) (y : Attach_Warning) =
+        r = Ordering.compare x.n y.n
+        Warning.attach (Illegal_Argument.Error "warning") r
+
+    hash x:Attach_Warning = Ordering.hash x.n
+
+Comparable.from (that : Attach_Warning) = Comparable.new that Attach_Warning_Comparator
 
 # Tests
 
@@ -78,6 +92,20 @@ add_specs suite_builder = suite_builder.group "Object Comparator" group_builder-
     group_builder.specify "should fail gracefully for incomparable items" <|
         (default_comparator 1 True) . should_fail_with Incomparable_Values
         (default_comparator (No_Ord.Value 1) (No_Ord.Value 2)).should_fail_with Incomparable_Values
+
+    group_builder.specify "warnings attached to the return value of .compare should not affect the boolean value of the comparison operator" <|
+        ((Attach_Warning.Value 1) < (Attach_Warning.Value 2)) . should_be_true
+        ((Attach_Warning.Value 1) == (Attach_Warning.Value 1)) . should_be_true
+        ((Attach_Warning.Value 1) == (Attach_Warning.Value2 1)) . should_be_true
+
+    group_builder.specify "warnings attached in a comparator should propagate to the operator result" <|
+        Problems.expect_only_warning Illegal_Argument <| ((Attach_Warning.Value 1) < (Attach_Warning.Value 2))
+        Problems.expect_only_warning Illegal_Argument <| ((Attach_Warning.Value 1) >= (Attach_Warning.Value 2))
+        Problems.expect_only_warning Illegal_Argument <|
+            v1 = Attach_Warning.Value 1
+            v2 = Attach_Warning.Value 2
+            r = v1 == v2
+            r
 
 main filter=Nothing =
     suite = Test.build suite_builder->

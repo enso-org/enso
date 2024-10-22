@@ -3,7 +3,13 @@ package org.enso.compiler.test
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.{EnsoParser, IR, Identifier}
 import org.enso.compiler.core.Implicits.AsMetadata
-import org.enso.compiler.core.ir.{DefinitionArgument, Expression, Module, Name}
+import org.enso.compiler.core.ir.{
+  DefinitionArgument,
+  Diagnostic,
+  Expression,
+  Module,
+  Name
+}
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
@@ -25,42 +31,6 @@ trait CompilerTest extends AnyWordSpecLike with Matchers with CompilerRunner
 trait CompilerRunner {
   // === IR Utilities =========================================================
 
-  /** An extension method to allow converting string source code to IR as a
-    * module.
-    *
-    * @param source the source code to convert
-    */
-  implicit class ToIrModule(source: String) {
-
-    /** Converts program text to a top-level Enso module.
-      *
-      * @return the [[IR]] representing [[source]]
-      */
-    def toIrModule: Module = {
-      val compiler = new EnsoParser()
-      try compiler.compile(source)
-      finally compiler.close()
-    }
-  }
-
-  /** An extension method to allow converting string source code to IR as an
-    * expression.
-    *
-    * @param source the source code to convert
-    */
-  implicit class ToIrExpression(source: String) {
-
-    /** Converts the program text to an Enso expression.
-      *
-      * @return the [[IR]] representing [[source]], if it is a valid expression
-      */
-    def toIrExpression: Option[Expression] = {
-      val compiler = new EnsoParser()
-      try compiler.generateIRInline(compiler.parse(source))
-      finally compiler.close()
-    }
-  }
-
   /** Provides an extension method allowing the running of a specified list of
     * passes on the provided IR.
     *
@@ -80,6 +50,21 @@ trait CompilerRunner {
     ): Module = {
       passManager.runPassesOnModule(ir, moduleContext)
     }
+  }
+
+  /** Provides an extensions to work with diagnostic information attached to IR.
+    *
+    * @param ir the IR node
+    */
+  implicit class DiagnosticStorageExt(ir: IR) {
+
+    /** Get the list of diagnostics attached to the provided IR node without
+      * unnecessary allocations of [[org.enso.compiler.core.ir.DiagnosticStorage]].
+      *
+      * @return the list of attached diagnostics
+      */
+    def diagnosticsList: List[Diagnostic] =
+      if (ir.diagnostics() eq null) Nil else ir.diagnostics().toList
   }
 
   /** Provides an extension method allowing the running of a specified list of
@@ -116,7 +101,7 @@ trait CompilerRunner {
       * @return IR appropriate for testing the alias analysis pass as a module
       */
     def preprocessModule(implicit moduleContext: ModuleContext): Module = {
-      source.toIrModule.runPasses(passManager, moduleContext)
+      EnsoParser.compile(source).runPasses(passManager, moduleContext)
     }
 
     /** Translates the source code into appropriate IR for testing this pass
@@ -127,7 +112,9 @@ trait CompilerRunner {
     def preprocessExpression(implicit
       inlineContext: InlineContext
     ): Option[Expression] = {
-      source.toIrExpression.map(_.runPasses(passManager, inlineContext))
+      EnsoParser
+        .compileInline(source)
+        .map(_.runPasses(passManager, inlineContext))
     }
   }
 
@@ -151,23 +138,33 @@ trait CompilerRunner {
       */
     def asMethod: definition.Method = {
       new definition.Method.Explicit(
-        Name.MethodReference(
-          Some(
-            Name.Qualified(
-              List(
-                Name
-                  .Literal("TestType", isMethod = false, None)
-              ),
-              None
-            )
+        definition.Method.Binding(
+          Name.MethodReference(
+            Some(
+              Name.Qualified(
+                List(
+                  Name.Literal(
+                    "TestType",
+                    isMethod           = false,
+                    identifiedLocation = null
+                  )
+                ),
+                identifiedLocation = null
+              )
+            ),
+            Name.Literal(
+              "testMethod",
+              isMethod           = false,
+              identifiedLocation = null
+            ),
+            identifiedLocation = null
           ),
-          Name
-            .Literal("testMethod", isMethod = false, None),
-          None
+          Nil,
+          false,
+          ir,
+          identifiedLocation = null
         ),
-        ir,
-        false,
-        None
+        ir
       )
     }
 
@@ -177,20 +174,21 @@ trait CompilerRunner {
       */
     def asAtomDefaultArg: Definition.Data = {
       Definition.Data(
-        Name.Literal("TestAtom", isMethod = false, None),
+        Name.Literal("TestAtom", isMethod = false, identifiedLocation = null),
         List(
           DefinitionArgument
             .Specified(
               Name
-                .Literal("arg", isMethod = false, None),
+                .Literal("arg", isMethod = false, identifiedLocation = null),
               None,
               Some(ir),
-              suspended = false,
-              None
+              suspended          = false,
+              identifiedLocation = null
             )
         ),
         List(),
-        None
+        false,
+        identifiedLocation = null
       )
     }
   }
@@ -261,7 +259,7 @@ trait CompilerRunner {
       runtime.Module.empty(QualifiedName.simpleName("Test_Module"), null)
     ModuleTestUtils.unsafeSetIr(
       mod,
-      Module(List(), List(), List(), false, None)
+      Module(List(), List(), List(), false, identifiedLocation = null)
         .updateMetadata(
           new MetadataPair(
             BindingAnalysis,

@@ -14,7 +14,7 @@ import Standard.Database.Internal.IR.SQL_Expression.SQL_Expression
 import Standard.Database.Internal.SQL_Type_Mapping
 import Standard.Database.Internal.SQL_Type_Reference.SQL_Type_Reference
 import Standard.Database.SQL_Type.SQL_Type
-from Standard.Database.Errors import Unsupported_Database_Operation
+from Standard.Database.Errors import Unsupported_Database_Type
 
 polyglot java import java.sql.Types
 
@@ -61,7 +61,7 @@ type SQLServer_Type_Mapping
                     False -> case variable_length of
                         True  -> SQL_Type.Value Types.BINARY "VARBINARY" size
                         False -> SQL_Type.Value Types.BINARY "BINARY" size
-            Value_Type.Mixed -> Error.throw (Unsupported_Database_Operation.Error "SQLServer tables do not support Mixed types.")
+            Value_Type.Mixed -> Error.throw (Unsupported_Database_Type.Error "Mixed" "SQLServer")
             Value_Type.Unsupported_Data_Type type_name underlying_type ->
                 underlying_type.if_nothing <| Error.throw <| Illegal_Argument.Error <|
                     "An unsupported SQL type ["+type_name.to_text+"] cannot be converted into an SQL type because it did not contain the SQL metadata needed to reconstruct it."
@@ -82,6 +82,9 @@ type SQLServer_Type_Mapping
             Types.REAL -> Value_Type.Float Bits.Bits_32
             Types.DOUBLE -> Value_Type.Float Bits.Bits_64
             Types.VARCHAR -> 
+                effective_size = if sql_type.precision==max_length || (sql_type.precision==9 && sql_type.scale==9) then Nothing else sql_type.precision
+                Value_Type.Char size=effective_size variable_length=True
+            Types.NVARCHAR -> 
                 effective_size = if sql_type.precision==max_length || (sql_type.precision==9 && sql_type.scale==9) then Nothing else sql_type.precision
                 Value_Type.Char size=effective_size variable_length=True
             Types.DATE -> Value_Type.Date
@@ -108,8 +111,12 @@ type SQLServer_Type_Mapping
        the database backend.
     infer_return_type : (SQL_Expression -> SQL_Type_Reference) -> Text -> Vector -> SQL_Expression -> SQL_Type_Reference
     infer_return_type infer_from_database_callback op_name arguments expression =
-        _ = [op_name, arguments]
-        infer_from_database_callback expression
+        case operations_dict.contains_key op_name of
+            False -> infer_from_database_callback expression
+            True -> 
+                handler = operations_dict.at op_name
+                sql_type = handler arguments
+                SQL_Type_Reference.from_constant sql_type
 
     ## PRIVATE
        We want to respect any overriding references, but references that rely on
@@ -138,9 +145,21 @@ type SQLServer_Type_Mapping
     should_warn_on_materialize (db_type : Value_Type) (in_memory_type : Value_Type) -> Boolean =
         SQL_Type_Mapping.default_should_warn_on_materialize db_type in_memory_type
 
+    ## PRIVATE
+    is_integer_type (value_type : Value_Type) -> Boolean = value_type.is_integer
+
+    ## PRIVATE
+    is_same_type (value_type1 : Value_Type) (value_type2 : Value_Type) -> Boolean =
+        value_type1.is_same_type value_type2
+
 ## PRIVATE
 on_unknown_type sql_type =
     Value_Type.Unsupported_Data_Type sql_type.name sql_type
+
+## PRIVATE
+   Maps operation names to functions that infer its result type.
+operations_dict : Dictionary Text (Vector -> SQL_Type)
+operations_dict = Dictionary.from_vector [["IS_NULL", const (SQL_Type.Value Types.BIT "BIT")],["==", const (SQL_Type.Value Types.BIT "BIT")]]
 
 ## PRIVATE
    This is the maximum size that JDBC driver reports for 'unbounded' types in

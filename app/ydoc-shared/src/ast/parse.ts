@@ -31,7 +31,7 @@ import {
   type SourceRangeKey,
 } from '../yjsModel'
 import { graphParentPointers } from './debug'
-import { parse_tree, xxHash128 } from './ffi'
+import { parse_block, parse_module, xxHash128 } from './ffi'
 import * as RawAst from './generated/ast'
 import { MutableModule } from './mutableModule'
 import type { LazyObject } from './parserSupport'
@@ -62,9 +62,17 @@ import {
   Wildcard,
 } from './tree'
 
-/** Return the raw parser output for the given code. */
-export function parseEnso(code: string): RawAst.Tree.BodyBlock {
-  const blob = parse_tree(code)
+/** Return the raw parser output for the given code, parsed as a module. */
+export function rawParseModule(code: string): RawAst.Tree.BodyBlock {
+  return deserializeBlock(parse_module(code))
+}
+
+/** Return the raw parser output for the given code, parsed as a body block. */
+export function rawParseBlock(code: string): RawAst.Tree.BodyBlock {
+  return deserializeBlock(parse_block(code))
+}
+
+function deserializeBlock(blob: Uint8Array): RawAst.Tree.BodyBlock {
   const tree = RawAst.Tree.read(new DataView(blob.buffer), blob.byteLength - 4)
   // The root of the parser output is always a body block.
   assert(tree.type === RawAst.Tree.Type.BodyBlock)
@@ -76,7 +84,7 @@ export function normalize(rootIn: Ast): Ast {
   const printed = print(rootIn)
   const idMap = spanMapToIdMap(printed.info)
   const module = MutableModule.Transient()
-  const tree = parseEnso(printed.code)
+  const tree = rawParseModule(printed.code)
   const { root: parsed, spans } = abstract(module, tree, printed.code)
   module.replaceRoot(parsed)
   setExternalIds(module, spans, idMap)
@@ -96,6 +104,7 @@ export function abstract(
   code: string,
   substitutor?: (key: NodeKey) => Owned | undefined,
 ): { root: Owned; spans: SpanMap; toRaw: Map<AstId, RawAst.Tree> }
+/** Implementation of `abstract`. */
 export function abstract(
   module: MutableModule,
   tree: RawAst.Tree,
@@ -158,7 +167,22 @@ class Abstractor {
       }
       case RawAst.Tree.Type.Function: {
         const name = this.abstractTree(tree.name)
-        const argumentDefinitions = Array.from(tree.args, arg => this.abstractChildren(arg))
+        const argumentDefinitions = Array.from(tree.args, arg => ({
+          open: arg.open && this.abstractToken(arg.open),
+          open2: arg.open2 && this.abstractToken(arg.open2),
+          suspension: arg.suspension && this.abstractToken(arg.suspension),
+          pattern: this.abstractTree(arg.pattern),
+          type: arg.typeNode && {
+            operator: this.abstractToken(arg.typeNode.operator),
+            type: this.abstractTree(arg.typeNode.typeNode),
+          },
+          close2: arg.close2 && this.abstractToken(arg.close2),
+          defaultValue: arg.default && {
+            equals: this.abstractToken(arg.default.equals),
+            expression: this.abstractTree(arg.default.expression),
+          },
+          close: arg.close && this.abstractToken(arg.close),
+        }))
         const equals = this.abstractToken(tree.equals)
         const body = tree.body !== undefined ? this.abstractTree(tree.body) : undefined
         node = Function.concrete(this.module, name, argumentDefinitions, equals, body)
@@ -454,7 +478,10 @@ export function print(ast: Ast): PrintedSource {
   return { info, code }
 }
 
-/** @internal Used by `Ast.printSubtree`. Note that some AST types have overrides. */
+/**
+ * Used by `Ast.printSubtree`. Note that some AST types have overrides.
+ * @internal
+ */
 export function printAst(
   ast: Ast,
   info: SpanMap,
@@ -496,7 +523,10 @@ export function printAst(
   return code
 }
 
-/** @internal Use `Ast.code()' to stringify. */
+/**
+ * Use `Ast.code()' to stringify.
+ * @internal
+ */
 export function printBlock(
   block: BodyBlock,
   info: SpanMap,
@@ -538,7 +568,10 @@ export function printBlock(
   return code
 }
 
-/** @internal Use `Ast.code()' to stringify. */
+/**
+ * Use `Ast.code()' to stringify.
+ * @internal
+ */
 export function printDocumented(
   documented: Documented,
   info: SpanMap,
@@ -581,15 +614,18 @@ export function printDocumented(
   return code
 }
 
-/** Parse the input as a block. */
-export function parseBlock(code: string, inModule?: MutableModule): Owned<MutableBodyBlock> {
-  return parseBlockWithSpans(code, inModule).root
+/** Parse the input as a body block, not the top level of a module. */
+export function parseBlock(code: string, module?: MutableModule): Owned<MutableBodyBlock> {
+  const tree = rawParseBlock(code)
+  return abstract(module ?? MutableModule.Transient(), tree, code).root
 }
 
-/** Parse the input. If it contains a single expression at the top level, return it; otherwise, return a block. */
+/**
+ * Parse the input. If it contains a single expression at the top level, return it; otherwise, parse it as a body block.
+ */
 export function parse(code: string, module?: MutableModule): Owned {
   const module_ = module ?? MutableModule.Transient()
-  const ast = parseBlock(code, module_)
+  const ast = parseBlock(code, module)
   const soleStatement = tryGetSoleValue(ast.statements())
   if (!soleStatement) return ast
   const parent = parentId(soleStatement)
@@ -598,21 +634,21 @@ export function parse(code: string, module?: MutableModule): Owned {
   return asOwned(soleStatement)
 }
 
-/** Parse a block, and return it along with a mapping from source locations to parsed objects. */
-export function parseBlockWithSpans(
+/** Parse a module, and return it along with a mapping from source locations to parsed objects. */
+export function parseModuleWithSpans(
   code: string,
-  inModule?: MutableModule,
+  module?: MutableModule | undefined,
 ): { root: Owned<MutableBodyBlock>; spans: SpanMap } {
-  const tree = parseEnso(code)
-  const module = inModule ?? MutableModule.Transient()
-  return abstract(module, tree, code)
+  const tree = rawParseModule(code)
+  return abstract(module ?? MutableModule.Transient(), tree, code)
 }
 
-/** Parse the input, and apply the given `IdMap`. Return the parsed tree, the updated `IdMap`, the span map, and a
+/**
+ * Parse the input, and apply the given `IdMap`. Return the parsed tree, the updated `IdMap`, the span map, and a
  *  mapping to the `RawAst` representation.
  */
 export function parseExtended(code: string, idMap?: IdMap | undefined, inModule?: MutableModule) {
-  const rawRoot = parseEnso(code)
+  const rawRoot = rawParseModule(code)
   const module = inModule ?? MutableModule.Transient()
   const { root, spans, toRaw } = module.transact(() => {
     const { root, spans, toRaw } = abstract(module, rawRoot, code)
@@ -634,7 +670,8 @@ export function astCount(ast: Ast): number {
   return count
 }
 
-/** Apply an `IdMap` to a module, using the given `SpanMap`.
+/**
+ * Apply an `IdMap` to a module, using the given `SpanMap`.
  *  @returns The number of IDs that were assigned from the map.
  */
 export function setExternalIds(edit: MutableModule, spans: SpanMap, ids: IdMap): number {
@@ -652,7 +689,8 @@ export function setExternalIds(edit: MutableModule, spans: SpanMap, ids: IdMap):
   return astsMatched
 }
 
-/** Try to find all the spans in `expected` in `encountered`. If any are missing, use the provided `code` to determine
+/**
+ * Try to find all the spans in `expected` in `encountered`. If any are missing, use the provided `code` to determine
  *  whether the lost spans are single-line or multi-line.
  */
 function checkSpans(expected: NodeSpanMap, encountered: NodeSpanMap, code: string) {
@@ -668,12 +706,15 @@ function checkSpans(expected: NodeSpanMap, encountered: NodeSpanMap, code: strin
   const lostBlock = new Array<Ast>()
   for (const [key, ast] of lost) {
     const [start, end] = sourceRangeFromKey(key)
+    // Do not report lost empty body blocks, we don't want them to be considered for repair.
+    if (start === end && ast instanceof BodyBlock) continue
     ;(code.substring(start, end).match(/[\r\n]/) ? lostBlock : lostInline).push(ast)
   }
   return { lostInline, lostBlock }
 }
 
-/** If the input tree's concrete syntax has precedence errors (i.e. its expected code would not parse back to the same
+/**
+ * If the input tree's concrete syntax has precedence errors (i.e. its expected code would not parse back to the same
  *  structure), try to fix it. If possible, it will be repaired by inserting parentheses; if that doesn't fix it, the
  *  affected subtree will be re-synced to faithfully represent the source code the incorrect tree prints to.
  */
@@ -684,7 +725,7 @@ export function repair(
   // Print the input to see what spans its nodes expect to have in the output.
   const printed = print(root)
   // Parse the printed output to see what spans actually correspond to nodes in the printed code.
-  const reparsed = parseBlockWithSpans(printed.code)
+  const reparsed = parseModuleWithSpans(printed.code)
   // See if any span we expected to be a node isn't; if so, it likely merged with its parent due to wrong precedence.
   const { lostInline, lostBlock } = checkSpans(
     printed.info.nodes,
@@ -710,7 +751,7 @@ export function repair(
 
   // Verify that it's fixed.
   const printed2 = print(fixes.getVersion(root))
-  const reparsed2 = parseBlockWithSpans(printed2.code)
+  const reparsed2 = parseModuleWithSpans(printed2.code)
   const { lostInline: lostInline2, lostBlock: lostBlock2 } = checkSpans(
     printed2.info.nodes,
     reparsed2.spans.nodes,
@@ -724,7 +765,6 @@ export function repair(
 
 /**
  * Replace subtrees in the module to ensure that the module contents are consistent with the module's code.
- *
  * @param badAsts - ASTs that, if printed, would not parse to exactly their current content.
  * @param badSpans - Span map produced by printing the `badAsts` nodes and all their parents.
  * @param goodSpans - Span map produced by parsing the code from the module of `badAsts`.
@@ -766,7 +806,10 @@ function resync(
   )
 }
 
-/** @internal Recursion helper for {@link syntaxHash}. */
+/**
+ * Recursion helper for {@link syntaxHash}.
+ * @internal
+ */
 function hashSubtreeSyntax(ast: Ast, hashesOut: Map<SyntaxHash, Ast[]>): SyntaxHash {
   let content = ''
   content += ast.typeName + ':'
@@ -791,7 +834,8 @@ function hashString(input: string): SyntaxHash {
   return xxHash128(input) as SyntaxHash
 }
 
-/** Calculates `SyntaxHash`es for the given node and all its children.
+/**
+ * Calculates `SyntaxHash`es for the given node and all its children.
  *
  *  Each `SyntaxHash` summarizes the syntactic content of an AST. If two ASTs have the same code and were parsed the
  *  same way (i.e. one was not parsed in a context that resulted in a different interpretation), they will have the same
@@ -843,7 +887,7 @@ function calculateCorrespondence(
   )
   const partAfterToAstBefore = new Map<SourceRangeKey, Ast>()
   for (const [spanBefore, partAfter] of spansBeforeAndAfter) {
-    const astBefore = astSpans.get(sourceRangeKey(spanBefore) as NodeKey)?.[0]!
+    const astBefore = astSpans.get(sourceRangeKey(spanBefore) as NodeKey)![0]!
     partAfterToAstBefore.set(sourceRangeKey(partAfter), astBefore)
   }
   const matchingPartsAfter = spansBeforeAndAfter.map(([_before, after]) => after)
@@ -902,7 +946,7 @@ export function applyTextEditsToAst(
 ) {
   const printed = print(ast)
   const code = applyTextEdits(printed.code, textEdits)
-  const rawParsedBlock = parseEnso(code)
+  const rawParsedBlock = rawParseModule(code)
   const rawParsed =
     ast instanceof MutableBodyBlock ? rawParsedBlock : rawBlockToInline(rawParsedBlock)
   const parsed = abstract(ast.module, rawParsed, code)
@@ -971,7 +1015,6 @@ function syncTree(
     }
     return true
   })
-  return newRoot
 }
 
 /** Provides a `SpanTree` view of an `Ast`, given span information. */

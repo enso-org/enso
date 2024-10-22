@@ -3,8 +3,6 @@
 //! Source files may be specified as command line arguments; if none are provided, source code will
 //! be read from standard input.
 
-// === Features ===
-#![feature(box_patterns)]
 // === Non-Standard Linter Configuration ===
 #![allow(clippy::option_map_unit_fn)]
 #![allow(clippy::precedence)]
@@ -134,7 +132,7 @@ fn check_file(
     if let Some((_meta, code_)) = enso_parser::metadata::parse(code) {
         code = code_;
     }
-    let ast = parser.run(code);
+    let ast = parser.parse_module(code);
     let mut messages = if smoke_test { vec![] } else { collect_messages(&ast, &file.path) };
     if ast.code() != code {
         messages.push(format!(
@@ -154,13 +152,11 @@ fn collect_messages(ast: &enso_parser::syntax::Tree, path: impl AsRef<Path>) -> 
                 let error = format!("{}: {}", err.error.message, tree.code());
                 errors.borrow_mut().push((error, tree.span.clone()));
             }
-            enso_parser::syntax::tree::Variant::OprApp(box enso_parser::syntax::tree::OprApp {
-                opr: Err(e),
-                ..
-            }) => {
-                let error = format!("Consecutive operators: {:?}", e.operators);
-                errors.borrow_mut().push((error, tree.span.clone()));
-            }
+            enso_parser::syntax::tree::Variant::OprApp(app) =>
+                if let enso_parser::syntax::tree::OprApp { opr: Err(e), .. } = &**app {
+                    let error = format!("Consecutive operators: {:?}", e.operators);
+                    errors.borrow_mut().push((error, tree.span.clone()));
+                },
             enso_parser::syntax::tree::Variant::TextLiteral(text) =>
                 for element in &text.elements {
                     if let enso_parser::syntax::tree::TextElement::Escape { token } = element {

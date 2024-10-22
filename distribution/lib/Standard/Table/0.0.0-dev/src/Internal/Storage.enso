@@ -2,6 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
+from Standard.Base.Data.Decimal import from_big_decimal, get_big_decimal
 
 import project.Column.Column
 import project.Value_Type.Bits
@@ -78,7 +79,7 @@ closest_storage_type value_type = case value_type of
    This step is unnecessary for primitive and builtin values, but necessary for
    values such as `Decimal`/`BigDecimal`.
 enso_to_java x = case x of
-    Decimal.Value big_decimal -> big_decimal
+    _ : Decimal -> get_big_decimal x
     _ -> x
 
 ## PRIVATE
@@ -88,7 +89,7 @@ enso_to_java x = case x of
    necessary for values such as `Decimal`/`BigDecimal`.
 java_to_enso x = case x of
     _ : Nothing -> Nothing
-    _ : BigDecimal -> Decimal.Value x
+    _ : BigDecimal -> from_big_decimal x
     _ -> x
 
 ## PRIVATE

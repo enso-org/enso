@@ -25,11 +25,7 @@ import org.enso.compiler.core.EnsoParser
 import org.enso.compiler.data.CompilerConfig
 import org.enso.compiler.pass.PassManager
 import org.enso.compiler.pass.analyse._
-import org.enso.compiler.phase.{
-  IdMapProcessor,
-  ImportResolver,
-  ImportResolverAlgorithm
-}
+import org.enso.compiler.phase.{ImportResolver, ImportResolverAlgorithm}
 import org.enso.editions.LibraryName
 import org.enso.pkg.QualifiedName
 import org.enso.common.CompilationStage
@@ -39,6 +35,7 @@ import org.enso.compiler.phase.exports.{
   ExportsResolution
 }
 import org.enso.syntax2.Tree
+import org.enso.syntax2.Parser
 
 import java.io.PrintStream
 import java.util.concurrent.{
@@ -73,7 +70,6 @@ class Compiler(
     if (config.outputRedirect.isDefined)
       new PrintStream(config.outputRedirect.get)
     else context.getOut
-  private lazy val ensoCompiler: EnsoParser = new EnsoParser()
 
   /** Java accessor */
   def getConfig(): CompilerConfig = config
@@ -589,25 +585,11 @@ class Compiler(
     )
     context.updateModule(module, _.resetScope())
 
-    if (useCaches) {
-      if (context.deserializeModule(this, module)) {
-        val updatedIr =
-          IdMapProcessor.updateIr(
-            context.getIr(module),
-            context.getIdMap(module)
-          )
-        if (updatedIr != null) {
-          context.updateModule(
-            module,
-            u => {
-              u.resetScope()
-              u.ir(updatedIr)
-              u.compilationStage(CompilationStage.AFTER_PARSING)
-            }
-          )
-        }
-        return
-      }
+    if (
+      useCaches && context.getIdMap(module) == null && context
+        .deserializeModule(this, module)
+    ) {
+      return
     }
 
     uncachedParseModule(module, isGenDocs)
@@ -643,11 +625,8 @@ class Compiler(
     )
 
     val src   = context.getCharacters(module)
-    val idMap = context.getIdMap(module)
-    val tree  = ensoCompiler.parse(src)
-    val expr =
-      if (idMap == null) ensoCompiler.generateIR(tree)
-      else ensoCompiler.generateModuleIr(tree, idMap.values)
+    val idMap = Option(context.getIdMap(module))
+    val expr  = EnsoParser.compile(src, idMap.map(_.values).orNull)
 
     val exprWithModuleExports =
       if (context.isSynthetic(module))
@@ -730,9 +709,8 @@ class Compiler(
     inlineContext: InlineContext
   ): Option[(InlineContext, Expression)] = {
     val newContext = inlineContext.copy(freshNameSupply = Some(freshNameSupply))
-    val tree       = ensoCompiler.parse(srcString)
 
-    ensoCompiler.generateIRInline(tree).map { ir =>
+    EnsoParser.compileInline(srcString).map { ir =>
       val compilerOutput = runCompilerPhasesInline(ir, newContext)
       runErrorHandlingInline(compilerOutput, newContext)
       (newContext, compilerOutput)
@@ -745,7 +723,7 @@ class Compiler(
     * @return A Tree representation of `source`
     */
   def parseInline(source: CharSequence): Tree =
-    ensoCompiler.parse(source)
+    Parser.parseBlock(source)
 
   /** Enhances the provided IR with import/export statements for the provided list
     * of fully qualified names of modules. The statements are considered to be "synthetic" i.e. compiler-generated.
@@ -786,31 +764,31 @@ class Compiler(
 
     val moduleNames = modules.asScala.map { q =>
       val name = q.path.foldRight(
-        List(Name.Literal(q.item, isMethod = false, location = None))
+        List(Name.Literal(q.item, isMethod = false, identifiedLocation = null))
       ) { case (part, acc) =>
-        Name.Literal(part, isMethod = false, location = None) :: acc
+        Name.Literal(part, isMethod = false, identifiedLocation = null) :: acc
       }
-      Name.Qualified(name, location = None)
+      Name.Qualified(name, identifiedLocation = null)
     }.toList
     ir.copy(
       imports = ir.imports ::: moduleNames.map(m =>
         Import.Module(
           m,
-          rename      = None,
-          isAll       = false,
-          onlyNames   = None,
-          hiddenNames = None,
-          location    = None,
-          isSynthetic = true
+          rename             = None,
+          isAll              = false,
+          onlyNames          = None,
+          hiddenNames        = None,
+          identifiedLocation = null,
+          isSynthetic        = true
         )
       ),
       exports = ir.exports ::: moduleNames.map(m =>
         Export.Module(
           m,
-          rename      = None,
-          onlyNames   = None,
-          location    = None,
-          isSynthetic = true
+          rename             = None,
+          onlyNames          = None,
+          identifiedLocation = null,
+          isSynthetic        = true
         )
       )
     )
@@ -836,6 +814,11 @@ class Compiler(
     ir: IRModule,
     moduleContext: ModuleContext
   ): IRModule = {
+    context.log(
+      Level.FINEST,
+      "Passing module {0} with method body passes",
+      moduleContext.module.getName
+    )
     passManager.runPassesOnModule(ir, moduleContext, passes.functionBodyPasses)
   }
 
@@ -843,6 +826,11 @@ class Compiler(
     ir: IRModule,
     moduleContext: ModuleContext
   ): IRModule = {
+    context.log(
+      Level.FINEST,
+      "Passing module {0} with global typing passes",
+      moduleContext.module.getName
+    )
     passManager.runPassesOnModule(ir, moduleContext, passes.globalTypingPasses)
   }
 

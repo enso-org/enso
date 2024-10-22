@@ -10,23 +10,39 @@ import scala.annotation.unused
 
 /** A representation of an Enso syntax error.
   *
-  * @param at          the error location
-  * @param reason      the cause of this error
-  * @param passData    the pass metadata associated with this node
-  * @param diagnostics compiler diagnostics for this node
+  * @param at the error location
+  * @param reason the cause of this error
+  * @param passData the pass metadata associated with this node
   */
 sealed case class Syntax(
   at: IdentifiedLocation,
   reason: Syntax.Reason,
-  passData: MetadataStorage      = new MetadataStorage(),
-  diagnostics: DiagnosticStorage = DiagnosticStorage()
+  passData: MetadataStorage = new MetadataStorage()
 ) extends Error
     with Diagnostic.Kind.Interactive
     with module.scope.Definition
     with module.scope.Export
     with module.scope.Import
     with IRKind.Primitive
+    with LazyDiagnosticStorage
     with LazyId {
+
+  /** Create a syntax error.
+    *
+    * @param at the error location
+    * @param reason the cause of this error
+    * @param passData the pass metadata associated with this node
+    * @param diagnostics the compiler diagnostics
+    */
+  def this(
+    at: IdentifiedLocation,
+    reason: Syntax.Reason,
+    passData: MetadataStorage,
+    diagnostics: DiagnosticStorage
+  ) = {
+    this(at, reason, passData)
+    this.diagnostics = diagnostics
+  }
 
   /** Creates a copy of `this`.
     *
@@ -44,9 +60,18 @@ sealed case class Syntax(
     diagnostics: DiagnosticStorage = diagnostics,
     id: UUID @Identifier           = id
   ): Syntax = {
-    val res = Syntax(at, reason, passData, diagnostics)
-    res.id = id
-    res
+    if (
+      at != this.at
+      || reason != this.reason
+      || passData != this.passData
+      || diagnostics != this.diagnostics
+      || id != this.id
+    ) {
+      val res = Syntax(at, reason, passData)
+      res.diagnostics = diagnostics
+      res.id          = id
+      res
+    } else this
   }
 
   /** @inheritdoc */
@@ -59,9 +84,8 @@ sealed case class Syntax(
     copy(
       passData =
         if (keepMetadata) passData.duplicate else new MetadataStorage(),
-      diagnostics =
-        if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-      id = if (keepIdentifiers) id else null
+      diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+      id          = if (keepIdentifiers) id else null
     )
 
   /** @inheritdoc */
@@ -69,7 +93,8 @@ sealed case class Syntax(
     this
 
   /** @inheritdoc */
-  override val location: Option[IdentifiedLocation] = Option(at)
+  override def identifiedLocation: IdentifiedLocation =
+    at
 
   /** @inheritdoc */
   override def mapExpressions(
@@ -109,12 +134,10 @@ sealed case class Syntax(
 
 object Syntax {
 
-  /** A common type for all syntax errors expected by the language.
-    */
+  /** A common type for all syntax errors expected by the language. */
   sealed trait Reason {
 
-    /** @return a human-readable description of the error.
-      */
+    /** @return a human-readable description of the error. */
     def explanation: String
   }
 

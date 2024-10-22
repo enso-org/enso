@@ -30,9 +30,7 @@ add_specs suite_builder =
                     event
 
                 my_event.metadata.get "operation" . should_equal "TestEvent"
-
-                # TODO this test should be re-enabled after https://github.com/enso-org/enso/issues/9845 is fixed
-                #my_event.metadata.get "projectName" . should_equal "enso_dev.Base_Tests"
+                my_event.metadata.get "projectName" . should_equal "enso_dev.Base_Tests"
 
                 my_event.message . should_equal "Message"
                 my_event.user_email . should_equal Enso_User.current.email
@@ -55,6 +53,18 @@ add_specs suite_builder =
         group_builder.specify "does not allow restricted fields in metadata" <| setup.with_prepared_environment <|
             Audit_Log.report_event "TestEventType" "Message" (JS_Object.from_pairs [["type", "my type override?"]]) . should_fail_with Illegal_Argument
 
+        group_builder.specify "should be able to send many messages quickly" <| setup.with_prepared_environment <|
+            random_payload = "payload-" + Random.uuid
+            0.up_to 120 . each ix->
+                Audit_Log.report_event "TestEvent" "Message" (JS_Object.from_pairs [["my_field", random_payload], ["seq", ix]]) async=True . should_succeed
+
+            # With the last log message we do `async=False`, so that we wait until this message (and all previous ones) are processed.
+            Audit_Log.report_event "TestEvent" "Message" (JS_Object.from_pairs [["my_field", random_payload]]) async=False . should_succeed
+
+            Test.with_retries <|
+                events = get_audit_log_events . filter ev-> (ev.metadata.get "my_field") == random_payload
+                events.length . should_equal 121
+
 main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
@@ -71,7 +81,7 @@ get_audit_log_events -> Vector Audit_Log_Event =
 ## PRIVATE
 type Audit_Log_Event
     ## PRIVATE
-    Value organization_id:Text user_email:Text timestamp:Date_Time metadata:JS_Object message:Text project_id:Text
+    Value organization_id:Text user_email:Text timestamp:Date_Time|Nothing metadata:JS_Object message:Text project_id:Text|Nothing
 
     ## PRIVATE
     from_json json =

@@ -10,6 +10,7 @@ import org.enso.cli.OS
 import org.enso.launcher._
 import org.enso.testkit.{FlakySpec, WithTemporaryDirectory}
 import org.enso.process.{RunResult, WrappedProcess}
+import org.enso.version.BuildVersion
 import org.scalatest.exceptions.TestFailedException
 import org.scalatest.{BeforeAndAfterAll, Ignore, OptionValues}
 
@@ -181,7 +182,7 @@ class UpgradeSpec
     "not downgrade without being explicitly asked to do so" taggedAs Flaky in {
       // precondition for the test to make sense
       SemVer
-        .parse(buildinfo.Info.ensoVersion)
+        .parse(BuildVersion.ensoVersion)
         .get
         .isGreaterThan(SemVer.of(0, 0, 4)) shouldBe true
 
@@ -195,7 +196,7 @@ class UpgradeSpec
     "(and update necessary files)" taggedAs Flaky in {
       // precondition for the test to make sense
       SemVer
-        .parse(buildinfo.Info.ensoVersion)
+        .parse(BuildVersion.ensoVersion)
         .get
         .isGreaterThan(SemVer.of(0, 0, 4)) shouldBe true
 

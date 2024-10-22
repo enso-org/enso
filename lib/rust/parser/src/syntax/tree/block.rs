@@ -56,6 +56,14 @@ pub fn parse_module<'s>(
     BodyBlockParser::default().parse_module(lines, precedence)
 }
 
+/// Parse a body block.
+pub fn parse_block<'s>(
+    lines: impl IntoIterator<Item = item::Line<'s>>,
+    precedence: &mut operator::Precedence<'s>,
+) -> Tree<'s> {
+    BodyBlockParser::default().parse_body_block(lines, precedence)
+}
+
 
 
 // === Multi-line expression construction ===
@@ -142,7 +150,7 @@ impl<'s> TryFrom<Tree<'s>> for Prefix<'s> {
     fn try_from(tree: Tree<'s>) -> Result<Self, Self::Error> {
         match tree.variant {
             Variant::Annotated(node) => Ok(Prefix::Annotation { node, span: tree.span }),
-            Variant::AnnotatedBuiltin(node @ box AnnotatedBuiltin { expression: None, .. }) =>
+            Variant::AnnotatedBuiltin(node) if node.expression.is_none() =>
                 Ok(Prefix::BuiltinAnnotation { node, span: tree.span }),
             Variant::Documented(node) => Ok(Prefix::Documentation { node, span: tree.span }),
             _ => Err(tree),
@@ -153,12 +161,9 @@ impl<'s> TryFrom<Tree<'s>> for Prefix<'s> {
 impl<'s> Prefix<'s> {
     fn push_newline(&mut self, newline: token::Newline<'s>) {
         let (newlines, span) = match self {
-            Prefix::Annotation { node: box Annotated { newlines, .. }, span }
-            | Prefix::BuiltinAnnotation { node: box AnnotatedBuiltin { newlines, .. }, span }
-            | Prefix::Documentation {
-                node: box Documented { documentation: DocComment { newlines, .. }, .. },
-                span,
-            } => (newlines, span),
+            Prefix::Annotation { node, span } => (&mut node.newlines, span),
+            Prefix::BuiltinAnnotation { node, span } => (&mut node.newlines, span),
+            Prefix::Documentation { node, span } => (&mut node.documentation.newlines, span),
         };
         span.code_length += newline.left_offset.code.length() + newline.code.length();
         newlines.push(newline);
@@ -210,18 +215,17 @@ fn to_operator_block_expression<'s>(
     mut items: Vec<Item<'s>>,
     precedence: &mut operator::Precedence<'s>,
 ) -> Result<OperatorBlockExpression<'s>, Tree<'s>> {
-    if let Some(b) = items.get(1)
-        && b.left_visible_offset().width_in_spaces != 0
-        && let Some(Item::Token(a)) = items.first()
-        && let Some(properties) = &a.operator_properties()
-        && properties.can_form_section()
-    {
-        let expression = precedence.resolve_offset(1, &mut items).unwrap();
-        let Some(Item::Token(operator)) = items.pop() else { unreachable!() };
-        let operator = Ok(operator.with_variant(token::variant::Operator()));
-        Ok(OperatorBlockExpression { operator, expression })
-    } else {
-        Err(precedence.resolve(&mut items).unwrap())
+    match &items[..] {
+        [Item::Token(a), b, ..]
+            if b.left_visible_offset().width_in_spaces != 0
+                && a.operator_properties().is_some_and(|p| p.can_form_section()) =>
+        {
+            let expression = precedence.resolve_offset(1, &mut items).unwrap();
+            let Some(Item::Token(operator)) = items.pop() else { unreachable!() };
+            let operator = Ok(operator.with_variant(token::variant::Operator()));
+            Ok(OperatorBlockExpression { operator, expression })
+        }
+        _ => Err(precedence.resolve(&mut items).unwrap()),
     }
 }
 

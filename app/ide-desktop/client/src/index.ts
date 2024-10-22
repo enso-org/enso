@@ -1,9 +1,11 @@
-/** @file Definition of an Electron application, which entails the creation of a rudimentary HTTP
+/**
+ * @file Definition of an Electron application, which entails the creation of a rudimentary HTTP
  * server and the presentation of a Chrome web view, designed for optimal performance and
  * compatibility across a wide range of hardware configurations. The application's web component
  * is then served and showcased within the web view, complemented by the establishment of an
  * Inter-Process Communication channel, which enables seamless communication between the served web
- * application and the Electron process. */
+ * application and the Electron process.
+ */
 
 import './cjs-shim' // must be imported first
 
@@ -39,12 +41,23 @@ import * as urlAssociations from '@/urlAssociations'
 
 const logger = contentConfig.logger
 
+/** Convert path to proper `file://` URL. */
+function pathToURL(path: string): URL {
+  if (process.platform === 'win32') {
+    return new URL(encodeURI(`file:///${path.replaceAll('\\', '/')}`))
+  } else {
+    return new URL(encodeURI(`file://${path}`))
+  }
+}
+
 // ===========
 // === App ===
 // ===========
 
-/** The Electron application. It is responsible for starting all the required services, and
- * displaying and managing the app window. */
+/**
+ * The Electron application. It is responsible for starting all the required services, and
+ * displaying and managing the app window.
+ */
 class App {
   window: electron.BrowserWindow | null = null
   server: server.Server | null = null
@@ -58,11 +71,12 @@ class App {
     log.addFileLog()
     urlAssociations.registerAssociations()
     // Register file associations for macOS.
-    fileAssociations.setOpenFileEventHandler(project => {
+    fileAssociations.setOpenFileEventHandler(path => {
       if (electron.app.isReady()) {
+        const project = fileAssociations.handleOpenFile(path)
         this.window?.webContents.send(ipc.Channel.openProject, project)
       } else {
-        this.setProjectToOpenOnStartup(project.id)
+        this.setProjectToOpenOnStartup(pathToURL(path))
       }
     })
 
@@ -143,51 +157,55 @@ class App {
     return { ...configParser.parseArgs(argsToParse), fileToOpen, urlToOpen }
   }
 
-  /** Set the project to be opened on application startup.
+  /**
+   * Set the project to be opened on application startup.
    *
    * This method should be called before the application is ready, as it only
    * modifies the startup options. If the application is already initialized,
    * an error will be logged, and the method will have no effect.
-   * @param projectId - The ID of the project to be opened on startup. */
-  setProjectToOpenOnStartup(projectId: string) {
+   * @param projectUrl - The `file://` url of project to be opened on startup.
+   */
+  setProjectToOpenOnStartup(projectUrl: URL) {
     // Make sure that we are not initialized yet, as this method should be called before the
     // application is ready.
     if (!electron.app.isReady()) {
-      logger.log(`Setting the project to open on startup to '${projectId}'.`)
-      this.args.groups.startup.options.project.value = projectId
+      logger.log(`Setting the project to open on startup to '${projectUrl.toString()}'.`)
+      this.args.groups.startup.options.project.value = projectUrl.toString()
     } else {
       logger.error(
         "Cannot set the project to open on startup to '" +
-          projectId +
+          projectUrl.toString() +
           "', as the application is already initialized.",
       )
     }
   }
 
-  /** This method is invoked when the application was spawned due to being a default application
-   * for a URL protocol or file extension. */
+  /**
+   * This method is invoked when the application was spawned due to being a default application
+   * for a URL protocol or file extension.
+   */
   handleItemOpening(fileToOpen: string | null, urlToOpen: URL | null) {
     logger.log('Opening file or URL.', { fileToOpen, urlToOpen })
     try {
       if (fileToOpen != null) {
-        // This makes the IDE open the relevant project. Also, this prevents us from using
-        // this method after the IDE has been fully set up, as the initializing code
-        // would have already read the value of this argument.
-        const projectInfo = fileAssociations.handleOpenFile(fileToOpen)
-        this.setProjectToOpenOnStartup(projectInfo.id)
+        // The IDE must receive the project path, otherwise if the IDE has a custom root directory
+        // set then it is added to the (incorrect) default root directory.
+        this.setProjectToOpenOnStartup(pathToURL(fileToOpen))
       }
 
       if (urlToOpen != null) {
         urlAssociations.handleOpenUrl(urlToOpen)
       }
-    } catch (e) {
+    } catch {
       // If we failed to open the file, we should enter the usual welcome screen.
       // The `handleOpenFile` function will have already displayed an error message.
     }
   }
 
-  /** Set Chrome options based on the app configuration. For comprehensive list of available
-   * Chrome options refer to: https://peter.sh/experiments/chromium-command-line-switches. */
+  /**
+   * Set Chrome options based on the app configuration. For comprehensive list of available
+   * Chrome options refer to: https://peter.sh/experiments/chromium-command-line-switches.
+   */
   setChromeOptions(chromeOptions: configParser.ChromeOption[]) {
     const addIf = (
       option: contentConfig.Option<boolean>,
@@ -246,10 +264,12 @@ class App {
         await this.createWindowIfEnabled(windowSize)
         this.initIpc()
         await this.loadWindowContent()
-        /** The non-null assertion on the following line is safe because the window
+        /**
+         * The non-null assertion on the following line is safe because the window
          * initialization is guarded by the `createWindowIfEnabled` method. The window is
          * not yet created at this point, but it will be created by the time the
-         * authentication module uses the lambda providing the window. */
+         * authentication module uses the lambda providing the window.
+         */
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         authentication.initAuthentication(() => this.window!)
       })
@@ -346,6 +366,9 @@ class App {
           enableBlinkFeatures: argGroups.chrome.options.enableBlinkFeatures.value,
           disableBlinkFeatures: argGroups.chrome.options.disableBlinkFeatures.value,
           spellcheck: false,
+          ...(process.env.ENSO_TEST != null && process.env.ENSO_TEST !== '' ?
+            { partition: 'test' }
+          : {}),
         }
         const windowPreferences: electron.BrowserWindowConstructorOptions = {
           webPreferences,
@@ -430,8 +453,10 @@ class App {
     })
   }
 
-  /** Initialize Inter-Process Communication between the Electron application and the served
-   * website. */
+  /**
+   * Initialize Inter-Process Communication between the Electron application and the served
+   * website.
+   */
   initIpc() {
     electron.ipcMain.on(ipc.Channel.error, (_event, data) => {
       logger.error(`IPC error: ${JSON.stringify(data)}`)
@@ -462,9 +487,9 @@ class App {
     })
     electron.ipcMain.on(
       ipc.Channel.importProjectFromPath,
-      (event, path: string, directory: string | null) => {
+      (event, path: string, directory: string | null, title: string) => {
         const directoryParams = directory == null ? [] : [directory]
-        const info = projectManagement.importProjectFromPath(path, ...directoryParams)
+        const info = projectManagement.importProjectFromPath(path, ...directoryParams, title)
         event.reply(ipc.Channel.importProjectFromPath, path, info)
       },
     )
@@ -524,9 +549,11 @@ class App {
     })
   }
 
-  /** The server port. In case the server was not started, the port specified in the configuration
+  /**
+   * The server port. In case the server was not started, the port specified in the configuration
    * is returned. This might be used to connect this application window to another, existing
-   * application server. */
+   * application server.
+   */
   serverPort(): number {
     return this.server?.config.port ?? this.args.groups.server.options.port.value
   }

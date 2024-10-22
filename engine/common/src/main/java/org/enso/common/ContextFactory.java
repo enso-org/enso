@@ -3,11 +3,11 @@ package org.enso.common;
 import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.HashMap;
 import java.util.Map;
-
 import org.enso.logger.Converter;
 import org.enso.logger.JulHandler;
-import org.enso.logger.LoggerSetup;
+import org.enso.logging.config.LoggerSetup;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.HostAccess;
 import org.graalvm.polyglot.io.MessageTransport;
@@ -30,6 +30,8 @@ import org.slf4j.event.Level;
  * @param options additional options for the Context
  * @param executionEnvironment optional name of the execution environment to use during execution
  * @param warningsLimit maximal number of warnings reported to the user
+ * @param checkForWarnings name of method to check for warnings
+ * @param enableDebugServer enable debug (e.g. REPL) server
  */
 public final class ContextFactory {
   private String projectRoot;
@@ -47,8 +49,10 @@ public final class ContextFactory {
   private boolean useGlobalIrCacheLocation = true;
   private boolean enableAutoParallelism;
   private String executionEnvironment;
+  private String checkForWarnings;
   private int warningsLimit = 100;
-  private java.util.Map<String, String> options = java.util.Collections.emptyMap();
+  private java.util.Map<String, String> options = new HashMap<>();
+  private boolean enableDebugServer;
 
   private ContextFactory() {}
 
@@ -141,6 +145,16 @@ public final class ContextFactory {
     return this;
   }
 
+  public ContextFactory checkForWarnings(String fqnOfMethod) {
+    this.checkForWarnings = fqnOfMethod;
+    return this;
+  }
+
+  public ContextFactory enableDebugServer(boolean b) {
+    this.enableDebugServer = b;
+    return this;
+  }
+
   public Context build() {
     if (executionEnvironment != null) {
       options.put("enso.ExecutionEnvironment", executionEnvironment);
@@ -169,6 +183,12 @@ public final class ContextFactory {
             .out(out)
             .err(err)
             .in(in);
+    if (checkForWarnings != null) {
+      builder.option(DebugServerInfo.METHOD_BREAKPOINT_OPTION, checkForWarnings);
+    }
+    if (enableDebugServer) {
+      builder.option(DebugServerInfo.ENABLE_OPTION, "true");
+    }
     if (messageTransport != null) {
       builder.serverTransport(messageTransport);
     }
@@ -239,5 +259,4 @@ public final class ContextFactory {
         .allowAccessInheritance(true)
         .build();
   }
-
 }

@@ -77,9 +77,6 @@ object NativeImage {
     *                            time initialization is set to default
     * @param initializeAtBuildtime a list of classes that should be initialized at
     *                              build time.
-    * @param includeRuntime Whether `org.enso.runtime` should is included. If yes, then
-    *                       it will be passed as a module to the native-image along with other
-    *                       Graal and Truffle related modules.
     * @param verbose whether to print verbose output from the native image.
     */
   def buildNativeImage(
@@ -92,8 +89,7 @@ object NativeImage {
     initializeAtRuntime: Seq[String]         = Seq.empty,
     initializeAtBuildtime: Seq[String]       = defaultBuildTimeInitClasses,
     mainClass: Option[String]                = None,
-    verbose: Boolean                         = false,
-    includeRuntime: Boolean                  = true
+    verbose: Boolean                         = false
   ): Def.Initialize[Task[Unit]] = Def
     .task {
       val log       = state.value.log
@@ -199,23 +195,10 @@ object NativeImage {
         (LocalProject("engine-runner") / Runtime / fullClasspath).value
       val ourCp      = (Runtime / fullClasspath).value
       val cpToSearch = (ourCp ++ runtimeCp ++ runnerCp).distinct
-      val componentModules: Seq[String] = JPMSUtils
-        .filterModulesFromClasspath(
-          cpToSearch,
-          JPMSUtils.componentModules,
-          log,
-          shouldContainAll = true
-        )
-        .map(_.data.getAbsolutePath)
 
-      val auxCp = additionalCp.value
-      val fullCp =
-        if (includeRuntime) {
-          componentModules ++ auxCp
-        } else {
-          ourCp.map(_.data.getAbsolutePath) ++ auxCp
-        }
-      val cpStr = fullCp.mkString(File.pathSeparator)
+      val auxCp  = additionalCp.value
+      val fullCp = ourCp.map(_.data.getAbsolutePath) ++ auxCp
+      val cpStr  = fullCp.mkString(File.pathSeparator)
       log.debug("Class-path: " + cpStr)
 
       val verboseOpt = if (verbose) Seq("--verbose") else Seq()

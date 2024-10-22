@@ -6,6 +6,8 @@ import org.enso.interpreter.instrument.execution.{Executable, RuntimeContext}
 import org.enso.interpreter.runtime.state.ExecutionEnvironment
 import org.enso.polyglot.runtime.Runtime.Api
 
+import java.util.logging.Level
+
 /** A job responsible for executing a call stack for the provided context.
   *
   * @param contextId an identifier of a context to execute
@@ -27,6 +29,38 @@ class ExecuteJob(
 
   /** @inheritdoc */
   override def run(implicit ctx: RuntimeContext): Unit = {
+    try {
+      runImpl
+    } catch {
+      case t: Throwable =>
+        ctx.executionService.getLogger.log(Level.SEVERE, "Failed to execute", t)
+        val errorMsg = if (t.getMessage == null) {
+          if (t.getCause == null) {
+            t.getClass.getSimpleName
+          } else {
+            val cause = t.getCause
+            if (cause.getMessage == null) {
+              cause.getClass.getSimpleName
+            } else {
+              cause.getMessage
+            }
+          }
+        } else t.getMessage
+
+        ctx.endpoint.sendToClient(
+          Api.Response(
+            Api.ExecutionFailed(
+              contextId,
+              Api.ExecutionResult.Failure(errorMsg, None)
+            )
+          )
+        )
+    }
+  }
+
+  private def runImpl(implicit ctx: RuntimeContext): Unit = {
+    ctx.state.executionHooks.run()
+
     ctx.locking.withContextLock(
       ctx.locking.getOrCreateContextLock(contextId),
       this.getClass,
@@ -34,56 +68,46 @@ class ExecuteJob(
         ctx.locking.withReadCompilationLock(
           this.getClass,
           () => {
-            try {
-              val context = ctx.executionService.getContext
-              val originalExecutionEnvironment =
-                executionEnvironment.map(_ => context.getExecutionEnvironment)
-              executionEnvironment.foreach(env =>
-                context.setExecutionEnvironment(
-                  ExecutionEnvironment.forName(env.name)
-                )
+            val context = ctx.executionService.getContext
+            val originalExecutionEnvironment =
+              executionEnvironment.map(_ =>
+                context.getGlobalExecutionEnvironment
               )
-              val outcome =
-                try ProgramExecutionSupport.runProgram(contextId, stack)
-                finally {
-                  originalExecutionEnvironment.foreach(
-                    context.setExecutionEnvironment
-                  )
-                }
-              outcome match {
-                case Some(diagnostic: Api.ExecutionResult.Diagnostic) =>
-                  if (diagnostic.isError) {
-                    ctx.endpoint.sendToClient(
-                      Api.Response(Api.ExecutionFailed(contextId, diagnostic))
-                    )
-                  } else {
-                    ctx.endpoint.sendToClient(
-                      Api.Response(
-                        Api.ExecutionUpdate(contextId, Seq(diagnostic))
-                      )
-                    )
-                    ctx.endpoint.sendToClient(
-                      Api.Response(Api.ExecutionComplete(contextId))
-                    )
-                  }
-                case Some(failure: Api.ExecutionResult.Failure) =>
+            executionEnvironment.foreach(env =>
+              context.setExecutionEnvironment(
+                ExecutionEnvironment.forName(env.name)
+              )
+            )
+            val outcome =
+              try ProgramExecutionSupport.runProgram(contextId, stack)
+              finally {
+                originalExecutionEnvironment.foreach(
+                  context.setExecutionEnvironment
+                )
+              }
+            outcome match {
+              case Some(diagnostic: Api.ExecutionResult.Diagnostic) =>
+                if (diagnostic.isError) {
                   ctx.endpoint.sendToClient(
-                    Api.Response(Api.ExecutionFailed(contextId, failure))
+                    Api.Response(Api.ExecutionFailed(contextId, diagnostic))
                   )
-                case None =>
+                } else {
+                  ctx.endpoint.sendToClient(
+                    Api.Response(
+                      Api.ExecutionUpdate(contextId, Seq(diagnostic))
+                    )
+                  )
                   ctx.endpoint.sendToClient(
                     Api.Response(Api.ExecutionComplete(contextId))
                   )
-              }
-            } catch {
-              case t: Throwable =>
+                }
+              case Some(failure: Api.ExecutionResult.Failure) =>
                 ctx.endpoint.sendToClient(
-                  Api.Response(
-                    Api.ExecutionFailed(
-                      contextId,
-                      Api.ExecutionResult.Failure(t.getMessage, None)
-                    )
-                  )
+                  Api.Response(Api.ExecutionFailed(contextId, failure))
+                )
+              case None =>
+                ctx.endpoint.sendToClient(
+                  Api.Response(Api.ExecutionComplete(contextId))
                 )
             }
           }

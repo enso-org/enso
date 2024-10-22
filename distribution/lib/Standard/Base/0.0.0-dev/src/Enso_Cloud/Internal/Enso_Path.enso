@@ -17,22 +17,19 @@ from project.Data.Text.Extensions import all
    This is a helper for handling `enso://` paths.
 type Enso_Path
     ## PRIVATE
-    private Value (organization_name : Text) (path_segments : Vector Text)
+    private Value (path_segments : Vector Text)
 
     ## PRIVATE
     parse (path : Text) -> Enso_Path =
         if path.starts_with Enso_Path.protocol_prefix . not then Error.throw (Illegal_Argument.Error "Invalid path - it should start with `enso://`.") else
             raw_segments = path.drop Enso_Path.protocol_prefix.length . split Enso_Path.delimiter
             if raw_segments.is_empty then Error.throw (Illegal_Argument.Error "Invalid path - it should contain at least one segment.") else
-                organization_name = raw_segments.first
-                if organization_name.is_empty then Error.throw (Illegal_Argument.Error "Invalid path - organization name cannot be empty.") else
-                    segments = raw_segments.drop 1 . filter s-> s.is_empty.not
-                    normalized = normalize segments
-                    Enso_Path.Value organization_name normalized
+                segments = raw_segments.filter s-> s.is_empty.not
+                normalized = normalize segments
+                Enso_Path.Value normalized
 
     ## PRIVATE
-    root_for (organization_name : Text) =
-        Enso_Path.Value organization_name []
+    root = Enso_Path.Value []
 
     ## PRIVATE
     is_root self -> Boolean =
@@ -41,23 +38,22 @@ type Enso_Path
     ## PRIVATE
     parent self -> Enso_Path =
         if self.is_root then Error.throw (Illegal_Argument.Error "Cannot get parent of the root directory.") else
-            Enso_Path.Value self.organization_name (self.path_segments.drop (..Last 1))
+            Enso_Path.Value (self.path_segments.drop (..Last 1))
 
     ## PRIVATE
     resolve self (subpath : Text) -> Enso_Path =
         new_segments = subpath.split Enso_Path.delimiter . filter (p-> p.is_empty.not)
         normalized_segments = normalize (self.path_segments + new_segments)
-        Enso_Path.Value self.organization_name normalized_segments
+        Enso_Path.Value normalized_segments
 
     ## PRIVATE
     is_descendant_of self (other : Enso_Path) -> Boolean =
-        if self.organization_name != other.organization_name then False else
-            if self.path_segments.length < other.path_segments.length then False else
-                (self.path_segments.take other.path_segments.length) == other.path_segments
+        if self.path_segments.length < other.path_segments.length then False else
+            (self.path_segments.take other.path_segments.length) == other.path_segments
 
     ## PRIVATE
     to_text self -> Text =
-        Enso_Path.protocol_prefix + self.organization_name + Enso_Path.delimiter + self.path_segments.join Enso_Path.delimiter
+        Enso_Path.protocol_prefix + self.path_segments.join Enso_Path.delimiter
 
     ## PRIVATE
     delimiter = "/"
@@ -67,4 +63,12 @@ type Enso_Path
 
 ## PRIVATE
 normalize segments =
-    Path_Helpers.normalize_segments segments (x->x)
+    after_resolving_dots = Path_Helpers.normalize_segments segments (x->x)
+    starts_with_tilde = after_resolving_dots.take 1 == ["~"]
+    if starts_with_tilde.not then after_resolving_dots else
+        # If after resolution our path starts with `~`, we replace that with a home directory.
+        home_path = Enso_File.home.enso_path
+        new_segments = home_path.path_segments + after_resolving_dots.drop 1
+        ## We need to call normalize again, because technically a path `enso://a/../~/../../~` is a valid path
+           that points to the user home and it should be correctly normalized, but requires numerous passes to do so.
+        @Tail_Call normalize new_segments

@@ -21,6 +21,7 @@ import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.ApplicationNode;
+import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode;
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode;
 import org.enso.interpreter.node.callable.function.BlockNode;
@@ -177,10 +178,14 @@ public final class UnresolvedConstructor implements EnsoObject {
           prototype.where.getRootNode() instanceof EnsoRootNode root ? root.getModuleScope() : null;
       for (var where = prototype.where; where != null; where = where.getParent()) {
         if (where instanceof ExpressionNode withId && withId.getId() != null) {
-          id = withId.getId();
+          if (!(where instanceof ApplicationNode)) {
+            id = withId.getId();
+          }
           section = withId.getSourceSection();
           scope = withId.getRootNode() instanceof EnsoRootNode root ? root.getModuleScope() : null;
           break;
+        } else if (where instanceof InvokeCallableNode callable && callable.getId() != null) {
+          id = callable.getId();
         }
       }
       var fn = ReadArgumentNode.build(0, null, null);
@@ -191,16 +196,18 @@ public final class UnresolvedConstructor implements EnsoObject {
                 prototype.descs[i].getName(), ReadArgumentNode.build(1 + i, null, null));
       }
       var expr = ApplicationNode.build(fn, args, DefaultsExecutionMode.EXECUTE);
-      expr.setId(id);
+      if (id != null) {
+        expr.setId(id);
+      }
       if (section != null) {
         expr.setSourceLocation(section.getCharIndex(), section.getCharLength());
       }
       var lang = EnsoLanguage.get(null);
-      var body = BlockNode.build(new ExpressionNode[0], expr);
+      var body = BlockNode.buildSilent(new ExpressionNode[0], expr);
       body.adoptChildren();
       var root =
           ClosureRootNode.build(
-              lang, LocalScope.root(), scope, body, section, prototype.getName(), true, true);
+              lang, LocalScope.empty(), scope, body, section, prototype.getName(), true, true);
       root.adoptChildren();
       assert Objects.equals(expr.getSourceSection(), section)
           : "Expr: " + expr.getSourceSection() + " orig: " + section;

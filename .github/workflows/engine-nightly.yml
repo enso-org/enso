@@ -13,8 +13,8 @@ on:
         type: boolean
         default: false
 jobs:
-  enso-build-ci-gen-job-ci-check-backend-graal-vm-ce-linux-x86_64:
-    name: Engine (GraalVM CE) (linux, x86_64)
+  enso-build-ci-gen-job-ci-check-backend-graal-vm-ce-linux-amd64:
+    name: Engine (GraalVM CE) (linux, amd64)
     runs-on:
       - self-hosted
       - Linux
@@ -23,7 +23,7 @@ jobs:
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
-          version: v0.10.2
+          version: v0.12.1
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -69,7 +69,7 @@ jobs:
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
-          version: v0.10.2
+          version: v0.12.1
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -104,16 +104,16 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
       GRAAL_EDITION: GraalVM CE
-  enso-build-ci-gen-job-ci-check-backend-graal-vm-ce-macos-x86_64:
-    name: Engine (GraalVM CE) (macos, x86_64)
+  enso-build-ci-gen-job-ci-check-backend-graal-vm-ce-macos-amd64:
+    name: Engine (GraalVM CE) (macos, amd64)
     runs-on:
-      - macos-12
+      - macos-13
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
-          version: v0.10.2
+          version: v0.12.1
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -148,8 +148,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
       GRAAL_EDITION: GraalVM CE
-  enso-build-ci-gen-job-ci-check-backend-graal-vm-ce-windows-x86_64:
-    name: Engine (GraalVM CE) (windows, x86_64)
+  enso-build-ci-gen-job-ci-check-backend-graal-vm-ce-windows-amd64:
+    name: Engine (GraalVM CE) (windows, amd64)
     runs-on:
       - self-hosted
       - Windows
@@ -158,7 +158,7 @@ jobs:
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
-          version: v0.10.2
+          version: v0.12.1
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -193,8 +193,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
       GRAAL_EDITION: GraalVM CE
-  enso-build-ci-gen-job-ci-check-backend-oracle-graal-vm-linux-x86_64:
-    name: Engine (Oracle GraalVM) (linux, x86_64)
+  enso-build-ci-gen-job-ci-check-backend-oracle-graal-vm-linux-amd64:
+    name: Engine (Oracle GraalVM) (linux, amd64)
     runs-on:
       - self-hosted
       - Linux
@@ -203,7 +203,7 @@ jobs:
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
-          version: v0.10.2
+          version: v0.12.1
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -238,8 +238,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
       GRAAL_EDITION: Oracle GraalVM
-  enso-build-ci-gen-job-jvm-tests-graal-vm-ce-linux-x86_64:
-    name: JVM Tests (GraalVM CE) (linux, x86_64)
+  enso-build-ci-gen-job-jvm-tests-graal-vm-ce-linux-amd64:
+    name: JVM Tests (GraalVM CE) (linux, amd64)
     runs-on:
       - self-hosted
       - Linux
@@ -248,7 +248,7 @@ jobs:
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
-          version: v0.10.2
+          version: v0.12.1
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -275,7 +275,7 @@ jobs:
         uses: dorny/test-reporter@v1
         with:
           max-annotations: 50
-          name: Engine Tests Report (GraalVM CE, linux, x86_64)
+          name: Engine Tests Report (GraalVM CE, linux, amd64)
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*.xml
           path-replace-backslashes: true
           reporter: java-junit
@@ -305,7 +305,7 @@ jobs:
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
-          version: v0.10.2
+          version: v0.12.1
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -351,16 +351,16 @@ jobs:
       GRAAL_EDITION: GraalVM CE
     permissions:
       checks: write
-  enso-build-ci-gen-job-jvm-tests-graal-vm-ce-macos-x86_64:
-    name: JVM Tests (GraalVM CE) (macos, x86_64)
+  enso-build-ci-gen-job-jvm-tests-graal-vm-ce-macos-amd64:
+    name: JVM Tests (GraalVM CE) (macos, amd64)
     runs-on:
-      - macos-12
+      - macos-13
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
-          version: v0.10.2
+          version: v0.12.1
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -387,7 +387,7 @@ jobs:
         uses: dorny/test-reporter@v1
         with:
           max-annotations: 50
-          name: Engine Tests Report (GraalVM CE, macos, x86_64)
+          name: Engine Tests Report (GraalVM CE, macos, amd64)
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*.xml
           path-replace-backslashes: true
           reporter: java-junit
@@ -406,8 +406,8 @@ jobs:
       GRAAL_EDITION: GraalVM CE
     permissions:
       checks: write
-  enso-build-ci-gen-job-jvm-tests-graal-vm-ce-windows-x86_64:
-    name: JVM Tests (GraalVM CE) (windows, x86_64)
+  enso-build-ci-gen-job-jvm-tests-graal-vm-ce-windows-amd64:
+    name: JVM Tests (GraalVM CE) (windows, amd64)
     runs-on:
       - self-hosted
       - Windows
@@ -416,7 +416,7 @@ jobs:
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
-          version: v0.10.2
+          version: v0.12.1
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -443,7 +443,7 @@ jobs:
         uses: dorny/test-reporter@v1
         with:
           max-annotations: 50
-          name: Engine Tests Report (GraalVM CE, windows, x86_64)
+          name: Engine Tests Report (GraalVM CE, windows, amd64)
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*.xml
           path-replace-backslashes: true
           reporter: java-junit
@@ -462,8 +462,8 @@ jobs:
       GRAAL_EDITION: GraalVM CE
     permissions:
       checks: write
-  enso-build-ci-gen-job-jvm-tests-oracle-graal-vm-linux-x86_64:
-    name: JVM Tests (Oracle GraalVM) (linux, x86_64)
+  enso-build-ci-gen-job-jvm-tests-oracle-graal-vm-linux-amd64:
+    name: JVM Tests (Oracle GraalVM) (linux, amd64)
     runs-on:
       - self-hosted
       - Linux
@@ -472,7 +472,7 @@ jobs:
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
-          version: v0.10.2
+          version: v0.12.1
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -499,7 +499,7 @@ jobs:
         uses: dorny/test-reporter@v1
         with:
           max-annotations: 50
-          name: Engine Tests Report (Oracle GraalVM, linux, x86_64)
+          name: Engine Tests Report (Oracle GraalVM, linux, amd64)
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*.xml
           path-replace-backslashes: true
           reporter: java-junit
@@ -518,8 +518,8 @@ jobs:
       GRAAL_EDITION: Oracle GraalVM
     permissions:
       checks: write
-  enso-build-ci-gen-job-standard-library-tests-graal-vm-ce-linux-x86_64:
-    name: Standard Library Tests (GraalVM CE) (linux, x86_64)
+  enso-build-ci-gen-job-standard-library-tests-graal-vm-ce-linux-amd64:
+    name: Standard Library Tests (GraalVM CE) (linux, amd64)
     runs-on:
       - self-hosted
       - Linux
@@ -528,7 +528,7 @@ jobs:
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
-          version: v0.10.2
+          version: v0.12.1
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -558,7 +558,7 @@ jobs:
         uses: dorny/test-reporter@v1
         with:
           max-annotations: 50
-          name: Standard Library Tests Report (GraalVM CE, linux, x86_64)
+          name: Standard Library Tests Report (GraalVM CE, linux, amd64)
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
           path-replace-backslashes: true
           reporter: java-junit
@@ -588,7 +588,7 @@ jobs:
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
-          version: v0.10.2
+          version: v0.12.1
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -637,16 +637,16 @@ jobs:
       GRAAL_EDITION: GraalVM CE
     permissions:
       checks: write
-  enso-build-ci-gen-job-standard-library-tests-graal-vm-ce-macos-x86_64:
-    name: Standard Library Tests (GraalVM CE) (macos, x86_64)
+  enso-build-ci-gen-job-standard-library-tests-graal-vm-ce-macos-amd64:
+    name: Standard Library Tests (GraalVM CE) (macos, amd64)
     runs-on:
-      - macos-12
+      - macos-13
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
-          version: v0.10.2
+          version: v0.12.1
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -676,7 +676,7 @@ jobs:
         uses: dorny/test-reporter@v1
         with:
           max-annotations: 50
-          name: Standard Library Tests Report (GraalVM CE, macos, x86_64)
+          name: Standard Library Tests Report (GraalVM CE, macos, amd64)
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
           path-replace-backslashes: true
           reporter: java-junit
@@ -695,8 +695,8 @@ jobs:
       GRAAL_EDITION: GraalVM CE
     permissions:
       checks: write
-  enso-build-ci-gen-job-standard-library-tests-graal-vm-ce-windows-x86_64:
-    name: Standard Library Tests (GraalVM CE) (windows, x86_64)
+  enso-build-ci-gen-job-standard-library-tests-graal-vm-ce-windows-amd64:
+    name: Standard Library Tests (GraalVM CE) (windows, amd64)
     runs-on:
       - self-hosted
       - Windows
@@ -705,7 +705,7 @@ jobs:
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
-          version: v0.10.2
+          version: v0.12.1
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -735,7 +735,7 @@ jobs:
         uses: dorny/test-reporter@v1
         with:
           max-annotations: 50
-          name: Standard Library Tests Report (GraalVM CE, windows, x86_64)
+          name: Standard Library Tests Report (GraalVM CE, windows, amd64)
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
           path-replace-backslashes: true
           reporter: java-junit
@@ -754,8 +754,8 @@ jobs:
       GRAAL_EDITION: GraalVM CE
     permissions:
       checks: write
-  enso-build-ci-gen-job-standard-library-tests-oracle-graal-vm-linux-x86_64:
-    name: Standard Library Tests (Oracle GraalVM) (linux, x86_64)
+  enso-build-ci-gen-job-standard-library-tests-oracle-graal-vm-linux-amd64:
+    name: Standard Library Tests (Oracle GraalVM) (linux, amd64)
     runs-on:
       - self-hosted
       - Linux
@@ -764,7 +764,7 @@ jobs:
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
-          version: v0.10.2
+          version: v0.12.1
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -794,7 +794,7 @@ jobs:
         uses: dorny/test-reporter@v1
         with:
           max-annotations: 50
-          name: Standard Library Tests Report (Oracle GraalVM, linux, x86_64)
+          name: Standard Library Tests Report (Oracle GraalVM, linux, amd64)
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
           path-replace-backslashes: true
           reporter: java-junit

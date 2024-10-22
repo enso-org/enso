@@ -33,13 +33,16 @@ import project.Internal.Replace_Params.Replace_Params
 import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.Statement_Setter.Statement_Setter
+import project.Dialect_Flag.Dialect_Flag
 import project.SQL.SQL_Builder
 import project.SQL.SQL_Fragment
 import project.SQL_Statement.SQL_Statement
 import project.SQL_Type.SQL_Type
-from project.Errors import SQL_Error, Unsupported_Database_Operation
 from project.Dialect import Temp_Table_Style
+from project.Errors import SQL_Error, Unsupported_Database_Operation
+from project.Feature import Feature
 from project.Internal.IR.Operation_Metadata import Date_Period_Metadata
+from project.Internal.JDBC_Connection import JDBC_Connection
 
 polyglot java import java.sql.Types
 
@@ -166,18 +169,6 @@ type Postgres_Dialect
         False
 
     ## PRIVATE
-    supports_separate_nan : Boolean
-    supports_separate_nan self = True
-
-    ## PRIVATE
-    supports_negative_round_decimal_places : Boolean
-    supports_negative_round_decimal_places self = True
-
-    ## PRIVATE
-    supports_float_round_decimal_places : Boolean
-    supports_float_round_decimal_places self = False
-
-    ## PRIVATE
        Specifies how the database creates temp tables.
     temp_table_style : Temp_Table_Style
     temp_table_style self = Temp_Table_Style.Temporary_Table
@@ -253,9 +244,26 @@ type Postgres_Dialect
 
     ## PRIVATE
        Checks if an operation is supported by the dialect.
-    is_supported : Text -> Boolean
-    is_supported self operation =
-        self.dialect_operations.is_supported operation
+    is_operation_supported self operation:Text -> Boolean =
+        self.dialect_operations.is_operation_supported operation
+
+    ## PRIVATE
+       Checks if a feature is supported by the dialect.
+    is_feature_supported self feature:Feature -> Boolean =
+        _ = feature
+        True
+
+    ## PRIVATE
+       Checks a dialect flag
+    flagged self flag:Dialect_Flag -> Boolean =
+        case flag of
+            Dialect_Flag.Supports_Negative_Decimal_Places -> True
+            Dialect_Flag.Supports_Float_Decimal_Places -> False
+            Dialect_Flag.Use_Builtin_Bankers -> False
+            Dialect_Flag.Primary_Key_Allows_Nulls -> False
+            Dialect_Flag.Supports_Separate_NaN -> True
+            Dialect_Flag.Supports_Nested_With_Clause -> True
+            Dialect_Flag.Supports_Case_Sensitive_Columns -> True
 
     ## PRIVATE
        The default table types to use when listing tables.
@@ -280,7 +288,7 @@ type Postgres_Dialect
        if the given period is supported.
     prepare_metadata_for_period : Date_Period | Time_Period -> Value_Type -> Any
     prepare_metadata_for_period self period operation_input_type =
-        if period == Time_Period.Nanosecond then Error.throw (Unsupported_Database_Operation.Error "Postgres does not support nanosecond precision date/times.") else
+        if period == Time_Period.Nanosecond then Error.throw (Unsupported_Database_Operation.Error "Nanosecond precision date/times") else
             Date_Period_Metadata.Value period operation_input_type
 
     ## PRIVATE
@@ -317,12 +325,17 @@ type Postgres_Dialect
         _ = value_type
         False
 
+    ## PRIVATE
+    ensure_query_has_no_holes : JDBC_Connection -> Text -> Nothing ! Illegal_Argument
+    ensure_query_has_no_holes self jdbc:JDBC_Connection raw_sql:Text =
+        jdbc.ensure_query_has_no_holes raw_sql
+
 ## PRIVATE
 make_dialect_operations =
     cases = [["LOWER", Base_Generator.make_function "LOWER"], ["UPPER", Base_Generator.make_function "UPPER"]]
     text = [starts_with, contains, ends_with, agg_shortest, agg_longest, make_case_sensitive, ["REPLACE", replace], left, right]+concat_ops+cases+trim_ops
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
-    arith_extensions = [is_nan, is_inf, floating_point_div, mod_op, decimal_div, decimal_mod, ["ROW_MIN", Base_Generator.make_function "LEAST"], ["ROW_MAX", Base_Generator.make_function "GREATEST"]]
+    arith_extensions = [is_nan, is_inf, is_finite, floating_point_div, mod_op, decimal_div, decimal_mod, ["ROW_MIN", Base_Generator.make_function "LEAST"], ["ROW_MAX", Base_Generator.make_function "GREATEST"]]
     bool = [bool_or]
 
     stddev_pop = ["STDDEV_POP", Base_Generator.make_function "stddev_pop"]
@@ -535,7 +548,7 @@ make_order_descriptor internal_column sort_direction text_ordering =
             Order_Descriptor.Value internal_column.expression sort_direction nulls_order=nulls collation=Nothing
         _ ->
             ## In the future we can modify this error to suggest using a custom defined collation.
-            if text_ordering.sort_digits_as_numbers then Error.throw (Unsupported_Database_Operation.Error "Natural ordering is currently not supported. You may need to materialize the Table to perform this operation.") else
+            if text_ordering.sort_digits_as_numbers then Error.throw (Unsupported_Database_Operation.Error "Natural ordering") else
                 case text_ordering.case_sensitivity of
                     Case_Sensitivity.Default ->
                         Order_Descriptor.Value internal_column.expression sort_direction nulls_order=nulls collation=Nothing
@@ -543,7 +556,7 @@ make_order_descriptor internal_column sort_direction text_ordering =
                         Order_Descriptor.Value internal_column.expression sort_direction nulls_order=nulls collation="ucs_basic"
                     Case_Sensitivity.Insensitive locale -> case locale == Locale.default of
                         False ->
-                            Error.throw (Unsupported_Database_Operation.Error "Case insensitive ordering with custom locale is currently not supported. You may need to materialize the Table to perform this operation.")
+                            Error.throw (Unsupported_Database_Operation.Error "Case insensitive ordering with custom locale")
                         True ->
                             upper = SQL_Expression.Operation "UPPER" [internal_column.expression]
                             folded_expression = SQL_Expression.Operation "LOWER" [upper]
@@ -556,6 +569,10 @@ is_nan = Base_Generator.lift_unary_op "IS_NAN" arg->
 ## PRIVATE
 is_inf = Base_Generator.lift_unary_op "IS_INF" arg->
     (arg ++ " in (double precision 'Infinity', double precision '-Infinity')").paren
+
+## PRIVATE
+is_finite = Base_Generator.lift_unary_op "IS_FINITE" arg->
+    (arg ++ " not in (double precision 'Infinity', double precision '-Infinity', double precision 'NaN')").paren
 
 ## PRIVATE
 bool_or = Base_Generator.lift_unary_op "BOOL_OR" arg->
@@ -667,8 +684,6 @@ make_date_add arguments (metadata : Date_Period_Metadata) =
                 "weeks=>1"
             Date_Period.Day ->
                 "days=>1"
-            Time_Period.Day ->
-                "hours=>24"
             Time_Period.Hour ->
                 "hours=>1"
             Time_Period.Minute ->
@@ -734,10 +749,6 @@ make_date_diff arguments (metadata : Date_Period_Metadata) =
             Time_Period.Hour    -> (extract_seconds ++ " / 3600").paren
             Time_Period.Minute  -> (extract_seconds ++ " / 60").paren
             Time_Period.Second  -> extract_seconds
-            Time_Period.Day     -> case metadata.input_value_type of
-                Value_Type.Date -> extract_days
-                # Time_Period.Day is treated as 24 hours, so for types that support time we use the same algorithm like for hours, but divide by 24.
-                _ -> (extract_seconds ++ " / (3600 * 24)").paren
             ## The EPOCH gives back just the integer amount of seconds, without
                the fractional part. So we get the fractional part using
                MILLISECONDS - but that does not give the _total_ just the

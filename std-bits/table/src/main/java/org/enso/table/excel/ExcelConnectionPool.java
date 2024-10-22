@@ -273,7 +273,7 @@ public class ExcelConnectionPool {
           // If the initialization succeeds, the POIFSFileSystem will be closed by the
           // HSSFWorkbook::close.
           yield new HSSFWorkbook(fs);
-        } catch (Exception e) {
+        } catch (IOException e) {
           fs.close();
           throw e;
         }

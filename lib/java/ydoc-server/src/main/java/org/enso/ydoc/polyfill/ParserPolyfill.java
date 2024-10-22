@@ -9,31 +9,21 @@ import org.graalvm.polyglot.proxy.ProxyExecutable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class ParserPolyfill implements AutoCloseable, ProxyExecutable, Polyfill {
+public final class ParserPolyfill implements ProxyExecutable, Polyfill {
 
   private static final Logger log = LoggerFactory.getLogger(ParserPolyfill.class);
 
-  private static final String PARSE_TREE = "parse-tree";
+  private static final String PARSE_BLOCK = "parse-block";
+  private static final String PARSE_MODULE = "parse-module";
   private static final String XX_HASH_128 = "xx-hash-128";
   private static final String IS_IDENT_OR_OPERATOR = "is-ident-or-operator";
 
   private static final String PARSER_JS = "parser.js";
 
-  private final Parser parser;
-
-  public ParserPolyfill() {
-    Parser p;
-    try {
-      p = Parser.create();
-    } catch (LinkageError e) {
-      log.error("Failed to create parser", e);
-      throw e;
-    }
-    this.parser = p;
-  }
+  public ParserPolyfill() {}
 
   @Override
-  public final void initialize(Context ctx) {
+  public void initialize(Context ctx) {
     Source parserJs =
         Source.newBuilder("js", ParserPolyfill.class.getResource(PARSER_JS)).buildLiteral();
 
@@ -47,10 +37,16 @@ public final class ParserPolyfill implements AutoCloseable, ProxyExecutable, Pol
     log.debug(Arguments.toString(arguments));
 
     return switch (command) {
-      case PARSE_TREE -> {
+      case PARSE_BLOCK -> {
         var input = arguments[1].asString();
 
-        yield parser.parseInputLazy(input);
+        yield Parser.parseBlockLazy(input);
+      }
+
+      case PARSE_MODULE -> {
+        var input = arguments[1].asString();
+
+        yield Parser.parseModuleLazy(input);
       }
 
       case XX_HASH_128 -> {
@@ -62,15 +58,10 @@ public final class ParserPolyfill implements AutoCloseable, ProxyExecutable, Pol
       case IS_IDENT_OR_OPERATOR -> {
         var input = arguments[1].asString();
 
-        yield parser.isIdentOrOperator(input);
+        yield Parser.isIdentOrOperator(input);
       }
 
       default -> throw new IllegalStateException(command);
     };
-  }
-
-  @Override
-  public void close() {
-    parser.close();
   }
 }

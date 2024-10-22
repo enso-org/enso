@@ -10,12 +10,15 @@ foreign js js_check = """
     return (4 == 2 + 2)
 
 add_specs suite_builder = suite_builder.group "Asserts" group_builder->
+    pending_js_missing = if Polyglot.is_language_installed "js" then Nothing else
+        "Can't run JavaScript tests, language `js` is not installed."
+
     group_builder.specify "should be enabled in tests" <|
         p = Panic.catch Assertion_Error (Runtime.assert False) err->
             err.payload
         Meta.type_of p . should_be_a Assertion_Error
 
-    group_builder.specify "should be able to take foreign functions as expressions" <|
+    group_builder.specify "should be able to take foreign functions as expressions" pending=pending_js_missing <|
         ret = Runtime.assert js_check
         ret . should_be_a Nothing
 

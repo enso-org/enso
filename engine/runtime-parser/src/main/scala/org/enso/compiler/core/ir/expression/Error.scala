@@ -7,7 +7,7 @@ import org.enso.compiler.core.{ir, IR, Identifier}
 
 import java.util.UUID
 
-/** A trait for all errors in Enso's IR. */
+/** A trait for all errors in IR. */
 trait Error extends Expression with ir.module.scope.Definition with Diagnostic {
 
   /** @inheritdoc */
@@ -17,6 +17,10 @@ trait Error extends Expression with ir.module.scope.Definition with Diagnostic {
 
   /** @inheritdoc */
   override def setLocation(location: Option[IdentifiedLocation]): Error
+
+  /** @inheritdoc */
+  override def location: Option[IdentifiedLocation] =
+    super[Expression].location()
 
   /** @inheritdoc */
   override def duplicate(
@@ -31,17 +35,16 @@ object Error {
 
   /** A representation of an invalid piece of IR.
     *
-    * @param ir          the IR that is invalid
-    * @param passData    any annotations from compiler passes
-    * @param diagnostics compiler diagnostics for this node
+    * @param ir the IR that is invalid
+    * @param passData any annotations from compiler passes
     */
   sealed case class InvalidIR(
     ir: IR,
-    override val passData: MetadataStorage      = new MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends Error
       with Diagnostic.Kind.Static
       with IRKind.Primitive
+      with LazyDiagnosticStorage
       with LazyId {
 
     /** Creates a copy of `this`.
@@ -58,9 +61,17 @@ object Error {
       diagnostics: DiagnosticStorage = diagnostics,
       id: UUID @Identifier           = id
     ): InvalidIR = {
-      val res = InvalidIR(ir, passData, diagnostics)
-      res.id = id
-      res
+      if (
+        ir != this.ir
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res = InvalidIR(ir, passData)
+        res.diagnostics = diagnostics
+        res.id          = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -79,9 +90,8 @@ object Error {
         ),
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -90,7 +100,8 @@ object Error {
     ): InvalidIR = this
 
     /** @inheritdoc */
-    override val location: Option[IdentifiedLocation] = ir.location
+    override def identifiedLocation: IdentifiedLocation =
+      ir.identifiedLocation()
 
     /** @inheritdoc */
     override def mapExpressions(

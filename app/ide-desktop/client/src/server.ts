@@ -22,7 +22,8 @@ import { pathToFileURL } from 'node:url'
 
 const logger = contentConfig.logger
 
-ydocServer.configureAllDebugLogs(process.env.ENSO_YDOC_LS_DEBUG === 'true', logger.log)
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+ydocServer.configureAllDebugLogs(process.env.ENSO_YDOC_LS_DEBUG === 'true', logger.log.bind(logger))
 
 // =================
 // === Constants ===
@@ -74,8 +75,10 @@ export class Config {
 // === Port Finder ===
 // ===================
 
-/** Determine the initial available communication endpoint, starting from the specified port,
- * to provide file hosting services. */
+/**
+ * Determine the initial available communication endpoint, starting from the specified port,
+ * to provide file hosting services.
+ */
 async function findPort(port: number): Promise<number> {
   return await portfinder.getPortPromise({ port, startPort: port, stopPort: port + 4 })
 }
@@ -84,17 +87,19 @@ async function findPort(port: number): Promise<number> {
 // === Server ===
 // ==============
 
-/** A simple server implementation.
+/**
+ * A simple server implementation.
  *
  * Initially it was based on `union`, but later we migrated to `create-servers`.
- * Read this topic to learn why: https://github.com/http-party/http-server/issues/483 */
+ * Read this topic to learn why: https://github.com/http-party/http-server/issues/483
+ */
 export class Server {
   projectsRootDirectory: string
   devServer?: vite.ViteDevServer
 
   /** Create a simple HTTP server. */
   constructor(public config: Config) {
-    this.projectsRootDirectory = projectManagement.getProjectsDirectory()
+    this.projectsRootDirectory = projectManagement.getProjectsDirectory().replace(/\\/g, '/')
   }
 
   /** Server constructor. */
@@ -147,8 +152,10 @@ export class Server {
             logger.log(`Server started on port ${this.config.port}.`)
             logger.log(`Serving files from '${path.join(process.cwd(), this.config.dir)}'.`)
             if (process.env.ELECTRON_DEV_MODE === 'true') {
+              // eslint-disable-next-line no-restricted-syntax
               const vite = (await import(
                 pathToFileURL(process.env.NODE_MODULES_PATH + '/vite/dist/node/index.js').href
+                // eslint-disable-next-line @typescript-eslint/consistent-type-imports
               )) as typeof import('vite')
               this.devServer = await vite.createServer({
                 server: {
@@ -165,9 +172,11 @@ export class Server {
     })
   }
 
-  /** Respond to an incoming request.
+  /**
+   * Respond to an incoming request.
    * @throws {Error} when passing invalid JSON to
-   * `/api/run-project-manager-command?cli-arguments=<urlencoded-json>`. */
+   * `/api/run-project-manager-command?cli-arguments=<urlencoded-json>`.
+   */
   process(request: http.IncomingMessage, response: http.ServerResponse) {
     const requestUrl = request.url
     const requestPath = requestUrl?.split('?')[0]?.split('#')[0]

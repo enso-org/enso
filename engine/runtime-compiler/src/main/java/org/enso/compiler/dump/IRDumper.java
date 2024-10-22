@@ -33,6 +33,8 @@ import org.enso.compiler.data.BindingsMap.ResolvedModuleMethod;
 import org.enso.compiler.data.BindingsMap.ResolvedPolyglotField;
 import org.enso.compiler.data.BindingsMap.ResolvedPolyglotSymbol;
 import org.enso.compiler.data.BindingsMap.ResolvedType;
+import org.enso.compiler.pass.analyse.alias.AliasMetadata;
+import org.enso.compiler.pass.analyse.alias.graph.Graph;
 import org.enso.compiler.pass.resolve.FullyQualifiedNames.FQNResolution;
 import org.enso.compiler.pass.resolve.FullyQualifiedNames.ResolvedLibrary;
 import org.enso.compiler.pass.resolve.FullyQualifiedNames.ResolvedModule;
@@ -386,11 +388,13 @@ public class IRDumper {
         }
       }
       case Pattern.Type tp -> {
+        addNode(bldr.build());
         var name = tp.name();
         var tpe = tp.tpe();
-        bldr.addLabelLine("name: " + name.name());
-        bldr.addLabelLine("tpe: " + tpe.name());
-        addNode(bldr.build());
+        createIRGraph(name);
+        createIRGraph(tpe);
+        createEdge(tp, name, "name");
+        createEdge(tp, tpe, "tpe");
       }
       case Pattern.Literal litPat -> {
         addNode(bldr.build());
@@ -607,11 +611,63 @@ public class IRDumper {
               addNode(bmNode);
               createEdge(ir, bindingsMap, "BindingsMap");
             }
+            case AliasMetadata.Occurrence occurence -> {
+              bldr.addLabelLine("occurenceId: " + occurence.id());
+              addNode(bldr.build());
+              createEdge(ir, occurence, "Alias.Info.Occurence");
+            }
+            case AliasMetadata.RootScope rootScope -> {
+              addAliasGraphScopeLabels(bldr, rootScope.graph().rootScope());
+              var aliasNode = bldr.build();
+              addNode(aliasNode);
+              createEdge(ir, rootScope, "Alias.Info.Scope.Root");
+            }
+            case AliasMetadata.ChildScope childScope -> {
+              addAliasGraphScopeLabels(bldr, childScope.scope());
+              var aliasNode = bldr.build();
+              addNode(aliasNode);
+              createEdge(ir, childScope, "Alias.Info.Scope.Child");
+            }
               // The rest is ignored
             default -> {}
           }
           return null;
         });
+  }
+
+  private void addAliasGraphScopeLabels(GraphVizNode.Builder bldr, Graph.Scope scope) {
+    var parent = scope.parent();
+    if (parent.isDefined()) {
+      var parentId = Utils.id(parent.get());
+      bldr.addLabelLine("parent: " + parentId);
+    } else {
+      bldr.addLabelLine("parent: null");
+    }
+    var occurences = scope.occurrences();
+    if (occurences.isEmpty()) {
+      bldr.addLabelLine("occurrences: []");
+    } else {
+      bldr.addLabelLine("occurrences: ");
+      occurences
+          .values()
+          .foreach(
+              occ -> {
+                bldr.addLabelLine("  - " + occ);
+                return null;
+              });
+    }
+    var childScopes = scope.childScopes();
+    if (childScopes.isEmpty()) {
+      bldr.addLabelLine("childScopes: []");
+    } else {
+      bldr.addLabelLine("childScopes: ");
+      childScopes.foreach(
+          childScope -> {
+            var id = Utils.id(childScope);
+            bldr.addLabelLine("  - " + id);
+            return null;
+          });
+    }
   }
 
   private void addNode(GraphVizNode node) {

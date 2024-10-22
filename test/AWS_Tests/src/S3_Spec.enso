@@ -54,7 +54,7 @@ delete_afterwards file ~action =
    it.
 replace_username_in_data_link base_file =
     content = Data_Link.read_raw_config base_file
-    new_content = content.replace "USERNAME" Enso_User.current.organization_name
+    new_content = content.replace "USERNAME" Enso_User.current.name
     temp_file = File.create_temporary_file prefix=base_file.name suffix=base_file.extension
     Data_Link.write_raw_config temp_file new_content replace_existing=True . if_not_error temp_file
 
@@ -204,7 +204,7 @@ add_specs suite_builder =
     suite_builder.group "S3.list_objects" pending=api_pending group_builder->
         group_builder.specify "should be able to list objects" <|
             objects = S3.list_objects bucket_name credentials=test_credentials
-            objects . should_contain object_name
+            objects . map .name . should_contain object_name
 
         group_builder.specify "should attach a warning if not a complete list" <|
             objects = S3.list_objects bucket_name max_count=1 credentials=test_credentials
@@ -327,7 +327,7 @@ add_specs suite_builder =
 
                 # But the file cannot be listed:
                 err = new_file.list
-                err.should_fail_with S3_Error
+                err.should_fail_with Illegal_Argument
                 err.catch.to_display_text . should_contain "Cannot `list` a non-directory."
 
             new_file.delete . should_succeed
@@ -485,7 +485,7 @@ add_specs suite_builder =
             new_file = S3_File.new "s3://"+bucket_name+"/examples/no-write-permissions-here.txt" credentials=test_credentials
             r = "Hello".write new_file
             r.should_fail_with S3_Error
-            r.catch.to_display_text . should_contain "Access Denied"
+            r.catch.to_display_text . should_contain "AccessDenied"
 
         group_builder.specify "should fail to open an output stream if Output context is not enabled" <|
             Context.Output.with_disabled <|

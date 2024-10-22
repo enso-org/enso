@@ -2,9 +2,9 @@
 
 use crate::prelude::*;
 
+use crate::convert_case::ToKebabCase;
 use crate::env::accessor::RawVariable;
 
-use heck::ToKebabCase;
 use std::collections::btree_map::Entry;
 use std::collections::BTreeMap;
 use std::convert::identity;
@@ -78,7 +78,7 @@ pub fn setup_wasm_pack_step() -> Step {
         uses: Some("jetli/wasm-pack-action@v0.4.0".into()),
         with: Some(step::Argument::Other(BTreeMap::from_iter([(
             "version".into(),
-            "v0.10.2".into(),
+            "v0.12.1".into(),
         )]))),
         r#if: Some(is_github_hosted()),
         ..default()
@@ -803,7 +803,7 @@ impl Strategy {
         name: impl Into<String>,
         values: impl IntoIterator<Item: Serialize>,
     ) -> Result<&mut Self> {
-        let values = values.into_iter().map(serde_json::to_value).try_collect_vec()?;
+        let values = values.into_iter().map(serde_json::to_value).try_collect()?;
         self.matrix.insert(name.into(), serde_json::Value::Array(values));
         Ok(self)
     }
@@ -1014,9 +1014,6 @@ pub enum RunnerLabel {
     Windows,
     #[serde(rename = "engine")]
     Engine,
-    #[serde(rename = "macos-12")]
-    MacOS12,
-    /// macos-13 is the last x64 version of the GitHub-hosted macOS runner.
     #[serde(rename = "macos-13")]
     MacOS13,
     #[serde(rename = "macos-latest")]

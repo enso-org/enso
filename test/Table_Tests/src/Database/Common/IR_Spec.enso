@@ -1,0 +1,105 @@
+from Standard.Base import all
+import Standard.Base.Runtime.Ref.Ref
+
+from Standard.Table import Join_Condition, Join_Kind, Table
+
+from Standard.Database import all
+import Standard.Database.Internal.IR.Query.Query
+
+from Standard.Test import all
+import Standard.Test.Suite.Suite_Builder
+
+import project.Database.Helpers.Name_Generator
+
+upload connection prefix data temporary=True =
+    name = Name_Generator.random_name prefix
+    table = data.select_into_database_table connection name temporary=temporary primary_key=Nothing
+    table
+
+
+drop_table connection name =
+    Panic.catch Any (connection.drop_table name) caught_panic->
+        IO.println <| "Failed to drop table: " + name + " because of: " + caught_panic.payload.to_display_text
+
+
+type Data
+    Value ~data
+
+    connection self = self.data.at 0
+    t1 self = self.data.at 1
+
+    setup ~connection = Data.Value <|
+        t1 = upload connection "T1" (Table.new [["a", [1.1, 4.7, -1.7, -4.1]]])
+        [connection, t1]
+
+    teardown self =
+        drop_table self.connection self.t1.name
+
+count_nodes col =
+    ref = Ref.new 0
+    counter n =
+        ref.modify (_ + 1)
+        n
+    col.to_table.to_select_query . traverse counter
+    ref.get
+
+rebuild col =
+    col.to_table.to_select_query . traverse (x->x) . at col.name
+
+add_specs (suite_builder : Suite_Builder) setup (prefix : Text) default_connection =
+    table_builder = setup.table_builder
+
+    suite_builder.group (prefix + "IR Traversal") group_builder->
+        data = Data.setup default_connection
+
+        group_builder.teardown <|
+            data.teardown
+
+        group_builder.specify "should be able to traverse a Query to reconstruct it" <|
+            col = data.t1 . at "a"
+            a = col.round * col.round use_bankers=True
+            a_query = a.to_table.to_select_query
+            a_query.traverse (x->x) . should_equal a_query
+
+        group_builder.specify "should be able to traverse a Query to count nodes" <|
+            col = data.t1 . at "a"
+            a = col.round * col.round use_bankers=True
+            a_sub = (a . rename "p" . to_table . as_subquery . at "p")
+            b = a_sub * a_sub
+            b_sub = (b . rename "p" . to_table . as_subquery . at "p")
+            c = b_sub * b_sub
+
+            count_nodes col . should_equal 4
+            count_nodes a . should_be_a Integer
+            count_nodes b . should_be_a Integer
+            count_nodes c . should_be_a Integer
+
+        group_builder.specify "let bindings should not affect the end result" <|
+            t = table_builder [["x", [1.3, 2.8]], ["y", [-3.4, 7.2]]]
+            x = t.at "x"
+            y = t.at "y"
+            wm enabled expression callback =
+                if enabled then expression.let "x" callback else callback expression
+            bools = [True, False]
+            results = bools.map b0-> bools.map b1-> bools.map b2-> bools.map b3->
+                ## Complex query that optionally enables let bindings at each step
+                big = wm b0 (x * y) xty->
+                    wm b1 (x + y + 10) xpyp10->
+                        wm b2 (xty.round 1 use_bankers=True) r0->
+                            wm b3 (xpyp10.round use_bankers=True) r1->
+                                r0 + r1
+                big.to_vector
+            results.flatten.flatten.flatten.distinct.length . should_equal 1
+
+        if data.connection.dialect.flagged ..Supports_Nested_With_Clause then
+            group_builder.specify "should convert WITH binders to short names that do not conflict with existing table names" <|
+                t = Table.new [["x", [1, 2]], ["y", ['a', 'b']]]
+                let0 = t.select_into_database_table data.connection "let_0" temporary=True
+                let2 = t.select_into_database_table data.connection "let_2" temporary=True
+                joined = let0.join let2 join_kind=Join_Kind.Inner on=(Join_Condition.Equals "x" "x")
+                x = joined.at "x"
+                with_ctes = x.let "let" x-> x.let "let" x-> x
+                with_ctes_sql = with_ctes.to_table.to_sql . prepare . at 0
+                with_ctes_sql . should_contain 'let_1'
+                with_ctes_sql . should_contain 'let_3'
+                with_ctes_sql . should_not_contain 'let_4'

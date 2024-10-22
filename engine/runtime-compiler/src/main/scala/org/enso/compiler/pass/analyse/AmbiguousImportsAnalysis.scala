@@ -80,8 +80,8 @@ case object AmbiguousImportsAnalysis extends IRPass {
 
   /** Analyses ambiguous symbols in the given import.
     * @param imp current import
-    * @param module current module
     * @param bindingMap binding map of the current module
+    * @param encounteredSymbols already encountered symbols
     * @return A list of errors, if any encountered, or an import IR, potentially with some
     *         warnings attached.
     */
@@ -100,7 +100,6 @@ case object AmbiguousImportsAnalysis extends IRPass {
             _,
             _,
             false,
-            _,
             _
           ) =>
         getImportTargets(moduleImport, bindingMap) match {
@@ -152,7 +151,6 @@ case object AmbiguousImportsAnalysis extends IRPass {
             hiddenNames,
             _,
             false,
-            _,
             _
           ) =>
         getImportTargets(moduleImport, bindingMap) match {
@@ -211,7 +209,6 @@ case object AmbiguousImportsAnalysis extends IRPass {
             _,
             _,
             false,
-            _,
             _
           ) =>
         val symbolPath = importPath.name
@@ -235,7 +232,6 @@ case object AmbiguousImportsAnalysis extends IRPass {
             _,
             _,
             false,
-            _,
             _
           ) =>
         tryAddEncounteredSymbol(
@@ -250,7 +246,7 @@ case object AmbiguousImportsAnalysis extends IRPass {
         }
 
       // Polyglot import
-      case polyImport @ imports.Polyglot(entity, rename, _, _, _) =>
+      case polyImport @ imports.Polyglot(entity, rename, _, _) =>
         val symbolName = rename.getOrElse(entity.getVisibleName)
         val symbolPath = entity match {
           case imports.Polyglot.Java(packageName, className) =>
@@ -367,7 +363,7 @@ case object AmbiguousImportsAnalysis extends IRPass {
     duplicatedSymbol: String
   ): Warning = {
     Warning.DuplicatedImport(
-      duplicatingImport.location,
+      duplicatingImport.identifiedLocation(),
       originalImport,
       duplicatedSymbol
     )

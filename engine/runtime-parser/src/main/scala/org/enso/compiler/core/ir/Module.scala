@@ -11,25 +11,47 @@ import java.util.UUID
   * Modules may only contain imports and top-level bindings, with no top-level
   * executable code.
   *
-  * @param imports     the import statements that bring other modules into scope
-  * @param exports     the export statements for this module
-  * @param bindings    the top-level bindings for this module
-  * @param isPrivate    whether or not this module is private (project-private)
-  * @param location    the source location that the node corresponds to
-  * @param passData    the pass metadata associated with this node
-  * @param diagnostics compiler diagnostics for this node
+  * @param imports the import statements that bring other modules into scope
+  * @param exports the export statements for this module
+  * @param bindings the top-level bindings for this module
+  * @param isPrivate whether or not this module is private (project-private)
+  * @param identifiedLocation the source location that the node corresponds to
+  * @param passData the pass metadata associated with this node
   */
 final case class Module(
   imports: List[Import],
   exports: List[Export],
   bindings: List[Definition],
   isPrivate: Boolean,
-  location: Option[IdentifiedLocation],
-  passData: MetadataStorage      = new MetadataStorage(),
-  diagnostics: DiagnosticStorage = DiagnosticStorage()
+  override val identifiedLocation: IdentifiedLocation,
+  override val passData: MetadataStorage = new MetadataStorage()
 ) extends IR
     with IRKind.Primitive
+    with LazyDiagnosticStorage
     with LazyId {
+
+  /** Create a module.
+    *
+    * @param imports the import statements that bring other modules into scope
+    * @param exports the export statements for this module
+    * @param bindings the top-level bindings for this module
+    * @param isPrivate whether or not this module is private (project-private)
+    * @param identifiedLocation the source location that the node corresponds to
+    * @param passData the pass metadata associated with this node
+    * @param diagnostics the compiler diagnostics
+    */
+  def this(
+    imports: List[Import],
+    exports: List[Export],
+    bindings: List[Definition],
+    isPrivate: Boolean,
+    identifiedLocation: IdentifiedLocation,
+    passData: MetadataStorage,
+    diagnostics: DiagnosticStorage
+  ) = {
+    this(imports, exports, bindings, isPrivate, identifiedLocation, passData)
+    this.diagnostics = diagnostics
+  }
 
   /** Creates a copy of `this`.
     *
@@ -46,23 +68,35 @@ final case class Module(
     imports: List[Import]                = imports,
     exports: List[Export]                = exports,
     bindings: List[Definition]           = bindings,
+    isPrivate: Boolean                   = isPrivate,
     location: Option[IdentifiedLocation] = location,
     passData: MetadataStorage            = passData,
     diagnostics: DiagnosticStorage       = diagnostics,
     id: UUID @Identifier                 = id
   ): Module = {
-    val res =
-      Module(
-        imports,
-        exports,
-        bindings,
-        isPrivate,
-        location,
-        passData,
-        diagnostics
-      )
-    res.id = id
-    res
+    if (
+      imports != this.imports
+      || exports != this.exports
+      || bindings != this.bindings
+      || isPrivate != this.isPrivate
+      || location != this.location
+      || passData != this.passData
+      || diagnostics != this.diagnostics
+      || id != this.id
+    ) {
+      val res =
+        Module(
+          imports,
+          exports,
+          bindings,
+          isPrivate,
+          location.orNull,
+          passData
+        )
+      res.diagnostics = diagnostics
+      res.id          = id
+      res
+    } else this
   }
 
   /** @inheritdoc */
@@ -92,9 +126,8 @@ final case class Module(
       location = if (keepLocations) location else None,
       passData =
         if (keepMetadata) passData.duplicate else new MetadataStorage(),
-      diagnostics =
-        if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-      id = if (keepIdentifiers) id else null
+      diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+      id          = if (keepIdentifiers) id else null
     )
 
   /** @inheritdoc */

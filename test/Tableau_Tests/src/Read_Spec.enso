@@ -3,7 +3,7 @@ import Standard.Base.Errors.File_Error.File_Error
 
 from Standard.Table import all
 from Standard.Tableau import Hyper_File
-import Standard.Tableau.Hyper_Errors.Table_Not_Found
+import Standard.Tableau.Hyper_Errors.Hyper_Table_Not_Found
 
 from Standard.Test import all
 
@@ -60,7 +60,7 @@ add_specs suite_builder = suite_builder.group "Read Tables" group_builder->
 
     group_builder.specify "should handle a missing table when reading a table" <|
         r1 = Hyper_File.new names_file . read "NoTable"
-        r1.should_fail_with Table_Not_Found
+        r1.should_fail_with Hyper_Table_Not_Found
 
         r2 = Hyper_File.new names_file . read "NoTable" schema="Extract"
-        r2.should_fail_with Table_Not_Found
+        r2.should_fail_with Hyper_Table_Not_Found

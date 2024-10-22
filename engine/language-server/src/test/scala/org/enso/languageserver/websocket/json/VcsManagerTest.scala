@@ -11,8 +11,7 @@ import org.enso.runner.common.ProfilingConfig
 import org.enso.languageserver.boot.StartupConfig
 import org.enso.languageserver.data._
 import org.enso.languageserver.vcsmanager.VcsApi
-import org.enso.logger.ReportLogsOnFailure
-import org.enso.testkit.FlakySpec
+import org.enso.testkit.{FlakySpec, ReportLogsOnFailure}
 
 import java.io.File
 import java.nio.charset.StandardCharsets
@@ -1479,7 +1478,9 @@ class VcsManagerTest
         .setBare(false)
         .call()
 
-    path.toPath.resolve(".git").toFile.delete() shouldBe true
+    val gitPath = path.toPath.resolve(".git")
+    val deleted = gitPath.toFile.delete()
+    (deleted || !gitPath.toFile.exists()) shouldBe true
 
     val client = getInitialisedWsClient()
     jgit

@@ -15,6 +15,7 @@ import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.compiler.pass.resolve.MethodDefinitions
 import org.enso.persist.Persistance.Reference
 import org.enso.pkg.QualifiedName
+import org.enso.editions.LibraryName
 
 import java.io.ObjectOutputStream
 import scala.annotation.unused
@@ -26,8 +27,8 @@ import scala.collection.mutable.ArrayBuffer
   * @param currentModule the module holding these bindings
   */
 case class BindingsMap(
-  definedEntities: List[DefinedEntity],
-  currentModule: ModuleReference
+  private val _definedEntities: List[DefinedEntity],
+  private var _currentModule: ModuleReference
 ) extends IRPass.IRMetadata {
   import BindingsMap._
 
@@ -37,11 +38,38 @@ case class BindingsMap(
 
   /** Other modules, imported by [[currentModule]].
     */
-  var resolvedImports: List[ResolvedImport] = List()
+  private var _resolvedImports: List[ResolvedImport] = List()
+
+  def definedEntities: List[DefinedEntity] = {
+    ensureConvertedToConcrete()
+    _definedEntities
+  }
+  def currentModule: ModuleReference = {
+    ensureConvertedToConcrete()
+    _currentModule
+  }
+  def resolvedImports: List[ResolvedImport] = {
+    ensureConvertedToConcrete()
+    _resolvedImports
+  }
+  def resolvedImports_=(v: List[ResolvedImport]): Unit = {
+    _resolvedImports = v
+  }
+
+  /** Set to non-null after deserialization to signal that conversion to concrete values is needed */
+  private var pendingRepository: PackageRepository = null
 
   /** Symbols exported by [[currentModule]].
     */
-  var exportedSymbols: Map[String, List[ResolvedName]] = Map()
+  private var _exportedSymbols: Map[String, List[ResolvedName]] = Map()
+
+  def exportedSymbols: Map[String, List[ResolvedName]] = {
+    ensureConvertedToConcrete()
+    _exportedSymbols
+  }
+  def exportedSymbols_=(v: Map[String, List[ResolvedName]]): Unit = {
+    _exportedSymbols = v
+  }
 
   /** @inheritdoc */
   override def prepareForSerialization(
@@ -54,8 +82,8 @@ case class BindingsMap(
   override def restoreFromSerialization(
     compiler: Compiler
   ): Option[BindingsMap] = {
-    val packageRepository = compiler.getPackageRepository
-    this.toConcrete(packageRepository.getModuleMap)
+    this.pendingRepository = compiler.getPackageRepository
+    Some(this)
   }
 
   /** Convert this [[BindingsMap]] instance to use abstract module references.
@@ -63,9 +91,9 @@ case class BindingsMap(
     * @return `this` with module references converted to abstract
     */
   def toAbstract: BindingsMap = {
-    val copy = this.copy(currentModule = currentModule.toAbstract)
-    copy.resolvedImports = this.resolvedImports.map(_.toAbstract)
-    copy.exportedSymbols = this.exportedSymbols.map { case (key, value) =>
+    val copy = this.copy(_currentModule = _currentModule.toAbstract)
+    copy._resolvedImports = this._resolvedImports.map(_.toAbstract)
+    copy._exportedSymbols = this._exportedSymbols.map { case (key, value) =>
       key -> value.map(name => name.toAbstract)
     }
     copy
@@ -77,23 +105,49 @@ case class BindingsMap(
     *                  instances
     * @return `this` with module references converted to concrete
     */
-  def toConcrete(moduleMap: ModuleMap): Option[BindingsMap] = {
-    val newMap = this.currentModule.toConcrete(moduleMap).map { module =>
-      this.copy(currentModule = module)
+  private def ensureConvertedToConcrete(): Option[BindingsMap] = {
+    val r = pendingRepository
+    if (r != null) {
+      toConcrete(r, r.getModuleMap).map { b =>
+        pendingRepository     = null
+        this._currentModule   = b._currentModule
+        this._exportedSymbols = b._exportedSymbols
+        this._resolvedImports = b._resolvedImports
+        this
+      }
+    } else {
+      Some(this)
     }
+  }
+
+  private def toConcrete(
+    r: PackageRepository,
+    moduleMap: ModuleMap
+  ): Option[BindingsMap] = {
+    val newMap = this._currentModule
+      .toConcrete(moduleMap)
+      .map { module =>
+        this._currentModule = module
+        this
+      }
 
     val withImports: Option[BindingsMap] = newMap.flatMap { bindings =>
-      val newImports = this.resolvedImports.map(_.toConcrete(moduleMap))
+      val newImports = this._resolvedImports.map { imp =>
+        imp.targets.foreach { t =>
+          t.toLibraryName.foreach(r.ensurePackageIsLoaded(_));
+        }
+        imp.toConcrete(moduleMap)
+      }
       if (newImports.exists(_.isEmpty)) {
         None
       } else {
-        bindings.resolvedImports = newImports.map(_.get)
+        bindings._resolvedImports = newImports.map(_.get)
         Some(bindings)
       }
     }
 
     val withSymbols: Option[BindingsMap] = withImports.flatMap { bindings =>
-      val newSymbols = this.exportedSymbols.map { case (key, value) =>
+      val newSymbols = this._exportedSymbols.map { case (key, value) =>
         val newValue = value.map(_.toConcrete(moduleMap))
         if (newValue.exists(_.isEmpty)) {
           key -> None
@@ -105,7 +159,7 @@ case class BindingsMap(
       if (newSymbols.exists { case (_, v) => v.isEmpty }) {
         None
       } else {
-        bindings.exportedSymbols = newSymbols.map { case (k, v) =>
+        bindings._exportedSymbols = newSymbols.map { case (k, v) =>
           k -> v.get
         }
         Some(bindings)
@@ -372,12 +426,12 @@ object BindingsMap {
     exportedAs: Option[String],
     symbols: List[String]
   ) {
-    assert(
+    org.enso.common.Asserts.assertInJvm(
       symbols.forall(!_.contains(".")),
       "Not expected fully qualified names as symbols"
     )
     if (exportedAs.isDefined) {
-      assert(
+      org.enso.common.Asserts.assertInJvm(
         !exportedAs.get.contains("."),
         "Not expected fully qualified name as `exportedAs`"
       )
@@ -408,6 +462,16 @@ object BindingsMap {
     override def toConcrete(moduleMap: ModuleMap): Option[ImportTarget]
     def findExportedSymbolsFor(name: String):      List[ResolvedName]
 
+    /** Quicker conversion to library name */
+    private[BindingsMap] lazy val toLibraryName: Option[LibraryName] = {
+      val qnp = qualifiedName.path
+      if (qnp.length >= 2) {
+        Some(LibraryName(qnp(0), qnp(1)))
+      } else {
+        None
+      }
+    }
+
     /** Resolves the symbol with the given name in the context of this import target.
       * Note that it is valid to have multiple resolved names for a single symbol name,
       * for example, if the symbol is a name of an extension method and there are multiple
@@ -436,8 +500,8 @@ object BindingsMap {
     exports: List[ir.module.scope.Export.Module],
     targets: List[ImportTarget]
   ) {
-    assert(targets.nonEmpty)
-    assert(
+    org.enso.common.Asserts.assertInJvm(targets.nonEmpty)
+    org.enso.common.Asserts.assertInJvm(
       areTargetsConsistent(),
       "All targets must be either static methods or conversion methods"
     )

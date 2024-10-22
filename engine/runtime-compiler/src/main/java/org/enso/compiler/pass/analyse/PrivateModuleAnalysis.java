@@ -2,7 +2,6 @@ package org.enso.compiler.pass.analyse;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.context.ModuleContext;
 import org.enso.compiler.core.IR;
@@ -13,6 +12,7 @@ import org.enso.compiler.core.ir.module.scope.Export;
 import org.enso.compiler.core.ir.module.scope.Import;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.pass.IRPass;
+import org.enso.compiler.pass.IRProcessingPass;
 import org.enso.pkg.QualifiedName;
 import scala.Option;
 import scala.collection.immutable.Seq;
@@ -31,31 +31,21 @@ import scala.jdk.javaapi.CollectionConverters;
  */
 public final class PrivateModuleAnalysis implements IRPass {
   public static final PrivateModuleAnalysis INSTANCE = new PrivateModuleAnalysis();
-  private UUID uuid;
 
   private PrivateModuleAnalysis() {}
 
   @Override
-  public void org$enso$compiler$pass$IRPass$_setter_$key_$eq(UUID v) {
-    this.uuid = v;
-  }
-
-  @Override
-  public UUID key() {
-    return uuid;
-  }
-
-  @Override
-  public Seq<IRPass> precursorPasses() {
-    List<IRPass> passes = List.of(BindingAnalysis$.MODULE$, ImportSymbolAnalysis$.MODULE$);
+  public Seq<IRProcessingPass> precursorPasses() {
+    List<IRProcessingPass> passes =
+        List.of(BindingAnalysis$.MODULE$, ImportSymbolAnalysis$.MODULE$);
     return CollectionConverters.asScala(passes).toList();
   }
 
   @Override
   @SuppressWarnings("unchecked")
-  public Seq<IRPass> invalidatedPasses() {
+  public Seq<IRProcessingPass> invalidatedPasses() {
     Object obj = scala.collection.immutable.Nil$.MODULE$;
-    return (scala.collection.immutable.List<IRPass>) obj;
+    return (scala.collection.immutable.List<IRProcessingPass>) obj;
   }
 
   @Override
@@ -85,8 +75,7 @@ public final class PrivateModuleAnalysis implements IRPass {
                           ImportExport.apply(
                               resolvedImp.importDef(),
                               new ImportExport.ImportPrivateModule(importedModuleName),
-                              ImportExport.apply$default$3(),
-                              ImportExport.apply$default$4()));
+                              ImportExport.apply$default$3()));
                     }
                     return null;
                   });
@@ -99,8 +88,7 @@ public final class PrivateModuleAnalysis implements IRPass {
           ImportExport.apply(
               moduleIr.exports().apply(0),
               new ImportExport.ExportSymbolsFromPrivateModule(moduleContext.getName().toString()),
-              ImportExport.apply$default$3(),
-              ImportExport.apply$default$4()));
+              ImportExport.apply$default$3()));
     }
 
     // Ensure that private modules are not exported
@@ -116,8 +104,7 @@ public final class PrivateModuleAnalysis implements IRPass {
                     ImportExport.apply(
                         associatedExportIR.get(),
                         new ImportExport.ExportPrivateModule(expModuleRef.getName().toString()),
-                        ImportExport.apply$default$3(),
-                        ImportExport.apply$default$4()));
+                        ImportExport.apply$default$3()));
               }
               return null;
             });
@@ -134,11 +121,12 @@ public final class PrivateModuleAnalysis implements IRPass {
     return moduleIr.copy(
         convertedImports,
         convertedExports,
-        moduleIr.bindings(),
-        moduleIr.location(),
-        moduleIr.passData(),
-        moduleIr.diagnostics(),
-        moduleIr.id());
+        moduleIr.copy$default$3(),
+        moduleIr.copy$default$4(),
+        moduleIr.copy$default$5(),
+        moduleIr.copy$default$6(),
+        moduleIr.copy$default$7(),
+        moduleIr.copy$default$8());
   }
 
   @Override

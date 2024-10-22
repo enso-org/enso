@@ -14,7 +14,7 @@ from project.Errors import SQL_Error
 from project.Internal.Upload.Helpers.Argument_Checks import check_delete_rows_arguments
 from project.Internal.Upload.Helpers.Check_Queries import check_duplicate_key_matches_for_delete, check_for_null_keys
 from project.Internal.Upload.Helpers.Constants import dry_run_row_limit
-from project.Internal.Upload.Operations.Internal_Core import Table_Upload_Operation, internal_upload_in_memory_table, internal_upload_table
+from project.Internal.Upload.Operations.Internal_Core import internal_upload_in_memory_table, internal_upload_table, Table_Upload_Operation
 
 ## PRIVATE
 common_delete_rows (target_table : DB_Table) (key_values_to_delete : Table | DB_Table) (key_columns : Vector Text) (allow_duplicate_matches : Boolean) -> Integer =

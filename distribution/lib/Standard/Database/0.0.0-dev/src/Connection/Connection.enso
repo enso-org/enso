@@ -220,7 +220,7 @@ type Connection
             table_naming_helper.verify_table_name name <|
                 make_table_for_name self name alias
         SQL_Query.Raw_SQL raw_sql -> handle_sql_errors <| alias.if_not_error <|
-            self.jdbc_connection.ensure_query_has_no_holes raw_sql . if_not_error <|
+            self.dialect.ensure_query_has_no_holes self.jdbc_connection raw_sql . if_not_error <|
                 columns = self.fetch_columns raw_sql Statement_Setter.null
                 name = if alias == "" then (UUID.randomUUID.to_text) else alias
                 ctx = Context.for_query raw_sql name
@@ -360,7 +360,7 @@ type Connection
          representing the query to execute.
     execute_update : Text | SQL_Statement -> Integer
     execute_update self query =
-        Execution_Context.Output.if_enabled disabled_message="Executing update queries is forbidden as the Output context is disabled." panic=False <|
+        Execution_Context.Output.if_enabled disabled_message="As writing is disabled, cannot execute an update query. Press the Write button ▶ to perform the operation." panic=False <|
             statement_setter = self.dialect.get_statement_setter
             self.jdbc_connection.with_prepared_statement query statement_setter stmt->
                 check_statement_is_allowed self stmt
@@ -384,7 +384,7 @@ type Connection
          representing the query to execute.
     execute : Text | SQL_Statement -> Integer
     execute self query =
-        Execution_Context.Output.if_enabled disabled_message="Executing update queries is forbidden as the Output context is disabled." panic=False <|
+        Execution_Context.Output.if_enabled disabled_message="As writing is disabled, cannot execute an update query. Press the Write button ▶ to perform the operation." panic=False <|
             result = self.jdbc_connection.execute query
             stmt = result.second
             check_statement_is_allowed self stmt

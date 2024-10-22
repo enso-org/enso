@@ -13,8 +13,8 @@ use crate::engine::env;
 use crate::ide::web::env::VITE_ENSO_AG_GRID_LICENSE_KEY;
 use crate::ide::web::env::VITE_ENSO_MAPBOX_API_TOKEN;
 
-use heck::ToKebabCase;
 use ide_ci::actions::workflow::definition::cancel_workflow_action;
+use ide_ci::actions::workflow::definition::shell;
 use ide_ci::actions::workflow::definition::Access;
 use ide_ci::actions::workflow::definition::Job;
 use ide_ci::actions::workflow::definition::JobArchetype;
@@ -24,6 +24,7 @@ use ide_ci::actions::workflow::definition::Step;
 use ide_ci::actions::workflow::definition::Strategy;
 use ide_ci::actions::workflow::definition::Target;
 use ide_ci::cache::goodie::graalvm;
+use ide_ci::convert_case::ToKebabCase;
 
 
 
@@ -57,7 +58,6 @@ impl RunsOn for RunnerLabel {
             RunnerLabel::MacOS => Some("MacOS".to_string()),
             RunnerLabel::Linux => Some("Linux".to_string()),
             RunnerLabel::Windows => Some("Windows".to_string()),
-            RunnerLabel::MacOS12 => Some("MacOS12".to_string()),
             RunnerLabel::MacOS13 => Some("MacOS13".to_string()),
             RunnerLabel::MacOSLatest => Some("MacOSLatest".to_string()),
             RunnerLabel::LinuxLatest => Some("LinuxLatest".to_string()),
@@ -86,7 +86,7 @@ impl RunsOn for OS {
 impl RunsOn for (OS, Arch) {
     fn runs_on(&self) -> Vec<RunnerLabel> {
         match self {
-            (OS::MacOS, Arch::X86_64) => vec![RunnerLabel::MacOS12],
+            (OS::MacOS, Arch::X86_64) => vec![RunnerLabel::MacOS13],
             (os, Arch::X86_64) => runs_on(*os, RunnerType::SelfHosted),
             (OS::MacOS, Arch::AArch64) => {
                 let mut ret = runs_on(OS::MacOS, RunnerType::SelfHosted);
@@ -211,34 +211,71 @@ impl JobArchetype for JvmTests {
     }
 }
 
+fn enable_cloud_tests(step: Step) -> Step {
+    step.with_variable_exposed_as(
+        secret::ENSO_CLOUD_COGNITO_USER_POOL_ID,
+        crate::cloud_tests::env::ci_config::ENSO_CLOUD_COGNITO_USER_POOL_ID,
+    )
+    .with_variable_exposed_as(
+        secret::ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID,
+        crate::cloud_tests::env::ci_config::ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID,
+    )
+    .with_variable_exposed_as(
+        secret::ENSO_CLOUD_COGNITO_REGION,
+        crate::cloud_tests::env::ci_config::ENSO_CLOUD_COGNITO_REGION,
+    )
+    .with_secret_exposed_as(
+        secret::ENSO_CLOUD_TEST_ACCOUNT_USERNAME,
+        crate::cloud_tests::env::ci_config::ENSO_CLOUD_TEST_ACCOUNT_USERNAME,
+    )
+    .with_secret_exposed_as(
+        secret::ENSO_CLOUD_TEST_ACCOUNT_PASSWORD,
+        crate::cloud_tests::env::ci_config::ENSO_CLOUD_TEST_ACCOUNT_PASSWORD,
+    )
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct StandardLibraryTests {
-    pub graal_edition: graalvm::Edition,
+    pub graal_edition:       graalvm::Edition,
+    pub cloud_tests_enabled: bool,
 }
 
 impl JobArchetype for StandardLibraryTests {
     fn job(&self, target: Target) -> Job {
         let graal_edition = self.graal_edition;
+        let should_enable_cloud_tests = self.cloud_tests_enabled;
+        // If cloud tests are enabled, we run only cloud related tests.
+        let test_scope =
+            if should_enable_cloud_tests { "std-cloud-related" } else { "standard-library" };
         let job_name = format!("Standard Library Tests ({graal_edition})");
-        let mut job = RunStepsBuilder::new("backend test standard-library")
-            .customize(move |step| {
-                let main_step = step
-                    .with_secret_exposed_as(
-                        secret::ENSO_LIB_S3_AWS_REGION,
-                        crate::libraries_tests::s3::env::ENSO_LIB_S3_AWS_REGION,
-                    )
-                    .with_secret_exposed_as(
-                        secret::ENSO_LIB_S3_AWS_ACCESS_KEY_ID,
-                        crate::libraries_tests::s3::env::ENSO_LIB_S3_AWS_ACCESS_KEY_ID,
-                    )
-                    .with_secret_exposed_as(
-                        secret::ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY,
-                        crate::libraries_tests::s3::env::ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY,
-                    );
-                vec![main_step, step::stdlib_test_reporter(target, graal_edition)]
-            })
-            .build_job(job_name, target)
-            .with_permission(Permission::Checks, Access::Write);
+        let run_command = format!("backend test {test_scope}");
+        let run_steps_builder = RunStepsBuilder::new(run_command).customize(move |step| {
+            let main_step = step
+                .with_secret_exposed_as(
+                    secret::ENSO_LIB_S3_AWS_REGION,
+                    crate::libraries_tests::s3::env::ENSO_LIB_S3_AWS_REGION,
+                )
+                .with_secret_exposed_as(
+                    secret::ENSO_LIB_S3_AWS_ACCESS_KEY_ID,
+                    crate::libraries_tests::s3::env::ENSO_LIB_S3_AWS_ACCESS_KEY_ID,
+                )
+                .with_secret_exposed_as(
+                    secret::ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY,
+                    crate::libraries_tests::s3::env::ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY,
+                );
+
+            let updated_main_step =
+                if should_enable_cloud_tests { enable_cloud_tests(main_step) } else { main_step };
+
+            vec![updated_main_step, step::stdlib_test_reporter(target, graal_edition)]
+        });
+        let mut job = build_job_ensuring_cloud_tests_run_on_github(
+            run_steps_builder,
+            target,
+            &job_name,
+            should_enable_cloud_tests,
+        )
+        .with_permission(Permission::Checks, Access::Write);
         match graal_edition {
             graalvm::Edition::Community => job.env(env::GRAAL_EDITION, graalvm::Edition::Community),
             graalvm::Edition::Enterprise =>
@@ -253,6 +290,26 @@ impl JobArchetype for StandardLibraryTests {
             self.id_key_base(),
             self.graal_edition.to_string().to_kebab_case()
         )
+    }
+}
+
+/** This is a temporary workaround.
+ *
+ * The Cloud tests preparation requires `aws` CLI to be installed on the machine.
+ * The GitHub hosted runners have it, but our self-hosted runners do not.
+ * To fix this we either need to modify self-hosted runners to provide the AWS CLI or change the
+ * way we prepare the Cloud tests to not require it.
+ */
+fn build_job_ensuring_cloud_tests_run_on_github(
+    run_steps_builder: RunStepsBuilder,
+    target: Target,
+    job_name: &str,
+    cloud_tests_enabled: bool,
+) -> Job {
+    if cloud_tests_enabled {
+        run_steps_builder.build_job(job_name, RunnerLabel::LinuxLatest)
+    } else {
+        run_steps_builder.build_job(job_name, target)
     }
 }
 
@@ -291,6 +348,12 @@ impl JobArchetype for SnowflakeTests {
                         secret::ENSO_SNOWFLAKE_WAREHOUSE,
                         crate::libraries_tests::snowflake::env::ENSO_SNOWFLAKE_WAREHOUSE,
                     );
+
+                // Temporarily disabled until we can get the Cloud auth fixed.
+                // Snowflake does not rely on cloud anyway, so it can be disabled.
+                // But it will rely once we add datalink tests, so this should be fixed soon.
+                // let updated_main_step = enable_cloud_tests(main_step);
+
                 vec![
                     main_step,
                     step::extra_stdlib_test_reporter(target, GRAAL_EDITION_FOR_EXTRA_TESTS),
@@ -465,7 +528,36 @@ impl JobArchetype for PackageIde {
         RunStepsBuilder::new(
             "ide build --backend-source current-ci-run --gui-upload-artifact false",
         )
-        .customize(with_packaging_steps(target.0))
+        .customize(move |step| {
+            let mut steps = prepare_packaging_steps(target.0, step);
+            const TEST_COMMAND: &str = "corepack pnpm -r --filter enso exec playwright test";
+            let test_step = if target.0 == OS::Linux {
+                shell(format!("xvfb-run {TEST_COMMAND}"))
+                    // See https://askubuntu.com/questions/1512287/obsidian-appimage-the-suid-sandbox-helper-binary-was-found-but-is-not-configu
+                    .with_env("ENSO_TEST_APP_ARGS", "--no-sandbox")
+            } else {
+                shell(TEST_COMMAND)
+            };
+            let test_step = test_step
+                .with_env("DEBUG", "pw:browser log:")
+                .with_secret_exposed_as(secret::ENSO_CLOUD_TEST_ACCOUNT_USERNAME, "ENSO_TEST_USER")
+                .with_secret_exposed_as(
+                    secret::ENSO_CLOUD_TEST_ACCOUNT_PASSWORD,
+                    "ENSO_TEST_USER_PASSWORD",
+                );
+            steps.push(test_step);
+
+            // After the E2E tests run, they create a credentials file in user home directory.
+            // If that file is not cleaned up, future runs of our tests may randomly get
+            // authenticated into Enso Cloud. We want to run tests as an authenticated
+            // user only when we explicitly set that up, not randomly. So we clean the credentials
+            // file.
+            let cloud_credentials_path = "$HOME/.enso/credentials";
+            let cleanup_credentials_step = shell(format!("rm {cloud_credentials_path}"));
+            steps.push(cleanup_credentials_step);
+
+            steps
+        })
         .build_job("Package New IDE", target)
     }
 }

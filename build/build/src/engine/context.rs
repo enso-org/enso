@@ -49,8 +49,8 @@ pub fn format_option_variant<T>(value: &Option<T>, f: &mut Formatter) -> std::fm
     }
 }
 
-#[derive(derive_more::Deref, derive_more::DerefMut, derivative::Derivative)]
-#[derivative(Debug)]
+#[derive(derive_more::Deref, derive_more::DerefMut)]
+#[derive_where(Debug)]
 pub struct RunContext {
     #[deref]
     #[deref_mut]
@@ -59,7 +59,7 @@ pub struct RunContext {
     pub paths:            Paths,
     /// If set, the engine package (used for creating bundles) will be obtained through this
     /// provider rather than built from source along the other Engine components.
-    #[derivative(Debug(format_with = "format_option_variant"))]
+    #[derive_where(skip)]
     pub external_runtime: Option<Arc<EnginePackageProvider>>,
 }
 
@@ -190,7 +190,18 @@ impl RunContext {
         graalpy.install_if_missing(&self.cache).await?;
         ide_ci::programs::graalpy::GraalPy.require_present().await?;
 
+        if self.config.test_java_generated_from_rust {
+            // Ensure all runtime dependencies are resolved and exported so that they can be
+            // appended to classpath
+            let sbt = engine::sbt::Context {
+                repo_root:         self.paths.repo_root.path.clone(),
+                system_properties: default(),
+            };
+            sbt.call_arg("syntax-rust-definition/Runtime/managedClasspath").await?;
+        }
+
         prepare_simple_library_server.await??;
+
         Ok(())
     }
 
@@ -320,7 +331,6 @@ impl RunContext {
         // === Build project-manager distribution and native image ===
         let mut tasks = vec![];
         if self.config.build_engine_package() {
-            tasks.push("engine-runner/assembly");
             tasks.push("buildEngineDistribution");
         }
         if self.config.build_native_runner {
@@ -354,16 +364,14 @@ impl RunContext {
             for package in ret.packages() {
                 let package_dir = package.dir();
                 let binary_extensions = [EXE_EXTENSION, DLL_EXTENSION];
-                let binaries = binary_extensions
+                let binaries: Vec<PathBuf> = binary_extensions
                     .into_iter()
-                    .map(|extension| {
+                    .flat_map(|extension| {
                         let pattern = package_dir.join_iter(["**", "*"]).with_extension(extension);
-                        glob::glob(pattern.as_str())?.try_collect_vec()
+                        glob::glob(pattern.as_str()).expect("Incorrect glob pattern")
                     })
-                    .try_collect_vec()?
-                    .into_iter()
-                    .flatten()
-                    .collect_vec();
+                    .map(|p| p.map(|p| p.to_owned()))
+                    .try_collect()?;
 
                 debug!(?binaries, "Found executables in the package.");
                 for binary in binaries {
@@ -592,9 +600,8 @@ impl RunContext {
                         .args(run)
                         .current_dir(&self.paths.repo_root)
                         .spawn()?
-                        .wait()
-                        .await?
-                        .exit_ok()?;
+                        .wait_ok()
+                        .await?;
                 } else {
                     debug!("Spawning default shell.");
                     let mut shell =
