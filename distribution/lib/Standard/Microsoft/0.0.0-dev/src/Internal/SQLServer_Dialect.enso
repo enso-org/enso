@@ -309,6 +309,7 @@ type SQLServer_Dialect
         if raw_sql.contains "#" . not then
             jdbc.ensure_query_has_no_holes raw_sql
 
+    ## PRIVATE
     generate_expression self base_gen expr = case expr of
         SQL_Expression.Column _ _ ->
             wrapped_name = base_gen.generate_expression self expr
@@ -321,15 +322,15 @@ type SQLServer_Dialect
         SQL_Expression.Literal value -> 
             wrapped = SQL_Builder.code value
             pair wrapped [wrapped]
-        SQL_Expression.Text_Literal value ->
-            escaped = value.replace "'" "''"
-            pair (SQL_Builder.code ("'" + escaped + "'")) []
+        SQL_Expression.Text_Literal _ ->
+            wrapped_literal = base_gen.generate_expression self expr
+            pair wrapped_literal []
         SQL_Expression.Operation kind arguments metadata ->
             op = self.dialect_operations.operations_dict.get kind (Error.throw <| Unsupported_Database_Operation.Error kind)
-            parsed_args = arguments.map (c -> self.generate_expression base_gen c)
-            parsed_args2 = parsed_args.map .first
-            result = op parsed_args2
-            null_checks = parsed_args.map .second
+            parsed_args_and_null_checks = arguments.map (c -> self.generate_expression base_gen c)
+            parsed_args = parsed_args_and_null_checks.map .first
+            result = op parsed_args
+            null_checks = parsed_args_and_null_checks.map .second
             # If the function expects more arguments, we pass the metadata as the last argument.
             r = case result of
                 _ : Function -> result metadata
@@ -337,6 +338,7 @@ type SQLServer_Dialect
             pair r null_checks
         query : Query -> pair (base_gen.generate_sub_query self query) []
 
+    ## PRIVATE
     generate_column self base_gen expr:(SQL_Expression | Order_Descriptor | Query) name:Text -> SQL_Builder =
         expr_null_checks_pair = self.generate_expression base_gen expr
         base_expr = expr_null_checks_pair.first
