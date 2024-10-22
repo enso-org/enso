@@ -84,8 +84,11 @@ final class JobExecutionEngine(
   private lazy val logger: TruffleLogger =
     runtimeContext.executionService.getLogger
 
+  // Inpendent Thread that keeps track of the existing list of pending
+  // job cancellations.
+  //
   private class ForceJobCancellations extends Runnable {
-    private val forceInterruptTimeout: Long = 30 * 1000 // 30sec
+    private val forceInterruptTimeout: Long = 50 * 1000
 
     override def run(): Unit = {
       while (pendingCancellations.get().nonEmpty) {
@@ -117,20 +120,45 @@ final class JobExecutionEngine(
             }
           }
           logger.log(Level.WARNING, sb.toString())
-          runningJob.future.cancel(true)
+          runningJob.future.cancel(runningJob.job.mayInterruptIfRunning)
         }
         try {
-          if (pending.length != outdated.length)
-            Thread.sleep(forceInterruptTimeout)
+          if (pending.length != outdated.length) {
+            // Calculate optimal sleep time to ensure that Job is killed roughly on time
+            val nextToCancel = pending
+              .filter { case (startTime, _) =>
+                startTime + forceInterruptTimeout > at
+              }
+              .sortBy(_._1)
+              .headOption
+            val timeout = nextToCancel
+              .map(j => Math.min(j._1 - at, forceInterruptTimeout))
+              .getOrElse(forceInterruptTimeout)
+            Thread.sleep(timeout)
+          }
         } catch {
           case e: InterruptedException =>
             logger.log(
               Level.WARNING,
-              "Encountered InterruptedException while on status of pending jobs",
+              "Encountered InterruptedException while waiting on status of pending jobs",
               e
             )
+            throw new RuntimeException(e)
         }
       }
+    }
+  }
+
+  private def maybeForceCancelRunningJob(
+    runningJob: RunningJob,
+    softAbortFirst: Boolean
+  ): Option[RunningJob] = {
+    val delayJobCancellation =
+      runningJob.job.mayInterruptIfRunning && softAbortFirst
+    if (delayJobCancellation) Some(runningJob)
+    else {
+      runningJob.future.cancel(runningJob.job.mayInterruptIfRunning)
+      None
     }
   }
 
@@ -174,10 +202,12 @@ final class JobExecutionEngine(
             case jobRef: UniqueJob[_] if jobRef.equalsTo(job) =>
               logger
                 .log(Level.FINEST, s"Cancelling duplicate job [$jobRef].")
-              runningJob.future.cancel(false) //jobRef.mayInterruptIfRunning)
-              if (jobRef.mayInterruptIfRunning) {
-                updatePendingCancellations(Seq(runningJob))
-              }
+              updatePendingCancellations(
+                maybeForceCancelRunningJob(
+                  runningJob,
+                  softAbortFirst = true
+                ).toSeq
+              )
             case _ =>
           }
         }
@@ -189,6 +219,13 @@ final class JobExecutionEngine(
     jobsToCancel: Seq[RunningJob]
   ): Unit = {
     val at = System.currentTimeMillis()
+    if (jobsToCancel.nonEmpty) {
+      logger.log(
+        Level.FINEST,
+        "Submitting {0} job(s) for future cancellation",
+        jobsToCancel.map(j => (j.job.getClass, j.id))
+      )
+    }
     pendingCancellations.updateAndGet(_ ++ jobsToCancel.map((at, _)))
     pendingCancellationsExecutor.submit(new ForceJobCancellations)
   }
@@ -259,10 +296,10 @@ final class JobExecutionEngine(
       "Aborting {0} jobs because {1}: {2}",
       Array[Any](cancellableJobs.length, reason, cancellableJobs.map(_.id))
     )
-    val pending = cancellableJobs.flatMap { runningJob =>
-      runningJob.future.cancel(false)
-      Option(runningJob.job.mayInterruptIfRunning).map(_ => runningJob)
-    }
+
+    val pending = cancellableJobs.flatMap(
+      maybeForceCancelRunningJob(_, softAbortFirst = true)
+    )
     updatePendingCancellations(pending)
     runtimeContext.executionService.getContext.getThreadManager
       .interruptThreads()
@@ -272,24 +309,26 @@ final class JobExecutionEngine(
   override def abortJobs(
     contextId: UUID,
     reason: String,
+    softAbortFirst: Boolean,
     toAbort: Class[_ <: Job[_]]*
   ): Unit = {
     val allJobs     = runningJobsRef.get()
     val contextJobs = allJobs.filter(_.job.contextIds.contains(contextId))
-    val pending = contextJobs.flatMap { runningJob =>
-      if (
-        runningJob.job.isCancellable && (toAbort.isEmpty || toAbort
-          .contains(runningJob.getClass))
-      ) {
-        logger.log(
-          Level.FINE,
-          "Aborting job {0} because {1}",
-          Array[Any](runningJob.id, reason)
-        )
-        runningJob.future.cancel(false)
-        Option(runningJob.job.mayInterruptIfRunning).map(_ => runningJob)
-      } else None
-    }
+    val pending = contextJobs
+      .flatMap { runningJob =>
+        if (
+          runningJob.job.isCancellable && (toAbort.isEmpty || toAbort
+            .contains(runningJob.getClass))
+        ) {
+          logger.log(
+            Level.FINE,
+            "Aborting job {0} because {1}",
+            Array[Any](runningJob.id, reason)
+          )
+          Some(runningJob)
+        } else None
+      }
+      .flatMap(maybeForceCancelRunningJob(_, softAbortFirst))
     updatePendingCancellations(pending)
     runtimeContext.executionService.getContext.getThreadManager
       .interruptThreads()
@@ -303,17 +342,18 @@ final class JobExecutionEngine(
   ): Unit = {
     val allJobs     = runningJobsRef.get()
     val contextJobs = allJobs.filter(_.job.contextIds.contains(contextId))
-    val pending = contextJobs.flatMap { runningJob =>
-      if (runningJob.job.isCancellable && accept.apply(runningJob.job)) {
-        logger.log(
-          Level.FINE,
-          "Aborting job {0} because {1}",
-          Array[Any](runningJob.id, reason)
-        )
-        runningJob.future.cancel(false)
-        Option(runningJob.job.mayInterruptIfRunning).map(_ => runningJob)
-      } else None
-    }
+    val pending = contextJobs
+      .flatMap { runningJob =>
+        if (runningJob.job.isCancellable && accept.apply(runningJob.job)) {
+          logger.log(
+            Level.FINE,
+            "Aborting job {0} because {1}",
+            Array[Any](runningJob.id, reason)
+          )
+          Some(runningJob)
+        } else None
+      }
+      .flatMap(maybeForceCancelRunningJob(_, softAbortFirst = true))
     updatePendingCancellations(pending)
     runtimeContext.executionService.getContext.getThreadManager
       .interruptThreads()
@@ -335,10 +375,9 @@ final class JobExecutionEngine(
       "Aborting {0} background jobs because {1}: {2}",
       Array[Any](cancellableJobs.length, reason, cancellableJobs.map(_.id))
     )
-    val pending = cancellableJobs.flatMap { runningJob =>
-      runningJob.future.cancel(false)
-      Option(runningJob.job.mayInterruptIfRunning).map(_ => runningJob)
-    }
+    val pending = cancellableJobs.flatMap(
+      maybeForceCancelRunningJob(_, softAbortFirst = true)
+    )
     updatePendingCancellations(pending)
   }
 

@@ -42,7 +42,11 @@ class RecomputeContextCmd(
     ec: ExecutionContext
   ): Future[Boolean] = {
     Future {
-      ctx.jobControlPlane.abortJobs(request.contextId, "recompute context")
+      ctx.jobControlPlane.abortJobs(
+        request.contextId,
+        "recompute context",
+        false
+      )
       val stack = ctx.contextManager.getStack(request.contextId)
       if (stack.isEmpty) {
         reply(Api.EmptyStackError(request.contextId))

@@ -52,7 +52,9 @@ public class SetExecutionEnvironmentCommand extends AsynchronousCommand {
               if (!oldEnvironmentName.equals(executionEnvironment.name())) {
                 ctx.jobControlPlane()
                     .abortJobs(
-                        contextId, "set execution environment to " + executionEnvironment.name());
+                        contextId,
+                        "set execution environment to " + executionEnvironment.name(),
+                        false);
                 ctx.locking()
                     .withWriteCompilationLock(
                         this.getClass(),
