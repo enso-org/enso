@@ -59,6 +59,9 @@ from project.System.File_Format import Auto_Detect, File_Format
      server. Two resources are considered the same if the URIs and request
      headers are the same. Header order does not affect sameness.
 
+     The cache respects the "max-age" and "Age" response headers; see
+     `Data.fetch` for more details.
+
      The cached values are retained as long as the project remains open. Closing
      a project will clear the cache.
 

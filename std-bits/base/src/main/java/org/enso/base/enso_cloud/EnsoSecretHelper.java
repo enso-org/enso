@@ -151,8 +151,7 @@ public final class EnsoSecretHelper extends SecretValueResolver {
     }
 
     /**
-     * Sorts the header by header name, so we don't depend on header order. Multiple-valued headers
-     * might hash differently, but it's a rare case.
+     * Sorts the header by header name and value.
      */
     @Override
     public String hashKey() {
@@ -179,5 +178,5 @@ public final class EnsoSecretHelper extends SecretValueResolver {
   }
 
   private static final Comparator<Pair<String, String>> headerNameComparator =
-      Comparator.comparing(pair -> pair.getLeft());
+      Comparator.comparing((Pair<String, String> pair) -> pair.getLeft()).thenComparing(Comparator.comparing(pair -> pair.getRight()));
 }

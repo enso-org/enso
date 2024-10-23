@@ -1,15 +1,24 @@
 package org.enso.shttp.test_helpers;
 
 import com.sun.net.httpserver.HttpExchange;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
 import java.util.Arrays;
+import java.util.Random;
+
 import org.apache.http.client.utils.URIBuilder;
 import org.enso.shttp.SimpleHttpHandler;
 
-/** A handler that generates a data response, with optional max-age and Age headers. */
+/**
+ * A handler that generates a data response, with optional max-age and Age
+ * headers. The data response consists of a string of random letters of the
+ * requested length.
+ */
 public class DownloadTestHandler extends SimpleHttpHandler {
+  private Random random = new Random(System.currentTimeMillis());
+
   @Override
   protected void doHandle(HttpExchange exchange) throws IOException {
     URI uri = exchange.getRequestURI();
@@ -20,19 +29,19 @@ public class DownloadTestHandler extends SimpleHttpHandler {
     String age = null;
     boolean omitContentLength = false;
     for (var queryPair : builder.getQueryParams()) {
-      if (queryPair.getName().equals("length")) {
-        length = Integer.parseInt(queryPair.getValue());
-      } else if (queryPair.getName().equals("max-age")) {
-        maxAge = queryPair.getValue();
-      } else if (queryPair.getName().equals("age")) {
-        age = queryPair.getValue();
-      } else if (queryPair.getName().equals("omit-content-length")) {
-        omitContentLength = true;
+      switch (queryPair.getName()) {
+        case "length" -> length = Integer.parseInt(queryPair.getValue());
+        case "max-age" -> maxAge = queryPair.getValue();
+        case "age" -> age = queryPair.getValue();
+        case "omit-content-length" -> omitContentLength = true;
+        default -> {}
       }
     }
 
     byte responseData[] = new byte[length];
-    Arrays.fill(responseData, (byte) 97);
+    for (int i = 0; i < length; ++i) {
+      responseData[i] = (byte) (97 + random.nextInt(26));
+    }
 
     if (maxAge != null) {
       exchange.getResponseHeaders().add("Cache-Control", "max-age=" + maxAge);

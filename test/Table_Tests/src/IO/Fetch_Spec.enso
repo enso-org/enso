@@ -128,8 +128,6 @@ add_specs suite_builder =
 
         url0 = base_url_with_slash+'test_download?max-age=16&length=10'
         url1 = base_url_with_slash+'test_download?max-age=16&length=20'
-        url0_body = "aaaaaaaaaa"
-        url1_body = "aaaaaaaaaaaaaaaaaaaa"
         url_post = base_url_with_slash + "post"
         headers0 = [Header.new "A-Header" "a-header-value", Header.new "A-Header" "a-header-value"]
         headers1 = [Header.new "A-Header" "a-different-header-value", Header.new "A-Header" "a-header-value"]
@@ -137,29 +135,29 @@ add_specs suite_builder =
         group_builder.specify "Cache should return the same repsonse" pending=pending_has_url <| Test.with_retries <|
             HTTP.clear_response_cache
 
-            HTTP.fetch url0 . decode_as_text . should_equal url0_body
+            url0_body_0 = HTTP.fetch url0 . decode_as_text
             get_num_response_cache_entries . should_equal 1
-            HTTP.fetch url0 . decode_as_text . should_equal url0_body
+            HTTP.fetch url0 . decode_as_text . should_equal url0_body_0
             get_num_response_cache_entries . should_equal 1
-            HTTP.fetch url1 . decode_as_text . should_equal url1_body
+            url1_body_0 = HTTP.fetch url1 . decode_as_text
             get_num_response_cache_entries . should_equal 2
-            HTTP.fetch url1 . decode_as_text . should_equal url1_body
+            HTTP.fetch url1 . decode_as_text . should_equal url1_body_0
             get_num_response_cache_entries . should_equal 2
 
             HTTP.clear_response_cache
 
-            HTTP.fetch url0 cache_policy=Cache_Policy.Use_Cache . decode_as_text . should_equal url0_body
-            HTTP.fetch url0 cache_policy=Cache_Policy.Use_Cache . decode_as_text . should_equal url0_body
-            HTTP.fetch url1 cache_policy=Cache_Policy.Use_Cache . decode_as_text . should_equal url1_body
-            HTTP.fetch url1 cache_policy=Cache_Policy.Use_Cache . decode_as_text . should_equal url1_body
+            url0_body_1 = HTTP.fetch url0 cache_policy=Cache_Policy.Use_Cache . decode_as_text
+            HTTP.fetch url0 cache_policy=Cache_Policy.Use_Cache . decode_as_text . should_equal url0_body_1
+            url1_body_1 = HTTP.fetch url1 cache_policy=Cache_Policy.Use_Cache . decode_as_text
+            HTTP.fetch url1 cache_policy=Cache_Policy.Use_Cache . decode_as_text . should_equal url1_body_1
             get_num_response_cache_entries . should_equal 2
 
             HTTP.clear_response_cache
 
-            HTTP.fetch url0 cache_policy=Cache_Policy.No_Cache . decode_as_text . should_equal url0_body
-            HTTP.fetch url0 cache_policy=Cache_Policy.No_Cache . decode_as_text . should_equal url0_body
-            HTTP.fetch url1 cache_policy=Cache_Policy.No_Cache . decode_as_text . should_equal url1_body
-            HTTP.fetch url1 cache_policy=Cache_Policy.No_Cache . decode_as_text . should_equal url1_body
+            url0_body_2 = HTTP.fetch url0 cache_policy=Cache_Policy.No_Cache . decode_as_text
+            HTTP.fetch url0 cache_policy=Cache_Policy.No_Cache . decode_as_text . should_not_equal url0_body_2
+            url1_body_2 = HTTP.fetch url1 cache_policy=Cache_Policy.No_Cache . decode_as_text
+            HTTP.fetch url1 cache_policy=Cache_Policy.No_Cache . decode_as_text . should_not_equal url1_body_2
             get_num_response_cache_entries . should_equal 0
 
         group_builder.specify "Cache should handle many entries" pending=pending_has_url <| Test.with_retries <|
@@ -167,13 +165,13 @@ add_specs suite_builder =
 
             HTTP.clear_response_cache
             0.up_to count . each i->
-                HTTP.fetch base_url_with_slash+"test_download?length="+i.to_text . decode_as_text . should_equal ('a' * i)
+                HTTP.fetch base_url_with_slash+"test_download?length="+i.to_text . decode_as_text . length . should_equal i
             get_num_response_cache_entries . should_equal count
 
             HTTP.clear_response_cache
             0.up_to count . each i->
                 headers = [Header.new "A-Header" "a-header-value-"+i.to_text]
-                HTTP.fetch base_url_with_slash+"test_download?length=8" headers=headers . decode_as_text . should_equal ('a' * 8)
+                HTTP.fetch base_url_with_slash+"test_download?length=8" headers=headers . decode_as_text . length . should_equal 8
             get_num_response_cache_entries . should_equal count
 
         group_builder.specify "Cache policy should work for HTTP.fetch" pending=pending_has_url <| Test.with_retries <|
@@ -262,11 +260,12 @@ add_specs suite_builder =
 
         group_builder.specify "Cache key should not depend on header order" pending=pending_has_url <| Test.with_retries <|
             HTTP.clear_response_cache
-            header0 = Header.new "Abc" "def"
-            header1 = Header.new "Ghi" "jkl"
-            Data.fetch url0 headers=[header0, header1]
-            get_num_response_cache_entries . should_equal 1
-            Data.fetch url0 headers=[header1, header0]
+            header0 = Header.new "Abc" "eef"
+            header1 = Header.new "Abc" "def"
+            header2 = Header.new "Ghi" "jkl"
+            orders = [[header0, header1, header2], [header1, header2, header0], [header2, header1, header0]]
+            orders.map headers->
+                Data.fetch url0 headers=headers
             get_num_response_cache_entries . should_equal 1
 
         ## Fetching the trigger uri causes stale entries to be removed, since the
