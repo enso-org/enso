@@ -141,6 +141,13 @@
         "dependencies": {
           "@types/node": "*"
         }
+      },
+      "@vue/test-utils": {
+        "dependencies": {
+          "vue": "*",
+          "@vue/compiler-dom": "*",
+          "@vue/server-renderer": "*"
+        }
       }
     },
     "onlyBuiltDependencies": [

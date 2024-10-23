@@ -10,7 +10,7 @@ overrides:
   '@types/react': ^18.0.27
   ws: ^8.18.0
 
-packageExtensionsChecksum: cf2807262ce2e9198f3ece15f3d47884
+packageExtensionsChecksum: 06f7bfd97f701de08ea92e4284f0830e
 
 pnpmfileChecksum: yrev2pk43cjl5fkasomnhoqkcu
 
@@ -457,7 +457,7 @@ importers:
         version: 1.6.0(vitest@1.6.0(@types/node@20.11.21)(jsdom@24.1.0)(lightningcss@1.25.1))
       '@vue/test-utils':
         specifier: ^2.4.6
-        version: 2.4.6
+        version: 2.4.6(typescript@5.5.3)
       '@vue/tsconfig':
         specifier: ^0.5.1
         version: 0.5.1
@@ -10798,10 +10798,15 @@ snapshots:
 
   '@vue/shared@3.5.2': {}
 
-  '@vue/test-utils@2.4.6':
+  '@vue/test-utils@2.4.6(typescript@5.5.3)':
     dependencies:
+      '@vue/compiler-dom': 3.5.2
+      '@vue/server-renderer': 3.5.2(vue@3.5.2(typescript@5.5.3))
       js-beautify: 1.15.1
+      vue: 3.5.2(typescript@5.5.3)
       vue-component-type-helpers: 2.0.29
+    transitivePeerDependencies:
+      - typescript
 
   '@vue/tsconfig@0.5.1': {}
 

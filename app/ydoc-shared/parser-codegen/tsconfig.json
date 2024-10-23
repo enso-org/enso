@@ -13,6 +13,6 @@
     "verbatimModuleSyntax": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
-    "strictNullChecks": true,
+    "strictNullChecks": true
   }
 }

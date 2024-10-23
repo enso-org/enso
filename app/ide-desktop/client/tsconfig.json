@@ -3,16 +3,8 @@
   "compilerOptions": {
     "esModuleInterop": true,
     "paths": {
-      "@/*": [
-        "./src/*"
-      ]
+      "@/*": ["./src/*"]
     }
   },
-  "include": [
-    "src/*.ts",
-    "tasks/*.ts",
-    "tests/*.ts",
-    "src/config.json",
-    "*.ts"
-  ]
+  "include": ["src/*.ts", "tasks/*.ts", "tests/*.ts", "src/config.json", "*.ts"]
 }

@@ -4,6 +4,7 @@
   "exclude": ["parser-codegen"],
   "compilerOptions": {
     "composite": true,
+    "isolatedModules": true,
     "noEmit": false,
     "rootDir": "src",
     "outDir": "dist",

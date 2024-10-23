@@ -447,7 +447,7 @@ function makeAbstractType(
         schema,
       ),
       tsf.createEnumDeclaration(
-        [modifiers.export, modifiers.const],
+        [modifiers.export],
         'Type',
         childTypes.map(child => child.enumMember),
       ),
