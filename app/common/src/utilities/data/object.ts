@@ -13,7 +13,9 @@ export type Mutable<T> = {
 export function deepEqual<T>(a: T, b: T) {
   if (Object.is(a, b)) return true
   if (typeof a !== typeof b) return false
-  if (typeof a !== 'object' || typeof b !== 'object') return Object.is(a, b)
+  // If either value is not an object, the `Object.is` check above would have already
+  // returned `true` if they were equal.
+  if (typeof a !== 'object' || typeof b !== 'object') return false
   if (Array.isArray(a) && Array.isArray(b) && a.length !== b.length) return false
   // They cannot both be null because the `Object.is(a, b)` case above ensures they are not equal.
   if (a == null || b == null) return false
@@ -21,12 +23,12 @@ export function deepEqual<T>(a: T, b: T) {
     if (!(k in b)) return false
   }
   for (const k in b) {
-    if (!(k in a)) return true
+    if (!(k in a)) return false
   }
   for (const k in a) {
     if (!deepEqual(a[k], b[k])) return false
   }
-  return false
+  return true
 }
 
 // =============
