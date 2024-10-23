@@ -461,7 +461,7 @@ export const Button = forwardRef(function Button(
             className={styles.content({ className: contentClassName })}
             {...targetProps}
           >
-            { }
+            {}
             {childrenFactory(render)}
           </span>
 
