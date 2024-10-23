@@ -54,7 +54,6 @@ where T: serde::Serialize + Reflect {
         TextEnd::reflect(),
         TextStart::reflect(),
         Wildcard::reflect(),
-        Private::reflect(),
         TypeKeyword::reflect(),
         ForeignKeyword::reflect(),
         CaseKeyword::reflect(),
@@ -63,7 +62,7 @@ where T: serde::Serialize + Reflect {
         AssignmentOperator::reflect(),
     ];
     skip_tokens.into_iter().for_each(|token| to_s_expr.skip(rust_to_meta[&token.id]));
-    let identish_tokens = vec![Ident::reflect(), AllKeyword::reflect()];
+    let identish_tokens = vec![Ident::reflect(), AllKeyword::reflect(), PrivateKeyword::reflect()];
     let identish_tokens = identish_tokens.into_iter().map(|t| rust_to_meta[&t.id]);
     let text_escape_token = rust_to_meta[&TextEscape::reflect().id];
     let token_to_str = move |token: Value| {
@@ -98,9 +97,11 @@ where T: serde::Serialize + Reflect {
     };
     let line = rust_to_meta[&tree::block::Line::reflect().id];
     let operator_line = rust_to_meta[&tree::block::OperatorLine::reflect().id];
+    let type_signature_line = rust_to_meta[&tree::TypeSignatureLine::reflect().id];
     let invalid = rust_to_meta[&tree::Invalid::reflect().id];
     to_s_expr.mapper(line, into_car);
     to_s_expr.mapper(operator_line, into_car);
+    to_s_expr.mapper(type_signature_line, into_car);
     to_s_expr.mapper(invalid, strip_invalid);
     to_s_expr.mapper(text_escape_token, simplify_escape);
     tuplify(to_s_expr.value(ast_ty, &value))
