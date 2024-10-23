@@ -28,6 +28,7 @@
     "build:gui": "corepack pnpm run -r compile && corepack pnpm run -r --filter enso-gui build",
     "build:ide": "corepack pnpm run -r compile && corepack pnpm run -r --filter enso build",
     "build:icons": "corepack pnpm run -r --filter enso-icons build",
+    "build:polyglot-server": "corepack pnpm postinstall && corepack pnpm run -r compile",
     "dist:ide": "corepack pnpm run -r --filter enso dist",
     "format": "prettier --write .",
     "format:workflows": "prettier --write .github/workflows",
@@ -44,7 +45,7 @@
     "overrides": {
       "tslib": "$tslib",
       "jsdom": "^24.1.0",
-      "@types/react": "^18.0.27",
+      "@types/react": "^18.3.1",
       "ws": "^8.18.0"
     },
     "packageExtensions": {

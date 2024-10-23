@@ -3,7 +3,7 @@ import * as React from 'react'
 
 import invariant from 'tiny-invariant'
 import * as z from 'zod'
-import { createStore, StoreApi, useStore } from 'zustand'
+import { createStore, type StoreApi, useStore } from 'zustand'
 
 import * as eventCallbacks from '#/hooks/eventCallbackHooks'
 import * as searchParamsState from '#/hooks/searchParamsStateHooks'

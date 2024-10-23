@@ -2,7 +2,7 @@
 import * as React from 'react'
 
 import invariant from 'tiny-invariant'
-import { createStore, StoreApi, useStore } from 'zustand'
+import { createStore, type StoreApi, useStore } from 'zustand'
 
 import type { AssetPanelContextProps } from '#/layouts/AssetPanel'
 import type { Suggestion } from '#/layouts/AssetSearchBar'

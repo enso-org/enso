@@ -7,7 +7,7 @@ settings:
 overrides:
   tslib: ^2.6.3
   jsdom: ^24.1.0
-  '@types/react': ^18.0.27
+  '@types/react': ^18.3.1
   ws: ^8.18.0
 
 packageExtensionsChecksum: 06f7bfd97f701de08ea92e4284f0830e
@@ -426,7 +426,7 @@ importers:
         specifier: ^20.11.21
         version: 20.11.21
       '@types/react':
-        specifier: ^18.0.27
+        specifier: ^18.3.1
         version: 18.3.3
       '@types/react-dom':
         specifier: ^18.0.10
@@ -7568,7 +7568,7 @@ packages:
     resolution: {integrity: sha512-LE+VcmbartOPM+auOjCCLQOsQ05zUTp8RkgwRzefUk+2jISdMMFnxvyTjA4YNWr5ZGXYbVsEMZosttuxUBkojQ==}
     engines: {node: '>=12.20.0'}
     peerDependencies:
-      '@types/react': ^18.0.27
+      '@types/react': ^18.3.1
       immer: '>=9.0.6'
       react: '>=18.0.0'
       use-sync-external-store: '>=1.2.0'

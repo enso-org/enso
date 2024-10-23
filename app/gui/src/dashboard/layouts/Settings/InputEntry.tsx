@@ -1,5 +1,5 @@
 /** @file Rendering for an {@link SettingsInputEntryData}. */
-import { useRef, useState } from 'react'
+import { type FormEvent, useRef, useState } from 'react'
 
 import { Button, FieldError, Form, Label, TextField } from '#/components/aria'
 import { useText } from '#/providers/TextProvider'
@@ -51,7 +51,7 @@ export default function SettingsInputEntry(props: SettingsInputEntryProps) {
   return (
     <Form
       validationErrors={{ [FIELD_NAME]: errorMessage }}
-      onSubmit={async (event) => {
+      onSubmit={async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault()
         if (!isSubmitting.current) {
           isSubmitting.current = true
@@ -72,10 +72,10 @@ export default function SettingsInputEntry(props: SettingsInputEntryProps) {
         key={value}
         name={FIELD_NAME}
         defaultValue={value}
-        className="flex h-row items-center gap-settings-entry"
+        className="h-row gap-settings-entry flex items-center"
         {...(validate ? { validate: (newValue) => validate(newValue, context) } : {})}
       >
-        <Label className="text my-auto w-organization-settings-label">{getText(nameId)}</Label>
+        <Label className="text w-organization-settings-label my-auto">{getText(nameId)}</Label>
         {validate ?
           <div className="flex grow flex-col">
             {input}
