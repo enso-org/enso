@@ -150,9 +150,7 @@ public final class EnsoSecretHelper extends SecretValueResolver {
           renderedURI, javaResponse.headers(), javaResponse.body(), javaResponse.statusCode());
     }
 
-    /**
-     * Sorts the header by header name and value.
-     */
+    /** Sorts the header by header name and value. */
     @Override
     public String hashKey() {
       var sortedHeaders = resolvedHeaders.stream().sorted(headerNameComparator).toList();
@@ -178,5 +176,6 @@ public final class EnsoSecretHelper extends SecretValueResolver {
   }
 
   private static final Comparator<Pair<String, String>> headerNameComparator =
-      Comparator.comparing((Pair<String, String> pair) -> pair.getLeft()).thenComparing(Comparator.comparing(pair -> pair.getRight()));
+      Comparator.comparing((Pair<String, String> pair) -> pair.getLeft())
+          .thenComparing(Comparator.comparing(pair -> pair.getRight()));
 }

@@ -3,7 +3,6 @@ package org.enso.base.enso_cloud;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.http.HttpHeaders;
-import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.enso.base.cache.LRUCache;
@@ -136,9 +135,7 @@ public class EnsoHTTPResponseCache {
     return lruCache.getFileSizesTestOnly();
   }
 
-  /** 
-   * Return a set of parameters that can be used to modify settings for testing purposes.
-   */
+  /** Return a set of parameters that can be used to modify settings for testing purposes. */
   public static LRUCache.CacheTestParameters getCacheTestParameters() {
     return lruCache.getCacheTestParameters();
   }

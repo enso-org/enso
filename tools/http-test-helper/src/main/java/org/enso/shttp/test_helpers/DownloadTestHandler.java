@@ -1,20 +1,16 @@
 package org.enso.shttp.test_helpers;
 
 import com.sun.net.httpserver.HttpExchange;
-
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
-import java.util.Arrays;
 import java.util.Random;
-
 import org.apache.http.client.utils.URIBuilder;
 import org.enso.shttp.SimpleHttpHandler;
 
 /**
- * A handler that generates a data response, with optional max-age and Age
- * headers. The data response consists of a string of random letters of the
- * requested length.
+ * A handler that generates a data response, with optional max-age and Age headers. The data
+ * response consists of a string of random letters of the requested length.
  */
 public class DownloadTestHandler extends SimpleHttpHandler {
   private Random random = new Random(System.currentTimeMillis());
