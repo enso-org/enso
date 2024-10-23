@@ -1,6 +1,7 @@
 /** @file A table row for an arbitrary asset. */
 import * as React from 'react'
 
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useStore } from 'zustand'
 
 import BlankIcon from '#/assets/blank.svg'
@@ -9,12 +10,7 @@ import * as dragAndDropHooks from '#/hooks/dragAndDropHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 
-import {
-  useDriveStore,
-  useSetAssetPanelProps,
-  useSetIsAssetPanelTemporarilyVisible,
-  useSetSelectedKeys,
-} from '#/providers/DriveProvider'
+import { useDriveStore, useSetSelectedKeys } from '#/providers/DriveProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -34,7 +30,12 @@ import * as localBackend from '#/services/LocalBackend'
 import * as backendModule from '#/services/Backend'
 
 import { Text } from '#/components/AriaComponents'
-import { backendMutationOptions } from '#/hooks/backendHooks'
+import { useCutAndPaste } from '#/events/assetListEvent'
+import {
+  backendMutationOptions,
+  backendQueryOptions,
+  useBackendMutationState,
+} from '#/hooks/backendHooks'
 import { createGetProjectDetailsQuery } from '#/hooks/projectHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
@@ -49,7 +50,6 @@ import * as permissions from '#/utilities/permissions'
 import * as set from '#/utilities/set'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import Visibility from '#/utilities/Visibility'
-import { useMutation, useQuery } from '@tanstack/react-query'
 
 // =================
 // === Constants ===
@@ -133,9 +133,9 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
 
   const [item, setItem] = React.useState(rawItem)
   const driveStore = useDriveStore()
+  const queryClient = useQueryClient()
   const { user } = useFullUserSession()
   const setSelectedKeys = useSetSelectedKeys()
-  const setAssetPanelProps = useSetAssetPanelProps()
   const selected = useStore(driveStore, ({ visuallySelectedKeys, selectedKeys }) =>
     (visuallySelectedKeys ?? selectedKeys).has(item.key),
   )
@@ -151,17 +151,15 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
   const draggableProps = dragAndDropHooks.useDraggable()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
-  const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
+  const cutAndPaste = useCutAndPaste(category)
   const [isDraggedOver, setIsDraggedOver] = React.useState(false)
   const rootRef = React.useRef<HTMLElement | null>(null)
   const dragOverTimeoutHandle = React.useRef<number | null>(null)
-  const setIsAssetPanelTemporarilyVisible = useSetIsAssetPanelTemporarilyVisible()
   const grabKeyboardFocusRef = useSyncRef(grabKeyboardFocus)
   const asset = item.item
-  const [insertionVisibility, setInsertionVisibility] = React.useState(Visibility.visible)
-  const [innerRowState, setRowState] = React.useState<assetsTable.AssetRowState>(() =>
-    object.merge(assetRowUtils.INITIAL_ROW_STATE, { setVisibility: setInsertionVisibility }),
+  const [innerRowState, setRowState] = React.useState<assetsTable.AssetRowState>(
+    assetRowUtils.INITIAL_ROW_STATE,
   )
 
   const isNewlyCreated = useStore(driveStore, ({ newestFolderId }) => newestFolderId === asset.id)
@@ -176,12 +174,14 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
     readonly parentKeys: Map<backendModule.AssetId, backendModule.DirectoryId>
   } | null>(null)
 
-  const outerVisibility = visibilities.get(item.key)
-  const visibility =
-    outerVisibility == null || outerVisibility === Visibility.visible ?
-      insertionVisibility
-    : outerVisibility
-  const hidden = hiddenRaw || visibility === Visibility.hidden
+  const isDeleting =
+    useBackendMutationState(backend, 'deleteAsset', {
+      predicate: ({ state: { variables: [assetId] = [] } }) => assetId === asset.id,
+    }).length !== 0
+  const isRestoring =
+    useBackendMutationState(backend, 'undoDeleteAsset', {
+      predicate: ({ state: { variables: [assetId] = [] } }) => assetId === asset.id,
+    }).length !== 0
   const isCloud = isCloudCategory(category)
 
   const { data: projectState } = useQuery({
@@ -194,13 +194,25 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
 
   const toastAndLog = useToastAndLog()
 
-  const getProjectDetailsMutation = useMutation(
-    backendMutationOptions(backend, 'getProjectDetails'),
-  )
-  const getFileDetailsMutation = useMutation(backendMutationOptions(backend, 'getFileDetails'))
-  const getDatalinkMutation = useMutation(backendMutationOptions(backend, 'getDatalink'))
   const createPermissionMutation = useMutation(backendMutationOptions(backend, 'createPermission'))
   const associateTagMutation = useMutation(backendMutationOptions(backend, 'associateTag'))
+
+  const outerVisibility = visibilities.get(item.key)
+  const insertionVisibility = useStore(driveStore, (driveState) =>
+    driveState.pasteData?.type === 'move' && driveState.pasteData.data.ids.has(item.key) ?
+      Visibility.faded
+    : Visibility.visible,
+  )
+  const createPermissionVariables = createPermissionMutation.variables?.[0]
+  const isRemovingSelf =
+    createPermissionVariables != null &&
+    createPermissionVariables.action == null &&
+    createPermissionVariables.actorsIds[0] === user.userId
+  const visibility =
+    isRemovingSelf ? Visibility.hidden
+    : outerVisibility === Visibility.visible ? insertionVisibility
+    : outerVisibility ?? insertionVisibility
+  const hidden = isDeleting || isRestoring || hiddenRaw || visibility === Visibility.hidden
 
   const setSelected = useEventCallback((newSelected: boolean) => {
     const { selectedKeys } = driveStore.getState()
@@ -247,20 +259,6 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
     }
   }, [item.item.id, updateAssetRef])
 
-  React.useEffect(() => {
-    if (isSoleSelected && item.item.id !== driveStore.getState().assetPanelProps?.item?.item.id) {
-      setAssetPanelProps({ backend, item, setItem })
-      setIsAssetPanelTemporarilyVisible(false)
-    }
-  }, [
-    item,
-    isSoleSelected,
-    backend,
-    setAssetPanelProps,
-    setIsAssetPanelTemporarilyVisible,
-    driveStore,
-  ])
-
   const doDelete = React.useCallback(
     (forever = false) => {
       void doDeleteRaw(item.item, forever)
@@ -285,7 +283,7 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
       payload != null && payload.every((innerItem) => innerItem.key !== directoryKey)
     const canPaste = (() => {
       if (!isPayloadMatch) {
-        return true
+        return false
       } else {
         if (nodeMap.current !== nodeParentKeysRef.current?.nodeMap.deref()) {
           const parentKeys = new Map(
@@ -296,12 +294,21 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
           )
           nodeParentKeysRef.current = { nodeMap: new WeakRef(nodeMap.current), parentKeys }
         }
-        return !payload.some((payloadItem) => {
+        return payload.every((payloadItem) => {
           const parentKey = nodeParentKeysRef.current?.parentKeys.get(payloadItem.key)
           const parent = parentKey == null ? null : nodeMap.current.get(parentKey)
-          return !parent ? true : (
-              permissions.isTeamPath(parent.path) && permissions.isUserPath(item.path)
+          if (!parent) {
+            return false
+          } else if (permissions.isTeamPath(parent.path)) {
+            return true
+          } else {
+            // Assume user path; check permissions
+            const permission = permissions.tryFindSelfPermission(user, item.item.permissions)
+            return (
+              permission != null &&
+              permissions.canPermissionModifyDirectoryContents(permission.permission)
             )
+          }
         })
       }
     })()
@@ -314,263 +321,229 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
   }
 
   eventListProvider.useAssetEventListener(async (event) => {
-    if (state.category.type === 'trash') {
-      switch (event.type) {
-        case AssetEventType.deleteForever: {
-          if (event.ids.has(item.key)) {
-            doDelete(true)
-          }
-          break
+    switch (event.type) {
+      case AssetEventType.move: {
+        if (event.ids.has(item.key)) {
+          await doMove(event.newParentKey, item.item)
         }
-        case AssetEventType.restore: {
-          if (event.ids.has(item.key)) {
-            await doRestore(item.item)
-          }
-          break
-        }
-        default: {
-          break
-        }
+        break
       }
-    } else {
-      switch (event.type) {
-        case AssetEventType.cut: {
-          if (event.ids.has(item.key)) {
-            setInsertionVisibility(Visibility.faded)
-          }
-          break
+      case AssetEventType.delete: {
+        if (event.ids.has(item.key)) {
+          doDelete(false)
         }
-        case AssetEventType.cancelCut: {
-          if (event.ids.has(item.key)) {
-            setInsertionVisibility(Visibility.visible)
-          }
-          break
+        break
+      }
+      case AssetEventType.deleteForever: {
+        if (event.ids.has(item.key)) {
+          doDelete(true)
         }
-        case AssetEventType.move: {
-          if (event.ids.has(item.key)) {
-            setInsertionVisibility(Visibility.visible)
-            await doMove(event.newParentKey, item.item)
-          }
-          break
+        break
+      }
+      case AssetEventType.restore: {
+        if (event.ids.has(item.key)) {
+          await doRestore(item.item)
         }
-        case AssetEventType.delete: {
-          if (event.ids.has(item.key)) {
-            doDelete(false)
-          }
-          break
-        }
-        case AssetEventType.deleteForever: {
-          if (event.ids.has(item.key)) {
-            doDelete(true)
-          }
-          break
-        }
-        case AssetEventType.restore: {
-          if (event.ids.has(item.key)) {
-            await doRestore(item.item)
-          }
-          break
-        }
-        case AssetEventType.download:
-        case AssetEventType.downloadSelected: {
-          if (event.type === AssetEventType.downloadSelected ? selected : event.ids.has(asset.id)) {
-            if (isCloud) {
-              switch (asset.type) {
-                case backendModule.AssetType.project: {
-                  try {
-                    const details = await getProjectDetailsMutation.mutateAsync([
+        break
+      }
+      case AssetEventType.download:
+      case AssetEventType.downloadSelected: {
+        if (event.type === AssetEventType.downloadSelected ? selected : event.ids.has(asset.id)) {
+          if (isCloud) {
+            switch (asset.type) {
+              case backendModule.AssetType.project: {
+                try {
+                  const details = await queryClient.fetchQuery(
+                    backendQueryOptions(backend, 'getProjectDetails', [
                       asset.id,
                       asset.parentId,
                       asset.title,
-                    ])
-                    if (details.url != null) {
-                      await backend.download(details.url, `${asset.title}.enso-project`)
-                    } else {
-                      const error: unknown = getText('projectHasNoSourceFilesPhrase')
-                      toastAndLog('downloadProjectError', error, asset.title)
-                    }
-                  } catch (error) {
+                    ]),
+                  )
+                  if (details.url != null) {
+                    await backend.download(details.url, `${asset.title}.enso-project`)
+                  } else {
+                    const error: unknown = getText('projectHasNoSourceFilesPhrase')
                     toastAndLog('downloadProjectError', error, asset.title)
                   }
-                  break
+                } catch (error) {
+                  toastAndLog('downloadProjectError', error, asset.title)
                 }
-                case backendModule.AssetType.file: {
-                  try {
-                    const details = await getFileDetailsMutation.mutateAsync([
-                      asset.id,
-                      asset.title,
-                    ])
-                    if (details.url != null) {
-                      await backend.download(details.url, asset.title)
-                    } else {
-                      const error: unknown = getText('fileNotFoundPhrase')
-                      toastAndLog('downloadFileError', error, asset.title)
-                    }
-                  } catch (error) {
+                break
+              }
+              case backendModule.AssetType.file: {
+                try {
+                  const details = await queryClient.fetchQuery(
+                    backendQueryOptions(backend, 'getFileDetails', [asset.id, asset.title]),
+                  )
+                  if (details.url != null) {
+                    await backend.download(details.url, asset.title)
+                  } else {
+                    const error: unknown = getText('fileNotFoundPhrase')
                     toastAndLog('downloadFileError', error, asset.title)
                   }
-                  break
+                } catch (error) {
+                  toastAndLog('downloadFileError', error, asset.title)
                 }
-                case backendModule.AssetType.datalink: {
-                  try {
-                    const value = await getDatalinkMutation.mutateAsync([asset.id, asset.title])
-                    const fileName = `${asset.title}.datalink`
-                    download(
-                      URL.createObjectURL(
-                        new File([JSON.stringify(value)], fileName, {
-                          type: 'application/json+x-enso-data-link',
-                        }),
-                      ),
-                      fileName,
-                    )
-                  } catch (error) {
-                    toastAndLog('downloadDatalinkError', error, asset.title)
-                  }
-                  break
-                }
-                default: {
-                  toastAndLog('downloadInvalidTypeError')
-                  break
-                }
+                break
               }
-            } else {
-              if (asset.type === backendModule.AssetType.project) {
-                const projectsDirectory = localBackend.extractTypeAndId(asset.parentId).id
-                const uuid = localBackend.extractTypeAndId(asset.id).id
-                const queryString = new URLSearchParams({ projectsDirectory }).toString()
-                await backend.download(
-                  `./api/project-manager/projects/${uuid}/enso-project?${queryString}`,
-                  `${asset.title}.enso-project`,
-                )
+              case backendModule.AssetType.datalink: {
+                try {
+                  const value = await queryClient.fetchQuery(
+                    backendQueryOptions(backend, 'getDatalink', [asset.id, asset.title]),
+                  )
+                  const fileName = `${asset.title}.datalink`
+                  download(
+                    URL.createObjectURL(
+                      new File([JSON.stringify(value)], fileName, {
+                        type: 'application/json+x-enso-data-link',
+                      }),
+                    ),
+                    fileName,
+                  )
+                } catch (error) {
+                  toastAndLog('downloadDatalinkError', error, asset.title)
+                }
+                break
+              }
+              default: {
+                toastAndLog('downloadInvalidTypeError')
+                break
               }
             }
-          }
-          break
-        }
-        case AssetEventType.removeSelf: {
-          // This is not triggered from the asset list, so it uses `item.id` instead of `key`.
-          if (event.id === asset.id && user.isEnabled) {
-            setInsertionVisibility(Visibility.hidden)
-            try {
-              await createPermissionMutation.mutateAsync([
-                {
-                  action: null,
-                  resourceId: asset.id,
-                  actorsIds: [user.userId],
-                },
-              ])
-              dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
-            } catch (error) {
-              setInsertionVisibility(Visibility.visible)
-              toastAndLog(null, error)
+          } else {
+            if (asset.type === backendModule.AssetType.project) {
+              const projectsDirectory = localBackend.extractTypeAndId(asset.parentId).id
+              const uuid = localBackend.extractTypeAndId(asset.id).id
+              const queryString = new URLSearchParams({ projectsDirectory }).toString()
+              await backend.download(
+                `./api/project-manager/projects/${uuid}/enso-project?${queryString}`,
+                `${asset.title}.enso-project`,
+              )
             }
           }
-          break
         }
-        case AssetEventType.temporarilyAddLabels: {
-          const labels = event.ids.has(item.key) ? event.labelNames : set.EMPTY_SET
-          setRowState((oldRowState) =>
-            (
-              oldRowState.temporarilyAddedLabels === labels &&
-              oldRowState.temporarilyRemovedLabels === set.EMPTY_SET
-            ) ?
-              oldRowState
-            : object.merge(oldRowState, {
-                temporarilyAddedLabels: labels,
-                temporarilyRemovedLabels: set.EMPTY_SET,
-              }),
-          )
-          break
-        }
-        case AssetEventType.temporarilyRemoveLabels: {
-          const labels = event.ids.has(item.key) ? event.labelNames : set.EMPTY_SET
-          setRowState((oldRowState) =>
-            (
-              oldRowState.temporarilyAddedLabels === set.EMPTY_SET &&
-              oldRowState.temporarilyRemovedLabels === labels
-            ) ?
-              oldRowState
-            : object.merge(oldRowState, {
-                temporarilyAddedLabels: set.EMPTY_SET,
-                temporarilyRemovedLabels: labels,
-              }),
-          )
-          break
-        }
-        case AssetEventType.addLabels: {
-          setRowState((oldRowState) =>
-            oldRowState.temporarilyAddedLabels === set.EMPTY_SET ?
-              oldRowState
-            : object.merge(oldRowState, { temporarilyAddedLabels: set.EMPTY_SET }),
-          )
-          const labels = asset.labels
-          if (
-            event.ids.has(item.key) &&
-            (labels == null || [...event.labelNames].some((label) => !labels.includes(label)))
-          ) {
-            const newLabels = [
-              ...(labels ?? []),
-              ...[...event.labelNames].filter((label) => labels?.includes(label) !== true),
-            ]
-            setAsset(object.merger({ labels: newLabels }))
-            try {
-              await associateTagMutation.mutateAsync([asset.id, newLabels, asset.title])
-            } catch (error) {
-              setAsset(object.merger({ labels }))
-              toastAndLog(null, error)
-            }
+        break
+      }
+      case AssetEventType.removeSelf: {
+        // This is not triggered from the asset list, so it uses `item.id` instead of `key`.
+        if (event.id === asset.id && user.isEnabled) {
+          try {
+            await createPermissionMutation.mutateAsync([
+              {
+                action: null,
+                resourceId: asset.id,
+                actorsIds: [user.userId],
+              },
+            ])
+            dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
+          } catch (error) {
+            toastAndLog(null, error)
           }
-          break
         }
-        case AssetEventType.removeLabels: {
-          setRowState((oldRowState) =>
-            oldRowState.temporarilyAddedLabels === set.EMPTY_SET ?
-              oldRowState
-            : object.merge(oldRowState, { temporarilyAddedLabels: set.EMPTY_SET }),
-          )
-          const labels = asset.labels
-          if (
-            event.ids.has(item.key) &&
-            labels != null &&
-            [...event.labelNames].some((label) => labels.includes(label))
-          ) {
-            const newLabels = labels.filter((label) => !event.labelNames.has(label))
-            setAsset(object.merger({ labels: newLabels }))
-            try {
-              await associateTagMutation.mutateAsync([asset.id, newLabels, asset.title])
-            } catch (error) {
-              setAsset(object.merger({ labels }))
-              toastAndLog(null, error)
-            }
+        break
+      }
+      case AssetEventType.temporarilyAddLabels: {
+        const labels = event.ids.has(item.key) ? event.labelNames : set.EMPTY_SET
+        setRowState((oldRowState) =>
+          (
+            oldRowState.temporarilyAddedLabels === labels &&
+            oldRowState.temporarilyRemovedLabels === set.EMPTY_SET
+          ) ?
+            oldRowState
+          : object.merge(oldRowState, {
+              temporarilyAddedLabels: labels,
+              temporarilyRemovedLabels: set.EMPTY_SET,
+            }),
+        )
+        break
+      }
+      case AssetEventType.temporarilyRemoveLabels: {
+        const labels = event.ids.has(item.key) ? event.labelNames : set.EMPTY_SET
+        setRowState((oldRowState) =>
+          (
+            oldRowState.temporarilyAddedLabels === set.EMPTY_SET &&
+            oldRowState.temporarilyRemovedLabels === labels
+          ) ?
+            oldRowState
+          : object.merge(oldRowState, {
+              temporarilyAddedLabels: set.EMPTY_SET,
+              temporarilyRemovedLabels: labels,
+            }),
+        )
+        break
+      }
+      case AssetEventType.addLabels: {
+        setRowState((oldRowState) =>
+          oldRowState.temporarilyAddedLabels === set.EMPTY_SET ?
+            oldRowState
+          : object.merge(oldRowState, { temporarilyAddedLabels: set.EMPTY_SET }),
+        )
+        const labels = asset.labels
+        if (
+          event.ids.has(item.key) &&
+          (labels == null || [...event.labelNames].some((label) => !labels.includes(label)))
+        ) {
+          const newLabels = [
+            ...(labels ?? []),
+            ...[...event.labelNames].filter((label) => labels?.includes(label) !== true),
+          ]
+          setAsset(object.merger({ labels: newLabels }))
+          try {
+            await associateTagMutation.mutateAsync([asset.id, newLabels, asset.title])
+          } catch (error) {
+            setAsset(object.merger({ labels }))
+            toastAndLog(null, error)
           }
-          break
         }
-        case AssetEventType.deleteLabel: {
-          setAsset((oldAsset) => {
-            const oldLabels = oldAsset.labels ?? []
-            const labels: backendModule.LabelName[] = []
+        break
+      }
+      case AssetEventType.removeLabels: {
+        setRowState((oldRowState) =>
+          oldRowState.temporarilyAddedLabels === set.EMPTY_SET ?
+            oldRowState
+          : object.merge(oldRowState, { temporarilyAddedLabels: set.EMPTY_SET }),
+        )
+        const labels = asset.labels
+        if (
+          event.ids.has(item.key) &&
+          labels != null &&
+          [...event.labelNames].some((label) => labels.includes(label))
+        ) {
+          const newLabels = labels.filter((label) => !event.labelNames.has(label))
+          setAsset(object.merger({ labels: newLabels }))
+          try {
+            await associateTagMutation.mutateAsync([asset.id, newLabels, asset.title])
+          } catch (error) {
+            setAsset(object.merger({ labels }))
+            toastAndLog(null, error)
+          }
+        }
+        break
+      }
+      case AssetEventType.deleteLabel: {
+        setAsset((oldAsset) => {
+          const oldLabels = oldAsset.labels ?? []
+          const labels: backendModule.LabelName[] = []
 
-            for (const label of oldLabels) {
-              if (label !== event.labelName) {
-                labels.push(label)
-              }
+          for (const label of oldLabels) {
+            if (label !== event.labelName) {
+              labels.push(label)
             }
-
-            return oldLabels.length !== labels.length ?
-                object.merge(oldAsset, { labels })
-              : oldAsset
-          })
-          break
-        }
-        case AssetEventType.setItem: {
-          if (asset.id === event.id) {
-            setAsset(event.valueOrUpdater)
           }
-          break
+
+          return oldLabels.length !== labels.length ? object.merge(oldAsset, { labels }) : oldAsset
+        })
+        break
+      }
+      case AssetEventType.setItem: {
+        if (asset.id === event.id) {
+          setAsset(event.valueOrUpdater)
         }
-        default: {
-          return
-        }
+        break
+      }
+      default: {
+        return
       }
     }
   }, item.initialAssetEvents)
@@ -658,6 +631,7 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
                       <AssetContextMenu
                         innerProps={innerProps}
                         rootDirectoryId={rootDirectoryId}
+                        triggerRef={rootRef}
                         event={event}
                         eventTarget={
                           event.target instanceof HTMLElement ? event.target : event.currentTarget
@@ -742,12 +716,12 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
                       const ids = payload
                         .filter((payloadItem) => payloadItem.asset.parentId !== directoryId)
                         .map((dragItem) => dragItem.key)
-                      dispatchAssetEvent({
-                        type: AssetEventType.move,
-                        newParentKey: directoryKey,
-                        newParentId: directoryId,
-                        ids: new Set(ids),
-                      })
+                      cutAndPaste(
+                        directoryKey,
+                        directoryId,
+                        { backendType: backend.type, ids: new Set(ids), category },
+                        nodeMap.current,
+                      )
                     } else if (event.dataTransfer.types.includes('Files')) {
                       event.preventDefault()
                       event.stopPropagation()
@@ -801,6 +775,7 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
                 setRowState,
               }}
               rootDirectoryId={rootDirectoryId}
+              triggerRef={rootRef}
               event={{ pageX: 0, pageY: 0 }}
               eventTarget={null}
               doCopy={doCopy}

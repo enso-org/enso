@@ -10,21 +10,15 @@ import { useOverlayTriggerState } from 'react-stately'
 
 const PLACEHOLDER = <div />
 
-/**
- * Props passed to the render function of a {@link DialogTrigger}.
- */
+/** Props passed to the render function of a {@link DialogTrigger}. */
 export interface DialogTriggerRenderProps {
   readonly isOpen: boolean
   readonly close: () => void
   readonly open: () => void
 }
-/**
- * Props for a {@link DialogTrigger}.
- */
+/** Props for a {@link DialogTrigger}. */
 export interface DialogTriggerProps extends Omit<aria.DialogTriggerProps, 'children'> {
-  /**
-   * The trigger element.
-   */
+  /** The trigger element. */
   readonly children: [
     React.ReactElement,
     React.ReactElement | ((props: DialogTriggerRenderProps) => React.ReactElement),

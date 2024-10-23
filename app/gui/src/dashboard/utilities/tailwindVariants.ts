@@ -21,9 +21,7 @@ export type ExtractFunction<T> =
 /** A `tailwind-variants` type, without restrictions on the `extends` key. */
 export type TVWithoutExtends<T> = ExtractFunction<T> & Omit<T, 'extend'>
 
-/**
- * Props for a component that uses `tailwind-variants`.
- */
+/** Props for a component that uses `tailwind-variants`. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type VariantProps<T extends (...args: any) => any> = Omit<
   TvVariantProps<T>,

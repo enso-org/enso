@@ -104,6 +104,7 @@ export function abstract(
   code: string,
   substitutor?: (key: NodeKey) => Owned | undefined,
 ): { root: Owned; spans: SpanMap; toRaw: Map<AstId, RawAst.Tree> }
+/** Implementation of `abstract`. */
 export function abstract(
   module: MutableModule,
   tree: RawAst.Tree,
@@ -166,6 +167,11 @@ class Abstractor {
       }
       case RawAst.Tree.Type.Function: {
         const name = this.abstractTree(tree.name)
+        const signatureLine = tree.signatureLine && {
+          signature: this.abstractTypeSignature(tree.signatureLine.signature),
+          newlines: Array.from(tree.signatureLine.newlines, this.abstractToken.bind(this)),
+        }
+        const private_ = tree.private && this.abstractToken(tree.private)
         const argumentDefinitions = Array.from(tree.args, arg => ({
           open: arg.open && this.abstractToken(arg.open),
           open2: arg.open2 && this.abstractToken(arg.open2),
@@ -184,7 +190,15 @@ class Abstractor {
         }))
         const equals = this.abstractToken(tree.equals)
         const body = tree.body !== undefined ? this.abstractTree(tree.body) : undefined
-        node = Function.concrete(this.module, name, argumentDefinitions, equals, body)
+        node = Function.concrete(
+          this.module,
+          signatureLine,
+          private_,
+          name,
+          argumentDefinitions,
+          equals,
+          body,
+        )
         break
       }
       case RawAst.Tree.Type.Ident: {
@@ -406,6 +420,14 @@ class Abstractor {
         throw new Error('Unreachable: Splice in non-interpolated text field')
     }
   }
+
+  private abstractTypeSignature(signature: RawAst.TypeSignature) {
+    return {
+      name: this.abstractTree(signature.name),
+      operator: this.abstractToken(signature.operator),
+      type: this.abstractTree(signature.typeNode),
+    }
+  }
 }
 
 declare const nodeKeyBrand: unique symbol
@@ -477,7 +499,10 @@ export function print(ast: Ast): PrintedSource {
   return { info, code }
 }
 
-/** @internal Used by `Ast.printSubtree`. Note that some AST types have overrides. */
+/**
+ * Used by `Ast.printSubtree`. Note that some AST types have overrides.
+ * @internal
+ */
 export function printAst(
   ast: Ast,
   info: SpanMap,
@@ -519,7 +544,10 @@ export function printAst(
   return code
 }
 
-/** @internal Use `Ast.code()' to stringify. */
+/**
+ * Use `Ast.code()' to stringify.
+ * @internal
+ */
 export function printBlock(
   block: BodyBlock,
   info: SpanMap,
@@ -561,7 +589,10 @@ export function printBlock(
   return code
 }
 
-/** @internal Use `Ast.code()' to stringify. */
+/**
+ * Use `Ast.code()' to stringify.
+ * @internal
+ */
 export function printDocumented(
   documented: Documented,
   info: SpanMap,
@@ -633,7 +664,8 @@ export function parseModuleWithSpans(
   return abstract(module ?? MutableModule.Transient(), tree, code)
 }
 
-/** Parse the input, and apply the given `IdMap`. Return the parsed tree, the updated `IdMap`, the span map, and a
+/**
+ * Parse the input, and apply the given `IdMap`. Return the parsed tree, the updated `IdMap`, the span map, and a
  *  mapping to the `RawAst` representation.
  */
 export function parseExtended(code: string, idMap?: IdMap | undefined, inModule?: MutableModule) {
@@ -659,7 +691,8 @@ export function astCount(ast: Ast): number {
   return count
 }
 
-/** Apply an `IdMap` to a module, using the given `SpanMap`.
+/**
+ * Apply an `IdMap` to a module, using the given `SpanMap`.
  *  @returns The number of IDs that were assigned from the map.
  */
 export function setExternalIds(edit: MutableModule, spans: SpanMap, ids: IdMap): number {
@@ -677,7 +710,8 @@ export function setExternalIds(edit: MutableModule, spans: SpanMap, ids: IdMap):
   return astsMatched
 }
 
-/** Try to find all the spans in `expected` in `encountered`. If any are missing, use the provided `code` to determine
+/**
+ * Try to find all the spans in `expected` in `encountered`. If any are missing, use the provided `code` to determine
  *  whether the lost spans are single-line or multi-line.
  */
 function checkSpans(expected: NodeSpanMap, encountered: NodeSpanMap, code: string) {
@@ -700,7 +734,8 @@ function checkSpans(expected: NodeSpanMap, encountered: NodeSpanMap, code: strin
   return { lostInline, lostBlock }
 }
 
-/** If the input tree's concrete syntax has precedence errors (i.e. its expected code would not parse back to the same
+/**
+ * If the input tree's concrete syntax has precedence errors (i.e. its expected code would not parse back to the same
  *  structure), try to fix it. If possible, it will be repaired by inserting parentheses; if that doesn't fix it, the
  *  affected subtree will be re-synced to faithfully represent the source code the incorrect tree prints to.
  */
@@ -751,7 +786,6 @@ export function repair(
 
 /**
  * Replace subtrees in the module to ensure that the module contents are consistent with the module's code.
- *
  * @param badAsts - ASTs that, if printed, would not parse to exactly their current content.
  * @param badSpans - Span map produced by printing the `badAsts` nodes and all their parents.
  * @param goodSpans - Span map produced by parsing the code from the module of `badAsts`.
@@ -793,7 +827,10 @@ function resync(
   )
 }
 
-/** @internal Recursion helper for {@link syntaxHash}. */
+/**
+ * Recursion helper for {@link syntaxHash}.
+ * @internal
+ */
 function hashSubtreeSyntax(ast: Ast, hashesOut: Map<SyntaxHash, Ast[]>): SyntaxHash {
   let content = ''
   content += ast.typeName + ':'
@@ -818,7 +855,8 @@ function hashString(input: string): SyntaxHash {
   return xxHash128(input) as SyntaxHash
 }
 
-/** Calculates `SyntaxHash`es for the given node and all its children.
+/**
+ * Calculates `SyntaxHash`es for the given node and all its children.
  *
  *  Each `SyntaxHash` summarizes the syntactic content of an AST. If two ASTs have the same code and were parsed the
  *  same way (i.e. one was not parsed in a context that resulted in a different interpretation), they will have the same
@@ -870,7 +908,7 @@ function calculateCorrespondence(
   )
   const partAfterToAstBefore = new Map<SourceRangeKey, Ast>()
   for (const [spanBefore, partAfter] of spansBeforeAndAfter) {
-    const astBefore = astSpans.get(sourceRangeKey(spanBefore) as NodeKey)?.[0]!
+    const astBefore = astSpans.get(sourceRangeKey(spanBefore) as NodeKey)![0]!
     partAfterToAstBefore.set(sourceRangeKey(partAfter), astBefore)
   }
   const matchingPartsAfter = spansBeforeAndAfter.map(([_before, after]) => after)

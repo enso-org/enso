@@ -1,4 +1,6 @@
 /** @file The categories available in the category switcher. */
+import { useMutation } from '@tanstack/react-query'
+import invariant from 'tiny-invariant'
 import * as z from 'zod'
 
 import AssetEventType from '#/events/AssetEventType'
@@ -6,11 +8,15 @@ import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useDispatchAssetEvent } from '#/layouts/AssetsTable/EventListProvider'
 import { useFullUserSession } from '#/providers/AuthProvider'
-import { useBackend, useLocalBackend, useRemoteBackendStrict } from '#/providers/BackendProvider'
-import type { AssetId, DirectoryId, Path, UserGroupInfo } from '#/services/Backend'
+import { useBackend, useLocalBackend, useRemoteBackend } from '#/providers/BackendProvider'
+import {
+  FilterBy,
+  type AssetId,
+  type DirectoryId,
+  type Path,
+  type UserGroupInfo,
+} from '#/services/Backend'
 import { newDirectoryId } from '#/services/LocalBackend'
-import { useMutation } from '@tanstack/react-query'
-import invariant from 'tiny-invariant'
 
 const PATH_SCHEMA = z.string().refine((s): s is Path => true)
 const DIRECTORY_ID_SCHEMA = z.string().refine((s): s is DirectoryId => true)
@@ -92,6 +98,17 @@ export const CATEGORY_SCHEMA = z.union([ANY_CLOUD_CATEGORY_SCHEMA, ANY_LOCAL_CAT
 /** A category of an arbitrary type. */
 export type Category = z.infer<typeof CATEGORY_SCHEMA>
 
+export const CATEGORY_TO_FILTER_BY: Readonly<Record<Category['type'], FilterBy | null>> = {
+  cloud: FilterBy.active,
+  local: FilterBy.active,
+  recent: null,
+  trash: FilterBy.trashed,
+  user: FilterBy.active,
+  team: FilterBy.active,
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  'local-directory': FilterBy.active,
+}
+
 /** Whether the category is only accessible from the cloud. */
 export function isCloudCategory(category: Category): category is AnyCloudCategory {
   return ANY_CLOUD_CATEGORY_SCHEMA.safeParse(category).success
@@ -138,7 +155,7 @@ export function canTransferBetweenCategories(from: Category, to: Category) {
 
 /** A function to transfer a list of assets between categories. */
 export function useTransferBetweenCategories(currentCategory: Category) {
-  const remoteBackend = useRemoteBackendStrict()
+  const remoteBackend = useRemoteBackend()
   const localBackend = useLocalBackend()
   const backend = useBackend(currentCategory)
   const { user } = useFullUserSession()

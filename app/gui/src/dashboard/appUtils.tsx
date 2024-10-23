@@ -45,23 +45,17 @@ export const SUPPORT_EMAIL = 'cloud@enso.org'
 /** Return the `mailto:` URL for contacting support. */
 export const SUPPORT_EMAIL_URL = `mailto:${SUPPORT_EMAIL}`
 
-/**
- * Build a Subscription URL for a given plan.
- */
+/** Build a Subscription URL for a given plan. */
 export function getUpgradeURL(plan: string): string {
   return SUBSCRIBE_PATH + '?plan=' + plan
 }
 
-/**
- * Return the mailto URL for contacting sales.
- */
+/** Return the mailto URL for contacting sales. */
 export function getSalesEmail(): string {
   return 'mailto:contact@enso.org'
 }
 
-/**
- * Build a Subscription URL for contacting sales.
- */
+/** Build a Subscription URL for contacting sales. */
 export function getContactSalesURL(): string {
   return 'mailto:contact@enso.org?subject=Upgrading%20to%20Organization%20Plan'
 }

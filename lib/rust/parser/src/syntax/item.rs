@@ -44,15 +44,6 @@ pub struct Line<'s> {
 }
 
 impl<'s> Item<'s> {
-    /// Check whether the element is the provided token variant. Returns [`false`] if it was not a
-    /// token.
-    pub fn is_variant(&self, variant: token::variant::VariantMarker) -> bool {
-        match self {
-            Item::Token(token) => token.is(variant),
-            _ => false,
-        }
-    }
-
     /// [`location::Span`] of the element.
     pub fn left_visible_offset(&self) -> VisibleOffset {
         match self {
@@ -70,6 +61,14 @@ impl<'s> Item<'s> {
         match self {
             Item::Tree(tree) => Item::Tree(f(tree)),
             _ => self,
+        }
+    }
+
+    /// If this item is a token, return it.
+    pub fn into_token(self) -> Option<Token<'s>> {
+        match self {
+            Item::Token(token) => Some(token),
+            _ => None,
         }
     }
 }

@@ -9,9 +9,7 @@ import * as React from 'react'
 import * as debouncedCallback from './debounceCallbackHooks'
 import * as eventCallbackHooks from './eventCallbackHooks'
 
-/**
- * A hook that returns a stateful value, and a function to update it that will debounce updates.
- */
+/** A hook that returns a stateful value, and a function to update it that will debounce updates. */
 export function useDebounceState<S>(
   initialState: S | (() => S),
   delay: number,

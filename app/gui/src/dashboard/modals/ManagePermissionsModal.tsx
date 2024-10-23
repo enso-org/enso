@@ -1,32 +1,41 @@
 /** @file A modal with inputs for user email and permission level. */
-import * as React from 'react'
+import { useMemo, useState } from 'react'
 
 import { useMutation, useQuery } from '@tanstack/react-query'
-import * as toast from 'react-toastify'
+import { toast } from 'react-toastify'
 import isEmail from 'validator/es/lib/isEmail'
 
-import { backendMutationOptions } from '#/hooks/backendHooks'
-import * as billingHooks from '#/hooks/billing'
-import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
-
-import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
-import * as modalProvider from '#/providers/ModalProvider'
-import * as textProvider from '#/providers/TextProvider'
-
-import * as aria from '#/components/aria'
-import * as ariaComponents from '#/components/AriaComponents'
+import { Heading } from '#/components/aria'
+import { Button } from '#/components/AriaComponents'
 import Autocomplete from '#/components/Autocomplete'
 import Permission from '#/components/dashboard/Permission'
 import PermissionSelector from '#/components/dashboard/PermissionSelector'
 import Modal from '#/components/Modal'
-import * as paywall from '#/components/Paywall'
+import { PaywallAlert } from '#/components/Paywall'
 import FocusArea from '#/components/styled/FocusArea'
-
-import * as backendModule from '#/services/Backend'
-
-import * as object from '#/utilities/object'
-import * as permissionsModule from '#/utilities/permissions'
+import { backendMutationOptions, useAssetPassiveListenerStrict } from '#/hooks/backendHooks'
+import { usePaywall } from '#/hooks/billing'
+import { useToastAndLog } from '#/hooks/toastAndLogHooks'
+import type { Category } from '#/layouts/CategorySwitcher/Category'
+import { useFullUserSession } from '#/providers/AuthProvider'
+import { useRemoteBackend } from '#/providers/BackendProvider'
+import { useSetModal } from '#/providers/ModalProvider'
+import { useText } from '#/providers/TextProvider'
+import type Backend from '#/services/Backend'
+import {
+  compareAssetPermissions,
+  EmailAddress,
+  getAssetPermissionId,
+  getAssetPermissionName,
+  isUserGroupPermission,
+  isUserPermission,
+  type AnyAsset,
+  type AssetPermission,
+  type UserGroupInfo,
+  type UserInfo,
+  type UserPermissionIdentifier,
+} from '#/services/Backend'
+import { PermissionAction } from '#/utilities/permissions'
 
 // =================
 // === Constants ===
@@ -43,12 +52,11 @@ const TYPE_SELECTOR_Y_OFFSET_PX = 32
 // ==============================
 
 /** Props for a {@link ManagePermissionsModal}. */
-export interface ManagePermissionsModalProps<
-  Asset extends backendModule.AnyAsset = backendModule.AnyAsset,
-> {
-  readonly item: Pick<Asset, 'id' | 'permissions' | 'type'>
-  readonly setItem: React.Dispatch<React.SetStateAction<Asset>>
-  readonly self: backendModule.AssetPermission
+export interface ManagePermissionsModalProps<Asset extends AnyAsset = AnyAsset> {
+  readonly backend: Backend
+  readonly category: Category
+  readonly item: Pick<Asset, 'id' | 'parentId' | 'permissions' | 'type'>
+  readonly self: AssetPermission
   /**
    * Remove the current user's permissions from this asset. This MUST be a prop because it should
    * change the assets list.
@@ -63,17 +71,18 @@ export interface ManagePermissionsModalProps<
  * @throws {Error} when the current backend is the local backend, or when the user is offline.
  * This should never happen, as this modal should not be accessible in either case.
  */
-export default function ManagePermissionsModal<
-  Asset extends backendModule.AnyAsset = backendModule.AnyAsset,
->(props: ManagePermissionsModalProps<Asset>) {
-  const { item, setItem, self, doRemoveSelf, eventTarget } = props
-  const remoteBackend = backendProvider.useRemoteBackendStrict()
-  const { user } = authProvider.useFullUserSession()
-  const { unsetModal } = modalProvider.useSetModal()
-  const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const { getText } = textProvider.useText()
+export default function ManagePermissionsModal<Asset extends AnyAsset = AnyAsset>(
+  props: ManagePermissionsModalProps<Asset>,
+) {
+  const { backend, category, item: itemRaw, self, doRemoveSelf, eventTarget } = props
+  const item = useAssetPassiveListenerStrict(backend.type, itemRaw.id, itemRaw.parentId, category)
+  const remoteBackend = useRemoteBackend()
+  const { user } = useFullUserSession()
+  const { unsetModal } = useSetModal()
+  const toastAndLog = useToastAndLog()
+  const { getText } = useText()
 
-  const { isFeatureUnderPaywall } = billingHooks.usePaywall({ plan: user.plan })
+  const { isFeatureUnderPaywall } = usePaywall({ plan: user.plan })
   const isUnderPaywall = isFeatureUnderPaywall('shareFull')
 
   const listedUsers = useQuery({
@@ -88,27 +97,25 @@ export default function ManagePermissionsModal<
     queryFn: () => remoteBackend.listUserGroups(),
   })
 
-  const [permissions, setPermissions] = React.useState(item.permissions ?? [])
-  const [usersAndUserGroups, setUserAndUserGroups] = React.useState<
-    readonly (backendModule.UserGroupInfo | backendModule.UserInfo)[]
+  const [permissions, setPermissions] = useState(item.permissions ?? [])
+  const [usersAndUserGroups, setUserAndUserGroups] = useState<
+    readonly (UserGroupInfo | UserInfo)[]
   >([])
-  const [email, setEmail] = React.useState<string | null>(null)
-  const [action, setAction] = React.useState(permissionsModule.PermissionAction.view)
-  const position = React.useMemo(() => eventTarget?.getBoundingClientRect(), [eventTarget])
-  const editablePermissions = React.useMemo(
+  const [email, setEmail] = useState<string | null>(null)
+  const [action, setAction] = useState(PermissionAction.view)
+  const position = useMemo(() => eventTarget?.getBoundingClientRect(), [eventTarget])
+  const editablePermissions = useMemo(
     () =>
-      self.permission === permissionsModule.PermissionAction.own ?
+      self.permission === PermissionAction.own ?
         permissions
-      : permissions.filter(
-          (permission) => permission.permission !== permissionsModule.PermissionAction.own,
-        ),
+      : permissions.filter((permission) => permission.permission !== PermissionAction.own),
     [permissions, self.permission],
   )
-  const permissionsHoldersNames = React.useMemo(
-    () => new Set(item.permissions?.map(backendModule.getAssetPermissionName)),
+  const permissionsHoldersNames = useMemo(
+    () => new Set(item.permissions?.map(getAssetPermissionName)),
     [item.permissions],
   )
-  const emailsOfUsersWithPermission = React.useMemo(
+  const emailsOfUsersWithPermission = useMemo(
     () =>
       new Set<string>(
         item.permissions?.flatMap((userPermission) =>
@@ -117,30 +124,24 @@ export default function ManagePermissionsModal<
       ),
     [item.permissions],
   )
-  const isOnlyOwner = React.useMemo(
+  const isOnlyOwner = useMemo(
     () =>
-      self.permission === permissionsModule.PermissionAction.own &&
+      self.permission === PermissionAction.own &&
       permissions.every(
         (permission) =>
-          permission.permission !== permissionsModule.PermissionAction.own ||
-          (backendModule.isUserPermission(permission) && permission.user.userId === user.userId),
+          permission.permission !== PermissionAction.own ||
+          (isUserPermission(permission) && permission.user.userId === user.userId),
       ),
     [user.userId, permissions, self.permission],
   )
-  const selfId = backendModule.getAssetPermissionId(self)
+  const selfId = getAssetPermissionId(self)
 
   const inviteUserMutation = useMutation(backendMutationOptions(remoteBackend, 'inviteUser'))
   const createPermissionMutation = useMutation(
     backendMutationOptions(remoteBackend, 'createPermission'),
   )
 
-  React.useEffect(() => {
-    // This is SAFE, as the type of asset is not being changed.
-    // eslint-disable-next-line no-restricted-syntax
-    setItem(object.merger({ permissions } as Partial<Asset>))
-  }, [permissions, setItem])
-
-  const canAdd = React.useMemo(
+  const canAdd = useMemo(
     () => [
       ...(listedUsers.data ?? []).filter(
         (listedUser) =>
@@ -153,7 +154,7 @@ export default function ManagePermissionsModal<
     ],
     [emailsOfUsersWithPermission, permissionsHoldersNames, listedUsers, listedUserGroups],
   )
-  const willInviteNewUser = React.useMemo(() => {
+  const willInviteNewUser = useMemo(() => {
     if (usersAndUserGroups.length !== 0 || email == null || email === '') {
       return false
     } else {
@@ -184,47 +185,44 @@ export default function ManagePermissionsModal<
         setUserAndUserGroups([])
         setEmail('')
         if (email != null) {
-          await inviteUserMutation.mutateAsync([{ userEmail: backendModule.EmailAddress(email) }])
-          toast.toast.success(getText('inviteSuccess', email))
+          await inviteUserMutation.mutateAsync([{ userEmail: EmailAddress(email) }])
+          toast.success(getText('inviteSuccess', email))
         }
       } catch (error) {
         toastAndLog('couldNotInviteUser', error, email ?? '(unknown)')
       }
     } else {
       setUserAndUserGroups([])
-      const addedPermissions = usersAndUserGroups.map<backendModule.AssetPermission>(
-        (newUserOrUserGroup) =>
-          'userId' in newUserOrUserGroup ?
-            { user: newUserOrUserGroup, permission: action }
-          : { userGroup: newUserOrUserGroup, permission: action },
+      const addedPermissions = usersAndUserGroups.map<AssetPermission>((newUserOrUserGroup) =>
+        'userId' in newUserOrUserGroup ?
+          { user: newUserOrUserGroup, permission: action }
+        : { userGroup: newUserOrUserGroup, permission: action },
       )
       const addedUsersIds = new Set(
         addedPermissions.flatMap((permission) =>
-          backendModule.isUserPermission(permission) ? [permission.user.userId] : [],
+          isUserPermission(permission) ? [permission.user.userId] : [],
         ),
       )
       const addedUserGroupsIds = new Set(
         addedPermissions.flatMap((permission) =>
-          backendModule.isUserGroupPermission(permission) ? [permission.userGroup.id] : [],
+          isUserGroupPermission(permission) ? [permission.userGroup.id] : [],
         ),
       )
-      const isPermissionNotBeingOverwritten = (permission: backendModule.AssetPermission) =>
-        backendModule.isUserPermission(permission) ?
+      const isPermissionNotBeingOverwritten = (permission: AssetPermission) =>
+        isUserPermission(permission) ?
           !addedUsersIds.has(permission.user.userId)
         : !addedUserGroupsIds.has(permission.userGroup.id)
 
       try {
         setPermissions((oldPermissions) =>
           [...oldPermissions.filter(isPermissionNotBeingOverwritten), ...addedPermissions].sort(
-            backendModule.compareAssetPermissions,
+            compareAssetPermissions,
           ),
         )
         await createPermissionMutation.mutateAsync([
           {
             actorsIds: addedPermissions.map((permission) =>
-              backendModule.isUserPermission(permission) ?
-                permission.user.userId
-              : permission.userGroup.id,
+              isUserPermission(permission) ? permission.user.userId : permission.userGroup.id,
             ),
             resourceId: item.id,
             action: action,
@@ -233,7 +231,7 @@ export default function ManagePermissionsModal<
       } catch (error) {
         setPermissions((oldPermissions) =>
           [...oldPermissions.filter(isPermissionNotBeingOverwritten), ...oldPermissions].sort(
-            backendModule.compareAssetPermissions,
+            compareAssetPermissions,
           ),
         )
         toastAndLog('setPermissionsError', error)
@@ -241,18 +239,16 @@ export default function ManagePermissionsModal<
     }
   }
 
-  const doDelete = async (permissionId: backendModule.UserPermissionIdentifier) => {
+  const doDelete = async (permissionId: UserPermissionIdentifier) => {
     if (selfId === permissionId) {
       doRemoveSelf()
     } else {
       const oldPermission = permissions.find(
-        (permission) => backendModule.getAssetPermissionId(permission) === permissionId,
+        (permission) => getAssetPermissionId(permission) === permissionId,
       )
       try {
         setPermissions((oldPermissions) =>
-          oldPermissions.filter(
-            (permission) => backendModule.getAssetPermissionId(permission) !== permissionId,
-          ),
+          oldPermissions.filter((permission) => getAssetPermissionId(permission) !== permissionId),
         )
         await createPermissionMutation.mutateAsync([
           {
@@ -264,7 +260,7 @@ export default function ManagePermissionsModal<
       } catch (error) {
         if (oldPermission != null) {
           setPermissions((oldPermissions) =>
-            [...oldPermissions, oldPermission].sort(backendModule.compareAssetPermissions),
+            [...oldPermissions, oldPermission].sort(compareAssetPermissions),
           )
         }
         toastAndLog('setPermissionsError', error)
@@ -298,9 +294,9 @@ export default function ManagePermissionsModal<
       >
         <div className="relative flex flex-col gap-modal rounded-default p-modal">
           <div className="flex h-row items-center gap-modal-tabs px-modal-tab-bar-x">
-            <aria.Heading level={2} className="text text-sm font-bold">
+            <Heading level={2} className="text text-sm font-bold">
               {getText('invite')}
-            </aria.Heading>
+            </Heading>
             {/* Space reserved for other tabs. */}
           </div>
           <FocusArea direction="horizontal">
@@ -319,7 +315,7 @@ export default function ManagePermissionsModal<
                     isDisabled={willInviteNewUser}
                     selfPermission={self.permission}
                     typeSelectorYOffsetPx={TYPE_SELECTOR_Y_OFFSET_PX}
-                    action={permissionsModule.PermissionAction.view}
+                    action={PermissionAction.view}
                     assetType={item.type}
                     onChange={setAction}
                   />
@@ -366,7 +362,7 @@ export default function ManagePermissionsModal<
                     </Autocomplete>
                   </div>
                 </div>
-                <ariaComponents.Button
+                <Button
                   size="medium"
                   variant="submit"
                   isDisabled={
@@ -378,16 +374,13 @@ export default function ManagePermissionsModal<
                   onPress={doSubmit}
                 >
                   {willInviteNewUser ? getText('invite') : getText('share')}
-                </ariaComponents.Button>
+                </Button>
               </form>
             )}
           </FocusArea>
           <div className="max-h-manage-permissions-modal-permissions-list overflow-auto px-manage-permissions-modal-input">
             {editablePermissions.map((permission) => (
-              <div
-                key={backendModule.getAssetPermissionName(permission)}
-                className="flex h-row items-center"
-              >
+              <div key={getAssetPermissionName(permission)} className="flex h-row items-center">
                 <Permission
                   backend={remoteBackend}
                   asset={item}
@@ -395,12 +388,12 @@ export default function ManagePermissionsModal<
                   isOnlyOwner={isOnlyOwner}
                   permission={permission}
                   setPermission={(newPermission) => {
-                    const permissionId = backendModule.getAssetPermissionId(newPermission)
+                    const permissionId = getAssetPermissionId(newPermission)
                     setPermissions((oldPermissions) =>
                       oldPermissions.map((oldPermission) =>
-                        backendModule.getAssetPermissionId(oldPermission) === permissionId ?
-                          newPermission
-                        : oldPermission,
+                        getAssetPermissionId(oldPermission) === permissionId ? newPermission : (
+                          oldPermission
+                        ),
                       ),
                     )
                     if (selfId === permissionId) {
@@ -423,7 +416,7 @@ export default function ManagePermissionsModal<
           </div>
 
           {isUnderPaywall && (
-            <paywall.PaywallAlert feature="shareFull" label={getText('shareFullPaywallMessage')} />
+            <PaywallAlert feature="shareFull" label={getText('shareFullPaywallMessage')} />
           )}
         </div>
       </div>

@@ -29,7 +29,7 @@ const LIST_USERS_STALE_TIME_MS = 60_000
 /** Settings tab for viewing and editing organization members. */
 export default function MembersSettingsSection() {
   const { getText } = textProvider.useText()
-  const backend = backendProvider.useRemoteBackendStrict()
+  const backend = backendProvider.useRemoteBackend()
   const { user } = authProvider.useFullUserSession()
 
   const { isFeatureUnderPaywall, getFeature } = billingHooks.usePaywall({ plan: user.plan })
@@ -90,7 +90,7 @@ export default function MembersSettingsSection() {
       <table className="table-fixed self-start rounded-rows">
         <thead>
           <tr className="h-row">
-            <th className="w-48 border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0">
+            <th className="min-w-48 max-w-80 border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0">
               {getText('name')}
             </th>
             <th className="w-48 border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0">
@@ -101,7 +101,7 @@ export default function MembersSettingsSection() {
         <tbody className="select-text">
           {members.map((member) => (
             <tr key={member.email} className="group h-row rounded-rows-child">
-              <td className="max-w-48 border-x-2 border-transparent bg-clip-padding px-4 py-1 first:rounded-l-full last:rounded-r-full last:border-r-0">
+              <td className="min-w-48 max-w-80 border-x-2 border-transparent bg-clip-padding px-4 py-1 first:rounded-l-full last:rounded-r-full last:border-r-0">
                 <ariaComponents.Text truncate="1" className="block">
                   {member.email}
                 </ariaComponents.Text>
