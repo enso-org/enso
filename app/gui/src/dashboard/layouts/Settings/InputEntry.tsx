@@ -72,10 +72,10 @@ export default function SettingsInputEntry(props: SettingsInputEntryProps) {
         key={value}
         name={FIELD_NAME}
         defaultValue={value}
-        className="h-row gap-settings-entry flex items-center"
+        className="flex h-row items-center gap-settings-entry"
         {...(validate ? { validate: (newValue) => validate(newValue, context) } : {})}
       >
-        <Label className="text w-organization-settings-label my-auto">{getText(nameId)}</Label>
+        <Label className="text my-auto w-organization-settings-label">{getText(nameId)}</Label>
         {validate ?
           <div className="flex grow flex-col">
             {input}
