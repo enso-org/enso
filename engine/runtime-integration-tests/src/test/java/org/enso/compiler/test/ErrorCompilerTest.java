@@ -25,14 +25,14 @@ public class ErrorCompilerTest extends CompilerTests {
   }
 
   @Test
-  public void brokenAnnotation() throws Exception {
+  public void brokenAnnotationMissingArgument() throws Exception {
     var ir = parse("""
     @anno
     fn = 10
     """);
 
     assertSingleSyntaxError(
-        ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 13);
+        ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 5);
   }
 
   @Test

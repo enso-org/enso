@@ -4,6 +4,7 @@ use crate::empty_tree;
 use crate::syntax::item;
 use crate::syntax::maybe_with_error;
 use crate::syntax::operator::Precedence;
+use crate::syntax::statement::apply_excess_private_keywords;
 use crate::syntax::statement::apply_private_keywords;
 use crate::syntax::statement::find_top_level_operator;
 use crate::syntax::statement::parse_pattern;
@@ -12,6 +13,7 @@ use crate::syntax::statement::StatementPrefix;
 use crate::syntax::statement::VisibilityContext;
 use crate::syntax::token;
 use crate::syntax::tree;
+use crate::syntax::tree::AnnotationLine;
 use crate::syntax::tree::ArgumentDefault;
 use crate::syntax::tree::ArgumentDefinition;
 use crate::syntax::tree::ArgumentDefinitionLine;
@@ -81,29 +83,67 @@ impl<'s> FunctionBuilder<'s> {
             .then(|| items.pop().unwrap().into_token().unwrap().try_into().unwrap());
 
         let mut first_newline = self.line.newline;
-        let mut signature_line = None;
-        if let Some(Line { content: Some(StatementPrefix::TypeSignature(signature)), .. }) =
-            prefixes.last()
-        {
-            if qn_equivalent(&self.name, &signature.name) {
-                let Some(Line {
-                    newline: outer_newline,
-                    content: Some(StatementPrefix::TypeSignature(signature)),
-                }) = prefixes.pop()
-                else {
-                    unreachable!()
-                };
-                let newline = mem::replace(&mut first_newline, outer_newline);
-                signature_line =
-                    Some(TypeSignatureLine { signature, newlines: NonEmptyVec::singleton(newline) })
+
+        #[derive(Default)]
+        struct PrefixesAccumulator<'s> {
+            annotations: Option<Vec<AnnotationLine<'s>>>,
+            signature:   Option<TypeSignatureLine<'s>>,
+        }
+
+        let mut acc = PrefixesAccumulator::default();
+
+        while let Some(prefix) = prefixes.last() {
+            let Some(content) = prefix.content.as_ref() else { break };
+            match (&acc, &content) {
+                (
+                    PrefixesAccumulator { annotations: None, signature: None },
+                    StatementPrefix::TypeSignature(signature),
+                ) if qn_equivalent(&self.name, &signature.name) => {
+                    let Some(Line {
+                        newline: outer_newline,
+                        content: Some(StatementPrefix::TypeSignature(signature)),
+                    }) = prefixes.pop()
+                    else {
+                        unreachable!()
+                    };
+                    let newline = mem::replace(&mut first_newline, outer_newline);
+                    acc.signature = Some(TypeSignatureLine {
+                        signature,
+                        newlines: NonEmptyVec::singleton(newline),
+                    });
+                }
+                (PrefixesAccumulator { .. }, StatementPrefix::Annotation(_)) => {
+                    let Some(Line {
+                        newline: outer_newline,
+                        content: Some(StatementPrefix::Annotation(annotation)),
+                    }) = prefixes.pop()
+                    else {
+                        unreachable!()
+                    };
+                    let newline = mem::replace(&mut first_newline, outer_newline);
+                    let mut annotations = acc.annotations.take().unwrap_or_default();
+                    annotations.push(AnnotationLine {
+                        annotation,
+                        newlines: NonEmptyVec::singleton(newline),
+                    });
+                    acc.annotations = Some(annotations);
+                }
+                _ => break,
             }
         }
+        let signature = acc.signature;
+        let annotations = {
+            let mut annotations = acc.annotations.take().unwrap_or_default();
+            annotations.reverse();
+            annotations
+        };
 
         Line {
             newline: first_newline,
             content: apply_private_keywords(
                 Some(Tree::function(
-                    signature_line,
+                    annotations,
+                    signature,
                     private,
                     self.name,
                     self.args,
@@ -158,12 +198,15 @@ pub fn parse_args<'s>(
 }
 
 pub fn parse_constructor_definition<'s>(
-    items: &mut Vec<Item<'s>>,
+    prefixes: &mut Vec<Line<'s, StatementPrefix<'s>>>,
+    mut line: item::Line<'s>,
     private_keywords_start: usize,
     start: usize,
     precedence: &mut Precedence<'s>,
     args_buffer: &mut Vec<ArgumentDefinition<'s>>,
-) -> Tree<'s> {
+) -> Line<'s, Tree<'s>> {
+    let newline = line.newline;
+    let items = &mut line.items;
     let mut block_args = vec![];
     if matches!(items.last().unwrap(), Item::Block(_)) {
         let Item::Block(block) = items.pop().unwrap() else { unreachable!() };
@@ -176,7 +219,40 @@ pub fn parse_constructor_definition<'s>(
     let private = (private_keywords_start < start)
         .then(|| items.pop().unwrap().into_token().unwrap().try_into().unwrap());
 
-    Tree::constructor_definition(private, name, inline_args, block_args)
+    let mut first_newline = newline;
+    let mut annotations_reversed = vec![];
+    while let Some(prefix) = prefixes.last() {
+        let Some(content) = prefix.content.as_ref() else { break };
+        if let StatementPrefix::Annotation(_) = &content {
+            let Some(Line {
+                newline: outer_newline,
+                content: Some(StatementPrefix::Annotation(annotation)),
+            }) = prefixes.pop()
+            else {
+                unreachable!()
+            };
+            let newline = mem::replace(&mut first_newline, outer_newline);
+            annotations_reversed
+                .push(AnnotationLine { annotation, newlines: NonEmptyVec::singleton(newline) });
+        } else {
+            break;
+        }
+    }
+    let annotations = {
+        annotations_reversed.reverse();
+        annotations_reversed
+    };
+
+    let def = Tree::constructor_definition(annotations, private, name, inline_args, block_args);
+
+    Line {
+        newline: first_newline,
+        content: apply_excess_private_keywords(
+            Some(def),
+            line.items.drain(..),
+            SyntaxError::TypeBodyUnexpectedPrivateUsage,
+        ),
+    }
 }
 
 fn parse_constructor_decl<'s>(

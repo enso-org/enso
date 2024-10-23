@@ -26,6 +26,12 @@
 [11235]: https://github.com/enso-org/enso/pull/11235
 [11255]: https://github.com/enso-org/enso/pull/11255
 
+#### Enso Language & Runtime
+
+- [Arguments in constructor definitions may now be on their own lines][11374]
+
+[11374]: https://github.com/enso-org/enso/pull/11374
+
 # Enso 2024.4
 
 #### Enso IDE
