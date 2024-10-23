@@ -2,22 +2,23 @@
 import LoadingSpinner from '@/components/shared/LoadingSpinner.vue'
 import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
-import { useBackendQuery, useBackendQueryPrefetching } from '@/composables/backend'
-import type { ToValue } from '@/util/reactivity'
-import type {
+import { useBackend } from '@/composables/backend'
+import { ToValue } from '@/util/reactivity'
+import Backend, {
+  assetIsDirectory,
+  assetIsFile,
   DirectoryAsset,
   DirectoryId,
   FileAsset,
   FileId,
 } from 'enso-common/src/services/Backend'
-import Backend, { assetIsDirectory, assetIsFile } from 'enso-common/src/services/Backend'
 import { computed, ref, toValue, watch } from 'vue'
 
 const emit = defineEmits<{
   pathSelected: [path: string]
 }>()
 
-const { ensureQueryData } = useBackendQueryPrefetching()
+const { query, ensureQueryData } = useBackend('remote')
 
 // === Current Directory ===
 
@@ -33,7 +34,7 @@ const directoryStack = ref<Directory[]>([
   },
 ])
 const currentDirectory = computed(() => directoryStack.value[directoryStack.value.length - 1]!)
-const currentUser = useBackendQuery('usersMe', [])
+const currentUser = query('usersMe', [])
 const currentPath = computed(
   () =>
     currentUser.data.value &&
@@ -59,7 +60,7 @@ function listDirectoryArgs(params: ToValue<Directory | undefined>) {
   })
 }
 
-const { isPending, isError, data, error } = useBackendQuery(
+const { isPending, isError, data, error } = query(
   'listDirectory',
   listDirectoryArgs(currentDirectory),
 )
