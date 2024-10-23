@@ -27,10 +27,6 @@ import org.graalvm.polyglot.Source;
  * The sample {@code insightScript.js} can look for example like:
  *
  * <pre>
- * if (typeof insight == 'undefined') {
- *   insight = this;
- * }
- *
  * print("Initializing Insight: " + insight);
  * insight.on("enter", function(ctx) {
  *   print("Calling " + ctx.name);
