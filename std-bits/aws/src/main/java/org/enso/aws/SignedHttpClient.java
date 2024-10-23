@@ -29,8 +29,8 @@ import javax.net.ssl.SSLParameters;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 
 /**
- * Wraps an HttpClient to sign requests with AWS signature v4.
- * Designed to be called by EnsoSecretHelper.makeRequest.
+ * Wraps an HttpClient to sign requests with AWS signature v4. Designed to be called by
+ * EnsoSecretHelper.makeRequest.
  */
 public class SignedHttpClient extends HttpClient {
   private static final String SCHEME = "AWS4";
