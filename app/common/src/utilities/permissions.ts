@@ -47,21 +47,16 @@ export enum Permission {
 
 /** Precedences for each permission. A lower number means a higher priority. */
 export const PERMISSION_PRECEDENCE: Readonly<Record<Permission, number>> = {
-  // These are not magic numbers - they are just a sequence of numbers.
-  /* eslint-disable @typescript-eslint/no-magic-numbers */
   [Permission.owner]: 0,
   [Permission.admin]: 1,
   [Permission.edit]: 2,
   [Permission.read]: 3,
   [Permission.view]: 4,
   [Permission.delete]: 1000,
-  /* eslint-enable @typescript-eslint/no-magic-numbers */
 }
 
 /** Precedences for each permission action. A lower number means a higher priority. */
 export const PERMISSION_ACTION_PRECEDENCE: Readonly<Record<PermissionAction, number>> = {
-  // These are not magic numbers - they are just a sequence of numbers.
-  /* eslint-disable @typescript-eslint/no-magic-numbers */
   [PermissionAction.own]: 0,
   [PermissionAction.admin]: 1,
   [PermissionAction.edit]: 2,
@@ -71,7 +66,6 @@ export const PERMISSION_ACTION_PRECEDENCE: Readonly<Record<PermissionAction, num
   [PermissionAction.view]: 6,
   [PermissionAction.viewAndDocs]: 7,
   [PermissionAction.viewAndExec]: 8,
-  /* eslint-enable @typescript-eslint/no-magic-numbers */
 }
 
 /** The corresponding {@link Permissions} for each {@link PermissionAction}. */

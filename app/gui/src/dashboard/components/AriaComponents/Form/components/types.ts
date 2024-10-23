@@ -211,7 +211,6 @@ export interface FormFieldProps<
 
 /** Field State Props */
 export type FieldStateProps<
-  // eslint-disable-next-line no-restricted-syntax
   BaseProps extends { value?: unknown },
   Schema extends TSchema,
   TFieldName extends FieldPath<Schema>,

@@ -101,7 +101,6 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
       case backendModule.AssetType.file: {
         const { basename, extension } = fileInfo.basenameAndExtension(title)
         let i = 1
-        // eslint-disable-next-line no-constant-condition
         while (true) {
           i += 1
           const candidateTitle = `${basename} ${i}.${extension}`
@@ -119,7 +118,6 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
         const { basename, extension } = backendModule.extractProjectExtension(title)
         title = basename
         let i = 1
-        // eslint-disable-next-line no-constant-condition
         while (true) {
           i += 1
           const candidateTitle = `${title} ${i}`

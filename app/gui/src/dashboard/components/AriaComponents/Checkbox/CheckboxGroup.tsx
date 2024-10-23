@@ -35,7 +35,6 @@ const CHECKBOX_GROUP_STYLES = tv({
 })
 
 /** A CheckboxGroup allows users to select one or more items from a list of choices. */
-// eslint-disable-next-line no-restricted-syntax
 export const CheckboxGroup = forwardRef(
   <Schema extends TSchema, TFieldName extends FieldPath<Schema>>(
     props: CheckboxGroupProps<Schema, TFieldName>,

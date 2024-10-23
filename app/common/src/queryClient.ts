@@ -56,9 +56,7 @@ declare module '@tanstack/query-core' {
 /** Query Client type suitable for shared use in React and Vue. */
 export type QueryClient = vueQuery.QueryClient
 
-// eslint-disable-next-line @typescript-eslint/no-magic-numbers
 const DEFAULT_QUERY_STALE_TIME_MS = 2 * 60 * 1000
-// eslint-disable-next-line @typescript-eslint/no-magic-numbers
 const DEFAULT_QUERY_PERSIST_TIME_MS = 30 * 24 * 60 * 60 * 1000 // 30 days
 
 const DEFAULT_BUSTER = 'v1.1'
@@ -107,7 +105,6 @@ export function createQueryClient(): QueryClient {
         }
 
         if (invalidatesToAwait.length > 0) {
-          // eslint-disable-next-line no-restricted-syntax
           return Promise.all(
             invalidatesToAwait.map(queryKey =>
               queryClient.invalidateQueries({
@@ -124,7 +121,6 @@ export function createQueryClient(): QueryClient {
         refetchOnReconnect: 'always',
         staleTime: DEFAULT_QUERY_STALE_TIME_MS,
         retry: (failureCount, error: unknown) => {
-          // eslint-disable-next-line @typescript-eslint/no-magic-numbers
           const statusesToIgnore = [401, 403, 404]
           const errorStatus =
             (

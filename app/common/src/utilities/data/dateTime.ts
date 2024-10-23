@@ -31,8 +31,6 @@ export const MONTH_NAMES = [
 /** A string with date and time, following the RFC3339 specification. */
 export type Rfc3339DateTime = newtype.Newtype<string, 'Rfc3339DateTime'>
 /** Create a {@link Rfc3339DateTime}. */
-// This is a constructor function that constructs values of the type it is named after.
-// eslint-disable-next-line @typescript-eslint/no-redeclare
 export const Rfc3339DateTime = newtype.newtypeConstructor<Rfc3339DateTime>()
 
 /**

@@ -206,7 +206,6 @@ export function getProjectRoot(subtreePath: string): string | null {
   while (!isProjectRoot(currentPath)) {
     const parent = pathModule.dirname(currentPath)
     if (parent === currentPath) {
-      // eslint-disable-next-line no-restricted-syntax
       return null
     }
     currentPath = parent

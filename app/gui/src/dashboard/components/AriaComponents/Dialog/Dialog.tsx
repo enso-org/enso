@@ -261,7 +261,6 @@ export function Dialog(props: DialogProps) {
                     // This is a temporary solution until we refactor the Dialog component
                     // to use `useDialog` hook from the 'react-aria-components' library.
                     // this will allow us to set the `data-testid` attribute on the dialog
-                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                     element.dataset.testId = testId
                   }
                 })}
