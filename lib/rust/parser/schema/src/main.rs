@@ -17,7 +17,7 @@ fn main() -> std::io::Result<()> {
     if args.len() == 2 {
         let path = Path::new(&args[1]);
         if let Some(directory) = path.parent() {
-            fs::create_dir_all(&directory)?;
+            fs::create_dir_all(directory)?;
         }
         let file = fs::File::create(path)?;
         serde_json::to_writer_pretty(file, &schema)?;
