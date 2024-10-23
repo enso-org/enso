@@ -185,7 +185,7 @@ export interface AuthProviderProps {
 export default function AuthProvider(props: AuthProviderProps) {
   const { authService, onAuthenticated } = props
   const { children } = props
-  const remoteBackend = backendProvider.useRemoteBackendStrict()
+  const remoteBackend = backendProvider.useRemoteBackend()
   const { cognito } = authService
   const { session, sessionQueryKey } = sessionProvider.useSession()
   const { localStorage } = localStorageProvider.useLocalStorage()
