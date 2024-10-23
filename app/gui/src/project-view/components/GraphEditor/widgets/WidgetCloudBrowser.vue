@@ -5,11 +5,9 @@ import {
   type CustomDropdownItem,
 } from '@/components/GraphEditor/widgets/WidgetSelection.vue'
 import FileBrowserWidget from '@/components/widgets/FileBrowserWidget.vue'
-import { injectBackend } from '@/providers/backend'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { Ast } from '@/util/ast'
 import { ArgumentInfoKey } from '@/util/callTree'
-import { BackendType } from 'enso-common/src/services/Backend'
 import { computed, h } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -50,8 +48,6 @@ export const widgetDefinition = defineWidget(
   {
     priority: 49,
     score: (props) => {
-      const backend = injectBackend(true)?.backend
-      if (backend?.type !== BackendType.remote) return Score.Mismatch
       if (props.input.dynamicConfig?.kind === 'File_Browse') return Score.Perfect
       const reprType = props.input[ArgumentInfoKey]?.info?.reprType
       if (reprType?.includes(FILE_TYPE) || reprType?.includes(WRITABLE_FILE_TYPE))
