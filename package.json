@@ -31,7 +31,7 @@
     "dist:ide": "corepack pnpm run -r --filter enso dist",
     "format": "prettier --write .",
     "format:workflows": "prettier --write .github/workflows",
-    "ci-check": "corepack pnpm run --aggregate-output /^ci:/",
+    "ci-check": "corepack pnpm run -r compile && corepack pnpm run --aggregate-output /^ci:/",
     "ci:prettier": "prettier --check .",
     "ci:lint": "corepack pnpm run -r lint",
     "ci:test": "corepack pnpm run -r --parallel test",
