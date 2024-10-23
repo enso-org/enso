@@ -1709,8 +1709,14 @@ interface ExpressionStatementFields {
   docLine: DocLine | undefined
   expression: NodeChild<AstId>
 }
+interface Documentable {
+  readonly documentation: () => string | undefined
+}
+interface MutableDocumentable {
+  readonly setDocumentationText: (text: string) => void
+}
 /** TODO: Add docs */
-export class ExpressionStatement extends Ast {
+export class ExpressionStatement extends Ast implements Documentable {
   declare fields: FixedMapView<AstFields & ExpressionStatementFields>
   /** TODO: Add docs */
   constructor(module: Module, fields: FixedMapView<AstFields & ExpressionStatementFields>) {
@@ -1791,7 +1797,7 @@ export class ExpressionStatement extends Ast {
   }
 }
 /** TODO: Add docs */
-export class MutableExpressionStatement extends ExpressionStatement implements MutableAst {
+export class MutableExpressionStatement extends ExpressionStatement implements MutableAst, MutableDocumentable {
   declare readonly module: MutableModule
   declare readonly fields: FixedMap<AstFields & ExpressionStatementFields>
 
@@ -1813,6 +1819,10 @@ export interface MutableExpressionStatement extends ExpressionStatement, Mutable
   get expression(): MutableAst
 }
 applyMixins(MutableExpressionStatement, [MutableAst])
+
+// TODO
+//function setDocumentationText(text: string) {
+//}
 
 function textToUninterpolatedElements(text: string): TextToken<OwnedRefs>[] {
   const elements = new Array<TextToken<OwnedRefs>>()
