@@ -34,7 +34,6 @@ function backendQueryOptions<Method extends BackendMethods>(
 
 /**
  * Composable providing access to the backend API.
- *
  * @param which - Whether to use the remote backend, or the current project's backend (which may be the remote backend,
  * or a local backend).
  */
