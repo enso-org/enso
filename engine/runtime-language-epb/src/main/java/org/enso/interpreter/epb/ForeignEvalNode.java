@@ -64,7 +64,8 @@ final class ForeignEvalNode extends RootNode {
       }
       at++;
     }
-    throw new ForeignParsingException("No `" + ch + "` found", this);
+    throw new ForeignParsingException(
+        "No `" + ch + "` found. Expecting `lang:lineno#code` format.", this);
   }
 
   @Override
