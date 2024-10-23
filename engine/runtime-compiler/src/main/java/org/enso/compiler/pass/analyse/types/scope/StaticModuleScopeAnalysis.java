@@ -65,7 +65,7 @@ public class StaticModuleScopeAnalysis implements IRPass {
     // parts if it will make sense.
     StaticModuleScope scope = new StaticModuleScope(moduleContext.getName());
     BindingsMap bindingsMap = getMetadata(ir, BindingAnalysis$.MODULE$, BindingsMap.class);
-    processModuleExports(scope, ir);
+    processModuleExports(scope, ir, bindingsMap);
     processModuleImports(scope, ir, bindingsMap);
     processPolyglotImports(scope, ir);
     processBindings(scope, ir);
@@ -79,7 +79,10 @@ public class StaticModuleScopeAnalysis implements IRPass {
     return ir;
   }
 
-  /** Analogous to {@link org.enso.interpreter.runtime.IrToTruffle#registerModuleImports} */
+  /**
+   * Analogous to {@link
+   * org.enso.interpreter.runtime.IrToTruffle#registerModuleImports(BindingsMap)}}
+   */
   private void processModuleImports(
       StaticModuleScope scope, Module module, BindingsMap bindingsMap) {
     bindingsMap
@@ -103,12 +106,25 @@ public class StaticModuleScopeAnalysis implements IRPass {
             });
   }
 
-  private void processModuleExports(StaticModuleScope scope, Module module) {
-    // TODO
+  /**
+   * Analogous to {@link
+   * org.enso.interpreter.runtime.IrToTruffle#registerModuleExports(BindingsMap)}
+   */
+  private void processModuleExports(
+      StaticModuleScope scope, Module module, BindingsMap bindingsMap) {
+    bindingsMap
+        .getDirectlyExportedModules()
+        .foreach(
+            (exportedMod) -> {
+              var exportScope = new StaticImportExportScope(exportedMod.module().qualifiedName());
+              scope.registerModuleExport(exportScope);
+              return null;
+            });
   }
 
   private void processPolyglotImports(StaticModuleScope scope, Module module) {
-    // TODO
+    // TODO [RW]: this is for later iterations, currently resolving polyglot types does not give us
+    // much useful info, not better than `Any`
   }
 
   private void processBindings(StaticModuleScope scope, Module module) {

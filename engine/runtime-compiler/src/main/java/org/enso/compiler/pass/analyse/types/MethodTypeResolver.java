@@ -40,11 +40,12 @@ class MethodTypeResolver {
     return resolveMethod(parent, methodName);
   }
 
-  private transient StaticModuleScope cachedAnyScope = null;
-
-  // This should be aligned with
-  // TODO extract common logic with ModuleScope::lookupMethodDefinition
-  // I wanted to keep this decoupled from StaticModuleScope to keep it as a pure-data class
+  /**
+   * Looks up a method definition as seen from the current module.
+   *
+   * <p>The logic should be aligned with {@link
+   * org.enso.interpreter.runtime.scope.ModuleScope#lookupMethodDefinition}.
+   */
   private TypeRepresentation lookupMethodDefinition(TypeScopeReference type, String methodName) {
     var definitionScope = findDefinitionScope(type);
     if (definitionScope != null) {
@@ -78,7 +79,7 @@ class MethodTypeResolver {
               .flatMap(
                   staticImportExportScope -> {
                     var materialized = staticImportExportScope.materialize(moduleResolver);
-                    var found = materialized.getMethodForType(type, methodName);
+                    var found = materialized.getExportedMethod(type, methodName);
                     if (found != null) {
                       return Stream.of(staticImportExportScope.getReferredModuleName());
                     } else {
@@ -86,11 +87,11 @@ class MethodTypeResolver {
                     }
                   })
               .toList();
-      logger.debug("Method {} is defined in multiple imports: {}", methodName, foundImports);
+      logger.debug("Method {} is coming from multiple imports: {}", methodName, foundImports);
       var foundTypes = foundInImports.stream().distinct();
       if (foundTypes.count() > 1) {
         logger.error(
-            "Method {} is defined in multiple imports with different types: {}",
+            "Method {} is coming from multiple imports with different types: {}",
             methodName,
             foundTypes);
         return null;

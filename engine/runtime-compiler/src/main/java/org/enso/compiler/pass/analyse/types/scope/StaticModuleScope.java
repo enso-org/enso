@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import org.enso.compiler.MetadataInteropHelpers;
 import org.enso.compiler.core.CompilerStub;
 import org.enso.compiler.core.ir.Module;
@@ -30,6 +31,7 @@ public final class StaticModuleScope implements ProcessingPass.Metadata {
   private final QualifiedName moduleName;
   private final TypeScopeReference associatedType;
   private final List<StaticImportExportScope> imports = new ArrayList<>();
+  private final List<StaticImportExportScope> exports = new ArrayList<>();
 
   StaticModuleScope(QualifiedName moduleName) {
     this.moduleName = moduleName;
@@ -60,6 +62,7 @@ public final class StaticModuleScope implements ProcessingPass.Metadata {
         module, StaticModuleScopeAnalysis.INSTANCE, StaticModuleScope.class);
   }
 
+  /** Aligned with @link{ModuleScope#getMethodForType} */
   public TypeRepresentation getMethodForType(TypeScopeReference type, String name) {
     var typeMethods = methods.get(type);
     if (typeMethods == null) {
@@ -67,6 +70,21 @@ public final class StaticModuleScope implements ProcessingPass.Metadata {
     }
 
     return typeMethods.get(name);
+  }
+
+  /** Aligned with @link{ModuleScope#getExportedMethod} */
+  public TypeRepresentation getExportedMethod(
+      TypeScopeReference type, String name, ModuleResolver moduleResolver) {
+    var here = getMethodForType(type, name);
+    if (here != null) {
+      return here;
+    }
+
+    return exports.stream()
+        .map(scope -> scope.materialize(moduleResolver).getMethodForType(type, name))
+        .filter(Objects::nonNull)
+        .findFirst()
+        .orElse(null);
   }
 
   @Override
@@ -99,5 +117,13 @@ public final class StaticModuleScope implements ProcessingPass.Metadata {
 
   public List<StaticImportExportScope> getImports() {
     return imports;
+  }
+
+  public void registerModuleExport(StaticImportExportScope exportScope) {
+    exports.add(exportScope);
+  }
+
+  public List<StaticImportExportScope> getExports() {
+    return exports;
   }
 }
