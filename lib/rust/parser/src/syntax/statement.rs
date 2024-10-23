@@ -381,7 +381,50 @@ fn parse_expression_statement<'s>(
     let expression = apply_private_keywords(expression, line.items.drain(..), visibility_context);
     let mut outermost_newline = line.newline;
     let expression = expression.map(|expression| {
-        if !matches!(&expression.variant, tree::Variant::Import(_) | tree::Variant::Export(_)) {
+        use tree::Variant::*;
+        let is_expression = match &expression.variant {
+            // Currently could be expression or statement--treating as expression.
+            Invalid(_) => true,
+            // Currently could be expression or statement--treating as statement so prefix-line annotations don't affect how documentation is attached to a type.
+            AnnotatedBuiltin(_) => false,
+            // Expression
+            ArgumentBlockApplication(_) |
+            OperatorBlockApplication(_) |
+            Ident(_) |
+            Number(_) |
+            Wildcard(_) |
+            SuspendedDefaultArguments(_) |
+            TextLiteral(_) |
+            App(_) |
+            NamedApp(_) |
+            OprApp(_) |
+            UnaryOprApp(_) |
+            AutoscopedIdentifier(_) |
+            OprSectionBoundary(_) |
+            TemplateFunction(_) |
+            MultiSegmentApp(_) |
+            Group(_) |
+            TypeAnnotated(_) |
+            CaseOf(_) |
+            Lambda(_) |
+            Array(_) |
+            Tuple(_) => true,
+            // Statement
+            Private(_) |
+            TypeDef(_) |
+            Assignment(_) |
+            Function(_) |
+            ForeignFunction(_) |
+            Import(_) |
+            Export(_) |
+            TypeSignatureDeclaration(_) |
+            Annotation(_) |
+            Documentation(_) |
+            ConstructorDefinition(_) => false,
+            // Unexpected here
+            BodyBlock(_) | ExpressionStatement(_) => false,
+        };
+        if is_expression {
             if let Some(doc_line) = take_doc_line(prefixes, &mut outermost_newline) {
                 return Tree::expression_statement(Some(doc_line), expression);
             }
