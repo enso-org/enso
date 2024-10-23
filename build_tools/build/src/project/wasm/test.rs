@@ -64,7 +64,7 @@ impl From<Browser> for wasm_pack::TestFlags {
 
 /// Lists members of given Cargo.toml workspace.
 pub fn get_all_crates(repo_root: impl AsRef<Path>) -> Result<Vec<PathBuf>> {
-    let pattern = repo_root.as_ref().join("**/Cargo.toml");
+    let pattern = repo_root.as_ref().join("[al][pi][pb]/**/Cargo.toml");
     let all_paths =
         glob::glob(pattern.as_str()).context(format!("Globbing {} failed", pattern.display()))?;
     let valid_paths = all_paths.filter_map(|path| match path {
