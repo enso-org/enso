@@ -119,4 +119,4 @@ export function useDebugCallback<T extends (...args: never[]) => unknown>(
   return React.useCallback<T>(callback, deps)
 }
 
- 
+/* eslint-enable no-restricted-properties */

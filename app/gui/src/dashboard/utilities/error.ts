@@ -90,8 +90,7 @@ export function getMessageOrToString<T>(error: MustNotBeKnown<T>) {
 }
 
 /** Return a toastify option object that renders an error message. */
- 
-/** TODO: Add docs */
+// eslint-disable-next-line no-restricted-syntax
 export function render(f: (message: string) => string): toastify.UpdateOptions {
   return { render: ({ data }) => f(getMessageOrToString(data)) }
 }
@@ -136,7 +135,7 @@ export function unreachable(value: never): never {
  * @throws {Error} when the value is not truthy.
  */
 // These literals are REQUIRED, as they are falsy.
-// eslint-disable-next-line @typescript-eslint/no-magic-numbers
+// eslint-disable-next-line @typescript-eslint/no-magic-numbers, no-restricted-syntax
 export function assert<T>(makeValue: () => T | '' | 0 | 0n | false | null | undefined): T {
   const result = makeValue()
   // This function explicitly checks for truthiness.

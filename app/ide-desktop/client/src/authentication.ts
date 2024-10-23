@@ -147,13 +147,13 @@ export function initAuthentication(window: () => electron.BrowserWindow) {
             fs.writeFile(
               path.join(credentialsHomePath, credentialsFileName),
               JSON.stringify({
-                /* eslint-disable camelcase */
+                /* eslint-disable @typescript-eslint/naming-convention, camelcase */
                 client_id: accessTokenPayload.clientId,
                 access_token: accessTokenPayload.accessToken,
                 refresh_token: accessTokenPayload.refreshToken,
                 refresh_url: accessTokenPayload.refreshUrl,
                 expire_at: accessTokenPayload.expireAt,
-                /* eslint-enable camelcase */
+                /* eslint-enable @typescript-eslint/naming-convention, camelcase */
               }),
               innerError => {
                 if (innerError) {

@@ -97,7 +97,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
     )
 
   // This is not a React component even though it contains JSX.
-   
+  // eslint-disable-next-line no-restricted-syntax
   const doDeleteAll = () => {
     const deleteAll = () => {
       unsetModal()

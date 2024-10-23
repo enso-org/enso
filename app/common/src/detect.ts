@@ -5,7 +5,7 @@
 // ===================
 
 /** Return whether the current build is in development mode */
- 
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
 export const IS_DEV_MODE = process.env.NODE_ENV === 'development'
 
 // ================
@@ -168,11 +168,11 @@ export function isOnUnknownBrowser() {
 let detectedArchitecture: string | null = null
 // Only implemented by Chromium.
 // @ts-expect-error This API exists, but no typings exist for it yet.
- 
+// eslint-disable-next-line @typescript-eslint/no-unsafe-call
 navigator.userAgentData
-   
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   ?.getHighEntropyValues(['architecture'])
-   
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   .then((values: unknown) => {
     if (
       typeof values === 'object' &&
@@ -180,7 +180,7 @@ navigator.userAgentData
       'architecture' in values &&
       typeof values.architecture === 'string'
     ) {
-       
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       detectedArchitecture = String(values.architecture)
     }
   })

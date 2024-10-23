@@ -24,5 +24,5 @@ enum SettingsTabType {
   // personalAccessToken = 'personal-access-token',
 }
 
- 
+// eslint-disable-next-line no-restricted-syntax
 export default SettingsTabType
