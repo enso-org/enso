@@ -593,7 +593,7 @@ impl<'s, Inner: TokenConsumer<'s>> Lexer<'s, Inner> {
             }
         }) {
             if token.code == "private" {
-                let token = token.with_variant(token::Variant::private());
+                let token = token.with_variant(token::Variant::private_keyword());
                 self.inner.push_token(token);
                 return;
             }
