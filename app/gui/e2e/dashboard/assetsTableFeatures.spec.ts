@@ -87,6 +87,7 @@ test.test('can drop onto root directory dropzone', ({ page }) =>
     .driveTable.doubleClickRow(0)
     .driveTable.withRows(async (rows, nonAssetRows) => {
       const parentLeft = await actions.getAssetRowLeftPx(rows.nth(0))
+      await test.expect(nonAssetRows.nth(0)).toHaveText(actions.TEXT.thisFolderIsEmpty)
       const childLeft = await actions.getAssetRowLeftPx(nonAssetRows.nth(0))
       test.expect(childLeft, 'Child is indented further than parent').toBeGreaterThan(parentLeft)
     })
