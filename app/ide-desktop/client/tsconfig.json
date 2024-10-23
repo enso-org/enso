@@ -10,7 +10,9 @@
   },
   "include": [
     "src/*.ts",
+    "tasks/*.ts",
+    "tests/*.ts",
     "src/config.json",
-    "buildInfo.ts"
+    "*.ts"
   ]
 }

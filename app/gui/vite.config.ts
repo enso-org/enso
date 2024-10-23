@@ -14,8 +14,6 @@ const isE2E = process.env.E2E === 'true'
 const dynHostnameWsUrl = (port: number) => `ws://__HOSTNAME__:${port}`
 const entrypoint = isE2E ? './src/project-view/e2e-entrypoint.ts' : './src/entrypoint.ts'
 
-console.log('process.env.NODE_ENV', process.env.NODE_ENV)
-
 process.env.VITE_DEV_PROJECT_MANAGER_URL ??= dynHostnameWsUrl(isE2E ? 30536 : 30535)
 process.env.VITE_YDOC_SERVER_URL ??=
   process.env.ENSO_POLYGLOT_YDOC_SERVER ? process.env.ENSO_POLYGLOT_YDOC_SERVER
