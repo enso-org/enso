@@ -36,16 +36,7 @@ public class LRUCache<M> {
   private final long maxFileSize;
   private final long maxTotalCacheSize;
 
-  /** This value is used for the current time when testing TTL expiration logic. */
-  private Optional<ZonedDateTime> nowOverrideTestOnly = Optional.empty();
-
-  /**
-   * Used for testing file and cache size limits. These cannot be set to values larger than the real
-   * limits.
-   */
-  private Optional<Long> maxFileSizeOverrideTestOnly = Optional.empty();
-
-  private Optional<Long> maxTotalCacheSizeOverrideTestOnly = Optional.empty();
+  private final CacheTestParameters cacheTestParameters = new CacheTestParameters();
 
   private final Map<String, CacheEntry<M>> cache = new HashMap<>();
   private final Map<String, ZonedDateTime> lastUsed = new HashMap<>();
@@ -136,8 +127,10 @@ public class LRUCache<M> {
         boolean sizeOK = Stream_Utils.limitedCopy(inputStream, outputStream, getMaxFileSize());
         if (!sizeOK) {
           try {
-            temp.delete();
-            outputStream.close();
+            if (!temp.delete()) {
+              logger.log(
+                  Level.WARNING, "Unable to delete cache file (key {})", cacheKey);
+            }
           } finally {
             // catch block below will delete the temp file.
             throw new ResponseTooLargeException(getMaxFileSize());
@@ -241,11 +234,11 @@ public class LRUCache<M> {
   }
 
   private long getMaxFileSize() {
-    return maxFileSizeOverrideTestOnly.orElse(maxFileSize);
+    return cacheTestParameters.getMaxFileSizeOverrideTestOnly().orElse(maxFileSize);
   }
 
   private long getMaxTotalCacheSize() {
-    return maxTotalCacheSizeOverrideTestOnly.orElse(maxTotalCacheSize);
+    return cacheTestParameters.getMaxTotalCacheSizeOverrideTestOnly().orElse(maxTotalCacheSize);
   }
 
   public int getNumEntries() {
@@ -257,38 +250,27 @@ public class LRUCache<M> {
         cache.values().stream().map(CacheEntry::size).collect(Collectors.toList()));
   }
 
-  public void setNowOverrideTestOnly(ZonedDateTime nowOverride) {
-    nowOverrideTestOnly = Optional.of(nowOverride);
-  }
-
-  public void clearNowOverrideTestOnly() {
-    nowOverrideTestOnly = Optional.empty();
-  }
-
-  public void setMaxFileSizeOverrideTestOnly(long maxFileSizeOverrideTestOnly_) {
-    assert maxFileSizeOverrideTestOnly_ <= maxFileSize;
-    maxFileSizeOverrideTestOnly = Optional.of(maxFileSizeOverrideTestOnly_);
-  }
-
-  public void clearMaxFileSizeOverrideTestOnly() {
-    maxFileSizeOverrideTestOnly = Optional.empty();
-  }
-
-  public void setMaxTotalCacheSizeOverrideTestOnly(long maxTotalCacheSizeOverrideTestOnly_) {
-    assert maxTotalCacheSizeOverrideTestOnly_ <= maxTotalCacheSize;
-    maxTotalCacheSizeOverrideTestOnly = Optional.of(maxTotalCacheSizeOverrideTestOnly_);
-  }
-
-  public void clearMaxTotalCacheSizeOverrideTestOnly() {
-    maxTotalCacheSizeOverrideTestOnly = Optional.empty();
-  }
-
   private ZonedDateTime getNow() {
-    return nowOverrideTestOnly.orElse(ZonedDateTime.now());
+    return cacheTestParameters.getNowOverrideTestOnly().orElse(ZonedDateTime.now());
+  }
+
+  /** 
+   * Return a set of parameters that can be used to modify settings for testing purposes.
+   */
+  public CacheTestParameters getCacheTestParameters() {
+    return cacheTestParameters;
   }
 
   private record CacheEntry<M>(File responseData, M metadata, long size, ZonedDateTime expiry) {}
 
+  /**
+   * A record to define the contents and propaerties of something to be cached.
+   * 
+   * @param stream The InputStream providing the contents of the thing to be cached.
+   * @param sizeMaybe (Optional) The size of the data provided by the InputStream
+   * @param ttl (Optional) The time for which the data is fresh. If the returned
+   * Item has a TTL of 0, the item will not be cahced at all.
+   */
   public record Item<M>(
       InputStream stream, M metadata, Optional<Long> sizeMaybe, Optional<Integer> ttl) {
 
@@ -299,13 +281,80 @@ public class LRUCache<M> {
 
   public record CacheResult<M>(InputStream inputStream, M metadata) {}
 
+  /**
+   * Wraps code that creates an Item to be cached.
+   */
   public interface ItemBuilder<M> {
+    /** Generate a unique key for the Item */
     String makeCacheKey();
 
-    /** Returning an Item with no TTL indicates that the data should not be cached. */
+    /**
+     * Creates the Item to be cached. Returning an Item with no TTL indicates
+     * that the data should not be cached. This is only called when the Item is
+     * not already present in the cache.
+     */
     Item<M> buildItem() throws IOException, InterruptedException;
   }
 
   private final Comparator<Map.Entry<String, CacheEntry<M>>> cacheEntryLRUComparator =
       Comparator.comparing(me -> lastUsed.get(me.getKey()));
+
+  /** 
+   * A set of parameters that can be used to modify cache settings for testing
+   * purposes.
+   */
+  public class CacheTestParameters {
+    /** This value is used for the current time when testing TTL expiration logic. */
+    private Optional<ZonedDateTime> nowOverrideTestOnly = Optional.empty();
+
+    /**
+     * Used for testing file and cache size limits. These cannot be set to values larger than the real
+     * limits.
+     */
+    private Optional<Long> maxFileSizeOverrideTestOnly = Optional.empty();
+
+    private Optional<Long> maxTotalCacheSizeOverrideTestOnly = Optional.empty();
+
+    public Optional<ZonedDateTime> getNowOverrideTestOnly() {
+      return nowOverrideTestOnly;
+    }
+
+    public void setNowOverrideTestOnly(ZonedDateTime nowOverride) {
+      nowOverrideTestOnly = Optional.of(nowOverride);
+    }
+
+    public void clearNowOverrideTestOnly() {
+      nowOverrideTestOnly = Optional.empty();
+    }
+
+    public Optional<Long> getMaxFileSizeOverrideTestOnly() {
+      return maxFileSizeOverrideTestOnly;
+    }
+
+    public void setMaxFileSizeOverrideTestOnly(long maxFileSizeOverrideTestOnly_) {
+      if (maxFileSizeOverrideTestOnly_ > maxFileSize) {
+        throw new IllegalArgumentException("Cannot set the (test-only) maximum file size to more than the allowed limit of " + maxFileSize);
+      }
+      maxFileSizeOverrideTestOnly = Optional.of(maxFileSizeOverrideTestOnly_);
+    }
+
+    public void clearMaxFileSizeOverrideTestOnly() {
+      maxFileSizeOverrideTestOnly = Optional.empty();
+    }
+
+    public Optional<Long> getMaxTotalCacheSizeOverrideTestOnly() {
+      return maxTotalCacheSizeOverrideTestOnly;
+    }
+
+    public void setMaxTotalCacheSizeOverrideTestOnly(long maxTotalCacheSizeOverrideTestOnly_) {
+      if (maxTotalCacheSizeOverrideTestOnly_ > maxTotalCacheSize) {
+        throw new IllegalArgumentException("Cannot set the (test-only) total cache size to more than the allowed limit of " + maxTotalCacheSize);
+      }
+      maxTotalCacheSizeOverrideTestOnly = Optional.of(maxTotalCacheSizeOverrideTestOnly_);
+    }
+
+    public void clearMaxTotalCacheSizeOverrideTestOnly() {
+      maxTotalCacheSizeOverrideTestOnly = Optional.empty();
+    }
+  }
 }

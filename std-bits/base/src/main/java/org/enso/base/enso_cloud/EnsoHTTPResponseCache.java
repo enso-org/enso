@@ -22,6 +22,7 @@ import org.enso.base.cache.ResponseTooLargeException;
  * is no cache hit, the InputStream is connected directly to the remote server.
  */
 public class EnsoHTTPResponseCache {
+  // 1 year.
   private static final int DEFAULT_TTL_SECONDS = 31536000;
   private static final long MAX_FILE_SIZE = 10L * 1024 * 1024;
   private static final long MAX_TOTAL_CACHE_SIZE = 10L * 1024 * 1024 * 1024;
@@ -135,28 +136,11 @@ public class EnsoHTTPResponseCache {
     return lruCache.getFileSizesTestOnly();
   }
 
-  public static void setNowOverrideTestOnly(ZonedDateTime nowOverride) {
-    lruCache.setNowOverrideTestOnly(nowOverride);
-  }
-
-  public static void clearNowOverrideTestOnly() {
-    lruCache.clearNowOverrideTestOnly();
-  }
-
-  public static void setMaxFileSizeOverrideTestOnly(long maxFileSizeOverrideTestOnly) {
-    lruCache.setMaxFileSizeOverrideTestOnly(maxFileSizeOverrideTestOnly);
-  }
-
-  public static void clearMaxFileSizeOverrideTestOnly() {
-    lruCache.clearMaxFileSizeOverrideTestOnly();
-  }
-
-  public static void setMaxTotalCacheSizeOverrideTestOnly(long maxTotalCacheSizeOverrideTestOnly_) {
-    lruCache.setMaxTotalCacheSizeOverrideTestOnly(maxTotalCacheSizeOverrideTestOnly_);
-  }
-
-  public static void clearMaxTotalCacheSizeOverrideTestOnly() {
-    lruCache.clearMaxTotalCacheSizeOverrideTestOnly();
+  /** 
+   * Return a set of parameters that can be used to modify settings for testing purposes.
+   */
+  public static LRUCache.CacheTestParameters getCacheTestParameters() {
+    return lruCache.getCacheTestParameters();
   }
 
   public interface RequestMaker {
