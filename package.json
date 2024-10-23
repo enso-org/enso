@@ -9,7 +9,7 @@
     "eslint-plugin-prettier": "^5.2.1",
     "eslint-plugin-react": "^7.37.1",
     "eslint-plugin-vue": "^9.29.1",
-    "eslint": "^9.13.0",
+    "eslint-p": "^0.11.0",
     "globals": "^15.8.0",
     "npm-run-all": "^4.1.5",
     "prettier": "^3.3.2",
@@ -30,7 +30,7 @@
     "format:workflows": "prettier --write .github/workflows",
     "ci-check": "corepack pnpm run --aggregate-output /^ci:/",
     "ci:prettier": "prettier --check .",
-    "ci:lint": "eslint --max-warnings=0 ./app",
+    "ci:lint": "eslint-p --max-warnings=0 ./app",
     "ci:test": "corepack pnpm run -r --parallel test",
     "ci:typecheck": "corepack pnpm run -r typecheck"
   },

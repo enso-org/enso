@@ -37,9 +37,9 @@ importers:
       '@vue/eslint-config-typescript':
         specifier: ^14.1.1
         version: 14.1.1(@typescript-eslint/parser@8.10.0(eslint@9.13.0(jiti@1.21.6))(typescript@5.5.3))(eslint-plugin-vue@9.29.1(eslint@9.13.0(jiti@1.21.6)))(eslint@9.13.0(jiti@1.21.6))(typescript@5.5.3)
-      eslint:
-        specifier: ^9.13.0
-        version: 9.13.0(jiti@1.21.6)
+      eslint-p:
+        specifier: ^0.11.0
+        version: 0.11.0(jiti@1.21.6)
       eslint-plugin-jsdoc:
         specifier: ^50.4.3
         version: 50.4.3(eslint@9.13.0(jiti@1.21.6))
@@ -4395,6 +4395,11 @@ packages:
     hasBin: true
     peerDependencies:
       eslint: '>=7.0.0'
+
+  eslint-p@0.11.0:
+    resolution: {integrity: sha512-91QP+ntcvezbwIYXr4nAvghaSuRgX6+itiyyfcardSw3mfnlNk6QHPV2BwaEL6sqm7LpmSzGYe34dpHo5ZVA4A==}
+    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    hasBin: true
 
   eslint-plugin-jsdoc@50.4.3:
     resolution: {integrity: sha512-uWtwFxGRv6B8sU63HZM5dAGDhgsatb+LONwmILZJhdRALLOkCX2HFZhdL/Kw2ls8SQMAVEfK+LmnEfxInRN8HA==}
@@ -12255,6 +12260,13 @@ snapshots:
     dependencies:
       eslint: 9.13.0(jiti@1.21.6)
     optional: true
+
+  eslint-p@0.11.0(jiti@1.21.6):
+    dependencies:
+      eslint: 9.13.0(jiti@1.21.6)
+    transitivePeerDependencies:
+      - jiti
+      - supports-color
 
   eslint-plugin-jsdoc@50.4.3(eslint@9.13.0(jiti@1.21.6)):
     dependencies:

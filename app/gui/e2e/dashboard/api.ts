@@ -738,8 +738,6 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       } satisfies backend.UploadLargeFileMetadata
     })
     await post(remoteBackendPaths.UPLOAD_FILE_END_PATH + '*', (_route, request) => {
-      // The type of the search params sent by this app is statically known.
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const body: backend.UploadFileEndRequestBody = request.postDataJSON()
 
       const file = addFile(body.fileName, {
