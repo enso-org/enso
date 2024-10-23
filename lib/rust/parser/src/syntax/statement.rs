@@ -380,58 +380,66 @@ fn parse_expression_statement<'s>(
     debug_assert!(line.items.len() <= start);
     let expression = apply_private_keywords(expression, line.items.drain(..), visibility_context);
     let mut outermost_newline = line.newline;
-    let expression = expression.map(|expression| {
-        use tree::Variant::*;
-        let is_expression = match &expression.variant {
-            // Currently could be expression or statement--treating as expression.
-            Invalid(_) => true,
-            // Currently could be expression or statement--treating as statement so prefix-line annotations don't affect how documentation is attached to a type.
-            AnnotatedBuiltin(_) => false,
-            // Expression
-            ArgumentBlockApplication(_) |
-            OperatorBlockApplication(_) |
-            Ident(_) |
-            Number(_) |
-            Wildcard(_) |
-            SuspendedDefaultArguments(_) |
-            TextLiteral(_) |
-            App(_) |
-            NamedApp(_) |
-            OprApp(_) |
-            UnaryOprApp(_) |
-            AutoscopedIdentifier(_) |
-            OprSectionBoundary(_) |
-            TemplateFunction(_) |
-            MultiSegmentApp(_) |
-            Group(_) |
-            TypeAnnotated(_) |
-            CaseOf(_) |
-            Lambda(_) |
-            Array(_) |
-            Tuple(_) => true,
-            // Statement
-            Private(_) |
-            TypeDef(_) |
-            Assignment(_) |
-            Function(_) |
-            ForeignFunction(_) |
-            Import(_) |
-            Export(_) |
-            TypeSignatureDeclaration(_) |
-            Annotation(_) |
-            Documentation(_) |
-            ConstructorDefinition(_) => false,
-            // Unexpected here
-            BodyBlock(_) | ExpressionStatement(_) => false,
-        };
-        if is_expression {
-            if let Some(doc_line) = take_doc_line(prefixes, &mut outermost_newline) {
-                return Tree::expression_statement(Some(doc_line), expression);
-            }
-        }
-        expression
-    });
+    let expression = expression
+        .map(|expression| to_statement(prefixes, &mut outermost_newline, expression));
     Line { newline: outermost_newline, content: expression }
+}
+
+fn to_statement<'s>(
+    prefixes: &mut Vec<Line<'s, StatementPrefix<'s>>>,
+    outermost_newline: &mut token::Newline<'s>,
+    expression_or_statement: Tree<'s>,
+) -> Tree<'s> {
+    use tree::Variant::*;
+    let is_expression = match &expression_or_statement.variant {
+        // Currently could be expression or statement--treating as expression.
+        Invalid(_) => true,
+        // Currently could be expression or statement--treating as statement so prefix-line
+        // annotations don't affect how documentation is attached to a type.
+        AnnotatedBuiltin(_) => false,
+        // Expression
+        ArgumentBlockApplication(_)
+        | OperatorBlockApplication(_)
+        | Ident(_)
+        | Number(_)
+        | Wildcard(_)
+        | SuspendedDefaultArguments(_)
+        | TextLiteral(_)
+        | App(_)
+        | NamedApp(_)
+        | OprApp(_)
+        | UnaryOprApp(_)
+        | AutoscopedIdentifier(_)
+        | OprSectionBoundary(_)
+        | TemplateFunction(_)
+        | MultiSegmentApp(_)
+        | Group(_)
+        | TypeAnnotated(_)
+        | CaseOf(_)
+        | Lambda(_)
+        | Array(_)
+        | Tuple(_) => true,
+        // Statement
+        Private(_)
+        | TypeDef(_)
+        | Assignment(_)
+        | Function(_)
+        | ForeignFunction(_)
+        | Import(_)
+        | Export(_)
+        | TypeSignatureDeclaration(_)
+        | Annotation(_)
+        | Documentation(_)
+        | ConstructorDefinition(_) => false,
+        // Unexpected here
+        BodyBlock(_) | ExpressionStatement(_) => false,
+    };
+    if is_expression {
+        let doc_line = take_doc_line(prefixes, outermost_newline);
+        Tree::expression_statement(doc_line, expression_or_statement)
+    } else {
+        expression_or_statement
+    }
 }
 
 /// Parse the input as a documentation comment, if it matches the syntax.

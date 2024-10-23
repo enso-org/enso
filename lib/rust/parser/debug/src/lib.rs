@@ -95,15 +95,28 @@ where T: serde::Serialize + Reflect {
         let (car, _) = cons.into_pair();
         Value::cons(car, Value::Null)
     };
+    let simplify_tree = |list: Value| {
+        let list = strip_hidden_fields(list);
+        let vec = list.to_vec().unwrap();
+        if vec[0].as_symbol().unwrap() == "ExpressionStatement" {
+            match &vec[1..] {
+                [Value::Cons(doc_line), Value::Cons(expr)] if doc_line.cdr().is_null() => return expr.cdr().to_owned(),
+                _ => {}
+            }
+        };
+        list
+    };
     let line = rust_to_meta[&tree::block::Line::reflect().id];
     let operator_line = rust_to_meta[&tree::block::OperatorLine::reflect().id];
     let type_signature_line = rust_to_meta[&tree::TypeSignatureLine::reflect().id];
     let invalid = rust_to_meta[&tree::Invalid::reflect().id];
+    let tree = rust_to_meta[&tree::Tree::reflect().id];
     to_s_expr.mapper(line, into_car);
     to_s_expr.mapper(operator_line, into_car);
     to_s_expr.mapper(type_signature_line, into_car);
     to_s_expr.mapper(invalid, strip_invalid);
     to_s_expr.mapper(text_escape_token, simplify_escape);
+    to_s_expr.mapper(tree, simplify_tree);
     tuplify(to_s_expr.value(ast_ty, &value))
 }
 
