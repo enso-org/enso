@@ -33,9 +33,6 @@ public class ContextInsightSetupTest {
     try (java.io.FileWriter w = new FileWriter(insight)) {
       w.write(
           """
-            if (typeof insight === 'undefined') {
-                insight = this;
-            }
             print("Insight started. Properties: " + Object.getOwnPropertyNames(insight).sort());
             """);
     }

@@ -109,7 +109,7 @@ final class ForeignEvalNode extends RootNode {
     var inner = context.getInnerContext();
     if (inner != null) {
       var code = foreignSource(langAndCode);
-      var args = Arrays.stream(argNames).skip(1).collect(Collectors.joining(","));
+      var args = Arrays.stream(argNames).collect(Collectors.joining(","));
       var wrappedSrc = "var poly_enso_eval=function(" + args + "){" + code + "\n};poly_enso_eval";
       Source source = newSource("js", wrappedSrc);
       var fn = inner.evalPublic(this, source);
