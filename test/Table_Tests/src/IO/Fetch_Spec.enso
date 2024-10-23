@@ -132,22 +132,25 @@ add_specs suite_builder =
         headers0 = [Header.new "A-Header" "a-header-value", Header.new "A-Header" "a-header-value"]
         headers1 = [Header.new "A-Header" "a-different-header-value", Header.new "A-Header" "a-header-value"]
 
+        # Run the request(s) twice and confirm the results are the same
+        check_same_results ~action =
+            results = 0.up_to 2 . map (_-> action)
+            results.distinct.length . should_equal 1
+
         group_builder.specify "Cache should return the same repsonse" pending=pending_has_url <| Test.with_retries <|
             HTTP.clear_response_cache
 
-            url0_body_0 = HTTP.fetch url0 . decode_as_text
+            check_same_results <|
+                HTTP.fetch url0 . decode_as_text
             get_num_response_cache_entries . should_equal 1
-            HTTP.fetch url0 . decode_as_text . should_equal url0_body_0
-            get_num_response_cache_entries . should_equal 1
-            url1_body_0 = HTTP.fetch url1 . decode_as_text
-            get_num_response_cache_entries . should_equal 2
-            HTTP.fetch url1 . decode_as_text . should_equal url1_body_0
+            check_same_results <|
+                HTTP.fetch url1 . decode_as_text
             get_num_response_cache_entries . should_equal 2
 
             HTTP.clear_response_cache
 
-            url0_body_1 = HTTP.fetch url0 cache_policy=Cache_Policy.Use_Cache . decode_as_text
-            HTTP.fetch url0 cache_policy=Cache_Policy.Use_Cache . decode_as_text . should_equal url0_body_1
+            HTTP.fetch url0 cache_policy=Cache_Policy.Use_Cache . decode_as_text
+            HTTP.fetch url0 cache_policy=Cache_Policy.Use_Cache . decode_as_text
             url1_body_1 = HTTP.fetch url1 cache_policy=Cache_Policy.Use_Cache . decode_as_text
             HTTP.fetch url1 cache_policy=Cache_Policy.Use_Cache . decode_as_text . should_equal url1_body_1
             get_num_response_cache_entries . should_equal 2
@@ -164,14 +167,16 @@ add_specs suite_builder =
             count = 20
 
             HTTP.clear_response_cache
-            0.up_to count . each i->
-                HTTP.fetch base_url_with_slash+"test_download?length="+i.to_text . decode_as_text . length . should_equal i
+            check_same_results <|
+                0.up_to count . map i->
+                    HTTP.fetch base_url_with_slash+"test_download?length="+i.to_text . decode_as_text
             get_num_response_cache_entries . should_equal count
 
             HTTP.clear_response_cache
-            0.up_to count . each i->
-                headers = [Header.new "A-Header" "a-header-value-"+i.to_text]
-                HTTP.fetch base_url_with_slash+"test_download?length=8" headers=headers . decode_as_text . length . should_equal 8
+            check_same_results <|
+                0.up_to count . each i->
+                    headers = [Header.new "A-Header" "a-header-value-"+i.to_text]
+                    HTTP.fetch base_url_with_slash+"test_download?length=8" headers=headers . decode_as_text
             get_num_response_cache_entries . should_equal count
 
         group_builder.specify "Cache policy should work for HTTP.fetch" pending=pending_has_url <| Test.with_retries <|
@@ -237,24 +242,13 @@ add_specs suite_builder =
             HTTP.clear_response_cache
             get_num_response_cache_entries . should_equal 0
 
-        group_builder.specify "Cache key should only dependon the URI and headers" pending=pending_has_url <| Test.with_retries <|
-            HTTP.clear_response_cache
-            expect_counts [0, 1] <|
-                Data.fetch url0
-                Data.fetch url0
-            expect_counts [1, 2] <|
-                Data.fetch url1
-                Data.fetch url1
-
-        group_builder.specify "Cache key should depend on the URI" pending=pending_has_url <| Test.with_retries <|
-            HTTP.clear_response_cache
-            expect_counts [0, 2] <|
-                Data.fetch url0
-                Data.fetch url1
-
         group_builder.specify "Cache key should depend on the headers" pending=pending_has_url <| Test.with_retries <|
             HTTP.clear_response_cache
             expect_counts [0, 2] <|
+                Data.fetch url0 headers=headers0
+                Data.fetch url0 headers=headers1
+                Data.fetch url0 headers=headers1
+                Data.fetch url0 headers=headers0
                 Data.fetch url0 headers=headers0
                 Data.fetch url0 headers=headers1
 
@@ -264,9 +258,10 @@ add_specs suite_builder =
             header1 = Header.new "Abc" "def"
             header2 = Header.new "Ghi" "jkl"
             orders = [[header0, header1, header2], [header1, header2, header0], [header2, header1, header0]]
-            orders.map headers->
-                Data.fetch url0 headers=headers
+            responses = orders.map headers->
+                Data.fetch url0 headers=headers . decode_as_text
             get_num_response_cache_entries . should_equal 1
+            responses.distinct.length . should_equal 1
 
         ## Fetching the trigger uri causes stale entries to be removed, since the
            uri is always different and so the caching and cleanup logic is run.
@@ -338,13 +333,13 @@ add_specs suite_builder =
                 download 30
                 download 50
                 download 10
-                get_cache_file_sizes . should_equal [10, 30, 50]
+                get_cache_file_sizes . should_equal_ignoring_order [10, 30, 50]
                 download 20
-                get_cache_file_sizes . should_equal [10, 20, 50]
+                get_cache_file_sizes . should_equal_ignoring_order [10, 20, 50]
                 download 40
-                get_cache_file_sizes . should_equal [10, 20, 40]
+                get_cache_file_sizes . should_equal_ignoring_order [10, 20, 40]
                 download 35
-                get_cache_file_sizes . should_equal [20, 35, 40]
+                get_cache_file_sizes . should_equal_ignoring_order [20, 35, 40]
 
         group_builder.specify "Will remove old cache files based on how recently they were used" pending=pending_has_url <| Test.with_retries <|
             Panic.with_finalizer reset_size_limits <|
@@ -354,14 +349,14 @@ add_specs suite_builder =
                 download 30
                 download 50
                 download 10
-                get_cache_file_sizes . should_equal [10, 30, 50]
+                get_cache_file_sizes . should_equal_ignoring_order [10, 30, 50]
                 # Use 30 again so it's considered more recently used.
                 download 30
-                get_cache_file_sizes . should_equal [10, 30, 50]
+                get_cache_file_sizes . should_equal_ignoring_order [10, 30, 50]
                 download 20
-                get_cache_file_sizes . should_equal [10, 20, 30]
+                get_cache_file_sizes . should_equal_ignoring_order [10, 20, 30]
                 download 45
-                get_cache_file_sizes . should_equal [20, 30, 45]
+                get_cache_file_sizes . should_equal_ignoring_order [20, 30, 45]
 
         group_builder.specify "Will not cache a file with a content length greater than the single file limit" pending=pending_has_url <| Test.with_retries <|
             Panic.with_finalizer reset_size_limits <|
