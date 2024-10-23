@@ -77,18 +77,6 @@ impl IsTarget for Gui {
     }
 }
 
-// =================
-// === BuildInfo ===
-// =================
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct BuildInfo {
-    pub commit:         String,
-    pub version:        Version,
-    pub engine_version: Version,
-    pub name:           String,
-}
-
 pub fn ide_desktop_from_context(context: &Context) -> IdeDesktop {
     IdeDesktop::new(&context.repo_root, context.octocrab.clone(), context.cache.clone())
 }

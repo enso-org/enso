@@ -3,7 +3,6 @@
 use crate::prelude::*;
 
 use crate::paths::generated;
-use crate::project::gui::BuildInfo;
 use crate::project::IsArtifact;
 use crate::version::ENSO_VERSION;
 
@@ -20,13 +19,6 @@ use tempfile::TempDir;
 // ==============
 // === Export ===
 // ==============
-
-lazy_static! {
-    /// Path to the file with build information that is consumed by the JS part of the IDE.
-    ///
-    /// The file must follow the schema of type [`BuildInfo`].
-    pub static ref BUILD_INFO: PathBuf = PathBuf::from("build.json");
-}
 
 pub mod env {
     use super::*;
@@ -50,45 +42,46 @@ pub mod env {
     pub use ide_ci::env::known::electron_builder::*;
 
 
-    // Cloud environment configuration
-    define_env_var! {
-        /// The name of the backend environment, typically 'production' for production builds.
-        ENSO_CLOUD_ENVIRONMENT, String;
-
-        /// The root path for all API endpoints, without a trailing slash.
-        ENSO_CLOUD_API_URL, String;
-
-        /// The URL for the WebSocket server for chat functionality.
-        ENSO_CLOUD_CHAT_URL, String;
-
-        /// The Sentry DSN for error reporting in this environment.
-        ENSO_CLOUD_SENTRY_DSN, String;
-
-        /// Stripe's publishable key for client-side operations.
-        ENSO_CLOUD_STRIPE_KEY, String;
-
-        /// The ID of the Amplify user pool for authentication.
-        ENSO_CLOUD_COGNITO_USER_POOL_ID, String;
-
-        /// The client-side key for the Amplify user pool.
-        ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID, String;
-
-        /// The domain for Amplify requests.
-        ENSO_CLOUD_COGNITO_DOMAIN, String;
-
-        /// The AWS region for Amplify configuration, matching the domain region.
-        ENSO_CLOUD_COGNITO_REGION, String;
-
-        /// The Google Analytics tag to which Google Analytics events should be sent.
-        ENSO_CLOUD_GOOGLE_ANALYTICS_TAG, String;
-    }
-
     // GUI-specific environment variables
     define_env_var! {
+        /// The name of the backend environment, typically 'production' for production builds.
+        ENSO_IDE_ENVIRONMENT, String;
+
+        /// The root path for all API endpoints, without a trailing slash.
+        ENSO_IDE_API_URL, String;
+
+        /// The URL for the WebSocket server for chat functionality.
+        ENSO_IDE_CHAT_URL, String;
+
+        /// The Sentry DSN for error reporting in this environment.
+        ENSO_IDE_SENTRY_DSN, String;
+
+        /// Stripe's publishable key for client-side operations.
+        ENSO_IDE_STRIPE_KEY, String;
+
+        /// The ID of the Amplify user pool for authentication.
+        ENSO_IDE_COGNITO_USER_POOL_ID, String;
+
+        /// The client-side key for the Amplify user pool.
+        ENSO_IDE_COGNITO_USER_POOL_WEB_CLIENT_ID, String;
+
+        /// The domain for Amplify requests.
+        ENSO_IDE_COGNITO_DOMAIN, String;
+
+        /// The AWS region for Amplify configuration, matching the domain region.
+        ENSO_IDE_COGNITO_REGION, String;
+
+        /// The Google Analytics tag to which Google Analytics events should be sent.
+        ENSO_IDE_GOOGLE_ANALYTICS_TAG, String;
+
         /// License key for the AG Grid library.
-        VITE_ENSO_AG_GRID_LICENSE_KEY, String;
+        ENSO_IDE_AG_GRID_LICENSE_KEY, String;
+
         /// The Mapbox API token for the GeoMap visualization.
-        VITE_ENSO_MAPBOX_API_TOKEN, String;
+        ENSO_IDE_MAPBOX_API_TOKEN, String;
+
+        ENSO_IDE_COMMIT_HASH, String;
+        ENSO_IDE_VERSION, String;
     }
 }
 
@@ -231,11 +224,6 @@ impl IdeDesktop {
         Ok(command)
     }
 
-    pub fn write_build_info(&self, info: &BuildInfo) -> Result {
-        let path = self.repo_root.join(&*BUILD_INFO);
-        path.write_as_json(info)
-    }
-
     pub async fn build_icons(&self, output_path: impl AsRef<Path>) -> Result<IconsArtifacts> {
         self.pnpm()?
             .set_env(env::ENSO_BUILD_ICONS, output_path.as_ref())?
@@ -256,6 +244,8 @@ impl IdeDesktop {
         err))]
     pub async fn dist(
         &self,
+        version: &Version,
+        commit_hash: &str,
         gui: &impl IsArtifact,
         project_manager: &crate::project::backend::Artifact,
         output_path: impl AsRef<Path>,
@@ -272,12 +262,14 @@ impl IdeDesktop {
                 crate::engine::deduce_graal(self.octocrab.clone(), &self.build_sbt).await?;
             graalvm.install_if_missing(&self.cache).await?;
         }
-
-
+        
+        let version_string = version.to_string();
         crate::web::install(&self.repo_root).await?;
         let pm_bundle = ProjectManagerInfo::new(project_manager)?;
         let sign_artifacts = &sign;
         self.pnpm()?
+            .set_env(env::ENSO_IDE_COMMIT_HASH, &commit_hash)?
+            .set_env(env::ENSO_IDE_VERSION, &version_string)?
             .set_env(env::ENSO_BUILD_GUI, gui.as_ref())?
             .set_env(env::ENSO_BUILD_IDE, output_path)?
             .set_env(env::ENSO_BUILD_SIGN, sign_artifacts)?
@@ -300,7 +292,8 @@ impl IdeDesktop {
         self.pnpm()?
             .try_applying(&icons)?
             .apply(&RemoveEmptyCscEnvVars)
-            // .env("DEBUG", "electron-builder")
+            .set_env(env::ENSO_IDE_COMMIT_HASH, &commit_hash)?
+            .set_env(env::ENSO_IDE_VERSION, &version_string)?
             .set_env(env::ENSO_BUILD_GUI, gui.as_ref())?
             .set_env(env::ENSO_BUILD_IDE, output_path)?
             .set_env(env::ENSO_BUILD_SIGN, sign_artifacts)?

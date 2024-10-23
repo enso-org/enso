@@ -10,22 +10,20 @@ import VueDevTools from 'vite-plugin-vue-devtools'
 import wasm from 'vite-plugin-wasm'
 import tailwindConfig from './tailwind.config'
 
+const isDevMode = process.env.NODE_ENV === 'development'
 const isE2E = process.env.E2E === 'true'
-const dynHostnameWsUrl = (port: number) => `ws://__HOSTNAME__:${port}`
+
 const entrypoint = isE2E ? './src/project-view/e2e-entrypoint.ts' : './src/entrypoint.ts'
 
-process.env.VITE_DEV_PROJECT_MANAGER_URL ??= dynHostnameWsUrl(isE2E ? 30536 : 30535)
-process.env.VITE_YDOC_SERVER_URL ??=
-  process.env.ENSO_POLYGLOT_YDOC_SERVER ? process.env.ENSO_POLYGLOT_YDOC_SERVER
-  : process.env.NODE_ENV === 'development' ? dynHostnameWsUrl(5976)
-  : undefined
+process.env.ENSO_IDE_YDOC_SERVER_URL ||= isDevMode ? 'ws://__HOSTNAME__:59776' : undefined
+process.env.ENSO_IDE_PROJECT_MANAGER_URL ||= isDevMode ? 'ws://__HOSTNAME__:30535' : undefined
 
 // https://vitejs.dev/config/
 export default defineConfig({
   cacheDir: fileURLToPath(new URL('../../node_modules/.cache/vite', import.meta.url)),
   plugins: [
     wasm(),
-    ...(process.env.NODE_ENV === 'development' ?
+    ...(isDevMode ?
       [
         await VueDevTools(),
         react({
@@ -46,7 +44,7 @@ export default defineConfig({
       include: fileURLToPath(new URL('./src/dashboard/**/*.tsx', import.meta.url)),
       babel: { plugins: ['@babel/plugin-syntax-import-attributes'] },
     }),
-    ...(process.env.NODE_ENV === 'development' ? [await projectManagerShim()] : []),
+    ...(isDevMode ? [await projectManagerShim()] : []),
   ],
   optimizeDeps: {
     entries: fileURLToPath(new URL('./index.html', import.meta.url)),
@@ -56,7 +54,7 @@ export default defineConfig({
     ...(process.env.GUI_HOSTNAME ? { host: process.env.GUI_HOSTNAME } : {}),
   },
   resolve: {
-    conditions: process.env.NODE_ENV === 'development' ? ['source'] : [],
+    conditions: isDevMode ? ['source'] : [],
     alias: {
       '/src/entrypoint.ts': fileURLToPath(new URL(entrypoint, import.meta.url)),
       shared: fileURLToPath(new URL('./shared', import.meta.url)),
@@ -64,12 +62,13 @@ export default defineConfig({
       '#': fileURLToPath(new URL('./src/dashboard', import.meta.url)),
     },
   },
+  envPrefix: 'ENSO_IDE_',
   define: {
     // Single hardcoded usage of `global` in aws-amplify.
     'global.TYPED_ARRAY_SUPPORT': true,
   },
   esbuild: {
-    dropLabels: process.env.NODE_ENV === 'development' ? [] : ['DEV'],
+    dropLabels: isDevMode ? [] : ['DEV'],
     supported: {
       'top-level-await': true,
     },

@@ -85,6 +85,8 @@ pub struct BuildInput {
     pub project_manager: BoxFuture<'static, Result<crate::project::backend::Artifact>>,
     #[derive_where(skip)]
     pub gui:             BoxFuture<'static, Result<crate::project::gui::Artifact>>,
+    #[derive_where(skip)]
+    pub commit_hash:     BoxFuture<'static, Result<String>>,
     pub electron_target: Option<String>,
     /// The name base used to generate CI run artifact names.
     pub artifact_name:   String,
@@ -117,14 +119,17 @@ impl Ide {
             electron_target,
             artifact_name: _,
             sign_artifacts,
+            commit_hash
         } = input;
         let ide_desktop = ide_desktop_from_context(context);
         let target_os = self.target_os;
         let target_arch = self.target_arch;
         async move {
-            let (gui, project_manager) = try_join!(gui, project_manager)?;
+            let (gui, project_manager, commit_hash) = try_join!(gui, project_manager, commit_hash)?;
             ide_desktop
                 .dist(
+                    &version,
+                    &commit_hash,
                     &gui,
                     &project_manager,
                     &output_path,

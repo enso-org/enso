@@ -39,7 +39,6 @@ use enso_build::paths::TargetTriple;
 use enso_build::project;
 use enso_build::project::backend;
 use enso_build::project::backend::Backend;
-use enso_build::project::gui;
 use enso_build::project::gui::Gui;
 use enso_build::project::ide;
 use enso_build::project::ide::Ide;
@@ -62,7 +61,6 @@ use enso_build::version;
 use futures_util::future::try_join;
 use ide_ci::actions::workflow::is_in_env;
 use ide_ci::cache::Cache;
-use ide_ci::define_env_var;
 use ide_ci::fs::remove_if_exists;
 use ide_ci::github::release;
 use ide_ci::github::setup_octocrab;
@@ -81,10 +79,6 @@ pub fn void<T>(_t: T) {}
 
 fn resolve_artifact_name(input: Option<String>, project: &impl IsTarget) -> String {
     input.unwrap_or_else(|| project.artifact_name())
-}
-
-define_env_var! {
-    ENSO_BUILD_KIND, version::Kind;
 }
 
 /// The basic, common information available in this application.
@@ -195,24 +189,6 @@ impl Processor {
         }
         .boxed()
     }
-
-    pub fn js_build_info(&self) -> BoxFuture<'static, Result<gui::BuildInfo>> {
-        let triple = self.triple.clone();
-        let commit = self.commit();
-        async move {
-            Ok(gui::BuildInfo {
-                commit:         commit.await?,
-                name:           "Enso IDE".into(),
-                version:        triple.versions.version.clone(),
-                engine_version: triple.versions.version.clone(),
-            })
-        }
-        .boxed()
-    }
-
-    // pub fn pm_info(&self) -> enso_build::project::backend::BuildInput {
-    //     enso_build::project::backend::BuildInput { versions: self.triple.versions.clone() }
-    // }
 
     pub fn resolve_inputs<T: Resolvable>(
         &self,
@@ -559,24 +535,11 @@ impl Processor {
             sign_artifacts,
         } = params;
 
-        let build_info_get = self.js_build_info();
-        let build_info_path = self.context.inner.repo_root.join(&*enso_build::ide::web::BUILD_INFO);
-
-        let build_info = async move {
-            let build_info = build_info_get.await?;
-            build_info_path.write_as_json(&build_info)
-        };
-
-        let gui = self.get(gui);
-
         let input = ide::BuildInput {
-            gui: async move {
-                build_info.await?;
-                gui.await
-            }
-            .boxed(),
+            gui: self.get(gui),
             project_manager: self.get(project_manager),
             version: self.triple.versions.version.clone(),
+            commit_hash: self.commit(),
             electron_target,
             artifact_name: "ide".into(),
             sign_artifacts,

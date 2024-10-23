@@ -23,7 +23,10 @@ import { pathToFileURL } from 'node:url'
 const logger = contentConfig.logger
 
 // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-ydocServer.configureAllDebugLogs(process.env.ENSO_YDOC_LS_DEBUG === 'true', logger.log.bind(logger))
+ydocServer.configureAllDebugLogs(
+  process.env.ENSO_IDE_YDOC_LS_DEBUG === 'true',
+  logger.log.bind(logger),
+)
 
 // =================
 // === Constants ===

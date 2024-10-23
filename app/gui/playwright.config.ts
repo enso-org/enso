@@ -122,6 +122,7 @@ export default defineConfig({
     {
       env: {
         E2E: 'true',
+        ENSO_IDE_PROJECT_MANAGER_URL: 'ws://__HOSTNAME__:30536',
       },
       command:
         process.env.CI || process.env.PROD ?

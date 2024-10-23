@@ -149,6 +149,18 @@ pub mod secret {
 }
 
 pub mod variables {
+    pub const ENSO_CLOUD_ENVIRONMENT: &str = "ENSO_CLOUD_ENVIRONMENT";
+    pub const ENSO_CLOUD_API_URL: &str = "ENSO_CLOUD_API_URL";
+    pub const ENSO_CLOUD_CHAT_URL: &str = "ENSO_CLOUD_CHAT_URL";
+    pub const ENSO_CLOUD_SENTRY_DSN: &str = "ENSO_CLOUD_SENTRY_DSN";
+    pub const ENSO_CLOUD_STRIPE_KEY: &str = "ENSO_CLOUD_STRIPE_KEY";
+    pub const ENSO_CLOUD_COGNITO_USER_POOL_ID: &str = "ENSO_CLOUD_COGNITO_USER_POOL_ID";
+    pub const ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID: &str =
+        "ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID";
+    pub const ENSO_CLOUD_COGNITO_DOMAIN: &str = "ENSO_CLOUD_COGNITO_DOMAIN";
+    pub const ENSO_CLOUD_COGNITO_REGION: &str = "ENSO_CLOUD_COGNITO_REGION";
+    pub const ENSO_CLOUD_GOOGLE_ANALYTICS_TAG: &str = "ENSO_CLOUD_GOOGLE_ANALYTICS_TAG";
+
     /// License key for the AG Grid library.
     pub const ENSO_AG_GRID_LICENSE_KEY: &str = "ENSO_AG_GRID_LICENSE_KEY";
 

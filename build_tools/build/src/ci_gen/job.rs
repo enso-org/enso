@@ -4,14 +4,12 @@ use crate::ci_gen::not_default_branch;
 use crate::ci_gen::runs_on;
 use crate::ci_gen::secret;
 use crate::ci_gen::step;
-use crate::ci_gen::variables::ENSO_AG_GRID_LICENSE_KEY;
-use crate::ci_gen::variables::ENSO_MAPBOX_API_TOKEN;
+use crate::ci_gen::variables;
 use crate::ci_gen::RunStepsBuilder;
 use crate::ci_gen::RunnerType;
 use crate::ci_gen::RELEASE_CLEANING_POLICY;
-use crate::engine::env;
-use crate::ide::web::env::VITE_ENSO_AG_GRID_LICENSE_KEY;
-use crate::ide::web::env::VITE_ENSO_MAPBOX_API_TOKEN;
+use crate::engine::env as engine_env;
+use crate::ide::web::env as ide_env;
 
 use ide_ci::actions::workflow::definition::cancel_workflow_action;
 use ide_ci::actions::workflow::definition::shell;
@@ -125,29 +123,38 @@ pub fn sbt_command(command: impl AsRef<str>) -> String {
     format!("backend sbt '--' {}", command.as_ref())
 }
 
-/// Expose variables for cloud configuration, needed during the dashboard build.
-pub fn expose_cloud_vars(step: Step) -> Step {
-    use crate::ide::web::env::*;
-    step.with_variable_exposed(ENSO_CLOUD_ENVIRONMENT)
-        .with_variable_exposed(ENSO_CLOUD_API_URL)
-        .with_variable_exposed(ENSO_CLOUD_CHAT_URL)
-        .with_variable_exposed(ENSO_CLOUD_SENTRY_DSN)
-        .with_variable_exposed(ENSO_CLOUD_STRIPE_KEY)
-        .with_variable_exposed(ENSO_CLOUD_COGNITO_USER_POOL_ID)
-        .with_variable_exposed(ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID)
-        .with_variable_exposed(ENSO_CLOUD_COGNITO_DOMAIN)
-        .with_variable_exposed(ENSO_CLOUD_COGNITO_REGION)
-        .with_variable_exposed(ENSO_CLOUD_GOOGLE_ANALYTICS_TAG)
-}
-
 /// Expose variables for the GUI build.
 pub fn expose_gui_vars(step: Step) -> Step {
-    let step = step
-        .with_variable_exposed_as(ENSO_AG_GRID_LICENSE_KEY, VITE_ENSO_AG_GRID_LICENSE_KEY)
-        .with_variable_exposed_as(ENSO_MAPBOX_API_TOKEN, VITE_ENSO_MAPBOX_API_TOKEN);
-
-    // GUI includes the cloud-delivered dashboard.
-    expose_cloud_vars(step)
+    step.with_variable_exposed_as(variables::ENSO_CLOUD_ENVIRONMENT, ide_env::ENSO_IDE_ENVIRONMENT)
+        .with_variable_exposed_as(variables::ENSO_CLOUD_API_URL, ide_env::ENSO_IDE_API_URL)
+        .with_variable_exposed_as(variables::ENSO_CLOUD_CHAT_URL, ide_env::ENSO_IDE_CHAT_URL)
+        .with_variable_exposed_as(variables::ENSO_CLOUD_SENTRY_DSN, ide_env::ENSO_IDE_SENTRY_DSN)
+        .with_variable_exposed_as(variables::ENSO_CLOUD_STRIPE_KEY, ide_env::ENSO_IDE_STRIPE_KEY)
+        .with_variable_exposed_as(
+            variables::ENSO_CLOUD_COGNITO_USER_POOL_ID,
+            ide_env::ENSO_IDE_COGNITO_USER_POOL_ID,
+        )
+        .with_variable_exposed_as(
+            variables::ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID,
+            ide_env::ENSO_IDE_COGNITO_USER_POOL_WEB_CLIENT_ID,
+        )
+        .with_variable_exposed_as(
+            variables::ENSO_CLOUD_COGNITO_DOMAIN,
+            ide_env::ENSO_IDE_COGNITO_DOMAIN,
+        )
+        .with_variable_exposed_as(
+            variables::ENSO_CLOUD_COGNITO_REGION,
+            ide_env::ENSO_IDE_COGNITO_REGION,
+        )
+        .with_variable_exposed_as(
+            variables::ENSO_CLOUD_GOOGLE_ANALYTICS_TAG,
+            ide_env::ENSO_IDE_GOOGLE_ANALYTICS_TAG,
+        )
+        .with_variable_exposed_as(
+            variables::ENSO_AG_GRID_LICENSE_KEY,
+            ide_env::ENSO_IDE_AG_GRID_LICENSE_KEY,
+        )
+        .with_variable_exposed_as(variables::ENSO_MAPBOX_API_TOKEN, ide_env::ENSO_IDE_MAPBOX_API_TOKEN)
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -195,9 +202,10 @@ impl JobArchetype for JvmTests {
             .build_job(job_name, target)
             .with_permission(Permission::Checks, Access::Write);
         match graal_edition {
-            graalvm::Edition::Community => job.env(env::GRAAL_EDITION, graalvm::Edition::Community),
+            graalvm::Edition::Community =>
+                job.env(engine_env::GRAAL_EDITION, graalvm::Edition::Community),
             graalvm::Edition::Enterprise =>
-                job.env(env::GRAAL_EDITION, graalvm::Edition::Enterprise),
+                job.env(engine_env::GRAAL_EDITION, graalvm::Edition::Enterprise),
         }
         job
     }
@@ -277,9 +285,10 @@ impl JobArchetype for StandardLibraryTests {
         )
         .with_permission(Permission::Checks, Access::Write);
         match graal_edition {
-            graalvm::Edition::Community => job.env(env::GRAAL_EDITION, graalvm::Edition::Community),
+            graalvm::Edition::Community =>
+                job.env(engine_env::GRAAL_EDITION, graalvm::Edition::Community),
             graalvm::Edition::Enterprise =>
-                job.env(env::GRAAL_EDITION, graalvm::Edition::Enterprise),
+                job.env(engine_env::GRAAL_EDITION, graalvm::Edition::Enterprise),
         }
         job
     }
@@ -361,7 +370,7 @@ impl JobArchetype for SnowflakeTests {
             })
             .build_job(job_name, target)
             .with_permission(Permission::Checks, Access::Write);
-        job.env(env::GRAAL_EDITION, GRAAL_EDITION_FOR_EXTRA_TESTS);
+        job.env(engine_env::GRAAL_EDITION, GRAAL_EDITION_FOR_EXTRA_TESTS);
         job
     }
 
@@ -466,38 +475,23 @@ impl JobArchetype for DeployRuntime {
 pub fn expose_os_specific_signing_secret(os: OS, step: Step) -> Step {
     match os {
         OS::Windows => step
-            .with_secret_exposed_as(secret::WINDOWS_CERT_PATH, &crate::ide::web::env::WIN_CSC_LINK)
-            .with_secret_exposed_as(
-                secret::WINDOWS_CERT_PASSWORD,
-                &crate::ide::web::env::WIN_CSC_KEY_PASSWORD,
-            ),
+            .with_secret_exposed_as(secret::WINDOWS_CERT_PATH, &ide_env::WIN_CSC_LINK)
+            .with_secret_exposed_as(secret::WINDOWS_CERT_PASSWORD, &ide_env::WIN_CSC_KEY_PASSWORD),
         OS::MacOS => step
-            .with_secret_exposed_as(
-                secret::APPLE_CODE_SIGNING_CERT,
-                &crate::ide::web::env::CSC_LINK,
-            )
+            .with_secret_exposed_as(secret::APPLE_CODE_SIGNING_CERT, &ide_env::CSC_LINK)
             .with_secret_exposed_as(
                 secret::APPLE_CODE_SIGNING_CERT_PASSWORD,
-                &crate::ide::web::env::CSC_KEY_PASSWORD,
+                &ide_env::CSC_KEY_PASSWORD,
             )
-            .with_secret_exposed_as(
-                secret::APPLE_NOTARIZATION_USERNAME,
-                &crate::ide::web::env::APPLEID,
-            )
-            .with_secret_exposed_as(
-                secret::APPLE_NOTARIZATION_PASSWORD,
-                &crate::ide::web::env::APPLEIDPASS,
-            )
-            .with_secret_exposed_as(
-                secret::APPLE_NOTARIZATION_TEAM_ID,
-                &crate::ide::web::env::APPLETEAMID,
-            )
-            .with_env(crate::ide::web::env::CSC_IDENTITY_AUTO_DISCOVERY, "true")
+            .with_secret_exposed_as(secret::APPLE_NOTARIZATION_USERNAME, &ide_env::APPLEID)
+            .with_secret_exposed_as(secret::APPLE_NOTARIZATION_PASSWORD, &ide_env::APPLEIDPASS)
+            .with_secret_exposed_as(secret::APPLE_NOTARIZATION_TEAM_ID, &ide_env::APPLETEAMID)
+            .with_env(ide_env::CSC_IDENTITY_AUTO_DISCOVERY, "true")
             // `CSC_FOR_PULL_REQUEST` can potentially expose sensitive information to third-party,
             // see the comment in the definition of `CSC_FOR_PULL_REQUEST` for more information.
             //
             // In our case, we are safe here, as any PRs from forks do not get the secrets exposed.
-            .with_env(crate::ide::web::env::CSC_FOR_PULL_REQUEST, "true"),
+            .with_env(ide_env::CSC_FOR_PULL_REQUEST, "true"),
         _ => step,
     }
 }
@@ -572,9 +566,10 @@ impl JobArchetype for CiCheckBackend {
         let job_name = format!("Engine ({})", self.graal_edition);
         let mut job = RunStepsBuilder::new("backend ci-check").build_job(job_name, target);
         match self.graal_edition {
-            graalvm::Edition::Community => job.env(env::GRAAL_EDITION, graalvm::Edition::Community),
+            graalvm::Edition::Community =>
+                job.env(engine_env::GRAAL_EDITION, graalvm::Edition::Community),
             graalvm::Edition::Enterprise =>
-                job.env(env::GRAAL_EDITION, graalvm::Edition::Enterprise),
+                job.env(engine_env::GRAAL_EDITION, graalvm::Edition::Enterprise),
         }
         job
     }
