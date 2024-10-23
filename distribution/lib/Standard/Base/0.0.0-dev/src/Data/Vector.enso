@@ -71,7 +71,7 @@ type Vector a
 
              Vector.new my_vec.length (ix -> my_vec.at ix)
     new : Integer -> (Integer -> Any) -> Vector Any
-    new length constructor = Array_Like_Helpers.vector_from_function length constructor
+    new length constructor = Array_Like_Helpers.vector_from_function length constructor Problem_Behavior.Report_Error
 
     ## PRIVATE
        ADVANCED

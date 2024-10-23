@@ -45,9 +45,6 @@ at array_like index = @Builtin_Method "Array_Like_Helpers.at"
 vector_to_array : (Vector | Array) -> Array
 vector_to_array array_like = @Builtin_Method "Array_Like_Helpers.vector_to_array"
 
-vector_from_function_primitive : Integer -> (Integer -> Any) -> Problem_Behavior -> Vector Any
-vector_from_function_primitive length constructor on_problems = @Builtin_Method "Array_Like_Helpers.vector_from_function"
-
 flatten : (Vector | Array) -> Vector
 flatten array_like = @Builtin_Method "Array_Like_Helpers.flatten"
 
@@ -84,8 +81,7 @@ slice vector start end = @Builtin_Method "Array_Like_Helpers.slice"
      - Ignore: The result is `Nothing`, and the error is
        ignored.
 vector_from_function : Integer -> (Integer -> Any) -> Problem_Behavior | No_Wrap -> Vector Any
-vector_from_function length function on_problems:(Problem_Behavior | No_Wrap)=..Report_Error =
-    vector_from_function_primitive length function on_problems
+vector_from_function length constructor on_problems = @Builtin_Method "Array_Like_Helpers.vector_from_function"
 
 ## PRIVATE
    Creates a new vector where for each range, a corresponding section of the
