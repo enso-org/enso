@@ -511,17 +511,25 @@ public final class ModuleScope implements EnsoObject {
      *     currently registered entities
      */
     public ModuleScope asModuleScope() {
-      if (moduleScope != null) return moduleScope;
-      else
-        return new ModuleScope(
-            module,
-            associatedType,
-            Collections.unmodifiableMap(polyglotSymbols),
-            Collections.unmodifiableMap(types),
-            Collections.unmodifiableMap(methods),
-            Collections.unmodifiableMap(conversions),
-            Collections.unmodifiableSet(imports),
-            Collections.unmodifiableSet(exports));
+      if (moduleScope != null) {
+        return moduleScope;
+      } else {
+        CompilerDirectives.transferToInterpreterAndInvalidate();
+        return createModuleScope();
+      }
+    }
+
+    @CompilerDirectives.TruffleBoundary
+    private ModuleScope createModuleScope() {
+      return new ModuleScope(
+          module,
+          associatedType,
+          Collections.unmodifiableMap(polyglotSymbols),
+          Collections.unmodifiableMap(types),
+          Collections.unmodifiableMap(methods),
+          Collections.unmodifiableMap(conversions),
+          Collections.unmodifiableSet(imports),
+          Collections.unmodifiableSet(exports));
     }
 
     @Override
