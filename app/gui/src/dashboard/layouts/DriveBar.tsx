@@ -71,10 +71,10 @@ export interface DriveBarProps {
     onCreated?: (project: CreatedProject) => void,
     onError?: () => void,
   ) => void
-  readonly doCreateDirectory: () => void
-  readonly doCreateSecret: (name: string, value: string) => void
-  readonly doCreateDatalink: (name: string, value: unknown) => void
-  readonly doUploadFiles: (files: File[]) => void
+  readonly doCreateDirectory: () => Promise<void>
+  readonly doCreateSecret: (name: string, value: string) => Promise<void>
+  readonly doCreateDatalink: (name: string, value: unknown) => Promise<void>
+  readonly doUploadFiles: (files: File[]) => Promise<void>
 }
 
 /**
@@ -133,7 +133,7 @@ export default function DriveBar(props: DriveBarProps) {
       ...(isCloud ?
         {
           newFolder: () => {
-            doCreateDirectory()
+            void doCreateDirectory()
           },
         }
       : {}),
@@ -320,8 +320,8 @@ export default function DriveBar(props: DriveBarProps) {
                 icon={AddFolderIcon}
                 isDisabled={shouldBeDisabled}
                 aria-label={getText('newFolder')}
-                onPress={() => {
-                  doCreateDirectory()
+                onPress={async () => {
+                  await doCreateDirectory()
                 }}
               />
               {isCloud && (
@@ -355,7 +355,7 @@ export default function DriveBar(props: DriveBarProps) {
                 className="hidden"
                 onInput={(event) => {
                   if (event.currentTarget.files != null) {
-                    doUploadFiles(Array.from(event.currentTarget.files))
+                    void doUploadFiles(Array.from(event.currentTarget.files))
                   }
                   // Clear the list of selected files, otherwise `onInput` will not be
                   // dispatched again if the same file is selected.
@@ -370,7 +370,7 @@ export default function DriveBar(props: DriveBarProps) {
                 aria-label={getText('uploadFiles')}
                 onPress={async () => {
                   const files = await inputFiles()
-                  doUploadFiles(Array.from(files))
+                  await doUploadFiles(Array.from(files))
                 }}
               />
               <Button
