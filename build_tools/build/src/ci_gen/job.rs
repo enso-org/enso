@@ -154,7 +154,10 @@ pub fn expose_gui_vars(step: Step) -> Step {
             variables::ENSO_AG_GRID_LICENSE_KEY,
             ide_env::ENSO_IDE_AG_GRID_LICENSE_KEY,
         )
-        .with_variable_exposed_as(variables::ENSO_MAPBOX_API_TOKEN, ide_env::ENSO_IDE_MAPBOX_API_TOKEN)
+        .with_variable_exposed_as(
+            variables::ENSO_MAPBOX_API_TOKEN,
+            ide_env::ENSO_IDE_MAPBOX_API_TOKEN,
+        )
 }
 
 #[derive(Clone, Copy, Debug)]

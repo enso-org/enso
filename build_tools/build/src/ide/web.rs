@@ -234,6 +234,7 @@ impl IdeDesktop {
     }
 
     /// Build the full Electron package, using the electron-builder.
+    #[allow(clippy::too_many_arguments)]
     #[tracing::instrument(name="Preparing distribution of the IDE.", skip_all, fields(
         dest = %output_path.as_ref().display(),
         ?gui,
@@ -262,7 +263,7 @@ impl IdeDesktop {
                 crate::engine::deduce_graal(self.octocrab.clone(), &self.build_sbt).await?;
             graalvm.install_if_missing(&self.cache).await?;
         }
-        
+
         let version_string = version.to_string();
         crate::web::install(&self.repo_root).await?;
         let pm_bundle = ProjectManagerInfo::new(project_manager)?;

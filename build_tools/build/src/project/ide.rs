@@ -119,7 +119,7 @@ impl Ide {
             electron_target,
             artifact_name: _,
             sign_artifacts,
-            commit_hash
+            commit_hash,
         } = input;
         let ide_desktop = ide_desktop_from_context(context);
         let target_os = self.target_os;
