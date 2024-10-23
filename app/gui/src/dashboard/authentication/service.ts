@@ -33,6 +33,7 @@ import * as listen from '#/authentication/listen'
  */
 export interface AmplifyConfig {
   readonly region: string
+  readonly endpoint: string
   readonly userPoolId: string
   readonly userPoolWebClientId: string
   readonly urlOpener: ((url: string, redirectUrl: string) => void) | null
@@ -66,6 +67,7 @@ interface OauthAmplifyConfig {
 /** Same as {@link AmplifyConfig}, but in a format recognized by the AWS Amplify library. */
 export interface NestedAmplifyConfig {
   readonly region: string
+  readonly endpoint: string
   readonly userPoolId: string
   readonly userPoolWebClientId: string
   readonly oauth: OauthAmplifyConfig
@@ -80,6 +82,7 @@ export interface NestedAmplifyConfig {
 export function toNestedAmplifyConfig(config: AmplifyConfig): NestedAmplifyConfig {
   return {
     region: config.region,
+    endpoint: config.endpoint,
     userPoolId: config.userPoolId,
     userPoolWebClientId: config.userPoolWebClientId,
     oauth: {
@@ -183,6 +186,7 @@ function loadAmplifyConfig(
   /** Load the platform-specific Amplify configuration. */
   const signInOutRedirect = supportsDeepLinks ? `${common.DEEP_LINK_SCHEME}://auth` : redirectUrl
   return {
+    endpoint: process.env.ENSO_CLOUD_AUTH_ENDPOINT,
     userPoolId: process.env.ENSO_CLOUD_COGNITO_USER_POOL_ID,
     userPoolWebClientId: process.env.ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID,
     domain: process.env.ENSO_CLOUD_COGNITO_DOMAIN,
