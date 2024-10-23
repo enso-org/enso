@@ -462,7 +462,7 @@ public class ErrorCompilerTest extends CompilerTests {
   public void illegalForeignBody4() throws Exception {
     var ir = parse("foreign js foo = 4");
     assertSingleSyntaxError(
-        ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 18);
+        ir, new Syntax.InvalidForeignDefinition("Expected text literal as body"), null, 0, 18);
   }
 
   @Test
