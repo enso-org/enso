@@ -474,8 +474,12 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
     }
   }
 
-  private static makeCodeSnapshot(code: string): string {
+  private static encodeCodeSnapshot(code: string): string {
     return Base64.encode(code)
+  }
+
+  private static decodeCodeSnapshot(snapshot: string): string {
+    return Base64.decode(snapshot)
   }
 
   private sendLsUpdate(
@@ -487,7 +491,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
     if (this.syncedContent == null || this.syncedVersion == null) return
 
     const newSnapshot = newCode && {
-      snapshot: ModulePersistence.makeCodeSnapshot(newCode)
+      snapshot: ModulePersistence.encodeCodeSnapshot(newCode)
     }
     const newMetadataJson =
       newMetadata &&
@@ -574,6 +578,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
       const syncModule = new Ast.MutableModule(this.doc.ydoc)
       if (code !== this.syncedCode) {
         const syncRoot = syncModule.root()
+        console.log('!!! syncFileContents', 'syncRoot:', syncRoot)
         if (syncRoot) {
           const edit = syncModule.edit()
           edit.getVersion(syncRoot).syncToCode(code)
@@ -582,7 +587,23 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
           syncModule.applyEdit(edit)
         } else {
           const { root, spans } = Ast.parseModuleWithSpans(code, syncModule)
-          syncModule.syncRoot(root)
+
+          let rootToSync = root
+          const metadataSnapshot = metadata.ide.snapshot
+          if (metadataSnapshot && idMapJson) {
+            const snapshotCode = ModulePersistence.decodeCodeSnapshot(metadataSnapshot)
+            if (snapshotCode !== code || 1 === 1 /* simulate code mismatch */) {
+              const { root, spans } = Ast.parseModuleWithSpans(snapshotCode)
+              const edit = root.module.edit()
+              Ast.setExternalIds(edit, spans, deserializeIdMap(idMapJson))
+              edit.getVersion(root).syncToCode(code)
+              root.module.applyEdit(edit)
+
+              rootToSync = root
+            }
+          }
+
+          syncModule.syncRoot(rootToSync)
           parsedSpans = spans
         }
       }
