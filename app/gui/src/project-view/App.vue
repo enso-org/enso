@@ -28,7 +28,13 @@ const props = defineProps<{
   hidden: boolean
   ignoreParamsRegex?: RegExp
   renameProject: (newName: string) => void
+  /** The current project's backend, which may be remote or local. */
   projectBackend: Backend | null
+  /**
+   * The remote backend.
+   *
+   * This is used regardless of whether the project is local for e.g. the cloud file browser.
+   */
   remoteBackend: Backend | null
 }>()
 
