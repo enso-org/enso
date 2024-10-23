@@ -5,7 +5,7 @@ import * as backend from '#/services/Backend'
 
 import * as actions from './actions'
 
-test.test('tags', async ({ page }) => {
+test.test('tags (positive)', async ({ page }) => {
   await actions.mockAllAndLogin({ page })
   const searchBarInput = actions.locateSearchBarInput(page)
   const tags = actions.locateSearchBarTags(page)
@@ -19,7 +19,14 @@ test.test('tags', async ({ page }) => {
     await positiveTag.click()
     await test.expect(searchBarInput).toHaveValue(text)
   }
+})
 
+test.test('tags (negative)', async ({ page }) => {
+  await actions.mockAllAndLogin({ page })
+  const searchBarInput = actions.locateSearchBarInput(page)
+  const tags = actions.locateSearchBarTags(page)
+
+  await searchBarInput.click()
   await page.keyboard.down('Shift')
   for (const negativeTag of await tags.all()) {
     await searchBarInput.selectText()

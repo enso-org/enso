@@ -140,7 +140,6 @@ where I: Iterator<Item = Line<'s>>
 /// Representation used to build multi-line statements.
 #[derive(Debug)]
 enum Prefix<'s> {
-    Annotation { node: Box<Annotated<'s>>, span: Span<'s> },
     BuiltinAnnotation { node: Box<AnnotatedBuiltin<'s>>, span: Span<'s> },
     Documentation { node: Box<Documented<'s>>, span: Span<'s> },
 }
@@ -149,7 +148,6 @@ impl<'s> TryFrom<Tree<'s>> for Prefix<'s> {
     type Error = Tree<'s>;
     fn try_from(tree: Tree<'s>) -> Result<Self, Self::Error> {
         match tree.variant {
-            Variant::Annotated(node) => Ok(Prefix::Annotation { node, span: tree.span }),
             Variant::AnnotatedBuiltin(node) if node.expression.is_none() =>
                 Ok(Prefix::BuiltinAnnotation { node, span: tree.span }),
             Variant::Documented(node) => Ok(Prefix::Documentation { node, span: tree.span }),
@@ -161,7 +159,6 @@ impl<'s> TryFrom<Tree<'s>> for Prefix<'s> {
 impl<'s> Prefix<'s> {
     fn push_newline(&mut self, newline: token::Newline<'s>) {
         let (newlines, span) = match self {
-            Prefix::Annotation { node, span } => (&mut node.newlines, span),
             Prefix::BuiltinAnnotation { node, span } => (&mut node.newlines, span),
             Prefix::Documentation { node, span } => (&mut node.documentation.newlines, span),
         };
@@ -171,7 +168,6 @@ impl<'s> Prefix<'s> {
 
     fn apply_to(mut self, expression: Tree<'s>) -> Tree<'s> {
         let (expr, span) = match &mut self {
-            Prefix::Annotation { node, span } => (&mut node.expression, span),
             Prefix::BuiltinAnnotation { node, span } => (&mut node.expression, span),
             Prefix::Documentation { node, span } => (&mut node.expression, span),
         };
@@ -184,8 +180,6 @@ impl<'s> Prefix<'s> {
 impl<'s> From<Prefix<'s>> for Tree<'s> {
     fn from(prefix: Prefix<'s>) -> Self {
         match prefix {
-            Prefix::Annotation { node, span } =>
-                Tree { variant: Variant::Annotated(node), span, warnings: default() },
             Prefix::BuiltinAnnotation { node, span } =>
                 Tree { variant: Variant::AnnotatedBuiltin(node), span, warnings: default() },
             Prefix::Documentation { node, span } =>
