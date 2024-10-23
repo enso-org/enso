@@ -53,7 +53,7 @@ public class ExcelRow {
           return switch (temporal) {
             case LocalDate date -> {
               var dateFormat = cell.getCellStyle().getDataFormatString();
-              yield (!dateFormat.contains("h") && !dateFormat.contains("H"))
+              yield (dateFormat.contains("h") || dateFormat.contains("H"))
                   ? date.atStartOfDay(ZoneId.systemDefault())
                   : date;
             }
