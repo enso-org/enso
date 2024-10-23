@@ -1,4 +1,7 @@
 import {
+  DEFAULT_COLUMN_PREFIX,
+  NEW_COLUMN_ID,
+  ROW_INDEX_HEADER,
   RowData,
   tableNewCallMayBeHandled,
   useTableNewArgument,
@@ -18,58 +21,61 @@ function suggestionDbWithNothing() {
   return db
 }
 
+const expectedRowIndexColumnDef = { headerName: ROW_INDEX_HEADER }
+const expectedNewColumnDef = { cellStyle: { display: 'none' } }
+
 test.each([
   {
     code: 'Table.new [["a", [1, 2, 3]], ["b", [4, 5, "six"]], ["empty", [Nothing, Standard.Base.Nothing, Nothing]]]',
     expectedColumnDefs: [
-      { headerName: '#' },
+      expectedRowIndexColumnDef,
       { headerName: 'a' },
       { headerName: 'b' },
       { headerName: 'empty' },
-      { headerName: 'New Column' },
+      expectedNewColumnDef,
     ],
     expectedRows: [
-      { '#': 0, a: 1, b: 4, empty: null, 'New Column': null },
-      { '#': 1, a: 2, b: 5, empty: null, 'New Column': null },
-      { '#': 2, a: 3, b: 'six', empty: null, 'New Column': null },
-      { '#': 3, a: null, b: null, empty: null, 'New Column': null },
+      { [ROW_INDEX_HEADER]: 0, a: 1, b: 4, empty: null, '': null },
+      { [ROW_INDEX_HEADER]: 1, a: 2, b: 5, empty: null, '': null },
+      { [ROW_INDEX_HEADER]: 2, a: 3, b: 'six', empty: null, '': null },
+      { [ROW_INDEX_HEADER]: 3, a: null, b: null, empty: null, '': null },
     ],
   },
   {
     code: 'Table.new []',
-    expectedColumnDefs: [{ headerName: '#' }, { headerName: 'New Column' }],
-    expectedRows: [{ '#': 0, 'New Column': null }],
+    expectedColumnDefs: [expectedRowIndexColumnDef, expectedNewColumnDef],
+    expectedRows: [{ [ROW_INDEX_HEADER]: 0, '': null }],
   },
   {
     code: 'Table.new',
-    expectedColumnDefs: [{ headerName: '#' }, { headerName: 'New Column' }],
-    expectedRows: [{ '#': 0, 'New Column': null }],
+    expectedColumnDefs: [expectedRowIndexColumnDef, expectedNewColumnDef],
+    expectedRows: [{ [ROW_INDEX_HEADER]: 0, '': null }],
   },
   {
     code: 'Table.new _',
-    expectedColumnDefs: [{ headerName: '#' }, { headerName: 'New Column' }],
-    expectedRows: [{ '#': 0, 'New Column': null }],
+    expectedColumnDefs: [expectedRowIndexColumnDef, expectedNewColumnDef],
+    expectedRows: [{ [ROW_INDEX_HEADER]: 0, '': null }],
   },
   {
     code: 'Table.new [["a", []]]',
-    expectedColumnDefs: [{ headerName: '#' }, { headerName: 'a' }, { headerName: 'New Column' }],
-    expectedRows: [{ '#': 0, a: null, 'New Column': null }],
+    expectedColumnDefs: [expectedRowIndexColumnDef, { headerName: 'a' }, expectedNewColumnDef],
+    expectedRows: [{ [ROW_INDEX_HEADER]: 0, a: null, '': null }],
   },
   {
     code: 'Table.new [["a", [1,,2]], ["b", [3, 4,]], ["c", [, 5, 6]], ["d", [,,]]]',
     expectedColumnDefs: [
-      { headerName: '#' },
+      expectedRowIndexColumnDef,
       { headerName: 'a' },
       { headerName: 'b' },
       { headerName: 'c' },
       { headerName: 'd' },
-      { headerName: 'New Column' },
+      expectedNewColumnDef,
     ],
     expectedRows: [
-      { '#': 0, a: 1, b: 3, c: null, d: null, 'New Column': null },
-      { '#': 1, a: null, b: 4, c: 5, d: null, 'New Column': null },
-      { '#': 2, a: 2, b: null, c: 6, d: null, 'New Column': null },
-      { '#': 3, a: null, b: null, c: null, d: null, 'New Column': null },
+      { [ROW_INDEX_HEADER]: 0, a: 1, b: 3, c: null, d: null, '': null },
+      { [ROW_INDEX_HEADER]: 1, a: null, b: 4, c: 5, d: null, '': null },
+      { [ROW_INDEX_HEADER]: 2, a: 2, b: null, c: 6, d: null, '': null },
+      { [ROW_INDEX_HEADER]: 3, a: null, b: null, c: null, d: null, '': null },
     ],
   },
 ])('Read table from $code', ({ code, expectedColumnDefs, expectedRows }) => {
@@ -172,32 +178,7 @@ test.each([
     expected: "Table.new [['a', [1, 2, 3]], ['b', [4, Nothing, 6]]]",
     importExpected: true,
   },
-  {
-    code: "Table.new [['a', [1, 2, 3]], ['b', [4, 5, 6]]]",
-    description: 'Add new column',
-    edit: { column: 3, row: 1, value: 8 },
-    expected:
-      "Table.new [['a', [1, 2, 3]], ['b', [4, 5, 6]], ['Column #2', [Nothing, 8, Nothing]]]",
-    importExpected: true,
-  },
-  {
-    code: 'Table.new []',
-    description: 'Add first column',
-    edit: { column: 1, row: 0, value: 8 },
-    expected: "Table.new [['Column #0', [8]]]",
-  },
-  {
-    code: 'Table.new',
-    description: 'Add parameter',
-    edit: { column: 1, row: 0, value: 8 },
-    expected: "Table.new [['Column #0', [8]]]",
-  },
-  {
-    code: 'Table.new _',
-    description: 'Update parameter',
-    edit: { column: 1, row: 0, value: 8 },
-    expected: "Table.new [['Column #0', [8]]]",
-  },
+
   {
     code: "Table.new [['a', [1, 2, 3]], ['b', [4, 5, 6]]]",
     description: 'Add new row',
@@ -210,14 +191,6 @@ test.each([
     description: 'Add first row',
     edit: { column: 2, row: 0, value: 'val' },
     expected: "Table.new [['a', [Nothing]], ['b', ['val']]]",
-    importExpected: true,
-  },
-  {
-    code: "Table.new [['a', [1, 2, 3]], ['b', [4, 5, 6]]]",
-    description: 'Add new row and column (the cell in the corner)',
-    edit: { column: 3, row: 3, value: 7 },
-    expected:
-      "Table.new [['a', [1, 2, 3, Nothing]], ['b', [4, 5, 6, Nothing]], ['Column #2', [Nothing, Nothing, Nothing, 7]]]",
     importExpected: true,
   },
   {
@@ -252,6 +225,38 @@ test.each([
     data: editedRow,
     newValue: edit.value,
   })
+  expect(onUpdate).toHaveBeenCalledOnce()
+  if (importExpected) expect(addMissingImports).toHaveBeenCalled()
+  else expect(addMissingImports).not.toHaveBeenCalled()
+})
+
+test.each([
+  {
+    code: "Table.new [['a', [1, 2, 3]], ['b', [4, 5, 6]]]",
+    expected: `Table.new [['a', [1, 2, 3]], ['b', [4, 5, 6]], ['${DEFAULT_COLUMN_PREFIX}3', [Nothing, Nothing, Nothing]]]`,
+    importExpected: true,
+  },
+  {
+    code: 'Table.new []',
+    expected: `Table.new [['${DEFAULT_COLUMN_PREFIX}1', []]]`,
+  },
+  {
+    code: 'Table.new',
+    expected: `Table.new [['${DEFAULT_COLUMN_PREFIX}1', []]]`,
+  },
+  {
+    code: 'Table.new _',
+    expected: `Table.new [['${DEFAULT_COLUMN_PREFIX}1', []]]`,
+  },
+])('Add column to table $code', ({ code, expected, importExpected }) => {
+  const { tableNewArgs, onUpdate, addMissingImports } = tableEditFixture(code, expected)
+  const newColumnDef = tableNewArgs.columnDefs.value.find(
+    (colDef) => colDef.colId === NEW_COLUMN_ID,
+  )
+  assert(newColumnDef != null)
+  assert(newColumnDef.headerComponentParams?.type === 'newColumn')
+  assert(newColumnDef.headerComponentParams.newColumnRequested != null)
+  newColumnDef.headerComponentParams.newColumnRequested()
   expect(onUpdate).toHaveBeenCalledOnce()
   if (importExpected) expect(addMissingImports).toHaveBeenCalled()
   else expect(addMissingImports).not.toHaveBeenCalled()
@@ -405,7 +410,7 @@ test.each([
       ['1', '3'],
       ['2', '4'],
     ],
-    expected: "Table.new [['Column #0', [1, 2]], ['Column #1', [3, 4]]]",
+    expected: `Table.new [['${DEFAULT_COLUMN_PREFIX}1', [1, 2]], ['${DEFAULT_COLUMN_PREFIX}2', [3, 4]]]`,
   },
   {
     code: 'Table.new []',
@@ -414,13 +419,13 @@ test.each([
       ['1', '3'],
       ['2', '4'],
     ],
-    expected: "Table.new [['Column #0', [1, 2]], ['Column #1', [3, 4]]]",
+    expected: `Table.new [['${DEFAULT_COLUMN_PREFIX}1', [1, 2]], ['${DEFAULT_COLUMN_PREFIX}2', [3, 4]]]`,
   },
   {
     code: 'Table.new []',
     focused: { rowIndex: 0, colIndex: 1 },
     data: [['a single cell']],
-    expected: "Table.new [['Column #0', ['a single cell']]]",
+    expected: `Table.new [['${DEFAULT_COLUMN_PREFIX}1', ['a single cell']]]`,
   },
   {
     code: "Table.new [['a', [1, 2]], ['b', [3, 4]]]",
@@ -445,7 +450,7 @@ test.each([
     code: "Table.new [['a', [1, 2]], ['b', [3, 4]]]",
     focused: { rowIndex: 1, colIndex: 3 },
     data: [['a single cell']],
-    expected: "Table.new [['a', [1, 2]], ['b', [3, 4]], ['Column #2', [Nothing, 'a single cell']]]",
+    expected: `Table.new [['a', [1, 2]], ['b', [3, 4]], ['${DEFAULT_COLUMN_PREFIX}3', [Nothing, 'a single cell']]]`,
     importExpected: true,
   },
   {
@@ -473,7 +478,7 @@ test.each([
       ['5', '7'],
       ['6', '8'],
     ],
-    expected: "Table.new [['a', [1, 2]], ['b', [5, 6]], ['Column #2', [7, 8]]]",
+    expected: `Table.new [['a', [1, 2]], ['b', [5, 6]], ['${DEFAULT_COLUMN_PREFIX}3', [7, 8]]]`,
   },
   {
     code: "Table.new [['a', [1, 2]], ['b', [3, 4]]]",
@@ -482,19 +487,17 @@ test.each([
       ['5', '7'],
       ['6', '8'],
     ],
-    expected:
-      "Table.new [['a', [1, 2, Nothing]], ['b', [3, 5, 6]], ['Column #2', [Nothing, 7, 8]]]",
+    expected: `Table.new [['a', [1, 2, Nothing]], ['b', [3, 5, 6]], ['${DEFAULT_COLUMN_PREFIX}3', [Nothing, 7, 8]]]`,
     importExpected: true,
   },
   {
     code: "Table.new [['a', [1, 2]], ['b', [3, 4]]]",
-    focused: { rowIndex: 2, colIndex: 3 },
+    focused: { rowIndex: 2, colIndex: 2 },
     data: [
       ['5', '7'],
       ['6', '8'],
     ],
-    expected:
-      "Table.new [['a', [1, 2, Nothing, Nothing]], ['b', [3, 4, Nothing, Nothing]], ['Column #2', [Nothing, Nothing, 5, 6]], ['Column #3', [Nothing, Nothing, 7, 8]]]",
+    expected: `Table.new [['a', [1, 2, Nothing, Nothing]], ['b', [3, 4, 5, 6]], ['${DEFAULT_COLUMN_PREFIX}3', [Nothing, Nothing, 7, 8]]]`,
     importExpected: true,
   },
 ])(
@@ -502,7 +505,6 @@ test.each([
   ({ code, focused, data, expected, importExpected }) => {
     const { tableNewArgs, onUpdate, addMissingImports } = tableEditFixture(code, expected)
     const focusedCol = tableNewArgs.columnDefs.value[focused.colIndex]
-    console.log(focusedCol?.colId, focusedCol?.headerName)
     assert(focusedCol?.colId != null)
     tableNewArgs.pasteFromClipboard(data, {
       rowIndex: focused.rowIndex,

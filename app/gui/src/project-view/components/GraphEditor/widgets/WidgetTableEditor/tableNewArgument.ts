@@ -12,11 +12,15 @@ import { qnLastSegment, type QualifiedName } from '@/util/qualifiedName'
 import type { ToValue } from '@/util/reactivity'
 import type { ColDef } from 'ag-grid-enterprise'
 import { computed, toValue } from 'vue'
+import { HeaderParams } from './TableHeader.vue'
 
-const NEW_COLUMN_ID = 'NewColumn'
+/** Id of a fake column with "Add new column" option. */
+export const NEW_COLUMN_ID = 'NewColumn'
 const ROW_INDEX_COLUMN_ID = 'RowIndex'
-const ROW_INDEX_HEADER = '#'
-const DEFAULT_COLUMN_PREFIX = 'Column #'
+/** A header of Row Index Column. */
+export const ROW_INDEX_HEADER = '#'
+/** A default prefix added to the column's index in newly created columns. */
+export const DEFAULT_COLUMN_PREFIX = 'Column #'
 const NOTHING_PATH = 'Standard.Base.Nothing.Nothing' as QualifiedName
 const NOTHING_NAME = qnLastSegment(NOTHING_PATH)
 
@@ -36,6 +40,7 @@ export interface ColumnDef extends ColDef<RowData> {
   mainMenuItems: (string | MenuItem<RowData>)[]
   contextMenuItems: (string | MenuItem<RowData>)[]
   rowDrag?: ({ data }: { data: RowData | undefined }) => boolean
+  headerComponentParams?: HeaderParams
 }
 
 namespace cellValueConversion {
@@ -271,7 +276,7 @@ export function useTableNewArgument(
       newColumnRequested: () => {
         const edit = graph.startEdit()
         fixColumns(edit)
-        addColumn(edit, `${DEFAULT_COLUMN_PREFIX}${columns.value.length}`)
+        addColumn(edit, `${DEFAULT_COLUMN_PREFIX}${columns.value.length + 1}`)
         onUpdate({ edit })
       },
     },
@@ -469,7 +474,7 @@ export function useTableNewArgument(
     for (let i = columns.value.length; i < newColCount; ++i) {
       modifiedColumnsAst = addColumn(
         edit,
-        `${DEFAULT_COLUMN_PREFIX}${i}`,
+        `${DEFAULT_COLUMN_PREFIX}${i + 1}`,
         (index) => newValueGetter(index, i),
         newRowCount,
         modifiedColumnsAst,
