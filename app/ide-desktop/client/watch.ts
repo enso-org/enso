@@ -38,7 +38,7 @@ const PROJECT_MANAGER_BUNDLE_PATH = paths.getProjectManagerBundlePath()
 // === Watch ===
 // =============
 
-process.env.ELECTRON_DEV_MODE = 'true'
+;(process.env as Record<string, string>).ELECTRON_DEV_MODE = 'true'
 console.log('Cleaning IDE dist directory.')
 await fs.rm(IDE_DIR_PATH, { recursive: true, force: true })
 await fs.mkdir(IDE_DIR_PATH, { recursive: true })
