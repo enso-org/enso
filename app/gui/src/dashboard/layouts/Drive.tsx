@@ -24,8 +24,6 @@ import Labels from '#/layouts/Labels'
 import * as ariaComponents from '#/components/AriaComponents'
 import * as result from '#/components/Result'
 
-import type * as backendModule from '#/services/Backend'
-
 import { useRootDirectoryId } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useDriveStore } from '#/providers/DriveProvider'
@@ -92,26 +90,6 @@ export default function Drive(props: DriveProps) {
   const doEmptyTrash = React.useCallback(() => {
     dispatchAssetListEvent({ type: AssetListEventType.emptyTrash })
   }, [dispatchAssetListEvent])
-
-  const doCreateProject = useEventCallback(
-    (
-      templateId: string | null = null,
-      templateName: string | null = null,
-      onCreated?: (project: backendModule.CreatedProject) => void,
-      onError?: () => void,
-    ) => {
-      dispatchAssetListEvent({
-        type: AssetListEventType.newProject,
-        parentKey: getTargetDirectory()?.key ?? rootDirectoryId,
-        parentId: getTargetDirectory()?.item.id ?? rootDirectoryId,
-        templateId,
-        datalinkId: null,
-        preferredName: templateName,
-        ...(onCreated ? { onCreated } : {}),
-        ...(onError ? { onError } : {}),
-      })
-    },
-  )
 
   const doCreateSecret = useEventCallback(async (name: string, value: string) => {
     dispatchAssetListEvent({
@@ -182,7 +160,6 @@ export default function Drive(props: DriveProps) {
               setQuery={setQuery}
               category={category}
               doEmptyTrash={doEmptyTrash}
-              doCreateProject={doCreateProject}
               doUploadFiles={doUploadFiles}
               doCreateSecret={doCreateSecret}
               doCreateDatalink={doCreateDatalink}

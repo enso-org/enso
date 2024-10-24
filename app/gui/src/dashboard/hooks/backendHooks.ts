@@ -297,18 +297,8 @@ export function useListUserGroupsWithUsers(
   }, [listUserGroupsQuery.data, listUsersQuery.data])
 }
 
-/**
- * Upload progress for {@link useUploadFileMutation}.
- */
-export interface UploadFileMutationProgress {
-  /**
-   * Whether this is the first progress update.
-   * Useful to determine whether to create a new toast or to update an existing toast.
-   */
-  readonly event: 'begin' | 'chunk' | 'end'
-  readonly sentMb: number
-  readonly totalMb: number
-}
+/** The type of directory listings in the React Query cache. */
+type DirectoryQuery = readonly AnyAsset<AssetType>[] | undefined
 
 /** Data for a specific asset. */
 export function useAssetPassiveListener(
@@ -317,7 +307,7 @@ export function useAssetPassiveListener(
   parentId: DirectoryId | null | undefined,
   category: Category,
 ) {
-  const listDirectoryQuery = useQuery<readonly AnyAsset<AssetType>[] | undefined>({
+  const listDirectoryQuery = useQuery<DirectoryQuery>({
     queryKey: [
       backendType,
       'listDirectory',
@@ -423,9 +413,6 @@ export function useRootDirectoryId(backend: Backend, category: Category) {
   }, [category, backend, user, organization, localRootDirectory])
 }
 
-/** The type of directory listings in the React Query cache. */
-type DirectoryQuery = readonly AnyAsset<AssetType>[] | undefined
-
 /** A function to optimistically insert assets into the React Query cache listing for a folder. */
 function useInsertAssets(backend: Backend, category: Category) {
   const queryClient = useQueryClient()
@@ -506,11 +493,47 @@ export function useNewFolder(backend: Backend, category: Category) {
   })
 }
 
+/**
+ * Remove an asset from the React Query cache. Should only be called on
+ * optimistically inserted assets.
+ */
+function useDeleteAsset(backend: Backend, category: Category) {
+  const queryClient = useQueryClient()
+  const ensureListDirectory = useEnsureListDirectory(backend, category)
+
+  return useEventCallback(async (assetId: AssetId, parentId: DirectoryId) => {
+    const siblings = await ensureListDirectory(parentId)
+    const asset = siblings.find((sibling) => sibling.id === assetId)
+    if (!asset) return
+
+    const listDirectoryQuery = queryClient.getQueryCache().find<DirectoryQuery>({
+      queryKey: [
+        backend.type,
+        'listDirectory',
+        parentId,
+        {
+          labels: null,
+          filterBy: CATEGORY_TO_FILTER_BY[category.type],
+          recentProjects: category.type === 'recent',
+        },
+      ],
+    })
+
+    if (listDirectoryQuery?.state.data) {
+      listDirectoryQuery.setData(
+        listDirectoryQuery.state.data.filter((child) => child.id !== assetId),
+      )
+    }
+  })
+}
+
 /** A function to create a new project. */
 export function useNewProject(backend: Backend, category: Category) {
   const insertAssets = useInsertAssets(backend, category)
   const ensureListDirectory = useEnsureListDirectory(backend, category)
+  const toastAndLog = useToastAndLog()
   const doOpenProject = useOpenProject()
+  const deleteAsset = useDeleteAsset(backend, category)
   const { user } = useFullUserSession()
   const { data: users } = useBackendQuery(backend, 'listUsers', [])
   const { data: userGroups } = useBackendQuery(backend, 'listUserGroups', [])
@@ -578,15 +601,11 @@ export function useNewProject(backend: Backend, category: Category) {
           },
         ])
         .catch((error) => {
-          event.onError?.()
-
-          deleteAsset(placeholderItem.id)
+          void deleteAsset(placeholderItem.id, parentId)
           toastAndLog('createProjectError', error)
-
           throw error
         })
         .then((createdProject) => {
-          event.onCreated?.(createdProject)
           doOpenProject({
             id: createdProject.projectId,
             type: backend.type,
@@ -597,6 +616,17 @@ export function useNewProject(backend: Backend, category: Category) {
         })
     },
   )
+}
+
+/** Upload progress for {@link useUploadFileMutation}. */
+export interface UploadFileMutationProgress {
+  /**
+   * Whether this is the first progress update.
+   * Useful to determine whether to create a new toast or to update an existing toast.
+   */
+  readonly event: 'begin' | 'chunk' | 'end'
+  readonly sentMb: number
+  readonly totalMb: number
 }
 
 /** Options for {@link useUploadFileMutation}. */
