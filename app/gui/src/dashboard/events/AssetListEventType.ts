@@ -3,7 +3,6 @@
 /** Possible types of changes to the file list. */
 enum AssetListEventType {
   duplicateProject = 'duplicate-project',
-  closeFolder = 'close-folder',
   copy = 'copy',
   move = 'move',
   delete = 'delete',

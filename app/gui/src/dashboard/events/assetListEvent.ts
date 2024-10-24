@@ -21,7 +21,6 @@ interface AssetListBaseEvent<Type extends AssetListEventType> {
 /** All possible events. */
 interface AssetListEvents {
   readonly duplicateProject: AssetListDuplicateProjectEvent
-  readonly closeFolder: AssetListCloseFolderEvent
   readonly copy: AssetListCopyEvent
   readonly move: AssetListMoveEvent
   readonly delete: AssetListDeleteEvent
@@ -47,12 +46,6 @@ interface AssetListDuplicateProjectEvent
   readonly parentId: backend.DirectoryId
   readonly original: backend.ProjectAsset
   readonly versionId: backend.S3ObjectVersionId
-}
-
-/** A signal to close (collapse) a folder. */
-interface AssetListCloseFolderEvent extends AssetListBaseEvent<AssetListEventType.closeFolder> {
-  readonly id: backend.DirectoryId
-  readonly key: backend.DirectoryId
 }
 
 /** A signal that files should be copied. */

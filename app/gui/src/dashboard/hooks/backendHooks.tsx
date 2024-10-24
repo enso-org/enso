@@ -28,7 +28,7 @@ import { useToastAndLog, useToastAndLogWithId } from '#/hooks/toastAndLogHooks'
 import { CATEGORY_TO_FILTER_BY, type Category } from '#/layouts/CategorySwitcher/Category'
 import DuplicateAssetsModal from '#/modals/DuplicateAssetsModal'
 import { useFullUserSession } from '#/providers/AuthProvider'
-import { useSetSelectedKeys } from '#/providers/DriveProvider'
+import { useSetSelectedKeys, useToggleDirectoryExpansion } from '#/providers/DriveProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import { useSetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
@@ -453,49 +453,6 @@ function useEnsureListDirectory(backend: Backend, category: Category) {
   })
 }
 
-/** A function to create a new folder. */
-export function useNewFolder(backend: Backend, category: Category) {
-  const insertAssets = useInsertAssets(backend, category)
-  const ensureListDirectory = useEnsureListDirectory(backend, category)
-  const { user } = useFullUserSession()
-  const { data: users } = useBackendQuery(backend, 'listUsers', [])
-  const { data: userGroups } = useBackendQuery(backend, 'listUserGroups', [])
-  const createDirectoryMutation = useMutation(backendMutationOptions(backend, 'createDirectory'))
-
-  return useEventCallback(async (parentId: DirectoryId, parentPath: string | null | undefined) => {
-    const siblings = await ensureListDirectory(parentId)
-    const directoryIndices = siblings
-      .filter(backendModule.assetIsDirectory)
-      .map((item) => /^New Folder (?<directoryIndex>\d+)$/.exec(item.title))
-      .map((match) => match?.groups?.directoryIndex)
-      .map((maybeIndex) => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
-    const title = `New Folder ${Math.max(0, ...directoryIndices) + 1}`
-    const placeholderItem: DirectoryAsset = {
-      type: AssetType.directory,
-      id: DirectoryId(uniqueString()),
-      title,
-      modifiedAt: toRfc3339(new Date()),
-      parentId,
-      permissions: tryCreateOwnerPermission(
-        `${parentPath ?? ''}/${title}`,
-        category,
-        user,
-        users ?? [],
-        userGroups ?? [],
-      ),
-      projectState: null,
-      labels: [],
-      description: null,
-    }
-
-    insertAssets([placeholderItem], parentId)
-
-    return await createDirectoryMutation.mutateAsync([
-      { parentId: placeholderItem.parentId, title: placeholderItem.title },
-    ])
-  })
-}
-
 /**
  * Remove an asset from the React Query cache. Should only be called on
  * optimistically inserted assets.
@@ -530,6 +487,51 @@ function useDeleteAsset(backend: Backend, category: Category) {
   })
 }
 
+/** A function to create a new folder. */
+export function useNewFolder(backend: Backend, category: Category) {
+  const insertAssets = useInsertAssets(backend, category)
+  const ensureListDirectory = useEnsureListDirectory(backend, category)
+  const toggleDirectoryExpansion = useToggleDirectoryExpansion()
+  const { user } = useFullUserSession()
+  const { data: users } = useBackendQuery(backend, 'listUsers', [])
+  const { data: userGroups } = useBackendQuery(backend, 'listUserGroups', [])
+  const createDirectoryMutation = useMutation(backendMutationOptions(backend, 'createDirectory'))
+
+  return useEventCallback(async (parentId: DirectoryId, parentPath: string | null | undefined) => {
+    toggleDirectoryExpansion(parentId, true)
+    const siblings = await ensureListDirectory(parentId)
+    const directoryIndices = siblings
+      .filter(backendModule.assetIsDirectory)
+      .map((item) => /^New Folder (?<directoryIndex>\d+)$/.exec(item.title))
+      .map((match) => match?.groups?.directoryIndex)
+      .map((maybeIndex) => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
+    const title = `New Folder ${Math.max(0, ...directoryIndices) + 1}`
+    const placeholderItem: DirectoryAsset = {
+      type: AssetType.directory,
+      id: DirectoryId(uniqueString()),
+      title,
+      modifiedAt: toRfc3339(new Date()),
+      parentId,
+      permissions: tryCreateOwnerPermission(
+        `${parentPath ?? ''}/${title}`,
+        category,
+        user,
+        users ?? [],
+        userGroups ?? [],
+      ),
+      projectState: null,
+      labels: [],
+      description: null,
+    }
+
+    insertAssets([placeholderItem], parentId)
+
+    return await createDirectoryMutation.mutateAsync([
+      { parentId: placeholderItem.parentId, title: placeholderItem.title },
+    ])
+  })
+}
+
 /** A function to create a new project. */
 export function useNewProject(backend: Backend, category: Category) {
   const insertAssets = useInsertAssets(backend, category)
@@ -537,6 +539,7 @@ export function useNewProject(backend: Backend, category: Category) {
   const toastAndLog = useToastAndLog()
   const doOpenProject = useOpenProject()
   const deleteAsset = useDeleteAsset(backend, category)
+  const toggleDirectoryExpansion = useToggleDirectoryExpansion()
   const { user } = useFullUserSession()
   const { data: users } = useBackendQuery(backend, 'listUsers', [])
   const { data: userGroups } = useBackendQuery(backend, 'listUserGroups', [])
@@ -556,6 +559,7 @@ export function useNewProject(backend: Backend, category: Category) {
       parentId: DirectoryId,
       parentPath: string | null | undefined,
     ) => {
+      toggleDirectoryExpansion(parentId, true)
       const siblings = await ensureListDirectory(parentId)
       const projectName = (() => {
         const prefix = `${templateName ?? 'New Project'} `
@@ -621,11 +625,10 @@ export function useNewProject(backend: Backend, category: Category) {
   )
 }
 
-// FIXME: `doToggleDirectoryExpansion` via zustand state
-
 /** A function to create a new secret. */
 export function useNewSecret(backend: Backend, category: Category) {
   const insertAssets = useInsertAssets(backend, category)
+  const toggleDirectoryExpansion = useToggleDirectoryExpansion()
   const { user } = useFullUserSession()
   const { data: users } = useBackendQuery(backend, 'listUsers', [])
   const { data: userGroups } = useBackendQuery(backend, 'listUserGroups', [])
@@ -638,6 +641,7 @@ export function useNewSecret(backend: Backend, category: Category) {
       parentId: DirectoryId,
       parentPath: string | null | undefined,
     ) => {
+      toggleDirectoryExpansion(parentId, true)
       const placeholderItem: backendModule.SecretAsset = {
         type: AssetType.secret,
         id: backendModule.SecretId(uniqueString()),
@@ -672,6 +676,7 @@ export function useNewSecret(backend: Backend, category: Category) {
 /** A function to create a new Datalink. */
 export function useNewDatalink(backend: Backend, category: Category) {
   const insertAssets = useInsertAssets(backend, category)
+  const toggleDirectoryExpansion = useToggleDirectoryExpansion()
   const { user } = useFullUserSession()
   const { data: users } = useBackendQuery(backend, 'listUsers', [])
   const { data: userGroups } = useBackendQuery(backend, 'listUserGroups', [])
@@ -684,6 +689,7 @@ export function useNewDatalink(backend: Backend, category: Category) {
       parentId: DirectoryId,
       parentPath: string | null | undefined,
     ) => {
+      toggleDirectoryExpansion(parentId, true)
       const placeholderItem: backendModule.DatalinkAsset = {
         type: AssetType.datalink,
         id: backendModule.DatalinkId(uniqueString()),
@@ -720,6 +726,7 @@ export function useNewDatalink(backend: Backend, category: Category) {
 export function useUploadFiles(backend: Backend, category: Category) {
   const ensureListDirectory = useEnsureListDirectory(backend, category)
   const toastAndLog = useToastAndLog()
+  const toggleDirectoryExpansion = useToggleDirectoryExpansion()
   const { setModal } = useSetModal()
   const { user } = useFullUserSession()
   const { data: users } = useBackendQuery(backend, 'listUsers', [])
@@ -809,7 +816,7 @@ export function useUploadFiles(backend: Backend, category: Category) {
       }
 
       if (duplicateFiles.length === 0 && duplicateProjects.length === 0) {
-        // doToggleDirectoryExpansion(event.parentId, event.parentKey, true)
+        toggleDirectoryExpansion(parentId, true)
 
         const placeholderFiles = files.map((file) => {
           const asset = backendModule.createPlaceholderFileAsset(
@@ -878,6 +885,8 @@ export function useUploadFiles(backend: Backend, category: Category) {
             nonConflictingFileCount={files.length - conflictingFiles.length}
             nonConflictingProjectCount={projects.length - conflictingProjects.length}
             doUpdateConflicting={async (resolvedConflicts) => {
+              toggleDirectoryExpansion(parentId, true)
+
               await Promise.allSettled(
                 resolvedConflicts.map((conflict) => {
                   const isUpdating = conflict.current.title === conflict.new.title
@@ -888,7 +897,7 @@ export function useUploadFiles(backend: Backend, category: Category) {
               )
             }}
             doUploadNonConflicting={async () => {
-              // doToggleDirectoryExpansion(parentId, event.parentKey, true)
+              toggleDirectoryExpansion(parentId, true)
 
               const newFiles = files
                 .filter((file) => !siblingFileTitles.has(file.name))

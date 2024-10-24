@@ -4,6 +4,7 @@ import * as React from 'react'
 import invariant from 'tiny-invariant'
 import * as zustand from 'zustand'
 
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import type { AssetPanelContextProps } from '#/layouts/AssetPanel'
 import type { Suggestion } from '#/layouts/AssetSearchBar'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
@@ -44,6 +45,8 @@ interface DriveStore {
   readonly setCanDownload: (canDownload: boolean) => void
   readonly pasteData: PasteData<DrivePastePayload> | null
   readonly setPasteData: (pasteData: PasteData<DrivePastePayload> | null) => void
+  readonly expandedDirectoryIds: readonly DirectoryId[]
+  readonly setExpandedDirectoryIds: (selectedKeys: readonly DirectoryId[]) => void
   readonly selectedKeys: ReadonlySet<AssetId>
   readonly setSelectedKeys: (selectedKeys: ReadonlySet<AssetId>) => void
   readonly visuallySelectedKeys: ReadonlySet<AssetId> | null
@@ -124,6 +127,12 @@ export default function DriveProvider(props: ProjectsProviderProps) {
       setPasteData: (pasteData) => {
         if (get().pasteData !== pasteData) {
           set({ pasteData })
+        }
+      },
+      expandedDirectoryIds: EMPTY_ARRAY,
+      setExpandedDirectoryIds: (expandedDirectoryIds) => {
+        if (get().expandedDirectoryIds !== expandedDirectoryIds) {
+          set({ expandedDirectoryIds })
         }
       },
       selectedKeys: EMPTY_SET,
@@ -250,13 +259,25 @@ export function useSetPasteData() {
   return zustand.useStore(store, (state) => state.setPasteData)
 }
 
+/** The expanded directories in the Asset Table. */
+export function useExpandedDirectoryIds() {
+  const store = useDriveStore()
+  return zustand.useStore(store, (state) => state.expandedDirectoryIds)
+}
+
+/** A function to set the expanded directoyIds in the Asset Table. */
+export function useSetExpandedDirectoryIds() {
+  const store = useDriveStore()
+  return zustand.useStore(store, (state) => state.setExpandedDirectoryIds)
+}
+
 /** The selected keys in the Asset Table. */
 export function useSelectedKeys() {
   const store = useDriveStore()
   return zustand.useStore(store, (state) => state.selectedKeys)
 }
 
-/** A function to set the selected keys of the Asset Table selection. */
+/** A function to set the selected keys in the Asset Table. */
 export function useSetSelectedKeys() {
   const store = useDriveStore()
   return zustand.useStore(store, (state) => state.setSelectedKeys)
@@ -327,4 +348,26 @@ export function useSuggestions() {
 export function useSetSuggestions() {
   const store = useDriveStore()
   return zustand.useStore(store, (state) => state.setSuggestions)
+}
+
+/** Toggle whether a specific directory is expanded. */
+export function useToggleDirectoryExpansion() {
+  const driveStore = useDriveStore()
+  const setExpandedDirectoryIds = useSetExpandedDirectoryIds()
+
+  return useEventCallback((directoryId: DirectoryId, override?: boolean) => {
+    const expandedDirectoryIds = driveStore.getState().expandedDirectoryIds
+    const isExpanded = expandedDirectoryIds.includes(directoryId)
+    const shouldExpand = override ?? !isExpanded
+
+    if (shouldExpand !== isExpanded) {
+      React.startTransition(() => {
+        if (shouldExpand) {
+          setExpandedDirectoryIds([...expandedDirectoryIds, directoryId])
+        } else {
+          setExpandedDirectoryIds(expandedDirectoryIds.filter((id) => id !== directoryId))
+        }
+      })
+    }
+  })
 }

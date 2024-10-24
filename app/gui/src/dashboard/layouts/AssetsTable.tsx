@@ -78,6 +78,7 @@ import {
 } from '#/providers/BackendProvider'
 import {
   useDriveStore,
+  useExpandedDirectoryIds,
   useSetAssetPanelProps,
   useSetCanCreateAssets,
   useSetCanDownload,
@@ -88,6 +89,7 @@ import {
   useSetSuggestions,
   useSetTargetDirectory,
   useSetVisuallySelectedKeys,
+  useToggleDirectoryExpansion,
 } from '#/providers/DriveProvider'
 import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
@@ -287,11 +289,6 @@ export interface AssetsTableState {
   readonly setQuery: Dispatch<SetStateAction<AssetQuery>>
   readonly nodeMap: Readonly<MutableRefObject<ReadonlyMap<AssetId, AnyAssetTreeNode>>>
   readonly hideColumn: (column: Column) => void
-  readonly doToggleDirectoryExpansion: (
-    directoryId: DirectoryId,
-    key: DirectoryId,
-    override?: boolean,
-  ) => void
   readonly doCopy: () => void
   readonly doCut: () => void
   readonly doPaste: (newParentKey: DirectoryId, newParentId: DirectoryId) => void
@@ -376,16 +373,12 @@ export default function AssetsTable(props: AssetsTableProps) {
   const assetsTableBackgroundRefreshInterval = useFeatureFlag(
     'assetsTableBackgroundRefreshInterval',
   )
-  /**
-   * The expanded directories in the asset tree.
-   * We don't include the root directory as it might change when a user switches
-   * between items in sidebar and we don't want to reset the expanded state using useEffect.
-   */
-  const [privateExpandedDirectoryIds, setExpandedDirectoryIds] = useState<DirectoryId[]>(() => [])
+  const expandedDirectoryIdsRaw = useExpandedDirectoryIds()
+  const toggleDirectoryExpansion = useToggleDirectoryExpansion()
 
   const expandedDirectoryIds = useMemo(
-    () => [rootDirectoryId].concat(privateExpandedDirectoryIds),
-    [privateExpandedDirectoryIds, rootDirectoryId],
+    () => [rootDirectoryId].concat(expandedDirectoryIdsRaw),
+    [expandedDirectoryIdsRaw, rootDirectoryId],
   )
 
   const expandedDirectoryIdsSet = useMemo(
@@ -1182,28 +1175,6 @@ export default function AssetsTable(props: AssetsTableProps) {
     [driveStore, setAssetPanelProps, setIsAssetPanelTemporarilyVisible],
   )
 
-  const doToggleDirectoryExpansion = useEventCallback(
-    (directoryId: DirectoryId, _key: DirectoryId, override?: boolean) => {
-      const isExpanded = expandedDirectoryIdsSet.has(directoryId)
-      const shouldExpand = override ?? !isExpanded
-
-      if (shouldExpand !== isExpanded) {
-        startTransition(() => {
-          if (shouldExpand) {
-            setExpandedDirectoryIds((currentExpandedDirectoryIds) => [
-              ...currentExpandedDirectoryIds,
-              directoryId,
-            ])
-          } else {
-            setExpandedDirectoryIds((currentExpandedDirectoryIds) =>
-              currentExpandedDirectoryIds.filter((id) => id !== directoryId),
-            )
-          }
-        })
-      }
-    },
-  )
-
   const doCopyOnBackend = useEventCallback(
     async (newParentId: DirectoryId | null, asset: AnyAsset) => {
       try {
@@ -1241,13 +1212,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       setAssetPanelProps(null)
     }
     if (asset.type === AssetType.directory) {
-      dispatchAssetListEvent({
-        type: AssetListEventType.closeFolder,
-        id: asset.id,
-        // This is SAFE, as this asset is already known to be a directory.
-        // eslint-disable-next-line no-restricted-syntax
-        key: asset.id,
-      })
+      toggleDirectoryExpansion(asset.id, false)
     }
     try {
       if (asset.type === AssetType.project && backend.type === BackendType.local) {
@@ -1321,7 +1286,7 @@ export default function AssetsTable(props: AssetsTableProps) {
               case AssetType.directory: {
                 event.preventDefault()
                 event.stopPropagation()
-                doToggleDirectoryExpansion(item.item.id, item.key)
+                toggleDirectoryExpansion(item.item.id)
                 break
               }
               case AssetType.project: {
@@ -1373,7 +1338,7 @@ export default function AssetsTable(props: AssetsTableProps) {
               // The folder is expanded; collapse it.
               event.preventDefault()
               event.stopPropagation()
-              doToggleDirectoryExpansion(item.item.id, item.key, false)
+              toggleDirectoryExpansion(item.item.id, false)
             } else if (prevIndex != null) {
               // Focus parent if there is one.
               let index = prevIndex - 1
@@ -1398,7 +1363,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             // The folder is collapsed; expand it.
             event.preventDefault()
             event.stopPropagation()
-            doToggleDirectoryExpansion(item.item.id, item.key, true)
+            toggleDirectoryExpansion(item.item.id, true)
           }
           break
         }
@@ -1618,10 +1583,6 @@ export default function AssetsTable(props: AssetsTableProps) {
         dispatchAssetEvent({ type: AssetEventType.removeSelf, id: event.id })
         break
       }
-      case AssetListEventType.closeFolder: {
-        doToggleDirectoryExpansion(event.id, event.key, false)
-        break
-      }
     }
   })
   eventListProvider.useAssetListEventListener((event) => {
@@ -1666,7 +1627,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       if (pasteData.data.ids.has(newParentKey)) {
         toast.error('Cannot paste a folder into itself.')
       } else {
-        doToggleDirectoryExpansion(newParentId, newParentKey, true)
+        toggleDirectoryExpansion(newParentId, true)
         if (pasteData.type === 'copy') {
           const assets = Array.from(pasteData.data.ids, (id) => nodeMapRef.current.get(id)).flatMap(
             (asset) => (asset ? [asset.item] : []),
@@ -1759,7 +1720,6 @@ export default function AssetsTable(props: AssetsTableProps) {
       setQuery,
       nodeMap: nodeMapRef,
       hideColumn,
-      doToggleDirectoryExpansion,
       doCopy,
       doCut,
       doPaste,
@@ -1775,7 +1735,6 @@ export default function AssetsTable(props: AssetsTableProps) {
       category,
       sortInfo,
       query,
-      doToggleDirectoryExpansion,
       doCopy,
       doCut,
       doPaste,
