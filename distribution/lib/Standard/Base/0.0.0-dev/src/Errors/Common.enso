@@ -15,6 +15,7 @@ polyglot java import java.lang.ArithmeticException
 polyglot java import java.lang.ClassCastException
 polyglot java import java.lang.OutOfMemoryError
 polyglot java import org.enso.base.CompareException
+polyglot java import org.enso.base.cache.ResponseTooLargeException
 
 ## An error indicating that no value was found.
 type Not_Found
@@ -553,3 +554,25 @@ type Out_Of_Range
     to_text self =
         extra = if self.message.is_nothing then "" else ": "+self.message.to_text
         "(Out_Of_Range (value = "+self.value.to_text+")" + extra + ")"
+
+## Indiciates that the response from a remote endpoint is over the size limit.
+type Response_Too_Large
+    ## PRIVATE
+    Error limit:Integer
+
+    ## PRIVATE
+       Create a human-readable version of the error.
+    to_display_text : Text
+    to_display_text self =
+        suggestion = " Use `Data.fetch` with `cache_policy=No_Cache`, or use `Data.download` to fetch the data to a local file, and `Data.read` to read the file."
+        "Response too large: repsonse size is over the limit ("+self.limit.to_text+")" + suggestion
+
+    ## PRIVATE
+    to_text : Text
+    to_text self =
+        "(Response_Too_Large (limit = "+self.limit.to_text+")" + ")"
+
+    ## PRIVATE
+       Convert the Java exception to an Enso dataflow error.
+    handle_java_exception ~action =
+        Panic.catch ResponseTooLargeException action (cause-> Error.throw (Response_Too_Large.Error cause.payload.getLimit))

@@ -12,6 +12,8 @@ import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Internal.Data_Read_Helpers
 import project.Meta
+import project.IO
+import project.Network.HTTP.Cache_Policy.Cache_Policy
 import project.Network.HTTP.Header.Header
 import project.Network.HTTP.HTTP
 import project.Network.HTTP.HTTP_Error.HTTP_Error
@@ -51,6 +53,19 @@ from project.System.File_Format import Auto_Detect, File_Format
      If set to `Report_Error`, the operation fails with a dataflow error.
      If set to `Ignore`, the operation proceeds without errors or warnings.
 
+   ! Request Caching
+
+     Responses to HTTP data requests are cached, and additional requests for the
+     same resources will use the cache, saving a round-trip call to the remote
+     server. Two resources are considered the same if the URIs and request
+     headers are the same. Header order does not affect sameness.
+
+     The cache respects the "max-age" and "Age" response headers; see
+     `Data.fetch` for more details.
+
+     The cached values are retained as long as the project remains open. Closing
+     a project will clear the cache.
+
    > Example
      Read the first sheet of an XLSX from disk and convert it into a table.
 
@@ -69,14 +84,16 @@ from project.System.File_Format import Auto_Detect, File_Format
 @path Text_Input
 @format File_Format.default_widget
 read : Text | URI | File -> File_Format -> Problem_Behavior -> Any ! File_Error
-read path=(Missing_Argument.throw "path") format=Auto_Detect (on_problems : Problem_Behavior = ..Report_Warning) = case path of
-    _ : Text -> if Data_Read_Helpers.looks_like_uri path then Data_Read_Helpers.fetch_following_data_links path format=format else
-        read (File.new path) format on_problems
-    uri : URI -> Data_Read_Helpers.fetch_following_data_links uri format=format
-    _ ->
-        file_obj = File.new path
-        if file_obj.is_directory then Error.throw (Illegal_Argument.Error "Cannot `read` a directory, use `Data.list`.") else
-            file_obj.read format on_problems
+read path=(Missing_Argument.throw "path") format=Auto_Detect (on_problems : Problem_Behavior = ..Report_Warning) =
+    IO.println ("Data.read arg " + path.to_text + " " + (Meta.get_simple_type_name path).to_text)
+    case path of
+        _ : Text -> if Data_Read_Helpers.looks_like_uri path then Data_Read_Helpers.fetch_following_data_links path format=format else
+            read (File.new path) format on_problems
+        uri : URI -> fetch uri format=format
+        _ : File ->
+            file_obj = File.new path
+            if file_obj.is_directory then Error.throw (Illegal_Argument.Error "Cannot `read` a directory, use `Data.list`.") else
+                file_obj.read format on_problems
 
 ## ALIAS load text, open text
    GROUP Input
@@ -183,6 +200,32 @@ list (directory:(Text | File)=enso_project.root) (name_filter:Text="") recursive
      Defaults to `Auto_Detect`. If `Raw_Response` is selected or if the format
      cannot be determined automatically, a raw HTTP `Response` will be returned.
 
+   ! Request Caching
+
+     Responses to HTTP data requests are cached, and additional requests for the
+     same resources will use the cache, saving a round-trip call to the remote
+     server. Two resources are considered the same if the URIs and request
+     headers are the same. Header order does not affect sameness.
+
+     The cached values are retained as long as the project remains open. Closing
+     a project will clear the cache.
+
+     The cache respects the "max-age" and "Age" response headers received from
+     remote servers. These headers are used to determine if the cached value is
+     fresh or stale. If it is stale, the cached value is removed and a request
+     is made again to the remote servers.
+
+     The following limits are imposed on values stored in the cache:
+     - Single file limit: a single file can be no more than 10M.
+     - Total cache size limit: the entire cache can be no more than 10G.
+
+     For data responses over the single file limit, you can use `Data.download`
+     to download the file locally. Download sizes are not constrained by either
+     limit.
+
+     If the entire cache goes over the total cache size limit, the
+     least-recently-used entries are removed.
+
    > Example
      Read from an HTTP endpoint.
 
@@ -198,9 +241,9 @@ list (directory:(Text | File)=enso_project.root) (name_filter:Text="") recursive
 @uri Text_Input
 @format Data_Read_Helpers.format_widget_with_raw_response
 @headers Header.default_widget
-fetch : (URI | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> File_Format -> Any ! Request_Error | HTTP_Error
-fetch (uri:(URI | Text)=(Missing_Argument.throw "uri")) (method:HTTP_Method=..Get) (headers:(Vector (Header | Pair Text Text))=[]) (format = Auto_Detect) =
-    Data_Read_Helpers.fetch_following_data_links uri method headers (Data_Read_Helpers.handle_legacy_format "fetch" "format" format)
+fetch : (URI | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> File_Format -> Cache_Policy -> Any ! Request_Error | HTTP_Error
+fetch (uri:(URI | Text)=(Missing_Argument.throw "uri")) (method:HTTP_Method=..Get) (headers:(Vector (Header | Pair Text Text))=[]) (format = Auto_Detect) (cache_policy:Cache_Policy = ..Default) =
+    Data_Read_Helpers.fetch_following_data_links uri method headers (Data_Read_Helpers.handle_legacy_format "fetch" "format" format) cache_policy=cache_policy
 
 ## ALIAS http post, upload
    GROUP Output
@@ -347,7 +390,7 @@ post (uri:(URI | Text)=(Missing_Argument.throw "uri")) (body:Request_Body=..Empt
 download : (URI | Text) -> Writable_File -> HTTP_Method -> Vector (Header | Pair Text Text) -> File ! Request_Error | HTTP_Error
 download (uri:(URI | Text)=(Missing_Argument.throw "uri")) file:Writable_File (method:HTTP_Method=..Get) (headers:(Vector (Header | Pair Text Text))=[]) =
     Context.Output.if_enabled disabled_message="As writing is disabled, cannot download to a file. Press the Write button ▶ to perform the operation." panic=False <|
-        response = HTTP.fetch uri method headers
+        response = HTTP.fetch uri method headers cache_policy=Cache_Policy.No_Cache
         case Data_Link.is_data_link response.body.metadata of
             True ->
                 # If the resource was a data link, we follow it, download the target data and try to write it to a file.

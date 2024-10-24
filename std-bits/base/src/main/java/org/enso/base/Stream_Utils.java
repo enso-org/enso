@@ -160,4 +160,28 @@ public final class Stream_Utils {
       outputStreamLike.write(b, off, len);
     }
   }
+
+  /**
+   * Copies the contents of the input sream to the output stream. If the number of bytes copied is
+   * greater than maxLength, abort the cpoy and return false; otherwise return true.
+   */
+  public static boolean limitedCopy(
+      InputStream inputStream, OutputStream outputStream, long maxLength) throws IOException {
+    byte buffer[] = new byte[4096];
+    long numBytesRead = 0;
+    while (true) {
+      int n = inputStream.read(buffer);
+      if (n <= 0) {
+        break;
+      }
+      if (numBytesRead + n <= maxLength) {
+        outputStream.write(buffer, 0, n);
+      }
+      numBytesRead += n;
+      if (numBytesRead > maxLength) {
+        return false;
+      }
+    }
+    return true;
+  }
 }

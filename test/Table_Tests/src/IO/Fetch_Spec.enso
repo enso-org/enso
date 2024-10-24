@@ -1,17 +1,27 @@
 from Standard.Base import all
 import Standard.Base.Data.Base_64.Base_64
+import Standard.Base.Errors.Common.Response_Too_Large
 import Standard.Base.Errors.File_Error.File_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Network.HTTP.Cache_Policy.Cache_Policy
+import Standard.Base.Network.HTTP.Request.Request
+import Standard.Base.Network.HTTP.Request_Body.Request_Body
 import Standard.Base.Network.HTTP.Response.Response
 import Standard.Base.Runtime.Context
+import Standard.Base.Runtime.Ref.Ref
 
 from Standard.Table import all
 import Standard.Table.Errors.Invalid_JSON_Format
 
 from Standard.Test import all
 
+import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
 from enso_dev.Base_Tests.Network.Http.Http_Test_Setup import base_url_with_slash, pending_has_url
 
 import project.Util
+
+polyglot java import java.lang.IllegalArgumentException
+polyglot java import org.enso.base.enso_cloud.EnsoHTTPResponseCache
 
 main filter=Nothing =
     suite = Test.build suite_builder->
@@ -94,3 +104,334 @@ add_specs suite_builder =
             # Reinterpreting as TSV:
             r4 = (uri.add_query_argument "Content-Type" "text/tab-separated-values").fetch
             r4.should_equal (Table.from_rows ["Column 1"] [["A,B"], ["1,x"], ["3,y"]])
+
+    suite_builder.group "Response caching" pending=pending_has_url group_builder->
+        get_num_response_cache_entries =
+            EnsoHTTPResponseCache.getNumEntries
+        with_counts ~action =
+            before_count = get_num_response_cache_entries
+            action
+            after_count = get_num_response_cache_entries
+            [before_count, after_count]
+
+        reset_size_limits =
+            EnsoHTTPResponseCache.getCacheTestParameters.clearMaxFileSizeOverrideTestOnly
+            EnsoHTTPResponseCache.getCacheTestParameters.clearMaxTotalCacheSizeOverrideTestOnly
+
+        expect_counts expected_counts ~action =
+            counts = with_counts action
+            counts . should_equal expected_counts frames_to_skip=1
+
+        get_cache_file_sizes : Vector Integer
+        get_cache_file_sizes -> Vector Integer =
+            Vector.from_polyglot_array EnsoHTTPResponseCache.getFileSizesTestOnly . sort Sort_Direction.Ascending
+
+        url0 = base_url_with_slash+'test_download?max-age=16&length=10'
+        url1 = base_url_with_slash+'test_download?max-age=16&length=20'
+        url_post = base_url_with_slash + "post"
+        headers0 = [Header.new "A-Header" "a-header-value", Header.new "A-Header" "a-header-value"]
+        headers1 = [Header.new "A-Header" "a-different-header-value", Header.new "A-Header" "a-header-value"]
+
+        # Run the request(s) twice and confirm the results are the same
+        check_same_results ~action =
+            results = 0.up_to 2 . map (_-> action)
+            results.distinct.length . should_equal 1
+
+        group_builder.specify "Cache should return the same repsonse" pending=pending_has_url <| Test.with_retries <|
+            HTTP.clear_response_cache
+
+            check_same_results <|
+                HTTP.fetch url0 . decode_as_text
+            get_num_response_cache_entries . should_equal 1
+            check_same_results <|
+                HTTP.fetch url1 . decode_as_text
+            get_num_response_cache_entries . should_equal 2
+
+            HTTP.clear_response_cache
+
+            HTTP.fetch url0 cache_policy=Cache_Policy.Use_Cache . decode_as_text
+            HTTP.fetch url0 cache_policy=Cache_Policy.Use_Cache . decode_as_text
+            url1_body_1 = HTTP.fetch url1 cache_policy=Cache_Policy.Use_Cache . decode_as_text
+            HTTP.fetch url1 cache_policy=Cache_Policy.Use_Cache . decode_as_text . should_equal url1_body_1
+            get_num_response_cache_entries . should_equal 2
+
+            HTTP.clear_response_cache
+
+            url0_body_2 = HTTP.fetch url0 cache_policy=Cache_Policy.No_Cache . decode_as_text
+            HTTP.fetch url0 cache_policy=Cache_Policy.No_Cache . decode_as_text . should_not_equal url0_body_2
+            url1_body_2 = HTTP.fetch url1 cache_policy=Cache_Policy.No_Cache . decode_as_text
+            HTTP.fetch url1 cache_policy=Cache_Policy.No_Cache . decode_as_text . should_not_equal url1_body_2
+            get_num_response_cache_entries . should_equal 0
+
+        group_builder.specify "Cache should handle many entries" pending=pending_has_url <| Test.with_retries <|
+            count = 20
+
+            HTTP.clear_response_cache
+            check_same_results <|
+                0.up_to count . map i->
+                    HTTP.fetch base_url_with_slash+"test_download?length="+i.to_text . decode_as_text
+            get_num_response_cache_entries . should_equal count
+
+            HTTP.clear_response_cache
+            check_same_results <|
+                0.up_to count . each i->
+                    headers = [Header.new "A-Header" "a-header-value-"+i.to_text]
+                    HTTP.fetch base_url_with_slash+"test_download?length=8" headers=headers . decode_as_text
+            get_num_response_cache_entries . should_equal count
+
+        group_builder.specify "Cache policy should work for HTTP.fetch" pending=pending_has_url <| Test.with_retries <|
+            HTTP.clear_response_cache
+            expect_counts [0, 0] <|
+                HTTP.fetch url0 cache_policy=Cache_Policy.No_Cache
+                HTTP.fetch url1 cache_policy=Cache_Policy.No_Cache
+            expect_counts [0, 2] <|
+                HTTP.fetch url0 cache_policy=Cache_Policy.Use_Cache
+                HTTP.fetch url1 cache_policy=Cache_Policy.Use_Cache
+            HTTP.clear_response_cache
+            expect_counts [0, 2] <|
+                HTTP.fetch url0
+                HTTP.fetch url1
+
+        group_builder.specify "Cache policy should work for Data.fetch" pending=pending_has_url <| Test.with_retries <|
+            HTTP.clear_response_cache
+            expect_counts [0, 0] <|
+                Data.fetch url0 cache_policy=Cache_Policy.No_Cache
+                Data.fetch url1 cache_policy=Cache_Policy.No_Cache
+            expect_counts [0, 2] <|
+                Data.fetch url0 cache_policy=Cache_Policy.Use_Cache
+                Data.fetch url1 cache_policy=Cache_Policy.Use_Cache
+            HTTP.clear_response_cache
+            expect_counts [0, 2] <|
+                Data.fetch url0
+                Data.fetch url1
+
+        group_builder.specify "Should not cache Data.download" pending=pending_has_url <| Test.with_retries <|
+            target_file = enso_project.data / "transient" / "my_download0.txt"
+
+            HTTP.clear_response_cache
+            target_file.delete_if_exists
+
+            Data.download url0 target_file
+            get_num_response_cache_entries . should_equal 0
+
+            target_file.delete_if_exists
+
+        group_builder.specify "Data.download is not affected by caching limits" pending=pending_has_url <| Test.with_retries <|
+            target_file = enso_project.data / "transient" / "my_download0.txt"
+            Panic.with_finalizer reset_size_limits <|
+                EnsoHTTPResponseCache.getCacheTestParameters.setMaxTotalCacheSizeOverrideTestOnly 120
+                EnsoHTTPResponseCache.getCacheTestParameters.setMaxFileSizeOverrideTestOnly 100
+                Data.download base_url_with_slash+"test_download?length=200" target_file
+                target_file.read.length . should_equal 200
+                target_file.delete_if_exists
+
+        group_builder.specify "Should not cache for methods other than GET" pending=pending_has_url <| Test.with_retries <|
+            HTTP.clear_response_cache
+
+            expect_counts [0, 0] <|
+                Data.post url_post (Request_Body.Text "hello world")
+
+        group_builder.specify "HTTP request with a non-GET method should reject a cache_policy=Use_Cache argument" pending=pending_has_url <| Test.with_retries <|
+            request = Request.new HTTP_Method.Post url_post [] Request_Body.Empty
+            HTTP.new.request request cache_policy=Cache_Policy.Use_Cache . should_fail_with Illegal_Argument
+
+        group_builder.specify "HTTP request with a non-GET method should not reject a cache_policy=No_Cache argument" pending=pending_has_url <| Test.with_retries <|
+            request = Request.new HTTP_Method.Post url_post [] Request_Body.Empty
+            HTTP.new.request request cache_policy=Cache_Policy.No_Cache . should_succeed
+
+        group_builder.specify "Should be able to clear caches" pending=pending_has_url <| Test.with_retries <|
+            HTTP.clear_response_cache
+            Data.fetch url0
+            get_num_response_cache_entries . should_equal 1
+            HTTP.clear_response_cache
+            get_num_response_cache_entries . should_equal 0
+
+        group_builder.specify "Cache key should depend on the headers" pending=pending_has_url <| Test.with_retries <|
+            HTTP.clear_response_cache
+            expect_counts [0, 2] <|
+                Data.fetch url0 headers=headers0
+                Data.fetch url0 headers=headers1
+                Data.fetch url0 headers=headers1
+                Data.fetch url0 headers=headers0
+                Data.fetch url0 headers=headers0
+                Data.fetch url0 headers=headers1
+
+        group_builder.specify "Cache key should not depend on header order" pending=pending_has_url <| Test.with_retries <|
+            HTTP.clear_response_cache
+            header0 = Header.new "Abc" "eef"
+            header1 = Header.new "Abc" "def"
+            header2 = Header.new "Ghi" "jkl"
+            orders = [[header0, header1, header2], [header1, header2, header0], [header2, header1, header0]]
+            responses = orders.map headers->
+                Data.fetch url0 headers=headers . decode_as_text
+            get_num_response_cache_entries . should_equal 1
+            responses.distinct.length . should_equal 1
+
+        ## Fetching the trigger uri causes stale entries to be removed, since the
+           uri is always different and so the caching and cleanup logic is run.
+        fake_now = Date_Time.now
+        trigger_uri_serial = Ref.new 0
+        make_trigger_uri =
+            serial = trigger_uri_serial.get
+            trigger_uri_serial.modify (_ + 1)
+            base_url_with_slash+'test_download?max-age=10000&length=50&abc='+serial.to_text
+        set_time_and_get_count advance_secs =
+            EnsoHTTPResponseCache.getCacheTestParameters.setNowOverrideTestOnly (fake_now + (Duration.new seconds=advance_secs))
+            trigger_uri = make_trigger_uri
+            Data.fetch trigger_uri
+            get_num_response_cache_entries
+        fake_time_resetter =
+            EnsoHTTPResponseCache.getCacheTestParameters.clearNowOverrideTestOnly
+
+        group_builder.specify "The cache should expire stale entries" pending=pending_has_url <| Test.with_retries <|
+            HTTP.clear_response_cache
+
+            set_time_and_get_count 0  # Initialize fake now.
+
+            Data.fetch base_url_with_slash+'test_download?max-age=100&length=50'
+            Data.fetch base_url_with_slash+'test_download?max-age=200&length=50'
+            Data.fetch base_url_with_slash+'test_download?max-age=200&length=51'
+            Data.fetch base_url_with_slash+'test_download?max-age=300&length=50'
+
+            Panic.with_finalizer fake_time_resetter <|
+                ## The count will increase by 1 each time, but decrease by the
+                   number of entries removed
+                set_time_and_get_count 0 . should_equal 6
+                set_time_and_get_count 90 . should_equal 7
+                set_time_and_get_count 110 . should_equal 7
+                set_time_and_get_count 190 . should_equal 8
+                set_time_and_get_count 202 . should_equal 7
+                set_time_and_get_count 292 . should_equal 8
+                set_time_and_get_count 301 . should_equal 8
+
+        group_builder.specify "The cache should use the Age response header" pending=pending_has_url <| Test.with_retries <|
+            HTTP.clear_response_cache
+
+            set_time_and_get_count 0  # Initialize fake now.
+
+            Data.fetch base_url_with_slash+'test_download?max-age=100&age=50&length=50' # ttl 50
+            Data.fetch base_url_with_slash+'test_download?max-age=100&age=30&length=50' # ttl 70
+            Data.fetch base_url_with_slash+'test_download?max-age=120&age=50&length=50' # ttl 70
+            Data.fetch base_url_with_slash+'test_download?max-age=70&&length=50'        # ttl 70
+            Data.fetch base_url_with_slash+'test_download?max-age=160&age=70&length=50' # ttl 90
+
+            Panic.with_finalizer fake_time_resetter <|
+                ## The count will increase by 1 each time, but decrease by the
+                   number of entries removed
+                set_time_and_get_count 0 . should_equal 7
+                set_time_and_get_count 40 . should_equal 8
+                set_time_and_get_count 51 . should_equal 8
+                set_time_and_get_count 68 . should_equal 9
+                set_time_and_get_count 72 . should_equal 7
+                set_time_and_get_count 88 . should_equal 8
+                set_time_and_get_count 93 . should_equal 8
+
+        download size =
+            Data.fetch base_url_with_slash+'test_download?length='+size.to_text
+
+        group_builder.specify "Will remove old cache files to keep the total cache size under the total cache size limit" pending=pending_has_url <| Test.with_retries <|
+            Panic.with_finalizer reset_size_limits <|
+                reset_size_limits
+                EnsoHTTPResponseCache.getCacheTestParameters.setMaxTotalCacheSizeOverrideTestOnly 100
+
+                download 30
+                download 50
+                download 10
+                get_cache_file_sizes . should_equal_ignoring_order [10, 30, 50]
+                download 20
+                get_cache_file_sizes . should_equal_ignoring_order [10, 20, 50]
+                download 40
+                get_cache_file_sizes . should_equal_ignoring_order [10, 20, 40]
+                download 35
+                get_cache_file_sizes . should_equal_ignoring_order [20, 35, 40]
+
+        group_builder.specify "Will remove old cache files based on how recently they were used" pending=pending_has_url <| Test.with_retries <|
+            Panic.with_finalizer reset_size_limits <|
+                reset_size_limits
+                EnsoHTTPResponseCache.getCacheTestParameters.setMaxTotalCacheSizeOverrideTestOnly 100
+
+                download 30
+                download 50
+                download 10
+                get_cache_file_sizes . should_equal_ignoring_order [10, 30, 50]
+                # Use 30 again so it's considered more recently used.
+                download 30
+                get_cache_file_sizes . should_equal_ignoring_order [10, 30, 50]
+                download 20
+                get_cache_file_sizes . should_equal_ignoring_order [10, 20, 30]
+                download 45
+                get_cache_file_sizes . should_equal_ignoring_order [20, 30, 45]
+
+        group_builder.specify "Will not cache a file with a content length greater than the single file limit" pending=pending_has_url <| Test.with_retries <|
+            Panic.with_finalizer reset_size_limits <|
+                reset_size_limits
+                EnsoHTTPResponseCache.getCacheTestParameters.setMaxFileSizeOverrideTestOnly 100
+                download 110 . should_fail_with (Response_Too_Large.Error 100)
+
+
+        group_builder.specify "Will not cache a file without a content length, but which is greater than the single file limit" pending=pending_has_url <| Test.with_retries <|
+            HTTP.clear_response_cache
+            Panic.with_finalizer reset_size_limits <|
+                reset_size_limits
+                EnsoHTTPResponseCache.getCacheTestParameters.setMaxFileSizeOverrideTestOnly 100
+                url = base_url_with_slash+'test_download?omit-content-length=1&length=110'
+                Data.fetch url . should_fail_with (Response_Too_Large.Error 100)
+
+        group_builder.specify "Should not cache if the request fails" pending=pending_has_url <| Test.with_retries <|
+            HTTP.clear_response_cache
+
+            HTTP.fetch url0
+            get_num_response_cache_entries . should_equal 1
+            HTTP.fetch base_url_with_slash+'crash'
+            get_num_response_cache_entries . should_equal 1
+            HTTP.fetch base_url_with_slash+'nonexistent_endpoint'
+            get_num_response_cache_entries . should_equal 1
+
+        cloud_setup = Cloud_Tests_Setup.prepare
+
+        group_builder.specify "Should work with secrets in the URI" pending=pending_has_url <| Test.with_retries <|
+            cloud_setup.with_prepared_environment <|
+                secret1 = Enso_Secret.create "http-cache-secret-1-"+Random.uuid "My Value"
+                secret2 = Enso_Secret.create "http-cache-secret-2-"+Random.uuid "Some Value"
+                cleanup =
+                    secret1.delete
+                    secret2.delete
+                Panic.with_finalizer cleanup <|
+                    # Requests differ only in secrets in URI.
+                    url1 = URI.from 'https://httpbin.org/bytes/50'
+                        . add_query_argument "arg1" secret1
+                        . add_query_argument "arg2" "plain value"
+                    uri2 = URI.from 'https://httpbin.org/bytes/50'
+                        . add_query_argument "arg1" secret2
+                        . add_query_argument "arg2" "plain value"
+
+                    HTTP.clear_response_cache
+                    HTTP.fetch url1
+                    get_num_response_cache_entries . should_equal 1
+                    HTTP.fetch uri2
+                    get_num_response_cache_entries . should_equal 2
+
+        group_builder.specify "Should work with secrets in the headers" pending=pending_has_url <| Test.with_retries <|
+            cloud_setup.with_prepared_environment <|
+                secret1 = Enso_Secret.create "http-cache-secret-1-"+Random.uuid "My Value"
+                secret2 = Enso_Secret.create "http-cache-secret-2-"+Random.uuid "Some Value"
+                cleanup =
+                    secret1.delete
+                    secret2.delete
+                Panic.with_finalizer cleanup <|
+                    # Requests differ only in secrets in headers.
+                    uri = URI.from 'https://httpbin.org/bytes/50'
+                    headers1 = [Header.new "A-Header" secret1]
+                    headers2 = [Header.new "A-Header" secret2]
+
+                    HTTP.clear_response_cache
+                    HTTP.fetch headers=headers1 uri
+                    get_num_response_cache_entries . should_equal 1
+                    HTTP.fetch headers=headers2 uri
+                    get_num_response_cache_entries . should_equal 2
+
+        group_builder.specify "Should not be able to set the cache limits higher than the real limits" pending=pending_has_url <| Test.with_retries <|
+            Test.expect_panic IllegalArgumentException <|
+                EnsoHTTPResponseCache.getCacheTestParameters.setMaxFileSizeOverrideTestOnly (2 * 1024 * 1024 * 1024 + 1) . should_fail_with Illegal_Argument
+            Test.expect_panic IllegalArgumentException <|
+                EnsoHTTPResponseCache.getCacheTestParameters.setMaxTotalCacheSizeOverrideTestOnly (20 * 1024 * 1024 * 1024 + 1) . should_fail_with Illegal_Argument

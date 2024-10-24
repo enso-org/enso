@@ -1,18 +1,23 @@
 import project.Any.Any
 import project.Data.Dictionary.Dictionary
 import project.Data.Hashset.Hashset
+import project.Data.Numbers.Integer
 import project.Data.Pair.Pair
+import project.Data.Sort_Direction.Sort_Direction
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
+import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Duration.Duration
 import project.Data.Vector.No_Wrap
 import project.Data.Vector.Vector
 import project.Enso_Cloud.Enso_Secret.Enso_Secret
 import project.Error.Error
 import project.Errors.Common.Forbidden_Operation
+import project.Errors.Common.Response_Too_Large
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Function.Function
 import project.Meta
+import project.Network.HTTP.Cache_Policy.Cache_Policy
 import project.Network.HTTP.Header.Header
 import project.Network.HTTP.HTTP_Error.HTTP_Error
 import project.Network.HTTP.HTTP_Method.HTTP_Method
@@ -42,6 +47,7 @@ polyglot java import java.net.http.HttpRequest.Builder
 polyglot java import java.net.InetSocketAddress
 polyglot java import java.net.ProxySelector
 polyglot java import javax.net.ssl.SSLContext
+polyglot java import org.enso.base.enso_cloud.EnsoHTTPResponseCache
 polyglot java import org.enso.base.enso_cloud.EnsoSecretHelper
 polyglot java import org.enso.base.file_system.File_Utils
 polyglot java import org.enso.base.net.http.MultipartBodyBuilder
@@ -99,23 +105,33 @@ type HTTP
        Please note, this must be closed after use (either directly or via the
        helpers on Response_Body).
 
+       ! Response caching
+
+         See `Data.fetch` for information about response caching.
+
        Arguments:
        - req: The HTTP request to send using `self` HTTP client.
        - error_on_failure_code: Whether or not to throw an error if the response
          code is not a success code.
-    request : Request -> Boolean -> Response ! Request_Error | HTTP_Error | Illegal_Argument
-    request self req error_on_failure_code=True =
+    request : Request -> Boolean -> Cache_Policy -> Response ! Request_Error | HTTP_Error | Illegal_Argument | Response_Too_Large
+    request self req error_on_failure_code=True (cache_policy:Cache_Policy = ..Default) =
         # Prevent request if the method is a write-like method and output context is disabled.
         check_output_context ~action =
             if fetch_methods.contains req.method || Context.Output.is_enabled then action else
                 Error.throw (Forbidden_Operation.Error ("As writing is disabled, " + req.method.to_text + " request not sent. Press the Write button ▶ to send it."))
+        # You can only explicitly mention the cache for GET requests.
+        check_cache_policy ~action =
+            cache_policy_value_ok = req.method == HTTP_Method.Get || cache_policy != Cache_Policy.Use_Cache
+            if cache_policy_value_ok then action else
+                Error.throw (Illegal_Argument.Error "Cannot specify cache policy for a "+req.method.to_text+" request")
+
         handle_request_error =
             handler caught_panic =
                 exception = caught_panic.payload
                 Error.throw (Request_Error.Error (Meta.type_of exception . to_text) exception.getMessage)
             Panic.catch IllegalArgumentException handler=handler <| Panic.catch IOException handler=handler
 
-        handle_request_error <| Illegal_Argument.handle_java_exception <| check_output_context <|
+        handle_request_error <| Illegal_Argument.handle_java_exception <| check_output_context <| check_cache_policy <| Response_Too_Large.handle_java_exception <|
             headers = resolve_headers req
             headers.if_not_error <|
                 body_publisher_and_boundary = resolve_body_to_publisher_and_boundary req.body
@@ -130,7 +146,7 @@ type HTTP
                     all_headers = headers + boundary_header_list
                     mapped_headers = all_headers.map on_problems=No_Wrap .to_java_pair
 
-                    response = Response.Value (EnsoSecretHelper.makeRequest self.internal_http_client builder req.uri.to_java_representation mapped_headers)
+                    response = Response.Value (EnsoSecretHelper.makeRequest self.internal_http_client builder req.uri.to_java_representation mapped_headers (cache_policy.should_use_cache req))
                     if error_on_failure_code.not || response.code.is_success then response else
                         body = response.body.decode_as_text.catch Any _->""
                         message = if body.is_empty then Nothing else body
@@ -138,11 +154,15 @@ type HTTP
 
     ## PRIVATE
        Static helper for get-like methods
-    fetch : (URI | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> Response ! Request_Error | HTTP_Error
-    fetch (uri:(URI | Text)) (method:HTTP_Method=..Get) (headers:(Vector (Header | Pair Text Text))=[]) =
+
+       ! Response caching
+
+         See `Data.fetch` for information about response caching.
+    fetch : (URI | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> Cache_Policy -> Response ! Request_Error | HTTP_Error
+    fetch (uri:(URI | Text)) (method:HTTP_Method=..Get) (headers:(Vector (Header | Pair Text Text))=[]) (cache_policy:Cache_Policy = ..Default) =
         check_method fetch_methods method <|
             request = Request.new method uri (parse_headers headers) Request_Body.Empty
-            HTTP.new.request request
+            HTTP.new.request request cache_policy=cache_policy
 
     ## PRIVATE
        Static helper for post-like methods
@@ -151,6 +171,19 @@ type HTTP
         check_method post_methods method <|
             request = Request.new method uri (parse_headers headers) body
             HTTP.new.request request
+
+    ## ALIAS flush
+       ICON temp
+       Clear the HTTP request cache.
+
+       > Example
+         Clear the HTTP response cache.
+
+             import Standard.Base.Network.HTTP
+
+             HTTP.clear_response_cache
+    clear_response_cache : Nothing
+    clear_response_cache -> Nothing = EnsoHTTPResponseCache.clear
 
     ## PRIVATE
 

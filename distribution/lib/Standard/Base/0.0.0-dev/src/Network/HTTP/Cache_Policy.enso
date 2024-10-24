@@ -1,0 +1,19 @@
+import project.Network.HTTP.HTTP_Method.HTTP_Method
+import project.Network.HTTP.Request.Request
+from project.Data.Boolean import Boolean, False, True
+
+type Cache_Policy
+    ## Use the default policy for the HTTP method of the request.
+    Default
+
+    ## Use the response cache.
+    Use_Cache
+
+    ## Don't use the response cache.
+    No_Cache
+
+    # Default to using the cache for GET requests, unless explicitly disabled
+    should_use_cache self request:Request -> Boolean = case self of
+        Cache_Policy.Default -> if request.method == HTTP_Method.Get then True else False
+        Cache_Policy.Use_Cache -> True
+        Cache_Policy.No_Cache -> False
