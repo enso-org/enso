@@ -4,10 +4,10 @@ import { ToValue } from '@/util/reactivity'
 import { Ref } from 'vue'
 
 export interface Button {
-  icon: Icon | URLString
   iconStyle?: Record<string, string>
   title?: string
   dataTestid?: string
+  icon: Icon | URLString
 }
 
 export interface ActionButton extends Button {
@@ -30,7 +30,20 @@ export interface SelectionMenu {
   options: Record<string, SelectionMenuOption>
 }
 
-export type ToolbarItem = ActionButton | ToggleButton | SelectionMenu
+export interface SelectionMenuTextOption {
+  title?: string
+  dataTestid?: string
+  label: string
+}
+
+export interface SelectionTextMenu {
+  selected: Ref<string>
+  title?: string
+  options: Record<string, SelectionMenuTextOption>
+  heading: string
+}
+
+export type ToolbarItem = ActionButton | ToggleButton | SelectionMenu | SelectionTextMenu
 
 /** {@link ActionButton} discriminant */
 export function isActionButton(item: Readonly<ToolbarItem>): item is ActionButton {
@@ -44,5 +57,10 @@ export function isToggleButton(item: Readonly<ToolbarItem>): item is ToggleButto
 
 /** {@link SelectionMenu} discriminant */
 export function isSelectionMenu(item: Readonly<ToolbarItem>): item is SelectionMenu {
+  return 'selected' in item
+}
+
+/** {@link SelectionMenu} discriminant */
+export function isSelectionTextMenu(item: Readonly<ToolbarItem>): item is SelectionTextMenu {
   return 'selected' in item
 }
