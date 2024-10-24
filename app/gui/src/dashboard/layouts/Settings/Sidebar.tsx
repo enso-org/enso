@@ -75,7 +75,11 @@ export default function SettingsSidebar(props: SettingsSidebarProps) {
                             // even though this function returns void, we don't want to
                             // complicate things by returning only in case of custom onPress
                             // eslint-disable-next-line @typescript-eslint/no-confusing-void-expression
-                          : setTab(tabData.settingsTab)
+                          : (() => {
+                              if (tab !== tabData.settingsTab) {
+                                setTab(tabData.settingsTab)
+                              }
+                            })()
                         }
                       />
                     ))}

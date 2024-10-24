@@ -1,18 +1,17 @@
 /**
- * @file
- *
- * Submit button for forms.
+ * @file Cancel button for forms.
  * Manages the form state and displays a loading spinner when the form is submitting.
  */
 import type { JSX } from 'react'
 
-import { Button, type ButtonProps } from '#/components/AriaComponents'
+import { Form, useDialogContext, type ButtonProps } from '#/components/AriaComponents'
 import { useText } from '#/providers/TextProvider'
-import { useFormContext } from './FormProvider'
 import type { FormInstance } from './types'
 
-/** Additional props for the Submit component. */
-interface SubmitButtonBaseProps {
+/**
+ * Additional props for the Cancel component.
+ */
+interface CancelButtonBaseProps {
   readonly variant?: ButtonProps['variant']
   /**
    * Connects the submit button to a form.
@@ -23,45 +22,40 @@ interface SubmitButtonBaseProps {
   // We do not need to know the form fields.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly form?: FormInstance<any>
-  readonly cancel?: boolean
 }
 
-/** Props for the Submit component. */
-export type SubmitProps = Omit<ButtonProps, 'formnovalidate' | 'href' | 'variant'> &
-  SubmitButtonBaseProps
+/**
+ * Props for the Cancel component.
+ */
+export type CancelProps = CancelButtonBaseProps &
+  Omit<ButtonProps, 'formnovalidate' | 'href' | 'variant'>
 
 /**
- * Submit button for forms.
- *
+ * Cancel button for forms.
  * Manages the form state and displays a loading spinner when the form is submitting.
  */
-export function Submit(props: SubmitProps): JSX.Element {
+export function Cancel(props: CancelProps): JSX.Element {
   const { getText } = useText()
 
-  const {
-    size = 'medium',
-    loading = false,
-    children = getText('submit'),
-    variant = 'submit',
-    testId = 'form-submit-button',
-    ...buttonProps
-  } = props
+  const { size = 'medium', ...buttonProps } = props
 
-  const form = useFormContext(props.form)
-  const { formState } = form
+  const dialogContext = useDialogContext()
 
   return (
-    <Button
-      type="submit"
-      variant={variant}
+    <Form.Submit
+      testId="form-cancel-button"
+      formnovalidate
+      type="button"
+      variant="outline"
       size={size}
-      loading={loading || formState.isSubmitting}
-      testId={testId}
+      onPress={() => {
+        dialogContext?.close()
+      }}
       /* This is safe because we are passing all props to the button */
       /* eslint-disable-next-line @typescript-eslint/no-explicit-any,no-restricted-syntax */
       {...(buttonProps as any)}
     >
-      {children}
-    </Button>
+      {getText('cancel')}
+    </Form.Submit>
   )
 }

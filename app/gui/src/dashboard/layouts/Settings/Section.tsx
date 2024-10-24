@@ -20,7 +20,9 @@ export default function SettingsSection(props: SettingsSectionProps) {
   const { context, data } = props
   const { nameId, focusArea = true, heading = true, entries } = data
   const { getText } = useText()
-  const isVisible = entries.some((entry) => entry.getVisible?.(context) ?? true)
+  const isVisible = entries.some((entry) =>
+    'getVisible' in entry ? entry.getVisible(context) : true,
+  )
 
   return !isVisible ? null : (
       <FocusArea active={focusArea} direction="vertical">
