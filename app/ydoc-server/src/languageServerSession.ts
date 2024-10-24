@@ -623,7 +623,6 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
       if ((code !== this.syncedCode || idMapJson !== this.syncedIdMap) && idMapJson) {
         const spans = parsedSpans ?? Ast.print(astRoot).info
         if (idMapJson !== this.syncedIdMap && parsedIdMap === undefined) {
-          console.log('!!! syncFileContents setting external ids')
           const idMap = deserializeIdMap(idMapJson)
           const idsAssigned = Ast.setExternalIds(syncModule, spans, idMap)
           const numberOfAsts = astCount(astRoot)
