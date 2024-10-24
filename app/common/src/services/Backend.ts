@@ -1539,7 +1539,7 @@ export default abstract class Backend {
     title: string,
   ): Promise<UpdatedProject>
   /** Fetch the content of the `Main.enso` file of a project. */
-  abstract getFileContent(projectId: ProjectId, version: string, title: string): Promise<string>
+  abstract getFileContent(projectId: ProjectId, versionId?: S3ObjectVersionId): Promise<string>
   /** Return project memory, processor and storage usage. */
   abstract checkResources(projectId: ProjectId, title: string): Promise<ResourceUsage>
   /** Return a list of files accessible by the current user. */

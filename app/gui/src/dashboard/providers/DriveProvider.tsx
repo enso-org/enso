@@ -49,6 +49,8 @@ interface DriveStore {
   readonly visuallySelectedKeys: ReadonlySet<AssetId> | null
   readonly setVisuallySelectedKeys: (visuallySelectedKeys: ReadonlySet<AssetId> | null) => void
   readonly isAssetPanelPermanentlyVisible: boolean
+  readonly isAssetPanelExpanded: boolean
+  readonly setIsAssetPanelExpanded: (isAssetPanelExpanded: boolean) => void
   readonly setIsAssetPanelPermanentlyVisible: (isAssetPanelTemporarilyVisible: boolean) => void
   readonly isAssetPanelTemporarilyVisible: boolean
   readonly setIsAssetPanelTemporarilyVisible: (isAssetPanelTemporarilyVisible: boolean) => void
@@ -56,6 +58,8 @@ interface DriveStore {
   readonly setAssetPanelProps: (assetPanelProps: AssetPanelContextProps | null) => void
   readonly suggestions: readonly Suggestion[]
   readonly setSuggestions: (suggestions: readonly Suggestion[]) => void
+  readonly isAssetPanelHidden: boolean
+  readonly setIsAssetPanelHidden: (isAssetPanelHidden: boolean) => void
 }
 
 // =======================
@@ -145,6 +149,12 @@ export default function DriveProvider(props: ProjectsProviderProps) {
           localStorage.set('isAssetPanelVisible', isAssetPanelPermanentlyVisible)
         }
       },
+      isAssetPanelExpanded: false,
+      setIsAssetPanelExpanded: (isAssetPanelExpanded) => {
+        if (get().isAssetPanelExpanded !== isAssetPanelExpanded) {
+          set({ isAssetPanelExpanded })
+        }
+      },
       isAssetPanelTemporarilyVisible: false,
       setIsAssetPanelTemporarilyVisible: (isAssetPanelTemporarilyVisible) => {
         if (get().isAssetPanelTemporarilyVisible !== isAssetPanelTemporarilyVisible) {
@@ -161,6 +171,12 @@ export default function DriveProvider(props: ProjectsProviderProps) {
       setSuggestions: (suggestions) => {
         if (get().suggestions !== suggestions) {
           set({ suggestions })
+        }
+      },
+      isAssetPanelHidden: false,
+      setIsAssetPanelHidden: (isAssetPanelHidden) => {
+        if (get().isAssetPanelHidden !== isAssetPanelHidden) {
+          set({ isAssetPanelHidden })
         }
       },
     })),
@@ -305,10 +321,28 @@ export function useIsAssetPanelVisible() {
   return isAssetPanelPermanentlyVisible || isAssetPanelTemporarilyVisible
 }
 
+/**
+ * Whether the Asset Panel is expanded.
+ */
+export function useIsAssetPanelExpanded() {
+  const store = useDriveStore()
+  return zustand.useStore(store, (state) => state.isAssetPanelExpanded)
+}
+
+/** A function to set whether the Asset Panel is expanded. */
+export function useSetIsAssetPanelExpanded() {
+  const store = useDriveStore()
+  return zustand.useStore(store, (state) => state.setIsAssetPanelExpanded)
+}
+
 /** Props for the Asset Panel. */
 export function useAssetPanelProps() {
   const store = useDriveStore()
-  return zustand.useStore(store, (state) => state.assetPanelProps)
+
+  return zustand.useStore(
+    store,
+    (state) => state.assetPanelProps ?? { backend: null, item: null, setItem: null },
+  )
 }
 
 /** A function to set props for the Asset Panel. */
@@ -327,4 +361,16 @@ export function useSuggestions() {
 export function useSetSuggestions() {
   const store = useDriveStore()
   return zustand.useStore(store, (state) => state.setSuggestions)
+}
+
+/** Whether the Asset Panel is hidden. */
+export function useIsAssetPanelHidden() {
+  const store = useDriveStore()
+  return zustand.useStore(store, (state) => state.isAssetPanelHidden)
+}
+
+/** A function to set whether the Asset Panel is hidden. */
+export function useSetIsAssetPanelHidden() {
+  const store = useDriveStore()
+  return zustand.useStore(store, (state) => state.setIsAssetPanelHidden)
 }

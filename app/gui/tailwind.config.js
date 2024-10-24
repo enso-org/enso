@@ -20,6 +20,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         // This should be named "regular".
         primary: 'rgb(var(--color-primary-rgb) / var(--color-primary-opacity))',
         invert: 'rgb(var(--color-invert-rgb) / var(--color-invert-opacity))',
+        background: 'rgb(var(--color-background-rgb) / var(--color-background-opacity))',
         accent: 'rgb(var(--color-accent-rgb) / 100%)',
         danger: 'rgb(var(--color-danger-rgb) / 100%)',
         'accent-dark': '#3e9152',

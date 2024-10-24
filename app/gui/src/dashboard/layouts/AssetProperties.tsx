@@ -16,6 +16,7 @@ import {
 import SharedWithColumn from '#/components/dashboard/column/SharedWithColumn'
 import { DatalinkFormInput } from '#/components/dashboard/DatalinkInput'
 import Label from '#/components/dashboard/Label'
+import { Result } from '#/components/Result'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
 import { validateDatalink } from '#/data/datalinkValidator'
 import {
@@ -59,14 +60,46 @@ export type AssetPropertiesSpotlight = 'datalink' | 'description' | 'secret'
 /** Props for an {@link AssetPropertiesProps}. */
 export interface AssetPropertiesProps {
   readonly backend: Backend
-  readonly item: AnyAssetTreeNode
+  readonly item: AnyAssetTreeNode | null
   readonly category: Category
   readonly isReadonly?: boolean
-  readonly spotlightOn: AssetPropertiesSpotlight | undefined
+  readonly spotlightOn?: AssetPropertiesSpotlight | undefined
 }
 
-/** Display and modify the properties of an asset. */
+/**
+ * Display and modify the properties of an asset.
+ */
 export default function AssetProperties(props: AssetPropertiesProps) {
+  const { item, isReadonly = false, backend, category, spotlightOn } = props
+
+  const { getText } = useText()
+
+  if (item == null) {
+    return <Result status="info" title={getText('assetProperties.notSelected')} centered />
+  }
+
+  return (
+    <AssetPropertiesInternal
+      backend={backend}
+      item={item}
+      isReadonly={isReadonly}
+      category={category}
+      spotlightOn={spotlightOn}
+    />
+  )
+}
+
+/**
+ * Props for {@link AssetPropertiesInternal}.
+ */
+export interface AssetPropertiesInternalProps extends AssetPropertiesProps {
+  readonly item: NonNullable<AssetPropertiesProps['item']>
+}
+
+/**
+ * Internal implementation of {@link AssetProperties}.
+ */
+function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
   const { backend, item, category, spotlightOn, isReadonly = false } = props
   const styles = ASSET_PROPERTIES_VARIANTS({})
 
@@ -77,6 +110,9 @@ export default function AssetProperties(props: AssetPropertiesProps) {
     category,
   )
   const setAssetPanelProps = useSetAssetPanelProps()
+
+  const driveStore = useDriveStore()
+
   const closeSpotlight = useEventCallback(() => {
     const assetPanelProps = driveStore.getState().assetPanelProps
     if (assetPanelProps != null) {
@@ -118,7 +154,6 @@ export default function AssetProperties(props: AssetPropertiesProps) {
       : {}),
     },
   )
-  const driveStore = useDriveStore()
   const descriptionRef = React.useRef<HTMLDivElement>(null)
   const descriptionSpotlight = useSpotlight({
     ref: descriptionRef,

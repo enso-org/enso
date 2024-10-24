@@ -123,7 +123,7 @@
   "createFolderBackendError": "Could not create folder '$0'",
   "updateFolderBackendError": "Could not update folder '$0'",
   "listAssetVersionsBackendError": "Could not list versions for '$0'",
-  "getFileContentsBackendError": "Could not get contents of '$0",
+  "getFileContentsBackendError": "Failed to get contents of the file",
   "updateAssetBackendError": "Could not update '$0'",
   "deleteAssetBackendError": "Could not delete '$0'",
   "undoDeleteAssetBackendError": "Could not restore '$0' from Trash",
@@ -261,6 +261,9 @@
   "active": "Active",
   "pendingInvitation": "Pending Invitation",
   "versions": "Versions",
+  "properties": "Properties",
+  "projectSessions": "Sessions",
+  "docs": "Docs",
   "datalink": "Datalink",
   "secret": "Secret",
   "createDatalink": "Create Datalink",
@@ -490,14 +493,6 @@
   "uploadLargeFileError": "Could not upload file",
   "closeWindowDialogTitle": "Close window?",
   "anUploadIsInProgress": "An upload is in progress.",
-
-  "enableMultitabs": "Enable Multi-Tabs",
-  "enableMultitabsDescription": "Open multiple projects at the same time.",
-
-  "enableAssetsTableBackgroundRefresh": "Enable Assets Table Background Refresh",
-  "enableAssetsTableBackgroundRefreshDescription": "Automatically refresh the assets table in the background.",
-  "enableAssetsTableBackgroundRefreshInterval": "Refresh interval",
-  "enableAssetsTableBackgroundRefreshIntervalDescription": "Set the interval in ms for the assets table to refresh in the background.",
 
   "deleteLabelActionText": "delete the label '$0'",
   "deleteSelectedAssetActionText": "delete '$0'",
@@ -939,6 +934,12 @@
   "ensoDevtoolsPlanSelectSubtitle": "User Plan",
   "ensoDevtoolsPaywallFeaturesToggles": "Paywall Features",
   "ensoDevtoolsFeatureFlags": "Feature Flags",
+  "ensoDevtoolsFeatureFlags.enableMultitabs": "Enable Multitabs",
+  "ensoDevtoolsFeatureFlags.enableMultitabsDescription": "Allow multiple asset panels to be open at the same time.",
+  "ensoDevtoolsFeatureFlags.enableAssetsTableBackgroundRefresh": "Enable Assets Table Background Refresh",
+  "ensoDevtoolsFeatureFlags.enableAssetsTableBackgroundRefreshDescription": "Enable background refresh of the assets table.",
+  "ensoDevtoolsFeatureFlags.assetsTableBackgroundRefreshInterval": "Assets Table Background Refresh Interval",
+  "ensoDevtoolsFeatureFlags.assetsTableBackgroundRefreshIntervalDescription": "The interval at which the assets table will be refreshed in the background.",
 
   "setupEnso": "Set up Enso",
   "termsAndConditions": "Terms and Conditions",
@@ -947,5 +948,14 @@
   "skip": "Skip",
   "setUsernameDescription": "Start by setting your username. You can always change it later.",
   "allSet": "All set!",
-  "allSetDescription": "You're all set up! Click the button below to start using Enso."
+  "allSetDescription": "You're all set up! Click the button below to start using Enso.",
+
+  "assetDocs.notProject": "Please select a project asset to view its docs.",
+  "assetDocs.noDocs": "No docs available for this asset.",
+  "assetProperties.notSelected": "Select an asset to view its properties.",
+  "assetVersions.localAssetsDoNotHaveVersions": "Local assets do not have versions.",
+  "assetVersions.notSelected": "Select an asset to view its versions.",
+  "assetProjectSessions.notSelected": "Select a project asset to view its sessions.",
+  "assetProjectSessions.localBackend": "Sessions are not available for local projects.",
+  "assetProjectSessions.notProjectAsset": "Please select a project asset to view its sessions."
 }
