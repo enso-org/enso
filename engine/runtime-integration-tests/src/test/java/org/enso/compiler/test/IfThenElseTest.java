@@ -113,4 +113,26 @@ public class IfThenElseTest {
               Matchers.containsString("6:5: error")));
     }
   }
+
+  @Test
+  public void conditionMustBeBoolean() throws Exception {
+    var code = """
+    check x = if x then "Yes" else "No"
+    """;
+
+    var check = ContextUtils.getMethodFromModule(ctx, code, "check");
+
+    try {
+      var res = check.execute("Yes").asString();
+      fail("Expecting error, not: " + res);
+    } catch (PolyglotException ex) {
+      assertThat(ex.getMessage(), Matchers.containsString(".Error"));
+    }
+    try {
+      var res = check.execute((Object) null).asString();
+      fail("Expecting error, not: " + res);
+    } catch (PolyglotException ex) {
+      assertThat(ex.getMessage(), Matchers.containsString(".Error"));
+    }
+  }
 }
