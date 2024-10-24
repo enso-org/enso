@@ -1,6 +1,5 @@
 /** @file A select menu with a dropdown. */
 import {
-  useEffect,
   useMemo,
   useRef,
   useState,
@@ -92,19 +91,11 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
   const valuesSet = useMemo(() => new Set(values), [values])
   const canEditText = setText != null && values.length === 0
-  // We are only interested in the initial value of `canEditText` in effects.
-  const canEditTextRef = useRef(canEditText)
   const isMultipleAndCustomValue = multiple === true && text != null
   const matchingItems = useMemo(
     () => (text == null ? items : items.filter((item) => matches(item, text))),
     [items, matches, text],
   )
-
-  useEffect(() => {
-    if (!canEditTextRef.current) {
-      setIsDropdownVisible(true)
-    }
-  }, [])
 
   const fallbackInputRef = useRef<HTMLFieldSetElement>(null)
   const inputRef = rawInputRef ?? fallbackInputRef

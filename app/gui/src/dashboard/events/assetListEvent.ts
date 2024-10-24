@@ -20,13 +20,7 @@ interface AssetListBaseEvent<Type extends AssetListEventType> {
 
 /** All possible events. */
 interface AssetListEvents {
-  readonly newFolder: AssetListNewFolderEvent
-  readonly newProject: AssetListNewProjectEvent
-  readonly uploadFiles: AssetListUploadFilesEvent
-  readonly newSecret: AssetListNewSecretEvent
-  readonly newDatalink: AssetListNewDatalinkEvent
   readonly duplicateProject: AssetListDuplicateProjectEvent
-  readonly closeFolder: AssetListCloseFolderEvent
   readonly copy: AssetListCopyEvent
   readonly move: AssetListMoveEvent
   readonly delete: AssetListDeleteEvent
@@ -45,46 +39,6 @@ type SanityCheck<
   } = AssetListEvents,
 > = [T]
 
-/** A signal to create a new directory. */
-interface AssetListNewFolderEvent extends AssetListBaseEvent<AssetListEventType.newFolder> {
-  readonly parentKey: backend.DirectoryId
-  readonly parentId: backend.DirectoryId
-}
-
-/** A signal to create a new project. */
-interface AssetListNewProjectEvent extends AssetListBaseEvent<AssetListEventType.newProject> {
-  readonly parentKey: backend.DirectoryId
-  readonly parentId: backend.DirectoryId
-  readonly templateId: string | null
-  readonly datalinkId: backend.DatalinkId | null
-  readonly preferredName: string | null
-  readonly onCreated?: (project: backend.CreatedProject) => void
-  readonly onError?: () => void
-}
-
-/** A signal to upload files. */
-interface AssetListUploadFilesEvent extends AssetListBaseEvent<AssetListEventType.uploadFiles> {
-  readonly parentKey: backend.DirectoryId
-  readonly parentId: backend.DirectoryId
-  readonly files: File[]
-}
-
-/** A signal to create a new secret. */
-interface AssetListNewDatalinkEvent extends AssetListBaseEvent<AssetListEventType.newDatalink> {
-  readonly parentKey: backend.DirectoryId
-  readonly parentId: backend.DirectoryId
-  readonly name: string
-  readonly value: unknown
-}
-
-/** A signal to create a new secret. */
-interface AssetListNewSecretEvent extends AssetListBaseEvent<AssetListEventType.newSecret> {
-  readonly parentKey: backend.DirectoryId
-  readonly parentId: backend.DirectoryId
-  readonly name: string
-  readonly value: string
-}
-
 /** A signal to duplicate a project. */
 interface AssetListDuplicateProjectEvent
   extends AssetListBaseEvent<AssetListEventType.duplicateProject> {
@@ -92,12 +46,6 @@ interface AssetListDuplicateProjectEvent
   readonly parentId: backend.DirectoryId
   readonly original: backend.ProjectAsset
   readonly versionId: backend.S3ObjectVersionId
-}
-
-/** A signal to close (collapse) a folder. */
-interface AssetListCloseFolderEvent extends AssetListBaseEvent<AssetListEventType.closeFolder> {
-  readonly id: backend.DirectoryId
-  readonly key: backend.DirectoryId
 }
 
 /** A signal that files should be copied. */

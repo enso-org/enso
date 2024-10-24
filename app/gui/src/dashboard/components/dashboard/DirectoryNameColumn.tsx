@@ -8,7 +8,7 @@ import { backendMutationOptions } from '#/hooks/backendHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
-import { useDriveStore } from '#/providers/DriveProvider'
+import { useDriveStore, useToggleDirectoryExpansion } from '#/providers/DriveProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as ariaComponents from '#/components/AriaComponents'
@@ -42,13 +42,13 @@ export interface DirectoryNameColumnProps extends column.AssetColumnProps {
  */
 export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
   const { item, setItem, selected, state, rowState, setRowState, isEditable } = props
-  const { backend, nodeMap } = state
-  const { doToggleDirectoryExpansion, expandedDirectoryIds } = state
+  const { backend, nodeMap, expandedDirectoryIds } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { getText } = textProvider.useText()
   const driveStore = useDriveStore()
   const asset = item.item
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
+  const toggleDirectoryExpansion = useToggleDirectoryExpansion()
 
   const isExpanded = item.children != null && expandedDirectoryIds.includes(asset.id)
 
@@ -115,7 +115,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
           isExpanded && 'rotate-90',
         )}
         onPress={() => {
-          doToggleDirectoryExpansion(asset.id, item.key)
+          toggleDirectoryExpansion(asset.id)
         }}
       />
       <SvgMask src={FolderIcon} className="m-name-column-icon size-4 group-hover:hidden" />

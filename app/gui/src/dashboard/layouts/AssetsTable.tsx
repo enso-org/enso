@@ -16,15 +16,8 @@ import {
   type SetStateAction,
 } from 'react'
 
-import {
-  queryOptions,
-  useMutation,
-  useQueries,
-  useQueryClient,
-  useSuspenseQuery,
-} from '@tanstack/react-query'
+import { queryOptions, useMutation, useQueries, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
-import invariant from 'tiny-invariant'
 import * as z from 'zod'
 
 import DropFilesImage from '#/assets/drop_files.svg'
@@ -58,7 +51,8 @@ import { useAutoScroll } from '#/hooks/autoScrollHooks'
 import {
   backendMutationOptions,
   useBackendQuery,
-  useUploadFileWithToastMutation,
+  useRootDirectoryId,
+  useUploadFiles,
 } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useIntersectionRatio } from '#/hooks/intersectionHooks'
@@ -75,7 +69,6 @@ import {
   type Category,
 } from '#/layouts/CategorySwitcher/Category'
 import DragModal from '#/modals/DragModal'
-import DuplicateAssetsModal from '#/modals/DuplicateAssetsModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import {
@@ -85,6 +78,7 @@ import {
 } from '#/providers/BackendProvider'
 import {
   useDriveStore,
+  useExpandedDirectoryIds,
   useSetAssetPanelProps,
   useSetCanCreateAssets,
   useSetCanDownload,
@@ -95,10 +89,11 @@ import {
   useSetSuggestions,
   useSetTargetDirectory,
   useSetVisuallySelectedKeys,
+  useToggleDirectoryExpansion,
 } from '#/providers/DriveProvider'
 import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
-import { useLocalStorage, useLocalStorageState } from '#/providers/LocalStorageProvider'
+import { useLocalStorage } from '#/providers/LocalStorageProvider'
 import { useSetModal } from '#/providers/ModalProvider'
 import { useNavigator2D } from '#/providers/Navigator2DProvider'
 import { useLaunchedProjects } from '#/providers/ProjectsProvider'
@@ -106,37 +101,24 @@ import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import {
   assetIsDirectory,
-  assetIsFile,
   assetIsProject,
   AssetType,
   BackendType,
-  createPlaceholderFileAsset,
-  createPlaceholderProjectAsset,
   createRootDirectoryAsset,
   createSpecialEmptyAsset,
   createSpecialErrorAsset,
   createSpecialLoadingAsset,
-  DatalinkId,
-  DirectoryId,
-  extractProjectExtension,
-  fileIsNotProject,
-  fileIsProject,
   getAssetPermissionName,
-  Path,
   Plan,
   ProjectId,
   ProjectState,
-  SecretId,
-  stripProjectExtension,
   type AnyAsset,
   type AssetId,
-  type DatalinkAsset,
   type DirectoryAsset,
+  type DirectoryId,
   type LabelName,
   type ProjectAsset,
-  type SecretAsset,
 } from '#/services/Backend'
-import LocalBackend from '#/services/LocalBackend'
 import { isSpecialReadonlyDirectoryId } from '#/services/RemoteBackend'
 import { ROOT_PARENT_DIRECTORY_ID } from '#/services/remoteBackendPaths'
 import type { AssetQueryKey } from '#/utilities/AssetQuery'
@@ -307,11 +289,6 @@ export interface AssetsTableState {
   readonly setQuery: Dispatch<SetStateAction<AssetQuery>>
   readonly nodeMap: Readonly<MutableRefObject<ReadonlyMap<AssetId, AnyAssetTreeNode>>>
   readonly hideColumn: (column: Column) => void
-  readonly doToggleDirectoryExpansion: (
-    directoryId: DirectoryId,
-    key: DirectoryId,
-    override?: boolean,
-  ) => void
   readonly doCopy: () => void
   readonly doCut: () => void
   readonly doPaste: (newParentKey: DirectoryId, newParentId: DirectoryId) => void
@@ -386,24 +363,9 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   const { data: users } = useBackendQuery(backend, 'listUsers', [])
   const { data: userGroups } = useBackendQuery(backend, 'listUserGroups', [])
-  const organizationQuery = useSuspenseQuery({
-    queryKey: [backend.type, 'getOrganization'],
-    queryFn: () => backend.getOrganization(),
-  })
-
-  const organization = organizationQuery.data
 
   const nameOfProjectToImmediatelyOpenRef = useRef(initialProjectName)
-  const [localRootDirectory] = useLocalStorageState('localRootDirectory')
-  const rootDirectoryId = useMemo(() => {
-    const localRootPath = localRootDirectory != null ? Path(localRootDirectory) : null
-    const id =
-      'homeDirectoryId' in category ?
-        category.homeDirectoryId
-      : backend.rootDirectoryId(user, organization, localRootPath)
-    invariant(id, 'Missing root directory')
-    return id
-  }, [category, backend, user, organization, localRootDirectory])
+  const rootDirectoryId = useRootDirectoryId(backend, category)
 
   const rootDirectory = useMemo(() => createRootDirectoryAsset(rootDirectoryId), [rootDirectoryId])
 
@@ -411,16 +373,12 @@ export default function AssetsTable(props: AssetsTableProps) {
   const assetsTableBackgroundRefreshInterval = useFeatureFlag(
     'assetsTableBackgroundRefreshInterval',
   )
-  /**
-   * The expanded directories in the asset tree.
-   * We don't include the root directory as it might change when a user switches
-   * between items in sidebar and we don't want to reset the expanded state using useEffect.
-   */
-  const [privateExpandedDirectoryIds, setExpandedDirectoryIds] = useState<DirectoryId[]>(() => [])
+  const expandedDirectoryIdsRaw = useExpandedDirectoryIds()
+  const toggleDirectoryExpansion = useToggleDirectoryExpansion()
 
   const expandedDirectoryIds = useMemo(
-    () => [rootDirectoryId].concat(privateExpandedDirectoryIds),
-    [privateExpandedDirectoryIds, rootDirectoryId],
+    () => [rootDirectoryId].concat(expandedDirectoryIdsRaw),
+    [expandedDirectoryIdsRaw, rootDirectoryId],
   )
 
   const expandedDirectoryIdsSet = useMemo(
@@ -428,13 +386,9 @@ export default function AssetsTable(props: AssetsTableProps) {
     [expandedDirectoryIds],
   )
 
-  const createProjectMutation = useMutation(backendMutationOptions(backend, 'createProject'))
+  const uploadFiles = useUploadFiles(backend, category)
   const duplicateProjectMutation = useMutation(backendMutationOptions(backend, 'duplicateProject'))
-  const createDirectoryMutation = useMutation(backendMutationOptions(backend, 'createDirectory'))
-  const createSecretMutation = useMutation(backendMutationOptions(backend, 'createSecret'))
   const updateSecretMutation = useMutation(backendMutationOptions(backend, 'updateSecret'))
-  const createDatalinkMutation = useMutation(backendMutationOptions(backend, 'createDatalink'))
-  const uploadFileMutation = useUploadFileWithToastMutation(backend)
   const copyAssetMutation = useMutation(backendMutationOptions(backend, 'copyAsset'))
   const deleteAssetMutation = useMutation(backendMutationOptions(backend, 'deleteAsset'))
   const undoDeleteAssetMutation = useMutation(backendMutationOptions(backend, 'undoDeleteAsset'))
@@ -1217,28 +1171,6 @@ export default function AssetsTable(props: AssetsTableProps) {
     [driveStore, setAssetPanelProps, setIsAssetPanelTemporarilyVisible],
   )
 
-  const doToggleDirectoryExpansion = useEventCallback(
-    (directoryId: DirectoryId, _key: DirectoryId, override?: boolean) => {
-      const isExpanded = expandedDirectoryIdsSet.has(directoryId)
-      const shouldExpand = override ?? !isExpanded
-
-      if (shouldExpand !== isExpanded) {
-        startTransition(() => {
-          if (shouldExpand) {
-            setExpandedDirectoryIds((currentExpandedDirectoryIds) => [
-              ...currentExpandedDirectoryIds,
-              directoryId,
-            ])
-          } else {
-            setExpandedDirectoryIds((currentExpandedDirectoryIds) =>
-              currentExpandedDirectoryIds.filter((id) => id !== directoryId),
-            )
-          }
-        })
-      }
-    },
-  )
-
   const doCopyOnBackend = useEventCallback(
     async (newParentId: DirectoryId | null, asset: AnyAsset) => {
       try {
@@ -1276,11 +1208,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       setAssetPanelProps(null)
     }
     if (asset.type === AssetType.directory) {
-      dispatchAssetListEvent({
-        type: AssetListEventType.closeFolder,
-        id: asset.id,
-        key: asset.id,
-      })
+      toggleDirectoryExpansion(asset.id, false)
     }
     try {
       if (asset.type === AssetType.project && backend.type === BackendType.local) {
@@ -1351,7 +1279,7 @@ export default function AssetsTable(props: AssetsTableProps) {
               case AssetType.directory: {
                 event.preventDefault()
                 event.stopPropagation()
-                doToggleDirectoryExpansion(item.item.id, item.key)
+                toggleDirectoryExpansion(item.item.id)
                 break
               }
               case AssetType.project: {
@@ -1403,7 +1331,7 @@ export default function AssetsTable(props: AssetsTableProps) {
               // The folder is expanded; collapse it.
               event.preventDefault()
               event.stopPropagation()
-              doToggleDirectoryExpansion(item.item.id, item.key, false)
+              toggleDirectoryExpansion(item.item.id, false)
             } else if (prevIndex != null) {
               // Focus parent if there is one.
               let index = prevIndex - 1
@@ -1428,7 +1356,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             // The folder is collapsed; expand it.
             event.preventDefault()
             event.stopPropagation()
-            doToggleDirectoryExpansion(item.item.id, item.key, true)
+            toggleDirectoryExpansion(item.item.id, true)
           }
           break
         }
@@ -1518,23 +1446,6 @@ export default function AssetsTable(props: AssetsTableProps) {
     }
   }, [setMostRecentlySelectedIndex])
 
-  const getNewProjectName = useEventCallback(
-    (templateName: string | null, parentKey: DirectoryId | null) => {
-      const prefix = `${templateName ?? 'New Project'} `
-      const projectNameTemplate = new RegExp(`^${prefix}(?<projectIndex>\\d+)$`)
-      const siblings =
-        parentKey == null ?
-          assetTree.children ?? []
-        : nodeMapRef.current.get(parentKey)?.children ?? []
-      const projectIndices = siblings
-        .map((node) => node.item)
-        .filter(assetIsProject)
-        .map((item) => projectNameTemplate.exec(item.title)?.groups?.projectIndex)
-        .map((maybeIndex) => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
-      return `${prefix}${Math.max(0, ...projectIndices) + 1}`
-    },
-  )
-
   const deleteAsset = useEventCallback((assetId: AssetId) => {
     const asset = nodeMapRef.current.get(assetId)?.item
 
@@ -1570,368 +1481,6 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   const onAssetListEvent = useEventCallback((event: AssetListEvent) => {
     switch (event.type) {
-      case AssetListEventType.newFolder: {
-        const parent = nodeMapRef.current.get(event.parentKey)
-        const siblings = parent?.children ?? []
-        const directoryIndices = siblings
-          .map((node) => node.item)
-          .filter(assetIsDirectory)
-          .map((item) => /^New Folder (?<directoryIndex>\d+)$/.exec(item.title))
-          .map((match) => match?.groups?.directoryIndex)
-          .map((maybeIndex) => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
-        const title = `New Folder ${Math.max(0, ...directoryIndices) + 1}`
-        const placeholderItem: DirectoryAsset = {
-          type: AssetType.directory,
-          id: DirectoryId(uniqueString()),
-          title,
-          modifiedAt: toRfc3339(new Date()),
-          parentId: event.parentId,
-          permissions: tryCreateOwnerPermission(
-            `${parent?.path ?? ''}/${title}`,
-            category,
-            user,
-            users ?? [],
-            userGroups ?? [],
-          ),
-          projectState: null,
-          labels: [],
-          description: null,
-        }
-
-        doToggleDirectoryExpansion(event.parentId, event.parentKey, true)
-        insertAssets([placeholderItem], event.parentId)
-
-        void createDirectoryMutation
-          .mutateAsync([{ parentId: placeholderItem.parentId, title: placeholderItem.title }])
-          .then(({ id }) => {
-            setNewestFolderId(id)
-            setSelectedKeys(new Set([id]))
-          })
-
-        break
-      }
-      case AssetListEventType.newProject: {
-        const parent = nodeMapRef.current.get(event.parentKey)
-        const projectName = getNewProjectName(event.preferredName, event.parentId)
-        const dummyId = ProjectId(uniqueString())
-        const path =
-          backend instanceof LocalBackend ? backend.joinPath(event.parentId, projectName) : null
-
-        const placeholderItem: ProjectAsset = {
-          type: AssetType.project,
-          id: dummyId,
-          title: projectName,
-          modifiedAt: toRfc3339(new Date()),
-          parentId: event.parentId,
-          permissions: tryCreateOwnerPermission(
-            `${parent?.path ?? ''}/${projectName}`,
-            category,
-            user,
-            users ?? [],
-            userGroups ?? [],
-          ),
-          projectState: {
-            type: ProjectState.placeholder,
-            volumeId: '',
-            openedBy: user.email,
-            ...(path != null ? { path } : {}),
-          },
-          labels: [],
-          description: null,
-        }
-        doToggleDirectoryExpansion(event.parentId, event.parentKey, true)
-
-        insertAssets([placeholderItem], event.parentId)
-
-        void createProjectMutation
-          .mutateAsync([
-            {
-              parentDirectoryId: placeholderItem.parentId,
-              projectName: placeholderItem.title,
-              ...(event.templateId == null ? {} : { projectTemplateName: event.templateId }),
-              ...(event.datalinkId == null ? {} : { datalinkId: event.datalinkId }),
-            },
-          ])
-          .catch((error) => {
-            event.onError?.()
-
-            deleteAsset(placeholderItem.id)
-            toastAndLog('createProjectError', error)
-
-            throw error
-          })
-          .then((createdProject) => {
-            event.onCreated?.(createdProject)
-            doOpenProject({
-              id: createdProject.projectId,
-              type: backend.type,
-              parentId: placeholderItem.parentId,
-              title: placeholderItem.title,
-            })
-          })
-
-        break
-      }
-      case AssetListEventType.uploadFiles: {
-        const localBackend = backend instanceof LocalBackend ? backend : null
-        const reversedFiles = Array.from(event.files).reverse()
-        const parent = nodeMapRef.current.get(event.parentKey)
-        const siblingNodes = parent?.children ?? []
-        const siblings = siblingNodes.map((node) => node.item)
-        const siblingFiles = siblings.filter(assetIsFile)
-        const siblingProjects = siblings.filter(assetIsProject)
-        const siblingFileTitles = new Set(siblingFiles.map((asset) => asset.title))
-        const siblingProjectTitles = new Set(siblingProjects.map((asset) => asset.title))
-        const files = reversedFiles.filter(fileIsNotProject)
-        const projects = reversedFiles.filter(fileIsProject)
-        const duplicateFiles = files.filter((file) => siblingFileTitles.has(file.name))
-        const duplicateProjects = projects.filter((project) =>
-          siblingProjectTitles.has(stripProjectExtension(project.name)),
-        )
-        const ownerPermission = tryCreateOwnerPermission(
-          parent?.path ?? '',
-          category,
-          user,
-          users ?? [],
-          userGroups ?? [],
-        )
-        const fileMap = new Map<AssetId, File>()
-        const uploadedFileIds: AssetId[] = []
-        const addIdToSelection = (id: AssetId) => {
-          uploadedFileIds.push(id)
-          const newIds = new Set(uploadedFileIds)
-          setSelectedKeys(newIds)
-        }
-
-        const doUploadFile = async (asset: AnyAsset, method: 'new' | 'update') => {
-          const file = fileMap.get(asset.id)
-
-          if (file != null) {
-            const fileId = method === 'new' ? null : asset.id
-
-            switch (true) {
-              case assetIsProject(asset): {
-                const { extension } = extractProjectExtension(file.name)
-                const title = stripProjectExtension(asset.title)
-
-                await uploadFileMutation
-                  .mutateAsync(
-                    {
-                      fileId,
-                      fileName: `${title}.${extension}`,
-                      parentDirectoryId: asset.parentId,
-                    },
-                    file,
-                  )
-                  .then(({ id }) => {
-                    addIdToSelection(id)
-                  })
-                  .catch((error) => {
-                    toastAndLog('uploadProjectError', error)
-                  })
-
-                break
-              }
-              case assetIsFile(asset): {
-                await uploadFileMutation
-                  .mutateAsync(
-                    { fileId, fileName: asset.title, parentDirectoryId: asset.parentId },
-                    file,
-                  )
-                  .then(({ id }) => {
-                    addIdToSelection(id)
-                  })
-
-                break
-              }
-              default:
-                break
-            }
-          }
-        }
-
-        if (duplicateFiles.length === 0 && duplicateProjects.length === 0) {
-          const placeholderFiles = files.map((file) => {
-            const asset = createPlaceholderFileAsset(file.name, event.parentId, ownerPermission)
-            fileMap.set(asset.id, file)
-            return asset
-          })
-
-          const placeholderProjects = projects.map((project) => {
-            const basename = stripProjectExtension(project.name)
-            const asset = createPlaceholderProjectAsset(
-              basename,
-              event.parentId,
-              ownerPermission,
-              user,
-              localBackend?.joinPath(event.parentId, basename) ?? null,
-            )
-            fileMap.set(asset.id, project)
-            return asset
-          })
-
-          const assets = [...placeholderFiles, ...placeholderProjects]
-
-          doToggleDirectoryExpansion(event.parentId, event.parentKey, true)
-
-          void Promise.all(assets.map((asset) => doUploadFile(asset, 'new')))
-        } else {
-          const siblingFilesByName = new Map(siblingFiles.map((file) => [file.title, file]))
-          const siblingProjectsByName = new Map(
-            siblingProjects.map((project) => [project.title, project]),
-          )
-          const conflictingFiles = duplicateFiles.map((file) => ({
-            // This is SAFE, as `duplicateFiles` only contains files that have siblings
-            // with the same name.
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            current: siblingFilesByName.get(file.name)!,
-            new: createPlaceholderFileAsset(file.name, event.parentId, ownerPermission),
-            file,
-          }))
-          const conflictingProjects = duplicateProjects.map((project) => {
-            const basename = stripProjectExtension(project.name)
-            return {
-              // This is SAFE, as `duplicateProjects` only contains projects that have
-              // siblings with the same name.
-              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-              current: siblingProjectsByName.get(basename)!,
-              new: createPlaceholderProjectAsset(
-                basename,
-                event.parentId,
-                ownerPermission,
-                user,
-                localBackend?.joinPath(event.parentId, basename) ?? null,
-              ),
-              file: project,
-            }
-          })
-          setModal(
-            <DuplicateAssetsModal
-              parentKey={event.parentKey}
-              parentId={event.parentId}
-              conflictingFiles={conflictingFiles}
-              conflictingProjects={conflictingProjects}
-              siblingFileNames={siblingFilesByName.keys()}
-              siblingProjectNames={siblingProjectsByName.keys()}
-              nonConflictingFileCount={files.length - conflictingFiles.length}
-              nonConflictingProjectCount={projects.length - conflictingProjects.length}
-              doUpdateConflicting={async (resolvedConflicts) => {
-                await Promise.allSettled(
-                  resolvedConflicts.map((conflict) => {
-                    const isUpdating = conflict.current.title === conflict.new.title
-                    const asset = isUpdating ? conflict.current : conflict.new
-                    fileMap.set(asset.id, conflict.file)
-                    return doUploadFile(asset, isUpdating ? 'update' : 'new')
-                  }),
-                )
-              }}
-              doUploadNonConflicting={async () => {
-                doToggleDirectoryExpansion(event.parentId, event.parentKey, true)
-
-                const newFiles = files
-                  .filter((file) => !siblingFileTitles.has(file.name))
-                  .map((file) => {
-                    const asset = createPlaceholderFileAsset(
-                      file.name,
-                      event.parentId,
-                      ownerPermission,
-                    )
-                    fileMap.set(asset.id, file)
-                    return asset
-                  })
-
-                const newProjects = projects
-                  .filter(
-                    (project) => !siblingProjectTitles.has(stripProjectExtension(project.name)),
-                  )
-                  .map((project) => {
-                    const basename = stripProjectExtension(project.name)
-                    const asset = createPlaceholderProjectAsset(
-                      basename,
-                      event.parentId,
-                      ownerPermission,
-                      user,
-                      localBackend?.joinPath(event.parentId, basename) ?? null,
-                    )
-                    fileMap.set(asset.id, project)
-                    return asset
-                  })
-
-                const assets = [...newFiles, ...newProjects]
-
-                await Promise.allSettled(assets.map((asset) => doUploadFile(asset, 'new')))
-              }}
-            />,
-          )
-        }
-        break
-      }
-      case AssetListEventType.newDatalink: {
-        const parent = nodeMapRef.current.get(event.parentKey)
-        const placeholderItem: DatalinkAsset = {
-          type: AssetType.datalink,
-          id: DatalinkId(uniqueString()),
-          title: event.name,
-          modifiedAt: toRfc3339(new Date()),
-          parentId: event.parentId,
-          permissions: tryCreateOwnerPermission(
-            `${parent?.path ?? ''}/${event.name}`,
-            category,
-            user,
-            users ?? [],
-            userGroups ?? [],
-          ),
-          projectState: null,
-          labels: [],
-          description: null,
-        }
-        doToggleDirectoryExpansion(event.parentId, event.parentKey, true)
-        insertAssets([placeholderItem], event.parentId)
-
-        createDatalinkMutation.mutate([
-          {
-            parentDirectoryId: placeholderItem.parentId,
-            datalinkId: null,
-            name: placeholderItem.title,
-            value: event.value,
-          },
-        ])
-
-        break
-      }
-      case AssetListEventType.newSecret: {
-        const parent = nodeMapRef.current.get(event.parentKey)
-        const placeholderItem: SecretAsset = {
-          type: AssetType.secret,
-          id: SecretId(uniqueString()),
-          title: event.name,
-          modifiedAt: toRfc3339(new Date()),
-          parentId: event.parentId,
-          permissions: tryCreateOwnerPermission(
-            `${parent?.path ?? ''}/${event.name}`,
-            category,
-            user,
-            users ?? [],
-            userGroups ?? [],
-          ),
-          projectState: null,
-          labels: [],
-          description: null,
-        }
-
-        doToggleDirectoryExpansion(event.parentId, event.parentKey, true)
-        insertAssets([placeholderItem], event.parentId)
-
-        createSecretMutation.mutate([
-          {
-            parentDirectoryId: placeholderItem.parentId,
-            name: placeholderItem.title,
-            value: event.value,
-          },
-        ])
-
-        break
-      }
       case AssetListEventType.duplicateProject: {
         const parent = nodeMapRef.current.get(event.parentKey)
         const siblings = parent?.children ?? []
@@ -2025,10 +1574,6 @@ export default function AssetsTable(props: AssetsTableProps) {
         dispatchAssetEvent({ type: AssetEventType.removeSelf, id: event.id })
         break
       }
-      case AssetListEventType.closeFolder: {
-        doToggleDirectoryExpansion(event.id, event.key, false)
-        break
-      }
     }
   })
   eventListProvider.useAssetListEventListener((event) => {
@@ -2073,7 +1618,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       if (pasteData.data.ids.has(newParentKey)) {
         toast.error('Cannot paste a folder into itself.')
       } else {
-        doToggleDirectoryExpansion(newParentId, newParentKey, true)
+        toggleDirectoryExpansion(newParentId, true)
         if (pasteData.type === 'copy') {
           const assets = Array.from(pasteData.data.ids, (id) => nodeMapRef.current.get(id)).flatMap(
             (asset) => (asset ? [asset.item] : []),
@@ -2147,12 +1692,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     if (event.dataTransfer.types.includes('Files')) {
       event.preventDefault()
       event.stopPropagation()
-      dispatchAssetListEvent({
-        type: AssetListEventType.uploadFiles,
-        parentKey: rootDirectoryId,
-        parentId: rootDirectoryId,
-        files: Array.from(event.dataTransfer.files),
-      })
+      void uploadFiles(Array.from(event.dataTransfer.files), rootDirectoryId, rootDirectoryId)
     }
   }
 
@@ -2171,7 +1711,6 @@ export default function AssetsTable(props: AssetsTableProps) {
       setQuery,
       nodeMap: nodeMapRef,
       hideColumn,
-      doToggleDirectoryExpansion,
       doCopy,
       doCut,
       doPaste,
@@ -2187,7 +1726,6 @@ export default function AssetsTable(props: AssetsTableProps) {
       category,
       sortInfo,
       query,
-      doToggleDirectoryExpansion,
       doCopy,
       doCut,
       doPaste,
@@ -2755,12 +2293,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       >
         <FileTrigger
           onSelect={(event) => {
-            dispatchAssetListEvent({
-              type: AssetListEventType.uploadFiles,
-              parentKey: rootDirectoryId,
-              parentId: rootDirectoryId,
-              files: Array.from(event ?? []),
-            })
+            void uploadFiles(Array.from(event ?? []), rootDirectoryId, rootDirectoryId)
           }}
         >
           <Button

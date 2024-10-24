@@ -2,13 +2,7 @@
 
 /** Possible types of changes to the file list. */
 enum AssetListEventType {
-  newFolder = 'new-folder',
-  newProject = 'new-project',
-  uploadFiles = 'upload-files',
-  newDatalink = 'new-datalink',
-  newSecret = 'new-secret',
   duplicateProject = 'duplicate-project',
-  closeFolder = 'close-folder',
   copy = 'copy',
   move = 'move',
   delete = 'delete',

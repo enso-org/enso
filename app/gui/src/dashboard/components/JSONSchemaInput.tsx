@@ -51,8 +51,13 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
     schema.format === 'enso-secret'
   const { data: secrets } = useBackendQuery(remoteBackend, 'listSecrets', [], { enabled: isSecret })
   const autocompleteItems = isSecret ? secrets?.map((secret) => secret.path) ?? null : null
-  const validityClassName =
-    isAbsent || getValidator(path)(value) ? 'border-primary/20' : 'border-red-700/60'
+  const isInvalid = !isAbsent && !getValidator(path)(value)
+  const validationErrorClassName =
+    isInvalid && 'border border-danger focus:border-danger focus:outline-danger'
+  const errors =
+    isInvalid && 'description' in schema && typeof schema.description === 'string' ?
+      [<Text className="px-2 text-danger">{schema.description}</Text>]
+    : []
 
   // NOTE: `enum` schemas omitted for now as they are not yet used.
   if ('const' in schema) {
@@ -66,7 +71,12 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
           if ('format' in schema && schema.format === 'enso-secret') {
             const isValid = typeof value === 'string' && value !== ''
             children.push(
-              <div className={twMerge('w-full rounded-default border-0.5', validityClassName)}>
+              <div
+                className={twMerge(
+                  'w-full rounded-default border-0.5 border-primary/20 outline-offset-2 transition-[border-color,outline] duration-200 focus:border-primary/50 focus:outline focus:outline-2 focus:outline-offset-0 focus:outline-primary',
+                  validationErrorClassName,
+                )}
+              >
                 <Autocomplete
                   items={autocompleteItems ?? []}
                   itemToKey={(item) => item}
@@ -82,6 +92,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                   {(item) => item}
                 </Autocomplete>
               </div>,
+              ...errors,
             )
           } else {
             children.push(
@@ -92,8 +103,8 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                   value={typeof value === 'string' ? value : ''}
                   size={1}
                   className={twMerge(
-                    'focus-child h-6 w-full grow rounded-input border-0.5 bg-transparent px-2 read-only:read-only',
-                    validityClassName,
+                    'focus-child h-6 w-full grow rounded-input border-0.5 border-primary/20 bg-transparent px-2 outline-offset-2 transition-[border-color,outline] duration-200 read-only:read-only focus:border-primary/50 focus:outline focus:outline-2 focus:outline-offset-0 focus:outline-primary',
+                    validationErrorClassName,
                   )}
                   placeholder={getText('enterText')}
                   onChange={(event) => {
@@ -102,6 +113,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                   }}
                 />
               </FocusRing>,
+              ...errors,
             )
           }
           break
@@ -115,8 +127,8 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                 value={typeof value === 'number' ? value : ''}
                 size={1}
                 className={twMerge(
-                  'focus-child h-6 w-full grow rounded-input border-0.5 bg-transparent px-2 read-only:read-only',
-                  validityClassName,
+                  'focus-child h-6 w-full grow rounded-input border-0.5 border-primary/20 bg-transparent px-2 outline-offset-2 transition-[border-color,outline] duration-200 read-only:read-only focus:border-primary/50 focus:outline focus:outline-2 focus:outline-offset-0 focus:outline-primary',
+                  validationErrorClassName,
                 )}
                 placeholder={getText('enterNumber')}
                 onChange={(event) => {
@@ -127,6 +139,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                 }}
               />
             </FocusRing>,
+            ...errors,
           )
           break
         }
@@ -139,8 +152,8 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                 value={typeof value === 'number' ? value : ''}
                 size={1}
                 className={twMerge(
-                  'focus-child h-6 w-full grow rounded-input border-0.5 bg-transparent px-2 read-only:read-only',
-                  validityClassName,
+                  'focus-child h-6 w-full grow rounded-input border-0.5 border-primary/20 bg-transparent px-2 outline-offset-2 transition-[border-color,outline] duration-200 read-only:read-only focus:border-primary/50 focus:outline focus:outline-2 focus:outline-offset-0 focus:outline-primary',
+                  validationErrorClassName,
                 )}
                 placeholder={getText('enterInteger')}
                 onChange={(event) => {
@@ -149,6 +162,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                 }}
               />
             </FocusRing>,
+            ...errors,
           )
           break
         }
@@ -186,7 +200,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
               >
                 {propertyDefinitions.map((definition) => {
                   const { key, schema: childSchema } = definition
-                  const isOptional = !requiredProperties.includes(key)
+                  const isOptional = !requiredProperties.includes(key) || isAbsent
                   const isPresent = !isAbsent && value != null && key in value
                   return constantValueOfSchema(defs, childSchema).length === 1 ?
                       null
@@ -250,7 +264,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                                 newValue = unsafeValue!
                               }
                               const fullObject =
-                                value ?? constantValueOfSchema(defs, childSchema, true)[0]
+                                value ?? constantValueOfSchema(defs, schema, true)[0]
                               onChange(
                                 (
                                   typeof fullObject === 'object' &&
@@ -346,6 +360,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
               path={selectedChildPath}
               getValidator={getValidator}
               noBorder={noChildBorder}
+              isAbsent={isAbsent}
               value={value}
               onChange={onChange}
             />
@@ -364,6 +379,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
           path={`${path}/allOf/${i}`}
           getValidator={getValidator}
           noBorder={noChildBorder}
+          isAbsent={isAbsent}
           value={value}
           onChange={onChange}
         />

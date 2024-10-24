@@ -10,7 +10,11 @@ import * as dragAndDropHooks from '#/hooks/dragAndDropHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 
-import { useDriveStore, useSetSelectedKeys } from '#/providers/DriveProvider'
+import {
+  useDriveStore,
+  useSetSelectedKeys,
+  useToggleDirectoryExpansion,
+} from '#/providers/DriveProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -35,6 +39,7 @@ import {
   backendMutationOptions,
   backendQueryOptions,
   useBackendMutationState,
+  useUploadFiles,
 } from '#/hooks/backendHooks'
 import { createGetProjectDetailsQuery } from '#/hooks/projectHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
@@ -117,19 +122,8 @@ export interface AssetRowProps {
 export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
   const { isKeyboardSelected, isOpened, select, state, columns, onClick } = props
   const { item: rawItem, hidden: hiddenRaw, updateAssetRef, grabKeyboardFocus } = props
-  const {
-    nodeMap,
-    doToggleDirectoryExpansion,
-    doCopy,
-    doCut,
-    doPaste,
-    doDelete: doDeleteRaw,
-    doRestore,
-    doMove,
-    category,
-  } = state
-  const { scrollContainerRef, rootDirectoryId, backend } = state
-  const { visibilities } = state
+  const { nodeMap, doCopy, doCut, doPaste, doDelete: doDeleteRaw, doRestore, doMove } = state
+  const { category, scrollContainerRef, rootDirectoryId, backend, visibilities } = state
 
   const [item, setItem] = React.useState(rawItem)
   const driveStore = useDriveStore()
@@ -161,6 +155,7 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
   const [innerRowState, setRowState] = React.useState<assetsTable.AssetRowState>(
     assetRowUtils.INITIAL_ROW_STATE,
   )
+  const toggleDirectoryExpansion = useToggleDirectoryExpansion()
 
   const isNewlyCreated = useStore(driveStore, ({ newestFolderId }) => newestFolderId === asset.id)
   const isEditingName = innerRowState.isEditingName || isNewlyCreated
@@ -194,6 +189,7 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
 
   const toastAndLog = useToastAndLog()
 
+  const uploadFiles = useUploadFiles(backend, category)
   const createPermissionMutation = useMutation(backendMutationOptions(backend, 'createPermission'))
   const associateTagMutation = useMutation(backendMutationOptions(backend, 'associateTag'))
 
@@ -617,7 +613,7 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
                     window.setTimeout(() => {
                       setSelected(false)
                     })
-                    doToggleDirectoryExpansion(item.item.id, item.key)
+                    toggleDirectoryExpansion(item.item.id)
                   }
                 }}
                 onContextMenu={(event) => {
@@ -662,7 +658,7 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
                   }
                   if (item.type === backendModule.AssetType.directory) {
                     dragOverTimeoutHandle.current = window.setTimeout(() => {
-                      doToggleDirectoryExpansion(item.item.id, item.key, true)
+                      toggleDirectoryExpansion(item.item.id, true)
                     }, DRAG_EXPAND_DELAY_MS)
                   }
                   // Required because `dragover` does not fire on `mouseenter`.
@@ -712,7 +708,7 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
                       event.preventDefault()
                       event.stopPropagation()
                       unsetModal()
-                      doToggleDirectoryExpansion(directoryId, directoryKey, true)
+                      toggleDirectoryExpansion(directoryId, true)
                       const ids = payload
                         .filter((payloadItem) => payloadItem.asset.parentId !== directoryId)
                         .map((dragItem) => dragItem.key)
@@ -725,13 +721,8 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
                     } else if (event.dataTransfer.types.includes('Files')) {
                       event.preventDefault()
                       event.stopPropagation()
-                      doToggleDirectoryExpansion(directoryId, directoryKey, true)
-                      dispatchAssetListEvent({
-                        type: AssetListEventType.uploadFiles,
-                        parentKey: directoryKey,
-                        parentId: directoryId,
-                        files: Array.from(event.dataTransfer.files),
-                      })
+                      toggleDirectoryExpansion(directoryId, true)
+                      void uploadFiles(Array.from(event.dataTransfer.files), directoryId, null)
                     }
                   }
                 }}
