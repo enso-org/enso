@@ -3,6 +3,7 @@ package org.enso.compiler.pass.analyse.types;
 import java.util.stream.Stream;
 import org.enso.compiler.pass.analyse.types.scope.BuiltinsFallbackScope;
 import org.enso.compiler.pass.analyse.types.scope.ModuleResolver;
+import org.enso.compiler.pass.analyse.types.scope.StaticImportExportScope;
 import org.enso.compiler.pass.analyse.types.scope.StaticModuleScope;
 import org.enso.compiler.pass.analyse.types.scope.TypeHierarchy;
 import org.enso.compiler.pass.analyse.types.scope.TypeScopeReference;
@@ -65,7 +66,7 @@ class MethodTypeResolver {
             .flatMap(
                 staticImportExportScope -> {
                   var materialized = staticImportExportScope.materialize(moduleResolver);
-                  var found = materialized.getMethodForType(type, methodName);
+                  var found = materialized.getExportedMethod(type, methodName);
                   return Stream.ofNullable(found);
                 })
             .toList();

@@ -54,4 +54,9 @@ public class StaticImportExportScope {
   public QualifiedName getReferredModuleName() {
     return referredModuleName;
   }
+
+  @Override
+  public String toString() {
+    return "StaticImportExportScope{" + referredModuleName + "}";
+  }
 }
