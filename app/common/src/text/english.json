@@ -950,5 +950,6 @@
   "assetVersions.localAssetsDoNotHaveVersions": "Local assets do not have versions.",
   "assetVersions.notSelected": "Select an asset to view its versions.",
   "assetProjectSessions.notSelected": "Select a project asset to view its sessions.",
+  "assetProjectSessions.localBackend": "Sessions are not available for local projects.",
   "assetProjectSessions.notProjectAsset": "Please select a project asset to view its sessions."
 }

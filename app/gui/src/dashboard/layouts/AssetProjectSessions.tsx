@@ -22,12 +22,16 @@ export interface AssetProjectSessionsProps {
 
 /** A list of previous versions of an asset. */
 export default function AssetProjectSessions(props: AssetProjectSessionsProps) {
-  const { item } = props
+  const { backend, item } = props
 
   const { getText } = useText()
 
   if (item == null) {
     return <Result status="info" centered title={getText('assetProjectSessions.notSelected')} />
+  }
+
+  if (backend.type === backendModule.BackendType.local) {
+    return <Result status="info" centered title={getText('assetProjectSessions.localBackend')} />
   }
 
   if (item.item.type !== backendModule.AssetType.project) {

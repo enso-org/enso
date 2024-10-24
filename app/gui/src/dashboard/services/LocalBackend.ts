@@ -797,9 +797,13 @@ export default class LocalBackend extends Backend {
     return this.invalidOperation()
   }
 
-  /** Invalid operation. */
-  override getFileContent() {
-    return this.invalidOperation()
+  /**
+   * Get the content of a file.
+   *
+   * Versioning is not supported on the Local Backend, thus the `versionId` parameter is ignored.
+   */
+  override getFileContent(projectId: backend.ProjectId) {
+    return this.projectManager.getFileContent(extractTypeAndId(projectId).id)
   }
 
   /** Invalid operation. */

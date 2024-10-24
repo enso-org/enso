@@ -447,6 +447,25 @@ export default class ProjectManager {
     return result
   }
 
+  async getFileContent(projectId: UUID) {
+    const path = this.internalProjectPaths.get(projectId)
+
+    invariant(path, `Unknown project path for project '${projectId}'.`)
+
+    console.log('path', path)
+
+    const res = await this.runStandaloneCommand<string>(
+      null,
+      'filesystem-read-path',
+      'text',
+      path + '/src/Main.enso',
+    )
+
+    console.log('res', res)
+
+    return res
+  }
+
   /** Rename a project. */
   async renameProject(params: Omit<RenameProjectParams, 'projectsDirectory'>): Promise<void> {
     const path = this.internalProjectPaths.get(params.projectId)
@@ -524,6 +543,7 @@ export default class ProjectManager {
     const response = await this.runStandaloneCommand<ResponseBody>(
       null,
       'filesystem-exists',
+      'json',
       parentId ?? this.rootDirectory,
     )
     return response.exists
@@ -539,6 +559,7 @@ export default class ProjectManager {
     const response = await this.runStandaloneCommand<ResponseBody>(
       null,
       'filesystem-list',
+      'json',
       parentId,
     )
     const result = response.entries.map((entry) => ({
@@ -556,7 +577,7 @@ export default class ProjectManager {
 
   /** Create a directory. */
   async createDirectory(path: Path) {
-    await this.runStandaloneCommand(null, 'filesystem-create-directory', path)
+    await this.runStandaloneCommand(null, 'filesystem-create-directory', 'json', path)
     this.internalDirectories.set(path, [])
     const directoryPath = getDirectoryAndName(path).directoryPath
     const siblings = this.internalDirectories.get(directoryPath)
@@ -581,7 +602,7 @@ export default class ProjectManager {
 
   /** Create a file. */
   async createFile(path: Path, file: Blob) {
-    await this.runStandaloneCommand(file, 'filesystem-write-path', path)
+    await this.runStandaloneCommand(file, 'filesystem-write-path', 'json', path)
     const directoryPath = getDirectoryAndName(path).directoryPath
     const siblings = this.internalDirectories.get(directoryPath)
     if (siblings) {
@@ -605,7 +626,14 @@ export default class ProjectManager {
 
   /** Move a file or directory. */
   async moveFile(from: Path, to: Path) {
-    await this.runStandaloneCommand(null, 'filesystem-move-from', from, '--filesystem-move-to', to)
+    await this.runStandaloneCommand(
+      null,
+      'filesystem-move-from',
+      'json',
+      from,
+      '--filesystem-move-to',
+      to,
+    )
     const children = this.internalDirectories.get(from)
     // Assume a directory needs to be loaded for its children to be loaded.
     if (children) {
@@ -651,7 +679,7 @@ export default class ProjectManager {
 
   /** Delete a file or directory. */
   async deleteFile(path: Path) {
-    await this.runStandaloneCommand(null, 'filesystem-delete', path)
+    await this.runStandaloneCommand(null, 'filesystem-delete', 'json', path)
     const children = this.internalDirectories.get(path)
     // Assume a directory needs to be loaded for its children to be loaded.
     if (children) {
@@ -718,6 +746,7 @@ export default class ProjectManager {
   private async runStandaloneCommand<T = void>(
     body: BodyInit | null,
     name: string,
+    responseType: 'json' | 'text',
     ...cliArguments: string[]
   ): Promise<T> {
     const searchParams = new URLSearchParams({
@@ -732,13 +761,17 @@ export default class ProjectManager {
         body,
       },
     )
-    // There is no way to avoid this as `JSON.parse` returns `any`.
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const json: JSONRPCResponse<never> = await response.json()
-    if ('result' in json) {
-      return json.result
+    if (responseType === 'json') {
+      // There is no way to avoid this as `JSON.parse` returns `any`.
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const json: JSONRPCResponse<never> = await response.json()
+      if ('result' in json) {
+        return json.result
+      } else {
+        throw new Error(json.error.message)
+      }
     } else {
-      throw new Error(json.error.message)
+      return (await response.text()) as T
     }
   }
 }

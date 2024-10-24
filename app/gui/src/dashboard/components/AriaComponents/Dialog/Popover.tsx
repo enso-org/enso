@@ -114,6 +114,7 @@ export function Popover(props: PopoverProps) {
             id={dialogId}
             ref={dialogRef}
             className={POPOVER_STYLES({ ...opts, size, rounded }).dialog()}
+            aria-label="Popover"
           >
             {({ close }) => {
               closeRef.current = close
