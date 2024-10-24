@@ -3535,7 +3535,8 @@ lazy val `engine-runner` = project
           epbLang
       ).distinct
       val stdLibsJars =
-        `base-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath())
+        `base-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
+        `table-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath())
       core ++ stdLibsJars
     },
     buildSmallJdk := {
@@ -3625,19 +3626,23 @@ lazy val `engine-runner` = project
             ),
             mainClass = Some("org.enso.runner.Main"),
             initializeAtRuntime = Seq(
-              "org.jline.nativ.JLineLibrary",
-              "org.jline.terminal.impl.jna",
-              "io.methvin.watchservice.jna.CarbonAPI",
-              "zio.internal.ZScheduler$$anon$4",
-              "org.enso.runner.Main$",
+              "org.apache",
+              "org.openxmlformats",
+              "org.jline",
+              "io.methvin.watchservice",
+              "zio.internal",
+              "org.enso.runner",
               "sun.awt",
               "sun.java2d",
               "sun.font",
               "java.awt",
               "com.sun.imageio",
-              "com.sun.jna.internal.Cleaner",
-              "com.sun.jna.Structure$FFIType",
-              "akka.http"
+              "com.sun.jna",
+              "com.microsoft",
+              "akka.http",
+              "org.enso.base",
+              "org.enso.image",
+              "org.enso.table"
             )
           )
       }
