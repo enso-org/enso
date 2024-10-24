@@ -1,5 +1,14 @@
 import * as map from 'lib0/map'
-import type { AstId, Module, NodeChild, Owned, OwnedRefs, TextElement, TextToken } from '.'
+import type {
+  AstId,
+  FunctionFields,
+  Module,
+  NodeChild,
+  Owned,
+  OwnedRefs,
+  TextElement,
+  TextToken,
+} from '.'
 import {
   Token,
   asOwned,
@@ -166,12 +175,20 @@ class Abstractor {
         break
       }
       case RawAst.Tree.Type.Function: {
-        const name = this.abstractTree(tree.name)
+        const annotationLines = Array.from(tree.annotationLines, anno => ({
+          annotation: {
+            operator: this.abstractToken(anno.annotation.operator),
+            annotation: this.abstractToken(anno.annotation.annotation),
+            argument: anno.annotation.argument && this.abstractTree(anno.annotation.argument),
+          },
+          newlines: Array.from(anno.newlines, this.abstractToken.bind(this)),
+        }))
         const signatureLine = tree.signatureLine && {
           signature: this.abstractTypeSignature(tree.signatureLine.signature),
           newlines: Array.from(tree.signatureLine.newlines, this.abstractToken.bind(this)),
         }
         const private_ = tree.private && this.abstractToken(tree.private)
+        const name = this.abstractTree(tree.name)
         const argumentDefinitions = Array.from(tree.args, arg => ({
           open: arg.open && this.abstractToken(arg.open),
           open2: arg.open2 && this.abstractToken(arg.open2),
@@ -190,15 +207,15 @@ class Abstractor {
         }))
         const equals = this.abstractToken(tree.equals)
         const body = tree.body !== undefined ? this.abstractTree(tree.body) : undefined
-        node = Function.concrete(
-          this.module,
+        node = Function.concrete(this.module, {
+          annotationLines,
           signatureLine,
           private_,
           name,
           argumentDefinitions,
           equals,
           body,
-        )
+        } satisfies FunctionFields<OwnedRefs>)
         break
       }
       case RawAst.Tree.Type.Ident: {
