@@ -69,7 +69,7 @@ public class SerdeCompilerTest {
                 futures.add(future);
                 return null;
               });
-      futures.add(compiler.compile(false, true));
+      futures.add(compiler.compile(false, true, true));
       for (var f : futures) {
         var persisted = f.get(10, TimeUnit.SECONDS);
         assertEquals("Fib_Test library has been fully persisted", true, persisted);
