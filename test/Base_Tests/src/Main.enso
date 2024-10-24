@@ -78,6 +78,7 @@ import project.Runtime.Missing_Required_Arguments_Spec
 import project.Runtime.Ref_Spec
 import project.Runtime.State_Spec
 import project.Runtime.Stack_Traces_Spec
+import project.Runtime.Stack_Size_Spec
 
 import project.System.Environment_Spec
 import project.System.File_Spec
@@ -160,6 +161,7 @@ main filter=Nothing =
         Missing_Required_Arguments_Spec.add_specs suite_builder
         Lazy_Generator_Spec.add_specs suite_builder
         Stack_Traces_Spec.add_specs suite_builder
+        Stack_Size_Spec.add_specs suite_builder
         Text_Spec.add_specs suite_builder
         Time_Spec.add_specs suite_builder
         URI_Spec.add_specs suite_builder

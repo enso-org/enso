@@ -509,6 +509,7 @@ type Missing_Argument
         Error.throw (Missing_Argument.Error argument_name function_name call_location)
 
 ## Warning when additional warnings occurred.
+@Builtin_Type
 type Additional_Warnings
     ## PRIVATE
     Error (count:Integer)

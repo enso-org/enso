@@ -71,7 +71,7 @@ type Vector a
 
              Vector.new my_vec.length (ix -> my_vec.at ix)
     new : Integer -> (Integer -> Any) -> Vector Any
-    new length constructor = Array_Like_Helpers.vector_from_function length constructor
+    new length constructor = Array_Like_Helpers.vector_from_function length constructor Problem_Behavior.Report_Error
 
     ## PRIVATE
        ADVANCED
@@ -700,7 +700,7 @@ type Vector a
              [1, 2, 3] . map +1
     map : (Any -> Any) -> Problem_Behavior | No_Wrap -> Vector Any
     map self function on_problems:(Problem_Behavior | No_Wrap)=..Report_Error =
-        Array_Like_Helpers.map self function on_problems
+        @Tail_Call Array_Like_Helpers.map self function on_problems
 
     ## ICON union
        Applies a function to each element of the vector, returning the `Vector`
@@ -1548,6 +1548,7 @@ type Map_Error
 
 ## PRIVATE
    Indicates that a method should not wrap thrown errors in `Map_Error`.
+@Builtin_Type
 type No_Wrap
 
 ## PRIVATE
