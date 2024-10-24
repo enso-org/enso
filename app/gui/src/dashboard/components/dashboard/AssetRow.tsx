@@ -35,6 +35,7 @@ import {
   backendMutationOptions,
   backendQueryOptions,
   useBackendMutationState,
+  useUploadFiles,
 } from '#/hooks/backendHooks'
 import { createGetProjectDetailsQuery } from '#/hooks/projectHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
@@ -194,6 +195,7 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
 
   const toastAndLog = useToastAndLog()
 
+  const uploadFiles = useUploadFiles(backend, category)
   const createPermissionMutation = useMutation(backendMutationOptions(backend, 'createPermission'))
   const associateTagMutation = useMutation(backendMutationOptions(backend, 'associateTag'))
 
@@ -726,12 +728,7 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
                       event.preventDefault()
                       event.stopPropagation()
                       doToggleDirectoryExpansion(directoryId, directoryKey, true)
-                      dispatchAssetListEvent({
-                        type: AssetListEventType.uploadFiles,
-                        parentKey: directoryKey,
-                        parentId: directoryId,
-                        files: Array.from(event.dataTransfer.files),
-                      })
+                      void uploadFiles(Array.from(event.dataTransfer.files), directoryId, null)
                     }
                   }
                 }}

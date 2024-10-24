@@ -240,9 +240,11 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
           <GlobalContextMenu
             hidden={hidden}
             backend={backend}
+            category={category}
             rootDirectoryId={rootDirectoryId}
             directoryKey={null}
             directoryId={null}
+            path={null}
             doPaste={doPaste}
           />
         )}
