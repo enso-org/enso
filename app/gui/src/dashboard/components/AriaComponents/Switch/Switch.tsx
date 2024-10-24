@@ -58,7 +58,6 @@ export const SWITCH_STYLES = tv({
 })
 
 /** A switch allows a user to turn a setting on or off. */
-// eslint-disable-next-line no-restricted-syntax
 export const Switch = forwardRef(function Switch<
   Schema extends TSchema,
   TFieldName extends FieldPath<Schema>,

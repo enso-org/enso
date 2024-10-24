@@ -16,7 +16,7 @@ import type * as projectManagement from '@/projectManagement'
 // esbuild, we have to manually use "require". Switch this to an import once new electron version
 // actually honours ".mjs" files for sandboxed preloading (this will likely become an error at that time).
 // https://www.electronjs.org/fr/docs/latest/tutorial/esm#sandboxed-preload-scripts-cant-use-esm-imports
-// eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-var-requires, @typescript-eslint/no-require-imports
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const electron = require('electron')
 
 // =================

@@ -59,7 +59,6 @@ export function bundlerOptions(
       'process.env.ELECTRON_DEV_MODE': JSON.stringify(String(devMode)),
       'process.env.GUI_CONFIG_PATH': JSON.stringify(path.resolve('../../gui/vite.config.ts')),
     },
-    /* eslint-enable @typescript-eslint/naming-convention */
     sourcemap: 'linked',
     external: ['electron', 'vite', 'lightningcss'],
   }

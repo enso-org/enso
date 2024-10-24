@@ -202,7 +202,6 @@ export const Text = forwardRef(function Text(props: TextProps, ref: React.Ref<HT
       {tooltip}
     </textProvider.TextProvider>
   )
-  // eslint-disable-next-line no-restricted-syntax
 }) as unknown as React.FC<React.RefAttributes<HTMLSpanElement> & TextProps> & {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   Heading: typeof Heading

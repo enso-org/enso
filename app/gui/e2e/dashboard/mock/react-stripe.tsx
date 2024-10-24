@@ -11,7 +11,6 @@ import { createContext, useContext, useEffect, useState } from 'react'
 /** */
 type ElementsContextValue = Parameters<Parameters<typeof StripeElementConsumer>[0]['children']>[0]
 
-// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 const ElementsContext = createContext<ElementsContextValue>(null!)
 
 /** Elements provider for Stripe. */
@@ -19,7 +18,6 @@ export function Elements(...[props]: Parameters<typeof StripeElements>) {
   const { stripe: stripeRaw, children } = props
   const [stripe, setStripe] = useState(stripeRaw && 'then' in stripeRaw ? null : stripeRaw)
   const [elements] = useState(() => {
-    // eslint-disable-next-line no-restricted-syntax
     return {
       getElement: (type) => {
         switch (type) {
@@ -27,7 +25,6 @@ export function Elements(...[props]: Parameters<typeof StripeElements>) {
             return CardElement
           }
           default: {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any, no-restricted-syntax, @typescript-eslint/no-unsafe-return
             return (<></>) as any
           }
         }
@@ -54,7 +51,6 @@ export function Elements(...[props]: Parameters<typeof StripeElements>) {
   return (
     stripe && (
       <ElementsContext.Provider
-        // eslint-disable-next-line no-restricted-syntax
         value={{
           stripe,
           elements,
@@ -86,17 +82,13 @@ export function CardElement(props: CardElementProps) {
       mount: () => {},
       unmount: () => {},
       update: () => {},
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       on: () => null!,
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       off: () => null!,
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       once: () => null!,
     })
   }, [onReady])
 
   useEffect(() => {
-    // eslint-disable-next-line no-restricted-syntax
     onChange({
       elementType: 'card',
       empty: false,
@@ -110,12 +102,10 @@ export function CardElement(props: CardElementProps) {
   return <></>
 }
 
-// eslint-disable-next-line no-restricted-syntax
 export const useStripe = () => ({
   confirmCardSetup: () => {},
 })
 
-// eslint-disable-next-line no-restricted-syntax
 export const useElements = () => ({
   getElement: () => {},
 })

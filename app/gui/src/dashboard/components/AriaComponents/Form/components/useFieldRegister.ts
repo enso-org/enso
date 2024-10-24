@@ -77,17 +77,13 @@ function unsafe__extractValidationDetailsFromSchema<
         const max: number | null = fieldShape.maxLength
         const required = min != null && min > 0
 
-        // eslint-disable-next-line no-restricted-syntax
         return { required, min, max } as const
       }
 
-      // eslint-disable-next-line no-restricted-syntax
       return null
     }
-    // eslint-disable-next-line no-restricted-syntax
     return null
   } catch {
-    // eslint-disable-next-line no-restricted-syntax
     return null
   }
 }

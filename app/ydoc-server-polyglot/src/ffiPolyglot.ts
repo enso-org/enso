@@ -5,7 +5,6 @@
  * @module ffiPolyglot
  */
 
-/* eslint-disable camelcase */
 export const {
   is_ident_or_operator,
   is_numeric_literal,

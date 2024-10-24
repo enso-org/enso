@@ -17,7 +17,6 @@ test.test('extra columns should stick to right side of assets table', ({ page })
         ) {
           scrollableParent = scrollableParent.parentElement
         }
-        // eslint-disable-next-line @typescript-eslint/no-magic-numbers
         scrollableParent?.scrollTo({ left: 999999, behavior: 'instant' })
       })
     })
@@ -42,7 +41,6 @@ test.test('extra columns should stick to top of scroll container', async ({ page
   await actions.mockAllAndLogin({
     page,
     setupAPI: (api) => {
-      // eslint-disable-next-line @typescript-eslint/no-magic-numbers
       for (let i = 0; i < 100; i += 1) {
         api.addFile('a')
       }
@@ -57,7 +55,6 @@ test.test('extra columns should stick to top of scroll container', async ({ page
     ) {
       scrollableParent = scrollableParent.parentElement
     }
-    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
     scrollableParent?.scrollTo({ top: 999999, behavior: 'instant' })
   })
   const extraColumns = actions.locateExtraColumns(page)
@@ -90,6 +87,7 @@ test.test('can drop onto root directory dropzone', ({ page }) =>
     .driveTable.doubleClickRow(0)
     .driveTable.withRows(async (rows, nonAssetRows) => {
       const parentLeft = await actions.getAssetRowLeftPx(rows.nth(0))
+      await test.expect(nonAssetRows.nth(0)).toHaveText(actions.TEXT.thisFolderIsEmpty)
       const childLeft = await actions.getAssetRowLeftPx(nonAssetRows.nth(0))
       test.expect(childLeft, 'Child is indented further than parent').toBeGreaterThan(parentLeft)
     })

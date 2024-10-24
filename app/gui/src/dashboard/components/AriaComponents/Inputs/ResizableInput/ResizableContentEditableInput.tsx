@@ -54,7 +54,6 @@ export interface ResizableContentEditableInputProps<
    * This is different from the onChange event of a normal input element.
    * So the component is not a ***fully*** controlled component.
    */
-  // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
   readonly placeholder?: string
 }
 

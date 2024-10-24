@@ -59,9 +59,9 @@ type Data_Formatter
        - time_formats: Expected time formats.
        - true_values: Values representing True.
        - false_values: Values representing False.
-    @datetime_formats (make_vector_widget make_date_time_format_selector)
-    @date_formats (make_vector_widget make_date_format_selector)
-    @time_formats (make_vector_widget make_time_format_selector)
+    @datetime_formats make_vector_widget make_date_time_format_selector
+    @date_formats make_vector_widget make_date_format_selector
+    @time_formats make_vector_widget make_time_format_selector
     Value trim_values:Boolean=True allow_leading_zeros:Boolean=False decimal_point:Text|Auto=Auto thousand_separator:Text='' allow_exponential_notation:Boolean=False datetime_formats:(Vector Date_Time_Formatter)=[Date_Time_Formatter.default_enso_zoned_date_time] date_formats:(Vector Date_Time_Formatter)=[Date_Time_Formatter.iso_date] time_formats:(Vector Text)=[Date_Time_Formatter.iso_time] true_values:(Vector Text)=["True","true","TRUE"] false_values:(Vector Text)=["False","false","FALSE"]
 
     ## PRIVATE
@@ -120,9 +120,9 @@ type Data_Formatter
        - datetime_formats: Expected datetime formats.
        - date_formats: Expected date formats.
        - time_formats: Expected time formats.
-    @datetime_formats (make_vector_widget make_date_time_format_selector)
-    @date_formats (make_vector_widget make_date_format_selector)
-    @time_formats (make_vector_widget make_time_format_selector)
+    @datetime_formats make_vector_widget make_date_time_format_selector
+    @date_formats make_vector_widget make_date_format_selector
+    @time_formats make_vector_widget make_time_format_selector
     with_datetime_formats : (Vector Date_Time_Formatter | Date_Time_Formatter) -> (Vector Date_Time_Formatter | Date_Time_Formatter) -> (Vector Date_Time_Formatter | Date_Time_Formatter) -> Data_Formatter
     with_datetime_formats self datetime_formats:(Vector | Date_Time_Formatter)=self.datetime_formats date_formats:(Vector | Date_Time_Formatter)=self.date_formats time_formats:(Vector | Date_Time_Formatter)=self.time_formats =
         convert_formats formats =

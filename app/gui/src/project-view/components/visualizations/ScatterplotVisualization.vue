@@ -163,14 +163,12 @@ const data = computed<Data>(() => {
       rawData.map((y, index) => ({ x: index, y, row_number: index }))
     : rawData.data ?? []
   let data: Point[]
-  // eslint-disable-next-line camelcase
   const isTimeSeries: boolean =
     'x_value_type' in rawData ?
       rawData.x_value_type === 'Time' ||
       rawData.x_value_type === 'Date' ||
       rawData.x_value_type === 'Date_Time'
     : false
-  // eslint-disable-next-line camelcase
   if (isTimeSeries) {
     data = unfilteredData
       .filter((point) => typeof point.y === 'number' && !Number.isNaN(point.y))
