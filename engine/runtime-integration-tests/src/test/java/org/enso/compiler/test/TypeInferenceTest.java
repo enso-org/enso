@@ -1318,6 +1318,80 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     assertAtomType("local.Project1.modB.Typ_Y", findAssignment(foo, "x2"));
   }
 
+  @Test
+  public void callingReexportedExtensionMethods() throws Exception {
+    // Base type definition
+    final URI uriA = new URI("memory://local.Project1.modA.enso");
+    final Source srcA =
+        Source.newBuilder(
+                "enso",
+                """
+                    type My_Type
+                        Value v
+                    """,
+                uriA.getAuthority())
+            .uri(uriA)
+            .buildLiteral();
+    compile(srcA);
+
+    // Extension methods defined in another module
+    final URI uriB = new URI("memory://local.Project1.modB.enso");
+    final Source srcB =
+        Source.newBuilder(
+                "enso",
+                """
+                    import local.Project1.modA.My_Type
+
+                    type Typ_X
+                        Value a
+                    type Typ_Y
+                        Value a
+
+                    My_Type.member self -> Typ_X = Typ_X.Value self
+                    My_Type.static -> Typ_Y = Typ_Y.Value 32
+                    """,
+                uriB.getAuthority())
+            .uri(uriB)
+            .buildLiteral();
+    compile(srcB);
+
+    // Re-exports of the type and the extension method
+    final URI uriC = new URI("memory://local.Project1.modC.enso");
+    final Source srcC =
+        Source.newBuilder(
+                "enso",
+                """
+                    export local.Project1.modA.My_Type
+                    export local.Project1.modB.member
+                    """,
+                uriC.getAuthority())
+            .uri(uriC)
+            .buildLiteral();
+    compile(srcC);
+
+    final URI uriD = new URI("memory://local.Project1.modD.enso");
+    final Source srcD =
+        Source.newBuilder(
+                "enso",
+                """
+                    from local.Project1.modC import all
+
+                    foo =
+                        inst = My_Type.Value 23
+                        x1 = inst.member
+                        x2 = My_Type.static
+                        [x1, x2]
+                    """,
+                uriD.getAuthority())
+            .uri(uriD)
+            .buildLiteral();
+    var modD = compile(srcD);
+    var foo = findStaticMethod(modD, "foo");
+
+    assertAtomType("local.Project1.modB.Typ_X", findAssignment(foo, "x1"));
+    assertAtomType("local.Project1.modB.Typ_Y", findAssignment(foo, "x2"));
+  }
+
   private TypeRepresentation getInferredType(IR ir) {
     var option = getInferredTypeOption(ir);
     assertTrue(
