@@ -16,9 +16,7 @@ export function useIntersectionRatio<T>(
   threshold: number[] | number,
   // Undefined MUST be excluded due to how the fallback value works when a `transform` function
   // is not passed in.
-  // eslint-disable-next-line no-restricted-syntax
   transform: (ratio: number) => Exclude<T, undefined>,
-  // eslint-disable-next-line no-restricted-syntax
   initialValue: Exclude<T, undefined>,
 ): T
 /**

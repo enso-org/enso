@@ -342,8 +342,6 @@ export function prefixInBundle(bundlePath: string): string | null {
     },
   })
 
-  // ESLint doesn't know that `commonPrefix` can be not `null` here due to the `onentry` callback.
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   return commonPrefix != null && commonPrefix !== '' ? commonPrefix : null
 }
 
@@ -381,7 +379,6 @@ export function getProjectRoot(subtreePath: string): string | null {
   while (!isProjectRoot(currentPath)) {
     const parent = pathModule.dirname(currentPath)
     if (parent === currentPath) {
-      // eslint-disable-next-line no-restricted-syntax
       return null
     }
     currentPath = parent

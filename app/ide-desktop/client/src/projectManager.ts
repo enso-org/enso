@@ -9,8 +9,6 @@ import * as contentConfig from '@/contentConfig'
 import type * as config from '@/config'
 
 const logger = contentConfig.logger
-// This is a wrapped function, so it should be `camelCase`.
-// eslint-disable-next-line no-restricted-syntax
 const execFile = util.promisify(childProcess.execFile)
 
 // =======================

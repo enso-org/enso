@@ -61,6 +61,10 @@ class DropDownLocator {
   }
 }
 
+const CHOOSE_CLOUD_FILE = 'Choose file from cloud...'
+const CHOOSE_LOCAL_FILE = 'Choose file…'
+const CHOOSE_FILE_OPTIONS = [CHOOSE_CLOUD_FILE, CHOOSE_LOCAL_FILE]
+
 test('Widget in plain AST', async ({ page }) => {
   await actions.goToGraph(page)
   const numberNode = locate.graphNodeByBinding(page, 'five')
@@ -249,7 +253,7 @@ test('Selection widgets in Data.read node', async ({ page }) => {
   const pathArg = topLevelArgs.filter({ has: page.getByText('path') })
   await pathArg.click()
   const pathDropdown = new DropDownLocator(pathArg)
-  await pathDropdown.expectVisibleWithOptions(['Choose file…', 'File 1', 'File 2'])
+  await pathDropdown.expectVisibleWithOptions([...CHOOSE_FILE_OPTIONS, 'File 1', 'File 2'])
   await pathDropdown.clickOption('File 2')
   await expect(pathArg.locator('.WidgetText > input')).toHaveValue('File 2')
 
@@ -263,7 +267,7 @@ test('Selection widgets in Data.read node', async ({ page }) => {
     notAppliedArguments: [1],
   })
   await page.getByText('path').click()
-  await pathDropdown.expectVisibleWithOptions(['Choose file…', 'File 1', 'File 2'])
+  await pathDropdown.expectVisibleWithOptions([...CHOOSE_FILE_OPTIONS, 'File 1', 'File 2'])
   await pathDropdown.clickOption('File 1')
   await expect(pathArg.locator('.WidgetText > input')).toHaveValue('File 1')
 })
@@ -283,7 +287,7 @@ test('Selection widget with text widget as input', async ({ page }) => {
 
   // Editing text input shows and filters drop down
   await pathArgInput.click()
-  await pathDropdown.expectVisibleWithOptions(['Choose file…', 'File 1', 'File 2'])
+  await pathDropdown.expectVisibleWithOptions([...CHOOSE_FILE_OPTIONS, 'File 1', 'File 2'])
   await page.keyboard.insertText('File 1')
   await pathDropdown.expectVisibleWithOptions(['File 1'])
   // Clearing input should show all text literal options
@@ -298,7 +302,7 @@ test('Selection widget with text widget as input', async ({ page }) => {
 
   // Choosing entry should finish editing
   await pathArgInput.click()
-  await pathDropdown.expectVisibleWithOptions(['Choose file…', 'File 1', 'File 2'])
+  await pathDropdown.expectVisibleWithOptions([...CHOOSE_FILE_OPTIONS, 'File 1', 'File 2'])
   await page.keyboard.insertText('File')
   await pathDropdown.expectVisibleWithOptions(['File 1', 'File 2'])
   await pathDropdown.clickOption('File 1')
@@ -308,7 +312,7 @@ test('Selection widget with text widget as input', async ({ page }) => {
 
   // Clicking-off and pressing enter should accept text as-is
   await pathArgInput.click()
-  await pathDropdown.expectVisibleWithOptions(['Choose file…', 'File 1', 'File 2'])
+  await pathDropdown.expectVisibleWithOptions([...CHOOSE_FILE_OPTIONS, 'File 1', 'File 2'])
   await page.keyboard.insertText('File')
   await page.keyboard.press('Enter')
   await expect(pathArgInput).not.toBeFocused()
@@ -316,7 +320,7 @@ test('Selection widget with text widget as input', async ({ page }) => {
   await expect(pathDropdown.dropDown).not.toBeVisible()
 
   await pathArgInput.click()
-  await pathDropdown.expectVisibleWithOptions(['Choose file…', 'File 1', 'File 2'])
+  await pathDropdown.expectVisibleWithOptions([...CHOOSE_FILE_OPTIONS, 'File 1', 'File 2'])
   await page.keyboard.insertText('Foo')
   await expect(pathArgInput).toHaveValue('Foo')
   await actions.clickAtBackground(page)
@@ -342,8 +346,8 @@ test('File Browser widget', async ({ page }) => {
   const pathArg = topLevelArgs.filter({ has: page.getByText('path') })
   const pathDropdown = new DropDownLocator(pathArg)
   await pathArg.click()
-  await pathDropdown.expectVisibleWithOptions(['Choose file…', 'File 1', 'File 2'])
-  await pathDropdown.clickOption('Choose file…')
+  await pathDropdown.expectVisibleWithOptions([...CHOOSE_FILE_OPTIONS, 'File 1', 'File 2'])
+  await pathDropdown.clickOption(CHOOSE_LOCAL_FILE)
   await expect(pathArg.locator('.WidgetText > input')).toHaveValue('/path/to/some/mock/file')
 })
 

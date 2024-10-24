@@ -12,7 +12,7 @@ import * as aria from '#/components/aria'
  * used in the component.
  */
 // This is not a React component, even though it contains JSX.
-// eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-explicit-any
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function withFocusScope<ComponentType extends (props: any) => React.ReactNode>(
   // eslint-disable-next-line @typescript-eslint/naming-convention
   Child: ComponentType,

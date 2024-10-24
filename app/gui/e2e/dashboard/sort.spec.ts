@@ -5,8 +5,6 @@ import * as dateTime from '#/utilities/dateTime'
 
 import * as actions from './actions'
 
-/* eslint-disable @typescript-eslint/no-magic-numbers */
-
 // =================
 // === Constants ===
 // =================

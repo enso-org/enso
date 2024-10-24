@@ -20,7 +20,6 @@ export const INDENT_SIZE = 4
  * @throws {Error} If the environment variable is not set. */
 export function requireEnv(name) {
   const value = process.env[name]
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (value == null) {
     throw new Error(`Could not find the environment variable '${name}'.`)
   } else {

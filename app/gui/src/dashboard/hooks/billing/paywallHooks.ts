@@ -14,7 +14,6 @@ import * as paywallFeatures from './paywallFeaturesHooks'
 
 /** Props for the {@link usePaywall} hook. */
 export interface UsePaywallProps {
-  // eslint-disable-next-line no-restricted-syntax
   readonly plan?: backend.Plan | undefined
 }
 

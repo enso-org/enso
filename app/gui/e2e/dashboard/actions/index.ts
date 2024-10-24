@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-redeclare */
 /** @file Various actions, locators, and constants used in end-to-end tests. */
 import * as test from '@playwright/test'
 
@@ -7,8 +6,6 @@ import { TEXTS } from 'enso-common/src/text'
 import * as apiModule from '../api'
 import DrivePageActions from './DrivePageActions'
 import LoginPageActions from './LoginPageActions'
-
-/* eslint-disable @typescript-eslint/no-namespace */
 
 // =================
 // === Constants ===
@@ -119,7 +116,6 @@ export function locateLabelsPanelLabels(page: test.Page, name?: string) {
       .getByRole('button')
       .filter(name != null ? { has: page.getByText(name) } : {})
       // The delete button is also a `button`.
-      // eslint-disable-next-line no-restricted-properties
       .and(page.locator(':nth-child(1)'))
   )
 }
@@ -321,7 +317,6 @@ export function locateAssetName(locator: test.Locator) {
  */
 export function locateExpandableDirectories(page: test.Page) {
   // The icon is hidden when not hovered so `getByLabel` will not work.
-  // eslint-disable-next-line no-restricted-properties
   return locateAssetRows(page).filter({ has: page.locator('[aria-label=Expand]') })
 }
 
@@ -331,7 +326,6 @@ export function locateExpandableDirectories(page: test.Page) {
  */
 export function locateCollapsibleDirectories(page: test.Page) {
   // The icon is hidden when not hovered so `getByLabel` will not work.
-  // eslint-disable-next-line no-restricted-properties
   return locateAssetRows(page).filter({ has: page.locator('[aria-label=Collapse]') })
 }
 
@@ -534,7 +528,6 @@ export namespace settings {
     }
 
     /** Find an "email" input in the "organization" settings section. */
-    // eslint-disable-next-line @typescript-eslint/no-shadow
     export function locateEmailInput(page: test.Page) {
       return locate(page).getByLabel('Email')
     }
@@ -723,8 +716,6 @@ export async function press(page: test.Page, keyOrShortcut: string) {
 // ===============================
 
 /** Perform a successful login. */
-// This syntax is required for Playwright to work properly.
-// eslint-disable-next-line no-restricted-syntax
 export async function login(
   { page, setupAPI }: MockParams,
   email = 'email@example.com',
@@ -744,8 +735,6 @@ export async function login(
 }
 
 /** Reload. */
-// This syntax is required for Playwright to work properly.
-// eslint-disable-next-line no-restricted-syntax
 export async function reload({ page }: MockParams) {
   await test.test.step('Reload', async () => {
     await page.reload()
@@ -754,8 +743,6 @@ export async function reload({ page }: MockParams) {
 }
 
 /** Logout and then login again. */
-// This syntax is required for Playwright to work properly.
-// eslint-disable-next-line no-restricted-syntax
 export async function relog(
   { page, setupAPI }: MockParams,
   email = 'email@example.com',
@@ -781,8 +768,6 @@ interface MockParams {
 }
 
 /** Replace `Date` with a version that returns a fixed time. */
-// This syntax is required for Playwright to work properly.
-// eslint-disable-next-line no-restricted-syntax
 async function mockDate({ page }: MockParams) {
   // https://github.com/microsoft/playwright/issues/6347#issuecomment-1085850728
   await test.test.step('Mock Date', async () => {
@@ -819,13 +804,9 @@ export async function passAgreementsDialog({ page }: MockParams) {
   })
 }
 
-// This is a function, even though it does not use function syntax.
-// eslint-disable-next-line no-restricted-syntax
 export const mockApi = apiModule.mockApi
 
 /** Set up all mocks, without logging in. */
-// This syntax is required for Playwright to work properly.
-// eslint-disable-next-line no-restricted-syntax
 export function mockAll({ page, setupAPI }: MockParams) {
   return new LoginPageActions(page).step('Execute all mocks', async () => {
     await mockApi({ page, setupAPI })
@@ -835,8 +816,6 @@ export function mockAll({ page, setupAPI }: MockParams) {
 }
 
 /** Set up all mocks, and log in with dummy credentials. */
-// This syntax is required for Playwright to work properly.
-// eslint-disable-next-line no-restricted-syntax
 export function mockAllAndLogin({ page, setupAPI }: MockParams) {
   return new DrivePageActions(page)
     .step('Execute all mocks', async () => {
@@ -851,8 +830,6 @@ export function mockAllAndLogin({ page, setupAPI }: MockParams) {
  * Set up all mocks, and log in with dummy credentials.
  * @deprecated Prefer {@link mockAllAndLogin}.
  */
-// This syntax is required for Playwright to work properly.
-// eslint-disable-next-line no-restricted-syntax
 export async function mockAllAndLoginAndExposeAPI({ page, setupAPI }: MockParams) {
   return await test.test.step('Execute all mocks and login', async () => {
     const api = await mockApi({ page, setupAPI })

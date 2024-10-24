@@ -12,7 +12,6 @@ import * as components from './components'
 import * as paywallDialog from './PaywallDialog'
 
 /** Props for a {@link PaywallDialogButton}. */
-// eslint-disable-next-line no-restricted-syntax
 export type PaywallDialogButtonProps = components.PaywallButtonProps & {
   readonly dialogProps?: paywallDialog.PaywallDialogProps
   readonly dialogTriggerProps?: ariaComponents.DialogTriggerProps

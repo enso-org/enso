@@ -309,7 +309,7 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
             pub base: Option<Base>
         },
         NumberBase,
-        Private,
+        PrivateKeyword,
         TypeKeyword,
         ForeignKeyword,
         AllKeyword,
@@ -461,6 +461,17 @@ macro_rules! generate_token_aliases {
             impl<'s> From<Token<'s, variant::$variant>> for Token<'s, Variant> {
                 fn from(token: Token<'s, variant::$variant>) -> Self {
                     token.map_variant(|t| t.into())
+                }
+            }
+
+            impl<'s> TryFrom<Token<'s, Variant>> for Token<'s, variant::$variant> {
+                type Error = ();
+
+                fn try_from(value: Token<'s, Variant>) -> Result<Self, Self::Error> {
+                    match value.variant.try_into() {
+                        Ok(variant) => Ok(value.with_variant(variant)),
+                        Err(_) => Err(()),
+                    }
                 }
             }
         )*
