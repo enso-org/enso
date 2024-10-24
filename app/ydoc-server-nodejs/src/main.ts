@@ -17,7 +17,6 @@ async function runServer() {
   const server = http.createServer()
   server.on('request', (request, response) => {
     if (request.method === 'GET' && request.url === '/_health') {
-      // eslint-disable-next-line @typescript-eslint/no-magic-numbers, @typescript-eslint/naming-convention
       response.writeHead(200, { 'Content-Type': 'text/plain; charset=UTF-8' }).end('OK')
     }
   })

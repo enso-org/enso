@@ -27,7 +27,7 @@ import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
 import { lazy } from 'react'
 
 const LazyQRCode = lazy(() =>
-  // eslint-disable-next-line @typescript-eslint/naming-convention,@typescript-eslint/no-unsafe-assignment
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   import('qrcode.react').then(({ QRCodeCanvas }) => ({ default: QRCodeCanvas })),
 )
 

@@ -5,12 +5,10 @@ import * as backend from '#/services/Backend'
 
 import * as actions from './actions'
 
-// eslint-disable-next-line @typescript-eslint/no-magic-numbers
 export const ASSET_ROW_SAFE_POSITION = { x: 300, y: 16 }
 
 /** Click an asset row. The center must not be clicked as that is the button for adding a label. */
 export async function clickAssetRow(assetRow: test.Locator) {
-  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
   await assetRow.click({ position: ASSET_ROW_SAFE_POSITION })
 }
 

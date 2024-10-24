@@ -3,7 +3,6 @@ import Standard.Base.Errors.Empty_Error.Empty_Error
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Common.Not_Found
 import Standard.Base.Errors.Common.Type_Error
-import Standard.Base.Errors.Common.Unsupported_Argument_Types
 import Standard.Base.Runtime.State
 
 from Standard.Test import all
@@ -169,7 +168,7 @@ add_specs suite_builder = suite_builder.group "List" group_builder->
         txt.filter (..Less than="a") . should_equal List.Nil
         txt.filter (..Greater than="b") . should_equal ["bbb", "cccc", "baaa", "ś"].to_list
         txt.filter (..Between "b" "c") . should_equal ["bbb", "baaa"].to_list
-        Test.expect_panic_with (txt.filter (..Starts_With 42)) Unsupported_Argument_Types
+        Test.expect_panic Type_Error (txt.filter (..Starts_With 42))
 
         ["", Nothing, " ", "a"].to_list.filter (..Is_Empty) . should_equal ["", Nothing].to_list
         ["", Nothing, " ", "a"].to_list.filter (..Not_Empty) . should_equal [" ", "a"].to_list
@@ -293,4 +292,3 @@ main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
     suite.run_with_filter filter
-

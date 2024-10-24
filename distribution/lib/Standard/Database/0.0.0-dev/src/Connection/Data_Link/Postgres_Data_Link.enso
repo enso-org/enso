@@ -9,17 +9,13 @@ from Standard.Base.Enso_Cloud.Public_Utils import get_optional_field, get_requir
 import project.Connection.Connection_Options.Connection_Options
 import project.Connection.Credentials.Credentials
 import project.Connection.Postgres.Postgres
+import project.Internal.Data_Link_Setup.DB_Data_Link_Type
 import project.Internal.DB_Data_Link_Helpers
 
 ## PRIVATE
 type Postgres_Data_Link
     ## PRIVATE
-       A data-link returning a connection to the specified database.
-    Connection details:Postgres source:Data_Link_Source_Metadata
-
-    ## PRIVATE
-       A data-link returning a query to a specific table within a database.
-    Table name:Text details:Postgres source:Data_Link_Source_Metadata
+    Value details:Postgres source:Data_Link_Source_Metadata link_type:DB_Data_Link_Type
 
     ## PRIVATE
     parse json source:Data_Link_Source_Metadata -> Postgres_Data_Link =
@@ -35,11 +31,8 @@ type Postgres_Data_Link
             Credentials.Username_And_Password username password
 
         details = Postgres.Server host=host port=port database=db_name schema=schema credentials=credentials
-        case get_optional_field "table" json expected_type=Text of
-            Nothing ->
-                Postgres_Data_Link.Connection details source
-            table_name : Text ->
-                Postgres_Data_Link.Table table_name details source
+        link_type = DB_Data_Link_Type.from_js (get_optional_field "table" json)
+        Postgres_Data_Link.Value details source link_type
 
     ## PRIVATE
     read self (format = Auto_Detect) (on_problems : Problem_Behavior) =
@@ -47,7 +40,4 @@ type Postgres_Data_Link
         if format != Auto_Detect then Error.throw (Illegal_Argument.Error "Only Auto_Detect can be used with a Postgres Data Link, as it points to a database.") else
             default_options = DB_Data_Link_Helpers.data_link_connection_parameters self.source
             connection = self.details.connect default_options allow_data_links=False
-            case self of
-                Postgres_Data_Link.Connection _ _ -> connection
-                Postgres_Data_Link.Table table_name _ _ ->
-                    connection.query table_name
+            self.link_type.interpret connection

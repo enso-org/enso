@@ -38,7 +38,7 @@ type SQLServer_Connection
         ## jdbc reports table name length limit as 128, but it actually seems to be 116 for temp tables so we override it
         limited = Encoding_Limited_Naming_Properties.Instance Encoding.utf_8 limit=116 is_case_sensitive=True
         modified_entity_naming_properties = Entity_Naming_Properties.Value for_table_names=limited for_column_names=jdbc_entity_naming_properties.for_column_names for_generated_column_names=jdbc_entity_naming_properties.for_generated_column_names
-        SQLServer_Connection.Value (Connection.new jdbc_connection SQLServer_Dialect.sqlserver modified_entity_naming_properties) make_new data_link_setup
+        SQLServer_Connection.Value (Connection.new jdbc_connection SQLServer_Dialect.sqlserver modified_entity_naming_properties data_link_setup) make_new
 
     ## PRIVATE
 
@@ -47,8 +47,7 @@ type SQLServer_Connection
        Arguments:
        - connection: the underlying connection.
        - make_new: a function that returns a new connection.
-       - data_link_setup: the setup for saving the connection as a data link.
-    Value connection make_new data_link_setup
+    Value connection make_new
 
     ## ICON close
        Closes the connection releasing the underlying database resources
@@ -298,8 +297,8 @@ type SQLServer_Connection
     ## ICON data_output
        Creates a Data Link that will open the same connection.
     @on_existing_file (Existing_File_Behavior.widget include_backup=False include_append=False)
-    save_as_data_link self destination (on_existing_file:Existing_File_Behavior = Existing_File_Behavior.Error) =
-        self.data_link_setup.save_as_data_link destination on_existing_file
+    save_as_data_link self destination (on_existing_file:Existing_File_Behavior = ..Error) =
+        self.base_connection.save_as_data_link destination on_existing_file
 
     ## PRIVATE
        Converts this value to a JSON serializable object.

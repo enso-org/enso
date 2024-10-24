@@ -38,7 +38,6 @@ export function useDebouncedCallback<Fn extends (...args: never[]) => unknown>(
   return React.useMemo(() => {
     const execute = () => {
       if (!lastCallRef.current) {
-        // eslint-disable-next-line no-restricted-syntax
         return
       }
 
@@ -50,7 +49,6 @@ export function useDebouncedCallback<Fn extends (...args: never[]) => unknown>(
       clear()
     }
 
-    // eslint-disable-next-line no-restricted-syntax
     const wrapped = (...args: Parameters<Fn>) => {
       if (timeoutIdRef.current) {
         clearTimeout(timeoutIdRef.current)

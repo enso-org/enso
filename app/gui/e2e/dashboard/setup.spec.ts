@@ -68,7 +68,6 @@ test.test('setup (team plan)', ({ page }) =>
     })
     .loginAsNewUser()
     .setUsername('test user')
-    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
     .selectTeamPlan(Plan.team, 10)
     .setOrganizationName('test organization')
     .inviteUsers('foo@bar.baz bar@bar.baz, baz@example.com; other+email@org.co.uk')

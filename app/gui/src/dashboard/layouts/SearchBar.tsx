@@ -13,7 +13,6 @@ import SvgMask from '#/components/SvgMask'
 
 /** Props for a {@link SearchBar}. */
 export interface SearchBarProps {
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   readonly 'data-testid': string
   readonly query: string
   readonly setQuery: React.Dispatch<React.SetStateAction<string>>

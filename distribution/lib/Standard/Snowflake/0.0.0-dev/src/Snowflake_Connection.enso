@@ -37,7 +37,7 @@ type Snowflake_Connection
            Our generator always quotes identifiers, so we can rely on the case sensitivity.
            This is the same as in Postgres.
         entity_naming_properties = Entity_Naming_Properties.from_jdbc_connection jdbc_connection is_case_sensitive=True
-        Snowflake_Connection.Value (Connection.new jdbc_connection Snowflake_Dialect.snowflake entity_naming_properties) make_new data_link_setup
+        Snowflake_Connection.Value (Connection.new jdbc_connection Snowflake_Dialect.snowflake entity_naming_properties data_link_setup) make_new
 
     ## PRIVATE
 
@@ -46,8 +46,7 @@ type Snowflake_Connection
        Arguments:
        - connection: the underlying connection.
        - make_new: a function that returns a new connection.
-       - data_link_setup: the setup for saving the connection as a data link.
-    Value connection make_new data_link_setup
+    Value connection make_new
 
     ## ICON close
        Closes the connection releasing the underlying database resources
@@ -321,8 +320,8 @@ type Snowflake_Connection
     ## ICON data_output
        Creates a Data Link that will open the same connection.
     @on_existing_file (Existing_File_Behavior.widget include_backup=False include_append=False)
-    save_as_data_link self destination (on_existing_file:Existing_File_Behavior = Existing_File_Behavior.Error) =
-        self.data_link_setup.save_as_data_link destination on_existing_file
+    save_as_data_link self destination (on_existing_file:Existing_File_Behavior = ..Error) =
+        self.base_connection.save_as_data_link destination on_existing_file
 
     ## PRIVATE
        Converts this value to a JSON serializable object.

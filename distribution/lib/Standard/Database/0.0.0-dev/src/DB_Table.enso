@@ -53,6 +53,7 @@ import project.Internal.Base_Generator
 import project.Internal.Common.Database_Join_Helper
 import project.Internal.Common.Lookup_Query_Helper
 import project.Internal.Common.Row_Number_Helpers
+import project.Internal.DB_Data_Link_Helpers
 import project.Internal.Helpers
 import project.Internal.IR.Context.Context
 import project.Internal.IR.From_Spec.From_Spec
@@ -2745,15 +2746,25 @@ type DB_Table
 
        Some operations, like writing to tables, require their target to be a
        trivial query.
-    is_trivial_query : Boolean ! Table_Not_Found
-    is_trivial_query self =
-         trivial_counterpart = self.connection.query (SQL_Query.Table_Name self.name)
-         trivial_counterpart.if_not_error <|
-             if self.context != trivial_counterpart.context then False else
-                column_descriptor internal_column = [internal_column.name, internal_column.expression]
-                my_columns = self.internal_columns.map column_descriptor
-                trivial_columns = trivial_counterpart.internal_columns.map column_descriptor
-                my_columns == trivial_columns
+
+       Arguments:
+       - fail_if_not_found: If `True`, a `Table_Not_Found` error is raised if the
+         table does not exist in the database. Otherwise, `False` is returned.
+    is_trivial_query self (fail_if_not_found : Boolean = True) -> Boolean ! Table_Not_Found =
+        case self.context.from_spec of
+            From_Spec.Table internal_table_name _ _ ->
+                if self.name != internal_table_name then False else
+                    trivial_counterpart = self.connection.query (SQL_Query.Table_Name self.name)
+                    # If the table spec seems trivial, but the underlying table does not exist, we propagate the Table_Not_Found error.
+                    check_context_and_columns =
+                        if self.context != trivial_counterpart.context then False else
+                           column_descriptor internal_column = [internal_column.name, internal_column.expression]
+                           my_columns = self.internal_columns.map column_descriptor
+                           trivial_columns = trivial_counterpart.internal_columns.map column_descriptor
+                           my_columns == trivial_columns
+                    if fail_if_not_found then trivial_counterpart.if_not_error check_context_and_columns else
+                        if trivial_counterpart.is_error then False else check_context_and_columns
+            _ -> False
 
     ## PRIVATE
        Provides a simplified text representation for display in the REPL and errors.
@@ -2824,6 +2835,15 @@ type DB_Table
     write self path:Writable_File format=Auto_Detect on_existing_file:Existing_File_Behavior=..Backup match_columns:Match_Columns=..By_Name on_problems:Problem_Behavior=..Report_Warning =
         # TODO This should ideally be done in a streaming manner, or at least respect the row limits.
         self.read.write path format on_existing_file match_columns on_problems
+
+
+    ## GROUP Standard.Base.Output
+       ICON data_output
+       Creates a Data Link that will act as a view into the query represented by
+       this table.
+    @on_existing_file (Existing_File_Behavior.widget include_backup=False include_append=False)
+    save_as_data_link self destination (on_existing_file:Existing_File_Behavior = ..Error) =
+        DB_Data_Link_Helpers.save_table_as_data_link self destination on_existing_file
 
     ## ALIAS fill missing, if_nothing
        GROUP Standard.Base.Values

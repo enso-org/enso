@@ -8,11 +8,13 @@
   Widget][11271]
 - [Copying and pasting in Table Editor Widget now works properly][11332]
 - [Fix invisible selection in Table Input Widget][11358]
+- [Enable cloud file browser in local projects][11383]
 
 [11151]: https://github.com/enso-org/enso/pull/11151
 [11271]: https://github.com/enso-org/enso/pull/11271
 [11332]: https://github.com/enso-org/enso/pull/11332
 [11358]: https://github.com/enso-org/enso/pull/11358
+[11383]: https://github.com/enso-org/enso/pull/11383
 
 #### Enso Standard Library
 
@@ -20,9 +22,17 @@
   cloud.][11235]
 - [The user may set description and labels of an Enso Cloud asset
   programmatically.][11255]
+- [DB_Table may be saved as a Data Link.][11371]
 
 [11235]: https://github.com/enso-org/enso/pull/11235
 [11255]: https://github.com/enso-org/enso/pull/11255
+[11371]: https://github.com/enso-org/enso/pull/11371
+
+#### Enso Language & Runtime
+
+- [Arguments in constructor definitions may now be on their own lines][11374]
+
+[11374]: https://github.com/enso-org/enso/pull/11374
 
 # Enso 2024.4
 

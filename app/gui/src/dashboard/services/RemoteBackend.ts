@@ -1252,7 +1252,6 @@ export default class RemoteBackend extends Backend {
     // Prevent events from being logged in dev mode, since we are often using production environment
     // and are polluting real logs.
     if (detect.IS_DEV_MODE && process.env.ENSO_CLOUD_ENVIRONMENT === 'production') {
-      // eslint-disable-next-line no-restricted-syntax
       return
     }
 
@@ -1272,7 +1271,6 @@ export default class RemoteBackend extends Backend {
       },
     )
     if (!responseIsSuccessful(response)) {
-      // eslint-disable-next-line no-restricted-syntax
       return this.throw(response, 'logEventBackendError', message)
     }
   }
