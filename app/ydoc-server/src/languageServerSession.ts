@@ -566,6 +566,16 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
     return promise
   }
 
+  private debugLogFirstDiffPos(a: string, b: string) {
+    let i = 0;
+    if (a === b) return
+    while (a[i] === b[i]) {
+      console.log(`===[${i}]: [${a[i]}] [${b[i]}]`)
+      i++
+    }
+    console.log(`!==[${i}]: [${a[i]}] [${b[i]}]`)
+  }
+
   private syncFileContents(content: string, version: Checksum) {
     const contentsReceived = splitFileContents(content)
     let unsyncedIdMap: IdMap | undefined
@@ -595,10 +605,11 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
           if (metadataSnapshot && idMapJson) {
             const snapshotCode = ModulePersistence.decodeCodeSnapshot(metadataSnapshot)
             if (snapshotCode !== code) {
-              console.log('!!! syncFileContents snapshot !== code')
+              console.log('!!! syncFileContents snapshot !== code', snapshotCode.length, code.length)
+              this.debugLogFirstDiffPos(snapshotCode, code)
               const { root, spans } = Ast.parseModuleWithSpans(snapshotCode, syncModule)
               syncModule.syncRoot(root)
-              parsedSpans = spans
+              parsedSpans = undefined
               parsedIdMap = deserializeIdMap(idMapJson)
 
               const edit = syncModule.edit()
@@ -613,8 +624,9 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
       if (!astRoot) return
       if ((code !== this.syncedCode || idMapJson !== this.syncedIdMap) && idMapJson) {
         const spans = parsedSpans ?? Ast.print(astRoot).info
-        if (idMapJson !== this.syncedIdMap) {
-          const idMap = parsedIdMap ?? deserializeIdMap(idMapJson)
+        if (idMapJson !== this.syncedIdMap && parsedIdMap === undefined) {
+          console.log('!!! syncFileContents setting external ids')
+          const idMap = deserializeIdMap(idMapJson)
           const idsAssigned = Ast.setExternalIds(syncModule, spans, idMap)
           const numberOfAsts = astCount(astRoot)
           const idsNotSetByMap = numberOfAsts - idsAssigned
