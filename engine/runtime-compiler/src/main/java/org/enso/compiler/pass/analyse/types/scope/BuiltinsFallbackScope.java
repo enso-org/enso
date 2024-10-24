@@ -4,9 +4,10 @@ import org.enso.compiler.pass.analyse.types.BuiltinTypes;
 import org.enso.compiler.pass.analyse.types.TypeRepresentation;
 import org.enso.pkg.QualifiedName;
 
-/** This is a special scope that notes methods which are always available on Any type.
- * <p>
- * They are available even without any imports.
+/**
+ * This is a special scope that notes methods which are always available on Any type.
+ *
+ * <p>They are available even without any imports.
  */
 public class BuiltinsFallbackScope {
   private final BuiltinTypes builtinTypes;
