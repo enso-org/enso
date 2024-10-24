@@ -19,6 +19,7 @@ import project.DB_Table as DB_Table_Module
 import project.DB_Table.DB_Table
 import project.Dialect.Dialect
 import project.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties
+import project.Internal.Data_Link_Setup.Data_Link_Setup
 import project.Internal.DDL_Transaction
 import project.Internal.Hidden_Table_Registry
 import project.Internal.In_Transaction.In_Transaction
@@ -59,7 +60,9 @@ type Connection
          `False`.
        - hidden_table_registry: a registry of hidden tables that are not
          shown to the user, but are used internally by the dry-run system.
-    Value jdbc_connection dialect (entity_naming_properties : Entity_Naming_Properties) (supports_large_update : Ref Boolean) (hidden_table_registry : Hidden_Table_Registry.Hidden_Table_Registry)
+       - data_link_setup: an optional setup allowing for saving the connection
+         as a data link.
+    Value jdbc_connection dialect (entity_naming_properties : Entity_Naming_Properties) (supports_large_update : Ref Boolean) (hidden_table_registry : Hidden_Table_Registry.Hidden_Table_Registry) (data_link_setup : Data_Link_Setup | Nothing = Nothing)
 
     ## PRIVATE
        Constructs a new Connection.
@@ -68,12 +71,15 @@ type Connection
        - jdbc_connection: the resource managing the underlying JDBC
          connection.
        - dialect: the dialect associated with the database we are connected to.
+       - entity_naming_properties: a helper allowing to manage properties of
+         entity naming rules of the given backend.
+       - data_link_setup: an optional setup allowing for saving the connection
+         as a data link.
        - try_large_update: whether the connection should try to use
          `executeLargeUpdate`.
-    new : JDBC_Connection -> Dialect -> Entity_Naming_Properties -> Boolean -> Connection
-    new jdbc_connection dialect entity_naming_properties try_large_update=True =
+    new jdbc_connection:JDBC_Connection dialect entity_naming_properties:Entity_Naming_Properties (data_link_setup : Data_Link_Setup | Nothing = Nothing) (try_large_update : Boolean = True) -> Connection =
         registry = Hidden_Table_Registry.new
-        Connection.Value jdbc_connection dialect entity_naming_properties (Ref.new try_large_update) registry
+        Connection.Value jdbc_connection dialect entity_naming_properties (Ref.new try_large_update) registry data_link_setup
 
     ## PRIVATE
        Closes the connection releasing the underlying database resources
@@ -218,12 +224,10 @@ type Connection
         SQL_Query.Table_Name name ->
             table_naming_helper = self.base_connection.table_naming_helper
             table_naming_helper.verify_table_name name <|
-                make_table_for_name self name alias
+                _make_table_for_name self name alias
         SQL_Query.Raw_SQL raw_sql -> handle_sql_errors <| alias.if_not_error <|
             self.dialect.ensure_query_has_no_holes self.jdbc_connection raw_sql . if_not_error <|
-                columns = self.fetch_columns raw_sql Statement_Setter.null
-                name = if alias == "" then (UUID.randomUUID.to_text) else alias
-                ctx = Context.for_query raw_sql name
+                r = make_table_from_query self raw_sql alias
                 ## Any problems are treated as errors - e.g. if the query
                    contains clashing column names, it may very likely lead to
                    data corruption. Our renaming mechanism is used to fix issues
@@ -233,7 +237,6 @@ type Connection
                    will actually result in both columns `A` and `A 1` containing
                    the value 1; and value 2 being lost. That is why such queries
                    must fail.
-                r = DB_Table_Module.make_table self name columns ctx on_problems=Problem_Behavior.Report_Error
                 r.catch Any error->
                     Error.throw (Illegal_Argument.Error "The provided custom SQL query is invalid and may suffer data corruption when being processed, especially if it contains aliased column names, it may not be interpreted correctly. Please ensure the names are unique. The original error was: "+error.to_display_text cause=error)
 
@@ -363,7 +366,7 @@ type Connection
         Execution_Context.Output.if_enabled disabled_message="As writing is disabled, cannot execute an update query. Press the Write button ▶ to perform the operation." panic=False <|
             statement_setter = self.dialect.get_statement_setter
             self.jdbc_connection.with_prepared_statement query statement_setter stmt->
-                check_statement_is_allowed self stmt
+                _check_statement_is_allowed self stmt
                 result = case self.supports_large_update.get of
                     True -> Panic.catch UnsupportedOperationException stmt.executeLargeUpdate _->
                         self.supports_large_update.put False
@@ -387,7 +390,7 @@ type Connection
         Execution_Context.Output.if_enabled disabled_message="As writing is disabled, cannot execute an update query. Press the Write button ▶ to perform the operation." panic=False <|
             result = self.jdbc_connection.execute query
             stmt = result.second
-            check_statement_is_allowed self stmt
+            _check_statement_is_allowed self stmt
             stmt.getUpdateCount
 
     ## PRIVATE
@@ -459,7 +462,7 @@ type Connection
     internal_allocate_dry_run_table : Text -> DB_Table
     internal_allocate_dry_run_table self table_name =
         ref = self.hidden_table_registry.make_reference table_name
-        make_table_for_name self table_name table_name ref
+        _make_table_for_name self table_name table_name ref
 
     ## PRIVATE
        ADVANCED
@@ -475,6 +478,14 @@ type Connection
        mechanism, use `create_table` instead.
     create_literal_table self (source : Table) (alias : Text) -> DB_Table =
         DB_Table_Module.make_literal_table self (source.columns.map .to_vector) source.column_names alias
+
+    ## ICON data_output
+       Creates a Data Link that will open the same connection.
+    @on_existing_file (Existing_File_Behavior.widget include_backup=False include_append=False)
+    save_as_data_link self destination (on_existing_file:Existing_File_Behavior = ..Error) =
+        case self.data_link_setup of
+            Nothing -> Error.throw (Illegal_State.Error "The connection does not support saving as a data link.")
+            data_link_setup -> data_link_setup.save_as_data_link destination on_existing_file
 
 
 ## PRIVATE
@@ -511,12 +522,24 @@ make_structure_creator =
     Vector_Editor item_editor=item_editor item_default=item_editor.values.first.value display=Display.Always
 
 ## PRIVATE
-make_table_for_name connection name alias internal_temporary_keep_alive_reference=Nothing =
+private make_table_from_query connection query:Text|SQL_Statement alias:Text -> DB_Table =
+    expect_interpolations = case query of
+        # If the statement is given as a Text, then it should not contain `?` holes.
+        _ : Text -> False
+        _ : SQL_Statement -> True
+    statement_setter = if expect_interpolations then connection.dialect.get_statement_setter else Statement_Setter.null
+    columns = connection.base_connection.fetch_columns query statement_setter
+    name = if alias == "" then (UUID.randomUUID.to_text) else alias
+    ctx = Context.for_query query name
+    DB_Table_Module.make_table connection.base_connection name columns ctx on_problems=Problem_Behavior.Report_Error
+
+## PRIVATE
+private _make_table_for_name connection name alias internal_temporary_keep_alive_reference=Nothing =
     result = handle_sql_errors <|
         ctx = Context.for_table name (if alias == "" then name else alias) internal_temporary_keep_alive_reference
         statement = connection.dialect.generate_sql (Query.Select Nothing ctx)
         statement_setter = connection.dialect.get_statement_setter
-        columns = connection.fetch_columns statement statement_setter
+        columns = connection.base_connection.fetch_columns statement statement_setter
         ## In case of accessing an existing table, we assume that column names
            are distinguishable by the backend, so any issues that are caught
            only affect Enso columns, and just renaming Enso columns is enough to
@@ -528,7 +551,7 @@ make_table_for_name connection name alias internal_temporary_keep_alive_referenc
         Error.throw (Table_Not_Found.Error name)
 
 ## PRIVATE
-private check_statement_is_allowed connection stmt =
+private _check_statement_is_allowed connection stmt =
     trimmed = stmt.to_text.trim.to_case ..Lower
     is_ddl_regex = "\s*(?:create|alter|drop).*".to_regex case_insensitive=True
     is_ddl = is_ddl_regex.matches trimmed

@@ -44,7 +44,7 @@ type Postgres_Connection
            Our generator is supposed to always quote identifiers
         entity_naming_properties = Entity_Naming_Properties.from_jdbc_connection jdbc_connection encoding is_case_sensitive=True
 
-        Postgres_Connection.Value (Connection.new jdbc_connection Dialect.postgres entity_naming_properties) make_new data_link_setup
+        Postgres_Connection.Value (Connection.new jdbc_connection Dialect.postgres entity_naming_properties data_link_setup) make_new
 
     ## PRIVATE
 
@@ -53,8 +53,7 @@ type Postgres_Connection
        Arguments:
        - connection: the underlying connection.
        - make_new: a function that returns a new connection.
-       - data_link_setup: the setup for saving the connection as a data link.
-    private Value (connection:Connection) (make_new : Text -> Text -> Postgres_Connection) (data_link_setup : Data_Link_Setup)
+    private Value (connection:Connection) (make_new : Text -> Text -> Postgres_Connection)
 
     ## ICON close
        Closes the connection releasing the underlying database resources
@@ -300,8 +299,8 @@ type Postgres_Connection
     ## ICON data_output
        Creates a Data Link that will open the same connection.
     @on_existing_file (Existing_File_Behavior.widget include_backup=False include_append=False)
-    save_as_data_link self destination (on_existing_file:Existing_File_Behavior = Existing_File_Behavior.Error) =
-        self.data_link_setup.save_as_data_link destination on_existing_file
+    save_as_data_link self destination (on_existing_file:Existing_File_Behavior = ..Error) =
+        self.base_connection.save_as_data_link destination on_existing_file
 
     ## PRIVATE
        Converts this value to a JSON serializable object.

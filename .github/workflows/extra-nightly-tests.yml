@@ -14,10 +14,9 @@ on:
         default: false
 jobs:
   enso-build-ci-gen-job-snowflake-tests-linux-amd64:
-    name: Snowflake Tests (linux, amd64)
+    name: Snowflake Tests (LinuxLatest)
     runs-on:
-      - self-hosted
-      - Linux
+      - ubuntu-latest
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
@@ -44,6 +43,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: ./run backend test std-snowflake
         env:
+          ENSO_CLOUD_COGNITO_REGION: ${{ vars.ENSO_CLOUD_COGNITO_REGION }}
+          ENSO_CLOUD_COGNITO_USER_POOL_ID: ${{ vars.ENSO_CLOUD_COGNITO_USER_POOL_ID }}
+          ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID: ${{ vars.ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID }}
+          ENSO_CLOUD_TEST_ACCOUNT_PASSWORD: ${{ secrets.ENSO_CLOUD_TEST_ACCOUNT_PASSWORD }}
+          ENSO_CLOUD_TEST_ACCOUNT_USERNAME: ${{ secrets.ENSO_CLOUD_TEST_ACCOUNT_USERNAME }}
           ENSO_SNOWFLAKE_ACCOUNT: ${{ secrets.ENSO_SNOWFLAKE_ACCOUNT }}
           ENSO_SNOWFLAKE_DATABASE: ${{ secrets.ENSO_SNOWFLAKE_DATABASE }}
           ENSO_SNOWFLAKE_PASSWORD: ${{ secrets.ENSO_SNOWFLAKE_PASSWORD }}

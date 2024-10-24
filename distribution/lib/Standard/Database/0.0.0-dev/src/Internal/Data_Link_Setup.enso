@@ -7,6 +7,8 @@ import Standard.Base.Runtime.Context
 from Standard.Base.Enso_Cloud.Data_Link_Helpers import data_link_extension, secure_value_to_json, save_password_for_data_link
 
 import project.Connection.Credentials.Credentials
+import project.SQL_Statement.SQL_Statement
+from project.Connection.Connection import make_table_from_query
 
 ## PRIVATE
 type Data_Link_Setup
@@ -21,7 +23,7 @@ type Data_Link_Setup
     already_a_data_link -> Data_Link_Setup = Data_Link_Setup.Unavailable "Saving connections established through a Data Link is not allowed. Please copy the Data Link instead."
 
     ## PRIVATE
-    save_as_data_link self destination on_existing_file:Existing_File_Behavior = case self of
+    save_as_data_link self destination on_existing_file:Existing_File_Behavior link_type:DB_Data_Link_Type=..Database = case self of
         Data_Link_Setup.Available create_fn -> Context.Output.if_enabled disabled_message="As writing is disabled, cannot save to a Data Link. Press the Write button ▶ to perform the operation." panic=False <|
             case destination of
                 _ : Enso_File ->
@@ -31,12 +33,18 @@ type Data_Link_Setup
                         _ -> Error.throw (Illegal_Argument.Error "Invalid value for `on_existing_file` parameter, only `Overwrite` and `Error` are supported here.")
                     exists_checked = if replace_existing.not && destination.exists then Error.throw (File_Error.Already_Exists destination)
                     exists_checked.if_not_error <|
-                        json = create_fn destination
+                        connection_description = create_fn destination
+                        json = link_type.add_to_data_link_description connection_description
                         Data_Link.write_config destination json replace_existing
                 _ -> Error.throw (Illegal_Argument.Error "Currently a connection can only be saved as a Data Link into the Enso Cloud. Please provide an `Enso_File` as destination.")
 
         Data_Link_Setup.Unavailable cause ->
-            Error.throw (Illegal_Argument.Error "Cannot save connection as Data Link: "+cause)
+            word = case link_type of
+                DB_Data_Link_Type.Database -> "connection"
+                DB_Data_Link_Type.Table _ -> "table"
+                DB_Data_Link_Type.Query _ -> "query"
+                DB_Data_Link_Type.SQL_Statement _ -> "query"
+            Error.throw (Illegal_Argument.Error "Cannot save "+word+" as Data Link: "+cause)
 
     ## PRIVATE
     save_credentials_for_data_link data_link_location:Enso_File credentials:Credentials -> JS_Object =
@@ -45,3 +53,82 @@ type Data_Link_Setup
 
         # But we keep the username as-is - if it was in plain text, it will stay in plain text.
         JS_Object.from_pairs [["username", secure_value_to_json credentials.username], ["password", secure_value_to_json secret_password]]
+
+## PRIVATE
+type DB_Data_Link_Type
+    ## PRIVATE
+    Database
+
+    ## PRIVATE
+    Table name:Text
+
+    ## PRIVATE
+    Query query:Text
+
+    ## PRIVATE
+    SQL_Statement sql_statement:SQL_Statement
+
+    ## PRIVATE
+       Alters the connection description JSON, adding information dependent on
+       the data link type (table name or query to fetch, when applicable).
+    add_to_data_link_description self connection_description:JS_Object -> JS_Object =
+        as_js_object = self.to_js_object
+        if as_js_object.is_nothing then connection_description else
+            connection_description.set_value "table" as_js_object
+
+    ## PRIVATE
+       Serializes this data link type to an appropriate JSON representation that
+       can be assigned to the `table` field in a data link.
+    to_js_object self = case self of
+        DB_Data_Link_Type.Database ->
+            Nothing
+        DB_Data_Link_Type.Table name ->
+            name
+        DB_Data_Link_Type.Query query ->
+            JS_Object.from_pairs [["query", query]]
+        DB_Data_Link_Type.SQL_Statement sql_statement ->
+            serialized = sql_statement.serialize ensure_roundtrip=True
+            serialized.if_not_error <|
+                ## Instead of nesting the serialized query as a JSON object,
+                   we store its JSON representation as a string - this will be
+                   more friendly for the data link modal in the dashboard.
+                JS_Object.from_pairs [["sql_statement", serialized.to_json]]
+
+    ## PRIVATE
+       Parse the `table` field of a data link JSON, returning the appropriate link type.
+
+       This is the inverse to `to_js_object`.
+    from_js value:Any -> DB_Data_Link_Type ! Illegal_Argument = case value of
+        Nothing ->
+            DB_Data_Link_Type.Database
+        table_name : Text ->
+            DB_Data_Link_Type.Table table_name
+        obj : JS_Object ->
+            fields = obj.field_names
+            parse_simple_query =
+                query = obj.get "query"
+                if query.is_a Text then DB_Data_Link_Type.Query query else
+                    Error.throw (Illegal_Argument.Error "Invalid JSON inside of data link: expected `query` field to be Text but got: "+query.to_display_text)
+            parse_serialized_statement =
+                sql_statement_json = obj.get "sql_statement"
+                if sql_statement_json.is_a Text then DB_Data_Link_Type.SQL_Statement (SQL_Statement.deserialize sql_statement_json) else
+                    Error.throw (Illegal_Argument.Error "Invalid JSON inside of data link: expected `sql_statement` field to be a Text containing JSON but got: "+sql_statement_json.to_display_text)
+            if fields == ["query"] then parse_simple_query else
+                if fields == ["sql_statement"] then parse_serialized_statement else
+                    Error.throw (Illegal_Argument.Error "Invalid JSON inside of data link: expected exactly one field: `query` or `sql_statement`, but got: "+obj.to_display_text)
+        _ -> Error.throw (Illegal_Argument.Error "Invalid JSON inside of data link: expected Text or object but got: "+value.to_display_text)
+
+    ## PRIVATE
+       Interprets this data link setup according to its type.
+       The `Database` link will return the connection as-is, whereas the other
+       types will return a `DB_Table` for the specific table/query.
+    interpret self connection = case self of
+        DB_Data_Link_Type.Database ->
+            connection
+        DB_Data_Link_Type.Table name ->
+            connection.query (..Table_Name name)
+        DB_Data_Link_Type.Query raw_sql ->
+            connection.query (..Raw_SQL raw_sql)
+        DB_Data_Link_Type.SQL_Statement sql_statement ->
+            make_table_from_query connection sql_statement alias=""
+                . catch Any error-> Error.throw (Illegal_State.Error "Failed to read back the SQL statement from the data link: "+error.to_display_text)
