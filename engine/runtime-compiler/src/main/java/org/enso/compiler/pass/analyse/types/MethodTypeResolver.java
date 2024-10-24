@@ -1,5 +1,6 @@
 package org.enso.compiler.pass.analyse.types;
 
+import java.util.List;
 import java.util.stream.Stream;
 import org.enso.compiler.pass.analyse.types.scope.BuiltinsFallbackScope;
 import org.enso.compiler.pass.analyse.types.scope.ModuleResolver;
@@ -61,34 +62,12 @@ class MethodTypeResolver {
       return definedHere;
     }
 
-    var foundInImports =
-        currentModuleScope.getImports().stream()
-            .flatMap(
-                staticImportExportScope -> {
-                  var materialized = staticImportExportScope.materialize(moduleResolver);
-                  var found = materialized.getExportedMethod(type, methodName);
-                  return Stream.ofNullable(found);
-                })
-            .toList();
-
+    var foundInImports = findInImports(type, methodName);
     if (foundInImports.size() == 1) {
-      return foundInImports.get(0);
+      return foundInImports.get(0).resolvedType();
     } else if (foundInImports.size() > 1) {
-      // TODO in some cases it seems like this may be normal?
-      var foundImports =
-          currentModuleScope.getImports().stream()
-              .flatMap(
-                  staticImportExportScope -> {
-                    var materialized = staticImportExportScope.materialize(moduleResolver);
-                    var found = materialized.getExportedMethod(type, methodName);
-                    if (found != null) {
-                      return Stream.of(staticImportExportScope.getReferredModuleName());
-                    } else {
-                      return Stream.of();
-                    }
-                  })
-              .toList();
-      logger.debug("Method {} is coming from multiple imports: {}", methodName, foundImports);
+      var foundImportNames = foundInImports.stream().map(MethodFromImport::origin);
+      logger.debug("Method {} is coming from multiple imports: {}", methodName, foundImportNames);
       var foundTypes = foundInImports.stream().distinct();
       if (foundTypes.count() > 1) {
         logger.error(
@@ -98,12 +77,30 @@ class MethodTypeResolver {
         return null;
       } else {
         // If all types are the same, just return the first one
-        return foundInImports.get(0);
+        return foundInImports.get(0).resolvedType();
       }
     }
 
     return null;
   }
+
+  private List<MethodFromImport> findInImports(TypeScopeReference type, String methodName) {
+    return currentModuleScope.getImports().stream()
+        .flatMap(
+            staticImportExportScope -> {
+              var materialized = staticImportExportScope.materialize(moduleResolver);
+              var found = materialized.getExportedMethod(type, methodName);
+              if (found != null) {
+                return Stream.of(new MethodFromImport(found, staticImportExportScope));
+              } else {
+                return Stream.of();
+              }
+            })
+        .toList();
+  }
+
+  private record MethodFromImport(
+      TypeRepresentation resolvedType, StaticImportExportScope origin) {}
 
   private StaticModuleScope findDefinitionScope(TypeScopeReference type) {
     var definitionModule = moduleResolver.findContainingModule(type);
