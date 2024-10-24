@@ -1,8 +1,10 @@
 package org.enso.compiler.test;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.file.Paths;
@@ -10,7 +12,10 @@ import java.util.logging.Level;
 import org.enso.common.MethodNames;
 import org.enso.common.RuntimeOptions;
 import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.io.IOAccess;
+import org.hamcrest.Matchers;
+import org.hamcrest.core.AllOf;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -105,5 +110,31 @@ public class IfThenElseTest {
 
     assertEquals("OKeyish:True", check.execute(true).asString());
     assertEquals("Bad:False", check.execute(false).asString());
+  }
+
+  @Test
+  public void variableUsedAfterTheBranch() throws Exception {
+    try {
+      var module =
+          ctx.eval(
+              "enso",
+              """
+    check x =
+        res = if x then "OKeyish:"+x.to_text else
+            xt = x.to_text
+            "Bad:"+xt
+
+        xt
+    """);
+
+      var check = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "check");
+      fail("Expecting error, but got: " + check);
+    } catch (PolyglotException ex) {
+      assertThat(
+          ex.getMessage(),
+          AllOf.allOf(
+              Matchers.containsString("The name `xt` could not be found"),
+              Matchers.containsString("6:5: error")));
+    }
   }
 }
