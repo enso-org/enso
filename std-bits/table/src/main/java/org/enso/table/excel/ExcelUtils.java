@@ -22,9 +22,12 @@ public class ExcelUtils {
     long days = (long) value;
 
     // Extract the milliseconds part of the value.
-    long millis = (long) ((value - days) * MILLIS_PER_DAY + 0.5);
+    long millis = (long) ((value - days) * MILLIS_PER_DAY + (value < 0 ? -0.5 : 0.5));
     if (millis < 0) {
       millis += MILLIS_PER_DAY;
+    }
+    if (value < 0) {
+      days--;
     }
 
     // Excel stores times as 0 to 1.
@@ -32,7 +35,9 @@ public class ExcelUtils {
       return LocalTime.ofNanoOfDay(millis * 1000000);
     }
 
-    int shift = days > 0 && days < 60 ? 1 : 0;
+    // Deal with mess of Jan and Feb 1900.
+    // In order to avoid issues with 1900-01-00, 1899-12-31 is -1.
+    int shift = days > 0 && days < 60 ? 1 : (days < 0 ? 2 : 0);
     LocalDate date = EPOCH_1900.plusDays(days + shift);
 
     return millis < 1000 ? date : date.atTime(LocalTime.ofNanoOfDay(millis * 1000000));
@@ -47,9 +52,12 @@ public class ExcelUtils {
       case LocalDate date -> {
         long days = ChronoUnit.DAYS.between(EPOCH_1900, date);
 
-        // If the Date is between 1900-01-01 and 1900-02-28, EPOCH needs to be 1 day earlier.
+        // If the Date is between 1900-01-01 and 1900-02-28, EPOCH needs to be 1 day later.
         if (date.getYear() == 1900 && date.getMonthValue() < 3) {
           days--;
+        } if (date.getYear() < 1900) {
+          // 31 Dec 1899 should be -1
+          days -= 2;
         }
 
         yield days;
