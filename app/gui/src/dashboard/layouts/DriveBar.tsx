@@ -4,7 +4,7 @@
  */
 import * as React from 'react'
 
-import { skipToken, useQuery } from '@tanstack/react-query'
+import { useMutation } from '@tanstack/react-query'
 
 import AddDatalinkIcon from '#/assets/add_datalink.svg'
 import AddFolderIcon from '#/assets/add_folder.svg'
@@ -25,7 +25,6 @@ import AssetEventType from '#/events/AssetEventType'
 import { useNewFolder, useNewProject, useRootDirectoryId } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOffline } from '#/hooks/offlineHooks'
-import { createGetProjectDetailsQuery } from '#/hooks/projectHooks'
 import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
 import AssetSearchBar from '#/layouts/AssetSearchBar'
 import { useDispatchAssetEvent } from '#/layouts/AssetsTable/EventListProvider'
@@ -51,7 +50,6 @@ import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { useSetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
-import { ProjectState, type Project, type ProjectId } from '#/services/Backend'
 import type AssetQuery from '#/utilities/AssetQuery'
 import { inputFiles } from '#/utilities/input'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
@@ -110,9 +108,6 @@ export default function DriveBar(props: DriveBarProps) {
     targetRef: createAssetButtonsRef,
     overlayPositionProps: { placement: 'top' },
   })
-  const [isCreatingProjectFromTemplate, setIsCreatingProjectFromTemplate] = React.useState(false)
-  const [isCreatingProject, setIsCreatingProject] = React.useState(false)
-  const [createdProjectId, setCreatedProjectId] = React.useState<ProjectId | null>(null)
   const pasteData = usePasteData()
   const effectivePasteData =
     (
@@ -131,29 +126,24 @@ export default function DriveBar(props: DriveBarProps) {
     return await newFolderRaw(parent?.directoryId ?? rootDirectoryId, parent?.path)
   })
   const newProjectRaw = useNewProject(backend, category)
-  const newProject = useEventCallback(
-    async (templateId: string | null = null, templateName: string | null = null) => {
-      if (templateId != null) {
-        setIsCreatingProjectFromTemplate(true)
-      } else {
-        setIsCreatingProject(true)
-      }
+  const newProjectMutation = useMutation({
+    mutationKey: ['newProject'],
+    mutationFn: async ([templateId = null, templateName = null]: [
+      templateId?: string | null | undefined,
+      templateName?: string | null | undefined,
+    ]) => {
       const parent = getTargetDirectory()
       return await newProjectRaw(
         { templateName, templateId },
         parent?.directoryId ?? rootDirectoryId,
         parent?.path,
-      )
-        .then((project) => {
-          setCreatedProjectId(project.projectId)
-          return project
-        })
-        .finally(() => {
-          setIsCreatingProject(false)
-          setIsCreatingProjectFromTemplate(false)
-        })
+      ).then((project) => {
+        return project
+      })
     },
-  )
+  })
+  const newProject = newProjectMutation.mutateAsync
+  const isCreatingProject = newProjectMutation.isPending
 
   React.useEffect(() => {
     return inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
@@ -165,33 +155,13 @@ export default function DriveBar(props: DriveBarProps) {
         }
       : {}),
       newProject: () => {
-        void newProject(null, null)
+        void newProject([null, null])
       },
       uploadFiles: () => {
         uploadFilesRef.current?.click()
       },
     })
   }, [inputBindings, isCloud, newFolder, newProject])
-
-  const createdProjectQuery = useQuery<Project | null>(
-    createdProjectId ?
-      createGetProjectDetailsQuery.createPassiveListener(createdProjectId)
-    : { queryKey: ['__IGNORE__'], queryFn: skipToken },
-  )
-
-  const isFetching =
-    (createdProjectQuery.isLoading ||
-      (createdProjectQuery.data &&
-        createdProjectQuery.data.state.type !== ProjectState.opened &&
-        createdProjectQuery.data.state.type !== ProjectState.closing)) ??
-    false
-
-  React.useEffect(() => {
-    if (!isFetching) {
-      setIsCreatingProject(false)
-      setIsCreatingProjectFromTemplate(false)
-    }
-  }, [isFetching])
 
   const searchBar = (
     <AssetSearchBar backend={backend} isCloud={isCloud} query={query} setQuery={setQuery} />
@@ -282,9 +252,8 @@ export default function DriveBar(props: DriveBarProps) {
               <Button
                 size="medium"
                 variant="accent"
-                isDisabled={shouldBeDisabled || isCreatingProject || isCreatingProjectFromTemplate}
+                isDisabled={shouldBeDisabled || isCreatingProject}
                 icon={Plus2Icon}
-                loading={isCreatingProjectFromTemplate}
                 loaderPosition="icon"
               >
                 {getText('startWithATemplate')}
@@ -292,20 +261,18 @@ export default function DriveBar(props: DriveBarProps) {
 
               <StartModal
                 createProject={(templateId, templateName) => {
-                  setIsCreatingProjectFromTemplate(true)
-                  void newProject(templateId, templateName)
+                  void newProject([templateId, templateName])
                 }}
               />
             </DialogTrigger>
             <Button
               size="medium"
               variant="outline"
-              isDisabled={shouldBeDisabled || isCreatingProject || isCreatingProjectFromTemplate}
+              isDisabled={shouldBeDisabled || isCreatingProject}
               icon={Plus2Icon}
-              loading={isCreatingProject}
               loaderPosition="icon"
               onPress={async () => {
-                await newProject(null, null)
+                await newProject([null, null])
               }}
             >
               {getText('newEmptyProject')}
