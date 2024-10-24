@@ -9,12 +9,14 @@
 - [Copying and pasting in Table Editor Widget now works properly][11332]
 - [Fix invisible selection in Table Input Widget][11358]
 - [Enable cloud file browser in local projects][11383]
+- [New dropdown-based component menu][11398]
 
 [11151]: https://github.com/enso-org/enso/pull/11151
 [11271]: https://github.com/enso-org/enso/pull/11271
 [11332]: https://github.com/enso-org/enso/pull/11332
 [11358]: https://github.com/enso-org/enso/pull/11358
 [11383]: https://github.com/enso-org/enso/pull/11383
+[11398]: https://github.com/enso-org/enso/pull/11398
 
 #### Enso Standard Library
 
