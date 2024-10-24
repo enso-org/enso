@@ -16,7 +16,13 @@ export interface HeaderEditHandlers {
  *
  * They are set through `headerComponentParams` option in AGGrid column definition.
  */
-export type HeaderParams = { tooltipRegistry: TooltipRegistry } & (
+export type HeaderParams = {
+  /**
+   * AgGrid mounts header components as separate "App", so we don't have access to any context.
+   * Threfore the tooltip registry must be provided by props.
+   */
+  tooltipRegistry: TooltipRegistry
+} & (
   | {
       type: 'astColumn'
       editHandlers: HeaderEditHandlers
@@ -31,8 +37,8 @@ const props = defineProps<{
   params: IHeaderParams & HeaderParams
 }>()
 
-provideTooltipRegistry._mock(props.params.tooltipRegistry)
-// provideTooltipRegistry()
+/** Re-provide tooltipRegistry. See `tooltipRegistry` docs in {@link HeaderParams} */
+provideTooltipRegistry.provideConstructed(props.params.tooltipRegistry)
 
 const editing = ref(false)
 const inputElement = ref<HTMLInputElement>()

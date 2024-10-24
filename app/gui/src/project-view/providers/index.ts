@@ -46,9 +46,10 @@ export function createContextStore<F extends (...args: any[]) => any>(name: stri
 
   /**
    * An method allowing to directly provide a store value to any app or component context, possibly
-   * skipping invoking the factory function. **Do not use in application code.**
+   * skipping invoking the factory function. **Use in tests only, or in exceptional situations
+   * (like in TableHeader.vue)**.
    */
-  provideFn._mock = function (
+  provideFn.provideConstructed = function (
     valueOrArgs: Parameters<F> | ReturnType<F>,
     app?: App,
   ): ReturnType<F> {

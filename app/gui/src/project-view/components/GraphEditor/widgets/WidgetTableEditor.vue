@@ -27,7 +27,7 @@ import type {
   ProcessDataFromClipboardParams,
   RowDragEndEvent,
 } from 'ag-grid-enterprise'
-import { computed, ref } from 'vue'
+import { computed, markRaw, ref, shallowReactive, shallowRef } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -180,6 +180,7 @@ function processDataFromClipboard({ data, api }: ProcessDataFromClipboardParams<
 
 // === Column Default Definition ===
 
+const tooltipRegistry = useTooltipRegistry()
 const defaultColDef: ColDef<RowData> = {
   editable: true,
   resizable: true,
@@ -187,7 +188,10 @@ const defaultColDef: ColDef<RowData> = {
   lockPinned: true,
   menuTabs: ['generalMenuTab'],
   headerComponentParams: {
-    tooltipRegistry: useTooltipRegistry(),
+    // TODO[ao]: we mark raw, because otherwise any change _inside_ tooltipRegistry causes the grid
+    //  to be refreshed. Technically, shallowReactive should work here, but it does not,
+    //  I don't know why
+    tooltipRegistry: markRaw(tooltipRegistry),
     editHandlers: {
       onHeaderEditingStarted: headerEditHandler.headerEditedInGrid.bind(headerEditHandler),
       onHeaderEditingStopped: headerEditHandler.headerEditingStoppedInGrid.bind(headerEditHandler),
