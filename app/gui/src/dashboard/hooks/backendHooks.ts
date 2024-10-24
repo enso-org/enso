@@ -49,7 +49,6 @@ const S3_CHUNK_SIZE_MB = Math.round(backendModule.S3_CHUNK_SIZE_BYTES / MB_BYTES
 // ============================
 
 /** Ensure that the given type contains only names of backend methods. */
-// eslint-disable-next-line no-restricted-syntax
 type DefineBackendMethods<T extends keyof Backend> = T
 
 // ======================
@@ -118,10 +117,7 @@ export function backendQueryOptions<Method extends BackendMethods>(
   args: Parameters<Backend[Method]>,
   options?: Omit<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn' | 'queryKey'> &
     Partial<Pick<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryKey'>>,
-): UseQueryOptions<
-  // eslint-disable-next-line no-restricted-syntax
-  Awaited<ReturnType<Backend[Method]>> | undefined
->
+): UseQueryOptions<Awaited<ReturnType<Backend[Method]>> | undefined>
 /** Wrap a backend method call in a React Query. */
 export function backendQueryOptions<Method extends BackendMethods>(
   backend: Backend | null,
@@ -152,10 +148,7 @@ export function useBackendQuery<Method extends BackendMethods>(
   args: Parameters<Backend[Method]>,
   options?: Omit<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn' | 'queryKey'> &
     Partial<Pick<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryKey'>>,
-): UseQueryResult<
-  // eslint-disable-next-line no-restricted-syntax
-  Awaited<ReturnType<Backend[Method]>> | undefined
->
+): UseQueryResult<Awaited<ReturnType<Backend[Method]>> | undefined>
 /** Wrap a backend method call in a React Query. */
 export function useBackendQuery<Method extends BackendMethods>(
   backend: Backend | null,

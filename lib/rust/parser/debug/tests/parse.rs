@@ -199,41 +199,38 @@ fn type_definition_no_body() {
 
 #[test]
 fn type_constructors() {
-    let code = [
-        "type Geo",
-        "    Circle",
-        "        radius",
-        "        x",
-        "    Rectangle width height",
-        "    Point",
-    ];
-    test!(code.join("\n"),
+    test!([
+            "type Geo",
+            "    Circle",
+            "        radius",
+            "        x",
+            "    Rectangle width height",
+            "    Point",
+        ].join("\n"),
         (TypeDef Geo #()
-         #((ConstructorDefinition ()
-             Circle #() #(((() (Ident radius) () ())) ((() (Ident x) () ()))))
-           (ConstructorDefinition ()
-             Rectangle #((() (Ident width) () ()) (() (Ident height) () ())) #())
-           (ConstructorDefinition () Point #() #()))));
+         #(,(Constructor::new("Circle").with_arg_line("radius").with_arg_line("x"))
+           ,(Constructor::new("Rectangle").with_arg("width").with_arg("height"))
+           ,(Constructor::new("Point")))));
     test!("type Foo\n Bar (a : B = C.D)", (TypeDef Foo #() #(
-        (ConstructorDefinition ()
-         Bar
-         #((() (Ident a) (":" (Ident B)) ((OprApp (Ident C) (Ok ".") (Ident D)))))
-         #()))));
+        ,(Constructor::new("Bar")
+         .with_arg(sexp![(() (Ident a) (":" (Ident B)) ((OprApp (Ident C) (Ok ".") (Ident D))))]))
+    )));
     test!("type Foo\n ## Bar\n Baz", (TypeDef Foo #() #(
-        (Documented (#((Section " Bar")) #(())) (ConstructorDefinition () Baz #() #())))));
-    let code = ["type A", "    Foo (a : Integer, b : Integer)"];
-    test!(code.join("\n"), (TypeDef A #()
-        #((ConstructorDefinition () Foo #((() (Ident a) (":" (Invalid)) ())) #()))));
+        (Documented (#((Section " Bar")) #(()))
+         ,(Constructor::new("Baz"))))));
+    test!(["type A", "    Foo (a : Integer, b : Integer)"].join("\n"),
+        (TypeDef A #()
+         #(,(Constructor::new("Foo").with_arg(sexp![(() (Ident a) (":" (Invalid)) ())])))));
 }
 
 #[test]
 fn type_constructor_private() {
     test!(["type Foo", "    private Bar"].join("\n"),
-        (TypeDef Foo #() #((ConstructorDefinition private Bar #() #()))));
+        (TypeDef Foo #() #(,(Constructor::new("Bar").private()))));
     test!(["type Foo", "    private Bar", "    Foo"].join("\n"),
         (TypeDef Foo #()
-         #((ConstructorDefinition private Bar #() #())
-           (ConstructorDefinition () Foo #() #()))));
+         #(,(Constructor::new("Bar").private())
+           ,(Constructor::new("Foo")))));
     test!([ "type Geo",
             "    private Circle",
             "        radius",
@@ -242,15 +239,15 @@ fn type_constructor_private() {
             "    Point",
         ].join("\n"),
         (TypeDef Geo #()
-         #((ConstructorDefinition private
-             Circle #() #(((() (Ident radius) () ())) ((() (Ident x) () ()))))
-           (ConstructorDefinition ()
-             Rectangle #((() (Ident width) () ()) (() (Ident height) () ())) #())
-           (ConstructorDefinition () Point #() #()))));
+         #(,(Constructor::new("Circle")
+             .private()
+             .with_arg_line("radius")
+             .with_arg_line("x"))
+           ,(Constructor::new("Rectangle").with_arg("width").with_arg("height"))
+           ,(Constructor::new("Point")))));
     test!(["type My_Type", "    private Value a b c"].join("\n"),
         (TypeDef My_Type #()
-         #((ConstructorDefinition private Value
-            #((() (Ident a) () ()) (() (Ident b) () ()) (() (Ident c) () ())) #()))));
+         #(,(Constructor::new("Value").private().with_arg("a").with_arg("b").with_arg("c")))));
 }
 
 #[test]
@@ -322,12 +319,11 @@ fn type_def_full() {
             "    area self = x + x",
         ].join("\n"),
         (TypeDef Geo #()
-         #((ConstructorDefinition () Circle #() #(
-             ((() (Ident radius) (":" (Ident float)) ()))
-             ((() (Ident x) () ()))))
-           (ConstructorDefinition ()
-             Rectangle #((() (Ident width) () ()) (() (Ident height) () ())) #())
-           (ConstructorDefinition () Point #() #())
+         #(,(Constructor::new("Circle")
+             .with_arg_line(sexp![(() (Ident radius) (":" (Ident float)) ())])
+             .with_arg_line("x"))
+           ,(Constructor::new("Rectangle").with_arg("width").with_arg("height"))
+           ,(Constructor::new("Point"))
            ()
            ,(Function::new("number", block![(Ident x)]))
            ,(Function::new("area", sexp![(OprApp (Ident x) (Ok "+") (Ident x))])
@@ -340,8 +336,8 @@ fn type_def_defaults() {
     test!(code.join("\n"),
         (TypeDef Result #((() (Ident error) () ())
                                (() (Ident ok) () ((Ident Nothing))))
-         #((ConstructorDefinition () Ok
-            #((() (Ident value) (":" (Ident ok)) ((Ident Nothing)))) #()))));
+         #(,(Constructor::new("Ok")
+             .with_arg(sexp![(() (Ident value) (":" (Ident ok)) ((Ident Nothing)))])))));
 }
 
 #[test]
@@ -1482,25 +1478,37 @@ fn at_operator() {
 }
 
 #[test]
-fn attributes() {
-    test!("@on_problems P.g\nTable.select_columns : Text -> Table",
-        (Annotated on_problems
-         (OprApp (Ident P) (Ok ".") (Ident g))
-         #(())
-         (TypeSignatureDeclaration ((OprApp (Ident Table) (Ok ".") (Ident select_columns))
-                         ":"
-                         (OprApp (Ident Text) (Ok "->") (Ident Table))))));
-    test!("@a z\n@b\nx", (Annotated a (Ident z) #(()) (Annotated b () #(()) (Ident x))));
-    test!("@a\n@b\nx", (Annotated a () #(()) (Annotated b () #(()) (Ident x))));
+fn annotations() {
+    test!("@on_problems P.g\nselect_columns : Text -> Table\nselect_columns text = to_table text",
+        ,(Function::new("select_columns", sexp![(App (Ident to_table) (Ident text))])
+          .with_annotation("on_problems", sexp![(OprApp (Ident P) (Ok ".") (Ident g))])
+          .with_sig(sexp![(OprApp (Ident Text) (Ok "->") (Ident Table))])
+          .with_arg("text")));
+    test!("@a\n@b 1 + 1\nf x = x",
+        ,(Function::new("f", sexp![(Ident x)])
+          .with_annotation("a", sexp![()])
+          .with_annotation("b", sexp![(OprApp (Number () "1" ()) (Ok "+") (Number () "1" ()))])
+          .with_arg("x")));
 }
 
 #[test]
-fn attributes_in_types() {
+fn annotations_on_type_methods() {
     test!("type A\n @a z\n @b\n x y = x",
         (TypeDef A #() #(
-         (Annotated a (Ident z) #(())
-          (Annotated b () #(())
-           ,(Function::new("x", sexp![(Ident x)]).with_arg("y")))))));
+         ,(Function::new("x", sexp![(Ident x)])
+           .with_annotation("a", sexp![(Ident z)])
+           .with_annotation("b", sexp![()])
+           .with_arg("y")))));
+}
+
+#[test]
+fn annotations_on_type_constructors() {
+    test!("type A\n @a z\n @b\n Baz x",
+        (TypeDef A #() #(
+         ,(Constructor::new("Baz")
+           .with_annotation("a", sexp![(Ident z)])
+           .with_annotation("b", sexp![()])
+           .with_arg("x")))));
 }
 
 #[test]
@@ -1849,12 +1857,13 @@ fn expect_valid(code: &str) {
 
 /// Builder for function definitions.
 struct Function {
-    signature: lexpr::Value,
-    private:   lexpr::Value,
-    name:      lexpr::Value,
-    args:      Vec<lexpr::Value>,
-    body:      lexpr::Value,
-    ret:       lexpr::Value,
+    annotations: Vec<lexpr::Value>,
+    signature:   lexpr::Value,
+    private:     lexpr::Value,
+    name:        lexpr::Value,
+    args:        Vec<lexpr::Value>,
+    body:        lexpr::Value,
+    ret:         lexpr::Value,
 }
 
 impl Function {
@@ -1864,7 +1873,22 @@ impl Function {
     }
 
     fn named(name: lexpr::Value, body: lexpr::Value) -> Self {
-        Self { signature: sexp![()], private: sexp![()], name, args: vec![], body, ret: sexp![()] }
+        Self {
+            annotations: vec![],
+            signature: sexp![()],
+            private: sexp![()],
+            name,
+            args: vec![],
+            body,
+            ret: sexp![()],
+        }
+    }
+
+    #[rustfmt::skip]
+    fn with_annotation(mut self, annotation: &str, arg: lexpr::Value) -> Self {
+        let annotation = lexpr::Value::symbol(annotation);
+        self.annotations.push(sexp![((,annotation ,arg) #(()))]);
+        self
     }
 
     #[rustfmt::skip]
@@ -1889,8 +1913,8 @@ impl Function {
 
 impl From<Function> for lexpr::Value {
     #[rustfmt::skip]
-    fn from(Function { signature, private, name, args, ret, body }: Function) -> Self {
-        sexp![(Function ,signature ,private ,name ,args ,ret ,body)]
+    fn from(Function { annotations, signature, private, name, args, ret, body }: Function) -> Self {
+        sexp![(Function ,annotations ,signature ,private ,name ,args ,ret ,body)]
     }
 }
 
@@ -1912,5 +1936,57 @@ impl From<lexpr::Value> for Arg {
 impl From<Arg> for lexpr::Value {
     fn from(Arg(arg): Arg) -> Self {
         arg
+    }
+}
+
+// === Constructors ===
+
+/// Builder for type constructor definitions.
+struct Constructor {
+    annotations: Vec<lexpr::Value>,
+    private:     lexpr::Value,
+    name:        lexpr::Value,
+    args:        Vec<lexpr::Value>,
+    arg_lines:   Vec<lexpr::Value>,
+}
+
+impl Constructor {
+    fn new(name: &str) -> Self {
+        Self {
+            annotations: vec![],
+            private:     sexp![()],
+            name:        lexpr::Value::symbol(name),
+            args:        vec![],
+            arg_lines:   vec![],
+        }
+    }
+
+    #[rustfmt::skip]
+    fn with_annotation(mut self, annotation: &str, arg: lexpr::Value) -> Self {
+        let annotation = lexpr::Value::symbol(annotation);
+        self.annotations.push(sexp![((,annotation ,arg) #(()))]);
+        self
+    }
+
+    fn with_arg(mut self, arg: impl Into<Arg>) -> Self {
+        self.args.push(arg.into().into());
+        self
+    }
+
+    fn with_arg_line(mut self, arg: impl Into<Arg>) -> Self {
+        let arg = arg.into();
+        self.arg_lines.push(sexp![(,arg)]);
+        self
+    }
+
+    fn private(self) -> Self {
+        Self { private: sexp![private], ..self }
+    }
+}
+
+impl From<Constructor> for lexpr::Value {
+    #[rustfmt::skip]
+    fn from(Constructor { annotations, private, name, args, arg_lines }: Constructor) -> Self {
+        sexp![(ConstructorDefinition ,annotations ,private ,name ,args, arg_lines)]
     }
 }

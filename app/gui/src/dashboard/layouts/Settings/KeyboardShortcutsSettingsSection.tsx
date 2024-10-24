@@ -69,7 +69,6 @@ export default function KeyboardShortcutsSettingsSection() {
             {...mergeProps<JSX.IntrinsicElements['div']>()(innerProps, {
               ref: rootRef,
               // There is a horizontal scrollbar for some reason without `px-px`.
-              // eslint-disable-next-line no-restricted-syntax
               className: 'overflow-auto px-px',
               onScroll,
             })}
@@ -110,7 +109,7 @@ export default function KeyboardShortcutsSettingsSection() {
                             <div {...bindingsProps}>
                               {/* I don't know why this padding is needed,
                                * given that this is a flex container. */}
-                              {/* eslint-disable-next-line no-restricted-syntax */}
+                              {}
                               <div className="gap-buttons flex items-center pr-4">
                                 {info.bindings.map((binding, j) => (
                                   <div

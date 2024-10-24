@@ -101,7 +101,6 @@ export function InviteUsersForm(props: InviteUsersFormProps) {
     } else {
       for (const entry of entries) {
         if (!isEmail(entry.email)) {
-          // eslint-disable-next-line no-restricted-syntax
           return getText('emailIsInvalid')
         }
       }

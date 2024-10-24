@@ -7,7 +7,7 @@ import * as React from 'react'
 
 // This must not be a `symbol` as it cannot be sent to Playright.
 /** The type of the state returned by {@link useRefresh}. */
-// eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-empty-object-type
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface RefreshState {}
 
 /** A hook that contains no state. It is used to trigger React re-renders. */

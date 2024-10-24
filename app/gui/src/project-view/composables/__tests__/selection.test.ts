@@ -50,7 +50,7 @@ test.each`
   ${1}  | ${bindingInvert}  | ${[2]}
   ${3}  | ${bindingInvert}  | ${[1, 2, 3]}
 `('Selection by single click at $click', ({ click, binding, expected }) => {
-  withSetup(() => {
+  const [, app] = withSetup(() => {
     const { selection, mockDom } = selectionWithMockData()
     // Position is zero, because this method should not depend on click position
     selection.handleSelectionOf(
@@ -59,6 +59,7 @@ test.each`
     )
     expect([...selection.selected.value]).toEqual(expected)
   })
+  app.unmount()
 })
 
 const areas: Record<string, Rect> = {
@@ -101,7 +102,7 @@ test.each`
   async ({ areaId, binding, expected }) => {
     const area = areas[areaId]!
     const dragCase = async (start: Vec2, stop: Vec2) => {
-      await withSetup(async () => {
+      const [test, app] = withSetup(async () => {
         const { selection, mockDom } = selectionWithMockData()
         await nextTick()
         mockDom.dispatchEvent(mockPointerEvent('pointerdown', start, binding, mockDom))
@@ -110,7 +111,9 @@ test.each`
         expect(selection.selected.value).toEqual(new Set(expected))
         mockDom.dispatchEvent(mockPointerEvent('pointerup', stop, binding, mockDom))
         expect(selection.selected.value).toEqual(new Set(expected))
-      })[0]
+      })
+      await test
+      app.unmount()
     }
 
     // We should select same set of nodes, regardless of drag direction

@@ -6,8 +6,6 @@ import plugin from 'tailwindcss/plugin.js'
 
 const HERE_PATH = fileURLToPath(new URL('.', import.meta.url))
 
-// The names come from a third-party API and cannot be changed.
-/* eslint-disable no-restricted-syntax, @typescript-eslint/naming-convention, @typescript-eslint/no-magic-numbers */
 export default /** @satisfies {import('tailwindcss').Config} */ ({
   content: [`${HERE_PATH}/src/**/*.tsx`, `${HERE_PATH}/src/**/*.ts`],
   theme: {

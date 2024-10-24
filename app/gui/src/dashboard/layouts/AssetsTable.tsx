@@ -521,7 +521,6 @@ export default function AssetsTable(props: AssetsTableProps) {
     // If the root directory is not loaded, then we cannot render the tree.
     // Return null, and wait for the root directory to load.
     if (rootDirectoryContent == null) {
-      // eslint-disable-next-line no-restricted-syntax
       return AssetTreeNode.fromAsset(
         createRootDirectoryAsset(rootDirectoryId),
         ROOT_PARENT_DIRECTORY_ID,
@@ -531,7 +530,6 @@ export default function AssetsTable(props: AssetsTableProps) {
         null,
       )
     } else if (directories.rootDirectory.isError) {
-      // eslint-disable-next-line no-restricted-syntax
       return AssetTreeNode.fromAsset(
         createRootDirectoryAsset(rootDirectoryId),
         ROOT_PARENT_DIRECTORY_ID,
@@ -669,8 +667,6 @@ export default function AssetsTable(props: AssetsTableProps) {
           node.item.type === AssetType.specialEmpty ||
           node.item.type === AssetType.specialLoading
         ) {
-          // This is FINE, as these assets have no meaning info to match with.
-          // eslint-disable-next-line no-restricted-syntax
           return false
         }
         const assetType =
@@ -1283,8 +1279,6 @@ export default function AssetsTable(props: AssetsTableProps) {
       dispatchAssetListEvent({
         type: AssetListEventType.closeFolder,
         id: asset.id,
-        // This is SAFE, as this asset is already known to be a directory.
-        // eslint-disable-next-line no-restricted-syntax
         key: asset.id,
       })
     }
@@ -1309,7 +1303,6 @@ export default function AssetsTable(props: AssetsTableProps) {
     const asset = nodeMapRef.current.get(assetId)?.item
 
     if (asset != null) {
-      // eslint-disable-next-line no-restricted-syntax
       return doDelete(asset, forever)
     }
   })
@@ -1342,8 +1335,6 @@ export default function AssetsTable(props: AssetsTableProps) {
     }
   }, [navigator2D, setMostRecentlySelectedIndex])
 
-  // This is not a React component, even though it contains JSX.
-  // eslint-disable-next-line no-restricted-syntax
   const onKeyDown = (event: KeyboardEvent) => {
     const { selectedKeys } = driveStore.getState()
     const prevIndex = mostRecentlySelectedIndexRef.current
@@ -1577,8 +1568,6 @@ export default function AssetsTable(props: AssetsTableProps) {
     },
   )
 
-  // This is not a React component, even though it contains JSX.
-  // eslint-disable-next-line no-restricted-syntax
   const onAssetListEvent = useEventCallback((event: AssetListEvent) => {
     switch (event.type) {
       case AssetListEventType.newFolder: {
@@ -2609,7 +2598,6 @@ export default function AssetsTable(props: AssetsTableProps) {
     <tr ref={headerRowRef} className="sticky top-[1px] text-sm font-semibold">
       {columns.map((column) => {
         // This is a React component, even though it does not contain JSX.
-        // eslint-disable-next-line no-restricted-syntax
         const Heading = COLUMN_HEADING[column]
         return (
           <th key={column} className={COLUMN_CSS_CLASS[column]}>
