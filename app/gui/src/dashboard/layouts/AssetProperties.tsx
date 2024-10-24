@@ -41,6 +41,7 @@ import { normalizePath } from '#/utilities/fileInfo'
 import { mapNonNullish } from '#/utilities/nullable'
 import * as permissions from '#/utilities/permissions'
 import { tv } from '#/utilities/tailwindVariants'
+import { Result } from '#/components/Result'
 
 // =======================
 // === AssetProperties ===
@@ -65,8 +66,40 @@ export interface AssetPropertiesProps {
   readonly spotlightOn: AssetPropertiesSpotlight | undefined
 }
 
-/** Display and modify the properties of an asset. */
+/**
+ * Display and modify the properties of an asset.
+ */
 export default function AssetProperties(props: AssetPropertiesProps) {
+  const { item, isReadonly = false, backend, category, spotlightOn } = props
+
+  const { getText } = useText()
+
+  if (item == null) {
+    return <Result status="info" title={getText('assetProperties.notSelected')} centered />
+  }
+
+  return (
+    <AssetPropertiesInternal
+      backend={backend}
+      item={item}
+      isReadonly={isReadonly}
+      category={category}
+      spotlightOn={spotlightOn}
+    />
+  )
+}
+
+/**
+ * Props for {@link AssetPropertiesInternal}.
+ */
+export interface AssetPropertiesInternalProps extends AssetPropertiesProps {
+  readonly item: NonNullable<AssetPropertiesProps['item']>
+}
+
+/**
+ * Internal implementation of {@link AssetProperties}.
+ */
+function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
   const { backend, item, category, spotlightOn, isReadonly = false } = props
   const styles = ASSET_PROPERTIES_VARIANTS({})
 

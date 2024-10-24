@@ -18,7 +18,6 @@ import type Backend from '#/services/Backend'
 
 /** Props for a {@link ProjectLogsModal}. */
 export interface ProjectLogsModalProps {
-  readonly isOpen: boolean
   readonly backend: Backend
   readonly projectSessionId: backendModule.ProjectSessionId
   readonly projectTitle: string
@@ -26,12 +25,11 @@ export interface ProjectLogsModalProps {
 
 /** A modal for showing logs for a project. */
 export default function ProjectLogsModal(props: ProjectLogsModalProps) {
-  const { isOpen } = props
   const { getText } = textProvider.useText()
 
   return (
     <ariaComponents.Dialog title={getText('logs')} type="fullscreen">
-      {isOpen && <ProjectLogsModalInternal {...props} />}
+      {() => <ProjectLogsModalInternal {...props} />}
     </ariaComponents.Dialog>
   )
 }
@@ -40,6 +38,7 @@ export default function ProjectLogsModal(props: ProjectLogsModalProps) {
 function ProjectLogsModalInternal(props: ProjectLogsModalProps) {
   const { backend, projectSessionId, projectTitle } = props
   const { getText } = textProvider.useText()
+
   const logsQuery = reactQuery.useSuspenseQuery({
     queryKey: ['projectLogs', { projectSessionId, projectTitle }],
     queryFn: async () => {

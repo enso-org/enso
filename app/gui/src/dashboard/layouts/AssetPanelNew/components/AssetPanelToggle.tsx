@@ -6,8 +6,10 @@ import RightPanelIcon from '#/assets/right_panel.svg'
 import { Button } from '#/components/AriaComponents'
 
 import {
+  useDriveStore,
   useIsAssetPanelVisible,
   useSetIsAssetPanelPermanentlyVisible,
+  useSetIsAssetPanelTemporarilyVisible,
 } from '#/providers/DriveProvider'
 import { useText } from '#/providers/TextProvider'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -27,8 +29,10 @@ export interface AssetPanelToggleProps {
 export function AssetPanelToggle(props: AssetPanelToggleProps) {
   const { className, showWhen = 'collapsed' } = props
 
+  const driveStore = useDriveStore()
   const isAssetPanelVisible = useIsAssetPanelVisible()
   const setIsAssetPanelPermanentlyVisible = useSetIsAssetPanelPermanentlyVisible()
+  const setIsAssetPanelTemporarilyVisible = useSetIsAssetPanelTemporarilyVisible()
 
   const shouldShow = showWhen === 'collapsed' ? !isAssetPanelVisible : isAssetPanelVisible
 
@@ -47,7 +51,14 @@ export function AssetPanelToggle(props: AssetPanelToggleProps) {
             icon={RightPanelIcon}
             aria-label={getText('openAssetPanel')}
             onPress={() => {
-              setIsAssetPanelPermanentlyVisible(!isAssetPanelVisible)
+              const isAssetPanelTemporarilyVisible =
+                driveStore.getState().isAssetPanelTemporarilyVisible
+              if (isAssetPanelTemporarilyVisible) {
+                setIsAssetPanelTemporarilyVisible(false)
+                setIsAssetPanelPermanentlyVisible(false)
+              } else {
+                setIsAssetPanelPermanentlyVisible(!isAssetPanelVisible)
+              }
             }}
           />
         </motion.div>

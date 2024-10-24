@@ -3,11 +3,7 @@ import { useState } from 'react'
 
 import LogsIcon from '#/assets/logs.svg'
 
-import * as textProvider from '#/providers/TextProvider'
-
-import * as ariaComponents from '#/components/AriaComponents'
-import Button from '#/components/styled/Button'
-
+import { Button, DialogTrigger } from '#/components/AriaComponents'
 import ProjectLogsModal from '#/modals/ProjectLogsModal'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
@@ -28,8 +24,8 @@ export interface AssetProjectSessionProps {
 /** Displays information describing a specific version of an asset. */
 export default function AssetProjectSession(props: AssetProjectSessionProps) {
   const { backend, project, projectSession } = props
+
   const { getText } = useText()
-  const [isOpen, setIsOpen] = useState(false)
 
   return (
     <div className="flex w-full flex-1 shrink-0 select-none flex-row gap-4 rounded-2xl p-2">
@@ -37,11 +33,10 @@ export default function AssetProjectSession(props: AssetProjectSessionProps) {
         <time className="text-xs">{formatDateTime(new Date(projectSession.createdAt))}</time>
       </div>
       <div className="flex items-center gap-1">
-        <DialogTrigger isOpen={isOpen} onOpenChange={setIsOpen}>
+        <DialogTrigger>
           <Button variant="icon" isActive icon={LogsIcon} aria-label={getText('showLogs')} />
 
           <ProjectLogsModal
-            isOpen={isOpen}
             backend={backend}
             projectSessionId={projectSession.projectSessionId}
             projectTitle={project.title}

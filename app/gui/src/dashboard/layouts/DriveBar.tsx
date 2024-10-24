@@ -35,15 +35,7 @@ import StartModal from '#/layouts/StartModal'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
-import {
-  useCanCreateAssets,
-  useCanDownload,
-  useDriveStore,
-  useIsAssetPanelVisible,
-  usePasteData,
-  useSetIsAssetPanelPermanentlyVisible,
-  useSetIsAssetPanelTemporarilyVisible,
-} from '#/providers/DriveProvider'
+import { useCanCreateAssets, useCanDownload, usePasteData } from '#/providers/DriveProvider'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { useSetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
@@ -91,15 +83,11 @@ export default function DriveBar(props: DriveBarProps) {
     false,
   )
 
-  const driveStore = useDriveStore()
   const { unsetModal } = useSetModal()
   const { getText } = useText()
   const inputBindings = useInputBindings()
   const dispatchAssetEvent = useDispatchAssetEvent()
   const canCreateAssets = useCanCreateAssets()
-  const isAssetPanelVisible = useIsAssetPanelVisible()
-  const setIsAssetPanelTemporarilyVisible = useSetIsAssetPanelTemporarilyVisible()
-  const setIsAssetPanelPermanentlyVisible = useSetIsAssetPanelPermanentlyVisible()
   const createAssetButtonsRef = React.useRef<HTMLDivElement>(null)
   const uploadFilesRef = React.useRef<HTMLInputElement>(null)
   const isCloud = isCloudCategory(category)
@@ -183,26 +171,8 @@ export default function DriveBar(props: DriveBarProps) {
   const assetPanelToggle = (
     <>
       {/* Spacing. */}
-      <div className={!isAssetPanelVisible ? 'w-5' : 'hidden'} />
-      <div className="absolute right-[15px] top-[27px] z-1">
-        <Button
-          size="medium"
-          variant="custom"
-          isActive={isAssetPanelVisible}
-          icon={RightPanelIcon}
-          aria-label={isAssetPanelVisible ? getText('openAssetPanel') : getText('closeAssetPanel')}
-          onPress={() => {
-            const isAssetPanelTemporarilyVisible =
-              driveStore.getState().isAssetPanelTemporarilyVisible
-            if (isAssetPanelTemporarilyVisible) {
-              setIsAssetPanelTemporarilyVisible(false)
-              setIsAssetPanelPermanentlyVisible(false)
-            } else {
-              setIsAssetPanelPermanentlyVisible(!isAssetPanelVisible)
-            }
-          }}
-        />
-      </div>
+      <div className="ml-auto" />
+      <AssetPanelToggle showWhen="collapsed" className="my-auto" />
     </>
   )
 
