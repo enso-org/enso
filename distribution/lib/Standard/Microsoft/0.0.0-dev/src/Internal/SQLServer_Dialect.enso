@@ -320,7 +320,7 @@ type SQLServer_Dialect
             wrapped = case value of
                 Nothing -> SQL_Builder.code "NULL"
                 _ -> SQL_Builder.interpolation value
-            pair (wrapped) [wrapped]
+            pair wrapped [wrapped]
         SQL_Expression.Literal value -> 
             wrapped = SQL_Builder.code value
             pair wrapped [wrapped]
@@ -356,14 +356,15 @@ type SQLServer_Dialect
         base_expr = expr_null_checks_pair.first
         built_expr = case expr of
             SQL_Expression.Operation _ _ _ ->
-                null_check = _generate_null_check_sql_builder expr_null_checks_pair.second
-                SQL_Builder.code "CASE WHEN " ++ null_check ++ " THEN NULL WHEN " ++ base_expr ++ " THEN 1 ELSE 0 END"
+                null_check = if expr_null_checks_pair.second.length == 0 then "" else
+                    SQL_Builder.code "WHEN " ++ _generate_null_check_sql_builder expr_null_checks_pair.second ++ " THEN NULL "
+                SQL_Builder.code "CASE " ++ null_check ++ "WHEN " ++ base_expr ++ " THEN 1 ELSE 0 END"
             _ -> base_expr
         built_expr ++ Base_Generator.alias self name
 
 ## PRIVATE
 private _generate_null_check_sql_builder null_checks:Vector -> SQL_Builder =
-    (null_checks.map it->(it.paren ++ " IS NULL ")) . fold (SQL_Builder.code "1=0 ") acc-> i-> acc ++ "OR " ++ i
+    (null_checks.map it->(it.paren ++ " IS NULL ")) . reduce acc-> i-> acc ++ "OR " ++ i
 
 ## PRIVATE
 make_dialect_operations =
