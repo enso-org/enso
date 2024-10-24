@@ -1,8 +1,6 @@
 /** @file Playwright browser testing configuration. */
 import { defineConfig } from '@playwright/test'
 
-/* eslint-disable @typescript-eslint/no-magic-numbers, @typescript-eslint/strict-boolean-expressions */
-
 export default defineConfig({
   testDir: './tests',
   forbidOnly: !!process.env.CI,

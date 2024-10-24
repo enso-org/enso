@@ -1,8 +1,14 @@
 from Standard.Base import all
-
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Illegal_State.Illegal_State
 from Standard.Base.Enso_Cloud.Data_Link_Helpers import Data_Link_Source_Metadata
 
+from Standard.Table import Table
+
 import project.Connection.Connection_Options.Connection_Options
+import project.Dialect.Temp_Table_Style
+import project.Internal.Data_Link_Setup.DB_Data_Link_Type
+import project.Internal.IR.From_Spec.From_Spec
 
 ## PRIVATE
 data_link_connection_parameters (source : Data_Link_Source_Metadata) -> Connection_Options =
@@ -12,3 +18,56 @@ data_link_connection_parameters (source : Data_Link_Source_Metadata) -> Connecti
     audit_mode = if Enso_User.is_logged_in then "cloud" else "local"
     options_vector = [["enso.internal.audit", audit_mode]] + (if related_asset_id.is_nothing then [] else [["enso.internal.relatedAssetId", related_asset_id]])
     Connection_Options.Value options_vector
+
+## PRIVATE
+save_table_as_data_link table destination on_existing_file:Existing_File_Behavior =
+    data_link_setup = table.connection.data_link_setup.if_nothing <|
+        Error.throw (Illegal_Argument.Error "Saving a Table as data link is currently not supported in this backend.")
+
+    # For a trivial query we return the table name.
+    link_type = if table.is_trivial_query fail_if_not_found=False then DB_Data_Link_Type.Table table.name else
+        sql_statement = table.to_sql
+        prepared = sql_statement.prepare
+        # If there are no interpolations, we can do a raw query represented by Text (more friendly in the GUI).
+        if prepared.second.is_empty then DB_Data_Link_Type.Query prepared.first else
+            # Lastly, if there are interpolations, we need to fully serialize
+            DB_Data_Link_Type.SQL_Statement sql_statement
+    result = data_link_setup.save_as_data_link destination on_existing_file link_type
+    referred_temporary_tables = _find_referred_temporary_tables table.connection table.context
+    if referred_temporary_tables.is_nothing then result else
+        warning = Illegal_State.Error "The saved query seems to refer to tables "+referred_temporary_tables.to_text+" which are temporary. Such tables may cease to exist once the session is closed, so the saved data link will no longer be valid and will fail to open."
+        Warning.attach warning result
+
+
+## PRIVATE
+   Checks if the query refers to any tables that are temporary.
+
+   Note that this is a heuristic and it may potentially lead to false positives
+   if aliasing table names exist across schemas. Supporting tables with clashing
+   names across schemas is something that may need to be revised overall in the
+   Database library.
+private _find_referred_temporary_tables connection context -> Nothing | Vector Text =
+    encountered_table_names = Vector.build builder->
+        context.from_spec.traverse x-> case x of
+            From_Spec.Table name _ _ ->
+                builder.append name
+                x
+            _ -> x
+
+    return_nothing_if_empty vec = if vec.is_empty then Nothing else vec
+    case connection.dialect.temp_table_style of
+        # For prefix-style, we just inspect names.
+        Temp_Table_Style.Hash_Prefix ->
+            encountered_temporary_tables = encountered_table_names.filter name->
+                name.starts_with "#"
+            return_nothing_if_empty encountered_temporary_tables
+        # For CREATE TEMPORARY we query `getTables` and try to check table Type
+        Temp_Table_Style.Temporary_Table ->
+            table_info = connection.get_tables_advanced include_hidden=True
+            # If types are unknown, we cannot tell anything.
+            if table_info.column_names.contains "Type" . not then Nothing else
+                encountered_table_info = table_info.join (Table.new [["Name", encountered_table_names]]) join_kind=..Inner on="Name"
+                temporary_indicator = encountered_table_info.at "Type" . map type_name->
+                    type_name.contains "temp" case_sensitivity=..Insensitive
+                encountered_temporary_tables = encountered_table_info.filter temporary_indicator . at "Name" . to_vector
+                return_nothing_if_empty encountered_temporary_tables

@@ -22,39 +22,29 @@ export type ButtonProps =
   | (BaseButtonProps<aria.ButtonRenderProps> & Omit<aria.ButtonProps, 'onPress'> & PropsWithoutHref)
   | (BaseButtonProps<aria.LinkRenderProps> & Omit<aria.LinkProps, 'onPress'> & PropsWithHref)
 
-/**
- * Props for a button with an href.
- */
+/** Props for a button with an href. */
 interface PropsWithHref {
   readonly href: string
 }
 
-/**
- * Props for a button without an href.
- */
+/** Props for a button without an href. */
 interface PropsWithoutHref {
   readonly href?: never
 }
 
-/**
- * Base props for a button.
- */
+/** Base props for a button. */
 export interface BaseButtonProps<Render>
   extends Omit<VariantProps<typeof BUTTON_STYLES>, 'iconOnly'> {
   /** Falls back to `aria-label`. Pass `false` to explicitly disable the tooltip. */
   readonly tooltip?: React.ReactElement | string | false | null
   readonly tooltipPlacement?: aria.Placement
-  /**
-   * The icon to display in the button
-   */
+  /** The icon to display in the button */
   readonly icon?:
     | React.ReactElement
     | string
     | ((render: Render) => React.ReactElement | string | null)
     | null
-  /**
-   * When `true`, icon will be shown only when hovered.
-   */
+  /** When `true`, icon will be shown only when hovered. */
   readonly showIconOnHover?: boolean
   /**
    * Handler that is called when the press is released over the target.
@@ -471,7 +461,7 @@ export const Button = forwardRef(function Button(
             className={styles.content({ className: contentClassName })}
             {...targetProps}
           >
-            {/* eslint-disable-next-line @typescript-eslint/no-unsafe-argument */}
+            {}
             {childrenFactory(render)}
           </span>
 

@@ -4,11 +4,13 @@ const tsf = ts.factory
 
 // === Identifier utilities ===
 
+/** Convert an identifier from an arbitrary case into PascalCase. */
 export function toPascal(ident: string): string {
   if (ident.includes('.')) throw new Error('toPascal cannot be applied to a namespaced name.')
   return changeCase.pascalCase(ident)
 }
 
+/** Convert an identifier from an arbitrary case into camelCase. */
 export function toCamel(ident: string): string {
   if (ident.includes('.')) throw new Error('toCamel cannot be applied to a namespaced name.')
   return changeCase.camelCase(ident)
@@ -30,10 +32,12 @@ const RENAME = new Map([
   ['codeStartUtf16', 'startInCodeBuffer'],
 ])
 
+/** Rename certain special-cased identifiers to avoid using language keywords, and for increased clarity. */
 export function mapIdent(ident: string): string {
   return RENAME.get(ident) ?? ident
 }
 
+/** Return a name with an optional namespace, normalized to PascalCase. */
 export function namespacedName(name: string, namespace?: string): string {
   if (namespace == null) {
     return toPascal(name)
@@ -53,12 +57,17 @@ export const modifiers = {
   protected: tsf.createModifier(ts.SyntaxKind.ProtectedKeyword),
 } as const
 
+/** Create a TypeScript assignment statement. */
 export function assignmentStatement(left: ts.Expression, right: ts.Expression): ts.Statement {
   return tsf.createExpressionStatement(
     tsf.createBinaryExpression(left, ts.SyntaxKind.EqualsToken, right),
   )
 }
 
+/**
+ * Create a TypeScript `class` constructor that forwards a single parameter to its parent class'
+ * constructor.
+ */
 export function forwardToSuper(
   ident: ts.Identifier,
   type: ts.TypeNode,
@@ -75,16 +84,22 @@ export function forwardToSuper(
   )
 }
 
+/**
+ * Create a TypeScript `switch` statement with an additional `default` case that throws an error
+ * with the given message.
+ */
 export function casesOrThrow(cases: ts.CaseClause[], error: string): ts.CaseBlock {
   return tsf.createCaseBlock([...cases, tsf.createDefaultClause([throwError(error)])])
 }
 
+/** Create a TypeScript `throw` statement. */
 export function throwError(error: string): ts.Statement {
   return tsf.createThrowStatement(
     tsf.createNewExpression(tsf.createIdentifier('Error'), [], [tsf.createStringLiteral(error)]),
   )
 }
 
+/** Create a TypeScript `=>` function with the given single expression as its body. */
 export function makeArrow(params: ts.BindingName[], expr: ts.Expression) {
   return tsf.createArrowFunction(
     [],

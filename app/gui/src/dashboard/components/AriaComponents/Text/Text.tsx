@@ -1,6 +1,4 @@
-/**
- * @file Text component
- */
+/** @file Text component */
 import * as React from 'react'
 
 import * as aria from '#/components/aria'
@@ -12,9 +10,7 @@ import { forwardRef } from '#/utilities/react'
 import * as textProvider from './TextProvider'
 import * as visualTooltip from './useVisualTooltip'
 
-/**
- * Props for the Text component
- */
+/** Props for the Text component */
 export interface TextProps
   extends Omit<aria.TextProps, 'color'>,
     twv.VariantProps<typeof TEXT_STYLE> {
@@ -119,9 +115,7 @@ export const TEXT_STYLE = twv.tv({
   },
 })
 
-/**
- * Text component that supports truncation and show a tooltip on hover when text is truncated
- */
+/** Text component that supports truncation and show a tooltip on hover when text is truncated */
 // eslint-disable-next-line no-restricted-syntax
 export const Text = forwardRef(function Text(props: TextProps, ref: React.Ref<HTMLSpanElement>) {
   const {
@@ -208,7 +202,6 @@ export const Text = forwardRef(function Text(props: TextProps, ref: React.Ref<HT
       {tooltip}
     </textProvider.TextProvider>
   )
-  // eslint-disable-next-line no-restricted-syntax
 }) as unknown as React.FC<React.RefAttributes<HTMLSpanElement> & TextProps> & {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   Heading: typeof Heading
@@ -216,17 +209,13 @@ export const Text = forwardRef(function Text(props: TextProps, ref: React.Ref<HT
   Group: React.FC<React.PropsWithChildren>
 }
 
-/**
- * Heading props
- */
+/** Heading props */
 export interface HeadingProps extends Omit<TextProps, 'elementType'> {
   // eslint-disable-next-line @typescript-eslint/no-magic-numbers
   readonly level?: '1' | '2' | '3' | '4' | '5' | '6' | 1 | 2 | 3 | 4 | 5 | 6
 }
 
-/**
- * Heading component
- */
+/** Heading component */
 // eslint-disable-next-line no-restricted-syntax
 const Heading = forwardRef(function Heading(
   props: HeadingProps,
@@ -237,9 +226,7 @@ const Heading = forwardRef(function Heading(
 })
 Text.Heading = Heading
 
-/**
- * Text group component. It's used to visually group text elements together
- */
+/** Text group component. It's used to visually group text elements together */
 Text.Group = function TextGroup(props: React.PropsWithChildren) {
   return (
     <textProvider.TextProvider value={{ isInsideTextComponent: true }}>

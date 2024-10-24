@@ -9,18 +9,14 @@ import * as aria from '#/components/aria'
 
 import * as twv from '#/utilities/tailwindVariants'
 
-/**
- * The props for {@link Separator} component.
- */
+/** The props for {@link Separator} component. */
 export interface SeparatorProps
   extends aria.SeparatorProps,
     twv.VariantProps<typeof SEPARATOR_STYLES> {
   readonly className?: string
 }
 
-/**
- * The styles for the {@link Separator} component.
- */
+/** The styles for the {@link Separator} component. */
 export const SEPARATOR_STYLES = twv.tv({
   base: 'rounded-full border-none',
   variants: {
@@ -79,9 +75,7 @@ export const SEPARATOR_STYLES = twv.tv({
   ],
 })
 
-/**
- * A separator component.
- */
+/** A separator component. */
 export function Separator(props: SeparatorProps) {
   const { orientation = 'horizontal', variant, className, size, ...rest } = props
 

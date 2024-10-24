@@ -10,7 +10,6 @@ import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Common.Missing_Argument
 import Standard.Base.Errors.Common.Not_Found
 import Standard.Base.Errors.Common.Type_Error
-import Standard.Base.Errors.Common.Unsupported_Argument_Types
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.Runtime.Ref.Ref
@@ -256,17 +255,17 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         txtvec.filter (..Contains 's\u0301') . should_equal ["ś"]
         txtvec.filter (..Contains 'S\u0301' Case_Sensitivity.Sensitive) . should_equal []
         txtvec.filter (..Contains 'S\u0301' Case_Sensitivity.Insensitive) . should_equal ["ś"]
-        Test.expect_panic_with (txtvec.filter (..Contains 42)) Unsupported_Argument_Types
+        Test.expect_panic Type_Error (txtvec.filter (..Contains 42))
         txtvec.filter (..Starts_With "a") . should_equal ["aaa", "abab"]
         txtvec.filter (..Starts_With "a" keep_or_remove=Filter_Action.Remove) . should_equal ["bbb", "cccc", "baaa", "ś"]
         txtvec.filter (..Starts_With "A" Case_Sensitivity.Sensitive) . should_equal []
         txtvec.filter (..Starts_With "A" Case_Sensitivity.Insensitive) . should_equal ["aaa", "abab"]
-        Test.expect_panic_with (txtvec.filter (..Starts_With 42)) Unsupported_Argument_Types
+        Test.expect_panic Type_Error (txtvec.filter (..Starts_With 42))
         txtvec.filter (..Ends_With "a") . should_equal ["aaa", "baaa"]
         txtvec.filter (..Ends_With "a" keep_or_remove=Filter_Action.Remove) . should_equal ["bbb", "abab", "cccc", "ś"]
         txtvec.filter (..Ends_With "A" Case_Sensitivity.Sensitive) . should_equal []
         txtvec.filter (..Ends_With "A" Case_Sensitivity.Insensitive) . should_equal ["aaa", "baaa"]
-        Test.expect_panic_with (txtvec.filter (..Ends_With 42)) Unsupported_Argument_Types
+        Test.expect_panic Type_Error (txtvec.filter (..Ends_With 42))
 
         txtvec.filter (..Less than="a") . should_equal []
         txtvec.filter (..Greater than="b") . should_equal ["bbb", "cccc", "baaa", "ś"]

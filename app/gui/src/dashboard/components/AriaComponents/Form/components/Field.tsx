@@ -14,9 +14,7 @@ import * as text from '../../Text'
 import { Form } from '../Form'
 import type * as types from './types'
 
-/**
- * Props for Field component
- */
+/** Props for Field component */
 export interface FieldComponentProps<Schema extends types.TSchema>
   extends VariantProps<typeof FIELD_STYLES>,
     types.FieldProps {
@@ -29,16 +27,12 @@ export interface FieldComponentProps<Schema extends types.TSchema>
   readonly style?: React.CSSProperties | undefined
 }
 
-/**
- * Props for Field variants
- */
+/** Props for Field variants */
 export interface FieldVariantProps {
   readonly fieldVariants?: VariantProps<typeof FIELD_STYLES>['variants'] | undefined
 }
 
-/**
- * Props for Field children
- */
+/** Props for Field children */
 export interface FieldChildrenRenderProps {
   readonly isInvalid: boolean
   readonly isDirty: boolean
@@ -65,9 +59,7 @@ export const FIELD_STYLES = tv({
   defaultVariants: { fullWidth: true },
 })
 
-/**
- * Field component
- */
+/** Field component */
 // eslint-disable-next-line no-restricted-syntax
 export const Field = forwardRef(function Field<Schema extends types.TSchema>(
   props: FieldComponentProps<Schema>,
@@ -117,7 +109,6 @@ export const Field = forwardRef(function Field<Schema extends types.TSchema>(
             {label}
 
             {isRequired && (
-              /* eslint-disable-next-line no-restricted-syntax */
               <span aria-hidden="true" className="scale-80 text-danger">
                 {' *'}
               </span>

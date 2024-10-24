@@ -32,7 +32,6 @@ export function CloseButton(props: CloseButtonProps) {
           isOnMacOS() ? 'bg-primary/30' : (
             'text-primary/90 hover:text-primary focus-visible:text-primary'
           ),
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           // @ts-expect-error ts fails to infer the type of the className prop
           typeof className === 'function' ? className(values) : className,
         )

@@ -55,7 +55,11 @@ import AssetEventType from '#/events/AssetEventType'
 import { useCutAndPaste, type AssetListEvent } from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
 import { useAutoScroll } from '#/hooks/autoScrollHooks'
-import { backendMutationOptions, backendQueryOptions, useBackendQuery } from '#/hooks/backendHooks'
+import {
+  backendMutationOptions,
+  useBackendQuery,
+  useUploadFileWithToastMutation,
+} from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useIntersectionRatio } from '#/hooks/intersectionHooks'
 import { useOpenProject } from '#/hooks/projectHooks'
@@ -132,8 +136,7 @@ import {
   type ProjectAsset,
   type SecretAsset,
 } from '#/services/Backend'
-import LocalBackend, { extractTypeAndId, newProjectId } from '#/services/LocalBackend'
-import { UUID } from '#/services/ProjectManager'
+import LocalBackend from '#/services/LocalBackend'
 import { isSpecialReadonlyDirectoryId } from '#/services/RemoteBackend'
 import { ROOT_PARENT_DIRECTORY_ID } from '#/services/remoteBackendPaths'
 import type { AssetQueryKey } from '#/utilities/AssetQuery'
@@ -334,9 +337,7 @@ export interface AssetsTableProps {
   readonly assetManagementApiRef: Ref<AssetManagementApi>
 }
 
-/**
- * The API for managing assets in the table.
- */
+/** The API for managing assets in the table. */
 export interface AssetManagementApi {
   readonly getAsset: (id: AssetId) => AnyAsset | null
   readonly setAsset: (id: AssetId, asset: AnyAsset) => void
@@ -433,7 +434,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const createSecretMutation = useMutation(backendMutationOptions(backend, 'createSecret'))
   const updateSecretMutation = useMutation(backendMutationOptions(backend, 'updateSecret'))
   const createDatalinkMutation = useMutation(backendMutationOptions(backend, 'createDatalink'))
-  const uploadFileMutation = useMutation(backendMutationOptions(backend, 'uploadFile'))
+  const uploadFileMutation = useUploadFileWithToastMutation(backend)
   const copyAssetMutation = useMutation(backendMutationOptions(backend, 'copyAsset'))
   const deleteAssetMutation = useMutation(backendMutationOptions(backend, 'deleteAsset'))
   const undoDeleteAssetMutation = useMutation(backendMutationOptions(backend, 'undoDeleteAsset'))
@@ -508,9 +509,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     },
   })
 
-  /**
-   * Return type of the query function for the listDirectory query.
-   */
+  /** Return type of the query function for the listDirectory query. */
   type DirectoryQuery = typeof directories.rootDirectory.data
 
   const rootDirectoryContent = directories.rootDirectory.data
@@ -522,7 +521,6 @@ export default function AssetsTable(props: AssetsTableProps) {
     // If the root directory is not loaded, then we cannot render the tree.
     // Return null, and wait for the root directory to load.
     if (rootDirectoryContent == null) {
-      // eslint-disable-next-line no-restricted-syntax
       return AssetTreeNode.fromAsset(
         createRootDirectoryAsset(rootDirectoryId),
         ROOT_PARENT_DIRECTORY_ID,
@@ -532,7 +530,6 @@ export default function AssetsTable(props: AssetsTableProps) {
         null,
       )
     } else if (directories.rootDirectory.isError) {
-      // eslint-disable-next-line no-restricted-syntax
       return AssetTreeNode.fromAsset(
         createRootDirectoryAsset(rootDirectoryId),
         ROOT_PARENT_DIRECTORY_ID,
@@ -670,8 +667,6 @@ export default function AssetsTable(props: AssetsTableProps) {
           node.item.type === AssetType.specialEmpty ||
           node.item.type === AssetType.specialLoading
         ) {
-          // This is FINE, as these assets have no meaning info to match with.
-          // eslint-disable-next-line no-restricted-syntax
           return false
         }
         const assetType =
@@ -1284,8 +1279,6 @@ export default function AssetsTable(props: AssetsTableProps) {
       dispatchAssetListEvent({
         type: AssetListEventType.closeFolder,
         id: asset.id,
-        // This is SAFE, as this asset is already known to be a directory.
-        // eslint-disable-next-line no-restricted-syntax
         key: asset.id,
       })
     }
@@ -1310,7 +1303,6 @@ export default function AssetsTable(props: AssetsTableProps) {
     const asset = nodeMapRef.current.get(assetId)?.item
 
     if (asset != null) {
-      // eslint-disable-next-line no-restricted-syntax
       return doDelete(asset, forever)
     }
   })
@@ -1343,8 +1335,6 @@ export default function AssetsTable(props: AssetsTableProps) {
     }
   }, [navigator2D, setMostRecentlySelectedIndex])
 
-  // This is not a React component, even though it contains JSX.
-  // eslint-disable-next-line no-restricted-syntax
   const onKeyDown = (event: KeyboardEvent) => {
     const { selectedKeys } = driveStore.getState()
     const prevIndex = mostRecentlySelectedIndexRef.current
@@ -1578,8 +1568,6 @@ export default function AssetsTable(props: AssetsTableProps) {
     },
   )
 
-  // This is not a React component, even though it contains JSX.
-  // eslint-disable-next-line no-restricted-syntax
   const onAssetListEvent = useEventCallback((event: AssetListEvent) => {
     switch (event.type) {
       case AssetListEventType.newFolder: {
@@ -1726,83 +1714,30 @@ export default function AssetsTable(props: AssetsTableProps) {
                 const { extension } = extractProjectExtension(file.name)
                 const title = stripProjectExtension(asset.title)
 
-                const assetNode = nodeMapRef.current.get(asset.id)
-
-                if (backend.type === BackendType.local && localBackend != null) {
-                  const directory = extractTypeAndId(assetNode?.directoryId ?? asset.parentId).id
-                  let id: string
-                  if (
-                    'backendApi' in window &&
-                    // This non-standard property is defined in Electron.
-                    'path' in file &&
-                    typeof file.path === 'string'
-                  ) {
-                    const projectInfo = await window.backendApi.importProjectFromPath(
-                      file.path,
-                      directory,
-                      title,
-                    )
-                    id = projectInfo.id
-                  } else {
-                    const searchParams = new URLSearchParams({ directory, name: title }).toString()
-                    // Ideally this would use `file.stream()`, to minimize RAM
-                    // requirements. for uploading large projects. Unfortunately,
-                    // this requires HTTP/2, which is HTTPS-only, so it will not
-                    // work on `http://localhost`.
-                    const body =
-                      window.location.protocol === 'https:' ?
-                        file.stream()
-                      : await file.arrayBuffer()
-                    const path = `./api/upload-project?${searchParams}`
-                    const response = await fetch(path, { method: 'POST', body })
-                    id = await response.text()
-                  }
-                  const projectId = newProjectId(UUID(id))
-                  addIdToSelection(projectId)
-
-                  await queryClient
-                    .fetchQuery(
-                      backendQueryOptions(backend, 'getProjectDetails', [
-                        projectId,
-                        asset.parentId,
-                        asset.title,
-                      ]),
-                    )
-                    .catch((error) => {
-                      deleteAsset(projectId)
-                      toastAndLog('uploadProjectError', error)
-                    })
-
-                  void queryClient.invalidateQueries({
-                    queryKey: [backend.type, 'listDirectory', asset.parentId],
+                await uploadFileMutation
+                  .mutateAsync(
+                    {
+                      fileId,
+                      fileName: `${title}.${extension}`,
+                      parentDirectoryId: asset.parentId,
+                    },
+                    file,
+                  )
+                  .then(({ id }) => {
+                    addIdToSelection(id)
                   })
-                } else {
-                  uploadFileMutation
-                    .mutateAsync([
-                      {
-                        fileId,
-                        fileName: `${title}.${extension}`,
-                        parentDirectoryId: asset.parentId,
-                      },
-                      file,
-                    ])
-                    .then(({ id }) => {
-                      addIdToSelection(id)
-                    })
-                    .catch((error) => {
-                      deleteAsset(asset.id)
-                      toastAndLog('uploadProjectError', error)
-                    })
-                }
+                  .catch((error) => {
+                    toastAndLog('uploadProjectError', error)
+                  })
 
                 break
               }
               case assetIsFile(asset): {
-                void uploadFileMutation
-                  .mutateAsync([
+                await uploadFileMutation
+                  .mutateAsync(
                     { fileId, fileName: asset.title, parentDirectoryId: asset.parentId },
                     file,
-                  ])
+                  )
                   .then(({ id }) => {
                     addIdToSelection(id)
                   })
@@ -1838,8 +1773,6 @@ export default function AssetsTable(props: AssetsTableProps) {
           const assets = [...placeholderFiles, ...placeholderProjects]
 
           doToggleDirectoryExpansion(event.parentId, event.parentKey, true)
-
-          insertAssets(assets, event.parentId)
 
           void Promise.all(assets.map((asset) => doUploadFile(asset, 'new')))
         } else {
@@ -1882,18 +1815,17 @@ export default function AssetsTable(props: AssetsTableProps) {
               siblingProjectNames={siblingProjectsByName.keys()}
               nonConflictingFileCount={files.length - conflictingFiles.length}
               nonConflictingProjectCount={projects.length - conflictingProjects.length}
-              doUpdateConflicting={(resolvedConflicts) => {
-                for (const conflict of resolvedConflicts) {
-                  const isUpdating = conflict.current.title === conflict.new.title
-
-                  const asset = isUpdating ? conflict.current : conflict.new
-
-                  fileMap.set(asset.id, conflict.file)
-
-                  void doUploadFile(asset, isUpdating ? 'update' : 'new')
-                }
+              doUpdateConflicting={async (resolvedConflicts) => {
+                await Promise.allSettled(
+                  resolvedConflicts.map((conflict) => {
+                    const isUpdating = conflict.current.title === conflict.new.title
+                    const asset = isUpdating ? conflict.current : conflict.new
+                    fileMap.set(asset.id, conflict.file)
+                    return doUploadFile(asset, isUpdating ? 'update' : 'new')
+                  }),
+                )
               }}
-              doUploadNonConflicting={() => {
+              doUploadNonConflicting={async () => {
                 doToggleDirectoryExpansion(event.parentId, event.parentKey, true)
 
                 const newFiles = files
@@ -1927,9 +1859,7 @@ export default function AssetsTable(props: AssetsTableProps) {
 
                 const assets = [...newFiles, ...newProjects]
 
-                for (const asset of assets) {
-                  void doUploadFile(asset, 'new')
-                }
+                await Promise.allSettled(assets.map((asset) => doUploadFile(asset, 'new')))
               }}
             />,
           )
@@ -2668,7 +2598,6 @@ export default function AssetsTable(props: AssetsTableProps) {
     <tr ref={headerRowRef} className="sticky top-[1px] text-sm font-semibold">
       {columns.map((column) => {
         // This is a React component, even though it does not contain JSX.
-        // eslint-disable-next-line no-restricted-syntax
         const Heading = COLUMN_HEADING[column]
         return (
           <th key={column} className={COLUMN_CSS_CLASS[column]}>

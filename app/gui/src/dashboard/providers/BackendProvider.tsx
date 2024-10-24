@@ -86,25 +86,12 @@ export default function BackendProvider(props: BackendProviderProps) {
 // ========================
 
 /**
- * Get the Remote Backend. Since the RemoteBackend is always defined, `null` is never returned.
- * @deprecated Use {@link useRemoteBackendStrict} instead.
- */
-export function useRemoteBackend() {
-  return React.useContext(BackendContext).remoteBackend
-}
-
-// ==============================
-// === useRemoteBackendStrict ===
-// ==============================
-
-/**
  * Get the Remote Backend.
  * @throws {Error} when no Remote Backend exists. This should never happen.
  */
-export function useRemoteBackendStrict() {
+export function useRemoteBackend() {
   const remoteBackend = React.useContext(BackendContext).remoteBackend
   if (remoteBackend == null) {
-    // eslint-disable-next-line no-restricted-syntax
     throw new Error('This component requires a Cloud Backend to function.')
   }
   return remoteBackend
@@ -129,7 +116,7 @@ export function useLocalBackend() {
  * This should never happen unless the build is misconfigured.
  */
 export function useBackend(category: Category) {
-  const remoteBackend = useRemoteBackendStrict()
+  const remoteBackend = useRemoteBackend()
   const localBackend = useLocalBackend()
 
   if (isCloudCategory(category)) {

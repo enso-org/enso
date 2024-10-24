@@ -17,7 +17,6 @@ export default function TheModal() {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          /* eslint-disable-next-line @typescript-eslint/no-magic-numbers */
           exit={{ opacity: 0 }}
           /* eslint-disable-next-line @typescript-eslint/no-magic-numbers */
           transition={{ duration: 0.2 }}

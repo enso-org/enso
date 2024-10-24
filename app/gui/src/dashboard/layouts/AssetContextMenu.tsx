@@ -35,7 +35,7 @@ import ManagePermissionsModal from '#/modals/ManagePermissionsModal'
 import * as backendModule from '#/services/Backend'
 import * as localBackendModule from '#/services/LocalBackend'
 
-import { backendMutationOptions } from '#/hooks/backendHooks'
+import { useUploadFileWithToastMutation } from '#/hooks/backendHooks'
 import {
   usePasteData,
   useSetAssetPanelProps,
@@ -101,9 +101,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     : isCloud ? encodeURI(pathRaw)
     : pathRaw
   const copyMutation = copyHooks.useCopy({ copyText: path ?? '' })
-  const uploadFileMutation = reactQuery.useMutation(
-    backendMutationOptions(remoteBackend, 'uploadFile'),
-  )
+  const uploadFileToCloudMutation = useUploadFileWithToastMutation(remoteBackend)
 
   const { isFeatureUnderPaywall } = billingHooks.usePaywall({ plan: user.plan })
   const isUnderPaywall = isFeatureUnderPaywall('share')
@@ -298,25 +296,27 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               hidden={hidden}
               action="uploadToCloud"
               doAction={async () => {
-                if (remoteBackend == null) {
-                  toastAndLog('offlineUploadFilesError')
-                } else {
-                  try {
-                    const projectResponse = await fetch(
-                      `./api/project-manager/projects/${localBackendModule.extractTypeAndId(asset.id).id}/enso-project`,
-                    )
-                    await uploadFileMutation.mutateAsync([
-                      {
-                        fileName: `${asset.title}.enso-project`,
-                        fileId: null,
-                        parentDirectoryId: null,
-                      },
-                      await projectResponse.blob(),
-                    ])
-                    toast.toast.success(getText('uploadProjectToCloudSuccess'))
-                  } catch (error) {
-                    toastAndLog('uploadProjectToCloudError', error)
-                  }
+                try {
+                  const projectResponse = await fetch(
+                    `./api/project-manager/projects/${localBackendModule.extractTypeAndId(asset.id).id}/enso-project`,
+                  )
+                  // This DOES NOT update the cloud assets list when it
+                  // completes, as the current backend is not the remote
+                  // (cloud) backend. The user may change to the cloud backend
+                  // while this request is in progress, however this is
+                  // uncommon enough that it is not worth the added complexity.
+                  const fileName = `${asset.title}.enso-project`
+                  await uploadFileToCloudMutation.mutateAsync(
+                    {
+                      fileName,
+                      fileId: null,
+                      parentDirectoryId: null,
+                    },
+                    new File([await projectResponse.blob()], fileName),
+                  )
+                  toast.toast.success(getText('uploadProjectToCloudSuccess'))
+                } catch (error) {
+                  toastAndLog('uploadProjectToCloudError', error)
                 }
               }}
             />
@@ -337,8 +337,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             )}
           {(asset.type === backendModule.AssetType.secret ||
             asset.type === backendModule.AssetType.datalink) &&
-            canEditThisAsset &&
-            remoteBackend != null && (
+            canEditThisAsset && (
               <ContextMenuEntry
                 hidden={hidden}
                 action="edit"

@@ -467,7 +467,7 @@ trim_ops =
             _ ->
                 case chars.is_constant of
                     True ->
-                        const = chars.fragments.vec.first.object
+                        const = chars.extract_constant
                         if const.is_nothing || const.is_empty then SQL_Builder.code fn_name+"(" ++ input ++ ", " ++ whitespace ++ ")" else
                             SQL_Builder.code fn_name+"(" ++ input ++ ", " ++ chars ++ ")"
                     False ->

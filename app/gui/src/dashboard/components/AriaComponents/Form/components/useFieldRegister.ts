@@ -13,9 +13,7 @@ import type {
   TSchema,
 } from './types'
 
-/**
- * Options for the useFieldRegister hook.
- */
+/** Options for the useFieldRegister hook. */
 export type UseFieldRegisterOptions<
   BaseValueType extends { value?: unknown },
   Schema extends TSchema,
@@ -31,9 +29,7 @@ export type UseFieldRegisterOptions<
   setValueAs?: ((value: unknown) => unknown) | undefined
 }
 
-/**
- * Registers a field in the form.
- */
+/** Registers a field in the form. */
 export function useFieldRegister<
   BaseValueType extends { value?: unknown },
   Schema extends TSchema,
@@ -62,9 +58,7 @@ export function useFieldRegister<
 
   return { fieldProps, formInstance } as const
 }
-/**
- * Tried to extract validation details from the schema.
- */
+/** Tried to extract validation details from the schema. */
 // This name is intentional to highlight that this function is unsafe and should be used with caution.
 // eslint-disable-next-line camelcase, @typescript-eslint/naming-convention
 function unsafe__extractValidationDetailsFromSchema<
@@ -83,17 +77,13 @@ function unsafe__extractValidationDetailsFromSchema<
         const max: number | null = fieldShape.maxLength
         const required = min != null && min > 0
 
-        // eslint-disable-next-line no-restricted-syntax
         return { required, min, max } as const
       }
 
-      // eslint-disable-next-line no-restricted-syntax
       return null
     }
-    // eslint-disable-next-line no-restricted-syntax
     return null
   } catch {
-    // eslint-disable-next-line no-restricted-syntax
     return null
   }
 }

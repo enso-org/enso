@@ -4,16 +4,23 @@ use crate::empty_tree;
 use crate::syntax::item;
 use crate::syntax::maybe_with_error;
 use crate::syntax::operator::Precedence;
+use crate::syntax::statement::apply_excess_private_keywords;
+use crate::syntax::statement::apply_private_keywords;
 use crate::syntax::statement::find_top_level_operator;
 use crate::syntax::statement::parse_pattern;
+use crate::syntax::statement::Line;
+use crate::syntax::statement::StatementPrefix;
+use crate::syntax::statement::VisibilityContext;
 use crate::syntax::token;
 use crate::syntax::tree;
+use crate::syntax::tree::AnnotationLine;
 use crate::syntax::tree::ArgumentDefault;
 use crate::syntax::tree::ArgumentDefinition;
 use crate::syntax::tree::ArgumentDefinitionLine;
 use crate::syntax::tree::ArgumentType;
 use crate::syntax::tree::ReturnSpecification;
 use crate::syntax::tree::SyntaxError;
+use crate::syntax::tree::TypeSignatureLine;
 use crate::syntax::treebuilding::Spacing;
 use crate::syntax::Item;
 use crate::syntax::Token;
@@ -21,34 +28,152 @@ use crate::syntax::Tree;
 
 
 
-pub fn parse_function_decl<'s>(
-    items: &mut Vec<Item<'s>>,
-    start: usize,
-    qn_len: usize,
-    precedence: &mut Precedence<'s>,
-    args_buffer: &mut Vec<ArgumentDefinition<'s>>,
-) -> (Tree<'s>, Vec<ArgumentDefinition<'s>>, Option<ReturnSpecification<'s>>) {
-    let mut arg_starts = vec![];
-    let mut arrow = None;
-    for (i, item) in items.iter().enumerate().skip(start + qn_len) {
-        if let Item::Token(Token { variant: token::Variant::ArrowOperator(_), .. }) = item {
-            arrow = Some(i);
-            break;
+pub struct FunctionBuilder<'s> {
+    name:    Tree<'s>,
+    return_: Option<ReturnSpecification<'s>>,
+    args:    Vec<ArgumentDefinition<'s>>,
+    line:    item::Line<'s>,
+    start:   usize,
+}
+
+impl<'s> FunctionBuilder<'s> {
+    pub fn new(
+        mut line: item::Line<'s>,
+        start: usize,
+        qn_len: usize,
+        precedence: &mut Precedence<'s>,
+        args_buffer: &mut Vec<ArgumentDefinition<'s>>,
+    ) -> Self {
+        let mut arg_starts = vec![];
+        let mut arrow = None;
+        let items = &mut line.items;
+        for (i, item) in items.iter().enumerate().skip(start + qn_len) {
+            if let Item::Token(Token { variant: token::Variant::ArrowOperator(_), .. }) = item {
+                arrow = Some(i);
+                break;
+            }
+            if i == start + qn_len || matches!(Spacing::of_item(item), Spacing::Spaced) {
+                arg_starts.push(i);
+            }
         }
-        if i == start + qn_len || matches!(Spacing::of_item(item), Spacing::Spaced) {
-            arg_starts.push(i);
+        let return_ = arrow.map(|arrow| parse_return_spec(items, arrow, precedence));
+
+        args_buffer.extend(
+            arg_starts.drain(..).rev().map(|arg_start| parse_arg_def(items, arg_start, precedence)),
+        );
+        let args = args_buffer.drain(..).rev().collect();
+
+        let name = precedence.resolve_non_section_offset(start, items).unwrap();
+
+        Self { name, return_, args, line, start }
+    }
+
+    pub fn build(
+        mut self,
+        prefixes: &mut Vec<Line<'s, StatementPrefix<'s>>>,
+        operator: token::AssignmentOperator<'s>,
+        expression: Option<Tree<'s>>,
+        visibility_context: VisibilityContext,
+    ) -> Line<'s, Tree<'s>> {
+        let items = &mut self.line.items;
+        let private_keywords_start = 0;
+
+        let private = (visibility_context != VisibilityContext::Private
+            && self.start > private_keywords_start)
+            .then(|| items.pop().unwrap().into_token().unwrap().try_into().unwrap());
+
+        let mut first_newline = self.line.newline;
+
+        #[derive(Default)]
+        struct PrefixesAccumulator<'s> {
+            annotations: Option<Vec<AnnotationLine<'s>>>,
+            signature:   Option<TypeSignatureLine<'s>>,
+        }
+
+        let mut acc = PrefixesAccumulator::default();
+
+        while let Some(prefix) = prefixes.last() {
+            let Some(content) = prefix.content.as_ref() else { break };
+            match (&acc, &content) {
+                (
+                    PrefixesAccumulator { annotations: None, signature: None },
+                    StatementPrefix::TypeSignature(signature),
+                ) if qn_equivalent(&self.name, &signature.name) => {
+                    let Some(Line {
+                        newline: outer_newline,
+                        content: Some(StatementPrefix::TypeSignature(signature)),
+                    }) = prefixes.pop()
+                    else {
+                        unreachable!()
+                    };
+                    let newline = mem::replace(&mut first_newline, outer_newline);
+                    acc.signature = Some(TypeSignatureLine {
+                        signature,
+                        newlines: NonEmptyVec::singleton(newline),
+                    });
+                }
+                (PrefixesAccumulator { .. }, StatementPrefix::Annotation(_)) => {
+                    let Some(Line {
+                        newline: outer_newline,
+                        content: Some(StatementPrefix::Annotation(annotation)),
+                    }) = prefixes.pop()
+                    else {
+                        unreachable!()
+                    };
+                    let newline = mem::replace(&mut first_newline, outer_newline);
+                    let mut annotations = acc.annotations.take().unwrap_or_default();
+                    annotations.push(AnnotationLine {
+                        annotation,
+                        newlines: NonEmptyVec::singleton(newline),
+                    });
+                    acc.annotations = Some(annotations);
+                }
+                _ => break,
+            }
+        }
+        let signature = acc.signature;
+        let annotations = {
+            let mut annotations = acc.annotations.take().unwrap_or_default();
+            annotations.reverse();
+            annotations
+        };
+
+        Line {
+            newline: first_newline,
+            content: apply_private_keywords(
+                Some(Tree::function(
+                    annotations,
+                    signature,
+                    private,
+                    self.name,
+                    self.args,
+                    self.return_,
+                    operator,
+                    expression,
+                )),
+                items.drain(..),
+                visibility_context,
+            ),
         }
     }
-    let return_ = arrow.map(|arrow| parse_return_spec(items, arrow, precedence));
+}
 
-    args_buffer.extend(
-        arg_starts.drain(..).rev().map(|arg_start| parse_arg_def(items, arg_start, precedence)),
-    );
-    let args = args_buffer.drain(..).rev().collect();
+fn qn_equivalent(a: &Tree, b: &Tree) -> bool {
+    use tree::Variant::*;
+    match (&a.variant, &b.variant) {
+        (Ident(a), Ident(b)) => a.token.code.repr == b.token.code.repr,
+        (OprApp(a), OprApp(b)) =>
+            opt_qn_equivalent(&a.lhs, &b.lhs) && opt_qn_equivalent(&a.rhs, &b.rhs),
+        _ => false,
+    }
+}
 
-    let qn = precedence.resolve_non_section_offset(start, items).unwrap();
-
-    (qn, args, return_)
+fn opt_qn_equivalent(a: &Option<Tree>, b: &Option<Tree>) -> bool {
+    match (a, b) {
+        (Some(a), Some(b)) => qn_equivalent(a, b),
+        (None, None) => true,
+        _ => false,
+    }
 }
 
 /// Parse a sequence of argument definitions.
@@ -73,11 +198,15 @@ pub fn parse_args<'s>(
 }
 
 pub fn parse_constructor_definition<'s>(
-    items: &mut Vec<Item<'s>>,
+    prefixes: &mut Vec<Line<'s, StatementPrefix<'s>>>,
+    mut line: item::Line<'s>,
+    private_keywords_start: usize,
     start: usize,
     precedence: &mut Precedence<'s>,
     args_buffer: &mut Vec<ArgumentDefinition<'s>>,
-) -> Tree<'s> {
+) -> Line<'s, Tree<'s>> {
+    let newline = line.newline;
+    let items = &mut line.items;
     let mut block_args = vec![];
     if matches!(items.last().unwrap(), Item::Block(_)) {
         let Item::Block(block) = items.pop().unwrap() else { unreachable!() };
@@ -87,7 +216,43 @@ pub fn parse_constructor_definition<'s>(
         }))
     }
     let (name, inline_args) = parse_constructor_decl(items, start, precedence, args_buffer);
-    Tree::constructor_definition(name, inline_args, block_args)
+    let private = (private_keywords_start < start)
+        .then(|| items.pop().unwrap().into_token().unwrap().try_into().unwrap());
+
+    let mut first_newline = newline;
+    let mut annotations_reversed = vec![];
+    while let Some(prefix) = prefixes.last() {
+        let Some(content) = prefix.content.as_ref() else { break };
+        if let StatementPrefix::Annotation(_) = &content {
+            let Some(Line {
+                newline: outer_newline,
+                content: Some(StatementPrefix::Annotation(annotation)),
+            }) = prefixes.pop()
+            else {
+                unreachable!()
+            };
+            let newline = mem::replace(&mut first_newline, outer_newline);
+            annotations_reversed
+                .push(AnnotationLine { annotation, newlines: NonEmptyVec::singleton(newline) });
+        } else {
+            break;
+        }
+    }
+    let annotations = {
+        annotations_reversed.reverse();
+        annotations_reversed
+    };
+
+    let def = Tree::constructor_definition(annotations, private, name, inline_args, block_args);
+
+    Line {
+        newline: first_newline,
+        content: apply_excess_private_keywords(
+            Some(def),
+            line.items.drain(..),
+            SyntaxError::TypeBodyUnexpectedPrivateUsage,
+        ),
+    }
 }
 
 fn parse_constructor_decl<'s>(
@@ -97,9 +262,7 @@ fn parse_constructor_decl<'s>(
     args_buffer: &mut Vec<ArgumentDefinition<'s>>,
 ) -> (token::Ident<'s>, Vec<ArgumentDefinition<'s>>) {
     let args = parse_type_args(items, start + 1, precedence, args_buffer);
-    let Item::Token(name) = items.pop().unwrap() else { unreachable!() };
-    let Token { variant: token::Variant::Ident(variant), .. } = name else { unreachable!() };
-    let name = name.with_variant(variant);
+    let name = items.pop().unwrap().into_token().unwrap().try_into().unwrap();
     debug_assert_eq!(items.len(), start);
     (name, args)
 }
@@ -200,17 +363,10 @@ pub fn try_parse_foreign_function<'s>(
     );
     let args = args_buffer.drain(..).rev().collect();
 
-    let Item::Token(name) = items.pop().unwrap() else { unreachable!() };
-    let token::Variant::Ident(variant) = name.variant else { unreachable!() };
-    let name = name.with_variant(variant);
-
-    let Item::Token(language) = items.pop().unwrap() else { unreachable!() };
-    let token::Variant::Ident(variant) = language.variant else { unreachable!() };
-    let language = language.with_variant(variant);
-
-    let Item::Token(keyword) = items.pop().unwrap() else { unreachable!() };
-    let keyword = keyword.with_variant(token::variant::ForeignKeyword());
-
+    let name = items.pop().unwrap().into_token().unwrap().try_into().unwrap();
+    let language = items.pop().unwrap().into_token().unwrap().try_into().unwrap();
+    let keyword =
+        items.pop().unwrap().into_token().unwrap().with_variant(token::variant::ForeignKeyword());
     Tree::foreign_function(keyword, language, name, args, operator, body).into()
 }
 
@@ -232,9 +388,8 @@ fn parse_return_spec<'s>(
     precedence: &mut Precedence<'s>,
 ) -> ReturnSpecification<'s> {
     let r#type = precedence.resolve_non_section_offset(arrow + 1, items);
-    let Item::Token(arrow) = items.pop().unwrap() else { unreachable!() };
-    let token::Variant::ArrowOperator(variant) = arrow.variant else { unreachable!() };
-    let arrow = arrow.with_variant(variant);
+    let arrow: token::ArrowOperator =
+        items.pop().unwrap().into_token().unwrap().try_into().unwrap();
     let r#type = r#type.unwrap_or_else(|| {
         empty_tree(arrow.code.position_after()).with_error(SyntaxError::ExpectedExpression)
     });
@@ -279,7 +434,7 @@ fn parse_arg_def<'s>(
     };
     let default = default.map(|default| {
         let tree = precedence.resolve_offset(start + default + 1, items);
-        let Item::Token(equals) = items.pop().unwrap() else { unreachable!() };
+        let equals = items.pop().unwrap().into_token().unwrap();
         let expression = tree.unwrap_or_else(|| {
             empty_tree(equals.code.position_after()).with_error(SyntaxError::ExpectedExpression)
         });
@@ -308,7 +463,7 @@ fn parse_arg_def<'s>(
         }
         let items = parenthesized_body.as_mut().unwrap_or(items);
         let tree = precedence.resolve_non_section_offset(start + type_ + 1, items);
-        let Item::Token(operator) = items.pop().unwrap() else { unreachable!() };
+        let operator = items.pop().unwrap().into_token().unwrap();
         let type_ = tree.unwrap_or_else(|| {
             empty_tree(operator.code.position_after()).with_error(SyntaxError::ExpectedType)
         });

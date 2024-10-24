@@ -5,7 +5,6 @@
 // ===================
 
 /** Return whether the current build is in development mode */
-// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
 export const IS_DEV_MODE = process.env.NODE_ENV === 'development'
 
 // ================
@@ -23,8 +22,10 @@ export enum Platform {
   android = 'Android',
 }
 
-/** The platform the app is currently running on.
- * This is used to determine whether `metaKey` or `ctrlKey` is used in shortcuts. */
+/**
+ * The platform the app is currently running on.
+ * This is used to determine whether `metaKey` or `ctrlKey` is used in shortcuts.
+ */
 export function platform() {
   if (isOnWindowsPhone()) {
     // MUST be before Android and Windows.
@@ -96,8 +97,10 @@ export enum Browser {
   opera = 'Opera',
 }
 
-/** Return the platform the app is currently running on.
- * This is used to determine whether `metaKey` or `ctrlKey` is used in shortcuts. */
+/**
+ * Return the platform the app is currently running on.
+ * This is used to determine whether `metaKey` or `ctrlKey` is used in shortcuts.
+ */
 export function browser(): Browser {
   if (isOnElectron()) {
     return Browser.electron
@@ -117,10 +120,12 @@ export function browser(): Browser {
     return Browser.unknown
   }
 }
-/** Returns `true` if running in Electron, else `false`.
+/**
+ * Returns `true` if running in Electron, else `false`.
  * This is used to determine whether to use a `MemoryRouter` (stores history in an array)
  * or a `BrowserRouter` (stores history in the path of the URL).
- * It is also used to determine whether to send custom state to Amplify for a workaround. */
+ * It is also used to determine whether to send custom state to Amplify for a workaround.
+ */
 export function isOnElectron() {
   return /electron/i.test(navigator.userAgent)
 }
@@ -162,22 +167,16 @@ export function isOnUnknownBrowser() {
 let detectedArchitecture: string | null = null
 // Only implemented by Chromium.
 // @ts-expect-error This API exists, but no typings exist for it yet.
-// eslint-disable-next-line @typescript-eslint/no-unsafe-call
-navigator.userAgentData
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  ?.getHighEntropyValues(['architecture'])
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  .then((values: unknown) => {
-    if (
-      typeof values === 'object' &&
-      values != null &&
-      'architecture' in values &&
-      typeof values.architecture === 'string'
-    ) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      detectedArchitecture = String(values.architecture)
-    }
-  })
+navigator.userAgentData?.getHighEntropyValues(['architecture']).then((values: unknown) => {
+  if (
+    typeof values === 'object' &&
+    values != null &&
+    'architecture' in values &&
+    typeof values.architecture === 'string'
+  ) {
+    detectedArchitecture = String(values.architecture)
+  }
+})
 
 /** Possible processor architectures. */
 export enum Architecture {

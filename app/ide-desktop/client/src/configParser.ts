@@ -3,7 +3,6 @@
 import chalk from 'chalk'
 import stringLength from 'string-length'
 
-// eslint-disable-next-line no-restricted-syntax
 import yargs, { type Options } from 'yargs'
 
 import * as config from '@/config'
@@ -37,8 +36,10 @@ const USAGE =
   `the application from a web-browser, the creation of a window can be suppressed by ` +
   `entering either '-window=false' or '-no-window'.`
 
-/** Contains information for a category of command line options and the options
- * it is comprised of. */
+/**
+ * Contains information for a category of command line options and the options
+ * it is comprised of.
+ */
 class Section<T> {
   description = ''
   entries: (readonly [cmdOption: string, option: config.Option<T>])[] = []
@@ -51,7 +52,8 @@ interface PrintHelpConfig {
   readonly helpExtended: boolean
 }
 
-/** Command line help printer. The `groupsOrdering` parameter specifies the order in which the
+/**
+ * Command line help printer. The `groupsOrdering` parameter specifies the order in which the
  * option groups should be printed. Groups not specified will be printed in the definition order.
  *
  * We use a custom help printer because Yargs has several issues:
@@ -60,7 +62,8 @@ interface PrintHelpConfig {
  * 3. Every option has a `[type`] annotation and there is no API to disable it.
  * 4. There is no option to print commands with single dash instead of double-dash.
  * 5. Help coloring is not supported, and they do not want to support it:
- * https://github.com/yargs/yargs/issues/251. */
+ * https://github.com/yargs/yargs/issues/251.
+ */
 function printHelp(cfg: PrintHelpConfig) {
   console.log(USAGE)
   const totalWidth = logger.terminalWidth() ?? DEFAULT_TERMINAL_WIDTH
@@ -128,7 +131,6 @@ function printHelp(cfg: PrintHelpConfig) {
           : option.description.slice(0, firstSentenceSplit + 1)
         const otherSentences = option.description.slice(firstSentence.length)
         // We explicitly set the default for string options to be `null` in `parseArgs`.
-        // eslint-disable-next-line no-restricted-syntax
         const def = option.defaultDescription ?? (option.default as string | null)
         const defIsEmptyArray = Array.isArray(def) && def.length === 0
         let defaults = ''
@@ -146,8 +148,10 @@ function printHelp(cfg: PrintHelpConfig) {
   }
 }
 
-/** Wrap the text to a specific output width. If a word is longer than the output width, it will be
- * split. */
+/**
+ * Wrap the text to a specific output width. If a word is longer than the output width, it will be
+ * split.
+ */
 function wordWrap(str: string, width: number): string[] {
   if (width <= 0) {
     logger.error(`Cannot perform word wrap. The output width is set to '${width}'.`)
@@ -217,8 +221,10 @@ export class ChromeOption {
   }
 }
 
-/** Replace `-no-...` with `--no-...`. This is a hotfix for a Yargs bug:
- * https://github.com/yargs/yargs-parser/issues/468. */
+/**
+ * Replace `-no-...` with `--no-...`. This is a hotfix for a Yargs bug:
+ * https://github.com/yargs/yargs-parser/issues/468.
+ */
 function fixArgvNoPrefix(argv: readonly string[]): readonly string[] {
   const singleDashPrefix = '-no-'
   const doubleDashPrefix = '--no-'
@@ -237,8 +243,10 @@ interface ArgvAndChromeOptions {
   readonly chromeOptions: ChromeOption[]
 }
 
-/** Parse the given list of arguments into two distinct sets: regular arguments and those specific
- * to Chrome. */
+/**
+ * Parse the given list of arguments into two distinct sets: regular arguments and those specific
+ * to Chrome.
+ */
 function argvAndChromeOptions(processArgs: readonly string[]): ArgvAndChromeOptions {
   const chromeOptionRegex = /--?chrome.([^=]*)(?:=(.*))?/
   const argv = []
@@ -284,7 +292,6 @@ export function parseArgs(clientArgs: readonly string[] = fileAssociations.CLIEN
       default: null,
       // Required because yargs defines `defaultDescription`
       // as `string | undefined`, not `string | null`.
-      // eslint-disable-next-line no-restricted-syntax
       defaultDescription: option.defaultDescription ?? undefined,
     }
     return opts
@@ -293,8 +300,6 @@ export function parseArgs(clientArgs: readonly string[] = fileAssociations.CLIEN
   const optParser = yargs()
     .version(false)
     .parserConfiguration({
-      // The names come from a third-party API and cannot be changed.
-      /* eslint-disable @typescript-eslint/naming-convention */
       // Allow single-dash arguments, like `-help`.
       'short-option-groups': false,
       // Treat dot-arguments as string keys, like `foo.bar`.
@@ -304,7 +309,6 @@ export function parseArgs(clientArgs: readonly string[] = fileAssociations.CLIEN
       // Do not expand `--foo-bar` to `--fooBar`. This prevents an error when both the former
       // and later argument are reported as invalid at the same time.
       'camel-case-expansion': false,
-      /* eslint-enable @typescript-eslint/naming-convention */
     })
     .help(false)
     .strict()
@@ -314,22 +318,16 @@ export function parseArgs(clientArgs: readonly string[] = fileAssociations.CLIEN
 
   /** Command line arguments after being parsed by `yargs`. */
   interface YargsArgs {
-    // The names come from a third-party API and cannot be changed.
-    /* eslint-disable @typescript-eslint/naming-convention */
     readonly [key: string]: string[] | string
     readonly _: string[]
     // Exists only when the `populate--` option is enabled.
     readonly '--'?: string[]
     readonly $0: string
-    /* eslint-enable @typescript-eslint/naming-convention */
   }
 
-  // Required otherwise TypeScript thinks it's always `null`.
-  // eslint-disable-next-line no-restricted-syntax
   let parseError = null as Error | null
   // The type assertion is required since `parse` may return a `Promise`
   // when an async middleware has been registered, but we are not doing that.
-  // eslint-disable-next-line no-restricted-syntax
   const { '--': unexpectedArgs, ...parsedArgs } = optParser.parse(
     argv,
     {},

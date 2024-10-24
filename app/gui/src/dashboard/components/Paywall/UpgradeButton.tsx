@@ -13,18 +13,13 @@ import * as textProvider from '#/providers/TextProvider'
 
 import * as ariaComponents from '#/components/AriaComponents'
 
-/**
- * Props for an {@link UpgradeButton}.
- */
-// eslint-disable-next-line no-restricted-syntax
+/** Props for an {@link UpgradeButton}. */
 export type UpgradeButtonProps = Omit<ariaComponents.ButtonProps, 'variant'> & {
   readonly feature: billingHooks.PaywallFeatureName
   readonly variant?: ariaComponents.ButtonProps['variant']
 }
 
-/**
- * A button that links to the upgrade page.
- */
+/** A button that links to the upgrade page. */
 export function UpgradeButton(props: UpgradeButtonProps) {
   const {
     feature,

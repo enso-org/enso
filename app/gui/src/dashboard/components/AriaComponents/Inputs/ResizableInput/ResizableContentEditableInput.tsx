@@ -1,6 +1,4 @@
-/**
- * @file A resizable input that uses a content-editable div.
- */
+/** @file A resizable input that uses a content-editable div. */
 import {
   useEffect,
   useRef,
@@ -31,9 +29,7 @@ const CONTENT_EDITABLE_STYLES = tv({
   slots: { placeholder: 'opacity-50 absolute inset-0 pointer-events-none' },
 })
 
-/**
- * Props for a {@link ResizableContentEditableInput}.
- */
+/** Props for a {@link ResizableContentEditableInput}. */
 export interface ResizableContentEditableInputProps<
   Schema extends TSchema,
   TFieldName extends FieldPath<Schema>,
@@ -58,7 +54,6 @@ export interface ResizableContentEditableInputProps<
    * This is different from the onChange event of a normal input element.
    * So the component is not a ***fully*** controlled component.
    */
-  // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
   readonly placeholder?: string
 }
 

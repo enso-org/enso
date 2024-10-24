@@ -127,66 +127,6 @@ pub fn run(
     });
 
 
-
-    // ==========================
-    // === Marker Enum Struct ===
-    // ==========================
-
-    // #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-    // pub enum AstMarker {
-    //     Ident,
-    //     App
-    // }
-    //
-    // impl<'s> From<&Ast<'s>> for AstMarker {
-    //     fn from(t:&Ast<'s>) -> Self {
-    //         match t {
-    //             Ast::Ident(_) => AstMarker::Ident,
-    //             Ast::App(_) => AstMarker::App,
-    //         }
-    //     }
-    // }
-    //
-    // impl<'s> Ast<'s> {
-    //     pub fn marker(&self) -> AstMarker {
-    //         self.into()
-    //     }
-    //
-    //     pub fn is(&self, marker: AstMarker) -> bool {
-    //         self.marker() == marker
-    //     }
-    // }
-    let enum_marker_name = quote::format_ident!("{}Marker", enum_name);
-    output.push(quote! {
-        #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-        #[allow(missing_docs)]
-        #vis enum #enum_marker_name {
-            #(#variant_names),*
-        }
-
-        impl #impl_generics From<&#enum_name #ty_generics> for #enum_marker_name #where_clause {
-            fn from(t:&#enum_name #ty_generics) -> Self {
-                match t {
-                    #(#enum_name::#variant_names(_) => Self::#variant_names),*
-                }
-            }
-        }
-
-        impl #impl_generics #enum_name #ty_generics #where_clause {
-            /// Abstract variant representation of this struct.
-            #[inline(always)]
-            pub fn marker(&self) -> #enum_marker_name {
-                self.into()
-            }
-
-            /// Check whether this struct is the given variant.
-            #[inline(always)]
-            pub fn is(&self, marker: #enum_marker_name) -> bool {
-                self.marker() == marker
-            }
-        }
-    });
-
     for variant in &data.variants {
         // =======================
         // === Variant Structs ===
@@ -245,6 +185,7 @@ pub fn run(
             impl #impl_generics #enum_name #ty_generics #where_clause {
                 /// Constructor.
                 #[inline(always)]
+                #[allow(clippy::too_many_arguments)]
                 pub fn #variant_snake_ident(#(#names: #types),*) -> Self {
                     Self::#variant_name (#cons)
                 }
@@ -267,6 +208,7 @@ pub fn run(
             /// Constructor.
             #[inline(always)]
             #[allow(non_snake_case)]
+            #[allow(clippy::too_many_arguments)]
             pub fn #variant_name #impl_generics (#(#names: #types),*)
             -> #variant_name #ty_generics #where_clause {
                 #variant_name { #(#names),* }
@@ -274,35 +216,9 @@ pub fn run(
         });
 
 
-
-        // ======================
-        // === Variant Checks ===
-        // ======================
-
-        // impl<'s> Ast<'s> {
-        //     pub fn is_ident(&self) -> bool {
-        //         self.is(AstMarker::Ident)
-        //     }
-        //
-        //     pub fn is_app(&self) -> bool {
-        //         self.is(AstMarker::App)
-        //     }
-        // }
-        let variant_check_ident = quote::format_ident!("is_{}", variant_snake_name);
-        output.push(quote! {
-            impl #impl_generics #enum_name #ty_generics #where_clause {
-                /// Check if this struct is the given variant.
-                #[inline(always)]
-                pub fn #variant_check_ident(&self) -> bool {
-                    self.is(#enum_marker_name::#variant_name)
-                }
-            }
-        });
-
-
-        // ===================
-        // === Conversions ===
-        // ===================
+        // ====================
+        // === Type erasure ===
+        // ====================
 
         // impl<'s> From<Ident<'s>> for Ast<'s> {
         //     fn from(variant: Ident<'s>) -> Self {
@@ -322,6 +238,51 @@ pub fn run(
                 #[inline(always)]
                 fn from(variant: #variant_name #ty_generics) -> Self {
                     Self::#variant_name(#cons)
+                }
+            }
+        });
+
+
+        // ===================
+        // === Downcasting ===
+        // ===================
+
+        // impl<'s> TryFrom<Ast<'s>> for Ident<'s> {
+        //     type Error = ();
+        //
+        //     fn try_from(ast: Ast<'s>) -> Result<Self, Self::Error> {
+        //         match ast {
+        //             Ast::Ident(ident) => Ok(ident),
+        //             _ => Err(()),
+        //         }
+        //     }
+        // }
+        //
+        // impl<'s> TryFrom<Ast<'s>> for App<'s> {
+        //     type Error = ();
+        //
+        //     fn try_from(ast: Ast<'s>) -> Result<Self, Self::Error> {
+        //         match ast {
+        //             Ast::App(app) => Ok(app),
+        //             _ => Err(()),
+        //         }
+        //     }
+        // }
+        let variant_value = if is_boxed {
+            quote!(Box<#variant_name #ty_generics>)
+        } else {
+            quote!(#variant_name #ty_generics)
+        };
+        output.push(quote! {
+            impl #impl_generics TryFrom<#enum_name #ty_generics> for #variant_value #where_clause {
+                type Error = ();
+
+                #[inline(always)]
+                fn try_from(any: #enum_name #ty_generics) -> Result<Self, Self::Error> {
+                    match any {
+                        #enum_name::#variant_name(variant) => Ok(variant),
+                        _ => Err(()),
+                    }
                 }
             }
         });

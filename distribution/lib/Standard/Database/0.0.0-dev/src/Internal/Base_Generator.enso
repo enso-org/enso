@@ -13,6 +13,7 @@ import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.IR.Traversal_Helpers
 import project.SQL.SQL_Builder
+import project.SQL_Statement.SQL_Statement
 from project.Dialect import Temp_Table_Style
 from project.Errors import Unsupported_Database_Operation
 from project.Internal.IR.Operation_Metadata import Row_Number_Metadata
@@ -56,7 +57,7 @@ type Dialect_Operations
 type SQL_Generator
     ## We can use a Hashset for the let-binding names, since they are guaranteed
        to be distinct and not result in any shadowing.
-    Value (let_bindings_ref : Ref Hashset)
+    private Value (let_bindings_ref : Ref Hashset)
 
     ## PRIVATE
     private new -> SQL_Generator = SQL_Generator.Value (Ref.new Hashset.empty)
@@ -117,7 +118,12 @@ type SQL_Generator
         From_Spec.Table name as_name _ ->
             dialect.wrap_identifier name ++ alias dialect as_name
         From_Spec.Query raw_sql as_name ->
-            SQL_Builder.code raw_sql . paren ++ alias dialect as_name
+            subquery = case raw_sql of
+                prepared_statement : SQL_Statement ->
+                    SQL_Builder.from_fragments prepared_statement.fragments
+                raw_code : Text ->
+                    SQL_Builder.code raw_code
+            subquery.paren ++ alias dialect as_name
         From_Spec.Literal_Values vecs column_names as_name ->
             Runtime.assert (vecs.length == column_names.length) "Vectors and column names must have the same length"
             dialect.make_table_literal vecs column_names as_name

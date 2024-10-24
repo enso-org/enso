@@ -24,17 +24,13 @@ export type TransformedValues<Schema extends TSchema | undefined> =
  */
 export type FieldPath<Schema extends TSchema> = reactHookForm.FieldPath<FieldValues<Schema>>
 
-/**
- * Schema type
- */
+/** Schema type */
 export type TSchema =
   | z.AnyZodObject
   | z.ZodEffects<z.AnyZodObject>
   | z.ZodEffects<z.ZodEffects<z.AnyZodObject>>
 
-/**
- * OnSubmitCallbacks type.
- */
+/** OnSubmitCallbacks type. */
 export interface OnSubmitCallbacks<Schema extends TSchema, SubmitResult = void> {
   readonly onSubmit?:
     | ((
@@ -67,9 +63,7 @@ export interface OnSubmitCallbacks<Schema extends TSchema, SubmitResult = void> 
     | undefined
 }
 
-/**
- * Props for the useForm hook.
- */
+/** Props for the useForm hook. */
 export interface UseFormProps<Schema extends TSchema, SubmitResult = void>
   extends Omit<
       reactHookForm.UseFormProps<FieldValues<Schema>>,
@@ -83,16 +77,12 @@ export interface UseFormProps<Schema extends TSchema, SubmitResult = void>
    */
   readonly canSubmitOffline?: boolean
 
-  /**
-   * Debug name for the form. Use it to identify the form in the tanstack query devtools.
-   */
+  /** Debug name for the form. Use it to identify the form in the tanstack query devtools. */
   readonly debugName?: string
   readonly method?: 'dialog' | (string & {}) | undefined
 }
 
-/**
- * Register function for a form field.
- */
+/** Register function for a form field. */
 export type UseFormRegister<Schema extends TSchema> = <
   TFieldName extends FieldPath<Schema> = FieldPath<Schema>,
 >(
@@ -100,9 +90,7 @@ export type UseFormRegister<Schema extends TSchema> = <
   options?: reactHookForm.RegisterOptions<FieldValues<Schema>, TFieldName>,
 ) => UseFormRegisterReturn<Schema, TFieldName>
 
-/**
- * UseFormRegister return type.
- */
+/** UseFormRegister return type. */
 export interface UseFormRegisterReturn<
   Schema extends TSchema,
   TFieldName extends FieldPath<Schema> = FieldPath<Schema>,
@@ -147,9 +135,7 @@ export type FormState<Schema extends TSchema> = reactHookForm.FormState<FieldVal
  */
 export type FormInstance<Schema extends TSchema> = UseFormReturn<Schema>
 
-/**
- * Form type interface that check if FieldValues type is compatible with the value type from component
- */
+/** Form type interface that check if FieldValues type is compatible with the value type from component */
 export interface FormWithValueValidation<
   BaseValueType,
   Schema extends TSchema,
@@ -180,9 +166,7 @@ export type FormInstanceValidated<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 > = FormInstance<Schema> | (any[] & NonNullable<unknown>)
 
-/**
- * Props for the Field component.
- */
+/** Props for the Field component. */
 // Readonly omitted here to avoid type mismatch with native HTML attributes
 // eslint-disable-next-line no-restricted-syntax
 export interface FieldProps {
@@ -191,27 +175,19 @@ export interface FieldProps {
   readonly description?: React.ReactNode | undefined
   readonly error?: React.ReactNode | undefined
 
-  /**
-   * Defines a string value that labels the current element.
-   */
+  /** Defines a string value that labels the current element. */
   // eslint-disable-next-line @typescript-eslint/naming-convention
   'aria-label'?: string | undefined
 
-  /**
-   * Identifies the element (or elements) that labels the current element.
-   */
+  /** Identifies the element (or elements) that labels the current element. */
   // eslint-disable-next-line @typescript-eslint/naming-convention
   'aria-labelledby'?: string | undefined
 
-  /**
-   * Identifies the element (or elements) that describes the object.
-   */
+  /** Identifies the element (or elements) that describes the object. */
   // eslint-disable-next-line @typescript-eslint/naming-convention
   'aria-describedby'?: string | undefined
 
-  /**
-   * Identifies the element (or elements) that provide a detailed, extended description for the object.
-   */
+  /** Identifies the element (or elements) that provide a detailed, extended description for the object. */
   // eslint-disable-next-line @typescript-eslint/naming-convention
   'aria-details'?: string | undefined
 }
@@ -233,11 +209,8 @@ export interface FormFieldProps<
   readonly isInvalid?: boolean | undefined
 }
 
-/**
- * Field State Props
- */
+/** Field State Props */
 export type FieldStateProps<
-  // eslint-disable-next-line no-restricted-syntax
   BaseProps extends { value?: unknown },
   Schema extends TSchema,
   TFieldName extends FieldPath<Schema>,

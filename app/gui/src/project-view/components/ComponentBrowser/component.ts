@@ -23,9 +23,7 @@ interface ComponentLabel {
   matchedRanges?: Range[] | undefined
 }
 
-/**
- * A model of component suggestion displayed in the Component Browser.
- */
+/** A model of component suggestion displayed in the Component Browser. */
 export interface Component extends ComponentLabel {
   suggestionId: SuggestionId
   icon: Icon
@@ -72,18 +70,14 @@ function formatLabel(labelInfo: ComponentLabelInfo): ComponentLabel {
       }
 }
 
-/**
- * Suggestion entry with matching information.
- */
+/** Suggestion entry with matching information. */
 export interface MatchedSuggestion {
   id: SuggestionId
   entry: SuggestionEntry
   match: MatchResult
 }
 
-/**
- * A suggestion comparator. The "lower" suggestion should be first in Component Browser's list.
- */
+/** A suggestion comparator. The "lower" suggestion should be first in Component Browser's list. */
 export function compareSuggestions(a: MatchedSuggestion, b: MatchedSuggestion): number {
   const matchCompare = a.match.score - b.match.score
   if (matchCompare !== 0) return matchCompare
@@ -103,9 +97,7 @@ interface ComponentInfo {
   match: MatchResult
 }
 
-/**
- * Create {@link Component} from information about suggestion and matching.
- */
+/** Create {@link Component} from information about suggestion and matching. */
 export function makeComponent({ id, entry, match }: ComponentInfo): Component {
   return {
     ...formatLabel(labelOfEntry(entry, match)),
@@ -115,9 +107,7 @@ export function makeComponent({ id, entry, match }: ComponentInfo): Component {
   }
 }
 
-/**
- * Create {@link Component} list from filtered suggestions.
- */
+/** Create {@link Component} list from filtered suggestions. */
 export function makeComponentList(db: SuggestionDb, filtering: Filtering): Component[] {
   function* matchSuggestions() {
     for (const [id, entry] of db.entries()) {

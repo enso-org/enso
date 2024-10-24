@@ -16,9 +16,7 @@ import { Form, type FieldPath, type FieldProps, type FieldStateProps, type TSche
 import type { TestIdProps } from '../types'
 import { CheckboxGroupProvider } from './CheckboxContext'
 
-/**
- * Props for the {@link CheckboxGroupProps} component.
- */
+/** Props for the {@link CheckboxGroupProps} component. */
 export interface CheckboxGroupProps<Schema extends TSchema, TFieldName extends FieldPath<Schema>>
   extends FieldStateProps<AriaCheckboxGroupProps, Schema, TFieldName>,
     FieldProps,
@@ -36,10 +34,7 @@ const CHECKBOX_GROUP_STYLES = tv({
   variants: { fullWidth: { true: 'w-full' } },
 })
 
-/**
- * A CheckboxGroup allows users to select one or more items from a list of choices.
- */
-// eslint-disable-next-line no-restricted-syntax
+/** A CheckboxGroup allows users to select one or more items from a list of choices. */
 export const CheckboxGroup = forwardRef(
   <Schema extends TSchema, TFieldName extends FieldPath<Schema>>(
     props: CheckboxGroupProps<Schema, TFieldName>,

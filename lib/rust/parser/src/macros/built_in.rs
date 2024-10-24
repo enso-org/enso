@@ -7,6 +7,7 @@ use crate::empty_tree;
 use crate::expect_qualified_name;
 use crate::expression_to_pattern;
 use crate::source::Code;
+use crate::syntax::maybe_with_error;
 use crate::syntax::operator;
 use crate::syntax::token;
 use crate::syntax::tree::SyntaxError;
@@ -239,7 +240,7 @@ fn export_body<'s>(
     segments.extend(all);
     segments.extend(as_);
     segments.extend(hiding);
-    return syntax::Tree::multi_segment_app(segments.try_into().unwrap()).with_error(error);
+    syntax::Tree::multi_segment_app(segments.try_into().unwrap()).with_error(error)
 }
 
 /// If-then-else macro definition.
@@ -358,7 +359,7 @@ fn parse_case<'s>(
         } else {
             None
         };
-        let Some(Item::Token(op)) = items.pop() else { unreachable!() };
+        let op = items.pop().unwrap().into_token().unwrap();
         arrow = Some(op.with_variant(token::variant::ArrowOperator()));
         pattern = precedence.resolve(items).map(expression_to_pattern);
     } else {
@@ -459,9 +460,9 @@ fn grouped_sequence<'s>(
     precedence: &mut operator::Precedence<'s>,
 ) -> GroupedSequence<'s> {
     let (right, mut rest) = segments.pop();
-    let right = into_close_symbol(right.header);
+    let right = right.header.with_variant(token::variant::CloseSymbol());
     let left = rest.pop().unwrap();
-    let left_ = into_open_symbol(left.header);
+    let left_ = left.header.with_variant(token::variant::OpenSymbol());
     let (first, rest) = sequence(precedence, &mut left.result.tokens());
     GroupedSequence { left: left_, first, rest, right }
 }
@@ -480,8 +481,12 @@ fn sequence<'s>(
             {
                 let body =
                     if i < tokens.len() { precedence.resolve_offset(i + 1, tokens) } else { None };
-                let Some(Item::Token(operator)) = tokens.pop() else { unreachable!() };
-                let operator = operator.with_variant(token::variant::Operator());
+                let operator = tokens
+                    .pop()
+                    .unwrap()
+                    .into_token()
+                    .unwrap()
+                    .with_variant(token::variant::Operator());
                 rest.push(OperatorDelimitedTree { operator, body });
             }
             if i == 0 {
@@ -523,9 +528,9 @@ fn splice_body<'s>(
     precedence: &mut operator::Precedence<'s>,
 ) -> syntax::Tree<'s> {
     let (close, mut segments) = segments.pop();
-    let close = into_close_symbol(close.header);
+    let close = close.header.with_variant(token::variant::CloseSymbol());
     let segment = segments.pop().unwrap();
-    let open = into_open_symbol(segment.header);
+    let open = segment.header.with_variant(token::variant::OpenSymbol());
     let mut expression = segment.result.tokens();
     let expression = precedence.resolve(&mut expression);
     let splice = syntax::tree::TextElement::Splice { open, expression, close };
@@ -554,55 +559,14 @@ fn capture_expressions<'s>(
     }))
 }
 
-// === Token conversions ===
-
-fn try_into_token(item: Item) -> Option<Token> {
-    match item {
-        Item::Token(token) => Some(token),
-        _ => None,
-    }
-}
-
-fn try_token_into_ident(token: Token) -> Option<token::Ident> {
-    match token.variant {
-        token::Variant::Ident(ident) => {
-            let Token { left_offset, code, .. } = token;
-            Some(Token(left_offset, code, ident))
-        }
-        _ => None,
-    }
-}
-
-fn try_tree_into_ident(tree: syntax::Tree) -> Option<token::Ident> {
-    match tree.variant {
-        syntax::tree::Variant::Ident(token) => Some(token.token),
-        _ => None,
-    }
-}
-
-fn into_open_symbol(token: Token) -> token::OpenSymbol {
-    let Token { left_offset, code, .. } = token;
-    token::open_symbol(left_offset, code)
-}
-
-fn into_close_symbol(token: Token) -> token::CloseSymbol {
-    let Token { left_offset, code, .. } = token;
-    token::close_symbol(left_offset, code)
-}
-
-fn into_ident<T>(token: Token<T>) -> token::Ident {
-    token.with_variant(token::variant::Ident(false, 0, false, false, false))
-}
-
-
 // === Validators ===
 
 fn expect_ident(tree: syntax::Tree) -> syntax::Tree {
-    if matches!(tree.variant, syntax::tree::Variant::Ident(_)) {
-        tree
-    } else {
-        tree.with_error("Expected identifier.")
-    }
+    let error = match &tree.variant {
+        syntax::tree::Variant::Ident(_) => None,
+        _ => Some("Expected identifier."),
+    };
+    maybe_with_error(tree, error)
 }
 
 fn expected_nonempty(location: Code) -> syntax::Tree {

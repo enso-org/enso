@@ -1,5 +1,7 @@
-/** @file Configuration of the application. It extends the web application configuration with
- * Electron-specific options. */
+/**
+ * @file Configuration of the application. It extends the web application configuration with
+ * Electron-specific options.
+ */
 
 import chalk from 'chalk'
 
@@ -557,7 +559,7 @@ export const CONFIG = contentConfig.OPTIONS.merge(
           }),
           // Please note that this option uses the snake-case naming convention because
           // Chrome defines it so.
-          // eslint-disable-next-line @typescript-eslint/naming-convention
+          // eslint-disable-next-line camelcase
           force_high_performance_gpu: new contentConfig.Option({
             passToWebApplication: false,
             primary: false,
@@ -566,7 +568,7 @@ export const CONFIG = contentConfig.OPTIONS.merge(
           }),
           // Please note that this option uses the snake-case naming convention because
           // Chrome defines it so.
-          // eslint-disable-next-line @typescript-eslint/naming-convention
+          // eslint-disable-next-line camelcase
           force_low_power_gpu: new contentConfig.Option({
             passToWebApplication: false,
             primary: false,

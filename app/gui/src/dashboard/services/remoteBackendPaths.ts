@@ -48,8 +48,10 @@ export const LIST_PROJECTS_PATH = 'projects'
 export const CREATE_PROJECT_PATH = 'projects'
 /** Relative HTTP path to the "list files" endpoint of the Cloud backend API. */
 export const LIST_FILES_PATH = 'files'
-/** Relative HTTP path to the "upload file" endpoint of the Cloud backend API. */
-export const UPLOAD_FILE_PATH = 'files'
+/** Relative HTTP path to the "upload file start" endpoint of the Cloud backend API. */
+export const UPLOAD_FILE_START_PATH = 'files/upload/start'
+/** Relative HTTP path to the "upload file end" endpoint of the Cloud backend API. */
+export const UPLOAD_FILE_END_PATH = 'files/upload/end'
 /** Relative HTTP path to the "create secret" endpoint of the Cloud backend API. */
 export const CREATE_SECRET_PATH = 'secrets'
 /** Relative HTTP path to the "list secrets" endpoint of the Cloud backend API. */
@@ -78,9 +80,7 @@ export const GET_LOG_EVENTS_PATH = 'log_events'
 /** Relative HTTP path to the "post log event" endpoint of the Cloud backend API. */
 export const POST_LOG_EVENT_PATH = 'logs'
 
-/**
- * Relative HTTP path to the "get customer portal session" endpoint of the Cloud backend API.
- */
+/** Relative HTTP path to the "get customer portal session" endpoint of the Cloud backend API. */
 export function getCustomerPortalSessionPath(returnUrl?: string) {
   const baseUrl = 'payments/customer-portal-sessions/create'
 

@@ -13,19 +13,14 @@ import * as textProvider from '#/providers/TextProvider'
 
 import * as ariaComponents from '#/components/AriaComponents'
 
-/**
- * Props for {@link PaywallButton}.
- */
-// eslint-disable-next-line no-restricted-syntax
+/** Props for {@link PaywallButton}. */
 export type PaywallButtonProps = ariaComponents.ButtonProps & {
   readonly feature: billingHooks.PaywallFeatureName
   readonly iconOnly?: boolean
   readonly showIcon?: boolean
 }
 
-/**
- * A styled button that shows that a feature is behind a paywall
- */
+/** A styled button that shows that a feature is behind a paywall */
 export function PaywallButton(props: PaywallButtonProps) {
   const { feature, iconOnly = false, showIcon = true, children, ...buttonProps } = props
 
