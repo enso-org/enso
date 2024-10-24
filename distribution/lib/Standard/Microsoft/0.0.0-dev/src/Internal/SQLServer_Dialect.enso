@@ -351,7 +351,7 @@ type SQLServer_Dialect
         query : Query -> pair (base_gen.generate_sub_query self query) []
 
     ## PRIVATE
-    generate_column self base_gen expr:(SQL_Expression | Order_Descriptor | Query) name:Text -> SQL_Builder =
+    generate_column_for_select self base_gen expr:(SQL_Expression | Order_Descriptor | Query) name:Text -> SQL_Builder =
         expr_null_checks_pair = self.generate_expression base_gen expr
         base_expr = expr_null_checks_pair.first
         built_expr = case expr of

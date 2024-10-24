@@ -176,7 +176,7 @@ type SQL_Generator
 
         generated_columns = case columns of
             Nothing -> SQL_Builder.code "*"
-            _ -> SQL_Builder.join ", " (columns.map (c-> dialect.generate_column self expr=c.second name=c.first))
+            _ -> SQL_Builder.join ", " (columns.map (c-> dialect.generate_column_for_select self expr=c.second name=c.first))
 
         from_part = self.generate_from_part dialect ctx.from_spec
         where_part = (SQL_Builder.join " AND " (gen_exprs ctx.where_filters)) . prefix_if_present " WHERE "

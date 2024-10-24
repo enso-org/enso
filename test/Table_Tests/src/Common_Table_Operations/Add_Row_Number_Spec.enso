@@ -30,7 +30,7 @@ type Data
         self.connection.close
 
 add_specs suite_builder setup =
-    if setup.is_feature_supported Feature.Filter then (add_row_number_specs suite_builder setup) else
+    if setup.is_feature_supported Feature.Add_Row_Number then (add_row_number_specs suite_builder setup) else
         suite_builder.group setup.prefix+"Table.add_row_number" group_builder->
             group_builder.specify "add_row_number should report unsupported" <|
                 table_builder = setup.light_table_builder

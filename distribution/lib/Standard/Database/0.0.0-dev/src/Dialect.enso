@@ -273,7 +273,7 @@ type Dialect
        Generates a column for the given expression for use in the SELECT clause. 
        Used for databases where the expression sytanx is different in the SELECT clause 
        to the synatx in the WHERE clause
-    generate_column self base_gen expr:(SQL_Expression | Order_Descriptor | Query) name:Text -> SQL_Builder =
+    generate_column_for_select self base_gen expr:(SQL_Expression | Order_Descriptor | Query) name:Text -> SQL_Builder =
         _ = [base_gen, expr, name]
         Unimplemented.throw "This is an interface only."
 
