@@ -37,12 +37,10 @@ const ASSET_PANEL_WIDTH = 480
 const ASSET_PANEL_TOTAL_WIDTH = ASSET_PANEL_WIDTH + ASSET_SIDEBAR_COLLAPSED_WIDTH
 
 /** Determines the content of the {@link AssetPanel}. */
-enum AssetPanelTab {
-  properties = 'properties',
-  versions = 'versions',
-  projectSessions = 'projectSessions',
-  docs = 'docs',
-}
+const ASSET_PANEL_TABS = ['settings', 'versions', 'sessions', 'schedules'] as const
+
+/** Determines the content of the {@link AssetPanel}. */
+type AssetPanelTab = (typeof ASSET_PANEL_TABS)[number]
 
 // ============================
 // === Global configuration ===
@@ -56,7 +54,7 @@ declare module '#/utilities/LocalStorage' {
   }
 }
 
-const ASSET_PANEL_TAB_SCHEMA = z.nativeEnum(AssetPanelTab)
+const ASSET_PANEL_TAB_SCHEMA = z.enum(ASSET_PANEL_TABS)
 
 LocalStorage.register({
   assetPanelTab: { schema: ASSET_PANEL_TAB_SCHEMA },
@@ -88,10 +86,7 @@ const DEFAULT_TRANSITION_OPTIONS: Spring = {
 export function AssetPanel(props: AssetPanelProps) {
   const { category } = props
 
-  const [selectedTab, setSelectedTab] = useLocalStorageState(
-    'assetPanelTab',
-    AssetPanelTab.properties,
-  )
+  const [selectedTab, setSelectedTab] = useLocalStorageState('assetPanelTab', ASSET_PANEL_TABS[0])
 
   const isReadonly = category.type === 'trash'
 
@@ -122,6 +117,10 @@ export function AssetPanel(props: AssetPanelProps) {
           }}
           transition={DEFAULT_TRANSITION_OPTIONS}
           className="relative flex flex-col shadow-softer clip-path-left-shadow"
+          onClick={(event) => {
+            // Prevent deselecting Assets Table rows.
+            event.stopPropagation()
+          }}
         >
           <AssetPanelTabs
             className="h-full"

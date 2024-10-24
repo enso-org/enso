@@ -44,7 +44,7 @@ import { ProjectState, type CreatedProject, type Project, type ProjectId } from 
 import type AssetQuery from '#/utilities/AssetQuery'
 import { inputFiles } from '#/utilities/input'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
-import { AssetPanelToggle } from './AssetPanelNew'
+import { AssetPanelToggle } from './AssetPanel'
 
 // ================
 // === DriveBar ===
