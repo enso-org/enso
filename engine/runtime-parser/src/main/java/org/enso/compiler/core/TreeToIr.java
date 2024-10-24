@@ -26,6 +26,7 @@ import org.enso.compiler.core.ir.expression.Application;
 import org.enso.compiler.core.ir.expression.Case;
 import org.enso.compiler.core.ir.expression.Comment;
 import org.enso.compiler.core.ir.expression.Foreign;
+import org.enso.compiler.core.ir.expression.IfThenElse;
 import org.enso.compiler.core.ir.expression.Operator;
 import org.enso.compiler.core.ir.expression.Section;
 import org.enso.compiler.core.ir.expression.errors.Syntax;
@@ -895,6 +896,20 @@ final class TreeToIr {
           sep = "_";
         }
         var fullName = fnName.toString();
+        if ("if_then_else".equals(fullName) && args.size() == 3) {
+          var ifArg = args.apply(2);
+          var trueArg = args.apply(1);
+          var falseArg = args.apply(0);
+          if (falseArg == null) {
+            yield translateSyntaxError(app, new Syntax.UnsupportedSyntax("Missing else branch"));
+          }
+          yield new IfThenElse(ifArg.value(), trueArg.value(), falseArg.value(), getIdentifiedLocation(tree), meta());
+        }
+        if ("if_then".equals(fullName) && args.size() == 2) {
+          var ifArg = args.apply(1);
+          var trueArg = args.apply(0);
+          yield new IfThenElse(ifArg.value(), trueArg.value(), null, getIdentifiedLocation(tree), meta());
+        }
         if (fullName.equals(FREEZE_MACRO_IDENTIFIER)) {
           yield translateExpression(app.getSegments().get(0).getBody(), false);
         } else if (fullName.equals(SKIP_MACRO_IDENTIFIER)) {

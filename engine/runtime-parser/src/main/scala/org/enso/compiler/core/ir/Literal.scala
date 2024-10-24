@@ -250,4 +250,91 @@ object Literal {
     /** @inheritdoc */
     override def showCode(indent: Int): String = s""""$text""""
   }
+
+  /** A boolean Enso literal.
+    *
+    * @param bool the value of the literal
+    * @param identifiedLocation the source location that the node corresponds to
+    * @param passData the pass metadata associated with this node
+    */
+  sealed case class Bool(
+    bool: Boolean,
+    override val identifiedLocation: IdentifiedLocation,
+    override val passData: MetadataStorage = new MetadataStorage()
+  ) extends Literal
+      with LazyDiagnosticStorage
+      with LazyId {
+
+    /** Creates a copy of `this`.
+      *
+      * @param bool        the boolean value of the literal
+      * @param location    the source location that the node corresponds to
+      * @param passData    the pass metadata associated with this node
+      * @param diagnostics compiler diagnostics for this node
+      * @param id          the identifier for the new node
+      * @return a copy of `this`, updated with the specified values
+      */
+    def copy(
+      bool: Boolean                        = bool,
+      location: Option[IdentifiedLocation] = location,
+      passData: MetadataStorage            = passData,
+      diagnostics: DiagnosticStorage       = diagnostics,
+      id: UUID @Identifier                 = id
+    ): Bool = {
+      if (
+        bool != this.bool
+        || location != this.location
+        || passData != this.passData
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res = Bool(bool, location.orNull, passData)
+        res.diagnostics = diagnostics
+        res.id          = id
+        res
+      } else this
+    }
+
+    /** @inheritdoc */
+    override def duplicate(
+      keepLocations: Boolean   = true,
+      keepMetadata: Boolean    = true,
+      keepDiagnostics: Boolean = true,
+      keepIdentifiers: Boolean = false
+    ): Bool =
+      copy(
+        location = if (keepLocations) location else None,
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
+      )
+
+    /** @inheritdoc */
+    override def setLocation(location: Option[IdentifiedLocation]): Bool =
+      copy(location = location)
+
+    /** @inheritdoc */
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Bool = this
+
+    /** String representation. */
+    override def toString: String =
+      s"""
+         |Literal.Bool(
+         |bool = $bool,
+         |location = $location,
+         |passData = ${this.showPassData},
+         |diagnostics = $diagnostics,
+         |id = $id
+         |)
+         |""".toSingleLine
+
+    /** @inheritdoc */
+    override def children: List[IR] = List()
+
+    /** @inheritdoc */
+    override def showCode(indent: Int): String = s"$bool"
+  }
 }

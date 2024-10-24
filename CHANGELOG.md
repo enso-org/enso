@@ -34,6 +34,12 @@
 
 [11374]: https://github.com/enso-org/enso/pull/11374
 
+#### Enso Language & Runtime
+
+- [Unify internal handling of if/then/else and case statement][11365]
+
+[11365]: https://github.com/enso-org/enso/pull/11365
+
 # Enso 2024.4
 
 #### Enso IDE
