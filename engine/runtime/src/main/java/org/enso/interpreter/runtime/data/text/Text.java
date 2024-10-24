@@ -285,4 +285,21 @@ public final class Text implements EnsoObject {
     }
     return result;
   }
+
+  @Override
+  public int hashCode() {
+    int hash = 7 * toString().hashCode();
+    return hash;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj instanceof Text other) {
+      return this.toString().equals(other.toString());
+    }
+    return false;
+  }
 }
