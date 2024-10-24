@@ -55,7 +55,8 @@ public class ExcelUtils {
         // If the Date is between 1900-01-01 and 1900-02-28, EPOCH needs to be 1 day later.
         if (date.getYear() == 1900 && date.getMonthValue() < 3) {
           days--;
-        } if (date.getYear() < 1900) {
+        }
+        if (date.getYear() < 1900) {
           // 31 Dec 1899 should be -1
           days -= 2;
         }
