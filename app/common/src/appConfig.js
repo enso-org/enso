@@ -94,6 +94,7 @@ export function getDefines() {
     'process.env.ENSO_CLOUD_SENTRY_DSN': stringify(process.env.ENSO_CLOUD_SENTRY_DSN),
     'process.env.ENSO_CLOUD_STRIPE_KEY': stringify(process.env.ENSO_CLOUD_STRIPE_KEY),
     'process.env.ENSO_CLOUD_CHAT_URL': stringify(process.env.ENSO_CLOUD_CHAT_URL),
+    'process.env.ENSO_CLOUD_AUTH_ENDPOINT': stringify(process.env.ENSO_CLOUD_AUTH_ENDPOINT),
     'process.env.ENSO_CLOUD_COGNITO_USER_POOL_ID': stringify(
       process.env.ENSO_CLOUD_COGNITO_USER_POOL_ID,
     ),
