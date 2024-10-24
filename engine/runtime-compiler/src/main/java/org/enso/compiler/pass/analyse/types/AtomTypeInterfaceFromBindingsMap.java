@@ -8,6 +8,7 @@ import scala.jdk.javaapi.CollectionConverters$;
 
 /** Implementation of {@link AtomTypeInterface} that is built from a {@link BindingsMap.Type}. */
 public final class AtomTypeInterfaceFromBindingsMap implements AtomTypeInterface {
+  // TODO this probably is no longer needed since we have StaticModuleScope
   private final BindingsMap.Type type;
 
   public AtomTypeInterfaceFromBindingsMap(BindingsMap.Type type) {

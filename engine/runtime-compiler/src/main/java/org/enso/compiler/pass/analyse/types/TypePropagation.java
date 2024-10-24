@@ -1,7 +1,6 @@
 package org.enso.compiler.pass.analyse.types;
 
 import static org.enso.compiler.MetadataInteropHelpers.getMetadata;
-import static org.enso.compiler.MetadataInteropHelpers.getMetadataOrNull;
 
 import java.util.List;
 import org.enso.compiler.MetadataInteropHelpers;
@@ -12,6 +11,7 @@ import org.enso.compiler.core.ir.CallArgument;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Function;
 import org.enso.compiler.core.ir.Literal;
+import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.Name;
 import org.enso.compiler.core.ir.Pattern;
 import org.enso.compiler.core.ir.expression.Application;
@@ -21,8 +21,9 @@ import org.enso.compiler.pass.analyse.AliasAnalysis$;
 import org.enso.compiler.pass.analyse.alias.AliasMetadata;
 import org.enso.compiler.pass.analyse.alias.graph.Graph;
 import org.enso.compiler.pass.analyse.alias.graph.GraphOccurrence;
-import org.enso.compiler.pass.resolve.TypeSignatures;
-import org.enso.compiler.pass.resolve.TypeSignatures$;
+import org.enso.compiler.pass.analyse.types.scope.ModuleResolver;
+import org.enso.compiler.pass.analyse.types.scope.StaticModuleScope;
+import org.enso.compiler.pass.analyse.types.scope.TypeScopeReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.Option;
@@ -41,14 +42,21 @@ abstract class TypePropagation {
   private final TypeResolver typeResolver;
   private final TypeCompatibility compatibilityChecker;
   private final BuiltinTypes builtinTypes;
+  private final MethodTypeResolver methodTypeResolver;
 
   TypePropagation(
       TypeResolver typeResolver,
       TypeCompatibility compatibilityChecker,
-      BuiltinTypes builtinTypes) {
+      BuiltinTypes builtinTypes,
+      Module currentModule,
+      ModuleResolver moduleResolver) {
     this.typeResolver = typeResolver;
     this.compatibilityChecker = compatibilityChecker;
     this.builtinTypes = builtinTypes;
+
+    var currentModuleScope = StaticModuleScope.forIR(currentModule);
+    this.methodTypeResolver =
+        new MethodTypeResolver(moduleResolver, currentModuleScope, builtinTypes);
   }
 
   /**
@@ -69,6 +77,19 @@ abstract class TypePropagation {
    */
   protected abstract void encounteredInvocationOfNonFunctionType(
       IR relatedIr, TypeRepresentation type);
+
+  /**
+   * The callback that is called when a method is being invoked on a type that does not have such a
+   * method.
+   */
+  protected abstract void encounteredNoSuchMethod(
+      IR relatedIr, TypeRepresentation type, String methodName, MethodCallKind kind);
+
+  enum MethodCallKind {
+    MEMBER,
+    STATIC,
+    MODULE
+  }
 
   void checkTypeCompatibility(
       IR relatedIr, TypeRepresentation expected, TypeRepresentation provided) {
@@ -107,7 +128,7 @@ abstract class TypePropagation {
             var bindingType = tryInferringType(b.expression(), localBindingsTyping);
             if (bindingType != null) {
               registerBinding(b, bindingType, localBindingsTyping);
-              TypeInference.setInferredType(b, bindingType);
+              TypeInferencePropagation.setInferredType(b, bindingType);
             }
             yield bindingType;
           }
@@ -128,7 +149,7 @@ abstract class TypePropagation {
           }
         };
 
-    TypeRepresentation ascribedType = findTypeAscription(expression);
+    TypeRepresentation ascribedType = typeResolver.getTypeAscription(expression);
     checkInferredAndAscribedTypeCompatibility(expression, inferredType, ascribedType);
 
     // We now override the inferred type on the expression, preferring the ascribed type if it is
@@ -286,7 +307,7 @@ abstract class TypePropagation {
 
       case TypeRepresentation.UnresolvedSymbol unresolvedSymbol -> {
         return processUnresolvedSymbolApplication(
-            unresolvedSymbol, argument.value(), localBindingsTyping);
+            unresolvedSymbol, argument.value(), localBindingsTyping, relatedIR);
       }
 
       default -> {
@@ -309,31 +330,96 @@ abstract class TypePropagation {
   private TypeRepresentation processUnresolvedSymbolApplication(
       TypeRepresentation.UnresolvedSymbol function,
       Expression argument,
-      LocalBindingsTyping localBindingsTyping) {
+      LocalBindingsTyping localBindingsTyping,
+      IR relatedWholeApplicationIR) {
     var argumentType = tryInferringType(argument, localBindingsTyping);
     if (argumentType == null) {
-      return null;
+      argumentType = TypeRepresentation.ANY;
     }
 
     switch (argumentType) {
       case TypeRepresentation.TypeObject typeObject -> {
-        var ctorCandidate =
-            typeObject.typeInterface().constructors().stream()
-                .filter(ctor -> ctor.name().equals(function.name()))
-                .findFirst();
-        if (ctorCandidate.isPresent()) {
-          return typeResolver.buildAtomConstructorType(typeObject, ctorCandidate.get());
+        if (isConstructorOrType(function.name())) {
+          var ctorCandidate =
+              typeObject.typeInterface().constructors().stream()
+                  .filter(ctor -> ctor.name().equals(function.name()))
+                  .findFirst();
+          if (ctorCandidate.isPresent()) {
+            return typeResolver.buildAtomConstructorType(typeObject, ctorCandidate.get());
+          } else {
+            // TODO we could report that no valid constructor was found
+            return null;
+          }
         } else {
-          // TODO if no ctor found, we should search static methods, but that is not implemented
-          // currently; so we cannot report an error either - just do nothing
-          return null;
+          // We resolve static calls on the eigen type. It should also contain registrations of the
+          // static variants of member methods, so we don't need to inspect member scope.
+          var staticScope = TypeScopeReference.atomEigenType(typeObject.name());
+          var resolvedStaticMethod = methodTypeResolver.resolveMethod(staticScope, function.name());
+          if (resolvedStaticMethod == null) {
+            encounteredNoSuchMethod(
+                relatedWholeApplicationIR, argumentType, function.name(), MethodCallKind.STATIC);
+          }
+          return resolvedStaticMethod;
         }
       }
 
+      case TypeRepresentation.ModuleReference moduleReference -> {
+        var typeScope = TypeScopeReference.moduleAssociatedType(moduleReference.name());
+
+        if (isConstructorOrType(function.name())) {
+          // This is a special case when we are accessing a type inside a module, e.g. Mod.Type
+          // 'call' should resolve to the type
+          // TODO
+          return null;
+        } else {
+          var resolvedModuleMethod = methodTypeResolver.resolveMethod(typeScope, function.name());
+          if (resolvedModuleMethod == null) {
+            encounteredNoSuchMethod(
+                relatedWholeApplicationIR, argumentType, function.name(), MethodCallKind.MODULE);
+          }
+          return resolvedModuleMethod;
+        }
+      }
+
+      case TypeRepresentation.AtomType atomInstanceType -> {
+        var typeScope = TypeScopeReference.atomType(atomInstanceType.fqn());
+        var resolvedMemberMethod = methodTypeResolver.resolveMethod(typeScope, function.name());
+        if (resolvedMemberMethod == null) {
+          encounteredNoSuchMethod(
+              relatedWholeApplicationIR, argumentType, function.name(), MethodCallKind.MEMBER);
+        }
+        return resolvedMemberMethod;
+      }
+
+      case TypeRepresentation.TopType topType -> {
+        // We don't report not found methods here, because the top type can be anything, so the call
+        // 'may' be valid and we only want to report guaranteed failures
+        return methodTypeResolver.resolveMethod(TypeScopeReference.ANY, function.name());
+      }
+
+        // This is not calling this function, instead it is calling the _method_ represented by the
+        // UnresolvedSymbol on this Function object.
+      case TypeRepresentation.ArrowType functionAsObject -> {
+        var typeScope = TypeScopeReference.atomType(functionAsObject.getAssociatedType());
+        var resolvedMethod = methodTypeResolver.resolveMethod(typeScope, function.name());
+        if (resolvedMethod == null) {
+          encounteredNoSuchMethod(
+              relatedWholeApplicationIR, functionAsObject, function.name(), MethodCallKind.MEMBER);
+        }
+        return resolvedMethod;
+      }
+
       default -> {
+        // TODO calling on sum types, intersection types, etc.
         return null;
       }
     }
+  }
+
+  private boolean isConstructorOrType(String name) {
+    assert !name.isEmpty();
+    char firstCharacter = name.charAt(0);
+    return Character.isUpperCase(firstCharacter);
   }
 
   private class CompilerNameResolution
@@ -371,10 +457,13 @@ abstract class TypePropagation {
 
         case BindingsMap.ResolvedType tpe -> typeResolver.resolvedTypeAsTypeObject(tpe);
 
+        case BindingsMap.ResolvedModule mod -> new TypeRepresentation.ModuleReference(
+            mod.qualifiedName());
+
         default -> {
           logger.trace(
-              "processGlobalName: global scope reference to {} - currently global inference is"
-                  + " unsupported",
+              "resolveGlobalName: reference to {} - is currently not being resolved in static"
+                  + " analysis",
               resolvedName);
           yield null;
         }
@@ -435,16 +524,6 @@ abstract class TypePropagation {
         }
       }
       default -> {}
-    }
-  }
-
-  private TypeRepresentation findTypeAscription(Expression ir) {
-    TypeSignatures.Signature ascribedSignature =
-        getMetadataOrNull(ir, TypeSignatures$.MODULE$, TypeSignatures.Signature.class);
-    if (ascribedSignature != null) {
-      return typeResolver.resolveTypeExpression(ascribedSignature.signature());
-    } else {
-      return null;
     }
   }
 

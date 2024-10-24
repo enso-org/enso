@@ -67,6 +67,16 @@ object QualifiedName {
     QualifiedName(segments.dropRight(1), segments.last)
   }
 
+  /** Builds a qualified name from a list of name parts. */
+  def fromParts(parts: List[String]): QualifiedName = {
+    if (parts.isEmpty) {
+      throw new IllegalArgumentException(
+        "Cannot create a qualified name from an empty list of parts."
+      )
+    }
+    QualifiedName(parts.dropRight(1), parts.last)
+  }
+
   /** Creates a qualified name with empty path.
     *
     * @param modName the module name.

@@ -11,11 +11,12 @@ public sealed interface TypeRepresentation
     permits TypeRepresentation.ArrowType,
         TypeRepresentation.AtomType,
         TypeRepresentation.IntersectionType,
+        TypeRepresentation.ModuleReference,
         TypeRepresentation.SumType,
         TypeRepresentation.TopType,
         TypeRepresentation.TypeObject,
         TypeRepresentation.UnresolvedSymbol {
-  TypeRepresentation ANY = new TopType();
+  TopType ANY = new TopType();
 
   // In the future we may want to split this unknown type to be a separate entity.
   TypeRepresentation UNKNOWN = ANY;
@@ -37,6 +38,10 @@ public sealed interface TypeRepresentation
     @Override
     public String toString() {
       return "Any";
+    }
+
+    public QualifiedName getAssociatedType() {
+      return QualifiedName.fromString(BuiltinTypes.anyQualifiedName);
     }
   }
 
@@ -72,7 +77,22 @@ public sealed interface TypeRepresentation
       implements TypeRepresentation {
     @Override
     public String toString() {
-      return "(" + argType + " -> " + resultType + ")";
+      String arg = argType.toString();
+      String res = resultType.toString();
+
+      // If the inner type is complex (e.g. nested function), wrap it in parentheses.
+      if (arg.contains(" ")) {
+        arg = "(" + arg + ")";
+      }
+      if (res.contains(" ")) {
+        res = "(" + res + ")";
+      }
+
+      return arg + " -> " + res;
+    }
+
+    public QualifiedName getAssociatedType() {
+      return QualifiedName.fromString(BuiltinTypes.functionQualifiedName);
     }
   }
 
@@ -176,6 +196,13 @@ public sealed interface TypeRepresentation
       return name.hashCode() * 97;
     }
   }
+
+  /**
+   * A type describing a module.
+   *
+   * <p>This is similar to TypeObject, but one cannot create instances of a module.
+   */
+  record ModuleReference(QualifiedName name) implements TypeRepresentation {}
 
   /** Represents a type of an unresolved symbol, like `.Foo` or `.bar`. */
   record UnresolvedSymbol(String name) implements TypeRepresentation {

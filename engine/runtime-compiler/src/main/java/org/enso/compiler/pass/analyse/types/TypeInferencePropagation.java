@@ -2,6 +2,7 @@ package org.enso.compiler.pass.analyse.types;
 
 import java.util.List;
 import java.util.Objects;
+import org.enso.compiler.PackageRepository;
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.context.ModuleContext;
 import org.enso.compiler.core.IR;
@@ -13,6 +14,8 @@ import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.compiler.pass.IRPass;
 import org.enso.compiler.pass.IRProcessingPass;
 import org.enso.compiler.pass.analyse.BindingAnalysis$;
+import org.enso.compiler.pass.analyse.types.scope.ModuleResolver;
+import org.enso.compiler.pass.analyse.types.scope.StaticModuleScopeAnalysis;
 import org.enso.compiler.pass.resolve.FullyQualifiedNames$;
 import org.enso.compiler.pass.resolve.GlobalNames$;
 import org.enso.compiler.pass.resolve.Patterns$;
@@ -20,6 +23,7 @@ import org.enso.compiler.pass.resolve.TypeNames$;
 import org.enso.compiler.pass.resolve.TypeSignatures$;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import scala.Option;
 import scala.collection.immutable.Seq;
 import scala.collection.immutable.Seq$;
 import scala.jdk.javaapi.CollectionConverters;
@@ -66,32 +70,55 @@ import scala.jdk.javaapi.CollectionConverters;
  *
  * @see TypePropagation for more details on the type propagation mechanism
  */
-public final class TypeInference implements IRPass {
-  public static final TypeInference INSTANCE = new TypeInference();
-  private static final Logger logger = LoggerFactory.getLogger(TypeInference.class);
+public final class TypeInferencePropagation implements IRPass {
+  public static final TypeInferencePropagation INSTANCE = new TypeInferencePropagation();
+  private static final Logger logger = LoggerFactory.getLogger(TypeInferencePropagation.class);
   private final BuiltinTypes builtinTypes = new BuiltinTypes();
   private final TypeResolver typeResolver = new TypeResolver();
   private final TypeCompatibility checker = new TypeCompatibility(builtinTypes);
-  private final TypePropagation typePropagation =
-      new TypePropagation(typeResolver, checker, builtinTypes) {
-        @Override
-        protected void encounteredIncompatibleTypes(
-            IR relatedIr, TypeRepresentation expected, TypeRepresentation provided) {
-          relatedIr
-              .getDiagnostics()
-              .add(
-                  new Warning.TypeMismatch(
-                      relatedIr.identifiedLocation(), expected.toString(), provided.toString()));
-        }
 
-        @Override
-        protected void encounteredInvocationOfNonFunctionType(
-            IR relatedIr, TypeRepresentation type) {
-          relatedIr
-              .getDiagnostics()
-              .add(new Warning.NotInvokable(relatedIr.identifiedLocation(), type.toString()));
-        }
-      };
+  private TypePropagation propagationResolverInModule(
+      Module module, Option<PackageRepository> packageRepository) {
+    var packageRepo = packageRepository.isDefined() ? packageRepository.get() : null;
+    ModuleResolver moduleResolver = new ModuleResolver(packageRepo);
+    return new TypePropagation(typeResolver, checker, builtinTypes, module, moduleResolver) {
+      @Override
+      protected void encounteredIncompatibleTypes(
+          IR relatedIr, TypeRepresentation expected, TypeRepresentation provided) {
+        relatedIr
+            .getDiagnostics()
+            .add(
+                new Warning.TypeMismatch(
+                    relatedIr.identifiedLocation(), expected.toString(), provided.toString()));
+      }
+
+      @Override
+      protected void encounteredInvocationOfNonFunctionType(IR relatedIr, TypeRepresentation type) {
+        relatedIr
+            .getDiagnostics()
+            .add(new Warning.NotInvokable(relatedIr.identifiedLocation(), type.toString()));
+      }
+
+      @Override
+      protected void encounteredNoSuchMethod(
+          IR relatedIr, TypeRepresentation type, String methodName, MethodCallKind kind) {
+        String methodDescription =
+            switch (kind) {
+              case MEMBER -> "member method `" + methodName + "` on type " + type;
+              case STATIC -> "static method `" + methodName + "` on " + type;
+              case MODULE -> "method `" + methodName + "` on module " + type;
+            };
+        relatedIr
+            .getDiagnostics()
+            .add(new Warning.NoSuchMethod(relatedIr.identifiedLocation(), methodDescription));
+      }
+    };
+  }
+
+  @Override
+  public String toString() {
+    return "TypeInferencePropagation";
+  }
 
   @Override
   public Seq<IRProcessingPass> precursorPasses() {
@@ -102,7 +129,9 @@ public final class TypeInference implements IRPass {
             FullyQualifiedNames$.MODULE$,
             TypeNames$.MODULE$,
             Patterns$.MODULE$,
-            TypeSignatures$.MODULE$);
+            TypeSignatures$.MODULE$,
+            StaticModuleScopeAnalysis.INSTANCE,
+            TypeInferenceSignatures.INSTANCE);
     return CollectionConverters.asScala(passes).toList();
   }
 
@@ -114,8 +143,9 @@ public final class TypeInference implements IRPass {
 
   @Override
   public Module runModule(Module ir, ModuleContext moduleContext) {
+    TypePropagation typePropagation = propagationResolverInModule(ir, moduleContext.pkgRepo());
     ir.bindings()
-        .map(
+        .foreach(
             (def) ->
                 switch (def) {
                   case Method.Explicit b -> {
@@ -134,12 +164,13 @@ public final class TypeInference implements IRPass {
                     yield def;
                   }
                 });
-
     return ir;
   }
 
   @Override
   public Expression runExpression(Expression ir, InlineContext inlineContext) {
+    var typePropagation =
+        propagationResolverInModule(inlineContext.getModule().getIr(), inlineContext.pkgRepo());
     TypeRepresentation inferredType =
         typePropagation.tryInferringType(ir, LocalBindingsTyping.create());
     if (inferredType != null) {

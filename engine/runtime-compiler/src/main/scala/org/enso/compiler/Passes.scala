@@ -4,7 +4,11 @@ import org.enso.compiler.data.CompilerConfig
 import org.enso.compiler.dump.IRDumperPass
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse._
-import org.enso.compiler.pass.analyse.types.TypeInference
+import org.enso.compiler.pass.analyse.types.scope.StaticModuleScopeAnalysis
+import org.enso.compiler.pass.analyse.types.{
+  TypeInferencePropagation,
+  TypeInferenceSignatures
+}
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.lint.{
   ModuleNameConflicts,
@@ -102,11 +106,20 @@ class Passes(config: CompilerConfig) {
             List(UnusedBindings, NoSelfInStatic)
           }) ++ (if (config.staticTypeInferenceEnabled) {
                    List(
-                     TypeInference.INSTANCE
+                     TypeInferenceSignatures.INSTANCE,
+                     StaticModuleScopeAnalysis.INSTANCE
                    )
                  } else Nil) ++ (if (config.dumpIrs) {
                                    List(IRDumperPass.INSTANCE)
                                  } else Nil)
+  )
+
+  val typeInferenceFinalPasses = new PassGroup(
+    if (config.staticTypeInferenceEnabled) {
+      List(
+        TypeInferencePropagation.INSTANCE
+      )
+    } else List()
   )
 
   /** A list of the compiler phases, in the order they should be run.
@@ -119,7 +132,8 @@ class Passes(config: CompilerConfig) {
     List(
       moduleDiscoveryPasses,
       globalTypingPasses,
-      functionBodyPasses
+      functionBodyPasses,
+      typeInferenceFinalPasses
     )
 
   /** The ordered representation of all passes run by the compiler. */

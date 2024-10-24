@@ -10,35 +10,21 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import org.enso.compiler.Compiler;
-import org.enso.compiler.Passes;
-import org.enso.compiler.context.FreshNameSupply;
-import org.enso.compiler.context.ModuleContext;
 import org.enso.compiler.core.IR;
-import org.enso.compiler.core.ir.Diagnostic;
-import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.ProcessingPass;
 import org.enso.compiler.core.ir.Warning;
 import org.enso.compiler.core.ir.expression.Application;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
-import org.enso.compiler.data.CompilerConfig;
-import org.enso.compiler.pass.PassConfiguration;
-import org.enso.compiler.pass.PassManager;
 import org.enso.compiler.pass.analyse.types.InferredType;
-import org.enso.compiler.pass.analyse.types.TypeInference;
+import org.enso.compiler.pass.analyse.types.TypeInferencePropagation;
 import org.enso.compiler.pass.analyse.types.TypeRepresentation;
-import org.enso.pkg.QualifiedName;
 import org.graalvm.polyglot.Source;
 import org.junit.Ignore;
 import org.junit.Test;
 import scala.Option;
-import scala.collection.immutable.Seq;
-import scala.collection.immutable.Seq$;
-import scala.jdk.javaapi.CollectionConverters;
 
-public class TypeInferenceTest extends CompilerTests {
-  @Ignore("TODO resolving global methods")
+public class TypeInferenceTest extends StaticAnalysisTest {
   @Test
   public void zeroAryCheck() throws Exception {
     final URI uri = new URI("memory://zeroAryModuleMethodCheck.enso");
@@ -61,11 +47,9 @@ public class TypeInferenceTest extends CompilerTests {
 
     Module module = compile(src);
     Method foo = findStaticMethod(module, "foo");
-    var x = findAssignment(foo.body(), "x");
-    assertAtomType("zeroAryModuleMethodCheck.My_Type", x.expression());
+    assertAtomType("zeroAryModuleMethodCheck.My_Type", findAssignment(foo.body(), "x"));
   }
 
-  @Ignore("TODO resolution of global function application")
   @Test
   public void functionReturnCheck() throws Exception {
     final URI uri = new URI("memory://functionReturnCheck.enso");
@@ -89,11 +73,10 @@ public class TypeInferenceTest extends CompilerTests {
 
     var module = compile(src);
     var foo = findStaticMethod(module, "foo");
-    var b = findAssignment(foo.body(), "b");
     String myType = "functionReturnCheck.My_Type";
 
     // The result of `add a z` should be `My_Type` as guaranteed by the return type check of `add`.
-    assertAtomType(myType, b.expression());
+    assertAtomType(myType, findAssignment(foo.body(), "b"));
   }
 
   @Test
@@ -107,13 +90,13 @@ public class TypeInferenceTest extends CompilerTests {
                         Value v
 
                     f1 (x1 : My_Type) =
-                      y1 = x1
-                      My_Type.Value (y2.v + y2.v)
+                        y1 = x1
+                        My_Type.Value (y1.v + y1.v)
 
                     f2 : My_Type -> My_Type
                     f2 x2 =
-                      y2 = x2
-                      My_Type.Value (y2.v + y2.v)
+                        y2 = x2
+                        My_Type.Value (y2.v + y2.v)
 
                     f3 (x3 : My_Type) -> My_Type = My_Type.Value (x3.v + x3.v)
                     """,
@@ -131,10 +114,10 @@ public class TypeInferenceTest extends CompilerTests {
     assertAtomType(myType, findAssignment(f1, "y1"));
     assertNoInferredType(findAssignment(f2, "y2"));
 
-    assertEquals("(My_Type -> My_Type)", getInferredType(f1).toString());
+    assertEquals("My_Type -> My_Type", getInferredType(f1).toString());
     // f2 gets argument as Any, because the doc-signature is not checked
-    assertEquals("(Any -> My_Type)", getInferredType(f2).toString());
-    assertEquals("(My_Type -> My_Type)", getInferredType(f3).toString());
+    assertEquals("Any -> My_Type", getInferredType(f2).toString());
+    assertEquals("My_Type -> My_Type", getInferredType(f3).toString());
   }
 
   @Test
@@ -347,7 +330,7 @@ public class TypeInferenceTest extends CompilerTests {
     var foo = findStaticMethod(module, "foo");
 
     var f1Type = getInferredType(findAssignment(foo, "f1"));
-    assertEquals("(My_Type -> (My_Type -> My_Type))", f1Type.toString());
+    assertEquals("My_Type -> (My_Type -> My_Type)", f1Type.toString());
 
     // and result of application is typed as the return type:
     assertAtomType("innerFunctionType.My_Type", findAssignment(foo, "y"));
@@ -530,7 +513,7 @@ public class TypeInferenceTest extends CompilerTests {
    * in one branch. We will need to ensure that we duplicate the local scopes in each branch to
    * avoid bad sharing.
    */
-  @Ignore("TODO")
+  @Ignore("TODO for much much later: equality bounds in case")
   @Test
   public void inferEqualityBoundsFromCase() throws Exception {
     final URI uri = new URI("memory://inferEqualityBoundsFromCase.enso");
@@ -556,7 +539,7 @@ public class TypeInferenceTest extends CompilerTests {
     assertAtomType(myType, findAssignment(f, "y"));
   }
 
-  @Ignore("TODO")
+  @Ignore("TODO for much much later: equality bounds in case")
   @Test
   public void inferEqualityBoundsFromCaseLiteral() throws Exception {
     final URI uri = new URI("memory://inferEqualityBoundsFromCaseLiteral.enso");
@@ -579,7 +562,7 @@ public class TypeInferenceTest extends CompilerTests {
     assertSumType(findAssignment(f, "y"), "Integer", "Text");
   }
 
-  @Ignore("TODO")
+  @Ignore("TODO for much much later: equality bounds in case")
   @Test
   public void inferEqualityBoundsFromCaseEdgeCase() throws Exception {
     // This test ensures that the equality bound from _:Other_Type is only applicable in its branch
@@ -635,7 +618,7 @@ public class TypeInferenceTest extends CompilerTests {
     assertSumType(findAssignment(f, "y"), "My_Type", "Other_Type");
   }
 
-  @Ignore
+  @Ignore("TODO: ifte")
   @Test
   public void sumTypeFromIf() throws Exception {
     final URI uri = new URI("memory://sumTypeFromIf.enso");
@@ -656,7 +639,7 @@ public class TypeInferenceTest extends CompilerTests {
     assertSumType(findAssignment(f, "y"), "Text", "Integer");
   }
 
-  @Ignore
+  @Ignore("TODO: ifte")
   @Test
   public void sumTypeFromIfWithoutElse() throws Exception {
     final URI uri = new URI("memory://sumTypeFromIf.enso");
@@ -717,7 +700,7 @@ public class TypeInferenceTest extends CompilerTests {
     assertAtomType("Standard.Base.Data.Numbers.Integer", findAssignment(memberMethod, "w"));
   }
 
-  @Ignore("TODO")
+  @Ignore("TODO: self resolution")
   @Test
   public void typeInferenceOfSelf() throws Exception {
     final URI uri = new URI("memory://typeInferenceOfSelf.enso");
@@ -903,7 +886,7 @@ public class TypeInferenceTest extends CompilerTests {
     var z = findAssignment(foo, "z");
     var typeError2 =
         new Warning.TypeMismatch(
-            z.expression().identifiedLocation(), "My_Type", "(My_Type -> My_Type)");
+            z.expression().identifiedLocation(), "My_Type", "My_Type -> My_Type");
     assertEquals(List.of(typeError2), getDescendantsDiagnostics(z.expression()));
   }
 
@@ -1008,7 +991,6 @@ public class TypeInferenceTest extends CompilerTests {
         getDescendantsDiagnostics(baz.expression()));
   }
 
-  @Ignore("TODO")
   @Test
   public void globalMethodTypes() throws Exception {
     final URI uri = new URI("memory://globalMethodTypes.enso");
@@ -1019,18 +1001,14 @@ public class TypeInferenceTest extends CompilerTests {
                     type My_Type
                         Value v
 
-                    lit = 42
-                    ctor = My_Type.Value 42
                     const -> My_Type = My_Type.Value 23
-                    check (x : My_Type) = x
+                    check (x : My_Type) -> My_Type = x
 
                     foo =
-                        x1 = lit
-                        x2 = ctor
-                        x3 = const
-                        x4 = check
-                        x5 = check const
-                        [x1, x2, x3, x4, x5]
+                        x1 = const
+                        x2 = check
+                        x3 = check const
+                        [x1, x2, x3]
                     """,
                 uri.getAuthority())
             .uri(uri)
@@ -1041,60 +1019,415 @@ public class TypeInferenceTest extends CompilerTests {
 
     var myType = "globalMethodTypes.My_Type";
 
-    assertAtomType("Standard.Base.Data.Numbers.Integer", findAssignment(foo, "x1"));
+    assertAtomType(myType, findAssignment(foo, "x1"));
+    assertEquals("My_Type -> My_Type", getInferredType(findAssignment(foo, "x2")).toString());
+    assertAtomType(myType, findAssignment(foo, "x3"));
+  }
+
+  @Test
+  public void memberMethodCalls() throws Exception {
+    final URI uri = new URI("memory://memberMethodCalls.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+                    type My_Type
+                        Value v
+
+                        zero_arg self -> My_Type = My_Type.Value [self.v]
+                        one_arg self (x : My_Type) -> My_Type = My_Type.Value [self.v, x.v]
+
+                        static_zero -> My_Type = My_Type.Value 42
+                        static_one (x : My_Type) -> My_Type = My_Type.Value [x.v, 1]
+
+                    My_Type.extension_method self -> My_Type = My_Type.Value [self.v, 2]
+
+                    foo =
+                        inst = My_Type.Value 23
+                        x1 = inst.zero_arg
+                        x2 = inst.one_arg inst
+                        x3 = My_Type.static_zero
+                        x4 = My_Type.static_one inst
+
+                        # And calling member methods through static syntax:
+                        x5 = My_Type.zero_arg inst
+                        x6 = My_Type.one_arg inst
+
+                        # And extension methods
+                        x7 = inst.extension_method
+                        x8 = My_Type.extension_method inst
+                        [x1, x2, x3, x4, x5, x6, x7, x8]
+                    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+    var foo = findStaticMethod(module, "foo");
+
+    var myType = "memberMethodCalls.My_Type";
+
+    assertAtomType(myType, findAssignment(foo, "inst"));
+    assertAtomType(myType, findAssignment(foo, "x1"));
     assertAtomType(myType, findAssignment(foo, "x2"));
     assertAtomType(myType, findAssignment(foo, "x3"));
-    assertEquals("My_Type -> My_Type", getInferredType(findAssignment(foo, "x4")).toString());
+    assertAtomType(myType, findAssignment(foo, "x4"));
     assertAtomType(myType, findAssignment(foo, "x5"));
+
+    // The function in x6 was not fully applied - still expecting 1 arg:
+    assertEquals("My_Type -> My_Type", getInferredType(findAssignment(foo, "x6")).toString());
+
+    assertAtomType(myType, findAssignment(foo, "x7"));
+    assertAtomType(myType, findAssignment(foo, "x8"));
   }
 
-  private List<Diagnostic> getImmediateDiagnostics(IR ir) {
-    return CollectionConverters.asJava(ir.getDiagnostics().toList());
+  @Ignore(
+      "TODO: error can only be reported when we can rule out there is no Other_Type -> My_Type"
+          + " conversion")
+  @Test
+  public void staticCallWithWrongType() throws Exception {
+    final URI uri = new URI("memory://staticCallWithWrongType.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+            type My_Type
+                Value v
+
+                member_method self = [self.v]
+
+            type Other_Type
+                Constructor v
+
+                member_method = [self.v, self.v]
+
+            foo =
+                other = Other_Type.Constructor 44
+                x1 = My_Type.member_method other
+                x1
+            """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+    var foo = findStaticMethod(module, "foo");
+
+    var x1 = findAssignment(foo, "x1");
+    var typeError =
+        new Warning.TypeMismatch(x1.expression().identifiedLocation(), "My_Type", "Other_Type");
+    assertEquals(List.of(typeError), getDescendantsDiagnostics(x1.expression()));
   }
 
-  private List<Diagnostic> getDescendantsDiagnostics(IR ir) {
-    return CollectionConverters.asJava(
-        ir.preorder().flatMap(node -> node.getDiagnostics().toList()));
+  @Test
+  public void callingFieldGetters() throws Exception {
+    final URI uri = new URI("memory://callingFieldGetters.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+            type My_Type
+                Constructor_1 (field_a : Typ_X) (field_b : Typ_Y)
+                Constructor_2 (field_b : Typ_Z)
+                Constructor_3 (field_c : Typ_Z)
+                Constructor_4 (field_c : Typ_Z)
+                Constructor_5 field_d
+
+            type Typ_X
+            type Typ_Y
+            type Typ_Z
+
+            foo (instance : My_Type) =
+                x_a = instance.field_a
+                x_b = instance.field_b
+                x_c = instance.field_c
+                x_d = instance.field_d
+                [x_a, x_b, x_c, x_d]
+            """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+    var foo = findStaticMethod(module, "foo");
+
+    assertAtomType("callingFieldGetters.Typ_X", findAssignment(foo, "x_a"));
+    // We don't know which constructor was used, so if the field appears in many constructors, it
+    // resolves to a sum type
+    assertSumType(findAssignment(foo, "x_b"), "Typ_Y", "Typ_Z");
+
+    // We have two constructors with field `field_c`, but they have the same type so the sum type
+    // should have been simplified
+    assertAtomType("callingFieldGetters.Typ_Z", findAssignment(foo, "x_c"));
+
+    // We shouldn't get a No_Such_Method error on a field with no type ascription:
+    var x_d = findAssignment(foo, "x_d");
+    assertEquals(
+        "Field access should not yield any warnings", List.of(), getDescendantsDiagnostics(x_d));
   }
 
-  private Method findStaticMethod(Module module, String name) {
-    var option =
-        module
-            .bindings()
-            .find(
-                (def) ->
-                    (def instanceof Method binding)
-                        && binding.methodReference().typePointer().isEmpty()
-                        && binding.methodReference().methodName().name().equals(name));
+  @Test
+  public void noSuchMethodStaticCheck() throws Exception {
+    final URI uri = new URI("memory://noSuchMethodStaticCheck.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+                    import Standard.Base.Any.Any
 
-    assertTrue("The method " + name + " should exist within the IR.", option.isDefined());
-    return (Method) option.get();
+                    type My_Type
+                        Value v
+
+                        method_one self = 42
+                        static_method = 44
+
+                    foo =
+                        inst = My_Type.Value 23
+                        x1 = inst.method_one
+                        x2 = inst.method_two
+                        x3 = inst.to_text
+                        x4 = inst.is_error
+                        x5 = inst.static_method
+                        [x1, x2, x3, x4, x5]
+                    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+    var foo = findStaticMethod(module, "foo");
+    var x1 = findAssignment(foo, "x1");
+    var x2 = findAssignment(foo, "x2");
+    var x3 = findAssignment(foo, "x3");
+    var x4 = findAssignment(foo, "x4");
+    var x5 = findAssignment(foo, "x5");
+
+    // member method is defined
+    assertEquals(List.of(), getDescendantsDiagnostics(x1.expression()));
+
+    // this method is not found
+    assertEquals(
+        List.of(
+            new Warning.NoSuchMethod(
+                x2.expression().identifiedLocation(),
+                "member method `method_two` on type My_Type")),
+        getImmediateDiagnostics(x2.expression()));
+
+    // delegating to Any
+    assertEquals(List.of(), getDescendantsDiagnostics(x3.expression()));
+    assertEquals(List.of(), getDescendantsDiagnostics(x4.expression()));
+
+    // calling a static method on an instance _does not work_, so we get a warning telling there's
+    // no such _member_ method
+    assertEquals(
+        List.of(
+            new Warning.NoSuchMethod(
+                x5.expression().identifiedLocation(),
+                "member method `static_method` on type My_Type")),
+        getImmediateDiagnostics(x5.expression()));
   }
 
-  private Method findMemberMethod(Module module, String typeName, String name) {
-    var option =
-        module
-            .bindings()
-            .find(
-                (def) ->
-                    (def instanceof Method binding)
-                        && binding.methodReference().typePointer().isDefined()
-                        && binding.methodReference().typePointer().get().name().equals(typeName)
-                        && binding.methodReference().methodName().name().equals(name));
+  @Test
+  public void alwaysKnowsMethodsOfAny() throws Exception {
+    final URI uri = new URI("memory://alwaysKnowsMethodsOfAny.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+                    type My_Type
+                        Value v
 
-    assertTrue("The method " + name + " should exist within the IR.", option.isDefined());
-    return (Method) option.get();
+                    foo x =
+                        txt1 = x.to_text
+                        txt2 = 42.to_text
+                        txt3 = (My_Type.Value 1).to_text
+
+                        bool = (x == x)
+                        [txt1, txt2, txt3, bool]
+                    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+    var foo = findStaticMethod(module, "foo");
+
+    assertAtomType("Standard.Base.Data.Text.Text", findAssignment(foo, "txt1"));
+    assertAtomType("Standard.Base.Data.Text.Text", findAssignment(foo, "txt2"));
+    assertAtomType("Standard.Base.Data.Text.Text", findAssignment(foo, "txt3"));
+
+    assertAtomType("Standard.Base.Data.Boolean.Boolean", findAssignment(foo, "bool"));
   }
 
-  private Expression.Binding findAssignment(IR ir, String name) {
-    var option =
-        ir.preorder()
-            .find(
-                (node) ->
-                    (node instanceof Expression.Binding binding)
-                        && binding.name().name().equals(name));
-    assertTrue("The binding `" + name + " = ...` should exist within the IR.", option.isDefined());
-    return (Expression.Binding) option.get();
+  @Ignore("TODO: self resolution")
+  @Test
+  public void noSuchMethodOnSelf() throws Exception {
+    final URI uri = new URI("memory://noSuchMethodOnSelf.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+                    type My_Type
+                        Value v
+
+                        method_one self = 42
+                        method_two self =
+                            x1 = self.method_one
+                            x2 = self.non_existent_method
+                            [x1, x2]
+                    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+    var method_two = findMemberMethod(module, "My_Type", "method_two");
+    var x1 = findAssignment(method_two, "x1");
+    var x2 = findAssignment(method_two, "x2");
+
+    // member method is defined
+    assertEquals(List.of(), getDescendantsDiagnostics(x1.expression()));
+
+    // this method is not found
+    assertEquals(
+        List.of(
+            new Warning.NoSuchMethod(
+                x2.expression().identifiedLocation(),
+                "member method `non_existent_method` on type My_Type")),
+        getImmediateDiagnostics(x2.expression()));
+  }
+
+  @Test
+  public void callingExtensionMethodDefinedElsewhere() throws Exception {
+    final URI uriA = new URI("memory://local.Project1.modA.enso");
+    final Source srcA =
+        Source.newBuilder(
+                "enso",
+                """
+                    type My_Type
+                        Value v
+                    """,
+                uriA.getAuthority())
+            .uri(uriA)
+            .buildLiteral();
+    compile(srcA);
+
+    final URI uriB = new URI("memory://local.Project1.modB.enso");
+    final Source srcB =
+        Source.newBuilder(
+                "enso",
+                """
+                    import local.Project1.modA.My_Type
+
+                    type Typ_X
+                        Value a
+                    type Typ_Y
+                        Value a
+
+                    My_Type.member self -> Typ_X = Typ_X.Value self
+                    My_Type.static -> Typ_Y = Typ_Y.Value 32
+                    """,
+                uriB.getAuthority())
+            .uri(uriB)
+            .buildLiteral();
+    compile(srcB);
+
+    final URI uriC = new URI("memory://local.Project1.modC.enso");
+    final Source srcC =
+        Source.newBuilder(
+                "enso",
+                """
+                    import local.Project1.modA.My_Type
+                    from local.Project1.modB import all
+
+                    foo =
+                        inst = My_Type.Value 23
+                        x1 = inst.member
+                        x2 = My_Type.static
+                        [x1, x2]
+                    """,
+                uriC.getAuthority())
+            .uri(uriC)
+            .buildLiteral();
+    var modC = compile(srcC);
+    var foo = findStaticMethod(modC, "foo");
+
+    assertAtomType("local.Project1.modB.Typ_X", findAssignment(foo, "x1"));
+    assertAtomType("local.Project1.modB.Typ_Y", findAssignment(foo, "x2"));
+  }
+
+  @Test
+  public void callingReexportedExtensionMethods() throws Exception {
+    // Base type definition
+    final URI uriA = new URI("memory://local.Project1.modA.enso");
+    final Source srcA =
+        Source.newBuilder(
+                "enso",
+                """
+                    type My_Type
+                        Value v
+                    """,
+                uriA.getAuthority())
+            .uri(uriA)
+            .buildLiteral();
+    compile(srcA);
+
+    // Extension methods defined in another module
+    final URI uriB = new URI("memory://local.Project1.modB.enso");
+    final Source srcB =
+        Source.newBuilder(
+                "enso",
+                """
+                    import local.Project1.modA.My_Type
+
+                    type Typ_X
+                        Value a
+                    type Typ_Y
+                        Value a
+
+                    My_Type.member self -> Typ_X = Typ_X.Value self
+                    My_Type.static -> Typ_Y = Typ_Y.Value 32
+                    """,
+                uriB.getAuthority())
+            .uri(uriB)
+            .buildLiteral();
+    compile(srcB);
+
+    // Re-exports of the type and the extension method
+    final URI uriC = new URI("memory://local.Project1.modC.enso");
+    final Source srcC =
+        Source.newBuilder(
+                "enso",
+                """
+                    export local.Project1.modA.My_Type
+                    export local.Project1.modB.member
+                    """,
+                uriC.getAuthority())
+            .uri(uriC)
+            .buildLiteral();
+    compile(srcC);
+
+    final URI uriD = new URI("memory://local.Project1.modD.enso");
+    final Source srcD =
+        Source.newBuilder(
+                "enso",
+                """
+                    from local.Project1.modC import all
+
+                    foo =
+                        inst = My_Type.Value 23
+                        x1 = inst.member
+                        x2 = My_Type.static
+                        [x1, x2]
+                    """,
+                uriD.getAuthority())
+            .uri(uriD)
+            .buildLiteral();
+    var modD = compile(srcD);
+    var foo = findStaticMethod(modD, "foo");
+
+    assertAtomType("local.Project1.modB.Typ_X", findAssignment(foo, "x1"));
+    assertAtomType("local.Project1.modB.Typ_Y", findAssignment(foo, "x2"));
   }
 
   private TypeRepresentation getInferredType(IR ir) {
@@ -1106,7 +1439,7 @@ public class TypeInferenceTest extends CompilerTests {
   }
 
   private Optional<TypeRepresentation> getInferredTypeOption(IR ir) {
-    Option<ProcessingPass.Metadata> metadata = ir.passData().get(TypeInference.INSTANCE);
+    Option<ProcessingPass.Metadata> metadata = ir.passData().get(TypeInferencePropagation.INSTANCE);
     if (metadata.isEmpty()) {
       return Optional.empty();
     } else {
@@ -1116,7 +1449,7 @@ public class TypeInferenceTest extends CompilerTests {
   }
 
   private void assertNoInferredType(IR ir) {
-    Option<ProcessingPass.Metadata> metadata = ir.passData().get(TypeInference.INSTANCE);
+    Option<ProcessingPass.Metadata> metadata = ir.passData().get(TypeInferencePropagation.INSTANCE);
     assertTrue(
         "Expecting "
             + ir.showCode()
@@ -1126,11 +1459,24 @@ public class TypeInferenceTest extends CompilerTests {
   }
 
   private void assertAtomType(String fqn, IR ir) {
-    var type = getInferredType(ir);
+    var option = getInferredTypeOption(ir);
+    if (option.isEmpty()) {
+      fail(
+          "Expected "
+              + ir.showCode()
+              + " to have Atom type "
+              + fqn
+              + ", but no type metadata was found.");
+    }
+
+    var type = option.get();
     if (type instanceof TypeRepresentation.AtomType atomType) {
-      assertEquals(fqn, atomType.fqn().toString());
+      assertEquals(
+          "Expected " + ir.showCode() + " to have the right atom type: ",
+          fqn,
+          atomType.fqn().toString());
     } else {
-      fail("Expected " + ir.showCode() + " to have an AtomType, but got " + type);
+      fail("Expected " + ir.showCode() + " to have an Atom type " + fqn + ", but got " + type);
     }
   }
 
@@ -1143,48 +1489,5 @@ public class TypeInferenceTest extends CompilerTests {
     } else {
       fail("Expected " + ir.showCode() + " to have a SumType, but got " + type);
     }
-  }
-
-  /**
-   * Note that this `compile` method will not run import resolution. For now we just have tests that
-   * do not need it, and tests that do need it are placed in {@link
-   * org.enso.interpreter.test.TypeInferenceConsistencyTest} which spawns the whole interpreter.
-   *
-   * <p>If we want to run the imports resolution here, we need to create an instance of {@link
-   * Compiler}, like in {@link org.enso.compiler.test.semantic.TypeSignaturesTest}, but that relies
-   * on spawning a Graal context anyway. If possible I think it's good to skip that so that these
-   * tests can be kept simple - and the more complex ones can be done in the other suite.
-   */
-  private Module compile(Source src) {
-    if (src.getCharacters().toString().contains("import")) {
-      throw new IllegalArgumentException("This method will not work correctly with imports.");
-    }
-
-    Module rawModule = parse(src.getCharacters());
-
-    var compilerConfig =
-        new CompilerConfig(false, true, true, true, false, true, false, Option.empty());
-    var passes = new Passes(compilerConfig);
-    @SuppressWarnings("unchecked")
-    var passConfig =
-        new PassConfiguration((Seq<PassConfiguration.ConfigPair<?>>) Seq$.MODULE$.empty());
-    PassManager passManager = new PassManager(passes.passOrdering(), passConfig);
-    var compilerRunner =
-        new CompilerRunner() {
-          @Override
-          public CompilerConfig defaultConfig() {
-            return compilerConfig;
-          }
-
-          @Override
-          public void org$enso$compiler$test$CompilerRunner$_setter_$defaultConfig_$eq(
-              CompilerConfig x$1) {}
-        };
-    var moduleName = QualifiedName.simpleName(src.getName().replace(".enso", ""));
-    ModuleContext moduleContext =
-        compilerRunner.buildModuleContext(
-            moduleName, Option.apply(new FreshNameSupply()), Option.empty(), compilerConfig, false);
-    Module processedModule = passManager.runPassesOnModule(rawModule, moduleContext);
-    return processedModule;
   }
 }

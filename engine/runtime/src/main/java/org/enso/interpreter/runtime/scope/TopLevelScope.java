@@ -172,10 +172,14 @@ public final class TopLevelScope implements EnsoObject {
     @CompilerDirectives.TruffleBoundary
     private static Object compile(Object[] arguments, EnsoContext context)
         throws UnsupportedTypeException, ArityException {
-      boolean useGlobalCache = context.isUseGlobalCache();
       boolean shouldCompileDependencies = Types.extractArguments(arguments, Boolean.class);
+      boolean shouldWriteCache = !context.isIrCachingDisabled();
+      boolean useGlobalCache = context.isUseGlobalCache();
       try {
-        return context.getCompiler().compile(shouldCompileDependencies, useGlobalCache).get();
+        return context
+            .getCompiler()
+            .compile(shouldCompileDependencies, shouldWriteCache, useGlobalCache)
+            .get();
       } catch (InterruptedException e) {
         throw new RuntimeException(e);
       } catch (ExecutionException e) {

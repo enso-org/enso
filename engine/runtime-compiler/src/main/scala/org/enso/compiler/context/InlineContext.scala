@@ -8,7 +8,7 @@ import org.enso.compiler.pass.PassConfiguration
 /** A type containing the information about the execution context for an inline
   * expression.
   *
-  * @param module the module in which the expression is being executed
+  * @param moduleContext the module in which the expression is being executed
   * @param compilerConfig the compiler configuration
   * @param localScope the local scope in which the expression is being executed
   * @param isInTailPosition whether or not the inline expression occurs in tail
@@ -18,7 +18,7 @@ import org.enso.compiler.pass.PassConfiguration
   * @param pkgRepo the compiler's package repository
   */
 case class InlineContext(
-  private val module: ModuleContext,
+  moduleContext: ModuleContext,
   compilerConfig: CompilerConfig,
   localScope: Option[LocalScope]               = None,
   isInTailPosition: Option[Boolean]            = None,
@@ -26,8 +26,8 @@ case class InlineContext(
   passConfiguration: Option[PassConfiguration] = None,
   pkgRepo: Option[PackageRepository]           = None
 ) {
-  def bindingsAnalysis(): BindingsMap = module.bindingsAnalysis()
-  def getModule()                     = module.module
+  def bindingsAnalysis(): BindingsMap = moduleContext.bindingsAnalysis()
+  def getModule()                     = moduleContext.module
 }
 object InlineContext {
 
@@ -51,7 +51,7 @@ object InlineContext {
   ): InlineContext = {
     InlineContext(
       localScope       = Option(localScope),
-      module           = ModuleContext(module, compilerConfig),
+      moduleContext    = ModuleContext(module, compilerConfig),
       isInTailPosition = isInTailPosition,
       compilerConfig   = compilerConfig,
       pkgRepo          = pkgRepo
@@ -67,7 +67,7 @@ object InlineContext {
   def fromModuleContext(moduleContext: ModuleContext): InlineContext = {
     InlineContext(
       localScope        = None,
-      module            = moduleContext,
+      moduleContext     = moduleContext,
       isInTailPosition  = None,
       freshNameSupply   = moduleContext.freshNameSupply,
       passConfiguration = moduleContext.passConfiguration,

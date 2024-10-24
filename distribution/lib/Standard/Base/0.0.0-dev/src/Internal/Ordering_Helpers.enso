@@ -37,10 +37,12 @@ type Default_Comparator
     ## PRIVATE
     hash : Number -> Integer
     hash x = Default_Comparator.hash_builtin x
+
     ## PRIVATE
-    hash_builtin x = @Builtin_Method "Default_Comparator.hash_builtin"
+    private hash_builtin x = @Builtin_Method "Default_Comparator.hash_builtin"
+
     ## PRIVATE
-    less_than_builtin left right = @Builtin_Method "Default_Comparator.less_than_builtin"
+    private less_than_builtin left right = @Builtin_Method "Default_Comparator.less_than_builtin"
 
     ## PRIVATE
        Called as a callback from internal engine code for an atom with a custom

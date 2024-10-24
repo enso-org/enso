@@ -12,6 +12,8 @@ import org.enso.compiler.core.ir.type.Set;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.pass.resolve.Patterns$;
 import org.enso.compiler.pass.resolve.TypeNames$;
+import org.enso.compiler.pass.resolve.TypeSignatures;
+import org.enso.compiler.pass.resolve.TypeSignatures$;
 import org.enso.persist.Persistance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,43 +26,10 @@ import scala.jdk.javaapi.CollectionConverters;
 public class TypeResolver {
   private static final Logger logger = LoggerFactory.getLogger(TypeResolver.class);
 
-  TypeRepresentation resolveTypeExpression(Expression type) {
+  public TypeRepresentation resolveTypeExpression(Expression type) {
     return switch (type) {
-      case Name.Literal name -> {
-        BindingsMap.Resolution resolutionOrNull =
-            getMetadataOrNull(name, TypeNames$.MODULE$, BindingsMap.Resolution.class);
-
-        if (resolutionOrNull == null) {
-          // As fallback, try getting from the Patterns pass.
-          resolutionOrNull =
-              getMetadataOrNull(name, Patterns$.MODULE$, BindingsMap.Resolution.class);
-        }
-
-        if (resolutionOrNull != null) {
-          BindingsMap.ResolvedName target = resolutionOrNull.target();
-          yield switch (target) {
-            case BindingsMap.ResolvedType resolvedType -> resolvedTypeAsAtomType(resolvedType);
-            case BindingsMap.ResolvedPolyglotSymbol polyglotSymbol -> {
-              // for now type inference is not able to deal with polyglot types, so we treat them as
-              // unknown
-              yield TypeRepresentation.UNKNOWN;
-            }
-            default -> {
-              logger.debug(
-                  "resolveTypeExpression: {} - unexpected resolved name type {}",
-                  name.showCode(),
-                  target.getClass().getCanonicalName());
-              yield TypeRepresentation.UNKNOWN;
-            }
-          };
-        } else {
-          // TODO investigate - these seem to unexpectedly come up when compiling Standard.Base
-          logger.debug(
-              "resolveTypeExpression: {} - Missing expected TypeName resolution metadata",
-              type.showCode());
-          yield TypeRepresentation.UNKNOWN;
-        }
-      }
+      case Name.Literal name -> getResolvedTypeFromBindingsMap(name);
+      case Name.SelfType selfType -> getResolvedTypeFromBindingsMap(selfType);
 
       case Set.Union union -> {
         var operands = union.operands().map(this::resolveTypeExpression);
@@ -90,11 +59,6 @@ public class TypeResolver {
         // We just ignore the error part for now as it's not really checked anywhere.
       case Type.Error error -> resolveTypeExpression(error.typed());
 
-      case Name.SelfType selfType -> {
-        // TODO to be handled in further iterations
-        yield TypeRepresentation.UNKNOWN;
-      }
-
       case Name.Qualified qualified -> {
         // TODO to be handled in further iterations
         yield TypeRepresentation.UNKNOWN;
@@ -119,6 +83,41 @@ public class TypeResolver {
         yield TypeRepresentation.UNKNOWN;
       }
     };
+  }
+
+  private TypeRepresentation getResolvedTypeFromBindingsMap(Name name) {
+    BindingsMap.Resolution resolutionOrNull =
+        getMetadataOrNull(name, TypeNames$.MODULE$, BindingsMap.Resolution.class);
+
+    if (resolutionOrNull == null) {
+      // As fallback, try getting from the Patterns pass.
+      resolutionOrNull = getMetadataOrNull(name, Patterns$.MODULE$, BindingsMap.Resolution.class);
+    }
+
+    if (resolutionOrNull != null) {
+      BindingsMap.ResolvedName target = resolutionOrNull.target();
+      return switch (target) {
+        case BindingsMap.ResolvedType resolvedType -> resolvedTypeAsAtomType(resolvedType);
+        case BindingsMap.ResolvedPolyglotSymbol polyglotSymbol -> {
+          // for now type inference is not able to deal with polyglot types, so we treat them as
+          // unknown
+          yield TypeRepresentation.UNKNOWN;
+        }
+        default -> {
+          logger.debug(
+              "resolveTypeExpression: {} - unexpected resolved name type {}",
+              name.showCode(),
+              target.getClass().getCanonicalName());
+          yield TypeRepresentation.UNKNOWN;
+        }
+      };
+    } else {
+      // TODO investigate - these seem to unexpectedly come up when compiling Standard.Base
+      logger.debug(
+          "resolveTypeExpression: {} - Missing expected TypeName resolution metadata",
+          name.showCode());
+      return TypeRepresentation.UNKNOWN;
+    }
   }
 
   TypeRepresentation.TypeObject resolvedTypeAsTypeObject(BindingsMap.ResolvedType resolvedType) {
@@ -153,5 +152,16 @@ public class TypeResolver {
 
   private TypeRepresentation resolveTypeExpression(Persistance.Reference<Expression> ref) {
     return resolveTypeExpression(ref.get(Expression.class));
+  }
+
+  /** Returns the type ascribed to the given expression, if any. */
+  TypeRepresentation getTypeAscription(Expression ir) {
+    TypeSignatures.Signature ascribedSignature =
+        getMetadataOrNull(ir, TypeSignatures$.MODULE$, TypeSignatures.Signature.class);
+    if (ascribedSignature != null) {
+      return resolveTypeExpression(ascribedSignature.signature());
+    } else {
+      return null;
+    }
   }
 }

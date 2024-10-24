@@ -3,12 +3,13 @@ package org.enso.common;
 /** Defines a stage of compilation of the module. */
 public enum CompilationStage {
   INITIAL(0),
-  AFTER_PARSING(1),
-  AFTER_IMPORT_RESOLUTION(2),
-  AFTER_GLOBAL_TYPES(3),
-  AFTER_STATIC_PASSES(4),
-  AFTER_RUNTIME_STUBS(5),
-  AFTER_CODEGEN(6);
+  AFTER_PARSING(10),
+  AFTER_IMPORT_RESOLUTION(20),
+  AFTER_GLOBAL_TYPES(30),
+  AFTER_STATIC_PASSES(40),
+  AFTER_TYPE_INFERENCE_PASSES(45),
+  AFTER_RUNTIME_STUBS(50),
+  AFTER_CODEGEN(60);
 
   private final int ordinal;
 

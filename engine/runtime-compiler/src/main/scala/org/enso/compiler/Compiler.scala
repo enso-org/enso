@@ -133,12 +133,17 @@ class Compiler(
     *
     * @param shouldCompileDependencies whether compilation should also compile
     *                                  the dependencies of the requested package
+    * @param shouldWriteCache whether the compilation results should be written
+    *                         to the cache; if set to False, a 'lint' compilation
+    *                         will be performed, reporting any problems,
+    *                         but no results will be written
     * @param useGlobalCacheLocations whether or not the compilation result should
     *                                  be written to the global cache
     * @return future to track subsequent serialization of the library
     */
   def compile(
     shouldCompileDependencies: Boolean,
+    shouldWriteCache: Boolean,
     useGlobalCacheLocations: Boolean
   ): Future[java.lang.Boolean] = {
     getPackageRepository.getMainProjectPackage match {
@@ -181,11 +186,13 @@ class Compiler(
               shouldCompileDependencies
             )
 
-            context.serializeLibrary(
-              this,
-              pkg.libraryName,
-              useGlobalCacheLocations
-            )
+            if (shouldWriteCache) {
+              context.serializeLibrary(
+                this,
+                pkg.libraryName,
+                useGlobalCacheLocations
+              )
+            } else CompletableFuture.completedFuture(true)
         }
     }
   }
@@ -353,6 +360,33 @@ class Compiler(
           { u =>
             u.ir(compilerOutput)
             u.compilationStage(CompilationStage.AFTER_STATIC_PASSES)
+          }
+        )
+      }
+    }
+
+    requiredModules.foreach { module =>
+      if (
+        !context
+          .getCompilationStage(module)
+          .isAtLeast(
+            CompilationStage.AFTER_TYPE_INFERENCE_PASSES
+          )
+      ) {
+
+        val moduleContext = ModuleContext(
+          module          = module,
+          freshNameSupply = Some(freshNameSupply),
+          compilerConfig  = config,
+          pkgRepo         = Some(packageRepository)
+        )
+        val compilerOutput =
+          runFinalTypeInferencePasses(context.getIr(module), moduleContext)
+        context.updateModule(
+          module,
+          { u =>
+            u.ir(compilerOutput)
+            u.compilationStage(CompilationStage.AFTER_TYPE_INFERENCE_PASSES)
           }
         )
       }
@@ -805,6 +839,17 @@ class Compiler(
       moduleContext.module.getName
     )
     passManager.runPassesOnModule(ir, moduleContext, passes.globalTypingPasses)
+  }
+
+  private def runFinalTypeInferencePasses(
+    ir: IRModule,
+    moduleContext: ModuleContext
+  ): IRModule = {
+    passManager.runPassesOnModule(
+      ir,
+      moduleContext,
+      passes.typeInferenceFinalPasses
+    )
   }
 
   /** Runs the various compiler passes in an inline context.

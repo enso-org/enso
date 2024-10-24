@@ -129,6 +129,10 @@ type Comparable
 
     new value:Any comparator:Any -> Comparable = Comparable.By value comparator
 
+    ## PRIVATE
+    less_than_builtin : Any -> Any -> Boolean | Nothing
+    less_than_builtin = @Builtin_Method "Comparable.less_than_builtin"
+
 ## PRIVATE
 Comparable.from (that:Any) = Comparable.new that Default_Comparator
 
