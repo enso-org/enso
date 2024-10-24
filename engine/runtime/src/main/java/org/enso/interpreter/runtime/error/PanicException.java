@@ -23,6 +23,7 @@ import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.State;
@@ -87,7 +88,19 @@ public final class PanicException extends AbstractTruffleException implements En
       var info = library.getExceptionMessage(this);
       msg = library.asString(info);
     } catch (StackOverflowError | AssertionError | UnsupportedMessageException e) {
-      logger().atError().log("Cannot compute message for " + payload, e);
+      var l = logger();
+      l.atError().log("Cannot compute message for " + payload, e);
+      l.error("Exception location: " + getLocation());
+      if (getLocation() != null) {
+        l.error("  location source: " + getLocation().getEncapsulatingSourceSection());
+        l.error("  location class: " + getLocation().getClass().getName());
+        l.error("  location string: " + getLocation());
+      }
+      l.error("  payload class: " + payload.getClass().getName());
+      if (payload instanceof Atom atom) {
+        l.error("  payload cons: " + atom.getConstructor());
+        l.error("  payload type: " + atom.getConstructor().getType());
+      }
       msg = TypeToDisplayTextNode.getUncached().execute(payload);
     }
     cacheMessage = msg;
