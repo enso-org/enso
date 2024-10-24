@@ -59,6 +59,7 @@ import org.enso.interpreter.runtime.instrument.NotificationHandler;
 import org.enso.interpreter.runtime.scope.TopLevelScope;
 import org.enso.interpreter.runtime.state.ExecutionEnvironment;
 import org.enso.interpreter.runtime.state.State;
+import org.enso.interpreter.runtime.state.WithContextNode;
 import org.enso.interpreter.runtime.util.TruffleFileSystem;
 import org.enso.librarymanager.ProjectLoadingFailure;
 import org.enso.librarymanager.resolved.LibraryRoot;
@@ -894,7 +895,9 @@ public final class EnsoContext {
   public ExecutionEnvironment enableExecutionEnvironment(Atom context, String environmentName) {
     ExecutionEnvironment original = globalExecutionEnvironment;
     if (original.getName().equals(environmentName)) {
-      setExecutionEnvironment(original.withContextEnabled(context));
+      var newExecEnv =
+          WithContextNode.getUncached().executeEnvironmentUpdate(original, context, true);
+      setExecutionEnvironment(newExecEnv);
     }
     return original;
   }
@@ -909,7 +912,9 @@ public final class EnsoContext {
   public ExecutionEnvironment disableExecutionEnvironment(Atom context, String environmentName) {
     ExecutionEnvironment original = globalExecutionEnvironment;
     if (original.getName().equals(environmentName)) {
-      setExecutionEnvironment(original.withContextDisabled(context));
+      var newExecEnv =
+          WithContextNode.getUncached().executeEnvironmentUpdate(original, context, false);
+      setExecutionEnvironment(newExecEnv);
     }
     return original;
   }
