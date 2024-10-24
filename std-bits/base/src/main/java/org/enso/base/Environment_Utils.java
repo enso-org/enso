@@ -2,7 +2,9 @@ package org.enso.base;
 
 import java.util.HashMap;
 
-public class Environment_Utils {
+public final class Environment_Utils {
+  private Environment_Utils() {}
+
   /** Gets the environment variable, including any overrides. */
   public static String get_environment_variable(String name) {
     String override = overrides.get(name);

@@ -32,7 +32,8 @@ class ConfigSpec
           Contact(None, Some("c@example.com"))
         ),
         preferLocalLibraries = true,
-        componentGroups      = None
+        componentGroups      = None,
+        requires             = List()
       )
       val deserialized = Config.fromYaml(config.toYaml).get
       deserialized shouldEqual config

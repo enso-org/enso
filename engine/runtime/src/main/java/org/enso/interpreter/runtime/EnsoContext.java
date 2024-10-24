@@ -26,11 +26,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
-import java.net.MalformedURLException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -69,6 +71,7 @@ import org.enso.pkg.PackageManager;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.debugger.IdExecutionService;
 import org.graalvm.options.OptionKey;
+import scala.jdk.javaapi.CollectionConverters;
 import scala.jdk.javaapi.OptionConverters;
 
 /**
@@ -82,7 +85,7 @@ public final class EnsoContext {
 
   private final EnsoLanguage language;
   private final Env environment;
-  private final HostClassLoader hostClassLoader = new HostClassLoader();
+  private final Map<Package<?>, EnsoClassPath> classPaths = new HashMap<>();
   private final boolean assertionsEnabled;
   private final boolean isPrivateCheckDisabled;
   private final boolean isStaticTypeAnalysisEnabled;
@@ -297,7 +300,6 @@ public final class EnsoContext {
     packageRepository.shutdown();
     guestJava = null;
     topScope = null;
-    hostClassLoader.close();
     EnsoParser.freeAll();
   }
 
@@ -463,30 +465,44 @@ public final class EnsoContext {
   }
 
   /**
-   * Modifies the classpath to use to lookup {@code polyglot java} imports.
+   * Creates a class path. A class path is capable to load Java classes in an isolated manner.
    *
-   * @param file the file to register
+   * @param pkg package to find class path for
+   * @return representation of an Enso library Java class path for given package
    */
   @TruffleBoundary
-  public void addToClassPath(TruffleFile file) {
-    if (findGuestJava() == null) {
-      try {
-        var url = file.toUri().toURL();
-        hostClassLoader.add(url);
-      } catch (MalformedURLException ex) {
-        throw new IllegalStateException(ex);
-      }
-    } else {
-      try {
-        var path = new File(file.toUri()).getAbsoluteFile();
-        if (!path.exists()) {
-          throw new IllegalStateException("File not found " + path);
+  public synchronized EnsoClassPath findClassPath(Package<TruffleFile> pkg) {
+    org.enso.interpreter.runtime.EnsoClassPath l = classPaths.get(pkg);
+    if (l == null) {
+      if (pkg != null) {
+        var polyDir = pkg.polyglotDir();
+        if (polyDir == null) {
+          throw new NullPointerException("No polyglot dir for " + pkg);
         }
-        InteropLibrary.getUncached().invokeMember(findGuestJava(), "addPath", path.getPath());
-      } catch (InteropException ex) {
-        throw new IllegalStateException(ex);
+        var ch = polyDir.resolve("java");
+        var requires = CollectionConverters.asJava(pkg.getConfig().requires());
+        var parents =
+            requires.stream()
+                .map(
+                    n -> {
+                      var name = LibraryName.fromModuleName(n);
+                      if (name.isDefined()) {
+                        var ln = name.get();
+                        var lib = this.packageRepository.getPackageForLibrary(ln);
+                        if (lib.isDefined()) {
+                          return findClassPath(lib.get());
+                        }
+                      }
+                      return findClassPath(null);
+                    })
+                .toList();
+        l = EnsoClassPath.create(Paths.get(ch.toUri()), parents, logger);
+      } else {
+        l = EnsoClassPath.EMPTY;
       }
+      classPaths.put(pkg, l);
     }
+    return l;
   }
 
   /**
@@ -557,19 +573,24 @@ public final class EnsoContext {
    * resolves to an inner class, then the import of the outer class is resolved, and the inner class
    * is looked up by iterating the members of the outer class via Truffle's interop protocol.
    *
+   * @param pkg Enso package to load the class for
    * @param className Fully qualified class name, can also be nested static inner class.
    * @return If the java class is found, return it, otherwise return {@link DataflowError}.
    */
   @TruffleBoundary
-  public TruffleObject lookupJavaClass(String className) {
-    var binaryName = new StringBuilder(className);
+  public TruffleObject lookupJavaClass(Package<TruffleFile> pkg, String className) {
+    org.enso.interpreter.runtime.EnsoClassPath cp = findClassPath(pkg);
+    if (className == null) {
+      return null;
+    }
     var collectedExceptions = new ArrayList<Exception>();
+    var binaryName = new StringBuilder(className);
     for (; ; ) {
       var fqn = binaryName.toString();
       try {
-        var hostSymbol = lookupHostSymbol(fqn);
-        if (hostSymbol != null) {
-          return (TruffleObject) hostSymbol;
+        var hostSymbol = lookupHostSymbol(cp.loader, fqn);
+        if (hostSymbol instanceof TruffleObject truffleSymbol) {
+          return truffleSymbol;
         }
       } catch (ClassNotFoundException | RuntimeException | InteropException ex) {
         collectedExceptions.add(ex);
@@ -589,11 +610,17 @@ public final class EnsoContext {
     return getBuiltins().error().makeMissingPolyglotImportError(className);
   }
 
-  private Object lookupHostSymbol(String fqn)
+  private Object lookupHostSymbol(ClassLoader loader, String fqn)
       throws ClassNotFoundException, UnknownIdentifierException, UnsupportedMessageException {
     try {
       if (findGuestJava() == null) {
-        return environment.asHostSymbol(hostClassLoader.loadClass(fqn));
+        Class<?> clazz;
+        if (loader == null) {
+          clazz = Class.forName(fqn);
+        } else {
+          clazz = loader.loadClass(fqn);
+        }
+        return environment.asHostSymbol(clazz);
       } else {
         return InteropLibrary.getUncached().readMember(findGuestJava(), fqn);
       }

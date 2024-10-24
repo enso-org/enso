@@ -7,3 +7,6 @@ author: enso-dev@enso.org
 maintainer: enso-dev@enso.org
 # Base_Tests import stuff from Helpers sibling project. So we need this property here.
 prefer-local-libraries: true
+requires:
+  - Standard.Base
+  - Standard.Table

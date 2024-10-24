@@ -1,13 +1,13 @@
 package org.enso.database;
 
 import java.util.ServiceLoader;
+import org.enso.base.lookup.Lookup;
 import org.enso.base.polyglot.EnsoMeta;
 import org.graalvm.polyglot.Value;
 
 public abstract class DatabaseConnectionDetailsSPI {
-  private static final ServiceLoader<DatabaseConnectionDetailsSPI> loader =
-      ServiceLoader.load(
-          DatabaseConnectionDetailsSPI.class, DatabaseConnectionDetailsSPI.class.getClassLoader());
+  private static final Lookup<DatabaseConnectionDetailsSPI> loader =
+      Lookup.lookup((l) -> ServiceLoader.load(l, DatabaseConnectionDetailsSPI.class));
 
   /**
    * Returns an array of pairs, where the first element is the user facing connection name and the

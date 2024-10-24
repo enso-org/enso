@@ -2,7 +2,6 @@ package org.enso.aws.file_system;
 
 import org.enso.base.file_system.FileSystemSPI;
 
-@org.openide.util.lookup.ServiceProvider(service = FileSystemSPI.class)
 public class S3FileSystemSPI extends FileSystemSPI {
   @Override
   protected String getModuleName() {

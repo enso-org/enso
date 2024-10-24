@@ -109,7 +109,8 @@ case class Config(
   maintainers: List[Contact],
   edition: Option[Editions.RawEdition],
   preferLocalLibraries: Boolean,
-  componentGroups: Option[ComponentGroups]
+  componentGroups: Option[ComponentGroups],
+  requires: List[String]
 ) {
 
   /** Converts the configuration into a YAML representation. */
@@ -144,6 +145,7 @@ object Config {
     val Author: String         = "authors"
     val Namespace: String      = "namespace"
     val Maintainer: String     = "maintainers"
+    val Requires: String       = "requires"
     val Edition: String        = "edition"
     val PreferLocalLibraries   = "prefer-local-libraries"
     val ComponentGroups        = "component-groups"
@@ -158,6 +160,7 @@ object Config {
           val normalizedNameDecoder =
             implicitly[YamlDecoder[Option[String]]]
           val contactDecoder     = implicitly[YamlDecoder[List[Contact]]]
+          val requiresDecoder    = implicitly[YamlDecoder[List[String]]]
           val editionNameDecoder = implicitly[YamlDecoder[EditionName]]
           val editionDecoder =
             implicitly[YamlDecoder[Option[Editions.RawEdition]]]
@@ -195,6 +198,10 @@ object Config {
               .get(JsonFields.Maintainer)
               .map(contactDecoder.decode)
               .getOrElse(Right(Nil))
+            requires <- clazzMap
+              .get(JsonFields.Requires)
+              .map(requiresDecoder.decode)
+              .getOrElse(Right(Nil))
             rawEdition = clazzMap
               .get(JsonFields.Edition)
               .flatMap(x => editionNameDecoder.decode(x).toOption.map(Left(_)))
@@ -230,7 +237,8 @@ object Config {
             maintainers,
             edition,
             preferLocalLibraries,
-            componentGroups
+            componentGroups,
+            requires
           )
       }
     }
@@ -239,6 +247,7 @@ object Config {
     new YamlEncoder[Config] {
       override def encode(value: Config) = {
         val contactsEncoder = implicitly[YamlEncoder[List[Contact]]]
+        val requiresEncoder = implicitly[YamlEncoder[List[String]]]
         val editionEncoder  = implicitly[YamlEncoder[Editions.RawEdition]]
         val booleanEncoder  = implicitly[YamlEncoder[Boolean]]
         val componentGroupsEncoder =
@@ -266,6 +275,11 @@ object Config {
         if (value.maintainers.nonEmpty) {
           elements.add(
             (JsonFields.Maintainer, contactsEncoder.encode(value.maintainers))
+          )
+        }
+        if (value.requires.nonEmpty) {
+          elements.add(
+            (JsonFields.Requires, requiresEncoder.encode(value.requires.toList))
           )
         }
 

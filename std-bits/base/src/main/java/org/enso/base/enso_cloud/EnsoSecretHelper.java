@@ -7,7 +7,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest.Builder;
 import java.net.http.HttpResponse;
 import java.sql.Connection;
-import java.sql.DriverManager;
+import java.sql.Driver;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Properties;
@@ -20,13 +20,23 @@ public final class EnsoSecretHelper extends SecretValueResolver {
 
   /** Gets a JDBC connection resolving EnsoKeyValuePair into the properties. */
   public static Connection getJDBCConnection(
-      String url, List<Pair<String, HideableValue>> properties) throws SQLException {
+      Iterable<Driver> drivers, String url, List<Pair<String, HideableValue>> properties)
+      throws SQLException {
     var javaProperties = new Properties();
     for (var pair : properties) {
       javaProperties.setProperty(pair.getLeft(), resolveValue(pair.getRight()));
     }
 
-    return DriverManager.getConnection(url, javaProperties);
+    var err = new StringBuilder();
+    for (var driver : drivers) {
+      err.append("\nTrying ").append(driver.getClass().getName());
+      var c = driver.connect(url, javaProperties);
+      if (c != null) {
+        return c;
+      }
+    }
+    err.insert(0, "No handler to connect to " + url);
+    throw new SQLException(err.toString());
   }
 
   /**

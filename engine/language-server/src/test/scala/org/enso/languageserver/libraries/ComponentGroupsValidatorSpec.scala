@@ -188,6 +188,7 @@ object ComponentGroupsValidatorSpec {
       authors              = Nil,
       maintainers          = Nil,
       edition              = None,
+      requires             = List(),
       preferLocalLibraries = true,
       componentGroups = Some(
         ComponentGroups(
