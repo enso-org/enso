@@ -121,7 +121,7 @@ type HTTP
                 Error.throw (Forbidden_Operation.Error ("As writing is disabled, " + req.method.to_text + " request not sent. Press the Write button ▶ to send it."))
         # You can only explicitly mention the cache for GET requests.
         check_cache_policy ~action =
-            cache_policy_value_ok = req.method == HTTP_Method.Get || cache_policy == Cache_Policy.Default
+            cache_policy_value_ok = req.method == HTTP_Method.Get || cache_policy != Cache_Policy.Use_Cache
             if cache_policy_value_ok then action else
                 Error.throw (Illegal_Argument.Error "Cannot specify cache policy for a "+req.method.to_text+" request")
 

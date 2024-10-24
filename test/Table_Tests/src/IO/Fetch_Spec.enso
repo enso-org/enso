@@ -231,9 +231,13 @@ add_specs suite_builder =
             expect_counts [0, 0] <|
                 Data.post url_post (Request_Body.Text "hello world")
 
-        group_builder.specify "HTTP request with a non-GET method should reject a Cache_Policy argument" pending=pending_has_url <| Test.with_retries <|
+        group_builder.specify "HTTP request with a non-GET method should reject a cache_policy=Use_Cache argument" pending=pending_has_url <| Test.with_retries <|
             request = Request.new HTTP_Method.Post url_post [] Request_Body.Empty
             HTTP.new.request request cache_policy=Cache_Policy.Use_Cache . should_fail_with Illegal_Argument
+
+        group_builder.specify "HTTP request with a non-GET method should not reject a cache_policy=No_Cache argument" pending=pending_has_url <| Test.with_retries <|
+            request = Request.new HTTP_Method.Post url_post [] Request_Body.Empty
+            HTTP.new.request request cache_policy=Cache_Policy.No_Cache . should_succeed
 
         group_builder.specify "Should be able to clear caches" pending=pending_has_url <| Test.with_retries <|
             HTTP.clear_response_cache
@@ -428,6 +432,6 @@ add_specs suite_builder =
 
         group_builder.specify "Should not be able to set the cache limits higher than the real limits" pending=pending_has_url <| Test.with_retries <|
             Test.expect_panic IllegalArgumentException <|
-                EnsoHTTPResponseCache.getCacheTestParameters.setMaxFileSizeOverrideTestOnly (10 * 1024 * 1024 + 1) . should_fail_with Illegal_Argument
+                EnsoHTTPResponseCache.getCacheTestParameters.setMaxFileSizeOverrideTestOnly (2 * 1024 * 1024 * 1024 + 1) . should_fail_with Illegal_Argument
             Test.expect_panic IllegalArgumentException <|
-                EnsoHTTPResponseCache.getCacheTestParameters.setMaxTotalCacheSizeOverrideTestOnly (10 * 1024 * 1024 * 1024 + 1) . should_fail_with Illegal_Argument
+                EnsoHTTPResponseCache.getCacheTestParameters.setMaxTotalCacheSizeOverrideTestOnly (20 * 1024 * 1024 * 1024 + 1) . should_fail_with Illegal_Argument
