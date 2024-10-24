@@ -269,7 +269,6 @@ export default class Navigator2D {
    */
   onKeyDown(event: KeyboardEvent | React.KeyboardEvent) {
     if (event.defaultPrevented) {
-      // eslint-disable-next-line no-restricted-syntax
       return
     }
     let nearestFocusedParent = event.target instanceof Element ? event.target : null

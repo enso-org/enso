@@ -23,7 +23,6 @@ export interface PopoverProps
     twv.VariantProps<typeof POPOVER_STYLES> {
   readonly children:
     | React.ReactNode
-    // eslint-disable-next-line no-restricted-syntax
     | ((opts: aria.PopoverRenderProps & { readonly close: () => void }) => React.ReactNode)
 }
 

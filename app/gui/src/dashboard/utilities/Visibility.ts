@@ -17,6 +17,4 @@ enum Visibility {
   hidden = 'visibility-hidden',
 }
 
-// This is REQUIRED, as `export default enum` is invalid syntax.
-// eslint-disable-next-line no-restricted-syntax
 export default Visibility

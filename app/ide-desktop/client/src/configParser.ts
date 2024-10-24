@@ -3,7 +3,6 @@
 import chalk from 'chalk'
 import stringLength from 'string-length'
 
-// eslint-disable-next-line no-restricted-syntax
 import yargs, { type Options } from 'yargs'
 
 import * as config from '@/config'
@@ -132,7 +131,6 @@ function printHelp(cfg: PrintHelpConfig) {
           : option.description.slice(0, firstSentenceSplit + 1)
         const otherSentences = option.description.slice(firstSentence.length)
         // We explicitly set the default for string options to be `null` in `parseArgs`.
-        // eslint-disable-next-line no-restricted-syntax
         const def = option.defaultDescription ?? (option.default as string | null)
         const defIsEmptyArray = Array.isArray(def) && def.length === 0
         let defaults = ''
@@ -294,7 +292,6 @@ export function parseArgs(clientArgs: readonly string[] = fileAssociations.CLIEN
       default: null,
       // Required because yargs defines `defaultDescription`
       // as `string | undefined`, not `string | null`.
-      // eslint-disable-next-line no-restricted-syntax
       defaultDescription: option.defaultDescription ?? undefined,
     }
     return opts
@@ -303,8 +300,6 @@ export function parseArgs(clientArgs: readonly string[] = fileAssociations.CLIEN
   const optParser = yargs()
     .version(false)
     .parserConfiguration({
-      // The names come from a third-party API and cannot be changed.
-      /* eslint-disable @typescript-eslint/naming-convention */
       // Allow single-dash arguments, like `-help`.
       'short-option-groups': false,
       // Treat dot-arguments as string keys, like `foo.bar`.
@@ -314,7 +309,6 @@ export function parseArgs(clientArgs: readonly string[] = fileAssociations.CLIEN
       // Do not expand `--foo-bar` to `--fooBar`. This prevents an error when both the former
       // and later argument are reported as invalid at the same time.
       'camel-case-expansion': false,
-      /* eslint-enable @typescript-eslint/naming-convention */
     })
     .help(false)
     .strict()
@@ -324,22 +318,16 @@ export function parseArgs(clientArgs: readonly string[] = fileAssociations.CLIEN
 
   /** Command line arguments after being parsed by `yargs`. */
   interface YargsArgs {
-    // The names come from a third-party API and cannot be changed.
-    /* eslint-disable @typescript-eslint/naming-convention */
     readonly [key: string]: string[] | string
     readonly _: string[]
     // Exists only when the `populate--` option is enabled.
     readonly '--'?: string[]
     readonly $0: string
-    /* eslint-enable @typescript-eslint/naming-convention */
   }
 
-  // Required otherwise TypeScript thinks it's always `null`.
-  // eslint-disable-next-line no-restricted-syntax
   let parseError = null as Error | null
   // The type assertion is required since `parse` may return a `Promise`
   // when an async middleware has been registered, but we are not doing that.
-  // eslint-disable-next-line no-restricted-syntax
   const { '--': unexpectedArgs, ...parsedArgs } = optParser.parse(
     argv,
     {},

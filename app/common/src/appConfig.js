@@ -12,9 +12,7 @@ import * as url from 'node:url'
  * environment variable. Reads from `.env` if the variable is `production`, blank or absent.
  * DOES NOT override existing environment variables if the variable is absent. */
 export async function readEnvironmentFromFile() {
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   const environment = process.env.ENSO_CLOUD_ENVIRONMENT ?? null
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   const isProduction = environment == null || environment === '' || environment === 'production'
   const fileName = isProduction ? '.env' : `.${environment}.env`
   const filePath = path.join(url.fileURLToPath(new URL('../..', import.meta.url)), fileName)
@@ -39,7 +37,6 @@ export async function readEnvironmentFromFile() {
     if (isProduction) {
       entries = entries.filter(kv => {
         const [k] = kv
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         return process.env[k] == null
       })
     }
@@ -87,13 +84,10 @@ function stringify(value) {
  * - the WebSocket URL for the chatbot
  * - the unique identifier for the cloud environment, for use in Sentry logs
  * - Stripe, Sentry and Amplify public keys */
-// eslint-disable-next-line @typescript-eslint/no-magic-numbers
 export function getDefines() {
   return {
-    /* eslint-disable @typescript-eslint/naming-convention */
     'process.env.ENSO_CLOUD_ENVIRONMENT': stringify(
       // The actual environment variable does not necessarily exist.
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       process.env.ENSO_CLOUD_ENVIRONMENT ?? 'production',
     ),
     'process.env.ENSO_CLOUD_API_URL': stringify(process.env.ENSO_CLOUD_API_URL),
@@ -118,12 +112,10 @@ export function getDefines() {
     'process.env.ENSO_CLOUD_ENSO_HOST': stringify(
       process.env.ENSO_CLOUD_ENSO_HOST ?? 'https://ensoanalytics.com',
     ),
-    /* eslint-enable @typescript-eslint/naming-convention */
   }
 }
 
 const DUMMY_DEFINES = {
-  /* eslint-disable @typescript-eslint/naming-convention */
   'process.env.NODE_ENV': 'production',
   'process.env.ENSO_CLOUD_ENVIRONMENT': 'production',
   'process.env.ENSO_CLOUD_API_URL': 'https://mock',
@@ -137,7 +129,6 @@ const DUMMY_DEFINES = {
   'process.env.ENSO_CLOUD_COGNITO_REGION': '',
   'process.env.ENSO_CLOUD_DASHBOARD_VERSION': '0.0.1-testing',
   'process.env.ENSO_CLOUD_DASHBOARD_COMMIT_HASH': 'abcdef0',
-  /* eslint-enable @typescript-eslint/naming-convention */
 }
 
 /** Load test environment variables, useful for when the Cloud backend is mocked or unnecessary. */

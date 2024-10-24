@@ -15,7 +15,7 @@ import * as string from '#/utilities/string'
 
 /** A keyboard key obtained from `KeyboardEvent.key`. */
 type KeyName = newtype.Newtype<string, 'keyboard key'>
-// eslint-disable-next-line @typescript-eslint/no-redeclare, @typescript-eslint/naming-convention
+// eslint-disable-next-line @typescript-eslint/no-redeclare
 const KeyName = newtype.newtypeConstructor<KeyName>()
 /** A bitset of flags representing each keyboard modifier key. */
 type ModifierFlags = newtype.Newtype<number, 'modifier flags'>
@@ -141,7 +141,6 @@ interface EventWithModifiers {
 
 /** A number representing the unique combination of modifier flags for an event.. */
 export function modifierFlagsForEvent(event: EventWithModifiers): ModifierFlags {
-  // eslint-disable-next-line no-restricted-syntax
   return ModifierFlags(
     (event.ctrlKey ? RAW_MODIFIER_FLAG.Ctrl : 0) |
       (event.altKey ? RAW_MODIFIER_FLAG.Alt : 0) |
@@ -520,7 +519,6 @@ export function defineBindingNamespace<T extends Record<keyof T, KeybindValue>>(
         switch (keybind.type) {
           case 'keybind': {
             const shortcutsByKey = (keyboardShortcuts[keybind.key] ??= [])
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             const shortcutsByModifier = (shortcutsByKey[keybind.modifierFlags] ??= new Set())
             shortcutsByModifier.add(name)
             break

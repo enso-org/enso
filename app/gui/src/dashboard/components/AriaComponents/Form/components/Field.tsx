@@ -109,7 +109,6 @@ export const Field = forwardRef(function Field<Schema extends types.TSchema>(
             {label}
 
             {isRequired && (
-              /* eslint-disable-next-line no-restricted-syntax */
               <span aria-hidden="true" className="scale-80 text-danger">
                 {' *'}
               </span>

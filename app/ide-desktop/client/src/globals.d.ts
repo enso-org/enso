@@ -3,8 +3,6 @@
  * These are from variables defined at build time, environment variables,
  * monkeypatching on `window` and generated code.
  */
-// This file is being imported for its types.
-// eslint-disable-next-line no-restricted-syntax
 import * as buildJson from './../../build.json' assert { type: 'json' }
 
 // =============
@@ -151,7 +149,6 @@ interface VersionInfo {
 declare global {
   // Documentation is already inherited.
   /** */
-  // eslint-disable-next-line no-restricted-syntax
   interface Window {
     readonly backendApi?: BackendApi
     readonly authenticationApi: AuthenticationApi
@@ -166,15 +163,12 @@ declare global {
 
   namespace NodeJS {
     /** Environment variables. */
-    // `TZ` MUST NOT be `readonly`, or else `@types/node` will error.
-    // eslint-disable-next-line no-restricted-syntax
     interface ProcessEnv {
       readonly [key: string]: never
 
-      // These are environment variables, and MUST be in CONSTANT_CASE.
-      /* eslint-disable @typescript-eslint/naming-convention */
       // This is declared in `@types/node`. It MUST be re-declared here to suppress the error
       // about this property conflicting with the index signature above.
+      // MUST NOT be `readonly`, or else `@types/node` will error.
       // @ts-expect-error The index signature is intentional to disallow unknown env vars.
       TZ?: string
       // @ts-expect-error The index signature is intentional to disallow unknown env vars.
@@ -212,11 +206,9 @@ declare global {
       readonly ELECTRON_DEV_MODE?: string
       // @ts-expect-error The index signature is intentional to disallow unknown env vars.
       readonly GUI_CONFIG_PATH?: string
-      /* eslint-enable @typescript-eslint/naming-convention */
     }
   }
 
   // These are used in other files (because they're globals)
-  /* eslint-disable @typescript-eslint/naming-convention */
   const BUILD_INFO: buildJson.BuildInfo
 }

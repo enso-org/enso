@@ -34,7 +34,6 @@ import BUILD_INFO from './buildInfo'
  */
 export interface Arguments {
   // The types come from a third-party API and cannot be changed.
-  // eslint-disable-next-line no-restricted-syntax
   readonly target?: string | undefined
   readonly iconsDist: string
   readonly guiDist: string
@@ -217,7 +216,6 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
       // almost zero.
       // This type assertion is UNSAFE, and any users MUST verify that
       // they are passing a valid value to `target`.
-      // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
       target: (passedArgs.target as any) ?? 'dmg',
       icon: `${passedArgs.iconsDist}/icon.icns`,
       category: 'public.app-category.developer-tools',
@@ -323,7 +321,6 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
           appOutDir: appOutDir,
           productFilename: appName,
           // This will always be defined since we have an `entitlements.mac.plist`.
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           entitlements: macConfig!.entitlements!,
           identity: 'Developer ID Application: New Byte Order Sp. z o. o. (NM77WTZJFQ)',
         })
@@ -334,11 +331,8 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
           tool: 'notarytool',
           appPath: `${appOutDir}/${appName}.app`,
           // It is a mistake for either of these to be undefined.
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           appleId: process.env.APPLEID!,
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           appleIdPassword: process.env.APPLEIDPASS!,
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           teamId: process.env.APPLETEAMID!,
         })
       }

@@ -97,7 +97,6 @@ export function createGetProjectDetailsQuery(options: CreateOpenedProjectQueryOp
       const states = [backendModule.ProjectState.opened, backendModule.ProjectState.closed]
 
       if (state.status === 'error') {
-        // eslint-disable-next-line no-restricted-syntax
         return false
       }
       if (isLocal) {

@@ -14,7 +14,6 @@ import * as textProvider from '#/providers/TextProvider'
 import * as ariaComponents from '#/components/AriaComponents'
 
 /** Props for an {@link UpgradeButton}. */
-// eslint-disable-next-line no-restricted-syntax
 export type UpgradeButtonProps = Omit<ariaComponents.ButtonProps, 'variant'> & {
   readonly feature: billingHooks.PaywallFeatureName
   readonly variant?: ariaComponents.ButtonProps['variant']
