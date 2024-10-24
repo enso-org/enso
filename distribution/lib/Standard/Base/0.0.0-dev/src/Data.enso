@@ -83,14 +83,16 @@ from project.System.File_Format import Auto_Detect, File_Format
 @path Text_Input
 @format File_Format.default_widget
 read : Text | URI | File -> File_Format -> Problem_Behavior -> Any ! File_Error
-read path=(Missing_Argument.throw "path") format=Auto_Detect (on_problems : Problem_Behavior = ..Report_Warning) = case path of
-    _ : Text -> if Data_Read_Helpers.looks_like_uri path then Data_Read_Helpers.fetch_following_data_links path format=format else
-        read (File.new path) format on_problems
-    uri : URI -> fetch uri format=format
-    _ : File ->
-        file_obj = File.new path
-        if file_obj.is_directory then Error.throw (Illegal_Argument.Error "Cannot `read` a directory, use `Data.list`.") else
-            file_obj.read format on_problems
+read path=(Missing_Argument.throw "path") format=Auto_Detect (on_problems : Problem_Behavior = ..Report_Warning) =
+    IO.println ("Data.read arg " + path.to_text + " " + (Meta.get_simple_type_name path).to_text)
+    case path of
+        _ : Text -> if Data_Read_Helpers.looks_like_uri path then Data_Read_Helpers.fetch_following_data_links path format=format else
+            read (File.new path) format on_problems
+        uri : URI -> fetch uri format=format
+        _ : File ->
+            file_obj = File.new path
+            if file_obj.is_directory then Error.throw (Illegal_Argument.Error "Cannot `read` a directory, use `Data.list`.") else
+                file_obj.read format on_problems
 
 ## ALIAS load text, open text
    GROUP Input
