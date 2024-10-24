@@ -14,6 +14,7 @@ import java.io.ByteArrayOutputStream;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
+import org.graalvm.polyglot.Value;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.AllOf;
 import org.junit.After;
@@ -194,6 +195,45 @@ public class IfThenElseTest {
     @ExportMessage
     boolean asBoolean() {
       return value;
+    }
+  }
+
+  @Test
+  public void warningsAndIfThenElse() throws Exception {
+    var code =
+        """
+    from Standard.Base import all
+
+    check x = if x then "Yes" else "No"
+    """;
+
+    var check = ContextUtils.getMethodFromModule(ctx, code, "check");
+
+    var warnCode = """
+    from Standard.Base import all
+
+    warn w v = Warning.attach w v
+    """;
+    var warn = ContextUtils.getMethodFromModule(ctx, warnCode, "warn");
+
+    var t = warn.execute("Maybe", true);
+    var f = warn.execute("Maybe not", false);
+
+    var yes = check.execute(t);
+    var no = check.execute(f);
+
+    assertEquals("Yes", yes.asString());
+    assertWarning("Maybe", yes);
+    assertEquals("No", no.asString());
+    assertWarning("Maybe not", no);
+  }
+
+  private static void assertWarning(String txt, Value v) {
+    assertTrue("Value " + v + " should be an exceptional", v.isException());
+    try {
+      throw v.throwException();
+    } catch (PolyglotException ex) {
+      assertEquals(txt, ex.getMessage());
     }
   }
 }
