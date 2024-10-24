@@ -18,15 +18,17 @@ import {
 } from '#/providers/DriveProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import { useText } from '#/providers/TextProvider'
+import { AnyAssetTreeNode } from '#/utilities/AssetTreeNode'
 import LocalStorage from '#/utilities/LocalStorage'
 import type { BackendType } from 'enso-common/src/services/Backend'
+import Backend from 'enso-common/src/services/Backend'
 import type { Spring } from 'framer-motion'
 import { AnimatePresence, motion } from 'framer-motion'
 import { startTransition } from 'react'
 import { z } from 'zod'
 import { AssetDocs } from '../AssetDocs'
 import AssetProjectSessions from '../AssetProjectSessions'
-import AssetProperties from '../AssetProperties'
+import AssetProperties, { AssetPropertiesSpotlight } from '../AssetProperties'
 import AssetVersions from '../AssetVersions/AssetVersions'
 import type { Category } from '../CategorySwitcher/Category'
 import { AssetPanelTabs } from './components/AssetPanelTabs'
@@ -60,6 +62,13 @@ LocalStorage.register({
   assetPanelTab: { schema: ASSET_PANEL_TAB_SCHEMA },
   assetPanelWidth: { schema: z.number().int() },
 })
+
+/** Props supplied by the row. */
+export interface AssetPanelContextProps {
+  readonly backend: Backend | null
+  readonly item: AnyAssetTreeNode | null
+  readonly spotlightOn?: AssetPropertiesSpotlight
+}
 
 /**
  * Props for an {@link AssetPanel}.

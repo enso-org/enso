@@ -934,6 +934,12 @@
   "ensoDevtoolsPlanSelectSubtitle": "User Plan",
   "ensoDevtoolsPaywallFeaturesToggles": "Paywall Features",
   "ensoDevtoolsFeatureFlags": "Feature Flags",
+  "ensoDevtoolsFeatureFlags.enableMultitabs": "Enable Multitabs",
+  "ensoDevtoolsFeatureFlags.enableMultitabsDescription": "Allow multiple asset panels to be open at the same time.",
+  "ensoDevtoolsFeatureFlags.enableAssetsTableBackgroundRefresh": "Enable Assets Table Background Refresh",
+  "ensoDevtoolsFeatureFlags.enableAssetsTableBackgroundRefreshDescription": "Enable background refresh of the assets table.",
+  "ensoDevtoolsFeatureFlags.assetsTableBackgroundRefreshInterval": "Assets Table Background Refresh Interval",
+  "ensoDevtoolsFeatureFlags.assetsTableBackgroundRefreshIntervalDescription": "The interval at which the assets table will be refreshed in the background.",
 
   "setupEnso": "Set up Enso",
   "termsAndConditions": "Terms and Conditions",
