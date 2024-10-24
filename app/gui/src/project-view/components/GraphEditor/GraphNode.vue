@@ -473,6 +473,7 @@ watchEffect(() => {
       @pointerenter="menuHovered = true"
       @pointerleave="menuHovered = false"
       @update:nodeColor="emit('setNodeColor', $event)"
+      @createNewNode="setSelected(), emit('createNodes', [{ commit: false, content: undefined }])"
       @click.capture="setSelected"
     />
     <GraphVisualization
