@@ -124,7 +124,8 @@ add_specs suite_builder =
             nesting_10 = run 10
             nesting_11 = run 11
             stack_size = nesting_11 - nesting_10
-            (stack_size < 115) . should_be_true
+            Test.with_clue ("Stack size of `Vector.map` should be low, but was " + stack_size.to_text + " ") <|
+                (stack_size < 40) . should_be_true
 
 
 main filter=Nothing =
