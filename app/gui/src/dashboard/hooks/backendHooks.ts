@@ -23,6 +23,7 @@ import {
 } from 'enso-common/src/backendQuery'
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { useOpenProject } from '#/hooks/projectHooks'
 import { useToastAndLog, useToastAndLogWithId } from '#/hooks/toastAndLogHooks'
 import { CATEGORY_TO_FILTER_BY, type Category } from '#/layouts/CategorySwitcher/Category'
 import { useFullUserSession } from '#/providers/AuthProvider'
@@ -40,6 +41,7 @@ import {
   type User,
   type UserGroupInfo,
 } from '#/services/Backend'
+import LocalBackend from '#/services/LocalBackend'
 import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from '#/services/remoteBackendPaths'
 import { tryCreateOwnerPermission } from '#/utilities/permissions'
 import { usePreventNavigation } from '#/utilities/preventNavigation'
@@ -443,17 +445,11 @@ function useInsertAssets(backend: Backend, category: Category) {
   })
 }
 
-/** A function to create a new folder. */
-export function useNewFolder(backend: Backend, category: Category) {
+/** Return query data for the children of a directory, fetching it if it does not exist. */
+function useEnsureListDirectory(backend: Backend, category: Category) {
   const queryClient = useQueryClient()
-  const insertAssets = useInsertAssets(backend, category)
-  const { user } = useFullUserSession()
-  const { data: users } = useBackendQuery(backend, 'listUsers', [])
-  const { data: userGroups } = useBackendQuery(backend, 'listUserGroups', [])
-  const createDirectoryMutation = useMutation(backendMutationOptions(backend, 'createDirectory'))
-
-  return useEventCallback(async (parentId: DirectoryId, parentPath: string | null | undefined) => {
-    const siblings = await queryClient.ensureQueryData(
+  return useEventCallback(async (parentId: DirectoryId) => {
+    return await queryClient.ensureQueryData(
       backendQueryOptions(backend, 'listDirectory', [
         {
           parentId,
@@ -464,6 +460,20 @@ export function useNewFolder(backend: Backend, category: Category) {
         '(unknown)',
       ]),
     )
+  })
+}
+
+/** A function to create a new folder. */
+export function useNewFolder(backend: Backend, category: Category) {
+  const insertAssets = useInsertAssets(backend, category)
+  const ensureListDirectory = useEnsureListDirectory(backend, category)
+  const { user } = useFullUserSession()
+  const { data: users } = useBackendQuery(backend, 'listUsers', [])
+  const { data: userGroups } = useBackendQuery(backend, 'listUserGroups', [])
+  const createDirectoryMutation = useMutation(backendMutationOptions(backend, 'createDirectory'))
+
+  return useEventCallback(async (parentId: DirectoryId, parentPath: string | null | undefined) => {
+    const siblings = await ensureListDirectory(parentId)
     const directoryIndices = siblings
       .filter(backendModule.assetIsDirectory)
       .map((item) => /^New Folder (?<directoryIndex>\d+)$/.exec(item.title))
@@ -494,6 +504,99 @@ export function useNewFolder(backend: Backend, category: Category) {
       { parentId: placeholderItem.parentId, title: placeholderItem.title },
     ])
   })
+}
+
+/** A function to create a new project. */
+export function useNewProject(backend: Backend, category: Category) {
+  const insertAssets = useInsertAssets(backend, category)
+  const ensureListDirectory = useEnsureListDirectory(backend, category)
+  const doOpenProject = useOpenProject()
+  const { user } = useFullUserSession()
+  const { data: users } = useBackendQuery(backend, 'listUsers', [])
+  const { data: userGroups } = useBackendQuery(backend, 'listUserGroups', [])
+  const createProjectMutation = useMutation(backendMutationOptions(backend, 'createProject'))
+
+  return useEventCallback(
+    async (
+      {
+        templateName,
+        templateId,
+        datalinkId,
+      }: {
+        templateName: string | null | undefined
+        templateId?: string | null | undefined
+        datalinkId?: backendModule.DatalinkId | null | undefined
+      },
+      parentId: DirectoryId,
+      parentPath: string | null | undefined,
+    ) => {
+      const siblings = await ensureListDirectory(parentId)
+      const projectName = (() => {
+        const prefix = `${templateName ?? 'New Project'} `
+        const projectNameTemplate = new RegExp(`^${prefix}(?<projectIndex>\\d+)$`)
+        const projectIndices = siblings
+          .filter(backendModule.assetIsProject)
+          .map((item) => projectNameTemplate.exec(item.title)?.groups?.projectIndex)
+          .map((maybeIndex) => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
+        return `${prefix}${Math.max(0, ...projectIndices) + 1}`
+      })()
+      const dummyId = backendModule.ProjectId(uniqueString())
+      const path = backend instanceof LocalBackend ? backend.joinPath(parentId, projectName) : null
+
+      const placeholderItem: backendModule.ProjectAsset = {
+        type: AssetType.project,
+        id: dummyId,
+        title: projectName,
+        modifiedAt: toRfc3339(new Date()),
+        parentId,
+        permissions: tryCreateOwnerPermission(
+          `${parentPath ?? ''}/${projectName}`,
+          category,
+          user,
+          users ?? [],
+          userGroups ?? [],
+        ),
+        projectState: {
+          type: backendModule.ProjectState.placeholder,
+          volumeId: '',
+          openedBy: user.email,
+          ...(path != null ? { path } : {}),
+        },
+        labels: [],
+        description: null,
+      }
+
+      insertAssets([placeholderItem], parentId)
+
+      return await createProjectMutation
+        .mutateAsync([
+          {
+            parentDirectoryId: placeholderItem.parentId,
+            projectName: placeholderItem.title,
+            ...(templateId == null ? {} : { projectTemplateName: templateId }),
+            ...(datalinkId == null ? {} : { datalinkId: datalinkId }),
+          },
+        ])
+        .catch((error) => {
+          event.onError?.()
+
+          deleteAsset(placeholderItem.id)
+          toastAndLog('createProjectError', error)
+
+          throw error
+        })
+        .then((createdProject) => {
+          event.onCreated?.(createdProject)
+          doOpenProject({
+            id: createdProject.projectId,
+            type: backend.type,
+            parentId: placeholderItem.parentId,
+            title: placeholderItem.title,
+          })
+          return createdProject
+        })
+    },
+  )
 }
 
 /** Options for {@link useUploadFileMutation}. */

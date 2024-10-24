@@ -52,6 +52,7 @@ import {
   backendMutationOptions,
   useBackendQuery,
   useNewFolder,
+  useNewProject,
   useRootDirectoryId,
   useUploadFileWithToastMutation,
 } from '#/hooks/backendHooks'
@@ -407,7 +408,6 @@ export default function AssetsTable(props: AssetsTableProps) {
     [expandedDirectoryIds],
   )
 
-  const createProjectMutation = useMutation(backendMutationOptions(backend, 'createProject'))
   const duplicateProjectMutation = useMutation(backendMutationOptions(backend, 'duplicateProject'))
   const createSecretMutation = useMutation(backendMutationOptions(backend, 'createSecret'))
   const updateSecretMutation = useMutation(backendMutationOptions(backend, 'updateSecret'))
@@ -1505,23 +1505,6 @@ export default function AssetsTable(props: AssetsTableProps) {
     }
   }, [setMostRecentlySelectedIndex])
 
-  const getNewProjectName = useEventCallback(
-    (templateName: string | null, parentKey: DirectoryId | null) => {
-      const prefix = `${templateName ?? 'New Project'} `
-      const projectNameTemplate = new RegExp(`^${prefix}(?<projectIndex>\\d+)$`)
-      const siblings =
-        parentKey == null ?
-          assetTree.children ?? []
-        : nodeMapRef.current.get(parentKey)?.children ?? []
-      const projectIndices = siblings
-        .map((node) => node.item)
-        .filter(assetIsProject)
-        .map((item) => projectNameTemplate.exec(item.title)?.groups?.projectIndex)
-        .map((maybeIndex) => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
-      return `${prefix}${Math.max(0, ...projectIndices) + 1}`
-    },
-  )
-
   const deleteAsset = useEventCallback((assetId: AssetId) => {
     const asset = nodeMapRef.current.get(assetId)?.item
 
@@ -1556,6 +1539,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   )
 
   const newFolder = useNewFolder(backend, category)
+  const newProject = useNewProject(backend, category)
 
   // This is not a React component, even though it contains JSX.
   // eslint-disable-next-line no-restricted-syntax
@@ -1573,65 +1557,26 @@ export default function AssetsTable(props: AssetsTableProps) {
         break
       }
       case AssetListEventType.newProject: {
-        const parent = nodeMapRef.current.get(event.parentKey)
-        const projectName = getNewProjectName(event.preferredName, event.parentId)
-        const dummyId = ProjectId(uniqueString())
-        const path =
-          backend instanceof LocalBackend ? backend.joinPath(event.parentId, projectName) : null
-
-        const placeholderItem: ProjectAsset = {
-          type: AssetType.project,
-          id: dummyId,
-          title: projectName,
-          modifiedAt: toRfc3339(new Date()),
-          parentId: event.parentId,
-          permissions: tryCreateOwnerPermission(
-            `${parent?.path ?? ''}/${projectName}`,
-            category,
-            user,
-            users ?? [],
-            userGroups ?? [],
-          ),
-          projectState: {
-            type: ProjectState.placeholder,
-            volumeId: '',
-            openedBy: user.email,
-            ...(path != null ? { path } : {}),
-          },
-          labels: [],
-          description: null,
-        }
         doToggleDirectoryExpansion(event.parentId, event.parentKey, true)
-
-        insertAssets([placeholderItem], event.parentId)
-
-        void createProjectMutation
-          .mutateAsync([
+        const parent = nodeMapRef.current.get(event.parentKey)
+        if (parent && parent.type === AssetType.directory) {
+          void newProject(
             {
-              parentDirectoryId: placeholderItem.parentId,
-              projectName: placeholderItem.title,
-              ...(event.templateId == null ? {} : { projectTemplateName: event.templateId }),
-              ...(event.datalinkId == null ? {} : { datalinkId: event.datalinkId }),
+              templateName: event.preferredName,
+              templateId: event.templateId,
+              datalinkId: event.datalinkId,
             },
-          ])
-          .catch((error) => {
-            event.onError?.()
-
-            deleteAsset(placeholderItem.id)
-            toastAndLog('createProjectError', error)
-
-            throw error
-          })
-          .then((createdProject) => {
-            event.onCreated?.(createdProject)
-            doOpenProject({
-              id: createdProject.projectId,
-              type: backend.type,
-              parentId: placeholderItem.parentId,
-              title: placeholderItem.title,
+            parent.item.id,
+            parent.path,
+          )
+            .catch((error) => {
+              event.onError?.()
+              throw error
             })
-          })
-
+            .then((createdProject) => {
+              event.onCreated?.(createdProject)
+            })
+        }
         break
       }
       case AssetListEventType.uploadFiles: {

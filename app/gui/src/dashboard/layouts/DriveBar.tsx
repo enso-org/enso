@@ -22,7 +22,7 @@ import {
   useVisualTooltip,
 } from '#/components/AriaComponents'
 import AssetEventType from '#/events/AssetEventType'
-import { useNewFolder, useRootDirectoryId } from '#/hooks/backendHooks'
+import { useNewFolder, useNewProject, useRootDirectoryId } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOffline } from '#/hooks/offlineHooks'
 import { createGetProjectDetailsQuery } from '#/hooks/projectHooks'
@@ -51,7 +51,7 @@ import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { useSetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
-import { ProjectState, type CreatedProject, type Project, type ProjectId } from '#/services/Backend'
+import { ProjectState, type Project, type ProjectId } from '#/services/Backend'
 import type AssetQuery from '#/utilities/AssetQuery'
 import { inputFiles } from '#/utilities/input'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
@@ -67,12 +67,6 @@ export interface DriveBarProps {
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly category: Category
   readonly doEmptyTrash: () => void
-  readonly doCreateProject: (
-    templateId?: string | null,
-    templateName?: string | null,
-    onCreated?: (project: CreatedProject) => void,
-    onError?: () => void,
-  ) => void
   readonly doCreateSecret: (name: string, value: string) => Promise<void>
   readonly doCreateDatalink: (name: string, value: unknown) => Promise<void>
   readonly doUploadFiles: (files: File[]) => Promise<void>
@@ -84,8 +78,7 @@ export interface DriveBarProps {
  */
 export default function DriveBar(props: DriveBarProps) {
   const { backend, query, setQuery, category } = props
-  const { doEmptyTrash, doCreateProject } = props
-  const { doCreateSecret, doCreateDatalink, doUploadFiles } = props
+  const { doEmptyTrash, doCreateSecret, doCreateDatalink, doUploadFiles } = props
 
   const [startModalDefaultOpen, , resetStartModalDefaultOpen] = useSearchParamsState(
     'startModalDefaultOpen',
@@ -135,8 +128,32 @@ export default function DriveBar(props: DriveBarProps) {
   const newFolderRaw = useNewFolder(backend, category)
   const newFolder = useEventCallback(async () => {
     const parent = getTargetDirectory()
-    await newFolderRaw(parent?.directoryId ?? rootDirectoryId, parent?.path)
+    return await newFolderRaw(parent?.directoryId ?? rootDirectoryId, parent?.path)
   })
+  const newProjectRaw = useNewProject(backend, category)
+  const newProject = useEventCallback(
+    async (templateId: string | null = null, templateName: string | null = null) => {
+      if (templateId != null) {
+        setIsCreatingProjectFromTemplate(true)
+      } else {
+        setIsCreatingProject(true)
+      }
+      const parent = getTargetDirectory()
+      return await newProjectRaw(
+        { templateName, templateId },
+        parent?.directoryId ?? rootDirectoryId,
+        parent?.path,
+      )
+        .then((project) => {
+          setCreatedProjectId(project.projectId)
+          return project
+        })
+        .finally(() => {
+          setIsCreatingProject(false)
+          setIsCreatingProjectFromTemplate(false)
+        })
+    },
+  )
 
   React.useEffect(() => {
     return inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
@@ -148,23 +165,13 @@ export default function DriveBar(props: DriveBarProps) {
         }
       : {}),
       newProject: () => {
-        setIsCreatingProject(true)
-        doCreateProject(
-          null,
-          null,
-          (project) => {
-            setCreatedProjectId(project.projectId)
-          },
-          () => {
-            setIsCreatingProject(false)
-          },
-        )
+        void newProject(null, null)
       },
       uploadFiles: () => {
         uploadFilesRef.current?.click()
       },
     })
-  }, [doCreateProject, getTargetDirectory, inputBindings, isCloud, newFolder, rootDirectoryId])
+  }, [inputBindings, isCloud, newFolder, newProject])
 
   const createdProjectQuery = useQuery<Project | null>(
     createdProjectId ?
@@ -286,16 +293,7 @@ export default function DriveBar(props: DriveBarProps) {
               <StartModal
                 createProject={(templateId, templateName) => {
                   setIsCreatingProjectFromTemplate(true)
-                  doCreateProject(
-                    templateId,
-                    templateName,
-                    (project) => {
-                      setCreatedProjectId(project.projectId)
-                    },
-                    () => {
-                      setIsCreatingProjectFromTemplate(false)
-                    },
-                  )
+                  void newProject(templateId, templateName)
                 }}
               />
             </DialogTrigger>
@@ -306,19 +304,8 @@ export default function DriveBar(props: DriveBarProps) {
               icon={Plus2Icon}
               loading={isCreatingProject}
               loaderPosition="icon"
-              onPress={() => {
-                setIsCreatingProject(true)
-                doCreateProject(
-                  null,
-                  null,
-                  (project) => {
-                    setCreatedProjectId(project.projectId)
-                    setIsCreatingProject(false)
-                  },
-                  () => {
-                    setIsCreatingProject(false)
-                  },
-                )
+              onPress={async () => {
+                await newProject(null, null)
               }}
             >
               {getText('newEmptyProject')}
@@ -330,7 +317,9 @@ export default function DriveBar(props: DriveBarProps) {
                 icon={AddFolderIcon}
                 isDisabled={shouldBeDisabled}
                 aria-label={getText('newFolder')}
-                onPress={newFolder}
+                onPress={async () => {
+                  await newFolder()
+                }}
               />
               {isCloud && (
                 <DialogTrigger>
