@@ -82,6 +82,8 @@ const _props = defineProps<{
   suppressMoveWhenColumnDragging?: boolean
   textFormatOption?: TextFormatOptions
   processDataFromClipboard?: (params: ProcessDataFromClipboardParams<TData>) => string[][] | null
+  pinnedTopRowData?: TData[]
+  pinnedRowHeightMultiplier?: number
 }>()
 const emit = defineEmits<{
   cellEditingStarted: [event: CellEditingStartedEvent]
@@ -104,6 +106,10 @@ function onGridReady(event: GridReadyEvent<TData>) {
 }
 
 function getRowHeight(params: RowHeightParams): number {
+  if (params.node.rowPinned === 'top') {
+    return DEFAULT_ROW_HEIGHT * (_props.pinnedRowHeightMultiplier ?? 2)
+  }
+
   if (_props.textFormatOption === 'off') {
     return DEFAULT_ROW_HEIGHT
   }
@@ -269,6 +275,7 @@ const { AgGridVue } = await import('ag-grid-vue3')
       :suppressDragLeaveHidesColumns="suppressDragLeaveHidesColumns"
       :suppressMoveWhenColumnDragging="suppressMoveWhenColumnDragging"
       :processDataFromClipboard="processDataFromClipboard"
+      :pinnedTopRowData="pinnedTopRowData"
       @gridReady="onGridReady"
       @firstDataRendered="updateColumnWidths"
       @rowDataUpdated="updateColumnWidths($event), emit('rowDataUpdated', $event)"
