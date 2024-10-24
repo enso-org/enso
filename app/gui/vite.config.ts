@@ -1,9 +1,6 @@
-/// <reference types="histoire" />
-
 import react from '@vitejs/plugin-react'
 import vue from '@vitejs/plugin-vue'
 import { COOP_COEP_CORP_HEADERS } from 'enso-common'
-import { getDefines, readEnvironmentFromFile } from 'enso-common/src/appConfig'
 import { fileURLToPath } from 'node:url'
 import postcssNesting from 'postcss-nesting'
 import tailwindcss from 'tailwindcss'
@@ -13,28 +10,28 @@ import VueDevTools from 'vite-plugin-vue-devtools'
 import wasm from 'vite-plugin-wasm'
 import tailwindConfig from './tailwind.config'
 
-const dynHostnameWsUrl = (port: number) => JSON.stringify(`ws://__HOSTNAME__:${port}`)
-const projectManagerUrl = dynHostnameWsUrl(process.env.E2E === 'true' ? 30536 : 30535)
-const IS_CLOUD_BUILD = process.env.CLOUD_BUILD === 'true'
-const YDOC_SERVER_URL =
-  process.env.ENSO_POLYGLOT_YDOC_SERVER ? JSON.stringify(process.env.ENSO_POLYGLOT_YDOC_SERVER)
-  : process.env.NODE_ENV === 'development' ? dynHostnameWsUrl(5976)
-  : undefined
+const isDevMode = process.env.NODE_ENV === 'development'
+const isE2E = process.env.E2E === 'true'
 
-await readEnvironmentFromFile()
+const entrypoint = isE2E ? './src/project-view/e2e-entrypoint.ts' : './src/entrypoint.ts'
 
-const entrypoint =
-  process.env.E2E === 'true' ? './src/project-view/e2e-entrypoint.ts' : './src/entrypoint.ts'
+process.env.ENSO_IDE_YDOC_SERVER_URL ||= isDevMode ? 'ws://__HOSTNAME__:59776' : undefined
+process.env.ENSO_IDE_PROJECT_MANAGER_URL ||= isDevMode ? 'ws://__HOSTNAME__:30535' : undefined
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  root: fileURLToPath(new URL('.', import.meta.url)),
   cacheDir: fileURLToPath(new URL('../../node_modules/.cache/vite', import.meta.url)),
-  publicDir: fileURLToPath(new URL('./public', import.meta.url)),
-  envDir: fileURLToPath(new URL('.', import.meta.url)),
   plugins: [
     wasm(),
-    ...(process.env.NODE_ENV === 'development' ? [await VueDevTools()] : []),
+    ...(isDevMode ?
+      [
+        await VueDevTools(),
+        react({
+          include: fileURLToPath(new URL('../dashboard/**/*.tsx', import.meta.url)),
+          babel: { plugins: ['@babel/plugin-syntax-import-attributes'] },
+        }),
+      ]
+    : []),
     vue({
       customElement: ['**/components/visualizations/**', '**/components/shared/**'],
       template: {
@@ -47,7 +44,7 @@ export default defineConfig({
       include: fileURLToPath(new URL('./src/dashboard/**/*.tsx', import.meta.url)),
       babel: { plugins: ['@babel/plugin-syntax-import-attributes'] },
     }),
-    ...(process.env.NODE_ENV === 'development' ? [await projectManagerShim()] : []),
+    ...(isDevMode ? [await projectManagerShim()] : []),
   ],
   optimizeDeps: {
     entries: fileURLToPath(new URL('./index.html', import.meta.url)),
@@ -57,7 +54,7 @@ export default defineConfig({
     ...(process.env.GUI_HOSTNAME ? { host: process.env.GUI_HOSTNAME } : {}),
   },
   resolve: {
-    conditions: ['source'],
+    conditions: isDevMode ? ['source'] : [],
     alias: {
       '/src/entrypoint.ts': fileURLToPath(new URL(entrypoint, import.meta.url)),
       shared: fileURLToPath(new URL('./shared', import.meta.url)),
@@ -65,17 +62,13 @@ export default defineConfig({
       '#': fileURLToPath(new URL('./src/dashboard', import.meta.url)),
     },
   },
+  envPrefix: 'ENSO_IDE_',
   define: {
-    ...getDefines(),
-    IS_CLOUD_BUILD: JSON.stringify(IS_CLOUD_BUILD),
-    PROJECT_MANAGER_URL: projectManagerUrl,
-    YDOC_SERVER_URL: YDOC_SERVER_URL,
-    'import.meta.vitest': false,
     // Single hardcoded usage of `global` in aws-amplify.
     'global.TYPED_ARRAY_SUPPORT': true,
   },
   esbuild: {
-    dropLabels: process.env.NODE_ENV === 'development' ? [] : ['DEV'],
+    dropLabels: isDevMode ? [] : ['DEV'],
     supported: {
       'top-level-await': true,
     },
@@ -86,9 +79,17 @@ export default defineConfig({
       plugins: [tailwindcssNesting(postcssNesting()), tailwindcss(tailwindConfig)],
     },
   },
+  logLevel: 'info',
   build: {
     // dashboard chunk size is larger than the default warning limit
     chunkSizeWarningLimit: 700,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          config: ['./src/config'],
+        },
+      },
+    },
   },
 })
 async function projectManagerShim(): Promise<Plugin> {
@@ -96,6 +97,9 @@ async function projectManagerShim(): Promise<Plugin> {
   return {
     name: 'project-manager-shim',
     configureServer(server) {
+      server.middlewares.use(module.default)
+    },
+    configurePreviewServer(server) {
       server.middlewares.use(module.default)
     },
   }

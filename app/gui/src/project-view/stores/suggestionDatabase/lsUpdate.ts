@@ -14,7 +14,7 @@ import { assert, assertNever } from '@/util/assert'
 import { type Opt } from '@/util/data/opt'
 import { Err, Ok, withContext, type Result } from '@/util/data/result'
 import type { Doc } from '@/util/docParser'
-import type { Icon } from '@/util/iconName'
+import type { Icon } from '@/util/iconMetadata/iconName'
 import {
   normalizeQualifiedName,
   qnJoin,

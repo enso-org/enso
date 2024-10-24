@@ -3,13 +3,9 @@ import { fileURLToPath } from 'node:url'
 
 import { defineConfig, mergeConfig } from 'vite'
 
-import { loadTestEnvironmentVariables } from 'enso-common/src/appConfig'
-
 // =====================
 // === Configuration ===
 // =====================
-
-loadTestEnvironmentVariables()
 
 // This configuration file is for dashboard tests only.
 process.env.CLOUD_BUILD = 'true'
@@ -18,6 +14,7 @@ const CONFIG = (await import('./vite.config')).default
 export default mergeConfig(
   CONFIG,
   defineConfig({
+    mode: 'testing', // load environment from .env.testing file
     resolve: {
       alias: {
         // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -45,10 +42,6 @@ export default mergeConfig(
         '.tsx',
         '.json',
       ],
-    },
-    define: {
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      'process.env.IS_IN_PLAYWRIGHT_TEST': JSON.stringify(`${true}`),
     },
     build: {
       outDir: fileURLToPath(new URL('./mockDist', import.meta.url)),

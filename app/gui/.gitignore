@@ -26,5 +26,9 @@ mockDist
 test-results/
 playwright-report/
 
+src/project-view/util/iconMetadata
+src/project-view/stores/visualization/metadata.json
+
+# Files that used to be generated recently, but no longer are
 src/project-view/util/iconList.json
 src/project-view/util/iconName.ts

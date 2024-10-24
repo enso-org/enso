@@ -11,10 +11,9 @@ import { type App } from 'vue'
 
 const INITIAL_URL_KEY = `Enso-initial-url`
 const SCAM_WARNING_TIMEOUT = 1000
-export const isDevMode = process.env.NODE_ENV === 'development'
 
 function printScamWarning() {
-  if (isDevMode) return
+  if (import.meta.env.DEV) return
   const headerCss = `
     color: white;
     background: crimson;
@@ -76,8 +75,8 @@ function main() {
   const supportsVibrancy = config.window.vibrancy
   const shouldUseAuthentication = config.authentication.enabled
   const projectManagerUrl =
-    (config.engine.projectManagerUrl || resolveEnvUrl(PROJECT_MANAGER_URL)) ?? null
-  const ydocUrl = (config.engine.ydocUrl || resolveEnvUrl(YDOC_SERVER_URL)) ?? null
+    config.engine.projectManagerUrl || resolveEnvUrl($config.PROJECT_MANAGER_URL) || null
+  const ydocUrl = config.engine.ydocUrl || resolveEnvUrl($config.YDOC_SERVER_URL) || null
   const initialProjectName = config.startup.project || null
   const urlWithoutStartupProject = new URL(location.toString())
   urlWithoutStartupProject.searchParams.delete('startup.project')
@@ -96,8 +95,8 @@ function main() {
     appRunner,
     logger: console,
     vibrancy: supportsVibrancy,
-    supportsLocalBackend: !IS_CLOUD_BUILD,
-    supportsDeepLinks: !isDevMode && !isOnLinux(),
+    supportsLocalBackend: $config.CLOUD_BUILD !== 'true',
+    supportsDeepLinks: import.meta.env.PROD && !isOnLinux(),
     projectManagerUrl,
     ydocUrl,
     isAuthenticationDisabled: !shouldUseAuthentication,

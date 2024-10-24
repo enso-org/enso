@@ -23,7 +23,7 @@ target/
 wasm-pack.log
 generated/
 /target
-/build/rust/target/
+/build_tools/rust/target/
 /rust-analyzer-target
 
 ###########
@@ -36,7 +36,7 @@ generated/
 ## NodeJS ##
 ############
 
-node_modules/
+node_modules
 
 ############
 ## System ##
@@ -119,6 +119,7 @@ bench-report*.xml
 project/metals.sbt
 /build.json
 /app/ide-desktop/lib/client/electron-builder-config.json
+*.config.ts.timestamp-*
 
 # Resources fire generated build-time for Win installer/uninstaller.
 /build/install/installer/archive.rc
@@ -129,7 +130,12 @@ project/metals.sbt
 ## Build Cache ##
 #################
 
-build-cache/
+bazel-bin
+bazel-bazel
+bazel-enso
+bazel-out
+bazel-testlogs
+build-cache
 
 ##################
 ## Native Image ##

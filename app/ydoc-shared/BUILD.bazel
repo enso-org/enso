@@ -1,0 +1,87 @@
+load("@aspect_bazel_lib//lib:write_source_files.bzl", "write_source_files")
+load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_run_binary")
+load("@aspect_rules_js//npm:defs.bzl", "npm_package")
+load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
+load("@npm//:defs.bzl", "npm_link_all_packages", "npm_link_targets")
+
+npm_link_all_packages(name = "node_modules")
+
+ts_config(
+    name = "tsconfig",
+    src = "tsconfig.json",
+    visibility = ["//visibility:public"],
+    deps = ["//:tsconfig"],
+)
+
+IGNORED_GENERATED_FILES = [
+    "src/ast/generated/*",
+]
+
+ts_project(
+    name = "tsc",
+    srcs = glob(
+        ["src/**/*.ts"],
+        IGNORED_GENERATED_FILES,
+    ) + [":generate_ast_typedefs"],
+    composite = True,
+    out_dir = "dist",
+    root_dir = "src",
+    tsconfig = ":tsconfig",
+    visibility = ["//visibility:public"],
+    deps = npm_link_targets(),
+)
+
+npm_package(
+    name = "pkg",
+    srcs = [
+        "package.json",
+        ":tsc",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+# parser-codegen
+
+ts_config(
+    name = "parser-codegen-tsconfig",
+    src = "parser-codegen/tsconfig.json",
+    deps = [],
+)
+
+ts_project(
+    name = "parser-codegen-tsc",
+    srcs = glob(["parser-codegen/*.ts"]),
+    tsconfig = ":parser-codegen-tsconfig",
+    deps = npm_link_targets(),
+)
+
+js_binary(
+    name = "parser-codegen-bin",
+    data = [
+        "package.json",
+        ":parser-codegen-tsc",
+    ],
+    entry_point = "parser-codegen/index.js",
+)
+
+js_run_binary(
+    name = "generate_ast_typedefs",
+    srcs = ["//lib/rust/parser/schema:generate"],
+    args = ["$(rootpath //lib/rust/parser/schema:generate)"],
+    stdout = "src/ast/generated/ast.ts",
+    tool = ":parser-codegen-bin",
+    visibility = ["//visibility:public"],
+)
+
+# Convenience rule to output built artifacts to the filesystem, so JS tooling can see them.
+# Important! Make sure the output of this rule is NOT used during the build process.
+# In this case, this is ensured by an entry in .bazelignore:
+# app/ydoc-shared/parser-codegen/generated
+write_source_files(
+    name = "write_ast_codegen",
+    files = {
+        "src/ast/generated/ast.ts": ":generate_ast_typedefs",
+    },
+    suggested_update_target = "//:write_all",
+    visibility = ["//visibility:public"],
+)

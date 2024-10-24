@@ -1,5 +1,5 @@
 /** @file Rendering for an {@link SettingsInputEntryData}. */
-import { useRef, useState } from 'react'
+import { type FormEvent, useRef, useState } from 'react'
 
 import { Button, FieldError, Form, Label, TextField } from '#/components/aria'
 import { useText } from '#/providers/TextProvider'
@@ -51,7 +51,7 @@ export default function SettingsInputEntry(props: SettingsInputEntryProps) {
   return (
     <Form
       validationErrors={{ [FIELD_NAME]: errorMessage }}
-      onSubmit={async (event) => {
+      onSubmit={async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault()
         if (!isSubmitting.current) {
           isSubmitting.current = true

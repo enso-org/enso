@@ -3,7 +3,7 @@ import DropdownMenu from '@/components/DropdownMenu.vue'
 import { type UseFormatting } from '@/components/MarkdownEditor/formatting'
 import SvgButton from '@/components/SvgButton.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
-import type { Icon } from '@/util/iconName'
+import type { Icon } from '@/util/iconMetadata/iconName'
 import { computed, ref, type Ref } from 'vue'
 
 const props = defineProps<{ formatting: UseFormatting }>()

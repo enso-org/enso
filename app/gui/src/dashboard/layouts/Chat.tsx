@@ -3,7 +3,7 @@ import * as React from 'react'
 
 import * as reactDom from 'react-dom'
 
-import * as chat from 'enso-chat/chat'
+import * as chat from 'enso-support/chat'
 
 import CloseLargeIcon from '#/assets/close_large.svg'
 import DefaultUserIcon from '#/assets/default_user.svg'
@@ -403,7 +403,7 @@ export default function Chat(props: ChatProps) {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { isFocusVisible } = aria.useFocusVisible()
   const { focusWithinProps } = aria.useFocusWithin({
-    onFocusWithin: (event) => {
+    onFocusWithin: (event: FocusEvent) => {
       if (
         isFocusVisible &&
         !isOpen &&

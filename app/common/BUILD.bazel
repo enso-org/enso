@@ -1,0 +1,36 @@
+load("@aspect_rules_js//npm:defs.bzl", "npm_package")
+load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
+load("@npm//:defs.bzl", "npm_link_all_packages", "npm_link_targets")
+
+npm_link_all_packages(name = "node_modules")
+
+ts_config(
+    name = "tsconfig",
+    src = "tsconfig.json",
+    deps = ["//:tsconfig"],
+)
+
+ts_project(
+    name = "tsc",
+    srcs = glob([
+        "src/**/*.ts",
+        "src/**/*.js",
+    ]) + ["src/text/english.json"],
+    allow_js = True,
+    composite = True,
+    out_dir = "dist",
+    resolve_json_module = True,
+    root_dir = "src",
+    tsconfig = ":tsconfig",
+    deps = npm_link_targets(),
+)
+
+npm_package(
+    name = "pkg",
+    srcs = [
+        "package.json",
+        "src/config.json",
+        ":tsc",
+    ],
+    visibility = ["//visibility:public"],
+)

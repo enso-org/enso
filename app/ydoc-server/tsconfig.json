@@ -1,13 +1,10 @@
 {
   "extends": "../../tsconfig.json",
   "include": ["src/**/*.ts"],
-  "references": [{ "path": "../ydoc-shared" }],
   "compilerOptions": {
     "composite": true,
     "noEmit": false,
     "rootDir": "src",
-    "outDir": "dist",
-    "types": ["node", "vitest/importMeta"],
-    "paths": { "#/*": ["./src/*"] }
+    "outDir": "dist"
   }
 }

@@ -1,0 +1,153 @@
+# This file is used to generate `target/<profile>/build/enso-build-<hash>/out/paths.rs`.
+# Generation logic is in `build/macros/lib/src/paths.rs`.
+# @formatter:off
+
+<repo_root>/:
+  .github/:
+    workflows/:
+      changelog.yml:
+      engine-benchmark.yml:
+      gui-tests.yml:
+      gui.yml:
+      engine-nightly.yml:
+      extra-nightly-tests.yml:
+      nightly.yml:
+      promote.yml:
+      release.yml:
+      scala-new.yml:
+      shader-tools.yml:
+      std-libs-benchmark.yml:
+  app/:
+    gui/: # GUI.
+      dist/:
+      playwright-report/: # Test results for the GUI that we want to keep as artifacts.
+      public/:
+        font-enso/:
+        font-mplus1/:
+        font-dejavu/:
+      src/:
+        project-view/:
+          assets/:
+            font-enso.css:
+            font-mplus1.css:
+            font-dejavu.css:
+    ide-desktop/:
+      client/:
+      common/:
+      icons/:
+  build/:
+    prettier/:
+  built-distribution/:
+    enso-engine-<triple>/:
+      ? path: enso-<version>/
+        type: engine_package
+        var: engine_package
+    enso-project-manager-<triple>/:
+      ? path: enso/
+        type: project_manager_package
+        var: project_manager_package
+    enso-launcher-<triple>/:
+      ? path: enso/
+        type: launcher_package
+        var: launcher_package
+    enso-bundle-<triple>/:
+      ? path: enso/
+        type: launcher_bundle
+        var: launcher_bundle
+    "project-manager-bundle-<triple>":
+      ? path: enso/
+        type: project_manager_bundle
+        var: project_manager_bundle
+  dist/:
+    gui/:
+      assets/:
+  distribution/:
+    editions/:
+      <edition>.yaml:
+    enso.bundle.template:
+    launcher-manifest.yaml:
+    lib:
+  engine/:
+    runner/:
+      src/:
+        test/:
+          resources/:
+            Factorial.enso:
+      target/:
+        native-image-args.txt:
+    runtime/:
+      target/:
+    launcher/:
+      target/:
+        native-image-args.txt:
+    runtime-benchmarks/:
+      bench-report.xml:
+  lib/:
+    rust/:
+      parser/:
+        generate-java/:
+          java/:
+    scala/:
+      project-manager/:
+        target/:
+          native-image-args.txt:
+  target/:
+    enso-pack/:
+      dist/: # Here ensogl-pack outputs its artifacts
+    generated-java/:
+    rust/:
+    test-results/:
+  test/:
+    Benchmarks/:
+  tools/:
+    ci/:
+      docker/:
+        docker-entrypoint.sh:
+        Dockerfile:
+    simple-library-server/:
+  std-bits/:
+    benchmarks/:
+      bench-report.xml:
+  build.sbt:
+  run:
+  CHANGELOG.md:
+
+# Launcher Package
+{ path: enso/, var: launcher_package }:
+  bin/:
+    enso<exe>:
+
+# Project Manager Package
+{ path: enso/, var: project_manager_package }:
+  bin/:
+    project-manager<exe>:
+
+# Project Manager Bundle
+# https://enso.org/docs/developer/enso/distribution/bundles.html#project-manager-bundle
+{ path: project-manager/, var: project_manager_bundle }:
+  bin/:
+    project-manager<exe>:
+  dist/:
+    <version>/:
+  runtime/:
+  .enso.bundle:
+
+# Engine Package aka Enso Version Package
+# https://enso.org/docs/developer/enso/distribution/distribution.html#layout-of-an-enso-version-package
+{ path: enso-<version>/, var: engine_package }:
+  bin/:
+  components/:
+  editions/:
+  lib/:
+    Standard/:
+  manifest.yaml:
+
+# Launcher Bundle aka Portable Enso Distribution
+# https://enso.org/docs/developer/enso/distribution/distribution.html#portable-enso-distribution-layout
+{ path: enso/, var: launcher_bundle }:
+  dist/:
+    <version>/:
+  edition/:
+    <edition>.yaml:
+  runtime/:
+  .enso.portable:

@@ -1,0 +1,25 @@
+load("@rules_rust//rust:defs.bzl", "rust_binary")
+load("@wb_crates//:defs.bzl", "aliases", "all_crate_deps")
+
+exports_files([
+    "Cargo.toml",
+    "Cargo.lock",
+])
+
+rust_binary(
+    name = "wasm-bindgen-cli",
+    srcs = glob(["**/*.rs"]),
+    aliases = aliases(),
+    crate_features = [
+    ],
+    crate_root = "src/bin/wasm-bindgen.rs",
+    data = [],
+    edition = "2021",
+    proc_macro_deps = all_crate_deps(proc_macro = True),
+    rustc_flags = [
+        # Don't produce warnings for this crate
+        "--cap-lints=allow",
+    ],
+    visibility = ["//visibility:public"],
+    deps = all_crate_deps(),
+)

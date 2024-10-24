@@ -1,4 +1,5 @@
 /** @file ESLint configuration file. */
+
 /**
  * NOTE: The "Experimental: Use Flat Config" option must be enabled.
  * Flat config is still not quite mature, so is disabled by default.
@@ -214,8 +215,10 @@ export default [
         extraFileExtensions: ['.vue'],
         projectService: {
           allowDefaultProject: [
+            'eslint.config.mjs',
             'app/ydoc-server/vitest.config.ts',
             'app/ydoc-shared/vitest.config.ts',
+            'app/ide-desktop/icons/src/index.js',
           ],
         },
       },

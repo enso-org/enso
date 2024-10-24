@@ -1,5 +1,5 @@
 /** @file Utilities for working with permissions. */
-import type * as text from 'enso-common/src/text'
+import type * as text from '../text'
 
 // ========================
 // === PermissionAction ===

@@ -1,0 +1,19 @@
+load("@rules_rust//wasm_bindgen:defs.bzl", "rust_wasm_bindgen_toolchain")
+
+rust_wasm_bindgen_toolchain(
+    name = "cli_impl",
+    bindgen = "@wasm_bindgen_cli_crate//:wasm-bindgen-cli",
+    # bindgen = select({
+    #     "@rules_rust//rust/platform:aarch64-apple-darwin": "@wasm-bindgen-aarch64-apple-darwin//:all",
+    #     "@rules_rust//rust/platform:aarch64-unknown-linux-gnu": "@wasm-bindgen-aarch64-unknown-linux-gnu//:all",
+    #     "@rules_rust//rust/platform:x86_64-apple-darwin": "@wasm-bindgen-x86_64-apple-darwin//:all",
+    #     "@rules_rust//rust/platform:x86_64-pc-windows-msvc": "@wasm-bindgen-x86_64-pc-windows-msvc//:all",
+    #     "@rules_rust//rust/platform:x86_64-unknown-linux-gnu": "@wasm-bindgen-x86_64-unknown-linux-musl//:all",
+    # })
+)
+
+toolchain(
+    name = "cli",
+    toolchain = "cli_impl",
+    toolchain_type = "@rules_rust//wasm_bindgen:toolchain_type",
+)

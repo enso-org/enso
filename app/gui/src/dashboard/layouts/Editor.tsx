@@ -200,7 +200,6 @@ function EditorInternal(props: EditorInternalProps) {
         config: {
           engine: { rpcUrl: jsonAddress, dataUrl: binaryAddress, ydocUrl: ydocAddress },
           startup: { project: openedProject.packageName, displayedProjectName: openedProject.name },
-          window: { topBarOffset: '0' },
         },
         projectId: openedProject.projectId,
         hidden,

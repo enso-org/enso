@@ -6,7 +6,7 @@
  */
 import icons from '@/assets/icons.svg'
 import type { URLString } from '@/util/data/urlString'
-import type { Icon } from '@/util/iconName'
+import type { Icon } from '@/util/iconMetadata/iconName'
 
 const props = defineProps<{
   name: Icon | URLString

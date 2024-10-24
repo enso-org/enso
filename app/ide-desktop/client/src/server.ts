@@ -12,7 +12,7 @@ import * as portfinder from 'portfinder'
 import type * as vite from 'vite'
 
 import * as projectManagement from '@/projectManagement'
-import * as common from 'enso-common'
+import { COOP_COEP_CORP_HEADERS } from 'enso-common'
 import GLOBAL_CONFIG from 'enso-common/src/config.json' assert { type: 'json' }
 import * as ydocServer from 'ydoc-server'
 
@@ -23,7 +23,10 @@ import { pathToFileURL } from 'node:url'
 const logger = contentConfig.logger
 
 // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-ydocServer.configureAllDebugLogs(process.env.ENSO_YDOC_LS_DEBUG === 'true', logger.log.bind(logger))
+ydocServer.configureAllDebugLogs(
+  process.env.ENSO_IDE_YDOC_LS_DEBUG === 'true',
+  logger.log.bind(logger),
+)
 
 // =================
 // === Constants ===
@@ -212,7 +215,7 @@ export class Server {
           const directory = url.searchParams.get('directory') ?? this.projectsRootDirectory
           if (fileName == null) {
             response
-              .writeHead(HTTP_STATUS_BAD_REQUEST, common.COOP_COEP_CORP_HEADERS)
+              .writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS)
               .end('Request is missing search parameter `file_name`.')
           } else {
             const filePath = path.join(directory, fileName)
@@ -223,13 +226,13 @@ export class Server {
                   .writeHead(HTTP_STATUS_OK, [
                     ['Content-Length', String(filePath.length)],
                     ['Content-Type', 'text/plain'],
-                    ...common.COOP_COEP_CORP_HEADERS,
+                    ...COOP_COEP_CORP_HEADERS,
                   ])
                   .end(filePath)
               })
               .catch(e => {
                 console.error(e)
-                response.writeHead(HTTP_STATUS_BAD_REQUEST, common.COOP_COEP_CORP_HEADERS).end()
+                response.writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS).end()
               })
           }
           break
@@ -248,12 +251,12 @@ export class Server {
                 .writeHead(HTTP_STATUS_OK, [
                   ['Content-Length', String(project.id.length)],
                   ['Content-Type', 'text/plain'],
-                  ...common.COOP_COEP_CORP_HEADERS,
+                  ...COOP_COEP_CORP_HEADERS,
                 ])
                 .end(project.id)
             })
             .catch(() => {
-              response.writeHead(HTTP_STATUS_BAD_REQUEST, common.COOP_COEP_CORP_HEADERS).end()
+              response.writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS).end()
             })
           break
         }
@@ -266,7 +269,7 @@ export class Server {
             !cliArguments.every((item): item is string => typeof item === 'string')
           ) {
             response
-              .writeHead(HTTP_STATUS_BAD_REQUEST, common.COOP_COEP_CORP_HEADERS)
+              .writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS)
               .end('Command arguments must be an array of strings.')
           } else {
             const commandOutput = (() => {
@@ -285,14 +288,14 @@ export class Server {
             })()
             response.writeHead(HTTP_STATUS_OK, [
               ['Content-Type', 'application/json'],
-              ...common.COOP_COEP_CORP_HEADERS,
+              ...COOP_COEP_CORP_HEADERS,
             ])
             commandOutput.pipe(response, { end: true })
           }
           break
         }
         default: {
-          response.writeHead(HTTP_STATUS_NOT_FOUND, common.COOP_COEP_CORP_HEADERS).end()
+          response.writeHead(HTTP_STATUS_NOT_FOUND, COOP_COEP_CORP_HEADERS).end()
           break
         }
       }
@@ -301,7 +304,7 @@ export class Server {
         .writeHead(HTTP_STATUS_OK, [
           ['Content-Length', String(this.projectsRootDirectory.length)],
           ['Content-Type', 'text/plain'],
-          ...common.COOP_COEP_CORP_HEADERS,
+          ...COOP_COEP_CORP_HEADERS,
         ])
         .end(this.projectsRootDirectory)
     } else if (this.devServer) {
@@ -319,7 +322,7 @@ export class Server {
       // this server.
       const resourceFile =
         resource === '/preload.mjs.map' ? paths.APP_PATH + resource : this.config.dir + resource
-      for (const [header, value] of common.COOP_COEP_CORP_HEADERS) {
+      for (const [header, value] of COOP_COEP_CORP_HEADERS) {
         response.setHeader(header, value)
       }
       fs.readFile(resourceFile)

@@ -3,7 +3,8 @@
  * This file provides a zustand store that contains the state of the Enso devtools.
  */
 import type { PaywallFeatureName } from '#/hooks/billing'
-import * as zustand from 'zustand'
+import { createStore, useStore } from 'zustand'
+import { useShallow } from 'zustand/shallow'
 
 /** Configuration for a paywall feature. */
 export interface PaywallDevtoolsFeatureConfiguration {
@@ -22,7 +23,7 @@ interface EnsoDevtoolsStore {
   readonly setEnableVersionChecker: (showVersionChecker: boolean | null) => void
 }
 
-const ensoDevtoolsStore = zustand.createStore<EnsoDevtoolsStore>((set) => ({
+const ensoDevtoolsStore = createStore<EnsoDevtoolsStore>((set) => ({
   showVersionChecker: false,
   paywallFeatures: {
     share: { isForceEnabled: null },
@@ -48,7 +49,7 @@ const ensoDevtoolsStore = zustand.createStore<EnsoDevtoolsStore>((set) => ({
 
 /** A function to set whether the version checker is forcibly shown/hidden. */
 export function useEnableVersionChecker() {
-  return zustand.useStore(ensoDevtoolsStore, (state) => state.showVersionChecker)
+  return useStore(ensoDevtoolsStore, (state) => state.showVersionChecker)
 }
 
 // ==================================
@@ -57,13 +58,16 @@ export function useEnableVersionChecker() {
 
 /** A function to set whether the version checker is forcibly shown/hidden. */
 export function useSetEnableVersionChecker() {
-  return zustand.useStore(ensoDevtoolsStore, (state) => state.setEnableVersionChecker)
+  return useStore(ensoDevtoolsStore, (state) => state.setEnableVersionChecker)
 }
 
 /** A hook that provides access to the paywall devtools. */
 export function usePaywallDevtools() {
-  return zustand.useStore(ensoDevtoolsStore, (state) => ({
-    features: state.paywallFeatures,
-    setFeature: state.setPaywallFeature,
-  }))
+  return useStore(
+    ensoDevtoolsStore,
+    useShallow((state) => ({
+      features: state.paywallFeatures,
+      setFeature: state.setPaywallFeature,
+    })),
+  )
 }

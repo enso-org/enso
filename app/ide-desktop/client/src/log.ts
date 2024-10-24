@@ -11,7 +11,7 @@
 import * as fsSync from 'node:fs'
 import * as pathModule from 'node:path'
 
-import * as linkedDist from 'enso-runner/src/runner'
+import { Consumer, LogLevel } from 'enso-runner/src/runner/log'
 
 import * as contentConfig from '@/contentConfig'
 import * as paths from '@/paths'
@@ -53,7 +53,7 @@ export function generateUniqueLogFileName(): string {
 // ================
 
 /** Log consumer that writes to a file. */
-export class FileConsumer extends linkedDist.log.Consumer {
+export class FileConsumer extends Consumer {
   private readonly logFilePath: string
   private readonly logFileHandle: number
 
@@ -71,7 +71,7 @@ export class FileConsumer extends linkedDist.log.Consumer {
   }
 
   /** Append a message to the log. */
-  override message(level: linkedDist.log.LogLevel, ...args: unknown[]): void {
+  override message(level: LogLevel, ...args: unknown[]): void {
     const timestamp = new Date().toISOString()
     const message = args.map(arg => (typeof arg === 'string' ? arg : JSON.stringify(arg))).join(' ')
     const timestampedMessage = `[${timestamp}] [${level.toUpperCase()}] ${message}\n`

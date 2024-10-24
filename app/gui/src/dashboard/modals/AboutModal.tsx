@@ -29,12 +29,8 @@ export default function AboutModal() {
         ['chromeVersion', window.versionInfo.chrome],
       ] as const)
     : [
-        ...(process.env.ENSO_CLOUD_DASHBOARD_VERSION == null ?
-          []
-        : ([['version', process.env.ENSO_CLOUD_DASHBOARD_VERSION]] as const)),
-        ...(process.env.ENSO_CLOUD_DASHBOARD_COMMIT_HASH == null ?
-          []
-        : ([['build', process.env.ENSO_CLOUD_DASHBOARD_COMMIT_HASH]] as const)),
+        ...($config.VERSION == null ? [] : ([['version', $config.VERSION]] as const)),
+        ...($config.COMMIT_HASH == null ? [] : ([['build', $config.COMMIT_HASH]] as const)),
       ]),
     ['userAgent', navigator.userAgent],
   ] satisfies readonly (readonly [text.TextId, string])[]

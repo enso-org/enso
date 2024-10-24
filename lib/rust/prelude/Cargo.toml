@@ -22,7 +22,7 @@ boolinator = { workspace = true }
 derive-where = { workspace = true }
 derive_more = { workspace = true }
 serde = { workspace = true }
-enso-macros = { path = "macros" }
+enso-macros = { path = "./macros" }
 
 [lints]
 workspace = true

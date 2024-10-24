@@ -24,6 +24,11 @@
   "files.watcherExclude": {
     "**/target": true
   },
+  "vitest.workspaceConfig": "vitest.workspace.ts",
   "metals.inlayHints.implicitArguments.enable": true,
-  "metals.inlayHints.implicitConversions.enable": true
+  "metals.inlayHints.implicitConversions.enable": true,
+  "files.associations": {
+    "curve25519_64.h": "c",
+    "curve25519_32.h": "c"
+  }
 }

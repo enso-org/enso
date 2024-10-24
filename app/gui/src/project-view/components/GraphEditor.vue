@@ -74,7 +74,6 @@ import {
 } from 'vue'
 import { encodeMethodPointer } from 'ydoc-shared/languageServerTypes'
 import * as iterable from 'ydoc-shared/util/data/iterable'
-import { isDevMode } from 'ydoc-shared/util/detect'
 
 const rootNode = ref<HTMLElement>()
 
@@ -90,7 +89,7 @@ provideFullscreenContext(rootNode)
 
 onMounted(() => {
   widgetRegistry.loadWidgets(Object.entries(builtinWidgets))
-  if (isDevMode) {
+  if (import.meta.env.DEV) {
     ;(window as any).suggestionDb = toRaw(suggestionDb.entries)
   }
 })

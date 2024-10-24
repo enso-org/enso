@@ -5,14 +5,7 @@ import { fileURLToPath } from 'node:url'
 import type * as esbuild from 'esbuild'
 import { wasmLoader } from 'esbuild-plugin-wasm'
 
-import * as appConfig from 'enso-common/src/appConfig'
 import * as paths from './paths'
-
-// ====================
-// === Global setup ===
-// ====================
-
-await appConfig.readEnvironmentFromFile()
 
 // ================
 // === Bundling ===

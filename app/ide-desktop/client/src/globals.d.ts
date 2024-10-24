@@ -3,9 +3,6 @@
  * These are from variables defined at build time, environment variables,
  * monkeypatching on `window` and generated code.
  */
-// This file is being imported for its types.
-// eslint-disable-next-line no-restricted-syntax
-import * as buildJson from './../../build.json' assert { type: 'json' }
 
 // =============
 // === Types ===
@@ -215,8 +212,6 @@ declare global {
       /* eslint-enable @typescript-eslint/naming-convention */
     }
   }
-
-  // These are used in other files (because they're globals)
-  /* eslint-disable @typescript-eslint/naming-convention */
-  const BUILD_INFO: buildJson.BuildInfo
 }
+
+export {}

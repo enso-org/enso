@@ -2,7 +2,7 @@
 import MenuButton from '@/components/MenuButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import type { URLString } from '@/util/data/urlString'
-import type { Icon } from '@/util/iconName'
+import type { Icon } from '@/util/iconMetadata/iconName'
 
 const _props = defineProps<{
   name: Icon | URLString

@@ -419,13 +419,13 @@ function DashboardInner(props: DashboardProps) {
             <Settings />
           </aria.TabPanel>
         </aria.Tabs>
-        {process.env.ENSO_CLOUD_CHAT_URL != null ?
+        {$config.CHAT_URL != null ?
           <Chat
             isOpen={isHelpChatOpen}
             doClose={() => {
               setIsHelpChatOpen(false)
             }}
-            endpoint={process.env.ENSO_CLOUD_CHAT_URL}
+            endpoint={$config.CHAT_URL}
           />
         : <ChatPlaceholder
             isOpen={isHelpChatOpen}

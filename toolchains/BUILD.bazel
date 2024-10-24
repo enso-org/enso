@@ -1,0 +1,23 @@
+## Discover dependencies via
+## > bazel build <target> --extra_toolchains=//:plus_one_strict_deps_filter
+load("@io_bazel_rules_scala//scala:scala_toolchain.bzl", "scala_toolchain")
+
+scala_toolchain(
+    name = "enso_toolchain_impl",
+    scalac_jvm_flags = [
+        "-Djava.security.manager=allow",
+    ],
+    scalacopts = ["-Ywarn-unused"],
+    ## Allows for easier discovery of missing dependencies
+    ## dependency_mode = "plus-one",
+    ## dependency_tracking_method = "ast",
+    ## strict_deps_mode = "error",
+    visibility = ["//visibility:public"],
+)
+
+toolchain(
+    name = "enso_toolchain",
+    toolchain = "enso_toolchain_impl",
+    toolchain_type = "@io_bazel_rules_scala//scala:toolchain_type",
+    visibility = ["//visibility:public"],
+)

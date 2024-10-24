@@ -1,0 +1,18 @@
+index 321f8448..62cc1a92 100644
+--- rust/repositories.bzl
++++ rust/repositories.bzl
+@@ -988,3 +988,3 @@ def _get_toolchain_repositories(name, exec_triple, extra_target_triples, version
+             toolchain_repos.append(struct(
+-                name = "{}__{}__{}".format(name, target_triple, channel.name),
++                name = _shorten_toolchain_name("{}__{}__{}".format(name, target_triple, channel.name)),
+                 target_triple = target_triple,
+@@ -995,2 +995,9 @@ def _get_toolchain_repositories(name, exec_triple, extra_target_triples, version
+ 
++def _shorten_toolchain_name(name):
++    if "windows" not in name:
++        return name
++    split = [n.split('-') for n in name.removeprefix("rust_").split('_')]
++    shortened = "".join([a[0:1] for n in split for a in n])
++    return shortened
++
+ def rust_repository_set(

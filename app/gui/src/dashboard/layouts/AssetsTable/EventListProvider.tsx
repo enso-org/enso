@@ -2,7 +2,7 @@
 import * as React from 'react'
 
 import invariant from 'tiny-invariant'
-import * as zustand from 'zustand'
+import { createStore, type StoreApi, useStore } from 'zustand'
 
 import type * as assetEvent from '#/events/assetEvent'
 import type * as assetListEvent from '#/events/assetListEvent'
@@ -24,7 +24,7 @@ interface EventListStore {
 // ========================
 
 /** State contained in a `EventListContext`. */
-export type EventListContextType = zustand.StoreApi<EventListStore>
+export type EventListContextType = StoreApi<EventListStore>
 
 const EventListContext = React.createContext<EventListContextType | null>(null)
 
@@ -42,7 +42,7 @@ export type EventListProviderProps = Readonly<React.PropsWithChildren>
 export default function EventListProvider(props: EventListProviderProps) {
   const { children } = props
   const [store] = React.useState(() =>
-    zustand.createStore<EventListStore>((set, get) => ({
+    createStore<EventListStore>((set, get) => ({
       assetEvents: [],
       dispatchAssetEvent: (event) => {
         set({ assetEvents: [...get().assetEvents, event] })
@@ -93,7 +93,7 @@ function useEventList() {
 /** A function to add a new reactive event. */
 export function useDispatchAssetEvent() {
   const store = useEventList()
-  return zustand.useStore(store, (state) => state.dispatchAssetEvent)
+  return useStore(store, (state) => state.dispatchAssetEvent)
 }
 
 // =================================
@@ -103,7 +103,7 @@ export function useDispatchAssetEvent() {
 /** A function to add a new reactive event. */
 export function useDispatchAssetListEvent() {
   const store = useEventList()
-  return zustand.useStore(store, (state) => state.dispatchAssetListEvent)
+  return useStore(store, (state) => state.dispatchAssetListEvent)
 }
 
 // =============================

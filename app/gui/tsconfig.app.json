@@ -3,6 +3,7 @@
   "include": [
     "env.d.ts",
     "lib0-ext.d.ts",
+    "config.ts",
     "src/**/*.vue",
     "src/**/*.ts",
     "src/**/*.tsx",
@@ -15,7 +16,9 @@
     "noEmit": true,
     "allowImportingTsExtensions": true,
     "types": ["vitest/importMeta"],
-    "paths": { "@/*": ["./src/project-view/*"], "#/*": ["./src/dashboard/*"] }
-  },
-  "references": [{ "path": "../ydoc-shared" }]
+    "paths": {
+      "@/*": ["./src/project-view/*"],
+      "#/*": ["./src/dashboard/*"]
+    }
+  }
 }
