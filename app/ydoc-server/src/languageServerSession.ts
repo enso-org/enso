@@ -575,6 +575,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
       const nodeMeta = Object.entries(metadata.ide.node)
 
       let parsedSpans
+      let parsedIdMap
       const syncModule = new Ast.MutableModule(this.doc.ydoc)
       if (code !== this.syncedCode) {
         const syncRoot = syncModule.root()
@@ -587,24 +588,25 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
           syncModule.applyEdit(edit)
         } else {
           const { root, spans } = Ast.parseModuleWithSpans(code, syncModule)
+          syncModule.syncRoot(root)
+          parsedSpans = spans
 
-          let rootToSync = root
           const metadataSnapshot = metadata.ide.snapshot
           if (metadataSnapshot && idMapJson) {
             const snapshotCode = ModulePersistence.decodeCodeSnapshot(metadataSnapshot)
-            if (snapshotCode !== code || 1 === 1 /* simulate code mismatch */) {
-              const { root, spans } = Ast.parseModuleWithSpans(snapshotCode)
-              const edit = root.module.edit()
-              Ast.setExternalIds(edit, spans, deserializeIdMap(idMapJson))
-              edit.getVersion(root).syncToCode(code)
-              root.module.applyEdit(edit)
+            if (snapshotCode !== code) {
+              console.log('!!! syncFileContents snapshot !== code')
+              const { root, spans } = Ast.parseModuleWithSpans(snapshotCode, syncModule)
+              syncModule.syncRoot(root)
+              parsedSpans = spans
+              parsedIdMap = deserializeIdMap(idMapJson)
 
-              rootToSync = root
+              const edit = syncModule.edit()
+              Ast.setExternalIds(edit, spans, parsedIdMap)
+              edit.getVersion(root).syncToCode(code)
+              syncModule.applyEdit(edit)
             }
           }
-
-          syncModule.syncRoot(rootToSync)
-          parsedSpans = spans
         }
       }
       const astRoot = syncModule.root()
@@ -612,7 +614,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
       if ((code !== this.syncedCode || idMapJson !== this.syncedIdMap) && idMapJson) {
         const spans = parsedSpans ?? Ast.print(astRoot).info
         if (idMapJson !== this.syncedIdMap) {
-          const idMap = deserializeIdMap(idMapJson)
+          const idMap = parsedIdMap ?? deserializeIdMap(idMapJson)
           const idsAssigned = Ast.setExternalIds(syncModule, spans, idMap)
           const numberOfAsts = astCount(astRoot)
           const idsNotSetByMap = numberOfAsts - idsAssigned
