@@ -4,17 +4,19 @@ import { useStore } from 'zustand'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import AssetListEventType from '#/events/AssetListEventType'
-
-import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
-
 import ContextMenu from '#/components/ContextMenu'
 import ContextMenuEntry from '#/components/ContextMenuEntry'
 
 import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 
-import { useNewDatalink, useNewFolder, useNewProject, useNewSecret } from '#/hooks/backendHooks'
+import {
+  useNewDatalink,
+  useNewFolder,
+  useNewProject,
+  useNewSecret,
+  useUploadFiles,
+} from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
 import { useDriveStore } from '#/providers/DriveProvider'
@@ -43,7 +45,6 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
   const { path, doPaste } = props
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
-  const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
   const isCloud = backend.type === backendModule.BackendType.remote
   const driveStore = useDriveStore()
   const hasPasteData = useStore(
@@ -69,6 +70,10 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
   const newDatalink = useEventCallback(async (name: string, value: unknown) => {
     return await newDatalinkRaw(name, value, directoryId ?? rootDirectoryId, path)
   })
+  const uploadFilesRaw = useUploadFiles(backend, category)
+  const uploadFiles = useEventCallback(async (files: readonly File[]) => {
+    await uploadFilesRaw(files, directoryId ?? rootDirectoryId, path)
+  })
 
   return (
     <ContextMenu aria-label={getText('globalContextMenuLabel')} hidden={hidden}>
@@ -77,12 +82,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
         action="uploadFiles"
         doAction={async () => {
           const files = await inputFiles()
-          dispatchAssetListEvent({
-            type: AssetListEventType.uploadFiles,
-            parentKey: directoryKey ?? rootDirectoryId,
-            parentId: directoryId ?? rootDirectoryId,
-            files: Array.from(files),
-          })
+          await uploadFiles(Array.from(files))
         }}
       />
       <ContextMenuEntry

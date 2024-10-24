@@ -13,7 +13,6 @@ import DataDownloadIcon from '#/assets/data_download.svg'
 import DataUploadIcon from '#/assets/data_upload.svg'
 import Plus2Icon from '#/assets/plus2.svg'
 import RightPanelIcon from '#/assets/right_panel.svg'
-import { Input as AriaInput } from '#/components/aria'
 import {
   Button,
   ButtonGroup,
@@ -28,6 +27,7 @@ import {
   useNewProject,
   useNewSecret,
   useRootDirectoryId,
+  useUploadFiles,
 } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOffline } from '#/hooks/offlineHooks'
@@ -71,7 +71,6 @@ export interface DriveBarProps {
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly category: Category
   readonly doEmptyTrash: () => void
-  readonly doUploadFiles: (files: File[]) => Promise<void>
 }
 
 /**
@@ -79,7 +78,7 @@ export interface DriveBarProps {
  * and a column display mode switcher.
  */
 export default function DriveBar(props: DriveBarProps) {
-  const { backend, query, setQuery, category, doEmptyTrash, doUploadFiles } = props
+  const { backend, query, setQuery, category, doEmptyTrash } = props
 
   const [startModalDefaultOpen, , resetStartModalDefaultOpen] = useSearchParamsState(
     'startModalDefaultOpen',
@@ -96,7 +95,6 @@ export default function DriveBar(props: DriveBarProps) {
   const setIsAssetPanelTemporarilyVisible = useSetIsAssetPanelTemporarilyVisible()
   const setIsAssetPanelPermanentlyVisible = useSetIsAssetPanelPermanentlyVisible()
   const createAssetButtonsRef = React.useRef<HTMLDivElement>(null)
-  const uploadFilesRef = React.useRef<HTMLInputElement>(null)
   const isCloud = isCloudCategory(category)
   const { isOffline } = useOffline()
   const canDownload = useCanDownload()
@@ -127,6 +125,11 @@ export default function DriveBar(props: DriveBarProps) {
   const newFolder = useEventCallback(async () => {
     const parent = getTargetDirectory()
     return await newFolderRaw(parent?.directoryId ?? rootDirectoryId, parent?.path)
+  })
+  const uploadFilesRaw = useUploadFiles(backend, category)
+  const uploadFiles = useEventCallback(async (files: readonly File[]) => {
+    const parent = getTargetDirectory()
+    await uploadFilesRaw(files, parent?.directoryId ?? rootDirectoryId, parent?.path)
   })
   const newSecretRaw = useNewSecret(backend, category)
   const newSecret = useEventCallback(async (name: string, value: string) => {
@@ -169,10 +172,10 @@ export default function DriveBar(props: DriveBarProps) {
         void newProject([null, null])
       },
       uploadFiles: () => {
-        uploadFilesRef.current?.click()
+        void inputFiles().then((files) => uploadFiles(Array.from(files)))
       },
     })
-  }, [inputBindings, isCloud, newFolder, newProject])
+  }, [inputBindings, isCloud, newFolder, newProject, uploadFiles])
 
   const searchBar = (
     <AssetSearchBar backend={backend} isCloud={isCloud} query={query} setQuery={setQuery} />
@@ -333,20 +336,6 @@ export default function DriveBar(props: DriveBarProps) {
                   />
                 </DialogTrigger>
               )}
-              <AriaInput
-                ref={uploadFilesRef}
-                type="file"
-                multiple
-                className="hidden"
-                onInput={(event) => {
-                  if (event.currentTarget.files != null) {
-                    void doUploadFiles(Array.from(event.currentTarget.files))
-                  }
-                  // Clear the list of selected files, otherwise `onInput` will not be
-                  // dispatched again if the same file is selected.
-                  event.currentTarget.value = ''
-                }}
-              />
               <Button
                 variant="icon"
                 size="medium"
@@ -355,7 +344,7 @@ export default function DriveBar(props: DriveBarProps) {
                 aria-label={getText('uploadFiles')}
                 onPress={async () => {
                   const files = await inputFiles()
-                  await doUploadFiles(Array.from(files))
+                  await uploadFiles(Array.from(files))
                 }}
               />
               <Button

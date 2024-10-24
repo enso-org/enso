@@ -24,9 +24,6 @@ import Labels from '#/layouts/Labels'
 import * as ariaComponents from '#/components/AriaComponents'
 import * as result from '#/components/Result'
 
-import { useRootDirectoryId } from '#/hooks/backendHooks'
-import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useDriveStore } from '#/providers/DriveProvider'
 import AssetQuery from '#/utilities/AssetQuery'
 import * as download from '#/utilities/download'
 import * as github from '#/utilities/github'
@@ -57,7 +54,6 @@ export default function Drive(props: DriveProps) {
   const { getText } = textProvider.useText()
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
   const [query, setQuery] = React.useState(() => AssetQuery.fromString(''))
-  const rootDirectoryId = useRootDirectoryId(backend, category)
   const isCloud = categoryModule.isCloudCategory(category)
   const supportLocalBackend = localBackend != null
 
@@ -65,27 +61,6 @@ export default function Drive(props: DriveProps) {
     isCloud && isOffline ? 'offline'
     : isCloud && !user.isEnabled ? 'not-enabled'
     : 'ok'
-
-  const driveStore = useDriveStore()
-
-  const getTargetDirectory = React.useCallback(
-    () => driveStore.getState().targetDirectory,
-    [driveStore],
-  )
-
-  const doUploadFiles = useEventCallback(async (files: File[]) => {
-    if (isCloud && isOffline) {
-      // This should never happen, however display a nice error message in case it does.
-      toastAndLog('offlineUploadFilesError')
-    } else {
-      dispatchAssetListEvent({
-        type: AssetListEventType.uploadFiles,
-        parentKey: getTargetDirectory()?.key ?? rootDirectoryId,
-        parentId: getTargetDirectory()?.item.id ?? rootDirectoryId,
-        files,
-      })
-    }
-  })
 
   const doEmptyTrash = React.useCallback(() => {
     dispatchAssetListEvent({ type: AssetListEventType.emptyTrash })
@@ -140,7 +115,6 @@ export default function Drive(props: DriveProps) {
               setQuery={setQuery}
               category={category}
               doEmptyTrash={doEmptyTrash}
-              doUploadFiles={doUploadFiles}
             />
 
             <div className="flex flex-1 gap-drive overflow-hidden">

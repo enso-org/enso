@@ -20,7 +20,6 @@ interface AssetListBaseEvent<Type extends AssetListEventType> {
 
 /** All possible events. */
 interface AssetListEvents {
-  readonly uploadFiles: AssetListUploadFilesEvent
   readonly duplicateProject: AssetListDuplicateProjectEvent
   readonly closeFolder: AssetListCloseFolderEvent
   readonly copy: AssetListCopyEvent
@@ -40,13 +39,6 @@ type SanityCheck<
     >
   } = AssetListEvents,
 > = [T]
-
-/** A signal to upload files. */
-interface AssetListUploadFilesEvent extends AssetListBaseEvent<AssetListEventType.uploadFiles> {
-  readonly parentKey: backend.DirectoryId
-  readonly parentId: backend.DirectoryId
-  readonly files: File[]
-}
 
 /** A signal to duplicate a project. */
 interface AssetListDuplicateProjectEvent
