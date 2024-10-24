@@ -103,6 +103,12 @@ type SQLServer_Dialect
         Base_Generator.wrap_in_quotes identifier
 
     ## PRIVATE
+       Generates a SQL expression for a table literal.
+    make_table_literal : Vector (Vector Text) -> Vector Text -> Text -> SQL_Builder
+    make_table_literal self vecs column_names as_name =
+        Base_Generator.default_make_table_literal self.wrap_identifier vecs column_names as_name
+
+    ## PRIVATE
        Prepares an ordering descriptor.
 
        One of the purposes of this method is to verify if the expected ordering
@@ -227,6 +233,7 @@ type SQLServer_Dialect
     is_feature_supported self feature:Feature -> Boolean =
         case feature of
             Feature.Select_Columns -> True
+            Feature.Sort -> True
             _ -> False
 
     ## PRIVATE
@@ -302,13 +309,70 @@ type SQLServer_Dialect
         if raw_sql.contains "#" . not then
             jdbc.ensure_query_has_no_holes raw_sql
 
+    ## PRIVATE
+       Returns a pair of a SQL_Builder for the given expression and a vector of columns
+       that have been used in the expression and need to be checked for nulls.
+    generate_expression self base_gen expr = case expr of
+        SQL_Expression.Column _ _ ->
+            wrapped_name = base_gen.generate_expression self expr
+            pair wrapped_name [wrapped_name]
+        SQL_Expression.Constant value -> 
+            wrapped = case value of
+                Nothing -> SQL_Builder.code "NULL"
+                _ -> SQL_Builder.interpolation value
+            pair wrapped [wrapped]
+        SQL_Expression.Literal value -> 
+            wrapped = SQL_Builder.code value
+            pair wrapped [wrapped]
+        SQL_Expression.Text_Literal _ ->
+            wrapped_literal = base_gen.generate_expression self expr
+            pair wrapped_literal []
+        SQL_Expression.Operation kind arguments metadata ->
+            op = self.dialect_operations.operations_dict.get kind (Error.throw <| Unsupported_Database_Operation.Error kind)
+            parsed_args_and_null_checks = arguments.map (c -> self.generate_expression base_gen c)
+            parsed_args = parsed_args_and_null_checks.map .first
+            null_checks = parsed_args_and_null_checks.map .second  . flatten
+
+            expr_result = case kind of
+                ## In the case that we actually want to check for null then we need to generate the null
+                   check sql for all the columns that have been used up to this point and that 
+                   becomes the expression.
+                "IS_NULL" -> _generate_null_check_sql_builder null_checks
+                _ -> 
+                    result = op parsed_args
+                    # If the function expects more arguments, we pass the metadata as the last argument.
+                    case result of
+                        _ : Function -> result metadata
+                        _ -> result
+            null_checks_result = if kind == "IS_NULL" then [] else null_checks
+
+            
+            pair expr_result null_checks_result
+        query : Query -> pair (base_gen.generate_sub_query self query) []
+
+    ## PRIVATE
+    generate_column_for_select self base_gen expr:(SQL_Expression | Order_Descriptor | Query) name:Text -> SQL_Builder =
+        expr_null_checks_pair = self.generate_expression base_gen expr
+        base_expr = expr_null_checks_pair.first
+        built_expr = case expr of
+            SQL_Expression.Operation _ _ _ ->
+                null_check = if expr_null_checks_pair.second.length == 0 then "" else
+                    SQL_Builder.code "WHEN " ++ _generate_null_check_sql_builder expr_null_checks_pair.second ++ " THEN NULL "
+                SQL_Builder.code "CASE " ++ null_check ++ "WHEN " ++ base_expr ++ " THEN 1 ELSE 0 END"
+            _ -> base_expr
+        built_expr ++ Base_Generator.alias self name
+
+## PRIVATE
+private _generate_null_check_sql_builder null_checks:Vector -> SQL_Builder =
+    (null_checks.map it->(it.paren ++ " IS NULL ")) . reduce acc-> i-> acc ++ "OR " ++ i
+
 ## PRIVATE
 make_dialect_operations =
     cases = [["LOWER", Base_Generator.make_function "LOWER"], ["UPPER", Base_Generator.make_function "UPPER"]]
     text = [starts_with, contains, ends_with, agg_shortest, agg_longest, make_case_sensitive, ["REPLACE", replace], left, right]+concat_ops+cases+trim_ops
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
     arith_extensions = [is_nan, is_inf, is_finite, floating_point_div, mod_op, decimal_div, decimal_mod, ["ROW_MIN", Base_Generator.make_function "LEAST"], ["ROW_MAX", Base_Generator.make_function "GREATEST"]]
-    bool = [bool_or]
+    bool = [bool_or, bool_not]
     eq = lift_binary_op "==" make_equals
     compare = [eq]
 
@@ -319,7 +383,8 @@ make_dialect_operations =
     special_overrides = [is_null]
     other = [["RUNTIME_ERROR", make_runtime_error_op]]
     my_mappings = text + counts + stats + first_last_aggregators + arith_extensions + bool + compare + date_ops + special_overrides + other
-    Base_Generator.base_dialect_operations . extend_with my_mappings
+    base = Base_Generator.base_dialect_operations . extend_with my_mappings
+    Base_Generator.Dialect_Operations.Value (base.operations_dict.remove "IS_IN")
 
 ## PRIVATE
 is_null = Base_Generator.lift_unary_op "IS_NULL" arg->
@@ -499,6 +564,10 @@ is_finite = Base_Generator.lift_unary_op "IS_FINITE" arg->
 ## PRIVATE
 bool_or = Base_Generator.lift_unary_op "BOOL_OR" arg->
     SQL_Builder.code "bool_or(" ++ arg ++ ")"
+
+## PRIVATE
+bool_not = Base_Generator.lift_unary_op "NOT" arg->
+    SQL_Builder.code "(" ++ arg ++ ")=0"
 
 ## PRIVATE
 floating_point_div = Base_Generator.lift_binary_op "/" x-> y->

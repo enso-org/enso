@@ -107,14 +107,12 @@ type Context
        takes precedence, but if any orderings were already present they are also
        taken into account to break ties within the new ordering.
 
-       In practice this means, that the old orderings are preserved, but the new
-       ones are added to the beginning of the list so that they take precedence.
-
        Arguments:
        - new_orders: The new ordering clauses to add to the query.
     add_orders : Vector Order_Descriptor -> Context
     add_orders self new_orders =
-        Context.Value self.from_spec self.where_filters new_orders+self.orders self.groups self.limit self.extensions
+        deduped_orders = new_orders+self.orders . distinct .expression
+        Context.Value self.from_spec self.where_filters deduped_orders self.groups self.limit self.extensions
 
     ## PRIVATE
 

@@ -270,6 +270,14 @@ type Dialect
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
+       Generates a column for the given expression for use in the SELECT clause. 
+       Used for databases where the expression sytanx is different in the SELECT clause 
+       to the synatx in the WHERE clause
+    generate_column_for_select self base_gen expr:(SQL_Expression | Order_Descriptor | Query) name:Text -> SQL_Builder =
+        _ = [base_gen, expr, name]
+        Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
     ensure_query_has_no_holes : JDBC_Connection -> Text -> Nothing ! Illegal_Argument
     ensure_query_has_no_holes jdbc:JDBC_Connection raw_sql:Text =
         _ = [jdbc, raw_sql]

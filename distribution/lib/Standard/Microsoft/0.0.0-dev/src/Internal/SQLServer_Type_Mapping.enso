@@ -108,7 +108,7 @@ type SQLServer_Type_Mapping
 
     ## PRIVATE
        The SQLServer_Type_Mapping always relies on the return type determined by
-       the database backend.
+       the database backend except for boolean types.
     infer_return_type : (SQL_Expression -> SQL_Type_Reference) -> Text -> Vector -> SQL_Expression -> SQL_Type_Reference
     infer_return_type infer_from_database_callback op_name arguments expression =
         case operations_dict.contains_key op_name of
@@ -159,7 +159,7 @@ on_unknown_type sql_type =
 ## PRIVATE
    Maps operation names to functions that infer its result type.
 operations_dict : Dictionary Text (Vector -> SQL_Type)
-operations_dict = Dictionary.from_vector [["IS_NULL", const (SQL_Type.Value Types.BIT "BIT")],["==", const (SQL_Type.Value Types.BIT "BIT")]]
+operations_dict = Dictionary.from_vector [["IS_NULL", const (SQL_Type.Value Types.BIT "BIT")],["==", const (SQL_Type.Value Types.BIT "BIT")],["NOT", const (SQL_Type.Value Types.BIT "BIT")],["BETWEEN", const (SQL_Type.Value Types.BIT "BIT")]]
 
 ## PRIVATE
    This is the maximum size that JDBC driver reports for 'unbounded' types in

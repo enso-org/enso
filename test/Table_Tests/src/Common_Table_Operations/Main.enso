@@ -73,7 +73,7 @@ type Test_Setup
          boolean indicating if the feature is supported by the backend.
        - flagged: A function that takes a `Dialect_Flag` and returns a boolean indicating if the 
          flag is set for the backend.
-    Config prefix table_fn empty_table_fn (table_builder : (Vector Any -> (Any|Nothing)) -> Any) materialize is_database test_selection aggregate_test_selection create_connection_func light_table_builder is_integer_type=(.is_integer) is_feature_supported flagged
+    Config prefix table_fn empty_table_fn (table_builder : (Vector Any -> (Any|Nothing)) -> Any) materialize is_database test_selection aggregate_test_selection create_connection_func light_table_builder is_integer_type=(.is_integer) is_feature_supported flagged is_operation_supported
 
     ## Specifies if the given Table backend supports custom Enso types.
 

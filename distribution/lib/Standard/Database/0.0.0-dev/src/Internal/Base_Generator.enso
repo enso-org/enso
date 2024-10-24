@@ -167,6 +167,10 @@ type SQL_Generator
         base_expression ++ collation ++ order_suffix ++ nulls_suffix
 
     ## PRIVATE
+    default_generate_column self dialect expr:(SQL_Expression | Order_Descriptor | Query) name:Text -> SQL_Builder =
+        self.generate_expression dialect expr ++ alias dialect name
+
+    ## PRIVATE
         Generates SQL code corresponding to a SELECT statement.
 
         Arguments:
@@ -175,11 +179,10 @@ type SQL_Generator
     generate_select_query_sql : Dialect -> Vector (Pair Text SQL_Expression) -> Context -> SQL_Builder
     generate_select_query_sql self dialect columns ctx =
         gen_exprs exprs = exprs.map (self.generate_expression dialect)
-        gen_column pair = (self.generate_expression dialect pair.second) ++ alias dialect pair.first
 
         generated_columns = case columns of
             Nothing -> SQL_Builder.code "*"
-            _ -> SQL_Builder.join ", " (columns.map gen_column)
+            _ -> SQL_Builder.join ", " (columns.map (c-> dialect.generate_column_for_select self expr=c.second name=c.first))
 
         from_part = self.generate_from_part dialect ctx.from_spec
         where_part = (SQL_Builder.join " AND " (gen_exprs ctx.where_filters)) . prefix_if_present " WHERE "
