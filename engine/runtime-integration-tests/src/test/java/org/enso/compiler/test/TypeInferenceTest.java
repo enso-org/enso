@@ -513,7 +513,7 @@ public class TypeInferenceTest extends StaticAnalysisTest {
    * in one branch. We will need to ensure that we duplicate the local scopes in each branch to
    * avoid bad sharing.
    */
-  @Ignore("TODO")
+  @Ignore("TODO for much much later: equality bounds in case")
   @Test
   public void inferEqualityBoundsFromCase() throws Exception {
     final URI uri = new URI("memory://inferEqualityBoundsFromCase.enso");
@@ -539,7 +539,7 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     assertAtomType(myType, findAssignment(f, "y"));
   }
 
-  @Ignore("TODO")
+  @Ignore("TODO for much much later: equality bounds in case")
   @Test
   public void inferEqualityBoundsFromCaseLiteral() throws Exception {
     final URI uri = new URI("memory://inferEqualityBoundsFromCaseLiteral.enso");
@@ -562,7 +562,7 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     assertSumType(findAssignment(f, "y"), "Integer", "Text");
   }
 
-  @Ignore("TODO")
+  @Ignore("TODO for much much later: equality bounds in case")
   @Test
   public void inferEqualityBoundsFromCaseEdgeCase() throws Exception {
     // This test ensures that the equality bound from _:Other_Type is only applicable in its branch
@@ -618,7 +618,7 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     assertSumType(findAssignment(f, "y"), "My_Type", "Other_Type");
   }
 
-  @Ignore
+  @Ignore("TODO: ifte")
   @Test
   public void sumTypeFromIf() throws Exception {
     final URI uri = new URI("memory://sumTypeFromIf.enso");
@@ -639,7 +639,7 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     assertSumType(findAssignment(f, "y"), "Text", "Integer");
   }
 
-  @Ignore
+  @Ignore("TODO: ifte")
   @Test
   public void sumTypeFromIfWithoutElse() throws Exception {
     final URI uri = new URI("memory://sumTypeFromIf.enso");
@@ -700,7 +700,7 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     assertAtomType("Standard.Base.Data.Numbers.Integer", findAssignment(memberMethod, "w"));
   }
 
-  @Ignore("TODO")
+  @Ignore("TODO: self resolution")
   @Test
   public void typeInferenceOfSelf() throws Exception {
     final URI uri = new URI("memory://typeInferenceOfSelf.enso");
@@ -1257,6 +1257,44 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     assertAtomType("Standard.Base.Data.Text.Text", findAssignment(foo, "txt3"));
 
     assertAtomType("Standard.Base.Data.Boolean.Boolean", findAssignment(foo, "bool"));
+  }
+
+  @Ignore("TODO: self resolution")
+  @Test
+  public void noSuchMethodOnSelf() throws Exception {
+    final URI uri = new URI("memory://noSuchMethodOnSelf.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+                    type My_Type
+                        Value v
+
+                        method_one self = 42
+                        method_two self =
+                            x1 = self.method_one
+                            x2 = self.non_existent_method
+                            [x1, x2]
+                    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+    var method_two = findMemberMethod(module, "My_Type", "method_two");
+    var x1 = findAssignment(method_two, "x1");
+    var x2 = findAssignment(method_two, "x2");
+
+    // member method is defined
+    assertEquals(List.of(), getDescendantsDiagnostics(x1.expression()));
+
+    // this method is not found
+    assertEquals(
+        List.of(
+            new Warning.NoSuchMethod(
+                x2.expression().identifiedLocation(),
+                "member method `non_existent_method` on type My_Type")),
+        getImmediateDiagnostics(x2.expression()));
   }
 
   @Test

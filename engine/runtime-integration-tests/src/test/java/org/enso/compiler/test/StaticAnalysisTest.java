@@ -80,7 +80,7 @@ public abstract class StaticAnalysisTest {
   }
 
   protected final List<Diagnostic> getImmediateDiagnostics(IR ir) {
-    return CollectionConverters.asJava(ir.diagnostics().toList());
+    return CollectionConverters.asJava(ir.getDiagnostics().toList());
   }
 
   protected final List<Diagnostic> getDescendantsDiagnostics(IR ir) {
@@ -88,7 +88,7 @@ public abstract class StaticAnalysisTest {
         ir.preorder()
             .flatMap(
                 (node) -> {
-                  DiagnosticStorage diagnostics = node.diagnostics();
+                  DiagnosticStorage diagnostics = node.getDiagnostics();
                   if (diagnostics != null) {
                     return diagnostics.toList();
                   } else {
