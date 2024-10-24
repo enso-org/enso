@@ -73,10 +73,7 @@ export default class BaseActions implements Promise<void> {
 
   /** Proxies the `then` method of the internal {@link Promise}. */
   async then<T, E>(
-    // The following types are copied almost verbatim from the type definitions for `Promise`.
-    // eslint-disable-next-line no-restricted-syntax
     onfulfilled?: (() => PromiseLike<T> | T) | null | undefined,
-    // eslint-disable-next-line no-restricted-syntax
     onrejected?: ((reason: unknown) => E | PromiseLike<E>) | null | undefined,
   ) {
     return await this.promise.then(onfulfilled, onrejected)
@@ -87,8 +84,6 @@ export default class BaseActions implements Promise<void> {
    * This method is not required for this to be a `thenable`, but it is still useful
    * to treat this class as a {@link Promise}.
    */
-  // The following types are copied almost verbatim from the type definitions for `Promise`.
-  // eslint-disable-next-line no-restricted-syntax
   async catch<T>(onrejected?: ((reason: unknown) => PromiseLike<T> | T) | null | undefined) {
     return await this.promise.catch(onrejected)
   }
@@ -118,7 +113,6 @@ export default class BaseActions implements Promise<void> {
   do(callback: PageCallback): this {
     // @ts-expect-error This is SAFE, but only when the constructor of this class has the exact
     // same parameters as `BaseActions`.
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return new this.constructor(
       this.page,
       this.then(() => callback(this.page)),
@@ -144,13 +138,11 @@ export default class BaseActions implements Promise<void> {
     predicate: (page: test.Page) => Promise<boolean>,
     options: { retries?: number; delay?: number } = {},
   ) {
-    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
     const { retries = 3, delay = 1_000 } = options
     return this.step('Perform actions with retries', async (thePage) => {
       for (let i = 0; i < retries; i += 1) {
         await callback(this)
         if (await predicate(thePage)) {
-          // eslint-disable-next-line no-restricted-syntax
           return
         }
         await thePage.waitForTimeout(delay)

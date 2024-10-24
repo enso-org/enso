@@ -7,8 +7,6 @@ import Spinner, * as spinner from '#/components/Spinner'
 // === StatelessSpinner ===
 // ========================
 
-// This is a re-export, so that the API of this module mirrors that of the `spinner` module.
-// eslint-disable-next-line no-restricted-syntax
 export { SpinnerState } from './Spinner'
 
 /** Props for a {@link StatelessSpinner}. */

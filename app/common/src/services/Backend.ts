@@ -13,9 +13,6 @@ export const S3_CHUNK_SIZE_BYTES = 10_000_000
 // === Newtypes ===
 // ================
 
-// These are constructor functions that construct values of the type they are named after.
-/* eslint-disable @typescript-eslint/no-redeclare */
-
 /** Unique identifier for an organization. */
 export type OrganizationId = newtype.Newtype<string, 'OrganizationId'>
 export const OrganizationId = newtype.newtypeConstructor<OrganizationId>()
@@ -119,8 +116,6 @@ export type UserPermissionIdentifier = UserGroupId | UserId
 /** An filesystem path. Only present on the local backend. */
 export type Path = newtype.Newtype<string, 'Path'>
 export const Path = newtype.newtypeConstructor<Path>()
-
-/* eslint-enable @typescript-eslint/no-redeclare */
 
 /** Whether a given {@link string} is an {@link UserId}. */
 export function isUserId(id: string): id is UserId {
@@ -299,9 +294,7 @@ export interface UpdatedProject extends BaseProject {
 
 /** A user/organization's project containing and/or currently executing code. */
 export interface ProjectRaw extends ListedProjectRaw {
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   readonly ide_version: VersionNumber | null
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   readonly engine_version: VersionNumber | null
 }
 
@@ -424,9 +417,6 @@ export interface Version {
   readonly number: VersionNumber
   readonly ami: Ami | null
   readonly created: dateTime.Rfc3339DateTime
-  // This does not follow our naming convention because it's defined this way in the backend,
-  // so we need to match it.
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   readonly version_type: VersionType
 }
 
@@ -449,8 +439,6 @@ export enum Plan {
 
 export const PLANS = Object.values(Plan)
 
-// This is a function, even though it does not look like one.
-// eslint-disable-next-line no-restricted-syntax
 export const isPlan = array.includesPredicate(PLANS)
 
 /** Metadata uniquely describing a payment checkout session. */
@@ -671,7 +659,6 @@ export interface LChColor {
 
 /** A pre-selected list of colors to be used in color pickers. */
 export const COLORS = [
-  /* eslint-disable @typescript-eslint/no-magic-numbers */
   // Red
   { lightness: 50, chroma: 66, hue: 7 },
   // Orange
@@ -692,7 +679,6 @@ export const COLORS = [
   { lightness: 50, chroma: 22, hue: 252 },
   // Dark blue
   { lightness: 22, chroma: 13, hue: 252 },
-  /* eslint-enable @typescript-eslint/no-magic-numbers */
 ] as const satisfies LChColor[]
 
 /** Converts a {@link LChColor} to a CSS color string. */
@@ -758,9 +744,6 @@ export interface IdType {
  * in a directory listing.
  */
 export const ASSET_TYPE_ORDER: Readonly<Record<AssetType, number>> = {
-  // This is a sequence of numbers, not magic numbers. `1000` is an arbitrary number
-  // that are higher than the number of possible asset types.
-  /* eslint-disable @typescript-eslint/no-magic-numbers */
   [AssetType.directory]: 0,
   [AssetType.project]: 1,
   [AssetType.file]: 2,
@@ -769,7 +752,6 @@ export const ASSET_TYPE_ORDER: Readonly<Record<AssetType, number>> = {
   [AssetType.specialLoading]: 1000,
   [AssetType.specialEmpty]: 1000,
   [AssetType.specialError]: 1000,
-  /* eslint-enable @typescript-eslint/no-magic-numbers */
 }
 
 // =============
@@ -1011,13 +993,9 @@ export function createPlaceholderAssetId<Type extends AssetType>(
       break
     }
   }
-  // This is SAFE, just too dynamic for TypeScript to correctly typecheck.
-  // eslint-disable-next-line no-restricted-syntax
   return result as IdType[Type]
 }
 
-// These are functions, and so their names should be camelCase.
-/* eslint-disable no-restricted-syntax */
 /** A type guard that returns whether an {@link Asset} is a {@link ProjectAsset}. */
 export const assetIsProject = assetIsType(AssetType.project)
 /** A type guard that returns whether an {@link Asset} is a {@link DirectoryAsset}. */
@@ -1028,7 +1006,6 @@ export const assetIsDatalink = assetIsType(AssetType.datalink)
 export const assetIsSecret = assetIsType(AssetType.secret)
 /** A type guard that returns whether an {@link Asset} is a {@link FileAsset}. */
 export const assetIsFile = assetIsType(AssetType.file)
-/* eslint-enable no-restricted-syntax */
 
 /** Metadata describing a specific version of an asset. */
 export interface S3ObjectVersion {

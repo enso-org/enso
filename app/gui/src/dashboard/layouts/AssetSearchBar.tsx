@@ -152,7 +152,6 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
       baseQuery.current = query
     }
     // This effect MUST only run when `query` changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query])
 
   React.useEffect(() => {

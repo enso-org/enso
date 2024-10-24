@@ -32,7 +32,6 @@ test('Doc panel focus (regression #10471)', async ({ page }) => {
   await locate.bottomDock(page).click()
 
   await page.evaluate(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const codeEditor = (window as any).__codeEditorApi
     const docStart = codeEditor.indexOf('The main method')
     codeEditor.placeCursor(docStart + 8)
@@ -44,7 +43,6 @@ test('Doc panel focus (regression #10471)', async ({ page }) => {
   await page.keyboard.press('T')
 
   const content = await page.evaluate(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const codeEditor = (window as any).__codeEditorApi
     return codeEditor.textContent()
   })

@@ -60,5 +60,4 @@ export const methods = {
       projects: numberOfProjects != null ? projectsList.slice(0, numberOfProjects) : projectsList,
     }
   },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 } satisfies Record<string, (...params: any[]) => Promise<unknown>>

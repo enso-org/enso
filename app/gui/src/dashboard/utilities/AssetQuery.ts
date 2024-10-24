@@ -45,8 +45,6 @@ export default class AssetQuery {
   static jsonValueRegex = interpolateRegex(/^(<json>)$/)
   static termsRegex = interpolateRegex(/(?:([^\s:]*):)?((?:(?:<json>|(?:[^,\s"][^,\s]*)),?)*|)/g)
   static valuesRegex = interpolateRegex(/(?:<json>)|(?:[^,\s"][^,\s]*)/g)
-  // `key` MUST be a string literal type.
-  // eslint-disable-next-line no-restricted-syntax
   static tagNames = [
     ['keywords', null],
     ['negativeKeywords', '-'],
@@ -68,8 +66,6 @@ export default class AssetQuery {
     ['negativeNos', 'has'],
   ] as const satisfies readonly (readonly [keyof AssetQueryData, string | null])[]
   /** The subset of {@link AssetQuery.tagNames} that are applicable for the Local Backend. */
-  // `key` MUST be a string literal type.
-  // eslint-disable-next-line no-restricted-syntax
   static localTagNames = [
     ['keywords', null],
     ['negativeKeywords', '-'],
