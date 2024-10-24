@@ -16,8 +16,6 @@ export const AJV = new Ajv({
 })
 AJV.addSchema(SCHEMA)
 
-// This is a function, even though it does not contain function syntax.
-// eslint-disable-next-line no-restricted-syntax
 export const validateDatalink = error.assert<ajv.ValidateFunction>(() =>
   AJV.getSchema('#/$defs/DataLink'),
 )

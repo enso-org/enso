@@ -60,10 +60,7 @@ export interface DashboardProps extends app.AppProps {
  * authentication/dashboard UI using React. It also handles routing and other interactions (e.g.,
  * for redirecting the user to/from the login page).
  */
-export // This export declaration must be broken up to satisfy the `require-jsdoc` rule.
-// This is not a React component even though it contains JSX.
-// eslint-disable-next-line no-restricted-syntax
-function run(props: DashboardProps) {
+export function run(props: DashboardProps) {
   const { vibrancy, supportsDeepLinks, queryClient, logger } = props
   if (
     !detect.IS_DEV_MODE &&

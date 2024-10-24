@@ -41,7 +41,8 @@ export interface GraphEditorProps {
   readonly ignoreParamsRegex?: RegExp
   readonly logEvent: (message: string, projectId?: string | null, metadata?: object | null) => void
   readonly renameProject: (newName: string) => void
-  readonly backend: Backend | null
+  readonly projectBackend: Backend | null
+  readonly remoteBackend: Backend | null
 }
 
 // =========================
@@ -187,7 +188,8 @@ function EditorInternal(props: EditorInternalProps) {
     const jsonAddress = openedProject.jsonAddress
     const binaryAddress = openedProject.binaryAddress
     const ydocAddress = openedProject.ydocAddress ?? ydocUrl ?? ''
-    const backend = backendType === backendModule.BackendType.remote ? remoteBackend : localBackend
+    const projectBackend =
+      backendType === backendModule.BackendType.remote ? remoteBackend : localBackend
 
     if (jsonAddress == null) {
       throw new Error(getText('noJSONEndpointError'))
@@ -205,7 +207,8 @@ function EditorInternal(props: EditorInternalProps) {
         ignoreParamsRegex: IGNORE_PARAMS_REGEX,
         logEvent,
         renameProject,
-        backend,
+        projectBackend,
+        remoteBackend,
       }
     }
   }, [

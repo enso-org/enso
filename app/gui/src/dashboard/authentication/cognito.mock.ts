@@ -42,13 +42,7 @@ import type * as service from '#/authentication/service'
 import * as original from './cognito.js'
 import * as listen from './listen.mock.js'
 
-// This file exports a subset of the values from the original file.
-/* eslint-disable no-restricted-syntax */
 export { CognitoErrorType } from './cognito.js'
-/* eslint-enable no-restricted-syntax */
-
-// There are unused function parameters in this file.
-/* eslint-disable @typescript-eslint/no-unused-vars */
 
 // =================
 // === Constants ===

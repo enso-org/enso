@@ -315,7 +315,6 @@ export default class ProjectManager {
   /** Begin reconnecting the {@link WebSocket}. */
   reconnect() {
     if (this.reconnecting) {
-      // eslint-disable-next-line no-restricted-syntax
       return this.socketPromise
     }
     this.reconnecting = true
@@ -734,7 +733,7 @@ export default class ProjectManager {
       },
     )
     // There is no way to avoid this as `JSON.parse` returns `any`.
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const json: JSONRPCResponse<never> = await response.json()
     if ('result' in json) {
       return json.result

@@ -461,7 +461,7 @@ export const Button = forwardRef(function Button(
             className={styles.content({ className: contentClassName })}
             {...targetProps}
           >
-            {/* eslint-disable-next-line @typescript-eslint/no-unsafe-argument */}
+            {}
             {childrenFactory(render)}
           </span>
 

@@ -25,7 +25,6 @@ export default class SetupPlanPageActions extends BaseActions {
   }
 
   /** Select a plan that has teams. */
-  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
   selectTeamPlan(plan: Plan.enterprise | Plan.team, seats = 1, duration: 12 | 36 = 12) {
     return this.step(`Select '${plan}' plan`, async (page) => {
       await page.getByLabel(TEXT[PLAN_TO_UPGRADE_LABEL_ID[plan]]).click()
@@ -36,7 +35,6 @@ export default class SetupPlanPageActions extends BaseActions {
       await page.getByLabel(TEXT.seats).getByRole('spinbutton').fill(String(seats))
       await page
         .getByLabel(TEXT.billingPeriod)
-        // eslint-disable-next-line @typescript-eslint/no-magic-numbers
         .getByText(duration === 12 ? TEXT.billingPeriodOneYear : TEXT.billingPeriodThreeYears)
         .click()
       await page.getByText(TEXT.startTrial).click()

@@ -37,6 +37,7 @@ import org.enso.compiler.core.ir.module.scope.imports.Polyglot;
 import org.enso.syntax2.ArgumentDefinition;
 import org.enso.syntax2.Base;
 import org.enso.syntax2.DocComment;
+import org.enso.syntax2.FunctionAnnotation;
 import org.enso.syntax2.Line;
 import org.enso.syntax2.Parser;
 import org.enso.syntax2.TextElement;
@@ -271,17 +272,6 @@ final class TreeToIr {
         yield translateModuleSymbol(anno.getExpression(), join(annotation, appendTo));
       }
 
-      case Tree.Annotated anno -> {
-        if (anno.getArgument() == null) {
-          yield join(translateSyntaxError(anno, Syntax.UnexpectedExpression$.MODULE$), appendTo);
-        } else {
-          var annotationArgument = translateExpression(anno.getArgument());
-          var annotation = new Name.GenericAnnotation(anno.getAnnotation().codeRepr(),
-              annotationArgument, getIdentifiedLocation(anno), meta());
-          yield translateModuleSymbol(anno.getExpression(), join(annotation, appendTo));
-        }
-      }
-
       case Tree.Documented doc -> {
         var comment = translateComment(doc, doc.getDocumentation());
         yield translateModuleSymbol(doc.getExpression(), join(comment, appendTo));
@@ -309,17 +299,27 @@ final class TreeToIr {
     return res.reverse();
   }
 
-  IR translateConstructorDefinition(Tree.ConstructorDefinition cons) {
+  List<IR> translateConstructorDefinition(Tree.ConstructorDefinition cons, List<IR> appendTo) {
+    for (var annoLine : cons.getAnnotationLines()) {
+        appendTo = join(translateAnnotation(annoLine.getAnnotation()), appendTo);
+    }
     var constructorName = buildName(cons, cons.getConstructor());
     var cAt = getIdentifiedLocation(cons);
     var isPrivate = cons.getPrivate() != null;
-    List<DefinitionArgument> args;
+    ArrayList<DefinitionArgument> args = new ArrayList<>();
     try {
-      args = translateArgumentsDefinition(cons.getArguments());
+      for (var arg : cons.getArguments())
+        args.add(translateArgumentDefinition(arg));
+      for (var argLine : cons.getBlock()) {
+        if (argLine.getArgument() instanceof ArgumentDefinition arg)
+          args.add(translateArgumentDefinition(arg));
+      }
     } catch (SyntaxException ex) {
-      return ex.toError();
+      return join(ex.toError(), appendTo);
     }
-    return new Definition.Data(constructorName, args, nil(), isPrivate, cAt, meta());
+    var argList = CollectionConverters.asScala(args.iterator()).toList();
+    var def = new Definition.Data(constructorName, argList, nil(), isPrivate, cAt, meta());
+    return join(def, appendTo);
   }
 
   /**
@@ -344,8 +344,7 @@ final class TreeToIr {
     return switch (inputAst) {
       case null -> appendTo;
 
-      case Tree.ConstructorDefinition cons ->
-          join(translateConstructorDefinition(cons), appendTo);
+      case Tree.ConstructorDefinition cons -> translateConstructorDefinition(cons, appendTo);
 
       case Tree.TypeDef def -> {
         var ir = translateSyntaxError(def, Syntax.UnexpectedDeclarationInType$.MODULE$);
@@ -386,15 +385,8 @@ final class TreeToIr {
       case Tree.AnnotatedBuiltin anno -> {
         var ir = new Name.BuiltinAnnotation("@" + anno.getAnnotation().codeRepr(),
             getIdentifiedLocation(anno), meta());
-        var annotation = translateAnnotation(ir, anno.getExpression(), nil());
+        var annotation = translateBuiltinAnnotation(ir, anno.getExpression(), nil());
         yield join(annotation, appendTo);
-      }
-
-      case Tree.Annotated anno -> {
-        var annotationArgument = translateExpression(anno.getArgument());
-        var annotation = new Name.GenericAnnotation(anno.getAnnotation().codeRepr(),
-            annotationArgument, getIdentifiedLocation(anno), meta());
-        yield translateTypeBodyExpression(anno.getExpression(), join(annotation, appendTo));
       }
 
       default -> {
@@ -455,8 +447,21 @@ final class TreeToIr {
     }
   }
 
+  private Definition translateAnnotation(FunctionAnnotation anno) {
+    if (anno.getArgument() == null) {
+      return translateSyntaxError(getIdentifiedLocation(anno), Syntax.UnexpectedExpression$.MODULE$);
+    } else {
+      var annotationArgument = translateExpression(anno.getArgument());
+      return new Name.GenericAnnotation(anno.getAnnotation().codeRepr(),
+              annotationArgument, getIdentifiedLocation(anno), meta());
+    }
+  }
+
   private List<Definition> translateMethodBinding(Tree.Function fn, List<Definition> appendTo)
       throws SyntaxException {
+    for (var annoLine : fn.getAnnotationLines()) {
+      appendTo = join(translateAnnotation(annoLine.getAnnotation()), appendTo);
+    }
     if (fn.getSignatureLine() instanceof TypeSignatureLine sigLine) {
       appendTo = join(translateMethodTypeSignature(sigLine.getSignature()), appendTo);
     }
@@ -489,6 +494,9 @@ final class TreeToIr {
   }
 
   private List<IR> translateTypeMethodBinding(Tree.Function fun, List<IR> appendTo) {
+    for (var annoLine : fun.getAnnotationLines()) {
+      appendTo = join(translateAnnotation(annoLine.getAnnotation()), appendTo);
+    }
     if (fun.getSignatureLine() instanceof TypeSignatureLine sigLine) {
       appendTo = join(translateTypeSignature(sigLine.getSignature()), appendTo);
     }
@@ -1013,7 +1021,7 @@ final class TreeToIr {
       case Tree.AnnotatedBuiltin anno -> {
         var ir = new Name.BuiltinAnnotation("@" + anno.getAnnotation().codeRepr(),
             getIdentifiedLocation(anno), meta());
-        yield translateAnnotation(ir, anno.getExpression(), nil());
+        yield translateBuiltinAnnotation(ir, anno.getExpression(), nil());
       }
       // Documentation can be attached to an expression in a few cases, like if someone documents a line of an
       // `ArgumentBlockApplication`. The documentation is ignored.
@@ -1095,6 +1103,9 @@ final class TreeToIr {
         appendTo.add(translateAssignment(assign));
       }
       case Tree.Function fun -> {
+        for (var annoLine : fun.getAnnotationLines()) {
+          appendTo.add((Expression)translateAnnotation(annoLine.getAnnotation()));
+        }
         if (fun.getSignatureLine() instanceof TypeSignatureLine sigLine) {
           appendTo.add(translateTypeSignatureToOprApp(sigLine.getSignature()));
         }
@@ -1340,22 +1351,22 @@ final class TreeToIr {
     return new Application.Prefix(pref.function(), withBlockArgs, pref.hasDefaultsSuspended(), pref.identifiedLocation(), meta());
   }
 
-  private Application.Prefix translateAnnotation(Name.BuiltinAnnotation ir, Tree expr,
+  private Application.Prefix translateBuiltinAnnotation(Name.BuiltinAnnotation ir, Tree expr,
       List<CallArgument> callArgs) {
     return switch (expr) {
       case Tree.App fn -> {
         var fnAsArg = translateCallArgument(fn.getArg());
-        yield translateAnnotation(ir, fn.getFunc(), join(fnAsArg, callArgs));
+        yield translateBuiltinAnnotation(ir, fn.getFunc(), join(fnAsArg, callArgs));
       }
       case Tree.NamedApp fn -> {
         var fnAsArg = translateCallArgument(fn);
-        yield translateAnnotation(ir, fn.getFunc(), join(fnAsArg, callArgs));
+        yield translateBuiltinAnnotation(ir, fn.getFunc(), join(fnAsArg, callArgs));
       }
       case Tree.ArgumentBlockApplication fn -> {
         var fnAsArg = translateCallArgument(fn.getLhs());
         var arg = translateCallArgument(expr);
         callArgs = join(fnAsArg, join(arg, callArgs));
-        yield translateAnnotation(ir, null, callArgs);
+        yield translateBuiltinAnnotation(ir, null, callArgs);
       }
       case null -> {
         yield new Application.Prefix(ir, callArgs, false, ir.identifiedLocation(), meta());
@@ -1363,7 +1374,7 @@ final class TreeToIr {
       default -> {
         var arg = translateCallArgument(expr);
         callArgs = join(arg, callArgs);
-        yield translateAnnotation(ir, null, callArgs);
+        yield translateBuiltinAnnotation(ir, null, callArgs);
       }
     };
   }
@@ -1865,9 +1876,10 @@ final class TreeToIr {
   }
 
   private IdentifiedLocation expandToContain(IdentifiedLocation encapsulating, IdentifiedLocation inner) {
-    if (encapsulating == null || inner == null) {
+    if (encapsulating == null)
+      return inner;
+    if (inner == null)
       return encapsulating;
-    }
 
     if (encapsulating.start() > inner.start() || encapsulating.end() < inner.end()) {
       var start = Math.min(encapsulating.start(), inner.start());
@@ -1935,6 +1947,17 @@ final class TreeToIr {
     var location = new Location(begin_, end_);
     var uuid = idMap.get(location);
     return new IdentifiedLocation(begin_, end_, uuid);
+  }
+
+  private IdentifiedLocation getIdentifiedLocation(FunctionAnnotation anno) {
+    final var start = getIdentifiedLocation(anno.getOperator());
+    IdentifiedLocation end;
+    if (anno.getArgument() != null) {
+      end = getIdentifiedLocation(anno.getArgument());
+    } else {
+      end = getIdentifiedLocation(anno.getAnnotation());
+    }
+    return expandToContain(start, end);
   }
 
   private IdentifiedLocation getIdentifiedLocation(TypeSignature sig) {

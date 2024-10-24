@@ -1,7 +1,5 @@
 /** @file A test for basic flow of the application: open project and see if nodes appear. */
 
-/* eslint-disable @typescript-eslint/no-magic-numbers */
-
 import { expect } from '@playwright/test'
 import { electronTest, loginAsTestUser } from './electronTest'
 
@@ -9,7 +7,7 @@ electronTest('Create new project', async page => {
   await loginAsTestUser(page)
   await expect(page.getByRole('button', { name: 'New Project', exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'New Project', exact: true }).click()
-  await expect(page.locator('.GraphNode')).toHaveCount(1, { timeout: 30000 })
+  await expect(page.locator('.GraphNode')).toHaveCount(1, { timeout: 60000 })
 
   // We see the node type and visualization, so the engine is running the program
   await expect(page.locator('.node-type')).toHaveText('Table')

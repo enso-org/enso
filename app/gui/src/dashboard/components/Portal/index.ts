@@ -8,5 +8,4 @@ import Portal from './Portal'
 export * from './PortalProvider'
 export * from './types'
 
-// eslint-disable-next-line no-restricted-syntax
 export default Portal

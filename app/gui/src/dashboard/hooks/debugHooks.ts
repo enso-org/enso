@@ -118,5 +118,3 @@ export function useDebugCallback<T extends (...args: never[]) => unknown>(
   // eslint-disable-next-line react-hooks/exhaustive-deps
   return React.useCallback<T>(callback, deps)
 }
-
-/* eslint-enable no-restricted-properties */

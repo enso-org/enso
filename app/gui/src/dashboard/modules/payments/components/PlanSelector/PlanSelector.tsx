@@ -130,7 +130,6 @@ export function PlanSelector(props: PlanSelectorProps) {
 
                       const startEpochMs = Number(new Date())
 
-                      // eslint-disable-next-line no-constant-condition
                       while (true) {
                         const { data: session } = await refetchSession()
                         if (session && 'user' in session && session.user.plan === newPlan) {
@@ -143,7 +142,6 @@ export function PlanSelector(props: PlanSelectorProps) {
                         } else {
                           const timePassedMs = Number(new Date()) - startEpochMs
                           if (timePassedMs > USER_REFETCH_TIMEOUT_MS) {
-                            // eslint-disable-next-line no-restricted-syntax
                             throw new Error(
                               'Timed out waiting for subscription, please contact support to continue.',
                             )
