@@ -12,12 +12,15 @@ import { qnLastSegment, type QualifiedName } from '@/util/qualifiedName'
 import type { ToValue } from '@/util/reactivity'
 import type { ColDef } from 'ag-grid-enterprise'
 import { computed, toValue } from 'vue'
+import { HeaderParams } from './TableHeader.vue'
 
-const NEW_COLUMN_ID = 'NewColumn'
+/** Id of a fake column with "Add new column" option. */
+export const NEW_COLUMN_ID = 'NewColumn'
 const ROW_INDEX_COLUMN_ID = 'RowIndex'
-const NEW_COLUMN_HEADER = 'New Column'
-const ROW_INDEX_HEADER = '#'
-const DEFAULT_COLUMN_PREFIX = 'Column #'
+/** A header of Row Index Column. */
+export const ROW_INDEX_HEADER = '#'
+/** A default prefix added to the column's index in newly created columns. */
+export const DEFAULT_COLUMN_PREFIX = 'Column #'
 const NOTHING_PATH = 'Standard.Base.Nothing.Nothing' as QualifiedName
 const NOTHING_NAME = qnLastSegment(NOTHING_PATH)
 
@@ -37,6 +40,7 @@ export interface ColumnDef extends ColDef<RowData> {
   mainMenuItems: (string | MenuItem<RowData>)[]
   contextMenuItems: (string | MenuItem<RowData>)[]
   rowDrag?: ({ data }: { data: RowData | undefined }) => boolean
+  headerComponentParams?: HeaderParams
 }
 
 namespace cellValueConversion {
@@ -260,34 +264,26 @@ export function useTableNewArgument(
 
   const newColumnDef = computed<ColumnDef>(() => ({
     colId: NEW_COLUMN_ID,
-    headerName: NEW_COLUMN_HEADER,
+    headerName: '',
     valueGetter: () => null,
-    valueSetter: ({ data, newValue }: { data: RowData; newValue: any }) => {
-      const edit = graph.startEdit()
-      if (data.index === rowCount.value) {
-        addRow(edit)
-      }
-      addColumn(
-        edit,
-        `${DEFAULT_COLUMN_PREFIX}${columns.value.length}`,
-        (index) => (index === data.index ? newValue : null),
-        Math.max(rowCount.value, data.index + 1),
-      )
-      onUpdate({ edit })
-      return true
-    },
+    editable: false,
+    resizable: false,
+    suppressNavigable: true,
+    width: 40,
+    maxWidth: 40,
     headerComponentParams: {
-      nameSetter: (newName: string) => {
+      type: 'newColumn',
+      newColumnRequested: () => {
         const edit = graph.startEdit()
         fixColumns(edit)
-        addColumn(edit, newName)
+        addColumn(edit, `${DEFAULT_COLUMN_PREFIX}${columns.value.length + 1}`)
         onUpdate({ edit })
       },
-      virtualColumn: true,
     },
     mainMenuItems: ['autoSizeThis', 'autoSizeAll'],
-    contextMenuItems: [commonContextMenuActions.paste, 'separator', removeRowMenuItem],
+    contextMenuItems: [removeRowMenuItem],
     lockPosition: 'right',
+    cellStyle: { display: 'none' },
   }))
 
   const rowIndexColumnDef = computed<ColumnDef>(() => ({
@@ -295,6 +291,11 @@ export function useTableNewArgument(
     headerName: ROW_INDEX_HEADER,
     valueGetter: ({ data }: { data: RowData | undefined }) => data?.index,
     editable: false,
+    resizable: false,
+    suppressNavigable: true,
+    headerComponentParams: {
+      type: 'rowIndexColumn',
+    },
     mainMenuItems: ['autoSizeThis', 'autoSizeAll'],
     contextMenuItems: [removeRowMenuItem],
     cellStyle: { color: 'rgba(0, 0, 0, 0.4)' },
@@ -338,11 +339,14 @@ export function useTableNewArgument(
             return true
           },
           headerComponentParams: {
-            nameSetter: (newName: string) => {
-              const edit = graph.startEdit()
-              fixColumns(edit)
-              edit.getVersion(col.name).setRawTextContent(newName)
-              onUpdate({ edit })
+            type: 'astColumn',
+            editHandlers: {
+              nameSetter: (newName: string) => {
+                const edit = graph.startEdit()
+                fixColumns(edit)
+                edit.getVersion(col.name).setRawTextContent(newName)
+                onUpdate({ edit })
+              },
             },
           },
           mainMenuItems: ['autoSizeThis', 'autoSizeAll', removeColumnMenuItem(col.id)],
@@ -470,7 +474,7 @@ export function useTableNewArgument(
     for (let i = columns.value.length; i < newColCount; ++i) {
       modifiedColumnsAst = addColumn(
         edit,
-        `${DEFAULT_COLUMN_PREFIX}${i}`,
+        `${DEFAULT_COLUMN_PREFIX}${i + 1}`,
         (index) => newValueGetter(index, i),
         newRowCount,
         modifiedColumnsAst,

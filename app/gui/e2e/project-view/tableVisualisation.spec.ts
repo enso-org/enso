@@ -58,6 +58,7 @@ test('Copy from Table Visualization', async ({ page, context }) => {
   const node = await actions.createTableNode(page)
   const widget = node.locator('.WidgetTableEditor')
   await expect(widget).toBeVisible()
+  await widget.getByRole('button', { name: 'Add new column' }).click()
   await widget.locator('.ag-cell', { hasNotText: /0/ }).first().click()
   await page.keyboard.press('Control+V')
   await expect(widget.locator('.ag-cell')).toHaveText([

@@ -9,6 +9,7 @@ import {
 import ResizeHandles from '@/components/ResizeHandles.vue'
 import AgGridTableView from '@/components/shared/AgGridTableView.vue'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
+import { useTooltipRegistry } from '@/providers/tooltipState'
 import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { useGraphStore } from '@/stores/graph'
@@ -20,12 +21,13 @@ import '@ag-grid-community/styles/ag-theme-alpine.css'
 import type {
   CellEditingStartedEvent,
   CellEditingStoppedEvent,
+  ColDef,
   Column,
   ColumnMovedEvent,
   ProcessDataFromClipboardParams,
   RowDragEndEvent,
 } from 'ag-grid-enterprise'
-import { computed, ref } from 'vue'
+import { computed, markRaw, ref, shallowReactive, shallowRef } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -178,14 +180,22 @@ function processDataFromClipboard({ data, api }: ProcessDataFromClipboardParams<
 
 // === Column Default Definition ===
 
-const defaultColDef = {
+const tooltipRegistry = useTooltipRegistry()
+const defaultColDef: ColDef<RowData> = {
   editable: true,
   resizable: true,
   sortable: false,
   lockPinned: true,
+  menuTabs: ['generalMenuTab'],
   headerComponentParams: {
-    onHeaderEditingStarted: headerEditHandler.headerEditedInGrid.bind(headerEditHandler),
-    onHeaderEditingStopped: headerEditHandler.headerEditingStoppedInGrid.bind(headerEditHandler),
+    // TODO[ao]: we mark raw, because otherwise any change _inside_ tooltipRegistry causes the grid
+    //  to be refreshed. Technically, shallowReactive should work here, but it does not,
+    //  I don't know why
+    tooltipRegistry: markRaw(tooltipRegistry),
+    editHandlers: {
+      onHeaderEditingStarted: headerEditHandler.headerEditedInGrid.bind(headerEditHandler),
+      onHeaderEditingStopped: headerEditHandler.headerEditingStoppedInGrid.bind(headerEditHandler),
+    },
   },
 }
 </script>

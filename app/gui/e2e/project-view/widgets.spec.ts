@@ -544,27 +544,32 @@ test('Table widget', async ({ page }) => {
   const node = await actions.createTableNode(page)
   const widget = node.locator('.WidgetTableEditor')
   await expect(widget).toBeVisible()
-  await expect(widget.locator('.ag-header-cell-text')).toHaveText(['#', 'New Column'])
-  await expect(widget.locator('.ag-header-cell-text', { hasText: 'New Column' })).toHaveClass(
-    /(?<=^| )virtualColumn(?=$| )/,
-  )
-  // There are two cells, one with row number, second allowing creating first row and column
-  await expect(widget.locator('.ag-cell')).toHaveCount(2)
+  await expect(widget.locator('.ag-header-cell-text')).toHaveText(['#'])
+  await expect(widget.getByRole('button', { name: 'Add new column' })).toExist()
+  await expect(widget.locator('.ag-cell')).toHaveText(['0', ''])
+
+  // Create first column
+  await widget.getByRole('button', { name: 'Add new column' }).click()
+  await expect(widget.locator('.ag-header-cell-text')).toHaveText(['#', 'Column #1'])
+  await expect(widget.locator('.ag-cell')).toHaveText(['0', '', ''])
 
   // Putting first value
-  await widget.locator('.ag-cell', { hasNotText: '0' }).click()
+  await widget.locator('.ag-cell', { hasNotText: '0' }).first().click()
   await page.keyboard.type('Value')
   await page.keyboard.press('Enter')
-  // There will be new blank column and new blank row allowing adding new columns and rows
-  // (so 4 cells in total)
-  await expect(widget.locator('.ag-header-cell-text')).toHaveText(['#', 'Column #0', 'New Column'])
+  // There will be new blank row allowing adding new rows.
   await expect(widget.locator('.ag-cell')).toHaveText(['0', 'Value', '', '1', '', ''])
 
   // Renaming column
-  await widget.locator('.ag-header-cell-text', { hasText: 'Column #0' }).first().click()
+  await widget.locator('.ag-header-cell-text', { hasText: 'Column #1' }).first().click()
   await page.keyboard.type('Header')
   await page.keyboard.press('Enter')
-  await expect(widget.locator('.ag-header-cell-text')).toHaveText(['#', 'Header', 'New Column'])
+  await expect(widget.locator('.ag-header-cell-text')).toHaveText(['#', 'Header'])
+
+  // Adding next column
+  await widget.getByRole('button', { name: 'Add new column' }).click()
+  await expect(widget.locator('.ag-header-cell-text')).toHaveText(['#', 'Header', 'Column #2'])
+  await expect(widget.locator('.ag-cell')).toHaveText(['0', 'Value', '', '', '1', '', '', ''])
 
   // Switching edit between cells and headers - check we will never edit two things at once.
   await expect(widget.locator('.ag-text-field-input')).toHaveCount(0)

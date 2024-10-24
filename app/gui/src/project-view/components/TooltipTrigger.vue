@@ -6,7 +6,6 @@ import { toRef, useSlots } from 'vue'
 usePropagateScopesToAllRoots()
 
 const registry = useTooltipRegistry()
-
 const slots = useSlots()
 const tooltipSlot = toRef(slots, 'tooltip')
 const registered = registry.registerTooltip(tooltipSlot)
