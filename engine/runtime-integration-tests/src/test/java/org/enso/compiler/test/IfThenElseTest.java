@@ -228,6 +228,35 @@ public class IfThenElseTest {
     assertWarning("Maybe not", no);
   }
 
+  @Test
+  public void warningsInThenOrElse() throws Exception {
+    var code = """
+    from Standard.Base import all
+
+    check x y n = if x then y else n
+    """;
+
+    var check = ContextUtils.getMethodFromModule(ctx, code, "check");
+
+    var warnCode = """
+    from Standard.Base import all
+
+    warn w v = Warning.attach w v
+    """;
+    var warn = ContextUtils.getMethodFromModule(ctx, warnCode, "warn");
+
+    var y = warn.execute("Good", "Yes");
+    var n = warn.execute("Bad", "No");
+
+    var yes = check.execute(true, y, n);
+    var no = check.execute(false, y, n);
+
+    assertEquals("Yes", yes.asString());
+    assertWarning("Good", yes);
+    assertEquals("No", no.asString());
+    assertWarning("Bad", no);
+  }
+
   private static void assertWarning(String txt, Value v) {
     assertTrue("Value " + v + " should be an exceptional", v.isException());
     try {
