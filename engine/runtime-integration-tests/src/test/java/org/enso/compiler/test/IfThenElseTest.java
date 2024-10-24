@@ -6,6 +6,10 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.library.ExportLibrary;
+import com.oracle.truffle.api.library.ExportMessage;
 import java.io.ByteArrayOutputStream;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
@@ -15,6 +19,7 @@ import org.hamcrest.core.AllOf;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class IfThenElseTest {
@@ -152,5 +157,43 @@ public class IfThenElseTest {
 
     assertEquals("Yes", check.execute("Ano").asString());
     assertEquals("No", check.execute("Ne").asString());
+  }
+
+  @Ignore
+  @Test
+  public void truffleObjectConvertibleToBooleanIsSupported() throws Exception {
+    var code =
+        """
+    from Standard.Base import all
+
+    check x = if x then "Yes" else "No"
+    """;
+
+    var check = ContextUtils.getMethodFromModule(ctx, code, "check");
+
+    var t = new BoolObject(true);
+    var f = new BoolObject(false);
+
+    assertEquals("Yes", check.execute(t).asString());
+    assertEquals("No", check.execute(f).asString());
+  }
+
+  @ExportLibrary(InteropLibrary.class)
+  static final class BoolObject implements TruffleObject {
+    private final boolean value;
+
+    public BoolObject(boolean value) {
+      this.value = value;
+    }
+
+    @ExportMessage
+    boolean isBoolean() {
+      return true;
+    }
+
+    @ExportMessage
+    boolean asBoolean() {
+      return value;
+    }
   }
 }
