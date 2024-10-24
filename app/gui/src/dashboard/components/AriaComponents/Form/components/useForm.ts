@@ -85,7 +85,7 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
           errorMap: (issue) => {
             switch (issue.code) {
               case 'too_small':
-                if (issue.minimum === 0) {
+                if (issue.minimum === 1 && issue.type === 'string') {
                   return {
                     message: getText('arbitraryFieldRequired'),
                   }
