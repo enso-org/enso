@@ -1,6 +1,4 @@
 /** @file Displays information describing a specific version of an asset. */
-import { useState } from 'react'
-
 import LogsIcon from '#/assets/logs.svg'
 
 import { Button, DialogTrigger } from '#/components/AriaComponents'
