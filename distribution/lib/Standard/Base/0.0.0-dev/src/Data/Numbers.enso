@@ -794,13 +794,20 @@ type Float
              Float.parse "(123,456,789.654)" format="###,###.##;(###,###.##)"
              # => -123456789.654
     parse : Text -> Locale | Nothing -> Float ! Number_Parse_Error ! Illegal_Argument
-    parse text locale:Locale=Locale.default format:Text="" -> Float ! Number_Parse_Error ! Illegal_Argument =
-        Illegal_Argument.handle_java_exception <|
-            # `getInstance` returns `DecimalFormat` or a subclass of `DecimalFormat`.
-            decimal_format = NumberFormat.getInstance locale.java_locale
-            decimal_format.applyLocalizedPattern format
-            Panic.catch ParseException (decimal_format.parse text) _->
-                Error.throw (Number_Parse_Error.Error text)
+    parse text (locale : Locale | Nothing = Nothing) (format : Text | Nothing = Nothing) -> Float ! Number_Parse_Error ! Illegal_Argument =
+        case locale.is_nothing && format.is_nothing of
+            True ->
+                Panic.catch NumberFormatException (Double.parseDouble text) _->
+                    Error.throw (Number_Parse_Error.Error text)
+            False ->
+                Illegal_Argument.handle_java_exception <|
+                    defaulted_locale = locale.if_nothing Locale.default
+                    defaulted_format = format.if_nothing ""
+                    # `getInstance` returns `DecimalFormat` or a subclass of `DecimalFormat`.
+                    decimal_format = NumberFormat.getInstance defaulted_locale.java_locale
+                    decimal_format.applyLocalizedPattern defaulted_format
+                    Panic.catch ParseException (decimal_format.parse text) _->
+                        Error.throw (Number_Parse_Error.Error text)
 
     ## ICON input_number
 
