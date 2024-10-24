@@ -762,8 +762,9 @@ export const ASSET_TYPE_ORDER: Readonly<Record<AssetType, number>> = {
  * Metadata uniquely identifying a directory entry.
  * These can be Projects, Files, Secrets, or other directories.
  */
-export interface BaseAsset {
-  readonly id: AssetId
+export interface Asset<Type extends AssetType = AssetType> {
+  readonly type: Type
+  readonly id: IdType[Type]
   readonly title: string
   readonly modifiedAt: dateTime.Rfc3339DateTime
   /**
@@ -774,16 +775,10 @@ export interface BaseAsset {
   readonly permissions: readonly AssetPermission[] | null
   readonly labels: readonly LabelName[] | null
   readonly description: string | null
-}
-
-/**
- * Metadata uniquely identifying a directory entry.
- * These can be Projects, Files, Secrets, or other directories.
- */
-export interface Asset<Type extends AssetType = AssetType> extends BaseAsset {
-  readonly type: Type
-  readonly id: IdType[Type]
   readonly projectState: Type extends AssetType.project ? ProjectStateType : null
+  readonly extension: Type extends AssetType.file ? string : null
+  readonly parentsPath: string
+  readonly virtualParentsPath: string
 }
 
 /** A convenience alias for {@link Asset}<{@link AssetType.directory}>. */
@@ -823,9 +818,17 @@ export function createRootDirectoryAsset(directoryId: DirectoryId): DirectoryAss
     parentId: DirectoryId(''),
     permissions: [],
     projectState: null,
+    extension: null,
     labels: [],
     description: null,
+    parentsPath: '',
+    virtualParentsPath: '',
   }
+}
+
+/** Extract the file extension from a file name. */
+function fileExtension(fileNameOrPath: string) {
+  return fileNameOrPath.match(/[.]([^.]+?)$/)?.[1] ?? ''
 }
 
 /** Creates a {@link FileAsset} using the given values. */
@@ -842,8 +845,11 @@ export function createPlaceholderFileAsset(
     permissions: assetPermissions,
     modifiedAt: dateTime.toRfc3339(new Date()),
     projectState: null,
+    extension: fileExtension(title),
     labels: [],
     description: null,
+    parentsPath: '',
+    virtualParentsPath: '',
   }
 }
 
@@ -868,8 +874,11 @@ export function createPlaceholderProjectAsset(
       ...(organization != null ? { openedBy: organization.email } : {}),
       ...(path != null ? { path } : {}),
     },
+    extension: null,
     labels: [],
     description: null,
+    parentsPath: '',
+    virtualParentsPath: '',
   }
 }
 
@@ -881,14 +890,22 @@ export function createSpecialLoadingAsset(directoryId: DirectoryId): SpecialLoad
   return {
     type: AssetType.specialLoading,
     title: '',
-    id: LoadingAssetId(uniqueString.uniqueString()),
+    id: LoadingAssetId(`${AssetType.specialLoading}-${uniqueString.uniqueString()}`),
     modifiedAt: dateTime.toRfc3339(new Date()),
     parentId: directoryId,
     permissions: [],
     projectState: null,
+    extension: null,
     labels: [],
     description: null,
+    parentsPath: '',
+    virtualParentsPath: '',
   }
+}
+
+/** Whether a given {@link string} is an {@link LoadingAssetId}. */
+export function isLoadingAssetId(id: string): id is LoadingAssetId {
+  return id.startsWith(`${AssetType.specialLoading}-`)
 }
 
 /**
@@ -899,14 +916,22 @@ export function createSpecialEmptyAsset(directoryId: DirectoryId): SpecialEmptyA
   return {
     type: AssetType.specialEmpty,
     title: '',
-    id: EmptyAssetId(uniqueString.uniqueString()),
+    id: EmptyAssetId(`${AssetType.specialEmpty}-${uniqueString.uniqueString()}`),
     modifiedAt: dateTime.toRfc3339(new Date()),
     parentId: directoryId,
     permissions: [],
     projectState: null,
+    extension: null,
     labels: [],
     description: null,
+    parentsPath: '',
+    virtualParentsPath: '',
   }
+}
+
+/** Whether a given {@link string} is an {@link EmptyAssetId}. */
+export function isEmptyAssetId(id: string): id is EmptyAssetId {
+  return id.startsWith(`${AssetType.specialEmpty}-`)
 }
 
 /**
@@ -917,14 +942,22 @@ export function createSpecialErrorAsset(directoryId: DirectoryId): SpecialErrorA
   return {
     type: AssetType.specialError,
     title: '',
-    id: ErrorAssetId(uniqueString.uniqueString()),
+    id: ErrorAssetId(`${AssetType.specialError}-${uniqueString.uniqueString()}`),
     modifiedAt: dateTime.toRfc3339(new Date()),
     parentId: directoryId,
     permissions: [],
     projectState: null,
+    extension: null,
     labels: [],
     description: null,
+    parentsPath: '',
+    virtualParentsPath: '',
   }
+}
+
+/** Whether a given {@link string} is an {@link ErrorAssetId}. */
+export function isErrorAssetId(id: string): id is ErrorAssetId {
+  return id.startsWith(`${AssetType.specialError}-`)
 }
 
 /** Any object with a `type` field matching the given `AssetType`. */
@@ -1384,6 +1417,25 @@ export function stripProjectExtension(name: string) {
 export function extractProjectExtension(name: string) {
   const [, basename, extension] = name.match(/^(.*)[.](tar[.]gz|zip|enso-project)$/) ?? []
   return { basename: basename ?? name, extension: extension ?? '' }
+}
+
+/** Check whether a pending rename is valid. */
+export function isNewTitleValid(
+  item: AnyAsset,
+  newTitle: string,
+  siblings?: readonly AnyAsset[] | null,
+) {
+  siblings ??= []
+  return (
+    newTitle !== '' &&
+    newTitle !== item.title &&
+    siblings.every(sibling => {
+      const isSelf = sibling.id === item.id
+      const hasSameType = sibling.type === item.type
+      const hasSameTitle = sibling.title === newTitle
+      return !(!isSelf && hasSameType && hasSameTitle)
+    })
+  )
 }
 
 /** Network error class. */

@@ -9,8 +9,7 @@ import NameColumn from '#/components/dashboard/column/NameColumn'
 import PlaceholderColumn from '#/components/dashboard/column/PlaceholderColumn'
 import SharedWithColumn from '#/components/dashboard/column/SharedWithColumn'
 import type { AssetRowState, AssetsTableState } from '#/layouts/AssetsTable'
-import type { Asset, AssetId, BackendType } from '#/services/Backend'
-import type { AnyAssetTreeNode } from '#/utilities/AssetTreeNode'
+import type { AnyAsset, Asset, AssetId, BackendType } from '#/services/Backend'
 
 // ===================
 // === AssetColumn ===
@@ -20,9 +19,9 @@ import type { AnyAssetTreeNode } from '#/utilities/AssetTreeNode'
 export interface AssetColumnProps {
   readonly keyProp: AssetId
   readonly isOpened: boolean
-  readonly item: AnyAssetTreeNode
+  readonly item: AnyAsset
+  readonly depth: number
   readonly backendType: BackendType
-  readonly setItem: Dispatch<SetStateAction<AnyAssetTreeNode>>
   readonly selected: boolean
   readonly setSelected: (selected: boolean) => void
   readonly isSoleSelected: boolean

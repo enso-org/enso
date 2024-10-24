@@ -17,7 +17,6 @@ import * as ariaComponents from '#/components/AriaComponents'
 import type Backend from '#/services/Backend'
 import * as backendService from '#/services/Backend'
 
-import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as dateTime from '#/utilities/dateTime'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 
@@ -28,7 +27,7 @@ import * as tailwindMerge from '#/utilities/tailwindMerge'
 /** Props for a {@link AssetVersion}. */
 export interface AssetVersionProps {
   readonly placeholder?: boolean
-  readonly item: AssetTreeNode
+  readonly item: backendService.AnyAsset
   readonly number: number
   readonly version: backendService.S3ObjectVersion
   readonly latestVersion: backendService.S3ObjectVersion
@@ -41,16 +40,15 @@ export default function AssetVersion(props: AssetVersionProps) {
   const { placeholder = false, number, version, item, backend, latestVersion, doRestore } = props
   const { getText } = textProvider.useText()
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
-  const asset = item.item
-  const isProject = asset.type === backendService.AssetType.project
+  const isProject = item.type === backendService.AssetType.project
 
   const doDuplicate = () => {
     if (isProject) {
       dispatchAssetListEvent({
         type: AssetListEventType.duplicateProject,
-        parentKey: item.directoryKey,
-        parentId: asset.parentId,
-        original: asset,
+        parentKey: item.parentId,
+        parentId: item.parentId,
+        original: item,
         versionId: version.versionId,
       })
     }
@@ -129,7 +127,7 @@ export default function AssetVersion(props: AssetVersionProps) {
                   <assetDiffView.AssetDiffView
                     latestVersionId={latestVersion.versionId}
                     versionId={version.versionId}
-                    project={asset}
+                    project={item}
                     backend={backend}
                   />
                 </div>

@@ -12,7 +12,7 @@ import { APP_BASE_URL } from '#/utilities/appBaseUrl'
 import { toRfc3339 } from '#/utilities/dateTime'
 import { download } from '#/utilities/download'
 import { tryGetMessage } from '#/utilities/error'
-import { getFileName, getFolderPath } from '#/utilities/fileInfo'
+import { fileExtension, getFileName, getFolderPath } from '#/utilities/fileInfo'
 import { getDirectoryAndName, joinPath } from '#/utilities/path'
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import invariant from 'tiny-invariant'
@@ -168,8 +168,11 @@ export default class LocalBackend extends Backend {
                 title: getFileName(entry.path),
                 permissions: [],
                 projectState: null,
+                extension: null,
                 labels: [],
                 description: null,
+                parentsPath: '',
+                virtualParentsPath: '',
               } satisfies backend.DirectoryAsset
             }
             case projectManager.FileSystemEntryType.ProjectEntry: {
@@ -186,8 +189,11 @@ export default class LocalBackend extends Backend {
                     backend.ProjectState.closed,
                   volumeId: '',
                 },
+                extension: null,
                 labels: [],
                 description: null,
+                parentsPath: '',
+                virtualParentsPath: '',
               } satisfies backend.ProjectAsset
             }
             case projectManager.FileSystemEntryType.FileEntry: {
@@ -199,8 +205,11 @@ export default class LocalBackend extends Backend {
                 parentId,
                 permissions: [],
                 projectState: null,
+                extension: fileExtension(entry.path),
                 labels: [],
                 description: null,
+                parentsPath: '',
+                virtualParentsPath: '',
               } satisfies backend.FileAsset
             }
           }

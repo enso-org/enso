@@ -33,7 +33,6 @@ import ProjectsProvider, {
 } from '#/providers/ProjectsProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
 
 import type * as assetTable from '#/layouts/AssetsTable'
@@ -60,7 +59,6 @@ import * as projectManager from '#/services/ProjectManager'
 import { useSetCategory } from '#/providers/DriveProvider'
 import { baseName } from '#/utilities/fileInfo'
 import LocalStorage from '#/utilities/LocalStorage'
-import * as object from '#/utilities/object'
 import { tryFindSelfPermission } from '#/utilities/permissions'
 import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
@@ -134,7 +132,6 @@ function DashboardInner(props: DashboardProps) {
   const inputBindings = inputBindingsProvider.useInputBindings()
   const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
 
-  const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
   const assetManagementApiRef = React.useRef<assetTable.AssetManagementApi | null>(null)
 
@@ -395,20 +392,7 @@ function DashboardInner(props: DashboardProps) {
                   openingError={openProjectMutation.error}
                   startProject={openProjectMutation.mutate}
                   renameProject={async (newName) => {
-                    try {
-                      await renameProjectMutation.mutateAsync({ newName, project })
-                      dispatchAssetEvent({
-                        type: AssetEventType.setItem,
-                        id: project.id,
-                        valueOrUpdater: object.merger({ title: newName }),
-                      })
-                    } catch {
-                      dispatchAssetEvent({
-                        type: AssetEventType.setItem,
-                        id: project.id,
-                        valueOrUpdater: object.merger({ title: project.title }),
-                      })
-                    }
+                    await renameProjectMutation.mutateAsync({ newName, project })
                   }}
                 />
               </aria.TabPanel>

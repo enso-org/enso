@@ -1,16 +1,11 @@
 /** @file A column displaying the time at which the asset was last modified. */
-import * as React from 'react'
-
-import * as aria from '#/components/aria'
-import type * as column from '#/components/dashboard/column'
-
-import * as dateTime from '#/utilities/dateTime'
-
-// ======================
-// === ModifiedColumn ===
-// ======================
+import { Text } from '#/components/aria'
+import type { AssetColumnProps } from '#/components/dashboard/column'
+import { formatDateTime } from '#/utilities/dateTime'
 
 /** A column displaying the time at which the asset was last modified. */
-export default function ModifiedColumn(props: column.AssetColumnProps) {
-  return <aria.Text>{dateTime.formatDateTime(new Date(props.item.item.modifiedAt))}</aria.Text>
+export default function ModifiedColumn(props: AssetColumnProps) {
+  const { item } = props
+
+  return <Text>{formatDateTime(new Date(item.modifiedAt))}</Text>
 }

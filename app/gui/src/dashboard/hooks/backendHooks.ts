@@ -1,5 +1,5 @@
 /** @file Hooks for interacting with the backend. */
-import { useId, useMemo, useState } from 'react'
+import { useId, useMemo, useRef, useState } from 'react'
 
 import {
   queryOptions,
@@ -39,6 +39,7 @@ import {
 import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from '#/services/remoteBackendPaths'
 import { usePreventNavigation } from '#/utilities/preventNavigation'
 import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
+import { deepEqual } from 'enso-common/src/utilities/data/object'
 
 // The number of bytes in 1 megabyte.
 const MB_BYTES = 1_000_000
@@ -302,7 +303,8 @@ export function useAssetPassiveListener(
   parentId: DirectoryId | null | undefined,
   category: Category,
 ) {
-  const listDirectoryQuery = useQuery<readonly AnyAsset<AssetType>[] | undefined>({
+  const prevAssetRef = useRef<AnyAsset | undefined>()
+  const { data: asset } = useQuery<readonly AnyAsset[] | undefined, Error, AnyAsset | undefined>({
     queryKey: [
       backendType,
       'listDirectory',
@@ -314,37 +316,67 @@ export function useAssetPassiveListener(
       },
     ],
     initialData: undefined,
+    select: (data) => {
+      const newAsset = data?.find((child) => child.id === assetId)
+      const result = deepEqual(prevAssetRef.current, newAsset) ? prevAssetRef.current : newAsset
+      prevAssetRef.current = result
+      return result
+    },
   })
-  const asset = listDirectoryQuery.data?.find((child) => child.id === assetId)
   if (asset || !assetId || !parentId) {
     return asset
   }
-  switch (assetId) {
-    case USERS_DIRECTORY_ID: {
+  const shared = {
+    parentId,
+    projectState: null,
+    extension: null,
+    description: '',
+    modifiedAt: toRfc3339(new Date()),
+    permissions: [],
+    labels: [],
+    parentsPath: '',
+    virtualParentsPath: '',
+  }
+  switch (true) {
+    case assetId === USERS_DIRECTORY_ID: {
       return {
+        ...shared,
         id: assetId,
-        parentId,
-        type: AssetType.directory,
-        projectState: null,
         title: 'Users',
-        description: '',
-        modifiedAt: toRfc3339(new Date()),
-        permissions: [],
-        labels: [],
+        type: AssetType.directory,
       } satisfies DirectoryAsset
     }
-    case TEAMS_DIRECTORY_ID: {
+    case assetId === TEAMS_DIRECTORY_ID: {
       return {
+        ...shared,
         id: assetId,
-        parentId,
-        type: AssetType.directory,
-        projectState: null,
         title: 'Teams',
-        description: '',
-        modifiedAt: toRfc3339(new Date()),
-        permissions: [],
-        labels: [],
+        type: AssetType.directory,
       } satisfies DirectoryAsset
+    }
+    case backendModule.isLoadingAssetId(assetId): {
+      return {
+        ...shared,
+        id: assetId,
+        title: '',
+        type: AssetType.specialLoading,
+      } satisfies backendModule.SpecialLoadingAsset
+    }
+    case backendModule.isEmptyAssetId(assetId): {
+      return {
+        ...shared,
+        id: assetId,
+        title: '',
+        type: AssetType.specialEmpty,
+      } satisfies backendModule.SpecialEmptyAsset
+    }
+    case backendModule.isErrorAssetId(assetId): {
+      return {
+        ...shared,
+        id: assetId,
+        title: '',
+        type: AssetType.specialError,
+      } satisfies backendModule.SpecialErrorAsset
     }
     default: {
       return

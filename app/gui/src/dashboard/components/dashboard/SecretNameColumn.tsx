@@ -16,7 +16,6 @@ import UpsertSecretModal from '#/modals/UpsertSecretModal'
 
 import type * as backendModule from '#/services/Backend'
 
-import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
@@ -28,7 +27,7 @@ import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 /** Props for a {@link SecretNameColumn}. */
 export interface SecretNameColumnProps extends column.AssetColumnProps {
-  readonly item: AssetTreeNode<backendModule.SecretAsset>
+  readonly item: backendModule.SecretAsset
 }
 
 /**
@@ -37,11 +36,10 @@ export interface SecretNameColumnProps extends column.AssetColumnProps {
  * This should never happen.
  */
 export default function SecretNameColumn(props: SecretNameColumnProps) {
-  const { item, selected, state, rowState, setRowState, isEditable } = props
+  const { item, selected, state, rowState, setRowState, isEditable, depth } = props
   const { backend } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { setModal } = modalProvider.useSetModal()
-  const asset = item.item
 
   const updateSecretMutation = useMutation(backendMutationOptions(backend, 'updateSecret'))
 
@@ -55,7 +53,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
     <div
       className={tailwindMerge.twMerge(
         'flex h-table-row min-w-max items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y',
-        indent.indentClass(item.depth),
+        indent.indentClass(depth),
       )}
       onKeyDown={(event) => {
         if (rowState.isEditingName && event.key === 'Enter') {
@@ -69,11 +67,11 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
           event.stopPropagation()
           setModal(
             <UpsertSecretModal
-              id={asset.id}
-              name={asset.title}
+              id={item.id}
+              name={item.title}
               doCreate={async (_name, value) => {
                 try {
-                  await updateSecretMutation.mutateAsync([asset.id, { value }, asset.title])
+                  await updateSecretMutation.mutateAsync([item.id, { value }, item.title])
                 } catch (error) {
                   toastAndLog(null, error)
                 }
@@ -90,7 +88,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
         font="naming"
         className="grow bg-transparent"
       >
-        {asset.title}
+        {item.title}
       </ariaComponents.Text>
     </div>
   )
