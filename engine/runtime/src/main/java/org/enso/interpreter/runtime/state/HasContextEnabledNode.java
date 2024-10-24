@@ -3,6 +3,7 @@ package org.enso.interpreter.runtime.state;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.GenerateUncached;
+import com.oracle.truffle.api.dsl.NeverDefault;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -18,6 +19,7 @@ public abstract class HasContextEnabledNode extends Node {
     return HasContextEnabledNodeGen.getUncached();
   }
 
+  @NeverDefault
   public static HasContextEnabledNode create() {
     return HasContextEnabledNodeGen.create();
   }
