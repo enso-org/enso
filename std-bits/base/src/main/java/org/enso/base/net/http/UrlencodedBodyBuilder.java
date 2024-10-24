@@ -12,6 +12,7 @@ import java.util.ArrayList;
 public final class UrlencodedBodyBuilder {
 
   private final ArrayList<String> parts = new ArrayList<>();
+  private String contents = null;
 
   /**
    * Create HTTP body publisher for an url-encoded form data.
@@ -19,8 +20,17 @@ public final class UrlencodedBodyBuilder {
    * @return the body publisher.
    */
   public HttpRequest.BodyPublisher build() {
-    String contents = String.join("&", parts);
+    contents = String.join("&", parts);
     return HttpRequest.BodyPublishers.ofString(contents);
+  }
+
+  /**
+   * Get the contents of the form data.
+   *
+   * @return the contents.
+   */
+  public String getContents() {
+    return contents;
   }
 
   /**

@@ -1,6 +1,7 @@
 package org.enso.aws;
 
 import java.net.URI;
+import java.net.http.HttpClient;
 import java.util.function.Supplier;
 import org.enso.base.enso_cloud.ExternalLibrarySecretHelper;
 import org.enso.base.enso_cloud.HideableValue;
@@ -57,6 +58,16 @@ public class ClientBuilder {
         .credentialsProvider(unsafeBuildCredentialProvider())
         .region(awsRegion)
         .build();
+  }
+
+  /**
+   * Signs an AWS request using the provided credentials. AccessKey is returned in header plain
+   * text, will reject if credential is AccessKey/SecretKey and AccessKey is secret.
+   */
+  public HttpClient createSignedClient(
+      String regionName, String serviceName, HttpClient baseClient, String bodySHA256) {
+    return new SignedHttpClient(
+        regionName, serviceName, unsafeBuildCredentialProvider(), baseClient, bodySHA256);
   }
 
   /**
