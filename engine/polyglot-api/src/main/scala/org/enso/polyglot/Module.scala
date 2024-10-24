@@ -44,14 +44,6 @@ class Module(private val value: Value) {
   def evalExpression(code: String): Value =
     value.invokeMember(EVAL_EXPRESSION, code)
 
-  /** Triggers generation of documentation from module sources.
-    *
-    * @return value with `GENERATE_DOCS` invoked on it.
-    */
-  def generateDocs(): Value = {
-    value.invokeMember(GENERATE_DOCS)
-  }
-
   /** Triggers gathering of import statements from module sources.
     *
     * @return value with `GATHER_IMPORT_STATEMENTS` invoked on it.

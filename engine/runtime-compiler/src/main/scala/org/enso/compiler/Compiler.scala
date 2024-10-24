@@ -1,5 +1,6 @@
 package org.enso.compiler
 
+import scala.jdk.CollectionConverters.IterableHasAsJava
 import org.enso.compiler.context.{
   CompilerContext,
   FreshNameSupply,
@@ -139,7 +140,8 @@ class Compiler(
     */
   def compile(
     shouldCompileDependencies: Boolean,
-    useGlobalCacheLocations: Boolean
+    useGlobalCacheLocations: Boolean,
+    generateDocs: Boolean
   ): Future[java.lang.Boolean] = {
     getPackageRepository.getMainProjectPackage match {
       case None =>
@@ -181,6 +183,11 @@ class Compiler(
               shouldCompileDependencies
             )
 
+            if (generateDocs) {
+              org.enso.compiler.dump.GenerateDocs
+                .write(pkg, packageModules.asJava)
+            }
+
             context.serializeLibrary(
               this,
               pkg.libraryName,
@@ -198,8 +205,7 @@ class Compiler(
     initialize()
     parseModule(
       module,
-      irCachingEnabled && !context.isInteractive(module),
-      isGenDocs = true
+      irCachingEnabled && !context.isInteractive(module)
     )
     module
   }
@@ -548,8 +554,7 @@ class Compiler(
 
   private def parseModule(
     module: Module,
-    useCaches: Boolean,
-    isGenDocs: Boolean = false
+    useCaches: Boolean
   ): Unit = {
     context.log(
       Compiler.defaultLogLevel,
@@ -565,7 +570,7 @@ class Compiler(
       return
     }
 
-    uncachedParseModule(module, isGenDocs)
+    uncachedParseModule(module)
   }
 
   /** Retrieve module bindings from cache, if available.
@@ -582,7 +587,7 @@ class Compiler(
     } else None
   }
 
-  private def uncachedParseModule(module: Module, isGenDocs: Boolean): Unit = {
+  private def uncachedParseModule(module: Module): Unit = {
     context.log(
       Compiler.defaultLogLevel,
       "Loading module [{0}] from source.",
@@ -591,10 +596,9 @@ class Compiler(
     context.updateModule(module, _.resetScope())
 
     val moduleContext = ModuleContext(
-      module           = module,
-      freshNameSupply  = Some(freshNameSupply),
-      compilerConfig   = config,
-      isGeneratingDocs = isGenDocs
+      module          = module,
+      freshNameSupply = Some(freshNameSupply),
+      compilerConfig  = config
     )
 
     val src   = context.getCharacters(module)
