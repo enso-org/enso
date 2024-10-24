@@ -135,4 +135,22 @@ public class IfThenElseTest {
       assertThat(ex.getMessage(), Matchers.containsString(".Error"));
     }
   }
+
+  @Test
+  public void javaScriptBooleanIsSupported() throws Exception {
+    var code =
+        """
+    foreign js toBool txt = '''
+      if (txt == "Ano") return true;
+      if (txt == "Ne") return false;
+      throw "What do you mean by: " + txt;
+
+    check x = if toBool x then "Yes" else "No"
+    """;
+
+    var check = ContextUtils.getMethodFromModule(ctx, code, "check");
+
+    assertEquals("Yes", check.execute("Ano").asString());
+    assertEquals("No", check.execute("Ne").asString());
+  }
 }
