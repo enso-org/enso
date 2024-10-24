@@ -63,12 +63,13 @@ public class StaticModuleScopeAnalysis implements IRPass {
   public Module runModule(Module ir, ModuleContext moduleContext) {
     // This has a lot in common with IrToTruffle::processModule - we may want to extract some common
     // parts if it will make sense.
-    StaticModuleScope scope = new StaticModuleScope(moduleContext.getName());
+    StaticModuleScope.Builder scopeBuilder = new StaticModuleScope.Builder(moduleContext.getName());
     BindingsMap bindingsMap = getMetadata(ir, BindingAnalysis$.MODULE$, BindingsMap.class);
-    processModuleExports(scope, ir, bindingsMap);
-    processModuleImports(scope, ir, bindingsMap);
-    processPolyglotImports(scope, ir);
-    processBindings(scope, ir);
+    processModuleExports(scopeBuilder, ir, bindingsMap);
+    processModuleImports(scopeBuilder, ir, bindingsMap);
+    processPolyglotImports(scopeBuilder, ir);
+    processBindings(scopeBuilder, ir);
+    StaticModuleScope scope = scopeBuilder.build();
     ir.passData().update(INSTANCE, scope);
     return ir;
   }
@@ -84,7 +85,7 @@ public class StaticModuleScopeAnalysis implements IRPass {
    * org.enso.interpreter.runtime.IrToTruffle#registerModuleImports(BindingsMap)}}
    */
   private void processModuleImports(
-      StaticModuleScope scope, Module module, BindingsMap bindingsMap) {
+      StaticModuleScope.Builder scope, Module module, BindingsMap bindingsMap) {
     bindingsMap
         .resolvedImports()
         .foreach(
@@ -111,7 +112,7 @@ public class StaticModuleScopeAnalysis implements IRPass {
    * org.enso.interpreter.runtime.IrToTruffle#registerModuleExports(BindingsMap)}
    */
   private void processModuleExports(
-      StaticModuleScope scope, Module module, BindingsMap bindingsMap) {
+      StaticModuleScope.Builder scope, Module module, BindingsMap bindingsMap) {
     bindingsMap
         .getDirectlyExportedModules()
         .foreach(
@@ -122,12 +123,12 @@ public class StaticModuleScopeAnalysis implements IRPass {
             });
   }
 
-  private void processPolyglotImports(StaticModuleScope scope, Module module) {
+  private void processPolyglotImports(StaticModuleScope.Builder scope, Module module) {
     // TODO [RW]: this is for later iterations, currently resolving polyglot types does not give us
     // much useful info, not better than `Any`
   }
 
-  private void processBindings(StaticModuleScope scope, Module module) {
+  private void processBindings(StaticModuleScope.Builder scope, Module module) {
     module
         .bindings()
         .foreach(
@@ -148,7 +149,7 @@ public class StaticModuleScopeAnalysis implements IRPass {
     return IRPass.super.updateMetadataInDuplicate(sourceIr, copyOfIr);
   }
 
-  private void processType(StaticModuleScope scope, Definition.Type type) {
+  private void processType(StaticModuleScope.Builder scope, Definition.Type type) {
     List<AtomType.Constructor> constructors =
         CollectionConverters$.MODULE$.asJava(type.members()).stream()
             .map(
@@ -157,7 +158,7 @@ public class StaticModuleScopeAnalysis implements IRPass {
                         constructorDef.name().name(), constructorDef.isPrivate()))
             .toList();
 
-    AtomType atomType = new AtomType(type.name().name(), constructors, scope);
+    AtomType atomType = new AtomType(type.name().name(), constructors);
     var qualifiedName = scope.getModuleName().createChild(type.name().name());
     var atomTypeScope = TypeScopeReference.atomType(qualifiedName);
     scope.registerType(atomType);
@@ -170,7 +171,9 @@ public class StaticModuleScopeAnalysis implements IRPass {
    * <p>This should be consistent with logic with AtomConstructor.collectFieldAccessors.
    */
   private void registerFieldGetters(
-      StaticModuleScope scope, TypeScopeReference typeScope, Definition.Type typeDefinition) {
+      StaticModuleScope.Builder scope,
+      TypeScopeReference typeScope,
+      Definition.Type typeDefinition) {
     HashMap<String, List<TypeRepresentation>> fieldTypes = new HashMap<>();
     for (var constructorDef : CollectionConverters$.MODULE$.asJava(typeDefinition.members())) {
       for (var argumentDef : CollectionConverters$.MODULE$.asJava(constructorDef.arguments())) {
@@ -191,8 +194,8 @@ public class StaticModuleScopeAnalysis implements IRPass {
     }
   }
 
-  private void processMethod(StaticModuleScope scope, Method.Explicit method) {
-    var typeScope = getTypeAssociatedWithMethod(scope, method);
+  private void processMethod(StaticModuleScope.Builder scope, Method.Explicit method) {
+    var typeScope = getTypeAssociatedWithMethod(method, scope.getAssociatedType());
     if (typeScope == null) {
       System.out.println(
           "Failed to process method "
@@ -208,7 +211,16 @@ public class StaticModuleScopeAnalysis implements IRPass {
     scope.registerMethod(typeScope, name, type);
   }
 
-  TypeScopeReference getTypeAssociatedWithMethod(StaticModuleScope scope, Method.Explicit method) {
+  /**
+   * Resolves the type associated with the given method.
+   *
+   * @param method The method definition to resolve.
+   * @param scopeAsscoiatedType The type associated with the scope in which the method is defined.
+   *     It will be used as a fallback if the method is deemed to be a module-method.
+   * @return the type associated with the method
+   */
+  TypeScopeReference getTypeAssociatedWithMethod(
+      Method.Explicit method, TypeScopeReference scopeAsscoiatedType) {
     // TODO this should be synchronized with declaredConsOpt of IrToTruffle::processModule -
     // probably good to extract a common algorithm
     boolean isStatic = method.isStatic();
@@ -217,18 +229,14 @@ public class StaticModuleScopeAnalysis implements IRPass {
     if (typePointerOpt.isEmpty()) {
       // A method not associated to a type - this is a module method.
       // TODO should we check isStatic here?
-      return scope.getAssociatedType();
+      return scopeAsscoiatedType;
     } else {
       var metadata =
           MetadataInteropHelpers.getMetadataOrNull(
               typePointerOpt.get(), MethodDefinitions$.MODULE$, BindingsMap.Resolution.class);
       if (metadata == null) {
-        System.out.println(
-            "Method type pointer of "
-                + method.methodReference().showCode()
-                + " does not have MethodDefinition metadata. Should this be compiler"
-                + " error?");
-        return null;
+        throw new IllegalStateException(
+            "Failed to resolve type pointer for method: " + method.methodReference().showCode());
       }
 
       return switch (metadata.target()) {
@@ -244,7 +252,7 @@ public class StaticModuleScopeAnalysis implements IRPass {
     }
   }
 
-  private void processConversion(StaticModuleScope scope, Method.Conversion conversion) {
+  private void processConversion(StaticModuleScope.Builder scope, Method.Conversion conversion) {
     // TODO later
   }
 }

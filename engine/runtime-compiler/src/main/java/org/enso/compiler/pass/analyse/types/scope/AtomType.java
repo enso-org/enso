@@ -4,15 +4,9 @@ import java.util.List;
 
 public final class AtomType {
   private final String name;
-  private final StaticModuleScope definingScope;
 
-  public AtomType(String name, List<Constructor> constructors, StaticModuleScope definingScope) {
+  public AtomType(String name, List<Constructor> constructors) {
     this.name = name;
-    this.definingScope = definingScope;
-  }
-
-  StaticModuleScope getDefiningScope() {
-    return definingScope;
   }
 
   public String getName() {

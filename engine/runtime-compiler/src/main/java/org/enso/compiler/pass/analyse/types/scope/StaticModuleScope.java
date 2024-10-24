@@ -1,6 +1,7 @@
 package org.enso.compiler.pass.analyse.types.scope;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,32 +31,82 @@ import scala.Option;
 public final class StaticModuleScope implements ProcessingPass.Metadata {
   private final QualifiedName moduleName;
   private final TypeScopeReference associatedType;
-  private final List<StaticImportExportScope> imports = new ArrayList<>();
-  private final List<StaticImportExportScope> exports = new ArrayList<>();
+  private final List<StaticImportExportScope> imports;
+  private final List<StaticImportExportScope> exports;
+  private final Map<String, AtomType> typesDefinedHere;
+  private final Map<TypeScopeReference, Map<String, TypeRepresentation>> methods;
 
-  StaticModuleScope(QualifiedName moduleName) {
+  private StaticModuleScope(
+      QualifiedName moduleName,
+      TypeScopeReference associatedType,
+      List<StaticImportExportScope> imports,
+      List<StaticImportExportScope> exports,
+      Map<String, AtomType> typesDefinedHere,
+      Map<TypeScopeReference, Map<String, TypeRepresentation>> methods) {
     this.moduleName = moduleName;
-    this.associatedType = TypeScopeReference.moduleAssociatedType(moduleName);
+    this.associatedType = associatedType;
+    this.imports = imports;
+    this.exports = exports;
+    this.typesDefinedHere = typesDefinedHere;
+    this.methods = methods;
   }
 
-  void registerType(AtomType type) {
-    var previous = typesDefinedHere.putIfAbsent(type.getName(), type);
-    if (previous != null) {
-      throw new IllegalStateException("Type already defined: " + type.getName());
+  static final class Builder {
+    private final QualifiedName moduleName;
+    private final TypeScopeReference associatedType;
+    private final List<StaticImportExportScope> imports = new ArrayList<>();
+    private final List<StaticImportExportScope> exports = new ArrayList<>();
+    private final Map<String, AtomType> typesDefinedHere = new HashMap<>();
+    private final Map<TypeScopeReference, Map<String, TypeRepresentation>> methods =
+        new HashMap<>();
+
+    Builder(QualifiedName moduleName) {
+      this.moduleName = moduleName;
+      this.associatedType = TypeScopeReference.moduleAssociatedType(moduleName);
     }
-  }
 
-  void registerMethod(TypeScopeReference parentType, String name, TypeRepresentation type) {
-    var typeMethods = methods.computeIfAbsent(parentType, k -> new HashMap<>());
-    typeMethods.put(name, type);
+    StaticModuleScope build() {
+      return new StaticModuleScope(
+          moduleName,
+          associatedType,
+          Collections.unmodifiableList(imports),
+          Collections.unmodifiableList(exports),
+          Collections.unmodifiableMap(typesDefinedHere),
+          Collections.unmodifiableMap(methods));
+    }
+
+    QualifiedName getModuleName() {
+      return moduleName;
+    }
+
+    TypeScopeReference getAssociatedType() {
+      return associatedType;
+    }
+
+    void registerType(AtomType type) {
+      var previous = typesDefinedHere.putIfAbsent(type.getName(), type);
+      if (previous != null) {
+        throw new IllegalStateException("Type already defined: " + type.getName());
+      }
+    }
+
+    void registerMethod(TypeScopeReference parentType, String name, TypeRepresentation type) {
+      var typeMethods = methods.computeIfAbsent(parentType, k -> new HashMap<>());
+      typeMethods.put(name, type);
+    }
+
+    void registerModuleImport(StaticImportExportScope importScope) {
+      imports.add(importScope);
+    }
+
+    void registerModuleExport(StaticImportExportScope exportScope) {
+      exports.add(exportScope);
+    }
   }
 
   public TypeScopeReference getAssociatedType() {
     return associatedType;
   }
-
-  private final Map<String, AtomType> typesDefinedHere = new HashMap<>();
-  private final Map<TypeScopeReference, Map<String, TypeRepresentation>> methods = new HashMap<>();
 
   public static StaticModuleScope forIR(Module module) {
     return MetadataInteropHelpers.getMetadata(
@@ -107,20 +158,8 @@ public final class StaticModuleScope implements ProcessingPass.Metadata {
     return Option.empty();
   }
 
-  public QualifiedName getModuleName() {
-    return moduleName;
-  }
-
-  public void registerModuleImport(StaticImportExportScope importScope) {
-    imports.add(importScope);
-  }
-
   public List<StaticImportExportScope> getImports() {
     return imports;
-  }
-
-  public void registerModuleExport(StaticImportExportScope exportScope) {
-    exports.add(exportScope);
   }
 
   public List<StaticImportExportScope> getExports() {

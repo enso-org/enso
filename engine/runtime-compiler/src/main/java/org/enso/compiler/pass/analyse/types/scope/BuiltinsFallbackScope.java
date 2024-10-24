@@ -17,20 +17,21 @@ public class BuiltinsFallbackScope {
       return cachedAnyScope;
     }
 
-    var scope = new StaticModuleScope(QualifiedName.fromString("Standard.Builtins.Main"));
-    scope.registerMethod(TypeScopeReference.ANY, "to_text", builtinTypes.TEXT);
-    scope.registerMethod(TypeScopeReference.ANY, "to_display_text", builtinTypes.TEXT);
-    scope.registerMethod(TypeScopeReference.ANY, "pretty", builtinTypes.TEXT);
+    var scopeBuilder =
+        new StaticModuleScope.Builder(QualifiedName.fromString("Standard.Builtins.Main"));
+    scopeBuilder.registerMethod(TypeScopeReference.ANY, "to_text", builtinTypes.TEXT);
+    scopeBuilder.registerMethod(TypeScopeReference.ANY, "to_display_text", builtinTypes.TEXT);
+    scopeBuilder.registerMethod(TypeScopeReference.ANY, "pretty", builtinTypes.TEXT);
 
     var any = new TypeRepresentation.TopType();
-    scope.registerMethod(
+    scopeBuilder.registerMethod(
         TypeScopeReference.ANY, "==", new TypeRepresentation.ArrowType(any, builtinTypes.BOOLEAN));
 
     var catchType =
         new TypeRepresentation.ArrowType(new TypeRepresentation.ArrowType(any, any), any);
-    scope.registerMethod(TypeScopeReference.ANY, "catch_primitive", catchType);
+    scopeBuilder.registerMethod(TypeScopeReference.ANY, "catch_primitive", catchType);
 
-    cachedAnyScope = scope;
+    cachedAnyScope = scopeBuilder.build();
     return cachedAnyScope;
   }
 }
