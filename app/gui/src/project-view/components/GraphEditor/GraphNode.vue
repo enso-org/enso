@@ -446,7 +446,7 @@ watchEffect(() => {
         @click="handleNodeClick"
       />
     </Teleport>
-    <div class="binding" v-text="node.pattern?.code()" />
+    <div v-if="!menuVisible" class="binding" v-text="node.pattern?.code()" />
     <button
       v-if="!menuVisible && isRecordingOverridden"
       class="overrideRecordButton clickable"
@@ -473,6 +473,7 @@ watchEffect(() => {
       @pointerenter="menuHovered = true"
       @pointerleave="menuHovered = false"
       @update:nodeColor="emit('setNodeColor', $event)"
+      @createNewNode="setSelected(), emit('createNodes', [{ commit: false, content: undefined }])"
       @click.capture="setSelected"
     />
     <GraphVisualization
