@@ -14,9 +14,7 @@ import * as paywallComponents from '#/components/Paywall'
 
 import * as twv from '#/utilities/tailwindVariants'
 
-/**
- * Props for a {@link SettingsPaywall}.
- */
+/** Props for a {@link SettingsPaywall}. */
 export interface SettingsPaywallProps {
   readonly feature: billingHooks.PaywallFeatureName
   readonly className?: string | undefined
@@ -25,9 +23,7 @@ export interface SettingsPaywallProps {
 
 const PAYWALL_LAYOUT_STYLES = twv.tv({ base: 'mt-1' })
 
-/**
- * A layout that shows a paywall for a feature.
- */
+/** A layout that shows a paywall for a feature. */
 export default function SettingsPaywall(props: SettingsPaywallProps) {
   const { feature, className, onInteracted } = props
 

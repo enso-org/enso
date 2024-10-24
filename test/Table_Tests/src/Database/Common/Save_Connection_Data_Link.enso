@@ -1,10 +1,12 @@
 from Standard.Base import all
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Illegal_State.Illegal_State
 
 from Standard.Table import Table
 
 from Standard.Database import all
+import Standard.Database.DB_Table.DB_Table
 
 from Standard.Test import all
 
@@ -66,3 +68,85 @@ add_specs suite_builder prefix connection_details pending =
             Panic.with_finalizer data_link_connection.close <|
                 r = data_link_connection.save_as_data_link other_data_link_location
                 r.should_fail_with Illegal_Argument
+
+        group_builder.specify "allows to save a data link to a database table or processed queries" <|
+            raw_connection = Database.connect connection_details
+            table_name = test_root.get.name
+            ## The table cannot be temporary as it will be 'viewed' through a separate Data Link connection.
+               A temporary table could not be seen by other connection on some backends.
+            table = (Table.new [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]]).select_into_database_table raw_connection table_name temporary=False
+            Panic.with_finalizer (raw_connection.drop_table table.name) <|
+                table_data_link = table.save_as_data_link (test_root.get / "table.datalink")
+                table_data_link.should_be_a Enso_File
+                Problems.assume_no_problems table_data_link
+
+                r1 = table_data_link.read
+                r1.should_be_a DB_Table
+                r1.column_names . should_equal ["X", "Y"]
+                r1.at "X" . to_vector . should_equal_ignoring_order [1, 2, 3]
+
+                ## This data link should create a simple SQL query, without full interpolation serialization.
+                   Though we cannot guarantee that. Still we keep this test to ensure all paths are tested.
+                selected_table = table.select_columns ["X"]
+                selected_table_data_link = selected_table.save_as_data_link (test_root.get / "table-selected.datalink")
+                selected_table_data_link.should_be_a Enso_File
+                Problems.assume_no_problems selected_table_data_link
+                r2 = selected_table_data_link.read
+                r2.should_be_a DB_Table
+                r2.column_names . should_equal ["X"]
+                r2.at "X" . to_vector . should_equal_ignoring_order [1, 2, 3]
+
+                complex_query_test_enabled = raw_connection.dialect.is_feature_supported ..Column_Operations
+                case complex_query_test_enabled of
+                    False ->
+                        IO.println "Skipping complex query data link tests, because the dialect does not support minimal column operations needed to prepare it."
+                    True ->
+                        queried_table = table
+                            . set (table.at "X" * 10000 + 45) "Z"
+                            . set (table.at "Y" + '...') "W"
+                        queried_table_data_link = queried_table.save_as_data_link (test_root.get / "complex-query.datalink")
+                        queried_table_data_link.should_be_a Enso_File
+                        Problems.assume_no_problems queried_table_data_link
+
+                        r3 = queried_table_data_link.read
+                        r3.should_be_a DB_Table
+                        r3.column_names . should_equal ["X", "Y", "Z", "W"]
+                        m3 = r3.read
+                        m3.at "Z" . to_vector . should_equal_ignoring_order [10045, 20045, 30045]
+                        m3.at "W" . to_vector . should_equal_ignoring_order ['a...', 'b...', 'c...']
+
+                ## We test cross-join because it returns a table with an internal name that does not exist in the DB.
+                   This used to break some logic, so to ensure no regressions after a fix - we added this test.
+                cross_join_test_enabled = raw_connection.dialect.is_feature_supported ..Cross_Join
+                case cross_join_test_enabled of
+                    False ->
+                        IO.println "Skipping cross-join data link tests, because the dialect does not support cross-join."
+                    True ->
+                        cross_joined_table = table.cross_join table
+                        cross_joined_table_data_link = cross_joined_table.save_as_data_link (test_root.get / "cross-join.datalink")
+                        cross_joined_table_data_link.should_be_a Enso_File
+                        Problems.assume_no_problems cross_joined_table_data_link
+
+        group_builder.specify "warns if a query to a temporary table is saved as data link" <|
+            raw_connection = Database.connect connection_details
+            table_name = test_root.get.name
+            table = (Table.new [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]]).select_into_database_table raw_connection table_name temporary=True
+            table_data_link = table.save_as_data_link (test_root.get / "table-temporary.datalink")
+            table_data_link.should_be_a Enso_File
+            w1 = Problems.expect_only_warning Illegal_State table_data_link
+            w1.to_display_text . should_contain "saved query seems to refer to tables"
+            w1.to_display_text . should_contain "which are temporary"
+
+            complex_query_test_enabled = raw_connection.dialect.is_feature_supported ..Column_Operations
+            case complex_query_test_enabled of
+                False ->
+                    IO.println "Skipping complex query data link tests, because the dialect does not support minimal column operations needed to prepare it."
+                True ->
+                    queried_table = table
+                        . set (table.at "X" * 10000 + 45) "Z"
+                        . set (table.at "Y" + '...') "W"
+                    queried_table_data_link = queried_table.save_as_data_link (test_root.get / "complex-query-temporary.datalink")
+                    queried_table_data_link.should_be_a Enso_File
+                    w2 = Problems.expect_only_warning Illegal_State queried_table_data_link
+                    w2.to_display_text . should_contain "saved query seems to refer to tables"
+                    w2.to_display_text . should_contain "which are temporary"

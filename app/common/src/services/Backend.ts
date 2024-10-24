@@ -6,12 +6,12 @@ import * as newtype from '../utilities/data/newtype'
 import * as permissions from '../utilities/permissions'
 import * as uniqueString from '../utilities/uniqueString'
 
+/** The size, in bytes, of the chunks which the backend accepts. */
+export const S3_CHUNK_SIZE_BYTES = 10_000_000
+
 // ================
 // === Newtypes ===
 // ================
-
-// These are constructor functions that construct values of the type they are named after.
-/* eslint-disable @typescript-eslint/no-redeclare */
 
 /** Unique identifier for an organization. */
 export type OrganizationId = newtype.Newtype<string, 'OrganizationId'>
@@ -29,8 +29,10 @@ export const UserGroupId = newtype.newtypeConstructor<UserGroupId>()
 export type DirectoryId = newtype.Newtype<string, 'DirectoryId'>
 export const DirectoryId = newtype.newtypeConstructor<DirectoryId>()
 
-/** Unique identifier for an asset representing the items inside a directory for which the
- * request to retrive the items has not yet completed. */
+/**
+ * Unique identifier for an asset representing the items inside a directory for which the
+ * request to retrive the items has not yet completed.
+ */
 export type LoadingAssetId = newtype.Newtype<string, 'LoadingAssetId'>
 export const LoadingAssetId = newtype.newtypeConstructor<LoadingAssetId>()
 
@@ -38,8 +40,10 @@ export const LoadingAssetId = newtype.newtypeConstructor<LoadingAssetId>()
 export type EmptyAssetId = newtype.Newtype<string, 'EmptyAssetId'>
 export const EmptyAssetId = newtype.newtypeConstructor<EmptyAssetId>()
 
-/** Unique identifier for an asset representing the nonexistent children of a directory
- * that failed to fetch. */
+/**
+ * Unique identifier for an asset representing the nonexistent children of a directory
+ * that failed to fetch.
+ */
 export type ErrorAssetId = newtype.Newtype<string, 'ErrorAssetId'>
 export const ErrorAssetId = newtype.newtypeConstructor<ErrorAssetId>()
 
@@ -74,9 +78,7 @@ export type AssetId = IdType[keyof IdType]
 export type CheckoutSessionId = newtype.Newtype<string, 'CheckoutSessionId'>
 export const CheckoutSessionId = newtype.newtypeConstructor<CheckoutSessionId>()
 
-/**
- * Unique identifier for a subscription.
- */
+/** Unique identifier for a subscription. */
 export type SubscriptionId = newtype.Newtype<string, 'SubscriptionId'>
 export const SubscriptionId = newtype.newtypeConstructor<SubscriptionId>()
 
@@ -115,8 +117,6 @@ export type UserPermissionIdentifier = UserGroupId | UserId
 export type Path = newtype.Newtype<string, 'Path'>
 export const Path = newtype.newtypeConstructor<Path>()
 
-/* eslint-enable @typescript-eslint/no-redeclare */
-
 /** Whether a given {@link string} is an {@link UserId}. */
 export function isUserId(id: string): id is UserId {
   return id.startsWith('user-')
@@ -129,14 +129,18 @@ export function isUserGroupId(id: string): id is UserGroupId {
 
 const PLACEHOLDER_USER_GROUP_PREFIX = 'usergroup-placeholder-'
 
-/** Whether a given {@link UserGroupId} represents a user group that does not yet exist on the
- * server. */
+/**
+ * Whether a given {@link UserGroupId} represents a user group that does not yet exist on the
+ * server.
+ */
 export function isPlaceholderUserGroupId(id: string) {
   return id.startsWith(PLACEHOLDER_USER_GROUP_PREFIX)
 }
 
-/** Return a new {@link UserGroupId} that represents a placeholder user group that is yet to finish
- * being created on the backend. */
+/**
+ * Return a new {@link UserGroupId} that represents a placeholder user group that is yet to finish
+ * being created on the backend.
+ */
 export function newPlaceholderUserGroupId() {
   return UserGroupId(`${PLACEHOLDER_USER_GROUP_PREFIX}${uniqueString.uniqueString()}`)
 }
@@ -153,17 +157,21 @@ export enum BackendType {
 
 /** Metadata uniquely identifying a user inside an organization. */
 export interface UserInfo {
-  /** The ID of the parent organization. If this is a sole user, they are implicitly in an
-   * organization consisting of only themselves. */
+  /**
+   * The ID of the parent organization. If this is a sole user, they are implicitly in an
+   * organization consisting of only themselves.
+   */
   readonly organizationId: OrganizationId
   /** The name of the parent organization. */
   readonly organizationName?: string
-  /** The ID of this user.
+  /**
+   * The ID of this user.
    *
    * The user ID is globally unique. Thus, the user ID is always sufficient to uniquely identify a
    * user. The user ID is guaranteed to never change, once assigned. For these reasons, the user ID
    * should be the preferred way to uniquely refer to a user. That is, when referring to a user,
-   * prefer this field over `name`, `email`, `subject`, or any other mechanism, where possible. */
+   * prefer this field over `name`, `email`, `subject`, or any other mechanism, where possible.
+   */
   readonly userId: UserId
   readonly name: string
   readonly email: EmailAddress
@@ -173,8 +181,10 @@ export interface UserInfo {
 
 /** A user in the application. These are the primary owners of a project. */
 export interface User extends UserInfo {
-  /** If `false`, this account is awaiting acceptance from an administrator, and endpoints other than
-   * `usersMe` will not work. */
+  /**
+   * If `false`, this account is awaiting acceptance from an administrator, and endpoints other than
+   * `usersMe` will not work.
+   */
   readonly isEnabled: boolean
   readonly isOrganizationAdmin: boolean
   readonly rootDirectoryId: DirectoryId
@@ -200,11 +210,15 @@ export enum ProjectState {
   provisioned = 'Provisioned',
   opened = 'Opened',
   closed = 'Closed',
-  /** A frontend-specific state, representing a project that should be displayed as
-   * `openInProgress`, but has not yet been added to the backend. */
+  /**
+   * A frontend-specific state, representing a project that should be displayed as
+   * `openInProgress`, but has not yet been added to the backend.
+   */
   placeholder = 'Placeholder',
-  /** A frontend-specific state, representing a project that should be displayed as `closed`,
-   * but is still in the process of shutting down. */
+  /**
+   * A frontend-specific state, representing a project that should be displayed as `closed`,
+   * but is still in the process of shutting down.
+   */
   closing = 'Closing',
 }
 
@@ -280,9 +294,7 @@ export interface UpdatedProject extends BaseProject {
 
 /** A user/organization's project containing and/or currently executing code. */
 export interface ProjectRaw extends ListedProjectRaw {
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   readonly ide_version: VersionNumber | null
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   readonly engine_version: VersionNumber | null
 }
 
@@ -374,11 +386,13 @@ export interface Label {
   readonly color: LChColor
 }
 
-/** Type of application that a {@link Version} applies to.
+/**
+ * Type of application that a {@link Version} applies to.
  *
  * We keep track of both backend and IDE versions, so that we can update the two independently.
  * However the format of the version numbers is the same for both, so we can use the same type for
- * both. We just need this enum to disambiguate. */
+ * both. We just need this enum to disambiguate.
+ */
 export enum VersionType {
   backend = 'Backend',
   ide = 'Ide',
@@ -403,9 +417,6 @@ export interface Version {
   readonly number: VersionNumber
   readonly ami: Ami | null
   readonly created: dateTime.Rfc3339DateTime
-  // This does not follow our naming convention because it's defined this way in the backend,
-  // so we need to match it.
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   readonly version_type: VersionType
 }
 
@@ -428,8 +439,6 @@ export enum Plan {
 
 export const PLANS = Object.values(Plan)
 
-// This is a function, even though it does not look like one.
-// eslint-disable-next-line no-restricted-syntax
 export const isPlan = array.includesPredicate(PLANS)
 
 /** Metadata uniquely describing a payment checkout session. */
@@ -458,9 +467,7 @@ export interface ResourceUsage {
   readonly storage: number
 }
 
-/**
- * Metadata for a subscription.
- */
+/** Metadata for a subscription. */
 export interface Subscription {
   readonly id?: SubscriptionId
   readonly plan?: Plan
@@ -566,7 +573,7 @@ export interface UpdatedDirectory {
 }
 
 /** The type returned from the "create directory" endpoint. */
-export interface Directory extends DirectoryAsset {}
+export type Directory = DirectoryAsset
 
 /** The subset of asset fields returned by the "copy asset" endpoint. */
 export interface CopiedAsset {
@@ -652,7 +659,6 @@ export interface LChColor {
 
 /** A pre-selected list of colors to be used in color pickers. */
 export const COLORS = [
-  /* eslint-disable @typescript-eslint/no-magic-numbers */
   // Red
   { lightness: 50, chroma: 66, hue: 7 },
   // Orange
@@ -673,7 +679,6 @@ export const COLORS = [
   { lightness: 50, chroma: 22, hue: 252 },
   // Dark blue
   { lightness: 22, chroma: 13, hue: 252 },
-  /* eslint-enable @typescript-eslint/no-magic-numbers */
 ] as const satisfies LChColor[]
 
 /** Converts a {@link LChColor} to a CSS color string. */
@@ -711,8 +716,10 @@ export enum AssetType {
   secret = 'secret',
   datalink = 'datalink',
   directory = 'directory',
-  /** A special {@link AssetType} representing the unknown items of a directory, before the
-   * request to retrieve the items completes. */
+  /**
+   * A special {@link AssetType} representing the unknown items of a directory, before the
+   * request to retrieve the items completes.
+   */
   specialLoading = 'specialLoading',
   /** A special {@link AssetType} representing a directory listing that is empty. */
   specialEmpty = 'specialEmpty',
@@ -732,12 +739,11 @@ export interface IdType {
   readonly [AssetType.specialError]: ErrorAssetId
 }
 
-/** Integers (starting from 0) corresponding to the order in which each asset type should appear
- * in a directory listing. */
+/**
+ * Integers (starting from 0) corresponding to the order in which each asset type should appear
+ * in a directory listing.
+ */
 export const ASSET_TYPE_ORDER: Readonly<Record<AssetType, number>> = {
-  // This is a sequence of numbers, not magic numbers. `1000` is an arbitrary number
-  // that are higher than the number of possible asset types.
-  /* eslint-disable @typescript-eslint/no-magic-numbers */
   [AssetType.directory]: 0,
   [AssetType.project]: 1,
   [AssetType.file]: 2,
@@ -746,29 +752,34 @@ export const ASSET_TYPE_ORDER: Readonly<Record<AssetType, number>> = {
   [AssetType.specialLoading]: 1000,
   [AssetType.specialEmpty]: 1000,
   [AssetType.specialError]: 1000,
-  /* eslint-enable @typescript-eslint/no-magic-numbers */
 }
 
 // =============
 // === Asset ===
 // =============
 
-/** Metadata uniquely identifying a directory entry.
- * These can be Projects, Files, Secrets, or other directories. */
+/**
+ * Metadata uniquely identifying a directory entry.
+ * These can be Projects, Files, Secrets, or other directories.
+ */
 export interface BaseAsset {
   readonly id: AssetId
   readonly title: string
   readonly modifiedAt: dateTime.Rfc3339DateTime
-  /** This is defined as a generic {@link AssetId} in the backend, however it is more convenient
-   * (and currently safe) to assume it is always a {@link DirectoryId}. */
+  /**
+   * This is defined as a generic {@link AssetId} in the backend, however it is more convenient
+   * (and currently safe) to assume it is always a {@link DirectoryId}.
+   */
   readonly parentId: DirectoryId
   readonly permissions: readonly AssetPermission[] | null
   readonly labels: readonly LabelName[] | null
   readonly description: string | null
 }
 
-/** Metadata uniquely identifying a directory entry.
- * These can be Projects, Files, Secrets, or other directories. */
+/**
+ * Metadata uniquely identifying a directory entry.
+ * These can be Projects, Files, Secrets, or other directories.
+ */
 export interface Asset<Type extends AssetType = AssetType> extends BaseAsset {
   readonly type: Type
   readonly id: IdType[Type]
@@ -776,31 +787,33 @@ export interface Asset<Type extends AssetType = AssetType> extends BaseAsset {
 }
 
 /** A convenience alias for {@link Asset}<{@link AssetType.directory}>. */
-export interface DirectoryAsset extends Asset<AssetType.directory> {}
+export type DirectoryAsset = Asset<AssetType.directory>
 
 /** A convenience alias for {@link Asset}<{@link AssetType.project}>. */
-export interface ProjectAsset extends Asset<AssetType.project> {}
+export type ProjectAsset = Asset<AssetType.project>
 
 /** A convenience alias for {@link Asset}<{@link AssetType.file}>. */
-export interface FileAsset extends Asset<AssetType.file> {}
+export type FileAsset = Asset<AssetType.file>
 
 /** A convenience alias for {@link Asset}<{@link AssetType.datalink}>. */
-export interface DatalinkAsset extends Asset<AssetType.datalink> {}
+export type DatalinkAsset = Asset<AssetType.datalink>
 
 /** A convenience alias for {@link Asset}<{@link AssetType.secret}>. */
-export interface SecretAsset extends Asset<AssetType.secret> {}
+export type SecretAsset = Asset<AssetType.secret>
 
 /** A convenience alias for {@link Asset}<{@link AssetType.specialLoading}>. */
-export interface SpecialLoadingAsset extends Asset<AssetType.specialLoading> {}
+export type SpecialLoadingAsset = Asset<AssetType.specialLoading>
 
 /** A convenience alias for {@link Asset}<{@link AssetType.specialEmpty}>. */
-export interface SpecialEmptyAsset extends Asset<AssetType.specialEmpty> {}
+export type SpecialEmptyAsset = Asset<AssetType.specialEmpty>
 
 /** A convenience alias for {@link Asset}<{@link AssetType.specialError}>. */
-export interface SpecialErrorAsset extends Asset<AssetType.specialError> {}
+export type SpecialErrorAsset = Asset<AssetType.specialError>
 
-/** Creates a {@link DirectoryAsset} representing the root directory for the organization,
- * with all irrelevant fields initialized to default values. */
+/**
+ * Creates a {@link DirectoryAsset} representing the root directory for the organization,
+ * with all irrelevant fields initialized to default values.
+ */
 export function createRootDirectoryAsset(directoryId: DirectoryId): DirectoryAsset {
   return {
     type: AssetType.directory,
@@ -860,8 +873,10 @@ export function createPlaceholderProjectAsset(
   }
 }
 
-/** Creates a {@link SpecialLoadingAsset}, with all irrelevant fields initialized to default
- * values. */
+/**
+ * Creates a {@link SpecialLoadingAsset}, with all irrelevant fields initialized to default
+ * values.
+ */
 export function createSpecialLoadingAsset(directoryId: DirectoryId): SpecialLoadingAsset {
   return {
     type: AssetType.specialLoading,
@@ -876,8 +891,10 @@ export function createSpecialLoadingAsset(directoryId: DirectoryId): SpecialLoad
   }
 }
 
-/** Creates a {@link SpecialEmptyAsset}, with all irrelevant fields initialized to default
- * values. */
+/**
+ * Creates a {@link SpecialEmptyAsset}, with all irrelevant fields initialized to default
+ * values.
+ */
 export function createSpecialEmptyAsset(directoryId: DirectoryId): SpecialEmptyAsset {
   return {
     type: AssetType.specialEmpty,
@@ -892,8 +909,10 @@ export function createSpecialEmptyAsset(directoryId: DirectoryId): SpecialEmptyA
   }
 }
 
-/** Creates a {@link SpecialErrorAsset}, with all irrelevant fields initialized to default
- * values. */
+/**
+ * Creates a {@link SpecialErrorAsset}, with all irrelevant fields initialized to default
+ * values.
+ */
 export function createSpecialErrorAsset(directoryId: DirectoryId): SpecialErrorAsset {
   return {
     type: AssetType.specialError,
@@ -974,13 +993,9 @@ export function createPlaceholderAssetId<Type extends AssetType>(
       break
     }
   }
-  // This is SAFE, just too dynamic for TypeScript to correctly typecheck.
-  // eslint-disable-next-line no-restricted-syntax
   return result as IdType[Type]
 }
 
-// These are functions, and so their names should be camelCase.
-/* eslint-disable no-restricted-syntax */
 /** A type guard that returns whether an {@link Asset} is a {@link ProjectAsset}. */
 export const assetIsProject = assetIsType(AssetType.project)
 /** A type guard that returns whether an {@link Asset} is a {@link DirectoryAsset}. */
@@ -991,7 +1006,6 @@ export const assetIsDatalink = assetIsType(AssetType.datalink)
 export const assetIsSecret = assetIsType(AssetType.secret)
 /** A type guard that returns whether an {@link Asset} is a {@link FileAsset}. */
 export const assetIsFile = assetIsType(AssetType.file)
-/* eslint-enable no-restricted-syntax */
 
 /** Metadata describing a specific version of an asset. */
 export interface S3ObjectVersion {
@@ -1011,8 +1025,10 @@ export interface AssetVersions {
 // === compareAssetPermissions ===
 // ===============================
 
-/** Return a positive number when `a > b`, a negative number when `a < b`, and `0`
- * when `a === b`. */
+/**
+ * Return a positive number when `a > b`, a negative number when `a < b`, and `0`
+ * when `a === b`.
+ */
 export function compareAssetPermissions(a: AssetPermission, b: AssetPermission) {
   const relativePermissionPrecedence =
     permissions.PERMISSION_ACTION_PRECEDENCE[a.permission] -
@@ -1126,8 +1142,10 @@ export interface CreateProjectRequestBody {
   readonly datalinkId?: DatalinkId
 }
 
-/** HTTP request body for the "update project" endpoint.
- * Only updates of the `projectName` or `ami` are allowed. */
+/**
+ * HTTP request body for the "update project" endpoint.
+ * Only updates of the `projectName` or `ami` are allowed.
+ */
 export interface UpdateProjectRequestBody {
   readonly projectName: string | null
   readonly ami: Ami | null
@@ -1198,6 +1216,50 @@ export interface UploadFileRequestParams {
   readonly parentDirectoryId: DirectoryId | null
 }
 
+/** HTTP request body for the "upload file start" endpoint. */
+export interface UploadFileStartRequestBody {
+  readonly size: number
+  readonly fileName: string
+}
+
+/** Metadata required to uploading a large file. */
+export interface UploadLargeFileMetadata {
+  readonly presignedUrls: readonly HttpsUrl[]
+  readonly uploadId: string
+  readonly sourcePath: S3FilePath
+}
+
+/** Metadata for each multipart upload. */
+export interface S3MultipartPart {
+  readonly eTag: string
+  readonly partNumber: number
+}
+
+/** HTTP request body for the "upload file end" endpoint. */
+export interface UploadFileEndRequestBody {
+  readonly parentDirectoryId: DirectoryId | null
+  readonly parts: readonly S3MultipartPart[]
+  readonly sourcePath: S3FilePath
+  readonly uploadId: string
+  readonly assetId: AssetId | null
+  readonly fileName: string
+}
+
+/** A large file that has finished uploading. */
+export interface UploadedLargeFile {
+  readonly id: FileId
+  readonly project: null
+}
+
+/** A large project that has finished uploading. */
+export interface UploadedLargeProject {
+  readonly id: ProjectId
+  readonly project: Project
+}
+
+/** A large asset (file or project) that has finished uploading. */
+export type UploadedLargeAsset = UploadedLargeFile | UploadedLargeProject
+
 /** URL query string parameters for the "upload profile picture" endpoint. */
 export interface UploadPictureRequestParams {
   readonly fileName: string | null
@@ -1256,8 +1318,10 @@ export function compareAssets(a: AnyAsset, b: AnyAsset) {
 // === getAssetId ===
 // ==================
 
-/** A convenience function to get the `id` of an {@link Asset}.
- * This is useful to avoid React re-renders as it is not re-created on each function call. */
+/**
+ * A convenience function to get the `id` of an {@link Asset}.
+ * This is useful to avoid React re-renders as it is not re-created on each function call.
+ */
 export function getAssetId<Type extends AssetType>(asset: Asset<Type>) {
   return asset.id
 }
@@ -1313,16 +1377,16 @@ export function stripProjectExtension(name: string) {
   return name.replace(/[.](?:tar[.]gz|zip|enso-project)$/, '')
 }
 
-/** Return both the name and extension of the project file name (if any).
- * Otherwise, returns the entire name as the basename. */
+/**
+ * Return both the name and extension of the project file name (if any).
+ * Otherwise, returns the entire name as the basename.
+ */
 export function extractProjectExtension(name: string) {
   const [, basename, extension] = name.match(/^(.*)[.](tar[.]gz|zip|enso-project)$/) ?? []
   return { basename: basename ?? name, extension: extension ?? '' }
 }
 
-/**
- * Network error class.
- */
+/** Network error class. */
 export class NetworkError extends Error {
   /**
    * Create a new instance of the {@link NetworkError} class.
@@ -1336,9 +1400,7 @@ export class NetworkError extends Error {
     super(message)
   }
 }
-/**
- * Error class for when the user is not authorized to access a resource.
- */
+/** Error class for when the user is not authorized to access a resource. */
 export class NotAuthorizedError extends NetworkError {}
 
 // ===============
@@ -1482,8 +1544,15 @@ export default abstract class Backend {
   abstract checkResources(projectId: ProjectId, title: string): Promise<ResourceUsage>
   /** Return a list of files accessible by the current user. */
   abstract listFiles(): Promise<readonly FileLocator[]>
-  /** Upload a file. */
-  abstract uploadFile(params: UploadFileRequestParams, file: Blob): Promise<FileInfo>
+  /** Begin uploading a large file. */
+  abstract uploadFileStart(
+    body: UploadFileRequestParams,
+    file: File,
+  ): Promise<UploadLargeFileMetadata>
+  /** Upload a chunk of a large file. */
+  abstract uploadFileChunk(url: HttpsUrl, file: Blob, index: number): Promise<S3MultipartPart>
+  /** Finish uploading a large file. */
+  abstract uploadFileEnd(body: UploadFileEndRequestBody): Promise<UploadedLargeAsset>
   /** Change the name of a file. */
   abstract updateFile(fileId: FileId, body: UpdateFileRequestBody, title: string): Promise<void>
   /** Return file details. */

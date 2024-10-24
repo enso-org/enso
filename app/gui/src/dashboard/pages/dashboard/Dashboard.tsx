@@ -103,9 +103,7 @@ export default function Dashboard(props: DashboardProps) {
   )
 }
 
-/**
- * Extract proper path from `file://` URL.
- */
+/** Extract proper path from `file://` URL. */
 function fileURLToPath(url: string): string | null {
   if (URL.canParse(url)) {
     const parsed = new URL(url)
@@ -162,6 +160,7 @@ function DashboardInner(props: DashboardProps) {
     setCategoryRaw(newCategory)
     setStoreCategory(newCategory)
   })
+  const backend = backendProvider.useBackend(category)
 
   const projectsStore = useProjectsStore()
   const page = usePage()
@@ -233,7 +232,6 @@ function DashboardInner(props: DashboardProps) {
             return null
           })
           if (modalRef.current == null) {
-            // eslint-disable-next-line no-restricted-syntax
             return false
           }
         },
@@ -244,7 +242,6 @@ function DashboardInner(props: DashboardProps) {
   React.useEffect(() => {
     if (detect.isOnElectron()) {
       // We want to handle the back and forward buttons in electron the same way as in the browser.
-      // eslint-disable-next-line no-restricted-syntax
       return inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
         goBack: () => {
           window.navigationApi.goBack()
@@ -275,11 +272,9 @@ function DashboardInner(props: DashboardProps) {
       if (asset != null && self != null) {
         setModal(
           <ManagePermissionsModal
+            backend={backend}
+            category={category}
             item={asset}
-            setItem={(updater) => {
-              const nextAsset = updater instanceof Function ? updater(asset) : updater
-              assetManagementApiRef.current?.setAsset(asset.id, nextAsset)
-            }}
             self={self}
             doRemoveSelf={() => {
               doRemoveSelf(selectedProject)

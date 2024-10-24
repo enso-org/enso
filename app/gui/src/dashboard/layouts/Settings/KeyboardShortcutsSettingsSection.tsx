@@ -5,26 +5,19 @@ import BlankIcon from '#/assets/blank.svg'
 import CrossIcon from '#/assets/cross.svg'
 import Plus2Icon from '#/assets/plus2.svg'
 import ReloadIcon from '#/assets/reload.svg'
-
-import type * as inputBindings from '#/configurations/inputBindings'
-
-import * as refreshHooks from '#/hooks/refreshHooks'
-import * as scrollHooks from '#/hooks/scrollHooks'
-
-import * as inputBindingsManager from '#/providers/InputBindingsProvider'
-import * as modalProvider from '#/providers/ModalProvider'
-import * as textProvider from '#/providers/TextProvider'
-
-import * as aria from '#/components/aria'
-import * as ariaComponents from '#/components/AriaComponents'
+import { mergeProps } from '#/components/aria'
+import { Button, ButtonGroup, DialogTrigger } from '#/components/AriaComponents'
 import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
 import FocusArea from '#/components/styled/FocusArea'
 import SvgMask from '#/components/SvgMask'
-
+import type { DashboardBindingKey } from '#/configurations/inputBindings'
+import { useRefresh } from '#/hooks/refreshHooks'
+import { useStickyTableHeaderOnScroll } from '#/hooks/scrollHooks'
 import CaptureKeyboardShortcutModal from '#/modals/CaptureKeyboardShortcutModal'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
-
-import * as object from '#/utilities/object'
+import { useInputBindings } from '#/providers/InputBindingsProvider'
+import { useText } from '#/providers/TextProvider'
+import { unsafeEntries } from '#/utilities/object'
 
 // ========================================
 // === KeyboardShortcutsSettingsSection ===
@@ -32,10 +25,9 @@ import * as object from '#/utilities/object'
 
 /** Settings tab for viewing and editing keyboard shortcuts. */
 export default function KeyboardShortcutsSettingsSection() {
-  const [refresh, doRefresh] = refreshHooks.useRefresh()
-  const inputBindings = inputBindingsManager.useInputBindings()
-  const { setModal } = modalProvider.useSetModal()
-  const { getText } = textProvider.useText()
+  const [refresh, doRefresh] = useRefresh()
+  const inputBindings = useInputBindings()
+  const { getText } = useText()
   const rootRef = React.useRef<HTMLDivElement>(null)
   const bodyRef = React.useRef<HTMLTableSectionElement>(null)
   const allShortcuts = React.useMemo(() => {
@@ -45,39 +37,38 @@ export default function KeyboardShortcutsSettingsSection() {
     return new Set(Object.values(inputBindings.metadata).flatMap((value) => value.bindings))
   }, [inputBindings.metadata, refresh])
   const visibleBindings = React.useMemo(
-    () => object.unsafeEntries(inputBindings.metadata).filter((kv) => kv[1].rebindable !== false),
+    () => unsafeEntries(inputBindings.metadata).filter((kv) => kv[1].rebindable !== false),
     [inputBindings.metadata],
   )
 
-  const { onScroll } = scrollHooks.useStickyTableHeaderOnScroll(rootRef, bodyRef)
+  const { onScroll } = useStickyTableHeaderOnScroll(rootRef, bodyRef)
 
   return (
     <>
-      <ariaComponents.ButtonGroup>
-        <ariaComponents.DialogTrigger>
-          <ariaComponents.Button size="medium" variant="outline">
+      <ButtonGroup>
+        <DialogTrigger>
+          <Button size="medium" variant="outline">
             {getText('resetAll')}
-          </ariaComponents.Button>
+          </Button>
           <ConfirmDeleteModal
             actionText={getText('resetAllKeyboardShortcuts')}
             actionButtonLabel={getText('resetAll')}
             doDelete={() => {
               for (const k in inputBindings.metadata) {
                 // eslint-disable-next-line no-restricted-syntax
-                inputBindings.reset(k as inputBindings.DashboardBindingKey)
+                inputBindings.reset(k as DashboardBindingKey)
               }
               doRefresh()
             }}
           />
-        </ariaComponents.DialogTrigger>
-      </ariaComponents.ButtonGroup>
+        </DialogTrigger>
+      </ButtonGroup>
       <FocusArea direction="vertical" focusChildClass="focus-default" focusDefaultClass="">
         {(innerProps) => (
           <div
-            {...aria.mergeProps<JSX.IntrinsicElements['div']>()(innerProps, {
+            {...mergeProps<JSX.IntrinsicElements['div']>()(innerProps, {
               ref: rootRef,
               // There is a horizontal scrollbar for some reason without `px-px`.
-              // eslint-disable-next-line no-restricted-syntax
               className: 'overflow-auto px-px',
               onScroll,
             })}
@@ -118,7 +109,7 @@ export default function KeyboardShortcutsSettingsSection() {
                             <div {...bindingsProps}>
                               {/* I don't know why this padding is needed,
                                * given that this is a flex container. */}
-                              {/* eslint-disable-next-line no-restricted-syntax */}
+                              {}
                               <div className="gap-buttons flex items-center pr-4">
                                 {info.bindings.map((binding, j) => (
                                   <div
@@ -126,7 +117,7 @@ export default function KeyboardShortcutsSettingsSection() {
                                     className="inline-flex shrink-0 items-center gap-keyboard-shortcuts-button"
                                   >
                                     <KeyboardShortcut shortcut={binding} />
-                                    <ariaComponents.Button
+                                    <Button
                                       variant="ghost"
                                       size="medium"
                                       aria-label={getText('removeShortcut')}
@@ -142,27 +133,25 @@ export default function KeyboardShortcutsSettingsSection() {
                                 ))}
                                 <div className="grow" />
                                 <div className="gap-keyboard-shortcuts-buttons flex shrink-0 items-center">
-                                  <ariaComponents.Button
-                                    variant="ghost"
-                                    size="medium"
-                                    aria-label={getText('addShortcut')}
-                                    tooltipPlacement="top left"
-                                    icon={Plus2Icon}
-                                    showIconOnHover
-                                    onPress={() => {
-                                      setModal(
-                                        <CaptureKeyboardShortcutModal
-                                          description={`'${info.name}'`}
-                                          existingShortcuts={allShortcuts}
-                                          onSubmit={(shortcut) => {
-                                            inputBindings.add(action, shortcut)
-                                            doRefresh()
-                                          }}
-                                        />,
-                                      )
-                                    }}
-                                  />
-                                  <ariaComponents.Button
+                                  <DialogTrigger>
+                                    <Button
+                                      variant="ghost"
+                                      size="medium"
+                                      aria-label={getText('addShortcut')}
+                                      tooltipPlacement="top left"
+                                      icon={Plus2Icon}
+                                      showIconOnHover
+                                    />
+                                    <CaptureKeyboardShortcutModal
+                                      description={`'${info.name}'`}
+                                      existingShortcuts={allShortcuts}
+                                      onSubmit={(shortcut) => {
+                                        inputBindings.add(action, shortcut)
+                                        doRefresh()
+                                      }}
+                                    />
+                                  </DialogTrigger>
+                                  <Button
                                     variant="ghost"
                                     size="medium"
                                     aria-label={getText('resetShortcut')}

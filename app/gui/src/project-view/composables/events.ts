@@ -320,9 +320,7 @@ export const enum PointerButtonMask {
   ExtForward = 16,
 }
 
-/**
- * Options for `usePointer` composable.
- */
+/** Options for `usePointer` composable. */
 export interface UsePointerOptions {
   /**
    * Declare which buttons to look for. The value represents a `PointerEvent.buttons` mask.
@@ -451,9 +449,7 @@ function isArrowKey(key: string): key is ArrowKey {
   return key === 'ArrowLeft' || key === 'ArrowUp' || key === 'ArrowRight' || key === 'ArrowDown'
 }
 
-/**
- * Options for `useArrows` composable.
- */
+/** Options for `useArrows` composable. */
 export interface UseArrowsOptions {
   /** The velocity expressed in pixels per second. Defaults to 200. */
   velocity?: number

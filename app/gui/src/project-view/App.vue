@@ -28,10 +28,20 @@ const props = defineProps<{
   hidden: boolean
   ignoreParamsRegex?: RegExp
   renameProject: (newName: string) => void
-  backend: Backend
+  /** The current project's backend, which may be remote or local. */
+  projectBackend: Backend | null
+  /**
+   * The remote backend.
+   *
+   * This is used regardless of whether the project is local for e.g. the cloud file browser.
+   */
+  remoteBackend: Backend | null
 }>()
 
-provideBackend(() => markRaw(toRaw(props.backend)))
+provideBackend({
+  project: () => props.projectBackend && markRaw(toRaw(props.projectBackend)),
+  remote: () => props.remoteBackend && markRaw(toRaw(props.remoteBackend)),
+})
 
 const classSet = provideAppClassSet()
 const appTooltips = provideTooltipRegistry()

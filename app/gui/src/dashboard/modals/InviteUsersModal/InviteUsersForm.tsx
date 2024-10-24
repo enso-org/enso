@@ -32,7 +32,7 @@ export interface InviteUsersFormProps {
 export function InviteUsersForm(props: InviteUsersFormProps) {
   const { onSubmitted } = props
   const { getText } = textProvider.useText()
-  const backend = backendProvider.useRemoteBackendStrict()
+  const backend = backendProvider.useRemoteBackend()
   const inputRef = React.useRef<HTMLDivElement>(null)
 
   const { user } = authProvider.useFullUserSession()
@@ -101,7 +101,6 @@ export function InviteUsersForm(props: InviteUsersFormProps) {
     } else {
       for (const entry of entries) {
         if (!isEmail(entry.email)) {
-          // eslint-disable-next-line no-restricted-syntax
           return getText('emailIsInvalid')
         }
       }

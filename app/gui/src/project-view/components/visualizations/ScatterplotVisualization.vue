@@ -56,8 +56,9 @@ interface Data {
   data: Point[]
   isTimeSeries: boolean
   x_value_type: string
-  is_multi_series?: boolean
+  is_multi_series: boolean
   get_row_method: string
+  error_message: string | null
 }
 
 interface Focus {
@@ -162,14 +163,12 @@ const data = computed<Data>(() => {
       rawData.map((y, index) => ({ x: index, y, row_number: index }))
     : rawData.data ?? []
   let data: Point[]
-  // eslint-disable-next-line camelcase
   const isTimeSeries: boolean =
     'x_value_type' in rawData ?
       rawData.x_value_type === 'Time' ||
       rawData.x_value_type === 'Date' ||
       rawData.x_value_type === 'Date_Time'
     : false
-  // eslint-disable-next-line camelcase
   if (isTimeSeries) {
     data = unfilteredData
       .filter((point) => typeof point.y === 'number' && !Number.isNaN(point.y))
@@ -186,16 +185,22 @@ const data = computed<Data>(() => {
   if (Array.isArray(rawData)) {
     rawData = {}
   }
-  const axis: AxesConfiguration = rawData.axis ?? {
-    x: { label: '', scale: isTimeSeries ? ScaleType.Time : ScaleType.Linear },
-    y: { label: '', scale: ScaleType.Linear },
-  }
+
+  const axis: AxesConfiguration =
+    rawData.axis && 'x' in rawData.axis && 'y' in rawData.axis ?
+      rawData.axis
+    : {
+        x: { label: '', scale: isTimeSeries ? ScaleType.Time : ScaleType.Linear },
+        y: { label: '', scale: ScaleType.Linear },
+      }
   const points = rawData.points ?? { labels: 'visible' }
   const focus: Focus | undefined = rawData.focus
   // eslint-disable-next-line camelcase
   const is_multi_series: boolean = !!rawData.is_multi_series
   // eslint-disable-next-line camelcase
   const get_row_method: string = rawData.get_row_method || 'get_row'
+  // eslint-disable-next-line camelcase
+  const error_message: string | null = rawData.error_message || null
   return {
     axis,
     points,
@@ -207,6 +212,8 @@ const data = computed<Data>(() => {
     x_value_type: rawData.x_value_type || '',
     // eslint-disable-next-line camelcase
     get_row_method,
+    // eslint-disable-next-line camelcase
+    error_message,
     isTimeSeries,
   }
 })
@@ -578,6 +585,9 @@ const makeFilterPattern = (
     Ast.tryNumberToEnso(max, module)!,
   ])
 }
+
+const errorMessage = computed(() => data.value.error_message)
+
 function getAstPatternFilterAndSort(
   series: string[],
   xColName: string,
@@ -861,7 +871,10 @@ config.setToolbar([
 </script>
 
 <template>
-  <div ref="containerNode" class="ScatterplotVisualization">
+  <div v-if="errorMessage" class="WarningsScatterplotVisualization">
+    {{ errorMessage }}
+  </div>
+  <div v-else ref="containerNode" class="ScatterplotVisualization">
     <svg :width="width" :height="height">
       <g ref="legendNode"></g>
       <g :transform="`translate(${margin.left}, ${margin.top})`">
@@ -902,6 +915,10 @@ config.setToolbar([
   user-select: none;
   display: flex;
   flex-direction: column;
+}
+
+.WarningsScatterplotVisualization {
+  padding: 18px;
 }
 
 .ScatterplotVisualization .selection {

@@ -45,11 +45,9 @@ add_specs suite_builder =
             q1 = data.t1.filter (data.t1.at "A" == 42) . to_json
 
             part1 = JS_Object.from_pairs [["sql_code", 'SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE (("T1"."A") = (']]
-            part2_sub = JS_Object.from_pairs [["value", 42]]
-            part2 = JS_Object.from_pairs [["sql_interpolation", part2_sub]]
+            part2 = JS_Object.from_pairs [["sql_interpolation", 42]]
             part3 = JS_Object.from_pairs [["sql_code", ")) = ("]]
-            part4_sub = JS_Object.from_pairs [["value", True]]
-            part4 = JS_Object.from_pairs [["sql_interpolation", part4_sub]]
+            part4 = JS_Object.from_pairs [["sql_interpolation", True]]
             part5 = JS_Object.from_pairs [["sql_code", ")"]]
             expected = JS_Object.from_pairs [["query", [part1, part2, part3, part4, part5]]] . to_text
             q1.should_equal expected
@@ -168,4 +166,3 @@ main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
     suite.run_with_filter filter
-

@@ -1,6 +1,8 @@
-/** @file Type definitions for modules that currently lack typings on DefinitelyTyped.
+/**
+ * @file Type definitions for modules that currently lack typings on DefinitelyTyped.
  *
- * This file MUST NOT `export {}` so that the modules are visible to other files. */
+ * This file MUST NOT `export {}` so that the modules are visible to other files.
+ */
 
 // Required because this is a build artifact, which does not exist on a clean repository.
 declare module '*/build.json' {
@@ -24,7 +26,6 @@ declare module 'create-servers' {
   interface CreateServersOptions {
     readonly http?: number
     readonly handler: http.RequestListener
-    // eslint-disable-next-line no-restricted-syntax
     readonly https?: {
       readonly port: number
       readonly key: string
@@ -46,7 +47,6 @@ declare module 'create-servers' {
   export default function (
     option: CreateServersOptions,
     // The types come from a third-party API and cannot be changed.
-    // eslint-disable-next-line no-restricted-syntax
     handler: (err: HttpError | undefined, servers: CreatedServers) => void,
   ): unknown
 }

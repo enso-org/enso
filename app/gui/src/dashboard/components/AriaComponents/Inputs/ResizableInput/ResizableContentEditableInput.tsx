@@ -1,7 +1,11 @@
-/**
- * @file A resizable input that uses a content-editable div.
- */
-import { useRef, type ClipboardEvent, type ForwardedRef, type HTMLAttributes } from 'react'
+/** @file A resizable input that uses a content-editable div. */
+import {
+  useEffect,
+  useRef,
+  type ClipboardEvent,
+  type ForwardedRef,
+  type HTMLAttributes,
+} from 'react'
 
 import type { FieldVariantProps } from '#/components/AriaComponents'
 import {
@@ -12,6 +16,7 @@ import {
   type FieldStateProps,
   type TSchema,
 } from '#/components/AriaComponents'
+import { useAutoFocus } from '#/hooks/autoFocusHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { mergeRefs } from '#/utilities/mergeRefs'
 import { forwardRef } from '#/utilities/react'
@@ -24,9 +29,7 @@ const CONTENT_EDITABLE_STYLES = tv({
   slots: { placeholder: 'opacity-50 absolute inset-0 pointer-events-none' },
 })
 
-/**
- * Props for a {@link ResizableContentEditableInput}.
- */
+/** Props for a {@link ResizableContentEditableInput}. */
 export interface ResizableContentEditableInputProps<
   Schema extends TSchema,
   TFieldName extends FieldPath<Schema>,
@@ -43,13 +46,14 @@ export interface ResizableContentEditableInputProps<
       VariantProps<typeof CONTENT_EDITABLE_STYLES>,
       'disabled' | 'invalid' | 'rounded' | 'size' | 'variant'
     > {
+  /** Defaults to `onInput`. */
+  readonly mode?: 'onBlur' | 'onInput'
   /**
    * onChange is called when the content of the input changes.
    * There is no way to prevent the change, so the value is always the new value.
    * This is different from the onChange event of a normal input element.
    * So the component is not a ***fully*** controlled component.
    */
-  // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
   readonly placeholder?: string
 }
 
@@ -65,6 +69,7 @@ export const ResizableContentEditableInput = forwardRef(function ResizableConten
   ref: ForwardedRef<HTMLDivElement>,
 ) {
   const {
+    mode = 'onInput',
     placeholder = '',
     description = null,
     name,
@@ -76,6 +81,7 @@ export const ResizableContentEditableInput = forwardRef(function ResizableConten
     variant,
     variants = CONTENT_EDITABLE_STYLES,
     fieldVariants,
+    autoFocus = false,
     ...textFieldProps
   } = props
 
@@ -100,19 +106,21 @@ export const ResizableContentEditableInput = forwardRef(function ResizableConten
     defaultValue,
   })
 
-  const {
-    base,
-    description: descriptionClass,
-    inputContainer,
-    textArea,
-    placeholder: placeholderClass,
-  } = variants({
+  const styles = variants({
     invalid: fieldState.invalid,
     disabled: isDisabled || formInstance.formState.isSubmitting,
     variant,
     rounded,
     size,
   })
+
+  useAutoFocus({ ref: inputRef, disabled: !autoFocus })
+
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.textContent = field.value
+    }
+  }, [field.value])
 
   return (
     <Form.Field
@@ -123,14 +131,14 @@ export const ResizableContentEditableInput = forwardRef(function ResizableConten
       {...textFieldProps}
     >
       <div
-        className={base()}
+        className={styles.base()}
         onClick={() => {
           inputRef.current?.focus({ preventScroll: true })
         }}
       >
-        <div className={inputContainer()}>
+        <div className={styles.inputContainer()}>
           <div
-            className={textArea()}
+            className={styles.textArea()}
             ref={mergeRefs(inputRef, ref, field.ref)}
             contentEditable
             suppressContentEditableWarning
@@ -140,19 +148,26 @@ export const ResizableContentEditableInput = forwardRef(function ResizableConten
             spellCheck="false"
             aria-autocomplete="none"
             onPaste={onPaste}
-            onBlur={field.onBlur}
+            onBlur={(event) => {
+              if (mode === 'onBlur') {
+                field.onChange(event.currentTarget.textContent ?? '')
+              }
+              field.onBlur()
+            }}
             onInput={(event) => {
-              field.onChange(event.currentTarget.textContent ?? '')
+              if (mode === 'onInput') {
+                field.onChange(event.currentTarget.textContent ?? '')
+              }
             }}
           />
 
-          <Text className={placeholderClass({ class: field.value.length > 0 ? 'hidden' : '' })}>
+          <Text className={styles.placeholder({ class: field.value.length > 0 ? 'hidden' : '' })}>
             {placeholder}
           </Text>
         </div>
 
         {description != null && (
-          <Text slot="description" className={descriptionClass()}>
+          <Text slot="description" className={styles.description()}>
             {description}
           </Text>
         )}

@@ -6,6 +6,7 @@ import * as fsSync from 'node:fs'
 import * as fs from 'node:fs/promises'
 import * as os from 'node:os'
 import * as path from 'node:path'
+import * as process from 'node:process'
 import * as url from 'node:url'
 
 import sharp from 'sharp'
@@ -135,9 +136,7 @@ viewBox="0 0 ${this.xsize} ${this.xsize}">
 /** Generate icons.
  * @param {string} outputDir - The directory in which the icons will be placed. */
 async function genIcons(outputDir) {
-  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
   const sizes = [16, 32, 64, 128, 256, 512, 1024]
-  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
   const winSizes = [16, 32, 64, 128, 256]
 
   const donePath = path.join(outputDir, 'init')
@@ -211,7 +210,6 @@ async function genIcons(outputDir) {
 
 /** Main entry function. */
 async function main() {
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   const outputDir = process.env.ENSO_BUILD_ICONS ?? process.argv[2]
   if (outputDir == null) {
     const script = process.env.npm_package_name ?? url.fileURLToPath(import.meta.url)

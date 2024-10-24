@@ -61,14 +61,11 @@ export interface AlertProps
   extends PropsWithChildren,
     VariantProps<typeof ALERT_STYLES>,
     HTMLAttributes<HTMLDivElement> {
-  /**
-   * The icon to display in the Alert
-   */
+  /** The icon to display in the Alert */
   readonly icon?: React.ReactElement | string | null | undefined
 }
 
 /** Alert component. */
-// eslint-disable-next-line no-restricted-syntax
 export const Alert = forwardRef(function Alert(
   props: AlertProps,
   ref: ForwardedRef<HTMLDivElement>,
@@ -102,7 +99,6 @@ export const Alert = forwardRef(function Alert(
       {icon != null &&
         (() => {
           if (typeof icon === 'string') {
-            // eslint-disable-next-line no-restricted-syntax
             return (
               <div className={classes.iconContainer()}>
                 <SvgMask src={icon} />

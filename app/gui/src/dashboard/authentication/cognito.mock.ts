@@ -42,13 +42,7 @@ import type * as service from '#/authentication/service'
 import * as original from './cognito.js'
 import * as listen from './listen.mock.js'
 
-// This file exports a subset of the values from the original file.
-/* eslint-disable no-restricted-syntax */
 export { CognitoErrorType } from './cognito.js'
-/* eslint-enable no-restricted-syntax */
-
-// There are unused function parameters in this file.
-/* eslint-disable @typescript-eslint/no-unused-vars */
 
 // =================
 // === Constants ===
@@ -306,16 +300,12 @@ export class Cognito {
     }
   }
 
-  /**
-   * Refresh the current user's session.
-   */
+  /** Refresh the current user's session. */
   async refreshUserSession() {
     return Promise.resolve(results.Ok(null))
   }
 
-  /**
-   * Returns MFA preference for the current user.
-   */
+  /** Returns MFA preference for the current user. */
   async getMFAPreference() {
     return Promise.resolve(results.Ok('NOMFA'))
   }

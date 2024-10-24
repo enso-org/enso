@@ -111,9 +111,7 @@ interface AuthContextType {
   readonly changePassword: (oldPassword: string, newPassword: string) => Promise<boolean>
   readonly resetPassword: (email: string, code: string, password: string) => Promise<void>
   readonly signOut: () => Promise<void>
-  /**
-   * @deprecated Never use this function. Prefer particular functions like `setUsername` or `deleteUser`.
-   */
+  /** @deprecated Never use this function. Prefer particular functions like `setUsername` or `deleteUser`. */
   readonly setUser: (user: Partial<backendModule.User>) => void
   readonly deleteUser: () => Promise<boolean>
   readonly restoreUser: () => Promise<boolean>
@@ -141,9 +139,7 @@ const AuthContext = React.createContext<AuthContextType | null>(null)
 // === AuthProvider ===
 // ====================
 
-/**
- * Query to fetch the user's session data from the backend.
- */
+/** Query to fetch the user's session data from the backend. */
 function createUsersMeQuery(
   session: cognitoModule.UserSession | null,
   remoteBackend: RemoteBackend,
@@ -153,7 +149,6 @@ function createUsersMeQuery(
     queryKey: [remoteBackend.type, 'usersMe', session?.clientId] as const,
     queryFn: async () => {
       if (session == null) {
-        // eslint-disable-next-line no-restricted-syntax
         return Promise.resolve(null)
       }
       try {
@@ -169,7 +164,6 @@ function createUsersMeQuery(
           await performLogout()
           return null
         } else {
-          // eslint-disable-next-line no-restricted-syntax
           throw error
         }
       }
@@ -190,7 +184,7 @@ export interface AuthProviderProps {
 export default function AuthProvider(props: AuthProviderProps) {
   const { authService, onAuthenticated } = props
   const { children } = props
-  const remoteBackend = backendProvider.useRemoteBackendStrict()
+  const remoteBackend = backendProvider.useRemoteBackend()
   const { cognito } = authService
   const { session, sessionQueryKey } = sessionProvider.useSession()
   const { localStorage } = localStorageProvider.useLocalStorage()
@@ -337,7 +331,6 @@ export default function AuthProvider(props: AuthProviderProps) {
       const challenge = user.challengeName ?? 'NO_CHALLENGE'
 
       if (['SMS_MFA', 'SOFTWARE_TOKEN_MFA'].includes(challenge)) {
-        // eslint-disable-next-line no-restricted-syntax
         return { challenge, user } as const
       }
 

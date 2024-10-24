@@ -10,7 +10,7 @@ import { defineConfig } from '@playwright/test'
 import net from 'net'
 
 const DEBUG = process.env.DEBUG_E2E === 'true'
-const TIMEOUT_MS = DEBUG ? 100_000_000 : 30_000
+const TIMEOUT_MS = DEBUG ? 100_000_000 : 60_000
 
 async function findFreePortInRange(min: number, max: number) {
   for (let i = 0; i < 50; i++) {

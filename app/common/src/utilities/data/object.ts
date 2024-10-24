@@ -16,14 +16,14 @@ export type Mutable<T> = {
 /** Prevents generic parameter inference by hiding the type parameter behind a conditional type. */
 type NoInfer<T> = [T][T extends T ? 0 : never]
 
-/** Immutably shallowly merge an object with a partial update.
- * Does not preserve classes. Useful for preserving order of properties. */
+/**
+ * Immutably shallowly merge an object with a partial update.
+ * Does not preserve classes. Useful for preserving order of properties.
+ */
 export function merge<T extends object>(object: T, update: Partial<T>): T {
   for (const [key, value] of Object.entries(update)) {
-    // eslint-disable-next-line no-restricted-syntax
     if (!Object.is(value, (object as Record<string, unknown>)[key])) {
       // This is FINE, as the matching `return` is below this `return`.
-      // eslint-disable-next-line no-restricted-syntax
       return Object.assign({ ...object }, update)
     }
   }
@@ -57,8 +57,10 @@ export function unsafeMutable<T extends object>(object: T): { -readonly [K in ke
 // === unsafeEntries ===
 // =====================
 
-/** Return the entries of an object. UNSAFE only when it is possible for an object to have
- * extra keys. */
+/**
+ * Return the entries of an object. UNSAFE only when it is possible for an object to have
+ * extra keys.
+ */
 export function unsafeEntries<T extends object>(
   object: T,
 ): readonly { [K in keyof T]: readonly [K, T[K]] }[keyof T][] {
@@ -75,7 +77,6 @@ export function unsafeRemoveUndefined<T extends object>(
   object: T,
 ): { [K in keyof T]: Exclude<T[K], undefined> } {
   // This function intentionally performs an mostly safe, but ultimately unsafe cast.
-  // eslint-disable-next-line no-restricted-syntax
   return object as never
 }
 
@@ -83,8 +84,10 @@ export function unsafeRemoveUndefined<T extends object>(
 // === mapEntries ===
 // ==================
 
-/** Return the entries of an object. UNSAFE only when it is possible for an object to have
- * extra keys. */
+/**
+ * Return the entries of an object. UNSAFE only when it is possible for an object to have
+ * extra keys.
+ */
 export function mapEntries<K extends PropertyKey, V, W>(
   object: Record<K, V>,
   map: (key: K, value: V) => W,
@@ -127,10 +130,8 @@ export function omit<T, Ks extends readonly (string & keyof T)[] | []>(
   ...keys: Ks
 ): Omit<T, Ks[number]> {
   const keysSet = new Set<string>(keys)
-  // eslint-disable-next-line no-restricted-syntax
   return Object.fromEntries(
     // This is SAFE, as it is a reaonly upcast.
-    // eslint-disable-next-line no-restricted-syntax
     Object.entries(object as Readonly<Record<string, unknown>>).flatMap(kv =>
       !keysSet.has(kv[0]) ? [kv] : [],
     ),

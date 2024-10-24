@@ -129,35 +129,37 @@ impl<'a> SegmentMap<'a> {
 /// to learn more about the macro resolution steps.
 #[derive(Debug)]
 struct ResolverState<'s> {
-    blocks:     Vec<Block>,
+    blocks:       Vec<Block>,
     /// The lines of all currently-open blocks. This is partitioned by `blocks`.
-    lines:      Vec<syntax::item::Line<'s>>,
-    groups:     Vec<OpenGroup<'s>>,
+    lines:        Vec<syntax::item::Line<'s>>,
+    groups:       Vec<OpenGroup<'s>>,
     /// All currently-open macros. These are partitioned into scopes by `blocks`.
-    macros:     Vec<PartiallyMatchedMacro<'s>>,
+    macros:       Vec<PartiallyMatchedMacro<'s>>,
     /// Segments of all currently-open macros. These are partitioned by `macros`.
-    segments:   Vec<MatchedSegment<'s>>,
+    segments:     Vec<MatchedSegment<'s>>,
     /// Items of all segments of all currently-open macros. These are partitioned by `segments`.
-    items:      Vec<Item<'s>>,
-    context:    Context,
-    precedence: syntax::operator::Precedence<'s>,
+    items:        Vec<Item<'s>>,
+    context:      Context,
+    root_context: RootContext,
+    precedence:   syntax::operator::Precedence<'s>,
 }
 
 
 // === Public API ===
 
 impl<'s> ResolverState<'s> {
-    /// Create a new resolver, in statement context.
-    fn new_statement() -> Self {
+    /// Create a new resolver.
+    fn new(root_context: RootContext, context: Context) -> Self {
         Self {
-            context:    Context::Statement,
+            context,
+            root_context,
             precedence: syntax::operator::Precedence::new(),
-            blocks:     default(),
-            lines:      vec![initial_line()],
-            groups:     default(),
-            macros:     default(),
-            segments:   default(),
-            items:      default(),
+            blocks: default(),
+            lines: vec![initial_line()],
+            groups: default(),
+            macros: default(),
+            segments: default(),
+            items: default(),
         }
     }
 }
@@ -174,7 +176,12 @@ impl<'s> Finish for ResolverState<'s> {
 
     fn finish(&mut self) -> Self::Result {
         self.finish_current_line();
-        let tree = syntax::tree::block::parse_module(self.lines.drain(..), &mut self.precedence);
+        let tree = match self.root_context {
+            RootContext::Module =>
+                syntax::tree::block::parse_module(&mut self.lines, &mut self.precedence),
+            RootContext::Block =>
+                syntax::tree::block::parse_block(&mut self.lines, &mut self.precedence),
+        };
         debug_assert!(self.blocks.is_empty());
         debug_assert!(self.lines.is_empty());
         debug_assert!(self.groups.is_empty());
@@ -187,6 +194,15 @@ impl<'s> Finish for ResolverState<'s> {
     }
 }
 
+/// Specifies how statements of the input should be interpreted.
+#[derive(Debug, Copy, Clone)]
+pub enum RootContext {
+    /// Interpret the input as a sequence of module-level statements.
+    Module,
+    /// Interpret the input as a sequence of statements inside a body block.
+    Block,
+}
+
 /// Resolves macros.
 #[derive(Debug)]
 pub struct Resolver<'s, 'macros> {
@@ -196,8 +212,8 @@ pub struct Resolver<'s, 'macros> {
 
 impl<'s, 'macros> Resolver<'s, 'macros> {
     /// Creates a macro resolver to use with the given macro map.
-    pub fn new(root_macro_map: &'macros MacroMap) -> Self {
-        Self { resolver: ResolverState::new_statement(), root_macro_map }
+    pub fn new(root_macro_map: &'macros MacroMap, root_context: RootContext) -> Self {
+        Self { resolver: ResolverState::new(root_context, Context::Statement), root_macro_map }
     }
 }
 

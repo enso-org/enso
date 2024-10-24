@@ -1,4 +1,5 @@
-/** @file Definition of the Electron-specific parts of the authentication flows of the IDE.
+/**
+ * @file Definition of the Electron-specific parts of the authentication flows of the IDE.
  *
  * # Overview of Authentication/Authorization
  *
@@ -69,7 +70,8 @@
  * - The {@link ipc.Channel.openDeepLink} listener registered by the dashboard receives the event.
  * Then it parses the {@link URL} from the event's {@link URL} argument. Then it uses the
  * {@link URL} to redirect the user to the dashboard, to the page specified in the {@link URL}'s
- * `pathname`. */
+ * `pathname`.
+ */
 import * as fs from 'node:fs'
 import * as os from 'node:os'
 import * as path from 'node:path'
@@ -90,12 +92,14 @@ const logger = contentConfig.logger
 // === Initialize Authentication Module ===
 // ========================================
 
-/** Configure all the functionality that must be set up in the Electron app to support
+/**
+ * Configure all the functionality that must be set up in the Electron app to support
  * authentication-related flows. Must be called in the Electron app `whenReady` event.
  * @param window - A function that returns the main Electron window. This argument is a lambda and
  * not a variable because the main window is not available when this function is called. This module
  * does not use the `window` until after it is initialized, so while the lambda may return `null` in
- * theory, it never will in practice. */
+ * theory, it never will in practice.
+ */
 export function initAuthentication(window: () => electron.BrowserWindow) {
   // Listen for events to open a URL externally in a browser the user trusts. This is used for
   // OAuth authentication, both for trustworthiness and for convenience (the ability to use the
@@ -143,13 +147,13 @@ export function initAuthentication(window: () => electron.BrowserWindow) {
             fs.writeFile(
               path.join(credentialsHomePath, credentialsFileName),
               JSON.stringify({
-                /* eslint-disable @typescript-eslint/naming-convention */
+                /* eslint-disable camelcase */
                 client_id: accessTokenPayload.clientId,
                 access_token: accessTokenPayload.accessToken,
                 refresh_token: accessTokenPayload.refreshToken,
                 refresh_url: accessTokenPayload.refreshUrl,
                 expire_at: accessTokenPayload.expireAt,
-                /* eslint-enable @typescript-eslint/naming-convention */
+                /* eslint-enable camelcase */
               }),
               innerError => {
                 if (innerError) {

@@ -228,7 +228,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
   const { category, setCategory } = props
   const { user } = authProvider.useFullUserSession()
   const { getText } = textProvider.useText()
-  const remoteBackend = backendProvider.useRemoteBackendStrict()
+  const remoteBackend = backendProvider.useRemoteBackend()
   const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const setPage = useSetPage()
   const [, setSearchParams] = useSearchParams()
@@ -267,9 +267,9 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
     'listDirectory',
     [
       {
-        parentId: backend.DirectoryId(USERS_DIRECTORY_ID),
+        parentId: USERS_DIRECTORY_ID,
         filterBy: backend.FilterBy.active,
-        labels: [],
+        labels: null,
         recentProjects: false,
       },
       'Users',
@@ -281,9 +281,9 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
     'listDirectory',
     [
       {
-        parentId: backend.DirectoryId(TEAMS_DIRECTORY_ID),
+        parentId: TEAMS_DIRECTORY_ID,
         filterBy: backend.FilterBy.active,
-        labels: [],
+        labels: null,
         recentProjects: false,
       },
       'Teams',

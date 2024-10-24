@@ -20,11 +20,9 @@ export default mergeConfig(
   defineConfig({
     resolve: {
       alias: {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         '@stripe/stripe-js/pure': fileURLToPath(
           new URL('./e2e/dashboard/mock/stripe.ts', import.meta.url),
         ),
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         '@stripe/react-stripe-js': fileURLToPath(
           new URL('./e2e/dashboard/mock/react-stripe.tsx', import.meta.url),
         ),
@@ -47,7 +45,6 @@ export default mergeConfig(
       ],
     },
     define: {
-      // eslint-disable-next-line @typescript-eslint/naming-convention
       'process.env.IS_IN_PLAYWRIGHT_TEST': JSON.stringify(`${true}`),
     },
     build: {

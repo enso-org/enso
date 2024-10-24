@@ -1,5 +1,7 @@
-/** @file A generic type that can either hold a value representing a successful result,
- * or an error. */
+/**
+ * @file A generic type that can either hold a value representing a successful result,
+ * or an error.
+ */
 
 import { isSome, type Opt } from './opt'
 
@@ -26,49 +28,38 @@ export type Result<T = undefined, E = unknown> =
   | { ok: true; value: T }
   | { ok: false; error: ResultError<E> }
 
-/**
- * Constructor of success {@link Result}.
- */
+/** Constructor of success {@link Result}. */
 export function Ok(): Result<undefined, never>
 export function Ok<T>(data: T): Result<T, never>
+/** Implementation of `Ok` constructor. */
 export function Ok<T>(data?: T): Result<T | undefined, never> {
   return { ok: true, value: data }
 }
 
-/**
- * Constructor of error {@link Result}.
- */
+/** Constructor of error {@link Result}. */
 export function Err<E>(error: E): Result<never, E> {
   return { ok: false, error: new ResultError(error) }
 }
 
-/**
- * Helper function for converting optional value to {@link Result}.
- */
+/** Helper function for converting optional value to {@link Result}. */
 export function okOr<T, E>(data: Opt<T>, error: E): Result<T, E> {
   if (isSome(data)) return Ok(data)
   else return Err(error)
 }
 
-/**
- * Unwraps the {@link Result} value. If the result is error, it is thrown.
- */
+/** Unwraps the {@link Result} value. If the result is error, it is thrown. */
 export function unwrap<T, E>(result: Result<T, E>): T {
   if (result.ok) return result.value
   else throw result.error
 }
 
-/**
- * Unwraps the {@link Result} value. If the result is error, an alternative is returned.
- */
+/** Unwraps the {@link Result} value. If the result is error, an alternative is returned. */
 export function unwrapOr<T, A>(result: Result<T, unknown>, alternative: A): T | A {
   if (result.ok) return result.value
   else return alternative
 }
 
-/**
- * Unwraps the {@link Result} value. If the result is error, it is logged and alternative is returned.
- */
+/** Unwraps the {@link Result} value. If the result is error, it is logged and alternative is returned. */
 export function unwrapOrWithLog<T, A>(
   result: Result<T, unknown>,
   alternative: A,
@@ -81,22 +72,17 @@ export function unwrapOrWithLog<T, A>(
   }
 }
 
-/**
- * Maps the {@link Result} value.
- */
+/** Maps the {@link Result} value. */
 export function mapOk<T, U, E>(result: Result<T, E>, f: (value: T) => U): Result<U, E> {
   if (result.ok) return Ok(f(result.value))
   else return result
 }
 
-/**
- * If the value is nullish, returns {@link Ok} with it.
- */
+/** If the value is nullish, returns {@link Ok} with it. */
 export function transposeResult<T, E>(value: Opt<Result<T, E>>): Result<Opt<T>, E>
-/**
- * If any of the values is an error, the first error is returned.
- */
+/** If any of the values is an error, the first error is returned. */
 export function transposeResult<T, E>(value: Result<T, E>[]): Result<T[], E>
+/** Implementation of `transposeResult`. */
 export function transposeResult<T, E>(value: Opt<Result<T, E>> | Result<T, E>[]) {
   if (value == null) return Ok(value)
   if (value instanceof Array) {
@@ -107,9 +93,7 @@ export function transposeResult<T, E>(value: Opt<Result<T, E>> | Result<T, E>[])
   return value
 }
 
-/**
- * Check if given value is {@link Result}.
- */
+/** Check if given value is {@link Result}. */
 export function isResult(v: unknown): v is Result {
   return (
     v != null &&
@@ -120,22 +104,19 @@ export function isResult(v: unknown): v is Result {
   )
 }
 
-/**
- * A class containing information about {@link Result} error.
- */
+/** A class containing information about {@link Result} error. */
 export class ResultError<E = unknown> {
   payload: E
   /** All contexts attached by {@link withContext} function */
   context: (() => string)[]
 
+  /** Create an {@link ResultError}. */
   constructor(payload: E) {
     this.payload = payload
     this.context = []
   }
 
-  /**
-   * Log the error with context information and given preable.
-   */
+  /** Log the error with context information and given preable. */
   log(preamble: string = 'Error') {
     console.error(this.message(preamble))
   }
@@ -193,6 +174,7 @@ export function withContext<T, E>(
   context: () => string,
   f: () => Promise<Result<T, E>>,
 ): Promise<Result<T, E>>
+/** Implementation of `withContext`. */
 export function withContext<T, E>(
   context: () => string,
   f: () => Promise<Result<T, E>> | Result<T, E>,
@@ -212,9 +194,7 @@ export function withContext<T, E>(
   }
 }
 
-/**
- * Catch promise rejection of provided types and convert them to a Result type.
- */
+/** Catch promise rejection of provided types and convert them to a Result type. */
 export function rejectionToResult<ErrorKind extends new (...args: any[]) => any>(
   errorKinds: ErrorKind | ErrorKind[],
 ): <T>(promise: Promise<T>) => Promise<Result<T, InstanceType<ErrorKind>>> {

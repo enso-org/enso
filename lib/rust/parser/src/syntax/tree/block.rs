@@ -50,10 +50,18 @@ impl<'s> span::Builder<'s> for Line<'s> {
 
 /// Parse the top-level of a module.
 pub fn parse_module<'s>(
-    lines: impl IntoIterator<Item = item::Line<'s>>,
+    lines: &mut Vec<item::Line<'s>>,
     precedence: &mut operator::Precedence<'s>,
 ) -> Tree<'s> {
     BodyBlockParser::default().parse_module(lines, precedence)
+}
+
+/// Parse a body block.
+pub fn parse_block<'s>(
+    lines: &mut Vec<item::Line<'s>>,
+    precedence: &mut operator::Precedence<'s>,
+) -> Tree<'s> {
+    BodyBlockParser::default().parse_body_block(lines, precedence)
 }
 
 
@@ -132,7 +140,6 @@ where I: Iterator<Item = Line<'s>>
 /// Representation used to build multi-line statements.
 #[derive(Debug)]
 enum Prefix<'s> {
-    Annotation { node: Box<Annotated<'s>>, span: Span<'s> },
     BuiltinAnnotation { node: Box<AnnotatedBuiltin<'s>>, span: Span<'s> },
     Documentation { node: Box<Documented<'s>>, span: Span<'s> },
 }
@@ -141,7 +148,6 @@ impl<'s> TryFrom<Tree<'s>> for Prefix<'s> {
     type Error = Tree<'s>;
     fn try_from(tree: Tree<'s>) -> Result<Self, Self::Error> {
         match tree.variant {
-            Variant::Annotated(node) => Ok(Prefix::Annotation { node, span: tree.span }),
             Variant::AnnotatedBuiltin(node) if node.expression.is_none() =>
                 Ok(Prefix::BuiltinAnnotation { node, span: tree.span }),
             Variant::Documented(node) => Ok(Prefix::Documentation { node, span: tree.span }),
@@ -153,7 +159,6 @@ impl<'s> TryFrom<Tree<'s>> for Prefix<'s> {
 impl<'s> Prefix<'s> {
     fn push_newline(&mut self, newline: token::Newline<'s>) {
         let (newlines, span) = match self {
-            Prefix::Annotation { node, span } => (&mut node.newlines, span),
             Prefix::BuiltinAnnotation { node, span } => (&mut node.newlines, span),
             Prefix::Documentation { node, span } => (&mut node.documentation.newlines, span),
         };
@@ -163,7 +168,6 @@ impl<'s> Prefix<'s> {
 
     fn apply_to(mut self, expression: Tree<'s>) -> Tree<'s> {
         let (expr, span) = match &mut self {
-            Prefix::Annotation { node, span } => (&mut node.expression, span),
             Prefix::BuiltinAnnotation { node, span } => (&mut node.expression, span),
             Prefix::Documentation { node, span } => (&mut node.expression, span),
         };
@@ -176,8 +180,6 @@ impl<'s> Prefix<'s> {
 impl<'s> From<Prefix<'s>> for Tree<'s> {
     fn from(prefix: Prefix<'s>) -> Self {
         match prefix {
-            Prefix::Annotation { node, span } =>
-                Tree { variant: Variant::Annotated(node), span, warnings: default() },
             Prefix::BuiltinAnnotation { node, span } =>
                 Tree { variant: Variant::AnnotatedBuiltin(node), span, warnings: default() },
             Prefix::Documentation { node, span } =>
@@ -213,8 +215,12 @@ fn to_operator_block_expression<'s>(
                 && a.operator_properties().is_some_and(|p| p.can_form_section()) =>
         {
             let expression = precedence.resolve_offset(1, &mut items).unwrap();
-            let Some(Item::Token(operator)) = items.pop() else { unreachable!() };
-            let operator = Ok(operator.with_variant(token::variant::Operator()));
+            let operator = Ok(items
+                .pop()
+                .unwrap()
+                .into_token()
+                .unwrap()
+                .with_variant(token::variant::Operator()));
             Ok(OperatorBlockExpression { operator, expression })
         }
         _ => Err(precedence.resolve(&mut items).unwrap()),

@@ -79,9 +79,7 @@ export const MULTI_SELECTOR_STYLES = tv({
   },
 })
 
-/**
- * A horizontal multi-selector.
- */
+/** A horizontal multi-selector. */
 export const MultiSelector = forwardRef(function MultiSelector<
   Schema extends TSchema,
   TFieldName extends FieldPath<Schema>,

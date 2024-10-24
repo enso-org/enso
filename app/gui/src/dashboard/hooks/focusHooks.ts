@@ -14,7 +14,6 @@ import * as aria from '#/components/aria'
  * The type of `react-aria` keyboard events. It must be extracted out of this type as it is not
  * exposed from the library itself.
  */
-// eslint-disable-next-line @typescript-eslint/no-magic-numbers
 type AriaKeyboardEvent = Parameters<NonNullable<aria.KeyboardEvents['onKeyUp']>>[0]
 
 /** Handle arrow keys for moving focus. */

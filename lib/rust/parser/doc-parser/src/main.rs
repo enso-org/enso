@@ -49,7 +49,7 @@ fn extract_docs(_filename: &str, mut code: &str) -> Vec<String> {
     if let Some((_meta, code_)) = enso_parser::metadata::parse(code) {
         code = code_;
     }
-    let ast = enso_parser::Parser::new().run(code);
+    let ast = enso_parser::Parser::new().parse_module(code);
     let docs = RefCell::new(vec![]);
     ast.visit_trees(|tree| match &tree.variant {
         enso_parser::syntax::tree::Variant::Documented(doc) => {

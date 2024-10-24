@@ -16,10 +16,12 @@ export abstract class LazyObject {
     this._v = view
   }
 
+  /** TODO: Add docs */
   visitChildren(_visitor: ObjectVisitor): boolean {
     return false
   }
 
+  /** TODO: Add docs */
   children(): LazyObject[] {
     const children: LazyObject[] = []
     this.visitChildren(child => {
@@ -35,40 +37,49 @@ function makeDataView(buffer: ArrayBuffer, address: number) {
   return new DataView(buffer, address)
 }
 
+/** TODO: Add docs */
 export function readU8(view: DataView, address: number) {
   return view.getUint8(address)
 }
 
+/** TODO: Add docs */
 export function readU32(view: DataView, address: number) {
   return view.getUint32(address, true)
 }
 
+/** TODO: Add docs */
 export function readI32(view: DataView, address: number) {
   return view.getInt32(address, true)
 }
 
+/** TODO: Add docs */
 export function readU64(view: DataView, address: number) {
   return view.getBigUint64(address, true)
 }
 
+/** TODO: Add docs */
 export function readI64(view: DataView, address: number) {
   return view.getBigInt64(address, true)
 }
 
+/** TODO: Add docs */
 export function readBool(view: DataView, address: number) {
   return readU8(view, address) !== 0
 }
 
+/** TODO: Add docs */
 export function readOffset(view: DataView, offset: number) {
   return makeDataView(view.buffer, view.byteOffset + offset)
 }
 
+/** TODO: Add docs */
 export function readPointer(view: DataView, address: number): DataView {
   return makeDataView(view.buffer, readU32(view, address))
 }
 
 const textDecoder = new TextDecoder()
 
+/** TODO: Add docs */
 export function readOption<T>(
   view: DataView,
   address: number,
@@ -81,6 +92,7 @@ export function readOption<T>(
   return result
 }
 
+/** TODO: Add docs */
 export function visitOption(
   view: DataView,
   address: number,
@@ -97,6 +109,7 @@ export function visitOption(
   }
 }
 
+/** TODO: Add docs */
 export function readResult<Ok, Err>(
   view: DataView,
   address: number,
@@ -115,6 +128,7 @@ export function readResult<Ok, Err>(
   }
 }
 
+/** TODO: Add docs */
 export function visitResult(
   view: DataView,
   address: number,
@@ -135,6 +149,7 @@ export function visitResult(
   }
 }
 
+/** TODO: Add docs */
 export function visitSequence(
   view: DataView,
   address: number,
@@ -151,6 +166,7 @@ export function visitSequence(
   return false
 }
 
+/** TODO: Add docs */
 export function readSequence<T>(
   view: DataView,
   address: number,
@@ -163,12 +179,14 @@ export function readSequence<T>(
   return new LazySequence(offset, size, end, (offset: number) => reader(data, offset))
 }
 
+/** TODO: Add docs */
 export class LazySequence<T> implements IterableIterator<T> {
   private offset: number
   private readonly step: number
   private readonly end: number
   private readonly read: (address: number) => T
 
+  /** TODO: Add docs */
   constructor(offset: number, step: number, end: number, read: (address: number) => T) {
     this.read = read
     this.offset = offset
@@ -176,10 +194,12 @@ export class LazySequence<T> implements IterableIterator<T> {
     this.end = end
   }
 
+  /** TODO: Add docs */
   [Symbol.iterator]() {
     return this
   }
 
+  /** TODO: Add docs */
   public next(): IteratorResult<T> {
     if (this.offset >= this.end) {
       return { done: true, value: undefined }
@@ -190,6 +210,7 @@ export class LazySequence<T> implements IterableIterator<T> {
   }
 }
 
+/** TODO: Add docs */
 export function readString(view: DataView, address: number): string {
   const data = readPointer(view, address)
   const len = readU32(data, 0)
@@ -197,6 +218,7 @@ export function readString(view: DataView, address: number): string {
   return textDecoder.decode(bytes)
 }
 
+/** TODO: Add docs */
 export function readEnum<T>(readers: Reader<T>[], view: DataView, address: number): T {
   const data = readPointer(view, address)
   const discriminant = readU32(data, 0)

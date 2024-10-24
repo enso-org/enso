@@ -3,6 +3,7 @@ package org.enso.common;
 import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.HashMap;
 import java.util.Map;
 import org.enso.logger.Converter;
 import org.enso.logger.JulHandler;
@@ -38,7 +39,7 @@ public final class ContextFactory {
   private OutputStream out = System.out;
   private OutputStream err = System.err;
   private MessageTransport messageTransport;
-  private Level logLevel;
+  private Level logLevel = Level.INFO;
   private boolean logMasking;
   private boolean enableIrCaches;
   private boolean disablePrivateCheck;
@@ -50,7 +51,7 @@ public final class ContextFactory {
   private String executionEnvironment;
   private String checkForWarnings;
   private int warningsLimit = 100;
-  private java.util.Map<String, String> options = java.util.Collections.emptyMap();
+  private java.util.Map<String, String> options = new HashMap<>();
   private boolean enableDebugServer;
 
   private ContextFactory() {}
@@ -165,7 +166,6 @@ public final class ContextFactory {
             .allowExperimentalOptions(true)
             .allowAllAccess(true)
             .allowHostAccess(allWithTypeMapping())
-            .option(RuntimeOptions.PROJECT_ROOT, projectRoot)
             .option(RuntimeOptions.STRICT_ERRORS, Boolean.toString(strictErrors))
             .option(RuntimeOptions.DISABLE_LINTING, Boolean.toString(disableLinting))
             .option(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS, "true")
@@ -182,6 +182,7 @@ public final class ContextFactory {
             .out(out)
             .err(err)
             .in(in);
+
     if (checkForWarnings != null) {
       builder.option(DebugServerInfo.METHOD_BREAKPOINT_OPTION, checkForWarnings);
     }
@@ -205,12 +206,15 @@ public final class ContextFactory {
     }
     builder.logHandler(logHandler);
 
-    var graalpy =
-        new File(
-            new File(new File(new File(new File(projectRoot), "polyglot"), "python"), "bin"),
-            "graalpy");
-    if (graalpy.exists()) {
-      builder.option("python.Executable", graalpy.getAbsolutePath());
+    if (projectRoot != null) {
+      builder.option(RuntimeOptions.PROJECT_ROOT, projectRoot);
+      var graalpy =
+          new File(
+              new File(new File(new File(new File(projectRoot), "polyglot"), "python"), "bin"),
+              "graalpy");
+      if (graalpy.exists()) {
+        builder.option("python.Executable", graalpy.getAbsolutePath());
+      }
     }
     if (ENGINE_HAS_JAVA) {
       var javaHome = System.getProperty("java.home");
@@ -223,7 +227,10 @@ public final class ContextFactory {
           .option("java.UseBindingsLoader", "true")
           .allowCreateThread(true);
     }
-    return builder.build();
+
+    var ctx = builder.build();
+    ContextInsightSetup.configureContext(ctx);
+    return ctx;
   }
 
   /**

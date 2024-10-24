@@ -62,26 +62,21 @@ function useSetProjectAsset() {
       parentId: backendModule.DirectoryId,
       transform: (asset: backendModule.ProjectAsset) => backendModule.ProjectAsset,
     ) => {
-      const listDirectoryQuery = queryClient.getQueryCache().find<
-        | {
-            parentId: backendModule.DirectoryId
-            children: readonly backendModule.AnyAsset<backendModule.AssetType>[]
-          }
-        | undefined
-      >({
-        queryKey: [backendType, 'listDirectory', parentId],
-        exact: false,
-      })
+      const listDirectoryQuery = queryClient
+        .getQueryCache()
+        .find<readonly backendModule.AnyAsset<backendModule.AssetType>[] | undefined>({
+          queryKey: [backendType, 'listDirectory', parentId],
+          exact: false,
+        })
 
       if (listDirectoryQuery?.state.data) {
-        listDirectoryQuery.setData({
-          ...listDirectoryQuery.state.data,
-          children: listDirectoryQuery.state.data.children.map((child) =>
+        listDirectoryQuery.setData(
+          listDirectoryQuery.state.data.map((child) =>
             child.id === assetId && child.type === backendModule.AssetType.project ?
               transform(child)
             : child,
           ),
-        })
+        )
       }
     },
   )
@@ -102,7 +97,6 @@ export function createGetProjectDetailsQuery(options: CreateOpenedProjectQueryOp
       const states = [backendModule.ProjectState.opened, backendModule.ProjectState.closed]
 
       if (state.status === 'error') {
-        // eslint-disable-next-line no-restricted-syntax
         return false
       }
       if (isLocal) {
@@ -146,7 +140,7 @@ createGetProjectDetailsQuery.createPassiveListener = (id: LaunchedProjectId) =>
 export function useOpenProjectMutation() {
   const client = reactQuery.useQueryClient()
   const session = authProvider.useFullUserSession()
-  const remoteBackend = backendProvider.useRemoteBackendStrict()
+  const remoteBackend = backendProvider.useRemoteBackend()
   const localBackend = backendProvider.useLocalBackend()
   const setProjectAsset = useSetProjectAsset()
 
@@ -209,7 +203,7 @@ export function useOpenProjectMutation() {
 /** Mutation to close a project. */
 export function useCloseProjectMutation() {
   const client = reactQuery.useQueryClient()
-  const remoteBackend = backendProvider.useRemoteBackendStrict()
+  const remoteBackend = backendProvider.useRemoteBackend()
   const localBackend = backendProvider.useLocalBackend()
   const setProjectAsset = useSetProjectAsset()
 
@@ -254,7 +248,7 @@ export function useCloseProjectMutation() {
 /** Mutation to rename a project. */
 export function useRenameProjectMutation() {
   const client = reactQuery.useQueryClient()
-  const remoteBackend = backendProvider.useRemoteBackendStrict()
+  const remoteBackend = backendProvider.useRemoteBackend()
   const localBackend = backendProvider.useLocalBackend()
   const updateLaunchedProjects = useUpdateLaunchedProjects()
 

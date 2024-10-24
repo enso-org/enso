@@ -26,7 +26,8 @@
     "./src/types": "./src/types.d.ts"
   },
   "scripts": {
-    "test": "vitest run"
+    "test": "vitest run",
+    "lint": "eslint . --max-warnings=0"
   },
   "peerDependencies": {
     "@tanstack/query-core": "5.54.1",

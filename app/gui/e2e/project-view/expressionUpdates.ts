@@ -35,7 +35,6 @@ export async function mockExpressionUpdate(
   update: Partial<ExpressionUpdate>,
 ) {
   await page.evaluate(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ({ expression, update }) => (window as any)._mockExpressionUpdate(expression, update),
     { expression, update },
   )

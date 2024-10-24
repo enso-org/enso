@@ -407,7 +407,7 @@ public class ExcelReader {
       int rows,
       ProblemAggregator problemAggregator) {
     for (int i = builders.size(); i <= columnCount; i++) {
-      Builder builder = new InferredBuilder(size, problemAggregator);
+      Builder builder = new InferredBuilder(size, problemAggregator, true);
       builder.appendNulls(rows);
       builders.add(builder);
     }

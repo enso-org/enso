@@ -23,9 +23,7 @@ import { DIALOG_BACKGROUND } from './variants'
 // =================
 // === Constants ===
 // =================
-/**
- * Props for the {@link Dialog} component.
- */
+/** Props for the {@link Dialog} component. */
 export interface DialogProps
   extends types.DialogProps,
     Omit<VariantProps<typeof DIALOG_STYLES>, 'scrolledToTop'> {}
@@ -177,9 +175,7 @@ export function Dialog(props: DialogProps) {
 
   const [isScrolledToTop, setIsScrolledToTop] = React.useState(true)
 
-  /**
-   * Handles the scroll event on the dialog content.
-   */
+  /** Handles the scroll event on the dialog content. */
   const handleScroll = (scrollTop: number) => {
     React.startTransition(() => {
       if (scrollTop > 0) {
@@ -265,7 +261,6 @@ export function Dialog(props: DialogProps) {
                     // This is a temporary solution until we refactor the Dialog component
                     // to use `useDialog` hook from the 'react-aria-components' library.
                     // this will allow us to set the `data-testid` attribute on the dialog
-                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                     element.dataset.testId = testId
                   }
                 })}
