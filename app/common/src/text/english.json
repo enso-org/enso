@@ -123,7 +123,7 @@
   "createFolderBackendError": "Could not create folder '$0'",
   "updateFolderBackendError": "Could not update folder '$0'",
   "listAssetVersionsBackendError": "Could not list versions for '$0'",
-  "getFileContentsBackendError": "Could not get contents of '$0",
+  "getFileContentsBackendError": "Failed to get contents of the file",
   "updateAssetBackendError": "Could not update '$0'",
   "deleteAssetBackendError": "Could not delete '$0'",
   "undoDeleteAssetBackendError": "Could not restore '$0' from Trash",

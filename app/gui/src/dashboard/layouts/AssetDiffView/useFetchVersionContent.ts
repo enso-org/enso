@@ -18,8 +18,8 @@ const TWO_MINUTES_MS = 120_000
 
 /** Options for {@link useFetchVersionContent}. */
 export interface FetchVersionContentOptions {
-  readonly project: backendService.ProjectAsset
-  readonly versionId: backendService.S3ObjectVersionId
+  readonly projectId: backendService.ProjectId
+  readonly versionId?: backendService.S3ObjectVersionId
   readonly backend: Backend
   /** If `false`, the metadata is stripped out. Defaults to `false`. */
   readonly metadata?: boolean
@@ -35,13 +35,12 @@ export function versionContentQueryOptions(params: FetchVersionContentOptions) {
       {
         method: 'getFileContent',
         versionId: params.versionId,
-        projectId: params.project.id,
-        title: params.project.title,
+        projectId: params.projectId,
       },
     ] as const,
     queryFn: ({ queryKey }) => {
-      const [, { method, versionId, projectId, title }] = queryKey
-      return params.backend[method](projectId, versionId, title)
+      const [, { method, versionId, projectId }] = queryKey
+      return params.backend[method](projectId, versionId)
     },
     select: (data) => (params.metadata === true ? data : omitMetadata(data)),
     staleTime: TWO_MINUTES_MS,

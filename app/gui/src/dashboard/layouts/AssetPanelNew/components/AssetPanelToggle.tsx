@@ -47,9 +47,17 @@ export function AssetPanelToggle(props: AssetPanelToggleProps) {
           className={className}
           layout
           layoutId={`asset-panel-toggle-${id}`}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
+          initial={{
+            opacity: 0,
+            filter: 'blur(8px)',
+            x: showWhen === 'collapsed' ? 16 : -16,
+          }}
+          animate={{ opacity: 1, filter: 'blur(0px)', x: 0 }}
+          exit={{
+            opacity: 0,
+            filter: 'blur(4px)',
+            x: showWhen === 'collapsed' ? 16 : -16,
+          }}
         >
           <Button
             size="medium"

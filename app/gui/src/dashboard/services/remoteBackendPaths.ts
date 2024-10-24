@@ -100,8 +100,15 @@ export function listAssetVersionsPath(assetId: backend.AssetId) {
   return `assets/${assetId}/versions`
 }
 /** Relative HTTP path to the "get Main.enso file" endpoint of the Cloud backend API. */
-export function getProjectContentPath(projectId: backend.ProjectId, version: string) {
-  return `projects/${projectId}/files?versionId=${version}`
+export function getProjectContentPath(
+  projectId: backend.ProjectId,
+  versionId?: backend.S3ObjectVersionId,
+) {
+  const searchParams = new URLSearchParams()
+  if (versionId !== undefined) {
+    searchParams.set('versionId', versionId)
+  }
+  return `projects/${projectId}/files?${searchParams.toString()}`
 }
 /** Relative HTTP path to the "update asset" endpoint of the Cloud backend API. */
 export function updateAssetPath(assetId: backend.AssetId) {

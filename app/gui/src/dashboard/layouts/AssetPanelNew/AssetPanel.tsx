@@ -103,7 +103,7 @@ export function AssetPanel(props: AssetPanelProps) {
 
   const backend = useBackend(category)
 
-  const { item, setItem } = useAssetPanelProps()
+  const { item } = useAssetPanelProps()
 
   const panelWidth = isExpanded ? ASSET_PANEL_TOTAL_WIDTH : ASSET_SIDEBAR_COLLAPSED_WIDTH
 
@@ -157,7 +157,6 @@ export function AssetPanel(props: AssetPanelProps) {
                       backend={backend}
                       item={item}
                       isReadonly={isReadonly}
-                      setItem={setItem}
                       category={category}
                     />
                   </AssetPanelTabs.TabPanel>
@@ -178,7 +177,7 @@ export function AssetPanel(props: AssetPanelProps) {
             )}
 
             <div
-              className="absolute bottom-0 right-0 top-0 pt-2"
+              className="absolute bottom-0 right-0 top-0 pt-2.5"
               style={{ width: ASSET_SIDEBAR_COLLAPSED_WIDTH }}
             >
               <AssetPanelToggle

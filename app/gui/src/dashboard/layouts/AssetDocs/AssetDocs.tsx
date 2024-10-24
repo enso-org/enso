@@ -54,24 +54,13 @@ export function AssetDocsContent(props: AssetDocsContentProps) {
   const { backend, item } = props
   const { getText } = useText()
 
-  const { data: latestVersion } = useSuspenseQuery({
-    queryKey: [backend.type, 'assetDocs', item.item.id],
-    queryFn: () => backend.listAssetVersions(item.item.id, item.item.title),
-    // This is safe because projects always have a latest version.
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    select: (data) => data.versions.find((version) => version.isLatest)!,
-  })
-
   const { data: docs } = useSuspenseQuery({
-    ...versionContentQueryOptions({
-      backend,
-      project: item.item,
-      versionId: latestVersion.versionId,
-      metadata: true,
-    }),
+    ...versionContentQueryOptions({ backend, projectId: item.item.id, metadata: false }),
     select: (data) => {
       const withoutMeta = splitFileContents(data)
-      const tree = ast.parseEnso(withoutMeta.code)
+      // We use the raw parser here because we don't need the whole AST, only the Docs part,
+      // we skip parsing the whole file, which is a lot faster by the time of writing this (5-10 times).
+      const tree = ast.rawParseModule(withoutMeta.code)
 
       for (const node of tree.statements) {
         if (node.expression?.type === Tree.Type.Documented) {

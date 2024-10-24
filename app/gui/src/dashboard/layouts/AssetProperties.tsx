@@ -16,6 +16,7 @@ import {
 import SharedWithColumn from '#/components/dashboard/column/SharedWithColumn'
 import { DatalinkFormInput } from '#/components/dashboard/DatalinkInput'
 import Label from '#/components/dashboard/Label'
+import { Result } from '#/components/Result'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
 import { validateDatalink } from '#/data/datalinkValidator'
 import {
@@ -41,7 +42,6 @@ import { normalizePath } from '#/utilities/fileInfo'
 import { mapNonNullish } from '#/utilities/nullable'
 import * as permissions from '#/utilities/permissions'
 import { tv } from '#/utilities/tailwindVariants'
-import { Result } from '#/components/Result'
 
 // =======================
 // === AssetProperties ===
@@ -60,10 +60,10 @@ export type AssetPropertiesSpotlight = 'datalink' | 'description' | 'secret'
 /** Props for an {@link AssetPropertiesProps}. */
 export interface AssetPropertiesProps {
   readonly backend: Backend
-  readonly item: AnyAssetTreeNode
+  readonly item: AnyAssetTreeNode | null
   readonly category: Category
   readonly isReadonly?: boolean
-  readonly spotlightOn: AssetPropertiesSpotlight | undefined
+  readonly spotlightOn?: AssetPropertiesSpotlight | undefined
 }
 
 /**

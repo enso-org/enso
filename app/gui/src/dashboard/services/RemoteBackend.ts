@@ -576,14 +576,13 @@ export default class RemoteBackend extends Backend {
   /** Fetch the content of the `Main.enso` file of a project. */
   override async getFileContent(
     projectId: backend.ProjectId,
-    version: string,
-    title: string,
+    versionId?: backend.S3ObjectVersionId,
   ): Promise<string> {
-    const path = remoteBackendPaths.getProjectContentPath(projectId, version)
+    const path = remoteBackendPaths.getProjectContentPath(projectId, versionId)
     const response = await this.get<string>(path)
 
     if (!responseIsSuccessful(response)) {
-      return this.throw(response, 'getFileContentsBackendError', title)
+      return this.throw(response, 'getFileContentsBackendError')
     } else {
       return await response.text()
     }
