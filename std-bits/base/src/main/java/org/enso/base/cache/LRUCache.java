@@ -58,7 +58,7 @@ public class LRUCache<M> {
 
   /**
    * IOExceptions thrown by the HTTP request are propagated; IOExceptions thrown while storing the
-   * data in the cache are caught.
+   * data in the cache are caught, and the request is re-issued without caching.
    */
   private CacheResult<M> makeRequestAndCache(String cacheKey, ItemBuilder<M> itemBuilder)
       throws IOException, InterruptedException, ResponseTooLargeException {
@@ -119,28 +119,26 @@ public class LRUCache<M> {
       throws IOException, ResponseTooLargeException {
     File temp = File.createTempFile("LRUCache-" + cacheKey, "");
     temp.deleteOnExit();
+    var inputStream = item.stream();
+    var outputStream = new FileOutputStream(temp);
+    boolean successful = false;
     try {
-      var inputStream = item.stream();
-      try (var outputStream = new FileOutputStream(temp)) {
+      // Limit the download to getMaxFileSize().
+      boolean sizeOK = Stream_Utils.limitedCopy(inputStream, outputStream, getMaxFileSize());
 
-        // Limit the download to getMaxFileSize().
-        boolean sizeOK = Stream_Utils.limitedCopy(inputStream, outputStream, getMaxFileSize());
-        if (!sizeOK) {
-          try {
-            if (!temp.delete()) {
-              logger.log(Level.WARNING, "Unable to delete cache file (key {})", cacheKey);
-            }
-          } finally {
-            // catch block below will delete the temp file.
-            throw new ResponseTooLargeException(getMaxFileSize());
-          }
-        }
-
+      if (sizeOK) {
+        successful = true;
         return temp;
+      } else {
+        throw new ResponseTooLargeException(getMaxFileSize());
       }
-    } catch (IOException e) {
-      temp.delete();
-      throw e;
+    } finally {
+      if (!successful) {
+        outputStream.close();
+        if (!temp.delete()) {
+          logger.log(Level.WARNING, "Unable to delete cache file (key {})", cacheKey);
+        }
+      }
     }
   }
 
