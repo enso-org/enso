@@ -1492,7 +1492,7 @@ type Column
 
                 builder = make_string_builder length
                 0.up_to length . each i->
-                    replaced = do_replace i (storage.getItem i)
+                    replaced = do_replace i (storage.getItemBoxed i)
                     builder.append replaced
 
                 Column.from_storage new_name builder.seal
@@ -1502,7 +1502,7 @@ type Column
        Applies the specified cleansings to the text in each row.
 
        Arguments:
-       - remove: A vector of the text cleanings to remove from the text. The text cleansings are 
+       - remove: A vector of the text cleanings to remove from the text. The text cleansings are
           applied in the order they are provided. The same text cleansing can be used multiple
           times. The text cleansings are:
             - ..Leading_Whitespace: Removes all whitspace from the start of the string.
@@ -2266,7 +2266,7 @@ type Column
             if valid_index.not then default else
                 storage = self.java_column.getStorage
                 if storage.isNothing index then Nothing else
-                    java_to_enso <| storage.getItem index
+                    java_to_enso <| storage.getItemBoxed index
 
     ## PRIVATE
        ICON data_input
@@ -2335,7 +2335,7 @@ type Column
     to_js_object self =
         name = self.java_column.getName
         storage = self.java_column.getStorage
-        storage_proxy = Array_Proxy.new storage.size i-> storage.getItem i
+        storage_proxy = Array_Proxy.new storage.size i-> storage.getItemBoxed i
         storage_json = Vector.from_polyglot_array storage_proxy
         JS_Object.from_pairs [["name", name], ["data", storage_json]]
 
@@ -2760,7 +2760,7 @@ run_vectorized_binary_op_with_fallback_problem_handling column name operand fall
    - ix: The index in the column from which to get the item.
 get_item_as_text : Column -> Integer -> Text
 get_item_as_text column ix =
-    item = column.getItem ix
+    item = column.getItemBoxed ix
     ## TODO This special handling of `Text` is because `"a".to_text` evaluates
        to "'a'" and not just "a". The code can be simplified once the following
        task is implemented:
