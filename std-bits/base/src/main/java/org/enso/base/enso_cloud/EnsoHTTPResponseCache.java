@@ -23,8 +23,8 @@ import org.enso.base.cache.ResponseTooLargeException;
 public class EnsoHTTPResponseCache {
   // 1 year.
   private static final int DEFAULT_TTL_SECONDS = 31536000;
-  private static final long MAX_FILE_SIZE = 10L * 1024 * 1024;
-  private static final long MAX_TOTAL_CACHE_SIZE = 10L * 1024 * 1024 * 1024;
+  private static final long MAX_FILE_SIZE = 2L * 1024 * 1024 * 1024;
+  private static final long MAX_TOTAL_CACHE_SIZE = 20L * 1024 * 1024 * 1024;
 
   private static final LRUCache<Metadata> lruCache =
       new LRUCache<>(MAX_FILE_SIZE, MAX_TOTAL_CACHE_SIZE);
