@@ -31,9 +31,8 @@ const props = defineProps<{
   params: IHeaderParams & HeaderParams
 }>()
 
-// console.log(props.params.tooltipRegistry)
-// provideTooltipRegistry._mock(props.params.tooltipRegistry)
-provideTooltipRegistry()
+provideTooltipRegistry._mock(props.params.tooltipRegistry)
+// provideTooltipRegistry()
 
 const editing = ref(false)
 const inputElement = ref<HTMLInputElement>()
@@ -62,11 +61,11 @@ watch(inputElement, (newVal, oldVal) => {
 
 function acceptNewName() {
   if (editHandlers.value == null) {
-    console.warn("Tried to accept header new name where it's not editable!")
+    console.error("Tried to accept header new name where it's not editable!")
     return
   }
   if (inputElement.value == null) {
-    console.warn('Tried to accept header new name without input element!')
+    console.error('Tried to accept header new name without input element!')
     return
   }
   editHandlers.value.nameSetter(inputElement.value.value)
