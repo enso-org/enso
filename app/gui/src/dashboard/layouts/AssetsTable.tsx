@@ -51,8 +51,6 @@ import { useAutoScroll } from '#/hooks/autoScrollHooks'
 import {
   backendMutationOptions,
   useBackendQuery,
-  useNewFolder,
-  useNewProject,
   useRootDirectoryId,
   useUploadFileWithToastMutation,
 } from '#/hooks/backendHooks'
@@ -120,7 +118,6 @@ import {
   Plan,
   ProjectId,
   ProjectState,
-  SecretId,
   stripProjectExtension,
   type AnyAsset,
   type AssetId,
@@ -129,7 +126,6 @@ import {
   type DirectoryId,
   type LabelName,
   type ProjectAsset,
-  type SecretAsset,
 } from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
 import { isSpecialReadonlyDirectoryId } from '#/services/RemoteBackend'
@@ -409,7 +405,6 @@ export default function AssetsTable(props: AssetsTableProps) {
   )
 
   const duplicateProjectMutation = useMutation(backendMutationOptions(backend, 'duplicateProject'))
-  const createSecretMutation = useMutation(backendMutationOptions(backend, 'createSecret'))
   const updateSecretMutation = useMutation(backendMutationOptions(backend, 'updateSecret'))
   const createDatalinkMutation = useMutation(backendMutationOptions(backend, 'createDatalink'))
   const uploadFileMutation = useUploadFileWithToastMutation(backend)
@@ -1538,47 +1533,10 @@ export default function AssetsTable(props: AssetsTableProps) {
     },
   )
 
-  const newFolder = useNewFolder(backend, category)
-  const newProject = useNewProject(backend, category)
-
   // This is not a React component, even though it contains JSX.
   // eslint-disable-next-line no-restricted-syntax
   const onAssetListEvent = useEventCallback((event: AssetListEvent) => {
     switch (event.type) {
-      case AssetListEventType.newFolder: {
-        doToggleDirectoryExpansion(event.parentId, event.parentKey, true)
-        const parent = nodeMapRef.current.get(event.parentKey)
-        if (parent && parent.type === AssetType.directory) {
-          void newFolder(parent.item.id, parent.path).then(({ id }) => {
-            setNewestFolderId(id)
-            setSelectedKeys(new Set([id]))
-          })
-        }
-        break
-      }
-      case AssetListEventType.newProject: {
-        doToggleDirectoryExpansion(event.parentId, event.parentKey, true)
-        const parent = nodeMapRef.current.get(event.parentKey)
-        if (parent && parent.type === AssetType.directory) {
-          void newProject(
-            {
-              templateName: event.preferredName,
-              templateId: event.templateId,
-              datalinkId: event.datalinkId,
-            },
-            parent.item.id,
-            parent.path,
-          )
-            .catch((error) => {
-              event.onError?.()
-              throw error
-            })
-            .then((createdProject) => {
-              event.onCreated?.(createdProject)
-            })
-        }
-        break
-      }
       case AssetListEventType.uploadFiles: {
         const localBackend = backend instanceof LocalBackend ? backend : null
         const reversedFiles = Array.from(event.files).reverse()
@@ -1799,39 +1757,6 @@ export default function AssetsTable(props: AssetsTableProps) {
           {
             parentDirectoryId: placeholderItem.parentId,
             datalinkId: null,
-            name: placeholderItem.title,
-            value: event.value,
-          },
-        ])
-
-        break
-      }
-      case AssetListEventType.newSecret: {
-        const parent = nodeMapRef.current.get(event.parentKey)
-        const placeholderItem: SecretAsset = {
-          type: AssetType.secret,
-          id: SecretId(uniqueString()),
-          title: event.name,
-          modifiedAt: toRfc3339(new Date()),
-          parentId: event.parentId,
-          permissions: tryCreateOwnerPermission(
-            `${parent?.path ?? ''}/${event.name}`,
-            category,
-            user,
-            users ?? [],
-            userGroups ?? [],
-          ),
-          projectState: null,
-          labels: [],
-          description: null,
-        }
-
-        doToggleDirectoryExpansion(event.parentId, event.parentKey, true)
-        insertAssets([placeholderItem], event.parentId)
-
-        createSecretMutation.mutate([
-          {
-            parentDirectoryId: placeholderItem.parentId,
             name: placeholderItem.title,
             value: event.value,
           },

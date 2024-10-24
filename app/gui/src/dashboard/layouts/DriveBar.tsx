@@ -22,7 +22,7 @@ import {
   useVisualTooltip,
 } from '#/components/AriaComponents'
 import AssetEventType from '#/events/AssetEventType'
-import { useNewFolder, useNewProject, useRootDirectoryId } from '#/hooks/backendHooks'
+import { useNewFolder, useNewProject, useNewSecret, useRootDirectoryId } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOffline } from '#/hooks/offlineHooks'
 import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
@@ -65,7 +65,6 @@ export interface DriveBarProps {
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly category: Category
   readonly doEmptyTrash: () => void
-  readonly doCreateSecret: (name: string, value: string) => Promise<void>
   readonly doCreateDatalink: (name: string, value: unknown) => Promise<void>
   readonly doUploadFiles: (files: File[]) => Promise<void>
 }
@@ -76,7 +75,7 @@ export interface DriveBarProps {
  */
 export default function DriveBar(props: DriveBarProps) {
   const { backend, query, setQuery, category } = props
-  const { doEmptyTrash, doCreateSecret, doCreateDatalink, doUploadFiles } = props
+  const { doEmptyTrash, doCreateDatalink, doUploadFiles } = props
 
   const [startModalDefaultOpen, , resetStartModalDefaultOpen] = useSearchParamsState(
     'startModalDefaultOpen',
@@ -125,21 +124,24 @@ export default function DriveBar(props: DriveBarProps) {
     const parent = getTargetDirectory()
     return await newFolderRaw(parent?.directoryId ?? rootDirectoryId, parent?.path)
   })
+  const newSecretRaw = useNewSecret(backend, category)
+  const newSecret = useEventCallback(async (name: string, value: string) => {
+    const parent = getTargetDirectory()
+    return await newSecretRaw(name, value, parent?.directoryId ?? rootDirectoryId, parent?.path)
+  })
   const newProjectRaw = useNewProject(backend, category)
   const newProjectMutation = useMutation({
     mutationKey: ['newProject'],
-    mutationFn: async ([templateId = null, templateName = null]: [
-      templateId?: string | null | undefined,
-      templateName?: string | null | undefined,
+    mutationFn: async ([templateId, templateName]: [
+      templateId: string | null | undefined,
+      templateName: string | null | undefined,
     ]) => {
       const parent = getTargetDirectory()
       return await newProjectRaw(
         { templateName, templateId },
         parent?.directoryId ?? rootDirectoryId,
         parent?.path,
-      ).then((project) => {
-        return project
-      })
+      )
     },
   })
   const newProject = newProjectMutation.mutateAsync
@@ -297,7 +299,13 @@ export default function DriveBar(props: DriveBarProps) {
                     isDisabled={shouldBeDisabled}
                     aria-label={getText('newSecret')}
                   />
-                  <UpsertSecretModal id={null} name={null} doCreate={doCreateSecret} />
+                  <UpsertSecretModal
+                    id={null}
+                    name={null}
+                    doCreate={async (name, value) => {
+                      await newSecret(name, value)
+                    }}
+                  />
                 </DialogTrigger>
               )}
               {isCloud && (

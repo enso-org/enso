@@ -91,16 +91,6 @@ export default function Drive(props: DriveProps) {
     dispatchAssetListEvent({ type: AssetListEventType.emptyTrash })
   }, [dispatchAssetListEvent])
 
-  const doCreateSecret = useEventCallback(async (name: string, value: string) => {
-    dispatchAssetListEvent({
-      type: AssetListEventType.newSecret,
-      parentKey: getTargetDirectory()?.key ?? rootDirectoryId,
-      parentId: getTargetDirectory()?.item.id ?? rootDirectoryId,
-      name,
-      value,
-    })
-  })
-
   const doCreateDatalink = useEventCallback(async (name: string, value: unknown) => {
     dispatchAssetListEvent({
       type: AssetListEventType.newDatalink,
@@ -161,7 +151,6 @@ export default function Drive(props: DriveProps) {
               category={category}
               doEmptyTrash={doEmptyTrash}
               doUploadFiles={doUploadFiles}
-              doCreateSecret={doCreateSecret}
               doCreateDatalink={doCreateDatalink}
             />
 

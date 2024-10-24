@@ -14,6 +14,9 @@ import ContextMenuEntry from '#/components/ContextMenuEntry'
 import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 
+import { useNewFolder, useNewProject, useNewSecret } from '#/hooks/backendHooks'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import type { Category } from '#/layouts/CategorySwitcher/Category'
 import { useDriveStore } from '#/providers/DriveProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
@@ -23,9 +26,11 @@ import { inputFiles } from '#/utilities/input'
 export interface GlobalContextMenuProps {
   readonly hidden?: boolean
   readonly backend: Backend
+  readonly category: Category
   readonly rootDirectoryId: backendModule.DirectoryId
   readonly directoryKey: backendModule.DirectoryId | null
   readonly directoryId: backendModule.DirectoryId | null
+  readonly path: string | null
   readonly doPaste: (
     newParentKey: backendModule.DirectoryId,
     newParentId: backendModule.DirectoryId,
@@ -34,8 +39,8 @@ export interface GlobalContextMenuProps {
 
 /** A context menu available everywhere in the directory. */
 export default function GlobalContextMenu(props: GlobalContextMenuProps) {
-  const { hidden = false, backend, directoryKey, directoryId, rootDirectoryId } = props
-  const { doPaste } = props
+  const { hidden = false, backend, category, directoryKey, directoryId, rootDirectoryId } = props
+  const { path, doPaste } = props
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
@@ -44,6 +49,21 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
   const hasPasteData = useStore(
     driveStore,
     (storeState) => (storeState.pasteData?.data.ids.size ?? 0) > 0,
+  )
+
+  const newFolderRaw = useNewFolder(backend, category)
+  const newFolder = useEventCallback(async () => {
+    return await newFolderRaw(directoryId ?? rootDirectoryId, path)
+  })
+  const newSecretRaw = useNewSecret(backend, category)
+  const newSecret = useEventCallback(async (name: string, value: string) => {
+    return await newSecretRaw(name, value, directoryId ?? rootDirectoryId, path)
+  })
+  const newProjectRaw = useNewProject(backend, category)
+  const newProject = useEventCallback(
+    async (templateId: string | null | undefined, templateName: string | null | undefined) => {
+      return await newProjectRaw({ templateName, templateId }, directoryId ?? rootDirectoryId, path)
+    },
   )
 
   return (
@@ -66,14 +86,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
         action="newProject"
         doAction={() => {
           unsetModal()
-          dispatchAssetListEvent({
-            type: AssetListEventType.newProject,
-            parentKey: directoryKey ?? rootDirectoryId,
-            parentId: directoryId ?? rootDirectoryId,
-            templateId: null,
-            datalinkId: null,
-            preferredName: null,
-          })
+          void newProject(null, null)
         }}
       />
       <ContextMenuEntry
@@ -81,11 +94,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
         action="newFolder"
         doAction={() => {
           unsetModal()
-          dispatchAssetListEvent({
-            type: AssetListEventType.newFolder,
-            parentKey: directoryKey ?? rootDirectoryId,
-            parentId: directoryId ?? rootDirectoryId,
-          })
+          void newFolder()
         }}
       />
       {isCloud && (
@@ -97,14 +106,8 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
               <UpsertSecretModal
                 id={null}
                 name={null}
-                doCreate={(name, value) => {
-                  dispatchAssetListEvent({
-                    type: AssetListEventType.newSecret,
-                    parentKey: directoryKey ?? rootDirectoryId,
-                    parentId: directoryId ?? rootDirectoryId,
-                    name,
-                    value,
-                  })
+                doCreate={async (name, value) => {
+                  await newSecret(name, value)
                 }}
               />,
             )

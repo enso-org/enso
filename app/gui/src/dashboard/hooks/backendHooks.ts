@@ -618,6 +618,54 @@ export function useNewProject(backend: Backend, category: Category) {
   )
 }
 
+// FIXME: `doToggleDirectoryExpansion` via zustand state
+
+/** A function to create a new secret. */
+export function useNewSecret(backend: Backend, category: Category) {
+  const insertAssets = useInsertAssets(backend, category)
+  const { user } = useFullUserSession()
+  const { data: users } = useBackendQuery(backend, 'listUsers', [])
+  const { data: userGroups } = useBackendQuery(backend, 'listUserGroups', [])
+  const createSecretMutation = useMutation(backendMutationOptions(backend, 'createSecret'))
+
+  return useEventCallback(
+    async (
+      name: string,
+      value: string,
+      parentId: DirectoryId,
+      parentPath: string | null | undefined,
+    ) => {
+      const placeholderItem: backendModule.SecretAsset = {
+        type: AssetType.secret,
+        id: backendModule.SecretId(uniqueString()),
+        title: name,
+        modifiedAt: toRfc3339(new Date()),
+        parentId,
+        permissions: tryCreateOwnerPermission(
+          `${parentPath ?? ''}/${name}`,
+          category,
+          user,
+          users ?? [],
+          userGroups ?? [],
+        ),
+        projectState: null,
+        labels: [],
+        description: null,
+      }
+
+      insertAssets([placeholderItem], parentId)
+
+      return await createSecretMutation.mutateAsync([
+        {
+          parentDirectoryId: placeholderItem.parentId,
+          name: placeholderItem.title,
+          value: value,
+        },
+      ])
+    },
+  )
+}
+
 /** Upload progress for {@link useUploadFileMutation}. */
 export interface UploadFileMutationProgress {
   /**
