@@ -110,7 +110,6 @@ import {
   createSpecialEmptyAsset,
   createSpecialErrorAsset,
   createSpecialLoadingAsset,
-  DatalinkId,
   extractProjectExtension,
   fileIsNotProject,
   fileIsProject,
@@ -121,7 +120,6 @@ import {
   stripProjectExtension,
   type AnyAsset,
   type AssetId,
-  type DatalinkAsset,
   type DirectoryAsset,
   type DirectoryId,
   type LabelName,
@@ -406,7 +404,6 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   const duplicateProjectMutation = useMutation(backendMutationOptions(backend, 'duplicateProject'))
   const updateSecretMutation = useMutation(backendMutationOptions(backend, 'updateSecret'))
-  const createDatalinkMutation = useMutation(backendMutationOptions(backend, 'createDatalink'))
   const uploadFileMutation = useUploadFileWithToastMutation(backend)
   const copyAssetMutation = useMutation(backendMutationOptions(backend, 'copyAsset'))
   const deleteAssetMutation = useMutation(backendMutationOptions(backend, 'deleteAsset'))
@@ -1729,39 +1726,6 @@ export default function AssetsTable(props: AssetsTableProps) {
             />,
           )
         }
-        break
-      }
-      case AssetListEventType.newDatalink: {
-        const parent = nodeMapRef.current.get(event.parentKey)
-        const placeholderItem: DatalinkAsset = {
-          type: AssetType.datalink,
-          id: DatalinkId(uniqueString()),
-          title: event.name,
-          modifiedAt: toRfc3339(new Date()),
-          parentId: event.parentId,
-          permissions: tryCreateOwnerPermission(
-            `${parent?.path ?? ''}/${event.name}`,
-            category,
-            user,
-            users ?? [],
-            userGroups ?? [],
-          ),
-          projectState: null,
-          labels: [],
-          description: null,
-        }
-        doToggleDirectoryExpansion(event.parentId, event.parentKey, true)
-        insertAssets([placeholderItem], event.parentId)
-
-        createDatalinkMutation.mutate([
-          {
-            parentDirectoryId: placeholderItem.parentId,
-            datalinkId: null,
-            name: placeholderItem.title,
-            value: event.value,
-          },
-        ])
-
         break
       }
       case AssetListEventType.duplicateProject: {

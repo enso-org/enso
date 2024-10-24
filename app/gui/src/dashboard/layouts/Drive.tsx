@@ -91,16 +91,6 @@ export default function Drive(props: DriveProps) {
     dispatchAssetListEvent({ type: AssetListEventType.emptyTrash })
   }, [dispatchAssetListEvent])
 
-  const doCreateDatalink = useEventCallback(async (name: string, value: unknown) => {
-    dispatchAssetListEvent({
-      type: AssetListEventType.newDatalink,
-      parentKey: getTargetDirectory()?.key ?? rootDirectoryId,
-      parentId: getTargetDirectory()?.item.id ?? rootDirectoryId,
-      name,
-      value,
-    })
-  })
-
   switch (status) {
     case 'not-enabled': {
       return (
@@ -151,7 +141,6 @@ export default function Drive(props: DriveProps) {
               category={category}
               doEmptyTrash={doEmptyTrash}
               doUploadFiles={doUploadFiles}
-              doCreateDatalink={doCreateDatalink}
             />
 
             <div className="flex flex-1 gap-drive overflow-hidden">

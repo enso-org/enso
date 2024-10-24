@@ -22,7 +22,13 @@ import {
   useVisualTooltip,
 } from '#/components/AriaComponents'
 import AssetEventType from '#/events/AssetEventType'
-import { useNewFolder, useNewProject, useNewSecret, useRootDirectoryId } from '#/hooks/backendHooks'
+import {
+  useNewDatalink,
+  useNewFolder,
+  useNewProject,
+  useNewSecret,
+  useRootDirectoryId,
+} from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOffline } from '#/hooks/offlineHooks'
 import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
@@ -65,7 +71,6 @@ export interface DriveBarProps {
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly category: Category
   readonly doEmptyTrash: () => void
-  readonly doCreateDatalink: (name: string, value: unknown) => Promise<void>
   readonly doUploadFiles: (files: File[]) => Promise<void>
 }
 
@@ -74,8 +79,7 @@ export interface DriveBarProps {
  * and a column display mode switcher.
  */
 export default function DriveBar(props: DriveBarProps) {
-  const { backend, query, setQuery, category } = props
-  const { doEmptyTrash, doCreateDatalink, doUploadFiles } = props
+  const { backend, query, setQuery, category, doEmptyTrash, doUploadFiles } = props
 
   const [startModalDefaultOpen, , resetStartModalDefaultOpen] = useSearchParamsState(
     'startModalDefaultOpen',
@@ -128,6 +132,11 @@ export default function DriveBar(props: DriveBarProps) {
   const newSecret = useEventCallback(async (name: string, value: string) => {
     const parent = getTargetDirectory()
     return await newSecretRaw(name, value, parent?.directoryId ?? rootDirectoryId, parent?.path)
+  })
+  const newDatalinkRaw = useNewDatalink(backend, category)
+  const newDatalink = useEventCallback(async (name: string, value: unknown) => {
+    const parent = getTargetDirectory()
+    return await newDatalinkRaw(name, value, parent?.directoryId ?? rootDirectoryId, parent?.path)
   })
   const newProjectRaw = useNewProject(backend, category)
   const newProjectMutation = useMutation({
@@ -317,7 +326,11 @@ export default function DriveBar(props: DriveBarProps) {
                     isDisabled={shouldBeDisabled}
                     aria-label={getText('newDatalink')}
                   />
-                  <UpsertDatalinkModal doCreate={doCreateDatalink} />
+                  <UpsertDatalinkModal
+                    doCreate={async (name, value) => {
+                      await newDatalink(name, value)
+                    }}
+                  />
                 </DialogTrigger>
               )}
               <AriaInput

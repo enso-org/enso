@@ -3,7 +3,6 @@
 /** Possible types of changes to the file list. */
 enum AssetListEventType {
   uploadFiles = 'upload-files',
-  newDatalink = 'new-datalink',
   duplicateProject = 'duplicate-project',
   closeFolder = 'close-folder',
   copy = 'copy',

@@ -21,7 +21,6 @@ interface AssetListBaseEvent<Type extends AssetListEventType> {
 /** All possible events. */
 interface AssetListEvents {
   readonly uploadFiles: AssetListUploadFilesEvent
-  readonly newDatalink: AssetListNewDatalinkEvent
   readonly duplicateProject: AssetListDuplicateProjectEvent
   readonly closeFolder: AssetListCloseFolderEvent
   readonly copy: AssetListCopyEvent
@@ -47,14 +46,6 @@ interface AssetListUploadFilesEvent extends AssetListBaseEvent<AssetListEventTyp
   readonly parentKey: backend.DirectoryId
   readonly parentId: backend.DirectoryId
   readonly files: File[]
-}
-
-/** A signal to create a new secret. */
-interface AssetListNewDatalinkEvent extends AssetListBaseEvent<AssetListEventType.newDatalink> {
-  readonly parentKey: backend.DirectoryId
-  readonly parentId: backend.DirectoryId
-  readonly name: string
-  readonly value: unknown
 }
 
 /** A signal to duplicate a project. */

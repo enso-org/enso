@@ -14,7 +14,7 @@ import ContextMenuEntry from '#/components/ContextMenuEntry'
 import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 
-import { useNewFolder, useNewProject, useNewSecret } from '#/hooks/backendHooks'
+import { useNewDatalink, useNewFolder, useNewProject, useNewSecret } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
 import { useDriveStore } from '#/providers/DriveProvider'
@@ -65,6 +65,10 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
       return await newProjectRaw({ templateName, templateId }, directoryId ?? rootDirectoryId, path)
     },
   )
+  const newDatalinkRaw = useNewDatalink(backend, category)
+  const newDatalink = useEventCallback(async (name: string, value: unknown) => {
+    return await newDatalinkRaw(name, value, directoryId ?? rootDirectoryId, path)
+  })
 
   return (
     <ContextMenu aria-label={getText('globalContextMenuLabel')} hidden={hidden}>
@@ -121,14 +125,8 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
           doAction={() => {
             setModal(
               <UpsertDatalinkModal
-                doCreate={(name, value) => {
-                  dispatchAssetListEvent({
-                    type: AssetListEventType.newDatalink,
-                    parentKey: directoryKey ?? rootDirectoryId,
-                    parentId: directoryId ?? rootDirectoryId,
-                    name,
-                    value,
-                  })
+                doCreate={async (name, value) => {
+                  await newDatalink(name, value)
                 }}
               />,
             )

@@ -666,6 +666,53 @@ export function useNewSecret(backend: Backend, category: Category) {
   )
 }
 
+/** A function to create a new Datalink. */
+export function useNewDatalink(backend: Backend, category: Category) {
+  const insertAssets = useInsertAssets(backend, category)
+  const { user } = useFullUserSession()
+  const { data: users } = useBackendQuery(backend, 'listUsers', [])
+  const { data: userGroups } = useBackendQuery(backend, 'listUserGroups', [])
+  const createDatalinkMutation = useMutation(backendMutationOptions(backend, 'createDatalink'))
+
+  return useEventCallback(
+    async (
+      name: string,
+      value: unknown,
+      parentId: DirectoryId,
+      parentPath: string | null | undefined,
+    ) => {
+      const placeholderItem: backendModule.DatalinkAsset = {
+        type: AssetType.datalink,
+        id: backendModule.DatalinkId(uniqueString()),
+        title: name,
+        modifiedAt: toRfc3339(new Date()),
+        parentId,
+        permissions: tryCreateOwnerPermission(
+          `${parentPath ?? ''}/${name}`,
+          category,
+          user,
+          users ?? [],
+          userGroups ?? [],
+        ),
+        projectState: null,
+        labels: [],
+        description: null,
+      }
+
+      insertAssets([placeholderItem], parentId)
+
+      return await createDatalinkMutation.mutateAsync([
+        {
+          parentDirectoryId: placeholderItem.parentId,
+          datalinkId: null,
+          name: placeholderItem.title,
+          value,
+        },
+      ])
+    },
+  )
+}
+
 /** Upload progress for {@link useUploadFileMutation}. */
 export interface UploadFileMutationProgress {
   /**
