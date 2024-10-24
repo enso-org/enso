@@ -150,7 +150,7 @@
     "tailwindcss-animate": "1.0.7",
     "tailwindcss-react-aria-components": "^1.1.1",
     "typescript": "^5.5.3",
-    "vite": "^5.3.5",
+    "vite": "^5.3.6",
     "vitest": "^1.3.1",
     "@codemirror/theme-one-dark": "^6.1.2",
     "@danmarshall/deckgl-typings": "^4.9.28",
