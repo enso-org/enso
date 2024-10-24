@@ -434,6 +434,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
 
   queueRemoteUpdate(update: Uint8Array, origin: unknown) {
     if (origin === this) return
+    console.log('queueRemoteUpdate')
     if (this.updateToApply != null) {
       this.updateToApply = Y.mergeUpdates([this.updateToApply, update])
     } else {
@@ -444,6 +445,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
 
   trySyncRemoveUpdates() {
     if (this.updateToApply == null) return
+    console.log('trySyncRemoveUpdates', this.state)
     // apply updates to the ls-representation doc if we are already in sync with the LS.
     if (!this.inState(LsSyncState.Synchronized)) return
     const update = this.updateToApply
@@ -490,6 +492,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
   ) {
     if (this.syncedContent == null || this.syncedVersion == null) return
 
+    console.log('sendLsUpdate', !!synced, newCode?.length, !!newIdMap, !!newMetadata)
     const newSnapshot = newCode && {
       snapshot: ModulePersistence.encodeCodeSnapshot(newCode)
     }
@@ -683,7 +686,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
       this.syncedMeta = metadata
       this.syncedMetaJson = metadataJson
     }, 'file')
-    if (unsyncedIdMap) this.sendLsUpdate(contentsReceived, undefined, unsyncedIdMap, undefined)
+    if (unsyncedIdMap) this.sendLsUpdate(contentsReceived, this.syncedCode ?? undefined, unsyncedIdMap, this.syncedMeta?.ide?.node)
   }
 
   async close() {
