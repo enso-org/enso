@@ -1,8 +1,6 @@
 /** @file The directory header bar and directory item listing. */
 import * as React from 'react'
 
-import invariant from 'tiny-invariant'
-
 import * as appUtils from '#/appUtils'
 
 import * as offlineHooks from '#/hooks/offlineHooks'
@@ -26,16 +24,15 @@ import Labels from '#/layouts/Labels'
 import * as ariaComponents from '#/components/AriaComponents'
 import * as result from '#/components/Result'
 
-import * as backendModule from '#/services/Backend'
+import type * as backendModule from '#/services/Backend'
 
+import { useRootDirectoryId } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useDriveStore } from '#/providers/DriveProvider'
-import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import AssetQuery from '#/utilities/AssetQuery'
 import * as download from '#/utilities/download'
 import * as github from '#/utilities/github'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
-import { useSuspenseQuery } from '@tanstack/react-query'
 
 // =============
 // === Drive ===
@@ -62,27 +59,7 @@ export default function Drive(props: DriveProps) {
   const { getText } = textProvider.useText()
   const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
   const [query, setQuery] = React.useState(() => AssetQuery.fromString(''))
-  const organizationQuery = useSuspenseQuery({
-    queryKey: [backend.type, 'getOrganization'],
-    queryFn: () => backend.getOrganization(),
-  })
-  const organization = organizationQuery.data ?? null
-  const [localRootDirectory] = useLocalStorageState('localRootDirectory')
-  const rootDirectoryId = React.useMemo(() => {
-    switch (category.type) {
-      case 'user':
-      case 'team': {
-        return category.homeDirectoryId
-      }
-      default: {
-        const localRootPath =
-          localRootDirectory != null ? backendModule.Path(localRootDirectory) : null
-        const id = backend.rootDirectoryId(user, organization, localRootPath)
-        invariant(id, 'Missing root directory')
-        return id
-      }
-    }
-  }, [category, backend, user, organization, localRootDirectory])
+  const rootDirectoryId = useRootDirectoryId(backend, category)
   const isCloud = categoryModule.isCloudCategory(category)
   const supportLocalBackend = localBackend != null
 
@@ -98,7 +75,7 @@ export default function Drive(props: DriveProps) {
     [driveStore],
   )
 
-  const doUploadFiles = useEventCallback((files: File[]) => {
+  const doUploadFiles = useEventCallback(async (files: File[]) => {
     if (isCloud && isOffline) {
       // This should never happen, however display a nice error message in case it does.
       toastAndLog('offlineUploadFilesError')
@@ -136,15 +113,7 @@ export default function Drive(props: DriveProps) {
     },
   )
 
-  const doCreateDirectory = useEventCallback(() => {
-    dispatchAssetListEvent({
-      type: AssetListEventType.newFolder,
-      parentKey: getTargetDirectory()?.key ?? rootDirectoryId,
-      parentId: getTargetDirectory()?.item.id ?? rootDirectoryId,
-    })
-  })
-
-  const doCreateSecret = useEventCallback((name: string, value: string) => {
+  const doCreateSecret = useEventCallback(async (name: string, value: string) => {
     dispatchAssetListEvent({
       type: AssetListEventType.newSecret,
       parentKey: getTargetDirectory()?.key ?? rootDirectoryId,
@@ -154,7 +123,7 @@ export default function Drive(props: DriveProps) {
     })
   })
 
-  const doCreateDatalink = useEventCallback((name: string, value: unknown) => {
+  const doCreateDatalink = useEventCallback(async (name: string, value: unknown) => {
     dispatchAssetListEvent({
       type: AssetListEventType.newDatalink,
       parentKey: getTargetDirectory()?.key ?? rootDirectoryId,
@@ -215,7 +184,6 @@ export default function Drive(props: DriveProps) {
               doEmptyTrash={doEmptyTrash}
               doCreateProject={doCreateProject}
               doUploadFiles={doUploadFiles}
-              doCreateDirectory={doCreateDirectory}
               doCreateSecret={doCreateSecret}
               doCreateDatalink={doCreateDatalink}
             />

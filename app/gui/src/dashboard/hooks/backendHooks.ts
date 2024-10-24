@@ -6,6 +6,8 @@ import {
   useMutation,
   useMutationState,
   useQuery,
+  useQueryClient,
+  useSuspenseQuery,
   type Mutation,
   type MutationKey,
   type UseMutationOptions,
@@ -23,22 +25,26 @@ import {
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useToastAndLog, useToastAndLogWithId } from '#/hooks/toastAndLogHooks'
 import { CATEGORY_TO_FILTER_BY, type Category } from '#/layouts/CategorySwitcher/Category'
+import { useFullUserSession } from '#/providers/AuthProvider'
+import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 import {
   AssetType,
   BackendType,
+  DirectoryId,
   type AnyAsset,
   type AssetId,
   type DirectoryAsset,
-  type DirectoryId,
   type User,
   type UserGroupInfo,
 } from '#/services/Backend'
 import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from '#/services/remoteBackendPaths'
+import { tryCreateOwnerPermission } from '#/utilities/permissions'
 import { usePreventNavigation } from '#/utilities/preventNavigation'
 import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
+import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 
 // The number of bytes in 1 megabyte.
 const MB_BYTES = 1_000_000
@@ -392,6 +398,101 @@ export function useBackendMutationState<Method extends MutationMethod, Result>(
     // generic parameter list.
     // eslint-disable-next-line no-restricted-syntax
     select: select as (mutation: Mutation<unknown, Error, unknown, unknown>) => Result,
+  })
+}
+
+/** Get the root directory ID given the current backend and category. */
+export function useRootDirectoryId(backend: Backend, category: Category) {
+  const { user } = useFullUserSession()
+  const { data: organization } = useSuspenseQuery({
+    queryKey: [backend.type, 'getOrganization'],
+    queryFn: () => backend.getOrganization(),
+  })
+  const [localRootDirectory] = useLocalStorageState('localRootDirectory')
+
+  return useMemo(() => {
+    const localRootPath = localRootDirectory != null ? backendModule.Path(localRootDirectory) : null
+    const id =
+      'homeDirectoryId' in category ?
+        category.homeDirectoryId
+      : backend.rootDirectoryId(user, organization, localRootPath)
+    invariant(id, 'Missing root directory')
+    return id
+  }, [category, backend, user, organization, localRootDirectory])
+}
+
+/** The type of directory listings in the React Query cache. */
+type DirectoryQuery = readonly AnyAsset<AssetType>[] | undefined
+
+/** A function to optimistically insert assets into the React Query cache listing for a folder. */
+function useInsertAssets(backend: Backend, category: Category) {
+  const queryClient = useQueryClient()
+  const rootDirectoryId = useRootDirectoryId(backend, category)
+
+  return useEventCallback((assets: readonly AnyAsset[], parentId: DirectoryId | null) => {
+    const actualParentId = parentId ?? rootDirectoryId
+
+    const listDirectoryQuery = queryClient.getQueryCache().find<DirectoryQuery>({
+      queryKey: [backend.type, 'listDirectory', actualParentId],
+      exact: false,
+    })
+
+    if (listDirectoryQuery?.state.data) {
+      listDirectoryQuery.setData([...listDirectoryQuery.state.data, ...assets])
+    }
+  })
+}
+
+/** A function to create a new folder. */
+export function useNewFolder(backend: Backend, category: Category) {
+  const queryClient = useQueryClient()
+  const insertAssets = useInsertAssets(backend, category)
+  const { user } = useFullUserSession()
+  const { data: users } = useBackendQuery(backend, 'listUsers', [])
+  const { data: userGroups } = useBackendQuery(backend, 'listUserGroups', [])
+  const createDirectoryMutation = useMutation(backendMutationOptions(backend, 'createDirectory'))
+
+  return useEventCallback(async (parentId: DirectoryId, parentPath: string | null | undefined) => {
+    const siblings = await queryClient.ensureQueryData(
+      backendQueryOptions(backend, 'listDirectory', [
+        {
+          parentId,
+          labels: null,
+          filterBy: CATEGORY_TO_FILTER_BY[category.type],
+          recentProjects: category.type === 'recent',
+        },
+        '(unknown)',
+      ]),
+    )
+    const directoryIndices = siblings
+      .filter(backendModule.assetIsDirectory)
+      .map((item) => /^New Folder (?<directoryIndex>\d+)$/.exec(item.title))
+      .map((match) => match?.groups?.directoryIndex)
+      .map((maybeIndex) => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
+    const title = `New Folder ${Math.max(0, ...directoryIndices) + 1}`
+    const placeholderItem: DirectoryAsset = {
+      type: AssetType.directory,
+      id: DirectoryId(uniqueString()),
+      title,
+      modifiedAt: toRfc3339(new Date()),
+      parentId,
+      permissions: tryCreateOwnerPermission(
+        `${parentPath ?? ''}/${title}`,
+        category,
+        user,
+        users ?? [],
+        userGroups ?? [],
+      ),
+      projectState: null,
+      labels: [],
+      description: null,
+    }
+
+    insertAssets([placeholderItem], parentId)
+
+    return await createDirectoryMutation.mutateAsync([
+      { parentId: placeholderItem.parentId, title: placeholderItem.title },
+    ])
   })
 }
 

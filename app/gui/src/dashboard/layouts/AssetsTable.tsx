@@ -16,15 +16,8 @@ import {
   type SetStateAction,
 } from 'react'
 
-import {
-  queryOptions,
-  useMutation,
-  useQueries,
-  useQueryClient,
-  useSuspenseQuery,
-} from '@tanstack/react-query'
+import { queryOptions, useMutation, useQueries, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
-import invariant from 'tiny-invariant'
 import * as z from 'zod'
 
 import DropFilesImage from '#/assets/drop_files.svg'
@@ -58,6 +51,8 @@ import { useAutoScroll } from '#/hooks/autoScrollHooks'
 import {
   backendMutationOptions,
   useBackendQuery,
+  useNewFolder,
+  useRootDirectoryId,
   useUploadFileWithToastMutation,
 } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
@@ -98,7 +93,7 @@ import {
 } from '#/providers/DriveProvider'
 import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
-import { useLocalStorage, useLocalStorageState } from '#/providers/LocalStorageProvider'
+import { useLocalStorage } from '#/providers/LocalStorageProvider'
 import { useSetModal } from '#/providers/ModalProvider'
 import { useNavigator2D } from '#/providers/Navigator2DProvider'
 import { useLaunchedProjects } from '#/providers/ProjectsProvider'
@@ -117,12 +112,10 @@ import {
   createSpecialErrorAsset,
   createSpecialLoadingAsset,
   DatalinkId,
-  DirectoryId,
   extractProjectExtension,
   fileIsNotProject,
   fileIsProject,
   getAssetPermissionName,
-  Path,
   Plan,
   ProjectId,
   ProjectState,
@@ -132,6 +125,7 @@ import {
   type AssetId,
   type DatalinkAsset,
   type DirectoryAsset,
+  type DirectoryId,
   type LabelName,
   type ProjectAsset,
   type SecretAsset,
@@ -386,24 +380,9 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   const { data: users } = useBackendQuery(backend, 'listUsers', [])
   const { data: userGroups } = useBackendQuery(backend, 'listUserGroups', [])
-  const organizationQuery = useSuspenseQuery({
-    queryKey: [backend.type, 'getOrganization'],
-    queryFn: () => backend.getOrganization(),
-  })
-
-  const organization = organizationQuery.data
 
   const nameOfProjectToImmediatelyOpenRef = useRef(initialProjectName)
-  const [localRootDirectory] = useLocalStorageState('localRootDirectory')
-  const rootDirectoryId = useMemo(() => {
-    const localRootPath = localRootDirectory != null ? Path(localRootDirectory) : null
-    const id =
-      'homeDirectoryId' in category ?
-        category.homeDirectoryId
-      : backend.rootDirectoryId(user, organization, localRootPath)
-    invariant(id, 'Missing root directory')
-    return id
-  }, [category, backend, user, organization, localRootDirectory])
+  const rootDirectoryId = useRootDirectoryId(backend, category)
 
   const rootDirectory = useMemo(() => createRootDirectoryAsset(rootDirectoryId), [rootDirectoryId])
 
@@ -430,7 +409,6 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   const createProjectMutation = useMutation(backendMutationOptions(backend, 'createProject'))
   const duplicateProjectMutation = useMutation(backendMutationOptions(backend, 'duplicateProject'))
-  const createDirectoryMutation = useMutation(backendMutationOptions(backend, 'createDirectory'))
   const createSecretMutation = useMutation(backendMutationOptions(backend, 'createSecret'))
   const updateSecretMutation = useMutation(backendMutationOptions(backend, 'updateSecret'))
   const createDatalinkMutation = useMutation(backendMutationOptions(backend, 'createDatalink'))
@@ -1577,48 +1555,21 @@ export default function AssetsTable(props: AssetsTableProps) {
     },
   )
 
+  const newFolder = useNewFolder(backend, category)
+
   // This is not a React component, even though it contains JSX.
   // eslint-disable-next-line no-restricted-syntax
   const onAssetListEvent = useEventCallback((event: AssetListEvent) => {
     switch (event.type) {
       case AssetListEventType.newFolder: {
-        const parent = nodeMapRef.current.get(event.parentKey)
-        const siblings = parent?.children ?? []
-        const directoryIndices = siblings
-          .map((node) => node.item)
-          .filter(assetIsDirectory)
-          .map((item) => /^New Folder (?<directoryIndex>\d+)$/.exec(item.title))
-          .map((match) => match?.groups?.directoryIndex)
-          .map((maybeIndex) => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
-        const title = `New Folder ${Math.max(0, ...directoryIndices) + 1}`
-        const placeholderItem: DirectoryAsset = {
-          type: AssetType.directory,
-          id: DirectoryId(uniqueString()),
-          title,
-          modifiedAt: toRfc3339(new Date()),
-          parentId: event.parentId,
-          permissions: tryCreateOwnerPermission(
-            `${parent?.path ?? ''}/${title}`,
-            category,
-            user,
-            users ?? [],
-            userGroups ?? [],
-          ),
-          projectState: null,
-          labels: [],
-          description: null,
-        }
-
         doToggleDirectoryExpansion(event.parentId, event.parentKey, true)
-        insertAssets([placeholderItem], event.parentId)
-
-        void createDirectoryMutation
-          .mutateAsync([{ parentId: placeholderItem.parentId, title: placeholderItem.title }])
-          .then(({ id }) => {
+        const parent = nodeMapRef.current.get(event.parentKey)
+        if (parent && parent.type === AssetType.directory) {
+          void newFolder(parent.item.id, parent.path).then(({ id }) => {
             setNewestFolderId(id)
             setSelectedKeys(new Set([id]))
           })
-
+        }
         break
       }
       case AssetListEventType.newProject: {

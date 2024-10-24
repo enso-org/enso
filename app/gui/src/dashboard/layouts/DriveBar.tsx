@@ -22,6 +22,8 @@ import {
   useVisualTooltip,
 } from '#/components/AriaComponents'
 import AssetEventType from '#/events/AssetEventType'
+import { useNewFolder, useRootDirectoryId } from '#/hooks/backendHooks'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOffline } from '#/hooks/offlineHooks'
 import { createGetProjectDetailsQuery } from '#/hooks/projectHooks'
 import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
@@ -71,7 +73,6 @@ export interface DriveBarProps {
     onCreated?: (project: CreatedProject) => void,
     onError?: () => void,
   ) => void
-  readonly doCreateDirectory: () => Promise<void>
   readonly doCreateSecret: (name: string, value: string) => Promise<void>
   readonly doCreateDatalink: (name: string, value: unknown) => Promise<void>
   readonly doUploadFiles: (files: File[]) => Promise<void>
@@ -83,7 +84,7 @@ export interface DriveBarProps {
  */
 export default function DriveBar(props: DriveBarProps) {
   const { backend, query, setQuery, category } = props
-  const { doEmptyTrash, doCreateProject, doCreateDirectory } = props
+  const { doEmptyTrash, doCreateProject } = props
   const { doCreateSecret, doCreateDatalink, doUploadFiles } = props
 
   const [startModalDefaultOpen, , resetStartModalDefaultOpen] = useSearchParamsState(
@@ -128,12 +129,21 @@ export default function DriveBar(props: DriveBarProps) {
       pasteData
     : null
 
+  const getTargetDirectory = useEventCallback(() => driveStore.getState().targetDirectory)
+  const rootDirectoryId = useRootDirectoryId(backend, category)
+
+  const newFolderRaw = useNewFolder(backend, category)
+  const newFolder = useEventCallback(async () => {
+    const parent = getTargetDirectory()
+    await newFolderRaw(parent?.directoryId ?? rootDirectoryId, parent?.path)
+  })
+
   React.useEffect(() => {
     return inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
       ...(isCloud ?
         {
           newFolder: () => {
-            void doCreateDirectory()
+            void newFolder()
           },
         }
       : {}),
@@ -154,7 +164,7 @@ export default function DriveBar(props: DriveBarProps) {
         uploadFilesRef.current?.click()
       },
     })
-  }, [isCloud, doCreateDirectory, doCreateProject, inputBindings])
+  }, [doCreateProject, getTargetDirectory, inputBindings, isCloud, newFolder, rootDirectoryId])
 
   const createdProjectQuery = useQuery<Project | null>(
     createdProjectId ?
@@ -320,9 +330,7 @@ export default function DriveBar(props: DriveBarProps) {
                 icon={AddFolderIcon}
                 isDisabled={shouldBeDisabled}
                 aria-label={getText('newFolder')}
-                onPress={async () => {
-                  await doCreateDirectory()
-                }}
+                onPress={newFolder}
               />
               {isCloud && (
                 <DialogTrigger>
