@@ -12,6 +12,7 @@ import project.Enso_Cloud.Errors.Not_Logged_In
 import project.Enso_Cloud.Internal.Authentication
 import project.Error.Error
 import project.Function.Function
+import project.Network.HTTP.Cache_Policy.Cache_Policy
 import project.Network.HTTP.Header.Header
 import project.Network.HTTP.HTTP
 import project.Network.HTTP.HTTP_Error.HTTP_Error
@@ -95,7 +96,7 @@ http_request (method : HTTP_Method) (url : URI) (body : Request_Body = ..Empty) 
     all_headers = [authorization_header] + additional_headers
     as_connection_error err = Error.throw (Enso_Cloud_Error.Connection_Error err)
 
-    response = HTTP.new.request (Request.new method url headers=all_headers body=body) error_on_failure_code=False
+    response = HTTP.new.request (Request.new method url headers=all_headers body=body) cache_policy=..No_Cache error_on_failure_code=False
         . catch HTTP_Error as_connection_error
         . catch Request_Error as_connection_error
     if response.is_error && (retries > 0) then http_request method url body additional_headers error_handlers (retries - 1) else
