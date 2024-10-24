@@ -1,4 +1,5 @@
 import createDebug from 'debug'
+import { Base64 } from 'js-base64'
 import * as json from 'lib0/json'
 import * as map from 'lib0/map'
 import { ObservableV2 } from 'lib0/observable'
@@ -483,6 +484,14 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
     }
   }
 
+  private static encodeCodeSnapshot(code: string): string {
+    return Base64.encode(code)
+  }
+
+  private static decodeCodeSnapshot(snapshot: string): string {
+    return Base64.decode(snapshot)
+  }
+
   private sendLsUpdate(
     synced: EnsoFileParts,
     newCode: string | undefined,
@@ -491,17 +500,24 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
   ) {
     if (this.syncedContent == null || this.syncedVersion == null) return
 
-    const code = newCode ?? synced.code
+    const newSnapshot = newCode && {
+      snapshot: ModulePersistence.encodeCodeSnapshot(newCode),
+    }
     const newMetadataJson =
       newMetadata &&
       json.stringify({
         ...this.syncedMeta,
-        ide: { ...this.syncedMeta.ide, node: newMetadata },
+        ide: {
+          ...this.syncedMeta.ide,
+          ...newSnapshot,
+          node: newMetadata,
+        },
       })
     const idMapToPersist =
       (newIdMap || newMetadata) &&
       ModulePersistence.getIdMapToPersist(newIdMap, newMetadata ?? this.syncedMeta.ide.node)
     const newIdMapToPersistJson = idMapToPersist && serializeIdMap(idMapToPersist)
+    const code = newCode ?? synced.code
     const newContent = combineFileParts({
       code,
       idMapJson: newIdMapToPersistJson ?? synced.idMapJson ?? '[]',
@@ -510,7 +526,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
 
     const edits: TextEdit[] = []
     if (newCode) edits.push(...applyDiffAsTextEdits(0, synced.code, newCode))
-    if (newIdMap || newMetadata) {
+    if (newIdMap || newMetadata || newSnapshot) {
       const oldMetaContent = this.syncedContent.slice(synced.code.length)
       const metaContent = newContent.slice(code.length)
       const metaStartLine = (code.match(/\n/g) ?? []).length
@@ -569,6 +585,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
       const nodeMeta = Object.entries(metadata.ide.node)
 
       let parsedSpans
+      let parsedIdMap
       const syncModule = new Ast.MutableModule(this.doc.ydoc)
       if (code !== this.syncedCode) {
         const syncRoot = syncModule.root()
@@ -579,16 +596,33 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
           if (editedRoot instanceof Ast.BodyBlock) Ast.repair(editedRoot, edit)
           syncModule.applyEdit(edit)
         } else {
-          const { root, spans } = Ast.parseModuleWithSpans(code, syncModule)
-          syncModule.syncRoot(root)
-          parsedSpans = spans
+          const metadataSnapshot = metadata.ide.snapshot
+          const snapshotCode =
+            metadataSnapshot && ModulePersistence.decodeCodeSnapshot(metadataSnapshot)
+          if (metadataSnapshot && idMapJson && snapshotCode && snapshotCode !== code) {
+            // When the received code does not match the saved code snapshot, it means that
+            // the code was externally edited. In this case we try to fix the spans by running
+            // the `syncToCode` on the saved code snapshot.
+            const { root, spans } = Ast.parseModuleWithSpans(snapshotCode, syncModule)
+            syncModule.syncRoot(root)
+            parsedIdMap = deserializeIdMap(idMapJson)
+
+            const edit = syncModule.edit()
+            Ast.setExternalIds(edit, spans, parsedIdMap)
+            edit.getVersion(root).syncToCode(code)
+            syncModule.applyEdit(edit)
+          } else {
+            const { root, spans } = Ast.parseModuleWithSpans(code, syncModule)
+            syncModule.syncRoot(root)
+            parsedSpans = spans
+          }
         }
       }
       const astRoot = syncModule.root()
       if (!astRoot) return
       if ((code !== this.syncedCode || idMapJson !== this.syncedIdMap) && idMapJson) {
         const spans = parsedSpans ?? Ast.print(astRoot).info
-        if (idMapJson !== this.syncedIdMap) {
+        if (idMapJson !== this.syncedIdMap && parsedIdMap === undefined) {
           const idMap = deserializeIdMap(idMapJson)
           const idsAssigned = Ast.setExternalIds(syncModule, spans, idMap)
           const numberOfAsts = astCount(astRoot)
@@ -646,7 +680,13 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
       this.syncedMeta = metadata
       this.syncedMetaJson = metadataJson
     }, 'file')
-    if (unsyncedIdMap) this.sendLsUpdate(contentsReceived, undefined, unsyncedIdMap, undefined)
+    if (unsyncedIdMap)
+      this.sendLsUpdate(
+        contentsReceived,
+        this.syncedCode ?? undefined,
+        unsyncedIdMap,
+        this.syncedMeta?.ide?.node,
+      )
   }
 
   async close() {
