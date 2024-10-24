@@ -230,7 +230,7 @@ class RuntimeAsyncCommandsTest
     var iteration        = 0
     while (!isProgramStarted && iteration < 100) {
       val out = context.consumeOut
-      Thread.sleep(200)
+      Thread.sleep(100)
       isProgramStarted = out == List("started")
       iteration += 1
     }
@@ -361,7 +361,7 @@ class RuntimeAsyncCommandsTest
     var iteration        = 0
     while (!isProgramStarted && iteration < 100) {
       val out = context.consumeOut
-      Thread.sleep(200)
+      Thread.sleep(100)
       isProgramStarted = out == List("started")
       iteration += 1
     }
@@ -386,7 +386,7 @@ class RuntimeAsyncCommandsTest
         )
       )
     )
-    val responses1 = context.receiveNIgnorePendingExpressionUpdates(3)
+    val responses1 = context.receiveNIgnorePendingExpressionUpdates(2)
     responses1 should contain allOf (
       TestMessages.update(
         contextId,

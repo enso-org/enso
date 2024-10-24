@@ -46,7 +46,7 @@ class PushContextCmd(
     ec: ExecutionContext
   ): Future[Boolean] =
     Future {
-      ctx.jobControlPlane.abortJobs(request.contextId, "push context")
+      ctx.jobControlPlane.abortJobs(request.contextId, "push context", false)
       val stack = ctx.contextManager.getStack(request.contextId)
       val pushed = request.stackItem match {
         case _: Api.StackItem.ExplicitCall if stack.isEmpty =>

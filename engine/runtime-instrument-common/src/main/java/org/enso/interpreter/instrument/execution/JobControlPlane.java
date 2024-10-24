@@ -21,11 +21,15 @@ public interface JobControlPlane {
    * Aborts jobs that relates to the specified execution context.
    *
    * @param contextId an identifier of a context
+   * @param reason reason for aborting job(s)
+   * @param softAbortFirst true if ongoing jobs should be aborted with safepoints first, even if
+   *     marked as interruptible
    * @param classOf abort jobs of a given class only. If empty all jobs for the given context are
    *     aborted
    */
   @SuppressWarnings("unchecked")
-  void abortJobs(UUID contextId, String reason, Class<? extends Job<?>>... classOf);
+  void abortJobs(
+      UUID contextId, String reason, boolean softAbortFirst, Class<? extends Job<?>>... classOf);
 
   /**
    * Aborts jobs that relate to the specified execution context.
