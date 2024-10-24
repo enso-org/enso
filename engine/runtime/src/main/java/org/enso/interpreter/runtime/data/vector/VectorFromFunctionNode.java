@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime.data.vector;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -93,6 +94,7 @@ public abstract class VectorFromFunctionNode extends Node {
     }
     var vector = target.asVector(true);
     if (errorsEncountered >= MAX_MAP_WARNINGS) {
+      CompilerDirectives.transferToInterpreter();
       var additionalWarnsBuiltin = ctx.getBuiltins().getBuiltinType(AdditionalWarnings.class);
       long additionalWarnsCnt = errorsEncountered - MAX_MAP_WARNINGS;
       var additionalWarns = additionalWarnsBuiltin.newInstance(additionalWarnsCnt);
