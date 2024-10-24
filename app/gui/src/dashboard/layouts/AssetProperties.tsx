@@ -110,6 +110,9 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
     category,
   )
   const setAssetPanelProps = useSetAssetPanelProps()
+
+  const driveStore = useDriveStore()
+
   const closeSpotlight = useEventCallback(() => {
     const assetPanelProps = driveStore.getState().assetPanelProps
     if (assetPanelProps != null) {
@@ -151,7 +154,6 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
       : {}),
     },
   )
-  const driveStore = useDriveStore()
   const descriptionRef = React.useRef<HTMLDivElement>(null)
   const descriptionSpotlight = useSpotlight({
     ref: descriptionRef,

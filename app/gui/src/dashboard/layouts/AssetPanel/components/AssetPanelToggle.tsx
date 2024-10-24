@@ -6,10 +6,11 @@ import RightPanelIcon from '#/assets/right_panel.svg'
 import { Button } from '#/components/AriaComponents'
 
 import {
-  useDriveStore,
+  useIsAssetPanelExpanded,
+  useIsAssetPanelHidden,
   useIsAssetPanelVisible,
-  useSetIsAssetPanelPermanentlyVisible,
-  useSetIsAssetPanelTemporarilyVisible,
+  useSetIsAssetPanelExpanded,
+  useSetIsAssetPanelHidden,
 } from '#/providers/DriveProvider'
 import { useText } from '#/providers/TextProvider'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -29,12 +30,10 @@ export interface AssetPanelToggleProps {
 export function AssetPanelToggle(props: AssetPanelToggleProps) {
   const { className, showWhen = 'collapsed' } = props
 
-  const driveStore = useDriveStore()
-  const isAssetPanelVisible = useIsAssetPanelVisible()
-  const setIsAssetPanelPermanentlyVisible = useSetIsAssetPanelPermanentlyVisible()
-  const setIsAssetPanelTemporarilyVisible = useSetIsAssetPanelTemporarilyVisible()
+  const isAssetPanelHidden = useIsAssetPanelHidden()
+  const setIsAssetPanelHidden = useSetIsAssetPanelHidden()
 
-  const shouldShow = showWhen === 'collapsed' ? !isAssetPanelVisible : isAssetPanelVisible
+  const shouldShow = showWhen === 'collapsed' ? isAssetPanelHidden : !isAssetPanelHidden
 
   const id = useId()
 
@@ -62,18 +61,11 @@ export function AssetPanelToggle(props: AssetPanelToggleProps) {
           <Button
             size="medium"
             variant="custom"
-            isActive={isAssetPanelVisible}
+            isActive={!isAssetPanelHidden}
             icon={RightPanelIcon}
             aria-label={getText('openAssetPanel')}
             onPress={() => {
-              const isAssetPanelTemporarilyVisible =
-                driveStore.getState().isAssetPanelTemporarilyVisible
-              if (isAssetPanelTemporarilyVisible) {
-                setIsAssetPanelTemporarilyVisible(false)
-                setIsAssetPanelPermanentlyVisible(false)
-              } else {
-                setIsAssetPanelPermanentlyVisible(!isAssetPanelVisible)
-              }
+              setIsAssetPanelHidden(!isAssetPanelHidden)
             }}
           />
         </motion.div>

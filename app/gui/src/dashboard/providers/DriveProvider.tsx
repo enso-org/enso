@@ -58,6 +58,8 @@ interface DriveStore {
   readonly setAssetPanelProps: (assetPanelProps: AssetPanelContextProps | null) => void
   readonly suggestions: readonly Suggestion[]
   readonly setSuggestions: (suggestions: readonly Suggestion[]) => void
+  readonly isAssetPanelHidden: boolean
+  readonly setIsAssetPanelHidden: (isAssetPanelHidden: boolean) => void
 }
 
 // =======================
@@ -149,6 +151,7 @@ export default function DriveProvider(props: ProjectsProviderProps) {
       },
       isAssetPanelExpanded: false,
       setIsAssetPanelExpanded: (isAssetPanelExpanded) => {
+        console.trace('setIsAssetPanelExpanded', { isAssetPanelExpanded })
         if (get().isAssetPanelExpanded !== isAssetPanelExpanded) {
           set({ isAssetPanelExpanded })
         }
@@ -169,6 +172,12 @@ export default function DriveProvider(props: ProjectsProviderProps) {
       setSuggestions: (suggestions) => {
         if (get().suggestions !== suggestions) {
           set({ suggestions })
+        }
+      },
+      isAssetPanelHidden: false,
+      setIsAssetPanelHidden: (isAssetPanelHidden) => {
+        if (get().isAssetPanelHidden !== isAssetPanelHidden) {
+          set({ isAssetPanelHidden })
         }
       },
     })),
@@ -353,4 +362,16 @@ export function useSuggestions() {
 export function useSetSuggestions() {
   const store = useDriveStore()
   return zustand.useStore(store, (state) => state.setSuggestions)
+}
+
+/** Whether the Asset Panel is hidden. */
+export function useIsAssetPanelHidden() {
+  const store = useDriveStore()
+  return zustand.useStore(store, (state) => state.isAssetPanelHidden)
+}
+
+/** A function to set whether the Asset Panel is hidden. */
+export function useSetIsAssetPanelHidden() {
+  const store = useDriveStore()
+  return zustand.useStore(store, (state) => state.setIsAssetPanelHidden)
 }

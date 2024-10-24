@@ -13,9 +13,10 @@ import { useBackend } from '#/providers/BackendProvider'
 import {
   useAssetPanelProps,
   useIsAssetPanelExpanded,
-  useIsAssetPanelVisible,
+  useIsAssetPanelHidden,
   useSetIsAssetPanelExpanded,
 } from '#/providers/DriveProvider'
+import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import { useText } from '#/providers/TextProvider'
 import LocalStorage from '#/utilities/LocalStorage'
 import type { BackendType } from 'enso-common/src/services/Backend'
@@ -23,7 +24,6 @@ import type { Spring } from 'framer-motion'
 import { AnimatePresence, motion } from 'framer-motion'
 import { startTransition } from 'react'
 import { z } from 'zod'
-import { useLocalStorageState } from '../../providers/LocalStorageProvider'
 import { AssetDocs } from '../AssetDocs'
 import AssetProjectSessions from '../AssetProjectSessions'
 import AssetProperties from '../AssetProperties'
@@ -37,7 +37,7 @@ const ASSET_PANEL_WIDTH = 480
 const ASSET_PANEL_TOTAL_WIDTH = ASSET_PANEL_WIDTH + ASSET_SIDEBAR_COLLAPSED_WIDTH
 
 /** Determines the content of the {@link AssetPanel}. */
-const ASSET_PANEL_TABS = ['settings', 'versions', 'sessions', 'schedules'] as const
+const ASSET_PANEL_TABS = ['settings', 'versions', 'sessions', 'schedules', 'docs'] as const
 
 /** Determines the content of the {@link AssetPanel}. */
 type AssetPanelTab = (typeof ASSET_PANEL_TABS)[number]
@@ -92,7 +92,7 @@ export function AssetPanel(props: AssetPanelProps) {
 
   const { getText } = useText()
 
-  const isVisible = useIsAssetPanelVisible()
+  const isHidden = useIsAssetPanelHidden()
   const isExpanded = useIsAssetPanelExpanded()
   const setIsExpanded = useSetIsAssetPanelExpanded()
 
@@ -101,6 +101,7 @@ export function AssetPanel(props: AssetPanelProps) {
   const { item } = useAssetPanelProps()
 
   const panelWidth = isExpanded ? ASSET_PANEL_TOTAL_WIDTH : ASSET_SIDEBAR_COLLAPSED_WIDTH
+  const isVisible = !isHidden
 
   return (
     <AnimatePresence initial={isVisible} mode="sync">
@@ -125,9 +126,10 @@ export function AssetPanel(props: AssetPanelProps) {
           <AssetPanelTabs
             className="h-full"
             orientation="vertical"
-            selectedKey={selectedTab}
+            defaultSelectedKey={selectedTab}
             onSelectionChange={(key) => {
               startTransition(() => {
+                console.log('onSelectionChange', { key, selectedTab, isExpanded, isHidden })
                 if (key === selectedTab && isExpanded) {
                   setIsExpanded(false)
                 } else {
@@ -151,7 +153,7 @@ export function AssetPanel(props: AssetPanelProps) {
                   className="absolute left-0 top-0 h-full w-full bg-background"
                   style={{ width: ASSET_PANEL_WIDTH }}
                 >
-                  <AssetPanelTabs.TabPanel id="properties">
+                  <AssetPanelTabs.TabPanel id="settings">
                     <AssetProperties
                       backend={backend}
                       item={item}
@@ -164,7 +166,7 @@ export function AssetPanel(props: AssetPanelProps) {
                     <AssetVersions backend={backend} item={item} />
                   </AssetPanelTabs.TabPanel>
 
-                  <AssetPanelTabs.TabPanel id="projectSessions">
+                  <AssetPanelTabs.TabPanel id="sessions">
                     <AssetProjectSessions backend={backend} item={item} />
                   </AssetPanelTabs.TabPanel>
 
@@ -186,7 +188,7 @@ export function AssetPanel(props: AssetPanelProps) {
 
               <AssetPanelTabs.TabList>
                 <AssetPanelTabs.Tab
-                  id="properties"
+                  id="settings"
                   icon={inspectIcon}
                   label={getText('properties')}
                   isExpanded={isExpanded}
@@ -204,7 +206,7 @@ export function AssetPanel(props: AssetPanelProps) {
                   }}
                 />
                 <AssetPanelTabs.Tab
-                  id="projectSessions"
+                  id="sessions"
                   icon={sessionsIcon}
                   label={getText('projectSessions')}
                   isExpanded={isExpanded}
