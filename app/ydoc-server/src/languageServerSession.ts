@@ -1,5 +1,5 @@
-import { Base64 } from 'js-base64'
 import createDebug from 'debug'
+import { Base64 } from 'js-base64'
 import * as json from 'lib0/json'
 import * as map from 'lib0/map'
 import { ObservableV2 } from 'lib0/observable'
@@ -434,7 +434,6 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
 
   queueRemoteUpdate(update: Uint8Array, origin: unknown) {
     if (origin === this) return
-    console.log('queueRemoteUpdate')
     if (this.updateToApply != null) {
       this.updateToApply = Y.mergeUpdates([this.updateToApply, update])
     } else {
@@ -445,7 +444,6 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
 
   trySyncRemoveUpdates() {
     if (this.updateToApply == null) return
-    console.log('trySyncRemoveUpdates', this.state)
     // apply updates to the ls-representation doc if we are already in sync with the LS.
     if (!this.inState(LsSyncState.Synchronized)) return
     const update = this.updateToApply
@@ -492,9 +490,8 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
   ) {
     if (this.syncedContent == null || this.syncedVersion == null) return
 
-    console.log('sendLsUpdate', !!synced, newCode?.length, !!newIdMap, !!newMetadata)
     const newSnapshot = newCode && {
-      snapshot: ModulePersistence.encodeCodeSnapshot(newCode)
+      snapshot: ModulePersistence.encodeCodeSnapshot(newCode),
     }
     const newMetadataJson =
       newMetadata &&
@@ -569,16 +566,6 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
     return promise
   }
 
-  private debugLogFirstDiffPos(a: string, b: string) {
-    let i = 0;
-    if (a === b) return
-    while (a[i] === b[i]) {
-      console.log(`===[${i}]: [${a[i]}] [${b[i]}]`)
-      i++
-    }
-    console.log(`!==[${i}]: [${a[i]}] [${b[i]}]`)
-  }
-
   private syncFileContents(content: string, version: Checksum) {
     const contentsReceived = splitFileContents(content)
     let unsyncedIdMap: IdMap | undefined
@@ -592,7 +579,6 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
       const syncModule = new Ast.MutableModule(this.doc.ydoc)
       if (code !== this.syncedCode) {
         const syncRoot = syncModule.root()
-        console.log('!!! syncFileContents', 'syncRoot:', syncRoot)
         if (syncRoot) {
           const edit = syncModule.edit()
           edit.getVersion(syncRoot).syncToCode(code)
@@ -600,26 +586,25 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
           if (editedRoot instanceof Ast.BodyBlock) Ast.repair(editedRoot, edit)
           syncModule.applyEdit(edit)
         } else {
-          const { root, spans } = Ast.parseModuleWithSpans(code, syncModule)
-          syncModule.syncRoot(root)
-          parsedSpans = spans
-
           const metadataSnapshot = metadata.ide.snapshot
-          if (metadataSnapshot && idMapJson) {
-            const snapshotCode = ModulePersistence.decodeCodeSnapshot(metadataSnapshot)
-            if (snapshotCode !== code) {
-              console.log('!!! syncFileContents snapshot !== code', snapshotCode.length, code.length)
-              this.debugLogFirstDiffPos(snapshotCode, code)
-              const { root, spans } = Ast.parseModuleWithSpans(snapshotCode, syncModule)
-              syncModule.syncRoot(root)
-              parsedSpans = undefined
-              parsedIdMap = deserializeIdMap(idMapJson)
+          const snapshotCode =
+            metadataSnapshot && ModulePersistence.decodeCodeSnapshot(metadataSnapshot)
+          if (metadataSnapshot && idMapJson && snapshotCode && snapshotCode !== code) {
+            // When the received code does not match the saved code snapshot, it means that
+            // the code was externally edited. In this case we try to fix the spans by running
+            // the `syncToCode` on the saved code snapshot.
+            const { root, spans } = Ast.parseModuleWithSpans(snapshotCode, syncModule)
+            syncModule.syncRoot(root)
+            parsedIdMap = deserializeIdMap(idMapJson)
 
-              const edit = syncModule.edit()
-              Ast.setExternalIds(edit, spans, parsedIdMap)
-              edit.getVersion(root).syncToCode(code)
-              syncModule.applyEdit(edit)
-            }
+            const edit = syncModule.edit()
+            Ast.setExternalIds(edit, spans, parsedIdMap)
+            edit.getVersion(root).syncToCode(code)
+            syncModule.applyEdit(edit)
+          } else {
+            const { root, spans } = Ast.parseModuleWithSpans(code, syncModule)
+            syncModule.syncRoot(root)
+            parsedSpans = spans
           }
         }
       }
@@ -686,7 +671,13 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
       this.syncedMeta = metadata
       this.syncedMetaJson = metadataJson
     }, 'file')
-    if (unsyncedIdMap) this.sendLsUpdate(contentsReceived, this.syncedCode ?? undefined, unsyncedIdMap, this.syncedMeta?.ide?.node)
+    if (unsyncedIdMap)
+      this.sendLsUpdate(
+        contentsReceived,
+        this.syncedCode ?? undefined,
+        unsyncedIdMap,
+        this.syncedMeta?.ide?.node,
+      )
   }
 
   async close() {
