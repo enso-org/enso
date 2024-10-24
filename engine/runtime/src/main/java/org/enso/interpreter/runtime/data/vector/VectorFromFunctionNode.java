@@ -17,6 +17,7 @@ import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.enso.interpreter.runtime.state.HasContextEnabledNode;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.warning.AppendWarningNode;
 import org.enso.interpreter.runtime.warning.Warning;
@@ -54,7 +55,8 @@ public abstract class VectorFromFunctionNode extends Node {
       @Cached("build()") AppendWarningNode appendWarningNode,
       @CachedLibrary(limit = "3") WarningsLibrary warnsLib,
       @CachedLibrary(limit = "3") TypesLibrary typesLib,
-      @Cached BranchProfile errorEncounteredProfile) {
+      @Cached BranchProfile errorEncounteredProfile,
+      @Cached HasContextEnabledNode hasContextEnabledNode) {
     var ctx = EnsoContext.get(this);
     var onProblems = processOnProblemsArg(onProblemsAtom, typesLib);
     var len = Math.toIntExact(length);
@@ -70,7 +72,7 @@ public abstract class VectorFromFunctionNode extends Node {
           case IGNORE -> valueToAdd = nothing;
           case REPORT_ERROR -> {
             var mapErr = ctx.getBuiltins().error().makeMapError(i, err.getPayload());
-            return DataflowError.withDefaultTrace(state, mapErr, this);
+            return DataflowError.withDefaultTrace(state, mapErr, this, hasContextEnabledNode);
           }
           case REPORT_WARNING -> {
             errorsEncountered++;
