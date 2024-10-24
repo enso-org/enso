@@ -43,7 +43,14 @@ export function AssetPanelToggle(props: AssetPanelToggleProps) {
   return (
     <AnimatePresence mode="sync">
       {shouldShow && (
-        <motion.div className={className} layoutId={`asset-panel-toggle-${id}`}>
+        <motion.div
+          className={className}
+          layout
+          layoutId={`asset-panel-toggle-${id}`}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+        >
           <Button
             size="medium"
             variant="custom"
