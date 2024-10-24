@@ -87,6 +87,7 @@ public final class Module implements EnsoObject {
    * @param sourceFile the module's source file.
    */
   public Module(QualifiedName name, Package<TruffleFile> pkg, TruffleFile sourceFile) {
+    ensureConsistentName(name, pkg);
     this.sources = ModuleSources.NONE.newWith(sourceFile);
     this.name = name;
     this.scopeBuilder = new ModuleScope.Builder(this);
@@ -105,6 +106,7 @@ public final class Module implements EnsoObject {
    * @param literalSource the module's source.
    */
   public Module(QualifiedName name, Package<TruffleFile> pkg, String literalSource) {
+    ensureConsistentName(name, pkg);
     this.sources = ModuleSources.NONE.newWith(Rope.apply(literalSource));
     this.name = name;
     this.scopeBuilder = new ModuleScope.Builder(this);
@@ -124,6 +126,7 @@ public final class Module implements EnsoObject {
    * @param literalSource the module's source.
    */
   public Module(QualifiedName name, Package<TruffleFile> pkg, Rope literalSource) {
+    ensureConsistentName(name, pkg);
     this.sources = ModuleSources.NONE.newWith(literalSource);
     this.name = name;
     this.scopeBuilder = new ModuleScope.Builder(this);
@@ -143,6 +146,7 @@ public final class Module implements EnsoObject {
    */
   private Module(
       QualifiedName name, Package<TruffleFile> pkg, boolean synthetic, Rope literalSource) {
+    ensureConsistentName(name, pkg);
     this.sources =
         literalSource == null ? ModuleSources.NONE : ModuleSources.NONE.newWith(literalSource);
     this.name = name;
@@ -156,6 +160,17 @@ public final class Module implements EnsoObject {
       scopeBuilder.build();
     } else {
       this.compilationStage = CompilationStage.AFTER_CODEGEN;
+    }
+  }
+
+  private void ensureConsistentName(QualifiedName name, Package<TruffleFile> pkg) {
+    if (name.toString().equals(Builtins.MODULE_NAME)) {
+      return;
+    }
+    if (pkg != null && name.isSimple()) {
+      throw new IllegalArgumentException("Simple module name must not be in a package");
+    } else if (pkg == null && !name.isSimple()) {
+      throw new IllegalArgumentException("Qualified module name must be in a package");
     }
   }
 

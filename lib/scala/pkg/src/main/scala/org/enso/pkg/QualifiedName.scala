@@ -49,6 +49,12 @@ case class QualifiedName(path: List[String], item: String) {
     path.asJava
   }
 
+  /** Returns true if this a simple name, not a fully qualified name.
+    */
+  def isSimple(): Boolean = {
+    path.isEmpty
+  }
+
   def fullPath(): List[String] = path :+ item
 }
 
