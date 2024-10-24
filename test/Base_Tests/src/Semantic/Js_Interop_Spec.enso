@@ -12,10 +12,13 @@ foreign js debug = """
 type My_Type
     Value a b
 
-    foreign js my_method self = """
+    foreign js my_method_self self = """
+        return self.a + self.b;
+
+    foreign js my_method_this self = """
         return this.a + this.b;
 
-    my_method_2 self x = self.my_method * x
+    my_method_2 self x = self.my_method_this * x
 
     foreign js my_method_3 self y = """
         var r = this.my_method_2(y)
@@ -90,6 +93,12 @@ add_specs suite_builder = suite_builder.group "Polyglot JS" pending=pending_js_m
 
     group_builder.specify "should allow mutual calling of instance-level methods" <|
         My_Type.Value 3 4 . my_method_3 5 . should_equal 36
+
+    group_builder.specify "should allows to access this in instance methods" <|
+        My_Type.Value 3 5 . my_method_this . should_equal 8
+
+    group_builder.specify "should allows to access self in instance methods" <|
+        My_Type.Value 5 4 . my_method_self . should_equal 9
 
     group_builder.specify "should expose methods and fields of JS objects" <|
         obj = make_object

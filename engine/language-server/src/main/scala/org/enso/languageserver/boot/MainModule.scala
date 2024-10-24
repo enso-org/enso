@@ -339,6 +339,9 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
         connection
       } else null
     })
+  if (System.getProperty("enso.dev.insight") != null) {
+    stdOut.attach(arr => System.out.write(arr))
+  }
 
   system.eventStream.setLogLevel(AkkaConverter.toAkka(logLevel))
   log.trace("Set akka log level to [{}]", logLevel)

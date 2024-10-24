@@ -64,7 +64,8 @@ final class ForeignEvalNode extends RootNode {
       }
       at++;
     }
-    throw new ForeignParsingException("No " + ch + " found", this);
+    throw new ForeignParsingException(
+        "No `" + ch + "` found. Expecting `lang:lineno#code` format.", this);
   }
 
   @Override
@@ -106,12 +107,17 @@ final class ForeignEvalNode extends RootNode {
   private ForeignFunctionCallNode parseJs() {
     var context = EpbContext.get(this);
     var inner = context.getInnerContext();
-    var code = foreignSource(langAndCode);
-    var args = Arrays.stream(argNames).skip(1).collect(Collectors.joining(","));
-    var wrappedSrc = "var poly_enso_eval=function(" + args + "){" + code + "\n};poly_enso_eval";
-    Source source = newSource("js", wrappedSrc);
-    var fn = inner.evalPublic(this, source);
-    return JsForeignNode.build(fn);
+    if (inner != null) {
+      var code = foreignSource(langAndCode);
+      var args = Arrays.stream(argNames).collect(Collectors.joining(","));
+      var wrappedSrc = "var poly_enso_eval=function(" + args + "){" + code + "\n};poly_enso_eval";
+      Source source = newSource("js", wrappedSrc);
+      var fn = inner.evalPublic(this, source);
+      return JsForeignNode.build(fn);
+    } else {
+      return new GenericForeignNode(
+          RootNode.createConstantNode("Cannot evaluate script in inner context!").getCallTarget());
+    }
   }
 
   private ForeignFunctionCallNode parseGeneric(
