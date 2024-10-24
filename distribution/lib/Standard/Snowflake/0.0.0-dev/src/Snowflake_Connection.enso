@@ -320,7 +320,7 @@ type Snowflake_Connection
     ## ICON data_output
        Creates a Data Link that will open the same connection.
     @on_existing_file (Existing_File_Behavior.widget include_backup=False include_append=False)
-    save_as_data_link self destination (on_existing_file:Existing_File_Behavior = Existing_File_Behavior.Error) =
+    save_as_data_link self destination (on_existing_file:Existing_File_Behavior = ..Error) =
         self.base_connection.save_as_data_link destination on_existing_file
 
     ## PRIVATE

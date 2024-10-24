@@ -224,7 +224,7 @@ type Connection
         SQL_Query.Table_Name name ->
             table_naming_helper = self.base_connection.table_naming_helper
             table_naming_helper.verify_table_name name <|
-                make_table_for_name self name alias
+                _make_table_for_name self name alias
         SQL_Query.Raw_SQL raw_sql -> handle_sql_errors <| alias.if_not_error <|
             self.dialect.ensure_query_has_no_holes self.jdbc_connection raw_sql . if_not_error <|
                 r = make_table_from_query self raw_sql alias
@@ -366,7 +366,7 @@ type Connection
         Execution_Context.Output.if_enabled disabled_message="As writing is disabled, cannot execute an update query. Press the Write button ▶ to perform the operation." panic=False <|
             statement_setter = self.dialect.get_statement_setter
             self.jdbc_connection.with_prepared_statement query statement_setter stmt->
-                check_statement_is_allowed self stmt
+                _check_statement_is_allowed self stmt
                 result = case self.supports_large_update.get of
                     True -> Panic.catch UnsupportedOperationException stmt.executeLargeUpdate _->
                         self.supports_large_update.put False
@@ -390,7 +390,7 @@ type Connection
         Execution_Context.Output.if_enabled disabled_message="As writing is disabled, cannot execute an update query. Press the Write button ▶ to perform the operation." panic=False <|
             result = self.jdbc_connection.execute query
             stmt = result.second
-            check_statement_is_allowed self stmt
+            _check_statement_is_allowed self stmt
             stmt.getUpdateCount
 
     ## PRIVATE
@@ -462,7 +462,7 @@ type Connection
     internal_allocate_dry_run_table : Text -> DB_Table
     internal_allocate_dry_run_table self table_name =
         ref = self.hidden_table_registry.make_reference table_name
-        make_table_for_name self table_name table_name ref
+        _make_table_for_name self table_name table_name ref
 
     ## PRIVATE
        ADVANCED
@@ -482,9 +482,9 @@ type Connection
     ## ICON data_output
        Creates a Data Link that will open the same connection.
     @on_existing_file (Existing_File_Behavior.widget include_backup=False include_append=False)
-    save_as_data_link self destination (on_existing_file:Existing_File_Behavior = Existing_File_Behavior.Error) =
+    save_as_data_link self destination (on_existing_file:Existing_File_Behavior = ..Error) =
         case self.data_link_setup of
-            Nothing -> Error.throw (Illegal_State.Error "This Database connection does not support saving it as a data link.")
+            Nothing -> Error.throw (Illegal_State.Error "The connection does not support saving as a data link.")
             data_link_setup -> data_link_setup.save_as_data_link destination on_existing_file
 
 
@@ -522,7 +522,7 @@ make_structure_creator =
     Vector_Editor item_editor=item_editor item_default=item_editor.values.first.value display=Display.Always
 
 ## PRIVATE
-make_table_from_query connection query:Text|SQL_Statement alias:Text -> DB_Table =
+private make_table_from_query connection query:Text|SQL_Statement alias:Text -> DB_Table =
     expect_interpolations = case query of
         # If the statement is given as a Text, then it should not contain `?` holes.
         _ : Text -> False
@@ -534,7 +534,7 @@ make_table_from_query connection query:Text|SQL_Statement alias:Text -> DB_Table
     DB_Table_Module.make_table connection.base_connection name columns ctx on_problems=Problem_Behavior.Report_Error
 
 ## PRIVATE
-make_table_for_name connection name alias internal_temporary_keep_alive_reference=Nothing =
+private _make_table_for_name connection name alias internal_temporary_keep_alive_reference=Nothing =
     result = handle_sql_errors <|
         ctx = Context.for_table name (if alias == "" then name else alias) internal_temporary_keep_alive_reference
         statement = connection.dialect.generate_sql (Query.Select Nothing ctx)
@@ -551,7 +551,7 @@ make_table_for_name connection name alias internal_temporary_keep_alive_referenc
         Error.throw (Table_Not_Found.Error name)
 
 ## PRIVATE
-private check_statement_is_allowed connection stmt =
+private _check_statement_is_allowed connection stmt =
     trimmed = stmt.to_text.trim.to_case ..Lower
     is_ddl_regex = "\s*(?:create|alter|drop).*".to_regex case_insensitive=True
     is_ddl = is_ddl_regex.matches trimmed

@@ -2842,7 +2842,7 @@ type DB_Table
        Creates a Data Link that will act as a view into the query represented by
        this table.
     @on_existing_file (Existing_File_Behavior.widget include_backup=False include_append=False)
-    save_as_data_link self destination (on_existing_file:Existing_File_Behavior = Existing_File_Behavior.Error) =
+    save_as_data_link self destination (on_existing_file:Existing_File_Behavior = ..Error) =
         DB_Data_Link_Helpers.save_table_as_data_link self destination on_existing_file
 
     ## ALIAS fill missing, if_nothing

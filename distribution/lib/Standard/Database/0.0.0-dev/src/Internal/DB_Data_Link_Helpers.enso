@@ -7,6 +7,7 @@ from Standard.Table import Table
 
 import project.Connection.Connection_Options.Connection_Options
 import project.Dialect.Temp_Table_Style
+import project.Internal.Data_Link_Setup.DB_Data_Link_Type
 import project.Internal.IR.From_Spec.From_Spec
 
 ## PRIVATE
@@ -24,13 +25,13 @@ save_table_as_data_link table destination on_existing_file:Existing_File_Behavio
         Error.throw (Illegal_Argument.Error "Saving a Table as data link is currently not supported in this backend.")
 
     # For a trivial query we return the table name.
-    link_type = if table.is_trivial_query fail_if_not_found=False then ..Table table.name else
+    link_type = if table.is_trivial_query fail_if_not_found=False then DB_Data_Link_Type.Table table.name else
         sql_statement = table.to_sql
         prepared = sql_statement.prepare
         # If there are no interpolations, we can do a raw query represented by Text (more friendly in the GUI).
-        if prepared.second.is_empty then ..Query prepared.first else
+        if prepared.second.is_empty then DB_Data_Link_Type.Query prepared.first else
             # Lastly, if there are interpolations, we need to fully serialize
-            ..SQL_Statement sql_statement
+            DB_Data_Link_Type.SQL_Statement sql_statement
     result = data_link_setup.save_as_data_link destination on_existing_file link_type
     referred_temporary_tables = _find_referred_temporary_tables table.connection table.context
     if referred_temporary_tables.is_nothing then result else
