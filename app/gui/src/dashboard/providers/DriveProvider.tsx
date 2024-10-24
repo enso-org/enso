@@ -151,7 +151,6 @@ export default function DriveProvider(props: ProjectsProviderProps) {
       },
       isAssetPanelExpanded: false,
       setIsAssetPanelExpanded: (isAssetPanelExpanded) => {
-        console.trace('setIsAssetPanelExpanded', { isAssetPanelExpanded })
         if (get().isAssetPanelExpanded !== isAssetPanelExpanded) {
           set({ isAssetPanelExpanded })
         }
