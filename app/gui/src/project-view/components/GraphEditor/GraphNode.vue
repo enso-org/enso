@@ -446,7 +446,7 @@ watchEffect(() => {
         @click="handleNodeClick"
       />
     </Teleport>
-    <div v-if="!menuVisible" class="binding" v-text="node.pattern?.code()" />
+    <div class="binding" v-text="node.pattern?.code()" />
     <button
       v-if="!menuVisible && isRecordingOverridden"
       class="overrideRecordButton clickable"
