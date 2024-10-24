@@ -73,4 +73,37 @@ public class IfThenElseTest {
     assertEquals("Yes", check.execute(true).asString());
     assertTrue("Expect Nothing", check.execute(false).isNull());
   }
+
+  @Test
+  public void variableDefinedInThen() throws Exception {
+    var module =
+        ctx.eval(
+            "enso", """
+    check x = if x then
+        xt = x.to_text
+        "Good:"+xt
+    """);
+
+    var check = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "check");
+
+    assertEquals("Good:True", check.execute(true).asString());
+    assertTrue("Expect Nothing", check.execute(false).isNull());
+  }
+
+  @Test
+  public void variableDefinedInElse() throws Exception {
+    var module =
+        ctx.eval(
+            "enso",
+            """
+    check x = if x then "OKeyish:"+x.to_text else
+        xt = x.to_text
+        "Bad:"+xt
+    """);
+
+    var check = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "check");
+
+    assertEquals("OKeyish:True", check.execute(true).asString());
+    assertEquals("Bad:False", check.execute(false).asString());
+  }
 }
