@@ -13,7 +13,7 @@ import org.enso.shttp.SimpleHttpHandler;
  * response consists of a string of random letters of the requested length.
  */
 public class DownloadTestHandler extends SimpleHttpHandler {
-  private Random random = new Random(System.currentTimeMillis());
+  private Random random = new Random(42);
 
   @Override
   protected void doHandle(HttpExchange exchange) throws IOException {
