@@ -1,5 +1,5 @@
 import { Filtering, type MatchResult } from '@/components/ComponentBrowser/filtering'
-import { entryQn, SuggestionEntry } from '@/stores/suggestionDatabase/entry'
+import { SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import {
   makeConstructor,
   makeFunction,
@@ -14,9 +14,9 @@ import { expect, test } from 'vitest'
 import { Opt } from 'ydoc-shared/util/data/opt'
 
 test.each([
-  { ...makeModuleMethod('Standard.Base.Data.read'), groupIndex: 0 },
-  { ...makeModuleMethod('Standard.Base.Data.write'), groupIndex: 0 },
-  { ...makeStaticMethod('Standard.Base.Data.Vector.Vector.new'), groupIndex: 1 },
+  makeModuleMethod('Standard.Base.Data.read', { group: 'Standard.Base.MockGroup1' }),
+  makeModuleMethod('Standard.Base.Data.write', { group: 'Standard.Base.MockGroup1' }),
+  makeStaticMethod('Standard.Base.Data.Vector.Vector.new', { group: 'Standard.Base.MockGroup2' }),
   makeModuleMethod('Standard.Base.Data.read_text'),
   makeStaticMethod('local.Project.Foo.new'),
   makeStaticMethod('local.Project.Internalization.internalize'),
@@ -27,7 +27,7 @@ test.each([
 
 test.each([
   makeModuleMethod('Standard.Base.Data.Vector.some_method'), // not in top group
-  { ...makeMethod('Standard.Base.Data.Vector.Vector.get'), groupIndex: 1 }, // not static method
+  makeMethod('Standard.Base.Data.Vector.Vector.get', { group: 'Standard.Base.MockGroup2' }), // not static method
   makeModule('Standard.Base.Data.Vector'), // Not top module
   makeModule('local.New_Project'), // Main module
   makeModule('Standard.Base.Data'), // Top module
@@ -118,12 +118,12 @@ function matchedText(ownerName: string, name: string, matchResult: MatchResult) 
 
 type MatchingTestCase = {
   pattern: string
-  matchedSorted: { module?: string; name: string; aliases: string[] }[]
-  notMatched: { module?: string; name: string; aliases: string[] }[]
+  matchedSorted: { module?: string; name: string; aliases?: string[] }[]
+  notMatched: { module?: string; name: string; aliases?: string[] }[]
 }
 
 // In this test, `matchedSorted` are specified in expected score ascending order.
-test.each([
+test.each<MatchingTestCase>([
   {
     pattern: 'foo',
     matchedSorted: [
@@ -210,29 +210,34 @@ test.each([
       { module: 'local.Pr', name: 'bar' },
     ],
   },
-] as MatchingTestCase[])('Matching pattern $pattern', ({ pattern, matchedSorted, notMatched }) => {
+])('Matching pattern $pattern', ({ pattern, matchedSorted, notMatched }) => {
   const filtering = new Filtering({ pattern })
-  const matchedSortedEntries = Array.from(matchedSorted, ({ name, aliases, module }) => ({
-    ...makeModuleMethod(`${module ?? 'local.Project'}.${name}`),
-    aliases: aliases ?? [],
-  }))
+  const matchedSortedEntries = Array.from(matchedSorted, ({ name, aliases, module }) =>
+    makeModuleMethod(`${module ?? 'local.Project'}.${name}`, { aliases: aliases ?? [] }),
+  )
   const matchResults = Array.from(matchedSortedEntries, (entry) => filtering.filter(entry, []))
   // Checking matching entries
   function checkResult(entry: SuggestionEntry, result: Opt<MatchResult>) {
-    expect(result, `Matching entry ${entryQn(entry)}`).not.toBeNull()
+    expect(result, `Matching entry ${entry.definitionPath}`).not.toBeNull()
     expect(
-      matchedText(entry.memberOf ? qnLastSegment(entry.memberOf) : '', entry.name, result!)
+      matchedText(
+        'memberOf' in entry && entry.memberOf ? qnLastSegment(entry.memberOf) : '',
+        entry.name,
+        result!,
+      )
         .toLowerCase()
         .replace(/ /g, '_'),
-      `Matched text of entry ${entryQn(entry)}`,
+      `Matched text of entry ${entry.definitionPath}`,
     ).toEqual(pattern.toLowerCase().replace(/ /g, '_'))
   }
+  expect(matchedSortedEntries.length).toBeGreaterThan(0)
+  expect(matchedSortedEntries[0]).not.toBeNull()
   checkResult(matchedSortedEntries[0]!, matchResults[0])
   for (let i = 1; i < matchResults.length; i++) {
     checkResult(matchedSortedEntries[i]!, matchResults[i])
     expect(
       matchResults[i]!.score,
-      `score('${entryQn(matchedSortedEntries[i]!)}') > score('${entryQn(matchedSortedEntries[i - 1]!)}')`,
+      `score('${matchedSortedEntries[i]!.definitionPath}') > score('${matchedSortedEntries[i - 1]!.definitionPath}')`,
     ).toBeGreaterThan(matchResults[i - 1]!.score)
   }
 
@@ -242,6 +247,6 @@ test.each([
       ...makeModuleMethod(`${module ?? 'local.Project'}.${name}`),
       aliases: aliases ?? [],
     }
-    expect(filtering.filter(entry, []), entryQn(entry)).toBeNull()
+    expect(filtering.filter(entry, []), entry.definitionPath).toBeNull()
   }
 })

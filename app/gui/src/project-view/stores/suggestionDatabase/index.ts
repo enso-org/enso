@@ -1,6 +1,12 @@
 import { createContextStore } from '@/providers'
 import { type ProjectStore } from '@/stores/project'
-import { entryQn, type SuggestionEntry, type SuggestionId } from '@/stores/suggestionDatabase/entry'
+import {
+  entryIsCallable,
+  SuggestionKind,
+  type CallableSuggestionEntry,
+  type SuggestionEntry,
+  type SuggestionId,
+} from '@/stores/suggestionDatabase/entry'
 import { SuggestionUpdateProcessor } from '@/stores/suggestionDatabase/lsUpdate'
 import { ReactiveDb, ReactiveIndex } from '@/util/database/reactiveDb'
 import { AsyncQueue } from '@/util/net'
@@ -20,16 +26,16 @@ import { exponentialBackoff } from 'ydoc-shared/util/net'
 /**
  * Suggestion Database.
  *
- * The entries are retrieved (and updated) from engine throug Language Server API. They represent
+ * The entries are retrieved (and updated) from engine through the Language Server API. They represent
  * all entities available in current project (from the project and all imported libraries).
  *
  * It is used for code completion/component browser suggestions (thence the name), but also for
  * retrieving information about method/function in widgets, and many more.
  */
 export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
-  nameToId = new ReactiveIndex(this, (id, entry) => [[entryQn(entry), id]])
+  nameToId = new ReactiveIndex(this, (id, entry) => [[entry.definitionPath, id]])
   childIdToParentId = new ReactiveIndex(this, (id, entry) => {
-    const qualifiedName = entry.memberOf ?? qnParent(entryQn(entry))
+    const qualifiedName = qnParent(entry.definitionPath)
     if (qualifiedName) {
       const parents = this.nameToId.lookup(qualifiedName)
       return Array.from(parents, (p) => [id, p])
@@ -46,10 +52,7 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
     }
   }
 
-  /**
-   * Get entry of method/function by MethodPointer structure (received through expression
-   * updates.
-   */
+  /** Get ID of method/function by MethodPointer structure (received through expression updates). */
   findByMethodPointer(method: MethodPointer): SuggestionId | undefined {
     if (method == null) return
     const moduleName = tryQualifiedName(method.definedOnType)
@@ -58,6 +61,24 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
     const qualifiedName = qnJoin(normalizeQualifiedName(moduleName.value), methodName.value)
     const [suggestionId] = this.nameToId.lookup(qualifiedName)
     return suggestionId
+  }
+
+  /** Get entry of method/function by MethodPointer structure (received through expression updates). */
+  entryByMethodPointer(method: MethodPointer): CallableSuggestionEntry | undefined {
+    const id = this.findByMethodPointer(method)
+    if (id == null) return
+    const entry = this.get(id)
+    return entry && entryIsCallable(entry) ? entry : undefined
+  }
+
+  /** Returns the entry's ancestors, starting with its parent. */
+  *ancestors(entry: SuggestionEntry): Iterable<QualifiedName> {
+    while (entry.kind === SuggestionKind.Type && entry.parentType != null) {
+      yield entry.parentType
+      const parent = this.getEntryByQualifiedName(entry.parentType)
+      if (!parent) break
+      entry = parent
+    }
   }
 }
 
