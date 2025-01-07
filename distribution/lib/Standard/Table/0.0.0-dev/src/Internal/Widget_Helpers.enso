@@ -110,6 +110,15 @@ make_fill_default_value_selector column_source=Nothing display:Display=..Always 
     Single_Choice values=(previous_value+column_ref.values) display=display
 
 ## PRIVATE
+   If `column_source` is Nothing, `Column_Ref` options will not be added.
+make_fill_default_value_selector2 column_source=Nothing display:Display=..When_Modified value_types=Value_Type.Mixed add_nothing:Boolean=False =
+    to_add = Types_To_Include.Value (Vector.unify_vector_or_element value_types)
+    column_ref = make_column_ref_by_name_selector column_source display add_text=to_add.text add_number=to_add.number add_boolean=to_add.boolean add_date=to_add.date add_time=to_add.time add_date_time=to_add.date_time add_nothing=add_nothing
+    previous_value = [Option 'Closest Value' 'Previous_Value']
+    nothing_option = [Option 'Nothing' 'Nothing']
+    Single_Choice values=(nothing_option+previous_value+column_ref.values) display=display
+
+## PRIVATE
    Make a filter condition selector.
 make_filter_condition_selector table display:Display=..Always =
     equatable_types = make_column_ref_by_name_selector table add_text=True add_number=True add_boolean=True add_date=True add_time=True add_date_time=True

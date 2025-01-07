@@ -3788,6 +3788,26 @@ type Table
     running self (statistic:Statistic=..Count) (of:(Text | Integer)=0) (as:Text='') (set_mode:Set_Mode=..Add) (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (on_problems:Problem_Behavior=..Report_Warning) =
         Incomparable_Values.handle_errors <| Add_Running.add_running self statistic of as set_mode group_by order_by on_problems
 
+    ## ALIAS shift
+       GROUP Standard.Base.Values
+       ICON column_add
+
+       Returns a new column, offset by n rows, where missing values have been replaced with the
+       provided default.
+
+       Arguments:
+       - n: The number of rows to offset the new column by.
+       - default: The value to replace missing values with.
+
+       > Example
+         TODO
+    offset self columns:(Vector (Integer | Text | Regex | By_Type)) n:Integer=0 default=Nothing (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (on_problems:Problem_Behavior=..Report_Warning) -> Table =
+        offset_vector = if n > 0 then self.to_vector + (Vector.fill n default) else
+            (Vector.fill n.abs default) + self.to_vector
+        resized_vector = if n > 0 then offset_vector.take (..Last self.length) else
+            offset_vector.take (..First self.length)
+        Column.from_vector "offset" resized_vector
+
     ## PRIVATE
     column_naming_helper : Column_Naming_Helper
     column_naming_helper self = Column_Naming_Helper.in_memory
