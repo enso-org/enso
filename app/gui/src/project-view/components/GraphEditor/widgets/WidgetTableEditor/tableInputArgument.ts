@@ -10,7 +10,7 @@ import { qnLastSegment, type QualifiedName } from '@/util/qualifiedName'
 import type { ToValue } from '@/util/reactivity'
 import type { ColDef } from 'ag-grid-enterprise'
 import * as iter from 'enso-common/src/utilities/data/iter'
-import { computed, toValue } from 'vue'
+import { computed, markRaw, ref, toValue } from 'vue'
 import type { ColumnSpecificHeaderParams } from './TableHeader.vue'
 
 /** Id of a fake column with "Add new column" option. */
@@ -44,7 +44,7 @@ export interface ColumnDef extends ColDef<RowData> {
   mainMenuItems: (string | MenuItem<RowData>)[]
   contextMenuItems: (string | MenuItem<RowData>)[]
   rowDrag?: ({ data }: { data: RowData | undefined }) => boolean
-  headerComponentParams?: ColumnSpecificHeaderParams
+  headerComponentParams: ColumnSpecificHeaderParams
 }
 
 namespace cellValueConversion {
@@ -287,14 +287,18 @@ export function useTableInputArgument(
     width: 40,
     maxWidth: 40,
     headerComponentParams: {
-      type: 'newColumn',
-      enabled: mayAddNewColumn(),
-      newColumnRequested: () => {
-        const edit = graph.startEdit()
-        fixColumns(edit)
-        addColumn(edit, `${DEFAULT_COLUMN_PREFIX}${columns.value.length + 1}`)
-        onUpdate({ edit, directInteraction: true })
-      },
+      columnSpecific: markRaw(
+        ref({
+          type: 'newColumn',
+          enabled: mayAddNewColumn(),
+          newColumnRequested: () => {
+            const edit = graph.startEdit()
+            fixColumns(edit)
+            addColumn(edit, `${DEFAULT_COLUMN_PREFIX}${columns.value.length + 1}`)
+            onUpdate({ edit, directInteraction: true })
+          },
+        }),
+      ),
     },
     mainMenuItems: ['autoSizeThis', 'autoSizeAll'],
     contextMenuItems: [removeRowMenuItem],
@@ -310,7 +314,9 @@ export function useTableInputArgument(
     resizable: false,
     suppressNavigable: true,
     headerComponentParams: {
-      type: 'rowIndexColumn',
+      columnSpecific: ref({
+        type: 'rowIndexColumn',
+      }),
     },
     mainMenuItems: ['autoSizeThis', 'autoSizeAll'],
     contextMenuItems: [removeRowMenuItem],
@@ -355,15 +361,18 @@ export function useTableInputArgument(
             return true
           },
           headerComponentParams: {
-            type: 'astColumn',
-            editHandlers: {
-              nameSetter: (newName: string) => {
-                const edit = graph.startEdit()
-                fixColumns(edit)
-                edit.getVersion(col.name).setRawTextContent(newName)
-                onUpdate({ edit, directInteraction: true })
-              },
-            },
+            columnSpecific: markRaw(
+              ref({
+                type: 'astColumn',
+                nameSetter: (newName: string) => {
+                  console.log('SET NAME', newName)
+                  const edit = graph.startEdit()
+                  fixColumns(edit)
+                  edit.getVersion(col.name).setRawTextContent(newName)
+                  onUpdate({ edit, directInteraction: true })
+                },
+              }),
+            ),
           },
           mainMenuItems: ['autoSizeThis', 'autoSizeAll', removeColumnMenuItem(col.id)],
           contextMenuItems: [

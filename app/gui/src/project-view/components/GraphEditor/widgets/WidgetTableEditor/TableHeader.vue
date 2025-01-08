@@ -2,30 +2,18 @@
 import SvgButton from '@/components/SvgButton.vue'
 import { provideTooltipRegistry, type TooltipRegistry } from '@/providers/tooltipRegistry'
 import type { IHeaderParams } from 'ag-grid-community'
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, Raw, Ref, ref, toRef, watch } from 'vue'
 
-export interface HeaderEditHandlers {
-  /** Setter called when column name is changed by the user. */
-  nameSetter: (newName: string) => void
-  onHeaderEditingStarted?: (colId: string, revertChanges: () => void) => void
-  onHeaderEditingStopped?: () => void
-}
-
-/**
- * A subset of {@link HeaderParams} which is meant to be specified for columns separately
- * (not in defaultColumnDef).
- */
-export type ColumnSpecificHeaderParams =
-  | { type: 'astColumn'; editHandlers: HeaderEditHandlers }
+export type ColumnSpecificProps =
+  | {
+      type: 'astColumn'
+      /** Setter called when column name is changed by the user. */
+      nameSetter: (newName: string) => void
+    }
   | { type: 'newColumn'; enabled?: boolean; newColumnRequested: () => void }
   | { type: 'rowIndexColumn' }
 
-/**
- * Parameters recognized by this header component.
- *
- * They are set through `headerComponentParams` option in AGGrid column definition.
- */
-export type HeaderParams = ColumnSpecificHeaderParams & {
+export interface GeneralProps {
   /**
    * AgGrid mounts header components as separate "App", so we don't have access to any context.
    * Threfore the tooltip registry must be provided by props.
@@ -34,48 +22,75 @@ export type HeaderParams = ColumnSpecificHeaderParams & {
   /**
    * The id of column whose header is currently edited.
    */
-  editedColId: string
+  editedColId: string | undefined
+  onHeaderEditingStarted?: (colId: string, revertChanges: () => void) => void
+  onHeaderEditingStopped?: (colId: string) => void
+}
+
+/**
+ * General (column-intependent) parameters recognized by this header component.
+ *
+ * They are set through `headerComponentParams` option in AGGrid default column definition.
+ */
+export interface GeneralHeaderParams {
+  general: Raw<Ref<GeneralProps>>
+}
+
+/**
+ * Column-specific parameters recognized by this header component.
+ *
+ * They are set through `headerComponentParams` option in AGGrid column definition.
+ */
+export interface ColumnSpecificHeaderParams {
+  columnSpecific: Raw<Ref<ColumnSpecificProps>>
 }
 </script>
 
 <script setup lang="ts">
 const props = defineProps<{
-  params: IHeaderParams & HeaderParams
+  params: IHeaderParams & GeneralHeaderParams & ColumnSpecificHeaderParams
 }>()
+const generalProps = toRef(() => props.params.general.value)
+const columnProps = toRef(() => props.params.columnSpecific.value)
 
 /** Re-provide tooltipRegistry. See `tooltipRegistry` docs in {@link HeaderParams} */
-provideTooltipRegistry.provideConstructed(props.params.tooltipRegistry)
+provideTooltipRegistry.provideConstructed(generalProps.value.tooltipRegistry)
 
-const editing = computed(() => props.params.editedColId === props.params.column.getColId())
+const editing = computed(() => generalProps.value.editedColId === props.params.column.getColId())
 const inputElement = ref<HTMLInputElement>()
-const editHandlers = computed(() =>
-  props.params.type === 'astColumn' ? props.params.editHandlers : undefined,
-)
+
+function emitEditStart() {
+  generalProps.value.onHeaderEditingStarted?.(props.params.column.getColId(), () => {
+    if (inputElement.value) {
+      inputElement.value.value = props.params.displayName
+    }
+  })
+}
+
+function emitEditEnd() {
+  generalProps.value.onHeaderEditingStopped?.(props.params.column.getColId())
+}
 
 watch(editing, (newVal) => {
-  if (newVal) {
-    editHandlers.value?.onHeaderEditingStarted?.(
-      props.params.column.getColId(),
-      (cancel: boolean) => {
-        if (cancel) editing.value = false
-        else acceptNewName()
-      },
-    )
-  } else {
-    editHandlers.value?.onHeaderEditingStopped?.()
+  if (!newVal) {
+    acceptNewName()
   }
 })
 
-watch(inputElement, (newVal, oldVal) => {
-  if (newVal != null && oldVal == null) {
-    // Whenever input field appears, focus and select text
-    newVal.focus()
-    newVal.select()
-  }
-})
+watch(
+  inputElement,
+  (newVal, oldVal) => {
+    if (newVal != null && oldVal == null) {
+      // Whenever input field appears, focus and select text
+      newVal.focus()
+      newVal.select()
+    }
+  },
+  { immediate: true },
+)
 
 function acceptNewName() {
-  if (editHandlers.value == null) {
+  if (columnProps.value.type !== 'astColumn') {
     console.error("Tried to accept header new name where it's not editable!")
     return
   }
@@ -83,13 +98,14 @@ function acceptNewName() {
     console.error('Tried to accept header new name without input element!')
     return
   }
-  editHandlers.value.nameSetter(inputElement.value.value)
-  if (editing.value) editHandlers.value.onHeaderEditingStopped?.()
+  columnProps.value.nameSetter(inputElement.value.value)
+  if (editing.value) emitEditEnd()
 }
 
 function onMouseClick(event: MouseEvent) {
-  if (!editing.value && props.params.type === 'astColumn') {
-    editing.value = true
+  if (!editing.value && columnProps.value.type === 'astColumn') {
+    emitEditStart()
+  } else {
     event.stopPropagation()
   }
 }
@@ -101,16 +117,22 @@ function onMouseRightClick(event: MouseEvent) {
     event.stopPropagation()
   }
 }
+onMounted(() => {
+  console.log('MOUTED', props.params.displayName)
+})
+onUnmounted(() => {
+  console.log('UNMOUTED', props.params.displayName)
+})
 </script>
 
 <template>
   <SvgButton
-    v-if="params.type === 'newColumn'"
+    v-if="columnProps.type === 'newColumn'"
     class="addColumnButton"
     name="add"
     title="Add new column"
-    :disabled="!(params.enabled ?? true)"
-    @click.stop="params.newColumnRequested()"
+    :disabled="!(columnProps.enabled ?? true)"
+    @click.stop="columnProps.newColumnRequested()"
   />
   <div
     v-else
@@ -127,6 +149,7 @@ function onMouseRightClick(event: MouseEvent) {
         class="ag-input-field-input ag-text-field-input"
         :value="params.displayName"
         @change="acceptNewName()"
+        @blur="emitEditEnd()"
         @keydown.arrow-left.stop
         @keydown.arrow-right.stop
         @keydown.arrow-up.stop
@@ -135,7 +158,7 @@ function onMouseRightClick(event: MouseEvent) {
       <span
         v-else
         class="ag-header-cell-text"
-        :class="{ virtualColumn: params.type !== 'astColumn' }"
+        :class="{ virtualColumn: columnProps.type !== 'astColumn' }"
         >{{ params.displayName }}</span
       >
     </div>

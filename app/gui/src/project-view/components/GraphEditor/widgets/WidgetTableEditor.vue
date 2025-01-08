@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { WidgetInputIsSpecificMethodCall } from '@/components/GraphEditor/widgets/WidgetFunction.vue'
-import TableHeader from '@/components/GraphEditor/widgets/WidgetTableEditor/TableHeader.vue'
+import TableHeader, {
+  GeneralHeaderParams,
+} from '@/components/GraphEditor/widgets/WidgetTableEditor/TableHeader.vue'
 import {
   CELLS_LIMIT,
   tableInputCallMayBeHandled,
@@ -29,7 +31,7 @@ import type {
   ProcessDataFromClipboardParams,
   RowDragEndEvent,
 } from 'ag-grid-enterprise'
-import { computed, markRaw, ref } from 'vue'
+import { computed, markRaw, proxyRefs, ref } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
 import { z } from 'zod'
 
@@ -116,36 +118,37 @@ const cellEditHandler = new CellEditing()
 class HeaderEditing {
   handler: WidgetEditHandler
   editedColId = ref<string>()
-  stopEditingCallback: ((cancel: boolean) => void) | undefined
+  revertChangesCallback: (() => void) | undefined
 
   constructor() {
     this.handler = WidgetEditHandler.New('WidgetTableEditor.headerEditHandler', props.input, {
       cancel: () => {
-        this.stopEditingCallback?.(true)
+        this.revertChangesCallback?.()
+        this.editedColId.value = undefined
       },
       end: () => {
-        this.stopEditingCallback?.(false)
+        this.editedColId.value = undefined
       },
     })
   }
 
-  headerEditedInGrid(colId: string, stopCb: (cancel: boolean) => void) {
-    // If another header is edited, stop it (with the old callback).
-    if (this.handler.isActive()) {
-      this.stopEditingCallback?.(false)
+  headerEditedInGrid(colId: string, revertChanges: () => void) {
+    if (this.editedColId.value !== colId) {
+      this.editedColId.value = colId
+      if (!this.handler.isActive()) {
+        this.handler.start()
+      }
     }
-    this.stopEditingCallback = stopCb
-    this.editedColId.value = colId
-    if (!this.handler.isActive()) {
-      this.handler.start()
-    }
+    this.revertChangesCallback = revertChanges
   }
 
-  headerEditingStoppedInGrid() {
-    this.stopEditingCallback = undefined
-    this.editedColId.value = undefined
-    if (this.handler.isActive()) {
-      this.handler.end()
+  headerEditingStoppedInGrid(colId: string) {
+    if (this.editedColId.value === colId) {
+      this.revertChangesCallback = undefined
+      this.editedColId.value = undefined
+      if (this.handler.isActive()) {
+        this.handler.end()
+      }
     }
   }
 }
@@ -215,21 +218,20 @@ function processDataFromClipboard({ data, api }: ProcessDataFromClipboardParams<
 // === Column Default Definition ===
 
 const tooltipRegistry = useTooltipRegistry()
-const defaultColDef: ColDef<RowData> = {
+const headerProps = proxyRefs({
+  tooltipRegistry: tooltipRegistry,
+  editedColId: headerEditHandler.editedColId,
+  onHeaderEditingStarted: headerEditHandler.headerEditedInGrid.bind(headerEditHandler),
+  onHeaderEditingStopped: headerEditHandler.headerEditingStoppedInGrid.bind(headerEditHandler),
+})
+const defaultColDef: ColDef<RowData> & { headerComponentParams: GeneralHeaderParams } = {
   editable: true,
   resizable: true,
   sortable: false,
   lockPinned: true,
   menuTabs: ['generalMenuTab'],
   headerComponentParams: {
-    // TODO[ao]: we mark raw, because otherwise any change _inside_ tooltipRegistry causes the grid
-    //  to be refreshed. Technically, shallowReactive should work here, but it does not,
-    //  I don't know why
-    tooltipRegistry: markRaw(tooltipRegistry),
-    editHandlers: {
-      onHeaderEditingStarted: headerEditHandler.headerEditedInGrid.bind(headerEditHandler),
-      onHeaderEditingStopped: headerEditHandler.headerEditingStoppedInGrid.bind(headerEditHandler),
-    },
+    general: markRaw(ref(headerProps)),
   },
 }
 </script>
