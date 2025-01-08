@@ -7,7 +7,7 @@ import { computed, ref, watch } from 'vue'
 export interface HeaderEditHandlers {
   /** Setter called when column name is changed by the user. */
   nameSetter: (newName: string) => void
-  onHeaderEditingStarted?: (stop: (cancel: boolean) => void) => void
+  onHeaderEditingStarted?: (colId: string, revertChanges: () => void) => void
   onHeaderEditingStopped?: () => void
 }
 
@@ -31,6 +31,10 @@ export type HeaderParams = ColumnSpecificHeaderParams & {
    * Threfore the tooltip registry must be provided by props.
    */
   tooltipRegistry: TooltipRegistry
+  /**
+   * The id of column whose header is currently edited.
+   */
+  editedColId: string
 }
 </script>
 
@@ -42,7 +46,7 @@ const props = defineProps<{
 /** Re-provide tooltipRegistry. See `tooltipRegistry` docs in {@link HeaderParams} */
 provideTooltipRegistry.provideConstructed(props.params.tooltipRegistry)
 
-const editing = ref(false)
+const editing = computed(() => props.params.editedColId === props.params.column.getColId())
 const inputElement = ref<HTMLInputElement>()
 const editHandlers = computed(() =>
   props.params.type === 'astColumn' ? props.params.editHandlers : undefined,
@@ -50,10 +54,13 @@ const editHandlers = computed(() =>
 
 watch(editing, (newVal) => {
   if (newVal) {
-    editHandlers.value?.onHeaderEditingStarted?.((cancel: boolean) => {
-      if (cancel) editing.value = false
-      else acceptNewName()
-    })
+    editHandlers.value?.onHeaderEditingStarted?.(
+      props.params.column.getColId(),
+      (cancel: boolean) => {
+        if (cancel) editing.value = false
+        else acceptNewName()
+      },
+    )
   } else {
     editHandlers.value?.onHeaderEditingStopped?.()
   }
@@ -77,7 +84,7 @@ function acceptNewName() {
     return
   }
   editHandlers.value.nameSetter(inputElement.value.value)
-  editing.value = false
+  if (editing.value) editHandlers.value.onHeaderEditingStopped?.()
 }
 
 function onMouseClick(event: MouseEvent) {

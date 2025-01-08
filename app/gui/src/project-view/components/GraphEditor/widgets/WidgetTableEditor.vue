@@ -11,7 +11,7 @@ import ResizeHandles from '@/components/ResizeHandles.vue'
 import AgGridTableView from '@/components/shared/AgGridTableView.vue'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { useTooltipRegistry } from '@/providers/tooltipRegistry'
-import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import { defineWidget, Score, widgetProps } from '@/providers/widgetRegistry'
 import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { useGraphStore } from '@/stores/graph'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
@@ -115,6 +115,7 @@ const cellEditHandler = new CellEditing()
 
 class HeaderEditing {
   handler: WidgetEditHandler
+  editedColId = ref<string>()
   stopEditingCallback: ((cancel: boolean) => void) | undefined
 
   constructor() {
@@ -128,12 +129,13 @@ class HeaderEditing {
     })
   }
 
-  headerEditedInGrid(stopCb: (cancel: boolean) => void) {
+  headerEditedInGrid(colId: string, stopCb: (cancel: boolean) => void) {
     // If another header is edited, stop it (with the old callback).
     if (this.handler.isActive()) {
       this.stopEditingCallback?.(false)
     }
     this.stopEditingCallback = stopCb
+    this.editedColId.value = colId
     if (!this.handler.isActive()) {
       this.handler.start()
     }
@@ -141,6 +143,7 @@ class HeaderEditing {
 
   headerEditingStoppedInGrid() {
     this.stopEditingCallback = undefined
+    this.editedColId.value = undefined
     if (this.handler.isActive()) {
       this.handler.end()
     }
