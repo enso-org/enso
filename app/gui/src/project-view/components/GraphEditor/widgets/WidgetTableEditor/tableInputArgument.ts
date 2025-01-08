@@ -1,11 +1,12 @@
 import { commonContextMenuActions, type MenuItem } from '@/components/shared/AgGridTableView.vue'
 import type { WidgetInput, WidgetUpdate } from '@/providers/widgetRegistry'
-import { type RequiredImport, requiredImportsByFQN } from '@/stores/graph/imports'
+import { type RequiredImport, requiredImportsByProjectPath } from '@/stores/graph/imports'
 import type { SuggestionDb } from '@/stores/suggestionDatabase'
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { findIndexOpt } from '@/util/data/array'
 import { Err, Ok, type Result, transposeResult, unwrapOrWithLog } from '@/util/data/result'
+import { ProjectPath } from '@/util/projectPath'
 import { qnLastSegment, type QualifiedName } from '@/util/qualifiedName'
 import type { ToValue } from '@/util/reactivity'
 import type { ColDef } from 'ag-grid-enterprise'
@@ -20,8 +21,11 @@ const ROW_INDEX_COLUMN_ID = 'RowIndex'
 export const ROW_INDEX_HEADER = '#'
 /** A default prefix added to the column's index in newly created columns. */
 export const DEFAULT_COLUMN_PREFIX = 'Column #'
-const NOTHING_PATH = 'Standard.Base.Nothing.Nothing' as QualifiedName
-export const NOTHING_NAME = qnLastSegment(NOTHING_PATH) as Ast.Identifier
+const NOTHING_PATH = ProjectPath.create(
+  'Standard.Base' as QualifiedName,
+  'Nothing.Nothing' as QualifiedName,
+)
+export const NOTHING_NAME = qnLastSegment(NOTHING_PATH.path!) as Ast.Identifier
 /**
  * The cells limit of the table; any modification which would exceed this limt should be
  * disallowed in UI
@@ -405,7 +409,9 @@ export function useTableInputArgument(
     return rows
   })
 
-  const nothingImport = computed(() => requiredImportsByFQN(suggestions, NOTHING_PATH, true))
+  const nothingImport = computed(() =>
+    requiredImportsByProjectPath(suggestions, NOTHING_PATH, true),
+  )
 
   function convertWithImport(value: unknown, edit: Ast.MutableModule) {
     const { ast, requireNothingImport } = cellValueConversion.agGridToAst(value, edit)
@@ -497,7 +503,7 @@ export function useTableInputArgument(
       addRow(edit, (_colId, index) => newValueGetter(i, index))
     }
     const newColCount = Math.max(pastedColsEnd, columns.value.length)
-    let modifiedColumnsAst: Ast.Vector | undefined
+    let modifiedColumnsAst: Ast.Vector | undefined = undefined
     for (let i = columns.value.length; i < newColCount; ++i) {
       if (!mayAddNewColumn(newRowCount, i)) {
         actuallyPastedColsEnd = i

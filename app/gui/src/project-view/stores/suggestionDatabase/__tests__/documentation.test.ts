@@ -1,7 +1,9 @@
+import { mockProjectNameStore } from '@/stores/projectNames'
 import { getGroupIndex, tagValue } from '@/stores/suggestionDatabase/documentation'
 import { unwrap } from '@/util/data/result'
 import { parseDocs } from '@/util/docParser'
-import { tryQualifiedName } from '@/util/qualifiedName'
+import { parseAbsoluteProjectPath } from '@/util/projectPath'
+import { tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
 import { expect, test } from 'vitest'
 
 test.each([
@@ -14,11 +16,16 @@ test.each([
   expect(tagValue(sections, 'Alias')).toBe(expected)
 })
 
+const projectNames = mockProjectNameStore('local', 'Project')
+
 const groups = [
-  { name: 'From Base', project: unwrap(tryQualifiedName('Standard.Base')) },
-  { name: 'Other', project: unwrap(tryQualifiedName('local.Project')) },
-  { name: 'Another', project: unwrap(tryQualifiedName('local.Project')) },
-]
+  { name: 'From Base', project: 'Standard.Base' },
+  { name: 'Other', project: 'local.Project' },
+  { name: 'Another', project: 'local.Project' },
+].map(({ name, project }) => ({
+  name,
+  project: parseAbsoluteProjectPath(unwrap(tryQualifiedName(project))).project as QualifiedName,
+}))
 test.each([
   ['From Base', 'local.Project.Main', undefined],
   ['From Base', 'Standard.Base', 0],
@@ -29,6 +36,8 @@ test.each([
   ['Another', 'local.Project.Main', 2],
   ['Not Existing', 'local.Project.Main', undefined],
 ])('Get group index case %#.', (name, definedIn, expected) => {
-  const definedInQn = unwrap(tryQualifiedName(definedIn))
+  const definedInQn =
+    projectNames.parseProjectPath(unwrap(tryQualifiedName(definedIn))).project ??
+    ('local.Project' as QualifiedName)
   expect(getGroupIndex(name, definedInQn, groups)).toBe(expected)
 })
