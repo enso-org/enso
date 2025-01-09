@@ -11,9 +11,14 @@ public final class OAuthCallback {
   private OAuthCallback() {}
 
   public static CallbackServer createCallbackServer(int port) throws IOException {
-    var callbackServer = new CallbackServerImplementation(port);
-    callbackServer.start();
-    return callbackServer;
+    try {
+      var callbackServer = new CallbackServerImplementation(port);
+      callbackServer.start();
+      return callbackServer;
+    } catch (Exception e) {
+      e.printStackTrace();
+      throw e;
+    }
   }
 
   public interface CallbackServer extends AutoCloseable {
@@ -27,8 +32,15 @@ public final class OAuthCallback {
     private CallbackServerImplementation(int port) throws IOException {
       InetSocketAddress address = new InetSocketAddress("localhost", port);
       server = HttpServer.create(address, 0);
-      server.createContext("snowflake", exchange -> {
+      server.createContext("/snowflake", exchange -> {
         var query = exchange.getRequestURI().getQuery();
+//        System.out.println("method = " + exchange.getRequestMethod());
+//        System.out.println("query = " + query);
+//        System.out.println("headers = " + exchange.getRequestHeaders());
+//        byte[] body = exchange.getRequestBody().readAllBytes();
+//        System.out.println("body = " + new String(body));
+
+
         byte[] response = OK_RESPONSE.getBytes();
         exchange.sendResponseHeaders(200, response.length);
         exchange.getResponseBody().write(response);
@@ -63,6 +75,7 @@ public final class OAuthCallback {
             <style>
             body {
               display: flex;
+              flex-direction: column;
               justify-content: center;
               align-items: center;
               height: 100vh;
@@ -72,6 +85,7 @@ public final class OAuthCallback {
           </head>
           <body>
             <h1>Enso - Snowflake integration</h1>
+            <br>
             <p>OAuth callback received. You can close this window now and go back to the application.</p>
           </body>
         </html>

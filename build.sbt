@@ -5097,8 +5097,7 @@ lazy val `std-snowflake` = project
       `std-snowflake-polyglot-root` / "std-snowflake.jar",
     libraryDependencies ++= Seq(
       "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided",
-      "net.snowflake"    % "snowflake-jdbc"          % snowflakeJDBCVersion,
-      "com.sun.net.httpserver" % "http" % "20070405"
+      "net.snowflake"    % "snowflake-jdbc"          % snowflakeJDBCVersion
     ),
     Compile / packageBin := {
       val result = (Compile / packageBin).value

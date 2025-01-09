@@ -1,4 +1,6 @@
 from Standard.Base import all
+import Standard.Base.Data.Base_64.Base_64
+import Standard.Base.Network.HTTP.Request_Body.Request_Body
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 
 import project.Connection.Snowflake_Details.Snowflake_Details
@@ -10,14 +12,23 @@ initiate_oauth -> Snowflake_Details =
 
 perform_oauth account:Text role:Text =
     uri = create_oauth_uri account role refresh_token=False
-    print_panic caugh_panic =
-        IO.println "Panic caught: "+caugh_panic.payload.to_text
+    print_panic caught_panic =
+        IO.println "Panic caught: "+caught_panic.payload.to_text
+        IO.println caught_panic.convert_to_dataflow_error.get_stack_trace_text
     Panic.catch Any handler=print_panic <|
         result = Managed_Resource.bracket (OAuthCallback.createCallbackServer 51234) (.close) server->
             # We start the server first to ensure we can 'reserve' the port before opening the browser
             IO.println "Please open "+uri.to_text+" in your browser and follow the instructions."
             server.waitForCallback
-        IO.println "Got callback: "+result.to_text
+        code_prefix = "code="
+        code = result
+            . split "&"
+            . find (e-> e.starts_with code_prefix)
+            . drop code_prefix.length
+        access_token = exchange_code_for_access_token account code
+        IO.println access_token
+
+
 
 create_oauth_uri account:Text role:Text refresh_token:Boolean -> URI =
     # TODO add code_challenge for PKCE
@@ -27,7 +38,24 @@ create_oauth_uri account:Text role:Text refresh_token:Boolean -> URI =
     base_uri
         . add_query_argument "response_type" "code"
         . add_query_argument "client_id" client_id
-        . add_query_argument "redirect_uri" "http://localhost:51234/snowflake"
+        . add_query_argument "redirect_uri" redirect_uri
         . add_query_argument "scope" scope
+        . add_query_argument "state" "foobar"
 
-client_id = "hBjdrf6WyFIyLMMt9Ojbk0c8eto="
+type Access_Token
+    Value token:Text expiry:Date_Time
+
+exchange_code_for_access_token account:Text code:Text -> Access_Token =
+    now = Date_Time.now
+    uri = URI.from "https://"+account+".snowflakecomputing.com/oauth/token-request"
+    params = Dictionary.from_vector [["grant_type", "authorization_code"], ["code", code], ["redirect_uri", redirect_uri]]
+    request_body = Request_Body.Form_Data params url_encoded=True
+    headers = [Header.authorization_basic client_id client_secret]
+    response = Data.post uri body=request_body headers=headers response_format=JSON_Format
+    IO.println response
+    Access_Token.Value (response.get "access_token") (now + Duration.new seconds=(response.get "expires_in"))
+
+
+client_id = Environment.get "SNOWFLAKE_APP_CLIENT_ID"
+client_secret = Environment.get "SNOWFLAKE_APP_CLIENT_SECRET"
+redirect_uri = "http://localhost:51234/snowflake"
