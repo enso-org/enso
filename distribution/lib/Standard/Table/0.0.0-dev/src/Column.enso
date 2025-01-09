@@ -59,6 +59,14 @@ polyglot java import org.enso.table.error.ValueTypeMismatchException
 polyglot java import org.enso.table.operations.OrderBuilder
 polyglot java import org.enso.table.parsing.problems.ParseProblemAggregator
 
+type OffFill
+    Nothing
+    Closest_Value
+    Wrap_Around
+    Constant c
+
+OffFill.from (that:Any) = OffFill.Constant that
+
 type Column
     ## GROUP Standard.Base.Input
        ICON data_input
@@ -2624,15 +2632,19 @@ type Column
     @n (Numeric_Input display=..Always)
     @default (self-> Widget_Helpers.make_fill_default_value_selector2 value_types=self.value_type)
     offset : Integer -> Column | Previous_Value | Any  -> Column
-    offset self n=-1:Integer default=Nothing -> Column =
-        replace_value = if default != Previous_Value then default else
-            if n<0 then self.to_vector.at 0 else self.to_vector.at (self.length-1)
+    offset self n=-1:Integer default:OffFill=..Nothing -> Column =
+        as_vector = self.to_vector
+        fill_vector = case default of
+            OffFill.Nothing -> Vector.fill n.abs Nothing
+            OffFill.Closest_Value -> if n<0 then Vector.fill n.abs (as_vector.at 0) else Vector.fill n.abs (as_vector.at (self.length-1))
+            OffFill.Wrap_Around -> if n<0 then as_vector.take (..Last n.abs) else as_vector.take (..First n)
+            OffFill.Constant constant -> Vector.fill n.abs constant
 
-        offset_vector = if n > 0 then self.to_vector + (Vector.fill n replace_value) else
-            (Vector.fill n.abs replace_value) + self.to_vector
+        offset_vector = if n > 0 then as_vector + fill_vector else
+            fill_vector + as_vector
         resized_vector = if n > 0 then offset_vector.take (..Last self.length) else
             offset_vector.take (..First self.length)
-        Column.from_vector "offset" resized_vector
+        Column.from_vector self.name resized_vector
 
     ## PRIVATE
     pretty : Text

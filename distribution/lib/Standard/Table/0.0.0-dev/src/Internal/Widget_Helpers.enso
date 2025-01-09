@@ -114,9 +114,10 @@ make_fill_default_value_selector column_source=Nothing display:Display=..Always 
 make_fill_default_value_selector2 column_source=Nothing display:Display=..When_Modified value_types=Value_Type.Mixed add_nothing:Boolean=False =
     to_add = Types_To_Include.Value (Vector.unify_vector_or_element value_types)
     column_ref = make_column_ref_by_name_selector column_source display add_text=to_add.text add_number=to_add.number add_boolean=to_add.boolean add_date=to_add.date add_time=to_add.time add_date_time=to_add.date_time add_nothing=add_nothing
-    previous_value = [Option 'Closest Value' 'Previous_Value']
-    nothing_option = [Option 'Nothing' 'Nothing']
-    Single_Choice values=(nothing_option+previous_value+column_ref.values) display=display
+    previous_value = [Option 'Closest Value' '..Closest_Value']
+    nothing_option = [Option 'Nothing' '..Nothing']
+    wrap_around_option = [Option 'Wrap Around' '..Wrap_Around']
+    Single_Choice values=(nothing_option+previous_value+wrap_around_option+column_ref.values) display=display
 
 ## PRIVATE
    Make a filter condition selector.
