@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 
 import project.Connection.Snowflake_Details.Snowflake_Details
 
@@ -9,10 +10,14 @@ initiate_oauth -> Snowflake_Details =
 
 perform_oauth account:Text role:Text =
     uri = create_oauth_uri account role refresh_token=False
-    IO.println "Please open "+uri.to_text+" in your browser and follow the instructions."
-    # Wait for callback.
-    result = OAuthCallback.waitForCallback
-    IO.println "Got callback: "+result.to_text
+    print_panic caugh_panic =
+        IO.println "Panic caught: "+caugh_panic.payload.to_text
+    Panic.catch Any handler=print_panic <|
+        result = Managed_Resource.bracket (OAuthCallback.createCallbackServer 51234) (.close) server->
+            # We start the server first to ensure we can 'reserve' the port before opening the browser
+            IO.println "Please open "+uri.to_text+" in your browser and follow the instructions."
+            server.waitForCallback
+        IO.println "Got callback: "+result.to_text
 
 create_oauth_uri account:Text role:Text refresh_token:Boolean -> URI =
     # TODO add code_challenge for PKCE
