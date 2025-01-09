@@ -1,0 +1,28 @@
+from Standard.Base import all
+
+import project.Connection.Snowflake_Details.Snowflake_Details
+
+polyglot java import org.enso.snowflake.OAuthCallback
+
+initiate_oauth -> Snowflake_Details =
+    Error.throw "TODO"
+
+perform_oauth account:Text role:Text =
+    uri = create_oauth_uri account role refresh_token=False
+    IO.println "Please open "+uri.to_text+" in your browser and follow the instructions."
+    # Wait for callback.
+    result = OAuthCallback.waitForCallback
+    IO.println "Got callback: "+result.to_text
+
+create_oauth_uri account:Text role:Text refresh_token:Boolean -> URI =
+    # TODO add code_challenge for PKCE
+    # TODO check that account does not contain any unexpected characters
+    base_uri = URI.from "https://"+account+".snowflakecomputing.com/oauth/authorize"
+    scope = (if refresh_token then "refresh_token " else "")+"session:role:"+role
+    base_uri
+        . add_query_argument "response_type" "code"
+        . add_query_argument "client_id" client_id
+        . add_query_argument "redirect_uri" "http://localhost:51234/snowflake"
+        . add_query_argument "scope" scope
+
+client_id = "hBjdrf6WyFIyLMMt9Ojbk0c8eto="

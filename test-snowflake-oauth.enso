@@ -1,0 +1,8 @@
+from Standard.Base import all
+
+import Standard.Snowflake.OAuth_Test
+
+main =
+    account = "PUSMBUI-DP01445"
+    OAuth_Test.perform_oauth account role="CI"
+
