@@ -55,6 +55,9 @@ type Feature
     ## PRIVATE
        cross join two tables.
     Cross_Join
+    ## PRIVATE
+       offset one or more columns
+    Offset
 
     ## PRIVATE
        Check if a feature is supported by a dialect, and throw an error if it is not.
