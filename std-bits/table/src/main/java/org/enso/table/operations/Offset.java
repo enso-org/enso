@@ -5,7 +5,11 @@ import org.enso.table.data.table.Column;
 import org.enso.table.problems.ProblemAggregator;
 
 import java.util.BitSet;
+import java.util.LinkedList;
+import java.util.Queue;
 
+import org.apache.commons.math3.analysis.function.Abs;
+import org.apache.poi.xssf.model.ThemesTable;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
@@ -15,11 +19,12 @@ import org.enso.table.problems.ColumnAggregatedProblemAggregator;
 public class Offset {
     public static Storage<?> offset(
       Column sourceColumn,
+      int n,
       Column[] groupingColumns,
       Column[] orderingColumns,
       int[] directions,
       ProblemAggregator problemAggregator) {
-        var offsetRunningStatistic = new OffsetRunningStatistic<Long>(sourceColumn, problemAggregator);
+        var offsetRunningStatistic = new OffsetRunningStatistic<Long>(sourceColumn, n, problemAggregator);
         RunningLooper.loop(
             groupingColumns,
             orderingColumns,
@@ -36,12 +41,14 @@ public class Offset {
         BitSet isNothing;
         ColumnAggregatedProblemAggregator columnAggregatedProblemAggregator;
         Column sourceColumn;
+        int n;
 
-        OffsetRunningStatistic(Column sourceColumn, ProblemAggregator problemAggregator) {
+        OffsetRunningStatistic(Column sourceColumn, int n, ProblemAggregator problemAggregator) {
             result = new long[sourceColumn.getSize()];
             isNothing = new BitSet();
             columnAggregatedProblemAggregator = new ColumnAggregatedProblemAggregator(problemAggregator);
             this.sourceColumn = sourceColumn;
+            this.n = n;
         }
 
         @Override
@@ -63,23 +70,38 @@ public class Offset {
 
         @Override
         public RunningIterator<Long> getNewIterator() {
-            return new OffsetRunning();
+            return new OffsetRunning(n);
         }
     }
 
 
   private static class OffsetRunning implements RunningIterator<Long> {
-        Long prev;
+        Queue<Long> queue;
+        int n;
+        int current_n;
+
+        public OffsetRunning(int n)
+        {
+            this.queue = new LinkedList<>();
+            this.n = n;
+            this.current_n = 0;
+        }
+
         @Override
         public Long next(Long value) {
-            var ret = prev;
-            prev = value;
-            return ret;
+            queue.add(value);
+            current_n++;
+            if (current_n > Math.abs(n)) {
+                return queue.poll();
+            } else {
+                return null;
+            }
         }
 
         @Override
         public Long currentValue() {
-            return prev;
+            // if nn
+            return queue.peek();
         }
 
   }
