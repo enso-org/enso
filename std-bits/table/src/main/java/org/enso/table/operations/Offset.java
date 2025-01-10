@@ -55,11 +55,18 @@ public class Offset {
         public void calculateNextValue(int i, RunningIterator<Long> it) {
             Object value = sourceColumn.getStorage().getItemBoxed(i);
             Long dValue = NumericConverter.tryConvertingToLong(value);
-            Long dNextValue = it.next(dValue);
-            if (dNextValue == null) {
-                isNothing.set(i);
+            if (n<0) {
+                Long dNextValue = it.next(dValue);
+                if (dNextValue == null) {
+                    isNothing.set(i);
+                } else {
+                    result[i] = dNextValue;
+                }
             } else {
-                result[i] = dNextValue;
+                Long dNextPosition = it.next(Long.valueOf(i));
+                if (dNextPosition != null) {
+                    result[dNextPosition.intValue()] = dValue;
+                }
             }
         }
 

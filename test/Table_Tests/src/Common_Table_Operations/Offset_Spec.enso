@@ -142,3 +142,9 @@ add_offset_specs suite_builder setup =
         group_builder.specify "Works with negative n values" <|
             r = t.offset ["A"] -2
             r . at "TEMP" . to_vector . should_equal [Nothing, Nothing, 1]
+        group_builder.specify "Works with positive n values (n=1)" <|
+            r = t.offset ["A"] 1
+            r . at "TEMP" . to_vector . should_equal [2, 3, Nothing]
+        group_builder.specify "Works with positive n values (n=2)" <|
+            r = t.offset ["A"] 2
+            r . at "TEMP" . to_vector . should_equal [3, Nothing, Nothing]
