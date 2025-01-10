@@ -4,6 +4,9 @@ from Standard.Test import all
 from Standard.Database.Errors import Unsupported_Database_Operation
 import Standard.Database.Feature.Feature
 
+from project.Common_Table_Operations.Util import run_default_backend
+import project.Common_Table_Operations.Util
+
 main filter=Nothing = run_default_backend add_specs filter
 
 add_specs suite_builder setup =
@@ -18,6 +21,57 @@ add_specs suite_builder setup =
                 c2 = c.offset
                 c2.should_fail_with (Unsupported_Database_Operation.Error "offset")
 
-add_filter_specs suite_builder setup =
+add_offset_specs suite_builder setup =
     prefix = setup.prefix
-    table_builder = setup.light_table_builder
+    build_sorted_table = Util.build_sorted_table setup
+    t = build_sorted_table [["A", [1, 2, 3]], ["B", [Nothing, Nothing, Nothing]]]
+    c = t.at 0 
+    c_nothings = t.at 1
+    c_zero_rows = t.take 0 . at 0
+    suite_builder.group prefix+"Column.Offset with default fill strategy" group_builder->
+        group_builder.specify "Works with default values" <|
+            r = c.offset
+            r.to_vector . should_equal [Nothing, 1, 2]
+        group_builder.specify "Negative n shifts the values down" <|
+            r = c.offset -1
+            r.to_vector . should_equal [Nothing, 1, 2]
+        group_builder.specify "Positive n shifts the values up" <|
+            r = c.offset 1
+            r.to_vector . should_equal [2, 3, Nothing]
+        group_builder.specify "Zero n is a no-op" <|
+            r = c.offset 0
+            r.to_vector . should_equal [1, 2, 3]
+        group_builder.specify "Large negative n values work" <|
+            r = c.offset -1024
+            r.to_vector . should_equal [Nothing, Nothing, Nothing]
+        group_builder.specify "Large positive n values work" <|
+            r = c.offset 1024
+            r.to_vector . should_equal [Nothing, Nothing, Nothing]
+        group_builder.specify "Works with zero rows" <|
+            r = c_zero_rows.offset
+            r.to_vector . should_equal []
+    suite_builder.group prefix+"Column.Offset with closest value fill strategy" group_builder->
+        group_builder.specify "Negative n shifts the values down" <|
+            r = c.offset -1 ..Closest_Value
+            r.to_vector . should_equal [1, 1, 2]
+        group_builder.specify "Positive n shifts the values up" <|
+            r = c.offset 1 ..Closest_Value
+            r.to_vector . should_equal [2, 3, 3]
+        group_builder.specify "Zero n is a no-op" <|
+            r = c.offset 0 ..Closest_Value
+            r.to_vector . should_equal [1, 2, 3]
+        group_builder.specify "Large negative n values work" <|
+            r = c.offset -1024 ..Closest_Value
+            r.to_vector . should_equal [1, 1, 1]
+        group_builder.specify "Large positive n values work" <|
+            r = c.offset 1024 ..Closest_Value
+            r.to_vector . should_equal [3, 3, 3]
+        group_builder.specify "Works with zero rows" <|
+            r = c_zero_rows.offset -1 ..Closest_Value
+            r.to_vector . should_equal []
+        group_builder.specify "Works with negative n and column of nothings" <|
+            r = c_nothings.offset -1 ..Closest_Value
+            r.to_vector . should_equal [Nothing, Nothing, Nothing]
+        group_builder.specify "Works with positive n and column of nothings" <|
+            r = c_nothings.offset 1 ..Closest_Value
+            r.to_vector . should_equal [Nothing, Nothing, Nothing]
