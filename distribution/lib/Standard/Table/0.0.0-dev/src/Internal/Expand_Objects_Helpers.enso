@@ -131,16 +131,14 @@ create_table_from_objects (base_value : Convertible_To_Rows) (fields : Vector | 
                         builder = existing_builder.if_nothing <|
                             discovered_field_names.append f
                             Java_Exports.make_inferred_builder len java_problem_aggregator
-                        to_fill = len - builder.getCurrentSize
-                        if to_fill > 0 then builder.appendNulls to_fill
+                        fill_builder builder len
                         builder.append (v.getter f)
                         if existing_builder.is_nothing.not then inner_current_dict else
                             inner_current_dict.insert f builder
 
         # Seal all builders and create columns
         column_dict = builder_dict.map_with_key name-> builder->
-            to_fill = len - builder.getCurrentSize
-            if to_fill > 0 then builder.appendNulls to_fill
+            fill_builder builder len
             Column.from_storage name builder.seal
 
         column_dict.if_not_error <|
@@ -151,3 +149,8 @@ create_table_from_objects (base_value : Convertible_To_Rows) (fields : Vector | 
                     if discovered_field_names.is_empty then Error.throw (Illegal_Argument.Error "Unable to generate column names as all inputs had no fields.") else
                         discovered_field_names.to_vector.map column_dict.get
             Table.new columns
+
+private fill_builder builder size:Integer =
+    to_fill = size - builder.getCurrentSize
+    if to_fill > 0 then builder.appendNulls to_fill else
+        if to_fill < 0 then Panic.throw (Illegal_State.Error "Internal error: builder overfilled ("+builder.getCurrentSize.to_text+").")
