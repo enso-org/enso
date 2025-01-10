@@ -1,5 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Data.Base_64.Base_64
+import Standard.Base.Errors.Common.Not_Found
+import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Network.HTTP.Request_Body.Request_Body
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 
@@ -7,23 +9,34 @@ import project.Connection.Snowflake_Details.Snowflake_Details
 
 polyglot java import org.enso.snowflake.OAuthCallback
 
-initiate_oauth -> Snowflake_Details =
-    Error.throw "TODO"
-
 perform_one_time_oauth account:Text role:Text =
-    uri = create_oauth_uri account role refresh_token=False
+    uri = create_authorization_uri account role refresh_token=False
     result = Managed_Resource.bracket (OAuthCallback.createCallbackServer 51234) (.close) server->
         # We start the server first to ensure we can 'reserve' the port before opening the browser
         IO.println "Please open "+uri.to_text+" in your browser and follow the instructions."
         server.waitForCallback
-    code_prefix = "code="
-    code = result
-        . split "&"
-        . find (e-> e.starts_with code_prefix)
-        . drop code_prefix.length
-    exchange_code_for_access_token account code
+    code = OAuth_Callback_Response.decode result . code
+    exchange_one_time_code_for_access_token account code
 
-create_oauth_uri account:Text role:Text refresh_token:Boolean -> URI =
+type OAuth_Callback_Response
+    Value code:Text state:Text|Nothing
+
+    decode response:Text -> OAuth_Callback_Response =
+        parts = response.split "&"
+        code_prefix = "code="
+        state_prefix = "state="
+        code = parts
+            . find (e-> e.starts_with code_prefix)
+            . drop code_prefix.length
+            . catch Not_Found _->
+                Error.throw (Illegal_State.Error "Malformed OAuth response: No code found.")
+        state = parts
+            . find (e-> e.starts_with state_prefix)
+            . drop state_prefix.length
+            . catch Not_Found _->Nothing
+        OAuth_Callback_Response.Value code state
+
+create_authorization_uri account:Text role:Text refresh_token:Boolean -> URI =
     # TODO add code_challenge for PKCE
     # TODO check that account does not contain any unexpected characters
     base_uri = URI.from "https://"+account+".snowflakecomputing.com/oauth/authorize"
@@ -44,15 +57,63 @@ type Access_Token
     to_display_text self -> Text =
         "Snowflake Access Token for "+self.username+" (expires at "+self.expiry.to_display_text+")"
 
-exchange_code_for_access_token account:Text code:Text -> Access_Token =
+exchange_one_time_code_for_access_token account:Text code:Text -> Access_Token =
     now = Date_Time.now
-    uri = URI.from "https://"+account+".snowflakecomputing.com/oauth/token-request"
+    uri = create_token_uri account
     params = Dictionary.from_vector [["grant_type", "authorization_code"], ["code", code], ["redirect_uri", redirect_uri]]
     request_body = Request_Body.Form_Data params url_encoded=True
     headers = [Header.authorization_basic client_id client_secret]
     response = Data.post uri body=request_body headers=headers response_format=JSON_Format
     Access_Token.Value (response.get "username") (response.get "access_token") (now + Duration.new seconds=(response.get "expires_in"))
 
+create_token_uri account:Text =
+    URI.from "https://"+account+".snowflakecomputing.com/oauth/token-request"
+
+authorize_for_refresh_token account:Text role:Text =
+    uri = create_authorization_uri account role refresh_token=True
+    result = Managed_Resource.bracket (OAuthCallback.createCallbackServer 51234) (.close) server->
+        # We start the server first to ensure we can 'reserve' the port before opening the browser
+        IO.println "Please open "+uri.to_text+" in your browser and follow the instructions."
+        server.waitForCallback
+    code = OAuth_Callback_Response.decode result . code
+    exchange_one_time_code_for_refresh_token account code
+
+exchange_one_time_code_for_refresh_token account:Text code:Text -> Refresh_Token =
+    now = Date_Time.now
+    uri = create_token_uri account
+    params = Dictionary.from_vector [["grant_type", "authorization_code"], ["code", code], ["redirect_uri", redirect_uri]]
+    request_body = Request_Body.Form_Data params url_encoded=True
+    headers = [Header.authorization_basic client_id client_secret]
+    response = Data.post uri body=request_body headers=headers response_format=JSON_Format
+    IO.println "exchanging one-time code for refresh token: "+response.to_text
+    Refresh_Token.Value account (response.get "username") (response.get "refresh_token") (now + Duration.new seconds=(response.get "refresh_token_expires_in"))
+
+type Refresh_Token
+    Value account:Text username:Text token:Text expiry:Date_Time
+
+    to_text self -> Text =
+        "Refresh_Token.Value "+self.account.pretty+" "+self.username.pretty+" *** "+self.expiry.to_text
+
+    to_display_text self -> Text =
+        "Snowflake Token for "+self.account+"/"+self.username+" (expires at "+self.expiry.to_display_text+")"
+
+    is_expired self -> Boolean =
+        Date_Time.now >= self.expiry
+
+    check self -> Nothing ! Illegal_State =
+        if self.is_expired then
+            Error.throw (Illegal_State.Error "Refresh token has expired on "+self.expiry.to_display_text)
+
+    exchange_for_access_token self -> Access_Token ! Illegal_State =
+        self.check
+        now = Date_Time.now
+        uri = create_token_uri self.account
+        params = Dictionary.from_vector [["grant_type", "refresh_token"], ["refresh_token", self.token]]
+        request_body = Request_Body.Form_Data params url_encoded=True
+        headers = [Header.authorization_basic client_id client_secret]
+        response = Data.post uri body=request_body headers=headers response_format=JSON_Format
+        IO.println "exchanging refresh token for access token: "+response.to_text
+        Access_Token.Value self.username (response.get "access_token") (now + Duration.new seconds=(response.get "expires_in"))
 
 client_id = Environment.get "SNOWFLAKE_APP_CLIENT_ID"
 client_secret = Environment.get "SNOWFLAKE_APP_CLIENT_SECRET"

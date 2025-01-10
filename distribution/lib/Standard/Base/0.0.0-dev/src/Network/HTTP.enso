@@ -154,7 +154,6 @@ type HTTP
 
         handle_request_error <| Illegal_Argument.handle_java_exception <| check_output_context <| check_cache_policy <| Response_Too_Large.handle_java_exception <|
             headers = _resolve_headers req
-            Standard.Base.IO.println headers
             headers.if_not_error <|
                 resolved_body = _resolve_body req.body self.hash_method
                 resolved_body.if_not_error <|

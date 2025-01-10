@@ -7,8 +7,8 @@ import Standard.Snowflake.OAuth_Test
 
 main =
     account = "PUSMBUI-DP01445"
-    token = OAuth_Test.perform_one_time_oauth account role="CI"
-    connection = Database.connect (Snowflake_Details.Snowflake account=account credentials=token)
+    refresh_token = OAuth_Test.authorize_for_refresh_token account role="CI"
+    connection = Database.connect (Snowflake_Details.Snowflake account=account credentials=refresh_token)
     IO.println connection
     connection.tables.print
     connection.query (..Raw_SQL "SELECT 1+2, 3*4") . print
