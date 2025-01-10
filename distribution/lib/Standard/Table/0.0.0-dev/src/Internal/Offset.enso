@@ -1,0 +1,29 @@
+private
+
+from Standard.Base import all
+import project.Table.Table
+
+import project.Column.Column
+import project.Internal.Java_Problems
+import project.Set_Mode.Set_Mode
+import project.Internal.Table_Helpers
+import project.Internal.Problem_Builder.Problem_Builder
+
+polyglot java import org.enso.table.operations.Offset as Java_Offset
+
+table_offset_impl table:Table (of:Text|Integer=0) (set_mode:Set_Mode=..Add) (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (on_problems:Problem_Behavior=..Report_Warning) -> Table =
+    new_name = "TEMP"
+    of_col = table.at of
+    problem_builder = Problem_Builder.new error_on_missing_columns=True
+    grouping_columns = table.columns_helper.select_columns_helper group_by Case_Sensitivity.Default True problem_builder 
+    ordering = Table_Helpers.resolve_order_by table.columns order_by problem_builder
+    source_java_column = of_col.java_column
+    grouping_java_columns = grouping_columns.map c->c.java_column
+    ordering_java_columns = ordering.map c->
+        c.column.java_column
+    directions = ordering.map c->
+        c.associated_selector.direction.to_sign
+    new_storage = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+        Java_Offset.offset source_java_column grouping_java_columns ordering_java_columns directions java_problem_aggregator
+    new_column = Column.from_storage new_name new_storage
+    table.set new_column new_name set_mode
