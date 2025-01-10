@@ -32,6 +32,7 @@ add_offset_specs suite_builder setup =
         group_builder.specify "Works with default values" <|
             r = c.offset
             r.to_vector . should_equal [Nothing, 1, 2]
+            r.name . should_equal c.name
         group_builder.specify "Negative n shifts the values down" <|
             r = c.offset -1
             r.to_vector . should_equal [Nothing, 1, 2]
@@ -134,3 +135,7 @@ add_offset_specs suite_builder setup =
         group_builder.specify "Can create mixed colums" <|
             r = c.offset -1 "42"
             r.to_vector . should_equal ["42", 1, 2]
+    suite_builder.group prefix+"Table.Offset with default fill strategy" group_builder->
+        group_builder.specify "Works with default values" <|
+            r = t.offset ["A"]
+            r . at "A" . to_vector . should_equal [Nothing, 1, 2]
