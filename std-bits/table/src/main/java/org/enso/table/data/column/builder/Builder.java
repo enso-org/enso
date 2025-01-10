@@ -100,22 +100,4 @@ public abstract class Builder {
    * @return the current storage type of this builder
    */
   public abstract StorageType getType();
-
-  /** Adds nulls to the builder to ensure that it reaches the size specified. */
-  public void fillUpToSize(int size) {
-    int currentSize = getCurrentSize();
-    if (currentSize > size) {
-      throw new IllegalArgumentException(
-          "fillUpToSize("
-              + size
-              + ") called on a builder that already has "
-              + currentSize
-              + " elements.");
-    }
-
-    if (currentSize < size) {
-      int nullsToAppend = size - currentSize;
-      appendNulls(nullsToAppend);
-    }
-  }
 }

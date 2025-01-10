@@ -131,14 +131,16 @@ create_table_from_objects (base_value : Convertible_To_Rows) (fields : Vector | 
                         builder = existing_builder.if_nothing <|
                             discovered_field_names.append f
                             Java_Exports.make_inferred_builder len java_problem_aggregator
-                        builder.fillUpToSize idx
+                        to_fill = len - builder.getCurrentSize
+                        if to_fill > 0 then builder.appendNulls to_fill
                         builder.append (v.getter f)
                         if existing_builder.is_nothing.not then inner_current_dict else
                             inner_current_dict.insert f builder
 
         # Seal all builders and create columns
         column_dict = builder_dict.map_with_key name-> builder->
-            builder.fillUpToSize len
+            to_fill = len - builder.getCurrentSize
+            if to_fill > 0 then builder.appendNulls to_fill
             Column.from_storage name builder.seal
 
         column_dict.if_not_error <|
