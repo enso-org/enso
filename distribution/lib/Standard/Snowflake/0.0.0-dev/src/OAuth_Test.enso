@@ -10,25 +10,18 @@ polyglot java import org.enso.snowflake.OAuthCallback
 initiate_oauth -> Snowflake_Details =
     Error.throw "TODO"
 
-perform_oauth account:Text role:Text =
+perform_one_time_oauth account:Text role:Text =
     uri = create_oauth_uri account role refresh_token=False
-    print_panic caught_panic =
-        IO.println "Panic caught: "+caught_panic.payload.to_text
-        IO.println caught_panic.convert_to_dataflow_error.get_stack_trace_text
-    Panic.catch Any handler=print_panic <|
-        result = Managed_Resource.bracket (OAuthCallback.createCallbackServer 51234) (.close) server->
-            # We start the server first to ensure we can 'reserve' the port before opening the browser
-            IO.println "Please open "+uri.to_text+" in your browser and follow the instructions."
-            server.waitForCallback
-        code_prefix = "code="
-        code = result
-            . split "&"
-            . find (e-> e.starts_with code_prefix)
-            . drop code_prefix.length
-        access_token = exchange_code_for_access_token account code
-        IO.println access_token
-
-
+    result = Managed_Resource.bracket (OAuthCallback.createCallbackServer 51234) (.close) server->
+        # We start the server first to ensure we can 'reserve' the port before opening the browser
+        IO.println "Please open "+uri.to_text+" in your browser and follow the instructions."
+        server.waitForCallback
+    code_prefix = "code="
+    code = result
+        . split "&"
+        . find (e-> e.starts_with code_prefix)
+        . drop code_prefix.length
+    exchange_code_for_access_token account code
 
 create_oauth_uri account:Text role:Text refresh_token:Boolean -> URI =
     # TODO add code_challenge for PKCE
@@ -43,7 +36,13 @@ create_oauth_uri account:Text role:Text refresh_token:Boolean -> URI =
         . add_query_argument "state" "foobar"
 
 type Access_Token
-    Value token:Text expiry:Date_Time
+    Value username:Text token:Text expiry:Date_Time
+
+    to_text self -> Text =
+        "Access_Token.Value "+self.username.pretty+" *** "+self.expiry.to_text
+
+    to_display_text self -> Text =
+        "Snowflake Access Token for "+self.username+" (expires at "+self.expiry.to_display_text+")"
 
 exchange_code_for_access_token account:Text code:Text -> Access_Token =
     now = Date_Time.now
@@ -52,8 +51,7 @@ exchange_code_for_access_token account:Text code:Text -> Access_Token =
     request_body = Request_Body.Form_Data params url_encoded=True
     headers = [Header.authorization_basic client_id client_secret]
     response = Data.post uri body=request_body headers=headers response_format=JSON_Format
-    IO.println response
-    Access_Token.Value (response.get "access_token") (now + Duration.new seconds=(response.get "expires_in"))
+    Access_Token.Value (response.get "username") (response.get "access_token") (now + Duration.new seconds=(response.get "expires_in"))
 
 
 client_id = Environment.get "SNOWFLAKE_APP_CLIENT_ID"
