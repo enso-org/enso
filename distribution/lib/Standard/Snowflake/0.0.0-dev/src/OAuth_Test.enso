@@ -85,7 +85,6 @@ exchange_one_time_code_for_refresh_token account:Text code:Text -> Refresh_Token
     request_body = Request_Body.Form_Data params url_encoded=True
     headers = [Header.authorization_basic client_id client_secret]
     response = Data.post uri body=request_body headers=headers response_format=JSON_Format
-    IO.println "exchanging one-time code for refresh token: "+response.to_text
     Refresh_Token.Value account (response.get "username") (response.get "refresh_token") (now + Duration.new seconds=(response.get "refresh_token_expires_in"))
 
 type Refresh_Token
@@ -112,7 +111,6 @@ type Refresh_Token
         request_body = Request_Body.Form_Data params url_encoded=True
         headers = [Header.authorization_basic client_id client_secret]
         response = Data.post uri body=request_body headers=headers response_format=JSON_Format
-        IO.println "exchanging refresh token for access token: "+response.to_text
         Access_Token.Value self.username (response.get "access_token") (now + Duration.new seconds=(response.get "expires_in"))
 
 client_id = Environment.get "SNOWFLAKE_APP_CLIENT_ID"
