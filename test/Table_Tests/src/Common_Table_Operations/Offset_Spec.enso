@@ -138,4 +138,4 @@ add_offset_specs suite_builder setup =
     suite_builder.group prefix+"Table.Offset with default fill strategy" group_builder->
         group_builder.specify "Works with default values" <|
             r = t.offset ["A"]
-            r . at "A" . to_vector . should_equal [Nothing, 1, 2]
+            r . at "TEMP" . to_vector . should_equal [Nothing, 1, 2]
