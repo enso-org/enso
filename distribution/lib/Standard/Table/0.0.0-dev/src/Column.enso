@@ -2635,11 +2635,14 @@ type Column
     offset self n=-1:Integer default:OffFill=..Nothing -> Column =
         if self.length == 0 then self else
           as_vector = self.to_vector
+          adjusted_n = case default of
+            OffFill.Wrap_Around -> n.abs % self.length
+            _ -> n.abs
           fill_vector = case default of
-              OffFill.Nothing -> Vector.fill n.abs Nothing
-              OffFill.Closest_Value -> if n<0 then Vector.fill n.abs (as_vector.at 0) else Vector.fill n.abs (as_vector.at (self.length-1))
-              OffFill.Wrap_Around -> if n<0 then as_vector.take (..Last n.abs) else as_vector.take (..First n)
-              OffFill.Constant constant -> Vector.fill n.abs constant
+              OffFill.Nothing -> Vector.fill adjusted_n Nothing
+              OffFill.Closest_Value -> if n<0 then Vector.fill adjusted_n (as_vector.at 0) else Vector.fill adjusted_n (as_vector.at (self.length-1))
+              OffFill.Wrap_Around -> if n<0 then as_vector.take (..Last adjusted_n) else as_vector.take (..First adjusted_n)
+              OffFill.Constant constant -> Vector.fill adjusted_n constant
 
           offset_vector = if n > 0 then as_vector + fill_vector else
               fill_vector + as_vector

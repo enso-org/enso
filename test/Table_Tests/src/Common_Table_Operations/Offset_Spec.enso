@@ -75,3 +75,59 @@ add_offset_specs suite_builder setup =
         group_builder.specify "Works with positive n and column of nothings" <|
             r = c_nothings.offset 1 ..Closest_Value
             r.to_vector . should_equal [Nothing, Nothing, Nothing]
+    suite_builder.group prefix+"Column.Offset with wrap around fill strategy" group_builder->
+        group_builder.specify "Negative n shifts the values down" <|
+            r = c.offset -1 ..Wrap_Around
+            r.to_vector . should_equal [3, 1, 2]
+        group_builder.specify "Positive n shifts the values up" <|
+            r = c.offset 1 ..Wrap_Around
+            r.to_vector . should_equal [2, 3, 1]
+        group_builder.specify "Continues to wrap around after n is bigger than number of rows (negative n)" <|
+            r = c.offset -4 ..Wrap_Around
+            r.to_vector . should_equal [3, 1, 2]
+        group_builder.specify "Continues to wrap around after n is bigger than number of rows (positive n)" <|
+            r = c.offset 4 ..Wrap_Around
+            r.to_vector . should_equal [2, 3, 1]
+        group_builder.specify "Zero n is a no-op" <|
+            r = c.offset 0 ..Wrap_Around
+            r.to_vector . should_equal [1, 2, 3]
+        group_builder.specify "Large negative n values work" <|
+            r = c.offset -1024 ..Wrap_Around
+            r.to_vector . should_equal [3, 1, 2]
+        group_builder.specify "Large positive n values work" <|
+            r = c.offset 1024 ..Wrap_Around
+            r.to_vector . should_equal [2, 3, 1]
+        group_builder.specify "Works with zero rows" <|
+            r = c_zero_rows.offset -1 ..Wrap_Around
+            r.to_vector . should_equal []
+        group_builder.specify "Works with negative n and column of nothings" <|
+            r = c_nothings.offset -1 ..Wrap_Around
+            r.to_vector . should_equal [Nothing, Nothing, Nothing]
+        group_builder.specify "Works with positive n and column of nothings" <|
+            r = c_nothings.offset 1 ..Wrap_Around
+            r.to_vector . should_equal [Nothing, Nothing, Nothing]
+    suite_builder.group prefix+"Column.Offset with constant fill strategy" group_builder->
+        group_builder.specify "Negative n shifts the values down" <|
+            r = c.offset -1 42
+            r.to_vector . should_equal [42, 1, 2]
+        group_builder.specify "Positive n shifts the values up" <|
+            r = c.offset 1 42
+            r.to_vector . should_equal [2, 3, 42]
+        group_builder.specify "Zero n is a no-op" <|
+            r = c.offset 0 42
+            r.to_vector . should_equal [1, 2, 3]
+        group_builder.specify "Large negative n values work" <|
+            r = c.offset -1024 42
+            r.to_vector . should_equal [42, 42, 42]
+        group_builder.specify "Large positive n values work" <|
+            r = c.offset 1024 42
+            r.to_vector . should_equal [42, 42, 42]
+        group_builder.specify "Works with zero rows" <|
+            r = c_zero_rows.offset -1 42
+            r.to_vector . should_equal []
+        group_builder.specify "Works with negative n and column of nothings" <|
+            r = c_nothings.offset -1 42
+            r.to_vector . should_equal [42, Nothing, Nothing]
+        group_builder.specify "Works with positive n and column of nothings" <|
+            r = c_nothings.offset 1 42
+            r.to_vector . should_equal [Nothing, Nothing, 42]
