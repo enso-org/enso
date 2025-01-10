@@ -131,3 +131,6 @@ add_offset_specs suite_builder setup =
         group_builder.specify "Works with positive n and column of nothings" <|
             r = c_nothings.offset 1 42
             r.to_vector . should_equal [Nothing, Nothing, 42]
+        group_builder.specify "Can create mixed colums" <|
+            r = c.offset -1 "42"
+            r.to_vector . should_equal ["42", 1, 2]
