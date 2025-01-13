@@ -39,18 +39,18 @@ public class Offset {
         OffsetRunningStatistic(Column sourceColumn, int n, OffFill offFill) {
             result = new int[sourceColumn.getSize()];
             this.sourceColumn = sourceColumn;
-            this.n = n;
+            this.n = offFill==OffFill.WRAP_AROUND && sourceColumn.getSize() != 0 ? n % sourceColumn.getSize() : n;
             this.offFill = offFill;
             this.closestPos = -1;
         }
 
         @Override
         public void calculateNextValue(int i, OffsetIterator it) {
+            it.rolling_queue.add(i);
+            if (it.current_n < Math.abs(n)) {
+                it.fill_queue.add(i);
+            }
             if (n<0) {
-                it.rolling_queue.add(i);
-                if (it.current_n < Math.abs(n)) {
-                    it.fill_queue.add(i);
-                }
                 if (it.current_n <= Math.abs(n)) {
                     closestPos = it.rolling_queue.peek();
                 } 
@@ -58,7 +58,6 @@ public class Offset {
                     result[i] = it.rolling_queue.poll();
                 }
             } else {
-                it.rolling_queue.add(i);
                 closestPos = i;
                 if (it.current_n >= Math.abs(n)) {
                     result[it.rolling_queue.poll()] = i;
@@ -76,15 +75,28 @@ public class Offset {
                 case CONSTANT -> -1;
             };
 
-            if (n<0) {
-                while (!it.fill_queue.isEmpty()) {
-                    result[it.fill_queue.poll()] = fillValue;
-                    }
+            if (offFill != OffFill.WRAP_AROUND) {
+                if (n<0) {
+                    while (!it.fill_queue.isEmpty()) {
+                        result[it.fill_queue.poll()] = fillValue;
+                        }
+                } else {
+                    while (!it.rolling_queue.isEmpty()) {
+                        result[it.rolling_queue.poll()] = fillValue;
+                        }
+                }
             } else {
-                while (!it.rolling_queue.isEmpty()) {
-                    result[it.rolling_queue.poll()] = fillValue;
-                    }
+                if (n<0) {
+                    while (!it.fill_queue.isEmpty()) {
+                        result[it.fill_queue.poll()] = it.rolling_queue.poll();
+                        }
+                } else {
+                    while (!it.rolling_queue.isEmpty()) {
+                        result[it.rolling_queue.poll()]  = it.fill_queue.poll();
+                        }
+                }
             }
+
         }
 
         Storage<?> getResultColumn() {

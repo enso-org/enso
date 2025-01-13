@@ -198,3 +198,34 @@ add_offset_specs suite_builder setup =
         group_builder.specify "Works with positive n and column of nothings" <|
             r = t.offset ["B"] 1 ..Closest_Value
             r . at "TEMP" . to_vector . should_equal [Nothing, Nothing, Nothing]
+    suite_builder.group prefix+"Table.Offset with wrap around fill strategy" group_builder->
+        group_builder.specify "Negative n shifts the values down" <|
+            r = t.offset ["A"] -1 ..Wrap_Around
+            r . at "TEMP" . to_vector . should_equal [3, 1, 2]
+        group_builder.specify "Positive n shifts the values up" <|
+            r = t.offset ["A"] 1 ..Wrap_Around
+            r . at "TEMP" . to_vector . should_equal [2, 3, 1]
+        group_builder.specify "Negative n shifts the values down (n=2)" <|
+            r = t.offset ["A"] -2 ..Wrap_Around
+            r . at "TEMP" . to_vector . should_equal [2, 3, 1]
+        group_builder.specify "Positive n shifts the values up (n=2)" <|
+            r = t.offset ["A"] 2 ..Wrap_Around
+            r . at "TEMP" . to_vector . should_equal [3, 1, 2]
+        group_builder.specify "Zero n is a no-op" <|
+            r = t.offset ["A"] 0 ..Wrap_Around
+            r . at "TEMP" . to_vector . should_equal [1, 2, 3]
+        group_builder.specify "Large negative n values work" <|
+            r = t.offset ["A"] -1024 ..Wrap_Around
+            r . at "TEMP" . to_vector . should_equal [3, 1, 2]
+        group_builder.specify "Large positive n values work" <|
+            r = t.offset ["A"] 1024 ..Wrap_Around
+            r . at "TEMP" . to_vector . should_equal [2, 3, 1]
+        group_builder.specify "Works with zero rows" <|
+            r = t.take 0 . offset ["A"] -1 ..Wrap_Around
+            r . at "TEMP" . to_vector . should_equal []
+        group_builder.specify "Works with negative n and column of nothings" <|
+            r = t.offset ["B"] -1 ..Wrap_Around
+            r . at "TEMP" . to_vector . should_equal [Nothing, Nothing, Nothing]
+        group_builder.specify "Works with positive n and column of nothings" <|
+            r = t.offset ["B"] 1 ..Wrap_Around
+            r . at "TEMP" . to_vector . should_equal [Nothing, Nothing, Nothing]
