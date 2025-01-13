@@ -23,8 +23,6 @@ export function NotificationTray() {
 /** Dialog to display notifications for a {@link NotificationTray}. */
 function NotificationTrayDialog() {
   const { getText } = useText()
-  const transientNotifications = useTransientNotifications()
-  const hasNotifications = transientNotifications.length > 0
 
   return (
     <Popover placement="bottom right" offset={DIALOG_OFFSET} crossOffset={DIALOG_CROSS_OFFSET}>
@@ -32,15 +30,26 @@ function NotificationTrayDialog() {
         <Text.Heading level={3} variant="subtitle">
           {getText('notifications')}
         </Text.Heading>
-        {!hasNotifications && (
-          <Result centered className="min-h-10" title={getText('youAreAllCaughtUp')} />
-        )}
-        {hasNotifications && (
-          <GridList selectionMode="none" items={transientNotifications}>
-            {(info) => <NotificationItem {...info} />}
-          </GridList>
-        )}
+        <NotificationTrayDialogInner />
       </div>
     </Popover>
+  )
+}
+
+/** Dialog to display notifications for a {@link NotificationTray}. */
+function NotificationTrayDialogInner() {
+  const { getText } = useText()
+  const transientNotifications = useTransientNotifications()
+
+  return (
+    <GridList
+      selectionMode="none"
+      items={transientNotifications}
+      renderEmptyState={() => (
+        <Result centered className="min-h-10" title={getText('youAreAllCaughtUp')} />
+      )}
+    >
+      {(info) => <NotificationItem {...info} />}
+    </GridList>
   )
 }
