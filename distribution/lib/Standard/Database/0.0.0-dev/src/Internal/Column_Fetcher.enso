@@ -47,8 +47,8 @@ boolean_fetcher =
     fetch_value rs i =
         b = rs.getBoolean i
         if rs.wasNull then Nothing else b
-    make_builder _ _ =
-        java_builder = Java_Exports.make_bool_builder
+    make_builder initial_size _ =
+        java_builder = Java_Exports.make_bool_builder initial_size
         append v =
             if v.is_nothing then java_builder.appendNulls 1 else
                 java_builder.appendBoolean v

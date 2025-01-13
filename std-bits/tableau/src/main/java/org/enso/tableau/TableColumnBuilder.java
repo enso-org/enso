@@ -53,7 +53,7 @@ record TableColumnBuilder(Builder builder, Consumer<Result> appendMethod) {
       HyperTableColumn column, int initialRowCount, ProblemAggregator problemAggregator) {
     switch (column.typeID()) {
       case Types.BOOLEAN:
-        var boolBuilder = new BoolBuilder(initialRowCount);
+        var boolBuilder = Builder.getForBoolean(initialRowCount);
         return new TableColumnBuilder(
             boolBuilder,
             nullAppender(

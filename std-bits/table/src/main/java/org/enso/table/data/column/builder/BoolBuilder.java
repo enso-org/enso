@@ -14,12 +14,8 @@ public class BoolBuilder implements BuilderForBoolean {
   private final BitSet isNothing;
   int size = 0;
 
-  public BoolBuilder() {
-    vals = new BitSet();
-    isNothing = new BitSet();
-  }
-
-  public BoolBuilder(int capacity) {
+  // ** Creates a new builder for boolean columns. Should be built via Builder.getForBoolean. */
+  BoolBuilder(int capacity) {
     vals = new BitSet(capacity);
     isNothing = new BitSet(capacity);
   }

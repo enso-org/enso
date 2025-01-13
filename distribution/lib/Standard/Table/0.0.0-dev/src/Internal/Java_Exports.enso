@@ -7,7 +7,8 @@ import project.Value_Type.Value_Type
 
 polyglot java import org.enso.table.data.column.builder.BigDecimalBuilder
 polyglot java import org.enso.table.data.column.builder.BigIntegerBuilder
-polyglot java import org.enso.table.data.column.builder.BoolBuilder
+polyglot java import org.enso.table.data.column.builder.Builder
+polyglot java import org.enso.table.data.column.builder.BuilderForBoolean
 polyglot java import org.enso.table.data.column.builder.DateBuilder
 polyglot java import org.enso.table.data.column.builder.DateTimeBuilder
 polyglot java import org.enso.table.data.column.builder.InferredBuilder
@@ -18,8 +19,8 @@ polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
 polyglot java import org.enso.table.problems.ProblemAggregator
 
 ## PRIVATE
-make_bool_builder : BoolBuilder
-make_bool_builder = BoolBuilder.new
+make_bool_builder : Integer -> BuilderForBoolean
+make_bool_builder initial_size = Builder.getForBoolean initial_size
 
 ## PRIVATE
 make_double_builder : Integer -> ProblemAggregator -> NumericBuilder

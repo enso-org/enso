@@ -1,6 +1,6 @@
 package org.enso.table.data.column.operation.cast;
 
-import org.enso.table.data.column.builder.BoolBuilder;
+import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
@@ -22,7 +22,7 @@ public class ToBooleanStorageConverter implements StorageConverter<Boolean> {
   public Storage<Boolean> castFromMixed(
       Storage<?> mixedStorage, CastProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
-    BoolBuilder builder = new BoolBuilder(mixedStorage.size());
+    var builder = Builder.getForBoolean(mixedStorage.size());
     for (int i = 0; i < mixedStorage.size(); i++) {
       Object o = mixedStorage.getItemBoxed(i);
       switch (o) {
@@ -37,6 +37,6 @@ public class ToBooleanStorageConverter implements StorageConverter<Boolean> {
       context.safepoint();
     }
 
-    return builder.seal();
+    return (Storage<Boolean>) builder.seal();
   }
 }
