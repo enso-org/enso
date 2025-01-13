@@ -101,29 +101,13 @@ public class Offset {
   private static class OffsetIterator {
         Queue<Integer> rolling_queue;
         Queue<Integer> fill_queue;
-        int n;
         int current_n;
-        int fill_pos;
 
         public OffsetIterator(int n)
         {
             this.rolling_queue = new LinkedList<>();
             this.fill_queue = new LinkedList<>();
-            this.n = n;
             this.current_n = 0;
-            this.fill_pos = -1;
-        }
-
-        public Integer next(int value) {
-            rolling_queue.add(value);
-            fill_pos = value;
-            current_n++;
-            if (current_n > Math.abs(n)) {
-                return rolling_queue.poll();
-            } else {
-                fill_queue.add(value);
-                return null;
-            }
         }
   }
 }

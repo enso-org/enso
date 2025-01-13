@@ -151,7 +151,7 @@ add_offset_specs suite_builder setup =
         group_builder.specify "Zero n is a no-op" <|
             r = t.offset ["A"] 0
             r . at "TEMP" . to_vector . should_equal [1, 2, 3]
-        group_builder.specify "Large negative n values workX" <|
+        group_builder.specify "Large negative n values work" <|
             r = t.offset ["A"] -1024
             r . at "TEMP" . to_vector . should_equal [Nothing, Nothing, Nothing]
         group_builder.specify "Large positive n values work" <|
