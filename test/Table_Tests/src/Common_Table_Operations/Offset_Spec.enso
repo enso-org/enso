@@ -173,3 +173,28 @@ add_offset_specs suite_builder setup =
         group_builder.specify "Works with positive n values (n=2)" <|
             r = t.offset ["Text Values"] 2
             r . at "TEMP" . to_vector . should_equal ["C", Nothing, Nothing]
+    suite_builder.group prefix+"Table.Offset with closest value fill strategy" group_builder->
+        group_builder.specify "Negative n shifts the values down" <|
+            r = t.offset ["A"] -1 ..Closest_Value
+            r . at "TEMP" . to_vector . should_equal [1, 1, 2]
+        group_builder.specify "Positive n shifts the values up" <|
+            r = t.offset ["A"] 1 ..Closest_Value
+            r . at "TEMP" . to_vector . should_equal [2, 3, 3]
+        group_builder.specify "Zero n is a no-op" <|
+            r = t.offset ["A"] 0 ..Closest_Value
+            r . at "TEMP" . to_vector . should_equal [1, 2, 3]
+        group_builder.specify "Large negative n values work" <|
+            r = t.offset ["A"] -1024 ..Closest_Value
+            r . at "TEMP" . to_vector . should_equal [1, 1, 1]
+        group_builder.specify "Large positive n values work" <|
+            r = t.offset ["A"] 1024 ..Closest_Value
+            r . at "TEMP" . to_vector . should_equal [3, 3, 3]
+        group_builder.specify "Works with zero rows" <|
+            r = t.take 0 . offset ["A"] -1 ..Closest_Value
+            r . at "TEMP" . to_vector . should_equal []
+        group_builder.specify "Works with negative n and column of nothings" <|
+            r = t.offset ["N"] -1 ..Closest_Value
+            r . at "TEMP" . to_vector . should_equal [Nothing, Nothing, Nothing]
+        group_builder.specify "Works with positive n and column of nothings" <|
+            r = t.offset ["NM"] 1 ..Closest_Value
+            r . at "TEMP" . to_vector . should_equal [Nothing, Nothing, Nothing]

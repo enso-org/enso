@@ -23,6 +23,7 @@ import project.Internal.Column_Naming_Helper.Column_Naming_Helper
 import project.Internal.Column_Ops
 import project.Internal.Date_Time_Helpers
 import project.Internal.Java_Problems
+import project.Internal.Offset.OffFill
 import project.Internal.Parse_Values_Helper
 import project.Internal.Read_Many_Helpers
 import project.Internal.Storage
@@ -58,14 +59,6 @@ polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.error.ValueTypeMismatchException
 polyglot java import org.enso.table.operations.OrderBuilder
 polyglot java import org.enso.table.parsing.problems.ParseProblemAggregator
-
-type OffFill
-    Nothing
-    Closest_Value
-    Wrap_Around
-    Constant c
-
-OffFill.from (that:Any) = OffFill.Constant that
 
 type Column
     ## GROUP Standard.Base.Input

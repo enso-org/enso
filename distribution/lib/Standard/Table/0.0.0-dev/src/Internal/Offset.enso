@@ -11,6 +11,14 @@ import project.Internal.Problem_Builder.Problem_Builder
 
 polyglot java import org.enso.table.operations.Offset as Java_Offset
 
+type OffFill
+    Nothing
+    Closest_Value
+    Wrap_Around
+    Constant c
+
+OffFill.from (that:Any) = OffFill.Constant that
+
 table_offset_impl table:Table (of:Text|Integer=0) n:Integer=-1 (set_mode:Set_Mode=..Add) (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (on_problems:Problem_Behavior=..Report_Warning) -> Table =
     new_name = "TEMP"
     of_col = table.at of
