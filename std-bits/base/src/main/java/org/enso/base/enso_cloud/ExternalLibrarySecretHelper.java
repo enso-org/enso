@@ -50,5 +50,8 @@ public final class ExternalLibrarySecretHelper extends SecretValueResolver {
   private record AccessLocation(String className, String method) {}
 
   private static final List<AccessLocation> allowedAccessLocations =
-      List.of(new AccessLocation("org.enso.aws.ClientBuilder", "unsafeResolveSecrets"));
+      List.of(
+          new AccessLocation("org.enso.aws.ClientBuilder", "unsafeResolveSecrets"),
+          new AccessLocation("org.enso.google.GoogleOAuthSecretReader", "createCredentialFromSecretValue")
+      );
 }

@@ -1,0 +1,64 @@
+from Standard.Base import all
+import Standard.Base.Data.Base_64.Base_64
+import Standard.Base.Errors.Common.Not_Found
+import Standard.Base.Errors.Illegal_State.Illegal_State
+import Standard.Base.Network.HTTP.Request_Body.Request_Body
+import Standard.Base.Runtime.Managed_Resource.Managed_Resource
+
+polyglot java import org.enso.base.oauth.OAuthCallback
+
+authenticate_service scopes:Vector secret_name:Text location:Enso_File=Enso_File.home -> Enso_Secret =
+    uri = create_authorization_uri scopes
+    result = Managed_Resource.bracket (OAuthCallback.createCallbackServer 51234) (.close) server->
+        # We start the server first to ensure we can 'reserve' the port before opening the browser
+        IO.println "Please open "+uri.to_text+" in your browser and follow the instructions."
+        server.waitForCallback
+    code = OAuth_Callback_Response.decode result . code
+
+    refresh_token = exchange_one_time_code_for_refresh_token code
+    Enso_Secret.create secret_name (make_secret_payload refresh_token) parent=location
+
+exchange_one_time_code_for_refresh_token code:Text -> Text =
+    uri = create_token_uri
+    params = Dictionary.from_vector [["grant_type", "authorization_code"], ["code", code], ["redirect_uri", redirect_uri], ["client_id", client_id], ["client_secret", client_secret]]
+    request_body = Request_Body.Form_Data params url_encoded=True
+    response = Data.post uri body=request_body response_format=JSON_Format
+    response.get "refresh_token"
+
+
+make_secret_payload refresh_token:Text -> Text =
+    JS_Object.from_pairs [["type", "authorized_user"], ["refresh_token", refresh_token], ["client_id", client_id], ["client_secret", client_secret]]
+
+create_authorization_uri scopes:Vector -> URI =
+    URI.from "https://accounts.google.com/o/oauth2/v2/auth"
+        . add_query_argument "response_type" "code"
+        . add_query_argument "access_type" "offline"
+        . add_query_argument "client_id" client_id
+        . add_query_argument "redirect_uri" redirect_uri
+        . add_query_argument "scope" (scopes.join " ")
+        . add_query_argument "state" "foobar"
+
+create_token_uri -> URI =
+    URI.from "https://oauth2.googleapis.com/token"
+
+client_id = Environment.get "GOOGLE_APP_CLIENT_ID"
+client_secret = Environment.get "GOOGLE_APP_CLIENT_SECRET"
+redirect_uri = "http://localhost:51234/oauth"
+
+type OAuth_Callback_Response
+    Value code:Text state:Text|Nothing
+
+    decode response:Text -> OAuth_Callback_Response =
+        parts = response.split "&"
+        code_prefix = "code="
+        state_prefix = "state="
+        code = parts
+            . find (e-> e.starts_with code_prefix)
+            . drop code_prefix.length
+            . catch Not_Found _->
+                Error.throw (Illegal_State.Error "Malformed OAuth response: No code found.")
+        state = parts
+            . find (e-> e.starts_with state_prefix)
+            . drop state_prefix.length
+            . catch Not_Found _->Nothing
+        OAuth_Callback_Response.Value code state

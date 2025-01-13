@@ -3,6 +3,7 @@ import Standard.Base.Data.Array_Proxy.Array_Proxy
 import Standard.Base.Metadata.Display
 from Standard.Base.Metadata import make_single_choice, Widget
 from Standard.Base.Metadata.Widget import Single_Choice, Vector_Editor
+from Standard.Base.Enso_Cloud.Enso_Secret import as_hideable_value
 
 from Standard.Table import Table
 
@@ -13,6 +14,8 @@ polyglot java import com.google.api.services.sheets.v4.Sheets
 polyglot java import com.google.api.services.sheets.v4.SheetsScopes
 polyglot java import java.util.Collections
 
+polyglot java import org.enso.google.GoogleOAuthSecretReader
+
 type Google_Sheets
     ## PRIVATE
     Service java_service
@@ -21,15 +24,21 @@ type Google_Sheets
        Initializes the Google Sheets instance using the given credentials file.
 
        Arguments:
-       - secret_file: a file containing Google Service Account credentials to use to
+       - secret_file: a Cloud secret or a file containing Google Service Account credentials to use to
          access Google services. The credentials file can be downloaded from the
          Google Admin Console when generating a key.
-    initialize : File -> Google_Sheets
+    initialize : File|Enso_Secret -> Google_Sheets
     initialize secret_file =
         app_name = 'Enso'
-        credential = secret_file.with_input_stream [File_Access.Read] stream->
-            stream.with_java_stream is->
-                GoogleCredential.fromStream is . createScoped (Collections.singleton SheetsScopes.SPREADSHEETS)
+        base_credential = case secret_file of
+            secret : Enso_Secret ->
+                # TODO to avoid passing credentials around, prod should probably create instance of Sheets and return it here
+                GoogleOAuthSecretReader.createCredentialFromSecretValue (as_hideable_value secret)
+            _ ->
+                secret_file.with_input_stream [File_Access.Read] stream->
+                    stream.with_java_stream is->
+                        GoogleCredential.fromStream is
+        credential = base_credential.createScoped (Collections.singleton SheetsScopes.SPREADSHEETS)
         http_transport = GoogleNetHttpTransport.newTrustedTransport
         json_factory = GsonFactory.getDefaultInstance
         service = Sheets.Builder.new http_transport json_factory credential . setApplicationName app_name . build

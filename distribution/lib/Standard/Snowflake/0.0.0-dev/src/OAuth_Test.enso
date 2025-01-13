@@ -7,7 +7,7 @@ import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 
 import project.Connection.Snowflake_Details.Snowflake_Details
 
-polyglot java import org.enso.snowflake.OAuthCallback
+polyglot java import org.enso.base.oauth.OAuthCallback
 
 perform_one_time_oauth account:Text role:Text =
     uri = create_authorization_uri account role refresh_token=False
@@ -115,4 +115,4 @@ type Refresh_Token
 
 client_id = Environment.get "SNOWFLAKE_APP_CLIENT_ID"
 client_secret = Environment.get "SNOWFLAKE_APP_CLIENT_SECRET"
-redirect_uri = "http://localhost:51234/snowflake"
+redirect_uri = "http://localhost:51234/oauth"

@@ -1,4 +1,4 @@
-package org.enso.snowflake;
+package org.enso.base.oauth;
 
 import com.sun.net.httpserver.HttpServer;
 
@@ -32,7 +32,7 @@ public final class OAuthCallback {
     private CallbackServerImplementation(int port) throws IOException {
       InetSocketAddress address = new InetSocketAddress("localhost", port);
       server = HttpServer.create(address, 0);
-      server.createContext("/snowflake", exchange -> {
+      server.createContext("/oauth", exchange -> {
         var query = exchange.getRequestURI().getQuery();
 //        System.out.println("method = " + exchange.getRequestMethod());
 //        System.out.println("query = " + query);

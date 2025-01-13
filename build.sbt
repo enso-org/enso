@@ -5014,6 +5014,7 @@ lazy val `std-google-api` = project
       .dependsOn(cleanPolyglotRoot)
       .value
   )
+  .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
 
 lazy val `std-database` = project

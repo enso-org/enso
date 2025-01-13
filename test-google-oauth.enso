@@ -1,0 +1,11 @@
+from Standard.Base import all
+from Standard.Google_Api import all
+import Standard.Google_Api.OAuth_Prototype
+
+main =
+    scopes = []
+    secret = OAuth_Prototype.authenticate_service scopes "google-sheets"
+    google_sheets = Google_Sheets.initialize secret
+    table = google_sheets.get_table "1Xa1cXLN4oeCl7FpD_IErfOMHhFuShpc1S5Buc0UF4b0" "Sheet1"
+    IO.println table
+    table.print
