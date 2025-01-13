@@ -17,6 +17,7 @@ import { defineWidget, Score, widgetProps } from '@/providers/widgetRegistry'
 import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { useGraphStore } from '@/stores/graph'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import { targetIsOutside } from '@/util/autoBlur'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { useToast } from '@/util/toast'
@@ -31,17 +32,22 @@ import type {
   ProcessDataFromClipboardParams,
   RowDragEndEvent,
 } from 'ag-grid-enterprise'
-import { computed, markRaw, proxyRefs, ref } from 'vue'
+import { ComponentInstance, computed, markRaw, ref, watch } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
 import { z } from 'zod'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
 const suggestionDb = useSuggestionDbStore()
-const grid = ref<ComponentExposed<typeof AgGridTableView<RowData, any>>>()
+const grid = ref<
+  ComponentInstance<typeof AgGridTableView<RowData, any>> &
+    ComponentExposed<typeof AgGridTableView<RowData, any>>
+>()
 const pasteWarning = useToast.warning()
 
-const configSchema = z.object({ size: z.object({ x: z.number(), y: z.number() }) })
+const configSchema = z.object({
+  size: z.object({ x: z.number(), y: z.number() }),
+})
 type Config = z.infer<typeof configSchema>
 
 const DEFAULT_CFG: Config = { size: { x: 200, y: 150 } }
@@ -129,7 +135,18 @@ class HeaderEditing {
       end: () => {
         this.editedColId.value = undefined
       },
+      pointerdown: (event) => {
+        if (
+          !(event.target instanceof HTMLInputElement) ||
+          targetIsOutside(event, grid.value?.$el)
+        ) {
+          this.editedColId.value = undefined
+        } else {
+          return false
+        }
+      },
     })
+    watch(this.editedColId, console.error, { flush: 'sync' })
   }
 
   headerEditedInGrid(colId: string, revertChanges: () => void) {
@@ -170,7 +187,12 @@ const clientBounds = computed({
       portUpdate: {
         origin: props.input.portId,
         metadataKey: 'WidgetTableEditor',
-        metadata: { size: { x: value.width / graphNav.scale, y: value.height / graphNav.scale } },
+        metadata: {
+          size: {
+            x: value.width / graphNav.scale,
+            y: value.height / graphNav.scale,
+          },
+        },
       },
       directInteraction: false,
     })
@@ -218,13 +240,15 @@ function processDataFromClipboard({ data, api }: ProcessDataFromClipboardParams<
 // === Column Default Definition ===
 
 const tooltipRegistry = useTooltipRegistry()
-const headerProps = proxyRefs({
+const headerProps = computed(() => ({
   tooltipRegistry: tooltipRegistry,
-  editedColId: headerEditHandler.editedColId,
+  editedColId: headerEditHandler.editedColId.value,
   onHeaderEditingStarted: headerEditHandler.headerEditedInGrid.bind(headerEditHandler),
   onHeaderEditingStopped: headerEditHandler.headerEditingStoppedInGrid.bind(headerEditHandler),
-})
-const defaultColDef: ColDef<RowData> & { headerComponentParams: GeneralHeaderParams } = {
+}))
+const defaultColDef: ColDef<RowData> & {
+  headerComponentParams: GeneralHeaderParams
+} = {
   editable: true,
   resizable: true,
   sortable: false,

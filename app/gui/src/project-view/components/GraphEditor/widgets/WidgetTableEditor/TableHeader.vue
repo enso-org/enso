@@ -2,7 +2,7 @@
 import SvgButton from '@/components/SvgButton.vue'
 import { provideTooltipRegistry, type TooltipRegistry } from '@/providers/tooltipRegistry'
 import type { IHeaderParams } from 'ag-grid-community'
-import { computed, onMounted, onUnmounted, Raw, Ref, ref, toRef, watch } from 'vue'
+import { computed, Raw, Ref, ref, toRef, watch } from 'vue'
 
 export type ColumnSpecificProps =
   | {
@@ -57,6 +57,12 @@ const columnProps = toRef(() => props.params.columnSpecific.value)
 provideTooltipRegistry.provideConstructed(generalProps.value.tooltipRegistry)
 
 const editing = computed(() => generalProps.value.editedColId === props.params.column.getColId())
+watch(editing, (newVal) => {
+  if (!newVal) {
+    acceptNewName()
+  }
+})
+
 const inputElement = ref<HTMLInputElement>()
 
 function emitEditStart() {
@@ -70,12 +76,6 @@ function emitEditStart() {
 function emitEditEnd() {
   generalProps.value.onHeaderEditingStopped?.(props.params.column.getColId())
 }
-
-watch(editing, (newVal) => {
-  if (!newVal) {
-    acceptNewName()
-  }
-})
 
 watch(
   inputElement,
@@ -98,7 +98,8 @@ function acceptNewName() {
     console.error('Tried to accept header new name without input element!')
     return
   }
-  columnProps.value.nameSetter(inputElement.value.value)
+  if (inputElement.value.value !== props.params.displayName)
+    columnProps.value.nameSetter(inputElement.value.value)
   if (editing.value) emitEditEnd()
 }
 
@@ -117,12 +118,6 @@ function onMouseRightClick(event: MouseEvent) {
     event.stopPropagation()
   }
 }
-onMounted(() => {
-  console.log('MOUTED', props.params.displayName)
-})
-onUnmounted(() => {
-  console.log('UNMOUTED', props.params.displayName)
-})
 </script>
 
 <template>
@@ -148,8 +143,6 @@ onUnmounted(() => {
         ref="inputElement"
         class="ag-input-field-input ag-text-field-input"
         :value="params.displayName"
-        @change="acceptNewName()"
-        @blur="emitEditEnd()"
         @keydown.arrow-left.stop
         @keydown.arrow-right.stop
         @keydown.arrow-up.stop

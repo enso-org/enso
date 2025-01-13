@@ -365,7 +365,6 @@ export function useTableInputArgument(
               ref({
                 type: 'astColumn',
                 nameSetter: (newName: string) => {
-                  console.log('SET NAME', newName)
                   const edit = graph.startEdit()
                   fixColumns(edit)
                   edit.getVersion(col.name).setRawTextContent(newName)
