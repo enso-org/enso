@@ -5,6 +5,7 @@ import Standard.Base.Data.Vector.Builder
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Illegal_State.Illegal_State
 
 import project.Column.Column
 import project.Conversions.Convertible_To_Columns.Convertible_To_Columns
@@ -131,7 +132,7 @@ create_table_from_objects (base_value : Convertible_To_Rows) (fields : Vector | 
                         builder = existing_builder.if_nothing <|
                             discovered_field_names.append f
                             Java_Exports.make_inferred_builder len java_problem_aggregator
-                        fill_builder builder len
+                        fill_builder builder idx
                         builder.append (v.getter f)
                         if existing_builder.is_nothing.not then inner_current_dict else
                             inner_current_dict.insert f builder

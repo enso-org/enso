@@ -26,8 +26,7 @@ public class InferredIntegerBuilder implements Builder {
   }
 
   @Override
-  public boolean accepts(Object o)
-  {
+  public boolean accepts(Object o) {
     return (o instanceof Boolean || NumericConverter.tryConvertingToLong(o) != null);
   }
 

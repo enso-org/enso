@@ -6,7 +6,6 @@ import java.time.Duration;
 import java.time.Period;
 import java.time.ZoneId;
 import java.util.function.Consumer;
-
 import org.enso.table.data.column.builder.*;
 import org.enso.table.data.column.builder.StringBuilder;
 import org.enso.table.data.column.storage.Storage;

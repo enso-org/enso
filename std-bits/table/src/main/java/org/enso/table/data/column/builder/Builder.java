@@ -1,5 +1,6 @@
 package org.enso.table.data.column.builder;
 
+import java.util.BitSet;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.BigDecimalType;
@@ -15,8 +16,6 @@ import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.problems.ProblemAggregator;
 
-import java.util.BitSet;
-
 /** Interface defining a builder for creating columns dynamically. */
 public interface Builder {
   /**
@@ -25,8 +24,7 @@ public interface Builder {
    * <p>If {@code type} is {@code null}, it will return an {@link InferredBuilder} that will infer
    * the type from the data.
    */
-  static Builder getForType(
-      StorageType type, int size, ProblemAggregator problemAggregator) {
+  static Builder getForType(StorageType type, int size, ProblemAggregator problemAggregator) {
     Builder builder =
         switch (type) {
           case AnyObjectType x -> new MixedBuilder(size);
@@ -58,11 +56,12 @@ public interface Builder {
    * Constructs a builder for storing integers.
    *
    * @param size the initial size of the builder.
-   * @param integerType the type of integer to store.
-   *                    This should be one of the {@link IntegerType} constants.
+   * @param integerType the type of integer to store. This should be one of the {@link IntegerType}
+   *     constants.
    * @param problemAggregator the problem aggregator to use for this builder.
    */
-  static BuilderForLong getForLong(int size, IntegerType integerType, ProblemAggregator problemAggregator) {
+  static BuilderForLong getForLong(
+      int size, IntegerType integerType, ProblemAggregator problemAggregator) {
     return LongBuilder.make(size, integerType, problemAggregator);
   }
 
@@ -70,11 +69,12 @@ public interface Builder {
    * Constructs a builder for storing floating-point numbers.
    *
    * @param size the initial size of the builder.
-   * @param floatType the type of float to store.
-   *                  This should be one of the {@link FloatType} constants.
+   * @param floatType the type of float to store. This should be one of the {@link FloatType}
+   *     constants.
    * @param problemAggregator the problem aggregator to use for this builder.
    */
-  static BuilderForDouble getForDouble(int size, FloatType floatType, ProblemAggregator problemAggregator) {
+  static BuilderForDouble getForDouble(
+      int size, FloatType floatType, ProblemAggregator problemAggregator) {
     if (floatType.bits() != Bits.BITS_64) {
       throw new IllegalArgumentException("Only 64-bit floats are currently supported.");
     }
