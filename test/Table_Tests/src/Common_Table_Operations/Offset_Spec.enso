@@ -24,7 +24,7 @@ add_specs suite_builder setup =
 add_offset_specs suite_builder setup =
     prefix = setup.prefix
     build_sorted_table = Util.build_sorted_table setup
-    t = build_sorted_table [["A", [1, 2, 3]], ["B", [Nothing, Nothing, Nothing]]]
+    t = build_sorted_table [["A", [1, 2, 3]], ["B", [Nothing, Nothing, Nothing]], ["Text Values", ["A", "B", "C"]]]
     c = t.at 0 
     c_nothings = t.at 1
     c_zero_rows = t.take 0 . at 0
@@ -148,3 +148,16 @@ add_offset_specs suite_builder setup =
         group_builder.specify "Works with positive n values (n=2)" <|
             r = t.offset ["A"] 2
             r . at "TEMP" . to_vector . should_equal [3, Nothing, Nothing]
+    suite_builder.group prefix+"Table.Offset with default fill strategy (Text Values)" group_builder->
+        group_builder.specify "Works with default values" <|
+            r = t.offset ["Text Values"]
+            r . at "TEMP" . to_vector . should_equal [Nothing, "A", "B"]
+        group_builder.specify "Works with negative n values" <|
+            r = t.offset ["Text Values"] -2
+            r . at "TEMP" . to_vector . should_equal [Nothing, Nothing, "A"]
+        group_builder.specify "Works with positive n values (n=1)" <|
+            r = t.offset ["Text Values"] 1
+            r . at "TEMP" . to_vector . should_equal ["B", "C", Nothing]
+        group_builder.specify "Works with positive n values (n=2)" <|
+            r = t.offset ["Text Values"] 2
+            r . at "TEMP" . to_vector . should_equal ["C", Nothing, Nothing]
