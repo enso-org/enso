@@ -8,17 +8,17 @@ import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.problems.ProblemAggregator;
 
 /** A double builder variant that preserves types and can be retyped to Mixed. */
-public class InferringDoubleBuilder extends DoubleBuilder {
+public class InferredDoubleBuilder extends DoubleBuilder {
   /**
    * Converts the provided LongBuilder to a DoubleBuilder.
    *
    * <p>The original LongBuilder becomes invalidated after this operation and should no longer be
    * used.
    */
-  static InferringDoubleBuilder retypeFromLongBuilder(LongBuilder longBuilder) {
+  static InferredDoubleBuilder retypeFromLongBuilder(LongBuilder longBuilder) {
     int currentSize = longBuilder.currentSize;
-    InferringDoubleBuilder newBuilder =
-        new InferringDoubleBuilder(
+    InferredDoubleBuilder newBuilder =
+        new InferredDoubleBuilder(
             longBuilder.isNothing, longBuilder.data, currentSize, longBuilder.problemAggregator);
 
     // Invalidate the old builder.
@@ -51,7 +51,7 @@ public class InferringDoubleBuilder extends DoubleBuilder {
     return newBuilder;
   }
 
-  InferringDoubleBuilder(
+  InferredDoubleBuilder(
       BitSet isNothing, long[] doubleData, int currentSize, ProblemAggregator problemAggregator) {
     super(isNothing, doubleData, currentSize, problemAggregator);
     rawData = null;
@@ -105,7 +105,7 @@ public class InferringDoubleBuilder extends DoubleBuilder {
   @Override
   public void appendBulkStorage(Storage<?> storage) {
     throw new UnsupportedOperationException(
-        "appendBulkStorage is not supported on InferringDoubleBuilder. A DoubleBuilder or"
+        "appendBulkStorage is not supported on InferredDoubleBuilder. A DoubleBuilder or"
             + " MixedBuilder should be used instead. This is a bug in the Table library.");
   }
 
@@ -176,7 +176,7 @@ public class InferringDoubleBuilder extends DoubleBuilder {
   @Override
   public void appendRawNoGrow(long rawData) {
     throw new UnsupportedOperationException(
-        "appendRawNoGrow is not supported on InferringDoubleBuilder. "
+        "appendRawNoGrow is not supported on InferredDoubleBuilder. "
             + "A DoubleBuilder should be used instead. This is a bug in the Table library.");
   }
 

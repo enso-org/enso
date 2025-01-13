@@ -28,7 +28,7 @@ public abstract class NumericBuilder implements Builder {
   /** Creates a {@link DoubleBuilder} that may be retyped to Mixed type. */
   public static DoubleBuilder createInferringDoubleBuilder(
       int size, ProblemAggregator problemAggregator) {
-    return new InferringDoubleBuilder(new BitSet(), new long[size], 0, problemAggregator);
+    return new InferredDoubleBuilder(new BitSet(), new long[size], 0, problemAggregator);
   }
 
   public static LongBuilder createLongBuilder(

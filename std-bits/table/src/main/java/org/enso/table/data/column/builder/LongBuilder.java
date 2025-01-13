@@ -58,7 +58,7 @@ public abstract class LongBuilder extends NumericBuilder implements BuilderForLo
     if (Objects.equals(type, BigIntegerType.INSTANCE)) {
       return BigIntegerBuilder.retypeFromLongBuilder(this);
     } else if (Objects.equals(type, FloatType.FLOAT_64)) {
-      return InferringDoubleBuilder.retypeFromLongBuilder(this);
+      return InferredDoubleBuilder.retypeFromLongBuilder(this);
     } else {
       throw new UnsupportedOperationException();
     }

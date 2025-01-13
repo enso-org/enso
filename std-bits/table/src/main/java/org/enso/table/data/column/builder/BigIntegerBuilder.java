@@ -31,11 +31,6 @@ public class BigIntegerBuilder extends TypedBuilder<BigInteger> {
   }
 
   @Override
-  public void copyDataTo(Object[] items) {
-    super.copyDataTo(items);
-  }
-
-  @Override
   public boolean canRetypeTo(StorageType type) {
     return type instanceof FloatType
         || type instanceof BigDecimalType

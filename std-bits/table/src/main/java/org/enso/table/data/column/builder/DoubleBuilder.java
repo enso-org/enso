@@ -34,7 +34,7 @@ public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
     throw new IllegalStateException(
         "The DoubleBuilder cannot be retyped to the Mixed type, because it would lose type"
             + " information about integers that were converted to doubles. If recasting is needed,"
-            + " InferringDoubleBuilder should be used instead. This error leaking is a bug in the"
+            + " InferredDoubleBuilder should be used instead. This error leaking is a bug in the"
             + " Table library.");
   }
 

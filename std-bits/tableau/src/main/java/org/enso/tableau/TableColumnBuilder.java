@@ -6,16 +6,9 @@ import java.time.Duration;
 import java.time.Period;
 import java.time.ZoneId;
 import java.util.function.Consumer;
-import org.enso.table.data.column.builder.BigDecimalBuilder;
-import org.enso.table.data.column.builder.BigIntegerBuilder;
-import org.enso.table.data.column.builder.BoolBuilder;
-import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.builder.DateBuilder;
-import org.enso.table.data.column.builder.DateTimeBuilder;
-import org.enso.table.data.column.builder.InferredBuilder;
-import org.enso.table.data.column.builder.NumericBuilder;
+
+import org.enso.table.data.column.builder.*;
 import org.enso.table.data.column.builder.StringBuilder;
-import org.enso.table.data.column.builder.TimeOfDayBuilder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.TextType;

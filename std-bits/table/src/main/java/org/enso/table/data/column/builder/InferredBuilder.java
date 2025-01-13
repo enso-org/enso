@@ -211,7 +211,9 @@ public class InferredBuilder implements Builder {
 
   @Override
   public void copyDataTo(Object[] items) {
-
+    if (currentBuilder != null) {
+      currentBuilder.copyDataTo(items);
+    }
   }
 
   @Override

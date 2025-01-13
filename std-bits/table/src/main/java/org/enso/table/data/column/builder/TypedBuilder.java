@@ -13,7 +13,7 @@ public abstract class TypedBuilder<T> implements Builder {
 
   protected abstract T[] newArray(int size);
 
-  public TypedBuilder(int size) {
+  protected TypedBuilder(int size) {
     this.data = newArray(size);
   }
 
