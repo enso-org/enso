@@ -4,7 +4,6 @@ import java.math.BigDecimal;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.BigDecimalStorage;
 import org.enso.table.data.column.storage.type.BigDecimalType;
-import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.error.ValueTypeMismatchException;
 
 /** A builder for BigDecimal columns. */

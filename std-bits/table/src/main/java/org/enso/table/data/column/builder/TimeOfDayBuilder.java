@@ -3,7 +3,6 @@ package org.enso.table.data.column.builder;
 import java.time.LocalTime;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.datetime.TimeOfDayStorage;
-import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.error.ValueTypeMismatchException;
 

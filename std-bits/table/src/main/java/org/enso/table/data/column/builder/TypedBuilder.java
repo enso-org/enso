@@ -14,7 +14,7 @@ public abstract class TypedBuilder<T> implements Builder {
 
   protected abstract T[] newArray(int size);
 
-  protected TypedBuilder(StorageType storageType,int size) {
+  protected TypedBuilder(StorageType storageType, int size) {
     this.storageType = storageType;
     this.data = newArray(size);
   }

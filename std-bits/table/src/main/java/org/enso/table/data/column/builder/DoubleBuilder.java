@@ -31,8 +31,8 @@ public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
 
   @Override
   public void copyDataTo(Object[] items) {
-    throw new IllegalStateException(
-        "The DoubleBuilder cannot be retyped to the Mixed type, because it would lose type"
+    throw new UnsupportedOperationException(
+        "The DoubleBuilder cannot be copied to Object[], because it would lose type"
             + " information about integers that were converted to doubles. If recasting is needed,"
             + " InferredDoubleBuilder should be used instead. This error leaking is a bug in the"
             + " Table library.");

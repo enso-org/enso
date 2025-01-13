@@ -130,8 +130,19 @@ public class SnowflakeIntegerColumnMaterializer implements Builder {
 
   @Override
   public void copyDataTo(Object[] items) {
-    // ToDo
-    throw new UnsupportedOperationException();
+    if (currentSize > 0) {
+      if (mode == Mode.LONG) {
+        for (int i = 0; i < currentSize; i++) {
+          if (intsMissing.get(i)) {
+            items[i] = null;
+          } else {
+            items[i] = ints[i];
+          }
+        }
+      } else {
+        System.arraycopy(bigInts, 0, items, 0, currentSize);
+      }
+    }
   }
 
   @Override
