@@ -151,7 +151,7 @@ add_offset_specs suite_builder setup =
         group_builder.specify "Zero n is a no-op" <|
             r = t.offset ["A"] 0
             r . at "TEMP" . to_vector . should_equal [1, 2, 3]
-        group_builder.specify "Large negative n values work" <|
+        group_builder.specify "Large negative n values workX" <|
             r = t.offset ["A"] -1024
             r . at "TEMP" . to_vector . should_equal [Nothing, Nothing, Nothing]
         group_builder.specify "Large positive n values work" <|
@@ -193,8 +193,8 @@ add_offset_specs suite_builder setup =
             r = t.take 0 . offset ["A"] -1 ..Closest_Value
             r . at "TEMP" . to_vector . should_equal []
         group_builder.specify "Works with negative n and column of nothings" <|
-            r = t.offset ["N"] -1 ..Closest_Value
+            r = t.offset ["B"] -1 ..Closest_Value
             r . at "TEMP" . to_vector . should_equal [Nothing, Nothing, Nothing]
         group_builder.specify "Works with positive n and column of nothings" <|
-            r = t.offset ["NM"] 1 ..Closest_Value
+            r = t.offset ["B"] 1 ..Closest_Value
             r . at "TEMP" . to_vector . should_equal [Nothing, Nothing, Nothing]

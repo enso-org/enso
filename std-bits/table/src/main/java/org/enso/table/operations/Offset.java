@@ -12,11 +12,12 @@ public class Offset {
     public static Storage<?> offset(
       Column sourceColumn,
       int n,
+      OffFill offFill,
       Column[] groupingColumns,
       Column[] orderingColumns,
       int[] directions,
       ProblemAggregator problemAggregator) {
-        var offsetRunningStatistic = new OffsetRunningStatistic(sourceColumn, n, problemAggregator);
+        var offsetRunningStatistic = new OffsetRunningStatistic(sourceColumn, n, offFill);
         RunningLooper.loop(
             groupingColumns,
             orderingColumns,
@@ -32,36 +33,57 @@ public class Offset {
         int[] result;
         Column sourceColumn;
         int n;
+        OffFill offFill;
+        int closestPos;
 
-        OffsetRunningStatistic(Column sourceColumn, int n, ProblemAggregator problemAggregator) {
+        OffsetRunningStatistic(Column sourceColumn, int n, OffFill offFill) {
             result = new int[sourceColumn.getSize()];
             this.sourceColumn = sourceColumn;
             this.n = n;
+            this.offFill = offFill;
+            this.closestPos = -1;
         }
 
         @Override
         public void calculateNextValue(int i, OffsetIterator it) {
             if (n<0) {
-                Integer dNextValue = it.next(i);
-                if (dNextValue == null) {
-                    result[i] = -1;
-                } else {
-                    result[i] = dNextValue;
+                it.rolling_queue.add(i);
+                if (it.current_n < Math.abs(n)) {
+                    it.fill_queue.add(i);
+                }
+                if (it.current_n <= Math.abs(n)) {
+                    closestPos = it.rolling_queue.peek();
+                } 
+                if (it.current_n >= Math.abs(n)) {
+                    result[i] = it.rolling_queue.poll();
                 }
             } else {
-                Integer dNextPosition = it.next(i);
-                if (dNextPosition != null) {
-                    result[dNextPosition] = i;
+                it.rolling_queue.add(i);
+                closestPos = i;
+                if (it.current_n >= Math.abs(n)) {
+                    result[it.rolling_queue.poll()] = i;
                 }
             }
+            it.current_n++;
         }
 
         @Override
         public void finalise(OffsetIterator it) {
-            if (n>0) {
-            while (!it.queue.isEmpty()) {
-                result[it.queue.poll()] = -1; 
-                }
+            int fillValue = switch (offFill) {
+                case NOTHING -> -1;
+                case CLOSEST_VALUE -> closestPos;
+                case WRAP_AROUND -> -1;
+                case CONSTANT -> -1;
+            };
+
+            if (n<0) {
+                while (!it.fill_queue.isEmpty()) {
+                    result[it.fill_queue.poll()] = fillValue;
+                    }
+            } else {
+                while (!it.rolling_queue.isEmpty()) {
+                    result[it.rolling_queue.poll()] = fillValue;
+                    }
             }
         }
 
@@ -77,23 +99,29 @@ public class Offset {
 
 
   private static class OffsetIterator {
-        Queue<Integer> queue;
+        Queue<Integer> rolling_queue;
+        Queue<Integer> fill_queue;
         int n;
         int current_n;
+        int fill_pos;
 
         public OffsetIterator(int n)
         {
-            this.queue = new LinkedList<>();
+            this.rolling_queue = new LinkedList<>();
+            this.fill_queue = new LinkedList<>();
             this.n = n;
             this.current_n = 0;
+            this.fill_pos = -1;
         }
 
         public Integer next(int value) {
-            queue.add(value);
+            rolling_queue.add(value);
+            fill_pos = value;
             current_n++;
             if (current_n > Math.abs(n)) {
-                return queue.poll();
+                return rolling_queue.poll();
             } else {
+                fill_queue.add(value);
                 return null;
             }
         }
