@@ -8,13 +8,20 @@ import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.StorageType;
 
 public abstract class TypedBuilder<T> implements Builder {
+  private final StorageType storageType;
   protected T[] data;
   protected int currentSize = 0;
 
   protected abstract T[] newArray(int size);
 
-  protected TypedBuilder(int size) {
+  protected TypedBuilder(StorageType storageType,int size) {
+    this.storageType = storageType;
     this.data = newArray(size);
+  }
+
+  @Override
+  public StorageType getType() {
+    return storageType;
   }
 
   @Override

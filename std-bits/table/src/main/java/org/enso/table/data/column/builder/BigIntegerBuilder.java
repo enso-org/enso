@@ -26,7 +26,7 @@ public class BigIntegerBuilder extends TypedBuilder<BigInteger> {
   }
 
   public BigIntegerBuilder(int size, ProblemAggregator problemAggregator) {
-    super(size);
+    super(BigIntegerType.INSTANCE, size);
     this.problemAggregator = problemAggregator;
   }
 
@@ -73,11 +73,6 @@ public class BigIntegerBuilder extends TypedBuilder<BigInteger> {
   @Override
   protected Storage<BigInteger> doSeal() {
     return new BigIntegerStorage(data, currentSize);
-  }
-
-  @Override
-  public StorageType getType() {
-    return BigIntegerType.INSTANCE;
   }
 
   @Override

@@ -15,12 +15,7 @@ public class TimeOfDayBuilder extends TypedBuilder<LocalTime> {
   }
 
   public TimeOfDayBuilder(int size) {
-    super(size);
-  }
-
-  @Override
-  public StorageType getType() {
-    return TimeOfDayType.INSTANCE;
+    super(TimeOfDayType.INSTANCE, size);
   }
 
   @Override

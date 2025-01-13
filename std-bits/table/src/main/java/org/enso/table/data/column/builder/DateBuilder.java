@@ -23,13 +23,8 @@ public class DateBuilder extends TypedBuilder<LocalDate> {
   }
 
   public DateBuilder(int size, boolean allowDateToDateTimeConversion) {
-    super(size);
+    super(DateType.INSTANCE, size);
     this.allowDateToDateTimeConversion = allowDateToDateTimeConversion;
-  }
-
-  @Override
-  public StorageType getType() {
-    return DateType.INSTANCE;
   }
 
   @Override

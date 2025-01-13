@@ -15,12 +15,7 @@ public class BigDecimalBuilder extends TypedBuilder<BigDecimal> {
   }
 
   public BigDecimalBuilder(int size) {
-    super(size);
-  }
-
-  @Override
-  public StorageType getType() {
-    return BigDecimalType.INSTANCE;
+    super(BigDecimalType.INSTANCE, size);
   }
 
   @Override

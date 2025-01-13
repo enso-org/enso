@@ -17,13 +17,8 @@ public class StringBuilder extends TypedBuilder<String> {
   }
 
   public StringBuilder(int size, TextType type) {
-    super(size);
+    super(type, size);
     this.type = type;
-  }
-
-  @Override
-  public StorageType getType() {
-    return type;
   }
 
   @Override

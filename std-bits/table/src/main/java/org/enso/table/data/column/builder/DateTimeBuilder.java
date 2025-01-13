@@ -28,14 +28,9 @@ public class DateTimeBuilder extends TypedBuilder<ZonedDateTime> {
   }
 
   public DateTimeBuilder(int size, boolean allowDateToDateTimeConversion) {
-    super(size);
+    super(DateTimeType.INSTANCE, size);
     this.allowDateToDateTimeConversion = allowDateToDateTimeConversion;
     this.wasLocalDate = allowDateToDateTimeConversion ? new BitSet(size) : null;
-  }
-
-  @Override
-  public StorageType getType() {
-    return DateTimeType.INSTANCE;
   }
 
   /**
