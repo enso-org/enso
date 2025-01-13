@@ -14,6 +14,7 @@ import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.data.mask.OrderMask;
 import org.enso.table.problems.ColumnAggregatedProblemAggregator;
 
 public class Offset {
@@ -32,19 +33,19 @@ public class Offset {
             problemAggregator,
             offsetRunningStatistic,
             sourceColumn.getSize());
-        return offsetRunningStatistic.getResult();
+        return offsetRunningStatistic.getResultColumn();
       }
 
     private static class OffsetRunningStatistic<T> implements RunningStatistic<Long, OffsetIterator> {
 
-        long[] result;
+        int[] result;
         BitSet isNothing;
         ColumnAggregatedProblemAggregator columnAggregatedProblemAggregator;
         Column sourceColumn;
         int n;
 
         OffsetRunningStatistic(Column sourceColumn, int n, ProblemAggregator problemAggregator) {
-            result = new long[sourceColumn.getSize()];
+            result = new int[sourceColumn.getSize()];
             isNothing = new BitSet();
             columnAggregatedProblemAggregator = new ColumnAggregatedProblemAggregator(problemAggregator);
             this.sourceColumn = sourceColumn;
@@ -53,19 +54,17 @@ public class Offset {
 
         @Override
         public void calculateNextValue(int i, OffsetIterator it) {
-            Object value = sourceColumn.getStorage().getItemBoxed(i);
-            Long dValue = NumericConverter.tryConvertingToLong(value);
             if (n<0) {
-                Long dNextValue = it.next(dValue);
+                Integer dNextValue = it.next(i);
                 if (dNextValue == null) {
-                    isNothing.set(i);
+                    result[i] = -1;
                 } else {
                     result[i] = dNextValue;
                 }
             } else {
-                Long dNextPosition = it.next(Long.valueOf(i));
+                Integer dNextPosition = it.next(i);
                 if (dNextPosition != null) {
-                    result[dNextPosition.intValue()] = dValue;
+                    result[dNextPosition] = i;
                 }
             }
         }
@@ -74,14 +73,20 @@ public class Offset {
         public void finalise(OffsetIterator it) {
             if (n>0) {
             while (!it.queue.isEmpty()) {
-                isNothing.set(it.queue.poll().intValue()); 
+                result[it.queue.poll()] = -1; 
                 }
             }
         }
 
+        Storage<?> getResultColumn() {
+            return sourceColumn.getStorage().applyMask(OrderMask.fromArray(result));
+        }
+
         @Override
         public Storage<Long> getResult() {
-            return new LongStorage(result, sourceColumn.getSize(), isNothing, IntegerType.INT_64);
+            
+            return null;
+            
         }
 
         @Override
@@ -92,7 +97,7 @@ public class Offset {
 
 
   private static class OffsetIterator {
-        Queue<Long> queue;
+        Queue<Integer> queue;
         int n;
         int current_n;
 
@@ -103,7 +108,7 @@ public class Offset {
             this.current_n = 0;
         }
 
-        public Long next(Long value) {
+        public Integer next(int value) {
             queue.add(value);
             current_n++;
             if (current_n > Math.abs(n)) {
@@ -113,7 +118,7 @@ public class Offset {
             }
         }
 
-        public Long currentValue() {
+        public Integer currentValue() {
             // if nn
             return queue.peek();
         }
