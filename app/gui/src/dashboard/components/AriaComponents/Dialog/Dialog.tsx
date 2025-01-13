@@ -12,6 +12,7 @@ import * as suspense from '#/components/Suspense'
 
 import * as mergeRefs from '#/utilities/mergeRefs'
 
+import { DialogDismiss, ResetButtonGroupContext } from '#/components/AriaComponents'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useMeasure } from '#/hooks/measureHooks'
 import { motion, type Spring } from '#/utilities/motion'
@@ -321,7 +322,7 @@ function DialogContent(props: DialogContentProps) {
   }
 
   return (
-    <>
+    <ResetButtonGroupContext>
       <MotionDialog
         layout
         transition={TRANSITION}
@@ -400,7 +401,7 @@ function DialogContent(props: DialogContentProps) {
       </MotionDialog>
 
       <dialogStackProvider.DialogStackRegistrar id={dialogId} type={TYPE_TO_DIALOG_TYPE[type]} />
-    </>
+    </ResetButtonGroupContext>
   )
 }
 
@@ -551,4 +552,5 @@ const DialogHeader = React.memo(function DialogHeader(props: DialogHeaderProps) 
 })
 
 Dialog.Close = Close
+Dialog.Dismiss = DialogDismiss
 Dialog.Trigger = DialogTrigger

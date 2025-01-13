@@ -73,10 +73,10 @@ import * as subscribeSuccess from '#/pages/subscribe/SubscribeSuccess'
 import * as openAppWatcher from '#/layouts/OpenAppWatcher'
 import VersionChecker from '#/layouts/VersionChecker'
 
-import { RouterProvider } from '#/components/aria'
 import * as devtools from '#/components/Devtools'
 import * as errorBoundary from '#/components/ErrorBoundary'
 import * as suspense from '#/components/Suspense'
+import { RouterProvider } from 'react-aria-components'
 
 import AboutModal from '#/modals/AboutModal'
 import { AgreementsModal } from '#/modals/AgreementsModal'

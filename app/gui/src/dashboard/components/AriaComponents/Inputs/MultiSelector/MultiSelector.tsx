@@ -84,7 +84,7 @@ export const MULTI_SELECTOR_STYLES = tv({
 export const MultiSelector = forwardRef(function MultiSelector<
   Schema extends TSchema,
   TFieldName extends FieldPath<Schema>,
->(props: MultiSelectorProps<Schema, TFieldName>, ref: ForwardedRef<HTMLFieldSetElement>) {
+>(props: MultiSelectorProps<Schema, TFieldName>, ref: ForwardedRef<HTMLDivElement>) {
   const {
     name,
     items,

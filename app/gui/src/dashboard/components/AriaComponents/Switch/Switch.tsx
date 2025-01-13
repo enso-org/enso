@@ -61,7 +61,7 @@ export const SWITCH_STYLES = tv({
 export const Switch = forwardRef(function Switch<
   Schema extends TSchema,
   TFieldName extends FieldPath<Schema>,
->(props: SwitchProps<Schema, TFieldName>, ref: ForwardedRef<HTMLFieldSetElement>) {
+>(props: SwitchProps<Schema, TFieldName>, ref: ForwardedRef<HTMLDivElement>) {
   const {
     label,
     isDisabled = false,

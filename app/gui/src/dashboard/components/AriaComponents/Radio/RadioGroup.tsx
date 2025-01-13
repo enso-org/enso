@@ -30,6 +30,7 @@ export interface RadioGroupProps<
     FieldVariantProps {
   readonly children?: React.ReactNode
   readonly className?: string
+  readonly style?: React.CSSProperties
 }
 
 export const RADIO_GROUP_STYLES = twv.tv({
@@ -38,7 +39,6 @@ export const RADIO_GROUP_STYLES = twv.tv({
 })
 
 /** A radio group component. */
-
 export const RadioGroup = forwardRef(function RadioGroup<
   Schema extends formComponent.TSchema,
   TFieldName extends formComponent.FieldPath<Schema>,
@@ -98,7 +98,7 @@ export const RadioGroup = forwardRef(function RadioGroup<
           fullWidth={fullWidth}
           isInvalid={invalid}
           variants={fieldVariants}
-          {...radioGroupProps}
+          isRequired={isRequired}
         >
           {children}
         </formComponent.Form.Field>
