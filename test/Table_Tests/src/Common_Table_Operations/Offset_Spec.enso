@@ -148,6 +148,18 @@ add_offset_specs suite_builder setup =
         group_builder.specify "Works with positive n values (n=2)" <|
             r = t.offset ["A"] 2
             r . at "TEMP" . to_vector . should_equal [3, Nothing, Nothing]
+        group_builder.specify "Zero n is a no-op" <|
+            r = t.offset ["A"] 0
+            r . at "TEMP" . to_vector . should_equal [1, 2, 3]
+        group_builder.specify "Large negative n values work" <|
+            r = t.offset ["A"] -1024
+            r . at "TEMP" . to_vector . should_equal [Nothing, Nothing, Nothing]
+        group_builder.specify "Large positive n values work" <|
+            r = t.offset ["A"] 1024
+            r . at "TEMP" . to_vector . should_equal [Nothing, Nothing, Nothing]
+        group_builder.specify "Works with zero rows" <|
+            r = t.take 0 . offset ["A"]
+            r . at "TEMP" . to_vector . should_equal []
     suite_builder.group prefix+"Table.Offset with default fill strategy (Text Values)" group_builder->
         group_builder.specify "Works with default values" <|
             r = t.offset ["Text Values"]
