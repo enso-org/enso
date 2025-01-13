@@ -10,5 +10,4 @@ public interface RunningStatistic<TypeStorage, TypeIterator> {
 
   void finalise(TypeIterator it);
 
-  Storage<TypeStorage> getResult();
 }

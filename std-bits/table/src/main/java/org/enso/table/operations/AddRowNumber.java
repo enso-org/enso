@@ -59,7 +59,6 @@ public class AddRowNumber {
 
     }
 
-    @Override
     public Storage<Long> getResult() {
       return new LongStorage(numbers, IntegerType.INT_64);
     }

@@ -39,15 +39,11 @@ public class Offset {
     private static class OffsetRunningStatistic<T> implements RunningStatistic<Long, OffsetIterator> {
 
         int[] result;
-        BitSet isNothing;
-        ColumnAggregatedProblemAggregator columnAggregatedProblemAggregator;
         Column sourceColumn;
         int n;
 
         OffsetRunningStatistic(Column sourceColumn, int n, ProblemAggregator problemAggregator) {
             result = new int[sourceColumn.getSize()];
-            isNothing = new BitSet();
-            columnAggregatedProblemAggregator = new ColumnAggregatedProblemAggregator(problemAggregator);
             this.sourceColumn = sourceColumn;
             this.n = n;
         }
@@ -80,13 +76,6 @@ public class Offset {
 
         Storage<?> getResultColumn() {
             return sourceColumn.getStorage().applyMask(OrderMask.fromArray(result));
-        }
-
-        @Override
-        public Storage<Long> getResult() {
-            
-            return null;
-            
         }
 
         @Override

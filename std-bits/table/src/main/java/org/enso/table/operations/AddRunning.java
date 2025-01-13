@@ -1,6 +1,7 @@
 package org.enso.table.operations;
 
 import java.util.BitSet;
+
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.base.statistics.Statistic;
 import org.enso.table.data.column.storage.Storage;
@@ -33,7 +34,7 @@ public class AddRunning {
     return runningStatistic.getResult();
   }
 
-  private static RunningStatistic<?, ?> createRunningStatistic(
+  private static RunningStatisticBase<?> createRunningStatistic(
       Statistic statistic, Column sourceColumn, ProblemAggregator problemAggregator) {
     switch (statistic) {
       case Sum -> {
@@ -179,7 +180,6 @@ public class AddRunning {
 
     }
 
-    @Override
     public Storage<T> getResult() {
       return typeHandler.createStorage(result, sourceColumn.getSize(), isNothing);
     }
