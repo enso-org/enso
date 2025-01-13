@@ -1,8 +1,6 @@
 package org.enso.table.operations;
 
-import org.enso.table.data.column.storage.Storage;
-
-public interface RunningStatistic<TypeStorage, TypeIterator> {
+public interface RunningStatistic<TypeIterator> {
 
   TypeIterator getNewIterator();
 

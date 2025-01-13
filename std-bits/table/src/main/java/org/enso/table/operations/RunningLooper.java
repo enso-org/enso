@@ -20,14 +20,14 @@ import org.enso.table.util.ConstantList;
 abstract class RunningLooper<TypeStorage, TypeIterator> {
 
   // implement this method in subclasses to control the order you want to loop over the data
-  public abstract void loopImpl(RunningStatistic<TypeStorage, TypeIterator> runningStatistic, long numRows);
+  public abstract void loopImpl(RunningStatistic<TypeIterator> runningStatistic, long numRows);
 
   public static <TypeStorage, TypeIterator> void loop(
       Column[] groupingColumns,
       Column[] orderingColumns,
       int[] directions,
       ProblemAggregator problemAggregator,
-      RunningStatistic<TypeStorage, TypeIterator> runningStatistic,
+      RunningStatistic<TypeIterator> runningStatistic,
       long numRows) {
     if (orderingColumns.length != directions.length) {
       throw new IllegalArgumentException(
@@ -54,7 +54,7 @@ class NoGroupingNoOrderingRunning<TypeStorage, TypeIterator> extends RunningLoop
   NoGroupingNoOrderingRunning() {}
 
   @Override
-  public void loopImpl(RunningStatistic<TypeStorage, TypeIterator> runningStatistic, long numRows) {
+  public void loopImpl(RunningStatistic<TypeIterator> runningStatistic, long numRows) {
     var it = runningStatistic.getNewIterator();
     for (int i = 0; i < numRows; i++) {
       runningStatistic.calculateNextValue(i, it);
@@ -82,7 +82,7 @@ class GroupingNoOrderingRunning<TypeStorage, TypeIterator> extends RunningLooper
   }
 
   @Override
-  public void loopImpl(RunningStatistic<TypeStorage, TypeIterator> runningStatistic, long numRows) {
+  public void loopImpl(RunningStatistic<TypeIterator> runningStatistic, long numRows) {
     for (int i = 0; i < numRows; i++) {
       var key = new UnorderedMultiValueKey(groupingStorages, i, textFoldingStrategy);
       key.checkAndReportFloatingEquality(
@@ -112,7 +112,7 @@ class NoGroupingOrderingRunning<TypeStorage, TypeIterator> extends RunningLooper
   }
 
   @Override
-  public void loopImpl(RunningStatistic<TypeStorage, TypeIterator> runningStatistic, long numRows) {
+  public void loopImpl(RunningStatistic<TypeIterator> runningStatistic, long numRows) {
     var it = runningStatistic.getNewIterator();
     for (var key : keys) {
       var i = key.getRowIndex();
@@ -148,7 +148,7 @@ class GroupingOrderingRunning<TypeStorage, TypeIterator> extends RunningLooper<T
   }
 
   @Override
-  public void loopImpl(RunningStatistic<TypeStorage, TypeIterator> runningStatistic, long numRows) {
+  public void loopImpl(RunningStatistic<TypeIterator> runningStatistic, long numRows) {
     var groupIndex =
         MultiValueIndex.makeUnorderedIndex(
             groupingColumns,

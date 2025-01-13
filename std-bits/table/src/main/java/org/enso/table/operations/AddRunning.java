@@ -135,7 +135,7 @@ public class AddRunning {
     }
   }
 
-  private abstract static class RunningStatisticBase<T> implements RunningStatistic<T, RunningIterator<T>> {
+  private abstract static class RunningStatisticBase<T> implements RunningStatistic<RunningIterator<T>> {
 
     long[] result;
     BitSet isNothing;

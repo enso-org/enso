@@ -36,7 +36,7 @@ public class Offset {
         return offsetRunningStatistic.getResultColumn();
       }
 
-    private static class OffsetRunningStatistic<T> implements RunningStatistic<Long, OffsetIterator> {
+    private static class OffsetRunningStatistic<T> implements RunningStatistic<OffsetIterator> {
 
         int[] result;
         Column sourceColumn;

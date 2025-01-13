@@ -30,7 +30,7 @@ public class AddRowNumber {
     return numberingStatistic.getResult();
   }
 
-  private static class NumberingStatistic implements RunningStatistic<Long, RunningIterator<Long>> {
+  private static class NumberingStatistic implements RunningStatistic<RunningIterator<Long>> {
 
     private final long start;
     private final long step;
