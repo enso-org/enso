@@ -8,7 +8,7 @@ import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.error.ValueTypeMismatchException;
 
 /** A builder for string columns. */
-public class StringBuilder extends TypedBuilderImpl<String> {
+public class StringBuilder extends TypedBuilder<String> {
   private final TextType type;
 
   @Override

@@ -22,7 +22,7 @@ import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.BitSets;
 
 /** A builder for floating point columns. */
-public class DoubleBuilder extends NumericBuilder {
+public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
   DoubleBuilder(
       BitSet isNothing, long[] data, int currentSize, ProblemAggregator problemAggregator) {
     super(isNothing, data, currentSize);
@@ -30,7 +30,7 @@ public class DoubleBuilder extends NumericBuilder {
   }
 
   @Override
-  public void retypeToMixed(Object[] items) {
+  public void copyDataTo(Object[] items) {
     throw new IllegalStateException(
         "The DoubleBuilder cannot be retyped to the Mixed type, because it would lose type"
             + " information about integers that were converted to doubles. If recasting is needed,"
@@ -44,7 +44,7 @@ public class DoubleBuilder extends NumericBuilder {
   }
 
   @Override
-  public TypedBuilder retypeTo(StorageType type) {
+  public Builder retypeTo(StorageType type) {
     if (type instanceof BigDecimalType) {
       BigDecimalBuilder res = new BigDecimalBuilder(currentSize);
       for (int i = 0; i < currentSize; i++) {

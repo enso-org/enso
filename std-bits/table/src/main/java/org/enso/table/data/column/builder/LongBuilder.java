@@ -17,7 +17,7 @@ import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.BitSets;
 
 /** A builder for integer columns. */
-public abstract class LongBuilder extends NumericBuilder {
+public abstract class LongBuilder extends NumericBuilder implements BuilderForLong {
   protected final ProblemAggregator problemAggregator;
 
   protected LongBuilder(
@@ -37,7 +37,7 @@ public abstract class LongBuilder extends NumericBuilder {
   }
 
   @Override
-  public void retypeToMixed(Object[] items) {
+  public void copyDataTo(Object[] items) {
     for (int i = 0; i < currentSize; i++) {
       if (isNothing.get(i)) {
         items[i] = null;
@@ -54,7 +54,7 @@ public abstract class LongBuilder extends NumericBuilder {
   }
 
   @Override
-  public TypedBuilder retypeTo(StorageType type) {
+  public Builder retypeTo(StorageType type) {
     if (Objects.equals(type, BigIntegerType.INSTANCE)) {
       return BigIntegerBuilder.retypeFromLongBuilder(this);
     } else if (Objects.equals(type, FloatType.FLOAT_64)) {

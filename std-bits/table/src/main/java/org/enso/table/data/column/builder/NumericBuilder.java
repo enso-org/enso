@@ -6,7 +6,7 @@ import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.problems.ProblemAggregator;
 
 /** A common base for numeric builders. */
-public abstract class NumericBuilder extends TypedBuilder {
+public abstract class NumericBuilder implements Builder {
   protected BitSet isNothing;
   protected long[] data;
   protected int currentSize;
@@ -42,12 +42,6 @@ public abstract class NumericBuilder extends TypedBuilder {
     currentSize += count;
   }
 
-  protected void ensureFreeSpaceFor(int additionalSize) {
-    if (currentSize + additionalSize > data.length) {
-      resize(currentSize + additionalSize);
-    }
-  }
-
   @Override
   public void append(Object o) {
     if (currentSize >= data.length) {
@@ -72,6 +66,12 @@ public abstract class NumericBuilder extends TypedBuilder {
   @Override
   public int getCurrentSize() {
     return currentSize;
+  }
+
+  protected void ensureFreeSpaceFor(int additionalSize) {
+    if (currentSize + additionalSize > data.length) {
+      resize(currentSize + additionalSize);
+    }
   }
 
   /**

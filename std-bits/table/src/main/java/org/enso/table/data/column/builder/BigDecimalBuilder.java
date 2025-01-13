@@ -8,7 +8,7 @@ import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.error.ValueTypeMismatchException;
 
 /** A builder for BigDecimal columns. */
-public class BigDecimalBuilder extends TypedBuilderImpl<BigDecimal> {
+public class BigDecimalBuilder extends TypedBuilder<BigDecimal> {
   @Override
   protected BigDecimal[] newArray(int size) {
     return new BigDecimal[size];

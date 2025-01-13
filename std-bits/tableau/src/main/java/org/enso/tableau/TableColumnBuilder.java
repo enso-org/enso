@@ -14,7 +14,6 @@ import org.enso.table.data.column.builder.DateBuilder;
 import org.enso.table.data.column.builder.DateTimeBuilder;
 import org.enso.table.data.column.builder.InferredBuilder;
 import org.enso.table.data.column.builder.NumericBuilder;
-import org.enso.table.data.column.builder.ObjectBuilder;
 import org.enso.table.data.column.builder.StringBuilder;
 import org.enso.table.data.column.builder.TimeOfDayBuilder;
 import org.enso.table.data.column.storage.Storage;

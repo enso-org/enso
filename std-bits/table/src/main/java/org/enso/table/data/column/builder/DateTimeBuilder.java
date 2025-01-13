@@ -14,7 +14,7 @@ import org.enso.table.error.ValueTypeMismatchException;
 import org.graalvm.polyglot.Context;
 
 /** A builder for ZonedDateTime columns. */
-public class DateTimeBuilder extends TypedBuilderImpl<ZonedDateTime> {
+public class DateTimeBuilder extends TypedBuilder<ZonedDateTime> {
   @Override
   protected ZonedDateTime[] newArray(int size) {
     return new ZonedDateTime[size];
@@ -99,7 +99,7 @@ public class DateTimeBuilder extends TypedBuilderImpl<ZonedDateTime> {
   }
 
   @Override
-  public void retypeToMixed(Object[] items) {
+  public void copyDataTo(Object[] items) {
     if (allowDateToDateTimeConversion) {
       if (currentSize >= 0) {
         System.arraycopy(data, 0, items, 0, currentSize);
@@ -112,7 +112,7 @@ public class DateTimeBuilder extends TypedBuilderImpl<ZonedDateTime> {
         }
       }
     } else {
-      super.retypeToMixed(items);
+      super.copyDataTo(items);
     }
   }
 }

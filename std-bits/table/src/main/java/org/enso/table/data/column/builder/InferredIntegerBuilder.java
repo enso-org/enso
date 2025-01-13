@@ -14,7 +14,7 @@ import org.enso.table.problems.ProblemAggregator;
  * <p>This builder starts off delegating to LongBuilder, but if it receives a BigInteger, it retypes
  * the LongBuilder to a BigIntegerBuilder.
  */
-public class InferredIntegerBuilder extends Builder {
+public class InferredIntegerBuilder implements Builder {
   private LongBuilder longBuilder = null;
   private TypedBuilder bigIntegerBuilder = null;
   private int currentSize = 0;

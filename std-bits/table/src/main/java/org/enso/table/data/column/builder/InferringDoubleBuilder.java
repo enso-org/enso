@@ -78,7 +78,7 @@ public class InferringDoubleBuilder extends DoubleBuilder {
   private final BitSet isLongCompactedAsDouble;
 
   @Override
-  public void retypeToMixed(Object[] items) {
+  public void copyDataTo(Object[] items) {
     int rawN = rawData == null ? 0 : rawData.length;
     for (int i = 0; i < currentSize; i++) {
       if (isNothing.get(i)) {

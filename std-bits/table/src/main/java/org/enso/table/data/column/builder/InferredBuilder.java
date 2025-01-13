@@ -15,8 +15,8 @@ import org.enso.table.problems.ProblemAggregator;
 /**
  * A builder performing type inference on the appended elements, choosing the best possible storage.
  */
-public class InferredBuilder extends Builder {
-  private TypedBuilder currentBuilder = null;
+public class InferredBuilder implements Builder {
+  private Builder currentBuilder = null;
   private int currentSize = 0;
   private final int initialSize;
   private final ProblemAggregator problemAggregator;
@@ -70,6 +70,11 @@ public class InferredBuilder extends Builder {
   }
 
   @Override
+  public boolean accepts(Object o) {
+    return false;
+  }
+
+  @Override
   public void append(Object o) {
     // ToDo: This a workaround for an issue with polyglot layer. #5590 is related.
     o = Polyglot_Utils.convertPolyglotValue(o);
@@ -112,16 +117,15 @@ public class InferredBuilder extends Builder {
   private void initBuilderFor(Object o) {
     int initialCapacity = Math.max(initialSize, currentSize);
     if (o instanceof Boolean) {
-      currentBuilder = new BoolBuilder();
+      currentBuilder = Builder.getForBoolean(initialCapacity);
     } else if (NumericConverter.isCoercibleToLong(o)) {
       // In inferred builder, we always default to 64-bits.
-      currentBuilder =
-          NumericBuilder.createLongBuilder(initialCapacity, IntegerType.INT_64, problemAggregator);
+      currentBuilder = Builder.getForLong(initialCapacity, IntegerType.INT_64, problemAggregator);
     } else if (NumericConverter.isFloatLike(o)) {
       currentBuilder =
           NumericBuilder.createInferringDoubleBuilder(initialCapacity, problemAggregator);
     } else if (o instanceof String) {
-      currentBuilder = new StringBuilder(initialCapacity, TextType.VARIABLE_LENGTH);
+      currentBuilder = Builder.getForType(TextType.VARIABLE_LENGTH, initialCapacity, null);
     } else if (o instanceof BigInteger) {
       currentBuilder = new BigIntegerBuilder(initialCapacity, problemAggregator);
     } else if (o instanceof BigDecimal) {
@@ -181,7 +185,7 @@ public class InferredBuilder extends Builder {
     int capacity = Math.max(initialSize, currentSize);
 
     ObjectBuilder objectBuilder = new MixedBuilder(capacity);
-    currentBuilder.retypeToMixed(objectBuilder.getData());
+    currentBuilder.copyDataTo(objectBuilder.getData());
     objectBuilder.setCurrentSize(currentBuilder.getCurrentSize());
     currentBuilder = objectBuilder;
   }
@@ -203,5 +207,20 @@ public class InferredBuilder extends Builder {
   public StorageType getType() {
     // The type of InferredBuilder can change over time, so we do not report any stable type here.
     return null;
+  }
+
+  @Override
+  public void copyDataTo(Object[] items) {
+
+  }
+
+  @Override
+  public boolean canRetypeTo(StorageType type) {
+    return false;
+  }
+
+  @Override
+  public Builder retypeTo(StorageType type) {
+    throw new UnsupportedOperationException();
   }
 }

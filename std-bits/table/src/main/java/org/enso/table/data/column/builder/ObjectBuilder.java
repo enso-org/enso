@@ -8,7 +8,7 @@ import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.StorageType;
 
 /** A builder for boxed object columns. */
-public class ObjectBuilder extends TypedBuilder {
+public class ObjectBuilder implements Builder {
   protected Object[] data;
   protected int currentSize = 0;
 
@@ -21,8 +21,10 @@ public class ObjectBuilder extends TypedBuilder {
   }
 
   @Override
-  public void retypeToMixed(Object[] items) {
-    throw new IllegalStateException("Broken invariant: rewriting the most general type.");
+  public void copyDataTo(Object[] items) {
+    if (currentSize >= 0) {
+      System.arraycopy(data, 0, items, 0, currentSize);
+    }
   }
 
   @Override
@@ -31,8 +33,8 @@ public class ObjectBuilder extends TypedBuilder {
   }
 
   @Override
-  public TypedBuilder retypeTo(StorageType type) {
-    throw new IllegalStateException("Broken invariant: rewriting the most general type.");
+  public Builder retypeTo(StorageType type) {
+    throw new UnsupportedOperationException("Broken invariant: rewriting the most general type.");
   }
 
   @Override
