@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
+
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.index.MultiValueIndex;
@@ -16,23 +17,23 @@ import org.enso.table.problems.ColumnAggregatedProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.ConstantList;
 
-abstract class RunningLooper<T> {
+abstract class RunningLooper<TypeStorage, TypeIterator> {
 
   // implement this method in subclasses to control the order you want to loop over the data
-  public abstract void loopImpl(RunningStatistic<T> runningStatistic, long numRows);
+  public abstract void loopImpl(RunningStatistic<TypeStorage, TypeIterator> runningStatistic, long numRows);
 
-  public static <T> void loop(
+  public static <TypeStorage, TypeIterator> void loop(
       Column[] groupingColumns,
       Column[] orderingColumns,
       int[] directions,
       ProblemAggregator problemAggregator,
-      RunningStatistic<T> runningStatistic,
+      RunningStatistic<TypeStorage, TypeIterator> runningStatistic,
       long numRows) {
     if (orderingColumns.length != directions.length) {
       throw new IllegalArgumentException(
           "The number of ordering columns and directions must be the same.");
     }
-    RunningLooper<T> runningLooper;
+    RunningLooper<TypeStorage, TypeIterator> runningLooper;
     if (groupingColumns.length > 0 && orderingColumns.length > 0) {
       runningLooper =
           new GroupingOrderingRunning<>(
@@ -48,26 +49,27 @@ abstract class RunningLooper<T> {
   }
 }
 
-class NoGroupingNoOrderingRunning<T> extends RunningLooper<T> {
+class NoGroupingNoOrderingRunning<TypeStorage, TypeIterator> extends RunningLooper<TypeStorage, TypeIterator> {
 
   NoGroupingNoOrderingRunning() {}
 
   @Override
-  public void loopImpl(RunningStatistic<T> runningStatistic, long numRows) {
+  public void loopImpl(RunningStatistic<TypeStorage, TypeIterator> runningStatistic, long numRows) {
     var it = runningStatistic.getNewIterator();
     for (int i = 0; i < numRows; i++) {
       runningStatistic.calculateNextValue(i, it);
     }
+    runningStatistic.finalise(it);
   }
 }
 
-class GroupingNoOrderingRunning<T> extends RunningLooper<T> {
+class GroupingNoOrderingRunning<TypeStorage, TypeIterator> extends RunningLooper<TypeStorage, TypeIterator> {
 
   private final Column[] groupingColumns;
   private final Storage<?>[] groupingStorages;
   private final ColumnAggregatedProblemAggregator groupingProblemAggregator;
   private final List<TextFoldingStrategy> textFoldingStrategy;
-  private final Map<UnorderedMultiValueKey, RunningIterator<T>> groups;
+  private final Map<UnorderedMultiValueKey, TypeIterator> groups;
 
   public GroupingNoOrderingRunning(Column[] groupingColumns, ProblemAggregator problemAggregator) {
     this.groupingColumns = groupingColumns;
@@ -80,7 +82,7 @@ class GroupingNoOrderingRunning<T> extends RunningLooper<T> {
   }
 
   @Override
-  public void loopImpl(RunningStatistic<T> runningStatistic, long numRows) {
+  public void loopImpl(RunningStatistic<TypeStorage, TypeIterator> runningStatistic, long numRows) {
     for (int i = 0; i < numRows; i++) {
       var key = new UnorderedMultiValueKey(groupingStorages, i, textFoldingStrategy);
       key.checkAndReportFloatingEquality(
@@ -88,10 +90,11 @@ class GroupingNoOrderingRunning<T> extends RunningLooper<T> {
       var it = groups.computeIfAbsent(key, k -> runningStatistic.getNewIterator());
       runningStatistic.calculateNextValue(i, it);
     }
+    groups.forEach((key, it) -> runningStatistic.finalise(it));
   }
 }
 
-class NoGroupingOrderingRunning<T> extends RunningLooper<T> {
+class NoGroupingOrderingRunning<TypeStorage, TypeIterator> extends RunningLooper<TypeStorage, TypeIterator> {
 
   private final Storage<?>[] orderingStorages;
   private final List<OrderedMultiValueKey> keys;
@@ -109,16 +112,17 @@ class NoGroupingOrderingRunning<T> extends RunningLooper<T> {
   }
 
   @Override
-  public void loopImpl(RunningStatistic<T> runningStatistic, long numRows) {
+  public void loopImpl(RunningStatistic<TypeStorage, TypeIterator> runningStatistic, long numRows) {
     var it = runningStatistic.getNewIterator();
     for (var key : keys) {
       var i = key.getRowIndex();
       runningStatistic.calculateNextValue(i, it);
     }
+    runningStatistic.finalise(it);
   }
 }
 
-class GroupingOrderingRunning<T> extends RunningLooper<T> {
+class GroupingOrderingRunning<TypeStorage, TypeIterator> extends RunningLooper<TypeStorage, TypeIterator> {
 
   private final Column[] groupingColumns;
   private final Column[] orderingColumns;
@@ -144,7 +148,7 @@ class GroupingOrderingRunning<T> extends RunningLooper<T> {
   }
 
   @Override
-  public void loopImpl(RunningStatistic<T> runningStatistic, long numRows) {
+  public void loopImpl(RunningStatistic<TypeStorage, TypeIterator> runningStatistic, long numRows) {
     var groupIndex =
         MultiValueIndex.makeUnorderedIndex(
             groupingColumns,
@@ -164,6 +168,7 @@ class GroupingOrderingRunning<T> extends RunningLooper<T> {
         var i = key.getRowIndex();
         runningStatistic.calculateNextValue(i, it);
       }
+      runningStatistic.finalise(it);
     }
   }
 }

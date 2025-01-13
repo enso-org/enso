@@ -35,7 +35,7 @@ public class Offset {
         return offsetRunningStatistic.getResult();
       }
 
-    private static class OffsetRunningStatistic<T> implements RunningStatistic<Long> {
+    private static class OffsetRunningStatistic<T> implements RunningStatistic<Long, OffsetIterator> {
 
         long[] result;
         BitSet isNothing;
@@ -52,7 +52,7 @@ public class Offset {
         }
 
         @Override
-        public void calculateNextValue(int i, RunningIterator<Long> it) {
+        public void calculateNextValue(int i, OffsetIterator it) {
             Object value = sourceColumn.getStorage().getItemBoxed(i);
             Long dValue = NumericConverter.tryConvertingToLong(value);
             if (n<0) {
@@ -71,30 +71,38 @@ public class Offset {
         }
 
         @Override
+        public void finalise(OffsetIterator it) {
+            if (n>0) {
+            while (!it.queue.isEmpty()) {
+                isNothing.set(it.queue.poll().intValue()); 
+                }
+            }
+        }
+
+        @Override
         public Storage<Long> getResult() {
             return new LongStorage(result, sourceColumn.getSize(), isNothing, IntegerType.INT_64);
         }
 
         @Override
-        public RunningIterator<Long> getNewIterator() {
-            return new OffsetRunning(n);
+        public OffsetIterator getNewIterator() {
+            return new OffsetIterator(n);
         }
     }
 
 
-  private static class OffsetRunning implements RunningIterator<Long> {
+  private static class OffsetIterator {
         Queue<Long> queue;
         int n;
         int current_n;
 
-        public OffsetRunning(int n)
+        public OffsetIterator(int n)
         {
             this.queue = new LinkedList<>();
             this.n = n;
             this.current_n = 0;
         }
 
-        @Override
         public Long next(Long value) {
             queue.add(value);
             current_n++;
@@ -105,7 +113,6 @@ public class Offset {
             }
         }
 
-        @Override
         public Long currentValue() {
             // if nn
             return queue.peek();

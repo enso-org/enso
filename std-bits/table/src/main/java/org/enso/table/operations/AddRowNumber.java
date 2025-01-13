@@ -30,7 +30,7 @@ public class AddRowNumber {
     return numberingStatistic.getResult();
   }
 
-  private static class NumberingStatistic implements RunningStatistic<Long> {
+  private static class NumberingStatistic implements RunningStatistic<Long, RunningIterator<Long>> {
 
     private final long start;
     private final long step;
@@ -52,6 +52,11 @@ public class AddRowNumber {
     @Override
     public void calculateNextValue(int i, RunningIterator<Long> it) {
       numbers[i] = it.next(0l);
+    }
+
+    @Override
+    public void finalise(RunningIterator<Long> it) {
+
     }
 
     @Override

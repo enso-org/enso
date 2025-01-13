@@ -2,11 +2,13 @@ package org.enso.table.operations;
 
 import org.enso.table.data.column.storage.Storage;
 
-public interface RunningStatistic<T> {
+public interface RunningStatistic<TypeStorage, TypeIterator> {
 
-  RunningIterator<T> getNewIterator();
+  TypeIterator getNewIterator();
 
-  void calculateNextValue(int i, RunningIterator<T> it);
+  void calculateNextValue(int i, TypeIterator it);
 
-  Storage<T> getResult();
+  void finalise(TypeIterator it);
+
+  Storage<TypeStorage> getResult();
 }

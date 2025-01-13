@@ -33,7 +33,7 @@ public class AddRunning {
     return runningStatistic.getResult();
   }
 
-  private static RunningStatistic<?> createRunningStatistic(
+  private static RunningStatistic<?, ?> createRunningStatistic(
       Statistic statistic, Column sourceColumn, ProblemAggregator problemAggregator) {
     switch (statistic) {
       case Sum -> {
@@ -134,7 +134,7 @@ public class AddRunning {
     }
   }
 
-  private abstract static class RunningStatisticBase<T> implements RunningStatistic<T> {
+  private abstract static class RunningStatisticBase<T> implements RunningStatistic<T, RunningIterator<T>> {
 
     long[] result;
     BitSet isNothing;
@@ -172,6 +172,11 @@ public class AddRunning {
       } else {
         result[i] = typeHandler.typeToRawLongBits(dNextValue);
       }
+    }
+
+    @Override
+    public void finalise(RunningIterator<T> it) {
+
     }
 
     @Override
