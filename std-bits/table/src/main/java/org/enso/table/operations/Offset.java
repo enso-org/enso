@@ -1,21 +1,12 @@
 package org.enso.table.operations;
 
-import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.table.Column;
-import org.enso.table.problems.ProblemAggregator;
-
-import java.util.BitSet;
 import java.util.LinkedList;
 import java.util.Queue;
 
-import org.apache.commons.math3.analysis.function.Abs;
-import org.apache.poi.xssf.model.ThemesTable;
-import org.enso.base.polyglot.NumericConverter;
-import org.enso.table.data.column.storage.numeric.DoubleStorage;
-import org.enso.table.data.column.storage.numeric.LongStorage;
-import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.mask.OrderMask;
-import org.enso.table.problems.ColumnAggregatedProblemAggregator;
+import org.enso.table.data.table.Column;
+import org.enso.table.problems.ProblemAggregator;
 
 public class Offset {
     public static Storage<?> offset(
@@ -25,7 +16,7 @@ public class Offset {
       Column[] orderingColumns,
       int[] directions,
       ProblemAggregator problemAggregator) {
-        var offsetRunningStatistic = new OffsetRunningStatistic<Long>(sourceColumn, n, problemAggregator);
+        var offsetRunningStatistic = new OffsetRunningStatistic(sourceColumn, n, problemAggregator);
         RunningLooper.loop(
             groupingColumns,
             orderingColumns,
@@ -36,7 +27,7 @@ public class Offset {
         return offsetRunningStatistic.getResultColumn();
       }
 
-    private static class OffsetRunningStatistic<T> implements RunningStatistic<OffsetIterator> {
+    private static class OffsetRunningStatistic implements RunningStatistic<OffsetIterator> {
 
         int[] result;
         Column sourceColumn;
@@ -106,11 +97,5 @@ public class Offset {
                 return null;
             }
         }
-
-        public Integer currentValue() {
-            // if nn
-            return queue.peek();
-        }
-
   }
 }
