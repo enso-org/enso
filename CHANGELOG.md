@@ -18,8 +18,10 @@
 
 - [Allow using `/` to access files inside a directory reached through a data
   link.][11926]
+- [Reducing helper methods in `Standard.Base.Meta`.][12031]
 
 [11926]: https://github.com/enso-org/enso/pull/11926
+[12031]: https://github.com/enso-org/enso/pull/12031
 
 #### Enso Language & Runtime
 
