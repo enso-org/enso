@@ -97,7 +97,7 @@
     "input-otp": "1.2.4",
     "install": "^0.13.0",
     "is-network-error": "^1.1.0",
-    "isomorphic-ws": "^5.0.0",
+    "modern-isomorphic-ws": "^1.0.5",
     "lexical": "^0.21.0",
     "lib0": "^0.2.99",
     "magic-string": "^0.30.17",

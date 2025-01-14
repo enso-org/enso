@@ -156,6 +156,11 @@
         "dependencies": {
           "@storybook/react-vite": "*"
         }
+      },
+      "modern-isomorphic-ws": {
+        "peerDependencies": {
+          "@types/ws": "*"
+        }
       }
     }
   },
