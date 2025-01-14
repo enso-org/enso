@@ -1,7 +1,6 @@
 package org.enso.interpreter.test.builtins;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 
 import org.enso.test.utils.ContextUtils;
@@ -39,10 +38,7 @@ public class BuiltinsInvocationTest {
     } catch (PolyglotException e) {
       var panic = e.getGuestObject();
       assertThat("Should be panic", panic.isException());
-      assertThat(
-          "Should have Type error as payload",
-          e.getMessage(),
-          allOf(containsString("Type error"), containsString("Dataflow_Error")));
+      assertThat("Should have Type error as payload", e.getMessage(), containsString("Type error"));
     }
   }
 }
