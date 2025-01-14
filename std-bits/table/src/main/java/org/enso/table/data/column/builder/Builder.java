@@ -27,16 +27,16 @@ public interface Builder {
   static Builder getForType(StorageType type, int size, ProblemAggregator problemAggregator) {
     Builder builder =
         switch (type) {
-          case AnyObjectType x -> new MixedBuilder(size);
-          case BooleanType x -> getForBoolean(size);
-          case DateType x -> new DateBuilder(size);
-          case DateTimeType x -> new DateTimeBuilder(size);
-          case TimeOfDayType x -> new TimeOfDayBuilder(size);
+          case AnyObjectType _ -> new MixedBuilder(size);
+          case BooleanType _ -> getForBoolean(size);
+          case DateType _ -> new DateBuilder(size, false);
+          case DateTimeType _ -> new DateTimeBuilder(size);
+          case TimeOfDayType _ -> new TimeOfDayBuilder(size);
           case FloatType floatType -> getForDouble(size, floatType, problemAggregator);
           case IntegerType integerType -> getForLong(size, integerType, problemAggregator);
           case TextType textType -> new StringBuilder(size, textType);
-          case BigDecimalType x -> new BigDecimalBuilder(size);
-          case BigIntegerType x -> new BigIntegerBuilder(size, problemAggregator);
+          case BigDecimalType _ -> new BigDecimalBuilder(size);
+          case BigIntegerType _ -> new BigIntegerBuilder(size, problemAggregator);
           case null -> new InferredBuilder(size, problemAggregator);
         };
     assert java.util.Objects.equals(builder.getType(), type);

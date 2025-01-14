@@ -7,7 +7,6 @@ import java.time.Period;
 import java.time.ZoneId;
 import java.util.function.Consumer;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.builder.DateBuilder;
 import org.enso.table.data.column.builder.DateTimeBuilder;
 import org.enso.table.data.column.builder.InferredBuilder;
 import org.enso.table.data.column.builder.NumericBuilder;
@@ -15,10 +14,7 @@ import org.enso.table.data.column.builder.ObjectBuilder;
 import org.enso.table.data.column.builder.StringBuilder;
 import org.enso.table.data.column.builder.TimeOfDayBuilder;
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.type.BigDecimalType;
-import org.enso.table.data.column.storage.type.BigIntegerType;
-import org.enso.table.data.column.storage.type.IntegerType;
-import org.enso.table.data.column.storage.type.TextType;
+import org.enso.table.data.column.storage.type.*;
 import org.enso.table.problems.ProblemAggregator;
 
 /** A builder for a single column of a table. */
@@ -146,13 +142,13 @@ record TableColumnBuilder(Builder builder, Consumer<Result> appendMethod) {
             nullAppender(
                 textBuilder, column.index(), r -> textBuilder.append(r.getString(column.index()))));
       case Types.DATE:
-        var dateBuilder = new DateBuilder(initialRowCount);
+        var dateBuilder = Builder.getForType(DateType.INSTANCE, initialRowCount, problemAggregator);
         return new TableColumnBuilder(
             dateBuilder,
             nullAppender(
                 dateBuilder,
                 column.index(),
-                r -> dateBuilder.appendDate(r.getLocalDate(column.index()))));
+                r -> dateBuilder.append(r.getLocalDate(column.index()))));
       case Types.TIME:
         var timeBuilder = new TimeOfDayBuilder(initialRowCount);
         return new TableColumnBuilder(

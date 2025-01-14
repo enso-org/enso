@@ -18,11 +18,7 @@ public class DateBuilder extends TypedBuilder<LocalDate> {
 
   private final boolean allowDateToDateTimeConversion;
 
-  public DateBuilder(int size) {
-    this(size, false);
-  }
-
-  public DateBuilder(int size, boolean allowDateToDateTimeConversion) {
+  DateBuilder(int size, boolean allowDateToDateTimeConversion) {
     super(DateType.INSTANCE, size);
     this.allowDateToDateTimeConversion = allowDateToDateTimeConversion;
   }
@@ -34,10 +30,6 @@ public class DateBuilder extends TypedBuilder<LocalDate> {
     } catch (ClassCastException e) {
       throw new ValueTypeMismatchException(getType(), o);
     }
-  }
-
-  public void appendDate(LocalDate date) {
-    append(date);
   }
 
   @Override
