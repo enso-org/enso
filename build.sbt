@@ -602,10 +602,10 @@ val jline = Seq(
 )
 
 // === Google =================================================================
-val googleApiClientVersion         = "2.2.0"
-val googleApiServicesSheetsVersion = "v4-rev612-1.25.0"
-val googleAnalyticsAdminVersion    = "0.62.0"
-val googleAnalyticsDataVersion     = "0.63.0"
+val googleApiClientVersion         = "2.7.1"
+val googleApiServicesSheetsVersion = "v4-rev20250106-2.0.0"
+val googleAnalyticsAdminVersion    = "0.66.0"
+val googleAnalyticsDataVersion     = "0.67.0"
 val grpcVersion                    = "1.67.1"
 
 // === Other ==================================================================
