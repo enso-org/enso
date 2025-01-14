@@ -180,7 +180,7 @@ test("can't run a project in browser by default", ({ page }) =>
     await expect(startProjectButton).toBeDisabled()
   }))
 
-test("can't start an already running by another user", ({ page }) =>
+test("can't start a project already being run by another user", ({ page }) =>
   mockAllAndLogin({
     page,
     setupAPI: async (api) => {

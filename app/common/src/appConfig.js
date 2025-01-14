@@ -124,7 +124,7 @@ export function getDefines() {
 }
 
 const DUMMY_DEFINES = {
-  'process.env.NODE_ENV': 'production',
+  'process.env.NODE_ENV': process.env.NODE_ENV ?? 'production',
   'process.env.ENSO_CLOUD_ENVIRONMENT': 'production',
   'process.env.ENSO_CLOUD_API_URL': 'https://mock',
   'process.env.ENSO_CLOUD_SENTRY_DSN':
