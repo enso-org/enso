@@ -229,3 +229,9 @@ add_offset_specs suite_builder setup =
         group_builder.specify "Works with positive n and column of nothings" <|
             r = t.offset ["B"] 1 ..Wrap_Around
             r . at "TEMP" . to_vector . should_equal [Nothing, Nothing, Nothing]
+    suite_builder.group prefix+"Table.Offset works with grouping" group_builder->
+        t2 = build_sorted_table [["Group", ["A", "A", "A", "B", "B", "B", "B", "C", "C"]], ["Col", [1, 2, 3, 1, 2, 3, 4, 1, 2]]]
+        group_builder.specify "Negative n shifts the values down" <|
+            r = t2.offset ["Col"] -1 ..Nothing group_by=["Group"]
+            r . at "TEMP" .  to_vector . should_equal [Nothing, 1, 2, Nothing, 1, 2, 3, Nothing, 2]
+
