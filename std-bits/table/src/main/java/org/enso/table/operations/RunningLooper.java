@@ -17,12 +17,12 @@ import org.enso.table.problems.ColumnAggregatedProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.ConstantList;
 
-abstract class RunningLooper<TypeStorage, TypeIterator> {
+abstract class RunningLooper<TypeIterator> {
 
   // implement this method in subclasses to control the order you want to loop over the data
   public abstract void loopImpl(RunningStatistic<TypeIterator> runningStatistic, long numRows);
 
-  public static <TypeStorage, TypeIterator> void loop(
+  public static <TypeIterator> void loop(
       Column[] groupingColumns,
       Column[] orderingColumns,
       int[] directions,
@@ -33,7 +33,7 @@ abstract class RunningLooper<TypeStorage, TypeIterator> {
       throw new IllegalArgumentException(
           "The number of ordering columns and directions must be the same.");
     }
-    RunningLooper<TypeStorage, TypeIterator> runningLooper;
+    RunningLooper<TypeIterator> runningLooper;
     if (groupingColumns.length > 0 && orderingColumns.length > 0) {
       runningLooper =
           new GroupingOrderingRunning<>(
@@ -49,7 +49,7 @@ abstract class RunningLooper<TypeStorage, TypeIterator> {
   }
 }
 
-class NoGroupingNoOrderingRunning<TypeStorage, TypeIterator> extends RunningLooper<TypeStorage, TypeIterator> {
+class NoGroupingNoOrderingRunning<TypeIterator> extends RunningLooper<TypeIterator> {
 
   NoGroupingNoOrderingRunning() {}
 
@@ -63,7 +63,7 @@ class NoGroupingNoOrderingRunning<TypeStorage, TypeIterator> extends RunningLoop
   }
 }
 
-class GroupingNoOrderingRunning<TypeStorage, TypeIterator> extends RunningLooper<TypeStorage, TypeIterator> {
+class GroupingNoOrderingRunning<TypeIterator> extends RunningLooper<TypeIterator> {
 
   private final Column[] groupingColumns;
   private final Storage<?>[] groupingStorages;
@@ -94,7 +94,7 @@ class GroupingNoOrderingRunning<TypeStorage, TypeIterator> extends RunningLooper
   }
 }
 
-class NoGroupingOrderingRunning<TypeStorage, TypeIterator> extends RunningLooper<TypeStorage, TypeIterator> {
+class NoGroupingOrderingRunning<TypeIterator> extends RunningLooper<TypeIterator> {
 
   private final Storage<?>[] orderingStorages;
   private final List<OrderedMultiValueKey> keys;
@@ -122,7 +122,7 @@ class NoGroupingOrderingRunning<TypeStorage, TypeIterator> extends RunningLooper
   }
 }
 
-class GroupingOrderingRunning<TypeStorage, TypeIterator> extends RunningLooper<TypeStorage, TypeIterator> {
+class GroupingOrderingRunning<TypeIterator> extends RunningLooper<TypeIterator> {
 
   private final Column[] groupingColumns;
   private final Column[] orderingColumns;
