@@ -15,23 +15,27 @@ main = 42:(Foo Float Integer Text)
 fails with `Type error: expected expression to be Foo, but got Integer.` as `42`
 isn't value of type `Foo`.
 
-One can add any number of _atom constructors_ to such type:
+One can add any number of _atom constructors_ to such a type. For example
+following code snippet
 
 ```ruby
 type Foo x y z
     Zero
-    One v:x
-    Two v:x u:y
-    Three v:x u:y w:z
+    One u:x
+    Two u:x v:y
+    Three u:x v:y w:z
 ```
 
-adds for _atom constructors_ named 'Foo.Zero', `Foo.One`, etc. with named fields
-`x`, `u`, `w` available when some of these constructors are used. With the
-update `Foo` type definition following two versions of `main` function type
+adds four _atom constructors_ named `Foo.Zero`, `Foo.One`, etc. with fields
+named `x`, `u`, `w` initialized to provided arguments when these constructors
+are used. The type `Foo` automatically offers getters for fields `u`, `v` and
+`w`. However some of these fields may yield _undefined error value_ when other
+than `Foo.There` constructor (which assignes all the field values) is used. With
+the updated `Foo` type definition following two versions of `main` function type
 check fine:
 
 ```ruby
-main = Foo.Zero:(Foo Float Integer Text)      # yields Zero
+main = Foo.Zero:(Foo Float Integer Text)       # yields Zero
 main = (Foo.One 3.14):(Foo Float Integer Text) # yields (One 3.14)
 ```
 
