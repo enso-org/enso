@@ -5148,12 +5148,12 @@ lazy val shouldBuildNativeImage = taskKey[Boolean](
 
 ThisBuild / shouldBuildNativeImage := {
   val prop = System.getenv("ENSO_LAUNCHER")
-  BuildInfo.isReleaseMode || prop == "native" || prop == "debugnative"
+  prop == "native" || prop == "debugnative"
 }
 
 ThisBuild / NativeImage.additionalOpts := {
   val prop = System.getenv("ENSO_LAUNCHER")
-  if (BuildInfo.isReleaseMode || prop == "native") {
+  if (prop == "native") {
     Seq("-O3")
   } else {
     Seq("-ea", "-Ob", "-H:GenerateDebugInfo=1")
