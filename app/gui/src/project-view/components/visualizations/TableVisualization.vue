@@ -322,6 +322,21 @@ function getValueTypeIcon(valueType: string) {
   }
 }
 
+function getFilterType(valueType: string) {
+  switch (valueType) {
+    case 'Date':
+    case 'Date_Time':
+      return 'agDateColumnFilter'
+    case 'Integer':
+    case 'Float':
+    case 'Decimal':
+    case 'Byte':
+      return 'agNumberColumnFilter'
+    default:
+      return 'agSetColumnFilter'
+  }
+}
+
 /**
  * Generates the column definition for the table vizulization, including displaying the data value type and
  * data quality indicators.
@@ -340,6 +355,7 @@ function toField(
 
   const displayValue = valueType ? valueType.display_text : null
   const icon = valueType ? getValueTypeIcon(valueType.constructor) : null
+  const filterType = valueType ? getFilterType(valueType.constructor) : null
 
   const dataQualityMetrics =
     typeof props.data === 'object' && 'data_quality_metrics' in props.data ?
@@ -373,6 +389,7 @@ function toField(
   return {
     field: name,
     headerName: name, // AGGrid would demangle it its own way if not specified.
+    filter: filterType,
     headerComponentParams: {
       template,
       setAriaSort: () => {},
@@ -709,7 +726,7 @@ function checkSortAndFilter(e: SortChangedEvent) {
     return
   }
   const colState = gridApi.getColumnState()
-  const filter = gridApi.getFilterModel()
+  const gridFilterModel = gridApi.getFilterModel()
   const sort = colState
     .map((cs) => {
       if (cs.sort) {
@@ -721,7 +738,19 @@ function checkSortAndFilter(e: SortChangedEvent) {
       }
     })
     .filter((sort) => sort)
-  if (sort.length || Object.keys(filter).length) {
+  const filter = Object.entries(gridFilterModel).map(([key, value]) => {
+    return {
+      columnName: key,
+      filterType: value.filterType,
+      filterAction: value.type,
+      filter: value.filter, 
+      filterTo: value.filterTo, 
+      dateFrom: value.dateFrom,
+      dateTo: value.dateTo,
+      values: value.values
+    }
+  })
+  if (sort.length || filter.length) {
     isCreateNodeEnabled.value = true
     sortModel.value = sort as SortModel[]
     filterModel.value = filter
