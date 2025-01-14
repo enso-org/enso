@@ -24,10 +24,10 @@ import * as listen from '#/authentication/listen'
 import { Dialog } from '#/components/AriaComponents'
 import { Result } from '#/components/Result'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import * as gtagHooks from '#/hooks/gtagHooks'
 import { useOffline } from '#/hooks/offlineHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { unsafeWriteValue } from '#/utilities/write'
-import * as gtag from 'enso-common/src/gtag'
 import { toast } from 'react-toastify'
 import { useSetModal } from './ModalProvider'
 import { useText } from './TextProvider'
@@ -141,7 +141,7 @@ export default function SessionProvider(props: SessionProviderProps) {
     mutationFn: async () => {
       await authService.signOut()
 
-      gtag.event('cloud_sign_out')
+      gtagHooks.event('cloud_sign_out')
       const parentDomain = location.hostname.replace(/^[^.]*\./, '')
       unsafeWriteValue(document, 'cookie', `logged_in=no;max-age=0;domain=${parentDomain}`)
 
@@ -163,7 +163,7 @@ export default function SessionProvider(props: SessionProviderProps) {
 
   const signUp = useEventCallback(
     async (username: string, password: string, organizationId: string | null) => {
-      gtag.event('cloud_sign_up')
+      gtagHooks.event('cloud_sign_up')
       const result = await authService.signUp(username, password, organizationId)
 
       if (result.err) {
@@ -175,7 +175,7 @@ export default function SessionProvider(props: SessionProviderProps) {
   )
 
   const confirmSignUp = useEventCallback(async (email: string, code: string) => {
-    gtag.event('cloud_confirm_sign_up')
+    gtagHooks.event('cloud_confirm_sign_up')
     const result = await authService.confirmSignUp(email, code)
 
     if (result.err) {
@@ -192,7 +192,7 @@ export default function SessionProvider(props: SessionProviderProps) {
   })
 
   const signInWithPassword = useEventCallback(async (email: string, password: string) => {
-    gtag.event('cloud_sign_in', { provider: 'Email' })
+    gtagHooks.event('cloud_sign_in', { provider: 'Email' })
 
     const result = await authService.signInWithPassword(email, password)
 
@@ -214,7 +214,7 @@ export default function SessionProvider(props: SessionProviderProps) {
   })
 
   const signInWithGoogle = useEventCallback(() => {
-    gtag.event('cloud_sign_in', { provider: 'Google' })
+    gtagHooks.event('cloud_sign_in', { provider: 'Google' })
 
     return authService
       .signInWithGoogle()
@@ -226,7 +226,7 @@ export default function SessionProvider(props: SessionProviderProps) {
   })
 
   const signInWithGitHub = useEventCallback(() => {
-    gtag.event('cloud_sign_in', { provider: 'GitHub' })
+    gtagHooks.event('cloud_sign_in', { provider: 'GitHub' })
 
     return authService
       .signInWithGitHub()
