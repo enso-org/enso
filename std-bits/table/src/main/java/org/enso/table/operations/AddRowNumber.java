@@ -76,11 +76,6 @@ public class AddRowNumber {
 
         return current;
       }
-
-      @Override
-      public void finalise() {
-          
-      }
     }
   }
 }

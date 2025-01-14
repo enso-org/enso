@@ -58,11 +58,6 @@ public class AddGroupNumber {
       public void visit(int row) {
           numbers[row] = groupNumber;
       }
-
-      @Override
-      public void finalise() {
-          
-      }
     }
   }
 
@@ -122,11 +117,6 @@ public class AddGroupNumber {
       public void visit(int row) {
         numbers[row] = Math.addExact(start, Math.multiplyExact(step, (currentIndex / groupSize)));
         currentIndex = Math.addExact(currentIndex, 1L);
-      }
-
-      @Override
-      public void finalise() {
-          
       }
     }
   }

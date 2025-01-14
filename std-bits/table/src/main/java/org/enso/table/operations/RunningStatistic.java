@@ -6,6 +6,4 @@ public interface RunningStatistic<TypeIterator> {
 
   void calculateNextValue(int i, TypeIterator it);
 
-  void finalise(TypeIterator it);
-
 }

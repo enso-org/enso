@@ -175,11 +175,6 @@ public class AddRunning {
       }
     }
 
-    @Override
-    public void finalise(RunningIterator<T> it) {
-
-    }
-
     public Storage<T> getResult() {
       return typeHandler.createStorage(result, sourceColumn.getSize(), isNothing);
     }
