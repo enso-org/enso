@@ -1,15 +1,43 @@
 <script setup lang="ts">
 import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
+import { useGraphStore } from '@/stores/graph'
+import { QualifiedImport } from '@/stores/graph/imports'
 import type { Icon } from '@/util/iconName'
+import { QualifiedName } from '@/util/qualifiedName'
+
+const graph = useGraphStore()
 
 const props = defineProps<{
   message: string
   type: MessageType
 }>()
 
+function containsLibraryName(): string | null {
+  const prefix = 'Compile error: Fully qualified name references a library '
+  if (props.message.startsWith(prefix)) {
+    const rest = props.message.substring(prefix.length)
+    const libName = rest.split(' ')
+    return libName[0] ? libName[0] : null
+  } else {
+    return null
+  }
+}
 function copyText() {
   window.navigator.clipboard.writeText(props.message)
+}
+function fixImport() {
+  const libName = containsLibraryName()
+  if (typeof libName == `string`) {
+    window.navigator.clipboard.writeText(libName)
+    const theImport = {
+      kind: 'Qualified',
+      module: libName as QualifiedName,
+    } as QualifiedImport
+    const edit = graph.startEdit()
+    graph.addMissingImports(edit, [theImport])
+    graph.commitEdit(edit)
+  }
 }
 </script>
 
@@ -22,6 +50,7 @@ export const iconForMessageType: Record<MessageType, Icon> = {
   missing: 'metadata',
   panic: 'panic',
 }
+
 export const colorForMessageType: Record<MessageType, string> = {
   error: 'var(--color-error)',
   warning: 'var(--color-warning)',
@@ -35,6 +64,13 @@ export const colorForMessageType: Record<MessageType, string> = {
     <SvgIcon class="icon" :name="iconForMessageType[props.type]" />
     <div class="message" v-text="props.message"></div>
     <div class="toolbar">
+      <SvgButton
+        v-if="containsLibraryName()"
+        name="edit"
+        class="quickFixButton"
+        title="Fix Import"
+        @click.stop="fixImport"
+      />
       <SvgButton name="copy2" class="copyButton" title="Copy message text" @click.stop="copyText" />
     </div>
   </div>
@@ -82,6 +118,9 @@ export const colorForMessageType: Record<MessageType, string> = {
 }
 
 .copyButton:active {
+  color: var(--color-text-inversed);
+}
+.quickFixButton:active {
   color: var(--color-text-inversed);
 }
 </style>
