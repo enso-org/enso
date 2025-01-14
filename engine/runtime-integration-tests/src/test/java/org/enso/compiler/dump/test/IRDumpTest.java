@@ -13,10 +13,13 @@ import org.junit.Test;
 
 public class IRDumpTest {
   @Test
-  public void testIrDump() {
+  public void testIrDump() throws IOException {
     var irDumpsDir = Path.of(IRDumper.DEFAULT_DUMP_DIR);
     var out = new ByteArrayOutputStream();
     System.setProperty(IRDumper.SYSTEM_PROP, "true");
+    if (irDumpsDir.toFile().exists()) {
+      ProjectUtils.deleteRecursively(irDumpsDir);
+    }
     try (var ctx = ContextUtils.defaultContextBuilder().out(out).build()) {
       // Dumping is done in the compiler, so it is enough just to compile the module
       ContextUtils.compileModule(ctx, """
@@ -26,18 +29,18 @@ public class IRDumpTest {
           "ir-dumps directory was generated in current working directory",
           irDumpsDir.toFile().exists(),
           is(true));
-      var mainModDump = irDumpsDir.resolve("MyMainModule.dot");
+      var mainModDump = irDumpsDir.resolve("MyMainModule.html");
       assertThat(
-          "MyMainModule.dot file was generated in ir-dumps directory",
+          "MyMainModule.html file was generated in ir-dumps directory",
           mainModDump.toFile().exists(),
           is(true));
     } finally {
       System.setProperty(IRDumper.SYSTEM_PROP, "false");
-      try {
+      /*try {
         ProjectUtils.deleteRecursively(irDumpsDir);
       } catch (IOException e) {
         // Ignore. The ir-dumps directory should be deleted eventually.
-      }
+      }*/
       out.reset();
     }
   }

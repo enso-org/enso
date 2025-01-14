@@ -39,10 +39,10 @@ public class IRDumperPass implements IRPass {
       }
     }
     var modName = moduleContext.getName().toString();
-    var irPath = irDumpsDir.resolve(modName + ".dot");
+    var irPath = irDumpsDir.resolve(modName + ".html");
     var irDumper = IRDumper.fromPath(irPath);
-    irDumper.dump(ir);
-    System.out.println("IR dumped to " + irPath);
+    irDumper.dump(ir, modName);
+    System.out.println("IR dumped to file://" + irPath.toAbsolutePath());
     return ir;
   }
 

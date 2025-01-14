@@ -2,9 +2,7 @@ package org.enso.compiler.dump;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import org.enso.compiler.core.IR;
@@ -13,79 +11,43 @@ import org.enso.compiler.pass.IRPass.IRMetadata;
 import org.enso.compiler.pass.resolve.DocumentationComments;
 
 /**
- * Represents a node in the GraphViz graph.
- *
- * @param id Identifier of the node. Used to refer to the node in edges. Must be unique.
- * @param header The first line of the label. It is not justified to the left. Can be null.
- * @param multiLineLabel A label in GraphViz is a simple textual attribute. To make it multi-line,
- *     we need to escape newlines with "\\n".
- * @param additionalAttrs Additional attributes to specify for the node, apart from `label`.
- * @param object The underlying object from which the node was created.
+ * @param object
+ * @param id
+ * @param level Level in the VisJS tree.
+ * @param label
+ * @param size
+ * @param color
+ * @param shape
  */
-record GraphVizNode(
-    String id,
-    String header,
-    List<String> multiLineLabel,
-    Map<String, String> additionalAttrs,
-    Object object) {
-  public String toGraphViz() {
+record JSVizNode(
+    Object object, String id, int level, String label, Integer size, String color, String shape) {
+  String toJSViz() {
     var sb = new StringBuilder();
-    sb.append(id);
-    if (!additionalAttrs.isEmpty()) {
-      sb.append(" [");
-      additionalAttrs.forEach(
-          (k, v) -> {
-            assert Utils.hasOneLine(k) : k;
-            assert Utils.hasOneLine(v) : v;
-            sb.append(k);
-            sb.append("=");
-            if (!Utils.isSurroundedByQuotes(v)) {
-              sb.append("\"").append(v).append("\"");
-            } else {
-              sb.append(v);
-            }
-            sb.append(", ");
-          });
-      sb.append("label=\"");
-    } else {
-      sb.append(" [label=\"");
+    sb.append("{").append(System.lineSeparator());
+    sb.append("  id: \"").append(id).append("\", ").append(System.lineSeparator());
+    sb.append("  level: ").append(level).append(", ").append(System.lineSeparator());
+    sb.append("  label: `").append(label).append("`, ").append(System.lineSeparator());
+    if (size != null) {
+      sb.append("size: ").append(size).append(", ").append(System.lineSeparator());
     }
-    // Id is the "header" of the node - the first line of the label.
-    // It is not justified to the left.
-    if (header != null) {
-      sb.append(header).append("\\n");
+    if (color != null) {
+      sb.append("  color: \"").append(color).append("\", ").append(System.lineSeparator());
     }
-    for (var line : multiLineLabel) {
-      var formattedLine = line.replace("\"", "\\\"");
-      assert Utils.hasOneLine(formattedLine);
-      sb.append(formattedLine);
-      // Justify every line to the left - it looks better in the resulting graph.
-      sb.append("\\l");
+    if (shape != null) {
+      sb.append("  shape: \"").append(shape).append("\", ").append(System.lineSeparator());
     }
-    sb.append("\"];");
+    sb.append("}").append(System.lineSeparator());
     return sb.toString();
   }
 
-  @Override
-  public int hashCode() {
-    return id.hashCode();
-  }
-
-  @Override
-  public boolean equals(Object otherObj) {
-    if (otherObj instanceof GraphVizNode otherNode) {
-      return id.equals(otherNode.id);
-    }
-    return false;
-  }
-
-  static class Builder {
-    private String id;
-    private String header;
-    private List<String> labelLines = new ArrayList<>();
-    private Map<String, String> additionalAttrs = new HashMap<>();
+  static final class Builder {
     private Object object;
-
+    private String id;
+    private int level = -1;
+    private List<String> labelLines = new ArrayList<>();
+    private Integer size;
+    private String color;
+    private String shape;
     private static final List<Class<? extends IRMetadata>> metadataToSkip =
         List.of(DocumentationComments.Doc.class);
 
@@ -95,7 +57,6 @@ record GraphVizNode(
       var bldr = new Builder();
       bldr.object = obj;
       bldr.id = id;
-      bldr.header = id;
       bldr.addLabelLine("className: " + className);
       return bldr;
     }
@@ -109,7 +70,6 @@ record GraphVizNode(
       var bldr = new Builder();
       bldr.object = obj;
       bldr.id = id;
-      bldr.header = null;
       return bldr;
     }
 
@@ -119,7 +79,6 @@ record GraphVizNode(
       var id = Utils.id(ir);
       bldr.object = ir;
       bldr.id = id;
-      bldr.header = id;
       bldr.addLabelLine("className: " + className);
       if (ir.location().isDefined()) {
         var loc = ir.location().get();
@@ -146,14 +105,14 @@ record GraphVizNode(
       return bldr;
     }
 
-    private static boolean isPassDataEmpty(MetadataStorage passData) {
-      int[] counter = new int[] {0};
-      passData.map(
-          (pass, data) -> {
-            counter[0]++;
-            return null;
-          });
-      return counter[0] == 0;
+    Builder object(Object object) {
+      this.object = object;
+      return this;
+    }
+
+    Builder id(String id) {
+      this.id = id;
+      return this;
     }
 
     Builder addLabelLine(String line) {
@@ -161,17 +120,33 @@ record GraphVizNode(
       return this;
     }
 
-    Builder addAttribute(String key, String value) {
-      additionalAttrs.put(key, value);
+    Builder level(int level) {
+      this.level = level;
       return this;
     }
 
-    GraphVizNode build() {
-      Objects.requireNonNull(id);
-      Objects.requireNonNull(labelLines);
-      Objects.requireNonNull(additionalAttrs);
+    Builder size(Integer size) {
+      this.size = size;
+      return this;
+    }
+
+    Builder color(String color) {
+      this.color = color;
+      return this;
+    }
+
+    Builder shape(String shape) {
+      this.shape = shape;
+      return this;
+    }
+
+    JSVizNode build() {
       Objects.requireNonNull(object);
-      return new GraphVizNode(id, header, labelLines, additionalAttrs, object);
+      Objects.requireNonNull(id);
+      assert !labelLines.isEmpty();
+      var label = String.join(System.lineSeparator(), labelLines);
+      assert level != -1 : "Level must be set";
+      return new JSVizNode(object, id, level, label, size, color, shape);
     }
 
     private static String className(Object obj) {
@@ -183,6 +158,16 @@ record GraphVizNode(
                       || item.equals("compiler")
                       || item.equals("core"))
           .collect(Collectors.joining("."));
+    }
+
+    private static boolean isPassDataEmpty(MetadataStorage passData) {
+      int[] counter = new int[] {0};
+      passData.map(
+          (pass, data) -> {
+            counter[0]++;
+            return null;
+          });
+      return counter[0] == 0;
     }
   }
 }
