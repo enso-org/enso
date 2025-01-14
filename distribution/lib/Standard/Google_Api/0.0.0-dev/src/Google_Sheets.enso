@@ -12,9 +12,11 @@ polyglot java import com.google.api.client.googleapis.javanet.GoogleNetHttpTrans
 polyglot java import com.google.api.client.json.gson.GsonFactory
 polyglot java import com.google.api.services.sheets.v4.Sheets
 polyglot java import com.google.api.services.sheets.v4.SheetsScopes
+polyglot java import java.io.IOException
 polyglot java import java.util.Collections
 
 polyglot java import org.enso.google.GoogleOAuthSecretReader
+polyglot java import org.enso.google.GoogleSheetsHelpers
 
 type Google_Sheets
     ## PRIVATE
@@ -54,8 +56,19 @@ type Google_Sheets
          `'Sheet1!A1:B7'`.
     get_table : Text -> Text -> Table
     get_table self sheet_id sheet_range =
-        request = self.java_service.spreadsheets.values.get sheet_id sheet_range . setMajorDimension 'COLUMNS' . setValueRenderOption 'UNFORMATTED_VALUE'
-        response = request.execute
-        values = Vector.from_polyglot_array response.getValues
-        columned = values.map v-> [v.first, v.drop 1]
-        Table.new columned
+        values = _handle_exceptions <|
+            GoogleSheetsHelpers.getSheetRange self.java_service sheet_id sheet_range
+        # The first entry is the column name (A, B, ...) and the rest are the values.
+        column_vectors = values.map v-> [v.first, v.drop 1]
+        # The column lengths may not necessarily be the same, but Table.new expects the same lengths, so we normalize:
+        row_count = column_vectors.map (p-> p.second.length) . compute ..Maximum
+        normalized = column_vectors.map p->
+            [p.first, p.second.pad row_count Nothing]
+        Table.new normalized
+
+type Google_Api_Error
+    Error message cause
+
+private _handle_exceptions ~action =
+    Panic.catch IOException action caught_panic->
+        Error.throw (Google_Api_Error.Error caught_panic.payload.to_text caught_panic.payload)
