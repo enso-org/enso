@@ -209,7 +209,7 @@ one of the following:
 - `debugnative`: `buildEngineDistribution` command builds native image with
   assertions enabled (`-ea`). Useful for running tests on the CI.
 - `native`: `buildEngineDistribution` command builds native image with
-  assertions disabled (`-ea`). Used when building the release by default.
+  assertions disabled (`-ea`). Turns on maximal optimizations which may increase the build time.
 
 To generate the Native Image for runner either explicitly execute
 
