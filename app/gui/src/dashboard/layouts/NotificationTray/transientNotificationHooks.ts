@@ -27,12 +27,6 @@ export function useTransientNotifications(): readonly NotificationInfo[] {
   const { getText } = useText()
 
   const notifications: NotificationInfo[] = []
-  notifications.push({
-    id: 'temporary-delete-assets',
-    message: getText('deletingXAssetsNotification', 1234),
-    icon: DeleteIcon,
-    color: 'danger',
-  })
 
   const deleteAssetsCount = useIsMutatingForBothBackends(deleteAssetsMutationKey)
   if (deleteAssetsCount > 0) {
