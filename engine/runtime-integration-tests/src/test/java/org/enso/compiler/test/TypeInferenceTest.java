@@ -1560,10 +1560,13 @@ public class TypeInferenceTest extends StaticAnalysisTest {
 
                         method self -> B = B.B_Value
 
+                    type Other_Type
+                        Value
+
                     method -> C = C.C_Value
 
                     foo =
-                        x1 = 42.method
+                        x1 = Other_Type.Value.method
                         x2 = My_Type.Value.method
                         x3 = method
                         x4 = My_Type.method
@@ -1581,7 +1584,7 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     var module = compile(anyPrecedenceTestSource());
     var foo = ModuleUtils.findStaticMethod(module, "foo");
 
-    // 42 dispatches to Any and gets A
+    // Other_Type dispatches to parent - Any and gets A
     var x1 = ModuleUtils.findAssignment(foo, "x1");
     assertAtomType("local.Project1.modA.A", x1);
 
