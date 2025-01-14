@@ -92,11 +92,6 @@ type Project_Description
     namespace self = self.ns
 
     ## PRIVATE
-       Returns the path of the project root.
-    root_path : Text
-    root_path self = self.root.path
-
-    ## PRIVATE
     enso_project_builtin module = @Builtin_Method "Project_Description.enso_project_builtin"
 
 ## ICON enso_icon

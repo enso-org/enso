@@ -35,10 +35,6 @@ import type * as amplify from '@aws-amplify/auth'
 import type * as cognito from 'amazon-cognito-identity-js'
 import * as results from 'ts-results'
 
-import type * as loggerProvider from '#/providers/LoggerProvider'
-
-import type * as service from '#/authentication/service'
-
 import * as original from './cognito.js'
 import * as listen from './listen.mock.js'
 
@@ -75,9 +71,9 @@ export class Cognito {
 
   /** Create a new Cognito wrapper. */
   constructor(
-    private readonly logger: loggerProvider.Logger,
+    private readonly logger: null,
     private readonly supportsDeepLinks: boolean,
-    private readonly amplifyConfig: service.AmplifyConfig,
+    private readonly amplifyConfig: null,
   ) {
     const username = localStorage.getItem(MOCK_EMAIL_KEY)
     if (username != null) {
