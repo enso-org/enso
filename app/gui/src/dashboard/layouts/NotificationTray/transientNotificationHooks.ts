@@ -1,5 +1,6 @@
 /** @file Hooks for computing temporary notifications. */
 import CopyIcon from '#/assets/copy.svg'
+import UploadIcon from '#/assets/data_upload.svg'
 import MoveIcon from '#/assets/duplicate.svg'
 import DeleteIcon from '#/assets/trash.svg'
 import UntrashIcon from '#/assets/untrash.svg'
@@ -9,8 +10,9 @@ import {
   moveAssetsMutationKey,
   restoreAssetsMutationKey,
 } from '#/hooks/backendBatchedHooks'
+import { MB_BYTES, uploadingFileQueryOptions } from '#/hooks/backendUploadFilesHooks'
 import { useText } from '#/providers/TextProvider'
-import { useIsMutating, type MutationKey } from '@tanstack/react-query'
+import { useIsMutating, useQuery, type MutationKey } from '@tanstack/react-query'
 import { BackendType } from 'enso-common/src/services/Backend'
 import type { NotificationInfo } from './types'
 
@@ -26,6 +28,7 @@ export function useIsMutatingForBothBackends(makeKey: (backendType: BackendType)
 /** Return a list of transient notification details. */
 export function useTransientNotifications(): readonly NotificationInfo[] {
   const { getText } = useText()
+  const { data: uploadingFiles } = useQuery(uploadingFileQueryOptions())
 
   const notifications: NotificationInfo[] = []
 
@@ -63,6 +66,24 @@ export function useTransientNotifications(): readonly NotificationInfo[] {
       id: 'temporary-move-assets',
       message: getText('movingAssetsNotification'),
       icon: MoveIcon,
+    })
+  }
+
+  const uploadingFilesEntries = Object.entries(uploadingFiles)
+  if (uploadingFilesEntries.length !== 0) {
+    const totalFiles = uploadingFilesEntries.length
+    let sentBytes = 0
+    let totalBytes = 0
+    for (const [, progress] of uploadingFilesEntries) {
+      sentBytes += progress.sentBytes
+      totalBytes += progress.totalBytes
+    }
+    const sentMb = sentBytes / MB_BYTES
+    const totalMb = totalBytes / MB_BYTES
+    notifications.push({
+      id: 'temporary-uploading-files',
+      message: getText('uploadingXFilesWithProgressNotification', totalFiles, sentMb, totalMb),
+      icon: UploadIcon,
     })
   }
 
