@@ -50,7 +50,7 @@ test('organization settings', ({ page }) =>
     .save()
     .step('Unsetting organization name should fail', (_, { api, calls }) => {
       expect(api.currentOrganization()?.name).toBe(NEW_NAME)
-      expect(calls.updateOrganization).toMatchObject([{ name: '' }])
+      expect(calls.updateOrganization).toMatchObject([])
     })
     .organizationForm()
     .cancel()
@@ -58,13 +58,32 @@ test('organization settings', ({ page }) =>
     .fillEmail(INVALID_EMAIL)
     .save()
     .step('Setting invalid email should fail', (_, { api }) => {
-      expect(api.currentOrganization()?.email).toBe('')
+      expect(api.currentOrganization()?.email).toBe(null)
     })
     .organizationForm()
     .fillEmail(NEW_EMAIL)
     .save()
     .step('Set email', (_, { api }) => {
       expect(api.currentOrganization()?.email).toBe(NEW_EMAIL)
+    })
+    .organizationForm()
+    .fillEmail('')
+    .do((_, context) => {
+      context.calls = context.api.trackCalls()
+    })
+    .save()
+    .step('Clearing email should fail', (_, { api }) => {
+      expect(api.currentOrganization()?.email).toBe(NEW_EMAIL)
+    })
+    .do((_, { calls }) => {
+      expect(calls.updateOrganization).toStrictEqual([
+        {
+          // Existing fields should still be present
+          name: NEW_NAME,
+          // Address is always sent because it is always valid even if blank
+          address: '',
+        },
+      ])
     })
     .organizationForm()
     .fillWebsite(NEW_WEBSITE)
@@ -76,7 +95,7 @@ test('organization settings', ({ page }) =>
     .organizationForm()
     .fillLocation(NEW_LOCATION)
     .save()
-    .step('Set website', async (_, { api }) => {
+    .step('Set location', async (_, { api }) => {
       expect(api.currentOrganization()?.address).toBe(NEW_LOCATION)
     }))
 
