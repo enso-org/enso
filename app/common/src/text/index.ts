@@ -131,10 +131,6 @@ interface PlaceholderOverrides {
   readonly xIsUsingTheProject: [userName: string]
   readonly xItemsCopied: [count: number]
   readonly xItemsCut: [count: number]
-  readonly deletingXAssetsNotification: [count: number]
-  readonly restoringXAssetsNotification: [count: number]
-  readonly copyingXAssetsNotification: [count: number]
-  readonly movingXAssetsNotification: [count: number]
 
   readonly arbitraryFieldTooLarge: [maxSize: string]
   readonly arbitraryFieldTooSmall: [minSize: string]

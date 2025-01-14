@@ -18,7 +18,8 @@ import type { NotificationInfo } from './types'
 export function useIsMutatingForBothBackends(makeKey: (backendType: BackendType) => MutationKey) {
   return (
     useIsMutating({ mutationKey: makeKey(BackendType.local) }) +
-    useIsMutating({ mutationKey: makeKey(BackendType.remote) })
+      useIsMutating({ mutationKey: makeKey(BackendType.remote) }) !==
+    0
   )
 }
 
@@ -28,39 +29,39 @@ export function useTransientNotifications(): readonly NotificationInfo[] {
 
   const notifications: NotificationInfo[] = []
 
-  const deleteAssetsCount = useIsMutatingForBothBackends(deleteAssetsMutationKey)
-  if (deleteAssetsCount > 0) {
+  const isDeletingAssets = useIsMutatingForBothBackends(deleteAssetsMutationKey)
+  if (isDeletingAssets) {
     notifications.push({
       id: 'temporary-delete-assets',
-      message: getText('deletingXAssetsNotification', deleteAssetsCount),
+      message: getText('deletingAssetsNotification'),
       icon: DeleteIcon,
       color: 'danger',
     })
   }
 
-  const restoreAssetsCount = useIsMutatingForBothBackends(restoreAssetsMutationKey)
-  if (restoreAssetsCount > 0) {
+  const isRestoringAssets = useIsMutatingForBothBackends(restoreAssetsMutationKey)
+  if (isRestoringAssets) {
     notifications.push({
       id: 'temporary-restore-assets',
-      message: getText('restoringXAssetsNotification', restoreAssetsCount),
+      message: getText('restoringAssetsNotification'),
       icon: UntrashIcon,
     })
   }
 
-  const copyAssetsCount = useIsMutatingForBothBackends(copyAssetsMutationKey)
-  if (copyAssetsCount > 0) {
+  const isCopyingAssets = useIsMutatingForBothBackends(copyAssetsMutationKey)
+  if (isCopyingAssets) {
     notifications.push({
       id: 'temporary-copy-assets',
-      message: getText('copyingXAssetsNotification', copyAssetsCount),
+      message: getText('copyingAssetsNotification'),
       icon: CopyIcon,
     })
   }
 
-  const moveAssetsCount = useIsMutatingForBothBackends(moveAssetsMutationKey)
-  if (moveAssetsCount > 0) {
+  const isMovingAssets = useIsMutatingForBothBackends(moveAssetsMutationKey)
+  if (isMovingAssets) {
     notifications.push({
       id: 'temporary-move-assets',
-      message: getText('movingXAssetsNotification', moveAssetsCount),
+      message: getText('movingAssetsNotification'),
       icon: MoveIcon,
     })
   }

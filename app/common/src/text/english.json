@@ -192,10 +192,10 @@
   "specialEmptyAssetType": "special empty asset",
   "specialErrorAssetType": "special error asset",
 
-  "deletingXAssetsNotification": "Deleting $0 assets",
-  "restoringXAssetsNotification": "Restoring $0 assets",
-  "copyingXAssetsNotification": "Copying $0 assets",
-  "movingXAssetsNotification": "Moving $0 assets",
+  "deletingAssetsNotification": "Deleting assets...",
+  "restoringAssetsNotification": "Restoring assets...",
+  "copyingAssetsNotification": "Copying assets...",
+  "movingAssetsNotification": "Moving assets...",
 
   "couldNotConnectToPM": "Could not connect to the Project Manager. Please try restarting Enso, or manually launching the Project Manager.",
   "upgradeToUseCloud": "Upgrade your plan to use Enso Cloud.",
