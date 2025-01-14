@@ -41,7 +41,9 @@ main = (Foo.One 3.14):(Foo Float Integer Text) # yields (One 3.14)
 
 Arguments to atom constructors can have defaults and explicit type signatures.
 
-> [!WARNING] Following seems to be off a bit:
+> [!WARNING]
+>
+> Following seems to be off a bit:
 >
 > Due to two things that feel like 'primes' popping up in the conversation
 > below, we've chosen to denote one with 'x.type' and the other with 'Code x'.
@@ -115,7 +117,9 @@ main =
 
 constructs a two item list and yields `(Cons 3 (Cons 14 Nil))`.
 
-> [!WARNING] This is not at all what we currently do:
+> [!WARNING]
+>
+> This is not at all what we currently do:
 >
 > this elaborates on each of these type declarations and finds a couple of puns:
 >
@@ -135,7 +139,9 @@ constructs a two item list and yields `(Cons 3 (Cons 14 Nil))`.
 
 `List` acts as a container holding its static methods.
 
-> [!WARNING] Type constructors aren't really implemented in Enso as of now:
+> [!WARNING]
+>
+> Type constructors aren't really implemented in Enso as of now:
 >
 > List serves double duty in the above. It acts as the type constructor for
 > lists, so that `List Int` is a well formed `Type`, but it also ...
@@ -143,7 +149,9 @@ constructs a two item list and yields `(Cons 3 (Cons 14 Nil))`.
 `List Int` is currently _erased_ to `List` and the additional type element
 information of `Int` is lost during execution.
 
-> [!WARNING] Enso supports just static methods
+> [!WARNING]
+>
+> Enso supports just static methods
 >
 > There are two forms of static methods that we are interested in in the long
 > term. We'll classify them as 'normal' static methods and 'explicit' static
@@ -158,7 +166,9 @@ type Vector a
   from (that : List x): Vector x = MkVec (Array.from that)
 ```
 
-> [!WARNING] This is not how it works:
+> [!WARNING]
+>
+> This is not how it works:
 >
 > this internally elaborates to
 >
@@ -193,7 +203,9 @@ Vector.from_polyglot_array [1,2,3] : Vector Int
 where 'Vector' is playing double duty as a type constructor (currently erased
 just to raw type `Vector`) and as the bag of static methods.
 
-> [!WARNING] Another example with `.type` that's unlikely valid:
+> [!WARNING]
+>
+> Another example with `.type` that's unlikely valid:
 >
 > ```
 > type Book.type
@@ -247,7 +259,9 @@ just to raw type `Vector`) and as the bag of static methods.
 The static methods get attached to the type definition. This means they do not
 have access to any of the type's atom arguments themselves.
 
-> [!WARNING] No plans for `explicit` static methods
+> [!WARNING]
+>
+> No plans for `explicit` static methods
 >
 > A syntax for this would something like
 >
