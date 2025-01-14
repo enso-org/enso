@@ -110,6 +110,7 @@ add_specs suite_builder =
     cloud_setup = Cloud_Tests_Setup.prepare
     suite_builder.group "Data Links to Images" pending=cloud_setup.real_cloud_pending group_builder->
         subdirectory_for_tests = Temporary_Directory.make "Image"
+        group_builder.teardown subdirectory_for_tests.cleanup
         group_builder.specify "should be able to write image data to a data link and read it back" <|
             datalink = create_local_datalink_to (subdirectory_for_tests.get / "image.png")
             local_image = Image.read rgba_file
