@@ -6,10 +6,17 @@ import java.time.Duration;
 import java.time.Period;
 import java.time.ZoneId;
 import java.util.function.Consumer;
-import org.enso.table.data.column.builder.*;
+import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.builder.DateBuilder;
+import org.enso.table.data.column.builder.DateTimeBuilder;
+import org.enso.table.data.column.builder.InferredBuilder;
+import org.enso.table.data.column.builder.NumericBuilder;
+import org.enso.table.data.column.builder.ObjectBuilder;
 import org.enso.table.data.column.builder.StringBuilder;
+import org.enso.table.data.column.builder.TimeOfDayBuilder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.BigDecimalType;
+import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.problems.ProblemAggregator;
@@ -94,7 +101,8 @@ record TableColumnBuilder(Builder builder, Consumer<Result> appendMethod) {
           throw new IllegalArgumentException("NUMERIC column must have a scale.");
         }
         if (column.scale().getAsInt() == 0) {
-          var bigIntBuilder = new BigIntegerBuilder(initialRowCount, problemAggregator);
+          var bigIntBuilder =
+              Builder.getForType(BigIntegerType.INSTANCE, initialRowCount, problemAggregator);
           return new TableColumnBuilder(
               bigIntBuilder,
               nullAppender(
@@ -102,7 +110,8 @@ record TableColumnBuilder(Builder builder, Consumer<Result> appendMethod) {
                   column.index(),
                   r -> bigIntBuilder.append(r.getBigDecimal(column.index()).toBigInteger())));
         } else {
-          var bigDecimalBuilder = Builder.getForType(BigDecimalType.INSTANCE, initialRowCount, problemAggregator);
+          var bigDecimalBuilder =
+              Builder.getForType(BigDecimalType.INSTANCE, initialRowCount, problemAggregator);
           return new TableColumnBuilder(
               bigDecimalBuilder,
               nullAppender(

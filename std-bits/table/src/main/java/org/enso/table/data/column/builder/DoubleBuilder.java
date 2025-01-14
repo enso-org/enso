@@ -11,7 +11,6 @@ import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
-import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.FloatType;
@@ -39,30 +38,6 @@ public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
   }
 
   @Override
-  public boolean canRetypeTo(StorageType type) {
-    return type instanceof BigDecimalType;
-  }
-
-  @Override
-  public Builder retypeTo(StorageType type) {
-    if (type instanceof BigDecimalType) {
-      Builder res = Builder.getForType(BigDecimalType.INSTANCE, data.length, null);
-      for (int i = 0; i < currentSize; i++) {
-        if (isNothing.get(i)) {
-          res.appendNulls(1);
-        } else {
-          double d = Double.longBitsToDouble(data[i]);
-          BigDecimal bigDecimal = BigDecimal.valueOf(d);
-          res.appendNoGrow(bigDecimal);
-        }
-      }
-      return res;
-    } else {
-      throw new UnsupportedOperationException();
-    }
-  }
-
-  @Override
   public StorageType getType() {
     return FloatType.FLOAT_64;
   }
@@ -84,11 +59,6 @@ public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
     } else {
       throw new ValueTypeMismatchException(getType(), o);
     }
-  }
-
-  @Override
-  public boolean accepts(Object o) {
-    return NumericConverter.isCoercibleToDouble(o);
   }
 
   @Override

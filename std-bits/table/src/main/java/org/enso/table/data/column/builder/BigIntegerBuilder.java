@@ -25,7 +25,7 @@ public class BigIntegerBuilder extends TypedBuilder<BigInteger> {
     return new BigInteger[size];
   }
 
-  public BigIntegerBuilder(int size, ProblemAggregator problemAggregator) {
+  BigIntegerBuilder(int size, ProblemAggregator problemAggregator) {
     super(BigIntegerType.INSTANCE, size);
     this.problemAggregator = problemAggregator;
   }
@@ -39,34 +39,37 @@ public class BigIntegerBuilder extends TypedBuilder<BigInteger> {
 
   @Override
   public Builder retypeTo(StorageType type) {
-    if (type instanceof FloatType) {
-      DoubleBuilder res =
-          NumericBuilder.createInferringDoubleBuilder(currentSize, problemAggregator);
-      for (int i = 0; i < currentSize; i++) {
-        if (data[i] == null) {
-          res.appendNulls(1);
-        } else {
-          res.appendBigInteger(data[i]);
+    switch (type) {
+      case FloatType floatType -> {
+        DoubleBuilder res =
+            NumericBuilder.createInferringDoubleBuilder(currentSize, problemAggregator);
+        for (int i = 0; i < currentSize; i++) {
+          if (data[i] == null) {
+            res.appendNulls(1);
+          } else {
+            res.appendBigInteger(data[i]);
+          }
         }
+        return res;
       }
-      return res;
-    } else if (type instanceof BigDecimalType) {
-      var res = Builder.getForType(type, data.length, problemAggregator);
-      for (int i = 0; i < currentSize; i++) {
-        if (data[i] == null) {
-          res.appendNulls(1);
-        } else {
-          res.appendNoGrow(data[i]);
+      case BigDecimalType bigDecimalType -> {
+        var res = Builder.getForType(type, data.length, problemAggregator);
+        for (int i = 0; i < currentSize; i++) {
+          if (data[i] == null) {
+            res.appendNulls(1);
+          } else {
+            res.appendNoGrow(data[i]);
+          }
         }
+        return res;
       }
-      return res;
-    } else if (type instanceof AnyObjectType) {
-      Object[] widenedData = Arrays.copyOf(data, data.length, Object[].class);
-      ObjectBuilder res = new MixedBuilder(widenedData);
-      res.setCurrentSize(currentSize);
-      return res;
-    } else {
-      throw new UnsupportedOperationException();
+      case AnyObjectType anyObjectType -> {
+        Object[] widenedData = Arrays.copyOf(data, data.length, Object[].class);
+        ObjectBuilder res = new MixedBuilder(widenedData);
+        res.setCurrentSize(currentSize);
+        return res;
+      }
+      case null, default -> throw new UnsupportedOperationException();
     }
   }
 
@@ -84,6 +87,8 @@ public class BigIntegerBuilder extends TypedBuilder<BigInteger> {
   public void appendNoGrow(Object o) {
     if (o == null) {
       data[currentSize++] = null;
+    } else if (o instanceof BigInteger value) {
+      data[currentSize++] = value;
     } else {
       try {
         data[currentSize++] = NumericConverter.coerceToBigInteger(o);
@@ -93,13 +98,8 @@ public class BigIntegerBuilder extends TypedBuilder<BigInteger> {
     }
   }
 
-  public void appendRawNoGrow(BigInteger value) {
-    data[currentSize++] = value;
-  }
-
-  public static BigIntegerBuilder retypeFromLongBuilder(LongBuilder longBuilder) {
-    BigIntegerBuilder res =
-        new BigIntegerBuilder(longBuilder.data.length, longBuilder.problemAggregator);
+  public static Builder retypeFromLongBuilder(LongBuilder longBuilder) {
+    var res = new BigIntegerBuilder(longBuilder.data.length, longBuilder.problemAggregator);
     int n = longBuilder.currentSize;
     Context context = Context.getCurrent();
     for (int i = 0; i < n; i++) {

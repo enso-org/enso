@@ -17,7 +17,8 @@ import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.BitSets;
 
 /** A builder for integer columns. */
-public abstract class LongBuilder extends NumericBuilder implements BuilderForLong {
+public abstract class LongBuilder extends NumericBuilder
+    implements BuilderForLong, BuilderWithRetyping {
   protected final ProblemAggregator problemAggregator;
 
   protected LongBuilder(

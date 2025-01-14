@@ -16,7 +16,7 @@ import org.enso.table.problems.ProblemAggregator;
  * A builder performing type inference on the appended elements, choosing the best possible storage.
  */
 public class InferredBuilder implements Builder {
-  private Builder currentBuilder = null;
+  private BuilderWithRetyping currentBuilder = null;
   private int currentSize = 0;
   private final int initialSize;
   private final ProblemAggregator problemAggregator;
@@ -70,11 +70,6 @@ public class InferredBuilder implements Builder {
   }
 
   @Override
-  public boolean accepts(Object o) {
-    return false;
-  }
-
-  @Override
   public void append(Object o) {
     // ToDo: This a workaround for an issue with polyglot layer. #5590 is related.
     o = Polyglot_Utils.convertPolyglotValue(o);
@@ -116,30 +111,43 @@ public class InferredBuilder implements Builder {
 
   private void initBuilderFor(Object o) {
     int initialCapacity = Math.max(initialSize, currentSize);
+    Builder newBuilder;
     if (o instanceof Boolean) {
-      currentBuilder = Builder.getForBoolean(initialCapacity);
+      newBuilder = Builder.getForBoolean(initialCapacity);
     } else if (NumericConverter.isCoercibleToLong(o)) {
       // In inferred builder, we always default to 64-bits.
-      currentBuilder = Builder.getForLong(initialCapacity, IntegerType.INT_64, problemAggregator);
+      newBuilder = Builder.getForLong(initialCapacity, IntegerType.INT_64, problemAggregator);
     } else if (NumericConverter.isFloatLike(o)) {
-      currentBuilder =
-          NumericBuilder.createInferringDoubleBuilder(initialCapacity, problemAggregator);
+      newBuilder = NumericBuilder.createInferringDoubleBuilder(initialCapacity, problemAggregator);
     } else if (o instanceof String) {
-      currentBuilder = Builder.getForType(TextType.VARIABLE_LENGTH, initialCapacity, null);
+      newBuilder = Builder.getForType(TextType.VARIABLE_LENGTH, initialCapacity, problemAggregator);
     } else if (o instanceof BigInteger) {
-      currentBuilder = new BigIntegerBuilder(initialCapacity, problemAggregator);
+      newBuilder = Builder.getForType(BigIntegerType.INSTANCE, initialCapacity, problemAggregator);
     } else if (o instanceof BigDecimal) {
-      currentBuilder = Builder.getForType(BigDecimalType.INSTANCE, initialCapacity, problemAggregator);
+      newBuilder = Builder.getForType(BigDecimalType.INSTANCE, initialCapacity, problemAggregator);
     } else if (o instanceof LocalDate) {
-      currentBuilder = new DateBuilder(initialCapacity, allowDateToDateTimeConversion);
-    } else if (o instanceof LocalTime) {
-      currentBuilder = new TimeOfDayBuilder(initialCapacity);
+      newBuilder =
+          allowDateToDateTimeConversion
+              ? new DateBuilder(initialCapacity, true)
+              : Builder.getForType(DateType.INSTANCE, initialCapacity, problemAggregator);
     } else if (o instanceof ZonedDateTime) {
-      currentBuilder = new DateTimeBuilder(initialCapacity, allowDateToDateTimeConversion);
+      newBuilder =
+          allowDateToDateTimeConversion
+              ? new DateTimeBuilder(initialCapacity, true)
+              : Builder.getForType(DateTimeType.INSTANCE, initialCapacity, problemAggregator);
+    } else if (o instanceof LocalTime) {
+      newBuilder = Builder.getForType(TimeOfDayType.INSTANCE, initialCapacity, problemAggregator);
     } else {
-      currentBuilder = new MixedBuilder(initialCapacity);
+      newBuilder = new MixedBuilder(initialCapacity);
     }
-    currentBuilder.appendNulls(currentSize);
+
+    if (newBuilder instanceof BuilderWithRetyping builderWithRetyping) {
+      currentBuilder = builderWithRetyping;
+      currentBuilder.appendNulls(currentSize);
+    } else {
+      throw new IllegalStateException(
+          "Builder does not support retype operations. This is a bug in the Table library.");
+    }
   }
 
   private record RetypeInfo(Class<?> clazz, StorageType type) {}
@@ -167,8 +175,14 @@ public class InferredBuilder implements Builder {
   private void retypeAndAppend(Object o) {
     for (RetypeInfo info : retypePairs) {
       if (info.clazz.isInstance(o) && currentBuilder.canRetypeTo(info.type)) {
-        currentBuilder = currentBuilder.retypeTo(info.type);
-        currentBuilder.append(o);
+        var newBuilder = currentBuilder.retypeTo(info.type);
+        if (newBuilder instanceof BuilderWithRetyping builderWithRetyping) {
+          currentBuilder = builderWithRetyping;
+          currentBuilder.append(o);
+        } else {
+          throw new IllegalStateException(
+              "Builder does not support retype operations. This is a bug in the Table library.");
+        }
         return;
       }
     }
@@ -184,7 +198,7 @@ public class InferredBuilder implements Builder {
     // that many values.
     int capacity = Math.max(initialSize, currentSize);
 
-    ObjectBuilder objectBuilder = new MixedBuilder(capacity);
+    var objectBuilder = new MixedBuilder(capacity);
     currentBuilder.copyDataTo(objectBuilder.getData());
     objectBuilder.setCurrentSize(currentBuilder.getCurrentSize());
     currentBuilder = objectBuilder;
@@ -214,15 +228,5 @@ public class InferredBuilder implements Builder {
     if (currentBuilder != null) {
       currentBuilder.copyDataTo(items);
     }
-  }
-
-  @Override
-  public boolean canRetypeTo(StorageType type) {
-    return false;
-  }
-
-  @Override
-  public Builder retypeTo(StorageType type) {
-    throw new UnsupportedOperationException();
   }
 }

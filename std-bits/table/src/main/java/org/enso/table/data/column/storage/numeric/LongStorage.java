@@ -4,9 +4,10 @@ import java.math.BigInteger;
 import java.util.BitSet;
 import java.util.List;
 import org.enso.base.polyglot.NumericConverter;
-import org.enso.table.data.column.builder.BigIntegerBuilder;
+import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.NumericBuilder;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
@@ -129,13 +130,13 @@ public final class LongStorage extends AbstractLongStorage {
 
   private Storage<?> fillMissingBigInteger(
       BigInteger bigInteger, ProblemAggregator problemAggregator) {
-    final var builder = new BigIntegerBuilder(size, problemAggregator);
+    final var builder = Builder.getForType(BigIntegerType.INSTANCE, size, problemAggregator);
     Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
       if (isNothing.get(i)) {
-        builder.appendRawNoGrow(bigInteger);
+        builder.appendNoGrow(bigInteger);
       } else {
-        builder.appendRawNoGrow(BigInteger.valueOf(data[i]));
+        builder.appendNoGrow(BigInteger.valueOf(data[i]));
       }
 
       context.safepoint();

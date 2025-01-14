@@ -28,16 +28,6 @@ public class ObjectBuilder implements Builder {
   }
 
   @Override
-  public boolean canRetypeTo(StorageType type) {
-    return false;
-  }
-
-  @Override
-  public Builder retypeTo(StorageType type) {
-    throw new UnsupportedOperationException("Broken invariant: rewriting the most general type.");
-  }
-
-  @Override
   public StorageType getType() {
     return AnyObjectType.INSTANCE;
   }
@@ -45,11 +35,6 @@ public class ObjectBuilder implements Builder {
   @Override
   public void appendNoGrow(Object o) {
     data[currentSize++] = o;
-  }
-
-  @Override
-  public boolean accepts(Object o) {
-    return true;
   }
 
   @Override

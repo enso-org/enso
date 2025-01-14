@@ -87,7 +87,7 @@ long_fetcher bits =
 big_integer_fetcher : Column_Fetcher
 big_integer_fetcher =
     make_builder initial_size java_problem_aggregator =
-        java_builder = Java_Exports.make_biginteger_builder initial_size java_problem_aggregator
+        java_builder = Java_Exports.make_builder_for_type (Value_Type.Decimal scale=0) initial_size java_problem_aggregator
         make_builder_from_java_object_builder java_builder
     Column_Fetcher.Value fetch_big_integer make_builder
 
@@ -105,8 +105,7 @@ big_decimal_fetcher =
         if rs.wasNull then Nothing else
             big_decimal
     make_builder initial_size java_problem_aggregator =
-        _ = java_problem_aggregator
-        java_builder = Java_Exports.make_bigdecimal_builder initial_size
+        java_builder = Java_Exports.make_builder_for_type Value_Type.Decimal initial_size java_problem_aggregator
         make_builder_from_java_object_builder java_builder
     Column_Fetcher.Value fetch_value make_builder
 

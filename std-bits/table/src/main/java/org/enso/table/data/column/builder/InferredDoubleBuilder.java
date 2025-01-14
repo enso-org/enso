@@ -1,14 +1,17 @@
 package org.enso.table.data.column.builder;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.BitSet;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.type.BigDecimalType;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.problems.ProblemAggregator;
 
 /** A double builder variant that preserves types and can be retyped to Mixed. */
-public class InferredDoubleBuilder extends DoubleBuilder {
+public class InferredDoubleBuilder extends DoubleBuilder implements BuilderWithRetyping {
   /**
    * Converts the provided LongBuilder to a DoubleBuilder.
    *
@@ -193,5 +196,34 @@ public class InferredDoubleBuilder extends DoubleBuilder {
     }
 
     rawData[ix] = o;
+  }
+
+  @Override
+  public boolean accepts(Object o) {
+    return NumericConverter.isCoercibleToDouble(o);
+  }
+
+  @Override
+  public boolean canRetypeTo(StorageType type) {
+    return type instanceof BigDecimalType;
+  }
+
+  @Override
+  public Builder retypeTo(StorageType type) {
+    if (type instanceof BigDecimalType) {
+      Builder res = Builder.getForType(BigDecimalType.INSTANCE, data.length, null);
+      for (int i = 0; i < currentSize; i++) {
+        if (isNothing.get(i)) {
+          res.appendNulls(1);
+        } else {
+          double d = Double.longBitsToDouble(data[i]);
+          BigDecimal bigDecimal = BigDecimal.valueOf(d);
+          res.appendNoGrow(bigDecimal);
+        }
+      }
+      return res;
+    } else {
+      throw new UnsupportedOperationException();
+    }
   }
 }

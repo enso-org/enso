@@ -15,7 +15,7 @@ import org.enso.table.problems.ProblemAggregator;
  * the LongBuilder to a BigIntegerBuilder.
  */
 public class InferredIntegerBuilder implements Builder {
-  private BuilderForLong longBuilder;
+  private BuilderWithRetyping longBuilder;
   private Builder bigIntegerBuilder = null;
   private int currentSize = 0;
 
@@ -23,11 +23,6 @@ public class InferredIntegerBuilder implements Builder {
   public InferredIntegerBuilder(int initialSize, ProblemAggregator problemAggregator) {
     longBuilder =
         NumericBuilder.createLongBuilder(initialSize, IntegerType.INT_64, problemAggregator);
-  }
-
-  @Override
-  public boolean accepts(Object o) {
-    return (o instanceof Boolean || NumericConverter.tryConvertingToLong(o) != null);
   }
 
   @Override
@@ -137,15 +132,5 @@ public class InferredIntegerBuilder implements Builder {
     } else {
       longBuilder.copyDataTo(items);
     }
-  }
-
-  @Override
-  public boolean canRetypeTo(StorageType type) {
-    return false;
-  }
-
-  @Override
-  public Builder retypeTo(StorageType type) {
-    throw new UnsupportedOperationException();
   }
 }

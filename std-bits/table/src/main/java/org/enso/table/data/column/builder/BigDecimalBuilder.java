@@ -26,10 +26,6 @@ public class BigDecimalBuilder extends TypedBuilder<BigDecimal> {
     }
   }
 
-  public void appendRawNoGrow(BigDecimal value) {
-    data[currentSize++] = value;
-  }
-
   @Override
   public boolean accepts(Object o) {
     return o instanceof BigDecimal;

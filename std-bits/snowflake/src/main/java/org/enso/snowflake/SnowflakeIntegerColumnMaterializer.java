@@ -79,11 +79,6 @@ public class SnowflakeIntegerColumnMaterializer implements Builder {
   }
 
   @Override
-  public boolean accepts(Object o) {
-    return o instanceof BigInteger;
-  }
-
-  @Override
   public void append(Object o) {
     if (currentSize >= capacity()) {
       grow();
@@ -143,16 +138,6 @@ public class SnowflakeIntegerColumnMaterializer implements Builder {
         System.arraycopy(bigInts, 0, items, 0, currentSize);
       }
     }
-  }
-
-  @Override
-  public boolean canRetypeTo(StorageType type) {
-    return false;
-  }
-
-  @Override
-  public Builder retypeTo(StorageType type) {
-    throw new UnsupportedOperationException();
   }
 
   private int capacity() {

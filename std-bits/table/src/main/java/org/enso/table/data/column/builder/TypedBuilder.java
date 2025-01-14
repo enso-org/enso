@@ -7,7 +7,7 @@ import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.StorageType;
 
-public abstract class TypedBuilder<T> implements Builder {
+public abstract class TypedBuilder<T> implements BuilderWithRetyping {
   private final StorageType storageType;
   protected T[] data;
   protected int currentSize = 0;
