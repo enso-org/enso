@@ -94,9 +94,9 @@ object ProgramExecutionSupport {
 
     val onComputedValueCallback: Consumer[ExpressionValue] = { value =>
       if (callStack.isEmpty) {
+        logger.log(Level.FINEST, s"ON_COMPUTED ${value.getExpressionId}")
 
         if (VisualizationResult.isInterruptedException(value.getValue)) {
-          logger.log(Level.FINEST, s"ON_INTERRUPTED ${value.getExpressionId}")
           value.getValue match {
             case e: AbstractTruffleException =>
               sendInterruptedExpressionUpdate(
@@ -110,7 +110,6 @@ object ProgramExecutionSupport {
             case _ =>
           }
         }
-        logger.log(Level.FINEST, s"ON_COMPUTED ${value.getExpressionId}")
         sendExpressionUpdate(contextId, executionFrame.syncState, value)
         sendVisualizationUpdates(
           contextId,
