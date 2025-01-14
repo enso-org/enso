@@ -34,14 +34,12 @@ public class Offset {
         Column sourceColumn;
         int n;
         OffFill offFill;
-        int closestPos;
 
         OffsetRunningStatistic(Column sourceColumn, int n, OffFill offFill) {
             result = new int[sourceColumn.getSize()];
             this.sourceColumn = sourceColumn;
             this.n = offFill==OffFill.WRAP_AROUND && sourceColumn.getSize() != 0 ? n % sourceColumn.getSize() : n;
             this.offFill = offFill;
-            this.closestPos = -1;
         }
 
         @Override
@@ -52,13 +50,13 @@ public class Offset {
             }
             if (n<0) {
                 if (it.current_n <= Math.abs(n)) {
-                    closestPos = it.rolling_queue.peek();
+                    it.closestPos = it.rolling_queue.peek();
                 } 
                 if (it.current_n >= Math.abs(n)) {
                     result[i] = it.rolling_queue.poll();
                 }
             } else {
-                closestPos = i;
+                it.closestPos = i;
                 if (it.current_n >= Math.abs(n)) {
                     result[it.rolling_queue.poll()] = i;
                 }
@@ -70,7 +68,7 @@ public class Offset {
         public void finalise(OffsetIterator it) {
             int fillValue = switch (offFill) {
                 case NOTHING -> -1;
-                case CLOSEST_VALUE -> closestPos;
+                case CLOSEST_VALUE -> it.closestPos;
                 case WRAP_AROUND -> -1;
                 case CONSTANT -> -1;
             };
@@ -114,12 +112,14 @@ public class Offset {
         Queue<Integer> rolling_queue;
         Queue<Integer> fill_queue;
         int current_n;
+        int closestPos;
 
         public OffsetIterator(int n)
         {
             this.rolling_queue = new LinkedList<>();
             this.fill_queue = new LinkedList<>();
             this.current_n = 0;
+            this.closestPos = -1;
         }
   }
 }

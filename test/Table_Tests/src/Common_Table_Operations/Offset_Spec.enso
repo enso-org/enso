@@ -229,7 +229,7 @@ add_offset_specs suite_builder setup =
         group_builder.specify "Works with positive n and column of nothings" <|
             r = t.offset ["B"] 1 ..Wrap_Around
             r . at "TEMP" . to_vector . should_equal [Nothing, Nothing, Nothing]
-    suite_builder.group prefix+"Table.Offset works with grouping" group_builder->
+    suite_builder.group prefix+"Table.Offset works with grouping - default fill strategy" group_builder->
         t2 = build_sorted_table [["Group", ["A", "A", "A", "B", "B", "B", "B", "C", "C"]], ["Col", [1, 2, 3, 1, 2, 3, 4, 1, 2]]]
         group_builder.specify "Negative n shifts the values down" <|
             r = t2.offset ["Col"] -1 ..Nothing group_by=["Group"]
@@ -252,3 +252,26 @@ add_offset_specs suite_builder setup =
         group_builder.specify "Large positive n values work" <|
             r = t2.offset ["Col"] 1024 ..Nothing group_by=["Group"]
             r . at "TEMP" . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
+    suite_builder.group prefix+"Table.Offset works with grouping - closest fill strategy" group_builder->
+        t2 = build_sorted_table [["Group", ["A", "A", "A", "B", "B", "B", "B", "C", "C"]], ["Col", [1, 2, 3, 1, 2, 3, 4, 1, 2]]]
+        group_builder.specify "Negative n shifts the values down" <|
+            r = t2.offset ["Col"] -1 ..Closest_Value group_by=["Group"]
+            r . at "TEMP" .  to_vector . should_equal [1, 1, 2, 1, 1, 2, 3, 1, 1]
+        group_builder.specify "Positive n shifts the values up" <|
+            r = t2.offset ["Col"] 1 ..Closest_Value group_by=["Group"]
+            r . at "TEMP" . to_vector . should_equal [2, 3, 3, 2, 3, 4, 4, 2, 2]
+        group_builder.specify "Negative n shifts the values down (n=2)" <|
+            r = t2.offset ["Col"] -2 ..Closest_Value group_by=["Group"]
+            r . at "TEMP" . to_vector . should_equal [1, 1, 1, 1, 1, 1, 2, 1, 1]
+        group_builder.specify "Positive n shifts the values up (n=2)" <|
+            r = t2.offset ["Col"] 2 ..Closest_Value group_by=["Group"]
+            r . at "TEMP" . to_vector . should_equal [3, 3, 3, 3, 4, 4, 4, 2, 2]
+        group_builder.specify "Zero n is a no-op" <|
+            r = t2.offset ["Col"] 0 ..Closest_Value group_by=["Group"]
+            r . at "TEMP" . to_vector . should_equal [1, 2, 3, 1, 2, 3, 4, 1, 2]
+        group_builder.specify "Large negative n values work" <|
+            r = t2.offset ["Col"] -1024 ..Closest_Value group_by=["Group"]
+            r . at "TEMP" . to_vector . should_equal [1, 1, 1, 1, 1, 1, 1, 1, 1]
+        group_builder.specify "Large positive n values work" <|
+            r = t2.offset ["Col"] 1024 ..Closest_Value group_by=["Group"]
+            r . at "TEMP" . to_vector . should_equal [3, 3, 3, 4, 4, 4, 4, 2, 2]
