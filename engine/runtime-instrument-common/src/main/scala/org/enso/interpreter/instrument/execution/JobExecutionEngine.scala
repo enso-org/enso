@@ -96,7 +96,6 @@ final class JobExecutionEngine(
             assertInJvm(timeSinceRequestedToCancel > 0)
             val timeToCancel =
               forceInterruptTimeout - timeSinceRequestedToCancel
-            assertInJvm(timeToCancel > 0)
             logger.log(
               Level.FINEST,
               "About to wait {}ms  to cancel job {}",
@@ -108,8 +107,7 @@ final class JobExecutionEngine(
             runningJob.future.get(timeToCancel, TimeUnit.MILLISECONDS)
             logger.log(
               Level.FINEST,
-              "Job {} finished within the allocated soft-cancel time",
-              runningJob.id
+              "Job {} finished within the allocated soft-cancel time"
             )
           } catch {
             case _: TimeoutException =>

@@ -9,6 +9,7 @@ import SvgMask from '#/components/SvgMask'
 import AboutModal from '#/modals/AboutModal'
 import { useAuth } from '#/providers/AuthProvider'
 import { useSetModal } from '#/providers/ModalProvider'
+import { useSessionAPI } from '#/providers/SessionProvider.tsx'
 import { useText } from '#/providers/TextProvider'
 
 // ================
@@ -23,7 +24,9 @@ export interface InfoMenuProps {
 /** A menu containing info about the app. */
 export default function InfoMenu(props: InfoMenuProps) {
   const { hidden = false } = props
-  const { signOut, session } = useAuth()
+
+  const { signOut } = useSessionAPI()
+  const { session } = useAuth()
   const { setModal } = useSetModal()
   const { getText } = useText()
 
