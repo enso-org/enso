@@ -222,7 +222,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
           settingsFormEntryData({
             type: 'form',
             schema: z.object({
-              name: z.string().regex(/^.*\S.*$|^$/),
+              name: z.string().min(1).regex(/^.*\S.*$/),
               email: z.string().email().or(z.literal('')),
               website: z.string(),
               address: z.string(),
@@ -240,8 +240,8 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
               await context.updateOrganization([
                 {
                   name,
-                  email: EmailAddress(email),
-                  website: HttpsUrl(website),
+                  ...(email !== '' ? { email: EmailAddress(email) } : {}),
+                  ...(website !== '' ? { website: HttpsUrl(website) } : {}),
                   address,
                 },
               ])
