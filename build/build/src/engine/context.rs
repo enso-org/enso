@@ -201,8 +201,6 @@ impl RunContext {
         }
         if self.config.build_native_runner {
             env::ENSO_LAUNCHER.set(&engine::EngineLauncher::DebugNative)?;
-        } else {
-            env::ENSO_LAUNCHER.set(&engine::EngineLauncher::Shell)?;
         }
 
         // TODO: Once the native image is production ready, we should switch to
@@ -213,12 +211,9 @@ impl RunContext {
         let kind = Kind::deduce(&version)?;
         if is_release {
             env::ENSO_LAUNCHER.set(&engine::EngineLauncher::Native)?;
-        } else if kind == Kind::Dev {
-            env::ENSO_LAUNCHER.set(&engine::EngineLauncher::Shell)?;
         } else {
-            env::ENSO_LAUNCHER.set(&engine::EngineLauncher::default())?;
+            env::ENSO_LAUNCHER.set(&engine::EngineLauncher::Shell)?;
         }*/
-
 
         prepare_simple_library_server.await??;
 
