@@ -52,7 +52,7 @@ add_specs prefix suite_builder file_maker =
                 second_contents = file.read
                 first_contents . should_equal second_contents
 
-                Thread.sleep (sleep_duration_secs * 1000)
+                Thread.sleep ((sleep_duration_secs + 0.5) * 1000)
 
                 Data.download (url_n_bytes 12) (replace_existing=..If_Older_Than (Duration.new seconds=sleep_duration_secs)) file
                 third_contents = file.read

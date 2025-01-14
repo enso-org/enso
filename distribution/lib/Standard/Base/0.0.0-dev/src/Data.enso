@@ -444,8 +444,8 @@ post (uri:(URI | Text)=(Missing_Argument.throw "uri")) (body:Request_Body=..Empt
      Options include:
          - `If_Not_Exists`: Download the file if it does not already exist on
            disk. (The default.)
-         - `If_Older_Than age`: Download the file if it is older than the
-           specified age.
+         - `If_Older_Than age`: Download the file if the existing file is older
+           than the specified age.
          - `Always`: Always download.
    - method: The HTTP method to use. Must be one of `HTTP_Method.Get`,
      `HTTP_Method.Head`, `HTTP_Method.Delete`, `HTTP_Method.Options`.
