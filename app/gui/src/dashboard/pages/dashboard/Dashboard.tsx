@@ -264,16 +264,18 @@ function DashboardInner(props: DashboardProps) {
             setPage(newPage as TabType)
           }}
         >
-          <div className="flex">
-            <DashboardTabBar onCloseProject={closeProject} onOpenEditor={openEditor} />
-
-            <UserBar
-              onShareClick={selectedProject ? doOpenShareModal : undefined}
-              setIsHelpChatOpen={setIsHelpChatOpen}
-              goToSettingsPage={goToSettings}
-              onSignOut={onSignOut}
-            />
-          </div>
+          <DashboardTabBar
+            onCloseProject={closeProject}
+            onOpenEditor={openEditor}
+            userBar={
+              <UserBar
+                onShareClick={selectedProject ? doOpenShareModal : undefined}
+                setIsHelpChatOpen={setIsHelpChatOpen}
+                goToSettingsPage={goToSettings}
+                onSignOut={onSignOut}
+              />
+            }
+          />
 
           <DashboardTabPanels
             initialProjectName={initialProjectName}
