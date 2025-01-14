@@ -30,7 +30,7 @@ public interface Builder {
           case AnyObjectType _ -> new MixedBuilder(size);
           case BooleanType _ -> getForBoolean(size);
           case DateType _ -> new DateBuilder(size, false);
-          case DateTimeType _ -> new DateTimeBuilder(size);
+          case DateTimeType _ -> new DateTimeBuilder(size, false);
           case TimeOfDayType _ -> new TimeOfDayBuilder(size);
           case FloatType floatType -> getForDouble(size, floatType, problemAggregator);
           case IntegerType integerType -> getForLong(size, integerType, problemAggregator);

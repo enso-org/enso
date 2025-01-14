@@ -22,10 +22,6 @@ public class DateTimeBuilder extends TypedBuilder<ZonedDateTime> {
   private final boolean allowDateToDateTimeConversion;
   private final BitSet wasLocalDate;
 
-  public DateTimeBuilder(int size) {
-    this(size, false);
-  }
-
   public DateTimeBuilder(int size, boolean allowDateToDateTimeConversion) {
     super(DateTimeType.INSTANCE, size);
     this.allowDateToDateTimeConversion = allowDateToDateTimeConversion;

@@ -156,8 +156,8 @@ time_fetcher =
 ## PRIVATE
 date_time_fetcher =
     fetch_value rs i = JDBCUtils.getZonedDateTime rs i
-    make_builder initial_size _ =
-        java_builder = Java_Exports.make_date_time_builder initial_size
+    make_builder initial_size java_problem_aggregator =
+        java_builder = Java_Exports.make_builder_for_type Value_Type.Date_Time initial_size java_problem_aggregator
         make_builder_from_java_object_builder java_builder
     Column_Fetcher.Value fetch_value make_builder
 
@@ -167,8 +167,8 @@ date_time_fetcher =
    adding the default system timezone.
 local_date_time_fetcher =
     fetch_value rs i = JDBCUtils.getLocalDateTimeAsZoned rs i
-    make_builder initial_size _ =
-        java_builder = Java_Exports.make_date_time_builder initial_size
+    make_builder initial_size java_problem_aggregator =
+        java_builder = Java_Exports.make_builder_for_type Value_Type.Date_Time initial_size java_problem_aggregator
         make_builder_from_java_object_builder java_builder
     Column_Fetcher.Value fetch_value make_builder
 

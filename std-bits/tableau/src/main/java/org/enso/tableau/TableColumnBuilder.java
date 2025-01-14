@@ -7,7 +7,6 @@ import java.time.Period;
 import java.time.ZoneId;
 import java.util.function.Consumer;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.builder.DateTimeBuilder;
 import org.enso.table.data.column.builder.InferredBuilder;
 import org.enso.table.data.column.builder.NumericBuilder;
 import org.enso.table.data.column.builder.ObjectBuilder;
@@ -158,7 +157,7 @@ record TableColumnBuilder(Builder builder, Consumer<Result> appendMethod) {
                 column.index(),
                 r -> timeBuilder.append(r.getLocalTime(column.index()))));
       case Types.TIMESTAMP:
-        var dateTimeBuilder = new DateTimeBuilder(initialRowCount);
+        var dateTimeBuilder = Builder.getForType(DateTimeType.INSTANCE, initialRowCount, problemAggregator);
         return new TableColumnBuilder(
             dateTimeBuilder,
             nullAppender(
@@ -168,7 +167,7 @@ record TableColumnBuilder(Builder builder, Consumer<Result> appendMethod) {
                     dateTimeBuilder.append(
                         r.getLocalDateTime(column.index()).atZone(ZoneId.systemDefault()))));
       case Types.TIMESTAMP_WITH_TIMEZONE:
-        var dateTimeTzBuilder = new DateTimeBuilder(initialRowCount);
+        var dateTimeTzBuilder = Builder.getForType(DateTimeType.INSTANCE, initialRowCount, problemAggregator);
         return new TableColumnBuilder(
             dateTimeTzBuilder,
             nullAppender(

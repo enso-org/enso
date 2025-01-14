@@ -3,11 +3,13 @@ package org.enso.table.data.column.operation.cast;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import org.enso.table.data.column.builder.DateTimeBuilder;
+
+import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.datetime.DateStorage;
 import org.enso.table.data.column.storage.datetime.DateTimeStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
+import org.enso.table.data.column.storage.type.DateTimeType;
 import org.graalvm.polyglot.Context;
 
 public class ToDateTimeStorageConverter implements StorageConverter<ZonedDateTime> {
@@ -28,7 +30,7 @@ public class ToDateTimeStorageConverter implements StorageConverter<ZonedDateTim
   public Storage<ZonedDateTime> castFromMixed(
       Storage<?> mixedStorage, CastProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
-    DateTimeBuilder builder = new DateTimeBuilder(mixedStorage.size());
+    var builder = Builder.getForType(DateTimeType.INSTANCE, mixedStorage.size(), problemAggregator);
     for (int i = 0; i < mixedStorage.size(); i++) {
       Object o = mixedStorage.getItemBoxed(i);
       switch (o) {
@@ -44,7 +46,7 @@ public class ToDateTimeStorageConverter implements StorageConverter<ZonedDateTim
       context.safepoint();
     }
 
-    return builder.seal();
+    return (Storage<ZonedDateTime>)builder.seal();
   }
 
   private ZonedDateTime convertDate(LocalDate date) {
@@ -54,13 +56,13 @@ public class ToDateTimeStorageConverter implements StorageConverter<ZonedDateTim
   private Storage<ZonedDateTime> convertDateStorage(
       DateStorage dateStorage, CastProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
-    DateTimeBuilder builder = new DateTimeBuilder(dateStorage.size());
+    var builder = Builder.getForType(DateTimeType.INSTANCE, dateStorage.size(), problemAggregator);
     for (int i = 0; i < dateStorage.size(); i++) {
       LocalDate date = dateStorage.getItem(i);
       builder.append(convertDate(date));
       context.safepoint();
     }
 
-    return builder.seal();
+    return (Storage<ZonedDateTime>)builder.seal();
   }
 }

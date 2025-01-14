@@ -7,7 +7,6 @@ import project.Value_Type.Value_Type
 
 polyglot java import org.enso.table.data.column.builder.Builder
 polyglot java import org.enso.table.data.column.builder.BuilderForBoolean
-polyglot java import org.enso.table.data.column.builder.DateTimeBuilder
 polyglot java import org.enso.table.data.column.builder.InferredBuilder
 polyglot java import org.enso.table.data.column.builder.NumericBuilder
 polyglot java import org.enso.table.data.column.builder.StringBuilder
@@ -46,10 +45,6 @@ make_string_builder initial_size value_type=Value_Type.Char =
 ## PRIVATE
 make_time_of_day_builder : Integer -> TimeOfDayBuilder
 make_time_of_day_builder initial_size = TimeOfDayBuilder.new initial_size
-
-## PRIVATE
-make_date_time_builder : Integer -> DateTimeBuilder
-make_date_time_builder initial_size = DateTimeBuilder.new initial_size
 
 ## PRIVATE
 make_inferred_builder : Integer -> ProblemAggregator -> InferredBuilder

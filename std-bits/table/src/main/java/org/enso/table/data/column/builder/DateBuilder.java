@@ -53,7 +53,7 @@ public class DateBuilder extends TypedBuilder<LocalDate> {
   @Override
   public Builder retypeTo(StorageType type) {
     if (allowDateToDateTimeConversion && Objects.equals(type, DateTimeType.INSTANCE)) {
-      DateTimeBuilder res = new DateTimeBuilder(data.length, true);
+      var res = new DateTimeBuilder(data.length, true);
       for (int i = 0; i < currentSize; i++) {
         res.appendNoGrow(data[i]);
       }
