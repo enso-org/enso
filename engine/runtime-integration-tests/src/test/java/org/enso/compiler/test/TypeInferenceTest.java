@@ -1579,6 +1579,33 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     return src;
   }
 
+  @Ignore("TODO: missing IR on Numbers")
+  @Test
+  public void overrideMethodOnNumberThroughAny() throws URISyntaxException {
+    final URI uri = new URI("memory://local.Project1.modA.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+                    type A
+                        A_Value
+
+                    Any.method self -> A = A.A_Value
+
+                    foo =
+                        x1 = 42.method
+                        x1
+                    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+    var foo = ModuleUtils.findStaticMethod(module, "foo");
+    var x1 = ModuleUtils.findAssignment(foo, "x1");
+    assertAtomType("local.Project1.modA.A", x1);
+  }
+
   @Test
   public void precedenceOfMethodsOnAny() throws URISyntaxException {
     var module = compile(anyPrecedenceTestSource());
