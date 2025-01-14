@@ -53,6 +53,7 @@ public class HelloWorldCacheTest {
             .option(RuntimeOptions.LOG_LEVEL, Level.FINE.getName())
             .option(RuntimeOptions.DISABLE_IR_CACHES, "false")
             .option(RuntimeOptions.PROJECT_ROOT, findBenchmarks(src).getAbsolutePath())
+            .option(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS, "true")
             .build()) {
       var code = Source.newBuilder("enso", src).build();
       var res = ContextUtils.evalModule(ctx, code, "main");

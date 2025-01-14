@@ -53,7 +53,7 @@ export default function AuthenticationPage<Schema extends TSchema>(
   const { isOffline } = useOffline()
 
   const heading =
-    title ?
+    title != null ?
       <Text.Heading level={1} className="self-center" weight="medium">
         {title}
       </Text.Heading>

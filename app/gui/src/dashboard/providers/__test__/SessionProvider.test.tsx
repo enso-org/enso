@@ -9,8 +9,8 @@ import SessionProvider from '../SessionProvider'
 
 describe('SessionProvider', () => {
   const mainPageUrl = new URL('https://enso.dev')
-  const userSession = vi.fn<[], Promise<UserSession>>(() =>
-    Promise.resolve({
+  const userSession = vi.fn(() =>
+    Promise.resolve<UserSession>({
       email: 'test@test.com',
       accessToken: 'accessToken',
       refreshToken: 'refreshToken',

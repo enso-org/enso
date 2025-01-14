@@ -187,7 +187,7 @@ export class Server {
         http.request(
           actualUrl,
           { headers: request.headers, method: request.method },
-          actualResponse => {
+          (actualResponse) => {
             response.writeHead(
               // This is SAFE. The documentation says:
               // Only valid for response obtained from ClientRequest.
@@ -223,7 +223,7 @@ export class Server {
                   ])
                   .end(filePath)
               })
-              .catch(e => {
+              .catch((e) => {
                 console.error(e)
                 response.writeHead(HTTP_STATUS_BAD_REQUEST, common.COOP_COEP_CORP_HEADERS).end()
               })
@@ -239,7 +239,7 @@ export class Server {
           const name = url.searchParams.get('name')
           void this.config.externalFunctions
             .uploadProjectBundle(request, directory, name)
-            .then(project => {
+            .then((project) => {
               response
                 .writeHead(HTTP_STATUS_OK, [
                   ['Content-Length', String(project.id.length)],
@@ -319,7 +319,7 @@ export class Server {
         response.setHeader(header, value)
       }
       fs.readFile(resourceFile)
-        .then(data => {
+        .then((data) => {
           const contentType = mime.contentType(path.extname(resourceFile))
           const contentLength = data.length
           if (contentType !== false) {

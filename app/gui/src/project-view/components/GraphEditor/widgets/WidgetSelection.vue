@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import ConditionalTeleport from '@/components/ConditionalTeleport.vue'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { enclosingTopLevelArgument } from '@/components/GraphEditor/widgets/WidgetTopLevelArgument.vue'
 import SizeTransition from '@/components/SizeTransition.vue'
@@ -476,13 +475,13 @@ declare module '@/providers/widgetRegistry' {
     @pointerout="isHovered = false"
   >
     <NodeWidget :input="innerWidgetInput" />
-    <ConditionalTeleport v-if="showArrow" :disabled="!arrowLocation" :to="arrowLocation">
+    <teleport v-if="showArrow" :disabled="!arrowLocation" :to="arrowLocation">
       <SvgIcon
         name="arrow_right_head_only"
         class="arrow widgetOutOfLayout"
         :class="{ hovered: isHovered }"
       />
-    </ConditionalTeleport>
+    </teleport>
     <Teleport v-if="tree.rootElement" :to="tree.rootElement">
       <div ref="dropdownElement" :style="floatingStyles" class="widgetOutOfLayout floatingElement">
         <SizeTransition height :duration="100">

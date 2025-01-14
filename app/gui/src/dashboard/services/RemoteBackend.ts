@@ -1361,6 +1361,11 @@ export default class RemoteBackend extends Backend {
         )
         break
       }
+      case backend.AssetType.secret:
+      case backend.AssetType.directory:
+      case backend.AssetType.specialLoading:
+      case backend.AssetType.specialEmpty:
+      case backend.AssetType.specialError:
       default: {
         invariant(`'${asset.type}' assets cannot be downloaded.`)
         break

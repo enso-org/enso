@@ -146,7 +146,7 @@ export const EXTENDED_FILE_ASSOCIATIONS = [
  * as the `electron-builder` will error out if it encounters unknown fields.
  */
 function getFileAssociations(): electronBuilder.FileAssociation[] {
-  return EXTENDED_FILE_ASSOCIATIONS.map(assoc => {
+  return EXTENDED_FILE_ASSOCIATIONS.map((assoc) => {
     const { ext, name, role, mimeType } = assoc
     return { ext, name, role, mimeType }
   })

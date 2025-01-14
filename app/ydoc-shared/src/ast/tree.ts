@@ -497,7 +497,7 @@ export abstract class MutableAst extends Ast {
   /** @internal */
   replaceChild<T extends MutableAst>(target: AstId, replacement: Owned<T>) {
     const replacementId = this.claimChild(replacement)
-    const changes = rewriteRefs(this, id => (id === target ? replacementId : undefined))
+    const changes = rewriteRefs(this, (id) => (id === target ? replacementId : undefined))
     assertEqual(changes, 1)
   }
 
@@ -728,8 +728,8 @@ function fieldEqual(field1: FieldData, field2: FieldData): boolean {
 }
 
 function applyMixins(derivedCtor: any, constructors: any[]) {
-  constructors.forEach(baseCtor => {
-    Object.getOwnPropertyNames(baseCtor.prototype).forEach(name => {
+  constructors.forEach((baseCtor) => {
+    Object.getOwnPropertyNames(baseCtor.prototype).forEach((name) => {
       Object.defineProperty(
         derivedCtor.prototype,
         name,
@@ -1200,7 +1200,7 @@ export class OprApp extends BaseExpression {
   /** TODO: Add docs */
   get operator(): Result<Token, NodeChild<Token>[]> {
     const operators = this.fields.get('operators')
-    const operators_ = operators.map(child => ({
+    const operators_ = operators.map((child) => ({
       ...child,
       node: this.module.getToken(child.node),
     }))
@@ -1405,7 +1405,7 @@ export class Generic extends Ast implements Expression, Statement {
     const base = module.baseObject('Generic')
     const id_ = base.get('id')
     const fields = composeFieldData(base, {
-      children: children.map(child => concreteChild(module, child, id_)),
+      children: children.map((child) => concreteChild(module, child, id_)),
     })
     return asOwned(new MutableGeneric(module, fields))
   }
@@ -1791,7 +1791,7 @@ export class TextLiteral extends BaseExpression {
     const fields = composeFieldData(base, {
       open,
       newline,
-      elements: elements.map(e => mapRefs(e, ownedToRaw(module, id_))),
+      elements: elements.map((e) => mapRefs(e, ownedToRaw(module, id_))),
       close,
     })
     return asOwned(new MutableTextLiteral(module, fields))
@@ -1880,7 +1880,7 @@ export class TextLiteral extends BaseExpression {
 
   /** TODO: Add docs */
   get elements(): TextElement<ConcreteRefs>[] {
-    return this.fields.get('elements').map(e => mapRefs(e, rawToConcrete(this.module)))
+    return this.fields.get('elements').map((e) => mapRefs(e, rawToConcrete(this.module)))
   }
 }
 /** TODO: Add docs */
@@ -1896,7 +1896,7 @@ export class MutableTextLiteral extends TextLiteral implements MutableExpression
   setElements(elements: TextElement<OwnedRefs>[]) {
     this.fields.set(
       'elements',
-      elements.map(e => mapRefs(e, ownedToRaw(this.module, this.id))),
+      elements.map((e) => mapRefs(e, ownedToRaw(this.module, this.id))),
     )
   }
 
@@ -1916,7 +1916,7 @@ export class MutableTextLiteral extends TextLiteral implements MutableExpression
       isInterpolated || mustBecomeInterpolated ? escapeTextLiteral(rawText) : rawText
     const parsed = parseExpression(`${boundary}${literalContents}${boundary}`)
     assert(parsed instanceof TextLiteral)
-    const elements = parsed.elements.map(e => mapRefs(e, concreteToOwned(this.module)))
+    const elements = parsed.elements.map((e) => mapRefs(e, concreteToOwned(this.module)))
     this.setElements(elements)
   }
 }
@@ -2180,7 +2180,7 @@ export class Group extends BaseExpression {
     if (open) yield firstChild(open)
     const spaced = ((open && expression?.whitespace) ?? '') !== ''
     if (expression) yield open ? preferSpacedIf(expression, spaced) : firstChild(expression)
-    if (close) yield open ?? expression ? preferSpacedIf(close, spaced) : firstChild(close)
+    if (close) yield (open ?? expression) ? preferSpacedIf(close, spaced) : firstChild(close)
   }
 }
 /** TODO: Add docs */
@@ -2356,7 +2356,7 @@ export class FunctionDef extends BaseStatement {
   get argumentDefinitions(): ArgumentDefinition<ConcreteRefs>[] {
     return this.fields
       .get('argumentDefinitions')
-      .map(def => mapRefs(def, rawToConcrete(this.module)))
+      .map((def) => mapRefs(def, rawToConcrete(this.module)))
   }
 
   /** TODO: Add docs */
@@ -2374,13 +2374,13 @@ export class FunctionDef extends BaseStatement {
       docLine: fields.docLine && mapRefs(fields.docLine, ownedToRaw(module, id_)),
       docLineMarkdownHash: fields.docLineMarkdownHash,
       docMarkdown: fields.docMarkdown,
-      annotationLines: (fields.annotationLines ?? []).map(anno =>
+      annotationLines: (fields.annotationLines ?? []).map((anno) =>
         mapRefs(anno, ownedToRaw(module, id_)),
       ),
       signatureLine: fields.signatureLine && mapRefs(fields.signatureLine, ownedToRaw(module, id_)),
       private_: fields.private_,
       name: concreteChild(module, fields.name, id_),
-      argumentDefinitions: (fields.argumentDefinitions ?? []).map(def =>
+      argumentDefinitions: (fields.argumentDefinitions ?? []).map((def) =>
         mapRefs(def, ownedToRaw(module, id_)),
       ),
       equals: fields.equals,
@@ -2400,7 +2400,7 @@ export class FunctionDef extends BaseStatement {
     } = {},
   ): Owned<MutableFunctionDef> {
     const module = options.edit ?? MutableModule.Transient()
-    const argumentDefinitions = args.map(arg =>
+    const argumentDefinitions = args.map((arg) =>
       typeof arg === 'string' || isToken(arg) ?
         {
           pattern: autospaced(Ident.new(module, arg)),
@@ -2531,7 +2531,7 @@ export class MutableFunctionDef extends FunctionDef implements MutableStatement 
   setArgumentDefinitions(defs: ArgumentDefinition<OwnedRefs>[]) {
     this.fields.set(
       'argumentDefinitions',
-      defs.map(def => mapRefs(def, ownedToRaw(this.module, this.id))),
+      defs.map((def) => mapRefs(def, ownedToRaw(this.module, this.id))),
     )
   }
 
@@ -2680,7 +2680,7 @@ export class BodyBlock extends BaseExpression {
     const base = module.baseObject('BodyBlock')
     const id_ = base.get('id')
     const fields = composeFieldData(base, {
-      lines: lines.map(line => lineToRaw(line, module, id_)),
+      lines: lines.map((line) => lineToRaw(line, module, id_)),
     })
     return asOwned(new MutableBodyBlock(module, fields))
   }
@@ -2692,7 +2692,7 @@ export class BodyBlock extends BaseExpression {
 
   /** TODO: Add docs */
   get lines(): BlockLine[] {
-    return this.fields.get('lines').map(line => lineFromRaw(line, this.module))
+    return this.fields.get('lines').map((line) => lineFromRaw(line, this.module))
   }
 
   /** TODO: Add docs */
@@ -2725,19 +2725,19 @@ export class MutableBodyBlock extends BodyBlock implements MutableExpression {
     return this.setLines(map(this.takeLines()))
   }
   takeLines(): OwnedBlockLine[] {
-    return this.fields.get('lines').map(line => ownedLineFromRaw(line, this.module))
+    return this.fields.get('lines').map((line) => ownedLineFromRaw(line, this.module))
   }
   setLines(lines: OwnedBlockLine[]) {
     this.fields.set(
       'lines',
-      lines.map(line => lineToRaw(line, this.module, this.id)),
+      lines.map((line) => lineToRaw(line, this.module, this.id)),
     )
   }
 
   /** Remove statements matching the given predicate from the block and return them. */
   extractIf(predicate: (statement: Statement) => boolean): OwnedBlockLine[] {
     const extracted = new Array<OwnedBlockLine>()
-    this.updateLines(lines => {
+    this.updateLines((lines) => {
       const remaining: OwnedBlockLine[] = []
       for (const line of lines) {
         const ast = line.statement?.node
@@ -2752,7 +2752,7 @@ export class MutableBodyBlock extends BodyBlock implements MutableExpression {
   /** Insert the given statement(s) starting at the specified line index. */
   insert(index: number, ...statements: (Owned<MutableStatement> | undefined)[]) {
     const before = this.fields.get('lines').slice(0, index)
-    const insertions = statements.map(statement => ({
+    const insertions = statements.map((statement) => ({
       newline: unspaced(Token.new('\n', TokenType.Newline)),
       statement: statement && unspaced(this.claimChild(statement)),
     }))
@@ -2772,7 +2772,7 @@ export class MutableBodyBlock extends BodyBlock implements MutableExpression {
 
   filter(keep: (ast: MutableStatement) => boolean) {
     const oldLines = this.fields.get('lines')
-    const filteredLines = oldLines.filter(line => {
+    const filteredLines = oldLines.filter((line) => {
       if (!line.statement) return true
       return keep(this.module.get(line.statement.node) as MutableStatement)
     })
@@ -3003,7 +3003,7 @@ export class Vector extends BaseExpression {
     const id_ = base.get('id')
     const fields = composeFieldData(base, {
       open: open ?? unspaced(Token.new('[', TokenType.OpenSymbol)),
-      elements: elements.map(delimitVectorElement).map(e => mapRefs(e, ownedToRaw(module, id_))),
+      elements: elements.map(delimitVectorElement).map((e) => mapRefs(e, ownedToRaw(module, id_))),
       close: close ?? unspaced(Token.new(']', TokenType.CloseSymbol)),
     })
     return asOwned(new MutableVector(module, fields))
@@ -3014,7 +3014,7 @@ export class Vector extends BaseExpression {
     return this.concrete(
       module,
       undefined,
-      elements.map(value => ({ value: autospaced(value) })),
+      elements.map((value) => ({ value: autospaced(value) })),
       undefined,
     )
   }
@@ -3126,7 +3126,7 @@ export class MutableVector extends Vector implements MutableExpression {
 
   splice(start: number, deletedCount: number, ...newValues: Owned[]) {
     const elements = [...this.fields.get('elements')]
-    const newElements = newValues.map(value => this.valueToElement(value))
+    const newElements = newValues.map((value) => this.valueToElement(value))
     elements.splice(start, deletedCount, ...newElements)
     MutableVector.autospaceElement(elements[start + newValues.length])
     this.fields.set('elements', elements)
@@ -3156,7 +3156,7 @@ export class MutableVector extends Vector implements MutableExpression {
     // Spacing around opening brackets should be preserved, as it's more natural (see tests).
     const firstSpacing = elements[0]?.value?.whitespace
     const filtered = elements.filter(
-      element =>
+      (element) =>
         element.value && predicate(this.module.get(element.value.node) as MutableExpression),
     )
     if (firstSpacing != null && filtered[0]?.value != null) {

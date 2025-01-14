@@ -63,6 +63,10 @@ export default function Login() {
           setUser(res.user)
           nextStep()
           break
+        case 'CUSTOM_CHALLENGE':
+        case 'MFA_SETUP':
+        case 'NEW_PASSWORD_REQUIRED':
+        case 'SELECT_MFA_TYPE':
         default:
           throw new Error('Unsupported challenge')
       }

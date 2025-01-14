@@ -290,8 +290,8 @@ function createUserGroupsWithUsers(
   users: readonly backendModule.User[],
 ): readonly UserGroupInfoWithUsers[] {
   return userGroups.map((userGroup) => {
-    const usersInGroup: readonly User[] = users.filter((user) =>
-      user.userGroups?.includes(userGroup.id),
+    const usersInGroup: readonly User[] = users.filter(
+      (user) => user.userGroups?.includes(userGroup.id) ?? false,
     )
     return { ...userGroup, users: usersInGroup }
   })
@@ -476,6 +476,7 @@ export function useAsset(options: UseAssetOptions) {
     parentsPath: '',
     virtualParentsPath: '',
   }
+  // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
   switch (true) {
     case assetId === USERS_DIRECTORY_ID: {
       return {

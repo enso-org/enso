@@ -73,7 +73,9 @@ export class FileConsumer extends linkedDist.log.Consumer {
   /** Append a message to the log. */
   override message(level: linkedDist.log.LogLevel, ...args: unknown[]): void {
     const timestamp = new Date().toISOString()
-    const message = args.map(arg => (typeof arg === 'string' ? arg : JSON.stringify(arg))).join(' ')
+    const message = args
+      .map((arg) => (typeof arg === 'string' ? arg : JSON.stringify(arg)))
+      .join(' ')
     const timestampedMessage = `[${timestamp}] [${level.toUpperCase()}] ${message}\n`
 
     if (this.logFileHandle) {

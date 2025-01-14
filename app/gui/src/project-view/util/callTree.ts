@@ -96,8 +96,8 @@ abstract class Argument {
  * represented in the AST.
  */
 export class ArgumentPlaceholder extends Argument {
-  public declare index: number
-  public declare argInfo: SuggestionEntryArgument
+  declare public index: number
+  declare public argInfo: SuggestionEntryArgument
   /** TODO: Add docs */
   constructor(
     callId: string,

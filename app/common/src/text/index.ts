@@ -176,7 +176,7 @@ export type GetText = <K extends TextId>(
 export function resolveUserLanguage() {
   const locale = navigator.language
   const language =
-    unsafeKeys(LANGUAGE_TO_LOCALE).find(language => locale === LANGUAGE_TO_LOCALE[language]) ??
+    unsafeKeys(LANGUAGE_TO_LOCALE).find((language) => locale === LANGUAGE_TO_LOCALE[language]) ??
     Language.english
 
   return language

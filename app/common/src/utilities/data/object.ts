@@ -24,7 +24,7 @@ export function merge<T extends object>(object: T, update: Partial<T>): T {
 
 /** Return a function to update an object with the given partial update. */
 export function merger<T extends object>(update: Partial<NoInfer<T>>): (object: T) => T {
-  return object => merge(object, update)
+  return (object) => merge(object, update)
 }
 
 /** Makes all properties readonly at the type level. They are still mutable at the runtime level. */
@@ -92,7 +92,7 @@ export function mapEntries<K extends PropertyKey, V, W>(
   // @ts-expect-error It is known that the set of keys is the same for the input and the output,
   // because the output is dynamically generated based on the input.
   return Object.fromEntries(
-    unsafeEntries(object).map<[K, W]>(kv => {
+    unsafeEntries(object).map<[K, W]>((kv) => {
       const [k, v] = kv
       return [k, map(k, v)]
     }),

@@ -59,6 +59,11 @@ object JPMSUtils {
         log.error(
           s"[JPMSUtils/$projName] Expected: (${distinctModules.size}): $distinctModules"
         )
+        val names = ret.map(f => {
+          val i = f.data.getName.lastIndexOf("-")
+          f.data.getName.substring(0, i)
+        })
+        log.error("diff: " + distinctModules.map(_.name).diff(names))
       }
     }
     ret

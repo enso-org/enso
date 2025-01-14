@@ -108,6 +108,7 @@ function Editor(props: EditorProps) {
       data-testid="editor"
     >
       {(() => {
+        // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
         switch (true) {
           case projectQuery.isError:
             return (

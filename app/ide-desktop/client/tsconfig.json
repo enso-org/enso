@@ -4,11 +4,5 @@
     "esModuleInterop": true,
     "paths": { "@/*": ["./src/*"] }
   },
-  "include": [
-    ".",
-    "../content",
-    "../types",
-    "../../build.json",
-    "src/config.json"
-  ]
+  "include": [".", "../content", "../types", "../../build.json", "src/config.json"]
 }

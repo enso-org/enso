@@ -57,7 +57,7 @@ const IMPORT_PROJECT_RESOLVE_FUNCTIONS = new Map<
 exposeInMainWorld(BACKEND_API_KEY, {
   importProjectFromPath: (projectPath: string, directory: string | null = null, title: string) => {
     electron.ipcRenderer.send(ipc.Channel.importProjectFromPath, projectPath, directory, title)
-    return new Promise<projectManagement.ProjectInfo>(resolve => {
+    return new Promise<projectManagement.ProjectInfo>((resolve) => {
       IMPORT_PROJECT_RESOLVE_FUNCTIONS.set(projectPath, resolve)
     })
   },

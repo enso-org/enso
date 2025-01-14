@@ -91,6 +91,7 @@ export function extractTypeAndId<Id extends backend.AssetId>(id: Id): AssetTypeA
     case backend.AssetType.file: {
       return { type: backend.AssetType.file, id: projectManager.Path(idRaw) }
     }
+    case undefined:
     default: {
       throw new Error(`Invalid type '${typeRaw}'`)
     }

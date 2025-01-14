@@ -124,6 +124,7 @@ export function useUploadFiles(backend: Backend, category: Category) {
         if (file != null) {
           const fileId = method === 'new' ? null : asset.id
 
+          // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
           switch (true) {
             case assetIsProject(asset): {
               const { extension } = extractProjectExtension(file.name)

@@ -123,6 +123,11 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
     case backendModule.AssetType.specialError: {
       return <AssetSpecialRow columnsLength={columns.length} depth={depth} type={type} />
     }
+    case backendModule.AssetType.project:
+    case backendModule.AssetType.file:
+    case backendModule.AssetType.secret:
+    case backendModule.AssetType.datalink:
+    case backendModule.AssetType.directory:
     default: {
       // This is safe because we filter out special asset types in the switch statement above.
       // eslint-disable-next-line no-restricted-syntax
@@ -203,6 +208,11 @@ const AssetSpecialRow = React.memo(function AssetSpecialRow(props: AssetSpecialR
         </tr>
       )
     }
+    case backendModule.AssetType.project:
+    case backendModule.AssetType.file:
+    case backendModule.AssetType.secret:
+    case backendModule.AssetType.datalink:
+    case backendModule.AssetType.directory:
     default: {
       invariant(false, 'Unsupported special asset type: ' + type)
     }
@@ -295,7 +305,7 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
 
   const isDeletingSingleAsset =
     useBackendMutationState(backend, 'deleteAsset', {
-      predicate: ({ state: { variables: [assetId] = [] } }) => assetId === asset.id,
+      predicate: ({ state: { variables = EMPTY_ARRAY } }) => variables[0] === asset.id,
       select: () => null,
     }).length !== 0
   const isDeletingMultipleAssets =
@@ -307,7 +317,7 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
   const isDeleting = isDeletingSingleAsset || isDeletingMultipleAssets
   const isRestoringSingleAsset =
     useBackendMutationState(backend, 'undoDeleteAsset', {
-      predicate: ({ state: { variables: [assetId] = EMPTY_ARRAY } }) => assetId === asset.id,
+      predicate: ({ state: { variables = EMPTY_ARRAY } }) => variables[0] === asset.id,
       select: () => null,
     }).length !== 0
   const isRestoringMultipleAssets =
@@ -352,7 +362,7 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
     isDeleting || isRestoring ? Visibility.faded
     : isRemovingSelf ? Visibility.hidden
     : visibilityRaw === Visibility.visible ? insertionVisibility
-    : visibilityRaw ?? insertionVisibility
+    : (visibilityRaw ?? insertionVisibility)
   const hidden = hiddenRaw || visibility === Visibility.hidden
 
   const setSelected = useEventCallback((newSelected: boolean) => {
@@ -643,6 +653,9 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
         </>
       )
     }
+    case backendModule.AssetType.specialLoading:
+    case backendModule.AssetType.specialEmpty:
+    case backendModule.AssetType.specialError:
     default: {
       invariant(
         false,

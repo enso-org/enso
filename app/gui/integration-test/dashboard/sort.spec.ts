@@ -45,11 +45,17 @@ test('sort', ({ page }) =>
       const date2 = toRfc3339(new Date(START_DATE_EPOCH_MS + 1 * MIN_MS))
       const date3 = toRfc3339(new Date(START_DATE_EPOCH_MS + 2 * MIN_MS))
       const date4 = toRfc3339(new Date(START_DATE_EPOCH_MS + 3 * MIN_MS))
+      const date4a = toRfc3339(new Date(START_DATE_EPOCH_MS + 3 * MIN_MS + 1))
+      const date4b = toRfc3339(new Date(START_DATE_EPOCH_MS + 3 * MIN_MS + 2))
       const date5 = toRfc3339(new Date(START_DATE_EPOCH_MS + 4 * MIN_MS))
+      const date5a = toRfc3339(new Date(START_DATE_EPOCH_MS + 4 * MIN_MS + 1))
       const date6 = toRfc3339(new Date(START_DATE_EPOCH_MS + 5 * MIN_MS))
       const date7 = toRfc3339(new Date(START_DATE_EPOCH_MS + 6 * MIN_MS))
       const date8 = toRfc3339(new Date(START_DATE_EPOCH_MS + 7 * MIN_MS))
-      api.addDirectory({ modifiedAt: date4, title: 'a directory' })
+      api.addDirectory({ modifiedAt: date4, title: 'a directory 1' })
+      api.addDirectory({ modifiedAt: date4a, title: 'a directory 10' })
+      api.addDirectory({ modifiedAt: date4b, title: 'a directory 2' })
+      api.addDirectory({ modifiedAt: date5a, title: 'a directory 11' })
       api.addDirectory({ modifiedAt: date6, title: 'G directory' })
       api.addProject({ modifiedAt: date7, title: 'C project' })
       api.addSecret({ modifiedAt: date2, title: 'H secret' })
@@ -61,8 +67,11 @@ test('sort', ({ page }) =>
       // b project
       // h secret
       // f secret
-      // a directory
+      // a directory 1
+      // a directory 10
+      // a directory 2
       // e file
+      // a directory 11
       // g directory
       // c project
       // d file
@@ -81,7 +90,10 @@ test('sort', ({ page }) =>
       // Assets in each group are ordered by insertion order.
       await expect(rows).toHaveText([
         /^G directory/,
-        /^a directory/,
+        /^a directory 11/,
+        /^a directory 2/,
+        /^a directory 10/,
+        /^a directory 1/,
         /^C project/,
         /^b project/,
         /^d file/,
@@ -97,7 +109,10 @@ test('sort', ({ page }) =>
     })
     .driveTable.withRows(async (rows) => {
       await expect(rows).toHaveText([
-        /^a directory/,
+        /^a directory 1/,
+        /^a directory 2/,
+        /^a directory 10/,
+        /^a directory 11/,
         /^b project/,
         /^C project/,
         /^d file/,
@@ -121,7 +136,10 @@ test('sort', ({ page }) =>
         /^d file/,
         /^C project/,
         /^b project/,
-        /^a directory/,
+        /^a directory 11/,
+        /^a directory 10/,
+        /^a directory 2/,
+        /^a directory 1/,
       ])
     })
     // Sorting should be unset.
@@ -136,7 +154,10 @@ test('sort', ({ page }) =>
     .driveTable.withRows(async (rows) => {
       await expect(rows).toHaveText([
         /^G directory/,
-        /^a directory/,
+        /^a directory 11/,
+        /^a directory 2/,
+        /^a directory 10/,
+        /^a directory 1/,
         /^C project/,
         /^b project/,
         /^d file/,
@@ -155,8 +176,11 @@ test('sort', ({ page }) =>
         /^b project/,
         /^H secret/,
         /^f secret/,
-        /^a directory/,
+        /^a directory 1/,
+        /^a directory 10/,
+        /^a directory 2/,
         /^e file/,
+        /^a directory 11/,
         /^G directory/,
         /^C project/,
         /^d file/,
@@ -172,8 +196,11 @@ test('sort', ({ page }) =>
         /^d file/,
         /^C project/,
         /^G directory/,
+        /^a directory 11/,
         /^e file/,
-        /^a directory/,
+        /^a directory 2/,
+        /^a directory 10/,
+        /^a directory 1/,
         /^f secret/,
         /^H secret/,
         /^b project/,
@@ -191,7 +218,10 @@ test('sort', ({ page }) =>
     .driveTable.withRows(async (rows) => {
       await expect(rows).toHaveText([
         /^G directory/,
-        /^a directory/,
+        /^a directory 11/,
+        /^a directory 2/,
+        /^a directory 10/,
+        /^a directory 1/,
         /^C project/,
         /^b project/,
         /^d file/,

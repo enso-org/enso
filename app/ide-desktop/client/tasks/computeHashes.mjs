@@ -30,7 +30,7 @@ function getChecksum(path, type) {
       const hash = cryptoModule.createHash(type)
       const input = fs.createReadStream(path)
       input.on('error', reject)
-      input.on('data', chunk => {
+      input.on('data', (chunk) => {
         hash.update(chunk)
       })
       input.on('close', () => {

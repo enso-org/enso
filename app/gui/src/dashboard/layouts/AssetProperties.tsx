@@ -188,7 +188,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
   const updateSecretMutation = useMutation(backendMutationOptions(backend, 'updateSecret'))
   const displayedDescription =
     editDescriptionMutation.variables?.[0] === item.id ?
-      editDescriptionMutation.variables[1].description ?? item.description
+      (editDescriptionMutation.variables[1].description ?? item.description)
     : item.description
 
   const editDescriptionForm = Form.useForm({

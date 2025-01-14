@@ -17,8 +17,8 @@ type BackendQueryNormalizers = {
 }
 
 const NORMALIZE_METHOD_QUERY: BackendQueryNormalizers = {
-  listDirectory: query => [query.parentId, object.omit(query, 'parentId')],
-  getFileDetails: fileId => [fileId],
+  listDirectory: (query) => [query.parentId, object.omit(query, 'parentId')],
+  getFileDetails: (fileId) => [fileId],
 }
 
 /** Creates a partial query key representing the given method and arguments. */

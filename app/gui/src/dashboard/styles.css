@@ -6,7 +6,7 @@
 
 :where(body:not(.vibrancy)) {
   &::before {
-    content: '';
+    content: "";
     inset: 0 -16vw -16vh 0;
     z-index: -1;
 

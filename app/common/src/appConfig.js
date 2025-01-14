@@ -34,7 +34,7 @@ export async function readEnvironmentFromFile() {
     const file = await fs.readFile(filePath, { encoding: 'utf-8' })
     console.info(`Reading environment from file: ${filePath}`)
     /** @type {readonly (readonly [string, string])[]} */
-    let entries = file.split('\n').flatMap(line => {
+    let entries = file.split('\n').flatMap((line) => {
       if (/^\s*$|^.s*#/.test(line)) {
         return []
       } else {
@@ -43,7 +43,7 @@ export async function readEnvironmentFromFile() {
       }
     })
     if (isProduction) {
-      entries = entries.filter(kv => {
+      entries = entries.filter((kv) => {
         const [k, v] = kv
         return v !== 'undefined' && process.env[k] == null
       })

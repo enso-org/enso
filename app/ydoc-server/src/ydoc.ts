@@ -173,7 +173,7 @@ class YjsConnection extends ObservableV2<{ close(): void }> {
       this.close()
     }
     try {
-      this.ws.send(message, error => error && this.close())
+      this.ws.send(message, (error) => error && this.close())
     } catch {
       this.close()
     }

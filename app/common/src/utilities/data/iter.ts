@@ -23,7 +23,7 @@ export function reduce<T, A>(
  * it will be consumed.
  */
 export function count(it: Iterable<unknown>): number {
-  return reduce(it, a => a + 1, 0)
+  return reduce(it, (a) => a + 1, 0)
 }
 
 /** An iterable with zero elements. */

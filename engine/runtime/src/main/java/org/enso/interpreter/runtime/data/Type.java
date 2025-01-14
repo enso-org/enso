@@ -3,9 +3,13 @@ package org.enso.interpreter.runtime.data;
 import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
@@ -13,13 +17,18 @@ import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.node.ConstantNode;
+import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;
+import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode;
+import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
+import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
@@ -42,6 +51,7 @@ public final class Type extends EnsoObject {
   private final boolean isProjectPrivate;
 
   private boolean gettersGenerated;
+  private Map<String, Function> methods;
 
   private Type(
       String name,
@@ -342,14 +352,28 @@ public final class Type extends EnsoObject {
     return true;
   }
 
+  /**
+   * Members are constructors and methods from this type, and eigen type. Not extension methods as
+   * they are most likely not in the module scope of this type.
+   *
+   * @param includeInternal
+   * @return
+   */
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
   EnsoObject getMembers(boolean includeInternal) {
     if (isProjectPrivate) {
       return ArrayLikeHelpers.empty();
-    } else {
-      return ArrayLikeHelpers.wrapStrings(constructors.keySet().toArray(String[]::new));
     }
+    var consNames = constructors.keySet();
+    if (!includeInternal) {
+      return ArrayLikeHelpers.wrapStrings(consNames.toArray(String[]::new));
+    }
+    var methodNames = methods().keySet();
+    var allNames = new HashSet<String>();
+    allNames.addAll(consNames);
+    allNames.addAll(methodNames);
+    return ArrayLikeHelpers.wrapStrings(allNames.toArray(String[]::new));
   }
 
   @ExportMessage
@@ -358,7 +382,69 @@ public final class Type extends EnsoObject {
     if (isProjectPrivate) {
       return false;
     } else {
-      return constructors.containsKey(member);
+      return constructors.containsKey(member) || methods().containsKey(member);
+    }
+  }
+
+  @ExportMessage
+  @TruffleBoundary
+  boolean isMemberInvocable(String member) {
+    return methods().containsKey(member);
+  }
+
+  @ExportMessage
+  static final class InvokeMember {
+    @Specialization(
+        guards = {"cachedMember.equals(member)", "func != null"},
+        limit = "3")
+    static Object doCached(
+        Type receiver,
+        String member,
+        Object[] args,
+        @Cached("member") String cachedMember,
+        @Cached("findMethod(receiver, member)") Function func,
+        @Cached("buildInvokeFuncNode(func)") InvokeFunctionNode invokeFuncNode)
+        throws UnsupportedMessageException, UnsupportedTypeException, ArityException {
+      var argsWithReceiver = new Object[args.length + 1];
+      argsWithReceiver[0] = receiver;
+      System.arraycopy(args, 0, argsWithReceiver, 1, args.length);
+      return invokeFuncNode.execute(func, null, null, argsWithReceiver);
+    }
+
+    @Specialization(replaces = "doCached")
+    @TruffleBoundary
+    static Object doUncached(
+        Type receiver,
+        String member,
+        Object[] args,
+        @CachedLibrary(limit = "3") InteropLibrary interop)
+        throws UnsupportedMessageException,
+            UnsupportedTypeException,
+            ArityException,
+            UnknownIdentifierException {
+      var method = findMethod(receiver, member);
+      if (method == null) {
+        throw UnknownIdentifierException.create(member);
+      }
+      var invokeFuncNode = buildInvokeFuncNode(method);
+      return doCached(receiver, member, args, member, method, invokeFuncNode);
+    }
+
+    static Function findMethod(Type receiver, String name) {
+      return receiver.methods().get(name);
+    }
+
+    static InvokeFunctionNode buildInvokeFuncNode(Function func) {
+      assert func != null;
+      var argumentInfos = func.getSchema().getArgumentInfos();
+      var callArgInfos = new CallArgumentInfo[argumentInfos.length];
+      for (var i = 0; i < argumentInfos.length; i++) {
+        var argInfo = argumentInfos[i];
+        var callArgInfo = new CallArgumentInfo(argInfo.getName());
+        callArgInfos[i] = callArgInfo;
+      }
+      return InvokeFunctionNode.build(
+          callArgInfos, DefaultsExecutionMode.EXECUTE, ArgumentsExecutionMode.EXECUTE);
     }
   }
 
@@ -368,12 +454,15 @@ public final class Type extends EnsoObject {
     if (isProjectPrivate) {
       throw UnknownIdentifierException.create(member);
     }
-    var result = constructors.get(member);
-    if (result == null) {
-      throw UnknownIdentifierException.create(member);
-    } else {
-      return result;
+    var cons = constructors.get(member);
+    if (cons != null) {
+      return cons;
     }
+    var method = methods().get(member);
+    if (method != null) {
+      return method;
+    }
+    throw UnknownIdentifierException.create(member);
   }
 
   @ExportMessage
@@ -411,5 +500,42 @@ public final class Type extends EnsoObject {
   private boolean isNothing(Node lib) {
     var b = EnsoContext.get(lib).getBuiltins();
     return this == b.nothing();
+  }
+
+  private Map<String, Function> methods() {
+    if (methods == null) {
+      CompilerDirectives.transferToInterpreter();
+      var allMethods = new HashMap<String, Function>();
+      var defScope = definitionScope.asModuleScope();
+      var methodsFromThisScope = defScope.getMethodsForType(this);
+      if (methodsFromThisScope != null) {
+        methodsFromThisScope.forEach(
+            func -> {
+              var simpleName = simpleFuncName(func);
+              allMethods.put(simpleName, func);
+            });
+      }
+      if (eigentype != null) {
+        var methodsFromEigenScope = eigentype.getDefinitionScope().getMethodsForType(eigentype);
+        if (methodsFromEigenScope != null) {
+          methodsFromEigenScope.forEach(
+              func -> {
+                var simpleName = simpleFuncName(func);
+                allMethods.put(simpleName, func);
+              });
+        }
+      }
+      methods = allMethods;
+    }
+    return methods;
+  }
+
+  private static String simpleFuncName(Function func) {
+    assert func.getName() != null;
+    if (func.getName().contains(".")) {
+      var items = func.getName().split("\\.");
+      return items[items.length - 1];
+    }
+    return func.getName();
   }
 }

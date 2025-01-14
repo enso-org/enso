@@ -171,7 +171,7 @@ export class MutableModule implements Module {
   /** @internal */
   importCopy<T extends Ast>(ast: T): Owned<Mutable<T>> {
     assert(ast.module !== this)
-    ast.visitRecursive(ast => this.nodes.set(ast.id, ast.fields.clone() as any))
+    ast.visitRecursive((ast) => this.nodes.set(ast.id, ast.fields.clone() as any))
     const fields = this.nodes.get(ast.id)
     assertDefined(fields)
     fields.set('parent', undefined)
@@ -531,7 +531,7 @@ class UpdateBuilder {
 
   finish(): ModuleUpdate {
     const dirtyNodes = new Set(this.nodesUpdated)
-    this.nodesAdded.forEach(node => dirtyNodes.add(node))
+    this.nodesAdded.forEach((node) => dirtyNodes.add(node))
     const updateRoots = subtreeRoots(this.module, dirtyNodes)
     return { ...this, updateRoots }
   }

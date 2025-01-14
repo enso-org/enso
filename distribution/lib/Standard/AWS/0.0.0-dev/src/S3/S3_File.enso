@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Data.Ordering.Vector_Lexicographic_Order
 import Standard.Base.Enso_Cloud.Data_Link.Data_Link
 import Standard.Base.Enso_Cloud.Data_Link.Data_Link_From_File
 import Standard.Base.Enso_Cloud.Data_Link_Helpers
@@ -195,7 +196,7 @@ type S3_File
                         S3_File.Value (S3_Path.Value bucket key) self.credentials
                     files = pair.second . map key->
                         S3_File.Value (S3_Path.Value bucket key) self.credentials
-                    sub_folders + files
+                    (sub_folders + files) . sort on=.path
 
     ## ALIAS load bytes, open bytes
        ICON data_input

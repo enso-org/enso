@@ -6,7 +6,7 @@ import type * as Schema from './schema.js'
 const positionalArgs = []
 let doChangeDetection = false
 
-for (let i = 2; i < process.argv.length; i++) {
+for (let i = 3; i < process.argv.length; i++) {
   const nextArg = process.argv[i]!
   if (nextArg === '--if-changed') doChangeDetection = true
   else if (nextArg.startsWith('--')) usage()

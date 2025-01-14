@@ -82,5 +82,5 @@ export function splicedAfter<T>(array: T[], items: T[], predicate: (value: T) =>
 export function transpose<T>(matrix: T[][]): T[][] {
   if (matrix.length === 0) return []
   if (matrix[0] && matrix[0].length === 0) return [[]]
-  return matrix[0]!.map((_, colIndex) => matrix.map(row => row[colIndex]!))
+  return matrix[0]!.map((_, colIndex) => matrix.map((row) => row[colIndex]!))
 }

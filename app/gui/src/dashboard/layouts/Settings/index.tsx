@@ -156,7 +156,7 @@ export default function Settings() {
       )
     }
   }, [isQueryBlank, doesEntryMatchQuery, getText, isMatch])
-  const effectiveTab = tabsToShow.includes(tab) ? tab : tabsToShow[0] ?? SettingsTabType.account
+  const effectiveTab = tabsToShow.includes(tab) ? tab : (tabsToShow[0] ?? SettingsTabType.account)
 
   const data = useMemo<SettingsTabData>(() => {
     const tabData = SETTINGS_TAB_DATA[effectiveTab]
@@ -222,7 +222,7 @@ export default function Settings() {
           className="ml-2.5 mr-8 max-w-[min(32rem,_100%)] rounded-full bg-white px-2.5 font-bold"
           aria-hidden
         >
-          {data.organizationOnly === true ? organization?.name ?? 'your organization' : user.name}
+          {data.organizationOnly === true ? (organization?.name ?? 'your organization') : user.name}
         </Text>
       </Heading>
       <div className="sm:ml-[14rem]">

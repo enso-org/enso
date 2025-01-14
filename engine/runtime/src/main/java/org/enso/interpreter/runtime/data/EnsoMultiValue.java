@@ -42,13 +42,14 @@ import org.graalvm.collections.Pair;
 public final class EnsoMultiValue extends EnsoObject {
   private final EnsoMultiType dispatch;
   private final EnsoMultiType extra;
+  private final int firstDispatch;
 
   @CompilationFinal(dimensions = 1)
   private final Object[] values;
 
-  private EnsoMultiValue(EnsoMultiType dispatch, EnsoMultiType extra, Object[] values) {
-    assert !dispatch.hasIntersectionWith(extra)
-        : "Dispatch (" + dispatch + " and extra " + extra + " should be disjoin!";
+  private EnsoMultiValue(
+      EnsoMultiType dispatch, EnsoMultiType extra, Object[] values, int firstDispatch) {
+    this.firstDispatch = firstDispatch;
     this.dispatch = dispatch;
     this.extra = extra;
     this.values = values;
@@ -75,6 +76,7 @@ public final class EnsoMultiValue extends EnsoObject {
      * @param types all the types this value can be {@link CastToNode cast to}
      * @param dispatchTypes the (subset of) types that the value is cast to currently - bigger than
      *     {@code 0} and at most {@code type.length}
+     * @param firstDispatch location of first dispatch type in the values
      * @param values value of each of the provided {@code types}
      * @return non-{@code null} multi value instance
      */
@@ -82,15 +84,20 @@ public final class EnsoMultiValue extends EnsoObject {
     public EnsoMultiValue newValue(
         @NeverDefault Type[] types,
         @NeverDefault int dispatchTypes,
+        @NeverDefault int firstDispatch,
         @NeverDefault Object... values) {
+      assert firstDispatch >= 0;
       assert dispatchTypes > 0;
       assert dispatchTypes <= types.length;
       assert types.length == values.length;
+      assert firstDispatch + dispatchTypes <= types.length;
       assert !Stream.of(values).anyMatch(v -> v instanceof EnsoMultiValue)
           : "Avoid double wrapping " + Arrays.toString(values);
       var dt = executeTypes(types, 0, dispatchTypes);
       var et = executeTypes(types, dispatchTypes, types.length);
-      return new EnsoMultiValue(dt, et, values);
+      assert !dt.hasIntersectionWith(et)
+          : "Dispatch (" + dt + " and extra " + et + " should be disjoin!";
+      return new EnsoMultiValue(dt, et, values, firstDispatch);
     }
 
     abstract EnsoMultiType executeTypes(Type[] types, int from, int to);
@@ -164,9 +171,9 @@ public final class EnsoMultiValue extends EnsoObject {
   final Type[] allTypes(
       boolean includeExtraTypes, @Cached EnsoMultiType.AllTypesWith allTypesWith) {
     if (!includeExtraTypes) {
-      return allTypesWith.executeAllTypes(dispatch, null);
+      return allTypesWith.executeAllTypes(dispatch, null, 0);
     } else {
-      return allTypesWith.executeAllTypes(dispatch, extra);
+      return allTypesWith.executeAllTypes(dispatch, extra, 0);
     }
   }
 
@@ -190,9 +197,9 @@ public final class EnsoMultiValue extends EnsoObject {
 
     private record Value(InteropType type, Object value) {}
 
-    static Value find(Object[] values, int max, InteropLibrary iop) {
+    static Value find(Object[] values, int firstDispatch, int max, InteropLibrary iop) {
       for (var i = 0; i < max; i++) {
-        var v = values[i];
+        var v = values[firstDispatch + i];
         if (iop.isNull(v)) {
           return new Value(NULL, v);
         }
@@ -226,7 +233,7 @@ public final class EnsoMultiValue extends EnsoObject {
   }
 
   private InteropType.Value findInteropTypeValue(InteropLibrary iop) {
-    return InteropType.find(values, dispatch.typesLength(), iop);
+    return InteropType.find(values, firstDispatch, dispatch.typesLength(), iop);
   }
 
   @ExportMessage
@@ -455,7 +462,7 @@ public final class EnsoMultiValue extends EnsoObject {
     var names = new TreeSet<String>();
     for (var i = 0; i < dispatch.typesLength(); i++) {
       try {
-        var members = iop.getMembers(values[i]);
+        var members = iop.getMembers(values[firstDispatch + i]);
         var len = iop.getArraySize(members);
         for (var j = 0L; j < len; j++) {
           var name = iop.readArrayElement(members, j);
@@ -471,7 +478,7 @@ public final class EnsoMultiValue extends EnsoObject {
   boolean isMemberInvocable(
       String name, @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary iop) {
     for (var i = 0; i < dispatch.typesLength(); i++) {
-      if (iop.isMemberInvocable(values[i], name)) {
+      if (iop.isMemberInvocable(values[firstDispatch + i], name)) {
         return true;
       }
     }
@@ -488,8 +495,8 @@ public final class EnsoMultiValue extends EnsoObject {
           UnsupportedTypeException,
           UnknownIdentifierException {
     for (var i = 0; i < dispatch.typesLength(); i++) {
-      if (iop.isMemberInvocable(values[i], name)) {
-        return iop.invokeMember(values[i], name, args);
+      if (iop.isMemberInvocable(values[firstDispatch + i], name)) {
+        return iop.invokeMember(values[firstDispatch + i], name, args);
       }
     }
     throw UnknownIdentifierException.create(name);
@@ -498,7 +505,7 @@ public final class EnsoMultiValue extends EnsoObject {
   @TruffleBoundary
   @Override
   public String toString() {
-    var both = EnsoMultiType.AllTypesWith.getUncached().executeAllTypes(dispatch, extra);
+    var both = EnsoMultiType.AllTypesWith.getUncached().executeAllTypes(dispatch, extra, 0);
     return Stream.of(both).map(t -> t.getName()).collect(Collectors.joining(" & "));
   }
 
@@ -544,27 +551,31 @@ public final class EnsoMultiValue extends EnsoObject {
     public final Object findTypeOrNull(
         Type type, EnsoMultiValue mv, boolean reorderOnly, boolean allTypes) {
       var dispatch = mv.dispatch;
-      var i = findNode.executeFindIndex(type, dispatch);
-      if (i == -1 && allTypes) {
-        var extraIndex = findNode.executeFindIndex(type, mv.extra);
-        i = extraIndex == -1 ? -1 : dispatch.typesLength() + extraIndex;
-      }
-      if (i != -1) {
-        if (reorderOnly) {
-          var copyTypes = allTypesWith.executeAllTypes(dispatch, mv.extra);
-          if (i == 0 && dispatch.typesLength() == 1) {
-            return newNode.newValue(copyTypes, 1, mv.values);
-          } else {
-            copyTypes = copyTypes.clone();
-            var copyValues = mv.values.clone();
-            copyTypes[0] = copyTypes[i];
-            copyValues[0] = copyValues[i];
-            copyTypes[i] = dispatch.firstType();
-            copyValues[i] = mv.values[0];
-            return newNode.newValue(copyTypes, 1, copyValues);
+      var typeIndex = findNode.executeFindIndex(type, dispatch);
+      var valueIndex = -1;
+      if (typeIndex == -1) {
+        if (allTypes) {
+          var extraIndex = findNode.executeFindIndex(type, mv.extra);
+          if (extraIndex != -1) {
+            if (extraIndex < mv.firstDispatch) {
+              valueIndex = extraIndex;
+            } else {
+              var rem = extraIndex - mv.firstDispatch;
+              valueIndex = mv.firstDispatch + dispatch.typesLength() + rem;
+              assert typeIndex < mv.values.length;
+            }
+            typeIndex = dispatch.typesLength() + extraIndex;
           }
+        }
+      } else {
+        valueIndex = mv.firstDispatch + typeIndex;
+      }
+      if (typeIndex != -1) {
+        if (reorderOnly) {
+          var copyTypes = allTypesWith.executeAllTypes(dispatch, mv.extra, typeIndex);
+          return newNode.newValue(copyTypes, 1, valueIndex, mv.values);
         } else {
-          return mv.values[i];
+          return mv.values[valueIndex];
         }
       } else {
         return null;
@@ -583,7 +594,7 @@ public final class EnsoMultiValue extends EnsoObject {
       MethodResolverNode node, UnresolvedSymbol symbol) {
     var ctx = EnsoContext.get(node);
     Pair<Function, Type> foundAnyMethod = null;
-    for (var t : EnsoMultiType.AllTypesWith.getUncached().executeAllTypes(dispatch, null)) {
+    for (var t : EnsoMultiType.AllTypesWith.getUncached().executeAllTypes(dispatch, null, 0)) {
       var fnAndType = node.execute(t, symbol);
       if (fnAndType != null) {
         if (dispatch.typesLength() == 1 || fnAndType.getRight() != ctx.getBuiltins().any()) {

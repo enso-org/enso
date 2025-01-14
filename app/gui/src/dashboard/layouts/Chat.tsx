@@ -560,6 +560,9 @@ export default function Chat(props: ChatProps) {
                 setMessages((oldMessages) => [...newMessages, ...oldMessages])
                 break
               }
+              case chat.ChatMessageDataType.authenticate:
+              case chat.ChatMessageDataType.newThread:
+              case chat.ChatMessageDataType.switchThread:
               default: {
                 setMessages(newMessages)
                 break

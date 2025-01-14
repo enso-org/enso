@@ -74,8 +74,8 @@ export function useNodeCreation(
   function placeNode(placement: PlacementStrategy, place: (nodes?: Iterable<Rect>) => Vec2): Vec2 {
     return (
       placement.type === 'viewport' ? place()
-      : placement.type === 'mouse' ? tryMouse() ?? place()
-      : placement.type === 'mouseRelative' ? tryMouseRelative(placement.posOffset) ?? place()
+      : placement.type === 'mouse' ? (tryMouse() ?? place())
+      : placement.type === 'mouseRelative' ? (tryMouseRelative(placement.posOffset) ?? place())
       : placement.type === 'mouseEvent' ? mouseDictatedPlacement(placement.position)
       : placement.type === 'source' ?
         place(iter.filterDefined([graphStore.visibleArea(placement.node)]))

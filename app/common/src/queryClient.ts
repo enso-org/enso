@@ -86,7 +86,7 @@ export function createQueryClient<TStorageValue = string>(
       // fallback to the local cache only if the user is offline
       maxAge: DEFAULT_QUERY_PERSIST_TIME_MS,
       buster: DEFAULT_BUSTER,
-      filters: { predicate: query => query.meta?.persist !== false },
+      filters: { predicate: (query) => query.meta?.persist !== false },
       prefix: 'enso:query-persist:',
       ...(persisterStorage.serialize != null ? { serialize: persisterStorage.serialize } : {}),
       ...(persisterStorage.deserialize != null ?
@@ -109,21 +109,21 @@ export function createQueryClient<TStorageValue = string>(
           }
         })()
         const invalidatesToIgnore = invalidates.filter(
-          queryKey => !invalidatesToAwait.includes(queryKey),
+          (queryKey) => !invalidatesToAwait.includes(queryKey),
         )
 
         for (const queryKey of invalidatesToIgnore) {
           void queryClient.invalidateQueries({
-            predicate: query => queryCore.matchQuery({ queryKey }, query),
+            predicate: (query) => queryCore.matchQuery({ queryKey }, query),
             refetchType,
           })
         }
 
         if (invalidatesToAwait.length > 0) {
           return Promise.all(
-            invalidatesToAwait.map(queryKey =>
+            invalidatesToAwait.map((queryKey) =>
               queryClient.invalidateQueries({
-                predicate: query => queryCore.matchQuery({ queryKey }, query),
+                predicate: (query) => queryCore.matchQuery({ queryKey }, query),
                 refetchType,
               }),
             ),

@@ -1,5 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@300;400;500;600;700&display=swap');
-@import 'react-toastify/dist/ReactToastify.css';
+@import url("https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@300;400;500;600;700&display=swap");
+@import "react-toastify/dist/ReactToastify.css";
 
 /* Scoped to `.enso-dashboard, .enso-chat, .enso-portal-root` in tailwind config. */
 @tailwind base;
@@ -21,13 +21,16 @@
   --color-invert: rgb(var(--color-invert-rgb) / var(--color-invert-opacity));
   --color-background-rgb: 255 255 255;
   --color-background-opacity: 60%;
-  --color-background: rgb(var(--color-background-rgb) / var(--color-background-opacity));
+  --color-background: rgb(
+    var(--color-background-rgb) / var(--color-background-opacity)
+  );
   --color-background-hex: #fdfcfb;
 
   --color-dashboard-background-rgb: 239 234 228;
   --color-dashboard-background-opacity: 100%;
   --color-dashboard-background: rgb(
-    var(--color-dashboard-background-rgb) / var(--color-dashboard-background-opacity)
+    var(--color-dashboard-background-rgb) /
+      var(--color-dashboard-background-opacity)
   );
 
   --top-bar-height: 3rem;
@@ -195,7 +198,9 @@
   /* The vertical gap between sections of the asset panel. */
   --asset-panel-gap: 2rem;
   --asset-panel-padding-left: 0.75rem;
-  --permission-type-selector-corner-radius: calc(var(--default-corner-radius) + 0.25rem);
+  --permission-type-selector-corner-radius: calc(
+    var(--default-corner-radius) + 0.25rem
+  );
   --permission-type-selector-padding: 0.25rem;
   --permission-type-button-padding: 0.25rem;
   /* The horizontal gap between elements in a permission type button. */
@@ -232,7 +237,9 @@
 
   --radio-button-size: 1rem;
   --radio-button-dot-size: 0.5rem;
-  --radio-button-dot-padding: calc(var(--radio-button-size) / 2 - var(--radio-button-dot-size) / 2);
+  --radio-button-dot-padding: calc(
+    var(--radio-button-size) / 2 - var(--radio-button-dot-size) / 2
+  );
 
   /***********\
   |* Indents *|
@@ -411,7 +418,7 @@
   -webkit-text-size-adjust: 100%;
   -moz-tab-size: 4;
   tab-size: 4;
-  --font-family: 'Enso Prose', 'Enso', 'M PLUS 1', 'Roboto Light', sans-serif;
+  --font-family: "Enso Prose", "Enso", "M PLUS 1", "Roboto Light", sans-serif;
   font-family: var(--font-family);
   --toastify-font-family: var(--font-family);
   font-feature-settings: normal;
@@ -423,7 +430,7 @@
   }
 
   kbd {
-    font-family: 'Enso Prose', 'Enso', 'M PLUS 1', 'Roboto Light', sans-serif;
+    font-family: "Enso Prose", "Enso", "M PLUS 1", "Roboto Light", sans-serif;
   }
 
   :focus {
