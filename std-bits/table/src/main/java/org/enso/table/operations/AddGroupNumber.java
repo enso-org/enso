@@ -97,25 +97,19 @@ public class AddGroupNumber {
 
     @Override
     public RowVisitor getNewRowVisitor() {
-      return new EqualCountRowVisitor(start, step, groupSize, numbers);
+      return new EqualCountRowVisitor(this);
     }
     private static class EqualCountRowVisitor implements RowVisitor {
-      private final long start;
-      private final long step;
+      private final EqualCountRowVisitorFactory parent;
       private long currentIndex = 0;
-      private final long groupSize;
-      long[] numbers;
-
-      EqualCountRowVisitor(long start, long step, long groupSize, long[] numbers) {
-          this.start = start;
-          this.step = step;
-          this.groupSize = groupSize;
-          this.numbers = numbers;
+      
+      EqualCountRowVisitor(EqualCountRowVisitorFactory parent) {
+          this.parent = parent;
       }
 
       @Override
       public void visit(int row) {
-        numbers[row] = Math.addExact(start, Math.multiplyExact(step, (currentIndex / groupSize)));
+        parent.numbers[row] = Math.addExact(parent.start, Math.multiplyExact(parent.step, (currentIndex / parent.groupSize)));
         currentIndex = Math.addExact(currentIndex, 1L);
       }
     }
