@@ -38,7 +38,7 @@ public class Offset {
         OffsetRunningStatistic(Column sourceColumn, int n, OffFill offFill) {
             result = new int[sourceColumn.getSize()];
             this.sourceColumn = sourceColumn;
-            this.n = offFill==OffFill.WRAP_AROUND && sourceColumn.getSize() != 0 ? n % sourceColumn.getSize() : n;
+            this.n = n;
             this.offFill = offFill;
         }
 
@@ -84,6 +84,12 @@ public class Offset {
                         }
                 }
             } else {
+                while (it.current_n < Math.abs(n) && !it.fill_queue.isEmpty())
+                {
+                    var i = it.fill_queue.poll();
+                    it.fill_queue.add(i);
+                    it.current_n++;
+                }
                 if (n<0) {
                     while (!it.fill_queue.isEmpty()) {
                         result[it.fill_queue.poll()] = it.rolling_queue.poll();

@@ -214,6 +214,12 @@ add_offset_specs suite_builder setup =
         group_builder.specify "Zero n is a no-op" <|
             r = t.offset ["A"] 0 ..Wrap_Around
             r . at "TEMP" . to_vector . should_equal [1, 2, 3]
+        group_builder.specify "Larger than num rows negative n values work" <|
+            r = t.offset ["A"] -4 ..Wrap_Around
+            r . at "TEMP" . to_vector . should_equal [3, 1, 2]
+        group_builder.specify "Larger than num rows positive n values work" <|
+            r = t.offset ["A"] 4 ..Wrap_Around
+            r . at "TEMP" . to_vector . should_equal [2, 3, 1]
         group_builder.specify "Large negative n values work" <|
             r = t.offset ["A"] -1024 ..Wrap_Around
             r . at "TEMP" . to_vector . should_equal [3, 1, 2]
@@ -275,3 +281,26 @@ add_offset_specs suite_builder setup =
         group_builder.specify "Large positive n values work" <|
             r = t2.offset ["Col"] 1024 ..Closest_Value group_by=["Group"]
             r . at "TEMP" . to_vector . should_equal [3, 3, 3, 4, 4, 4, 4, 2, 2]
+    suite_builder.group prefix+"Table.Offset works with grouping - wrap around fill strategy" group_builder->
+        t2 = build_sorted_table [["Group", ["A", "A", "A", "B", "B", "B", "B", "C", "C"]], ["Col", [1, 2, 3, 1, 2, 3, 4, 1, 2]]]
+        group_builder.specify "Negative n shifts the values down" <|
+            r = t2.offset ["Col"] -1 ..Wrap_Around group_by=["Group"]
+            r . at "TEMP" .  to_vector . should_equal [3, 1, 2, 4, 1, 2, 3, 2, 1]
+        group_builder.specify "Positive n shifts the values up" <|
+            r = t2.offset ["Col"] 1 ..Wrap_Around group_by=["Group"]
+            r . at "TEMP" . to_vector . should_equal [2, 3, 1, 2, 3, 4, 1, 2, 1]
+        group_builder.specify "Negative n shifts the values down (n=2)" <|
+            r = t2.offset ["Col"] -2 ..Wrap_Around group_by=["Group"]
+            r . at "TEMP" . to_vector . should_equal [2, 3, 1, 3, 4, 1, 2, 1, 2]
+        group_builder.specify "Positive n shifts the values up (n=2)" <|
+            r = t2.offset ["Col"] 2 ..Wrap_Around group_by=["Group"]
+            r . at "TEMP" . to_vector . should_equal [3, 1, 2, 3, 4, 1, 2, 1, 2]
+        group_builder.specify "Zero n is a no-op" <|
+            r = t2.offset ["Col"] 0 ..Wrap_Around group_by=["Group"]
+            r . at "TEMP" . to_vector . should_equal [1, 2, 3, 1, 2, 3, 4, 1, 2]
+        group_builder.specify "Large negative n values work" <|
+            r = t2.offset ["Col"] -1022 ..Wrap_Around group_by=["Group"]
+            r . at "TEMP" . to_vector . should_equal [2, 3, 1, 3, 4, 1, 2, 1, 2]
+        group_builder.specify "Large positive n values work" <|
+            r = t2.offset ["Col"] 1022 ..Wrap_Around group_by=["Group"]
+            r . at "TEMP" . to_vector . should_equal [3, 1, 2, 3, 4, 1, 2, 1, 2]
