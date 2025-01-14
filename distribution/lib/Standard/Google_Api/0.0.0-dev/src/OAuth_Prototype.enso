@@ -16,33 +16,43 @@ authenticate_service scopes:Vector secret_name:Text location:Enso_File=Enso_File
     code = OAuth_Callback_Response.decode result . code
 
     refresh_token = exchange_one_time_code_for_refresh_token code
-    Enso_Secret.create secret_name (make_secret_payload refresh_token) parent=location
+    secret = Enso_Secret.create secret_name (make_secret_payload refresh_token) parent=location
+    Enso_File.new secret.path . add_label "Credentials"
+    secret
+
 
 exchange_one_time_code_for_refresh_token code:Text -> Text =
     uri = create_token_uri
     params = Dictionary.from_vector [["grant_type", "authorization_code"], ["code", code], ["redirect_uri", redirect_uri], ["client_id", client_id], ["client_secret", client_secret]]
     request_body = Request_Body.Form_Data params url_encoded=True
     response = Data.post uri body=request_body response_format=JSON_Format
+    IO.println response
     response.get "refresh_token"
-
 
 make_secret_payload refresh_token:Text -> Text =
     JS_Object.from_pairs [["type", "authorized_user"], ["refresh_token", refresh_token], ["client_id", client_id], ["client_secret", client_secret]]
+        . to_json
 
 create_authorization_uri scopes:Vector -> URI =
+    if scopes.is_empty then
+        Panic.throw (Illegal_State.Error "No scopes provided.")
     URI.from "https://accounts.google.com/o/oauth2/v2/auth"
         . add_query_argument "response_type" "code"
         . add_query_argument "access_type" "offline"
         . add_query_argument "client_id" client_id
         . add_query_argument "redirect_uri" redirect_uri
         . add_query_argument "scope" (scopes.join " ")
+        # Add prompt=consent to ensure that refresh token is returned always, not only first time...
+        . add_query_argument "prompt" "consent"
         . add_query_argument "state" "foobar"
 
 create_token_uri -> URI =
     URI.from "https://oauth2.googleapis.com/token"
 
-client_id = Environment.get "GOOGLE_APP_CLIENT_ID"
-client_secret = Environment.get "GOOGLE_APP_CLIENT_SECRET"
+get_env_var name:Text -> Text =
+    Environment.get name if_missing=(Panic.throw (Illegal_State.Error "Environment variable not set: "+name))
+client_id = get_env_var "GOOGLE_APP_CLIENT_ID"
+client_secret = get_env_var "GOOGLE_APP_CLIENT_SECRET"
 redirect_uri = "http://localhost:51234/oauth"
 
 type OAuth_Callback_Response
