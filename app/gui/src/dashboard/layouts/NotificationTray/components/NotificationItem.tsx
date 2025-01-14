@@ -10,7 +10,7 @@ export function NotificationItem(props: NotificationInfo) {
   return (
     <GridListItem>
       <div className="flex min-h-12 items-center gap-2 p-2 text-primary">
-        <Button isDisabled variant="icon" color={color} icon={icon} />
+        <Button isDisabled isActive variant="icon" color={color} icon={icon} />
         <Text>{message}</Text>
       </div>
     </GridListItem>

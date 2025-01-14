@@ -150,9 +150,7 @@ interface DriveAssetsViewProps extends DriveProps {
   readonly setCategory: (categoryId: Category['id']) => void
 }
 
-/**
- * The assets view of the Drive.
- */
+/** The assets view of the Drive. */
 function DriveAssetsView(props: DriveAssetsViewProps) {
   const {
     category,

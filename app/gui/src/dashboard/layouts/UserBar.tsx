@@ -7,6 +7,7 @@ import { Button, DialogTrigger, Text } from '#/components/AriaComponents'
 import { PaywallDialogButton } from '#/components/Paywall'
 import FocusArea from '#/components/styled/FocusArea'
 import { usePaywall } from '#/hooks/billing'
+import { NotificationTray } from '#/layouts/NotificationTray'
 import UserMenu from '#/layouts/UserMenu'
 import InviteUsersModal from '#/modals/InviteUsersModal'
 import { useFullUserSession } from '#/providers/AuthProvider'
@@ -15,18 +16,12 @@ import { Plan } from '#/services/Backend'
 import { AnimatePresence, motion } from 'framer-motion'
 import SvgMask from '../components/SvgMask'
 import { useOffline } from '../hooks/offlineHooks'
-import { NotificationTray } from '#/layouts/NotificationTray'
 
 /** Whether the chat button should be visible. Temporarily disabled. */
 const SHOULD_SHOW_CHAT_BUTTON: boolean = false
 
 /** Props for a {@link UserBar}. */
 export interface UserBarProps {
-  /**
-   * When `true`, the element occupies space in the layout but is not visible.
-   * Defaults to `false`.
-   */
-  readonly invisible?: boolean
   readonly setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
   readonly goToSettingsPage: () => void
   readonly onSignOut: () => void
@@ -35,7 +30,7 @@ export interface UserBarProps {
 
 /** A toolbar containing chat and the user menu. */
 export default function UserBar(props: UserBarProps) {
-  const { invisible = false, setIsHelpChatOpen, onShareClick, goToSettingsPage, onSignOut } = props
+  const { setIsHelpChatOpen, onShareClick, goToSettingsPage, onSignOut } = props
 
   const { user } = useFullUserSession()
   const { getText } = useText()
@@ -54,7 +49,7 @@ export default function UserBar(props: UserBarProps) {
     (false as boolean) && !shouldShowShareButton && !shouldShowPaywallButton
 
   return (
-    <FocusArea active={!invisible} direction="horizontal">
+    <FocusArea direction="horizontal">
       {(innerProps) => (
         <div className="bg-primary/10 pt-0.5">
           <div
@@ -124,7 +119,9 @@ export default function UserBar(props: UserBarProps) {
                 {getText('share')}
               </Button>
             )}
+
             <NotificationTray />
+
             <DialogTrigger>
               <Button
                 size="custom"
