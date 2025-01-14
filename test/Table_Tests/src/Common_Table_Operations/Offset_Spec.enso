@@ -233,5 +233,22 @@ add_offset_specs suite_builder setup =
         t2 = build_sorted_table [["Group", ["A", "A", "A", "B", "B", "B", "B", "C", "C"]], ["Col", [1, 2, 3, 1, 2, 3, 4, 1, 2]]]
         group_builder.specify "Negative n shifts the values down" <|
             r = t2.offset ["Col"] -1 ..Nothing group_by=["Group"]
-            r . at "TEMP" .  to_vector . should_equal [Nothing, 1, 2, Nothing, 1, 2, 3, Nothing, 2]
-
+            r . at "TEMP" .  to_vector . should_equal [Nothing, 1, 2, Nothing, 1, 2, 3, Nothing, 1]
+        group_builder.specify "Positive n shifts the values up" <|
+            r = t2.offset ["Col"] 1 ..Nothing group_by=["Group"]
+            r . at "TEMP" . to_vector . should_equal [2, 3, Nothing, 2, 3, 4, Nothing, 2, Nothing]
+        group_builder.specify "Negative n shifts the values down (n=2)" <|
+            r = t2.offset ["Col"] -2 ..Nothing group_by=["Group"]
+            r . at "TEMP" . to_vector . should_equal [Nothing, Nothing, 1, Nothing, Nothing, 1, 2, Nothing, Nothing]
+        group_builder.specify "Positive n shifts the values up (n=2)" <|
+            r = t2.offset ["Col"] 2 ..Nothing group_by=["Group"]
+            r . at "TEMP" . to_vector . should_equal [3, Nothing, Nothing, 3, 4, Nothing, Nothing, Nothing, Nothing]
+        group_builder.specify "Zero n is a no-op" <|
+            r = t2.offset ["Col"] 0 ..Nothing group_by=["Group"]
+            r . at "TEMP" . to_vector . should_equal [1, 2, 3, 1, 2, 3, 4, 1, 2]
+        group_builder.specify "Large negative n values work" <|
+            r = t2.offset ["Col"] -1024 ..Nothing group_by=["Group"]
+            r . at "TEMP" . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
+        group_builder.specify "Large positive n values work" <|
+            r = t2.offset ["Col"] 1024 ..Nothing group_by=["Group"]
+            r . at "TEMP" . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
