@@ -9,6 +9,7 @@ import java.util.function.Consumer;
 import org.enso.table.data.column.builder.*;
 import org.enso.table.data.column.builder.StringBuilder;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.problems.ProblemAggregator;
@@ -101,7 +102,7 @@ record TableColumnBuilder(Builder builder, Consumer<Result> appendMethod) {
                   column.index(),
                   r -> bigIntBuilder.append(r.getBigDecimal(column.index()).toBigInteger())));
         } else {
-          var bigDecimalBuilder = new BigDecimalBuilder(initialRowCount);
+          var bigDecimalBuilder = Builder.getForType(BigDecimalType.INSTANCE, initialRowCount, problemAggregator);
           return new TableColumnBuilder(
               bigDecimalBuilder,
               nullAppender(

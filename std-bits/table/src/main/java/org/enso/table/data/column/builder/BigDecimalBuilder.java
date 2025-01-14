@@ -13,7 +13,7 @@ public class BigDecimalBuilder extends TypedBuilder<BigDecimal> {
     return new BigDecimal[size];
   }
 
-  public BigDecimalBuilder(int size) {
+  BigDecimalBuilder(int size) {
     super(BigDecimalType.INSTANCE, size);
   }
 

@@ -46,7 +46,7 @@ public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
   @Override
   public Builder retypeTo(StorageType type) {
     if (type instanceof BigDecimalType) {
-      BigDecimalBuilder res = new BigDecimalBuilder(currentSize);
+      Builder res = Builder.getForType(BigDecimalType.INSTANCE, data.length, null);
       for (int i = 0; i < currentSize; i++) {
         if (isNothing.get(i)) {
           res.appendNulls(1);

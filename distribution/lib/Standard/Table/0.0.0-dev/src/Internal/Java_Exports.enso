@@ -5,7 +5,6 @@ import project.Internal.Storage
 import project.Value_Type.Bits
 import project.Value_Type.Value_Type
 
-polyglot java import org.enso.table.data.column.builder.BigDecimalBuilder
 polyglot java import org.enso.table.data.column.builder.BigIntegerBuilder
 polyglot java import org.enso.table.data.column.builder.Builder
 polyglot java import org.enso.table.data.column.builder.BuilderForBoolean
@@ -39,9 +38,10 @@ make_biginteger_builder initial_size java_problem_aggregator=(Missing_Argument.e
     BigIntegerBuilder.new initial_size java_problem_aggregator
 
 ## PRIVATE
-make_bigdecimal_builder : Integer -> BigDecimalBuilder
+make_bigdecimal_builder : Integer -> Builder
 make_bigdecimal_builder initial_size =
-    BigDecimalBuilder.new initial_size
+    storage_type = Storage.from_value_type_strict Value_Type.Big_Decimal
+    Builder.getForType initial_size storage_type Nothing
 
 ## PRIVATE
 make_string_builder : Integer -> Value_Type -> StringBuilder

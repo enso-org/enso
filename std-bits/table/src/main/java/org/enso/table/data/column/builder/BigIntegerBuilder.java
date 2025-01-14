@@ -51,7 +51,7 @@ public class BigIntegerBuilder extends TypedBuilder<BigInteger> {
       }
       return res;
     } else if (type instanceof BigDecimalType) {
-      BigDecimalBuilder res = new BigDecimalBuilder(currentSize);
+      var res = Builder.getForType(type, data.length, problemAggregator);
       for (int i = 0; i < currentSize; i++) {
         if (data[i] == null) {
           res.appendNulls(1);
