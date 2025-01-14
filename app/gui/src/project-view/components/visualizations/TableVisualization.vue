@@ -134,6 +134,7 @@ const defaultColDef: Ref<ColDef> = ref({
   minWidth: 25,
   cellRenderer: cellRenderer,
   cellClass: cellClass,
+  cellStyle: {'padding-left': 0 ,'border-right': '1px solid #D3D3D3'},
   contextMenuItems: [
     commonContextMenuActions.copy,
     commonContextMenuActions.copyWithHeaders,
