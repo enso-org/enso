@@ -140,7 +140,7 @@ class HeaderEditing {
           !(event.target instanceof HTMLInputElement) ||
           targetIsOutside(event, grid.value?.$el)
         ) {
-          this.editedColId.value = undefined
+          this.handler.end()
         } else {
           return false
         }
