@@ -300,7 +300,7 @@ object NativeImage {
           else
             Def.task {
               streams.value.log.info(
-                s"No source changes, $artifactName Native Image is up to date."
+                s"No source changes, $name Native Image is up to date."
               )
             }
       }
