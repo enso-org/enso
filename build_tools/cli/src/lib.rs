@@ -583,10 +583,14 @@ impl Resolvable for Gui {
     }
 
     fn resolve(
-        _ctx: &Processor,
-        _from: <Self as IsTargetSource>::BuildInput,
+        ctx: &Processor,
+        from: <Self as IsTargetSource>::BuildInput,
     ) -> BoxFuture<'static, Result<<Self as IsTarget>::BuildInput>> {
-        ok_ready_boxed(())
+        let arg::gui::BuildInput {} = from;
+        ok_ready_boxed(project::gui::BuildInput {
+            version:     ctx.triple.versions.version.clone(),
+            commit_hash: ctx.commit(),
+        })
     }
 }
 
