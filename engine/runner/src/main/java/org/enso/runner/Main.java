@@ -786,8 +786,8 @@ public class Main {
    */
   private void genDocs(
       String projectPath, Level logLevel, boolean logMasking, boolean enableIrCaches) {
-    if (projectPath.isEmpty()) {
-      println("Path hasn't been provided.");
+    if (projectPath == null || projectPath.isEmpty()) {
+      println("Specify path to a project with --in-project option");
       throw exitFail();
     }
     generateDocsFrom(projectPath, logLevel, logMasking, enableIrCaches);
