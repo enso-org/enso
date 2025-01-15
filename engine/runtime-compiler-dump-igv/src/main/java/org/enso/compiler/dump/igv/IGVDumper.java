@@ -1,8 +1,6 @@
 package org.enso.compiler.dump.igv;
 
 import org.enso.compiler.core.ir.Module;
-import org.graalvm.graphio.GraphStructure;
-import org.enso.compiler.core.IR;
 import org.enso.compiler.dump.service.IRDumpService;
 
 public final class IGVDumper implements IRDumpService {

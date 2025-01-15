@@ -3415,17 +3415,17 @@ lazy val `runtime-compiler-dump` =
       frgaalJavaCompilerSetting,
       javaModuleName := "org.enso.runtime.compiler.dump",
       Compile / internalModuleDependencies := {
-        val transitiveDeps = (`runtime-parser` / Compile / internalModuleDependencies).value
+        val transitiveDeps =
+          (`runtime-parser` / Compile / internalModuleDependencies).value
         Seq(
-          (`runtime-parser` / Compile / exportedModule).value,
+          (`runtime-parser` / Compile / exportedModule).value
         ) ++ transitiveDeps
       }
     )
     .dependsOn(`runtime-parser`)
 
-/**
- * IRDumpService implementation for GraphViz format.
- */
+/** IRDumpService implementation for GraphViz format.
+  */
 lazy val `runtime-compiler-dump-graphviz` =
   (project in file("engine/runtime-compiler-dump-graphviz"))
     .enablePlugins(JPMSPlugin)
@@ -3433,9 +3433,10 @@ lazy val `runtime-compiler-dump-graphviz` =
       frgaalJavaCompilerSetting,
       javaModuleName := "org.enso.runtime.compiler.dump.graphviz",
       Compile / internalModuleDependencies := {
-        val transitiveDeps = (`runtime-compiler` / Compile / internalModuleDependencies).value
+        val transitiveDeps =
+          (`runtime-compiler` / Compile / internalModuleDependencies).value
         Seq(
-          (`runtime-compiler` / Compile / exportedModule).value,
+          (`runtime-compiler` / Compile / exportedModule).value
         ) ++ transitiveDeps
       },
       Compile / moduleDependencies := {
@@ -3455,9 +3456,10 @@ lazy val `runtime-compiler-dump-igv` =
     .settings(
       javaModuleName := "org.enso.runtime.compiler.dump.igv",
       Compile / internalModuleDependencies := {
-        val transitiveDeps = (`runtime-compiler` / Compile / internalModuleDependencies).value
+        val transitiveDeps =
+          (`runtime-compiler` / Compile / internalModuleDependencies).value
         Seq(
-          (`runtime-compiler` / Compile / exportedModule).value,
+          (`runtime-compiler` / Compile / exportedModule).value
         ) ++ transitiveDeps
       },
       Compile / addExports ++= {

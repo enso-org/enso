@@ -68,7 +68,7 @@ class Passes(config: CompilerConfig) {
 
   private val irDumperPass = config.irDumper match {
     case Some(dumperClassName) => List(new IRDumperPass(dumperClassName))
-    case None => Nil
+    case None                  => Nil
   }
 
   val functionBodyPasses = new PassGroup(
