@@ -33,8 +33,7 @@ public final class IRDumperPass implements IRPass {
 
   private static IRDumpService loadService(String implName) {
     var loader = ServiceLoader.load(IRDumpService.class);
-    while (loader.iterator().hasNext()) {
-      var service = loader.iterator().next();
+    for (IRDumpService service : loader) {
       if (service.getClass().getName().equals(implName)) {
         return service;
       }
