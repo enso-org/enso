@@ -55,20 +55,18 @@ export default function Login() {
       const res = await signInWithPassword(email, password)
 
       switch (res.challenge) {
-        case 'NO_CHALLENGE':
-          navigate(DASHBOARD_PATH)
-          break
         case 'SMS_MFA':
         case 'SOFTWARE_TOKEN_MFA':
           setUser(res.user)
           nextStep()
           break
+        case 'NO_CHALLENGE':
         case 'CUSTOM_CHALLENGE':
         case 'MFA_SETUP':
         case 'NEW_PASSWORD_REQUIRED':
         case 'SELECT_MFA_TYPE':
         default:
-          throw new Error('Unsupported challenge')
+          navigate(DASHBOARD_PATH)
       }
     },
   })
