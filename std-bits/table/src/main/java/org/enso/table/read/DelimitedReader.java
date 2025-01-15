@@ -10,7 +10,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Queue;
 import java.util.stream.Collectors;
-
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.TextType;
@@ -296,19 +295,12 @@ public class DelimitedReader {
     return rowLimit < 0 || targetTableIndex < rowLimit;
   }
 
-  private void appendRowIfLimitPermits(String[] row) {
-    if (canFitMoreRows()) {
-      appendRow(row);
-    }
-  }
-
   private List<String> headersFromRow(String[] row) {
     List<String> preprocessedHeaders =
         Arrays.stream(row).map(this::parseHeader).collect(Collectors.toList());
 
     NameDeduplicator deduplicator = NameDeduplicator.createDefault(problemAggregator);
-    List<String> names = deduplicator.makeUniqueList(preprocessedHeaders);
-    return names;
+    return deduplicator.makeUniqueList(preprocessedHeaders);
   }
 
   private List<String> generateDefaultHeaders(int columnCount) {
@@ -469,7 +461,7 @@ public class DelimitedReader {
     Column[] columns = new Column[builders.length];
     for (int i = 0; i < builders.length; i++) {
       String columnName = effectiveColumnNames[i];
-      Storage<String> col = builders[i].seal();
+      var col = (Storage<String>) builders[i].seal();
 
       // We don't expect InvalidFormat to be propagated back to Enso, there is no particular type
       // that we expect, so it can safely be null.

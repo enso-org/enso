@@ -458,7 +458,8 @@ public class Table {
                 storage[i] =
                     Builder.getForType(
                         id_columns[i].getStorage().getType(), new_count, problemAggregator));
-    storage[id_columns.length] = Builder.getForType(TextType.VARIABLE_LENGTH, new_count, problemAggregator);
+    storage[id_columns.length] =
+        Builder.getForType(TextType.VARIABLE_LENGTH, new_count, problemAggregator);
     storage[id_columns.length + 1] = new InferredBuilder(new_count, problemAggregator);
 
     // Load Data

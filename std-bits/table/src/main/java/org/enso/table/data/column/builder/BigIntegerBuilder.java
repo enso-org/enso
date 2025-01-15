@@ -35,7 +35,7 @@ public class BigIntegerBuilder extends TypedBuilder<BigInteger> {
   @Override
   public Builder retypeTo(StorageType type) {
     switch (type) {
-      case FloatType floatType -> {
+      case FloatType _ -> {
         DoubleBuilder res =
             NumericBuilder.createInferringDoubleBuilder(currentSize, problemAggregator);
         for (int i = 0; i < currentSize; i++) {
@@ -47,7 +47,7 @@ public class BigIntegerBuilder extends TypedBuilder<BigInteger> {
         }
         return res;
       }
-      case BigDecimalType bigDecimalType -> {
+      case BigDecimalType _ -> {
         var res = Builder.getForType(type, data.length, problemAggregator);
         for (int i = 0; i < currentSize; i++) {
           if (data[i] == null) {
@@ -58,7 +58,7 @@ public class BigIntegerBuilder extends TypedBuilder<BigInteger> {
         }
         return res;
       }
-      case AnyObjectType anyObjectType -> {
+      case AnyObjectType _ -> {
         Object[] widenedData = Arrays.copyOf(data, data.length, Object[].class);
         ObjectBuilder res = new MixedBuilder(widenedData);
         res.setCurrentSize(currentSize);

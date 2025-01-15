@@ -73,7 +73,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
       context.safepoint();
     }
 
-    return (Storage<String>)builder.seal();
+    return (Storage<String>) builder.seal();
   }
 
   private final DateTimeFormatter dateFormatter = Core_Date_Utils.defaultLocalDateFormatter;
@@ -111,7 +111,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
       context.safepoint();
     }
 
-    return (Storage<String>)builder.seal();
+    return (Storage<String>) builder.seal();
   }
 
   private Storage<String> castBoolStorage(
@@ -129,7 +129,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
       context.safepoint();
     }
 
-    return (Storage<String>)builder.seal();
+    return (Storage<String>) builder.seal();
   }
 
   private Storage<String> castDoubleStorage(
@@ -147,7 +147,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
       context.safepoint();
     }
 
-    return (Storage<String>)builder.seal();
+    return (Storage<String>) builder.seal();
   }
 
   private <T> Storage<String> castDateTimeStorage(
@@ -166,7 +166,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
       context.safepoint();
     }
 
-    return (Storage<String>)builder.seal();
+    return (Storage<String>) builder.seal();
   }
 
   private String adapt(String value, CastProblemAggregator problemAggregator) {
@@ -203,7 +203,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
       context.safepoint();
     }
 
-    return (Storage<String>)builder.seal();
+    return (Storage<String>) builder.seal();
   }
 
   private boolean canAvoidCopying(StringStorage stringStorage) {

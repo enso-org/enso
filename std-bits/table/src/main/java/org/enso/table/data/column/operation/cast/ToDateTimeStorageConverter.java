@@ -3,7 +3,6 @@ package org.enso.table.data.column.operation.cast;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.datetime.DateStorage;
@@ -46,7 +45,7 @@ public class ToDateTimeStorageConverter implements StorageConverter<ZonedDateTim
       context.safepoint();
     }
 
-    return (Storage<ZonedDateTime>)builder.seal();
+    return (Storage<ZonedDateTime>) builder.seal();
   }
 
   private ZonedDateTime convertDate(LocalDate date) {
@@ -63,6 +62,6 @@ public class ToDateTimeStorageConverter implements StorageConverter<ZonedDateTim
       context.safepoint();
     }
 
-    return (Storage<ZonedDateTime>)builder.seal();
+    return (Storage<ZonedDateTime>) builder.seal();
   }
 }

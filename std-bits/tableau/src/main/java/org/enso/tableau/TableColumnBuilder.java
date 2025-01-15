@@ -156,7 +156,8 @@ record TableColumnBuilder(Builder builder, Consumer<Result> appendMethod) {
                 column.index(),
                 r -> timeBuilder.append(r.getLocalTime(column.index()))));
       case Types.TIMESTAMP:
-        var dateTimeBuilder = Builder.getForType(DateTimeType.INSTANCE, initialRowCount, problemAggregator);
+        var dateTimeBuilder =
+            Builder.getForType(DateTimeType.INSTANCE, initialRowCount, problemAggregator);
         return new TableColumnBuilder(
             dateTimeBuilder,
             nullAppender(
@@ -166,7 +167,8 @@ record TableColumnBuilder(Builder builder, Consumer<Result> appendMethod) {
                     dateTimeBuilder.append(
                         r.getLocalDateTime(column.index()).atZone(ZoneId.systemDefault()))));
       case Types.TIMESTAMP_WITH_TIMEZONE:
-        var dateTimeTzBuilder = Builder.getForType(DateTimeType.INSTANCE, initialRowCount, problemAggregator);
+        var dateTimeTzBuilder =
+            Builder.getForType(DateTimeType.INSTANCE, initialRowCount, problemAggregator);
         return new TableColumnBuilder(
             dateTimeTzBuilder,
             nullAppender(
