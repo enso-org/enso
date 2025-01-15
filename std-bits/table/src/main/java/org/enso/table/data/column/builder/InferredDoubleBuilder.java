@@ -54,7 +54,11 @@ public class InferredDoubleBuilder extends DoubleBuilder implements BuilderWithR
     return newBuilder;
   }
 
-  InferredDoubleBuilder(
+  InferredDoubleBuilder(int capacity, ProblemAggregator problemAggregator) {
+    this(new BitSet(), new long[capacity], 0, problemAggregator);
+  }
+
+  private InferredDoubleBuilder(
       BitSet isNothing, long[] doubleData, int currentSize, ProblemAggregator problemAggregator) {
     super(isNothing, doubleData, currentSize, problemAggregator);
     rawData = null;

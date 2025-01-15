@@ -5,7 +5,6 @@ import java.math.BigInteger;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
-import java.util.BitSet;
 import java.util.List;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.base.polyglot.Polyglot_Utils;
@@ -129,8 +128,7 @@ public class InferredBuilder implements Builder {
       // In inferred builder, we always default to 64-bits.
       newBuilder = Builder.getForLong(IntegerType.INT_64, initialCapacity, problemAggregator);
     } else if (NumericConverter.isFloatLike(o)) {
-      newBuilder =
-          new InferredDoubleBuilder(new BitSet(), new long[initialCapacity], 0, problemAggregator);
+      newBuilder = new InferredDoubleBuilder(initialCapacity, problemAggregator);
     } else if (o instanceof String) {
       newBuilder = Builder.getForType(TextType.VARIABLE_LENGTH, initialCapacity, problemAggregator);
     } else if (o instanceof BigInteger) {

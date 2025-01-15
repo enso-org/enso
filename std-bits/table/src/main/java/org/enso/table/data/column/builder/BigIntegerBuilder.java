@@ -33,7 +33,8 @@ public class BigIntegerBuilder extends TypedBuilder<BigInteger> {
   public Builder retypeTo(StorageType type) {
     switch (type) {
       case FloatType _ -> {
-        var res = Builder.getForDouble(FloatType.FLOAT_64, currentSize, problemAggregator);
+        // Needs to be an InferredDoubleBuilder so we can keep the raw data.
+        var res = new InferredDoubleBuilder(currentSize, problemAggregator);
         for (int i = 0; i < currentSize; i++) {
           if (data[i] == null) {
             res.appendNulls(1);
