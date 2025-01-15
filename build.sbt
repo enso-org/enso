@@ -725,6 +725,7 @@ lazy val componentModulesPaths =
     (`syntax-rust-definition` / Compile / exportedModuleBin).value,
     (`runtime-compiler` / Compile / exportedModuleBin).value,
     (`runtime-compiler-dump` / Compile / exportedModuleBin).value,
+    (`runtime-compiler-dump-igv` / Compile / exportedModuleBin).value,
     (`runtime-parser` / Compile / exportedModuleBin).value,
     (`runtime-suggestions` / Compile / exportedModuleBin).value,
     (`runtime-instrument-common` / Compile / exportedModuleBin).value,
