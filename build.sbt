@@ -351,6 +351,8 @@ lazy val enso = (project in file("."))
     `runtime-and-langs`,
     `runtime-benchmarks`,
     `runtime-compiler`,
+    `runtime-compiler-dump`,
+    `runtime-compiler-dump-igv`,
     `runtime-parser`,
     `runtime-parser-dsl`,
     `runtime-parser-processor`,
@@ -722,6 +724,7 @@ lazy val componentModulesPaths =
     (`runtime` / Compile / exportedModuleBin).value,
     (`syntax-rust-definition` / Compile / exportedModuleBin).value,
     (`runtime-compiler` / Compile / exportedModuleBin).value,
+    (`runtime-compiler-dump` / Compile / exportedModuleBin).value,
     (`runtime-parser` / Compile / exportedModuleBin).value,
     (`runtime-suggestions` / Compile / exportedModuleBin).value,
     (`runtime-instrument-common` / Compile / exportedModuleBin).value,
@@ -3114,6 +3117,7 @@ lazy val `runtime-benchmarks` =
         (`runtime-suggestions` / Compile / exportedModule).value,
         (`runtime-parser` / Compile / exportedModule).value,
         (`runtime-compiler` / Compile / exportedModule).value,
+        (`runtime-compiler-dump` / Compile / exportedModule).value,
         (`polyglot-api` / Compile / exportedModule).value,
         (`polyglot-api-macros` / Compile / exportedModule).value,
         (`pkg` / Compile / exportedModule).value,
@@ -3511,6 +3515,7 @@ lazy val `runtime-instrument-common` =
         (`refactoring-utils` / Compile / exportedModule).value,
         (`runtime` / Compile / exportedModule).value,
         (`runtime-compiler` / Compile / exportedModule).value,
+        (`runtime-compiler-dump` / Compile / exportedModule).value,
         (`runtime-parser` / Compile / exportedModule).value,
         (`runtime-suggestions` / Compile / exportedModule).value,
         (`text-buffer` / Compile / exportedModule).value,
@@ -3540,6 +3545,7 @@ lazy val `runtime-instrument-id-execution` =
       Compile / internalModuleDependencies := Seq(
         (`runtime` / Compile / exportedModule).value,
         (`runtime-compiler` / Compile / exportedModule).value,
+        (`runtime-compiler-dump` / Compile / exportedModule).value,
         (`polyglot-api` / Compile / exportedModule).value
       )
     )
