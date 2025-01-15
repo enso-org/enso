@@ -32,6 +32,11 @@ abstract class DocsDispatch {
       boolean dispatchType(Definition.Type t) throws IOException {
         return visitor.visitType(t, writer);
       }
+
+      @Override
+      void dispatchConstructor(Definition.Type t, Definition.Data d) throws IOException {
+        visitor.visitConstructor(t, d, writer);
+      }
     };
   }
 
@@ -44,4 +49,6 @@ abstract class DocsDispatch {
   abstract void dispatchConversion(Method.Conversion c) throws IOException;
 
   abstract boolean dispatchType(Definition.Type t) throws IOException;
+
+  abstract void dispatchConstructor(Definition.Type t, Definition.Data d) throws IOException;
 }

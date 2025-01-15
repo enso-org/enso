@@ -17,4 +17,6 @@ interface DocsVisit {
   void visitConversion(Method.Conversion c, Appendable w) throws IOException;
 
   boolean visitType(Definition.Type t, Appendable w) throws IOException;
+
+  void visitConstructor(Definition.Type t, Definition.Data d, Appendable w) throws IOException;
 }

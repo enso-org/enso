@@ -50,4 +50,10 @@ final class DocsEmitMarkdown implements DocsVisit {
     w.append("#### **type** " + t.name().name() + "\n");
     return true;
   }
+
+  @Override
+  public void visitConstructor(Definition.Type t, Definition.Data d, Appendable w)
+      throws IOException {
+    w.append("#### data " + d.name().name() + "\n");
+  }
 }

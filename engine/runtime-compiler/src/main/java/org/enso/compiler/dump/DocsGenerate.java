@@ -45,10 +45,14 @@ public final class DocsGenerate {
           for (var b : asJava(ir.bindings())) {
             switch (b) {
               case Definition.Type t -> {
-                if (dispatch.dispatchType(t)) {}
+                if (dispatch.dispatchType(t)) {
+                  for (var d : asJava(t.members())) {
+                    dispatch.dispatchConstructor(t, d);
+                  }
+                }
               }
               case Definition.Data d -> {
-                w.append("#### data " + d.name().name() + "\n");
+                dispatch.dispatchConstructor(null, d);
               }
               case Definition.SugaredType s -> {
                 w.append("#### sugar " + s.name().name() + "\n");
