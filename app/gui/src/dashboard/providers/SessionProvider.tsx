@@ -21,7 +21,6 @@ import {
   type UserSessionChallenge,
 } from '#/authentication/cognito'
 import * as listen from '#/authentication/listen'
-import { Activity } from '#/components/Activity'
 import { Dialog } from '#/components/AriaComponents'
 import { Result } from '#/components/Result'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
@@ -378,16 +377,14 @@ export default function SessionProvider(props: SessionProviderProps) {
 
   return (
     <SessionContext.Provider value={sessionContextValue}>
-      <Activity mode={logoutMutation.isPending ? 'inactive' : 'active'}>
-        {typeof children === 'function' ? children(sessionContextValue) : children}
+      {typeof children === 'function' ? children(sessionContextValue) : children}
 
-        {session.data && (
-          <SessionRefresher
-            session={session.data}
-            refreshUserSession={refreshUserSessionMutation.mutateAsync}
-          />
-        )}
-      </Activity>
+      {session.data && (
+        <SessionRefresher
+          session={session.data}
+          refreshUserSession={refreshUserSessionMutation.mutateAsync}
+        />
+      )}
 
       <Dialog
         aria-label={getText('loggingOut')}

@@ -229,7 +229,7 @@ export class Cognito {
     localStorage.setItem(MOCK_EMAIL_KEY, username)
     const result = await results.Result.wrapAsync(async () => {
       listen.authEventListener?.(listen.AuthEvent.signIn)
-      await Promise.resolve()
+      await Promise.resolve(await this.userSession())
     })
     return result
       .mapErr(original.intoAmplifyErrorOrThrow)
