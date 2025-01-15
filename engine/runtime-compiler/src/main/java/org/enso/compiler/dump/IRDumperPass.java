@@ -1,8 +1,5 @@
 package org.enso.compiler.dump;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ServiceLoader;
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.context.ModuleContext;
@@ -17,21 +14,32 @@ import org.slf4j.LoggerFactory;
 import scala.collection.immutable.Seq;
 
 /** A pass that just dumps IR to the local {@code ir-dumps} directory. See {@link IRDumper}. */
-public class IRDumperPass implements IRPass {
-  public static final IRDumperPass INSTANCE = new IRDumperPass();
+public final class IRDumperPass implements IRPass {
+  public static final String SYSTEM_PROP = "enso.compiler.dumpIr";
   private final Logger logger = LoggerFactory.getLogger(IRDumperPass.class);
   private final IRDumpService dumpService;
 
-  private IRDumperPass() {
-    var loader = ServiceLoader.load(IRDumpService.class);
-    var service = loader.findFirst();
-    if (service.isPresent()) {
-      logger.info("Found IRDumpService: {}", service.get().getClass().getName());
-      dumpService = service.get();
+  /**
+   * @param dumper Class name for the {@link IRDumpService} to use.
+   */
+  public IRDumperPass(String dumper) {
+    this.dumpService = loadService(dumper);
+    if (this.dumpService != null) {
+      logger.info("Found IRDumpService: {}", dumper);
     } else {
-      logger.info("No IRDumpService found, falling back to the default GraphViz dump");
-      dumpService = null;
+      logger.error("No IRDumpService found for {}", dumper);
     }
+  }
+
+  private static IRDumpService loadService(String implName) {
+    var loader = ServiceLoader.load(IRDumpService.class);
+    while (loader.iterator().hasNext()) {
+      var service = loader.iterator().next();
+      if (service.getClass().getName().equals(implName)) {
+        return service;
+      }
+    }
+    return null;
   }
 
   @Override
@@ -47,27 +55,9 @@ public class IRDumperPass implements IRPass {
   @Override
   public Module runModule(Module ir, ModuleContext moduleContext) {
     if (dumpService != null) {
-      dumpService.dump(ir);
-    } else {
-      dumpGraphViz(ir, moduleContext);
+      dumpService.dump(ir, moduleContext.getName().toString());
     }
     return ir;
-  }
-
-  private void dumpGraphViz(Module ir, ModuleContext moduleContext) {
-    var irDumpsDir = Path.of(IRDumper.DEFAULT_DUMP_DIR);
-    if (!irDumpsDir.toFile().exists()) {
-      try {
-        Files.createDirectory(irDumpsDir);
-      } catch (IOException e) {
-        throw new IllegalStateException(e);
-      }
-    }
-    var modName = moduleContext.getName().toString();
-    var irPath = irDumpsDir.resolve(modName + ".dot");
-    var irDumper = IRDumper.fromPath(irPath);
-    irDumper.dump(ir);
-    System.out.println("IR dumped to " + irPath);
   }
 
   @Override
