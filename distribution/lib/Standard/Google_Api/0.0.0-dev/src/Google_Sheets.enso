@@ -31,7 +31,6 @@ type Google_Sheets
          Google Admin Console when generating a key.
     initialize : File|Enso_Secret -> Google_Sheets
     initialize secret_file =
-        app_name = 'Enso'
         base_credential = case secret_file of
             secret : Enso_Secret ->
                 # TODO to avoid passing credentials around, prod should probably create instance of Sheets and return it here
@@ -41,9 +40,7 @@ type Google_Sheets
                     stream.with_java_stream is->
                         GoogleCredential.fromStream is
         credential = base_credential.createScoped (Collections.singleton SheetsScopes.SPREADSHEETS)
-        http_transport = GoogleNetHttpTransport.newTrustedTransport
-        json_factory = GsonFactory.getDefaultInstance
-        service = Sheets.Builder.new http_transport json_factory credential . setApplicationName app_name . build
+        service = GoogleSheetsHelpers.createService credential
         Google_Sheets.Service service
 
     ## ICON data_input
