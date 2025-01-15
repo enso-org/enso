@@ -1,5 +1,5 @@
 import type { URLString } from '@/util/data/urlString'
-import type { Icon } from '@/util/iconName'
+import type { Icon } from '@/util/iconMetadata/iconName'
 import type { ToValue } from '@/util/reactivity'
 import type { Ref } from 'vue'
 

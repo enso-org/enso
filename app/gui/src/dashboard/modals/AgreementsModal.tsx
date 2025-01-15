@@ -22,7 +22,7 @@ const PRIVACY_POLICY_ENDPOINT_SCHEMA = z.object({ hash: z.string() })
 export const latestTermsOfServiceQueryOptions = queryOptions({
   queryKey: ['termsOfService', 'currentVersion'],
   queryFn: async () => {
-    const response = await fetch(new URL('/eula.json', process.env.ENSO_CLOUD_ENSO_HOST))
+    const response = await fetch(new URL('/eula.json', $config.ENSO_HOST))
     if (!response.ok) {
       throw new Error('Failed to fetch Terms of Service')
     } else {
@@ -37,7 +37,7 @@ export const latestTermsOfServiceQueryOptions = queryOptions({
 export const latestPrivacyPolicyQueryOptions = queryOptions({
   queryKey: ['privacyPolicy', 'currentVersion'],
   queryFn: async () => {
-    const response = await fetch(new URL('/privacy.json', process.env.ENSO_CLOUD_ENSO_HOST))
+    const response = await fetch(new URL('/privacy.json', $config.ENSO_HOST))
     if (!response.ok) {
       throw new Error('Failed to fetch Privacy Policy')
     } else {

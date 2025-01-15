@@ -18,9 +18,9 @@ import { Stepper } from '#/components/Stepper'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import { passwordSchema } from '#/pages/authentication/schemas'
-import { useAuth } from '#/providers/AuthProvider'
 import { useText } from '#/providers/TextProvider'
 import { useState } from 'react'
+import { useSessionAPI } from '../../providers/SessionProvider'
 
 // eslint-disable-next-line no-restricted-syntax
 const GOOGLE_ICON = <img src={GoogleIcon} alt="" />
@@ -35,7 +35,7 @@ const GITHUB_ICON = <img src={GithubIcon} alt="" />
 export default function Login() {
   const location = router.useLocation()
   const navigate = router.useNavigate()
-  const { signInWithGoogle, signInWithGitHub, signInWithPassword, cognito } = useAuth()
+  const { signInWithGoogle, signInWithGitHub, signInWithPassword, confirmSignIn } = useSessionAPI()
   const { getText } = useText()
 
   const query = new URLSearchParams(location.search)
@@ -181,7 +181,7 @@ export default function Login() {
               schema={(z) => z.object({ otp: z.string().min(6).max(6) })}
               onSubmit={async ({ otp }, formInstance) => {
                 if (user) {
-                  const res = await cognito.confirmSignIn(user, otp, 'SOFTWARE_TOKEN_MFA')
+                  const res = await confirmSignIn(user, otp)
 
                   if (res.ok) {
                     navigate(DASHBOARD_PATH)

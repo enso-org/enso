@@ -53,6 +53,11 @@ jobs:
             ${{ runner.os }}-gui
 
       # Next Tasks are depend on Typecheck, because we build libraries at this stage
+      - name: ⚙️ Compile
+        id: compile
+        continue-on-error: true
+        run: pnpm run compile
+
       - name: 🧠 Typecheck
         id: typecheck
         continue-on-error: true
@@ -82,9 +87,10 @@ jobs:
           fail-on-warning: false
 
       - name: ❌ Fail if any check failed
-        if: always() && (steps.prettier.outcome == 'failure' || steps.lint.outcome == 'failure' || steps.typecheck.outcome == 'failure' || steps.unit-tests.outcome == 'failure')
+        if: always() && (steps.lint.outcome == 'failure' || steps.compile.outcome == 'failure' || steps.typecheck.outcome == 'failure' || steps.unit-tests.outcome == 'failure')
         run: |
           echo "Lint outcome: ${{ steps.lint.outcome }}"
+          echo "Compile outcome: ${{ steps.compile.outcome }}"
           echo "Typecheck outcome: ${{ steps.typecheck.outcome }}"
           echo "Unit tests outcome: ${{ steps.unit-tests.outcome }}"
           exit 1
@@ -110,8 +116,8 @@ jobs:
       fail-fast: false
       max-parallel: 24
       matrix:
-        shardIndex: [1, 2, 3, 4, 5, 6]
-        shardTotal: [6]
+        shardIndex: [1, 2, 3, 4]
+        shardTotal: [4]
 
     steps:
       - uses: actions/checkout@v4
@@ -137,6 +143,10 @@ jobs:
       - name: 📺 Install Playwright Browsers
         working-directory: app/gui
         run: pnpm run playwright:install
+
+      - name: ⚙️ Compile
+        id: compile
+        run: pnpm run compile
 
       - name: 🎭 Playwright Tests
         working-directory: app/gui

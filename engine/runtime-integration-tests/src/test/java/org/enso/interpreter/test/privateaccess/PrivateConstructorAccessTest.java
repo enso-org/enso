@@ -40,26 +40,29 @@ public class PrivateConstructorAccessTest {
   }
 
   @Test
-  public void accessTypesWithPrivateConstructor() throws Exception {
+  public void accessMethodOnATypeWithAllPrivateConstructors() throws IOException {
     var codeA =
         """
-        type A
-            private Cons data
-
-            find d = A.Cons d
-
-        main = A
-        """;
-    var codeUse = """
-        create module_a x = module_a.find x
+            type A
+                private Cons data
+                find d = A.Cons d
+            """;
+    var codeUse =
+        """
+        import local.Proj_A
+        create x = local.Proj_A.Main.A.find x
         main = create
         """;
-    try (var ctx = ContextUtils.createDefaultContext()) {
-      var typeA = ContextUtils.evalModule(ctx, codeA);
-      var create = ContextUtils.evalModule(ctx, codeUse);
-      var res = create.execute(typeA, "Hello");
-      assertEquals("It is object: " + res, "(Cons 'Hello')", res.toString());
-    }
+    var proj1Dir = tempFolder.newFolder("Proj_A").toPath();
+    ProjectUtils.createProject("Proj_A", codeA, proj1Dir);
+    var proj2Dir = tempFolder.newFolder("Proj_Use").toPath();
+    ProjectUtils.createProject("Proj_Use", codeUse, proj2Dir);
+    ProjectUtils.testProjectRun(
+        proj2Dir,
+        create -> {
+          var res = create.execute("Hello");
+          assertEquals("It is object: " + res, "(Cons 'Hello')", res.toString());
+        });
   }
 
   @Test

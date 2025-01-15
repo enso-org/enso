@@ -85,9 +85,11 @@ public final class Type extends EnsoObject {
       Type supertype,
       Type any,
       boolean builtin,
-      boolean isProjectPrivate) {
-    var eigentype = new Type(name + ".type", definitionScope, any, null, builtin, isProjectPrivate);
-    var result = new Type(name, definitionScope, supertype, eigentype, builtin, isProjectPrivate);
+      boolean hasAllConstructorsPrivate) {
+    var eigentype =
+        new Type(name + ".type", definitionScope, any, null, builtin, hasAllConstructorsPrivate);
+    var result =
+        new Type(name, definitionScope, supertype, eigentype, builtin, hasAllConstructorsPrivate);
     result.generateQualifiedAccessor(lang);
     return result;
   }
