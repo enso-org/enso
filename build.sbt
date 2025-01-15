@@ -353,6 +353,7 @@ lazy val enso = (project in file("."))
     `runtime-compiler`,
     `runtime-compiler-dump`,
     `runtime-compiler-dump-igv`,
+    `runtime-compiler-dump-graphviz`,
     `runtime-parser`,
     `runtime-parser-dsl`,
     `runtime-parser-processor`,
@@ -726,6 +727,7 @@ lazy val componentModulesPaths =
     (`runtime-compiler` / Compile / exportedModuleBin).value,
     (`runtime-compiler-dump` / Compile / exportedModuleBin).value,
     (`runtime-compiler-dump-igv` / Compile / exportedModuleBin).value,
+    (`runtime-compiler-dump-graphviz` / Compile / exportedModuleBin).value,
     (`runtime-parser` / Compile / exportedModuleBin).value,
     (`runtime-suggestions` / Compile / exportedModuleBin).value,
     (`runtime-instrument-common` / Compile / exportedModuleBin).value,
@@ -3420,6 +3422,28 @@ lazy val `runtime-compiler-dump` =
       )
     )
     .dependsOn(`runtime-parser`)
+
+/**
+ * IRDumpService implementation for GraphViz format.
+ */
+lazy val `runtime-compiler-dump-graphviz` =
+  (project in file("engine/runtime-compiler-dump-graphviz"))
+    .enablePlugins(JPMSPlugin)
+    .settings(
+      frgaalJavaCompilerSetting,
+      javaModuleName := "org.enso.runtime.compiler.dump.graphviz",
+      Compile / internalModuleDependencies := {
+        val transitiveDeps = (`runtime-compiler` / Compile / internalModuleDependencies).value
+        Seq(
+          (`runtime-compiler` / Compile / exportedModule).value,
+        ) ++ transitiveDeps
+      },
+      Compile / moduleDependencies := {
+        (`runtime-compiler` / Compile / moduleDependencies).value
+      }
+    )
+    .dependsOn(`runtime-compiler-dump`)
+    .dependsOn(`runtime-compiler`)
 
 /** This is a standalone project that is not compiled with Frgaal on purpose.
   * It depends on jdk.internal.vm.compiler module, which cannot be included in Frgaal.
