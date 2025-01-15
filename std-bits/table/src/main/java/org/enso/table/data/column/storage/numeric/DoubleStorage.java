@@ -3,7 +3,7 @@ package org.enso.table.data.column.storage.numeric;
 import java.math.BigInteger;
 import java.util.BitSet;
 import java.util.List;
-import org.enso.table.data.column.builder.NumericBuilder;
+import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.numeric.DoubleRoundOp;
@@ -140,14 +140,14 @@ public final class DoubleStorage extends NumericStorage<Double>
   }
 
   private Storage<?> fillMissingDouble(double arg, ProblemAggregator problemAggregator) {
-    final var builder = NumericBuilder.createDoubleBuilder(size(), problemAggregator);
-    long rawArg = Double.doubleToRawLongBits(arg);
+    var builder = Builder.getForDouble(FloatType.FLOAT_64, size(), problemAggregator);
     Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
       if (isNothing.get(i)) {
-        builder.appendRawNoGrow(rawArg);
+        builder.appendDouble(arg);
       } else {
-        builder.appendRawNoGrow(data[i]);
+        // ToDo: Remove the long-double conversion in DoubleBuilder and DoubleStorage
+        builder.appendDouble(Double.longBitsToDouble(data[i]));
       }
 
       context.safepoint();
@@ -157,13 +157,14 @@ public final class DoubleStorage extends NumericStorage<Double>
 
   /** Special handling to ensure loss of precision is reported. */
   private Storage<?> fillMissingBigInteger(BigInteger arg, ProblemAggregator problemAggregator) {
-    final var builder = NumericBuilder.createDoubleBuilder(size(), problemAggregator);
+    var builder = Builder.getForDouble(FloatType.FLOAT_64, size(), problemAggregator);
     Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
       if (isNothing.get(i)) {
-        builder.appendBigInteger(arg);
+        builder.append(arg);
       } else {
-        builder.appendRawNoGrow(data[i]);
+        // ToDo: Remove the long-double conversion in DoubleBuilder and DoubleStorage
+        builder.appendDouble(Double.longBitsToDouble(data[i]));
       }
 
       context.safepoint();
@@ -173,13 +174,14 @@ public final class DoubleStorage extends NumericStorage<Double>
 
   /** Special handling to ensure loss of precision is reported. */
   private Storage<?> fillMissingLong(long arg, ProblemAggregator problemAggregator) {
-    final var builder = NumericBuilder.createDoubleBuilder(size(), problemAggregator);
+    var builder = Builder.getForDouble(FloatType.FLOAT_64, size(), problemAggregator);
     Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
       if (isNothing.get(i)) {
         builder.appendLong(arg);
       } else {
-        builder.appendRawNoGrow(data[i]);
+        // ToDo: Remove the long-double conversion in DoubleBuilder and DoubleStorage
+        builder.appendDouble(Double.longBitsToDouble(data[i]));
       }
 
       context.safepoint();

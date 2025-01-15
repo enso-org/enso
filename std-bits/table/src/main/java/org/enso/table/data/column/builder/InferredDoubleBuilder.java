@@ -146,18 +146,6 @@ public class InferredDoubleBuilder extends DoubleBuilder implements BuilderWithR
   }
 
   @Override
-  public void appendBigInteger(BigInteger integer) {
-    if (currentSize >= this.data.length) {
-      grow();
-    }
-
-    setRaw(currentSize, integer);
-    double convertedFloatValue = convertBigIntegerToDouble(integer);
-    data[currentSize] = Double.doubleToRawLongBits(convertedFloatValue);
-    currentSize++;
-  }
-
-  @Override
   public void appendNoGrow(Object o) {
     if (o == null) {
       isNothing.set(currentSize++);

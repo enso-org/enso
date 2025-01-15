@@ -8,6 +8,7 @@ import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.NumericBuilder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.BigIntegerType;
+import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
@@ -94,15 +95,13 @@ public final class LongStorage extends AbstractLongStorage {
   }
 
   private Storage<?> fillMissingDouble(double arg, ProblemAggregator problemAggregator) {
-    final var builder = NumericBuilder.createDoubleBuilder(size, problemAggregator);
-    long rawArg = Double.doubleToRawLongBits(arg);
+    var builder = Builder.getForDouble(FloatType.FLOAT_64, size, problemAggregator);
     Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
       if (isNothing.get(i)) {
-        builder.appendRawNoGrow(rawArg);
+        builder.appendDouble(arg);
       } else {
-        double coerced = data[i];
-        builder.appendRawNoGrow(Double.doubleToRawLongBits(coerced));
+        builder.appendLong(data[i]);
       }
 
       context.safepoint();

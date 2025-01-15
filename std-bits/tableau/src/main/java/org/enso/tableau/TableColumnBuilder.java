@@ -14,6 +14,7 @@ import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.DateTimeType;
 import org.enso.table.data.column.storage.type.DateType;
+import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
@@ -118,7 +119,8 @@ record TableColumnBuilder(Builder builder, Consumer<Result> appendMethod) {
                   r -> bigDecimalBuilder.append(r.getBigDecimal(column.index()))));
         }
       case Types.FLOAT:
-        var floatBuilder = NumericBuilder.createDoubleBuilder(initialRowCount, problemAggregator);
+        var floatBuilder =
+            Builder.getForDouble(FloatType.FLOAT_64, initialRowCount, problemAggregator);
         return new TableColumnBuilder(
             floatBuilder,
             nullAppender(
@@ -126,7 +128,8 @@ record TableColumnBuilder(Builder builder, Consumer<Result> appendMethod) {
                 column.index(),
                 r -> floatBuilder.appendDouble(r.getFloat(column.index()))));
       case Types.DOUBLE:
-        var doubleBuilder = NumericBuilder.createDoubleBuilder(initialRowCount, problemAggregator);
+        var doubleBuilder =
+            Builder.getForDouble(FloatType.FLOAT_64, initialRowCount, problemAggregator);
         return new TableColumnBuilder(
             doubleBuilder,
             nullAppender(

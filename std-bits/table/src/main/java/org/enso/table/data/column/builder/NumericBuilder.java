@@ -11,24 +11,10 @@ public abstract class NumericBuilder implements Builder {
   protected long[] data;
   protected int currentSize;
 
-  NumericBuilder(BitSet isNothing, long[] data, int currentSize) {
+  protected NumericBuilder(BitSet isNothing, long[] data, int currentSize) {
     this.isNothing = isNothing;
     this.data = data;
     this.currentSize = currentSize;
-  }
-
-  /**
-   * Creates a {@link DoubleBuilder} that should be used to create columns of boolean type and are
-   * not expected to be retyped.
-   */
-  public static DoubleBuilder createDoubleBuilder(int size, ProblemAggregator problemAggregator) {
-    return new DoubleBuilder(new BitSet(), new long[size], 0, problemAggregator);
-  }
-
-  /** Creates a {@link DoubleBuilder} that may be retyped to Mixed type. */
-  public static DoubleBuilder createInferringDoubleBuilder(
-      int size, ProblemAggregator problemAggregator) {
-    return new InferredDoubleBuilder(new BitSet(), new long[size], 0, problemAggregator);
   }
 
   public static LongBuilder createLongBuilder(

@@ -32,8 +32,8 @@ public interface Builder {
           case DateType _ -> new DateBuilder(size, false);
           case DateTimeType _ -> new DateTimeBuilder(size, false);
           case TimeOfDayType _ -> new TimeOfDayBuilder(size);
-          case FloatType floatType -> getForDouble(size, floatType, problemAggregator);
-          case IntegerType integerType -> getForLong(size, integerType, problemAggregator);
+          case FloatType floatType -> getForDouble(floatType, size, problemAggregator);
+          case IntegerType integerType -> getForLong(integerType, size, problemAggregator);
           case TextType textType -> new StringBuilder(size, textType);
           case BigDecimalType _ -> new BigDecimalBuilder(size);
           case BigIntegerType _ -> new BigIntegerBuilder(size, problemAggregator);
@@ -61,7 +61,7 @@ public interface Builder {
    * @param problemAggregator the problem aggregator to use for this builder.
    */
   static BuilderForLong getForLong(
-      int size, IntegerType integerType, ProblemAggregator problemAggregator) {
+      IntegerType integerType, int size, ProblemAggregator problemAggregator) {
     return LongBuilder.make(size, integerType, problemAggregator);
   }
 
@@ -74,7 +74,7 @@ public interface Builder {
    * @param problemAggregator the problem aggregator to use for this builder.
    */
   static BuilderForDouble getForDouble(
-      int size, FloatType floatType, ProblemAggregator problemAggregator) {
+      FloatType floatType, int size, ProblemAggregator problemAggregator) {
     if (floatType.bits() != Bits.BITS_64) {
       throw new IllegalArgumentException("Only 64-bit floats are currently supported.");
     }

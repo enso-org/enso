@@ -51,10 +51,13 @@ public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
       data[currentSize++] = Double.doubleToRawLongBits(value);
     } else if (NumericConverter.isCoercibleToLong(o)) {
       long value = NumericConverter.coerceToLong(o);
-      double converted = convertIntegerToDouble(value);
+      double converted = convertLongToDouble(value);
       data[currentSize++] = Double.doubleToRawLongBits(converted);
     } else if (o instanceof BigInteger bigInteger) {
       double converted = convertBigIntegerToDouble(bigInteger);
+      data[currentSize++] = Double.doubleToRawLongBits(converted);
+    } else if (o instanceof BigDecimal bigDecimal) {
+      double converted = convertBigDecimalToDouble(bigDecimal);
       data[currentSize++] = Double.doubleToRawLongBits(converted);
     } else {
       throw new ValueTypeMismatchException(getType(), o);
@@ -82,7 +85,7 @@ public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
         BitSets.copy(longStorage.getIsNothingMap(), isNothing, currentSize, n);
         for (int i = 0; i < n; i++) {
           long item = longStorage.getItem(i);
-          double converted = convertIntegerToDouble(item);
+          double converted = convertLongToDouble(item);
           data[currentSize++] = Double.doubleToRawLongBits(converted);
         }
       } else {
@@ -153,25 +156,7 @@ public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
       grow();
     }
 
-    double converted = convertIntegerToDouble(integer);
-    appendRawNoGrow(Double.doubleToRawLongBits(converted));
-  }
-
-  public void appendBigInteger(BigInteger integer) {
-    if (currentSize >= this.data.length) {
-      grow();
-    }
-
-    double converted = convertBigIntegerToDouble(integer);
-    appendRawNoGrow(Double.doubleToRawLongBits(converted));
-  }
-
-  public void appendBigDecimal(BigDecimal integer) {
-    if (currentSize >= this.data.length) {
-      grow();
-    }
-
-    double converted = convertBigDecimalToDouble(integer);
+    double converted = convertLongToDouble(integer);
     appendRawNoGrow(Double.doubleToRawLongBits(converted));
   }
 
@@ -186,7 +171,7 @@ public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
    * <p>It verifies if the integer can be exactly represented in a double, and if not, it reports a
    * warning.
    */
-  protected double convertIntegerToDouble(long integer) {
+  protected double convertLongToDouble(long integer) {
     double floatingPointValue = (double) integer;
     boolean isLosingPrecision = (long) floatingPointValue != integer;
     if (isLosingPrecision) {
