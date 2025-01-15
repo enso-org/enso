@@ -18,9 +18,10 @@ import { Stepper } from '#/components/Stepper'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import { passwordSchema } from '#/pages/authentication/schemas'
+import { useSessionAPI } from '#/providers/SessionProvider'
 import { useText } from '#/providers/TextProvider'
-import { useState } from 'react'
-import { useSessionAPI } from '../../providers/SessionProvider'
+import { useQueryClient } from '@tanstack/react-query'
+import { useEffect, useState } from 'react'
 
 // eslint-disable-next-line no-restricted-syntax
 const GOOGLE_ICON = <img src={GoogleIcon} alt="" />
@@ -35,11 +36,16 @@ const GITHUB_ICON = <img src={GithubIcon} alt="" />
 export default function Login() {
   const location = router.useLocation()
   const navigate = router.useNavigate()
+  const queryClient = useQueryClient()
   const { signInWithGoogle, signInWithGitHub, signInWithPassword, confirmSignIn } = useSessionAPI()
   const { getText } = useText()
 
   const query = new URLSearchParams(location.search)
   const initialEmail = query.get('email') ?? ''
+
+  useEffect(() => {
+    void queryClient.clearWithPersister()
+  }, [queryClient])
 
   const form = Form.useForm({
     schema: (z) =>

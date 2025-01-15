@@ -199,8 +199,6 @@ export default function SessionProvider(props: SessionProviderProps) {
 
     const result = await authService.signInWithPassword(email, password)
 
-    await queryClient.clearWithPersister()
-
     if (result.ok) {
       const user = result.unwrap()
 
@@ -221,25 +219,19 @@ export default function SessionProvider(props: SessionProviderProps) {
   const signInWithGoogle = useEventCallback(() => {
     gtag.event('cloud_sign_in', { provider: 'Google' })
 
-    return authService
-      .signInWithGoogle()
-      .then(() => queryClient.clearWithPersister())
-      .then(
-        () => true,
-        () => false,
-      )
+    return authService.signInWithGoogle().then(
+      () => true,
+      () => false,
+    )
   })
 
   const signInWithGitHub = useEventCallback(() => {
     gtag.event('cloud_sign_in', { provider: 'GitHub' })
 
-    return authService
-      .signInWithGitHub()
-      .then(() => queryClient.clearWithPersister())
-      .then(
-        () => true,
-        () => false,
-      )
+    return authService.signInWithGitHub().then(
+      () => true,
+      () => false,
+    )
   })
 
   const confirmSignIn = useEventCallback((user: CognitoUser, otp: string) =>
