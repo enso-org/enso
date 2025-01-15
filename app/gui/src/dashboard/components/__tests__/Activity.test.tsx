@@ -50,7 +50,7 @@ describe('Activity', (it) => {
 
       useEffect(() => {
         return () => {
-          setCount(count + 1)
+          setCount((c) => c + 1)
         }
       }, [])
 
