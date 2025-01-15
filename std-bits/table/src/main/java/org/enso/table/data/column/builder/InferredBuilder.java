@@ -9,7 +9,17 @@ import java.util.List;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.type.*;
+import org.enso.table.data.column.storage.type.AnyObjectType;
+import org.enso.table.data.column.storage.type.BigDecimalType;
+import org.enso.table.data.column.storage.type.BigIntegerType;
+import org.enso.table.data.column.storage.type.BooleanType;
+import org.enso.table.data.column.storage.type.DateTimeType;
+import org.enso.table.data.column.storage.type.DateType;
+import org.enso.table.data.column.storage.type.FloatType;
+import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.data.column.storage.type.StorageType;
+import org.enso.table.data.column.storage.type.TextType;
+import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.problems.ProblemAggregator;
 
 /**
@@ -138,7 +148,7 @@ public class InferredBuilder implements Builder {
     } else if (o instanceof LocalTime) {
       newBuilder = Builder.getForType(TimeOfDayType.INSTANCE, initialCapacity, problemAggregator);
     } else {
-      newBuilder = new MixedBuilder(initialCapacity);
+      newBuilder = Builder.getForType(AnyObjectType.INSTANCE, initialCapacity, problemAggregator);
     }
 
     if (newBuilder instanceof BuilderWithRetyping builderWithRetyping) {
@@ -197,11 +207,7 @@ public class InferredBuilder implements Builder {
     // caller might be using appendNoGrow and is expecting to write at least
     // that many values.
     int capacity = Math.max(initialSize, currentSize);
-
-    var objectBuilder = new MixedBuilder(capacity);
-    currentBuilder.copyDataTo(objectBuilder.getData());
-    objectBuilder.setCurrentSize(currentBuilder.getCurrentSize());
-    currentBuilder = objectBuilder;
+    currentBuilder = MixedBuilder.copyFromData(currentBuilder, capacity);
   }
 
   @Override

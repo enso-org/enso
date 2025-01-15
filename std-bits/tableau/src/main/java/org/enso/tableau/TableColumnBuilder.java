@@ -9,9 +9,14 @@ import java.util.function.Consumer;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.InferredBuilder;
 import org.enso.table.data.column.builder.NumericBuilder;
-import org.enso.table.data.column.builder.ObjectBuilder;
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.type.*;
+import org.enso.table.data.column.storage.type.BigDecimalType;
+import org.enso.table.data.column.storage.type.BigIntegerType;
+import org.enso.table.data.column.storage.type.DateTimeType;
+import org.enso.table.data.column.storage.type.DateType;
+import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.data.column.storage.type.TextType;
+import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.problems.ProblemAggregator;
 
 /** A builder for a single column of a table. */
@@ -176,7 +181,7 @@ record TableColumnBuilder(Builder builder, Consumer<Result> appendMethod) {
                 column.index(),
                 r -> dateTimeTzBuilder.append(r.getZonedDateTime(column.index()))));
       case HyperTableColumn.JSON:
-        var jsonBuilder = new ObjectBuilder(initialRowCount);
+        var jsonBuilder = Builder.getObjectBuilder(initialRowCount);
         return new TableColumnBuilder(
             jsonBuilder,
             nullAppender(
@@ -190,7 +195,7 @@ record TableColumnBuilder(Builder builder, Consumer<Result> appendMethod) {
                 column.index(),
                 r -> intervalBuilder.append(readInterval(r, column.index()))));
       case Types.OTHER:
-        var mixedBuilder = new ObjectBuilder(initialRowCount);
+        var mixedBuilder = Builder.getObjectBuilder(initialRowCount);
         return new TableColumnBuilder(
             mixedBuilder,
             nullAppender(

@@ -1,12 +1,10 @@
 package org.enso.table.data.column.builder;
 
 import java.math.BigInteger;
-import java.util.Arrays;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
-import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.FloatType;
@@ -28,8 +26,7 @@ public class BigIntegerBuilder extends TypedBuilder<BigInteger> {
   @Override
   public boolean canRetypeTo(StorageType type) {
     return type instanceof FloatType
-        || type instanceof BigDecimalType
-        || type instanceof AnyObjectType;
+        || type instanceof BigDecimalType;
   }
 
   @Override
@@ -56,12 +53,6 @@ public class BigIntegerBuilder extends TypedBuilder<BigInteger> {
             res.appendNoGrow(data[i]);
           }
         }
-        return res;
-      }
-      case AnyObjectType _ -> {
-        Object[] widenedData = Arrays.copyOf(data, data.length, Object[].class);
-        ObjectBuilder res = new MixedBuilder(widenedData);
-        res.setCurrentSize(currentSize);
         return res;
       }
       case null, default -> throw new UnsupportedOperationException();

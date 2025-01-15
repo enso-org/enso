@@ -1,10 +1,8 @@
 package org.enso.table.data.column.builder;
 
 import java.util.Arrays;
-import java.util.Objects;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.StorageType;
 
 public abstract class TypedBuilder<T> implements BuilderWithRetyping {
@@ -31,19 +29,12 @@ public abstract class TypedBuilder<T> implements BuilderWithRetyping {
 
   @Override
   public boolean canRetypeTo(StorageType type) {
-    return Objects.equals(type, AnyObjectType.INSTANCE);
+    return false;
   }
 
   @Override
   public Builder retypeTo(StorageType type) {
-    if (Objects.equals(type, AnyObjectType.INSTANCE)) {
-      Object[] widenedData = Arrays.copyOf(data, data.length, Object[].class);
-      ObjectBuilder res = new MixedBuilder(widenedData);
-      res.setCurrentSize(currentSize);
-      return res;
-    } else {
-      throw new UnsupportedOperationException();
-    }
+    throw new UnsupportedOperationException();
   }
 
   @Override

@@ -4,7 +4,6 @@ import java.time.Duration;
 import java.time.LocalTime;
 import org.enso.base.CompareException;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.builder.ObjectBuilder;
 import org.enso.table.data.column.operation.map.GenericBinaryObjectMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.datetime.DateTimeIsInOp;
@@ -73,7 +72,7 @@ public final class TimeOfDayStorage extends SpecializedStorage<LocalTime> {
             Maps.SUB, LocalTime.class, TimeOfDayStorage.class) {
           @Override
           protected Builder createOutputBuilder(int size) {
-            return new ObjectBuilder(size);
+            return Builder.getObjectBuilder(size);
           }
 
           @Override

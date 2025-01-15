@@ -16,10 +16,6 @@ public class ObjectBuilder implements Builder {
     this.data = new Object[size];
   }
 
-  public ObjectBuilder(Object[] data) {
-    this.data = data;
-  }
-
   @Override
   public void copyDataTo(Object[] items) {
     if (currentSize >= 0) {
@@ -80,11 +76,6 @@ public class ObjectBuilder implements Builder {
 
   public Object[] getData() {
     return data;
-  }
-
-  public void setCurrentSize(int currentSize) {
-    if (currentSize > data.length) resize(currentSize);
-    this.currentSize = currentSize;
   }
 
   /**

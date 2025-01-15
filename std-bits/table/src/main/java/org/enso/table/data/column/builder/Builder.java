@@ -83,6 +83,16 @@ public interface Builder {
   }
 
   /**
+   * Constructs a builder for storing objects.
+   * No operations will be supported on this builder.
+   *
+   * @param size the initial size of the builder.
+   */
+  static Builder getObjectBuilder(int size) {
+    return new ObjectBuilder(size);
+  }
+
+  /**
    * Append a new item to this builder, assuming that it has enough allocated space.
    *
    * <p>This function should only be used when it is guaranteed that the builder has enough

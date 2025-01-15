@@ -6,12 +6,23 @@ import org.enso.table.data.column.storage.type.StorageType;
 
 /** A builder for Mixed columns. It will create a MixedStorage. */
 public class MixedBuilder extends ObjectBuilder implements BuilderWithRetyping {
-  public MixedBuilder(int size) {
-    super(size);
+  /** Creates a new builder with the given size.
+   * Copies the data from the given source Builder.
+   * */
+  static MixedBuilder copyFromData(Builder source, int capacity) {
+    var sourceCurrentSize = source.getCurrentSize();
+
+    var dataSize = Math.max(capacity, sourceCurrentSize);
+    var builder = new MixedBuilder(dataSize);
+
+    source.copyDataTo(builder.data);
+    builder.currentSize = sourceCurrentSize;
+
+    return builder;
   }
 
-  public MixedBuilder(Object[] data) {
-    super(data);
+  MixedBuilder(int size) {
+    super(size);
   }
 
   @Override

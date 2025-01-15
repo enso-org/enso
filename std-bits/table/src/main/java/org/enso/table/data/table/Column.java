@@ -5,8 +5,8 @@ import java.util.List;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.InferredBuilder;
-import org.enso.table.data.column.builder.MixedBuilder;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
@@ -172,7 +172,7 @@ public class Column {
     Object converted = Polyglot_Utils.convertPolyglotValue(item);
 
     if (converted == null) {
-      Builder builder = new MixedBuilder(repeat);
+      var builder = Builder.getForType(AnyObjectType.INSTANCE, repeat, problemAggregator);
       builder.appendNulls(repeat);
       return new Column(name, builder.seal());
     }
