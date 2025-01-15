@@ -1,6 +1,5 @@
 <script lang="ts">
 import SvgButton from '@/components/SvgButton.vue'
-import { provideTooltipRegistry, type TooltipRegistry } from '@/providers/tooltipRegistry'
 import type { IHeaderParams } from 'ag-grid-community'
 import { nextTick } from 'process'
 import { computed, Raw, Ref, ref, toRef, watch } from 'vue'
@@ -15,11 +14,6 @@ export type ColumnSpecificProps =
   | { type: 'rowIndexColumn' }
 
 export interface GeneralProps {
-  /**
-   * AgGrid mounts header components as separate "App", so we don't have access to any context.
-   * Threfore the tooltip registry must be provided by props.
-   */
-  tooltipRegistry: TooltipRegistry
   /**
    * The id of column whose header is currently edited.
    */
@@ -53,9 +47,6 @@ const props = defineProps<{
 }>()
 const generalProps = toRef(() => props.params.general.value)
 const columnProps = toRef(() => props.params.columnSpecific.value)
-
-/** Re-provide tooltipRegistry. See `tooltipRegistry` docs in {@link HeaderParams} */
-provideTooltipRegistry.provideConstructed(generalProps.value.tooltipRegistry)
 
 const editing = computed(() => generalProps.value.editedColId === props.params.column.getColId())
 watch(editing, (newVal) => {

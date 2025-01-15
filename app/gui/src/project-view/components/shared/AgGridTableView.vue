@@ -300,7 +300,7 @@ function stopIfPrevented(event: Event) {
   if (event.defaultPrevented) event.stopPropagation()
 }
 
-const { AgGridVue } = await import('ag-grid-vue3')
+const { AgGridVue } = await import('./AgGridTableView/AgGridVue')
 </script>
 
 <template>

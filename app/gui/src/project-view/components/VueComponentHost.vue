@@ -2,16 +2,21 @@
 import { useObjectId } from 'enso-common/src/utilities/data/object'
 import { type Component, reactive } from 'vue'
 
-const teleportations = reactive(new Map<Component, HTMLElement>())
+const teleportations = reactive(new Map<number | string | symbol, [Component, HTMLElement]>())
+
+let nextId = 0
 
 defineExpose({
-  register: (component: Component, element: HTMLElement) => {
-    teleportations.set(component, element)
-    return { unregister: () => teleportations.delete(component) }
+  register: (component: Component, element: HTMLElement, customKey?: string | symbol) => {
+    const key = customKey ?? nextId++
+    teleportations.set(key, [component, element])
+    return {
+      unregister: () => teleportations.delete(key),
+      update: (component: Component, element: HTMLElement) =>
+        teleportations.set(key, [component, element]),
+    }
   },
 } satisfies VueHost)
-
-const { objectId } = useObjectId()
 </script>
 
 <script lang="ts">
@@ -26,12 +31,17 @@ export interface VueHost {
    * Request the given component to begin being rendered as a child of the specified HTML element. The returned
    * `unregister` function should be called when the component should no longer be rendered.
    */
-  register: (component: Component, element: HTMLElement) => { unregister: () => void }
+  register: (component: Component, element: HTMLElement) => VueComponentHandle
+}
+
+export interface VueComponentHandle {
+  unregister: () => void
+  update: (component: Component, element: HTMLElement) => void
 }
 </script>
 
 <template>
-  <template v-for="[component, slot] in teleportations.entries()" :key="objectId(component)">
+  <template v-for="[key, [component, slot]] in teleportations.entries()" :key="key">
     <Teleport :to="slot">
       <component :is="component" />
     </Teleport>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { WidgetInputIsSpecificMethodCall } from '@/components/GraphEditor/widgets/WidgetFunction.vue'
 import TableHeader, {
+  ColumnSpecificHeaderParams,
   GeneralHeaderParams,
 } from '@/components/GraphEditor/widgets/WidgetTableEditor/TableHeader.vue'
 import {
@@ -11,6 +12,7 @@ import {
 } from '@/components/GraphEditor/widgets/WidgetTableEditor/tableInputArgument'
 import ResizeHandles from '@/components/ResizeHandles.vue'
 import AgGridTableView from '@/components/shared/AgGridTableView.vue'
+import VueComponentHost, { VueComponentHandle, VueHost } from '@/components/VueComponentHost.vue'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { useTooltipRegistry } from '@/providers/tooltipRegistry'
 import { defineWidget, Score, widgetProps } from '@/providers/widgetRegistry'
@@ -29,10 +31,12 @@ import type {
   ColDef,
   Column,
   ColumnMovedEvent,
+  IHeaderComp,
+  IHeaderParams,
   ProcessDataFromClipboardParams,
   RowDragEndEvent,
 } from 'ag-grid-enterprise'
-import { ComponentInstance, computed, markRaw, ref, watch } from 'vue'
+import { ComponentInstance, computed, h, markRaw, ref } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
 import { z } from 'zod'
 
@@ -146,7 +150,6 @@ class HeaderEditing {
         }
       },
     })
-    watch(this.editedColId, console.error, { flush: 'sync' })
   }
 
   headerEditedInGrid(colId: string, revertChanges: () => void) {
@@ -239,9 +242,7 @@ function processDataFromClipboard({ data, api }: ProcessDataFromClipboardParams<
 
 // === Column Default Definition ===
 
-const tooltipRegistry = useTooltipRegistry()
 const headerProps = computed(() => ({
-  tooltipRegistry: tooltipRegistry,
   editedColId: headerEditHandler.editedColId.value,
   onHeaderEditingStarted: headerEditHandler.headerEditedInGrid.bind(headerEditHandler),
   onHeaderEditingStopped: headerEditHandler.headerEditingStoppedInGrid.bind(headerEditHandler),
@@ -257,6 +258,35 @@ const defaultColDef: ColDef<RowData> & {
   headerComponentParams: {
     general: markRaw(ref(headerProps)),
   },
+}
+
+const vueComponentHost = ref<VueHost>()
+
+class TableHaderComponent implements IHeaderComp {
+  private container: HTMLElement = document.createElement('div')
+  private handle: VueComponentHandle | undefined
+
+  init(params: IHeaderParams & GeneralHeaderParams & ColumnSpecificHeaderParams) {
+    if (!vueComponentHost.value) {
+      console.error('Missing vue component host!')
+      // TODO[ao]: what's now?
+      return
+    }
+    this.handle = vueComponentHost.value.register(h(TableHeader, { params }), this.container)
+  }
+
+  getGui() {
+    return this.container
+  }
+
+  refresh(params: IHeaderParams & GeneralHeaderParams & ColumnSpecificHeaderParams) {
+    this.handle?.update(h(TableHeader, { params }), this.container)
+    return true
+  }
+
+  destroy() {
+    this.handle?.unregister()
+  }
 }
 </script>
 
@@ -288,7 +318,9 @@ export const widgetDefinition = defineWidget(
         :columnDefs="columnDefs"
         :rowData="rowData"
         :getRowId="(row) => `${row.data.index}`"
-        :components="{ agColumnHeader: TableHeader }"
+        :components="{
+          agColumnHeader: TableHaderComponent,
+        }"
         :stopEditingWhenCellsLoseFocus="true"
         :suppressDragLeaveHidesColumns="true"
         :suppressMoveWhenColumnDragging="true"
@@ -310,6 +342,7 @@ export const widgetDefinition = defineWidget(
       />
     </Suspense>
     <ResizeHandles v-model="clientBounds" bottom right />
+    <VueComponentHost ref="vueComponentHost" />
   </div>
 </template>
 
