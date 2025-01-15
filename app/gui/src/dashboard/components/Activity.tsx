@@ -8,7 +8,7 @@ import { Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useAwait } from './Await'
 
 /**
- *
+ * Props for {@link Activity}
  */
 export interface ActivityProps {
   /**
@@ -61,12 +61,12 @@ export function Activity(props: ActivityProps) {
 
   return (
     <div ref={contentRef} className="contents">
-      {mode === 'active' ?
-        children
-      : <Suspense fallback={fallback}>
-          <ActivityInner promise={promise}>{children}</ActivityInner>
-        </Suspense>
-      }
+      {/* {mode === 'active' ? */}
+      {/* children : */}
+      <Suspense fallback={fallback}>
+        <ActivityInner promise={promise}>{children}</ActivityInner>
+      </Suspense>
+      {/* } */}
     </div>
   )
 }

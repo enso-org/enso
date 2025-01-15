@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { useEffect, useState } from 'react'
 import { describe } from 'vitest'
 import { Activity } from '../Activity'
@@ -14,7 +15,7 @@ describe('Activity', (it) => {
     expect(screen.getByText('Hello')).toBeInTheDocument()
   })
 
-  it('should render the when inactive', ({ expect }) => {
+  it('should render children when inactive', ({ expect }) => {
     render(
       <Activity mode="inactive">
         <div>Hello</div>
@@ -24,7 +25,7 @@ describe('Activity', (it) => {
     expect(screen.getByText('Hello')).toBeInTheDocument()
   })
 
-  it('should render the when inactive-hidden', ({ expect }) => {
+  it('should render children when inactive-hidden', ({ expect }) => {
     render(
       <Activity mode="inactive-hidden">
         <div>Hello</div>
@@ -34,7 +35,7 @@ describe('Activity', (it) => {
     expect(screen.getByText('Hello')).toBeInTheDocument()
   })
 
-  it('should display the children when inactive', ({ expect }) => {
+  it('should display children when inactive', ({ expect }) => {
     render(
       <Activity mode="inactive">
         <div>Hello</div>
@@ -44,31 +45,51 @@ describe('Activity', (it) => {
     expect(screen.getByText('Hello')).toBeVisible()
   })
 
-  it('should not unmount the children when inactive', ({ expect }) => {
-    const Component = () => {
-      const [count, setCount] = useState(0)
+  it('should not unmount children when inactive', async ({ expect }) => {
+    let count = 0
 
-      useEffect(() => {
-        return () => {
-          setCount((c) => c + 1)
-        }
-      }, [])
+    const Component = () => {
+      useEffect(
+        () => () => {
+          count++
+        },
+        [],
+      )
 
       return <div>{count}</div>
     }
 
-    const { rerender } = render(
-      <Activity mode="active">
-        <Component />
-      </Activity>,
-    )
+    function Container() {
+      const [mode, setMode] = useState<'active' | 'inactive'>('active')
 
-    rerender(
-      <Activity mode="inactive">
-        <Component />
-      </Activity>,
-    )
+      return (
+        <div>
+          <button
+            onClick={() => {
+              setMode('inactive')
+            }}
+          >
+            Inactive
+          </button>
+          <button
+            onClick={() => {
+              setMode('active')
+            }}
+          >
+            Active
+          </button>
+          <Activity mode={mode}>
+            <Component />
+          </Activity>
+        </div>
+      )
+    }
 
-    expect(screen.getByText('0')).toBeInTheDocument()
+    render(<Container />)
+
+    await userEvent.click(screen.getByText('Inactive'))
+    await userEvent.click(screen.getByText('Active'))
+
+    expect(count).toBe(0)
   })
 })
