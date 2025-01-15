@@ -10,7 +10,6 @@ import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.InferredBuilder;
 import org.enso.table.data.column.builder.NumericBuilder;
 import org.enso.table.data.column.builder.ObjectBuilder;
-import org.enso.table.data.column.builder.TimeOfDayBuilder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.*;
 import org.enso.table.problems.ProblemAggregator;
@@ -148,7 +147,8 @@ record TableColumnBuilder(Builder builder, Consumer<Result> appendMethod) {
                 column.index(),
                 r -> dateBuilder.append(r.getLocalDate(column.index()))));
       case Types.TIME:
-        var timeBuilder = new TimeOfDayBuilder(initialRowCount);
+        var timeBuilder =
+            Builder.getForType(TimeOfDayType.INSTANCE, initialRowCount, problemAggregator);
         return new TableColumnBuilder(
             timeBuilder,
             nullAppender(

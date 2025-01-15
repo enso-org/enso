@@ -148,8 +148,8 @@ date_fetcher =
 ## PRIVATE
 time_fetcher =
     fetch_value rs i = JDBCUtils.getLocalTime rs i
-    make_builder initial_size _ =
-        java_builder = Java_Exports.make_time_of_day_builder initial_size
+    make_builder initial_size java_problem_aggregator =
+        java_builder = Java_Exports.make_builder_for_type Value_Type.Time initial_size java_problem_aggregator
         make_builder_from_java_object_builder java_builder
     Column_Fetcher.Value fetch_value make_builder
 

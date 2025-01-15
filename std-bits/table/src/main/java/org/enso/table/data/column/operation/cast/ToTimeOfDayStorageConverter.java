@@ -2,11 +2,12 @@ package org.enso.table.data.column.operation.cast;
 
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
-import org.enso.table.data.column.builder.TimeOfDayBuilder;
+import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.datetime.DateTimeStorage;
 import org.enso.table.data.column.storage.datetime.TimeOfDayStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
+import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.graalvm.polyglot.Context;
 
 public class ToTimeOfDayStorageConverter implements StorageConverter<LocalTime> {
@@ -27,7 +28,8 @@ public class ToTimeOfDayStorageConverter implements StorageConverter<LocalTime> 
   public Storage<LocalTime> castFromMixed(
       Storage<?> mixedStorage, CastProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
-    TimeOfDayBuilder builder = new TimeOfDayBuilder(mixedStorage.size());
+    var builder =
+        Builder.getForType(TimeOfDayType.INSTANCE, mixedStorage.size(), problemAggregator);
     for (int i = 0; i < mixedStorage.size(); i++) {
       Object o = mixedStorage.getItemBoxed(i);
       switch (o) {
@@ -43,7 +45,7 @@ public class ToTimeOfDayStorageConverter implements StorageConverter<LocalTime> 
       context.safepoint();
     }
 
-    return builder.seal();
+    return (Storage<LocalTime>) builder.seal();
   }
 
   private LocalTime convertDateTime(ZonedDateTime dateTime) {
@@ -53,7 +55,8 @@ public class ToTimeOfDayStorageConverter implements StorageConverter<LocalTime> 
   private Storage<LocalTime> convertDateTimeStorage(
       DateTimeStorage dateTimeStorage, CastProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
-    TimeOfDayBuilder builder = new TimeOfDayBuilder(dateTimeStorage.size());
+    var builder =
+        Builder.getForType(TimeOfDayType.INSTANCE, dateTimeStorage.size(), problemAggregator);
     for (int i = 0; i < dateTimeStorage.size(); i++) {
       ZonedDateTime dateTime = dateTimeStorage.getItem(i);
       builder.append(convertDateTime(dateTime));
@@ -61,6 +64,6 @@ public class ToTimeOfDayStorageConverter implements StorageConverter<LocalTime> 
       context.safepoint();
     }
 
-    return builder.seal();
+    return (Storage<LocalTime>) builder.seal();
   }
 }
