@@ -21,6 +21,7 @@ import {
   type UserSessionChallenge,
 } from '#/authentication/cognito'
 import * as listen from '#/authentication/listen'
+import { Activity } from '#/components/Activity'
 import { Dialog } from '#/components/AriaComponents'
 import { Result } from '#/components/Result'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
@@ -146,17 +147,20 @@ export default function SessionProvider(props: SessionProviderProps) {
       unsafeWriteValue(document, 'cookie', `logged_in=no;max-age=0;domain=${parentDomain}`)
 
       authService.saveAccessToken(null)
-
-      await queryClient.invalidateQueries({ queryKey: sessionQuery.queryKey })
-      await queryClient.clearWithPersister()
     },
     // If the User Menu is still visible, it breaks when `userSession` is set to `null`.
     onMutate: unsetModal,
     onSuccess: async () => {
       await onLogout?.()
-      sentry.setUser(null)
 
-      return toast.success(getText('signOutSuccess'))
+      sentry.setUser(null)
+      toast.success(getText('signOutSuccess'))
+
+      // On sign out, we need to clear the query client.
+      // But we dont want to delay the logoutMutation to avoid possible side effects,
+      // like refetching some data. By the moment of clearing the query client,
+      // the logoutMutation is already resolved, and user is navigated to the login page.
+      void queryClient.clearWithPersister()
     },
     onError: () => toast.error(getText('signOutError')),
   })
@@ -196,6 +200,8 @@ export default function SessionProvider(props: SessionProviderProps) {
 
     const result = await authService.signInWithPassword(email, password)
 
+    await queryClient.clearWithPersister()
+
     if (result.ok) {
       const user = result.unwrap()
 
@@ -218,7 +224,7 @@ export default function SessionProvider(props: SessionProviderProps) {
 
     return authService
       .signInWithGoogle()
-      .then(() => queryClient.invalidateQueries({ queryKey: sessionQuery.queryKey }))
+      .then(() => queryClient.clearWithPersister())
       .then(
         () => true,
         () => false,
@@ -230,7 +236,7 @@ export default function SessionProvider(props: SessionProviderProps) {
 
     return authService
       .signInWithGitHub()
-      .then(() => queryClient.invalidateQueries({ queryKey: sessionQuery.queryKey }))
+      .then(() => queryClient.clearWithPersister())
       .then(
         () => true,
         () => false,
@@ -325,6 +331,7 @@ export default function SessionProvider(props: SessionProviderProps) {
       throw result.val
     }
   })
+
   const verifyTotpToken = useEventCallback(async (otp: string) => {
     const result = await authService.verifyTotpToken(otp)
     if (result.err) {
@@ -333,6 +340,7 @@ export default function SessionProvider(props: SessionProviderProps) {
       return result.unwrap()
     }
   })
+
   const setupTOTP = useEventCallback(async () => {
     const result = await authService.setupTOTP()
     if (result.err) {
@@ -370,14 +378,16 @@ export default function SessionProvider(props: SessionProviderProps) {
 
   return (
     <SessionContext.Provider value={sessionContextValue}>
-      {typeof children === 'function' ? children(sessionContextValue) : children}
+      <Activity mode={logoutMutation.isPending ? 'inactive' : 'active'}>
+        {typeof children === 'function' ? children(sessionContextValue) : children}
 
-      {session.data && (
-        <SessionRefresher
-          session={session.data}
-          refreshUserSession={refreshUserSessionMutation.mutateAsync}
-        />
-      )}
+        {session.data && (
+          <SessionRefresher
+            session={session.data}
+            refreshUserSession={refreshUserSessionMutation.mutateAsync}
+          />
+        )}
+      </Activity>
 
       <Dialog
         aria-label={getText('loggingOut')}

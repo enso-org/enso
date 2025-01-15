@@ -100,6 +100,30 @@ const PRIVATE_AWAIT_PROMISE_STATE = Symbol('PRIVATE_AWAIT_PROMISE_STATE_REF')
 function AwaitInternal<PromiseType>(props: AwaitProps<PromiseType>) {
   const { promise, children } = props
 
+  const data = useAwait(promise)
+
+  return typeof children === 'function' ? children(data) : children
+}
+
+export function useAwait(promise?: null | undefined): void
+export function useAwait<PromiseType>(promise: Promise<PromiseType>): PromiseType
+export function useAwait<PromiseType>(
+  promise?: Promise<PromiseType> | null | undefined,
+): PromiseType | undefined
+
+/**
+/**
+ * A hook that accepts a promise and triggers the Suspense boundary until the promise is resolved.
+ * @param promise - The promise to await.
+ * @returns The data of the promise.
+ */
+export function useAwait<PromiseType>(
+  promise?: Promise<PromiseType> | null | undefined,
+): PromiseType | undefined {
+  if (promise == null) {
+    return
+  }
+
   /**
    * Define the promise state on the promise.
    */
@@ -154,5 +178,5 @@ function AwaitInternal<PromiseType>(props: AwaitProps<PromiseType>) {
     throw promiseState.error
   }
 
-  return typeof children === 'function' ? children(promiseState.data) : children
+  return promiseState.data
 }

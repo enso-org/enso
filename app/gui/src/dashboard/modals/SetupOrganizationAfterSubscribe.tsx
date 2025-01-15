@@ -70,7 +70,10 @@ function SetupOrganizationAfterSubscribeInternal(
       backendQueryOptions(backend, 'listUserGroups', []),
     ],
     combine: ([organizationQuery, userGroupsQuery]) => ({
-      organizationName: organizationQuery.data?.name ?? '',
+      // Null is used to indicate that the user is not an admin of an organization,
+      // Or organization info has not yet been created, This means that the dialog
+      // should not be shown.
+      organizationName: organizationQuery.data?.name ?? null,
       userGroupsCount: userGroupsQuery.data.length,
     }),
   })
