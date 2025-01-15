@@ -11,15 +11,10 @@ import org.enso.table.error.ValueTypeMismatchException;
 
 /** A builder for LocalDate columns. */
 public class DateBuilder extends TypedBuilder<LocalDate> {
-  @Override
-  protected LocalDate[] newArray(int size) {
-    return new LocalDate[size];
-  }
-
   private final boolean allowDateToDateTimeConversion;
 
   DateBuilder(int size, boolean allowDateToDateTimeConversion) {
-    super(DateType.INSTANCE, size);
+    super(DateType.INSTANCE, new LocalDate[size]);
     this.allowDateToDateTimeConversion = allowDateToDateTimeConversion;
   }
 

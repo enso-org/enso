@@ -10,13 +10,8 @@ import org.enso.table.error.ValueTypeMismatchException;
 public class StringBuilder extends TypedBuilder<String> {
   private final TextType type;
 
-  @Override
-  protected String[] newArray(int size) {
-    return new String[size];
-  }
-
   public StringBuilder(int size, TextType type) {
-    super(type, size);
+    super(type, new String[size]);
     this.type = type;
   }
 

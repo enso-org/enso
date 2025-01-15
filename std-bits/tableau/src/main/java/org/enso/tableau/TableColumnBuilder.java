@@ -10,7 +10,6 @@ import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.InferredBuilder;
 import org.enso.table.data.column.builder.NumericBuilder;
 import org.enso.table.data.column.builder.ObjectBuilder;
-import org.enso.table.data.column.builder.StringBuilder;
 import org.enso.table.data.column.builder.TimeOfDayBuilder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.*;
@@ -135,7 +134,7 @@ record TableColumnBuilder(Builder builder, Consumer<Result> appendMethod) {
             column.length().isEmpty()
                 ? new TextType(-1, false)
                 : new TextType(column.length().getAsInt(), column.typeID() == Types.CHAR);
-        var textBuilder = new StringBuilder(initialRowCount, textType);
+        var textBuilder = Builder.getForType(textType, initialRowCount, problemAggregator);
         return new TableColumnBuilder(
             textBuilder,
             nullAppender(

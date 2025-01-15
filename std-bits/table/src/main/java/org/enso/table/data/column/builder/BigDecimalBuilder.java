@@ -8,13 +8,8 @@ import org.enso.table.error.ValueTypeMismatchException;
 
 /** A builder for BigDecimal columns. */
 public class BigDecimalBuilder extends TypedBuilder<BigDecimal> {
-  @Override
-  protected BigDecimal[] newArray(int size) {
-    return new BigDecimal[size];
-  }
-
   BigDecimalBuilder(int size) {
-    super(BigDecimalType.INSTANCE, size);
+    super(BigDecimalType.INSTANCE, new BigDecimal[size]);
   }
 
   @Override

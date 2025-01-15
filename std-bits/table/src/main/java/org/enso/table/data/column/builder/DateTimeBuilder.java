@@ -14,16 +14,11 @@ import org.graalvm.polyglot.Context;
 
 /** A builder for ZonedDateTime columns. */
 public class DateTimeBuilder extends TypedBuilder<ZonedDateTime> {
-  @Override
-  protected ZonedDateTime[] newArray(int size) {
-    return new ZonedDateTime[size];
-  }
-
   private final boolean allowDateToDateTimeConversion;
   private final BitSet wasLocalDate;
 
-  public DateTimeBuilder(int size, boolean allowDateToDateTimeConversion) {
-    super(DateTimeType.INSTANCE, size);
+  DateTimeBuilder(int size, boolean allowDateToDateTimeConversion) {
+    super(DateTimeType.INSTANCE, new ZonedDateTime[size]);
     this.allowDateToDateTimeConversion = allowDateToDateTimeConversion;
     this.wasLocalDate = allowDateToDateTimeConversion ? new BitSet(size) : null;
   }

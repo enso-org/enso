@@ -20,13 +20,8 @@ public class BigIntegerBuilder extends TypedBuilder<BigInteger> {
   // The problem aggregator is only used so that when we are retyping, we can pass it on.
   private final ProblemAggregator problemAggregator;
 
-  @Override
-  protected BigInteger[] newArray(int size) {
-    return new BigInteger[size];
-  }
-
   BigIntegerBuilder(int size, ProblemAggregator problemAggregator) {
-    super(BigIntegerType.INSTANCE, size);
+    super(BigIntegerType.INSTANCE, new BigInteger[size]);
     this.problemAggregator = problemAggregator;
   }
 

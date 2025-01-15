@@ -10,7 +10,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Queue;
 import java.util.stream.Collectors;
-import org.enso.table.data.column.builder.StringBuilder;
+
+import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.table.Column;
@@ -67,7 +68,7 @@ public class DelimitedReader {
   /** The line number of the start of the current row in the input file. */
   private long currentLine = 0;
 
-  private StringBuilder[] builders = null;
+  private Builder[] builders = null;
   private final DelimitedReaderProblemAggregator problemAggregator;
 
   /**
@@ -497,9 +498,9 @@ public class DelimitedReader {
   private static final int INITIAL_ROW_CAPACITY = 100;
 
   private void initBuilders(int count) {
-    builders = new StringBuilder[count];
+    builders = new Builder[count];
     for (int i = 0; i < count; i++) {
-      builders[i] = new StringBuilder(INITIAL_ROW_CAPACITY, TextType.VARIABLE_LENGTH);
+      builders[i] = Builder.getForType(TextType.VARIABLE_LENGTH, INITIAL_ROW_CAPACITY, null);
     }
   }
 

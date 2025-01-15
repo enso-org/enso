@@ -12,11 +12,9 @@ public abstract class TypedBuilder<T> implements BuilderWithRetyping {
   protected T[] data;
   protected int currentSize = 0;
 
-  protected abstract T[] newArray(int size);
-
-  protected TypedBuilder(StorageType storageType, int size) {
+  protected TypedBuilder(StorageType storageType, T[] data) {
+    this.data = data;
     this.storageType = storageType;
-    this.data = newArray(size);
   }
 
   @Override

@@ -8,13 +8,8 @@ import org.enso.table.error.ValueTypeMismatchException;
 
 /** A builder for LocalTime columns. */
 public class TimeOfDayBuilder extends TypedBuilder<LocalTime> {
-  @Override
-  protected LocalTime[] newArray(int size) {
-    return new LocalTime[size];
-  }
-
   public TimeOfDayBuilder(int size) {
-    super(TimeOfDayType.INSTANCE, size);
+    super(TimeOfDayType.INSTANCE, new LocalTime[size]);
   }
 
   @Override

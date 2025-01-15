@@ -9,7 +9,6 @@ polyglot java import org.enso.table.data.column.builder.Builder
 polyglot java import org.enso.table.data.column.builder.BuilderForBoolean
 polyglot java import org.enso.table.data.column.builder.InferredBuilder
 polyglot java import org.enso.table.data.column.builder.NumericBuilder
-polyglot java import org.enso.table.data.column.builder.StringBuilder
 polyglot java import org.enso.table.data.column.builder.TimeOfDayBuilder
 polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
 polyglot java import org.enso.table.problems.ProblemAggregator
@@ -37,10 +36,10 @@ make_long_builder initial_size bits java_problem_aggregator=(Missing_Argument.en
     NumericBuilder.createLongBuilder initial_size integer_type java_problem_aggregator
 
 ## PRIVATE
-make_string_builder : Integer -> Value_Type -> StringBuilder
+make_string_builder : Integer -> Value_Type -> Builder
 make_string_builder initial_size value_type=Value_Type.Char =
     storage_type = Storage.from_value_type_strict value_type
-    StringBuilder.new initial_size storage_type
+    Builder.make_builder_for_type storage_type initial_size Nothing
 
 ## PRIVATE
 make_time_of_day_builder : Integer -> TimeOfDayBuilder

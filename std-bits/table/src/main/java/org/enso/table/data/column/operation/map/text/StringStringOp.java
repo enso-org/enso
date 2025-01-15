@@ -1,6 +1,6 @@
 package org.enso.table.data.column.operation.map.text;
 
-import org.enso.table.data.column.builder.StringBuilder;
+import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.SpecializedStorage;
@@ -27,7 +27,7 @@ public abstract class StringStringOp
       MapOperationProblemAggregator problemAggregator) {
     int size = storage.size();
     if (arg == null) {
-      StringBuilder builder = new StringBuilder(size, TextType.VARIABLE_LENGTH);
+      var builder = Builder.getForType(TextType.VARIABLE_LENGTH, size, problemAggregator);
       builder.appendNulls(size);
       return builder.seal();
     } else if (arg instanceof String argString) {
