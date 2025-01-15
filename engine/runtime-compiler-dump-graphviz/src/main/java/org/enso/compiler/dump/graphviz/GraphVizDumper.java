@@ -7,9 +7,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
-import org.enso.compiler.dump.service.IRDumpService;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.CallArgument;
 import org.enso.compiler.core.ir.DefinitionArgument;
@@ -34,11 +32,14 @@ import org.enso.compiler.data.BindingsMap.ResolvedModuleMethod;
 import org.enso.compiler.data.BindingsMap.ResolvedPolyglotField;
 import org.enso.compiler.data.BindingsMap.ResolvedPolyglotSymbol;
 import org.enso.compiler.data.BindingsMap.ResolvedType;
+import org.enso.compiler.dump.service.IRDumpService;
 import org.enso.compiler.pass.analyse.alias.AliasMetadata;
 import org.enso.compiler.pass.analyse.alias.graph.Graph;
 import org.enso.compiler.pass.resolve.FullyQualifiedNames.FQNResolution;
 import org.enso.compiler.pass.resolve.FullyQualifiedNames.ResolvedLibrary;
 import org.enso.compiler.pass.resolve.FullyQualifiedNames.ResolvedModule;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Utility class that dumps {@link IR} to a <a href="https://graphviz.org">GraphViz</a> file. This
@@ -50,6 +51,9 @@ import org.enso.compiler.pass.resolve.FullyQualifiedNames.ResolvedModule;
  * Interactive Preview extension</a>.
  */
 public final class GraphVizDumper implements IRDumpService {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(GraphVizDumper.class);
+
   /**
    * Whether to include the code of the IR nodes in the Graphviz file. This can make the file very
    * large.
@@ -65,7 +69,7 @@ public final class GraphVizDumper implements IRDumpService {
   private final Set<GraphVizNode> nodes = new HashSet<>();
   private final Set<GraphVizEdge> edges = new HashSet<>();
 
-  private static OutputStream createOutForModule(String moduleName) {
+  private static Path outputForModule(String moduleName) {
     var irDumpsDir = Path.of(DEFAULT_DUMP_DIR);
     if (!irDumpsDir.toFile().exists()) {
       try {
@@ -75,16 +79,7 @@ public final class GraphVizDumper implements IRDumpService {
       }
     }
     var irPath = irDumpsDir.resolve(moduleName + ".dot");
-    try {
-      return
-          Files.newOutputStream(
-              irPath,
-              StandardOpenOption.CREATE,
-              StandardOpenOption.WRITE,
-              StandardOpenOption.TRUNCATE_EXISTING);
-    } catch (IOException e) {
-      throw new IllegalStateException(e);
-    }
+    return irPath;
   }
 
   /**
@@ -94,7 +89,17 @@ public final class GraphVizDumper implements IRDumpService {
    * @param ir the IR to dump.
    */
   public void dump(Module ir, String moduleName) {
-    this.out = createOutForModule(moduleName);
+    var irDumpPath = outputForModule(moduleName);
+    try {
+      this.out =
+          Files.newOutputStream(
+              irDumpPath,
+              StandardOpenOption.CREATE,
+              StandardOpenOption.WRITE,
+              StandardOpenOption.TRUNCATE_EXISTING);
+    } catch (IOException e) {
+      throw new IllegalStateException(e);
+    }
     createIRGraph(ir);
     dumpGraph();
     try {
@@ -102,6 +107,7 @@ public final class GraphVizDumper implements IRDumpService {
     } catch (IOException e) {
       throw new IllegalStateException(e);
     }
+    LOGGER.info("IR dumped to {}", irDumpPath);
   }
 
   private void createIRGraph(Module moduleIr) {
