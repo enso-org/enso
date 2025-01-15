@@ -1,16 +1,24 @@
+/**
+ * @file Activity component
+ *
+ * This component is used to suspend the rendering of a subtree until a promise is resolved.
+ */
+import { unsafeWriteValue } from '#/utilities/write'
 import { Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useAwait } from './Await'
 
+/**
+ *
+ */
 export interface ActivityProps {
   /**
    * The mode of the activity.
    * - `active`: The subtree is active (default).
    * - `inactive`: The activity of the subtree is paused.
    * - `inactive-hidden`: The activity of the subtree is paused, and the subtree is hidden.
-   *
    * @default 'active'
    */
-  readonly mode: 'active' | 'inactive' | 'inactive-hidden'
+  readonly mode: 'active' | 'inactive-hidden' | 'inactive'
   readonly children: React.ReactNode
 }
 
@@ -107,14 +115,14 @@ function UnhideSuspendedTree(props: UnhideSuspendedTreeProps) {
 
     const chidlren = element.childNodes
 
-    for (var i = 0; i < chidlren.length; i++) {
+    for (let i = 0; i < chidlren.length; i++) {
       const child = chidlren[i]
 
       if (child instanceof HTMLElement) {
-        child.style.display = ''
+        unsafeWriteValue(child.style, 'display', '')
       }
     }
-  }, [])
+  }, [contentRef])
 
   return null
 }

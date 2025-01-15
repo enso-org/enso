@@ -95,7 +95,6 @@ const PRIVATE_AWAIT_PROMISE_STATE = Symbol('PRIVATE_AWAIT_PROMISE_STATE_REF')
  * This component throws the promise and trigger the Suspense boundary
  * inside the {@link Await} component.
  * @throws {Promise} - The promise that is being awaited by Suspense.
- * @throws {unknown} - The error that is being thrown by the promise. Triggers error boundary inside the {@link Await} component.
  */
 function AwaitInternal<PromiseType>(props: AwaitProps<PromiseType>) {
   const { promise, children } = props
@@ -105,20 +104,20 @@ function AwaitInternal<PromiseType>(props: AwaitProps<PromiseType>) {
   return typeof children === 'function' ? children(data) : children
 }
 
-export function useAwait(promise?: null | undefined): void
+export function useAwait(promise?: null): void
 export function useAwait<PromiseType>(promise: Promise<PromiseType>): PromiseType
 export function useAwait<PromiseType>(
-  promise?: Promise<PromiseType> | null | undefined,
+  promise?: Promise<PromiseType> | null,
 ): PromiseType | undefined
 
 /**
-/**
  * A hook that accepts a promise and triggers the Suspense boundary until the promise is resolved.
  * @param promise - The promise to await.
+ * @throws {Promise} - The promise that is being awaited by Suspense
  * @returns The data of the promise.
  */
 export function useAwait<PromiseType>(
-  promise?: Promise<PromiseType> | null | undefined,
+  promise?: Promise<PromiseType> | null,
 ): PromiseType | undefined {
   if (promise == null) {
     return
