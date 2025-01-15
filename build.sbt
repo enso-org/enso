@@ -3822,7 +3822,7 @@ lazy val `engine-runner` = project
       .dependsOn(NativeImage.additionalCp)
       .dependsOn(NativeImage.smallJdk)
       .dependsOn(
-        buildEngineDistribution
+        createEnginePackage
       )
       .value,
     buildNativeImage := Def.taskDyn {
@@ -5125,6 +5125,10 @@ createEnginePackage := {
     generateIndex       = true
   )
   log.info(s"Engine package created at $root")
+}
+
+ThisBuild / createEnginePackage := {
+  createEnginePackage.result.value
 }
 
 lazy val buildEngineDistribution =
