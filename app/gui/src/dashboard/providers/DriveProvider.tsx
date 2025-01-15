@@ -1,7 +1,7 @@
 /** @file The React provider (and associated hooks) for Data Catalog state. */
 import * as React from 'react'
 
-import * as zustand from '#/utilities/zustand'
+import { createStore, useStore, type StoreApi } from '#/utilities/zustand'
 import invariant from 'tiny-invariant'
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
@@ -81,7 +81,7 @@ interface DriveStore {
 // =======================
 
 /** State contained in a `ProjectsContext`. */
-export type ProjectsContextType = zustand.StoreApi<DriveStore>
+export type ProjectsContextType = StoreApi<DriveStore>
 
 const DriveContext = React.createContext<ProjectsContextType | null>(null)
 
@@ -104,7 +104,7 @@ export default function DriveProvider(props: ProjectsProviderProps) {
   const { children } = props
 
   const [store] = React.useState(() =>
-    zustand.createStore<DriveStore>((set, get) => ({
+    createStore<DriveStore>((set, get) => ({
       resetAssetTableState: () => {
         set({
           targetDirectory: null,
@@ -197,7 +197,7 @@ export default function DriveProvider(props: ProjectsProviderProps) {
     })),
   )
 
-  const resetAssetTableState = zustand.useStore(store, (state) => state.resetAssetTableState)
+  const resetAssetTableState = useStore(store, (state) => state.resetAssetTableState)
 
   return (
     <DriveContext.Provider value={store}>
@@ -218,73 +218,73 @@ export function useDriveStore() {
 /** The target directory of the Asset Table selection. */
 export function useTargetDirectory() {
   const store = useDriveStore()
-  return zustand.useStore(store, (state) => state.targetDirectory)
+  return useStore(store, (state) => state.targetDirectory)
 }
 
 /** A function to set the target directory of the Asset Table selection. */
 export function useSetTargetDirectory() {
   const store = useDriveStore()
-  return zustand.useStore(store, (state) => state.setTargetDirectory)
+  return useStore(store, (state) => state.setTargetDirectory)
 }
 
 /** The ID of the most newly created folder. */
 export function useNewestFolderId() {
   const store = useDriveStore()
-  return zustand.useStore(store, (state) => state.newestFolderId)
+  return useStore(store, (state) => state.newestFolderId)
 }
 
 /** A function to set the ID of the most newly created folder. */
 export function useSetNewestFolderId() {
   const store = useDriveStore()
-  return zustand.useStore(store, (state) => state.setNewestFolderId)
+  return useStore(store, (state) => state.setNewestFolderId)
 }
 
 /** Whether assets can be created in the current directory. */
 export function useCanCreateAssets() {
   const store = useDriveStore()
-  return zustand.useStore(store, (state) => state.canCreateAssets)
+  return useStore(store, (state) => state.canCreateAssets)
 }
 
 /** A function to set whether assets can be created in the current directory. */
 export function useSetCanCreateAssets() {
   const store = useDriveStore()
-  return zustand.useStore(store, (state) => state.setCanCreateAssets)
+  return useStore(store, (state) => state.setCanCreateAssets)
 }
 
 /** Whether the current Asset Table selection is downloadble. */
 export function useCanDownload() {
   const store = useDriveStore()
-  return zustand.useStore(store, (state) => state.canDownload)
+  return useStore(store, (state) => state.canDownload)
 }
 
 /** A function to set whether the current Asset Table selection is downloadble. */
 export function useSetCanDownload() {
   const store = useDriveStore()
-  return zustand.useStore(store, (state) => state.setCanDownload)
+  return useStore(store, (state) => state.setCanDownload)
 }
 
 /** The paste data for the Asset Table. */
 export function usePasteData() {
   const store = useDriveStore()
-  return zustand.useStore(store, (state) => state.pasteData)
+  return useStore(store, (state) => state.pasteData)
 }
 
 /** A function to set the paste data for the Asset Table. */
 export function useSetPasteData() {
   const store = useDriveStore()
-  return zustand.useStore(store, (state) => state.setPasteData)
+  return useStore(store, (state) => state.setPasteData)
 }
 
 /** The expanded directories in the Asset Table. */
 export function useExpandedDirectoryIds() {
   const store = useDriveStore()
-  return zustand.useStore(store, (state) => state.expandedDirectoryIds)
+  return useStore(store, (state) => state.expandedDirectoryIds)
 }
 
 /** A function to set the expanded directoyIds in the Asset Table. */
 export function useSetExpandedDirectoryIds() {
   const store = useDriveStore()
-  return zustand.useStore(store, (state) => state.setExpandedDirectoryIds, {
+  return useStore(store, (state) => state.setExpandedDirectoryIds, {
     unsafeEnableTransition: true,
   })
 }
@@ -292,59 +292,55 @@ export function useSetExpandedDirectoryIds() {
 /** The selected keys in the Asset Table. */
 export function useSelectedKeys() {
   const store = useDriveStore()
-  return zustand.useStore(store, (state) => state.selectedKeys)
+  return useStore(store, (state) => state.selectedKeys)
 }
 
 /** The selected assets in the Asset Table. */
 export function useSelectedAssets() {
   const store = useDriveStore()
-  return zustand.useStore(store, (state) => state.selectedAssets)
+  return useStore(store, (state) => state.selectedAssets)
 }
 
 /** A function to set the selected assets in the Asset Table. */
 export function useSetSelectedAssets() {
   const store = useDriveStore()
-  return zustand.useStore(store, (state) => state.setSelectedAssets)
+  return useStore(store, (state) => state.setSelectedAssets)
 }
 
 /** The visually selected keys in the Asset Table. */
 export function useVisuallySelectedKeys() {
   const store = useDriveStore()
-  return zustand.useStore(store, (state) => state.selectedKeys, {
-    unsafeEnableTransition: true,
-  })
+  return useStore(store, (state) => state.selectedKeys, { unsafeEnableTransition: true })
 }
 
 /** A function to set the visually selected keys in the Asset Table. */
 export function useSetVisuallySelectedKeys() {
   const store = useDriveStore()
-  return zustand.useStore(store, (state) => state.setVisuallySelectedKeys, {
-    unsafeEnableTransition: true,
-  })
+  return useStore(store, (state) => state.setVisuallySelectedKeys, { unsafeEnableTransition: true })
 }
 
 /** The drag payload of labels. */
 export function useLabelsDragPayload() {
   const store = useDriveStore()
-  return zustand.useStore(store, (state) => state.labelsDragPayload)
+  return useStore(store, (state) => state.labelsDragPayload)
 }
 
 /** A function to set the drag payload of labels. */
 export function useSetLabelsDragPayload() {
   const store = useDriveStore()
-  return zustand.useStore(store, (state) => state.setLabelsDragPayload)
+  return useStore(store, (state) => state.setLabelsDragPayload)
 }
 
 /** The map of keys to {@link AssetTreeNode}s. */
 export function useNodeMap() {
   const store = useDriveStore()
-  return zustand.useStore(store, (state) => state.nodeMap)
+  return useStore(store, (state) => state.nodeMap)
 }
 
 /** A function to set the map of keys to {@link AssetTreeNode}s. */
 export function useSetNodeMap() {
   const store = useDriveStore()
-  return zustand.useStore(store, (state) => state.setNodeMap)
+  return useStore(store, (state) => state.setNodeMap)
 }
 
 /**
@@ -353,25 +349,25 @@ export function useSetNodeMap() {
  */
 export function useIsDraggingOverSelectedRow(selected: boolean) {
   const store = useDriveStore()
-  return zustand.useStore(store, (state) => selected && state.isDraggingOverSelectedRow)
+  return useStore(store, (state) => selected && state.isDraggingOverSelectedRow)
 }
 
 /** A function to set whether dragging is currently over a selected row. */
 export function useSetIsDraggingOverSelectedRow() {
   const store = useDriveStore()
-  return zustand.useStore(store, (state) => state.setIsDraggingOverSelectedRow)
+  return useStore(store, (state) => state.setIsDraggingOverSelectedRow)
 }
 
 /** Whether the given {@link AssetId} is the one currently being dragged over. */
 export function useIsDragTargetAssetId(assetId: AssetId) {
   const store = useDriveStore()
-  return zustand.useStore(store, (state) => assetId === state.dragTargetAssetId)
+  return useStore(store, (state) => assetId === state.dragTargetAssetId)
 }
 
 /** A function to set which {@link AssetId} is the one currently being dragged over. */
 export function useSetDragTargetAssetId() {
   const store = useDriveStore()
-  return zustand.useStore(store, (state) => state.setDragTargetAssetId)
+  return useStore(store, (state) => state.setDragTargetAssetId)
 }
 
 /** Toggle whether a specific directory is expanded. */
