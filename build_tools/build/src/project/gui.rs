@@ -81,7 +81,7 @@ impl IsTarget for Gui {
                 .current_dir(repo_root)
                 .set_env(ide_env::ENSO_IDE_COMMIT_HASH, &commit_hash)?
                 .set_env(ide_env::ENSO_IDE_VERSION, &version_string)?
-                .run("build:ide")
+                .run("build:gui")
                 .run_ok()
                 .await?;
 
