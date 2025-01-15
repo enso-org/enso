@@ -12,9 +12,10 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import SearchBar from '#/layouts/SearchBar'
-import { useAuth, useFullUserSession } from '#/providers/AuthProvider'
+import { useFullUserSession } from '#/providers/AuthProvider'
 import { useLocalBackend, useRemoteBackend } from '#/providers/BackendProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
+import { useSessionAPI } from '#/providers/SessionProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import { Path } from '#/services/ProjectManager'
@@ -53,7 +54,7 @@ export default function Settings() {
     includesPredicate(Object.values(SettingsTabType)),
   )
   const { user, accessToken } = useFullUserSession()
-  const { changePassword } = useAuth()
+  const { changePassword } = useSessionAPI()
   const { getText } = useText()
   const toastAndLog = useToastAndLog()
   const [query, setQuery] = React.useState('')

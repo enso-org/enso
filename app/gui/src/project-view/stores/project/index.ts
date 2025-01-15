@@ -384,8 +384,8 @@ export const [provideProjectStore, useProjectStore] = createContextStore(
         return observedFileName.value
       },
       id: projectId,
-      name: readonly(projectName),
       displayName: readonly(projectDisplayName),
+      name: readonly(projectName),
       isOnLocalBackend,
       executionContext,
       firstExecution,

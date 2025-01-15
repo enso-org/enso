@@ -4494,10 +4494,12 @@ lazy val `runtime-version-manager` = project
     libraryDependencies ++= Seq(
       "com.typesafe.scala-logging" %% "scala-logging"    % scalaLoggingVersion,
       "org.apache.commons"          % "commons-compress" % commonsCompressVersion,
+      "org.apache.tika"             % "tika-core"        % tikaVersion,
       "org.scalatest"              %% "scalatest"        % scalatestVersion % Test
     ),
     Compile / moduleDependencies ++= Seq(
       "org.apache.commons" % "commons-compress" % commonsCompressVersion,
+      "org.apache.tika"    % "tika-core"        % tikaVersion,
       "org.slf4j"          % "slf4j-api"        % slf4jVersion
     ),
     Compile / internalModuleDependencies := Seq(

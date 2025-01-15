@@ -1016,7 +1016,7 @@ class IrToTruffle(
         )
         .build()
       new RuntimeFunction(
-        new ConstantNode(language, tp).getCallTarget,
+        new ConstantNode(language, tp.getDefinitionScope, tp).getCallTarget,
         null,
         funcSchema
       )
@@ -1995,7 +1995,18 @@ class IrToTruffle(
     ): RuntimeExpression = {
       resolution match {
         case tp: BindingsMap.ResolvedType =>
-          ConstantObjectNode.build(asType(tp))
+          val t = asType(tp)
+          if (t != null) {
+            ConstantObjectNode.build(t)
+          } else {
+            ErrorNode.build(
+              context.getBuiltins
+                .error()
+                .makeSyntaxError(
+                  s"Type for $tp is null"
+                )
+            )
+          }
         case BindingsMap.ResolvedConstructor(definitionType, cons) =>
           val c = asType(definitionType).getConstructors
             .get(cons.name)

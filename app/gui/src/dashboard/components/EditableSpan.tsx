@@ -15,7 +15,7 @@ import { AnimatePresence, motion, type Variants } from 'framer-motion'
 import { useLayoutEffect } from 'react'
 import type { z } from 'zod'
 
-// eslint-disable-next-line no-restricted-syntax
+// eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unsafe-assignment
 const MotionText = motion(Text)
 
 /**
