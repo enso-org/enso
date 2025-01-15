@@ -10,7 +10,7 @@ import { isSome } from '@/util/data/opt'
 import { Range } from '@/util/data/range'
 import { ANY_TYPE_QN } from '@/util/ensoTypes'
 import { displayedIconOf } from '@/util/getIconName'
-import type { Icon } from '@/util/iconName'
+import type { Icon } from '@/util/iconMetadata/iconName'
 import type { QualifiedName } from '@/util/qualifiedName'
 import { qnLastSegmentIndex, tryQualifiedName } from '@/util/qualifiedName'
 

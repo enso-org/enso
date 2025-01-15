@@ -175,6 +175,9 @@ type Mock_Credentials
         new_expire_at = Date_Time.now + (Duration.new minutes=1)
         Mock_Credentials.Value self.access_token new_expire_at self.refresh_token self.refresh_url self.client_id
 
+## A temporary directory created in the Cloud.
+   Always make sure to register the `cleanup` method to `teardown` of a test
+   group to ensure that the directory is cleared after the tests are finished.
 type Temporary_Directory
     Value was_initialized:Ref ~get
 

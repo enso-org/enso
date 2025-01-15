@@ -1,9 +1,9 @@
 /** @file A table row for an arbitrary asset. */
 import * as React from 'react'
 
+import { useStore } from '#/utilities/zustand'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import invariant from 'tiny-invariant'
-import { useStore } from 'zustand'
 
 import BlankIcon from '#/assets/blank.svg'
 

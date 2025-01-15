@@ -2,7 +2,6 @@ import { sentryVitePlugin } from '@sentry/vite-plugin'
 import react from '@vitejs/plugin-react'
 import vue from '@vitejs/plugin-vue'
 import { COOP_COEP_CORP_HEADERS } from 'enso-common'
-import { getDefines, readEnvironmentFromFile } from 'enso-common/src/appConfig'
 import { fileURLToPath } from 'node:url'
 import postcssNesting from 'postcss-nesting'
 import tailwindcss from 'tailwindcss'
@@ -16,38 +15,30 @@ import reactCompiler from 'babel-plugin-react-compiler'
 // @ts-expect-error We don't need to typecheck this file
 import syntaxImportAttributes from '@babel/plugin-syntax-import-attributes'
 
-const dynHostnameWsUrl = (port: number) => JSON.stringify(`ws://__HOSTNAME__:${port}`)
-const projectManagerUrl = dynHostnameWsUrl(process.env.INTEGRATION_TEST === 'true' ? 30536 : 30535)
-const IS_CLOUD_BUILD = process.env.CLOUD_BUILD === 'true'
-const YDOC_SERVER_URL =
-  process.env.ENSO_POLYGLOT_YDOC_SERVER ? JSON.stringify(process.env.ENSO_POLYGLOT_YDOC_SERVER)
-  : process.env.NODE_ENV === 'development' ? dynHostnameWsUrl(5976)
-  : undefined
+const isDevMode = process.env.NODE_ENV === 'development'
+const isE2E = process.env.INTEGRATION_TEST === 'true'
 
-await readEnvironmentFromFile()
+const entrypoint = isE2E ? './src/project-view/test-entrypoint.ts' : './src/entrypoint.ts'
 
-const entrypoint =
-  process.env.INTEGRATION_TEST === 'true' ?
-    './src/project-view/test-entrypoint.ts'
-  : './src/entrypoint.ts'
-
-// NOTE(Frizi): This rename is for the sake of forward compatibility with not yet merged config refactor on bazel branch,
-// and because Vite's HTML env replacements only work with import.meta.env variables, not defines.
-process.env.ENSO_IDE_VERSION ??= process.env.ENSO_CLOUD_DASHBOARD_VERSION
-console.info(`Building IDE version: ${process.env.ENSO_IDE_VERSION}`)
-
-const isCI = process.env.CI === 'true'
+if (isDevMode) {
+  process.env.ENSO_IDE_YDOC_SERVER_URL ||= 'ws://__HOSTNAME__:5976'
+  process.env.ENSO_IDE_PROJECT_MANAGER_URL ||= 'ws://__HOSTNAME__:30535'
+}
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  root: fileURLToPath(new URL('.', import.meta.url)),
   cacheDir: fileURLToPath(new URL('../../node_modules/.cache/vite', import.meta.url)),
-  publicDir: fileURLToPath(new URL('./public', import.meta.url)),
-  envDir: fileURLToPath(new URL('.', import.meta.url)),
-  logLevel: isCI ? 'error' : 'info',
   plugins: [
     wasm(),
-    ...(process.env.NODE_ENV === 'development' ? [await VueDevTools()] : []),
+    ...(isDevMode ?
+      [
+        await VueDevTools(),
+        react({
+          include: fileURLToPath(new URL('../dashboard/**/*.tsx', import.meta.url)),
+          babel: { plugins: ['@babel/plugin-syntax-import-attributes'] },
+        }),
+      ]
+    : []),
     vue({
       customElement: ['**/components/visualizations/**', '**/components/shared/**'],
       template: {
@@ -65,18 +56,18 @@ export default defineConfig({
         ],
       },
     }),
-    ...(process.env.NODE_ENV === 'development' ? [await projectManagerShim()] : []),
+    await projectManagerShim(),
     ...((
       process.env.SENTRY_AUTH_TOKEN != null &&
-      process.env.ENSO_CLOUD_SENTRY_ORGANIZATION != null &&
-      process.env.ENSO_CLOUD_SENTRY_PROJECT != null
+      process.env.ENSO_IDE_SENTRY_ORGANIZATION != null &&
+      process.env.ENSO_IDE_SENTRY_PROJECT != null
     ) ?
       [
         sentryVitePlugin({
-          org: process.env.ENSO_CLOUD_SENTRY_ORGANIZATION,
-          project: process.env.ENSO_CLOUD_SENTRY_PROJECT,
-          ...(process.env.ENSO_VERSION != null ?
-            { release: { name: process.env.ENSO_VERSION } }
+          org: process.env.ENSO_IDE_SENTRY_ORGANIZATION,
+          project: process.env.ENSO_IDE_SENTRY_PROJECT,
+          ...(process.env.ENSO_IDE_VERSION != null ?
+            { release: { name: process.env.ENSO_IDE_VERSION } }
           : {}),
         }),
       ]
@@ -91,7 +82,7 @@ export default defineConfig({
     ...(process.env.GUI_HOSTNAME ? { host: process.env.GUI_HOSTNAME } : {}),
   },
   resolve: {
-    conditions: ['source', ...defaultClientConditions],
+    conditions: isDevMode ? ['source', ...defaultClientConditions] : [...defaultClientConditions],
     alias: {
       '/src/entrypoint.ts': fileURLToPath(new URL(entrypoint, import.meta.url)),
       shared: fileURLToPath(new URL('./shared', import.meta.url)),
@@ -101,16 +92,11 @@ export default defineConfig({
   },
   envPrefix: 'ENSO_IDE_',
   define: {
-    ...getDefines(),
-    IS_CLOUD_BUILD: JSON.stringify(IS_CLOUD_BUILD),
-    PROJECT_MANAGER_URL: projectManagerUrl,
-    YDOC_SERVER_URL: YDOC_SERVER_URL,
-    'import.meta.vitest': false,
     // Single hardcoded usage of `global` in aws-amplify.
     'global.TYPED_ARRAY_SUPPORT': true,
   },
   esbuild: {
-    dropLabels: process.env.NODE_ENV === 'development' ? [] : ['DEV'],
+    dropLabels: isDevMode ? [] : ['DEV'],
     supported: {
       'top-level-await': true,
     },
@@ -121,17 +107,33 @@ export default defineConfig({
       plugins: [tailwindcssNesting(postcssNesting()), tailwindcss(tailwindConfig)],
     },
   },
+  logLevel: 'info',
   build: {
     // dashboard chunk size is larger than the default warning limit
     chunkSizeWarningLimit: 700,
     sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          config: ['./src/config'],
+          entrypoint: ['./src/entrypoint'],
+        },
+      },
+    },
+  },
+  preview: {
+    port: 5173,
   },
 })
+
 async function projectManagerShim(): Promise<Plugin> {
   const module = await import('./project-manager-shim-middleware')
   return {
     name: 'project-manager-shim',
     configureServer(server) {
+      server.middlewares.use(module.default)
+    },
+    configurePreviewServer(server) {
       server.middlewares.use(module.default)
     },
   }

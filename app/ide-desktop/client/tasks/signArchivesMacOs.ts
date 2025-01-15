@@ -217,7 +217,7 @@ class ArchiveToSign implements Signable {
         const meta = 'META-INF/MANIFEST.MF'
         try {
           run('jar', ['-cfm', TEMPORARY_ARCHIVE_PATH, meta, '.'], workingDir)
-        } catch (err) {
+        } catch {
           run('jar', ['-cf', TEMPORARY_ARCHIVE_PATH, '.'], workingDir)
         }
       } else {
