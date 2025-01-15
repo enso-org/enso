@@ -38,7 +38,7 @@ const MAPBOX_API_TOKEN_KEY = 'mapBoxApiToken'
 // =========================
 
 /** A type-safe wrapper around {@link electron.contextBridge.exposeInMainWorld}. */
-function exposeInMainWorld<Key extends string & keyof typeof window>(
+function exposeInMainWorld<Key extends string & keyof Window>(
   key: Key,
   value: NonNullable<(typeof window)[Key]>,
 ) {

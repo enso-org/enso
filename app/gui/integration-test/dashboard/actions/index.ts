@@ -3,6 +3,7 @@
 import { TEXTS, getText as baseGetText, type Replacements, type TextId } from 'enso-common/src/text'
 
 import path from 'node:path'
+import url from 'node:url'
 
 import { expect, test, type Page } from '@playwright/test'
 
@@ -32,7 +33,7 @@ export const getText = (key: TextId, ...replacements: Replacements[TextId]) => {
 
 /** Get the path to the auth file. */
 export function getAuthFilePath() {
-  const __dirname = path.dirname(new URL(import.meta.url).pathname)
+  const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
   return path.join(__dirname, '../../../playwright/.auth/user.json')
 }
 

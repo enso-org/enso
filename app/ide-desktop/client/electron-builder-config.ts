@@ -19,7 +19,7 @@ import * as common from 'enso-common'
 
 import * as fileAssociations from './fileAssociations'
 import * as paths from './paths'
-import computeHashes from './tasks/computeHashes.mjs'
+import computeHashes from './tasks/computeHashes'
 import signArchivesMacOs from './tasks/signArchivesMacOs'
 
 import BUILD_INFO from './buildInfo'

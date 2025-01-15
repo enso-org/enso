@@ -1,5 +1,5 @@
 /** @file A context menu available everywhere in the directory. */
-import { useStore } from 'zustand'
+import { useStore } from '#/utilities/zustand'
 
 import ContextMenu from '#/components/ContextMenu'
 import ContextMenuEntry from '#/components/ContextMenuEntry'

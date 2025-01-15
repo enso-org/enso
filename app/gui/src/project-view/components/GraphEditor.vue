@@ -73,7 +73,6 @@ import {
   watch,
   type ComponentInstance,
 } from 'vue'
-import { isDevMode } from 'ydoc-shared/util/detect'
 import RightDockPanel from './RightDockPanel.vue'
 
 const keyboard = provideKeyboard()
@@ -88,7 +87,7 @@ provideNodeExecution(projectStore)
 
 onMounted(() => {
   widgetRegistry.loadWidgets(Object.entries(builtinWidgets))
-  if (isDevMode) {
+  if (import.meta.env.DEV) {
     ;(window as any).suggestionDb = toRaw(suggestionDb.entries)
   }
 })

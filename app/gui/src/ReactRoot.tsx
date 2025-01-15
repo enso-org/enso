@@ -39,10 +39,11 @@ export default function ReactRoot(props: ReactRootProps) {
   const portalRoot = document.querySelector('#enso-portal-root')
   const shouldUseAuthentication = config.authentication.enabled
   const projectManagerUrl =
-    (config.engine.projectManagerUrl || resolveEnvUrl(PROJECT_MANAGER_URL)) ?? null
-  const ydocUrl = (config.engine.ydocUrl || resolveEnvUrl(YDOC_SERVER_URL)) ?? null
+    (config.engine.projectManagerUrl || resolveEnvUrl($config.PROJECT_MANAGER_URL)) ?? null
+  const ydocUrl = (config.engine.ydocUrl || resolveEnvUrl($config.YDOC_SERVER_URL)) ?? null
   const initialProjectName = config.startup.project || null
   invariant(portalRoot, 'PortalRoot element not found')
+  const isCloudBuild = $config.CLOUD_BUILD === 'true'
 
   return (
     <StrictMode>
@@ -55,7 +56,7 @@ export default function ReactRoot(props: ReactRootProps) {
                   <HttpClientProvider httpClient={httpClient}>
                     <App
                       supportsDeepLinks={supportsDeepLinks}
-                      supportsLocalBackend={!IS_CLOUD_BUILD}
+                      supportsLocalBackend={!isCloudBuild}
                       isAuthenticationDisabled={!shouldUseAuthentication}
                       projectManagerUrl={projectManagerUrl}
                       ydocUrl={ydocUrl}
