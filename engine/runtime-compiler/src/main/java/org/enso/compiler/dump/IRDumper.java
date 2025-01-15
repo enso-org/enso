@@ -59,7 +59,6 @@ public class IRDumper {
   private static final boolean INCLUDE_PASS_DATA = true;
 
   public static final String DEFAULT_DUMP_DIR = "ir-dumps";
-  public static final String SYSTEM_PROP = "enso.compiler.dumpIr";
 
   private final OutputStream out;
   private final Set<GraphVizNode> nodes = new HashSet<>();
@@ -108,20 +107,13 @@ public class IRDumper {
    *
    * @param ir the IR to dump.
    */
-  public void dump(IR ir) {
+  public void dump(Module ir) {
     createIRGraph(ir);
     dumpGraph();
     try {
       out.flush();
     } catch (IOException e) {
       throw new IllegalStateException(e);
-    }
-  }
-
-  private void createIRGraph(IR ir) {
-    switch (ir) {
-      case Module moduleIr -> createIRGraph(moduleIr);
-      default -> throw unimpl(ir);
     }
   }
 
