@@ -3469,6 +3469,7 @@ lazy val `runtime-compiler-dump-igv` =
       }
     )
     .dependsOn(`runtime-compiler-dump`)
+    .dependsOn(`runtime-compiler`)
 
 lazy val `runtime-suggestions` =
   (project in file("engine/runtime-suggestions"))
