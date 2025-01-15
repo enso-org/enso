@@ -7,6 +7,7 @@ import org.enso.compiler.context.{
   InlineContext,
   ModuleContext
 }
+import org.enso.compiler.dump.DocsGenerate
 import org.enso.compiler.context.CompilerContext.Module
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.Implicits.AsMetadata
@@ -190,8 +191,7 @@ class Compiler(
             )
 
             if (generateDocs) {
-              org.enso.compiler.dump.GenerateDocs
-                .write(pkg, packageModules.asJava)
+              DocsGenerate.write(pkg, packageModules.asJava)
             }
 
             if (shouldWriteCache) {
