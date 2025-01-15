@@ -47,6 +47,7 @@ test_method a b = a + b
 
 type Test_Type
     Value x
+    No_Value
 
 type Sum_Type
     Variant_A x
@@ -349,6 +350,22 @@ add_specs suite_builder =
             Meta.get_annotation My_Type .Value "foo" 7 8 . should_equal 15
             Meta.get_annotation My_Type .Value "bar" . should_equal Nothing
             Meta.get_annotation My_Type .Value "baz" . should_equal (My_Type.Value 1 2 3)
+
+        group_builder.specify "atom constructor with suspended evalution" <|
+            m = Meta.meta (Test_Type.No_Value...)
+            case m of
+                ac : Meta.Constructor ->
+                    ac.name . should_equal "No_Value"
+                _ ->
+                    Test.fail "Expecting Meta.Constructor, but was: "+m.to_text
+
+        group_builder.specify "atom without suspended evalution" <|
+            m = Meta.meta Test_Type.No_Value
+            case m of
+                a : Meta.Atom ->
+                    a.constructor.name . should_equal "No_Value"
+                _ ->
+                    Test.fail "Expecting Meta.Constructor, but was: "+m.to_text
 
     suite_builder.group "Check Nothing and NaN" group_builder->
         group_builder.specify "Nothing.is_a Nothing" <|

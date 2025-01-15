@@ -299,13 +299,15 @@ atom_with_hole factory = @Tail_Call Meta_Helpers.atom_with_hole_builtin factory
    Arguments:
    - value: The runtime entity to get the meta representation of.
 meta : Any -> Atom | Constructor | Primitive | Polyglot | Unresolved_Symbol | Error
-meta value = if Meta_Helpers.is_atom_builtin value then Atom.Value value else
-    if Meta_Helpers.is_atom_constructor_builtin value then Constructor.Value value else
-        if Meta_Helpers.is_polyglot_builtin value then Polyglot.Value value else
-            if Meta_Helpers.is_unresolved_symbol_builtin value then Unresolved_Symbol.Value value else
-                if Meta_Helpers.is_error_builtin value then Error.Value value.catch else
-                    if Meta_Helpers.is_type_builtin value then Type.Value value.catch else
-                        Primitive.Value value
+meta ~value =
+    ac = Meta_Helpers.find_atom_constructor_builtin value...
+    if ac.is_nothing.not then Constructor.Value ac else
+        if Meta_Helpers.is_atom_builtin value... then Atom.Value value else
+            if Meta_Helpers.is_polyglot_builtin value then Polyglot.Value value else
+                if Meta_Helpers.is_unresolved_symbol_builtin value then Unresolved_Symbol.Value value else
+                    if Meta_Helpers.is_error_builtin value then Error.Value value.catch else
+                        if Meta_Helpers.is_type_builtin value then Type.Value value.catch else
+                            Primitive.Value value
 
 ## PRIVATE
    ADVANCED
@@ -379,7 +381,7 @@ type Language
    Arguments:
    - value: The value to check.
 is_atom_constructor : Any -> Boolean
-is_atom_constructor value = @Tail_Call Meta_Helpers.is_atom_constructor_builtin value
+is_atom_constructor ~value = Meta_Helpers.find_atom_constructor_builtin value . is_nothing . not
 
 ## PRIVATE
 
