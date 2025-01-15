@@ -2,6 +2,7 @@ import * as widgetCfg from '@/providers/widgetRegistry/configuration'
 import { GraphDb } from '@/stores/graph/graphDatabase'
 import { ComputedValueRegistry, type ExpressionInfo } from '@/stores/project/computedValueRegistry'
 import { SuggestionDb } from '@/stores/suggestionDatabase'
+import { type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import {
   makeArgument,
   makeConstructor,
@@ -9,8 +10,7 @@ import {
   makeModule,
   makeModuleMethod,
   makeType,
-  type SuggestionEntry,
-} from '@/stores/suggestionDatabase/entry'
+} from '@/stores/suggestionDatabase/mockSuggestion'
 import { Ast } from '@/util/ast'
 import type { AstId } from '@/util/ast/abstract'
 import {

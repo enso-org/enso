@@ -25,7 +25,7 @@ const visualizationMetadata = z
 export type NodeMetadata = z.infer<typeof nodeMetadata>
 export const nodeMetadata = z
   .object({
-    position: z.object({ vector }).catch(ctx => {
+    position: z.object({ vector }).catch((ctx) => {
       printError(ctx)
       return { vector: [0, 0] satisfies Vector }
     }),
@@ -45,7 +45,7 @@ export const ideMetadata = z
   })
   .passthrough()
   .default(() => defaultMetadata().ide)
-  .catch(ctx => {
+  .catch((ctx) => {
     printError(ctx)
     return defaultMetadata().ide
   })
@@ -56,7 +56,7 @@ export const metadata = z
     ide: ideMetadata,
   })
   .passthrough()
-  .catch(ctx => {
+  .catch((ctx) => {
     printError(ctx)
     return defaultMetadata()
   })
@@ -76,7 +76,7 @@ export type IdMapEntry = z.infer<typeof idMapEntry>
 export const idMapEntry = z.tuple([idMapRange, z.string().uuid()])
 
 export type IdMap = z.infer<typeof idMap>
-export const idMap = z.array(idMapEntry).catch(ctx => {
+export const idMap = z.array(idMapEntry).catch((ctx) => {
   printError(ctx)
   return []
 })

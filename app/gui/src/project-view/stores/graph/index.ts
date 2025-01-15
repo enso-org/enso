@@ -335,7 +335,7 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
             // Skip ports on already deleted nodes.
             if (nodeId && deletedNodes.has(nodeId)) continue
 
-            updatePortValue(edit, usage, undefined)
+            updatePortValue(edit, usage, undefined, false)
           }
           const outerAst = edit.getVersion(node.outerAst)
           if (outerAst.isStatement()) Ast.deleteFromParentBlock(outerAst)
@@ -577,6 +577,8 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
      * Emit a value update to a port view under specific ID. Returns `true` if the port view is
      * registered and the update was emitted, or `false` otherwise.
      *
+     * The properties are analogous to {@link WidgetUpdate fields}.
+     *
      * NOTE: If this returns `true,` The update handlers called `graph.commitEdit` on their own.
      * Therefore, the passed in `edit` should not be modified afterward, as it is already committed.
      */
@@ -584,10 +586,15 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
       edit: MutableModule,
       id: PortId,
       value: Ast.Owned<Ast.MutableExpression> | undefined,
+      directInteraction: boolean = true,
     ): boolean {
       const update = getPortPrimaryInstance(id)?.onUpdate
       if (!update) return false
-      update({ edit, portUpdate: { value, origin: id } })
+      update({
+        edit,
+        portUpdate: { value, origin: id },
+        directInteraction,
+      })
       return true
     }
 

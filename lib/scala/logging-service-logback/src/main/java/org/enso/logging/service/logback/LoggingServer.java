@@ -1,7 +1,6 @@
 package org.enso.logging.service.logback;
 
 import ch.qos.logback.classic.LoggerContext;
-import ch.qos.logback.classic.net.SimpleSocketServer;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
@@ -12,7 +11,7 @@ import org.slf4j.event.Level;
 class LoggingServer extends LoggingService<URI> {
 
   private int port;
-  private SimpleSocketServer logServer;
+  private SocketServer logServer;
 
   public LoggingServer(int port) {
     this.port = port;
@@ -24,7 +23,7 @@ class LoggingServer extends LoggingService<URI> {
 
     try {
       var setup = LogbackSetup.forContext(lc, config);
-      logServer = new SimpleSocketServer(lc, port);
+      logServer = new SocketServer(lc, port);
       logServer.start();
       setup.setup(level, path, prefix, setup.getConfig());
       return new URI(null, null, "localhost", port, null, null, null);

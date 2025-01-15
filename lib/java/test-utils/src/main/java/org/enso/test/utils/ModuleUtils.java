@@ -4,6 +4,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.enso.compiler.context.CompilerContext.Module;
+import org.enso.compiler.core.IR;
+import org.enso.compiler.core.ir.Diagnostic;
+import org.enso.compiler.core.ir.DiagnosticStorage;
+import org.enso.compiler.core.ir.Expression;
+import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.compiler.data.BindingsMap.DefinedEntity;
 import org.enso.compiler.data.BindingsMap.ResolvedImport;
 import org.enso.compiler.data.BindingsMap.ResolvedName;
@@ -67,5 +72,71 @@ public class ModuleUtils {
           return null;
         });
     return bindings;
+  }
+
+  public static List<Diagnostic> getImmediateDiagnostics(IR ir) {
+    return CollectionConverters.asJava(ir.getDiagnostics().toList());
+  }
+
+  public static List<Diagnostic> getDescendantsDiagnostics(IR ir) {
+    return CollectionConverters.asJava(
+        ir.preorder()
+            .flatMap(
+                (node) -> {
+                  DiagnosticStorage diagnostics = node.getDiagnostics();
+                  if (diagnostics != null) {
+                    return diagnostics.toList();
+                  } else {
+                    return scala.collection.immutable.List$.MODULE$.empty();
+                  }
+                }));
+  }
+
+  public static Method findStaticMethod(org.enso.compiler.core.ir.Module module, String name) {
+    var option =
+        module
+            .bindings()
+            .find(
+                (def) ->
+                    (def instanceof Method binding)
+                        && binding.methodReference().typePointer().isEmpty()
+                        && binding.methodReference().methodName().name().equals(name));
+
+    if (option.isEmpty()) {
+      throw new IllegalStateException("The method " + name + " should exist within the IR.");
+    }
+    return (Method) option.get();
+  }
+
+  public static Method findMemberMethod(
+      org.enso.compiler.core.ir.Module module, String typeName, String name) {
+    var option =
+        module
+            .bindings()
+            .find(
+                (def) ->
+                    (def instanceof Method binding)
+                        && binding.methodReference().typePointer().isDefined()
+                        && binding.methodReference().typePointer().get().name().equals(typeName)
+                        && binding.methodReference().methodName().name().equals(name));
+
+    if (option.isEmpty()) {
+      throw new IllegalStateException("The method " + name + " should exist within the IR.");
+    }
+    return (Method) option.get();
+  }
+
+  public static Expression.Binding findAssignment(IR ir, String name) {
+    var option =
+        ir.preorder()
+            .find(
+                (node) ->
+                    (node instanceof Expression.Binding binding)
+                        && binding.name().name().equals(name));
+    if (option.isEmpty()) {
+      throw new IllegalStateException(
+          "The binding `" + name + " = ...` should exist within the IR.");
+    }
+    return (Expression.Binding) option.get();
   }
 }

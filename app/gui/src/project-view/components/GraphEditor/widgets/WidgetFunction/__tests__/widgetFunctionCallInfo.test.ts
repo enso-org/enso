@@ -1,13 +1,13 @@
 import { WidgetInput } from '@/providers/widgetRegistry'
 import { parseWithSpans } from '@/stores/graph/__tests__/graphDatabase.test'
 import type { NodeVisualizationConfiguration } from '@/stores/project/executionContext'
+import { entryMethodPointer } from '@/stores/suggestionDatabase/entry'
 import {
-  entryMethodPointer,
   makeArgument,
   makeConstructor,
   makeMethod,
   makeStaticMethod,
-} from '@/stores/suggestionDatabase/entry'
+} from '@/stores/suggestionDatabase/mockSuggestion'
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { expect, test } from 'vitest'

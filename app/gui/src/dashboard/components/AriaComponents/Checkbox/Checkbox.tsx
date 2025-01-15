@@ -9,6 +9,7 @@ import { mergeRefs, useMergedRef } from '#/utilities/mergeRefs'
 import { forwardRef } from '#/utilities/react'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
+import { useStore } from '#/utilities/zustand'
 import type { Variants } from 'framer-motion'
 import { motion } from 'framer-motion'
 import type {
@@ -19,7 +20,6 @@ import type {
   RefAttributes,
 } from 'react'
 import invariant from 'tiny-invariant'
-import { useStore } from 'zustand'
 import type { FieldPath, FieldStateProps, TSchema, UseFormRegisterReturn } from '../Form'
 import { Form } from '../Form'
 import { Text } from '../Text'

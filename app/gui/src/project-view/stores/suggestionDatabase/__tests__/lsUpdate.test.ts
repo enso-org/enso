@@ -1,16 +1,25 @@
 import { SuggestionDb, type Group } from '@/stores/suggestionDatabase'
 import { SuggestionKind, entryQn, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
-import { applyUpdates } from '@/stores/suggestionDatabase/lsUpdate'
+import { SuggestionUpdateProcessor } from '@/stores/suggestionDatabase/lsUpdate'
 import { unwrap } from '@/util/data/result'
 import { parseDocs } from '@/util/docParser'
 import { tryIdentifier, tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
 import { expect, test } from 'vitest'
 import * as lsTypes from 'ydoc-shared/languageServerTypes/suggestions'
+import { type SuggestionsDatabaseUpdate } from 'ydoc-shared/languageServerTypes/suggestions'
+
+function applyUpdates(
+  db: SuggestionDb,
+  updates: SuggestionsDatabaseUpdate[],
+  { groups }: { groups: Group[] },
+) {
+  new SuggestionUpdateProcessor(groups).applyUpdates(db, updates)
+}
 
 test('Adding suggestion database entries', () => {
   const test = new Fixture()
   const db = new SuggestionDb()
-  applyUpdates(db, test.addUpdatesForExpected(), test.groups)
+  applyUpdates(db, test.addUpdatesForExpected(), test.suggestionContext)
   test.check(db)
 })
 
@@ -24,23 +33,26 @@ test('Entry qualified names', () => {
   expect(entryQn(db.get(5)!)).toStrictEqual('Standard.Base.Type.static_method')
   expect(entryQn(db.get(6)!)).toStrictEqual('Standard.Base.function')
   expect(entryQn(db.get(7)!)).toStrictEqual('Standard.Base.local')
+  expect(entryQn(db.get(8)!)).toStrictEqual('local.Mock_Project.collapsed')
 })
 
 test('Qualified name indexing', () => {
   const test = new Fixture()
   const db = new SuggestionDb()
-  applyUpdates(db, test.addUpdatesForExpected(), test.groups)
-  for (let i = 1; i <= 7; i++) {
-    const qName = entryQn(db.get(i)!)
-    expect(db.nameToId.lookup(qName)).toEqual(new Set([i]))
-    expect(db.nameToId.reverseLookup(i)).toEqual(new Set([qName]))
+  const addUpdates = test.addUpdatesForExpected()
+  applyUpdates(db, addUpdates, test.suggestionContext)
+  for (const { id } of addUpdates) {
+    const qName = entryQn(db.get(id)!)
+    expect(db.nameToId.lookup(qName)).toEqual(new Set([id]))
+    expect(db.nameToId.reverseLookup(id)).toEqual(new Set([qName]))
   }
 })
 
 test('Parent-children indexing', () => {
   const test = new Fixture()
   const db = new SuggestionDb()
-  applyUpdates(db, test.addUpdatesForExpected(), test.groups)
+  const initialAddUpdates = test.addUpdatesForExpected()
+  applyUpdates(db, initialAddUpdates, test.suggestionContext)
   // Parent lookup.
   expect(db.childIdToParentId.lookup(1)).toEqual(new Set([]))
   expect(db.childIdToParentId.lookup(2)).toEqual(new Set([1]))
@@ -49,6 +61,7 @@ test('Parent-children indexing', () => {
   expect(db.childIdToParentId.lookup(5)).toEqual(new Set([2]))
   expect(db.childIdToParentId.lookup(6)).toEqual(new Set([1]))
   expect(db.childIdToParentId.lookup(7)).toEqual(new Set([1]))
+  expect(db.childIdToParentId.lookup(8)).toEqual(new Set([]))
 
   // Children lookup.
   expect(db.childIdToParentId.reverseLookup(1)).toEqual(new Set([2, 6, 7]))
@@ -58,12 +71,14 @@ test('Parent-children indexing', () => {
   expect(db.childIdToParentId.reverseLookup(5)).toEqual(new Set([]))
   expect(db.childIdToParentId.reverseLookup(6)).toEqual(new Set([]))
   expect(db.childIdToParentId.reverseLookup(7)).toEqual(new Set([]))
+  expect(db.childIdToParentId.reverseLookup(8)).toEqual(new Set([]))
 
   // Add new entry.
+  const newEntryId = initialAddUpdates[initialAddUpdates.length - 1]!.id + 1
   const modifications: lsTypes.SuggestionsDatabaseUpdate[] = [
     {
       type: 'Add',
-      id: 8,
+      id: newEntryId,
       suggestion: {
         type: 'method',
         module: 'Standard.Base',
@@ -77,22 +92,22 @@ test('Parent-children indexing', () => {
       },
     },
   ]
-  applyUpdates(db, modifications, test.groups)
-  expect(db.childIdToParentId.lookup(8)).toEqual(new Set([2]))
-  expect(db.childIdToParentId.reverseLookup(8)).toEqual(new Set([]))
-  expect(db.childIdToParentId.reverseLookup(2)).toEqual(new Set([3, 4, 5, 8]))
+  applyUpdates(db, modifications, test.suggestionContext)
+  expect(db.childIdToParentId.lookup(newEntryId)).toEqual(new Set([2]))
+  expect(db.childIdToParentId.reverseLookup(newEntryId)).toEqual(new Set([]))
+  expect(db.childIdToParentId.reverseLookup(2)).toEqual(new Set([3, 4, 5, newEntryId]))
 
   // Remove entry.
   const modifications2: lsTypes.SuggestionsDatabaseUpdate[] = [{ type: 'Remove', id: 3 }]
-  applyUpdates(db, modifications2, test.groups)
+  applyUpdates(db, modifications2, test.suggestionContext)
   expect(db.childIdToParentId.lookup(3)).toEqual(new Set([]))
-  expect(db.childIdToParentId.reverseLookup(2)).toEqual(new Set([4, 5, 8]))
+  expect(db.childIdToParentId.reverseLookup(2)).toEqual(new Set([4, 5, newEntryId]))
 
   // Modify entry. Moving new method from `Standard.Base.Type` to `Standard.Base`.
-  db.get(8)!.memberOf = 'Standard.Base' as QualifiedName
-  expect(db.childIdToParentId.reverseLookup(1)).toEqual(new Set([2, 6, 7, 8]))
-  expect(db.childIdToParentId.lookup(8)).toEqual(new Set([1]))
-  expect(db.childIdToParentId.reverseLookup(8)).toEqual(new Set([]))
+  db.get(newEntryId)!.memberOf = 'Standard.Base' as QualifiedName
+  expect(db.childIdToParentId.reverseLookup(1)).toEqual(new Set([2, 6, 7, newEntryId]))
+  expect(db.childIdToParentId.lookup(newEntryId)).toEqual(new Set([1]))
+  expect(db.childIdToParentId.reverseLookup(newEntryId)).toEqual(new Set([]))
   expect(db.childIdToParentId.reverseLookup(2)).toEqual(new Set([4, 5]))
 })
 
@@ -137,7 +152,7 @@ test("Modifying suggestion entries' fields", () => {
   test.expectedStaticMethod.memberOf = unwrap(tryQualifiedName('Standard.Base2.Type'))
   test.expectedFunction.scope = scope2
 
-  applyUpdates(db, modifications, test.groups)
+  applyUpdates(db, modifications, test.suggestionContext)
   test.check(db)
 })
 
@@ -166,7 +181,7 @@ test("Unsetting suggestion entries' fields", () => {
   test.expectedMethod.documentation = []
   delete test.expectedMethod.groupIndex
 
-  applyUpdates(db, modifications, test.groups)
+  applyUpdates(db, modifications, test.suggestionContext)
   test.check(db)
 })
 
@@ -177,7 +192,7 @@ test('Removing entries from database', () => {
     { type: 'Remove', id: 6 },
   ]
   const db = test.createDbWithExpected()
-  applyUpdates(db, update, test.groups)
+  applyUpdates(db, update, test.suggestionContext)
   expect(db.get(1)).toStrictEqual(test.expectedModule)
   expect(db.get(2)).toBeUndefined()
   expect(db.get(3)).toStrictEqual(test.expectedCon)
@@ -185,6 +200,7 @@ test('Removing entries from database', () => {
   expect(db.get(5)).toStrictEqual(test.expectedStaticMethod)
   expect(db.get(6)).toBeUndefined()
   expect(db.get(7)).toStrictEqual(test.expectedLocal)
+  expect(db.get(8)).toStrictEqual(test.expectedLocalStaticMethod)
 })
 
 test('Adding new argument', () => {
@@ -205,7 +221,7 @@ test('Adding new argument', () => {
   test.expectedCon.arguments = [test.arg1, newArg]
   test.expectedStaticMethod.arguments = [test.arg1, newArg, test.arg2]
 
-  applyUpdates(db, modifications, test.groups)
+  applyUpdates(db, modifications, test.suggestionContext)
   test.check(db)
 })
 
@@ -250,7 +266,7 @@ test('Modifying arguments', () => {
   const db = test.createDbWithExpected()
   test.expectedStaticMethod.arguments = [newArg1, newArg2]
 
-  applyUpdates(db, modifications, test.groups)
+  applyUpdates(db, modifications, test.suggestionContext)
   test.check(db)
 })
 
@@ -264,15 +280,18 @@ test('Removing Arguments', () => {
   test.expectedMethod.arguments = []
   test.expectedStaticMethod.arguments = [test.arg1]
 
-  applyUpdates(db, update, test.groups)
+  applyUpdates(db, update, test.suggestionContext)
   test.check(db)
 })
 
 class Fixture {
-  groups: Group[] = [
-    { name: 'Test1', project: unwrap(tryQualifiedName('Standard.Base')) },
-    { name: 'Test2', project: unwrap(tryQualifiedName('Standard.Base')) },
-  ]
+  suggestionContext = {
+    groups: [
+      { name: 'Test1', project: unwrap(tryQualifiedName('Standard.Base')) },
+      { name: 'Test2', project: unwrap(tryQualifiedName('Standard.Base')) },
+    ],
+    currentProject: 'local.Mock_Project' as QualifiedName,
+  }
   arg1 = {
     name: 'a',
     reprType: 'Any',
@@ -394,6 +413,29 @@ class Fixture {
     scope: this.scope,
     annotations: [],
   }
+  expectedLocalStaticMethod: SuggestionEntry = {
+    kind: SuggestionKind.Method,
+    arguments: [
+      {
+        name: 'a',
+        reprType: 'Standard.Base.Any.Any',
+        isSuspended: false,
+        hasDefault: false,
+        defaultValue: null,
+        tagValues: null,
+      },
+    ],
+    annotations: [],
+    name: unwrap(tryIdentifier('collapsed')),
+    definedIn: unwrap(tryQualifiedName('local.Mock_Project')),
+    documentation: [{ Tag: { tag: 'Icon', body: 'group' } }, { Paragraph: { body: '' } }],
+    iconName: 'group',
+    aliases: [],
+    isPrivate: false,
+    isUnstable: false,
+    memberOf: unwrap(tryQualifiedName('local.Mock_Project')),
+    returnType: 'Standard.Base.Any.Any',
+  }
 
   addUpdatesForExpected(): lsTypes.SuggestionsDatabaseUpdate[] {
     return [
@@ -490,6 +532,30 @@ class Fixture {
           documentation: this.localDocs,
         },
       },
+      {
+        type: 'Add',
+        id: 8,
+        suggestion: {
+          type: 'method',
+          module: 'local.Mock_Project.Main',
+          name: 'collapsed',
+          arguments: [
+            {
+              name: 'a',
+              reprType: 'Standard.Base.Any.Any',
+              isSuspended: false,
+              hasDefault: false,
+              defaultValue: null,
+              tagValues: null,
+            },
+          ],
+          selfType: 'local.Mock_Project.Main',
+          returnType: 'Standard.Base.Any.Any',
+          isStatic: true,
+          documentation: ' ICON group',
+          annotations: [],
+        },
+      },
     ]
   }
 
@@ -502,6 +568,7 @@ class Fixture {
     db.set(5, structuredClone(this.expectedStaticMethod))
     db.set(6, structuredClone(this.expectedFunction))
     db.set(7, structuredClone(this.expectedLocal))
+    db.set(8, structuredClone(this.expectedLocalStaticMethod))
     return db
   }
 
@@ -513,5 +580,6 @@ class Fixture {
     expect(db.get(5)).toStrictEqual(this.expectedStaticMethod)
     expect(db.get(6)).toStrictEqual(this.expectedFunction)
     expect(db.get(7)).toStrictEqual(this.expectedLocal)
+    expect(db.get(8)).toStrictEqual(this.expectedLocalStaticMethod)
   }
 }

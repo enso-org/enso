@@ -653,13 +653,13 @@ case object AliasAnalysis extends IRPass {
     args: List[CallArgument],
     builder: GraphBuilder
   ): List[CallArgument] = {
-    args.map { case arg @ CallArgument.Specified(_, expr, _, _, _) =>
-      val currentScope = expr match {
+    args.map { case arg: CallArgument.Specified =>
+      val currentScope = arg.value match {
         case _: Literal => builder
         case _          => builder.addChild()
       }
       arg
-        .copy(value = analyseExpression(expr, currentScope))
+        .copy(value = analyseExpression(arg.value, currentScope))
         .updateMetadata(
           new MetadataPair(
             this,

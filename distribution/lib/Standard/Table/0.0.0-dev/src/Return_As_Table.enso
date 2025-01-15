@@ -26,8 +26,7 @@ type Return_As_Table
        Each file is loaded according to the provided/detected format. If the
        format reads it as something else than a table, then it is expanded in
        the same way as `Table.from_objects`.
-    @columns_to_keep Columns_To_Keep.default_widget
-    As_Merged_Table (columns_to_keep : Columns_To_Keep = Columns_To_Keep.In_Any) (match : Match_Columns = Match_Columns.By_Name)
+    As_Merged_Table (columns_to_keep : Columns_To_Keep = ..In_Any) (match : Match_Columns = ..By_Name)
 
     ## PRIVATE
     get_dropdown_options : Vector Option

@@ -20,15 +20,15 @@ import { tv } from '#/utilities/tailwindVariants'
 import { Close } from './Close'
 import * as dialogProvider from './DialogProvider'
 import * as dialogStackProvider from './DialogStackProvider'
+import { DialogTrigger } from './DialogTrigger'
 import type * as types from './types'
 import * as utlities from './utilities'
 import { DIALOG_BACKGROUND } from './variants'
-
 // eslint-disable-next-line no-restricted-syntax
 const MotionDialog = motion(aria.Dialog)
 
 const OVERLAY_STYLES = tv({
-  base: 'fixed inset-0 isolate flex items-center justify-center bg-primary/20 z-tooltip',
+  base: 'fixed inset-0 isolate flex items-center justify-center bg-primary/20',
   variants: {
     isEntering: { true: 'animate-in fade-in duration-200 ease-out' },
     isExiting: { true: 'animate-out fade-out duration-200 ease-in' },
@@ -551,3 +551,4 @@ const DialogHeader = React.memo(function DialogHeader(props: DialogHeaderProps) 
 })
 
 Dialog.Close = Close
+Dialog.Trigger = DialogTrigger

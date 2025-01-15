@@ -106,6 +106,7 @@ const onClick = async () => {
           value,
           origin: props.input.portId,
         },
+        directInteraction: true,
       })
     }
   }

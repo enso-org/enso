@@ -194,7 +194,7 @@ trait CompilerTestSetup {
       compilerConfig = compilerConfig
     )
     InlineContext(
-      module            = mc,
+      moduleContext     = mc,
       freshNameSupply   = freshNameSupply,
       passConfiguration = passConfiguration,
       localScope        = localScope,

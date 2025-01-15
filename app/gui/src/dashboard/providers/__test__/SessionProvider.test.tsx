@@ -1,16 +1,27 @@
-import type { UserSession } from '#/authentication/cognito'
+import type {
+  AmplifyError,
+  ConfirmSignUpError,
+  ForgotPasswordSubmitError,
+  ISessionProvider,
+  MfaType,
+  SignUpError,
+  UserSession,
+} from '#/authentication/cognito'
 import { render, screen, waitFor } from '#/test'
 import { Rfc3339DateTime } from '#/utilities/dateTime'
 import HttpClient from '#/utilities/HttpClient'
+import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import { Suspense } from 'react'
+import { Result } from 'ts-results'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { HttpClientProvider } from '../HttpClientProvider'
 import SessionProvider from '../SessionProvider'
 
-describe('SessionProvider', () => {
-  const mainPageUrl = new URL('https://enso.dev')
-  const userSession = vi.fn<[], Promise<UserSession>>(() =>
-    Promise.resolve({
+class MockAuthService implements ISessionProvider {
+  saveAccessToken = vi.fn()
+  refreshUserSession = vi.fn(() => Promise.resolve(null))
+  userSession = vi.fn(() =>
+    Promise.resolve<UserSession>({
       email: 'test@test.com',
       accessToken: 'accessToken',
       refreshToken: 'refreshToken',
@@ -19,9 +30,41 @@ describe('SessionProvider', () => {
       clientId: 'clientId',
     }),
   )
-  const refreshUserSession = vi.fn(() => Promise.resolve(null))
+  email = vi.fn().mockReturnValue('example@email.com')
+  changePassword = vi.fn()
+  forgotPassword = vi.fn()
+  organizationId = vi.fn().mockReturnValue(`organization-${uniqueString()}`)
+  confirmSignIn = vi.fn()
+  confirmSignUp = vi.fn(() => Promise.resolve(Result.wrap<undefined, ConfirmSignUpError>(() => {})))
+  forgotPasswordSubmit = vi.fn(() =>
+    Promise.resolve(Result.wrap<undefined, ForgotPasswordSubmitError>(() => {})),
+  )
+  setupTOTP = vi.fn(() =>
+    Promise.resolve(
+      Result.wrap<{ secret: string; url: string }, AmplifyError>(() => ({
+        secret: 'secret',
+        url: 'url',
+      })),
+    ),
+  )
+  getMFAPreference = vi.fn(() =>
+    Promise.resolve(Result.wrap<MfaType, AmplifyError>(() => 'NOMFA' as const)),
+  )
+  signInWithGitHub = vi.fn(() => Promise.resolve())
+  signInWithGoogle = vi.fn(() => Promise.resolve())
+  signOut = vi.fn(() => Promise.resolve())
+  signUp = vi.fn(() => Promise.resolve(Result.wrap<undefined, SignUpError>(() => {})))
+  updateMFAPreference = vi.fn()
+  signInWithPassword = vi.fn()
+  verifyTotpSetup = vi.fn()
+  verifyTotpToken = vi.fn()
+}
+
+describe('SessionProvider', () => {
+  const mainPageUrl = new URL('https://enso.dev')
   const registerAuthEventListener = vi.fn()
-  const saveAccessToken = vi.fn()
+
+  const authService = new MockAuthService()
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -31,18 +74,16 @@ describe('SessionProvider', () => {
     const { getByText } = render(
       <Suspense fallback={<div>Loading...</div>}>
         <SessionProvider
+          authService={authService}
           mainPageUrl={mainPageUrl}
-          userSession={userSession}
-          refreshUserSession={refreshUserSession}
           registerAuthEventListener={registerAuthEventListener}
-          saveAccessToken={saveAccessToken}
         >
           <div>Hello</div>
         </SessionProvider>
       </Suspense>,
     )
 
-    expect(userSession).toBeCalled()
+    expect(authService.userSession).toBeCalled()
     expect(getByText(/Loading/)).toBeInTheDocument()
 
     await waitFor(() => {
@@ -59,11 +100,9 @@ describe('SessionProvider', () => {
       <Suspense fallback={<div>Loading...</div>}>
         <HttpClientProvider httpClient={httpClient}>
           <SessionProvider
+            authService={authService}
             mainPageUrl={mainPageUrl}
-            userSession={userSession}
-            refreshUserSession={refreshUserSession}
             registerAuthEventListener={registerAuthEventListener}
-            saveAccessToken={saveAccessToken}
           >
             <div>Hello</div>
           </SessionProvider>
@@ -77,9 +116,9 @@ describe('SessionProvider', () => {
   })
 
   it('Should refresh the expired user session', async () => {
-    userSession.mockReturnValueOnce(
+    authService.userSession.mockReturnValueOnce(
       Promise.resolve({
-        ...(await userSession()),
+        ...(await authService.userSession()),
         // 24 hours from now
         expireAt: Rfc3339DateTime(new Date(Date.now() - 1).toJSON()),
       }),
@@ -88,32 +127,30 @@ describe('SessionProvider', () => {
     render(
       <Suspense fallback={<div>Loading...</div>}>
         <SessionProvider
+          authService={authService}
           mainPageUrl={mainPageUrl}
-          userSession={userSession}
-          refreshUserSession={refreshUserSession}
           registerAuthEventListener={registerAuthEventListener}
-          saveAccessToken={saveAccessToken}
         >
           <div>Hello</div>
         </SessionProvider>
       </Suspense>,
     )
 
-    expect(refreshUserSession).not.toBeCalled()
-    expect(userSession).toBeCalledTimes(2)
+    expect(authService.refreshUserSession).not.toBeCalled()
+    expect(authService.userSession).toBeCalledTimes(2)
 
     await waitFor(() => {
-      expect(refreshUserSession).toBeCalledTimes(1)
+      expect(authService.refreshUserSession).toBeCalledTimes(1)
       expect(screen.getByText(/Hello/)).toBeInTheDocument()
 
-      expect(userSession).toBeCalledTimes(3)
+      expect(authService.userSession).toBeCalledTimes(3)
     })
   })
 
   it('Should refresh not stale user session', { timeout: 5_000 }, async () => {
-    userSession.mockReturnValueOnce(
+    authService.userSession.mockReturnValueOnce(
       Promise.resolve({
-        ...(await userSession()),
+        ...(await authService.userSession()),
         expireAt: Rfc3339DateTime(new Date(Date.now() + 1_500).toJSON()),
       }),
     )
@@ -123,11 +160,9 @@ describe('SessionProvider', () => {
     render(
       <Suspense fallback={<div>Loading...</div>}>
         <SessionProvider
+          authService={authService}
           mainPageUrl={mainPageUrl}
-          userSession={userSession}
-          refreshUserSession={refreshUserSession}
           registerAuthEventListener={registerAuthEventListener}
-          saveAccessToken={saveAccessToken}
         >
           {({ session: sessionFromContext }) => {
             session = sessionFromContext
@@ -137,9 +172,11 @@ describe('SessionProvider', () => {
       </Suspense>,
     )
 
+    vi.useFakeTimers().runAllTimers().useRealTimers()
+
     await waitFor(
       () => {
-        expect(refreshUserSession).toBeCalledTimes(1)
+        expect(authService.refreshUserSession).toBeCalledTimes(1)
         expect(session).not.toBeNull()
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         expect(new Date(session!.expireAt).getTime()).toBeGreaterThan(Date.now())
@@ -152,11 +189,9 @@ describe('SessionProvider', () => {
     render(
       <Suspense fallback={<div>Loading...</div>}>
         <SessionProvider
+          authService={authService}
           mainPageUrl={mainPageUrl}
-          userSession={userSession}
-          refreshUserSession={refreshUserSession}
           registerAuthEventListener={registerAuthEventListener}
-          saveAccessToken={saveAccessToken}
         >
           <div>Hello</div>
         </SessionProvider>

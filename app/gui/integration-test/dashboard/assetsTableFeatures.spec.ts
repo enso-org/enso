@@ -117,6 +117,50 @@ test('can drop onto root directory dropzone', ({ page }) =>
       expect(firstLeft, 'Siblings have same indentation').toEqual(secondLeft)
     }))
 
+test('can navigate to parent directory of an asset in the Recent category', ({ page }) =>
+  mockAllAndLogin({
+    page,
+    setupAPI: (api) => {
+      api.addProject({ title: 'a' })
+      api.addProject({ title: 'b' })
+
+      const directory = api.addDirectory({ title: 'd' })
+      const subDirectory = api.addDirectory({ title: 'e', parentId: directory.id })
+
+      api.addProject({ title: 'c', parentId: subDirectory.id })
+    },
+  })
+    .driveTable.expandDirectory(0)
+    .driveTable.expandDirectory(1)
+    // Project in the nested directory (c)
+    .driveTable.rightClickRow(2)
+    .contextMenu.moveNonFolderToTrash()
+    // Project in the root (a)
+    .driveTable.rightClickRow(2)
+    .contextMenu.moveNonFolderToTrash()
+    .goToCategory.trash()
+    .driveTable.withPathColumnCell('a', async (cell) => {
+      await expect(cell).toBeVisible()
+
+      await cell.getByRole('button').click()
+
+      await expect(cell).not.toBeVisible()
+    })
+    .expectCategory(TEXT.cloudCategory)
+    .goToCategory.trash()
+    .driveTable.withPathColumnCell('c', async (cell) => {
+      await expect(cell).toBeVisible()
+
+      await cell.getByRole('button').click()
+
+      await page.getByTestId('path-column-item-d').click()
+    })
+    .expectCategory(TEXT.cloudCategory)
+    .driveTable.withSelectedRows(async (rows) => {
+      await expect(rows).toHaveCount(1)
+      await expect(rows.nth(0)).toHaveText(/^d/)
+    }))
+
 test("can't run a project in browser by default", ({ page }) =>
   mockAllAndLogin({
     page,

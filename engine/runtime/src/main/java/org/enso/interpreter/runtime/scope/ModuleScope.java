@@ -8,6 +8,7 @@ import com.oracle.truffle.api.library.ExportMessage;
 import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import org.enso.compiler.common.MethodResolutionAlgorithm;
 import org.enso.compiler.context.CompilerContext;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
@@ -89,21 +90,78 @@ public final class ModuleScope extends EnsoObject {
    */
   @CompilerDirectives.TruffleBoundary
   public Function lookupMethodDefinition(Type type, String name) {
-    var definedWithAtom = type.getDefinitionScope().getMethodForType(type, name);
-    if (definedWithAtom != null) {
-      return definedWithAtom;
+    return methodResolutionAlgorithm.lookupMethodDefinition(this, type, name);
+  }
+
+  private final RuntimeMethodResolution methodResolutionAlgorithm = new RuntimeMethodResolution();
+
+  private static final class RuntimeMethodResolution
+      extends MethodResolutionAlgorithm<Function, Type, ImportExportScope, ModuleScope> {
+
+    @Override
+    protected Collection<ImportExportScope> getImportsFromModuleScope(ModuleScope moduleScope) {
+      return moduleScope.getImports();
     }
 
-    var definedHere = getMethodForType(type, name);
-    if (definedHere != null) {
-      return definedHere;
+    @Override
+    protected Collection<ImportExportScope> getExportsFromModuleScope(ModuleScope moduleScope) {
+      return moduleScope.getExports();
     }
 
-    return imports.stream()
-        .map(scope -> scope.getExportedMethod(type, name))
-        .filter(Objects::nonNull)
-        .findFirst()
-        .orElse(null);
+    @Override
+    protected Function getConversionFromModuleScope(
+        ModuleScope moduleScope, Type target, Type source) {
+      return moduleScope.getConversionFor(target, source);
+    }
+
+    @Override
+    protected Function getMethodFromModuleScope(
+        ModuleScope moduleScope, Type type, String methodName) {
+      return moduleScope.getMethodForType(type, methodName);
+    }
+
+    @Override
+    protected ModuleScope findDefinitionScope(Type type) {
+      return type.getDefinitionScope();
+    }
+
+    @Override
+    protected Function getMethodForTypeFromScope(
+        ImportExportScope scope, Type type, String methodName) {
+      return scope.getMethodForType(type, methodName);
+    }
+
+    @Override
+    protected Function getExportedMethodFromScope(
+        ImportExportScope scope, Type type, String methodName) {
+      return scope.getExportedMethod(type, methodName);
+    }
+
+    @Override
+    protected Function getConversionFromScope(ImportExportScope scope, Type target, Type source) {
+      return scope.getConversionForType(target, source);
+    }
+
+    @Override
+    protected Function getExportedConversionFromScope(
+        ImportExportScope scope, Type target, Type source) {
+      return scope.getExportedConversion(target, source);
+    }
+
+    @Override
+    protected Function onMultipleDefinitionsFromImports(
+        String methodName, List<MethodFromImport<Function, ImportExportScope>> methodFromImports) {
+      assert !methodFromImports.isEmpty();
+      return methodFromImports.get(0).resolutionResult();
+    }
+  }
+
+  public Collection<ImportExportScope> getImports() {
+    return imports;
+  }
+
+  public Collection<ImportExportScope> getExports() {
+    return exports;
   }
 
   /**
@@ -119,51 +177,19 @@ public final class ModuleScope extends EnsoObject {
    *
    * @param source Source type
    * @param target Target type
-   * @return The conversion method or null if not found.
+   * @return The conversion method or null if not found.nie
    */
   @CompilerDirectives.TruffleBoundary
   public Function lookupConversionDefinition(Type source, Type target) {
-    Function definedWithSource = source.getDefinitionScope().getConversionsFor(target).get(source);
-    if (definedWithSource != null) {
-      return definedWithSource;
-    }
-    Function definedWithTarget = target.getDefinitionScope().getConversionsFor(target).get(source);
-    if (definedWithTarget != null) {
-      return definedWithTarget;
-    }
-    Function definedHere = getConversionsFor(target).get(source);
-    if (definedHere != null) {
-      return definedHere;
-    }
-    return imports.stream()
-        .map(scope -> scope.getExportedConversion(source, target))
-        .filter(Objects::nonNull)
-        .findFirst()
-        .orElse(null);
+    return methodResolutionAlgorithm.lookupConversionDefinition(this, source, target);
   }
 
   Function getExportedMethod(Type type, String name) {
-    var here = getMethodForType(type, name);
-    if (here != null) {
-      return here;
-    }
-    return exports.stream()
-        .map(scope -> scope.getMethodForType(type, name))
-        .filter(Objects::nonNull)
-        .findFirst()
-        .orElse(null);
+    return methodResolutionAlgorithm.getExportedMethod(this, type, name);
   }
 
-  Function getExportedConversion(Type type, Type target) {
-    Function here = getConversionsFor(target).get(type);
-    if (here != null) {
-      return here;
-    }
-    return exports.stream()
-        .map(scope -> scope.getConversionForType(target, type))
-        .filter(Objects::nonNull)
-        .findFirst()
-        .orElse(null);
+  Function getExportedConversion(Type target, Type source) {
+    return methodResolutionAlgorithm.getExportedConversion(this, target, source);
   }
 
   public List<Type> getAllTypes(String name) {
@@ -232,12 +258,13 @@ public final class ModuleScope extends EnsoObject {
     }
   }
 
-  Map<Type, Function> getConversionsFor(Type type) {
-    var result = conversions.get(type);
-    if (result == null) {
-      return new LinkedHashMap<>();
+  public Function getConversionFor(Type target, Type source) {
+    var conversionsOnType = conversions.get(target);
+    if (conversionsOnType == null) {
+      return null;
     }
-    return result;
+
+    return conversionsOnType.get(source);
   }
 
   /**
@@ -504,6 +531,10 @@ public final class ModuleScope extends EnsoObject {
                 Collections.unmodifiableSet(exports));
       }
       return moduleScope;
+    }
+
+    public Type getAssociatedType() {
+      return associatedType;
     }
 
     public static ModuleScope.Builder fromCompilerModuleScopeBuilder(

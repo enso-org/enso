@@ -16,8 +16,10 @@ export function useEventCallback<Func extends (...args: never[]) => unknown>(cal
 
   return useCallback<Func>(
     // @ts-expect-error we know that the callbackRef.current is of type Func
-    // eslint-disable-next-line no-restricted-syntax
-    (...args: Parameters<Func>) => callbackRef.current(...args) as ReturnType<Func>,
+    function eventCallback(...args: Parameters<Func>) {
+      // eslint-disable-next-line no-restricted-syntax
+      return callbackRef.current(...args) as ReturnType<Func>
+    },
     [callbackRef],
   )
 }

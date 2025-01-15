@@ -166,6 +166,7 @@ const clientBounds = computed({
         metadataKey: 'WidgetTableEditor',
         metadata: { size: { x: value.width / graphNav.scale, y: value.height / graphNav.scale } },
       },
+      directInteraction: false,
     })
   },
 })

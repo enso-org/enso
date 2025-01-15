@@ -74,7 +74,7 @@ interaction.setWhen(() => graph.mouseEditedEdge != null, editingEdge)
 
 function disconnectEdge(target: PortId) {
   graph.edit((edit) => {
-    if (!graph.updatePortValue(edit, target, undefined)) {
+    if (!graph.updatePortValue(edit, target, undefined, false)) {
       if (isAstId(target)) {
         console.warn(`Failed to disconnect edge from port ${target}, falling back to direct edit.`)
         edit.replaceValue(target, Ast.Wildcard.new(edit))

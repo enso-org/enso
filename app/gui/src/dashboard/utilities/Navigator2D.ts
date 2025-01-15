@@ -317,7 +317,7 @@ export default class Navigator2D {
       const focusTargetNeighbor = neighbor instanceof HTMLElement ? neighbor.focus.bind(null) : null
       const focus =
         neighbor == null ? null : (
-          this.elements.get(neighbor)?.focusWhenPressed[direction] ?? focusTargetNeighbor
+          (this.elements.get(neighbor)?.focusWhenPressed[direction] ?? focusTargetNeighbor)
         )
       if (focus != null) {
         event.preventDefault()
@@ -388,7 +388,7 @@ export default class Navigator2D {
         // eslint-disable-next-line eqeqeq
         options.focusWhenPressed?.[direction] === null ?
           null
-        : options.focusWhenPressed?.[direction] ?? options.focusPrimaryChild ?? null,
+        : (options.focusWhenPressed?.[direction] ?? options.focusPrimaryChild ?? null),
       ),
       dispose,
     })

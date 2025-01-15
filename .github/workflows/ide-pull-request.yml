@@ -18,6 +18,11 @@ jobs:
     uses: ./.github/workflows/gui-changed-files.yml
     secrets: inherit
 
+  ide-changed-files:
+    name: 🔍 IDE Files Changed
+    uses: ./.github/workflows/ide-changed-files.yml
+    secrets: inherit
+
   engine-changed-files:
     name: 🔍 Engine Files Changed
     uses: ./.github/workflows/engine-changed-files.yml
@@ -26,15 +31,15 @@ jobs:
   ide-packaging:
     name: 📦 Package
     uses: ./.github/workflows/ide-packaging.yml
-    needs: [gui-changed-files, engine-changed-files]
-    if: needs.gui-changed-files.outputs.any_changed == 'true' || needs.engine-changed-files.outputs.any_changed == 'true' || github.ref == 'refs/heads/develop'
+    needs: [gui-changed-files, ide-changed-files, engine-changed-files]
+    if: needs.gui-changed-files.outputs.any_changed == 'true' || needs.ide-changed-files.outputs.any_changed == 'true' || needs.engine-changed-files.outputs.any_changed == 'true' || github.ref == 'refs/heads/develop'
     secrets: inherit
 
   ide-packaging-optional:
     name: 📦 Package (Optional)
     uses: ./.github/workflows/ide-packaging-optional.yml
-    needs: [gui-changed-files, engine-changed-files]
-    if: needs.gui-changed-files.outputs.any_changed == 'true' || needs.engine-changed-files.outputs.any_changed == 'true' || github.ref == 'refs/heads/develop'
+    needs: [gui-changed-files, ide-changed-files, engine-changed-files]
+    if: needs.gui-changed-files.outputs.any_changed == 'true' || needs.ide-changed-files.outputs.any_changed == 'true' || needs.engine-changed-files.outputs.any_changed == 'true' || github.ref == 'refs/heads/develop'
     secrets: inherit
 
   required-checks:

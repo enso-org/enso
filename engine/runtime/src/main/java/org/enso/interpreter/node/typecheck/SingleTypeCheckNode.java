@@ -170,23 +170,14 @@ non-sealed abstract class SingleTypeCheckNode extends AbstractTypeCheckNode {
     return null;
   }
 
-  Type[] findType(TypeOfNode typeOfNode, Object v) {
+  final Type[] findType(TypeOfNode typeOfNode, Object v) {
     return findType(typeOfNode, v, null);
   }
 
-  Type[] findType(TypeOfNode typeOfNode, Object v, Type[] previous) {
+  final Type[] findType(TypeOfNode typeOfNode, Object v, Type[] previous) {;
     if (v instanceof EnsoMultiValue multi) {
-      var all = typeOfNode.findAllTypesOrNull(multi, isAllTypes());
-      assert all != null;
-      var to = 0;
-      // only consider methodDispatchTypes and not "all types" of the multi value
-      for (var i = 0; i < all.length; i++) {
-        var typeOrNull = EnsoMultiValue.CastToNode.getUncached().findTypeOrNull(all[i], multi, false, false);
-        if (typeOrNull != null) {
-          all[to++] = all[i];
-        }
-      }
-      return Arrays.copyOf(all, to);
+      var all = typeOfNode.findAllTypesOrNull(multi, false);
+      return all;
     }
     if (v instanceof UnresolvedConstructor) {
       return null;

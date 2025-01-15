@@ -14,20 +14,36 @@ export const S3_CHUNK_SIZE_BYTES = 10_000_000
 // ================
 
 /** Unique identifier for an organization. */
-export type OrganizationId = newtype.Newtype<string, 'OrganizationId'>
+export type OrganizationId = newtype.Newtype<`organization-${string}`, 'OrganizationId'>
 export const OrganizationId = newtype.newtypeConstructor<OrganizationId>()
+/** Whether a given {@link string} is an {@link OrganizationId}. */
+export function isOrganizationId(id: string): id is OrganizationId {
+  return id.startsWith('organization-')
+}
 
 /** Unique identifier for a user in an organization. */
 export type UserId = newtype.Newtype<string, 'UserId'>
 export const UserId = newtype.newtypeConstructor<UserId>()
+/** Whether a given {@link string} is an {@link UserId}. */
+export function isUserId(id: string): id is UserId {
+  return id.startsWith('user-')
+}
 
 /** Unique identifier for a user group. */
-export type UserGroupId = newtype.Newtype<string, 'UserGroupId'>
+export type UserGroupId = newtype.Newtype<`usergroup-${string}`, 'UserGroupId'>
 export const UserGroupId = newtype.newtypeConstructor<UserGroupId>()
+/** Whether a given {@link string} is an {@link UserGroupId}. */
+export function isUserGroupId(id: string): id is UserGroupId {
+  return id.startsWith('usergroup-')
+}
 
 /** Unique identifier for a directory. */
-export type DirectoryId = newtype.Newtype<string, 'DirectoryId'>
+export type DirectoryId = newtype.Newtype<`directory-${string}`, 'DirectoryId'>
 export const DirectoryId = newtype.newtypeConstructor<DirectoryId>()
+/** Whether a given {@link string} is an {@link DirectoryId}. */
+export function isDirectoryId(id: string): id is DirectoryId {
+  return id.startsWith('directory-')
+}
 
 /**
  * Unique identifier for an asset representing the items inside a directory for which the
@@ -73,6 +89,7 @@ export const S3ObjectVersionId = newtype.newtypeConstructor<S3ObjectVersionId>()
 
 /** Unique identifier for an arbitrary asset. */
 export type AssetId = IdType[keyof IdType]
+export const AssetId = newtype.newtypeConstructor<AssetId>()
 
 /** Unique identifier for a payment checkout session. */
 export type CheckoutSessionId = newtype.Newtype<string, 'CheckoutSessionId'>
@@ -117,16 +134,6 @@ export type UserPermissionIdentifier = UserGroupId | UserId
 export type Path = newtype.Newtype<string, 'Path'>
 export const Path = newtype.newtypeConstructor<Path>()
 
-/** Whether a given {@link string} is an {@link UserId}. */
-export function isUserId(id: string): id is UserId {
-  return id.startsWith('user-')
-}
-
-/** Whether a given {@link string} is an {@link UserGroupId}. */
-export function isUserGroupId(id: string): id is UserGroupId {
-  return id.startsWith('usergroup-')
-}
-
 const PLACEHOLDER_USER_GROUP_PREFIX = 'usergroup-placeholder-'
 
 /**
@@ -142,7 +149,7 @@ export function isPlaceholderUserGroupId(id: string) {
  * being created on the backend.
  */
 export function newPlaceholderUserGroupId() {
-  return UserGroupId(`${PLACEHOLDER_USER_GROUP_PREFIX}${uniqueString.uniqueString()}`)
+  return UserGroupId(`${PLACEHOLDER_USER_GROUP_PREFIX}${uniqueString.uniqueString()}` as const)
 }
 
 // =============
@@ -668,10 +675,10 @@ export function lChColorToCssColor(color: LChColor): string {
 }
 
 export const COLOR_STRING_TO_COLOR = new Map(
-  COLORS.map(color => [lChColorToCssColor(color), color]),
+  COLORS.map((color) => [lChColorToCssColor(color), color]),
 )
 
-export const INITIAL_COLOR_COUNTS = new Map(COLORS.map(color => [lChColorToCssColor(color), 0]))
+export const INITIAL_COLOR_COUNTS = new Map(COLORS.map((color) => [lChColorToCssColor(color), 0]))
 
 /** The color that is used for the least labels. Ties are broken by order. */
 export function findLeastUsedColor(labels: Iterable<Label>) {
@@ -681,8 +688,8 @@ export function findLeastUsedColor(labels: Iterable<Label>) {
     colorCounts.set(colorString, (colorCounts.get(colorString) ?? 0) + 1)
   }
   const min = Math.min(...colorCounts.values())
-  const [minColor] = [...colorCounts.entries()].find(kv => kv[1] === min) ?? []
-  return minColor == null ? COLORS[0] : COLOR_STRING_TO_COLOR.get(minColor) ?? COLORS[0]
+  const [minColor] = [...colorCounts.entries()].find((kv) => kv[1] === min) ?? []
+  return minColor == null ? COLORS[0] : (COLOR_STRING_TO_COLOR.get(minColor) ?? COLORS[0])
 }
 
 // =================
@@ -829,7 +836,7 @@ export function createRootDirectoryAsset(directoryId: DirectoryId): DirectoryAss
     title: '(root)',
     id: directoryId,
     modifiedAt: dateTime.toRfc3339(new Date()),
-    parentId: DirectoryId(''),
+    parentId: DirectoryId('directory-'),
     permissions: [],
     projectState: null,
     extension: null,
@@ -904,7 +911,7 @@ export function createPlaceholderDirectoryAsset(
 ): DirectoryAsset {
   return {
     type: AssetType.directory,
-    id: DirectoryId(createPlaceholderId()),
+    id: DirectoryId(`directory-${createPlaceholderId()}` as const),
     title,
     parentId,
     permissions: assetPermissions,
@@ -1063,6 +1070,18 @@ export function assetIsType<Type extends AssetType>(type: Type) {
   return (asset: AnyAsset): asset is Extract<AnyAsset, Asset<Type>> => asset.type === type
 }
 
+/** Extract the type of an id and return a discriminated union containing both id and type. */
+export function extractTypeFromId(id: AssetId): AnyAsset extends infer T ?
+  T extends T ?
+    Pick<T, ('id' | 'type') & keyof T>
+  : never
+: never {
+  return {
+    type: id.match(/^(.+?)-/)?.[1],
+    id,
+  } as never
+}
+
 /** Creates a new placeholder asset id for the given asset type. */
 export function createPlaceholderAssetId<Type extends AssetType>(
   type: Type,
@@ -1074,7 +1093,7 @@ export function createPlaceholderAssetId<Type extends AssetType>(
   let result: AssetId
   switch (assetType) {
     case AssetType.directory: {
-      result = DirectoryId(id)
+      result = DirectoryId(`directory-${id}` as const)
       break
     }
     case AssetType.project: {
@@ -1283,7 +1302,8 @@ export interface CreateSecretRequestBody {
 
 /** HTTP request body for the "update secret" endpoint. */
 export interface UpdateSecretRequestBody {
-  readonly value: string
+  readonly title: string | null
+  readonly value: string | null
 }
 
 /** HTTP request body for the "create datalink" endpoint. */
@@ -1526,7 +1546,7 @@ export function isNewTitleUnique(
 ) {
   siblings ??= []
 
-  return siblings.every(sibling => {
+  return siblings.every((sibling) => {
     if (sibling.id === item.id) {
       return true
     }
@@ -1666,11 +1686,7 @@ export default abstract class Backend {
     title: string,
   ): Promise<CreatedProject>
   /** Return project details. */
-  abstract getProjectDetails(
-    projectId: ProjectId,
-    directoryId: DirectoryId | null,
-    getPresignedUrl?: boolean,
-  ): Promise<Project>
+  abstract getProjectDetails(projectId: ProjectId, getPresignedUrl?: boolean): Promise<Project>
   /** Return Language Server logs for a project session. */
   abstract getProjectSessionLogs(
     projectSessionId: ProjectSessionId,
@@ -1759,8 +1775,8 @@ export default abstract class Backend {
     projectId?: string | null,
     metadata?: object | null,
   ): Promise<void>
-  /** Download from an arbitrary URL that is assumed to originate from this backend. */
-  abstract download(url: string, name?: string): Promise<void>
+  /** Download an asset. */
+  abstract download(assetId: AssetId, title: string): Promise<void>
 
   /**
    * Get the URL for the customer portal.

@@ -60,7 +60,9 @@ public class AnyToTest {
     """;
     var conv =
         ContextUtils.evalModule(ctx, Source.newBuilder("enso", code, "conv.enso").build(), "conv");
-    var both = EnsoMultiValue.create(types, types.length, new Object[] {2L, Text.create("Two")});
+    var both =
+        EnsoMultiValue.NewNode.getUncached()
+            .newValue(types, types.length, 0, new Object[] {2L, Text.create("Two")});
     var eq =
         ContextUtils.executeInContext(
             ctx,
@@ -104,7 +106,9 @@ public class AnyToTest {
     """;
     var conv =
         ContextUtils.evalModule(ctx, Source.newBuilder("enso", code, "conv.enso").build(), "conv");
-    var both = EnsoMultiValue.create(types, dispatchLength, new Object[] {2L, Text.create("Two")});
+    var both =
+        EnsoMultiValue.NewNode.getUncached()
+            .newValue(types, dispatchLength, 0, new Object[] {2L, Text.create("Two")});
     var eq =
         ContextUtils.executeInContext(
             ctx,

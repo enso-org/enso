@@ -1,7 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Forbidden_Operation
 import Standard.Base.Errors.Common.Dry_Run_Operation
-import Standard.Base.Errors.Common.Unsupported_Argument_Types
 import Standard.Base.Errors.Encoding_Error.Encoding_Error
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
@@ -51,7 +50,10 @@ add_specs suite_builder =
 
         group_builder.specify "invalid character in path on Windows" pending=only_on_windows <|
             err = File.new "C:\dev:a"
-            err . should_fail_with Unsupported_Argument_Types
+            err . should_fail_with Illegal_Argument
+
+            err2 = File.new "." / ":"
+            err2 . should_fail_with Illegal_Argument
 
         group_builder.specify "should have `new` be a no-op on a file" <|
             file = File.new sample_file
@@ -329,6 +331,7 @@ add_specs suite_builder =
         group_builder.specify "will not resolve a relative directory to absolute in `parent` if not necessary" <|
             f = File.new "foo/bar"
             f.parent . should_equal (File.new "foo")
+            f.parent.path . should_equal "foo"
 
         group_builder.specify "will return Nothing for a root path that has no parent" <|
             root = File.new "/" . absolute . normalize
@@ -415,6 +418,9 @@ add_specs suite_builder =
                 txt.write f . should_succeed
                 Panic.with_finalizer f.delete_if_exists <|
                     Data.read "abc/def.txt" . should_equal txt
+
+        group_builder.specify "will resolve empty path to the current working directory" <|
+            File.new "" . should_equal File.current_directory
 
     suite_builder.group "read_text" group_builder->
         group_builder.specify "should allow reading a UTF-8 file" <|

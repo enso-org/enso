@@ -71,7 +71,7 @@ class App {
     log.addFileLog()
     urlAssociations.registerAssociations()
     // Register file associations for macOS.
-    fileAssociations.setOpenFileEventHandler(path => {
+    fileAssociations.setOpenFileEventHandler((path) => {
       if (electron.app.isReady()) {
         const project = fileAssociations.handleOpenFile(path)
         this.window?.webContents.send(ipc.Channel.openProject, project)
@@ -109,7 +109,7 @@ class App {
           const isWin = os.platform() === 'win32'
 
           if (isWin) {
-            const ensoLinkInArgs = argv.find(arg => arg.startsWith(common.DEEP_LINK_SCHEME))
+            const ensoLinkInArgs = argv.find((arg) => arg.startsWith(common.DEEP_LINK_SCHEME))
 
             if (ensoLinkInArgs != null) {
               electron.app.emit('open-url', new CustomEvent('open-url'), ensoLinkInArgs)
@@ -131,7 +131,7 @@ class App {
           async () => {
             logger.log('Electron application is ready.')
 
-            electron.protocol.handle('enso', request =>
+            electron.protocol.handle('enso', (request) =>
               projectManager.handleProjectProtocol(
                 decodeURIComponent(request.url.replace('enso://', '')),
               ),
@@ -139,7 +139,7 @@ class App {
 
             await this.main(windowSize)
           },
-          error => {
+          (error) => {
             logger.error('Failed to initialize Electron.', error)
           },
         )
@@ -388,7 +388,7 @@ class App {
         window.setMenuBarVisibility(false)
         const oldMenu = electron.Menu.getApplicationMenu()
         if (oldMenu != null) {
-          const items = oldMenu.items.map(item => {
+          const items = oldMenu.items.map((item) => {
             if (item.role !== 'help') {
               return item
             } else {
@@ -429,7 +429,7 @@ class App {
           },
         )
 
-        window.on('close', event => {
+        window.on('close', (event) => {
           if (!this.isQuitting && !this.args.groups.window.options.closeToQuit.value) {
             event.preventDefault()
             window.hide()
@@ -464,8 +464,8 @@ class App {
       fs.readFile(path, 'utf8'),
     )
     const profilesPromise = Promise.all(profilePromises)
-    electron.ipcMain.on(ipc.Channel.loadProfiles, event => {
-      void profilesPromise.then(profiles => {
+    electron.ipcMain.on(ipc.Channel.loadProfiles, (event) => {
+      void profilesPromise.then((profiles) => {
         event.reply('profiles-loaded', profiles)
       })
     })
@@ -578,7 +578,7 @@ class App {
           void window.webContents.mainFrame
             // Get the HTML contents of `document.body`.
             .executeJavaScript('document.body.innerHTML')
-            .then(html => {
+            .then((html) => {
               // If `document.body` is empty, then `index.html` failed to load.
               if (html === '') {
                 console.warn('Loading failed, reloading...')
@@ -616,7 +616,7 @@ class App {
     if (backend == null) {
       console.log(`${indent}No backend available.`)
     } else {
-      const lines = backend.split(/\r?\n/).filter(line => line.length > 0)
+      const lines = backend.split(/\r?\n/).filter((line) => line.length > 0)
       for (const line of lines) {
         console.log(`${indent}${line}`)
       }

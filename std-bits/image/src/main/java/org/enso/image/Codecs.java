@@ -11,7 +11,7 @@ public class Codecs {
   public static final int READ_FLAG_EMPTY = -127;
 
   static {
-    OpenCV.loadLocally();
+    OpenCV.loadShared();
   }
 
   /** An error occurred when reading a file. */

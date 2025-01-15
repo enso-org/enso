@@ -55,7 +55,7 @@ export default function UserBar(props: UserBarProps) {
   return (
     <FocusArea active={!invisible} direction="horizontal">
       {(innerProps) => (
-        <div className="bg-primary/5 pt-0.5">
+        <div className="bg-primary/10 pt-0.5">
           <div
             className="flex h-[46px] shrink-0 cursor-default items-center gap-user-bar pl-icons-x pr-3"
             {...innerProps}

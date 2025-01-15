@@ -1,8 +1,6 @@
 /** @file Display and modify the properties of an asset. */
 import * as React from 'react'
 
-import { useMutation } from '@tanstack/react-query'
-
 import PenIcon from '#/assets/pen.svg'
 import { Heading } from '#/components/aria'
 import {
@@ -37,6 +35,7 @@ import { normalizePath } from '#/utilities/fileInfo'
 import { mapNonNullish } from '#/utilities/nullable'
 import * as permissions from '#/utilities/permissions'
 import { tv } from '#/utilities/tailwindVariants'
+import { useMutation } from '@tanstack/react-query'
 import { useStore } from '../utilities/zustand'
 
 const ASSET_PROPERTIES_VARIANTS = tv({
@@ -182,14 +181,14 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
     : isCloud ? encodeURI(pathComputed)
     : pathComputed
   const createDatalinkMutation = useMutation(backendMutationOptions(backend, 'createDatalink'))
+  // Provide an extra `mutationKey` so that it has its own loading state.
   const editDescriptionMutation = useMutation(
-    // Provide an extra `mutationKey` so that it has its own loading state.
     backendMutationOptions(backend, 'updateAsset', { mutationKey: ['editDescription'] }),
   )
   const updateSecretMutation = useMutation(backendMutationOptions(backend, 'updateSecret'))
   const displayedDescription =
     editDescriptionMutation.variables?.[0] === item.id ?
-      editDescriptionMutation.variables[1].description ?? item.description
+      (editDescriptionMutation.variables[1].description ?? item.description)
     : item.description
 
   const editDescriptionForm = Form.useForm({
@@ -356,8 +355,8 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
             canCancel={false}
             id={item.id}
             name={item.title}
-            doCreate={async (name, value) => {
-              await updateSecretMutation.mutateAsync([item.id, { value }, name])
+            doCreate={async (title, value) => {
+              await updateSecretMutation.mutateAsync([item.id, { title, value }, title])
             }}
           />
         </div>

@@ -1,14 +1,7 @@
 /** @file Test the drive view. */
-import { expect, test, type Locator, type Page } from '@playwright/test'
+import { expect, test, type Locator } from '@playwright/test'
 
 import { TEXT, mockAllAndLogin } from './actions'
-
-/** Find an editor container. */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function locateEditor(page: Page) {
-  // Test ID of a placeholder editor component used during testing.
-  return page.locator('.App')
-}
 
 /** Find a button to close the project. */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

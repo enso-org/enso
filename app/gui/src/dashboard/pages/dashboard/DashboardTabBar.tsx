@@ -87,7 +87,7 @@ export function DashboardTabBar(props: DashboardTabBarProps) {
   ]
 
   return (
-    <TabBar className="bg-primary/5" items={tabs}>
+    <TabBar className="bg-primary/10" items={tabs}>
       {/* @ts-expect-error - Making ts happy here requires too much attention */}
       {(tab) => <tab.Component {...tab} />}
     </TabBar>

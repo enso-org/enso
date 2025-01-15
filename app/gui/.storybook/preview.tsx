@@ -66,7 +66,7 @@ const reactPreview: ReactPreview = {
 
     (Story, context) => (
       <>
-        <div className="enso-dashboard">
+        <div className="enso-app">
           <Story {...context} />
         </div>
         <div id="enso-portal-root" className="enso-portal-root" />

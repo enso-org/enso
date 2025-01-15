@@ -27,7 +27,14 @@ import {
 } from '@/util/reactivity'
 import * as objects from 'enso-common/src/utilities/data/object'
 import * as set from 'lib0/set'
-import { reactive, ref, shallowReactive, type Ref, type WatchStopHandle } from 'vue'
+import {
+  reactive,
+  ref,
+  shallowReactive,
+  type DeepReadonly,
+  type Ref,
+  type WatchStopHandle,
+} from 'vue'
 import { type SourceDocument } from 'ydoc-shared/ast/sourceDocument'
 import {
   methodPointerEquals,
@@ -60,7 +67,7 @@ export class GraphDb {
   /** TODO: Add docs */
   constructor(
     private suggestionDb: SuggestionDb,
-    private groups: Ref<Group[]>,
+    private groups: Ref<DeepReadonly<Group[]>>,
     private valuesRegistry: ComputedValueRegistry,
   ) {}
 
@@ -143,7 +150,7 @@ export class GraphDb {
 
   /** TODO: Add docs */
   getNodeFirstOutputPort(id: NodeId | undefined): AstId | undefined {
-    return id ? set.first(this.nodeOutputPorts.lookup(id)) ?? this.idFromExternal(id) : undefined
+    return id ? (set.first(this.nodeOutputPorts.lookup(id)) ?? this.idFromExternal(id)) : undefined
   }
 
   /** TODO: Add docs */

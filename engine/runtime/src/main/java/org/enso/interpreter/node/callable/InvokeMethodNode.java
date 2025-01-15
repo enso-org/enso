@@ -14,7 +14,6 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import com.oracle.truffle.api.source.SourceSection;
@@ -169,16 +168,18 @@ public abstract class InvokeMethodNode extends BaseNode {
       return null;
     }
 
-    RootNode where = function.getCallTarget().getRootNode();
-    // If both Any and the type where `function` is declared, define `symbol`
-    // and the method is invoked statically, i.e. type of self is the eigentype,
-    // then we want to disambiguate method resolution by always resolved to the one in Any.
-    EnsoContext ctx = EnsoContext.get(this);
-    if (where instanceof MethodRootNode node && typeCanOverride(node, ctx)) {
-      Type any = ctx.getBuiltins().any();
-      Function anyFun = symbol.getScope().lookupMethodDefinition(any, symbol.getName());
-      if (anyFun != null) {
-        function = anyFun;
+    if (selfTpe.getDefinitionScope().getAssociatedType() != selfTpe) {
+      var where = function.getCallTarget().getRootNode();
+      // If both Any and the type where `function` is declared, define `symbol`
+      // and the method is invoked statically, i.e. type of self is the eigentype,
+      // then we want to disambiguate method resolution by always resolved to the one in Any.
+      var ctx = EnsoContext.get(this);
+      if (where instanceof MethodRootNode node && typeCanOverride(node, ctx)) {
+        Type any = ctx.getBuiltins().any();
+        Function anyFun = symbol.getScope().lookupMethodDefinition(any, symbol.getName());
+        if (anyFun != null) {
+          function = anyFun;
+        }
       }
     }
     return function;

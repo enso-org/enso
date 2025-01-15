@@ -1,21 +1,13 @@
-import { assert } from '@/util/assert'
 import type { Doc } from '@/util/docParser'
-import type { Icon } from '@/util/iconName'
+import type { Icon } from '@/util/iconMetadata/iconName'
 import type { IdentifierOrOperatorIdentifier, QualifiedName } from '@/util/qualifiedName'
-import {
-  isIdentifierOrOperatorIdentifier,
-  isQualifiedName,
-  qnJoin,
-  qnLastSegment,
-  qnParent,
-  qnSegments,
-  qnSplit,
-} from '@/util/qualifiedName'
+import { qnJoin, qnParent, qnSegments } from '@/util/qualifiedName'
 import type { MethodPointer } from 'ydoc-shared/languageServerTypes'
 import type {
   SuggestionEntryArgument,
   SuggestionEntryScope,
 } from 'ydoc-shared/languageServerTypes/suggestions'
+
 export type {
   SuggestionEntryArgument,
   SuggestionEntryScope,
@@ -117,128 +109,6 @@ export function suggestionDocumentationUrl(entry: SuggestionEntry): string | und
   segments[1] = `${namespace}.${segments[1]}`
   segments[segments.length - 1] += `.${entry.name}`
   return segments.join('/')
-}
-
-function makeSimpleEntry(
-  kind: SuggestionKind,
-  definedIn: QualifiedName,
-  name: IdentifierOrOperatorIdentifier,
-  returnType: QualifiedName,
-): SuggestionEntry {
-  return {
-    kind,
-    definedIn,
-    name,
-    isPrivate: false,
-    isUnstable: false,
-    aliases: [],
-    arguments: [],
-    returnType,
-    documentation: [],
-    annotations: [],
-  }
-}
-
-/** TODO: Add docs */
-export function makeModule(fqn: string): SuggestionEntry {
-  assert(isQualifiedName(fqn))
-  return makeSimpleEntry(SuggestionKind.Module, fqn, qnLastSegment(fqn), fqn)
-}
-
-/** TODO: Add docs */
-export function makeType(fqn: string): SuggestionEntry {
-  assert(isQualifiedName(fqn))
-  const [definedIn, name] = qnSplit(fqn)
-  assert(definedIn != null)
-  return makeSimpleEntry(SuggestionKind.Type, definedIn, name, fqn)
-}
-
-/** TODO: Add docs */
-export function makeConstructor(fqn: string): SuggestionEntry {
-  assert(isQualifiedName(fqn))
-  const [type, name] = qnSplit(fqn)
-  assert(type != null)
-  const definedIn = qnParent(type)
-  assert(definedIn != null)
-  return {
-    memberOf: type,
-    ...makeSimpleEntry(SuggestionKind.Constructor, definedIn, name, type),
-  }
-}
-
-/** TODO: Add docs */
-export function makeMethod(fqn: string, returnType: string = 'Any'): SuggestionEntry {
-  assert(isQualifiedName(fqn))
-  assert(isQualifiedName(returnType))
-  const [type, name] = qnSplit(fqn)
-  assert(type != null)
-  const definedIn = qnParent(type)
-  assert(definedIn != null)
-  return {
-    memberOf: type,
-    selfType: type,
-    ...makeSimpleEntry(SuggestionKind.Method, definedIn, name, returnType),
-  }
-}
-
-/** TODO: Add docs */
-export function makeStaticMethod(fqn: string, returnType: string = 'Any'): SuggestionEntry {
-  assert(isQualifiedName(fqn))
-  assert(isQualifiedName(returnType))
-  const [type, name] = qnSplit(fqn)
-  assert(type != null)
-  const definedIn = qnParent(type)
-  assert(definedIn != null)
-  return {
-    memberOf: type,
-    ...makeSimpleEntry(SuggestionKind.Method, definedIn, name, returnType),
-  }
-}
-
-/** TODO: Add docs */
-export function makeModuleMethod(fqn: string, returnType: string = 'Any'): SuggestionEntry {
-  assert(isQualifiedName(fqn))
-  assert(isQualifiedName(returnType))
-  const [definedIn, name] = qnSplit(fqn)
-  assert(definedIn != null)
-  return {
-    memberOf: definedIn,
-    ...makeSimpleEntry(SuggestionKind.Method, definedIn, name, returnType),
-  }
-}
-
-/** TODO: Add docs */
-export function makeFunction(
-  definedIn: string,
-  name: string,
-  returnType: string = 'Any',
-): SuggestionEntry {
-  assert(isQualifiedName(definedIn))
-  assert(isIdentifierOrOperatorIdentifier(name))
-  assert(isQualifiedName(returnType))
-  return makeSimpleEntry(SuggestionKind.Function, definedIn, name, returnType)
-}
-
-/** TODO: Add docs */
-export function makeLocal(
-  definedIn: string,
-  name: string,
-  returnType: string = 'Any',
-): SuggestionEntry {
-  assert(isQualifiedName(definedIn))
-  assert(isIdentifierOrOperatorIdentifier(name))
-  assert(isQualifiedName(returnType))
-  return makeSimpleEntry(SuggestionKind.Local, definedIn, name, returnType)
-}
-
-/** TODO: Add docs */
-export function makeArgument(name: string, type: string = 'Any'): SuggestionEntryArgument {
-  return {
-    name,
-    reprType: type,
-    isSuspended: false,
-    hasDefault: false,
-  }
 }
 
 /** `true` if calling the function without providing a value for this argument will result in an error. */

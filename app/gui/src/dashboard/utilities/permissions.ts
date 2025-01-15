@@ -44,10 +44,16 @@ export function tryCreateOwnerPermission(
     case 'team': {
       return [{ userGroup: category.team, permission: PermissionAction.own }]
     }
+    case 'cloud':
+    case 'recent':
+    case 'trash':
+    case 'user':
+    case 'local':
+    case 'local-directory':
     default: {
       const isFreeOrSolo =
         user.plan == null || user.plan === backend.Plan.free || user.plan === backend.Plan.solo
-      const owner = isFreeOrSolo ? user : newOwnerFromPath(path, users, userGroups) ?? user
+      const owner = isFreeOrSolo ? user : (newOwnerFromPath(path, users, userGroups) ?? user)
       if ('userId' in owner) {
         const { organizationId, userId, name, email } = owner
         return [{ user: { organizationId, userId, name, email }, permission: PermissionAction.own }]
