@@ -6,7 +6,6 @@ import static org.hamcrest.Matchers.is;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.file.Path;
-import org.enso.compiler.dump.IRDumper;
 import org.enso.compiler.dump.IRDumperPass;
 import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ProjectUtils;
@@ -17,6 +16,7 @@ public class IRDumpTest {
   public void testIrDump() {
     var irDumpsDir = Path.of(IRDumper.DEFAULT_DUMP_DIR);
     var out = new ByteArrayOutputStream();
+    // TODO: Use concrete impl name
     System.setProperty(IRDumperPass.SYSTEM_PROP, "true");
     try (var ctx = ContextUtils.defaultContextBuilder().out(out).build()) {
       // Dumping is done in the compiler, so it is enough just to compile the module
