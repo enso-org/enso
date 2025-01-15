@@ -44,19 +44,24 @@ class RuntimeStubsGenerator(builtins: Builtins) {
           )
         }
         scope.registerType(builtinType.getType)
-        builtinType.getType.setShadowDefinitions(scope, true)
+        builtinType.getType.setShadowDefinitions(
+          builtins.getLanguage(),
+          scope,
+          true
+        )
       } else {
-        val isTypeProjectPrivate =
+        val hasAllConstructorsPrivate =
           tp.members.nonEmpty && tp.members.forall(_.isProjectPrivate)
         val createdType =
           if (tp.members.nonEmpty || tp.builtinType) {
             Type.create(
+              builtins.getLanguage(),
               tp.name,
               scope,
               builtins.any(),
               builtins.any(),
               false,
-              isTypeProjectPrivate
+              hasAllConstructorsPrivate
             )
           } else {
             Type.createSingleton(
@@ -64,7 +69,7 @@ class RuntimeStubsGenerator(builtins: Builtins) {
               scope,
               builtins.any(),
               false,
-              isTypeProjectPrivate
+              hasAllConstructorsPrivate
             )
           }
         val rtp = scope.registerType(createdType)

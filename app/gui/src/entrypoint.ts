@@ -17,8 +17,7 @@ import { createApp } from 'vue'
 import App from './App.vue'
 
 const HTTP_STATUS_BAD_REQUEST = 400
-const API_HOST =
-  process.env.ENSO_CLOUD_API_URL != null ? new URL(process.env.ENSO_CLOUD_API_URL).host : null
+const API_HOST = $config.API_URL != null ? new URL($config.API_URL).host : null
 /** The fraction of non-erroring interactions that should be sampled by Sentry. */
 const SENTRY_SAMPLE_RATE = 0.005
 const SCAM_WARNING_TIMEOUT = 1000
@@ -74,16 +73,11 @@ function setupScamWarning() {
 }
 
 function setupSentry() {
-  if (
-    !detect.IS_DEV_MODE &&
-    process.env.ENSO_CLOUD_SENTRY_DSN != null &&
-    process.env.ENSO_CLOUD_API_URL != null
-  ) {
-    const version: unknown = import.meta.env.ENSO_IDE_VERSION
+  if (!detect.IS_DEV_MODE && $config.SENTRY_DSN != null && $config.API_URL != null) {
     sentry.init({
-      dsn: process.env.ENSO_CLOUD_SENTRY_DSN,
-      environment: process.env.ENSO_CLOUD_ENVIRONMENT,
-      release: version?.toString() ?? 'dev',
+      dsn: $config.SENTRY_DSN,
+      environment: $config.ENVIRONMENT ?? 'dev',
+      release: $config.VERSION ?? 'dev',
       integrations: [
         sentry.reactRouterV6BrowserTracingIntegration({
           useEffect,
@@ -98,7 +92,7 @@ function setupSentry() {
       ],
       profilesSampleRate: SENTRY_SAMPLE_RATE,
       tracesSampleRate: SENTRY_SAMPLE_RATE,
-      tracePropagationTargets: [process.env.ENSO_CLOUD_API_URL.split('//')[1] ?? ''],
+      tracePropagationTargets: [$config.API_URL.split('//')[1] ?? ''],
       replaysSessionSampleRate: SENTRY_SAMPLE_RATE,
       replaysOnErrorSampleRate: 1.0,
       beforeSend: (event) => {

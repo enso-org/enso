@@ -1,5 +1,5 @@
 import type { Doc } from '@/util/docParser'
-import type { Icon } from '@/util/iconName'
+import type { Icon } from '@/util/iconMetadata/iconName'
 import type { IdentifierOrOperatorIdentifier, QualifiedName } from '@/util/qualifiedName'
 import { qnJoin, qnParent, qnSegments } from '@/util/qualifiedName'
 import type { MethodPointer } from 'ydoc-shared/languageServerTypes'
