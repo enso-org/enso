@@ -92,7 +92,8 @@ function useSortFilterNodesButton({
   }
 
   const filterPattern = computed(() => Pattern.parseExpression('__ (__ __)')!)
-
+  const filterBetweenPattern = computed(() => Pattern.parseExpression('__ (..Between __ __)')!)
+  
   function makeFilterPattern(module: Ast.MutableModule, columnName: string, items: string[]) {
     if (
       (items?.length === 1 && items.indexOf('true') != -1) ||
@@ -130,10 +131,17 @@ function useSortFilterNodesButton({
     item: string | { toValue: string; fromValue: string },
     filterAction: FilterAction,
   ) {
-    if (filterAction === 'inRange') {
-      ///INBETWEENFILTER
-    }
     const valueFormatter = getColumnValueToEnso(columnName)
+    if (filterAction === 'inRange') {
+      const filterToValue = valueFormatter(item.toValue as string, module)
+      const filterFromValue = valueFormatter(item.fromValue as string, module)
+      filterPattern.value.instantiateCopied([
+        Ast.TextLiteral.new(columnName),
+        filterToValue,
+        filterFromValue
+      ])
+    }
+  
     const filterValue = valueFormatter(item as string, module)
     const action = actionMap[filterAction]
     return filterPattern.value.instantiateCopied([
