@@ -28,13 +28,19 @@ type FilterAction =
 export type FilterModel = {
   columnName: string
   filterType: FilterType
-  filter?: string //value filtering on in a numeric filter
-  filterTo?: string //needed for numeric between filters
+  filter?: string
+  filterTo?: string
   dateFrom?: string
   dateTo?: string
-  values?: string[] //used for set filter
+  values?: string[]
   filterAction?: FilterAction
 }
+type FilterValueRange = {
+  toValue: string
+  fromValue: string
+}
+//The filter value can be a single value for comparisons such as 'equals' or 'greater than,' a list for 'is in' filtering, or two values that define a range.
+type FilterValue = string | string[] | FilterValueRange
 
 const actionMap = {
   equals: '..Equals',
@@ -132,22 +138,22 @@ function useSortFilterNodesButton({
     filterAction: FilterAction,
   ) {
     const valueFormatter = getColumnValueToEnso(columnName)
-    if (filterAction === 'inRange') {
-      const filterToValue = valueFormatter(item.toValue as string, module)
-      const filterFromValue = valueFormatter(item.fromValue as string, module)
-      filterPattern.value.instantiateCopied([
+    if (filterAction === 'inRange' && typeof item === 'object') {
+      const filterToValue = valueFormatter(item.toValue, module)
+      const filterFromValue = valueFormatter(item.fromValue, module)
+      filterBetweenPattern.value.instantiateCopied([
         Ast.TextLiteral.new(columnName),
-        filterToValue,
-        filterFromValue,
+        filterToValue as Expression | MutableExpression,
+        filterFromValue as Expression | MutableExpression,
       ])
     }
 
     const filterValue = valueFormatter(item as string, module)
-    const action = actionMap[filterAction]
+    const action = actionMap[filterAction as keyof typeof actionMap]
     return filterPattern.value.instantiateCopied([
       Ast.TextLiteral.new(columnName),
       Ast.parseExpression(action)!,
-      filterValue,
+      filterValue as Expression | MutableExpression,
     ])
   }
 
@@ -162,7 +168,7 @@ function useSortFilterNodesButton({
 
   function getAstPatternFilter(
     columnName: string,
-    items: string[] | string,
+    items: string[] | string | FilterValue,
     filterType: FilterType,
     filterAction?: FilterAction,
   ) {
@@ -178,7 +184,7 @@ function useSortFilterNodesButton({
 
   function getAstPatternFilterAndSort(
     columnName: string,
-    items: string[] | string | { toValue: string; fromValue: string },
+    items: string[] | string | FilterValue,
     filterType: FilterType,
     filterAction?: FilterAction,
   ) {
@@ -214,22 +220,22 @@ function useSortFilterNodesButton({
           //BLANK/NOT BLANK FILTER
         }
 
-        let value
+        let value: FilterValue
         switch (filterType) {
           case 'number':
             value =
               filterAction === 'inRange' ?
                 { toValue: filterModel.filterTo!, fromValue: filterModel.filter! }
-              : filterModel.filter
+              : (filterModel.filter as FilterValue)
             break
           case 'date':
             value =
               filterAction === 'inRange' ?
                 { toValue: filterModel.dateTo!, fromValue: filterModel.dateFrom! }
-              : filterModel.dateTo
+              : (filterModel.dateTo as FilterValue)
             break
           default:
-            value = filterModel.values
+            value = filterModel.values as FilterValue
         }
         if (value) {
           const filterPatterns =
