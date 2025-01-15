@@ -93,7 +93,7 @@ function useSortFilterNodesButton({
 
   const filterPattern = computed(() => Pattern.parseExpression('__ (__ __)')!)
   const filterBetweenPattern = computed(() => Pattern.parseExpression('__ (..Between __ __)')!)
-  
+
   function makeFilterPattern(module: Ast.MutableModule, columnName: string, items: string[]) {
     if (
       (items?.length === 1 && items.indexOf('true') != -1) ||
@@ -138,10 +138,10 @@ function useSortFilterNodesButton({
       filterPattern.value.instantiateCopied([
         Ast.TextLiteral.new(columnName),
         filterToValue,
-        filterFromValue
+        filterFromValue,
       ])
     }
-  
+
     const filterValue = valueFormatter(item as string, module)
     const action = actionMap[filterAction]
     return filterPattern.value.instantiateCopied([
