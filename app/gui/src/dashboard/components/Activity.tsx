@@ -61,12 +61,9 @@ export function Activity(props: ActivityProps) {
 
   return (
     <div ref={contentRef} className="contents">
-      {/* {mode === 'active' ? */}
-      {/* children : */}
       <Suspense fallback={fallback}>
         <ActivityInner promise={promise}>{children}</ActivityInner>
       </Suspense>
-      {/* } */}
     </div>
   )
 }
