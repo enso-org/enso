@@ -1,6 +1,6 @@
 <script lang="ts">
 import SvgButton from '@/components/SvgButton.vue'
-import type { IHeaderParams } from 'ag-grid-community'
+import type { IHeaderParams } from 'ag-grid-enterprise'
 import { computed, ref, watch } from 'vue'
 
 /**
@@ -121,6 +121,8 @@ function onMouseRightClick(event: MouseEvent) {
         @keydown.arrow-right.stop
         @keydown.arrow-up.stop
         @keydown.arrow-down.stop
+        @focus="console.error"
+        @blur="console.error"
       />
       <span
         v-else

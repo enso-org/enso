@@ -39,6 +39,7 @@ export type RowData = {
  * only values actually used by the composable)
  */
 export interface ColumnDef extends ColDef<RowData> {
+  colId: string
   valueGetter: ({ data }: { data: RowData | undefined }) => any
   valueSetter?: ({ data, newValue }: { data: RowData; newValue: string }) => boolean
   mainMenuItems: (string | MenuItem<RowData>)[]
