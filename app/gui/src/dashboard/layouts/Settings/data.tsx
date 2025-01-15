@@ -222,7 +222,10 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
           settingsFormEntryData({
             type: 'form',
             schema: z.object({
-              name: z.string().min(1).regex(/^.*\S.*$/),
+              name: z
+                .string()
+                .min(1)
+                .regex(/^.*\S.*$/),
               email: z.string().email().or(z.literal('')),
               website: z.string(),
               address: z.string(),
