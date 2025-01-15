@@ -3337,6 +3337,7 @@ lazy val `runtime-compiler` =
         (`engine-common` / Compile / exportedModule).value,
         (`pkg` / Compile / exportedModule).value,
         (`runtime-parser` / Compile / exportedModule).value,
+        (`runtime-compiler-dump` / Compile / exportedModule).value,
         (`syntax-rust-definition` / Compile / exportedModule).value,
         (`scala-libs-wrapper` / Compile / exportedModule).value,
         (`persistance` / Compile / exportedModule).value,
@@ -3392,10 +3393,58 @@ lazy val `runtime-compiler` =
       }
     )
     .dependsOn(`runtime-parser`)
+    .dependsOn(`runtime-compiler-dump`)
     .dependsOn(pkg)
     .dependsOn(`engine-common`)
     .dependsOn(editions)
     .dependsOn(`persistance-dsl` % "provided")
+
+/** This project contains only a single service (interface) definition.
+  */
+lazy val `runtime-compiler-dump` =
+  (project in file("engine/runtime-compiler-dump"))
+    .enablePlugins(JPMSPlugin)
+    .settings(
+      frgaalJavaCompilerSetting,
+      javaModuleName := "org.enso.runtime.compiler.dump",
+      Compile / internalModuleDependencies := Seq(
+        (`runtime-parser` / Compile / exportedModule).value,
+        (`syntax-rust-definition` / Compile / exportedModule).value,
+        (`persistance` / Compile / exportedModule).value,
+        (`scala-libs-wrapper` / Compile / exportedModule).value
+      )
+    )
+    .dependsOn(`runtime-parser`)
+
+/** This is a standalone project that is not compiled with Frgaal on purpose.
+  * It depends on jdk.internal.vm.compiler module, which cannot be included in Frgaal.
+  * It includes a service provider for service definition in `runtime-compiler-dump`.
+  */
+lazy val `runtime-compiler-dump-igv` =
+  (project in file("engine/runtime-compiler-dump-igv"))
+    .enablePlugins(JPMSPlugin)
+    .settings(
+      javaModuleName := "org.enso.runtime.compiler.dump.igv",
+      Compile / internalModuleDependencies := Seq(
+        (`engine-common` / Compile / exportedModule).value,
+        (`pkg` / Compile / exportedModule).value,
+        (`runtime-compiler` / Compile / exportedModule).value,
+        (`runtime-compiler-dump` / Compile / exportedModule).value,
+        (`runtime-parser` / Compile / exportedModule).value,
+        (`syntax-rust-definition` / Compile / exportedModule).value,
+        (`scala-libs-wrapper` / Compile / exportedModule).value,
+        (`persistance` / Compile / exportedModule).value,
+        (`editions` / Compile / exportedModule).value
+      ),
+      Compile / addExports ++= {
+        Map(
+          "jdk.internal.vm.compiler/org.graalvm.graphio" -> Seq(
+            javaModuleName.value
+          )
+        )
+      }
+    )
+    .dependsOn(`runtime-compiler-dump`)
 
 lazy val `runtime-suggestions` =
   (project in file("engine/runtime-suggestions"))

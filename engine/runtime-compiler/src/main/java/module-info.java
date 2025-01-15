@@ -5,6 +5,7 @@ module org.enso.runtime.compiler {
   requires org.enso.engine.common;
   requires org.enso.editions;
   requires org.enso.pkg;
+  requires org.enso.runtime.compiler.dump;
   requires org.enso.runtime.parser;
   requires static org.enso.persistance;
   requires org.enso.syntax;
@@ -31,4 +32,6 @@ module org.enso.runtime.compiler {
   exports org.enso.compiler.phase.exports;
   exports org.enso.compiler.refactoring;
   exports org.enso.compiler.common;
+
+  uses org.enso.compiler.dump.service.IRDumpService;
 }
