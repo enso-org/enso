@@ -1,4 +1,5 @@
 import project.Any.Any
+import project.Data.Boolean.Boolean
 import project.Nothing.Nothing
 
 bracket : Any -> (Any -> Nothing) -> (Any -> Any) -> Any
@@ -6,7 +7,10 @@ bracket ~constructor ~destructor ~action = @Builtin_Method "Resource.bracket"
 
 @Builtin_Type
 type Managed_Resource
-    register resource function = @Builtin_Method "Managed_Resource.register"
+    register obj fn system=Boolean.False = register_builtin obj fn system
     finalize self = @Builtin_Method "Managed_Resource.finalize"
-    with self ~action = @Builtin_Method "Managed_Resource.with"
+    with self ~action = with_builtin self action
     take self = @Builtin_Method "Managed_Resource.take"
+
+register_builtin resource function system = @Builtin_Method "Managed_Resource.register_builtin"
+with_builtin r action = @Builtin_Method "Managed_Resource.with_builtin"

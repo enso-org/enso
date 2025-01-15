@@ -155,8 +155,9 @@ class MetadataStorageTest extends CompilerTest {
 
       meta1 shouldEqual meta2
 
-      meta1.update(TestPass1, TestPass1.Metadata1())
-      meta2.update(TestPass1, TestPass1.Metadata1())
+      val meta = TestPass1.Metadata1()
+      meta1.update(TestPass1, meta)
+      meta2.update(TestPass1, meta)
 
       meta1 shouldEqual meta2
     }
@@ -185,7 +186,7 @@ class MetadataStorageTest extends CompilerTest {
       meta.map((p, m) => (p, m.metadataName)).asScala shouldEqual expected
     }
 
-    "allow copying to create a new instance with the same data" in {
+    "allow copying to create a new instance with the same data but are not equal" in {
       val meta = newMetadataStorage(
         Seq(
           new MetadataPair(TestPass1, TestPass1.Metadata1()),

@@ -38,6 +38,7 @@ import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
+import org.enso.interpreter.runtime.error.DataflowError;
 
 /** Container for builtin Error types */
 public final class Error {
@@ -110,16 +111,16 @@ public final class Error {
     mapError = builtins.getBuiltinType(MapError.class);
   }
 
-  public Atom makeSyntaxError(Object message) {
-    return syntaxError.newInstance(message);
+  public Atom makeSyntaxError(String message) {
+    return syntaxError.newInstance(Text.create(message));
   }
 
-  public Atom makeCompileError(Object message) {
-    return compileError.newInstance(message);
+  public Atom makeCompileError(String message) {
+    return compileError.newInstance(Text.create(message));
   }
 
-  public Atom makeAssertionError(Text text) {
-    return assertionError.newInstance(text);
+  public Atom makeAssertionError(String text) {
+    return assertionError.newInstance(Text.create(text));
   }
 
   public Atom makeIndexOutOfBounds(long index, long length) {
@@ -349,5 +350,17 @@ public final class Error {
    */
   public Atom makeMapError(long index, Object innerError) {
     return mapError.newInstance(index, innerError);
+  }
+
+  /**
+   * Creates error on missing polyglot java import class.
+   *
+   * @param className the name of the class that is missing
+   * @return data flow error representing the missing value
+   */
+  public DataflowError makeMissingPolyglotImportError(String className) {
+    var msg = "No polyglot symbol for " + className;
+    var err = makeCompileError(msg);
+    return DataflowError.withDefaultTrace(err, null);
   }
 }

@@ -9,7 +9,7 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 
 @BuiltinMethod(
-    type = "Map",
+    type = "Dictionary",
     name = "contains_key",
     description =
         """

@@ -1,12 +1,16 @@
 package org.enso.interpreter.runtime.scope;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import org.enso.compiler.common.MethodResolutionAlgorithm;
 import org.enso.compiler.context.CompilerContext;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.EnsoObject;
@@ -18,13 +22,19 @@ import org.enso.interpreter.runtime.util.CachingSupplier;
 
 /** A representation of Enso's per-file top-level scope. */
 @ExportLibrary(TypesLibrary.class)
-public final class ModuleScope implements EnsoObject {
+public final class ModuleScope extends EnsoObject {
   private final Type associatedType;
   private final Module module;
-  private final Map<String, Object> polyglotSymbols;
+  private final Map<String, Supplier<TruffleObject>> polyglotSymbols;
   private final Map<String, Type> types;
   private final Map<Type, Map<String, Supplier<Function>>> methods;
+
+  /**
+   * First key is target type, second key is source type. The value is the conversion function from
+   * source to target.
+   */
   private final Map<Type, Map<Type, Function>> conversions;
+
   private final Set<ImportExportScope> imports;
   private final Set<ImportExportScope> exports;
 
@@ -37,7 +47,7 @@ public final class ModuleScope implements EnsoObject {
   public ModuleScope(
       Module module,
       Type associatedType,
-      Map<String, Object> polyglotSymbols,
+      Map<String, Supplier<TruffleObject>> polyglotSymbols,
       Map<String, Type> types,
       Map<Type, Map<String, Supplier<Function>>> methods,
       Map<Type, Map<Type, Function>> conversions,
@@ -80,68 +90,106 @@ public final class ModuleScope implements EnsoObject {
    */
   @CompilerDirectives.TruffleBoundary
   public Function lookupMethodDefinition(Type type, String name) {
-    var definedWithAtom = type.getDefinitionScope().getMethodForType(type, name);
-    if (definedWithAtom != null) {
-      return definedWithAtom;
-    }
-
-    var definedHere = getMethodForType(type, name);
-    if (definedHere != null) {
-      return definedHere;
-    }
-
-    return imports.stream()
-        .map(scope -> scope.getExportedMethod(type, name))
-        .filter(Objects::nonNull)
-        .findFirst()
-        .orElse(null);
+    return methodResolutionAlgorithm.lookupMethodDefinition(this, type, name);
   }
 
+  private final RuntimeMethodResolution methodResolutionAlgorithm = new RuntimeMethodResolution();
+
+  private static final class RuntimeMethodResolution
+      extends MethodResolutionAlgorithm<Function, Type, ImportExportScope, ModuleScope> {
+
+    @Override
+    protected Collection<ImportExportScope> getImportsFromModuleScope(ModuleScope moduleScope) {
+      return moduleScope.getImports();
+    }
+
+    @Override
+    protected Collection<ImportExportScope> getExportsFromModuleScope(ModuleScope moduleScope) {
+      return moduleScope.getExports();
+    }
+
+    @Override
+    protected Function getConversionFromModuleScope(
+        ModuleScope moduleScope, Type target, Type source) {
+      return moduleScope.getConversionFor(target, source);
+    }
+
+    @Override
+    protected Function getMethodFromModuleScope(
+        ModuleScope moduleScope, Type type, String methodName) {
+      return moduleScope.getMethodForType(type, methodName);
+    }
+
+    @Override
+    protected ModuleScope findDefinitionScope(Type type) {
+      return type.getDefinitionScope();
+    }
+
+    @Override
+    protected Function getMethodForTypeFromScope(
+        ImportExportScope scope, Type type, String methodName) {
+      return scope.getMethodForType(type, methodName);
+    }
+
+    @Override
+    protected Function getExportedMethodFromScope(
+        ImportExportScope scope, Type type, String methodName) {
+      return scope.getExportedMethod(type, methodName);
+    }
+
+    @Override
+    protected Function getConversionFromScope(ImportExportScope scope, Type target, Type source) {
+      return scope.getConversionForType(target, source);
+    }
+
+    @Override
+    protected Function getExportedConversionFromScope(
+        ImportExportScope scope, Type target, Type source) {
+      return scope.getExportedConversion(target, source);
+    }
+
+    @Override
+    protected Function onMultipleDefinitionsFromImports(
+        String methodName, List<MethodFromImport<Function, ImportExportScope>> methodFromImports) {
+      assert !methodFromImports.isEmpty();
+      return methodFromImports.get(0).resolutionResult();
+    }
+  }
+
+  public Collection<ImportExportScope> getImports() {
+    return imports;
+  }
+
+  public Collection<ImportExportScope> getExports() {
+    return exports;
+  }
+
+  /**
+   * Looks up a conversion method from source type to target type. The conversion method
+   * implementation looks like this:
+   *
+   * <pre>
+   *   Target_Type.from (other : Source_Type) = ...
+   * </pre>
+   *
+   * The conversion method is first looked up in the scope of the source type, then in the scope of
+   * the target type and finally in all the imported scopes.
+   *
+   * @param source Source type
+   * @param target Target type
+   * @return The conversion method or null if not found.nie
+   */
   @CompilerDirectives.TruffleBoundary
-  public Function lookupConversionDefinition(Type original, Type target) {
-    Function definedWithOriginal =
-        original.getDefinitionScope().getConversionsFor(target).get(original);
-    if (definedWithOriginal != null) {
-      return definedWithOriginal;
-    }
-    Function definedWithTarget =
-        target.getDefinitionScope().getConversionsFor(target).get(original);
-    if (definedWithTarget != null) {
-      return definedWithTarget;
-    }
-    Function definedHere = getConversionsFor(target).get(original);
-    if (definedHere != null) {
-      return definedHere;
-    }
-    return imports.stream()
-        .map(scope -> scope.getExportedConversion(original, target))
-        .filter(Objects::nonNull)
-        .findFirst()
-        .orElse(null);
+  public Function lookupConversionDefinition(Type source, Type target) {
+    return methodResolutionAlgorithm.lookupConversionDefinition(this, source, target);
   }
 
   Function getExportedMethod(Type type, String name) {
-    var here = getMethodForType(type, name);
-    if (here != null) {
-      return here;
-    }
-    return exports.stream()
-        .map(scope -> scope.getMethodForType(type, name))
-        .filter(Objects::nonNull)
-        .findFirst()
-        .orElse(null);
+    return methodResolutionAlgorithm.getExportedMethod(this, type, name);
   }
 
-  Function getExportedConversion(Type type, Type target) {
-    Function here = getConversionsFor(target).get(type);
-    if (here != null) {
-      return here;
-    }
-    return exports.stream()
-        .map(scope -> scope.getConversionForType(target, type))
-        .filter(Objects::nonNull)
-        .findFirst()
-        .orElse(null);
+  Function getExportedConversion(Type target, Type source) {
+    return methodResolutionAlgorithm.getExportedConversion(this, target, source);
   }
 
   public List<Type> getAllTypes(String name) {
@@ -150,6 +198,10 @@ public final class ModuleScope implements EnsoObject {
     if (tpe0 != null) tpes.add(tpe0);
     tpes.addAll(types.values());
     return tpes;
+  }
+
+  public List<Type> getAllTypes() {
+    return types.values().stream().collect(Collectors.toUnmodifiableList());
   }
 
   @ExportMessage.Ignore
@@ -206,12 +258,13 @@ public final class ModuleScope implements EnsoObject {
     }
   }
 
-  Map<Type, Function> getConversionsFor(Type type) {
-    var result = conversions.get(type);
-    if (result == null) {
-      return new LinkedHashMap<>();
+  public Function getConversionFor(Type target, Type source) {
+    var conversionsOnType = conversions.get(target);
+    if (conversionsOnType == null) {
+      return null;
     }
-    return result;
+
+    return conversionsOnType.get(source);
   }
 
   /**
@@ -234,10 +287,20 @@ public final class ModuleScope implements EnsoObject {
   }
 
   /**
-   * @return the polyglot symbol imported into this scope.
+   * Finds a polyglot symbol supplier. The supplier will then load the provided {@code symbolName}
+   * when its {@link Supplier#get()} method is called.
+   *
+   * @param symbolName name of the symbol to search for
+   * @return non-{@code null} supplier of a polyglot symbol imported into this scope
    */
-  public Object getPolyglotSymbol(String symbolName) {
-    return polyglotSymbols.get(symbolName);
+  public Supplier<TruffleObject> getPolyglotSymbolSupplier(String symbolName) {
+    var supplier = polyglotSymbols.get(symbolName);
+    if (supplier != null) {
+      return supplier;
+    }
+    var ctx = EnsoContext.get(null);
+    var err = ctx.getBuiltins().error().makeMissingPolyglotImportError(symbolName);
+    return CachingSupplier.forValue(err);
   }
 
   @ExportMessage
@@ -255,12 +318,18 @@ public final class ModuleScope implements EnsoObject {
     return "Scope" + module;
   }
 
+  @Override
+  @TruffleBoundary
+  public Object toDisplayString(boolean allowSideEffects) {
+    return toString();
+  }
+
   public static class Builder {
 
     @CompilerDirectives.CompilationFinal private ModuleScope moduleScope = null;
     private final Module module;
     private final Type associatedType;
-    private final Map<String, Object> polyglotSymbols;
+    private final Map<String, Supplier<TruffleObject>> polyglotSymbols;
     private final Map<String, Type> types;
     private final Map<Type, Map<String, Supplier<Function>>> methods;
     private final Map<Type, Map<Type, Function>> conversions;
@@ -292,7 +361,7 @@ public final class ModuleScope implements EnsoObject {
     public Builder(
         Module module,
         Type associatedType,
-        Map<String, Object> polyglotSymbols,
+        Map<String, Supplier<TruffleObject>> polyglotSymbols,
         Map<String, Type> types,
         Map<Type, Map<String, Supplier<Function>>> methods,
         Map<Type, Map<Type, Function>> conversions,
@@ -341,7 +410,7 @@ public final class ModuleScope implements EnsoObject {
       if (methodMap.containsKey(method) && !type.isBuiltin()) {
         throw new RedefinedMethodException(type.getName(), method);
       } else {
-        methodMap.put(method, new CachingSupplier<>(function));
+        methodMap.put(method, CachingSupplier.forValue(function));
       }
     }
 
@@ -361,7 +430,7 @@ public final class ModuleScope implements EnsoObject {
       if (methodMap.containsKey(method) && !type.isBuiltin()) {
         throw new RedefinedMethodException(type.getName(), method);
       } else {
-        methodMap.put(method, new CachingSupplier<>(supply));
+        methodMap.put(method, CachingSupplier.wrap(supply));
       }
     }
 
@@ -386,11 +455,11 @@ public final class ModuleScope implements EnsoObject {
      * Registers a new symbol in the polyglot namespace.
      *
      * @param name the name of the symbol
-     * @param sym the value being exposed
+     * @param symbolFactory the value being exposed
      */
-    public void registerPolyglotSymbol(String name, Object sym) {
+    public void registerPolyglotSymbol(String name, Supplier<TruffleObject> symbolFactory) {
       assert moduleScope == null;
-      polyglotSymbols.put(name, sym);
+      polyglotSymbols.put(name, CachingSupplier.wrap(symbolFactory));
     }
 
     /**
@@ -464,6 +533,10 @@ public final class ModuleScope implements EnsoObject {
       return moduleScope;
     }
 
+    public Type getAssociatedType() {
+      return associatedType;
+    }
+
     public static ModuleScope.Builder fromCompilerModuleScopeBuilder(
         CompilerContext.ModuleScopeBuilder scopeBuilder) {
       return ((TruffleCompilerModuleScopeBuilder) scopeBuilder).unsafeScopeBuilder();
@@ -476,17 +549,25 @@ public final class ModuleScope implements EnsoObject {
      *     currently registered entities
      */
     public ModuleScope asModuleScope() {
-      if (moduleScope != null) return moduleScope;
-      else
-        return new ModuleScope(
-            module,
-            associatedType,
-            Collections.unmodifiableMap(polyglotSymbols),
-            Collections.unmodifiableMap(types),
-            Collections.unmodifiableMap(methods),
-            Collections.unmodifiableMap(conversions),
-            Collections.unmodifiableSet(imports),
-            Collections.unmodifiableSet(exports));
+      if (moduleScope != null) {
+        return moduleScope;
+      } else {
+        CompilerDirectives.transferToInterpreterAndInvalidate();
+        return createModuleScope();
+      }
+    }
+
+    @CompilerDirectives.TruffleBoundary
+    private ModuleScope createModuleScope() {
+      return new ModuleScope(
+          module,
+          associatedType,
+          Collections.unmodifiableMap(polyglotSymbols),
+          Collections.unmodifiableMap(types),
+          Collections.unmodifiableMap(methods),
+          Collections.unmodifiableMap(conversions),
+          Collections.unmodifiableSet(imports),
+          Collections.unmodifiableSet(exports));
     }
 
     @Override

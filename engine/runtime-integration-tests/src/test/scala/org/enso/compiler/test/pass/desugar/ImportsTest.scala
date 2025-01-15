@@ -57,7 +57,6 @@ class ImportsTest extends CompilerTest {
         |export Bar.Foo
         |export Bar.Foo as Bar
         |from Bar.Foo export Bar, Baz
-        |from Bar.Foo export all
         |
         |import Foo.Bar.Baz
         |export Foo.Bar.Baz
@@ -73,11 +72,10 @@ class ImportsTest extends CompilerTest {
     }
 
     "desugar project name exports correctly" in {
-      ir.exports.take(4).map(_.showCode()) shouldEqual List(
+      ir.exports.take(3).map(_.showCode()) shouldEqual List(
         "export Bar.Foo.Main as Foo",
         "export Bar.Foo.Main as Bar",
-        "from Bar.Foo.Main export Bar, Baz",
-        "from Bar.Foo.Main export all"
+        "from Bar.Foo.Main export Bar, Baz"
       )
     }
 

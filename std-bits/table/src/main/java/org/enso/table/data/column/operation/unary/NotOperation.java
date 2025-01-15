@@ -26,11 +26,7 @@ public class NotOperation extends AbstractUnaryBooleanOperation {
   public ColumnStorage apply(
       ColumnStorage storage, MapOperationProblemAggregator problemAggregator) {
     if (storage instanceof BoolStorage boolStorage) {
-      return new BoolStorage(
-          boolStorage.getValues(),
-          boolStorage.getIsNothingMap(),
-          boolStorage.size(),
-          !boolStorage.isNegated());
+      return boolStorage.makeNegated();
     }
 
     var builder = createBuilder(storage, problemAggregator);

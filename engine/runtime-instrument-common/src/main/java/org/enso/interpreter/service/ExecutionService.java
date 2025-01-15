@@ -3,10 +3,12 @@ package org.enso.interpreter.service;
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleLogger;
+import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.instrumentation.ExecutionEventNodeFactory;
 import com.oracle.truffle.api.interop.ArityException;
+import com.oracle.truffle.api.interop.ExceptionType;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
@@ -27,10 +29,9 @@ import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames;
 import org.enso.compiler.suggestions.SimpleUpdate;
 import org.enso.interpreter.instrument.Endpoint;
+import org.enso.interpreter.instrument.ExpressionExecutionState;
 import org.enso.interpreter.instrument.MethodCallsCache;
-import org.enso.interpreter.instrument.NotificationHandler;
 import org.enso.interpreter.instrument.RuntimeCache;
-import org.enso.interpreter.instrument.Timer;
 import org.enso.interpreter.instrument.UpdatesSynchronizationState;
 import org.enso.interpreter.instrument.VisualizationHolder;
 import org.enso.interpreter.instrument.profiling.ProfilingInfo;
@@ -45,6 +46,8 @@ import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.instrument.NotificationHandler;
+import org.enso.interpreter.runtime.instrument.Timer;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.service.error.FailedToApplyEditsException;
@@ -155,9 +158,11 @@ public final class ExecutionService {
    * @param methodCallsCache the storage tracking the executed method calls.
    * @param syncState the synchronization state of runtime updates.
    * @param nextExecutionItem the next item scheduled for execution.
+   * @param expressionExecutionState the execution state for each expression.
    * @param funCallCallback the consumer for function call events.
    * @param onComputedCallback the consumer of the computed value events.
    * @param onCachedCallback the consumer of the cached value events.
+   * @param onExecutedVisualizationCallback the consumer of an executed visualization result.
    */
   public void execute(
       VisualizationHolder visualizationHolder,
@@ -167,6 +172,7 @@ public final class ExecutionService {
       MethodCallsCache methodCallsCache,
       UpdatesSynchronizationState syncState,
       UUID nextExecutionItem,
+      ExpressionExecutionState expressionExecutionState,
       Consumer<ExecutionService.ExpressionCall> funCallCallback,
       Consumer<ExecutionService.ExpressionValue> onComputedCallback,
       Consumer<ExecutionService.ExpressionValue> onCachedCallback,
@@ -186,6 +192,7 @@ public final class ExecutionService {
             cache,
             methodCallsCache,
             syncState,
+            expressionExecutionState,
             onCachedCallback,
             onComputedCallback,
             funCallCallback,
@@ -200,7 +207,7 @@ public final class ExecutionService {
 
     Object p = context.getThreadManager().enter();
     try {
-      execute.getCallTarget().call(call);
+      execute.getCallTarget().call(substituteMissingArguments(call));
     } finally {
       context.getThreadManager().leave(p);
       eventNodeFactory.ifPresent(EventBinding::dispose);
@@ -218,9 +225,11 @@ public final class ExecutionService {
    * @param methodCallsCache the storage tracking the executed method calls.
    * @param syncState the synchronization state of runtime updates.
    * @param nextExecutionItem the next item scheduled for execution.
+   * @param expressionExecutionState the execution state for each expression.
    * @param funCallCallback the consumer for function call events.
    * @param onComputedCallback the consumer of the computed value events.
    * @param onCachedCallback the consumer of the cached value events.
+   * @param onExecutedVisualizationCallback the consumer of an executed visualization result.
    */
   public void execute(
       String moduleName,
@@ -231,6 +240,7 @@ public final class ExecutionService {
       MethodCallsCache methodCallsCache,
       UpdatesSynchronizationState syncState,
       UUID nextExecutionItem,
+      ExpressionExecutionState expressionExecutionState,
       Consumer<ExecutionService.ExpressionCall> funCallCallback,
       Consumer<ExecutionService.ExpressionValue> onComputedCallback,
       Consumer<ExecutionService.ExpressionValue> onCachedCallback,
@@ -253,10 +263,33 @@ public final class ExecutionService {
         methodCallsCache,
         syncState,
         nextExecutionItem,
+        expressionExecutionState,
         funCallCallback,
         onComputedCallback,
         onCachedCallback,
         onExecutedVisualizationCallback);
+  }
+
+  /**
+   * Replace missing arguments of the provided function call with {@link
+   * org.enso.interpreter.node.expression.builtin.Nothing} to make sure that the function call can
+   * be invoked.
+   *
+   * @param functionCall the function call to update
+   * @return a function call with the updated arguments
+   */
+  private FunctionCallInstrumentationNode.FunctionCall substituteMissingArguments(
+      FunctionCallInstrumentationNode.FunctionCall functionCall) {
+    var arguments = functionCall.getArguments().clone();
+    var argumentInfos = functionCall.getFunction().getSchema().getArgumentInfos();
+    for (var i = 0; i < arguments.length; i++) {
+      if (arguments[i] == null && !argumentInfos[i].hasDefaultValue()) {
+        arguments[i] = context.getBuiltins().nothing();
+      }
+    }
+
+    return new FunctionCallInstrumentationNode.FunctionCall(
+        functionCall.getFunction(), functionCall.getState(), arguments);
   }
 
   /**
@@ -336,6 +369,7 @@ public final class ExecutionService {
     Consumer<ExpressionValue> onCachedCallback =
         (value) -> context.getLogger().finest("_ON_CACHED_VALUE " + value.getExpressionId());
     Consumer<ExecutedVisualization> onExecutedVisualizationCallback = (value) -> {};
+    ExpressionExecutionState expressionExecutionState = new ExpressionExecutionState();
 
     var callbacks =
         new ExecutionCallbacks(
@@ -344,6 +378,7 @@ public final class ExecutionService {
             cache,
             methodCallsCache,
             syncState,
+            expressionExecutionState,
             onCachedCallback,
             onComputedCallback,
             funCallCallback,
@@ -477,6 +512,18 @@ public final class ExecutionService {
       }
     }
     return null;
+  }
+
+  public boolean isExitException(AbstractTruffleException ex) {
+    var interop = InteropLibrary.getUncached();
+    if (interop.isException(ex)) {
+      try {
+        return interop.getExceptionType(ex) == ExceptionType.EXIT;
+      } catch (UnsupportedMessageException e) {
+        throw new IllegalStateException(e);
+      }
+    }
+    return false;
   }
 
   /**
@@ -614,8 +661,8 @@ public final class ExecutionService {
   public static final class ExpressionValue {
     private final UUID expressionId;
     private final Object value;
-    private final String type;
-    private final String cachedType;
+    private final String[] types;
+    private final String[] cachedTypes;
     private final FunctionCallInfo callInfo;
     private final FunctionCallInfo cachedCallInfo;
     private final ProfilingInfo[] profilingInfo;
@@ -626,8 +673,8 @@ public final class ExecutionService {
      *
      * @param expressionId the id of the expression being computed.
      * @param value the value returned by computing the expression.
-     * @param type the type of the returned value.
-     * @param cachedType the cached type of the value.
+     * @param types the type of the returned value.
+     * @param cachedTypes the cached type of the value.
      * @param callInfo the function call data.
      * @param cachedCallInfo the cached call data.
      * @param profilingInfo the profiling information associated with this node
@@ -636,16 +683,16 @@ public final class ExecutionService {
     public ExpressionValue(
         UUID expressionId,
         Object value,
-        String type,
-        String cachedType,
+        String[] types,
+        String[] cachedTypes,
         FunctionCallInfo callInfo,
         FunctionCallInfo cachedCallInfo,
         ProfilingInfo[] profilingInfo,
         boolean wasCached) {
       this.expressionId = expressionId;
       this.value = value;
-      this.type = type;
-      this.cachedType = cachedType;
+      this.types = types;
+      this.cachedTypes = cachedTypes;
       this.callInfo = callInfo;
       this.cachedCallInfo = cachedCallInfo;
       this.profilingInfo = profilingInfo;
@@ -660,11 +707,11 @@ public final class ExecutionService {
           + expressionId
           + ", value="
           + (value == null ? "null" : new MaskedString(value.toString()).applyMasking())
-          + ", type='"
-          + type
+          + ", types='"
+          + Arrays.toString(types)
           + '\''
-          + ", cachedType='"
-          + cachedType
+          + ", cachedTypes='"
+          + Arrays.toString(cachedTypes)
           + '\''
           + ", callInfo="
           + callInfo
@@ -687,15 +734,15 @@ public final class ExecutionService {
     /**
      * @return the type of the returned value.
      */
-    public String getType() {
-      return type;
+    public String[] getTypes() {
+      return types;
     }
 
     /**
      * @return the cached type of the value.
      */
-    public String getCachedType() {
-      return cachedType;
+    public String[] getCachedTypes() {
+      return cachedTypes;
     }
 
     /**
@@ -737,7 +784,7 @@ public final class ExecutionService {
      * @return {@code true} when the type differs from the cached value.
      */
     public boolean isTypeChanged() {
-      return !Objects.equals(type, cachedType);
+      return !Arrays.equals(types, cachedTypes);
     }
 
     /**

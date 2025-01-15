@@ -10,7 +10,9 @@ import java.nio.file.Path
 import scala.util.Try
 
 /** A helper class for resolving editions. */
-class EditionManager private (editionProvider: UpdatingEditionProvider) {
+class EditionManager private (
+  editionProvider: editions.provider.EditionProvider
+) {
   private val editionResolver = EditionResolver(editionProvider)
   private val engineVersionResolver =
     editions.EngineVersionResolver(editionProvider)
@@ -46,18 +48,26 @@ class EditionManager private (editionProvider: UpdatingEditionProvider) {
 object EditionManager {
 
   /** Create an [[EditionProvider]] that can locate editions from the
-    * distribution and the language home.
+    * distribution (if updating) and the language home.
     */
-  def makeEditionProvider(
+  final def makeEditionProvider(
     distributionManager: DistributionManager,
-    languageHome: Option[LanguageHome]
-  ): UpdatingEditionProvider = {
-    val config = new GlobalConfigurationManager(distributionManager).getConfig
-    new UpdatingEditionProvider(
-      getSearchPaths(distributionManager, languageHome),
-      distributionManager.paths.cachedEditions,
-      config.editionProviders
-    )
+    languageHome: Option[LanguageHome],
+    updating: Boolean
+  ): editions.provider.EditionProvider = {
+    val config      = new GlobalConfigurationManager(distributionManager).getConfig
+    val searchPaths = getSearchPaths(distributionManager, languageHome)
+    val cachePath   = distributionManager.paths.cachedEditions
+    if (updating) {
+      new UpdatingEditionProvider(
+        searchPaths,
+        cachePath,
+        config.editionProviders
+      )
+    } else {
+      val actualSearchPaths = (searchPaths ++ List(cachePath)).distinct
+      new editions.provider.FileSystemEditionProvider(actualSearchPaths)
+    }
   }
 
   /** Get search paths associated with the distribution and language home. */
@@ -77,6 +87,6 @@ object EditionManager {
     distributionManager: DistributionManager,
     languageHome: Option[LanguageHome] = None
   ): EditionManager = new EditionManager(
-    makeEditionProvider(distributionManager, languageHome)
+    makeEditionProvider(distributionManager, languageHome, false)
   )
 }

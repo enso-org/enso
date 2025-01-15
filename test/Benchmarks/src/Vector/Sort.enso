@@ -53,9 +53,9 @@ type Int
 
 type Int_Comparator
     compare a:Int b:Int = Ordering.compare a.v b.v
-    hash i:Int = 3721 + Default_Comparator.hash_builtin i.v
+    hash i:Int = 3721 + Ordering.hash i.v
 
-Comparable.from(_:Int) = Int_Comparator
+Comparable.from that:Int = Comparable.new that Int_Comparator
 
 
 # The Benchmarks ==============================================================
@@ -70,8 +70,8 @@ type Data
     create vec_size =
         f1 s =  Data.make_sorted_vec s
         f2 s = make_partially_sorted_vec s
-        f3 s = Data.make_random_vec s
-        f4 s = (Data.make_random_vec s).map (v -> Int.Value v)
+        f3 s = Data.make_random_float_vec s
+        f4 s = (Data.make_random_float_vec s).map (v -> Int.Value v)
         f5 s = Utils.make_random_rational_vec s
         f6 s = f5 s . map (x-> x.to_float . floor + 2)
         Data.Value (f1 vec_size) (f2 vec_size) (f3 vec_size) (f4 vec_size) (f5 vec_size) (f6 vec_size)
@@ -79,8 +79,8 @@ type Data
     make_sorted_vec vec_size =
         make_sorted_ascending_vec vec_size
 
-    make_random_vec vec_size =
-        Utils.make_random_vec vec_size
+    make_random_float_vec vec_size =
+        Utils.make_random_float_vec vec_size
 
 
 collect_benches = Bench.build builder->

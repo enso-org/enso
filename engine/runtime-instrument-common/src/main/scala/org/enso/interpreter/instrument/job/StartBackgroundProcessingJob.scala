@@ -14,7 +14,7 @@ final class StartBackgroundProcessingJob()
     ) {
 
   /** @inheritdoc */
-  override def run(implicit ctx: RuntimeContext): Unit =
+  override def runImpl(implicit ctx: RuntimeContext): Unit =
     StartBackgroundProcessingJob.startBackgroundJobs()
 }
 
@@ -25,7 +25,7 @@ object StartBackgroundProcessingJob {
     val jobsStarted = ctx.jobControlPlane.startBackgroundJobs()
     if (jobsStarted) {
       ctx.executionService.getLogger
-        .log(Level.INFO, "Background jobs started.")
+        .log(Level.FINE, "Background jobs started")
       ctx.endpoint.sendToClient(
         Api.Response(Api.BackgroundJobsStartedNotification())
       )

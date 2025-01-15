@@ -22,12 +22,7 @@ import org.enso.interpreter.runtime.`type`.{Types, TypesGen}
 import org.enso.interpreter.runtime.data.atom.AtomConstructor
 import org.enso.interpreter.runtime.callable.function.Function
 import org.enso.interpreter.runtime.control.ThreadInterruptedException
-import org.enso.interpreter.runtime.error.{
-  DataflowError,
-  PanicSentinel,
-  WarningsLibrary,
-  WithWarnings
-}
+import org.enso.interpreter.runtime.error.{DataflowError, PanicSentinel}
 import org.enso.interpreter.service.ExecutionService.{
   ExpressionCall,
   ExpressionValue,
@@ -41,6 +36,11 @@ import org.enso.interpreter.service.error.{
   VisualizationException
 }
 import org.enso.common.LanguageInfo
+import org.enso.interpreter.runtime.warning.{
+  Warning,
+  WarningsLibrary,
+  WithWarnings
+}
 import org.enso.polyglot.debugger.ExecutedVisualization
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.{ContextId, ExecutionResult}
@@ -58,7 +58,7 @@ import scala.util.Try
   */
 object ProgramExecutionSupport {
 
-  /** Runs an Enso program.
+  /** Runs the program.
     *
     * @param contextId an identifier of an execution context
     * @param executionFrame an execution frame
@@ -95,6 +95,21 @@ object ProgramExecutionSupport {
     val onComputedValueCallback: Consumer[ExpressionValue] = { value =>
       if (callStack.isEmpty) {
         logger.log(Level.FINEST, s"ON_COMPUTED ${value.getExpressionId}")
+
+        if (VisualizationResult.isInterruptedException(value.getValue)) {
+          value.getValue match {
+            case e: AbstractTruffleException =>
+              sendInterruptedExpressionUpdate(
+                contextId,
+                executionFrame.syncState,
+                value
+              )
+              // Bail out early. Any references to this value that do not expect
+              // Interrupted error will likely return `No_Such_Method` otherwise.
+              throw new ThreadInterruptedException(e);
+            case _ =>
+          }
+        }
         sendExpressionUpdate(contextId, executionFrame.syncState, value)
         sendVisualizationUpdates(
           contextId,
@@ -143,6 +158,7 @@ object ProgramExecutionSupport {
           methodCallsCache,
           syncState,
           callStack.headOption.map(_.expressionId).orNull,
+          ctx.state.expressionExecutionState,
           callablesCallback,
           onComputedValueCallback,
           onCachedValueCallback,
@@ -184,6 +200,7 @@ object ProgramExecutionSupport {
           methodCallsCache,
           syncState,
           callStack.headOption.map(_.expressionId).orNull,
+          ctx.state.expressionExecutionState,
           callablesCallback,
           onComputedValueCallback,
           onCachedValueCallback,
@@ -196,14 +213,14 @@ object ProgramExecutionSupport {
         val notExecuted =
           methodCallsCache.getNotExecuted(executionFrame.cache.getCalls)
         notExecuted.forEach { expressionId =>
-          val expressionType = executionFrame.cache.getType(expressionId)
-          val expressionCall = executionFrame.cache.getCall(expressionId)
+          val expressionTypes = executionFrame.cache.getType(expressionId)
+          val expressionCall  = executionFrame.cache.getCall(expressionId)
           onCachedMethodCallCallback.accept(
             new ExpressionValue(
               expressionId,
               null,
-              expressionType,
-              expressionType,
+              expressionTypes,
+              expressionTypes,
               expressionCall,
               expressionCall,
               Array(ExecutionTime.empty()),
@@ -227,7 +244,7 @@ object ProgramExecutionSupport {
     }
   }
 
-  /** Runs an Enso program.
+  /** Runs the program.
     *
     * @param contextId an identifier of an execution context
     * @param stack a call stack
@@ -272,7 +289,9 @@ object ProgramExecutionSupport {
           Some(Api.ExecutionResult.Failure("Execution stack is empty.", None))
         )
       _ <-
-        Try(executeProgram(contextId, stackItem, localCalls)).toEither.left
+        Try(
+          executeProgram(contextId, stackItem, localCalls)
+        ).toEither.left
           .map(onExecutionError(stackItem.item, _))
     } yield ()
     logger.log(Level.FINEST, s"Execution finished: $executionResult")
@@ -324,9 +343,11 @@ object ProgramExecutionSupport {
     ctx: RuntimeContext
   ): PartialFunction[Throwable, Api.ExecutionResult.Diagnostic] = {
     case ex: AbstractTruffleException
+        // exit exception is special, and handled as failure rather than Diagnostics.
+        if !ctx.executionService.isExitException(ex) &&
         // The empty language is allowed because `getLanguage` returns null when
         // the error originates in builtin node.
-        if Option(ctx.executionService.getLanguage(ex))
+        Option(ctx.executionService.getLanguage(ex))
           .forall(_ == LanguageInfo.ID) =>
       val section = Option(ctx.executionService.getSourceLocation(ex))
       val source  = section.flatMap(sec => Option(sec.getSource))
@@ -357,8 +378,62 @@ object ProgramExecutionSupport {
         findFileByModuleName(ex.getModule)
       )
 
+    case exitEx: AbstractTruffleException
+        if ctx.executionService.isExitException(exitEx) =>
+      val section = Option(ctx.executionService.getSourceLocation(exitEx))
+      val source  = section.flatMap(sec => Option(sec.getSource))
+      val file    = source.flatMap(src => findFileByModuleName(src.getName))
+      Api.ExecutionResult.Failure(
+        exitEx.getMessage,
+        file
+      )
+
     case ex: ServiceException =>
       Api.ExecutionResult.Failure(ex.getMessage, None)
+  }
+
+  private def sendInterruptedExpressionUpdate(
+    contextId: ContextId,
+    syncState: UpdatesSynchronizationState,
+    value: ExpressionValue
+  )(implicit ctx: RuntimeContext): Unit = {
+    val expressionId = value.getExpressionId
+    val methodCall   = toMethodCall(value)
+    if (
+      !syncState.isExpressionSync(expressionId) ||
+      (methodCall.isDefined && !syncState.isMethodPointerSync(
+        expressionId
+      ))
+    ) {
+      val payload =
+        Api.ExpressionUpdate.Payload.Pending(None, None, wasInterrupted = true)
+      ctx.endpoint.sendToClient(
+        Api.Response(
+          Api.ExpressionUpdates(
+            contextId,
+            Set(
+              Api.ExpressionUpdate(
+                value.getExpressionId,
+                Option(value.getTypes).map(_.toVector),
+                methodCall,
+                value.getProfilingInfo.map { case e: ExecutionTime =>
+                  Api.ProfilingInfo.ExecutionTime(e.getNanoTimeElapsed)
+                }.toVector,
+                value.wasCached(),
+                value.isTypeChanged || value.isFunctionCallChanged,
+                payload
+              )
+            )
+          )
+        )
+      )
+
+      syncState.setExpressionSync(expressionId)
+      ctx.state.expressionExecutionState.setExpressionExecuted(expressionId)
+      if (methodCall.isDefined) {
+        syncState.setMethodPointerSync(expressionId)
+      }
+    }
   }
 
   private def sendExpressionUpdate(
@@ -375,31 +450,44 @@ object ProgramExecutionSupport {
           expressionId
         )
       ) ||
-      Types.isPanic(value.getType)
+      Types.isPanic(value.getTypes)
     ) {
       val payload = value.getValue match {
         case sentinel: PanicSentinel =>
-          Api.ExpressionUpdate.Payload
-            .Panic(
-              ctx.executionService.getExceptionMessage(sentinel.getPanic),
-              ErrorResolver.getStackTrace(sentinel).flatMap(_.expressionId)
-            )
+          Some(
+            Api.ExpressionUpdate.Payload
+              .Panic(
+                ctx.executionService.getExceptionMessage(sentinel.getPanic),
+                ErrorResolver.getStackTrace(sentinel).flatMap(_.expressionId)
+              )
+          )
         case error: DataflowError =>
-          Api.ExpressionUpdate.Payload.DataflowError(
-            ErrorResolver.getStackTrace(error).flatMap(_.expressionId)
+          Some(
+            Api.ExpressionUpdate.Payload.DataflowError(
+              ErrorResolver.getStackTrace(error).flatMap(_.expressionId)
+            )
           )
         case panic: AbstractTruffleException =>
-          Api.ExpressionUpdate.Payload
-            .Panic(
-              VisualizationResult.findExceptionMessage(panic),
-              ErrorResolver.getStackTrace(panic).flatMap(_.expressionId)
+          if (!VisualizationResult.isInterruptedException(panic)) {
+            Some(
+              Api.ExpressionUpdate.Payload.Panic(
+                VisualizationResult.findExceptionMessage(panic),
+                ErrorResolver.getStackTrace(panic).flatMap(_.expressionId)
+              )
             )
+          } else {
+            ctx.executionService.getLogger
+              .log(Level.FINE, "computation of expression has been interrupted")
+            None
+          }
         case warnings: WithWarnings
             if warnings.getValue.isInstanceOf[DataflowError] =>
-          Api.ExpressionUpdate.Payload.DataflowError(
-            ErrorResolver
-              .getStackTrace(warnings.getValue.asInstanceOf[DataflowError])
-              .flatMap(_.expressionId)
+          Some(
+            Api.ExpressionUpdate.Payload.DataflowError(
+              ErrorResolver
+                .getStackTrace(warnings.getValue.asInstanceOf[DataflowError])
+                .flatMap(_.expressionId)
+            )
           )
         case _ =>
           val warnings =
@@ -408,12 +496,9 @@ object ProgramExecutionSupport {
                 value.getValue
               )
             ) {
-              val warnings =
-                WarningsLibrary.getUncached.getWarnings(
-                  value.getValue,
-                  null,
-                  false
-                )
+              val warnsMap =
+                WarningsLibrary.getUncached.getWarnings(value.getValue, false)
+              val warnings      = Warning.fromMapToArray(warnsMap)
               val warningsCount = warnings.length
               val warning =
                 if (warningsCount > 0) {
@@ -467,30 +552,33 @@ object ProgramExecutionSupport {
               None
           }
 
-          Api.ExpressionUpdate.Payload.Value(warnings, schema)
+          Some(Api.ExpressionUpdate.Payload.Value(warnings, schema))
       }
-      ctx.endpoint.sendToClient(
-        Api.Response(
-          Api.ExpressionUpdates(
-            contextId,
-            Set(
-              Api.ExpressionUpdate(
-                value.getExpressionId,
-                Option(value.getType),
-                methodCall,
-                value.getProfilingInfo.map { case e: ExecutionTime =>
-                  Api.ProfilingInfo.ExecutionTime(e.getNanoTimeElapsed)
-                }.toVector,
-                value.wasCached(),
-                value.isTypeChanged || value.isFunctionCallChanged,
-                payload
+      payload.foreach { p =>
+        ctx.endpoint.sendToClient(
+          Api.Response(
+            Api.ExpressionUpdates(
+              contextId,
+              Set(
+                Api.ExpressionUpdate(
+                  value.getExpressionId,
+                  Option(value.getTypes).map(_.toVector),
+                  methodCall,
+                  value.getProfilingInfo.map { case e: ExecutionTime =>
+                    Api.ProfilingInfo.ExecutionTime(e.getNanoTimeElapsed)
+                  }.toVector,
+                  value.wasCached(),
+                  value.isTypeChanged || value.isFunctionCallChanged,
+                  p
+                )
               )
             )
           )
         )
-      )
+      }
 
       syncState.setExpressionSync(expressionId)
+      ctx.state.expressionExecutionState.setExpressionExecuted(expressionId)
       if (methodCall.isDefined) {
         syncState.setMethodPointerSync(expressionId)
       }
@@ -522,7 +610,7 @@ object ProgramExecutionSupport {
         } else {
           runtimeCache.getAnyValue(visualization.expressionId)
         }
-        if (v != null) {
+        if (v != null && !VisualizationResult.isInterruptedException(v)) {
           executeAndSendVisualizationUpdate(
             contextId,
             runtimeCache,
@@ -551,7 +639,7 @@ object ProgramExecutionSupport {
         Array[Object](
           visualization.id,
           expressionId,
-          Try(TypeOfNode.getUncached.execute(expressionValue))
+          Try(TypeOfNode.getUncached.findTypeOrError(expressionValue))
             .getOrElse(expressionValue.getClass)
         )
       )
@@ -611,11 +699,10 @@ object ProgramExecutionSupport {
           Option(error.getMessage).getOrElse(error.getClass.getSimpleName)
         if (!TypesGen.isPanicSentinel(expressionValue)) {
           val typeOfNode =
-            Option(TypeOfNode.getUncached.execute(expressionValue))
-              .getOrElse(expressionValue.getClass)
+            TypeOfNode.getUncached.findTypeOrError(expressionValue)
           ctx.executionService.getLogger.log(
             Level.WARNING,
-            "Execution of visualization [{0}] on value [{1}] of [{2}] failed. {3} | {4}",
+            "Execution of visualization [{0}] on value [{1}] of [{2}] failed. {3} | {4} | {5}",
             Array[Object](
               visualizationId,
               expressionId,
@@ -720,15 +807,23 @@ object ProgramExecutionSupport {
     * @param value the expression value.
     * @return the method call info
     */
-  private def toMethodCall(value: ExpressionValue): Option[Api.MethodCall] =
+  private def toMethodCall(value: ExpressionValue): Option[Api.MethodCall] = {
+    // While hiding the cached method pointer info for evaluated values, it is a
+    // good idea to return the cached method pointer value for dataflow errors
+    // (the one before the value turned into a dataflow error) to continue
+    // displaying widgets on child nodes even after those nodes become errors.
+    def notCachedAndNotDataflowError: Boolean =
+      !value.wasCached() && !value.getValue.isInstanceOf[DataflowError]
     for {
       call <-
-        if (Types.isPanic(value.getType)) Option(value.getCallInfo)
+        if (Types.isPanic(value.getTypes) || notCachedAndNotDataflowError)
+          Option(value.getCallInfo)
         else Option(value.getCallInfo).orElse(Option(value.getCachedCallInfo))
       methodPointer <- toMethodPointer(call.functionPointer)
     } yield {
       Api.MethodCall(methodPointer, call.notAppliedArguments.toVector)
     }
+  }
 
   /** Extract the method pointer information form the provided runtime function
     * pointer.

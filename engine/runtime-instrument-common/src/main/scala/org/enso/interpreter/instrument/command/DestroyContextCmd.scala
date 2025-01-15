@@ -34,10 +34,11 @@ class DestroyContextCmd(
   }
 
   private def removeContext()(implicit ctx: RuntimeContext): Unit = {
-    ctx.jobControlPlane.abortJobs(request.contextId)
+    ctx.jobControlPlane.abortJobs(request.contextId, "destroy context", false)
+    val contextLock = ctx.locking.getOrCreateContextLock(request.contextId)
     try {
       ctx.locking.withContextLock(
-        request.contextId,
+        contextLock,
         this.getClass,
         () => {
           ctx.contextManager.destroy(request.contextId)
@@ -45,7 +46,7 @@ class DestroyContextCmd(
         }
       )
     } finally {
-      ctx.locking.removeContextLock(request.contextId)
+      ctx.locking.removeContextLock(contextLock)
     }
   }
 

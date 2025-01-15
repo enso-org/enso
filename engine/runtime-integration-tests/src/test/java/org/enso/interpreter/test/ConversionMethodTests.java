@@ -10,8 +10,8 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
+import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -28,9 +28,10 @@ public class ConversionMethodTests {
   @AfterClass
   public static void disposeCtx() {
     ctx.close();
+    ctx = null;
   }
 
-  @Before
+  @After
   public void resetOutput() {
     out.reset();
   }
@@ -64,12 +65,12 @@ public class ConversionMethodTests {
     String src =
         """
        polyglot java import java.util.Map as Java_Map
-       import Standard.Base.Data.Map.Map
+       import Standard.Base.Data.Dictionary.Dictionary
 
        type Foo
           Mk_Foo data
 
-       Foo.from (that:Map) = Foo.Mk_Foo that
+       Foo.from (that:Dictionary) = Foo.Mk_Foo that
 
        main =
            jmap = Java_Map.of "A" 1 "B" 2 "C" 3
@@ -83,7 +84,7 @@ public class ConversionMethodTests {
   public void testDispatchOnJSMap() {
     String src =
         """
-       import Standard.Base.Data.Map.Map
+       import Standard.Base.Data.Dictionary.Dictionary
 
        foreign js js_map = '''
            let m = new Map()
@@ -94,7 +95,7 @@ public class ConversionMethodTests {
        type Foo
           Mk_Foo data
 
-       Foo.from (that:Map) = Foo.Mk_Foo that
+       Foo.from (that:Dictionary) = Foo.Mk_Foo that
 
        main =
            Foo.from js_map . data . size

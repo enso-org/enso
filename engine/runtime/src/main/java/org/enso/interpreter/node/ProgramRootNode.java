@@ -52,14 +52,21 @@ public class ProgramRootNode extends RootNode {
   public Object execute(VirtualFrame frame) {
     if (module == null) {
       CompilerDirectives.transferToInterpreterAndInvalidate();
-      QualifiedName name = QualifiedName.simpleName(canonicalizeName(sourceCode.getName()));
+      QualifiedName simpleName = QualifiedName.simpleName(canonicalizeName(sourceCode.getName()));
       EnsoContext ctx = EnsoContext.get(this);
       if (sourceCode.getPath() != null) {
         TruffleFile src = ctx.getTruffleFile(new File(sourceCode.getPath()));
         Package<TruffleFile> pkg = ctx.getPackageOf(src).orElse(null);
-        module = new Module(name, pkg, src);
+        QualifiedName qualifiedName;
+        if (pkg != null) {
+          qualifiedName =
+              QualifiedName.fromString(pkg.libraryName().toString() + "." + simpleName.item());
+        } else {
+          qualifiedName = simpleName;
+        }
+        module = new Module(qualifiedName, pkg, src);
       } else {
-        module = new Module(name, null, sourceCode.getCharacters().toString());
+        module = new Module(simpleName, null, sourceCode.getCharacters().toString());
       }
       ctx.getPackageRepository().registerModuleCreatedInRuntime(module.asCompilerModule());
       if (ctx.isStrictErrors()) {

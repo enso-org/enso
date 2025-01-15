@@ -33,7 +33,9 @@ public final class InvalidateModulesIndexCommand extends AsynchronousCommand {
           try {
             logger.log(Level.FINE, "Invalidating modules, cancelling background jobs");
             ctx.jobControlPlane().stopBackgroundJobs();
-            ctx.jobControlPlane().abortBackgroundJobs(DeserializeLibrarySuggestionsJob.class);
+            ctx.jobControlPlane()
+                .abortBackgroundJobs(
+                    "invalidate modules index", DeserializeLibrarySuggestionsJob.class);
 
             EnsoContext context = ctx.executionService().getContext();
             context

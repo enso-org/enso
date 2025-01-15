@@ -67,8 +67,35 @@ add_specs suite_builder =
             # 4 | SG0456 | E         | 73.77        | 5
             expected_table = data.table.zip expected_column
             result.should_equal expected_table
+        group_builder.specify "Setting the name the same as an existing column errors if update_mode not changed" <|
+            result = data.table.running Statistic.Count "Passenger" "Passenger"
+            result.should_fail_with (Existing_Column.Error 'Passenger')
+        group_builder.specify "Setting the name the same as an existing column works if update_mode update" <|
+            result = data.table.running Statistic.Count "Passenger" "Passenger" set_mode=..Update
+            expected_column = Column.from_vector "My Custom Name" [1, 2, 3, 4, 5]
+            #   | Flight | Passenger | Ticket Price 
+            #---+--------+-----------+--------------
+            # 0 | BA0123 | 1         | 100.5        
+            # 1 | BA0123 | 2         | 575.99       
+            # 2 | SG0456 | 3         | 73.23        
+            # 3 | BA0123 | 4         | 112.34       
+            # 4 | SG0456 | 5         | 73.77        
+            expected_table = data.table.set expected_column "Passenger"
+            result.should_equal expected_table
+        group_builder.specify "Not setting the name updates the first column if update_mode update" <|
+            result = data.table.running set_mode=..Update
+            expected_column = Column.from_vector "Flight" [1, 2, 3, 4, 5]
+            #   | Flight | Passenger | Ticket Price 
+            #---+--------+-----------+--------------
+            # 0 | 1      | A         | 100.5        
+            # 1 | 2      | B         | 575.99       
+            # 2 | 3      | A         | 73.23        
+            # 3 | 4      | C         | 112.34       
+            # 4 | 5      | E         | 73.77        
+            expected_table = data.table.set expected_column
+            result.should_equal expected_table
         group_builder.specify "Can group by and provide running count per group" <|
-            result = data.table.running Statistic.Count "Passenger" "Passenger num per flight" ["Flight"]
+            result = data.table.running Statistic.Count "Passenger" "Passenger num per flight" group_by=["Flight"]
             expected_column = Column.from_vector "Passenger num per flight" [1, 2, 1, 3, 2]
             #   | Flight | Passenger | Ticket Price | Passenger num per flight
             #---+--------+-----------+--------------+-------------------------
@@ -80,7 +107,7 @@ add_specs suite_builder =
             expected_table = data.table.zip expected_column
             result.should_equal expected_table
         group_builder.specify "Can group by and provide running count per group based on order by" <|
-            result = data.table.running Statistic.Count "Passenger" "Ranked ticket cost per pass" ["Passenger"] ["Ticket Price"]
+            result = data.table.running Statistic.Count "Passenger" "Ranked ticket cost per pass" group_by=["Passenger"] order_by=["Ticket Price"]
             expected_column = Column.from_vector "Ranked ticket cost per pass" [2, 1, 1, 1, 1]
             #   | Flight | Passenger | Ticket Price | Ranked ticket cost per pass
             #---+--------+-----------+--------------+-------------------------
@@ -92,7 +119,7 @@ add_specs suite_builder =
             expected_table = data.table.zip expected_column
             result.should_equal expected_table
         group_builder.specify "Can provide running count based on order by without grouping" <|
-            result = data.table.running Statistic.Count "Passenger" "Ranked ticket cost" [] ["Ticket Price"]
+            result = data.table.running Statistic.Count "Passenger" "Ranked ticket cost" order_by=["Ticket Price"]
             expected_column = Column.from_vector "Ranked ticket cost" [3, 5, 1, 4, 2]
             #   | Flight | Passenger | Ticket Price | Ranked ticket cost
             #---+--------+-----------+--------------+-------------------------
@@ -117,8 +144,35 @@ add_specs suite_builder =
             # 4 | SG0456 | E         | 73.77        | 935.83
             expected_table = data.table.zip expected_column
             result.should_equal expected_table
+        group_builder.specify "Setting the name the same as an existing column errors if update_mode not changed" <|
+            result = data.table.running Statistic.Sum "Ticket Price" "Ticket Price"
+            result.should_fail_with (Existing_Column.Error 'Ticket Price')
+        group_builder.specify "Setting the name the same as an existing column works if update_mode update" <|
+            result = data.table.running Statistic.Sum "Ticket Price" "Ticket Price" set_mode=..Update
+            expected_column = Column.from_vector "Ticket Price" [100.5, 676.49, 749.72, 862.0600000000001, 935.83]
+            #   | Flight | Passenger | Ticket Price
+            #---+--------+-----------+-------------------------
+            # 0 | BA0123 | A         | 100.5
+            # 1 | BA0123 | B         | 676.49
+            # 2 | SG0456 | A         | 749.72
+            # 3 | BA0123 | C         | 862.06
+            # 4 | SG0456 | E         | 935.83
+            expected_table = data.table.set expected_column "Ticket Price"
+            result.should_equal expected_table
+        group_builder.specify "Not setting the name overrides existing column if update_mode update" <|
+            result = data.table.running Statistic.Sum "Ticket Price" set_mode=..Update
+            expected_column = Column.from_vector "Ticket Price" [100.5, 676.49, 749.72, 862.0600000000001, 935.83]
+            #   | Flight | Passenger | Ticket Price
+            #---+--------+-----------+-------------------------
+            # 0 | BA0123 | A         | 100.5
+            # 1 | BA0123 | B         | 676.49
+            # 2 | SG0456 | A         | 749.72
+            # 3 | BA0123 | C         | 862.06
+            # 4 | SG0456 | E         | 935.83
+            expected_table = data.table.set expected_column "Ticket Price"
+            result.should_equal expected_table
         group_builder.specify "Can group by and provide running sum per group" <|
-            result = data.table.running Statistic.Sum "Ticket Price" "Running" ["Flight"]
+            result = data.table.running Statistic.Sum "Ticket Price" "Running" group_by=["Flight"]
             expected_column = Column.from_vector "Running" [100.5, 676.49, 73.23, 788.83, 147]
             #   | Flight | Passenger | Ticket Price | Running
             #---+--------+-----------+--------------+-------------------------
@@ -130,7 +184,7 @@ add_specs suite_builder =
             expected_table = data.table.zip expected_column
             result.should_equal expected_table
         group_builder.specify "Can group by and provide running sum per group based on order by" <|
-            result = data.table.running Statistic.Sum "Ticket Price" "Sum ticket cost per pass" ["Passenger"] ["Ticket Price"]
+            result = data.table.running Statistic.Sum "Ticket Price" "Sum ticket cost per pass" group_by=["Passenger"] order_by=["Ticket Price"]
             expected_column = Column.from_vector "Sum ticket cost per pass" [173.73000000000002, 575.99, 73.23, 112.34, 73.77]
             #   | Flight | Passenger | Ticket Price | Sum ticket cost per pass
             #---+--------+-----------+--------------+-------------------------
@@ -142,7 +196,7 @@ add_specs suite_builder =
             expected_table = data.table.zip expected_column
             result.should_equal expected_table
         group_builder.specify "Can provide running sum based on order by without grouping" <|
-            result = data.table.running Statistic.Sum "Ticket Price" "Sum ticket cost" [] ["Ticket Price"]
+            result = data.table.running Statistic.Sum "Ticket Price" "Sum ticket cost" order_by=["Ticket Price"]
             expected_column = Column.from_vector "Sum ticket cost" [247.5, 935.83, 73.23, 359.84000000000003, 147]
             #   | Flight | Passenger | Ticket Price | Sum ticket cost
             #---+--------+-----------+--------------+-------------------------
@@ -441,7 +495,7 @@ add_specs suite_builder =
             warnings = Problems.get_attached_warnings result
             warnings.not_empty . should_be_false
         group_builder.specify "Running min ignores nothing values and works with grouping and warns" <|
-            result = table.running Statistic.Minimum "Ticket Price" "Running" ["Flight"]
+            result = table.running Statistic.Minimum "Ticket Price" "Running" group_by=["Flight"]
             expected_column = Column.from_vector "Running" [100.5, 100.5, Nothing, 100.5, 73.77]
             #   | Flight | Passenger | Ticket Price | Running
             #---+--------+-----------+--------------+-------------------------
@@ -456,7 +510,7 @@ add_specs suite_builder =
             w.column.should_equal "Ticket Price"
             w.rows.should_equal [2, 3]
         group_builder.specify "Running max ignores nothing values and works with grouping and warns" <|
-            result = table.running Statistic.Maximum "Ticket Price" "Running" ["Flight"]
+            result = table.running Statistic.Maximum "Ticket Price" "Running" group_by=["Flight"]
             expected_column = Column.from_vector "Running" [100.5, 575.99, Nothing, 575.99, 73.77]
             #   | Flight | Passenger | Ticket Price | Running
             #---+--------+-----------+--------------+-------------------------
@@ -486,7 +540,7 @@ add_specs suite_builder =
             w.column.should_equal "Ticket Price"
             w.rows.should_equal [2, 3]
         group_builder.specify "Running mean ignores nothing values and works when first value is Nothing and warns" <|
-            result = table.running Statistic.Mean "Ticket Price" "Running" ["Flight"]
+            result = table.running Statistic.Mean "Ticket Price" "Running" group_by=["Flight"]
             expected_column = Column.from_vector "Running" [100.5, 338.245, Nothing, 338.245, 73.77]
             #   | Flight | Passenger | Ticket Price | Running
             #---+--------+-----------+--------------+-------------------------
@@ -556,7 +610,7 @@ add_specs suite_builder =
             warnings = Problems.get_attached_warnings result
             warnings.not_empty . should_be_false
         group_builder.specify "Running min ignores NaN values and works with grouping and warns" <|
-            result = table.running Statistic.Minimum "Ticket Price" "Running" ["Flight"]
+            result = table.running Statistic.Minimum "Ticket Price" "Running" group_by=["Flight"]
             expected_column = Column.from_vector "Running" [100.5, 100.5, Number.nan, 100.5, 73.77]
             #   | Flight | Passenger | Ticket Price | Running
             #---+--------+-----------+--------------+-------------------------
@@ -571,7 +625,7 @@ add_specs suite_builder =
             w.column.should_equal "Ticket Price"
             w.rows.should_equal [2, 3]
         group_builder.specify "Running max ignores NaN values and works with grouping and warns" <|
-            result = table.running Statistic.Maximum "Ticket Price" "Running" ["Flight"]
+            result = table.running Statistic.Maximum "Ticket Price" "Running" group_by=["Flight"]
             expected_column = Column.from_vector "Running" [100.5, 575.99, Number.nan, 575.99, 73.77]
             #   | Flight | Passenger | Ticket Price | Running
             #---+--------+-----------+--------------+-------------------------
@@ -601,7 +655,7 @@ add_specs suite_builder =
             w.column.should_equal "Ticket Price"
             w.rows.should_equal [2, 3]
         group_builder.specify "Running mean ignores NaN values and works when first value is NaN and warns" <|
-            result = table.running Statistic.Mean "Ticket Price" "Running" ["Flight"]
+            result = table.running Statistic.Mean "Ticket Price" "Running" group_by=["Flight"]
             expected_column = Column.from_vector "Running" [100.5, 338.245, Number.nan, 338.245, 73.77]
             #   | Flight | Passenger | Ticket Price | Running
             #---+--------+-----------+--------------+-------------------------

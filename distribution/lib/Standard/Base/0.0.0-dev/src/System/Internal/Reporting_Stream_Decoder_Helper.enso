@@ -12,6 +12,7 @@ import project.System.Input_Stream.Input_Stream
 from project.Data.Boolean import Boolean, False, True
 from project.Runtime import assert
 
+polyglot java import org.enso.base.encoding.DecodingProblem
 polyglot java import org.enso.base.encoding.DecodingProblemAggregator
 polyglot java import org.enso.base.encoding.Encoding_Utils
 polyglot java import org.enso.base.encoding.ReportingStreamDecoder

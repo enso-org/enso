@@ -91,7 +91,8 @@ object GraalVM {
   )
 
   val insightPkgs = Seq(
-    "org.graalvm.tools" % "insight-tool" % version
+    "org.graalvm.tools" % "insight-tool"      % version,
+    "org.graalvm.tools" % "insight-heap-tool" % version
   )
 
   private val espressoPkgs =

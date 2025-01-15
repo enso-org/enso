@@ -58,6 +58,19 @@ type Enso_User
     flush_caches : Nothing
     flush_caches = Utils.flush_caches
 
+    ## PRIVATE
+       Return a string representation of this user.
+    to_text : Text
+    to_text self =
+        if self.name == self.organization_name then self.name else
+            self.organization_name + '/' + self.name
+
+    ## PRIVATE
+       Convert to a display representation of this user.
+    to_display_text : Text
+    to_display_text self = "Enso_User {" + self.to_text + "}"
+
+
 ## PRIVATE
 Enso_User.from (that:JS_Object) =
     id = get_required_field "userId" that expected_type=Text

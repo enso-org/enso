@@ -52,6 +52,21 @@ type Sum_Type
     Variant_A x
     Variant_B y
 
+type R
+    private V a:Text i:Integer
+
+    as_text self = self:Text
+    as_int_text self =
+        r = (self : Integer & Text)
+        r
+    as_text_int self =
+        r = (self : Text & Integer)
+        r
+    as_int self = self:Integer
+
+Text.from (that:R) = that.a
+Integer.from (that:R) = that.i
+
 add_specs suite_builder =
     suite_builder.group "Meta-Value Manipulation" group_builder->
         group_builder.specify "should allow manipulating unresolved symbols" <|
@@ -209,6 +224,24 @@ add_specs suite_builder =
             e_tpe . should_equal_type IOException
             e_tpe . should_not_equal_type JException
 
+        group_builder.specify "multi_value_as_text" <|
+            v = R.V "hi" 3 . as_text
+            Meta.type_of v . should_equal Text
+
+        group_builder.specify "multi_value_as_int" <|
+            v = R.V "hi" 3 . as_int
+            Meta.type_of v . should_equal Integer
+
+        group_builder.specify "multi_value_as_text_int" <|
+            v = R.V "hi" 3 . as_text_int
+            Meta.type_of v . should_equal Text
+            v.is_a Text . should_be_true
+
+        group_builder.specify "multi_value_as_int_text" <|
+            v = R.V "hi" 3 . as_int_text
+            Meta.type_of v . should_equal Integer
+            v.is_a Integer . should_be_true
+
         group_builder.specify "constructors of Boolean" <|
             typ = Boolean
 
@@ -259,10 +292,10 @@ add_specs suite_builder =
             methods.sort . should_equal ['Value', 'create', 'factory', 'first_method', 'my_method', 'other_method', 'second_method']
 
         group_builder.specify "methods of Integer" <|
-            Meta.meta Integer . methods . sort . should_equal ['%', '*', '+', '-', '/', '<', '<=', '>', '>=', '^', 'abs', 'bit_and', 'bit_not', 'bit_or', 'bit_shift', 'bit_shift_l', 'bit_shift_r', 'bit_xor', 'ceil', 'div', 'floor', 'negate', 'round', 'to_decimal', 'to_float', 'truncate']
+            Meta.meta Integer . methods . sort . should_equal ['%', '*', '+', '-', '/', '<', '<=', '>', '>=', '^', 'abs', 'bit_and', 'bit_not', 'bit_or', 'bit_shift', 'bit_shift_l', 'bit_shift_r', 'bit_xor', 'ceil', 'div', 'fits_in_long', 'floor', 'negate', 'round', 'to_decimal', 'to_float', 'truncate']
 
         group_builder.specify "static methods of Integer" <|
-            Meta.meta (Meta.type_of Integer) . methods . sort . should_equal ['%', '*', '+', '-', '/', '<', '<=', '>', '>=', '^', 'abs', 'bit_and', 'bit_not', 'bit_or', 'bit_shift', 'bit_shift_l', 'bit_shift_r', 'bit_xor', 'ceil', 'div', 'floor', 'negate', 'parse', 'round', 'to_decimal', 'to_float', 'truncate']
+            Meta.meta (Meta.type_of Integer) . methods . sort . should_equal ['%', '*', '+', '-', '/', '<', '<=', '>', '>=', '^', 'abs', 'bit_and', 'bit_not', 'bit_or', 'bit_shift', 'bit_shift_l', 'bit_shift_r', 'bit_xor', 'ceil', 'div', 'fits_in_long', 'floor', 'negate', 'parse', 'round', 'to_decimal', 'to_float', 'truncate']
 
         group_builder.specify "methods of Any" <|
             Meta.meta Any . methods . should_contain "to_text"

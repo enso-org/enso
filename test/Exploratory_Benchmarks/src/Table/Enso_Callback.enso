@@ -25,7 +25,7 @@ type Boxed_Enso_Callback_Test
     java_roundtrip self =
         expected_type = Storage.from_value_type_strict Value_Type.Char
         Column.from_storage "result" <|
-            Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
+            Java_Problems.with_problem_aggregator ..Report_Warning java_problem_aggregator->
                 MapHelpers.mapCallback (Storage.get_storage_for_column self.text_column) self.fn expected_type java_problem_aggregator
 
     enso_map_as_vector self convert_polyglot_dates =
@@ -67,7 +67,7 @@ type Primitive_Enso_Callback_Test
     java_roundtrip self =
         expected_type = Storage.from_value_type_strict Value_Type.Integer
         Column.from_storage "result" <|
-            Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
+            Java_Problems.with_problem_aggregator ..Report_Warning java_problem_aggregator->
                 MapHelpers.mapCallback (Storage.get_storage_for_column self.int_column) self.fn expected_type java_problem_aggregator
 
     enso_map_as_vector_inferred_builder self convert_polyglot_dates =
@@ -80,7 +80,7 @@ type Primitive_Enso_Callback_Test
         mapped = vector_proxy.map self.fn
         # No expected storage will use inferred builder.
         expected_storage_type = Storage.from_value_type_strict Value_Type.Integer
-        java_column = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Error java_problem_aggregator->
+        java_column = Java_Problems.with_problem_aggregator ..Report_Error java_problem_aggregator->
             Java_Column.fromItemsNoDateConversion "result" mapped expected_storage_type java_problem_aggregator
         Column.from_storage java_column.getName java_column.getStorage
 

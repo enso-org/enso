@@ -36,6 +36,7 @@ public class SuccessfulAssertionExpressionTest {
   @AfterClass
   public static void disposeCtx() {
     ctx.close(true);
+    ctx = null;
   }
 
   @After

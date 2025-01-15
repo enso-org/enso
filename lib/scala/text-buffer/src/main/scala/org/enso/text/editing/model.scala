@@ -1,5 +1,7 @@
 package org.enso.text.editing
 
+import java.util.UUID
+
 object model {
 
   /** A representation of a position in a text file.
@@ -57,5 +59,20 @@ object model {
     * @param text a change to a text file
     */
   case class TextEdit(range: Range, text: String)
+
+  /** A text span denoted by its absolute start and end indexes.
+    *
+    * @param start the start index of a span
+    * @param end the end index of a span
+    */
+  case class Span(start: Int, end: Int) {
+    def length: Int = end - start
+  }
+
+  /** The mapping between the text spans and their identifiers.
+    *
+    * @param values the list of span-uuid pairs
+    */
+  case class IdMap(values: Vector[(Span, UUID)])
 
 }

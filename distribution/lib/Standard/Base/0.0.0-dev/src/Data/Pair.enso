@@ -295,3 +295,12 @@ check_start_valid start function max=3 =
     used_start = if start < 0 then start + 2 else start
     if used_start < 0 || used_start >= max then Error.throw (Index_Out_Of_Bounds.Error start max) else
         function used_start
+
+## ICON array_new
+   Create a new Pair from two elements.
+
+   Arguments:
+   - first: The first element.
+   - second: The second element.
+pair : Any -> Any -> Pair
+pair first second -> Pair = Pair.new first second

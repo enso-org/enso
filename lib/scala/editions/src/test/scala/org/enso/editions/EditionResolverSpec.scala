@@ -54,7 +54,8 @@ class EditionResolverSpec
     ): Either[EditionLoadingError, Editions.Raw.Edition] =
       editions.get(name).toRight(EditionNotFound(name))
 
-    override def findAvailableEditions(): Seq[String] = editions.keys.toSeq
+    override def findAvailableEditions(update: Boolean): Seq[String] =
+      editions.keys.toSeq
   }
 
   val resolver = EditionResolver(FakeEditionProvider)

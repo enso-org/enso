@@ -1,6 +1,5 @@
 package org.enso.interpreter.caches;
 
-import buildinfo.Info;
 import com.oracle.truffle.api.TruffleLogger;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -18,6 +17,7 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.persist.Persistable;
 import org.enso.persist.Persistance;
 import org.enso.polyglot.Suggestion;
+import org.enso.version.BuildVersion;
 
 @Persistable(clazz = CachedSuggestions.class, id = 30301)
 @Persistable(clazz = Suggestion.Constructor.class, id = 30303)
@@ -45,7 +45,7 @@ public final class SuggestionsCache
       LibraryName libraryName) {
     var impl = new SuggestionsCache(libraryName);
     var logName = "Suggestions(" + libraryName + ")";
-    return Cache.create(impl, Level.INFO, logName, true, false);
+    return Cache.create(impl, Level.FINE, logName, true, false);
   }
 
   @Override
@@ -84,9 +84,8 @@ public final class SuggestionsCache
   }
 
   @Override
-  public Optional<Metadata> metadataFromBytes(byte[] bytes, TruffleLogger logger)
-      throws IOException {
-    return Optional.of(Metadata.read(bytes));
+  public Metadata metadataFromBytes(byte[] bytes, TruffleLogger logger) throws IOException {
+    return Metadata.read(bytes);
   }
 
   @Override
@@ -106,7 +105,8 @@ public final class SuggestionsCache
         .getPackageForLibraryJava(libraryName)
         .map(
             pkg -> {
-              var bindingsCacheRoot = pkg.getSuggestionsCacheRootForPackage(Info.ensoVersion());
+              var bindingsCacheRoot =
+                  pkg.getSuggestionsCacheRootForPackage(BuildVersion.ensoVersion());
               var localCacheRoot = bindingsCacheRoot.resolve(libraryName.namespace());
               var distribution = context.getDistributionManager();
               var pathSegments =
@@ -114,7 +114,7 @@ public final class SuggestionsCache
                     pkg.namespace(),
                     pkg.normalizedName(),
                     pkg.getConfig().version(),
-                    Info.ensoVersion(),
+                    BuildVersion.ensoVersion(),
                     libraryName.namespace()
                   };
               var path =

@@ -1,5 +1,6 @@
 package org.enso.interpreter.epb;
 
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.NodeField;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropException;
@@ -34,15 +35,15 @@ abstract class JsForeignNode extends ForeignFunctionCallNode {
   @Specialization
   Object doExecute(Object[] arguments, @CachedLibrary("foreignFunction") InteropLibrary iop)
       throws InteropException {
-    var args = new ArgumentsArray(arguments);
     var self = arguments[0];
+    var args = new ArgumentsArray(arguments);
     var raw = iop.invokeMember(getForeignFunction(), "apply", self, args);
     return coercePrimitiveNode.execute(raw);
   }
 
   @ExportLibrary(InteropLibrary.class)
   static final class ArgumentsArray implements TruffleObject {
-    private static final int OFFSET = 1;
+    private static final int OFFSET = 0;
     private final Object[] items;
 
     public ArgumentsArray(Object... items) {
@@ -88,6 +89,7 @@ abstract class JsForeignNode extends ForeignFunctionCallNode {
     }
 
     @Override
+    @TruffleBoundary
     public String toString() {
       return Arrays.toString(items);
     }

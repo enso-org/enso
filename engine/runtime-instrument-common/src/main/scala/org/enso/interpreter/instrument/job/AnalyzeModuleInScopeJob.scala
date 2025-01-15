@@ -22,7 +22,7 @@ final class AnalyzeModuleInScopeJob(
   private val exportsBuilder = new ExportsBuilder
 
   /** @inheritdoc */
-  override def run(implicit ctx: RuntimeContext): Unit = {
+  override def runImpl(implicit ctx: RuntimeContext): Unit = {
     // There are two runtime flags that can disable suggestions for project
     // and global modules (libraries). They are used primarily in tests to
     // disable the suggestion updates and reduce the number of messages that

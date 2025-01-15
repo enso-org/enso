@@ -3,6 +3,7 @@ package org.enso.interpreter.runtime.type;
 import com.oracle.truffle.api.dsl.TypeSystem;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
+import java.util.Arrays;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -22,9 +23,11 @@ import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
-import org.enso.interpreter.runtime.error.Warning;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.enso.interpreter.runtime.warning.Warning;
+import org.enso.interpreter.runtime.warning.WarningsLibrary;
+import org.enso.interpreter.runtime.warning.WithWarnings;
 import org.enso.polyglot.data.TypeGraph;
 
 /**
@@ -57,6 +60,8 @@ import org.enso.polyglot.data.TypeGraph;
   PanicSentinel.class,
   EnsoHashMap.class,
   Warning.class,
+  WithWarnings.class,
+  WarningsLibrary.class,
   EnsoFile.class,
   EnsoDate.class,
   EnsoDateTime.class,
@@ -67,6 +72,7 @@ import org.enso.polyglot.data.TypeGraph;
 public class Types {
 
   private static final TypeGraph typeHierarchy = buildTypeHierarchy();
+  private static final String[] PANIC_TYPE = new String[] {ConstantsGen.PANIC};
 
   /**
    * A simple pair type
@@ -115,8 +121,8 @@ public class Types {
   }
 
   /** Check if the given type is a panic. */
-  public static boolean isPanic(String typeName) {
-    return ConstantsGen.PANIC.equals(typeName);
+  public static boolean isPanic(String[] typeNames) {
+    return Arrays.equals(PANIC_TYPE, typeNames);
   }
 
   /**

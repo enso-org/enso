@@ -209,6 +209,26 @@ type Period
             if self.days==0 . not then builder.append ["days", self.days]
         JS_Object.from_pairs v
 
+    ## PRIVATE
+       GROUP convert
+       ICON enso_logo
+       Convert the value to a corresponding Enso code representation.
+
+       > Example
+         Getting the Enso code of the period 1 month and 2 days.
+
+             (Period.new months=1 days=2).pretty
+             ## Returns a Text
+                Time_Of_Day.new 12 34 millisecond=500
+    pretty : Text
+    pretty self =
+        parts = Vector.build builder->
+            builder.append "Period.new"
+            if self.years != 0 then builder.append ((if builder.length!=1 then " years=" else " ") + self.years.to_text)
+            if self.months != 0 then builder.append ((if builder.length!=2 then " months=" else " ") + self.months.to_text)
+            if self.days != 0 then builder.append ((if builder.length!=3 then " days=" else " ") + self.days.to_text)
+        parts.join ""
+
 ## PRIVATE
 catch_java_exceptions operation ~action =
     handle_arithmetic_exception caught_panic =

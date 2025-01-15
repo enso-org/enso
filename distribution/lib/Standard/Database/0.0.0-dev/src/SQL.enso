@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.State
 
 import Standard.Table.Internal.Vector_Builder.Vector_Builder
@@ -20,7 +21,7 @@ type SQL_Fragment
 
        Arguments:
        - code: A fragment of SQL code.
-    Code_Part code:Text
+    private Code_Part code:Text
 
     ## PRIVATE
 
@@ -29,7 +30,7 @@ type SQL_Fragment
 
        Arguments:
        - object: A value that will be interpolated into the query.
-    Interpolation object:Any
+    private Interpolation object:Any
 
 ## PRIVATE
 type SQL_Builder
@@ -49,7 +50,7 @@ type SQL_Builder
     code : Text -> SQL_Builder
     code text =
         vec = if text.is_empty then [] else [SQL_Fragment.Code_Part text]
-        SQL_Builder.Value (Vector_Builder.from_vector vec)
+        SQL_Builder.from_fragments vec
 
     ## PRIVATE
        ADVANCED
@@ -59,7 +60,12 @@ type SQL_Builder
        - object: The object to be interpolated into the query as if it has the type
          given by `sql_type`.
     interpolation : Any -> SQL_Builder
-    interpolation object = SQL_Builder.Value (Vector_Builder.from_vector [SQL_Fragment.Interpolation object])
+    interpolation object = SQL_Builder.from_fragments [SQL_Fragment.Interpolation object]
+
+    ## PRIVATE
+       Creates an SQL_Builder from a list of fragments.
+    from_fragments : Vector SQL_Fragment -> SQL_Builder
+    from_fragments fragments = SQL_Builder.Value (Vector_Builder.from_vector fragments)
 
     ## PRIVATE
        ADVANCED
@@ -86,7 +92,7 @@ type SQL_Builder
 
        It can be used to concatenate parts of SQL code in O(1) time and at the
        end build the actual query in linear time.
-    Value (fragments:(Vector_Builder SQL_Fragment))
+    private Value (fragments:(Vector_Builder SQL_Fragment))
 
     ## PRIVATE
        ADVANCED
@@ -117,6 +123,13 @@ type SQL_Builder
                     SQL_Fragment.Interpolation _ -> True
                     _ -> False
                 _ -> False
+
+    ## PRIVATE
+       Extracts the interpolated constant from the builder.
+       This can only be called if `is_constant` returns `True`.
+    extract_constant self =
+        if self.is_constant.not then Panic.throw (Illegal_State.Error "`SQL_Builder.extract_constant called on a builder that is not a constant.") else
+            self.fragments.vec.first.object
 
     ## PRIVATE
        ADVANCED

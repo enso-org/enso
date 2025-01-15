@@ -10,7 +10,7 @@ import org.enso.compiler.core.ir.{
   Module,
   Name
 }
-import org.enso.compiler.core.ir.expression.{Application, Operator}
+import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.expression.Error
 import org.enso.compiler.core.ir.module.scope.definition
@@ -287,7 +287,7 @@ class FunctionBindingTest extends CompilerTest {
     "work recursively" in {
       val ir =
         """
-          |f (a = (f a = a)) =
+          |f (a = (f a=a)) =
           |    g b = b
           |    g 1
           |""".stripMargin.preprocessExpression.get.desugar
@@ -299,14 +299,17 @@ class FunctionBindingTest extends CompilerTest {
         .head
         .asInstanceOf[DefinitionArgument.Specified]
       aArg.name.name shouldEqual "a"
-      aArg.defaultValue.get
-        .asInstanceOf[Operator.Binary]
-        .left
-        .value
-        .asInstanceOf[Application.Prefix]
-        .function
+      val aDefault = aArg.defaultValue.get.asInstanceOf[Application.Prefix]
+      aDefault.function
         .asInstanceOf[Name.Literal]
         .name shouldEqual "f"
+      val aDefaultArgA = aDefault.arguments.head
+      aDefaultArgA.name.get
+        .asInstanceOf[Name.Literal]
+        .name shouldEqual "a"
+      aDefaultArgA.value
+        .asInstanceOf[Name.Literal]
+        .name shouldEqual "a"
 
       val body = ir.expression
         .asInstanceOf[Function.Lambda]

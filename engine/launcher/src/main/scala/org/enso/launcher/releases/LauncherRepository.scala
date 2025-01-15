@@ -16,6 +16,7 @@ import org.enso.runtimeversionmanager.releases.{
   ReleaseProvider,
   SimpleReleaseProvider
 }
+import org.enso.version.BuildVersion
 
 /** Represents the default Enso repository providing releases of the launcher.
   *
@@ -31,6 +32,9 @@ object LauncherRepository {
     */
   private val launcherFallbackProviderHostname =
     "launcherfallback.release.enso.org"
+
+  /** URL to the repo that could be displayed to the user. */
+  def websiteUrl: String = "https://github.com/enso-org/enso"
 
   /** Defines a part of the URL scheme of the fallback mechanism - the name of
     * the directory that holds the releases.
@@ -60,7 +64,7 @@ object LauncherRepository {
     fakeRepositoryRoot: Path,
     shouldWaitForAssets: Boolean
   ): Unit =
-    if (buildinfo.Info.isRelease)
+    if (BuildVersion.isRelease)
       throw new IllegalStateException(
         "Internal testing function internalUseFakeRepository used in a " +
         "release build."

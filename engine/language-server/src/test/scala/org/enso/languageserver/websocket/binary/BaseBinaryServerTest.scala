@@ -6,7 +6,8 @@ import akka.actor.{ActorRef, Props}
 import akka.http.scaladsl.model.RemoteAddress
 import com.google.flatbuffers.FlatBufferBuilder
 import org.apache.commons.io.FileUtils
-import org.enso.languageserver.boot.{ProfilingConfig, StartupConfig}
+import org.enso.runner.common.ProfilingConfig
+import org.enso.languageserver.boot.StartupConfig
 import org.enso.languageserver.data.{
   Config,
   ExecutionContextConfig,

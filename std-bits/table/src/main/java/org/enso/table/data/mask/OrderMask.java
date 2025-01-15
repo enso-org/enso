@@ -13,6 +13,9 @@ public interface OrderMask {
    * storage at the {@code idx}-th position. It may return {@link
    * org.enso.table.data.storage.Storage.NOT_FOUND_INDEX}, in which case a missing value should be
    * inserted at this position.
+   *
+   * <p>Indices may appear zero or multiple times in the mask - meaning rows that will be gone or
+   * duplicated.
    */
   int get(int idx);
 

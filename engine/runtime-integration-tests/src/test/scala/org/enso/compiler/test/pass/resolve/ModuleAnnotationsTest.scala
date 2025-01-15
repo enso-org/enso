@@ -7,6 +7,7 @@ import org.enso.compiler.core.ir.Function
 import org.enso.compiler.core.ir.Module
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.expression.Comment
+import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
@@ -184,7 +185,7 @@ class ModuleAnnotationsTest extends CompilerTest {
       ir.bindings.head shouldBe a[Definition.SugaredType]
       val typ = ir.bindings.head.asInstanceOf[Definition.SugaredType]
       typ.body.length shouldEqual 3
-      typ.body(0) shouldBe an[Name.GenericAnnotation]
+      typ.body(0) shouldBe an[errors.Syntax]
       typ.body(1) shouldBe an[Comment]
       typ.body(2) shouldBe a[Definition.Data]
     }

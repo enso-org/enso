@@ -6,7 +6,7 @@ import org.enso.interpreter.runtime.`type`.ConstantsGen
 import org.enso.interpreter.test.Metadata
 import org.enso.common.LanguageInfo
 import org.enso.common.MethodNames
-import org.enso.polyglot.RuntimeOptions
+import org.enso.common.RuntimeOptions
 import org.enso.polyglot.RuntimeServerInfo
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.editing.model
@@ -182,7 +182,8 @@ class RuntimeTypesTest
               ".id"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -262,7 +263,8 @@ class RuntimeTypesTest
               " . id"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -345,7 +347,8 @@ class RuntimeTypesTest
               "S"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -367,7 +370,6 @@ class RuntimeTypesTest
       TestMessages.panic(
         contextId,
         id_x,
-        Api.MethodCall(Api.MethodPointer(moduleName, s"$moduleName.T", "C")),
         Api.ExpressionUpdate.Payload.Panic("Compile_Error", List(id_x)),
         builtin = true
       ),
@@ -391,7 +393,8 @@ class RuntimeTypesTest
               "T"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -479,7 +482,8 @@ class RuntimeTypesTest
               "S"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -518,7 +522,8 @@ class RuntimeTypesTest
               "S"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )

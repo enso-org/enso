@@ -3,7 +3,7 @@ package org.enso.interpreter.test.instrument
 import org.enso.interpreter.runtime.`type`.ConstantsGen
 import org.enso.interpreter.test.Metadata
 import org.enso.common.LanguageInfo
-import org.enso.polyglot.RuntimeOptions
+import org.enso.common.RuntimeOptions
 import org.enso.polyglot.RuntimeServerInfo
 import org.enso.polyglot.runtime.Runtime.Api
 import org.graalvm.polyglot.Context
@@ -543,6 +543,70 @@ class BuiltinTypesTest
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, idMain, ConstantsGen.NOTHING),
+      context.executionComplete(contextId)
+    )
+  }
+
+  it should "send updates of an intersection type" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val metadata = new Metadata
+    val id_x     = metadata.addItem(46, 3, "aa")
+
+    val code =
+      """from Standard.Base import all
+        |
+        |main =
+        |    x = foo
+        |    x
+        |
+        |foo : Text & Integer
+        |foo = (42 : Text & Integer)
+        |
+        |Text.from that:Integer = that.to_text
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.updateMultiType(
+        contextId,
+        id_x,
+        Vector(ConstantsGen.TEXT, ConstantsGen.INTEGER),
+        methodCall =
+          Some(Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "foo")))
+      ),
       context.executionComplete(contextId)
     )
   }

@@ -7,7 +7,7 @@ import org.enso.pkg.{ComponentGroups, QualifiedName}
 import org.enso.polyglot.{ModuleExports, Suggestion}
 import org.enso.polyglot.data.{Tree, TypeGraph}
 import org.enso.text.editing.model
-import org.enso.text.editing.model.{Range, TextEdit}
+import org.enso.text.editing.model.{IdMap, Range, TextEdit}
 
 import java.io.File
 import java.util.UUID
@@ -108,20 +108,18 @@ object Runtime {
     /** An update about the computed expression.
       *
       * @param expressionId the expression id
-      * @param expressionType the type of expression
+      * @param expressionTypes the type of expression
       * @param methodCall the underlying method call of this expression
-      * @param profilingInfo profiling information about the execution of this
-      * expression
-      * @param fromCache whether or not the value for this expression came
-      * from the cache
-      * @param typeChanged whether or not the type of the value or method definition
+      * @param profilingInfo profiling information about the execution of this expression
+      * @param fromCache whether the value for this expression came from the cache
+      * @param typeChanged whether the type of the value or method definition
       * has changed from the one that was cached, if any
       * @param payload an extra information about the computed value
       */
     @named("expressionUpdate")
     case class ExpressionUpdate(
       expressionId: ExpressionId,
-      expressionType: Option[String],
+      expressionTypes: Option[Vector[String]],
       methodCall: Option[MethodCall],
       profilingInfo: Vector[ProfilingInfo],
       fromCache: Boolean,
@@ -160,11 +158,14 @@ object Runtime {
           )
         }
 
-        /** TBD
+        /** Indicates that an expression is pending a computation
           */
         @named("expressionUpdatePayloadPending")
-        case class Pending(message: Option[String], progress: Option[Double])
-            extends Payload;
+        case class Pending(
+          message: Option[String],
+          progress: Option[Double],
+          wasInterrupted: Boolean = false
+        ) extends Payload
 
         /** Indicates that the expression was computed to an error.
           *
@@ -691,6 +692,16 @@ object Runtime {
       }
     }
 
+    /** The configuration of how to execute the expression.
+      *
+      * @param expressionId the expression identifier
+      * @param executionEnvironment the execution environment for the expression
+      */
+    sealed case class ExpressionConfig(
+      expressionId: ExpressionId,
+      executionEnvironment: Option[ExecutionEnvironment]
+    )
+
     /** The notification about the execution status.
       *
       * @param contextId the context's id
@@ -914,12 +925,14 @@ object Runtime {
       * @param expressions the selector specifying which expressions should be
       * recomputed.
       * @param executionEnvironment the environment used for execution
+      * @param expressionConfigs execution configurations for selected expressions
       */
     @named("recomputeContextRequest")
     final case class RecomputeContextRequest(
       contextId: ContextId,
       expressions: Option[InvalidatedExpressions],
-      executionEnvironment: Option[ExecutionEnvironment]
+      executionEnvironment: Option[ExecutionEnvironment],
+      expressionConfigs: Seq[ExpressionConfig]
     ) extends ApiRequest
 
     /** A response sent from the server upon handling the
@@ -1091,7 +1104,8 @@ object Runtime {
     final case class EditFileNotification(
       path: File,
       edits: Seq[TextEdit],
-      execute: Boolean
+      execute: Boolean,
+      idMap: Option[IdMap]
     ) extends ApiRequest
         with ToLogString {
 
@@ -1100,7 +1114,9 @@ object Runtime {
         "EditFileNotification(" +
         s"path=${MaskedPath(path.toPath).toLogString(shouldMask)},edits=" +
         (if (shouldMask) edits.map(_ => STUB) else edits) +
-        ",execute=" + execute + ")"
+        ",execute=" + execute +
+        "idMap=" + idMap.map(_ => STUB) +
+        ")"
     }
 
     /** A notification sent to the server about in-memory file contents being
@@ -1317,9 +1333,16 @@ object Runtime {
         *
         * @param expressionId the id of expression
         */
-
       @named("symbolRenameFailedExpressionNotFound")
       final case class ExpressionNotFound(expressionId: ExpressionId)
+          extends SymbolRenameFailed.Error
+
+      /** Signals that the definition with the provided name already exists in the scope.
+        *
+        * @param name the definition name
+        */
+      @named("symbolRenameFailedDefinitionAlreadyExists")
+      final case class DefinitionAlreadyExists(name: String)
           extends SymbolRenameFailed.Error
 
       /** Signals that it was unable to apply edits to the current module contents.

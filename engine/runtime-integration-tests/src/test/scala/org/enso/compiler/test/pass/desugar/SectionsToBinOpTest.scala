@@ -5,50 +5,43 @@ import org.enso.compiler.context.{FreshNameSupply, InlineContext}
 import org.enso.compiler.core.ir.{
   CallArgument,
   DefinitionArgument,
-  Expression,
   Function,
   Literal,
   Name
 }
+import org.enso.compiler.pass.{
+  IRPass,
+  MiniPassFactory,
+  PassConfiguration,
+  PassGroup,
+  PassManager
+}
+
+import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.pass.desugar.SectionsToBinOp
-import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
-import org.enso.compiler.test.CompilerTest
 
-class SectionsToBinOpTest extends CompilerTest {
+import org.enso.compiler.test.MiniPassTest
 
-  // === Test Configuration ===================================================
+class SectionsToBinOpTest extends MiniPassTest {
+  override def testName: String                 = "Section To Bin Op"
+  override def miniPassFactory: MiniPassFactory = SectionsToBinOp.INSTANCE
 
-  val passes = new Passes(defaultConfig)
+  override def megaPass: IRPass = SectionsToBinOpMegaPass
 
-  val precursorPasses: PassGroup = passes.getPrecursors(SectionsToBinOp).get
+  override def megaPassManager: PassManager =
+    new PassManager(List(precursorPasses), passConfiguration)
 
+  // === Test Setup ===========================================================
+
+  val passes                               = new Passes(defaultConfig)
   val passConfiguration: PassConfiguration = PassConfiguration()
+  val precursorPasses: PassGroup =
+    passes.getPrecursors(SectionsToBinOp.INSTANCE).get
 
   implicit val passManager: PassManager =
     new PassManager(List(precursorPasses), passConfiguration)
 
-  /** Adds an extension method for running desugaring on the input IR.
-    *
-    * @param ir the IR to desugar
-    */
-  implicit class DesugarExpression(ir: Expression) {
-
-    /** Runs section desugaring on [[ir]].
-      *
-      * @param inlineContext the inline context in which the desugaring takes
-      *                      place
-      * @return [[ir]], with all sections desugared
-      */
-    def desugar(implicit inlineContext: InlineContext): Expression = {
-      SectionsToBinOp.runExpression(ir, inlineContext)
-    }
-  }
-
-  /** Makes an inline context.
-    *
-    * @return a new inline context
-    */
   def mkInlineContext: InlineContext = {
     buildInlineContext(freshNameSupply = Some(new FreshNameSupply))
   }
@@ -56,14 +49,21 @@ class SectionsToBinOpTest extends CompilerTest {
   // === The Tests ============================================================
 
   "Operator section desugaring" should {
+
     "work for left sections" in {
-      implicit val ctx: InlineContext = mkInlineContext
+      val code = """
+                   |(1 +)
+                   |""".stripMargin
 
-      val ir =
-        """
-          |(1 +)
-          |""".stripMargin.preprocessExpression.get.desugar
+      assertInlineCompilation(
+        code,
+        () => mkInlineContext,
+        assertWorkForLeftSection,
+        true
+      )
+    }
 
+    def assertWorkForLeftSection(ir: IR) = {
       ir shouldBe an[Application.Prefix]
       ir.location shouldBe defined
 
@@ -81,13 +81,20 @@ class SectionsToBinOpTest extends CompilerTest {
     }
 
     "work for sides sections" in {
-      implicit val ctx: InlineContext = mkInlineContext
-
-      val ir =
+      val code =
         """
           |(+)
-          |""".stripMargin.preprocessExpression.get.desugar
+          |""".stripMargin
 
+      assertInlineCompilation(
+        code,
+        () => mkInlineContext,
+        assertWorksForSidesSection,
+        true
+      )
+    }
+
+    def assertWorksForSidesSection(ir: IR) = {
       ir shouldBe an[Function.Lambda]
       ir.location shouldBe defined
 
@@ -123,13 +130,21 @@ class SectionsToBinOpTest extends CompilerTest {
     }
 
     "work for right sections" in {
-      implicit val ctx: InlineContext = mkInlineContext
-
-      val ir =
+      val code =
         """
           |(+ 1)
-          |""".stripMargin.preprocessExpression.get.desugar
+          |""".stripMargin
 
+      assertInlineCompilation(
+        code,
+        () => mkInlineContext,
+        assertWorkForRightSections,
+        true
+      )
+
+    }
+
+    def assertWorkForRightSections(ir: IR) = {
       ir shouldBe an[Function.Lambda]
       ir.location shouldBe defined
 
@@ -152,13 +167,21 @@ class SectionsToBinOpTest extends CompilerTest {
     }
 
     "work when the section is nested" in {
-      implicit val ctx: InlineContext = mkInlineContext
-
-      val ir =
+      val code =
         """
           |x -> (x +)
-          |""".stripMargin.preprocessExpression.get.desugar
-          .asInstanceOf[Function.Lambda]
+          |""".stripMargin
+
+      assertInlineCompilation(
+        code,
+        () => mkInlineContext,
+        assertWorkWhenTheSectionIsNested,
+        true
+      )
+    }
+
+    def assertWorkWhenTheSectionIsNested(x: IR) = {
+      val ir = x.asInstanceOf[Function.Lambda]
 
       ir.body
         .asInstanceOf[Application.Prefix]
@@ -170,13 +193,21 @@ class SectionsToBinOpTest extends CompilerTest {
     }
 
     "flip the arguments when a right section's argument is a blank" in {
-      implicit val ctx: InlineContext = mkInlineContext
-
-      val ir =
+      val code =
         """
           |(+ _)
-          |""".stripMargin.preprocessExpression.get.desugar
+          |""".stripMargin
 
+      assertInlineCompilation(
+        code,
+        () => mkInlineContext,
+        assertFlipTheArgumentsWhenARightSection,
+        true
+      )
+
+    }
+
+    def assertFlipTheArgumentsWhenARightSection(ir: IR) = {
       ir shouldBe an[Function.Lambda]
       ir.location shouldBe defined
       val irFn = ir.asInstanceOf[Function.Lambda]

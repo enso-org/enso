@@ -199,3 +199,10 @@
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
+
+---
+
+This project includes components that are licensed under the MIT license. The
+full text of the MIT license and its copyright notice can be found in the
+`app/licenses/` directory.
+

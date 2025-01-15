@@ -200,7 +200,7 @@ final class ContextEventsListener(
     val computedExpressions = expressionUpdates.map { update =>
       ContextRegistryProtocol.ExpressionUpdate(
         update.expressionId,
-        update.expressionType,
+        update.expressionTypes.getOrElse(Vector()),
         update.methodCall.map(toProtocolMethodCall),
         update.profilingInfo.map(toProtocolProfilingInfo),
         update.fromCache,
@@ -230,8 +230,8 @@ final class ContextEventsListener(
           functionSchema.map(toProtocolFunctionSchema)
         )
 
-      case Api.ExpressionUpdate.Payload.Pending(m, p) =>
-        ContextRegistryProtocol.ExpressionUpdate.Payload.Pending(m, p)
+      case Api.ExpressionUpdate.Payload.Pending(m, p, i) =>
+        ContextRegistryProtocol.ExpressionUpdate.Payload.Pending(m, p, i)
 
       case Api.ExpressionUpdate.Payload.DataflowError(trace) =>
         ContextRegistryProtocol.ExpressionUpdate.Payload.DataflowError(trace)

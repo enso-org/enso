@@ -2,7 +2,7 @@ package org.enso.projectmanager.infrastructure.languageserver
 
 import akka.actor.{Actor, ActorRef, Props}
 import com.typesafe.scalalogging.LazyLogging
-import org.enso.logger.akka.ActorMessageLogging
+import org.enso.logging.utils.akka.ActorMessageLogging
 import org.enso.projectmanager.boot.configuration.BootloaderConfig
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerBootLoader.{
   ServerBootFailed,
@@ -53,7 +53,7 @@ class LanguageServerBootLoader(
   import context.dispatcher
 
   override def preStart(): Unit = {
-    logger.info("Booting a language server [{}].", descriptor)
+    logger.debug("Booting a language server [{}]", descriptor)
     self ! FindFreeSocket
   }
 
@@ -82,9 +82,9 @@ class LanguageServerBootLoader(
           secureBinaryPort =
             Some(findPort(regularPorts + secureJsonRpcPort.get))
         }
-        logger.info(
+        logger.debug(
           "Found sockets for the language server " +
-          "[json:{}:{}:{}, binary:{}:{}:{}].",
+          "[json:{}:{}:{}, binary:{}:{}:{}]",
           descriptor.networkConfig.interface,
           jsonRpcPort,
           secureJsonRpcPort.getOrElse("none"),
@@ -189,7 +189,7 @@ class LanguageServerBootLoader(
         dataPort       = dataPort,
         secureDataPort = secureDataPort
       )
-      logger.info("Language server booted [{}].", connectionInfo)
+      logger.debug("Language server booted [{}]", connectionInfo)
 
       bootRequester ! ServerBooted(connectionInfo, self)
       context.become(running(connectionInfo))

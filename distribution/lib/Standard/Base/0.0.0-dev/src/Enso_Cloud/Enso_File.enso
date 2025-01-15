@@ -1,5 +1,7 @@
 import project.Any.Any
+import project.Data.Color.Color
 import project.Data.Json.JS_Object
+import project.Data.Ordering.Vector_Lexicographic_Order
 import project.Data.Numbers.Integer
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
@@ -7,6 +9,7 @@ import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Date_Time_Formatter.Date_Time_Formatter
 import project.Data.Vector.Vector
 import project.Enso_Cloud.Data_Link.Data_Link
+import project.Enso_Cloud.Data_Link.Data_Link_From_File
 import project.Enso_Cloud.Data_Link_Helpers
 import project.Enso_Cloud.Enso_User.Enso_User
 import project.Enso_Cloud.Errors.Enso_Cloud_Error
@@ -22,6 +25,7 @@ import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Errors.Time_Error.Time_Error
 import project.Errors.Unimplemented.Unimplemented
+import project.Internal.Path_Helpers
 import project.Network.HTTP.HTTP
 import project.Network.HTTP.HTTP_Method.HTTP_Method
 import project.Network.URI.URI
@@ -39,8 +43,8 @@ import project.System.File_Format_Metadata.File_Format_Metadata
 import project.System.Input_Stream.Input_Stream
 import project.System.Output_Stream.Output_Stream
 from project.Data.Boolean import Boolean, False, True
-from project.Data.Index_Sub_Range.Index_Sub_Range import Last
 from project.Data.Text.Extensions import all
+from project.Enso_Cloud.Data_Link_Helpers import data_link_extension
 from project.Enso_Cloud.Internal.Enso_File_Helpers import all
 from project.Enso_Cloud.Public_Utils import get_required_field
 from project.System.File import find_extension_from_name
@@ -54,30 +58,31 @@ type Enso_File
 
        Arguments:
        - path: The `enso://` path to a file or directory.
-
-       ? Enso Cloud Paths
-
-         The paths consist of the organization (user) name followed by a path to
-         the file/directory delimited by `/`.
-         For example `enso://my_org/some_dir/some-file.txt`.
-
-       ! Work in progress - only existing resources
-
-         Currently the API is only able to resolve paths to existing files or
-         directories. This is a temporary limitation and it will be improved in
-         the future, alongside with implementing the capabilities to write new
-         files.
     new : Text -> Enso_File ! Not_Found
     new (path : Text) =
-        Enso_File.Value (Enso_Path.parse path)
+        resolved_path = Enso_Path.parse path
+        # Traverse the path to possibly pick up any data links.
+        resolved_path.path_segments.fold Enso_File.root .resolve_single_part
 
     ## PRIVATE
     private Value (enso_path : Enso_Path)
 
     ## ICON folder
-       Represents the root folder of the current users.
+       Represents the current user's home directory.
+    home : Enso_File
+    home -> Enso_File =
+        Enso_File.root / "Users" / Enso_User.current.name
+
+    ## ICON folder
+       Represents the root folder of the organization.
+
+       ? Organization Root Directory
+
+         The organization root directory cannot be directly written into.
+         You should put your files and projects in a subdirectory dedicated to a
+         given user or team in the `Users` or `Teams` subdirectories within it.
     root : Enso_File
-    root = Enso_File.Value (Enso_Path.root_for Enso_User.current.organization_name)
+    root = Enso_File.Value Enso_Path.root
 
     ## ICON folder
        Represents the current working directory.
@@ -89,9 +94,15 @@ type Enso_File
        directory.
     current_working_directory : Enso_File
     current_working_directory =
+        Enso_File.cloud_project_parent_directory . if_nothing Enso_File.home
+
+    ## PRIVATE
+       The parent directory containing the currently open project if in the
+       Cloud, or `Nothing` if running locally.
+    cloud_project_parent_directory : Enso_File | Nothing
+    cloud_project_parent_directory =
         path = Environment.get "ENSO_CLOUD_PROJECT_DIRECTORY_PATH"
-        if path.is_nothing then Enso_File.root else
-            Enso_File.new path
+        path.if_not_nothing <| Enso_File.new path
 
     ## PRIVATE
     asset_type self -> Enso_Asset_Type =
@@ -100,7 +111,11 @@ type Enso_File
 
     ## GROUP Metadata
        ICON metadata
-       Checks if the folder or file exists
+       Checks if the folder or file exists.
+
+       ? Data Links
+         If the file is a data link, this checks if the data link itself exists. 
+         It does not tell anything about existence of the data link target.       
     exists : Boolean
     exists self =
         r = Existing_Enso_Asset.get_asset_reference_for self . if_not_error True
@@ -111,20 +126,28 @@ type Enso_File
     ## GROUP Metadata
        ICON metadata
        Gets the size of a file in bytes.
+
+       ? Data Links
+         If the file is a data link that points to a file, the size of the 
+         target file will be returned.
     size : Integer
-    size self -> Integer =
+    size self -> Integer = if self.is_data_link then Data_Link_Helpers.interpret_data_link_target_as_file self . size else
         asset = Existing_Enso_Asset.get_asset_reference_for self
-        if asset.is_regular_file.not then Error.throw (Illegal_Argument.Error "`size` can only be queried for files.") else
+        if asset.asset_type != Enso_Asset_Type.File then Error.throw (Illegal_Argument.Error "`size` can only be queried for files.") else
             metadata = asset.get_file_description |> get_required_field "metadata"
             get_required_field "size" metadata expected_type=Integer
 
     ## GROUP Metadata
        ICON metadata
        Gets the creation time of a file.
+
+       ? Data Links
+         If the file is a data link, this returns the creation time of the data 
+         link.
     creation_time : Date_Time
     creation_time self -> Date_Time =
         asset = Existing_Enso_Asset.get_asset_reference_for self
-        if asset.is_regular_file.not then Error.throw (Illegal_Argument.Error "`creation_time` can only be queried for files.") else
+        if asset.asset_type != Enso_Asset_Type.File then Error.throw (Illegal_Argument.Error "`creation_time` can only be queried for files.") else
             metadata = asset.get_file_description |> get_required_field "metadata"
             Date_Time.parse (get_required_field "createdAt" metadata expected_type=Text) Date_Time_Formatter.iso_offset_date_time
                 . catch Time_Error error-> Error.throw (Enso_Cloud_Error.Invalid_Response_Payload error)
@@ -132,27 +155,169 @@ type Enso_File
     ## GROUP Metadata
        ICON metadata
        Gets the last modified time of a file.
+
+       ? Data Links
+         If the file is a data link, this returns the modification time of the 
+         data link.
     last_modified_time : Date_Time
-    last_modified_time self =
-        asset = Existing_Enso_Asset.get_asset_reference_for self
-        if asset.is_regular_file.not then Error.throw (Illegal_Argument.Error "`last_modified_time` can only be queried for files.") else
-            metadata = asset.get_file_description |> get_required_field "metadata"
-            Date_Time.parse (get_required_field "modifiedAt" metadata expected_type=Text) Date_Time_Formatter.iso_offset_date_time
-                . catch Time_Error error-> Error.throw (Enso_Cloud_Error.Invalid_Response_Payload error)
+    last_modified_time self -> Date_Time =
+        asset = Existing_Enso_Asset.get_asset_reference_for self want_metadata=True
+        asset.metadata.modified_at
 
     ## GROUP Metadata
        ICON metadata
-       Checks if this is a folder
+       Gets the description associated with the file in Enso Cloud.
+
+       By default, the description is empty. It can be set in the Dashboard, or
+       using the `set_description` method.
+    description : Text
+    description self -> Text =
+        asset = Existing_Enso_Asset.get_asset_reference_for self want_metadata=True
+        asset.metadata.description.if_nothing ""
+
+    ## GROUP Metadata
+       ICON data_output
+       Sets the description associated with the file in Enso Cloud.
+
+       Arguments:
+       - description: The new description to set.
+
+       Returns:
+       - The file on which it was called.
+    set_description : Text -> Enso_File
+    set_description self (description : Text) -> Enso_File =
+        Context.Output.if_enabled disabled_message="Cannot set a description when writing is disabled. Press the Write button ▶ to perform the operation." panic=False <|
+            update_asset_description self description . if_not_error self
+
+    ## GROUP Metadata
+       ICON metadata
+       Gets the labels associated with the file in Enso Cloud.
+    labels : Vector Text
+    labels self -> Vector Text =
+        asset = Existing_Enso_Asset.get_asset_reference_for self want_metadata=True
+        asset.metadata.labels
+
+    ## GROUP Metadata
+       ICON data_output
+       Adds a label to the file in Enso Cloud.
+
+       If the label with the given name did not exist before, it is created with
+       a random color associated with it. If you want to set a specific color,
+       use `Enso_File.create_label` before calling this method.
+
+       Arguments:
+       - label: The name of the label to add to the file.
+
+       Returns:
+       - The file on which it was called.
+
+       ? Race Conditions
+
+         Adding labels is not atomic. If two processes are modifying labels of
+         the same asset at the same time, some changes may be lost.
+    add_label : Text -> Enso_File
+    add_label self (label : Text) -> Enso_File =
+        labels = self.labels
+        if labels.contains label then self else
+            Context.Output.if_enabled disabled_message="Cannot add a label when writing is disabled. Press the Write button ▶ to perform the operation." panic=False <|
+                create_tags_if_not_exist [label] . if_not_error <|
+                    new_labels = labels+[label]
+                    update_asset_labels self new_labels . if_not_error self
+
+    ## GROUP Metadata
+       ICON data_output
+       Removes a label from the file in Enso Cloud.
+
+       Arguments:
+       - label: The name of the label to remove from the file.
+
+       Returns:
+       - A boolean value indicating if the file had the label before the operation.
+
+       ? Race Conditions
+
+         Removing labels is not atomic. If two processes are modifying labels of
+         the same asset at the same time, some changes may be lost.
+    remove_label : Text -> Boolean
+    remove_label self (label : Text) -> Boolean =
+        labels = self.labels
+        if labels.contains label . not then False else
+            Context.Output.if_enabled disabled_message="Cannot remove a label when writing is disabled. Press the Write button ▶ to perform the operation." panic=False <|
+                new_labels = labels.filter l-> l != label
+                update_asset_labels self new_labels . if_not_error True
+
+    ## GROUP Metadata
+       ICON data_output
+       Sets the set of labels associated with the file in Enso Cloud.
+       Any other labels than the ones provided are removed from the file.
+
+       If any of the provided labels did not exist before, it is created with
+       a random color associated with it. If you want to set a specific color,
+       use `Enso_File.create_label` before calling this method.
+
+       Arguments:
+       - labels: The new set of labels to associate with the file.
+
+       Returns:
+       - The file on which it was called.
+    set_labels : Vector Text -> Enso_File
+    set_labels self (labels : Vector Text) -> Enso_File =
+        Context.Output.if_enabled disabled_message="Cannot update labels when writing is disabled. Press the Write button ▶ to perform the operation." panic=False <|
+            create_tags_if_not_exist labels . if_not_error <|
+                update_asset_labels self labels . if_not_error self
+
+    ## GROUP Metadata
+       ICON data_output
+       Creates a new label with the given name and color.
+
+       Arguments:
+       - name: The name of the label to create.
+       - color: The color of the label to create.
+    create_label : Text -> Color -> Nothing
+    create_label (name : Text) (color : Color) -> Nothing =
+        # TODO once cloud also checks for tag existance, if the Write context is enabled we could avoid this check as cloud will do it anyway - then we'll have only one request instead of 2 each time
+        # Cloud ticket: https://github.com/enso-org/cloud-v2/issues/1544
+        if does_tag_exist name then Error.throw (Illegal_Argument.Error "A label with name "+name+" already exists.") else
+            Context.Output.if_enabled disabled_message="Cannot create a label when writing is disabled. Press the Write button ▶ to perform the operation." panic=False <|
+                create_tag name color . if_not_error Nothing
+
+    ## GROUP Metadata
+       ICON metadata
+       Checks if this is a folder.
+
+       ? Data Links
+         If the file is a data link, this checks whether the target of the data 
+         link is a directory.
     is_directory : Boolean
-    is_directory self =
-        Existing_Enso_Asset.get_asset_reference_for self . is_directory
+    is_directory self = Data_Link_Helpers.is_directory self <|
+        Existing_Enso_Asset.get_asset_reference_for self . asset_type == Enso_Asset_Type.Directory
 
     ## GROUP Metadata
        ICON metadata
-       Checks if this is a regular file
+       Checks if this is a regular file.
+       
+       ? Data Links
+         If the file is a data link, this checks whether the target of the data 
+         link is a regular file.
     is_regular_file : Boolean
-    is_regular_file self =
-        Existing_Enso_Asset.get_asset_reference_for self . is_regular_file
+    is_regular_file self = Data_Link_Helpers.is_regular_file self <|
+        Existing_Enso_Asset.get_asset_reference_for self . asset_type == Enso_Asset_Type.File
+
+    ## PRIVATE
+    is_data_link self -> Boolean =
+        ## Checking the `asset_type` requires actually fetching the metadata from the cloud.
+           To avoid performing requests for every part of a path that we are resolving,
+           we rely on the assumption that every data link has a name ending with the `.datalink` extension.
+           Thus we perform the costly check only if we find a good potential candidate for the data link.
+        may_be_data_link = Data_Link.is_data_link_name self.name
+        if may_be_data_link.not then False else
+            # We catch `File_Error` which means that the asset just does not exist.
+            asset_type = self.asset_type.catch File_Error _->Nothing
+            ## If the file does not exist, we treat it as a 'possible data link' to allow creating new data links with
+               that `Enso_File` as the data link location. Thus we return True.
+               If the asset already exists, we rely on its type.
+            if asset_type.is_nothing then True else
+                self.asset_type == Enso_Asset_Type.Data_Link
 
     ## GROUP Metadata
        ICON folder
@@ -174,6 +339,11 @@ type Enso_File
         self.enso_path.is_descendant_of other.enso_path
 
     ## PRIVATE
+       Convert to a display representation of this S3_File.
+    to_display_text : Text
+    to_display_text self = "Enso_File {" + self.path + "}"
+
+    ## PRIVATE
        ADVANCED
        Creates a new output stream for this file and runs the specified action
        on it.
@@ -188,8 +358,8 @@ type Enso_File
          value. The value is returned from this method.
     with_output_stream : Vector File_Access -> (Output_Stream -> Any ! File_Error) -> Any ! File_Error
     with_output_stream self (open_options : Vector) action =
-        Context.Output.if_enabled disabled_message="Writing to an Enso_File is forbidden as the Output context is disabled." panic=False <|
-            is_data_link = Data_Link.is_data_link self
+        Context.Output.if_enabled disabled_message="As writing is disabled, cannot write to a file. Press the Write button ▶ to perform the operation." panic=False <|
+            is_data_link = self.is_data_link
             open_as_data_link = (open_options.contains Data_Link_Access.No_Follow . not) && is_data_link
             if open_as_data_link then Data_Link_Helpers.write_data_link_as_stream self open_options action else
                 if open_options.contains File_Access.Append then Unimplemented.throw "Enso_File currently does not support appending to a file. Instead you may read it, modify and then write the new contents." else
@@ -219,13 +389,16 @@ type Enso_File
        if it returns exceptionally).
     with_input_stream : Vector File_Access -> (Input_Stream -> Any ! File_Error) -> Any ! File_Error | Illegal_Argument
     with_input_stream self (open_options : Vector) action =
-        open_as_data_link = (open_options.contains Data_Link_Access.No_Follow . not) && (Data_Link.is_data_link self)
+        open_as_data_link = (open_options.contains Data_Link_Access.No_Follow . not) && self.is_data_link
         if open_as_data_link then Data_Link_Helpers.read_data_link_as_stream self open_options action else
             File_Access.ensure_only_allowed_options "with_input_stream" [File_Access.Read, Data_Link_Access.No_Follow] open_options <|
                 asset = Existing_Enso_Asset.get_asset_reference_for self
                 response = case asset.asset_type of
                     Enso_Asset_Type.File ->
-                        HTTP.fetch asset.get_download_url HTTP_Method.Get
+                        presigned_url = asset.get_file_description want_presinged_url=True |> get_required_field "url" expected_type=Text
+                        # We are skipping the cache, because pre-signed URLs are unlikely to repeat, so caching them would be pointless.
+                        # Caching of cloud files tracked by https://github.com/enso-org/enso/issues/11439
+                        HTTP.fetch presigned_url HTTP_Method.Get cache_policy=..No_Cache
                     Enso_Asset_Type.Data_Link ->
                         Runtime.assert (open_options.contains Data_Link_Access.No_Follow)
                         Utils.http_request HTTP_Method.Get asset.internal_uri
@@ -233,7 +406,7 @@ type Enso_File
                         Error.throw (Illegal_Argument.Error "Only files can be opened as a stream.")
                 response.if_not_error <| response.body.with_stream action
 
-    ## ALIAS load, open
+    ## ALIAS load, open, import
        GROUP Input
        ICON data_input
        Read a file using the specified file format
@@ -250,22 +423,21 @@ type Enso_File
          If set to `Ignore`, the operation proceeds without errors or warnings.
     @format File_Format.default_widget
     read : File_Format -> Problem_Behavior -> Any ! Illegal_Argument | File_Error
-    read self format=Auto_Detect (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
+    read self format=Auto_Detect (on_problems : Problem_Behavior = ..Report_Warning) =
         asset = Existing_Enso_Asset.get_asset_reference_for self
         case asset.asset_type of
             Enso_Asset_Type.Project -> Error.throw (Illegal_Argument.Error "Projects cannot be read within Enso code. Open using the IDE.")
             Enso_Asset_Type.Secret -> Error.throw (Illegal_Argument.Error "Secrets cannot be read directly.")
             Enso_Asset_Type.Data_Link ->
-                json = Utils.http_request_as_json HTTP_Method.Get asset.internal_uri
-                datalink = Data_Link_Helpers.interpret_json_as_data_link json
+                datalink = Data_Link_Helpers.interpret_existing_asset_as_data_link asset
                 datalink.read format on_problems
-            Enso_Asset_Type.Directory -> if format == Auto_Detect then self.list else Error.throw (Illegal_Argument.Error "Directories can only be read using the Auto_Detect format.")
-            Enso_Asset_Type.File -> File_Format.handle_format_missing_arguments format <|
+            Enso_Asset_Type.Directory -> Error.throw (Illegal_Argument.Error "Cannot `read` a directory, use `list`.")
+            Enso_Asset_Type.File ->
                 read_with_format effective_format =
                     metadata = File_Format_Metadata.from self
                     self.with_input_stream [File_Access.Read] (stream-> effective_format.read_stream stream metadata)
 
-                if format != Auto_Detect then read_with_format format else
+                if format != Auto_Detect then read_with_format (File_Format.resolve format) else
                     real_format = Auto_Detect.get_reading_format self
                     if real_format == Nothing then Error.throw (File_Error.Unsupported_Type self) else
                         read_with_format real_format
@@ -290,7 +462,7 @@ type Enso_File
          If set to `Ignore`, the operation proceeds without errors or warnings.
     @encoding Encoding.default_widget
     read_text : Encoding -> Problem_Behavior -> Text ! File_Error
-    read_text self (encoding : Encoding = Encoding.default) (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
+    read_text self (encoding : Encoding = Encoding.default) (on_problems : Problem_Behavior = ..Report_Warning) =
         self.read (Plain_Text_Format.Plain_Text encoding) on_problems
 
     ## GROUP Metadata
@@ -308,15 +480,20 @@ type Enso_File
 
     ## GROUP Input
        ICON data_input
-       Gets a list of assets within self.
-    list : Vector Enso_File
-    list self =
-        # Remove secrets from the list - they are handled separately in `Enso_Secret.list`.
-        assets = list_assets self . filter f-> f.asset_type != Enso_Asset_Type.Secret
-        assets.map asset->
-            file = Enso_File.Value (self.enso_path.resolve asset.name)
-            Asset_Cache.update file asset
-            file
+       Lists assets contained in this directory.
+    list : Text -> Boolean -> Vector Enso_File
+    list self (name_filter:Text="") recursive:Boolean=False =
+        if self.is_data_link then Data_Link_Helpers.interpret_data_link_target_as_file self . list name_filter=name_filter recursive=recursive else
+            if name_filter != "" then Error.throw (Illegal_Argument.Error "Filtering by name is currently not supported in Enso_File.") else
+                if recursive then Error.throw (Illegal_Argument.Error "Recursive listing is currently not supported in Enso_File.") else
+                    if self.is_directory.not then Error.throw (Illegal_Argument.Error "Cannot `list` a non-directory.") else
+                        # Remove secrets from the list - they are handled separately in `Enso_Secret.list`.
+                        assets = list_assets self . filter f-> f.asset_type != Enso_Asset_Type.Secret
+                        results = assets.map asset->
+                            file = Enso_File.Value (self.enso_path.resolve asset.name)
+                            Asset_Cache.update file asset
+                            file
+                        results.sort on=.path
 
     ## GROUP Output
        ICON folder_add
@@ -338,16 +515,21 @@ type Enso_File
          removed if this is set to `True`. Defaults to `False`, meaning that the
          operation will fail if the directory is not empty. This option has no
          effect for files or data links.
+
+       ? Data Links
+         If the file is a data link, this will delete the link itself, not
+         affecting its target.
     delete : Boolean -> Nothing
     delete self (recursive : Boolean = False) = if self.enso_path.is_root then Error.throw (Illegal_Argument.Error "The root directory cannot be deleted.") else
         asset = Existing_Enso_Asset.get_asset_reference_for self
         # The cloud defaults to recursively removing the whole directory, so we need a check on our side.
         # The `self.list` is last of the `&&` conditions because it is the most expensive one.
         # TODO ideally we should have a parameter `recursive` that would move this check to be local
-        if asset.is_directory && recursive.not && self.list.is_empty.not then Error.throw (File_Error.Directory_Not_Empty self) else
+        is_directory = asset.asset_type == Enso_Asset_Type.Directory
+        if is_directory && recursive.not && self.list.is_empty.not then Error.throw (File_Error.Directory_Not_Empty self) else
             uri = URI.from asset.asset_uri . add_query_argument "force" "true"
             response = Utils.http_request HTTP_Method.Delete uri
-            if asset.is_directory then Asset_Cache.invalidate_subtree self else Asset_Cache.invalidate self
+            if is_directory then Asset_Cache.invalidate_subtree self else Asset_Cache.invalidate self
             response.if_not_error Nothing
 
     ## ICON data_output
@@ -396,12 +578,15 @@ type Enso_File
        ICON folder
        Resolves a file or directory within this directory.
     / : Text -> Enso_File ! Not_Found
-    / self (name : Text) -> Enso_File ! Not_Found =
-        Enso_File.Value (self.enso_path.resolve name)
+    / self (name : Text) -> Enso_File | Any ! Not_Found =
+        Path_Helpers.resolve_many_parts self name
 
     ## PRIVATE
-    is_current_user_root self -> Boolean =
-        self.enso_path.is_root && self.enso_path.organization_name == Enso_User.current.organization_name
+       An internal helper method that resolves a single part (subpath) of a path,
+       used by `Path_Resolver`.
+    resolve_single_part self part:Text -> Any =
+        if self.is_data_link then Data_Link_Helpers.interpret_data_link_target_as_file self . resolve_single_part part else
+            Enso_File.Value (self.enso_path.resolve part)
 
     ## PRIVATE
        Returns the text representation of the file descriptor.
@@ -410,6 +595,7 @@ type Enso_File
         "Enso_File "+self.path
 
     ## PRIVATE
+       Converts the file descriptor to a JSON object.
     to_js_object : JS_Object
     to_js_object self =
         JS_Object.from_pairs [["type", "Enso_File"], ["constructor", "new"], ["path", self.path.to_text]]
@@ -447,11 +633,14 @@ Enso_Asset_Type.from (that:Text) = case that of
 File_Format_Metadata.from (that:Enso_File) =
     asset_type = that.asset_type.catch File_Error _->Nothing
     if asset_type == Enso_Asset_Type.Data_Link then File_Format_Metadata.Value path=that.path name=that.name content_type=Data_Link_Helpers.data_link_content_type else
-        File_Format_Metadata.Value path=that.path name=that.name extension=(that.extension.catch _->Nothing)
+        File_Format_Metadata.Value path=that.path name=that.name extension=that.extension
 
 ## PRIVATE
 File_Like.from (that : Enso_File) = File_Like.Value that
 
 ## PRIVATE
-Writable_File.from (that : Enso_File) = if Data_Link.is_data_link that then Data_Link_Helpers.interpret_data_link_as_writable_file that else
+Writable_File.from (that : Enso_File) = if that.is_data_link then Data_Link_Helpers.interpret_data_link_as_writable_file that else
     Writable_File.Value that Enso_File_Write_Strategy.instance
+
+## PRIVATE
+Data_Link_From_File.from (that : Enso_File) = Data_Link_From_File.Value that

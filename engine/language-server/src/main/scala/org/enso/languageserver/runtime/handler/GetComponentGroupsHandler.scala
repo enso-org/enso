@@ -87,7 +87,7 @@ final class GetComponentGroupsHandler(
 
     val validatedComponents = validated
       .collect { case (libraryName, Right(componentGroups)) =>
-        libraryName -> componentGroups
+        libraryName -> Some(componentGroups)
       }
     componentGroupsResolver.resolveComponentGroups(validatedComponents)
   }

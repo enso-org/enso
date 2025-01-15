@@ -2,6 +2,7 @@ from Standard.Base import all
 import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Common.Additional_Warnings
 import Standard.Base.Errors.Common.Arithmetic_Error
+import Standard.Base.Errors.Common.Floating_Point_Equality
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import project.Internal.Storage
@@ -26,6 +27,7 @@ polyglot java import org.enso.table.parsing.problems.AdditionalInvalidRows
 polyglot java import org.enso.table.parsing.problems.InvalidFormat
 polyglot java import org.enso.table.parsing.problems.InvalidRow
 polyglot java import org.enso.table.problems.ProblemAggregator
+polyglot java import org.enso.table.problems.ProblemAggregator.ProblemSummary
 polyglot java import org.enso.table.util.problems.DuplicateNames
 polyglot java import org.enso.table.util.problems.InvalidNames
 
@@ -77,7 +79,7 @@ translate_problem p = case p of
     _ : InvalidNames ->
         Invalid_Column_Names.Error (Vector.from_polyglot_array p.invalidNames)
     _ : InvalidFormat ->
-        Invalid_Format.Error p.column p.expectedEnsoValueType (Vector.from_polyglot_array p.cells)
+        Invalid_Format.Error p.column p.expectedEnsoValueType p.count (Vector.from_polyglot_array p.cells)
     _ ->
         Panic.throw (Illegal_Argument.Error "Encountered an unknown problem type when converting Java problems into Enso. This is a bug in the Table library. The unexpected problem was: "+p.to_text)
 
@@ -88,14 +90,14 @@ unpack_problem_summary problem_summary =
     ## TODO [RW, GT] In the next iterations we will want to remove
        `translate_problem` in favour of constructing Enso problem instances
        directly in Java code. To do so, we will need https://github.com/enso-org/enso/issues/7797
-    parsed = problems_array . map on_problems=No_Wrap translate_problem
+    parsed = problems_array . map on_problems=No_Wrap.Value translate_problem
     if count == parsed.length then parsed else
         parsed + [Additional_Warnings.Error (count - parsed.length)]
 
 ## PRIVATE
    This is the new preferred way of running Java methods that may report problems.
 with_problem_aggregator : Problem_Behavior -> (ProblemAggregator -> Any) -> Any
-with_problem_aggregator on_problems f =
+with_problem_aggregator on_problems:Problem_Behavior f =
     ## This should be the only call to the `makeTopLevelAggregator` method in the whole codebase.
     aggregator = ProblemAggregator.makeTopLevelAggregator
     result = f aggregator
@@ -103,7 +105,7 @@ with_problem_aggregator on_problems f =
 
 ## PRIVATE
 with_map_operation_problem_aggregator : (Text | Nothing) -> Problem_Behavior -> (MapOperationProblemAggregator -> Any) -> Any
-with_map_operation_problem_aggregator (location : Text | Nothing) on_problems f =
+with_map_operation_problem_aggregator (location : Text | Nothing) on_problems:Problem_Behavior f =
     with_problem_aggregator on_problems java_aggregator->
         problem_builder = MapOperationProblemAggregator.new java_aggregator location
         f problem_builder

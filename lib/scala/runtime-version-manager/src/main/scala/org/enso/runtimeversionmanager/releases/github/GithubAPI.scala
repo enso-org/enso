@@ -1,5 +1,7 @@
 package org.enso.runtimeversionmanager.releases.github
 
+import com.typesafe.scalalogging.Logger
+
 import java.nio.file.Path
 import io.circe._
 import io.circe.parser._
@@ -7,6 +9,7 @@ import org.enso.cli.task.TaskProgress
 import org.enso.downloader.http.{
   APIResponse,
   HTTPDownload,
+  HTTPException,
   HTTPRequestBuilder,
   Header,
   URIBuilder
@@ -16,7 +19,7 @@ import org.enso.runtimeversionmanager.releases.{
   ReleaseProviderException
 }
 
-import scala.util.{Success, Try}
+import scala.util.{Failure, Success, Try}
 
 /** Contains functions used to query the GitHubAPI endpoints.
   */
@@ -61,13 +64,31 @@ object GithubAPI {
     * bar for this task.
     */
   def listReleases(repository: Repository): Try[Seq[Release]] = {
+    releaseListCache.get(repository) match {
+      case Some(cachedList) =>
+        logger.debug("Using cached release list for repository {}", repository)
+        Success(cachedList)
+      case None =>
+        makeListReleasesRequest(repository).map { releases =>
+          releaseListCache.put(repository, releases)
+          releases
+        }
+    }
+  }
+
+  private def makeListReleasesRequest(
+    repository: Repository
+  ): Try[Seq[Release]] = {
     val perPage = 100
     def listPage(page: Int): Try[Seq[Release]] = {
-      val uri = (projectURI(repository) / "releases") ?
-        ("per_page" -> perPage.toString) ? ("page" -> page.toString)
+      val uri =
+        ((projectURI(
+          repository
+        ) / "releases") ? ("per_page" -> perPage.toString) ? ("page" -> page.toString))
+          .build()
 
       val downloadTask = HTTPDownload
-        .fetchString(HTTPRequestBuilder.fromURI(uri.build()).GET)
+        .fetchString(HTTPRequestBuilder.fromURI(uri).GET)
         .flatMap(response =>
           parse(response.content)
             .flatMap(
@@ -95,13 +116,47 @@ object GithubAPI {
     listAllPages(1)
   }
 
+  /** Fetching the list of releases may involve making multiple requests with big payloads, so it is good to cache the relevant information extracted from it to avoid unnecessary re-fetching.
+    *
+    * The runtime version manager assumes that the list of known releases will not change during the runtime of the program, so the cache is never invalidated as long as the program is running.
+    */
+  private val releaseListCache
+    : collection.concurrent.TrieMap[Repository, Seq[Release]] =
+    collection.concurrent.TrieMap.empty
+
   /** Fetches release metadata for the release associated with the given tag.
     */
   def getRelease(repo: Repository, tag: String): TaskProgress[Release] = {
-    val uri = projectURI(repo) / "releases" / "tags" / tag
+    findCachedRelease(repo, tag) match {
+      case Some(release) =>
+        logger.debug(
+          "Using cached release for tag {} in repository {}",
+          tag,
+          repo
+        )
+        TaskProgress.runImmediately(release)
+      case None =>
+        makeGetSingleReleaseRequest(repo, tag)
+    }
+  }
+
+  private def findCachedRelease(
+    repo: Repository,
+    tag: String
+  ): Option[Release] =
+    for {
+      cachedList <- releaseListCache.get(repo)
+      release    <- cachedList.find(_.tag == tag)
+    } yield release
+
+  private def makeGetSingleReleaseRequest(
+    repo: Repository,
+    tag: String
+  ): TaskProgress[Release] = {
+    val uri = (projectURI(repo) / "releases" / "tags" / tag).build()
 
     HTTPDownload
-      .fetchString(HTTPRequestBuilder.fromURI(uri.build()).GET)
+      .fetchString(HTTPRequestBuilder.fromURI(uri).GET)
       .flatMap(response =>
         parse(response.content)
           .flatMap(_.as[Release])
@@ -114,6 +169,9 @@ object GithubAPI {
           )
           .toTry
       )
+      .recoverWith { case httpException: HTTPException =>
+        Failure(ReleaseNotFound(tag, cause = httpException))
+      }
   }
 
   /** A helper function that detecte a rate-limit error and tries to make a more
@@ -165,6 +223,7 @@ object GithubAPI {
       .addHeader("Accept", "application/octet-stream")
       .GET
 
+    System.err.println(s"Preparing to download asset ${asset.url}")
     HTTPDownload
       .download(request, destination, Some(asset.size))
       .map(_ => ())
@@ -189,4 +248,6 @@ object GithubAPI {
       assets <- json.get[Seq[Asset]]("assets")
     } yield Release(tag, assets)
   }
+
+  private val logger: Logger = Logger[GithubAPI.type]
 }

@@ -9,6 +9,20 @@ import java.nio.charset.StandardCharsets;
 public abstract class SimpleHttpHandler implements HttpHandler {
   private final boolean logRequests = false;
 
+  /**
+   * A class that represents exceptions that are expected to be thrown (for testing crashing
+   * handlers). There is no need to log these.
+   */
+  protected class ExpectedException extends RuntimeException {
+    private static final long serialVersionUID = 1L;
+    public final boolean shouldBeRethrown;
+
+    public ExpectedException(boolean shouldBeRethrown) {
+      super("This exception is expected to be thrown.");
+      this.shouldBeRethrown = shouldBeRethrown;
+    }
+  }
+
   @Override
   public final void handle(HttpExchange exchange) throws IOException {
     try {
@@ -18,6 +32,11 @@ public abstract class SimpleHttpHandler implements HttpHandler {
       }
 
       doHandle(exchange);
+    } catch (ExpectedException e) {
+      exchange.close();
+      if (e.shouldBeRethrown) {
+        throw e;
+      }
     } catch (IOException e) {
       e.printStackTrace();
       exchange.close();

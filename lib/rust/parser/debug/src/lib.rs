@@ -1,9 +1,5 @@
 //! Debugging utilities for the parser.
 
-// === Features ===
-#![feature(exact_size_is_empty)]
-#![feature(let_chains)]
-#![feature(if_let_guard)]
 // === Non-Standard Linter Configuration ===
 #![allow(clippy::option_map_unit_fn)]
 #![allow(clippy::precedence)]
@@ -36,8 +32,19 @@ where T: serde::Serialize + Reflect {
     let code: Box<str> = Box::from(code);
     let mut to_s_expr = ToSExpr::new(&graph);
     to_s_expr.mapper(ast_ty, strip_hidden_fields);
-    let stringish_tokens =
-        vec![Digits::reflect(), NumberBase::reflect(), Operator::reflect(), TextSection::reflect()];
+    let stringish_tokens = vec![
+        Digits::reflect(),
+        NumberBase::reflect(),
+        TextSection::reflect(),
+        Operator::reflect(),
+        TypeAnnotationOperator::reflect(),
+        ArrowOperator::reflect(),
+        AutoscopeOperator::reflect(),
+        UnaryOperator::reflect(),
+        LambdaOperator::reflect(),
+        DotOperator::reflect(),
+        SuspensionOperator::reflect(),
+    ];
     let stringish_tokens = stringish_tokens.into_iter().map(|t| rust_to_meta[&t.id]);
     let skip_tokens = vec![
         SuspendedDefaultArguments::reflect(),
@@ -47,17 +54,29 @@ where T: serde::Serialize + Reflect {
         TextEnd::reflect(),
         TextStart::reflect(),
         Wildcard::reflect(),
-        Private::reflect(),
+        TypeKeyword::reflect(),
+        ForeignKeyword::reflect(),
+        CaseKeyword::reflect(),
+        OfKeyword::reflect(),
+        AnnotationOperator::reflect(),
+        AssignmentOperator::reflect(),
     ];
     skip_tokens.into_iter().for_each(|token| to_s_expr.skip(rust_to_meta[&token.id]));
-    let ident_token = rust_to_meta[&Ident::reflect().id];
+    let identish_tokens = vec![Ident::reflect(), AllKeyword::reflect(), PrivateKeyword::reflect()];
+    let identish_tokens = identish_tokens.into_iter().map(|t| rust_to_meta[&t.id]);
     let text_escape_token = rust_to_meta[&TextEscape::reflect().id];
     let token_to_str = move |token: Value| {
         let range = token_code_range(&token, base);
-        code[range].to_owned().into_boxed_str()
+        if range.is_empty() {
+            "".into()
+        } else {
+            code[range].to_owned().into_boxed_str()
+        }
     };
-    let token_to_str_ = token_to_str.clone();
-    to_s_expr.mapper(ident_token, move |token| Value::symbol(token_to_str_(token)));
+    for token in identish_tokens {
+        let token_to_str_ = token_to_str.clone();
+        to_s_expr.mapper(token, move |token| Value::symbol(token_to_str_(token)));
+    }
     for token in stringish_tokens {
         let token_to_str_ = token_to_str.clone();
         to_s_expr.mapper(token, move |token| Value::string(token_to_str_(token)));
@@ -65,22 +84,6 @@ where T: serde::Serialize + Reflect {
     let into_car = |cons| match cons {
         Value::Cons(cons) => cons.into_pair().0,
         _ => panic!(),
-    };
-    let simplify_case = |list| {
-        let list = strip_hidden_fields(list);
-        let (_, list) = match list {
-            Value::Cons(cons) => cons.into_pair(),
-            _ => panic!(),
-        };
-        let (expression, list) = match list {
-            Value::Cons(cons) => cons.into_pair(),
-            _ => panic!(),
-        };
-        let (_, list) = match list {
-            Value::Cons(cons) => cons.into_pair(),
-            _ => panic!(),
-        };
-        Value::cons(expression, list)
     };
     let simplify_escape = |mut list| {
         let mut last = None;
@@ -96,15 +99,29 @@ where T: serde::Serialize + Reflect {
         let (car, _) = cons.into_pair();
         Value::cons(car, Value::Null)
     };
+    let simplify_tree = |list: Value| {
+        let list = strip_hidden_fields(list);
+        let vec = list.to_vec().unwrap();
+        if vec[0].as_symbol().unwrap() == "ExpressionStatement" {
+            match &vec[1..] {
+                [Value::Cons(doc_line), Value::Cons(expr)] if doc_line.cdr().is_null() =>
+                    return expr.cdr().to_owned(),
+                _ => {}
+            }
+        };
+        list
+    };
     let line = rust_to_meta[&tree::block::Line::reflect().id];
     let operator_line = rust_to_meta[&tree::block::OperatorLine::reflect().id];
-    let case = rust_to_meta[&tree::CaseOf::reflect().id];
+    let type_signature_line = rust_to_meta[&tree::TypeSignatureLine::reflect().id];
     let invalid = rust_to_meta[&tree::Invalid::reflect().id];
+    let tree = rust_to_meta[&tree::Tree::reflect().id];
     to_s_expr.mapper(line, into_car);
     to_s_expr.mapper(operator_line, into_car);
-    to_s_expr.mapper(case, simplify_case);
+    to_s_expr.mapper(type_signature_line, into_car);
     to_s_expr.mapper(invalid, strip_invalid);
     to_s_expr.mapper(text_escape_token, simplify_escape);
+    to_s_expr.mapper(tree, simplify_tree);
     tuplify(to_s_expr.value(ast_ty, &value))
 }
 
@@ -126,6 +143,7 @@ fn strip_hidden_fields(tree: Value) -> Value {
         ":spanCodeLengthUtf16",
         ":spanCodeLengthNewlines",
         ":spanCodeLengthLineChars16",
+        ":warnings",
     ];
     let hidden_tree_fields: HashSet<_> = hidden_tree_fields.into_iter().collect();
     Value::list(tree.to_vec().unwrap().into_iter().filter(|val| match val {
@@ -144,6 +162,9 @@ fn token_code_range(token: &Value, base: usize) -> std::ops::Range<usize> {
         |field| fields(token).find(|(name, _)| *name == field).unwrap().1.as_u64().unwrap() as u32;
     let begin = get_u32(":codeReprBegin");
     let len = get_u32(":codeReprLen");
+    if len == 0 {
+        return 0..0;
+    }
     let begin = (begin as u64) | (base as u64 & !(u32::MAX as u64));
     let begin = if begin < (base as u64) { begin + 1 << 32 } else { begin };
     let begin = begin as usize - base;
@@ -198,26 +219,28 @@ pub fn validate_spans(
     tree: &enso_parser::syntax::tree::Tree,
     expected_span: std::ops::Range<u32>,
     locations: &mut LocationCheck,
-) {
+) -> Result<(), String> {
     let mut sum_span = None;
     fn concat<T: PartialEq + std::fmt::Debug + Copy>(
         a: &Option<std::ops::Range<T>>,
         b: &std::ops::Range<T>,
-    ) -> std::ops::Range<T> {
-        match a {
+    ) -> Result<std::ops::Range<T>, String> {
+        Ok(match a {
             Some(a) => {
-                assert_eq!(a.end, b.start);
+                if a.end != b.start {
+                    return Err(format!("{:?} != {:?}", &a.end, b.start));
+                }
                 a.start..b.end
             }
             None => b.clone(),
-        }
+        })
     }
-    sum_span = Some(concat(&sum_span, &tree.span.left_offset.code.range()));
+    sum_span = Some(concat(&sum_span, &tree.span.left_offset.code.range())?);
     tree.visit_items(|item| match item {
         enso_parser::syntax::item::Ref::Token(token) => {
             if !(token.left_offset.is_empty() && token.code.is_empty()) {
-                sum_span = Some(concat(&sum_span, &token.left_offset.code.range()));
-                sum_span = Some(concat(&sum_span, &token.code.range()));
+                sum_span = Some(concat(&sum_span, &token.left_offset.code.range()).unwrap());
+                sum_span = Some(concat(&sum_span, &token.code.range()).unwrap());
             }
             let left_offset = token.left_offset.code.range();
             let code = token.code.range();
@@ -225,10 +248,10 @@ pub fn validate_spans(
         }
         enso_parser::syntax::item::Ref::Tree(tree) => {
             let children_span =
-                concat(&Some(tree.span.left_offset.code.range()), &tree.span.range());
+                concat(&Some(tree.span.left_offset.code.range()), &tree.span.range()).unwrap();
             let children_span_ = children_span.start.utf16..children_span.end.utf16;
-            validate_spans(tree, children_span_, locations);
-            sum_span = Some(concat(&sum_span, &children_span));
+            validate_spans(tree, children_span_, locations).unwrap();
+            sum_span = Some(concat(&sum_span, &children_span).unwrap());
             let left_offset = tree.span.left_offset.code.range();
             let code = tree.span.range();
             locations.extend(&[left_offset.start, left_offset.end, code.start, code.end]);
@@ -241,4 +264,5 @@ pub fn validate_spans(
         let sum_span = sum_span.start.utf16..sum_span.end.utf16;
         assert_eq!(sum_span, expected_span);
     }
+    Ok(())
 }

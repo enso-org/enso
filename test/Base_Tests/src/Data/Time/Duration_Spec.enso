@@ -10,6 +10,9 @@ polyglot java import java.time.LocalDate
 polyglot java import java.time.LocalDateTime as Java_DateTime
 
 add_specs suite_builder =
+    pending_js_missing = if Polyglot.is_language_installed "js" then Nothing else
+        "Can't run JavaScript tests, language `js` is not installed."
+
     suite_builder.group "Duration" group_builder->
 
         group_builder.specify "should create interval seconds" <|
@@ -90,10 +93,10 @@ add_specs suite_builder =
         group_builder.specify "Difference of two Java Dates should be an Enso Duration" <|
             (Duration.between (java_datetime 2022 01 01) (java_datetime 2022 01 02) timezone_aware=False).total_hours . should_equal 24
 
-        group_builder.specify "Difference of two JS Dates is an Enso Duration" <|
+        group_builder.specify "Difference of two JS Dates is an Enso Duration" pending=pending_js_missing <|
             (Duration.between (js_datetime 2022 09 01) (js_datetime 2022 09 02) timezone_aware=False).total_hours . should_equal 24
 
-        group_builder.specify "Difference of JS Dates and Java Dates should be Enso Duration" <|
+        group_builder.specify "Difference of JS Dates and Java Dates should be Enso Duration" pending=pending_js_missing <|
             (Duration.between (js_datetime 2022 09 08) (java_datetime 2022 09 09) timezone_aware=False).total_hours . should_equal 24
             (Duration.between (java_datetime 2022 09 09) (js_datetime 2022 09 08) timezone_aware=False).total_hours . should_equal (-24)
 

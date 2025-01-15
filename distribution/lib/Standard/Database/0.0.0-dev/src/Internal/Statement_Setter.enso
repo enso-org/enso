@@ -41,7 +41,8 @@ fill_hole_default stmt i type_hint value = case value of
             big_decimal = NumericConverter.bigIntegerAsBigDecimal value
             stmt.setBigDecimal i big_decimal
         False -> stmt.setLong i value
-    _ : Float   -> stmt.setDouble i value
+    _ : Decimal   -> stmt.setBigDecimal i value.big_decimal
+    _ : Float     -> stmt.setDouble i value
     _ : Text      -> stmt.setString i value
     _ : Date_Time ->
         has_timezone = case type_hint of

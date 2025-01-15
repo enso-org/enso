@@ -3,6 +3,8 @@ package org.enso.compiler.core
 import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.core.ir.{Diagnostic, ProcessingPass}
 
+import scala.annotation.unused
+
 object Implicits {
 
   /** This class adds an extension method to control how the pass data element
@@ -55,7 +57,7 @@ object Implicits {
       * @return [[ir]] with added diagnostics
       */
     def addDiagnostic(diagnostic: Diagnostic): T = {
-      ir.diagnostics.add(diagnostic)
+      ir.getDiagnostics.add(diagnostic)
       ir
     }
   }
@@ -89,6 +91,19 @@ object Implicits {
       */
     def getMetadata[K <: ProcessingPass](pass: K): Option[pass.Metadata] = {
       ir.passData.get(pass).asInstanceOf[Option[pass.Metadata]]
+    }
+
+    /** Getting metadata from passes that are implemented in Java and thus have no
+      * overriden type alias for the metadata types.
+      * @return
+      */
+    def getMetadata[MetaType <: ProcessingPass.Metadata](
+      pass: ProcessingPass,
+      @unused
+      expectedMetaType: Class[MetaType]
+    ): Option[MetaType] = {
+      val meta = ir.passData.get(pass)
+      meta.asInstanceOf[Option[MetaType]]
     }
 
     /** Unsafely gets the metadata for the specified pass, if it exists.

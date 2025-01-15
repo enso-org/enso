@@ -210,8 +210,18 @@ public final class LongStorage extends AbstractLongStorage {
   @Override
   public LongStorage slice(int offset, int limit) {
     int newSize = Math.min(size - offset, limit);
-    long[] newData = new long[newSize];
-    System.arraycopy(data, offset, newData, 0, newSize);
+    long[] newData;
+
+    // Special case if slice is after the actual data
+    if (offset >= data.length) {
+      newData = new long[0];
+    } else {
+      // Can only copy as much as there is data
+      int newDataSize = Math.min(data.length - offset, newSize);
+      newData = new long[newDataSize];
+      System.arraycopy(data, offset, newData, 0, newDataSize);
+    }
+
     BitSet newMask = isNothing.get(offset, offset + limit);
     return new LongStorage(newData, newSize, newMask, type);
   }

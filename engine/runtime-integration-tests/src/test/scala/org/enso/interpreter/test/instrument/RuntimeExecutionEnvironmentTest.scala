@@ -6,7 +6,7 @@ import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{Package, PackageManager}
 import org.enso.common.LanguageInfo
 import org.enso.common.MethodNames
-import org.enso.polyglot.RuntimeOptions
+import org.enso.common.RuntimeOptions
 import org.enso.polyglot.RuntimeServerInfo
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.testkit.OsSpec
@@ -188,7 +188,7 @@ class RuntimeExecutionEnvironmentTest
         IF_ENABLED_METH_CALL,
         Api.ExpressionUpdate.Payload
           .Panic(
-            "Forbidden operation: The Output context is disabled.",
+            "The Output context is disabled.",
             Seq(idRes)
           ),
         false
@@ -196,7 +196,7 @@ class RuntimeExecutionEnvironmentTest
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List()
-    context.languageContext.getExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
+    context.languageContext.getGlobalExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
       .Design()
       .name
 
@@ -212,27 +212,16 @@ class RuntimeExecutionEnvironmentTest
     )
     context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.SetExecutionEnvironmentResponse(contextId)),
-      Api.Response(
-        None,
-        Api.ExpressionUpdates(
-          contextId,
-          Set(
-            Api.ExpressionUpdate(
-              idRes,
-              Some(ConstantsGen.NOTHING),
-              Some(IF_ENABLED_METH_CALL),
-              Vector(Api.ProfilingInfo.ExecutionTime(0)),
-              false,
-              true,
-              Api.ExpressionUpdate.Payload.Value()
-            )
-          )
-        )
+      TestMessages.update(
+        contextId,
+        idRes,
+        ConstantsGen.NOTHING,
+        IF_ENABLED_METH_CALL
       ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("Hello World!")
-    context.languageContext.getExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
+    context.languageContext.getGlobalExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
       .Live()
       .name
   }
@@ -292,7 +281,7 @@ class RuntimeExecutionEnvironmentTest
         IF_ENABLED_METH_CALL,
         Api.ExpressionUpdate.Payload
           .Panic(
-            "Forbidden operation: The Input context is disabled.",
+            "The Input context is disabled.",
             Seq(idRes)
           ),
         false
@@ -300,7 +289,7 @@ class RuntimeExecutionEnvironmentTest
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List()
-    context.languageContext.getExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
+    context.languageContext.getGlobalExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
       .Design()
       .name
 
@@ -318,7 +307,7 @@ class RuntimeExecutionEnvironmentTest
     context.receiveNIgnoreStdLib(1) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.SetExecutionEnvironmentResponse(contextId))
     )
-    context.languageContext.getExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
+    context.languageContext.getGlobalExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
       .Design()
       .name
 
@@ -334,26 +323,15 @@ class RuntimeExecutionEnvironmentTest
     )
     context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.SetExecutionEnvironmentResponse(contextId)),
-      Api.Response(
-        None,
-        Api.ExpressionUpdates(
-          contextId,
-          Set(
-            Api.ExpressionUpdate(
-              idRes,
-              Some(ConstantsGen.INTEGER),
-              Some(IF_ENABLED_METH_CALL),
-              Vector(Api.ProfilingInfo.ExecutionTime(0)),
-              false,
-              true,
-              Api.ExpressionUpdate.Payload.Value()
-            )
-          )
-        )
+      TestMessages.update(
+        contextId,
+        idRes,
+        ConstantsGen.INTEGER,
+        IF_ENABLED_METH_CALL
       ),
       context.executionComplete(contextId)
     )
-    context.languageContext.getExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
+    context.languageContext.getGlobalExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
       .Live()
       .name
   }

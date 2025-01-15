@@ -71,7 +71,6 @@ final class SuggestionBuilder[A: IndexedSource](
                 params,
                 List(),
                 _,
-                _,
                 _
               ) =>
             val tpe =
@@ -83,7 +82,6 @@ final class SuggestionBuilder[A: IndexedSource](
                 params,
                 members,
                 _,
-                _,
                 _
               ) =>
             val tpe =
@@ -93,7 +91,6 @@ final class SuggestionBuilder[A: IndexedSource](
                     name,
                     arguments,
                     annotations,
-                    _,
                     isPrivate,
                     _,
                     _
@@ -123,7 +120,7 @@ final class SuggestionBuilder[A: IndexedSource](
 
           case m @ definition.Method
                 .Explicit(
-                  Name.MethodReference(typePtr, methodName, _, _, _),
+                  Name.MethodReference(typePtr, methodName, _, _),
                   Function.Lambda(args, body, _, _, _, _),
                   _,
                   _,
@@ -134,7 +131,10 @@ final class SuggestionBuilder[A: IndexedSource](
             val (selfTypeOpt, isStatic) = typePtr match {
               case Some(typePtr) =>
                 val selfType = typePtr
-                  .getMetadata(MethodDefinitions)
+                  .getMetadata(
+                    MethodDefinitions.INSTANCE,
+                    classOf[BindingsMap.Resolution]
+                  )
                   .map(_.target.qualifiedName)
                 selfType -> m.isStatic
               case None =>
@@ -162,16 +162,18 @@ final class SuggestionBuilder[A: IndexedSource](
 
           case conversionMeth @ definition.Method
                 .Conversion(
-                  Name.MethodReference(typePtr, _, _, _, _),
+                  Name.MethodReference(typePtr, _, _, _),
                   _,
                   Function.Lambda(args, body, _, _, _, _),
-                  _,
                   _,
                   _
                 ) if !conversionMeth.isPrivate =>
             val selfType = typePtr.flatMap { typePointer =>
               typePointer
-                .getMetadata(MethodDefinitions)
+                .getMetadata(
+                  MethodDefinitions.INSTANCE,
+                  classOf[BindingsMap.Resolution]
+                )
                 .map(_.target.qualifiedName)
             }
             val conversion = buildConversion(
@@ -186,7 +188,6 @@ final class SuggestionBuilder[A: IndexedSource](
           case Expression.Binding(
                 name,
                 Function.Lambda(args, body, _, _, _, _),
-                _,
                 _,
                 _
               ) if name.location.isDefined =>
@@ -206,7 +207,7 @@ final class SuggestionBuilder[A: IndexedSource](
             )
             go(tree += Tree.Node(function, subforest), scope)
 
-          case Expression.Binding(name, expr, _, _, _)
+          case Expression.Binding(name, expr, _, _)
               if name.location.isDefined =>
             val typeSignature = ir.getMetadata(TypeSignatures)
             val local = buildLocal(
@@ -423,11 +424,11 @@ final class SuggestionBuilder[A: IndexedSource](
   ): Suggestion = {
     val getterName = argument.name.name
     val thisArg = DefinitionArgument.Specified(
-      name         = Name.Self(None),
-      ascribedType = None,
-      defaultValue = None,
-      suspended    = false,
-      location     = None
+      name               = Name.Self(identifiedLocation = null),
+      ascribedType       = None,
+      defaultValue       = None,
+      suspended          = false,
+      identifiedLocation = null
     )
     buildMethod(
       externalId         = None,
@@ -570,7 +571,6 @@ final class SuggestionBuilder[A: IndexedSource](
                 _,
                 defaultValue,
                 suspended,
-                _,
                 _,
                 _
               ) +: vtail =>
@@ -770,7 +770,7 @@ final class SuggestionBuilder[A: IndexedSource](
     */
   private def buildDefaultValue(expr: IR): String =
     expr match {
-      case Application.Prefix(name, path, _, _, _, _) =>
+      case Application.Prefix(name, path, _, _, _) =>
         path.map(_.value.showCode()).mkString(".") + "." + name.showCode()
       case other => other.showCode()
     }

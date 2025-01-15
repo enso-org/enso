@@ -10,9 +10,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Set;
+import org.enso.common.RuntimeOptions;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.PolyglotContext;
-import org.enso.polyglot.RuntimeOptions;
 import org.enso.polyglot.TopScope;
 import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ProjectUtils;
@@ -35,6 +35,11 @@ public class ExtensionMethodResolutionTest {
       allOf(
           containsString("Method overloads are not supported"),
           containsString("defined multiple times"));
+
+  private static final Matcher<String> ambiguousResolutionErrorMessageMatcher =
+      allOf(
+          containsString("resolved ambiguously to"),
+          containsString("The symbol was first resolved to"));
 
   @Test
   public void twoExtensionMethodsWithSameNameInOneModuleShouldFail() throws IOException {
@@ -330,7 +335,10 @@ public class ExtensionMethodResolutionTest {
         topScope.compile(true);
         fail("Expected compilation error: " + out);
       } catch (PolyglotException e) {
-        assertThat(e.isSyntaxError(), is(true));
+        assertThat(
+            "Exception should be a syntax error, but instead is " + e.getMessage(),
+            e.isSyntaxError(),
+            is(true));
         assertThat(out.toString(), errorMessageMatcher);
       }
     }

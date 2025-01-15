@@ -9,11 +9,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames;
+import org.enso.common.RuntimeOptions;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.benchmarks.Utils;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.data.Type;
-import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -126,7 +126,8 @@ from Standard.Visualization import all
   @TearDown
   public void teardown() {
     if (!out.toString().isEmpty()) {
-      throw new AssertionError("Unexpected output (errors?) from the compiler: " + out.toString());
+      System.err.println(
+          "Unexpected output (warnings / errors?) from the compiler: " + out.toString());
     }
     context.close();
   }

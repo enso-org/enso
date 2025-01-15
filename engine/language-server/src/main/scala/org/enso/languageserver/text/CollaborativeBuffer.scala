@@ -35,7 +35,7 @@ import org.enso.languageserver.util.UnhandledLogging
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.{ContentBasedVersioning, ContentVersion}
 import org.enso.text.editing._
-import org.enso.text.editing.model.TextEdit
+import org.enso.text.editing.model.{IdMap, TextEdit}
 
 import java.util.UUID
 
@@ -71,7 +71,7 @@ class CollaborativeBuffer(
   private def uninitialized: Receive = {
     case OpenFile(client, path) =>
       context.system.eventStream.publish(BufferOpened(path))
-      logger.info(
+      logger.debug(
         "Buffer opened for [path:{}, client:{}].",
         path,
         client.clientId
@@ -80,7 +80,7 @@ class CollaborativeBuffer(
 
     case OpenBuffer(client, path) =>
       context.system.eventStream.publish(BufferOpened(path))
-      logger.info(
+      logger.debug(
         "Buffer opened in-memory for [path:{}, client:{}].",
         path,
         client.clientId
@@ -259,8 +259,17 @@ class CollaborativeBuffer(
         sender() ! FileNotOpened
       }
 
-    case ApplyEdit(clientId, change, execute) =>
-      edit(buffer, clients, lockHolder, clientId, change, execute, autoSave)
+    case ApplyEdit(clientId, change, execute, idMap) =>
+      edit(
+        buffer,
+        clients,
+        lockHolder,
+        clientId,
+        change,
+        execute,
+        idMap,
+        autoSave
+      )
 
     case ApplyExpressionValue(
           clientId,
@@ -412,7 +421,7 @@ class CollaborativeBuffer(
         buffer.version.toHexString
       )
       runtimeConnector ! Api.Request(
-        Api.EditFileNotification(file.path, edits, execute = true)
+        Api.EditFileNotification(file.path, edits, execute = true, None)
       )
       clients.values.foreach { _.rpcController ! TextDidChange(List(change)) }
       unstashAll()
@@ -727,6 +736,7 @@ class CollaborativeBuffer(
     clientId: Option[ClientId],
     change: FileEdit,
     execute: Boolean,
+    idMap: Option[IdMap],
     autoSave: Map[ClientId, (ContentVersion, Cancellable)]
   ): Unit = {
     applyEdits(buffer, lockHolder, clientId, change) match {
@@ -743,7 +753,8 @@ class CollaborativeBuffer(
             Api.EditFileNotification(
               buffer.fileWithMetadata.file,
               change.edits,
-              execute
+              execute,
+              idMap
             )
           )
         }
@@ -903,10 +914,12 @@ class CollaborativeBuffer(
     autoSave: Map[ClientId, (ContentVersion, Cancellable)]
   ): Unit = {
     val writeCapability =
-      if (lockHolder.isEmpty)
-        Some(CapabilityRegistration(CanEdit(bufferPath)))
-      else
-        None
+      lockHolder match {
+        case Some(session) if session.clientId != rpcSession.clientId =>
+          None
+        case _ =>
+          Some(CapabilityRegistration(CanEdit(bufferPath)))
+      }
     sender() ! OpenFileResponse(Right(OpenFileResult(buffer, writeCapability)))
     context.become(
       collaborativeEditing(

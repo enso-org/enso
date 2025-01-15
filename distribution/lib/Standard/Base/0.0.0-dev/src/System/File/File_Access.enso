@@ -49,18 +49,20 @@ type File_Access
     ## PRIVATE
 
        Convert this object into a representation understandable by the JVM.
-    to_java : StandardOpenOption
-    to_java self = case self of
-        File_Access.Append            -> StandardOpenOption.APPEND
-        File_Access.Create            -> StandardOpenOption.CREATE
-        File_Access.Create_New        -> StandardOpenOption.CREATE_NEW
-        File_Access.Delete_On_Close   -> StandardOpenOption.DELETE_ON_CLOSE
-        File_Access.Dsync             -> StandardOpenOption.DSYNC
-        File_Access.Read              -> StandardOpenOption.READ
-        File_Access.Sparse            -> StandardOpenOption.SPARSE
-        File_Access.Sync              -> StandardOpenOption.SYNC
-        File_Access.Truncate_Existing -> StandardOpenOption.TRUNCATE_EXISTING
-        File_Access.Write             -> StandardOpenOption.WRITE
+    to_java : Text
+    to_java self =
+        java_option = case self of
+            File_Access.Append            -> StandardOpenOption.APPEND
+            File_Access.Create            -> StandardOpenOption.CREATE
+            File_Access.Create_New        -> StandardOpenOption.CREATE_NEW
+            File_Access.Delete_On_Close   -> StandardOpenOption.DELETE_ON_CLOSE
+            File_Access.Dsync             -> StandardOpenOption.DSYNC
+            File_Access.Read              -> StandardOpenOption.READ
+            File_Access.Sparse            -> StandardOpenOption.SPARSE
+            File_Access.Sync              -> StandardOpenOption.SYNC
+            File_Access.Truncate_Existing -> StandardOpenOption.TRUNCATE_EXISTING
+            File_Access.Write             -> StandardOpenOption.WRITE
+        java_option.to_text
 
     ## PRIVATE
     ensure_only_allowed_options (operation_name : Text) (allowed_options : Vector) (got_options : Vector) ~action =

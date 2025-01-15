@@ -189,7 +189,7 @@ class BufferRegistry(
         sender() ! CapabilityReleaseBadRequest
       }
 
-    case msg @ ApplyEdit(_, FileEdit(path, _, _, _), _) =>
+    case msg @ ApplyEdit(_, FileEdit(path, _, _, _), _, _) =>
       if (registry.contains(path)) {
         registry(path).forward(msg)
       } else {
@@ -245,7 +245,8 @@ class BufferRegistry(
                   msg.oldVersion,
                   msg.newVersion
                 ),
-                execute = true
+                execute = true,
+                None
               )
             }
           case None =>

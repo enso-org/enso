@@ -56,6 +56,7 @@ fn_with_tco x =
 global_wrapper_fn =
     fn_with_tco 0
 
+pending_js_missing = if Polyglot.is_language_installed "js" then Nothing else "Can't run JavaScript tests, language `js` is not installed."
 
 add_specs suite_builder =
     suite_builder.group "No Method Errors" group_builder->
@@ -308,7 +309,7 @@ add_specs suite_builder =
                 (Panic.throw (ArrayList.new))
             catch_array . should_equal "[]"
 
-        group_builder.specify "should be able to throw and catch polyglot values"  <|
+        group_builder.specify "should be able to throw and catch polyglot values" pending=pending_js_missing <|
             caught_js_int_panic = Panic.catch Any handler=err->"Any:"+err.payload.to_text <|
                 Panic.catch Integer handler=err->"JS integer:"+err.payload.to_text <|
                     throw_js_int

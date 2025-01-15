@@ -2,6 +2,7 @@ package org.enso.interpreter.test.instrument
 
 import org.enso.semver.SemVer
 import org.enso.editions.{Editions, LibraryName}
+import org.enso.version.BuildVersion
 
 import java.io.File
 
@@ -11,7 +12,7 @@ object TestEdition {
 
   val empty: Editions.RawEdition =
     Editions.Raw.Edition(
-      engineVersion = Some(SemVer.parse(buildinfo.Info.ensoVersion).get),
+      engineVersion = Some(SemVer.parse(BuildVersion.ensoVersion).get),
       repositories =
         Map("main" -> Editions.Repository("main", "http://example.com/")),
       libraries = Map()

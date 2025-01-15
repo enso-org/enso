@@ -7,10 +7,10 @@ import static org.junit.Assert.assertTrue;
 import java.nio.file.Paths;
 import java.util.Map;
 import java.util.logging.Level;
+import org.enso.common.RuntimeOptions;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.service.ExecutionService.FunctionPointer;
-import org.enso.polyglot.RuntimeOptions;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Language;
@@ -48,6 +48,7 @@ public class FunctionPointerTest {
   @After
   public void disposeContext() {
     context.close();
+    context = null;
   }
 
   @Test

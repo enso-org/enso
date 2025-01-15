@@ -1,7 +1,6 @@
 package org.enso.interpreter.runtime.scope;
 
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
-import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
@@ -16,9 +15,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
-import org.enso.compiler.context.FramePointer;
+import org.enso.compiler.pass.analyse.FramePointer;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.node.EnsoRootNode;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.error.DataflowError;
@@ -35,7 +35,7 @@ import org.enso.interpreter.runtime.error.DataflowError;
  * </ul>
  */
 @ExportLibrary(InteropLibrary.class)
-public class DebugLocalScope implements EnsoObject {
+public class DebugLocalScope extends EnsoObject {
   private final EnsoRootNode rootNode;
 
   /** All the bindings, including the parent scopes. */
@@ -120,16 +120,6 @@ public class DebugLocalScope implements EnsoObject {
   }
 
   @ExportMessage
-  boolean hasLanguage() {
-    return true;
-  }
-
-  @ExportMessage
-  Class<? extends TruffleLanguage<?>> getLanguage() {
-    return EnsoLanguage.class;
-  }
-
-  @ExportMessage
   boolean isScope() {
     return true;
   }
@@ -188,12 +178,17 @@ public class DebugLocalScope implements EnsoObject {
   @ExportMessage
   @TruffleBoundary
   Object readMember(String member, @CachedLibrary("this") InteropLibrary interop)
-      throws UnknownIdentifierException {
+      throws UnknownIdentifierException, UnsupportedMessageException {
     if (!allBindings.containsKey(member)) {
       throw UnknownIdentifierException.create(member);
     }
     FramePointer framePtr = allBindings.get(member);
     var value = getValue(frame, framePtr);
+    if (value != null) {
+      var ensoLang = EnsoLanguage.get(interop);
+      var ensoCtx = EnsoContext.get(interop);
+      value = ensoLang.getLanguageView(ensoCtx, value);
+    }
     return value != null ? value : DataflowError.UNINITIALIZED;
   }
 
@@ -245,7 +240,8 @@ public class DebugLocalScope implements EnsoObject {
 
   @ExportMessage
   @TruffleBoundary
-  String toDisplayString(boolean allowSideEffects) {
+  @Override
+  public String toDisplayString(boolean allowSideEffects) {
     return rootNode.toString();
   }
 
@@ -277,7 +273,7 @@ public class DebugLocalScope implements EnsoObject {
 
   /** Simple interop wrapper for a list of strings. */
   @ExportLibrary(InteropLibrary.class)
-  static final class ScopeMembers implements EnsoObject {
+  static final class ScopeMembers extends EnsoObject {
     private final List<String> memberNames;
 
     ScopeMembers(List<String> memberNames) {
@@ -307,6 +303,13 @@ public class DebugLocalScope implements EnsoObject {
     @Override
     public String toString() {
       return memberNames.toString();
+    }
+
+    @Override
+    @ExportMessage
+    @TruffleBoundary
+    public Object toDisplayString(boolean allowSideEffects) {
+      return toString();
     }
   }
 }

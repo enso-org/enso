@@ -106,9 +106,6 @@
 //! types of the trait in question used in other fields--and [`enso_parser`] hasn't had a need for
 //! it, and probably never will.)
 
-// === Features ===
-#![feature(associated_type_defaults)]
-#![feature(option_get_or_insert_default)]
 // === Non-Standard Linter Configuration ===
 #![allow(clippy::option_map_unit_fn)]
 #![allow(clippy::precedence)]

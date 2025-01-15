@@ -5,7 +5,14 @@ import com.oracle.truffle.api.TruffleContext;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.source.Source;
+import java.io.IOException;
+import java.net.URL;
+import java.util.concurrent.Executors;
+import java.util.function.Function;
 import java.util.logging.Level;
+import org.enso.ydoc.polyfill.web.WebEnvironment;
+import org.graalvm.polyglot.Value;
 
 /**
  * A context for {@link EpbLanguage}. Provides access to both isolated Truffle contexts used in
@@ -21,6 +28,7 @@ final class EpbContext {
   private final TruffleLanguage.Env env;
   private @CompilationFinal TruffleContext innerContext;
   private final TruffleLogger log;
+  private boolean polyfillInitialized;
 
   /**
    * Creates a new instance of this context.
@@ -74,5 +82,23 @@ final class EpbContext {
 
   public void log(Level level, String msg, Object... args) {
     this.log.log(level, msg, args);
+  }
+
+  final void initializePolyfill(Node node, TruffleContext ctx) {
+    if (!polyfillInitialized) {
+      polyfillInitialized = true;
+      var exec = Executors.newSingleThreadScheduledExecutor();
+      Function<URL, Value> eval =
+          (url) -> {
+            try {
+              var src = Source.newBuilder("js", url).build();
+              var obj = ctx.evalPublic(node, src);
+              return Value.asValue(obj);
+            } catch (IOException ex) {
+              throw new IllegalStateException(ex);
+            }
+          };
+      WebEnvironment.initialize(eval, exec);
+    }
   }
 }

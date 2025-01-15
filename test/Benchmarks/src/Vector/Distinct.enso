@@ -9,25 +9,31 @@ options = Bench.options . set_warmup (Bench.phase_conf 1 3) . set_measure (Bench
 
 
 type Data
-    Value ~random_vec ~uniform_vec ~random_text_vec ~uniform_text_vec
+    Value ~random_integer_vec ~uniform_integer_vec ~random_float_vec ~uniform_float_vec ~random_text_vec ~uniform_text_vec
 
     create =
-        Data.Value create_random_vec create_uniform_vec create_random_text_vec create_uniform_text_vec
+        Data.Value create_random_integer_vec create_uniform_integer_vec create_random_float_vec create_uniform_float_vec create_random_text_vec create_uniform_text_vec
 
 
-create_random_vec = Utils.make_random_vec 100000
+create_random_integer_vec = Utils.make_random_integer_vec 100000
 
 
-create_uniform_vec = Vector.fill 100000 1
+create_random_float_vec = Utils.make_random_float_vec 100000
+
+
+create_uniform_integer_vec = Vector.fill 100000 1
+
+
+create_uniform_float_vec = Vector.fill 100000 1.2
 
 
 create_random_text_vec =
-    random_vec = create_random_vec
+    random_vec = create_random_float_vec
     random_vec.map .to_text
 
 
 create_uniform_text_vec =
-    uniform_vec = create_uniform_vec
+    uniform_vec = create_uniform_integer_vec
     uniform_vec.map .to_text
 
 
@@ -36,9 +42,13 @@ collect_benches = Bench.build builder->
 
     builder.group "Vector_Distinct" options group_builder->
         group_builder.specify "Random_Integer_Vector_Distinct_v2" <|
-            data.random_vec.distinct
+            data.random_integer_vec.distinct
         group_builder.specify "Uniform_Integer_Vector_Distinct" <|
-            data.uniform_vec.distinct
+            data.uniform_integer_vec.distinct
+        group_builder.specify "Random_Float_Vector_Distinct_v2" <|
+            data.random_float_vec.distinct
+        group_builder.specify "Uniform_Float_Vector_Distinct" <|
+            data.uniform_float_vec.distinct
         group_builder.specify "Random_Text_Vector_Distinct_v2" <|
             data.random_text_vec.distinct
         group_builder.specify "Uniform_Text_Vector_Distinct" <|

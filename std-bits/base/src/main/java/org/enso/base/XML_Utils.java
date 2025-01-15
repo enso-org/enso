@@ -1,8 +1,14 @@
 package org.enso.base;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.StringReader;
 import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import org.w3c.dom.DOMConfiguration;
+import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.w3c.dom.bootstrap.DOMImplementationRegistry;
@@ -10,6 +16,7 @@ import org.w3c.dom.ls.DOMImplementationLS;
 import org.w3c.dom.ls.LSOutput;
 import org.w3c.dom.ls.LSSerializer;
 import org.xml.sax.ErrorHandler;
+import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 
@@ -62,7 +69,25 @@ public class XML_Utils {
     return out.toString();
   }
 
-  public static void setCustomErrorHandler(DocumentBuilder documentBuilder) {
+  public static Document parseStream(InputStream is)
+      throws ParserConfigurationException, SAXException, IOException {
+    return doParse(new InputSource(is));
+  }
+
+  public static Document parseString(String text)
+      throws ParserConfigurationException, SAXException, IOException {
+    return doParse(new InputSource(new StringReader(text)));
+  }
+
+  private static Document doParse(InputSource is)
+      throws ParserConfigurationException, SAXException, IOException {
+    var factory = DocumentBuilderFactory.newInstance();
+    var builder = factory.newDocumentBuilder();
+    configureErrorHandler(builder);
+    return builder.parse(is);
+  }
+
+  private static void configureErrorHandler(DocumentBuilder documentBuilder) {
     documentBuilder.setErrorHandler(
         new ErrorHandler() {
           @Override

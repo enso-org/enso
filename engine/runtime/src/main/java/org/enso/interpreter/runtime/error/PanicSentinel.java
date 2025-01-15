@@ -4,7 +4,6 @@ import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 /**
@@ -14,7 +13,7 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
  * not function in textual mode.
  */
 @ExportLibrary(TypesLibrary.class)
-public final class PanicSentinel extends AbstractTruffleException implements EnsoObject {
+public final class PanicSentinel extends AbstractTruffleException {
   final PanicException panic;
 
   /**

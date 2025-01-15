@@ -21,6 +21,7 @@ import org.enso.launcher.distribution.{DefaultManagers, LauncherResourceManager}
 
 import java.nio.file.{Files, Path}
 import scala.util.control.NonFatal
+import org.enso.launcher.Constants
 
 /** Allows to [[uninstall]] an installed distribution.
   *
@@ -318,7 +319,8 @@ class DistributionUninstaller(
   private def partiallyUninstallExecutableWindows(): Path = {
     val currentPath = manager.env.getPathToRunningExecutable
 
-    val newPath = currentPath.getParent.resolve(OS.executableName("enso.old"))
+    val newPath =
+      currentPath.getParent.resolve(OS.executableName(Constants.name + ".old"))
     Files.move(currentPath, newPath)
     newPath
   }
@@ -338,7 +340,9 @@ class DistributionUninstaller(
     parentToRemove: Option[Path]
   ): Nothing = {
     val temporaryLauncher =
-      Files.createTempDirectory("enso-uninstall") / OS.executableName("enso")
+      Files.createTempDirectory("enso-uninstall") / OS.executableName(
+        Constants.name
+      )
     val oldLauncher = myNewPath
     Files.copy(oldLauncher, temporaryLauncher)
     InternalOpts

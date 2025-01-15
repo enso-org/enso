@@ -5,8 +5,7 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives
 import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
 import org.enso.languageserver.TestClock
-import org.enso.logger.ReportLogsOnFailure
-import org.enso.testkit.FlakySpec
+import org.enso.testkit.{FlakySpec, ReportLogsOnFailure}
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 

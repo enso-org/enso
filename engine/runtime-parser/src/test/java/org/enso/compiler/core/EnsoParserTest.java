@@ -19,28 +19,10 @@ import java.util.function.Function;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.expression.Error;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import scala.jdk.javaapi.CollectionConverters;
 
 public class EnsoParserTest {
-  private static EnsoParser ensoCompiler;
-
-  @BeforeClass
-  public static void initEnsoParser() {
-    try {
-      ensoCompiler = new EnsoParser();
-    } catch (LinkageError e) {
-      throw new AssertionError(e);
-    }
-  }
-
-  @AfterClass
-  public static void closeEnsoParser() throws Exception {
-    if (ensoCompiler != null) ensoCompiler.close();
-  }
-
   @Test
   public void testParseMain7Foo() {
     parseTest("""
@@ -1188,7 +1170,7 @@ public class EnsoParserTest {
     suite =
         Test.specify "should quote values containing the comment symbol if comments are enabled" <|
             format = Delimited_Format.Delimited ',' . with_comments
-            table.write file format on_problems=Report_Error . should_succeed
+            table.write file format on_problems=..Report_Error . should_succeed
             expected_text_2 = normalize_lines <| \"""
                 "#",B
                 b,
@@ -1529,7 +1511,9 @@ public class EnsoParserTest {
   }
 
   private static Module compile(String code) {
-    return compile(ensoCompiler, code);
+    var ir = EnsoParser.compile(code);
+    assertNotNull("IR was generated", ir);
+    return ir;
   }
 
   private void expectNoErrorsInIr(Module moduleIr) {
@@ -1542,12 +1526,6 @@ public class EnsoParserTest {
               }
               return null;
             });
-  }
-
-  public static Module compile(EnsoParser c, String code) {
-    var ir = c.compile(code);
-    assertNotNull("IR was generated", ir);
-    return ir;
   }
 
   static void assertIR(String msg, Module old, Module now) throws IOException {

@@ -46,7 +46,7 @@ public abstract class BitShiftNode extends IntegerNode {
     } else if (positiveFitsInInt.profile(BigIntegerOps.fitsInInt(that))) {
       return toEnsoNumberNode.execute(BigIntegerOps.bitShiftLeft(self, (int) that));
     } else {
-      return DataflowError.withoutTrace(
+      return DataflowError.withDefaultTrace(
           EnsoContext.get(this).getBuiltins().error().getShiftAmountTooLargeError(), this);
     }
   }
@@ -75,7 +75,7 @@ public abstract class BitShiftNode extends IntegerNode {
       return self >= 0 ? 0L : -1L;
     } else {
       // Note [Well-Formed BigIntegers]
-      return DataflowError.withoutTrace(
+      return DataflowError.withDefaultTrace(
           EnsoContext.get(this).getBuiltins().error().getShiftAmountTooLargeError(), this);
     }
   }
@@ -93,7 +93,7 @@ public abstract class BitShiftNode extends IntegerNode {
     if (fitsInIntProfileLeftShift.profile(BigIntegerOps.fitsInInt(that))) {
       return doBigIntShiftLeft(self, that);
     } else {
-      return DataflowError.withoutTrace(
+      return DataflowError.withDefaultTrace(
           EnsoContext.get(this).getBuiltins().error().getShiftAmountTooLargeError(), this);
     }
   }
@@ -120,7 +120,7 @@ public abstract class BitShiftNode extends IntegerNode {
     if (!BigIntegerOps.nonNegative(that.getValue())) {
       return BigIntegerOps.nonNegative(self.getValue()) ? 0L : -1L;
     } else {
-      return DataflowError.withoutTrace(
+      return DataflowError.withDefaultTrace(
           EnsoContext.get(this).getBuiltins().error().getShiftAmountTooLargeError(), this);
     }
   }

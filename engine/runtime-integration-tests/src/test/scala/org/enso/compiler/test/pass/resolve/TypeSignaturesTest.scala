@@ -6,6 +6,7 @@ import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.Function
 import org.enso.compiler.core.ir.Module
+import org.enso.compiler.core.ir.Type
 import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.Definition
@@ -236,8 +237,8 @@ class TypeSignaturesTest extends CompilerTest {
       head.getMetadata(DocumentationComments) shouldBe defined
     }
 
-    "raise an error if a signature is divorced from its definition" in {
-      block.returnValue shouldBe an[errors.Unexpected.TypeSignature]
+    "last line of a block is Type.Ascription" in {
+      block.returnValue shouldBe an[Type.Ascription]
     }
 
     "work recursively" in {

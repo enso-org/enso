@@ -7,6 +7,7 @@ import org.enso.compiler.core.ir.{Expression, Module, Name, Pattern}
 import org.enso.compiler.core.ir.expression.{errors, warnings, Case}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.IRProcessingPass
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
   DataflowAnalysis,
@@ -34,16 +35,16 @@ case object ShadowedPatternFields extends IRPass {
   override type Metadata = IRPass.Metadata.Empty
   override type Config   = IRPass.Configuration.Default
 
-  override lazy val precursorPasses: Seq[IRPass] = List(
+  override lazy val precursorPasses: Seq[IRProcessingPass] = List(
     GenerateMethodBodies
   )
-  override lazy val invalidatedPasses: Seq[IRPass] = List(
+  override lazy val invalidatedPasses: Seq[IRProcessingPass] = List(
     AliasAnalysis,
     DataflowAnalysis,
     DemandAnalysis,
     IgnoredBindings,
     NestedPatternMatch,
-    TailCall
+    TailCall.INSTANCE
   )
 
   /** Lints for shadowed pattern fields.
@@ -85,7 +86,7 @@ case object ShadowedPatternFields extends IRPass {
     * @param expression the expression to lint
     * @return `expression`, with warnings for any shadowed pattern variables
     */
-  def lintExpression(
+  private def lintExpression(
     expression: Expression
   ): Expression = {
     expression.transformExpressions { case cse: Case =>
@@ -100,7 +101,7 @@ case object ShadowedPatternFields extends IRPass {
     */
   def lintCase(cse: Case): Case = {
     cse match {
-      case expr @ Case.Expr(scrutinee, branches, _, _, _, _) =>
+      case expr @ Case.Expr(scrutinee, branches, _, _, _) =>
         expr.copy(
           scrutinee = lintExpression(scrutinee),
           branches  = branches.map(lintCaseBranch)
@@ -139,7 +140,7 @@ case object ShadowedPatternFields extends IRPass {
 
     def go(pattern: Pattern, seenNames: mutable.Set[String]): Pattern = {
       pattern match {
-        case named @ Pattern.Name(name, location, _, _) =>
+        case named @ Pattern.Name(name, location, _) =>
           if (seenNames.contains(name.name)) {
             val warning = warnings.Shadowed
               .PatternBinding(name.name, lastSeen(name.name), location)
@@ -147,7 +148,7 @@ case object ShadowedPatternFields extends IRPass {
             lastSeen(name.name) = named
             named
               .copy(
-                name = Name.Blank(location = name.location)
+                name = Name.Blank(name.identifiedLocation())
               )
               .addDiagnostic(warning)
           } else if (!name.isInstanceOf[Name.Blank]) {
@@ -157,7 +158,7 @@ case object ShadowedPatternFields extends IRPass {
           } else {
             named
           }
-        case cons @ Pattern.Constructor(_, fields, _, _, _) =>
+        case cons @ Pattern.Constructor(_, fields, _, _) =>
           val newFields = fields.reverse.map(go(_, seenNames)).reverse
 
           cons.copy(
@@ -165,7 +166,7 @@ case object ShadowedPatternFields extends IRPass {
           )
         case literal: Pattern.Literal =>
           literal
-        case typed @ Pattern.Type(name, _, location, _, _) =>
+        case typed @ Pattern.Type(name, _, location, _) =>
           if (seenNames.contains(name.name)) {
             val warning = warnings.Shadowed
               .PatternBinding(name.name, lastSeen(name.name), location)
@@ -173,7 +174,7 @@ case object ShadowedPatternFields extends IRPass {
             lastSeen(name.name) = typed
             typed
               .copy(
-                name = Name.Blank(location = name.location)
+                name = Name.Blank(name.identifiedLocation())
               )
               .addDiagnostic(warning)
           } else if (!name.isInstanceOf[Name.Blank]) {

@@ -39,7 +39,7 @@ public abstract class GetAnnotationNode extends BaseNode {
       @Cached ThunkExecutorNode thunkExecutorNode,
       @Cached ExpectStringNode expectStringNode,
       @Cached TypeOfNode typeOfNode) {
-    Object targetTypeResult = typeOfNode.execute(target);
+    Object targetTypeResult = typeOfNode.findTypeOrError(target);
     if (targetTypeResult instanceof DataflowError error) {
       return error;
     }

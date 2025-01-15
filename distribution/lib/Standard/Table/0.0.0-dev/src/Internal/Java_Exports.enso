@@ -5,6 +5,7 @@ import project.Internal.Storage
 import project.Value_Type.Bits
 import project.Value_Type.Value_Type
 
+polyglot java import org.enso.table.data.column.builder.BigDecimalBuilder
 polyglot java import org.enso.table.data.column.builder.BigIntegerBuilder
 polyglot java import org.enso.table.data.column.builder.BoolBuilder
 polyglot java import org.enso.table.data.column.builder.DateBuilder
@@ -35,6 +36,11 @@ make_long_builder initial_size bits java_problem_aggregator=(Missing_Argument.en
 make_biginteger_builder : Integer -> ProblemAggregator -> BigIntegerBuilder
 make_biginteger_builder initial_size java_problem_aggregator=(Missing_Argument.ensure_present "java_problem_aggregator") =
     BigIntegerBuilder.new initial_size java_problem_aggregator
+
+## PRIVATE
+make_bigdecimal_builder : Integer -> BigDecimalBuilder
+make_bigdecimal_builder initial_size =
+    BigDecimalBuilder.new initial_size
 
 ## PRIVATE
 make_string_builder : Integer -> Value_Type -> StringBuilder

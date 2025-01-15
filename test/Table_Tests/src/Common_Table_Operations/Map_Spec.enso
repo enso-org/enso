@@ -13,30 +13,11 @@ from project.Common_Table_Operations.Util import run_default_backend
 
 main filter=Nothing = run_default_backend add_specs filter
 
-type Data
-    Value ~connection
-
-    setup create_connection_fn = Data.Value <|
-        connection = create_connection_fn Nothing
-        connection
-
-    teardown self =
-        self.connection.close
-
-
 add_specs suite_builder setup =
     prefix = setup.prefix
-    create_connection_fn = setup.create_connection_func
+    table_builder = setup.light_table_builder
 
     suite_builder.group prefix+"Column.map" group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
         if setup.is_database then
             group_builder.specify "should report unsupported error" <|
                 t = table_builder [["X", [1, 2, 3]]]
@@ -66,7 +47,7 @@ add_specs suite_builder setup =
                     if (x % 2) == 0 then Warning.attach (Illegal_State.Error "MY WARNING "+x.to_text) (2*x + 1) else 2*x + 1
                 c1 = t.at "X" . map f
                 warnings = Problems.get_attached_warnings c1
-                warnings.map Error.unwrap . map .message . should_contain_the_same_elements_as ["MY WARNING 2", "MY WARNING 4"]
+                warnings.map Error.unwrap . map .message . should_equal_ignoring_order ["MY WARNING 2", "MY WARNING 4"]
                 c1.to_vector . should_equal [3, 5, 7, 9]
 
             group_builder.specify "should respect the expected_value_type" <|
@@ -151,14 +132,6 @@ add_specs suite_builder setup =
                 r8.catch.to_display_text . should_contain "Expected type Date, but got a value 42 of type Integer (16 bits)"
 
     suite_builder.group prefix+"Column.zip" group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
         if setup.is_database then
             group_builder.specify "should report unsupported error" <|
                 t = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]

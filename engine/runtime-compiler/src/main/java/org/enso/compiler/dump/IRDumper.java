@@ -29,10 +29,12 @@ import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.compiler.core.ir.module.scope.imports.Polyglot;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.BindingsMap.ResolvedConstructor;
-import org.enso.compiler.data.BindingsMap.ResolvedMethod;
+import org.enso.compiler.data.BindingsMap.ResolvedModuleMethod;
 import org.enso.compiler.data.BindingsMap.ResolvedPolyglotField;
 import org.enso.compiler.data.BindingsMap.ResolvedPolyglotSymbol;
 import org.enso.compiler.data.BindingsMap.ResolvedType;
+import org.enso.compiler.pass.analyse.alias.AliasMetadata;
+import org.enso.compiler.pass.analyse.alias.graph.Graph;
 import org.enso.compiler.pass.resolve.FullyQualifiedNames.FQNResolution;
 import org.enso.compiler.pass.resolve.FullyQualifiedNames.ResolvedLibrary;
 import org.enso.compiler.pass.resolve.FullyQualifiedNames.ResolvedModule;
@@ -55,6 +57,9 @@ public class IRDumper {
 
   /** Whether to include some pass data in the GraphViz file. */
   private static final boolean INCLUDE_PASS_DATA = true;
+
+  public static final String DEFAULT_DUMP_DIR = "ir-dumps";
+  public static final String SYSTEM_PROP = "enso.compiler.dumpIr";
 
   private final OutputStream out;
   private final Set<GraphVizNode> nodes = new HashSet<>();
@@ -219,6 +224,16 @@ public class IRDumper {
                 .addLabelLine("name: " + builtinAnnotation.name());
         addNode(bldr.build());
       }
+      case org.enso.compiler.core.ir.Type.Ascription ascription -> {
+        var ascriptionNode = GraphVizNode.Builder.fromIr(ascription).build();
+        addNode(ascriptionNode);
+        var typed = ascription.typed();
+        createIRGraph(typed);
+        createEdge(ascription, typed, "typed");
+        var signature = ascription.signature();
+        createIRGraph(signature);
+        createEdge(ascription, signature, "signature");
+      }
       default -> throw unimpl(definitionIr);
     }
   }
@@ -373,11 +388,13 @@ public class IRDumper {
         }
       }
       case Pattern.Type tp -> {
+        addNode(bldr.build());
         var name = tp.name();
         var tpe = tp.tpe();
-        bldr.addLabelLine("name: " + name.name());
-        bldr.addLabelLine("tpe: " + tpe.name());
-        addNode(bldr.build());
+        createIRGraph(name);
+        createIRGraph(tpe);
+        createEdge(tp, name, "name");
+        createEdge(tp, tpe, "tpe");
       }
       case Pattern.Literal litPat -> {
         addNode(bldr.build());
@@ -484,7 +501,6 @@ public class IRDumper {
             GraphVizNode.Builder.fromIr(exportIr)
                 .addLabelLine("isSynthetic: " + exportModIr.isSynthetic())
                 .addLabelLine("name: " + exportModIr.name().name())
-                .addLabelLine("isAll: " + exportModIr.isAll())
                 .build();
         addNode(node);
       }
@@ -513,9 +529,9 @@ public class IRDumper {
                   bldr.addLabelLine(
                       "target: ResolvedConstructor(" + resolvedConstructor.cons().name() + ")");
                 }
-                case ResolvedMethod resolvedMethod -> {
+                case ResolvedModuleMethod resolvedModuleMethod -> {
                   bldr.addLabelLine(
-                      "target: ResolvedMethod(" + resolvedMethod.method().name() + ")");
+                      "target: ResolvedMethod(" + resolvedModuleMethod.method().name() + ")");
                 }
                 case ResolvedPolyglotField resolvedPolyglotField -> {
                   bldr.addLabelLine(
@@ -563,9 +579,13 @@ public class IRDumper {
                   switch (entity) {
                     case BindingsMap.Type tp -> bldr.addLabelLine("  - Type(" + tp.name() + ")");
                     case BindingsMap.ModuleMethod method -> bldr.addLabelLine(
-                        "  - Method(" + method.name() + ")");
+                        "  - ModuleMethod(" + method.name() + ")");
                     case BindingsMap.PolyglotSymbol polySym -> bldr.addLabelLine(
                         "  - PolyglotSymbol(" + polySym.name() + ")");
+                    case BindingsMap.ExtensionMethod extensionMethod -> bldr.addLabelLine(
+                        "  - ExtensionMethod(" + extensionMethod.name() + ")");
+                    case BindingsMap.ConversionMethod conversionMethod -> bldr.addLabelLine(
+                        "  - ConversionMethod(" + conversionMethod.name() + ")");
                     default -> throw unimpl(entity);
                   }
                 }
@@ -577,28 +597,13 @@ public class IRDumper {
                 bldr.addLabelLine("resolvedImports: ");
                 for (int i = 0; i < bindingsMap.resolvedImports().size(); i++) {
                   var resolvedImport = bindingsMap.resolvedImports().apply(i);
-                  switch (resolvedImport.target()) {
+                  var firstImpTarget = resolvedImport.targets().head();
+                  switch (firstImpTarget) {
                     case ResolvedType resolvedType -> bldr.addLabelLine(
                         "  - ResolvedType(" + resolvedType.tp().name() + ")");
                     case BindingsMap.ResolvedModule resolvedModule -> bldr.addLabelLine(
                         "  - ResolvedModule(" + resolvedModule.qualifiedName() + ")");
-                    default -> throw unimpl(resolvedImport.target());
-                  }
-                }
-              }
-
-              if (bindingsMap.resolvedExports().isEmpty()) {
-                bldr.addLabelLine("resolvedExports: []");
-              } else {
-                bldr.addLabelLine("resolvedExports: ");
-                for (int i = 0; i < bindingsMap.resolvedExports().size(); i++) {
-                  var resolvedExport = bindingsMap.resolvedExports().apply(i);
-                  switch (resolvedExport.target()) {
-                    case ResolvedType resolvedType -> bldr.addLabelLine(
-                        "  - ResolvedType(" + resolvedType.tp().name() + ")");
-                    case BindingsMap.ResolvedModule resolvedModule -> bldr.addLabelLine(
-                        "  - ResolvedModule(" + resolvedModule.qualifiedName() + ")");
-                    default -> throw unimpl(resolvedExport.target());
+                    default -> throw unimpl(firstImpTarget);
                   }
                 }
               }
@@ -606,11 +611,63 @@ public class IRDumper {
               addNode(bmNode);
               createEdge(ir, bindingsMap, "BindingsMap");
             }
+            case AliasMetadata.Occurrence occurence -> {
+              bldr.addLabelLine("occurenceId: " + occurence.id());
+              addNode(bldr.build());
+              createEdge(ir, occurence, "Alias.Info.Occurence");
+            }
+            case AliasMetadata.RootScope rootScope -> {
+              addAliasGraphScopeLabels(bldr, rootScope.graph().rootScope());
+              var aliasNode = bldr.build();
+              addNode(aliasNode);
+              createEdge(ir, rootScope, "Alias.Info.Scope.Root");
+            }
+            case AliasMetadata.ChildScope childScope -> {
+              addAliasGraphScopeLabels(bldr, childScope.scope());
+              var aliasNode = bldr.build();
+              addNode(aliasNode);
+              createEdge(ir, childScope, "Alias.Info.Scope.Child");
+            }
               // The rest is ignored
             default -> {}
           }
           return null;
         });
+  }
+
+  private void addAliasGraphScopeLabels(GraphVizNode.Builder bldr, Graph.Scope scope) {
+    var parent = scope.parent();
+    if (parent.isDefined()) {
+      var parentId = Utils.id(parent.get());
+      bldr.addLabelLine("parent: " + parentId);
+    } else {
+      bldr.addLabelLine("parent: null");
+    }
+    var occurences = scope.occurrences();
+    if (occurences.isEmpty()) {
+      bldr.addLabelLine("occurrences: []");
+    } else {
+      bldr.addLabelLine("occurrences: ");
+      occurences
+          .values()
+          .foreach(
+              occ -> {
+                bldr.addLabelLine("  - " + occ);
+                return null;
+              });
+    }
+    var childScopes = scope.childScopes();
+    if (childScopes.isEmpty()) {
+      bldr.addLabelLine("childScopes: []");
+    } else {
+      bldr.addLabelLine("childScopes: ");
+      childScopes.foreach(
+          childScope -> {
+            var id = Utils.id(childScope);
+            bldr.addLabelLine("  - " + id);
+            return null;
+          });
+    }
   }
 
   private void addNode(GraphVizNode node) {

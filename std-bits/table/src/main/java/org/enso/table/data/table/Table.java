@@ -240,6 +240,30 @@ public class Table {
   }
 
   /**
+   * Creates a new table keeping only rows with distinct key columns.
+   *
+   * @param keyColumns set of columns to use as an index
+   * @param textFoldingStrategy a strategy for folding text columns
+   * @param problemAggregator an aggregator for problems
+   * @return a table where duplicate rows with the same key are removed
+   */
+  public Table duplicates(
+      Column[] keyColumns,
+      TextFoldingStrategy textFoldingStrategy,
+      ProblemAggregator problemAggregator) {
+    var rowsToKeep =
+        Distinct.buildDuplicatesRowsMask(
+            rowCount(), keyColumns, textFoldingStrategy, problemAggregator);
+    int cardinality = rowsToKeep.cardinality();
+    Column[] newColumns = new Column[this.columns.length];
+    for (int i = 0; i < this.columns.length; i++) {
+      newColumns[i] = this.columns[i].applyFilter(rowsToKeep, cardinality);
+    }
+
+    return new Table(newColumns);
+  }
+
+  /**
    * Selects a subset of columns of this table, by names.
    *
    * @param colNames the column names to select

@@ -9,6 +9,8 @@ import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.numeric.DoubleRoundOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.AddOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.DivideOp;
+import org.enso.table.data.column.operation.map.numeric.arithmetic.MaxOp;
+import org.enso.table.data.column.operation.map.numeric.arithmetic.MinOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.ModOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.MulOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.PowerOp;
@@ -99,6 +101,11 @@ public final class DoubleStorage extends NumericStorage<Double>
   @Override
   public double getItemAsDouble(int i) {
     return Double.longBitsToDouble(data[i]);
+  }
+
+  @Override
+  public DoubleStorage intoStorage() {
+    return this;
   }
 
   @Override
@@ -282,6 +289,8 @@ public final class DoubleStorage extends NumericStorage<Double>
         .add(new ModOp<>())
         .add(new PowerOp<>())
         .add(new DoubleRoundOp(Maps.ROUND))
+        .add(new MinOp<>())
+        .add(new MaxOp<>())
         .add(new LessComparison<>())
         .add(new LessOrEqualComparison<>())
         .add(new EqualsComparison<>())
@@ -294,8 +303,18 @@ public final class DoubleStorage extends NumericStorage<Double>
   @Override
   public Storage<Double> slice(int offset, int limit) {
     int newSize = Math.min(size - offset, limit);
-    long[] newData = new long[newSize];
-    System.arraycopy(data, offset, newData, 0, newSize);
+    long[] newData;
+
+    // Special case if slice is after the actual data
+    if (offset >= data.length) {
+      newData = new long[0];
+    } else {
+      // Can only copy as much as there is data
+      int newDataSize = Math.min(data.length - offset, newSize);
+      newData = new long[newDataSize];
+      System.arraycopy(data, offset, newData, 0, newDataSize);
+    }
+
     BitSet newMask = isNothing.get(offset, offset + limit);
     return new DoubleStorage(newData, newSize, newMask);
   }

@@ -20,7 +20,7 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.error.DataflowError;
 
 @BuiltinMethod(
-    type = "Map",
+    type = "Dictionary",
     name = "remove_builtin",
     description = """
         Removes an entry from this map specified with the key.
@@ -44,7 +44,7 @@ public abstract class HashMapRemoveNode extends Node {
     if (mapBuilder.remove(frame, key, hashCodeNode, equalsNode)) {
       return mapBuilder.build();
     } else {
-      throw DataflowError.withoutTrace("No such key", null);
+      throw DataflowError.withDefaultTrace("No such key", null);
     }
   }
 
@@ -92,7 +92,7 @@ public abstract class HashMapRemoveNode extends Node {
       return EnsoHashMap.createWithBuilder(mapBuilder);
     } else {
       CompilerDirectives.transferToInterpreter();
-      throw DataflowError.withoutTrace("No such key " + keyToRemove, interop);
+      throw DataflowError.withDefaultTrace("No such key " + keyToRemove, interop);
     }
   }
 
@@ -102,7 +102,7 @@ public abstract class HashMapRemoveNode extends Node {
     if (isNan(obj1, interop) && isNan(obj2, interop)) {
       return true;
     } else {
-      return equalsNode.execute(frame, obj1, obj2);
+      return equalsNode.execute(frame, obj1, obj2).isTrue();
     }
   }
 

@@ -1,7 +1,10 @@
 ## An API for manual resource management.
 
 import project.Any.Any
+import project.Errors.Common.Uninitialized_State
+import project.Meta
 import project.Nothing.Nothing
+from project.Data.Boolean import Boolean, False, True
 
 ## Resource provides an API for manual management of computation resources.
 
@@ -34,17 +37,25 @@ type Managed_Resource
        ADVANCED
 
        Registers a resource with the resource manager to be cleaned up using
-       function once it is no longer in use.
+       function once it is no longer in use. The optional `system_finalization_allowed`
+       flag allow the system to explicitly call `finalize` on the resource
+       when _"needed"_. The definition is intentionally vague, but
+       currently the IDE performs such a call when user requests a _"reload"_ -
+       e.g. using `Managed_Resource.register cache cleanup_fn True` is useful
+       for creating user managed caches.
 
        Arguments:
        - resource: The resource to register.
        - function: The action to be executed on resource to clean it up when
          it is no longer in use.
+       - system_finalization_allowed: is the system allowed to call `finalize`
+         on the resource when "needed"
 
        Returns:
        A `Managed_Resource` object that can be used to access the resource.
-    register : Any -> (Any -> Nothing) -> Managed_Resource
-    register resource function = @Builtin_Method "Managed_Resource.register"
+    register : Any -> (Any -> Nothing) -> Boolean -> Managed_Resource
+    register resource function system_finalization_allowed=False =
+        @Tail_Call register_builtin resource function system_finalization_allowed
 
     ## PRIVATE
        ADVANCED
@@ -58,13 +69,18 @@ type Managed_Resource
        ADVANCED
 
        Executes the provided action on the resource managed by the managed
-       resource object.
+       resource object. The action is invoked with the managed resource only if
+       it has not yet been finalized. If the resource has already been finalized
+       then `Error` with `Uninitialized_State` payload is passed into the
+       action instead of the resource.
 
        Arguments:
        - action: The action that will be applied to the resource managed by
-         resource.
+         the `Managed_Resource` (or to `Uninitialized_State` error).
+       Returns:
+       Value returned from the `action`
     with : (Any -> Any) -> Any
-    with self ~action = @Builtin_Method "Managed_Resource.with"
+    with self ~action = @Tail_Call with_builtin self action
 
     ## PRIVATE
        ADVANCED
@@ -74,3 +90,19 @@ type Managed_Resource
        managed resources system.
     take : Any
     take self = @Builtin_Method "Managed_Resource.take"
+
+    ## PRIVATE
+       ADVANCED
+
+       Returns true iff the resource has been collected by the engine, false
+       otherwise. If `with` throws any other error, it is propagated.
+    has_been_finalized : Boolean
+    has_been_finalized self -> Boolean = self.with x->
+        if x.is_error.not then False else
+            if x.catch.is_a Uninitialized_State then True else x
+
+## PRIVATE
+register_builtin r fn sys:Boolean = @Builtin_Method "Managed_Resource.register_builtin"
+
+## PRIVATE
+with_builtin r fn = @Builtin_Method "Managed_Resource.with_builtin"

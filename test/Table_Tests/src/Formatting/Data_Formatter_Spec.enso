@@ -110,7 +110,7 @@ add_specs suite_builder =
 
             r1 = plain_formatter.parse "1E3" Value_Type.Float
             r1.should_equal Nothing
-            Problems.get_attached_warnings r1 . should_equal [(Invalid_Format.Error Nothing Value_Type.Float ["1E3"])]
+            Problems.get_attached_warnings r1 . should_equal [(Invalid_Format.Error Nothing Value_Type.Float 1 ["1E3"])]
 
             exponential_formatter.parse "1E3" . should_equal 1000.0
             exponential_formatter.parse "1E3" Value_Type.Float . should_equal 1000.0

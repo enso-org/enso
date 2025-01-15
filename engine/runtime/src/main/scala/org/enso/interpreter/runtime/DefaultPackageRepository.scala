@@ -34,8 +34,8 @@ import org.enso.distribution.locking.ResourceManager
 import org.enso.distribution.{DistributionManager, LanguageHome}
 import org.enso.editions.updater.EditionManager
 import org.enso.editions.{DefaultEdition, Editions, LibraryName}
-import org.enso.interpreter.instrument.NotificationHandler
 import org.enso.interpreter.runtime.builtin.Builtins
+import org.enso.interpreter.runtime.instrument.NotificationHandler
 import org.enso.librarymanager.DefaultLibraryProvider
 import org.enso.pkg.{ComponentGroups, Package}
 
@@ -58,7 +58,7 @@ private class DefaultPackageRepository(
 
   private val logger = Logger[DefaultPackageRepository]
 
-  implicit private val fs: TruffleFileSystem               = new TruffleFileSystem
+  implicit private val fs: TruffleFileSystem               = TruffleFileSystem.INSTANCE
   private val packageManager                               = new PackageManager[TruffleFile]
   private var projectPackage: Option[Package[TruffleFile]] = None
 
@@ -337,13 +337,8 @@ private class DefaultPackageRepository(
     if (loadedComponents.contains(pkg.libraryName)) Right(())
     else {
       pkg.getConfig().componentGroups match {
-        case Left(err) =>
-          Left(PackageRepository.Error.PackageLoadingError(err.getMessage()))
-        case Right(componentGroups) =>
-          logger.debug(
-            s"Resolving component groups of package [${pkg.normalizedName}]."
-          )
-
+        case None => Right(())
+        case Some(componentGroups) =>
           registerComponentGroups(pkg.libraryName, componentGroups.newGroups)
           componentGroups.extendedGroups
             .foldLeft[Either[PackageRepository.Error, Unit]](Right(())) {
@@ -494,7 +489,7 @@ private class DefaultPackageRepository(
     syntheticModule: Module,
     refs: List[QualifiedName]
   ): Unit = {
-    assert(syntheticModule.isSynthetic)
+    org.enso.common.Asserts.assertInJvm(syntheticModule.isSynthetic)
     if (!loadedModules.contains(syntheticModule.getName.toString)) {
       loadedModules.put(
         syntheticModule.getName.toString,
@@ -502,7 +497,7 @@ private class DefaultPackageRepository(
       )
     } else {
       val loaded = loadedModules(syntheticModule.getName.toString)
-      assert(!loaded.isSynthetic)
+      org.enso.common.Asserts.assertInJvm(!loaded.isSynthetic)
       loaded
         .asInstanceOf[TruffleCompilerContext.Module]
         .unsafeModule()
@@ -613,7 +608,14 @@ private class DefaultPackageRepository(
       Using(file.newBufferedReader) { reader =>
         StringUtils.join(reader.lines().iterator(), "\n")
       }
-    else Failure(PackageManager.PackageNotFound())
+    else Failure(PackageManager.PackageNotFound("manifest"))
+  }
+
+  override def shutdown(): Unit = {
+    loadedPackages.clear()
+    loadedModules.clear()
+    loadedComponents.clear()
+    loadedLibraryBindings.clear()
   }
 }
 

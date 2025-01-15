@@ -3,6 +3,7 @@ package org.enso.launcher.distribution
 import java.nio.file.Path
 import com.typesafe.scalalogging.Logger
 import org.enso.distribution.Environment
+import org.enso.version.BuildVersion
 
 /** Default [[Environment]] to use in the launcher.
   *
@@ -24,7 +25,7 @@ object LauncherEnvironment extends Environment {
     * possible, before [[getPathToRunningExecutable]] is called.
     */
   def internalOverrideExecutableLocation(newLocation: Path): Unit =
-    if (buildinfo.Info.isRelease) {
+    if (BuildVersion.isRelease) {
       throw new IllegalStateException(
         "Internal testing function internalOverrideExecutableLocation used " +
         "in a release build."

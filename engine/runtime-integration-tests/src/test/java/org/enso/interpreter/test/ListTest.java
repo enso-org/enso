@@ -64,7 +64,15 @@ public class ListTest {
 
   @After
   public void disposeCtx() {
+    generator = null;
+    plusOne = null;
+    evenOnes = null;
+    taken = null;
+    init = null;
+    asVector = null;
+    asText = null;
     this.ctx.close();
+    ctx = null;
   }
 
   @Test

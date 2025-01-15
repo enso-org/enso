@@ -59,4 +59,4 @@ get_chunk_from_line text chunk_size ix =
     end = (start + chunk_size).min upper_bound
     range = start.up_to end
     if start > text.length then Nothing else
-        slice_text text [range]
+        text.take range

@@ -3,9 +3,11 @@ package org.enso.interpreter.runtime;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.source.Source;
 import java.io.IOException;
+import java.util.LinkedList;
 import org.enso.common.LanguageInfo;
 import org.enso.pkg.QualifiedName;
 import org.enso.text.buffer.Rope;
+import org.enso.version.BuildVersion;
 
 /**
  * Keeps information about various kinds of sources associated with a {@link Module}. All the record
@@ -68,7 +70,9 @@ record ModuleSources(TruffleFile file, Rope rope, Source source) {
       Source src = Source.newBuilder(LanguageInfo.ID, rope.characters(), name.toString()).build();
       return new ModuleSources(file, rope, src);
     } else if (file != null) {
-      Source src = Source.newBuilder(LanguageInfo.ID, file).build();
+      var b = Source.newBuilder(LanguageInfo.ID, file);
+      alternativeFile(b, file);
+      var src = b.build();
       org.enso.text.buffer.Rope lit = Rope.apply(src.getCharacters().toString());
       return new ModuleSources(file, lit, src);
     }
@@ -82,5 +86,52 @@ record ModuleSources(TruffleFile file, Rope rope, Source source) {
    */
   String getPath() {
     return file() == null ? null : file().getPath();
+  }
+
+  /**
+   * Special support for reassigning locations of sources when running development version. When
+   * {@code -ea} is enabled, then we try to locate library files under the {@code
+   * distribution}/{@code lib} directories.
+   */
+  private static void alternativeFile(Source.SourceBuilder b, TruffleFile file) {
+    if (!BuildVersion.defaultDevEnsoVersion().equals(BuildVersion.ensoVersion())) {
+      // no changes when not running development version
+      return;
+    }
+    var root = file;
+    var stack = new LinkedList<String>();
+    while (root != null) {
+      if (BuildVersion.defaultDevEnsoVersion().equals(root.getName())) {
+        break;
+      }
+      stack.addFirst(root.getName());
+      root = root.getParent();
+    }
+    if (root == null) {
+      // give up when we cannot find a root
+      return;
+    }
+    var libName = root.getParent();
+    var libNamespace = libName.getParent();
+    var libVersion = libNamespace.getParent().getParent();
+    var builtDistribution = libVersion.getParent().getParent();
+    if ("built-distribution".equals(builtDistribution.getName())) {
+      var repositoryRoot = builtDistribution.getParent();
+      var distRoot = repositoryRoot.resolve("distribution").resolve("lib");
+      var newLibRoot =
+          distRoot
+              .resolve(libNamespace.getName())
+              .resolve(libName.getName())
+              .resolve(root.getName());
+      if (newLibRoot.isDirectory()) {
+        var newFile = newLibRoot;
+        for (var n : stack) {
+          newFile = newFile.resolve(n);
+        }
+        if (newFile.exists()) {
+          b.uri(newFile.toUri());
+        }
+      }
+    }
   }
 }

@@ -3,10 +3,11 @@ package org.enso.interpreter.runtime.data.atom;
 import com.oracle.truffle.api.dsl.NodeFactory;
 import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.profiles.BranchProfile;
 import java.util.List;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
-import org.enso.interpreter.node.callable.argument.ReadArgumentCheckNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
+import org.enso.interpreter.node.typecheck.TypeCheckValueNode;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.atom.UnboxingAtom.FieldGetterNode;
@@ -20,6 +21,7 @@ import org.enso.interpreter.runtime.error.DataflowError;
 final class SuspendedFieldGetterNode extends UnboxingAtom.FieldGetterNode {
   @Node.Child private UnboxingAtom.FieldSetterNode set;
   @Node.Child private UnboxingAtom.FieldGetterNode get;
+  private final BranchProfile exceptionalState = BranchProfile.create();
 
   @Node.Child
   private InvokeFunctionNode invoke =
@@ -84,7 +86,7 @@ final class SuspendedFieldGetterNode extends UnboxingAtom.FieldGetterNode {
   }
 
   private static boolean shallBeExtracted(Function fn) {
-    return fn.isThunk() || ReadArgumentCheckNode.isWrappedThunk(fn);
+    return fn.isThunk() || TypeCheckValueNode.isWrappedThunk(fn);
   }
 
   @Override
@@ -97,15 +99,17 @@ final class SuspendedFieldGetterNode extends UnboxingAtom.FieldGetterNode {
         set.execute(atom, newValue);
         return newValue;
       } catch (AbstractTruffleException ex) {
+        exceptionalState.enter();
         var rethrow = DataflowError.withTrace(ex, ex);
         set.execute(atom, rethrow);
         throw ex;
       }
-    } else if (value instanceof DataflowError suspended
-        && suspended.getPayload() instanceof AbstractTruffleException ex) {
-      throw ex;
-    } else {
-      return value;
+    } else if (value instanceof DataflowError suspended) {
+      exceptionalState.enter();
+      if (suspended.getPayload() instanceof AbstractTruffleException ex) {
+        throw ex;
+      }
     }
+    return value;
   }
 }

@@ -181,7 +181,7 @@ add_specs suite_builder =
             time . millisecond . should_equal 0
             time . microsecond . should_equal 0
             time . nanosecond . should_equal 0
-            time.zone.zone_id . take (Last 6) . should_equal "+01:00"
+            time.zone.zone_id . take (..Last 6) . should_equal "+01:00"
 
         group_builder.specify "should parse time with id-based zone" <|
             time = Date_Time.parse "1970-01-01T00:00:01+01:00[Europe/Paris]"
@@ -217,7 +217,7 @@ add_specs suite_builder =
             time . millisecond . should_equal 0
             time . microsecond . should_equal 0
             time . nanosecond . should_equal 0
-            (time.zone.zone_id . take (Last 3) . to_case Case.Upper) . should_equal "UTC"
+            (time.zone.zone_id . take (..Last 3) . to_case Case.Upper) . should_equal "UTC"
 
         group_builder.specify "should parse custom format of local time" <|
             time = Date_Time.parse "06 of May 2020 at 04:30AM" "dd 'of' MMMM yyyy 'at' hh:mma"

@@ -27,7 +27,7 @@ type AWS_Region
         Java_Region.regions.map .id
 
     ## PRIVATE
-    default_widget (display : Display = Display.When_Modified) -> Widget =
+    default_widget (display : Display = ..When_Modified) -> Widget =
         options = [Option "Default" ("..Default")] + AWS_Region.all_region_ids.map id->
             code = "(..Region "+id.pretty+")"
             Option id code

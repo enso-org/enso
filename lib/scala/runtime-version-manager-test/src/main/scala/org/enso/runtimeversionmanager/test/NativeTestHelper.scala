@@ -1,7 +1,7 @@
 package org.enso.runtimeversionmanager.test
 
 import org.enso.cli.OS
-import org.enso.testkit.process.{RunResult, WrappedProcess}
+import org.enso.process.{RunResult, WrappedProcess}
 
 import java.lang.{ProcessBuilder => JProcessBuilder}
 import scala.jdk.CollectionConverters._

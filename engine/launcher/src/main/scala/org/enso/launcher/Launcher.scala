@@ -2,7 +2,6 @@ package org.enso.launcher
 
 import java.nio.file.Path
 import com.typesafe.scalalogging.Logger
-import io.circe.Json
 import org.enso.semver.SemVer
 import org.enso.distribution.config.DefaultVersion
 import org.enso.editions.updater.EditionManager
@@ -82,7 +81,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
       versionOverride.getOrElse(configurationManager.defaultVersion)
     val globalConfig = configurationManager.getConfig
 
-    val exitCode = runner
+    val (exitCode, output) = runner
       .withCommand(
         runner
           .newProject(
@@ -98,7 +97,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
           .get,
         JVMSettings(useSystemJVM, jvmOpts, extraOptions = Seq.empty)
       ) { command =>
-        command.run().get
+        command.runAndCaptureOutput().get
       }
 
     if (exitCode == 0) {
@@ -106,7 +105,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
         s"Project created in `$actualPath` using version $version."
       )
     } else {
-      logger.error("Project creation failed.")
+      logger.error(s"Project creation failed: $output")
     }
 
     exitCode
@@ -212,7 +211,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     jvmOpts: Seq[(String, String)],
     additionalArguments: Seq[String]
   ): Int = {
-    val exitCode = runner
+    runner
       .withCommand(
         runner
           .repl(
@@ -227,7 +226,6 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
       ) { command =>
         command.run().get
       }
-    exitCode
   }
 
   /** Runs an Enso script or project.
@@ -368,7 +366,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
         s"(${configurationManager.configLocation.toAbsolutePath})."
       )
     } else {
-      configurationManager.updateConfigRaw(key, Json.fromString(value))
+      configurationManager.updateConfigRaw(key, value)
       InfoLogger.info(
         s"""Key `$key` set to "$value" in the global configuration file """ +
         s"(${configurationManager.configLocation.toAbsolutePath})."
@@ -413,12 +411,13 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
       )
       .get
 
-    runner.withCommand(
-      settings,
-      JVMSettings(useSystemJVM, jvmOpts, extraOptions = Seq())
-    ) { command =>
-      command.run().get
-    }
+    runner
+      .withCommand(
+        settings,
+        JVMSettings(useSystemJVM, jvmOpts, extraOptions = Seq())
+      ) { command =>
+        command.run().get
+      }
   }
 
   /** Prints the value of `key` from the global configuration.
@@ -427,7 +426,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     * warning.
     */
   def printConfig(key: String): Int = {
-    configurationManager.getConfig.original.apply(key) match {
+    configurationManager.getConfig.findByKey(key) match {
       case Some(value) =>
         println(value)
         0
@@ -506,15 +505,16 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     hideEngineVersion: Boolean = false
   ): Int = {
     val useJSON = cliOptions.useJSON
-    val runtimeVersionParameter =
-      if (hideEngineVersion) None else Some(getEngineVersion(useJSON))
+    val runtimeVersionParameter: java.util.List[VersionDescriptionParameter] =
+      if (hideEngineVersion) java.util.List.of()
+      else java.util.List.of(getEngineVersion(useJSON))
 
     val versionDescription = VersionDescription.make(
       "Enso Launcher",
-      includeRuntimeJVMInfo         = false,
-      enableNativeImageOSWorkaround = true,
-      additionalParameters          = runtimeVersionParameter.toSeq,
-      customVersion                 = Some(CurrentVersion.version.toString)
+      false,
+      true,
+      runtimeVersionParameter,
+      CurrentVersion.version.toString
     )
 
     println(versionDescription.asString(useJSON))
@@ -548,14 +548,16 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
       else "Not installed."
     }
 
-    VersionDescriptionParameter(
-      humanReadableName = whichEngine match {
-        case WhichEngine.FromProject(name) =>
-          s"Enso engine from project $name"
-        case WhichEngine.Default => "Current default Enso engine"
-      },
-      jsonName = "runtime",
-      value    = runtimeVersionString
+    val humanReadableName = whichEngine match {
+      case WhichEngine.FromProject(name) =>
+        s"Enso engine from project $name"
+      case WhichEngine.Default => "Current default Enso engine"
+    }
+    val jsonName = "runtime"
+    new VersionDescriptionParameter(
+      humanReadableName,
+      jsonName,
+      runtimeVersionString
     )
   }
 

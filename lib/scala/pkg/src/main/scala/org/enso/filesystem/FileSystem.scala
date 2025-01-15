@@ -64,6 +64,12 @@ trait FileSystem[F] {
     */
   def getSegments(file: F): java.lang.Iterable[String]
 
+  /** Returns absolute path of the given file.
+    * @param file
+    * @return
+    */
+  def getAbsolutePath(file: F): String
+
   /** Gets the name of the given file.
     *
     * @param file
@@ -144,6 +150,8 @@ trait FileSystem[F] {
 
 object FileSystem {
 
+  val defaultFs = Default
+
   /** Exposes [[FileSystem]] operations through method call syntax.
     * All methods have the same semantics as the corresponding [[FileSystem]]
     * methods.
@@ -192,7 +200,9 @@ object FileSystem {
 
     override def exists(file: File): Boolean = file.exists()
 
-    override def createDirectories(file: File): Unit = file.mkdirs()
+    override def createDirectories(file: File): Unit = {
+      Files.createDirectories(file.toPath)
+    }
 
     override def relativize(parent: File, child: File): File =
       parent.toPath.relativize(child.toPath).toFile
@@ -229,5 +239,9 @@ object FileSystem {
       Files
         .readAttributes(file.toPath, classOf[BasicFileAttributes])
         .creationTime()
+
+    override def getAbsolutePath(file: File): String = {
+      file.getAbsolutePath
+    }
   }
 }

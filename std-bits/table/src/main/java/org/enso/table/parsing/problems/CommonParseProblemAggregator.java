@@ -1,7 +1,7 @@
 package org.enso.table.parsing.problems;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Value;
 
@@ -15,7 +15,8 @@ public final class CommonParseProblemAggregator extends ProblemAggregator
 
   // Used for the InvalidFormat error
   public final Value expectedEnsoValueType;
-  private final List<String> invalidFormatCells = new ArrayList<>();
+  private int invalidFormatCount = 0;
+  private final Set<String> invalidFormatCells = new HashSet<>();
 
   public CommonParseProblemAggregator(
       ProblemAggregator parent, String relatedColumnName, Value expectedEnsoValueType) {
@@ -26,6 +27,7 @@ public final class CommonParseProblemAggregator extends ProblemAggregator
 
   @Override
   public void reportInvalidFormat(String cell) {
+    invalidFormatCount++;
     invalidFormatCells.add(cell);
   }
 
@@ -45,7 +47,11 @@ public final class CommonParseProblemAggregator extends ProblemAggregator
 
     if (!invalidFormatCells.isEmpty()) {
       baseSummary.add(
-          new InvalidFormat(relatedColumnName, expectedEnsoValueType, invalidFormatCells));
+          new InvalidFormat(
+              relatedColumnName,
+              expectedEnsoValueType,
+              invalidFormatCount,
+              invalidFormatCells.stream().toList()));
     }
 
     return baseSummary;

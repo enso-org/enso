@@ -1,10 +1,10 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_State.Illegal_State
+from Standard.Base.Errors.Common import Floating_Point_Equality
 
 import Standard.Table.Internal.Join_Helpers
 import Standard.Table.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 from Standard.Table import Join_Kind
-from Standard.Table.Errors import Floating_Point_Equality
 
 import project.Connection.Connection.Connection
 import project.DB_Table.DB_Table
@@ -70,11 +70,10 @@ type Join_Subquery_Setup
     ## PRIVATE
        Creates a mapping from names of columns in the original table to
        corresponding columns in the created subquery.
-    column_mapping : Map Text Internal_Column
+    column_mapping : Dictionary Text Internal_Column
     column_mapping self =
-        Map.from_vector <|
-            self.old_columns.zip self.new_columns old-> new->
-                [old.name, new]
+        Dictionary.from_vector <|
+            self.old_columns.zip self.new_columns old->new->[old.name, new]
 
 ## PRIVATE
 prepare_subqueries : Connection -> DB_Table -> DB_Table -> Boolean -> Boolean -> Pair Join_Subquery_Setup

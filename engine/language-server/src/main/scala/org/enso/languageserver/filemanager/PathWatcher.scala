@@ -92,7 +92,7 @@ final class PathWatcher(
       case Success(_) =>
         pathToWatchResult.onComplete {
           case Success(Right(root)) =>
-            logger.info(
+            logger.debug(
               "Initialized [{}] for [{}].",
               watcherFactory.getClass,
               path

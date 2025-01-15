@@ -121,6 +121,7 @@ final class SerializationPool {
         t.join();
       }
       context.logSerializationManager(Level.FINE, "Serialization manager has been shut down.");
+      threads.clear();
     }
   }
 

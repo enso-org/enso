@@ -5,13 +5,13 @@ import static org.junit.Assert.*;
 import java.io.ByteArrayOutputStream;
 import java.net.URI;
 import org.enso.common.MethodNames;
-import org.enso.polyglot.RuntimeOptions;
+import org.enso.common.RuntimeOptions;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
+import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -34,7 +34,7 @@ public class TypeInferenceConsistencyTest {
             .build();
   }
 
-  @Before
+  @After
   public void cleanMessages() {
     output.reset();
   }
@@ -46,6 +46,7 @@ public class TypeInferenceConsistencyTest {
   @AfterClass
   public static void disposeCtx() {
     ctx.close();
+    ctx = null;
   }
 
   @Test
@@ -271,7 +272,7 @@ public class TypeInferenceConsistencyTest {
 
   private static void assertContains(String exp, String msg) {
     if (!msg.contains(exp)) {
-      fail("Expecting " + msg + " to contain " + exp);
+      fail("Expecting '" + msg + "' to contain '" + exp + "'.");
     }
   }
 }

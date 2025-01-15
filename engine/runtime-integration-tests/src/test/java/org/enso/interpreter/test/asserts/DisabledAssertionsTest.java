@@ -27,6 +27,7 @@ public class DisabledAssertionsTest {
   @AfterClass
   public static void disposeCtx() {
     ctx.close(true);
+    ctx = null;
   }
 
   @Test

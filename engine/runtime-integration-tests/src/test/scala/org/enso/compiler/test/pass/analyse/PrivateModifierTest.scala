@@ -30,15 +30,12 @@ class PrivateModifierTest extends CompilerTest {
     */
   implicit class AnalyseModule(ir: Module) {
 
-    /** Runs alias analysis on a module.
-      *
-      * @return [[ir]], with attached aliasing information
-      */
     def analyse: Module = {
-      PrivateConstructorAnalysis.INSTANCE.runModule(
-        ir,
-        buildModuleContext(passConfiguration = Some(passConfig))
-      )
+      val miniPass =
+        PrivateConstructorAnalysis.INSTANCE.createForModuleCompilation(
+          buildModuleContext(passConfiguration = Some(passConfig))
+        )
+      miniPass.transformModule(ir)
     }
   }
 

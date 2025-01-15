@@ -84,7 +84,7 @@ type Arity_Error
 type Forbidden_Operation
     Error message
 
-    to_display_text self = "Forbidden operation: "+self.message
+    to_display_text self = self.message
 
 ## PRIVATE
    A helper that replaces complicated `Text.replace` from main distribution, used for simple error message formatting.

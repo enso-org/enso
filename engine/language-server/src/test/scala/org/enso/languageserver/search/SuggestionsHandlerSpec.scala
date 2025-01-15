@@ -3,7 +3,8 @@ package org.enso.languageserver.search
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import org.apache.commons.io.FileUtils
-import org.enso.languageserver.boot.{ProfilingConfig, StartupConfig}
+import org.enso.runner.common.ProfilingConfig
+import org.enso.languageserver.boot.StartupConfig
 import org.enso.languageserver.capability.CapabilityProtocol.{
   AcquireCapability,
   CapabilityAcquired
@@ -13,13 +14,12 @@ import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager._
 import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.session.SessionRouter.DeliverToJsonController
-import org.enso.logger.ReportLogsOnFailure
 import org.enso.polyglot.data.{Tree, TypeGraph}
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.{ExportedSymbol, ModuleExports, Suggestion}
 import org.enso.searcher.SuggestionsRepo
 import org.enso.searcher.memory.InMemorySuggestionsRepo
-import org.enso.testkit.RetrySpec
+import org.enso.testkit.{ReportLogsOnFailure, RetrySpec}
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike

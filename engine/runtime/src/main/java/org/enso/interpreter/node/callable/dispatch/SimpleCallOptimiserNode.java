@@ -9,7 +9,7 @@ import org.enso.interpreter.node.callable.ExecuteCallNodeGen;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.control.TailCallException;
-import org.enso.interpreter.runtime.error.Warning;
+import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
 import org.enso.interpreter.runtime.state.State;
 
 /**
@@ -51,7 +51,7 @@ public class SimpleCallOptimiserNode extends CallOptimiserNode {
       CallerInfo callerInfo,
       State state,
       Object[] arguments,
-      Warning[] warnings) {
+      EnsoHashMap warnings) {
     try {
       return executeCallNode.executeCall(frame, function, callerInfo, state, arguments);
     } catch (TailCallException e) {

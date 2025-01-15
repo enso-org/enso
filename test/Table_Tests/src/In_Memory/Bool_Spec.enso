@@ -1,0 +1,97 @@
+from Standard.Base import all
+
+from Standard.Table import Column
+
+from Standard.Test import all
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter
+
+## We use some tricks to make boolean operations faster.
+   Because these tricks rely on non-trivial logic, there is also a slightly higher risk of mistakes, so we add a better test coverage.
+add_specs suite_builder = suite_builder.group "[In-Memory] Boolean Column operations" group_builder->
+    # We check all combinations of boolean operations.
+    xs = [True, False, Nothing, True,  False, Nothing, True,    False,   Nothing]
+    ys = [True, True,  True,    False, False, False,   Nothing, Nothing, Nothing]
+    with_transformed_columns f =
+        [False, True].each x_negated->
+            [False, True].each y_negated->
+                [False, True].each y_shortened->
+                    xs_vec = if x_negated then xs.map (x-> if x.is_nothing then Nothing else x.not) else xs
+                    ys_vec_0 = if y_negated then ys.map (y-> if y.is_nothing then Nothing else y.not) else ys
+                    ys_vec = if y_shortened then ys_vec_0.drop (..Last 3) else ys_vec_0
+
+                    x_col_0 = Column.from_vector "X" xs_vec
+                    x_col = if x_negated then x_col_0.not else x_col_0
+
+                    y_col_0 = Column.from_vector "Y" ys_vec
+                    y_col = if y_negated then y_col_0.not else y_col_0
+
+                    x_desc = (if x_negated then ["negated X"] else [])
+                    y_desc = (if y_negated then ["negated Y"] else []) + (if y_shortened then ["shortened Y"] else [])
+                    clue = if x_desc.is_empty && y_desc.is_empty then "" else (x_desc+y_desc).join ", " " (" ") "
+                    Test.with_clue clue <|
+                        f x_col y_col
+
+    group_builder.specify "comparisons" <| with_transformed_columns x_col-> y_col->
+        comparisons = [["<", (<)], ["<=", (<=)], [">", (>)], [">=", (>=)], ["==", (==)], ["!=", (!=)]]
+        comparisons.each p->
+            op_name = p.first
+            op = p.second
+            enso_op x y = if x.is_nothing || y.is_nothing then Nothing else op x y
+            Test.with_clue "("+op_name+"): " <|
+                got_1 = op x_col y_col
+                expected_1 = xs.zip ys enso_op
+                got_1.to_vector . should_equal expected_1
+
+                [True, False, Nothing].each scalar-> Test.with_clue "([X] "+op_name+" "+scalar.to_text+"): " <|
+                    got_2 = op x_col scalar
+                    expected_2 = xs.map x-> enso_op x scalar
+                    got_2.to_vector . should_equal expected_2
+
+    group_builder.specify "logical" <| with_transformed_columns x_col-> y_col->
+        # Or and And work like in Database - if one value is missing, the result is set if that value being set to something would not influence the result.
+        enso_or x y = case Pair.Value x y of
+            Pair.Value True _ -> True
+            Pair.Value _ True -> True
+            Pair.Value False False -> False
+            Pair.Value _ _ -> Nothing
+        enso_and x y = case Pair.Value x y of
+            Pair.Value False _ -> False
+            Pair.Value _ False -> False
+            Pair.Value True True -> True
+            Pair.Value _ _ -> Nothing
+        comparisons = [["||", (||), enso_or], ["&&", (&&), enso_and]]
+        comparisons.each p->
+            op_name = p.first
+            op = p.second
+            enso_op = p.at 2
+            Test.with_clue "("+op_name+"): " <|
+                got_1 = op x_col y_col
+                expected_1 = xs.zip ys enso_op
+                got_1.to_vector . should_equal expected_1
+
+                [True, False, Nothing].each scalar-> Test.with_clue "([X] "+op_name+" "+scalar.to_text+"): " <|
+                    got_2 = op x_col scalar
+                    expected_2 = xs.map x-> enso_op x scalar
+                    got_2.to_vector . should_equal expected_2
+
+    group_builder.specify "min/max" <| with_transformed_columns x_col-> y_col->
+        enso_min x y = if x.is_nothing then y else if y.is_nothing then x else if x < y then x else y
+        enso_max x y = if x.is_nothing then y else if y.is_nothing then x else if x > y then x else y
+        comparisons = [["min", (.min), enso_min], ["max", (.max), enso_max]]
+        comparisons.each p->
+            op_name = p.first
+            op = p.second
+            enso_op = p.at 2
+            Test.with_clue "("+op_name+"): " <|
+                got_1 = op x_col y_col
+                expected_1 = xs.zip ys enso_op
+                got_1.to_vector . should_equal expected_1
+
+                [True, False, Nothing].each scalar-> Test.with_clue op_name+"([X], "+scalar.to_text+"): " <|
+                    got_2 = op x_col scalar
+                    expected_2 = xs.map x-> enso_op x scalar
+                    got_2.to_vector . should_equal expected_2

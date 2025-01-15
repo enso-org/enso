@@ -2,6 +2,7 @@ package org.enso.interpreter.runtime.scope;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleFile;
+import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -10,26 +11,28 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import com.oracle.truffle.api.nodes.Node;
 import java.io.File;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import org.enso.common.MethodNames;
 import org.enso.compiler.PackageRepository;
-import org.enso.interpreter.EnsoLanguage;
+import org.enso.editions.LibraryName;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
+import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.type.Types;
-import org.enso.interpreter.util.ScalaConversions;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
+import org.enso.scala.wrapper.ScalaConversions;
 
 /** Represents the top scope of Enso execution, containing all the importable modules. */
 @ExportLibrary(InteropLibrary.class)
-public final class TopLevelScope implements EnsoObject {
+public final class TopLevelScope extends EnsoObject {
   private final Builtins builtins;
   private final PackageRepository packageRepository;
 
@@ -130,7 +133,8 @@ public final class TopLevelScope implements EnsoObject {
 
       var module = scope.getModule(moduleName);
       if (module.isEmpty()) {
-        throw UnknownIdentifierException.create(moduleName);
+        throw new PanicException(
+            scope.builtins.error().makeModuleDoesNotExistError(moduleName), null);
       }
 
       return module.get();
@@ -151,7 +155,15 @@ public final class TopLevelScope implements EnsoObject {
           Types.extractArguments(arguments, String.class, String.class);
       QualifiedName qualName = QualifiedName.fromString(args.getFirst());
       File location = new File(args.getSecond());
-      Module module = new Module(qualName, null, context.getTruffleFile(location));
+      var libName = LibraryName.fromModuleName(qualName.toString());
+      Package<TruffleFile> pkg = null;
+      if (libName.isDefined()) {
+        var pkgOpt = context.getPackageRepository().getPackageForLibraryJava(libName.get());
+        if (pkgOpt.isPresent()) {
+          pkg = pkgOpt.get();
+        }
+      }
+      Module module = new Module(qualName, pkg, context.getTruffleFile(location));
       scope.packageRepository.registerModuleCreatedInRuntime(module.asCompilerModule());
       return module;
     }
@@ -186,34 +198,39 @@ public final class TopLevelScope implements EnsoObject {
           generateDocs = false;
         }
       }
+      boolean shouldWriteCache = !context.isIrCachingDisabled();
       try {
         return context
             .getCompiler()
-            .compile(shouldCompileDependencies, useGlobalCache, generateDocs)
+            .compile(shouldCompileDependencies, shouldWriteCache, useGlobalCache, generateDocs)
             .get();
       } catch (InterruptedException e) {
         throw new RuntimeException(e);
       } catch (ExecutionException e) {
-        throw new RuntimeException(e);
+        var re = new RuntimeException(e);
+        re.setStackTrace(e.getStackTrace());
+        throw re;
       }
     }
 
     @Specialization
-    static Object doInvoke(TopLevelScope scope, String member, Object[] arguments)
+    static Object doInvoke(
+        TopLevelScope scope, String member, Object[] arguments, @Bind("$node") Node node)
         throws UnknownIdentifierException, ArityException, UnsupportedTypeException {
+      var ctx = EnsoContext.get(node);
       switch (member) {
         case MethodNames.TopScope.GET_MODULE:
           return getModule(scope, arguments);
         case MethodNames.TopScope.CREATE_MODULE:
-          return createModule(scope, arguments, EnsoContext.get(null));
+          return createModule(scope, arguments, ctx);
         case MethodNames.TopScope.REGISTER_MODULE:
-          return registerModule(scope, arguments, EnsoContext.get(null));
+          return registerModule(scope, arguments, ctx);
         case MethodNames.TopScope.UNREGISTER_MODULE:
-          return unregisterModule(scope, arguments, EnsoContext.get(null));
+          return unregisterModule(scope, arguments, ctx);
         case MethodNames.TopScope.LEAK_CONTEXT:
-          return leakContext(EnsoContext.get(null));
+          return leakContext(ctx);
         case MethodNames.TopScope.COMPILE:
-          return compile(arguments, EnsoContext.get(null));
+          return compile(arguments, ctx);
         default:
           throw UnknownIdentifierException.create(member);
       }
@@ -268,33 +285,14 @@ public final class TopLevelScope implements EnsoObject {
   }
 
   /**
-   * Checks if this value is associated with a language.
-   *
-   * @return {@code true}
-   */
-  @ExportMessage
-  final boolean hasLanguage() {
-    return true;
-  }
-
-  /**
-   * Returns the language associated with this scope value.
-   *
-   * @return the language with which this value is associated
-   */
-  @ExportMessage
-  final Class<EnsoLanguage> getLanguage() {
-    return EnsoLanguage.class;
-  }
-
-  /**
    * Converts this scope to a human readable string.
    *
    * @param allowSideEffects whether or not side effects are allowed
    * @return a string representation of this scope
    */
   @ExportMessage
-  final Object toDisplayString(boolean allowSideEffects) {
+  @Override
+  public Object toDisplayString(boolean allowSideEffects) {
     return "Enso.Top_Scope";
   }
 }

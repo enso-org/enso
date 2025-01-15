@@ -17,7 +17,7 @@ final class ExportsBuilder {
   def build(moduleName: QualifiedName, ir: IR): ModuleExports = {
     val symbols = getBindings(ir).exportedSymbols.values.flatten
       .collect {
-        case BindingsMap.ResolvedMethod(module, method) =>
+        case BindingsMap.ResolvedModuleMethod(module, method) =>
           ExportedSymbol.Method(module.getName.toString, method.name)
         case BindingsMap.ResolvedType(module, tp) =>
           ExportedSymbol.Type(module.getName.toString, tp.name)

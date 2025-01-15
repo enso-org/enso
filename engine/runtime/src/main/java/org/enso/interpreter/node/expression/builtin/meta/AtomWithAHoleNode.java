@@ -73,7 +73,7 @@ public abstract class AtomWithAHoleNode extends Node {
   }
 
   @ExportLibrary(InteropLibrary.class)
-  static final class HoleInAtom implements EnsoObject {
+  static final class HoleInAtom extends EnsoObject {
     Atom result;
     int index;
     Function function;
@@ -140,7 +140,8 @@ public abstract class AtomWithAHoleNode extends Node {
     }
 
     @ExportMessage
-    String toDisplayString(boolean pure) {
+    @Override
+    public String toDisplayString(boolean pure) {
       return "Meta.atom_with_hole";
     }
   }

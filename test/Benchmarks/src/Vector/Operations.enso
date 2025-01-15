@@ -9,13 +9,13 @@ import project.Vector.Utils
 polyglot java import java.util.Random as Java_Random
 
 
-options = Bench.options . set_warmup (Bench.phase_conf 2 5) . set_measure (Bench.phase_conf 1 5)
+options = Bench.options . set_warmup (Bench.phase_conf 5 5) . set_measure (Bench.phase_conf 1 5)
 
 
 collect_benches = Bench.build builder->
     vector_size = 1000000
-    random_vec = Utils.make_random_vec vector_size
-    random_vec_2 = Utils.make_random_vec 100000
+    random_vec = Utils.make_random_float_vec vector_size
+    random_vec_2 = Utils.make_random_float_vec 100000
     random_gen = Java_Random.new 123456
     stateful_fun x =
        s = State.get Number
@@ -50,10 +50,10 @@ collect_benches = Bench.build builder->
             random_vec.reduce (+)
 
         group_builder.specify "Drop_First_20_and_Sum" <|
-            (random_vec.drop (First 20)).reduce (+)
+            (random_vec.drop (..First 20)).reduce (+)
 
         group_builder.specify "Drop_Last_20_and_Sum" <|
-            (random_vec.drop (Last 20)).reduce (+)
+            (random_vec.drop (..Last 20)).reduce (+)
 
         group_builder.specify "Filter" <|
             random_vec.filter (x -> x % 3 == 1)
@@ -86,4 +86,5 @@ collect_benches = Bench.build builder->
             State.run Number 0 <| random_vec.each stateful_fun
 
 
-main = collect_benches . run_main
+main filter=Nothing =
+    collect_benches . run_main filter

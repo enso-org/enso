@@ -24,6 +24,23 @@ object FileSystemManagementApi {
       }
   }
 
+  case object FileSystemExists extends Method("filesystem/exists") {
+
+    case class Params(path: File)
+
+    case class Result(exists: Boolean)
+
+    implicit val hasParams: HasParams.Aux[this.type, FileSystemExists.Params] =
+      new HasParams[this.type] {
+        type Params = FileSystemExists.Params
+      }
+
+    implicit val hasResult: HasResult.Aux[this.type, FileSystemExists.Result] =
+      new HasResult[this.type] {
+        type Result = FileSystemExists.Result
+      }
+  }
+
   case object FileSystemCreateDirectory
       extends Method("filesystem/createDirectory") {
 
@@ -76,6 +93,25 @@ object FileSystemManagementApi {
       : HasParams.Aux[this.type, FileSystemMoveDirectory.Params] =
       new HasParams[this.type] {
         type Params = FileSystemMoveDirectory.Params
+      }
+
+    implicit val hasResult: HasResult.Aux[this.type, Unused.type] =
+      new HasResult[this.type] {
+        type Result = Unused.type
+      }
+  }
+
+  case object FileSystemReadPath extends Method("filesystem/readPath") {
+
+    case class Params(path: File)
+
+    type Result = Unused.type
+    val Result = Unused
+
+    implicit val hasParams
+      : HasParams.Aux[this.type, FileSystemReadPath.Params] =
+      new HasParams[this.type] {
+        type Params = FileSystemReadPath.Params
       }
 
     implicit val hasResult: HasResult.Aux[this.type, Unused.type] =

@@ -26,18 +26,19 @@ import org.enso.compiler.core.EnsoParser
 import org.enso.compiler.data.CompilerConfig
 import org.enso.compiler.pass.PassManager
 import org.enso.compiler.pass.analyse._
-import org.enso.compiler.phase.{
-  ExportCycleException,
-  ExportsResolution,
-  ImportResolver,
-  ImportResolverAlgorithm
-}
+import org.enso.compiler.phase.{ImportResolver, ImportResolverAlgorithm}
 import org.enso.editions.LibraryName
 import org.enso.pkg.QualifiedName
 import org.enso.common.CompilationStage
+import org.enso.compiler.phase.exports.{
+  ExportCycleException,
+  ExportSymbolAnalysis,
+  ExportsResolution
+}
 import org.enso.syntax2.Tree
+import org.enso.syntax2.Parser
 
-import java.io.{PrintStream}
+import java.io.PrintStream
 import java.util.concurrent.{
   CompletableFuture,
   ExecutorService,
@@ -70,7 +71,6 @@ class Compiler(
     if (config.outputRedirect.isDefined)
       new PrintStream(config.outputRedirect.get)
     else context.getOut
-  private lazy val ensoCompiler: EnsoParser = new EnsoParser()
 
   /** Java accessor */
   def getConfig(): CompilerConfig = config
@@ -134,12 +134,18 @@ class Compiler(
     *
     * @param shouldCompileDependencies whether compilation should also compile
     *                                  the dependencies of the requested package
+    * @param shouldWriteCache whether the compilation results should be written
+    *                         to the cache; if set to False, a 'lint' compilation
+    *                         will be performed, reporting any problems,
+    *                         but no results will be written
     * @param useGlobalCacheLocations whether or not the compilation result should
     *                                  be written to the global cache
+    * @param generateDocs should a documenation be generied
     * @return future to track subsequent serialization of the library
     */
   def compile(
     shouldCompileDependencies: Boolean,
+    shouldWriteCache: Boolean,
     useGlobalCacheLocations: Boolean,
     generateDocs: Boolean
   ): Future[java.lang.Boolean] = {
@@ -188,11 +194,15 @@ class Compiler(
                 .write(pkg, packageModules.asJava)
             }
 
-            context.serializeLibrary(
-              this,
-              pkg.libraryName,
-              useGlobalCacheLocations
-            )
+            if (shouldWriteCache) {
+              context.serializeLibrary(
+                this,
+                pkg.libraryName,
+                useGlobalCacheLocations
+              )
+            } else {
+              CompletableFuture.completedFuture(true)
+            }
         }
     }
   }
@@ -285,7 +295,7 @@ class Compiler(
         context.log(
           Compiler.defaultLogLevel,
           "{0} imported module caches were invalided, forcing invalidation of {1}. [{2}]",
-          Array(
+          Array[Any](
             importedModulesLoadedFromSource.length,
             context.getModuleName(module).toString,
             importedModulesLoadedFromSource.take(10).mkString("", ",", "...")
@@ -295,8 +305,8 @@ class Compiler(
         parseModule(module, irCachingEnabled && !context.isInteractive(module))
         importedModules
           .filter(isLoadedFromSource)
-          .map(m => {
-            if (m.getBindingsMap() == null) {
+          .foreach(m => {
+            if (m.getBindingsMap == null) {
               parseModule(m, irCachingEnabled && !context.isInteractive(module))
             }
           })
@@ -359,6 +369,33 @@ class Compiler(
           { u =>
             u.ir(compilerOutput)
             u.compilationStage(CompilationStage.AFTER_STATIC_PASSES)
+          }
+        )
+      }
+    }
+
+    requiredModules.foreach { module =>
+      if (
+        !context
+          .getCompilationStage(module)
+          .isAtLeast(
+            CompilationStage.AFTER_TYPE_INFERENCE_PASSES
+          )
+      ) {
+
+        val moduleContext = ModuleContext(
+          module          = module,
+          freshNameSupply = Some(freshNameSupply),
+          compilerConfig  = config,
+          pkgRepo         = Some(packageRepository)
+        )
+        val compilerOutput =
+          runFinalTypeInferencePasses(context.getIr(module), moduleContext)
+        context.updateModule(
+          module,
+          { u =>
+            u.ir(compilerOutput)
+            u.compilationStage(CompilationStage.AFTER_TYPE_INFERENCE_PASSES)
           }
         )
       }
@@ -485,7 +522,18 @@ class Compiler(
     // the symbol brought to the scope has not been properly resolved yet.
     val sortedCachedModules =
       new ExportsResolution(context).runSort(modulesImportedWithCachedBindings)
-    sortedCachedModules ++ requiredModules
+    val allSortedModules = sortedCachedModules ++ requiredModules
+    allSortedModules.foreach { mod =>
+      val newModIr =
+        ExportSymbolAnalysis.analyseModule(mod.getIr, packageRepository)
+      context.updateModule(
+        mod,
+        updater => {
+          updater.ir(newModIr)
+        }
+      )
+    }
+    allSortedModules
   }
 
   private def ensureParsedAndAnalyzed(module: Module): Unit = {
@@ -552,10 +600,11 @@ class Compiler(
     )
     context.updateModule(module, _.resetScope())
 
-    if (useCaches) {
-      if (context.deserializeModule(this, module)) {
-        return
-      }
+    if (
+      useCaches && context.getIdMap(module) == null && context
+        .deserializeModule(this, module)
+    ) {
+      return
     }
 
     uncachedParseModule(module)
@@ -589,15 +638,16 @@ class Compiler(
       compilerConfig  = config
     )
 
-    val src  = context.getCharacters(module)
-    val tree = ensoCompiler.parse(src)
-    val expr = ensoCompiler.generateIR(tree)
+    val src   = context.getCharacters(module)
+    val idMap = Option(context.getIdMap(module))
+    val expr  = EnsoParser.compile(src, idMap.map(_.values).orNull)
 
     val exprWithModuleExports =
       if (context.isSynthetic(module))
         expr
       else
         injectSyntheticModuleExports(expr, module.getDirectModulesRefs)
+    context.updateModule(module, _.ir(exprWithModuleExports))
     val discoveredModule =
       recognizeBindings(exprWithModuleExports, moduleContext)
     if (context.wasLoadedFromCache(module)) {
@@ -674,9 +724,8 @@ class Compiler(
     inlineContext: InlineContext
   ): Option[(InlineContext, Expression)] = {
     val newContext = inlineContext.copy(freshNameSupply = Some(freshNameSupply))
-    val tree       = ensoCompiler.parse(srcString)
 
-    ensoCompiler.generateIRInline(tree).map { ir =>
+    EnsoParser.compileInline(srcString).map { ir =>
       val compilerOutput = runCompilerPhasesInline(ir, newContext)
       runErrorHandlingInline(compilerOutput, newContext)
       (newContext, compilerOutput)
@@ -689,7 +738,7 @@ class Compiler(
     * @return A Tree representation of `source`
     */
   def parseInline(source: CharSequence): Tree =
-    ensoCompiler.parse(source)
+    Parser.parseBlock(source)
 
   /** Enhances the provided IR with import/export statements for the provided list
     * of fully qualified names of modules. The statements are considered to be "synthetic" i.e. compiler-generated.
@@ -730,33 +779,31 @@ class Compiler(
 
     val moduleNames = modules.asScala.map { q =>
       val name = q.path.foldRight(
-        List(Name.Literal(q.item, isMethod = false, location = None))
+        List(Name.Literal(q.item, isMethod = false, identifiedLocation = null))
       ) { case (part, acc) =>
-        Name.Literal(part, isMethod = false, location = None) :: acc
+        Name.Literal(part, isMethod = false, identifiedLocation = null) :: acc
       }
-      Name.Qualified(name, location = None)
+      Name.Qualified(name, identifiedLocation = null)
     }.toList
     ir.copy(
       imports = ir.imports ::: moduleNames.map(m =>
         Import.Module(
           m,
-          rename      = None,
-          isAll       = false,
-          onlyNames   = None,
-          hiddenNames = None,
-          location    = None,
-          isSynthetic = true
+          rename             = None,
+          isAll              = false,
+          onlyNames          = None,
+          hiddenNames        = None,
+          identifiedLocation = null,
+          isSynthetic        = true
         )
       ),
       exports = ir.exports ::: moduleNames.map(m =>
         Export.Module(
           m,
-          rename      = None,
-          isAll       = false,
-          onlyNames   = None,
-          hiddenNames = None,
-          location    = None,
-          isSynthetic = true
+          rename             = None,
+          onlyNames          = None,
+          identifiedLocation = null,
+          isSynthetic        = true
         )
       )
     )
@@ -782,6 +829,11 @@ class Compiler(
     ir: IRModule,
     moduleContext: ModuleContext
   ): IRModule = {
+    context.log(
+      Level.FINEST,
+      "Passing module {0} with method body passes",
+      moduleContext.module.getName
+    )
     passManager.runPassesOnModule(ir, moduleContext, passes.functionBodyPasses)
   }
 
@@ -789,7 +841,27 @@ class Compiler(
     ir: IRModule,
     moduleContext: ModuleContext
   ): IRModule = {
+    context.log(
+      Level.FINEST,
+      "Passing module {0} with global typing passes",
+      moduleContext.module.getName
+    )
     passManager.runPassesOnModule(ir, moduleContext, passes.globalTypingPasses)
+  }
+
+  /** Runs the final type inference passes, if they are enabled.
+    *
+    * If they are not enabled, it will not run any passes.
+    */
+  private def runFinalTypeInferencePasses(
+    ir: IRModule,
+    moduleContext: ModuleContext
+  ): IRModule = {
+    passManager.runPassesOnModule(
+      ir,
+      moduleContext,
+      passes.typeInferenceFinalPasses
+    )
   }
 
   /** Runs the various compiler passes in an inline context.

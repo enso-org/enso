@@ -246,4 +246,8 @@ public class Time_Utils {
     LocalDate baseDate = LocalDate.of(minYear, 1, 1);
     builder.appendValueReduced(yearField, 2, 2, baseDate);
   }
+
+  public static String[] getZoneNames() {
+    return ZoneId.getAvailableZoneIds().stream().toArray(String[]::new);
+  }
 }

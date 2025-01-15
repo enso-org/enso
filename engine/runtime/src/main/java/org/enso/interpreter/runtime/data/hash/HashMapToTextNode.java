@@ -13,7 +13,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
 
 @BuiltinMethod(
-    type = "Map",
+    type = "Dictionary",
     name = "to_text",
     description = """
         Returns text representation of this hash map

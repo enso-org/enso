@@ -15,7 +15,7 @@ import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
  * changes.
  */
 @ExportLibrary(InteropLibrary.class)
-public final class EnsoSourceSection implements EnsoObject {
+public final class EnsoSourceSection extends EnsoObject {
   private static final String[] MEMBERS = {
     "getStartLine", //
     "getEndLine", //
@@ -34,6 +34,7 @@ public final class EnsoSourceSection implements EnsoObject {
   private final SourceSection sourceSection;
 
   public EnsoSourceSection(SourceSection sourceSection) {
+    assert sourceSection != null;
     this.sourceSection = sourceSection;
   }
 
@@ -77,5 +78,12 @@ public final class EnsoSourceSection implements EnsoObject {
   @ExportMessage
   Object getMembers(boolean includeInternal) {
     return ArrayLikeHelpers.wrapStrings(MEMBERS);
+  }
+
+  @Override
+  @TruffleBoundary
+  @ExportMessage
+  public Object toDisplayString(boolean allowSideEffects) {
+    return "EnsoSourceSection{" + sourceSection + "}";
   }
 }

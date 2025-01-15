@@ -1,8 +1,8 @@
 from Standard.Base import all
 from Standard.Table import all
 from Standard.Database import all
-from Standard.AWS import all
-from Standard.Google_Api import all
+# An import was removed here
+#replaced by comment to keep offset
 import Standard.Visualization
 
 collapsed operator16985 =

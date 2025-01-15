@@ -18,7 +18,7 @@ excel_2007_row_limit = 1048576
 type Excel_Range
     ## PRIVATE
        Specifies a range within an Excel Workbook.
-    Value java_range:Java_Range
+    private Value java_range:Java_Range
 
     ## GROUP Standard.Base.Metadata
        ICON metadata

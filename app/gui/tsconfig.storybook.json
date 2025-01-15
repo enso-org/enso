@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.app.json",
+  "include": [
+    ".storybook/**/*",
+    ".storybook/env.d.ts",
+    "./src/**/*.stories.tsx",
+    "./src/**/*.stories.vue",
+    "./src/**/*.stories.ts"
+  ]
+}

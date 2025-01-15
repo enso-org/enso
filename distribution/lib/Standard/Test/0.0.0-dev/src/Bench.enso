@@ -56,13 +56,13 @@ type Bench_Builder
     group self (name:Text) (configuration:Bench_Options) fn =
         validate_name name
         group = Vector.build b->
-            fn (Group_Builder.Impl b)
+            fn (Group_Builder.Impl name b)
         self.builder.append <| Bench.Group name configuration group
 
 ## Builder to create a group of benchmarks.
 type Group_Builder
     ## PRIVATE
-    Impl builder
+    Impl name builder
 
     ## Adds a benchmark specification to the group.
 
@@ -154,21 +154,32 @@ type Bench
         Duration.new seconds=total_seconds
 
     ## Run the specified set of benchmarks.
-    run_main self =
+    run_main self (filter : Text | Nothing = Nothing) =
         count = self.total_specs
         IO.println <| "Found " + count.to_text + " cases to execute (ETA " + self.estimated_runtime.to_display_text + ")"
 
         case get_benchmark_report_path of
             Nothing -> Nothing
             path ->
-                line = 'Label,Phase,"Invocations count","Average time (ms)","Time Stdev"'
-                line.write path on_existing_file=Existing_File_Behavior.Backup
+                f = File.new path
+                # Only write the header line if this is the first time writing to this report file.
+                if f.exists.not then
+                    line = 'Label,Phase,"Invocations count","Average time (ms)","Time Stdev"'
+                    line.write f on_existing_file=Existing_File_Behavior.Backup
+
+        should_skip (bench_name : Text) -> Boolean =
+            if filter == Nothing then False else
+                bench_name.match filter . not
 
         self.fold Nothing _-> g-> s->
             c = g.configuration
             bench_name = g.name + "." + s.name
-            IO.println <| "Benchmarking '" + bench_name + "' with configuration: " + c.to_text
-            Bench.measure bench_name c.warmup c.measure (s.code 0)
+            case should_skip bench_name of
+                False ->
+                    IO.println <| "Benchmarking '" + bench_name + "' with configuration: " + c.to_text
+                    Bench.measure bench_name c.warmup c.measure (s.code 0)
+                True ->
+                    IO.println <| "Skipping '" + bench_name + "' benchmark"
 
     ## Measure the amount of time it takes to execute a given computation.
 

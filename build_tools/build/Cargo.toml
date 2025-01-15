@@ -1,0 +1,57 @@
+[package]
+name = "enso-build"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[dependencies]
+anyhow = { workspace = true }
+aws-config = "0.51.0"
+aws-sdk-ecr = "0.21.0"
+aws-sdk-s3 = "0.21.0"
+base64 = "0.13.0"
+bytes = { workspace = true }
+chrono = { workspace = true }
+clap = { workspace = true }
+convert_case = { workspace = true }
+derive-where = { workspace = true }
+derive_more = { workspace = true }
+dirs = { workspace = true }
+futures = { workspace = true }
+glob = "0.3.0"
+handlebars = "4.3.5"
+enso-build-base = { path = "../base" }
+enso-install-config = { path = "../install/config" }
+ide-ci = { path = "../ci_utils" }
+mime = { workspace = true }
+new_mime_guess = { workspace = true }
+octocrab = { workspace = true }
+path-slash = "0.2.1"
+port_check = "0.1.5"
+pulldown-cmark = "0.9.1"
+regex = { workspace = true }
+reqwest = { workspace = true }
+semver = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_yaml = { workspace = true }
+scopeguard = "1.1.0"
+sha2 = { workspace = true }
+strum = { workspace = true }
+sysinfo = { workspace = true }
+tempfile = "3.2.0"
+toml = "0.5.8"
+tokio = { workspace = true }
+tracing = { workspace = true }
+url = "2.2.2"
+uuid = { version = "1.1.0", features = ["v4"] }
+walkdir = { workspace = true }
+zip = { version = "0.6.2", default-features = false, features = ["deflate"] }
+
+[build-dependencies]
+enso-build-macros-lib = { path = "../macros/lib" }
+ide-ci = { path = "../ci_utils" }
+serde_yaml = { workspace = true }
+
+[lints]
+workspace = true

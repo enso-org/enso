@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
+import org.enso.interpreter.instrument.ExpressionExecutionState;
 import org.enso.interpreter.instrument.MethodCallsCache;
 import org.enso.interpreter.instrument.OneshotExpression;
 import org.enso.interpreter.instrument.RuntimeCache;
@@ -31,6 +32,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   private final MethodCallsCache methodCallsCache;
   private final UpdatesSynchronizationState syncState;
   private final Map<UUID, FunctionCallInfo> calls = new HashMap<>();
+  private final ExpressionExecutionState expressionExecutionState;
   private final Consumer<ExpressionValue> onCachedCallback;
   private final Consumer<ExpressionValue> onComputedCallback;
   private final Consumer<ExpressionCall> functionCallCallback;
@@ -39,13 +41,16 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   /**
    * Creates callbacks instance.
    *
+   * @param visualizationHolder the holder of all visualizations attached to an execution context.
+   * @param nextExecutionItem the next item scheduled for execution.
    * @param cache the precomputed expression values.
    * @param methodCallsCache the storage tracking the executed updateCachedResult calls.
    * @param syncState the synchronization state of runtime updates.
-   * @param nextExecutionItem the next item scheduled for execution.
-   * @param functionCallCallback the consumer of function call events.
+   * @param expressionExecutionState the execution state for each expression.
    * @param onComputedCallback the consumer of the computed value events.
    * @param onCachedCallback the consumer of the cached value events.
+   * @param functionCallCallback the consumer of function call events.
+   * @param onExecutedVisualizationCallback the consumer of an executed visualization result.
    */
   ExecutionCallbacks(
       VisualizationHolder visualizationHolder,
@@ -53,6 +58,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
       RuntimeCache cache,
       MethodCallsCache methodCallsCache,
       UpdatesSynchronizationState syncState,
+      ExpressionExecutionState expressionExecutionState,
       Consumer<ExpressionValue> onCachedCallback,
       Consumer<ExpressionValue> onComputedCallback,
       Consumer<ExpressionCall> functionCallCallback,
@@ -62,6 +68,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
     this.cache = cache;
     this.methodCallsCache = methodCallsCache;
     this.syncState = syncState;
+    this.expressionExecutionState = expressionExecutionState;
     this.onCachedCallback = onCachedCallback;
     this.onComputedCallback = onComputedCallback;
     this.functionCallCallback = functionCallCallback;
@@ -91,16 +98,16 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   @Override
   public void updateCachedResult(IdExecutionService.Info info) {
     Object result = info.getResult();
-    String resultType = typeOf(result);
+    String[] resultTypes = typeOf(result);
     UUID nodeId = info.getId();
-    String cachedType = cache.getType(nodeId);
+    String[] cachedTypes = cache.getType(nodeId);
     FunctionCallInfo call = functionCallInfoById(nodeId);
     FunctionCallInfo cachedCall = cache.getCall(nodeId);
     ProfilingInfo[] profilingInfo = new ProfilingInfo[] {new ExecutionTime(info.getElapsedTime())};
 
     ExpressionValue expressionValue =
         new ExpressionValue(
-            nodeId, result, resultType, cachedType, call, cachedCall, profilingInfo, false);
+            nodeId, result, resultTypes, cachedTypes, call, cachedCall, profilingInfo, false);
     syncState.setExpressionUnsync(nodeId);
     syncState.setVisualizationUnsync(nodeId);
 
@@ -112,7 +119,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
       cache.offer(nodeId, result);
       cache.putCall(nodeId, call);
     }
-    cache.putType(nodeId, resultType);
+    cache.putType(nodeId, resultTypes);
 
     callOnComputedCallback(expressionValue);
     executeOneshotExpressions(nodeId, result, info);
@@ -139,6 +146,12 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
     }
     methodCallsCache.setExecuted(nodeId);
     return null;
+  }
+
+  @Override
+  @CompilerDirectives.TruffleBoundary
+  public Object getExecutionEnvironment(IdExecutionService.Info info) {
+    return expressionExecutionState.getExecutionEnvironment(info.getId());
   }
 
   @CompilerDirectives.TruffleBoundary
@@ -201,19 +214,26 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
     return calls.get(nodeId);
   }
 
-  private String typeOf(Object value) {
-    String resultType;
+  private String[] typeOf(Object value) {
     if (value instanceof UnresolvedSymbol) {
-      resultType = Constants.UNRESOLVED_SYMBOL;
-    } else {
-      var typeOfNode = TypeOfNode.getUncached();
-      Object typeResult = value == null ? null : typeOfNode.execute(value);
-      if (typeResult instanceof Type t) {
-        resultType = t.getQualifiedName().toString();
-      } else {
-        resultType = null;
-      }
+      return new String[] {Constants.UNRESOLVED_SYMBOL};
     }
-    return resultType;
+
+    var typeOfNode = TypeOfNode.getUncached();
+    Type[] allTypes = value == null ? null : typeOfNode.findAllTypesOrNull(value, true);
+    if (allTypes != null) {
+      String[] result = new String[allTypes.length];
+      for (var i = 0; i < allTypes.length; i++) {
+        result[i] = getTypeQualifiedName(allTypes[i]);
+      }
+      return result;
+    }
+
+    return null;
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private static String getTypeQualifiedName(Type t) {
+    return t.getQualifiedName().toString();
   }
 }

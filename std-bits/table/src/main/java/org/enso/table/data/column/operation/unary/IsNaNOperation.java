@@ -10,6 +10,7 @@ import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
+import org.enso.table.data.column.storage.type.AnyObjectType;
 
 public class IsNaNOperation extends AbstractUnaryBooleanOperation {
   public static final String NAME = "is_nan";
@@ -21,7 +22,9 @@ public class IsNaNOperation extends AbstractUnaryBooleanOperation {
 
   @Override
   public boolean canApply(ColumnStorage storage) {
-    return storage.getType().isNumeric();
+    var type = storage.getType();
+    // We also allow this operation on Mixed type to facilitate `internal_is_nan` helper.
+    return type.isNumeric() || type instanceof AnyObjectType;
   }
 
   @Override
@@ -67,9 +70,7 @@ public class IsNaNOperation extends AbstractUnaryBooleanOperation {
     switch (value) {
       case Double d -> builder.appendBoolean(Double.isNaN(d));
       case Float f -> builder.appendBoolean(Float.isNaN(f));
-      case Number ignored -> builder.appendBoolean(false);
-      default -> throw new IllegalArgumentException(
-          "Unsupported type: " + value.getClass() + " (expected numeric type).");
+      default -> builder.appendBoolean(false);
     }
   }
 }

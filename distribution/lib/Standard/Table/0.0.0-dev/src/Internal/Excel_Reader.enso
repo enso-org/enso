@@ -51,7 +51,7 @@ handle_reader file reader =
    - xls_format: If `True` then the file is read in using Excel 95-2003 format
      otherwise reads in Excel 2007+ format.
 read_file : File -> Excel_Section -> Problem_Behavior -> Boolean -> (Table | Vector)
-read_file file section on_problems xls_format=False =
+read_file file section on_problems:Problem_Behavior xls_format=False =
     file_format = if xls_format then ExcelFileFormat.XLS else ExcelFileFormat.XLSX
     reader java_file = case section of
         Excel_Section.Worksheet sheet headers skip_rows row_limit ->

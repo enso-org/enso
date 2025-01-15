@@ -18,7 +18,7 @@ public final class SerializeModuleJob extends BackgroundJob<Void> {
   }
 
   @Override
-  public Void run(RuntimeContext ctx) {
+  public Void runImpl(RuntimeContext ctx) {
     var ensoContext = ctx.executionService().getContext();
     var compiler = ensoContext.getCompiler();
     boolean useGlobalCacheLocations = ensoContext.isUseGlobalCache();

@@ -6,14 +6,20 @@ import org.enso.compiler.core.ir
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.`type`
 import org.enso.compiler.pass.resolve.{TypeNames, TypeSignatures}
-import org.enso.interpreter.runtime
 import org.enso.interpreter.runtime.EnsoContext
 import org.enso.interpreter.test.InterpreterContext
 import org.enso.pkg.QualifiedName
-import org.enso.common.{LanguageInfo, MethodNames}
+import org.enso.common.{LanguageInfo, MethodNames, RuntimeOptions}
+import org.enso.editions.LibraryName
+import org.enso.test.utils.{ProjectUtils, SourceModule}
+import org.enso.testkit.WithTemporaryDirectory
+import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.{MatchResult, Matcher}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
+
+import java.io.ByteArrayOutputStream
+import scala.jdk.CollectionConverters.SetHasAsJava
 
 trait TypeMatchers {
   sealed trait Sig {
@@ -90,7 +96,7 @@ trait TypeMatchers {
         } else {
           items.lazyZip(t.operands).flatMap(findInequalityWitness).headOption
         }
-      case (In(typed, context), Type.Context(irTyped, irContext, _, _, _)) =>
+      case (In(typed, context), Type.Context(irTyped, irContext, _, _)) =>
         findInequalityWitness(typed, irTyped).orElse(
           findInequalityWitness(context, irContext)
         )
@@ -127,35 +133,67 @@ trait TypeMatchers {
 class TypeSignaturesTest
     extends AnyWordSpecLike
     with Matchers
-    with TypeMatchers {
+    with TypeMatchers
+    with WithTemporaryDirectory
+    with BeforeAndAfterAll {
 
-  private val ctx = new InterpreterContext()
-  private val langCtx = ctx.ctx
-    .getBindings(LanguageInfo.ID)
-    .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
-    .asHostObject[EnsoContext]()
+  private var ctx: InterpreterContext        = _
+  private var langCtx: EnsoContext           = _
+  private var devNull: ByteArrayOutputStream = new ByteArrayOutputStream()
 
-  private val Module = QualifiedName.fromString("Unnamed.Test")
+  override def afterAll(): Unit = {
+    ctx.close()
+    devNull.close()
+    devNull = null
+    ctx     = null
+    langCtx = null
+  }
 
-  langCtx.getPackageRepository.registerSyntheticPackage("my_pkg", "My_Lib")
-  langCtx.getTopScope.createModule(
-    QualifiedName.fromString("my_pkg.My_Lib.Util"),
-    null,
-    s"""
-       |type Util_1
-       |type Util_2
-       |
-       |type Util_Sum
-       |    Util_Sum_1
-       |    Util_Sum_2
-       |""".stripMargin
-  )
+  private val libName: LibraryName = LibraryName("local", "My_Lib")
 
   implicit private class PreprocessModule(code: String) {
     def preprocessModule: Module = {
-      val module = new runtime.Module(Module, null, code)
-      langCtx.getCompiler.run(module.asCompilerModule())
-      module.getIr
+      val utilMod = new SourceModule(
+        QualifiedName.simpleName("Util"),
+        """
+          |type Util_1
+          |type Util_2
+          |
+          |type Util_Sum
+          |    Util_Sum_1
+          |    Util_Sum_2
+          |""".stripMargin
+      )
+      val testMod = new SourceModule(QualifiedName.simpleName("Test"), code)
+      ProjectUtils.createProject(
+        libName.name,
+        Set(utilMod, testMod).asJava,
+        getTestDirectory
+      )
+      ctx = new InterpreterContext(bldr =>
+        bldr
+          .option(
+            RuntimeOptions.PROJECT_ROOT,
+            getTestDirectory.toFile.getAbsolutePath
+          )
+          .logHandler(devNull)
+      )
+      langCtx = ctx
+        .ctx()
+        .getBindings(LanguageInfo.ID)
+        .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
+        .asHostObject[EnsoContext]()
+      val pkgWasLoaded =
+        langCtx.getPackageRepository.ensurePackageIsLoaded(libName)
+      pkgWasLoaded.isRight shouldBe true
+
+      val testModName = QualifiedName.fromString(libName.toString + ".Test")
+      val module =
+        langCtx.getPackageRepository.getLoadedModule(testModName.toString)
+      module shouldBe defined
+      val compilerRes = langCtx.getCompiler.run(module.get)
+      compilerRes.compiledModules.isEmpty shouldBe false
+      module.get.getIr
     }
   }
 
@@ -201,41 +239,41 @@ class TypeSignaturesTest
           |foo a = 42""".stripMargin
       val module = code.preprocessModule
       getSignature(module, "foo") should typeAs(
-        "Unnamed.Test.A" ->: "Unnamed.Test.B" ->: "Unnamed.Test.C" ->: "Unnamed.Test.C" ->: "Unnamed.Test.A"
+        "local.My_Lib.Test.A" ->: "local.My_Lib.Test.B" ->: "local.My_Lib.Test.C" ->: "local.My_Lib.Test.C" ->: "local.My_Lib.Test.A"
       )
     }
 
     "resolve imported names" in {
       val code =
         """
-          |from my_pkg.My_Lib.Util import all
+          |from project.Util import all
           |
           |foo : Util_1 -> Util_2
           |foo a = 23
           |""".stripMargin
       val module = code.preprocessModule
       getSignature(module, "foo") should typeAs(
-        "my_pkg.My_Lib.Util.Util_1" ->: "my_pkg.My_Lib.Util.Util_2"
+        "local.My_Lib.Util.Util_1" ->: "local.My_Lib.Util.Util_2"
       )
     }
 
     "resolve imported union type names" in {
       val code =
         """
-          |from my_pkg.My_Lib.Util import all
+          |from project.Util import all
           |
           |foo : Util_Sum -> Util_2
           |foo a = 23
           |""".stripMargin
       val module = code.preprocessModule
       getSignature(module, "foo") should typeAs(
-        "my_pkg.My_Lib.Util.Util_Sum" ->: "my_pkg.My_Lib.Util.Util_2"
+        "local.My_Lib.Util.Util_Sum" ->: "local.My_Lib.Util.Util_2"
       )
     }
 
     "resolve anonymous sum types" in {
       val code =
-        """from my_pkg.My_Lib.Util import all
+        """from project.Util import all
           |
           |type Foo
           |
@@ -244,7 +282,7 @@ class TypeSignaturesTest
           |""".stripMargin
       val module = code.preprocessModule
       getSignature(module, "baz") should typeAs(
-        ("Unnamed.Test.Foo" | "my_pkg.My_Lib.Util.Util_2" | "my_pkg.My_Lib.Util.Util_Sum") ->: "Unnamed.Test.Foo"
+        ("local.My_Lib.Test.Foo" | "local.My_Lib.Util.Util_2" | "local.My_Lib.Util.Util_Sum") ->: "local.My_Lib.Test.Foo"
       )
     }
 

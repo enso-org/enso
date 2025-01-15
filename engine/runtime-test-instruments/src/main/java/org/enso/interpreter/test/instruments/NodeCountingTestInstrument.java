@@ -8,7 +8,6 @@ import com.oracle.truffle.api.instrumentation.SourceSectionFilter;
 import com.oracle.truffle.api.instrumentation.TruffleInstrument;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.SourceSection;
-
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -77,10 +76,12 @@ public class NodeCountingTestInstrument extends TruffleInstrument {
         };
 
     if (value < min) {
-      throw new AssertionError(dump.apply(msg + ". Minimal size should be " + min + ", but was: " + value + " in"));
+      throw new AssertionError(
+          dump.apply(msg + ". Minimal size should be " + min + ", but was: " + value + " in"));
     }
     if (value > max) {
-      throw new AssertionError(dump.apply(msg + ". Maximal size should be " + max + ", but was: " + value + " in"));
+      throw new AssertionError(
+          dump.apply(msg + ". Maximal size should be " + max + ", but was: " + value + " in"));
     }
     counter = new ConcurrentHashMap<>();
     return prev;
@@ -131,7 +132,6 @@ public class NodeCountingTestInstrument extends TruffleInstrument {
           calls.put(nodeId, funcCallInfo);
         }
       }
-
     }
   }
 }

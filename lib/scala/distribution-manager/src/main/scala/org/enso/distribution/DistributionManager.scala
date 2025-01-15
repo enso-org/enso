@@ -138,9 +138,11 @@ class DistributionManager(val env: Environment) {
   /** Determines paths that should be used by the launcher.
     */
   lazy val paths: DistributionPaths = {
-    val paths = detectPaths()
+    detectPaths()
+  }
+
+  def logPaths(): Unit = {
     logger.debug("Detected paths: {}", paths)
-    paths
   }
 
   protected def detectPaths(): DistributionPaths = {
@@ -411,7 +413,7 @@ class DistributionManager(val env: Environment) {
     def irCacheDirectory: Path = this.cacheDirectory / "ir"
 
     private def executableName: String =
-      OS.executableName("enso")
+      OS.executableName("ensoup")
 
     /** The path where the binary executable of the installed distribution
       * should be placed by default.

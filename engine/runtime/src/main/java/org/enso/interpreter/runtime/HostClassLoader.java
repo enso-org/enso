@@ -1,12 +1,11 @@
 package org.enso.interpreter.runtime;
 
-import java.io.IOException;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.util.Enumeration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import org.enso.ClassLoaderConstants;
+import org.enso.interpreter.runtime.util.TruffleFileSystem;
+import org.enso.pkg.NativeLibraryFinder;
 import org.graalvm.polyglot.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,7 +16,7 @@ import org.slf4j.LoggerFactory;
  * the classes that are loaded via this class loader are first searched inside those archives. If
  * not found, delegates to parent class loaders.
  */
-final class HostClassLoader extends URLClassLoader {
+final class HostClassLoader extends URLClassLoader implements AutoCloseable {
 
   private final Map<String, Class<?>> loadedClasses = new ConcurrentHashMap<>();
   private static final Logger logger = LoggerFactory.getLogger(HostClassLoader.class);
@@ -28,8 +27,19 @@ final class HostClassLoader extends URLClassLoader {
   // module layer's class loader.
   private static final ClassLoader polyglotClassLoader = Context.class.getClassLoader();
 
+  // polyglotClassLoader will be used only iff `org.enso.runtime` module is not in the
+  // boot module layer.
+  private static final boolean isRuntimeModInBootLayer;
+
   public HostClassLoader() {
-    super(new URL[0], polyglotClassLoader);
+    super(new URL[0]);
+  }
+
+  static {
+    var bootModules = ModuleLayer.boot().modules();
+    var hasRuntimeMod =
+        bootModules.stream().anyMatch(module -> module.getName().equals("org.enso.runtime"));
+    isRuntimeModInBootLayer = hasRuntimeMod;
   }
 
   void add(URL u) {
@@ -50,7 +60,13 @@ final class HostClassLoader extends URLClassLoader {
       logger.trace("Class {} found in cache", name);
       return l;
     }
-    if (ClassLoaderConstants.CLASS_DELEGATION_PATTERNS.stream().anyMatch(name::startsWith)) {
+    if (!isRuntimeModInBootLayer && name.startsWith("org.graalvm")) {
+      return polyglotClassLoader.loadClass(name);
+    }
+    if (name.startsWith("org.slf4j")) {
+      // Delegating to system class loader ensures that log classes are not loaded again
+      // and do not require special setup. In other words, it is using log configuration that
+      // has been setup by the runner that started the process. See #11641.
       return polyglotClassLoader.loadClass(name);
     }
     try {
@@ -67,21 +83,33 @@ final class HostClassLoader extends URLClassLoader {
     }
   }
 
+  /**
+   * Find the library with the specified name inside the {@code polyglot/lib} directory of caller's
+   * project. The search inside the {@code polyglot/lib} directory hierarchy is specified by <a
+   * href="https://bits.netbeans.org/23/javadoc/org-openide-modules/org/openide/modules/doc-files/api.html#jni">NetBeans
+   * JNI specification</a>.
+   *
+   * <p>Note: The current implementation iterates all the {@code polyglot/lib} directories of all
+   * the packages.
+   *
+   * @param libname The library name. Without platform-specific suffix or prefix.
+   * @return Absolute path to the library if found, or null.
+   */
   @Override
-  public URL findResource(String name) {
-    if (ClassLoaderConstants.CLASS_DELEGATION_PATTERNS.stream().anyMatch(name::startsWith)) {
-      return polyglotClassLoader.getResource(name);
-    } else {
-      return super.findResource(name);
+  protected String findLibrary(String libname) {
+    var pkgRepo = EnsoContext.get(null).getPackageRepository();
+    for (var pkg : pkgRepo.getLoadedPackagesJava()) {
+      var libPath = NativeLibraryFinder.findNativeLibrary(libname, pkg, TruffleFileSystem.INSTANCE);
+      if (libPath != null) {
+        return libPath;
+      }
     }
+    logger.trace("Native library {} not found in any package", libname);
+    return null;
   }
 
   @Override
-  public Enumeration<URL> findResources(String name) throws IOException {
-    if (ClassLoaderConstants.CLASS_DELEGATION_PATTERNS.stream().anyMatch(name::startsWith)) {
-      return polyglotClassLoader.getResources(name);
-    } else {
-      return super.findResources(name);
-    }
+  public void close() {
+    loadedClasses.clear();
   }
 }

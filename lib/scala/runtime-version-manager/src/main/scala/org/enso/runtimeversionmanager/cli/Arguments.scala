@@ -1,6 +1,5 @@
 package org.enso.runtimeversionmanager.cli
 
-import akka.http.scaladsl.model.{IllegalUriException, Uri}
 import org.enso.cli.arguments.{Argument, OptsParseError}
 import org.enso.logger.LoggerUtils
 
@@ -9,14 +8,6 @@ import java.net.URISyntaxException
 import org.slf4j.event.Level
 
 object Arguments {
-  implicit val uriAkkaArgument: Argument[Uri] = (string: String) =>
-    try {
-      Right(Uri(string))
-    } catch {
-      case error: IllegalUriException =>
-        Left(OptsParseError(s"`$string` is not a valid Uri: $error."))
-    }
-
   implicit val uriArgument: Argument[URI] = (string: String) =>
     try {
       Right(URI.create(string))

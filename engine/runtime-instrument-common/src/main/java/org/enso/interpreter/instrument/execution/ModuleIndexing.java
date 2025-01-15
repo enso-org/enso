@@ -24,6 +24,11 @@ public final class ModuleIndexing {
       assert isIndexed;
       return new IndexState(true, ir);
     }
+
+    @Override
+    public String toString() {
+      return "IndexState(" + isIndexed + ", " + ir.getClass() + ")";
+    }
   }
 
   private final ConcurrentMap<Module, IndexState> modules;

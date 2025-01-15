@@ -1,8 +1,8 @@
 import project.Any.Any
 import project.Data.Array.Array
+import project.Data.Dictionary.Dictionary
 import project.Data.Filter_Condition.Filter_Condition
 import project.Data.Json.JS_Object
-import project.Data.Map.Map
 import project.Data.Numbers.Integer
 import project.Data.Range.Range
 import project.Data.Text.Case_Sensitivity.Case_Sensitivity
@@ -39,6 +39,8 @@ type Regex
        Compile the provided `expression` into a `Regex` that can be used for
        matching.
 
+       For details on Enso's Regex syntax, see the [Help Documentation](https://help.enso.org/docs/using-enso/regular-expressions).
+
        Arguments:
        - expression: The text representing the regular expression that you want to
          compile. Must be non-empty.
@@ -46,16 +48,21 @@ type Regex
          insensitive matching behaves as if it normalises the case of all input
          text before matching on it.
 
-       If an empty regex is used, `compile` throws an Illegal_Argument error.
-    compile : Text -> Boolean -> Regex ! Regex_Syntax_Error | Illegal_Argument
-    compile expression:Text case_insensitive:Boolean=False =
-        if expression == '' then Error.throw (Illegal_Argument.Error "Regex cannot be the empty string") else
-            options_string = if case_insensitive == True then "usgi" else "usg"
+       ! Error Conditions
 
-            internal_regex_object = Panic.catch Syntax_Error (Prim_Text_Helper.compile_regex expression options_string) caught_panic->
-                Error.throw (Regex_Syntax_Error.Error (caught_panic.payload.message))
+       - If an empty regex is used, `find` throws an `Illegal_Argument` error.
+    compile : (Regex | Text) -> Boolean -> Regex ! Regex_Syntax_Error | Illegal_Argument
+    compile expression:(Regex | Text) case_insensitive:Boolean=False = case expression of
+        _ : Regex -> if case_insensitive == expression.case_insensitive then expression else
+            expression.recompile (if case_insensitive then Case_Sensitivity.In_Sensitive else Case_Sensitivity.Sensitive)
+        _ : Text ->
+            if expression == '' then Error.throw (Illegal_Argument.Error "Regex cannot be the empty string") else
+                options_string = if case_insensitive == True then "usgi" else "usg"
 
-            Regex.Value case_insensitive internal_regex_object
+                internal_regex_object = Panic.catch Syntax_Error (Prim_Text_Helper.compile_regex expression options_string) caught_panic->
+                    Error.throw (Regex_Syntax_Error.Error (caught_panic.payload.message))
+
+                Regex.Value case_insensitive internal_regex_object
 
     ## PRIVATE
 
@@ -130,7 +137,8 @@ type Regex
                     Match_Iterator_Value.Last _ -> Nothing
                 go it
 
-    ## GROUP Selections
+    ## ALIAS match
+       GROUP Selections
        ICON find
        Tries to match the provided `input` against the pattern `self`.
 
@@ -143,7 +151,8 @@ type Regex
     find self (input : Text) =
        match_to_group_maybe <| self.match input
 
-    ## GROUP Selections
+    ## ALIAS matches
+       GROUP Selections
        ICON find
        Tries to match the provided `input` against the pattern `self`.
 
@@ -156,16 +165,17 @@ type Regex
     find_all self (input : Text) =
        self.match_all input . map match_to_group_maybe
 
-    ## GROUP Conversions
+    ## ALIAS tokenize, parse
+       GROUP Conversions
        ICON split
        Splits the `input` text based on the pattern described by `self`.
+
+       This method will _always_ return a vector. If no splits take place, the
+       vector will contain a single element (equal to the original string).
 
        Arguments:
        - input: The text to split based on the pattern described by `self`.
        - only_first: If true, only split at the first occurrence.
-
-       This method will _always_ return a vector. If no splits take place, the
-       vector will contain a single element (equal to the original string).
 
        > Example
          Split on the first instance of the pattern.
@@ -187,7 +197,7 @@ type Regex
              input = "abcdefghij"
              texts = pattern.split input
              texts . should_equal ["abcdefghij"]
-    split : Text -> Boolean -> Vector Text | Type_Error
+    split : Text -> Boolean -> Vector Text ! Type_Error
     split self (input : Text) (only_first : Boolean = False) =
         Vector.build builder->
             it = Match_Iterator.new self input
@@ -200,7 +210,8 @@ type Regex
                     builder.append filler.text
             go it.next
 
-    ## GROUP Conversions
+    ## ALIAS split, parse
+       GROUP Conversions
        ICON split
        Takes an input string and returns all the matches as a `Vector Text`.
        If the pattern contains marked groups, the values are concatenated
@@ -226,18 +237,13 @@ type Regex
              Regex.compile '(\S+)(?:\s+|$)' . tokenize 'Hello Big\r\nWide\tWorld\nGoodbye!'
                  == ['Hello','Big','Wide','World','Goodbye!']
     tokenize : Text -> Vector Text
-    tokenize self input =
+    tokenize self input:Text =
         self.match_all input . map (build_tokenization_output_from_match self _)
 
     ## GROUP Text
        ICON text
        Replace all occurrences of the pattern described by `self` in the `input`
        with the specified `replacement`.
-
-       Arguments:
-       - input: The text in which to perform the replacement(s).
-       - replacement: The literal text with which to replace any matches.
-       - only_first: If True, only replace the first match.
 
        If this method performs no replacements it will return the `input` text
        unchanged.
@@ -247,7 +253,12 @@ type Regex
            $0: the entire match string
            $&: the entire match string
            $n: the nth group
-           $<foo>: Named group `foo`
+           $&lt;foo&gt;: Named group `foo`
+
+       Arguments:
+       - input: The text in which to perform the replacement(s).
+       - replacement: The literal text with which to replace any matches.
+       - only_first: If True, only replace the first match.
 
        > Example
          Replace letters in the text "aa".
@@ -377,15 +388,16 @@ type Regex
        Return a vector of all named group names.
     named_groups : Vector Text
     named_groups self =
-        map = polyglot_map_to_map self.internal_regex_object.groups
-        map.keys
+        dictionary = polyglot_map_to_dictionary self.internal_regex_object.groups
+        dictionary.keys
 
     ## ICON metadata
-       Return a map from group number to group name. Only includes named groups.
-    group_nums_to_names : Map Integer Text
+       Return a Dictionary from group number to group name. Only includes named
+       groups.
+    group_nums_to_names : Dictionary Integer Text
     group_nums_to_names self =
-        map = polyglot_map_to_map self.internal_regex_object.groups
-        map.transform k-> v-> [v.at 0, k]
+        dictionary = polyglot_map_to_dictionary self.internal_regex_object.groups
+        dictionary.transform k-> v-> [v.at 0, k]
 
     ## ICON text
        Escape the special characters in `expression` such that the result is a
@@ -416,27 +428,21 @@ type Regex
             if should_recompile.not then self else
                 Regex.compile self.pattern case_insensitive
 
-    ## PRIVATE
-
-       Get the original pattern string as a `Text`.
-    pattern_string : Text
-    pattern_string self = self.internal_regex_object.pattern
-
 ## PRIVATE
-   Convert the polyglot map to a Map.
-polyglot_map_to_map : Any -> Map Any Any
-polyglot_map_to_map map =
+   Convert the polyglot map to a Dictionary.
+polyglot_map_to_dictionary : Any -> Dictionary Any Any
+polyglot_map_to_dictionary map =
     polyglot_keys = Polyglot.get_members map
     keys = Vector.from_polyglot_array polyglot_keys
     pairs = keys.map key-> [key, Polyglot.get_member map key]
-    Map.from_vector pairs
+    Dictionary.from_vector pairs
 
 ## PRIVATE
    Get the named group from the polyglot map.
 read_group_map : Any -> Text -> Integer | Nothing
 read_group_map polyglot_map name =
-    map = polyglot_map_to_map polyglot_map
-    map.get name
+    dictionary = polyglot_map_to_dictionary polyglot_map
+    dictionary.get name
 
 ## PRIVATE
 match_to_group_maybe : Match | Nothing -> Text | Nothing

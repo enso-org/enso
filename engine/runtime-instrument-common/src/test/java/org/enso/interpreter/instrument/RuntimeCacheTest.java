@@ -1,5 +1,6 @@
 package org.enso.interpreter.instrument;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -9,11 +10,12 @@ import static org.junit.Assert.assertTrue;
 import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.UUID;
+import org.enso.common.CachePreferences;
 import org.junit.Test;
 
 public class RuntimeCacheTest {
+
   @Test
   public void cacheItems() {
     var cache = new RuntimeCache();
@@ -23,7 +25,7 @@ public class RuntimeCacheTest {
     assertFalse(cache.offer(key, obj));
     assertNull(cache.get(key));
 
-    cache.setWeights(Map.of(key, 1.0));
+    cache.setPreferences(of(key, CachePreferences.Kind.BINDING_EXPRESSION));
     assertTrue(cache.offer(key, obj));
     assertEquals(obj, cache.get(key));
   }
@@ -34,7 +36,7 @@ public class RuntimeCacheTest {
     var key = UUID.randomUUID();
     var obj = new Object();
 
-    cache.setWeights(Map.of(key, 1.0));
+    cache.setPreferences(of(key, CachePreferences.Kind.BINDING_EXPRESSION));
     assertTrue(cache.offer(key, obj));
     assertEquals(obj, cache.remove(key));
     assertNull(cache.get(key));
@@ -44,10 +46,10 @@ public class RuntimeCacheTest {
   public void cacheTypes() {
     var cache = new RuntimeCache();
     var key = UUID.randomUUID();
-    var obj = "Number";
+    var obj = new String[] {"Number"};
 
     assertNull(cache.putType(key, obj));
-    assertEquals(obj, cache.putType(key, obj));
+    assertArrayEquals(obj, cache.putType(key, obj));
 
     cache.removeType(key);
     assertNull(cache.putType(key, obj));
@@ -60,7 +62,7 @@ public class RuntimeCacheTest {
     var exprKey = UUID.randomUUID();
     var obj = new Object();
 
-    cache.setWeights(Map.of(key, 1.0));
+    cache.setPreferences(of(key, CachePreferences.Kind.BINDING_EXPRESSION));
 
     assertFalse("Not inserted, as the value isn't in the map yet", cache.offer(exprKey, obj));
     assertNull("No UUID for exprKey in cache", cache.get(exprKey));
@@ -82,7 +84,7 @@ public class RuntimeCacheTest {
     var exprKey = UUID.randomUUID();
     var obj = new Object();
 
-    cache.setWeights(Map.of(key, 1.0));
+    cache.setPreferences(of(key, CachePreferences.Kind.BINDING_EXPRESSION));
 
     assertFalse("Not inserted, as the value isn't in the map yet", cache.offer(exprKey, obj));
     assertNull("No UUID for exprKey in cache", cache.get(exprKey));
@@ -112,7 +114,7 @@ public class RuntimeCacheTest {
     var exprKey = UUID.randomUUID();
     var obj = new Object();
 
-    cache.setWeights(Map.of(key, 1.0));
+    cache.setPreferences(of(key, CachePreferences.Kind.BINDING_EXPRESSION));
 
     assertFalse("Not inserted, as the value isn't in the map yet", cache.offer(exprKey, obj));
     assertNull("No UUID for exprKey in cache", cache.get(exprKey));
@@ -162,5 +164,11 @@ public class RuntimeCacheTest {
     } else {
       assertNotNull(msg + " ref has been cleaned", obj);
     }
+  }
+
+  private static CachePreferences of(UUID key, CachePreferences.Kind value) {
+    var preferences = CachePreferences.empty();
+    preferences.set(key, value);
+    return preferences;
   }
 }

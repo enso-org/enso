@@ -19,12 +19,11 @@ polyglot java import org.enso.base.Text_Utils
 ## Represents a character encoding.
 type Encoding
     ## PRIVATE
-       Gets the default drop down option for this encoding.
-    default_widget : Widget
-    default_widget =
+       Gets the default drop down option for Encoding.
+    default_widget display:Display=..When_Modified -> Widget =
         fqn = Meta.get_qualified_type_name Encoding
         values = [Option "UTF-8" fqn+".utf_8", Option "ASCII" fqn+".ascii", Option "UTF-16LE" fqn+".utf_16_le", Option "UTF-16BE" fqn+".utf_16_be", Option "UTF-32LE" fqn+".utf_32_le", Option "UTF-32BE" fqn+".utf_32_be", Option "Windows-1250" fqn+".windows_1250", Option "Windows-1251" fqn+".windows_1251", Option "Windows-1252" fqn+".windows_1252", Option "Windows-1253" fqn+".windows_1253", Option "Windows-1254" fqn+".windows_1254", Option "Windows-1255" fqn+".windows_1255", Option "Windows-1256" fqn+".windows_1256", Option "Windows-1257" fqn+".windows_1257", Option "Windows-1258" fqn+".windows_1258"]
-        Single_Choice values=values display=Display.When_Modified
+        Single_Choice values=values display=display
 
     ## PRIVATE
        ADVANCED

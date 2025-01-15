@@ -1,0 +1,93 @@
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+from Standard.Base.Metadata import Display, make_single_choice, Widget
+from Standard.Base.Metadata.Choice import Option
+
+import project.Google_Analytics.Google_Analytics
+import project.Google_Credential.Google_Credential
+
+polyglot java import org.enso.google.GoogleAnalyticsReader.AnalyticsProperty
+
+## Type describing a Google Analytics property.
+type Google_Analytics_Property
+    private Value java_record
+
+    ## Property ID.
+    id : Text
+    id self = self.java_record.id
+
+    ## Property display name.
+    name : Text
+    name self = self.java_record.displayName
+
+    ## Property creation time.
+    create_time : Date_Time
+    create_time self = self.java_record.created
+
+    ## Parent account
+    account : Text
+    account self = self.java_record.account
+
+    ## Property currency.
+    currency : Text
+    currency self = self.java_record.currency
+
+    ## Property time zone.
+    time_zone : Time_Zone
+    time_zone self = self.java_record.timeZone
+
+    ## PRIVATE
+    to_text : Text
+    to_text self = "Google Analytics Property: " + self.name + " (" + self.id + ")"
+
+    ## PRIVATE
+    to_display_text : Text
+    to_display_text self = self.to_text
+
+    ## GROUP Standard.Base.Metadata
+       ICON data_input
+       List of all metrics of the property.
+
+       Arguments:
+       - credentials: The Google credentials to use. Default is the default
+         credentials.
+    @credentials (Google_Credential.default_widget)
+    metrics : Google_Credential -> Vector
+    metrics self credentials:Google_Credential=..Default =
+        Google_Analytics.list_metrics credentials self
+
+    ## GROUP Standard.Base.Metadata
+       ICON data_input
+       List of all dimensions of the property.
+
+       Arguments:
+       - credentials: The Google credentials to use. Default is the default
+         credentials.
+    @credentials (Google_Credential.default_widget)
+    dimensions : Google_Credential -> Vector
+    dimensions self credentials:Google_Credential=..Default =
+        Google_Analytics.list_dimensions credentials self
+
+    ## PRIVATE
+    default_widget self_arg cache display:Display=..Always -> Widget =
+        _ = self_arg
+        Panic.catch Any handler=_->(Widget.Text_Input display=display) <|
+            credentials = cache.if_not_nothing <| cache "credentials"
+            options = Google_Analytics.list_properties credentials=(credentials.if_nothing Google_Credential.Default) account=..All_Accounts limit=(..First 10) . map p->(Option (p.name + " (" + p.id + ")") p.id.pretty)
+            make_single_choice options display=display
+
+## PRIVATE
+Google_Analytics_Property.from (that:Text) =
+    id = if that.starts_with "properties/" then that else "properties/" + that
+    display = id.replace (regex "^properties/") ""
+    java_value = AnalyticsProperty.new id display False Date_Time.now "XXX" "XXX" Nothing
+    Google_Analytics_Property.Value java_value
+
+## PRIVATE
+Google_Analytics_Property.from (that:Vector) =
+    if that.length != 1 then Error.throw (Illegal_Argument.Error "Expected exactly one property ID.") else
+        first = that.first
+        case first of
+            _ : Text -> Google_Analytics_Property.from first
+            _ : Google_Analytics_Property -> first
+            _ -> Error.throw (Illegal_Argument.Error "Expected a property ID or a property.")

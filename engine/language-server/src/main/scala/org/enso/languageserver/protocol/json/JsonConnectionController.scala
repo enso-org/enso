@@ -97,9 +97,10 @@ import org.enso.languageserver.text.TextProtocol
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.languageserver.vcsmanager.VcsManagerApi._
 import org.enso.languageserver.workspace.WorkspaceApi.ProjectInfo
-import org.enso.logger.akka.ActorMessageLogging
+import org.enso.logging.utils.akka.ActorMessageLogging
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.ProgressNotification
+import org.enso.version.BuildVersion
 
 import java.util.UUID
 
@@ -194,14 +195,21 @@ class JsonConnectionController(
           _,
           InitProtocolConnection.Params(clientId)
         ) =>
-      logger.info(
+      logger.debug(
         "Initializing resources for [{}] [{}].",
         clientId,
         mainComponent
       )
       mainComponent
         .init()
-        .thenApply(_ => InitializationComponentInitialized.getInstance)
+        .whenComplete((_, ex) =>
+          if (mainComponent.isInitialized) {
+            logger.trace("Resources have been initialized")
+            self ! InitializationComponentInitialized.getInstance()
+          } else {
+            logger.warn("Failed to initialize resources", ex)
+          }
+        )
         .pipeTo(self)
       context.become(initializing(webActor, clientId, req, sender()))
 
@@ -219,7 +227,7 @@ class JsonConnectionController(
     receiver: ActorRef
   ): Receive = LoggingReceive {
     case _: InitializationComponentInitialized =>
-      logger.info("RPC session initialized for client [{}].", clientId)
+      logger.debug("RPC session initialized for client [{}]", clientId)
       val session = JsonSession(clientId, self)
       context.system.eventStream.publish(JsonSessionInitialized(session))
       context.system.eventStream.publish(
@@ -284,17 +292,18 @@ class JsonConnectionController(
         cancellable.cancel()
         unstashAll()
 
+        val allContentRoots = allRoots.map(_.toContentRoot).toSet
         receiver ! ResponseResult(
           InitProtocolConnection,
           request.id,
           InitProtocolConnection.Result(
-            buildinfo.Info.ensoVersion,
-            buildinfo.Info.currentEdition,
-            allRoots.map(_.toContentRoot).toSet
+            BuildVersion.ensoVersion,
+            BuildVersion.currentEdition,
+            allContentRoots
           )
         )
 
-        initialize(webActor, rpcSession)
+        initialize(webActor, rpcSession, allContentRoots)
       } else {
         context.become(
           waitingForContentRoots(
@@ -303,7 +312,7 @@ class JsonConnectionController(
             request     = request,
             receiver    = receiver,
             cancellable = cancellable,
-            rootsSoFar  = roots ++ rootsSoFar
+            rootsSoFar  = allRoots
           )
         )
       }
@@ -319,10 +328,11 @@ class JsonConnectionController(
 
   private def initialize(
     webActor: ActorRef,
-    rpcSession: JsonSession
+    rpcSession: JsonSession,
+    roots: Set[ContentRoot]
   ): Unit = {
     val requestHandlers = createRequestHandlers(rpcSession)
-    context.become(initialised(webActor, rpcSession, requestHandlers))
+    context.become(initialised(webActor, rpcSession, requestHandlers, roots))
 
     context.system.eventStream
       .subscribe(self, classOf[Api.ProgressNotification])
@@ -331,13 +341,30 @@ class JsonConnectionController(
   private def initialised(
     webActor: ActorRef,
     rpcSession: JsonSession,
-    requestHandlers: Map[Method, Props]
+    requestHandlers: Map[Method, Props],
+    roots: Set[ContentRoot]
   ): Receive = LoggingReceive {
-    case Request(InitProtocolConnection, id, _) =>
-      sender() ! ResponseError(Some(id), SessionAlreadyInitialisedError)
+    case Request(
+          InitProtocolConnection,
+          id,
+          InitProtocolConnection.Params(clientId)
+        ) =>
+      if (clientId == rpcSession.clientId) {
+        sender() ! ResponseResult(
+          InitProtocolConnection,
+          id,
+          InitProtocolConnection.Result(
+            BuildVersion.ensoVersion,
+            BuildVersion.currentEdition,
+            roots
+          )
+        )
+      } else {
+        sender() ! ResponseError(Some(id), SessionAlreadyInitialisedError)
+      }
 
     case MessageHandler.Disconnected(_) =>
-      logger.info("Json session terminated [{}].", rpcSession.clientId)
+      logger.info("Session terminated [{}].", rpcSession.clientId)
       context.system.eventStream.publish(JsonSessionTerminated(rpcSession))
       context.stop(self)
 

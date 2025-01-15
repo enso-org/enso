@@ -140,8 +140,7 @@ public class CrossTabIndex {
     for (int i = 0; i < xKeysCount(); i++) {
       int offset = yColumns.length + i * aggregates.length;
       for (int j = 0; j < aggregates.length; j++) {
-        storage[offset + j] =
-            Builder.getForType(aggregates[j].getType(), yKeysCount(), problemAggregator);
+        storage[offset + j] = aggregates[j].makeBuilder(yKeysCount(), problemAggregator);
         context.safepoint();
       }
     }

@@ -175,7 +175,7 @@ In order to build and run Enso you will need the following tools:
   should be installed by default on most distributions.
 - On Windows, the `run` command must be run in the latest version of
   `Powershell` or in `cmd`.
-- If you want to be able to build the Launcher Native Image, you will need a
+- If you want to be able to build the `ensoup` Native Image, you will need a
   native C compiler for your platform as described in the
   [Native Image Prerequisites](https://www.graalvm.org/reference-manual/native-image/#prerequisites).
   On Linux that will be `gcc`, on macOS you may need `xcode` and on Windows you
@@ -187,6 +187,30 @@ helper tools for that. We recommend:
 
 - [Jenv](http://www.jenv.be/)
 - or [sdkman](https://sdkman.io/)
+
+**On Windows**: you need a few additional requirements:
+
+1. `Developer Mode` must be enabled to support creating filesystem symlinks.
+   E.g., using this instruction:
+   https://pureinfotech.com/enable-developer-mode-windows-11/
+2. You must create either `.bazelrc.local` at repository root, or
+   `%USERPROFILE%\.bazelrc` (consult https://bazel.build/run/bazelrc for more
+   possible locations), containing the following:
+
+```
+# Use different drive letter if needed, but the path must be SHORT
+startup --output_base=C:/_bzl
+common --disk_cache=C:/_bzl-disk
+common --repository_cache=C:/_bzl-repo
+```
+
+3. You need to have `bash.exe` available in `PATH`, so either:
+
+- install MSYS2 (https://www.msys2.org/)
+- or use bash executable provided with Git by adding the following to your
+  `PATH` variable: `C:\Program Files\Git\bin`, if you have it installed.
+- or configure Git installation selecting the third option:
+  ![Git installation settings](https://github.com/user-attachments/assets/def189fa-985b-47f3-8c8b-153c0f39fa26)
 
 **For users of M1 Mac**: installing GraalVM on M1 Mac requires manual actions,
 please refer to a [dedicated documentation](./graalvm-m1-mac.md).
@@ -294,17 +318,9 @@ shell will execute the appropriate thing. Furthermore we have `testOnly` and
 `benchOnly` that accept a glob pattern that delineates some subset of the tests
 or benchmarks to run (e.g. `testOnly *FunctionArguments*`).
 
-#### Building the Launcher Native Binary
+#### Building the Updater Native Binary
 
-If you want to build the native launcher binary, you need to ensure that the
-Native Image component is installed in your GraalVM distribution. To install it,
-run:
-
-```bash
-<path-to-graal-home>/bin/gu install native-image
-```
-
-Then, you can build the launcher using:
+Then, you can build the updater/launcher using:
 
 ```bash
 sbt launcher/buildNativeImage
@@ -491,15 +507,53 @@ Running the tests for the JVM enso components is as simple as running
 
 #### Testing Enso Libraries
 
-To test the libraries that are shipped with Enso you need to first build the
-engine, the easiest way to do so is to run `sbt buildEngineDistribution`. That
-will create a distribution in the directory `built-distribution`. The engine
-runner that can be used for running the tests is located at
-`built-distribution/enso-engine-<VERSION>-linux-amd64/enso-<VERSION>/bin/enso`
-(or `enso.bat` for Windows).
+To run the tests inside sbt you can use the following command:
 
-To run the tests you can run the following commands (where `enso` refers to the
-built runner executable as explained above):
+```sbt
+sbt:enso> runEngineDistribution --run test/Table_Tests/
+```
+
+This builds the library code and runs all the tests in the specified folder. And
+is the fastest way to build the code and run the tests.
+
+Alternatively to run a single file of tests you can specify the file to run
+
+```sbt
+sbt:enso> runEngineDistribution --run test/Base_Tests/src/Data/Time/Duration_Spec.enso
+```
+
+Or you can pattern match against the test name using this syntax
+
+```sbt
+sbt:enso> runEngineDistribution --run test/Base_Tests/src/Data/Time/Duration_Spec.enso should.normalize
+```
+
+This runs all tests in Duration_Spec.enso that have 'should normalize' the their
+name.
+
+To run with a debugger first start the debugger listening on 5005, add a
+breakpoint in a test then run with
+
+```sbt
+sbt:enso> runEngineDistribution --run test/Base_Tests --debug
+```
+
+The above running options also work when debugging.
+
+Alternatively to run the test outisde of sbt you need to first build the engine,
+the easiest way to do so is to run `sbt buildEngineDistributionNoIndex`. That
+will create a distribution in the directory `built-distribution`. The engine
+runner that can be used for running the tests is located at:
+
+- on Windows
+  `built-distribution/enso-engine<VERSION>-windows-amd64/enso-<VERSION>/bin/enso.bat`
+- on ARM mac -
+  `built-distribution/enso-engine-<VERSION>-macos-aarch64/enso-<VERSION>/bin/enso`
+- on Linux -
+  `built-distribution/enso-engine-<VERSION>-linux-amd64/enso-<VERSION>/bin/enso`
+
+you can run the following commands (where `enso` refers to the built runner
+executable as explained above):
 
 ```bash
 enso --run test/Base_Tests
@@ -507,10 +561,17 @@ enso --run test/Geo_Tests
 enso --run test/Table_Tests
 ```
 
-Or to run just a single test (e.g., `Duration_Spec.enso`):
+Or to run just a single test file (e.g., `Duration_Spec.enso`):
 
 ```bash
-enso --in-project test/Base_Tests --run test/Base_Tests/src/Data/Time/Duration_Spec.enso
+enso --run test/Base_Tests/src/Data/Time/Duration_Spec.enso
+```
+
+To run with a debugger first start the debugger listening on 5005, add a
+breakpoint in a test then run with
+
+```bash
+JAVA_OPTS='-agentlib:jdwp=transport=dt_socket,server=n,address=5005' enso --run test/Base_Tests/src/Data/Time/Duration_Spec.enso
 ```
 
 The Database tests will by default only test the SQLite backend, to test other

@@ -8,7 +8,7 @@ import java.util.Objects;
 import org.enso.base.CurrentEnsoProject;
 import org.enso.base.enso_cloud.CloudAPI;
 
-public class AuditLogMessage implements AuditLogAPI.LogMessage {
+class AuditLogMessage implements AuditLogApiAccess.LogMessage {
 
   /**
    * A reserved field that is currently added by the cloud backend. Duplicating it will lead to
@@ -19,6 +19,7 @@ public class AuditLogMessage implements AuditLogAPI.LogMessage {
   private static final String OPERATION = "operation";
   private static final String PROJECT_NAME = "projectName";
   private static final String PROJECT_ID = "projectId";
+  private static final String PROJECT_SESSION_ID = "projectSessionId";
   private static final String LOCAL_TIMESTAMP = "localTimestamp";
 
   private final String projectId;
@@ -34,6 +35,7 @@ public class AuditLogMessage implements AuditLogAPI.LogMessage {
     checkNoRestrictedField(metadata, RESERVED_TYPE);
     checkNoRestrictedField(metadata, OPERATION);
     checkNoRestrictedField(metadata, PROJECT_NAME);
+    checkNoRestrictedField(metadata, PROJECT_SESSION_ID);
     checkNoRestrictedField(metadata, LOCAL_TIMESTAMP);
 
     this.projectId = CloudAPI.getCloudProjectId();
@@ -53,10 +55,14 @@ public class AuditLogMessage implements AuditLogAPI.LogMessage {
     var copy = metadata.deepCopy();
     copy.set(OPERATION, TextNode.valueOf(operation));
 
-    // TODO the null check should no longer be needed once
-    // https://github.com/enso-org/enso/issues/9845 is fixed
+    // The project name may be null if a script is run outside a project.
     if (projectName != null) {
       copy.set(PROJECT_NAME, TextNode.valueOf(projectName));
+    }
+
+    String projectSessionId = CloudAPI.getCloudSessionId();
+    if (projectSessionId != null) {
+      copy.set(PROJECT_SESSION_ID, TextNode.valueOf(projectSessionId));
     }
 
     return copy;
@@ -67,7 +73,7 @@ public class AuditLogMessage implements AuditLogAPI.LogMessage {
     var payload = new ObjectNode(JsonNodeFactory.instance);
     payload.set("message", TextNode.valueOf(message));
     payload.set(
-        "projectId", projectId == null ? NullNode.getInstance() : TextNode.valueOf(projectId));
+        PROJECT_ID, projectId == null ? NullNode.getInstance() : TextNode.valueOf(projectId));
     payload.set("metadata", computedMetadata());
     payload.set("kind", TextNode.valueOf("Lib"));
     return payload.toString();

@@ -86,6 +86,11 @@ class ClientController[F[+_, +_]: Exec: CovariantFlatMap: ErrorChannel: Sync](
         ),
       ProjectRename -> ProjectRenameHandler
         .props[F](projectService, timeoutConfig.requestTimeout),
+      ProjectDuplicate -> ProjectDuplicateHandler.props[F](
+        projectService,
+        timeoutConfig.requestTimeout,
+        timeoutConfig.retries
+      ),
       EngineListInstalled -> EngineListInstalledHandler.props(
         runtimeVersionManagementService,
         timeoutConfig.requestTimeout
@@ -100,12 +105,6 @@ class ClientController[F[+_, +_]: Exec: CovariantFlatMap: ErrorChannel: Sync](
       EngineUninstall -> EngineUninstallHandler.props(
         runtimeVersionManagementService
       ),
-      ConfigGet -> ConfigGetHandler
-        .props(globalConfigService, timeoutConfig.requestTimeout),
-      ConfigSet -> ConfigSetHandler
-        .props(globalConfigService, timeoutConfig.requestTimeout),
-      ConfigDelete -> ConfigDeleteHandler
-        .props(globalConfigService, timeoutConfig.requestTimeout),
       LoggingServiceGetEndpoint -> LoggingServiceEndpointRequestHandler.props(
         loggingServiceDescriptor,
         timeoutConfig.requestTimeout

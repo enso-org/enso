@@ -1,6 +1,8 @@
 from Standard.Base import all
+import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
+import Standard.Base.System.File_Format.File_Name_Pattern
 import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
 import Standard.Base.System.Input_Stream.Input_Stream
 from Standard.Base.Metadata.Choice import Option
@@ -14,14 +16,20 @@ supported = [".bmp", ".dib", ".jpeg", ".jpg", ".jpe", ".jp2", ".png", ".webp", "
 ## Read the file to a `Image` from a supported file format.
 type Image_File_Format
     ## File_Format to read Image files
-    For_File
+    Image
+
+    ## PRIVATE
+       Resolve an unresolved constructor to the actual type.
+    resolve : Function -> Image_File_Format | Nothing
+    resolve constructor =
+        Panic.catch Type_Error (constructor:Image_File_Format) _->Nothing
 
     ## PRIVATE
        If the File_Format supports reading from the file, return a configured instance.
     for_read : File_Format_Metadata -> Image_File_Format | Nothing
     for_read file:File_Format_Metadata =
         extension = file.guess_extension
-        if supported.contains extension then Image_File_Format.For_File else Nothing
+        if supported.contains extension then Image_File_Format.Image else Nothing
 
     ## PRIVATE
        If this File_Format should be used for writing to that file, return a configured instance.
@@ -30,12 +38,17 @@ type Image_File_Format
 
     ## PRIVATE
     get_dropdown_options : Vector Option
-    get_dropdown_options = [Option "Image" (Meta.get_qualified_type_name Image_File_Format)+".For_File"]
+    get_dropdown_options = [Option "Image" "..Image"]
+
+    ## PRIVATE
+    get_name_patterns -> Vector File_Name_Pattern =
+        patterns = supported.map ext-> "*" + ext
+        [File_Name_Pattern.Value "Image" patterns]
 
     ## PRIVATE
        Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
-    read self file on_problems =
+    read self file on_problems:Problem_Behavior =
         _ = [on_problems]
         Image.read file
 

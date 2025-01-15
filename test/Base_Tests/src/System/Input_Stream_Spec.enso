@@ -6,11 +6,14 @@ import Standard.Base.System.Input_Stream.Input_Stream
 from Standard.Test import all
 
 polyglot java import org.enso.base_test_helpers.RangeStream
+polyglot java import org.enso.base.Stream_Utils
 
 main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
     suite.run_with_filter filter
+
+
 
 add_specs suite_builder = suite_builder.group "Input Stream" group_builder->
     group_builder.specify "should be peekable if backed by memory" <|
@@ -61,3 +64,4 @@ add_specs suite_builder = suite_builder.group "Input Stream" group_builder->
         promoted_stream.peek_bytes 10 . should_equal [100, 101, 102, 103, 104]
         # The read still succeeds - ensuring there isn't some early EOF
         promoted_stream.read_n_bytes 10 . should_equal [100, 101, 102, 103, 104]
+

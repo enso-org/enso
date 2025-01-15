@@ -10,15 +10,6 @@ polyglot java import org.enso.base.Time_Utils
 
 ## Represents a unit of time of a day or shorter.
 type Time_Period
-    ## Represents a time period of a single day, measured as 24 hours.
-
-       ? Daylight Saving Time
-
-         Note that due to DST changes, some days may be slightly longer or
-         shorter. This is not reflected in the duration of this time period. For
-         a calendar-oriented day period, use `Date_Period.Day` instead.
-    Day
-
     ## Represents a time period of an hour.
     Hour
 
@@ -38,10 +29,8 @@ type Time_Period
     Nanosecond
 
     ## PRIVATE
-       We treat the `Time_Period.Day` as a period of 24 hours, not a calendar day.
     to_java_unit : TemporalUnit
     to_java_unit self = case self of
-        Time_Period.Day -> CustomTemporalUnits.DAY_AS_24_HOURS
         Time_Period.Hour -> ChronoUnit.HOURS
         Time_Period.Minute -> ChronoUnit.MINUTES
         Time_Period.Second -> ChronoUnit.SECONDS
@@ -50,29 +39,18 @@ type Time_Period
         Time_Period.Nanosecond -> ChronoUnit.NANOS
 
     ## PRIVATE
-       A special case for `adjust_start` and `adjust_end` methods.
-       In this particular case, it seems better to treat `Time_Period.Day` as a
-       calendar day. Otherwise, the behaviour of `start_of` and `end_of` methods
-       near DST would become unintuitive.
-    to_java_unit_for_adjust : TemporalUnit
-    to_java_unit_for_adjust self = case self of
-        Time_Period.Day -> ChronoUnit.DAYS
-        _ -> self.to_java_unit
-
-    ## PRIVATE
     adjust_start : (Time_Of_Day | Date_Time) -> (Time_Of_Day | Date_Time)
     adjust_start self date =
-        (Time_Utils.utils_for date).start_of_time_period date self.to_java_unit_for_adjust
+        (Time_Utils.utils_for date).start_of_time_period date self.to_java_unit
 
     ## PRIVATE
     adjust_end : (Time_Of_Day | Date_Time) -> (Time_Of_Day | Date_Time)
     adjust_end self date =
-        (Time_Utils.utils_for date).end_of_time_period date self.to_java_unit_for_adjust
+        (Time_Utils.utils_for date).end_of_time_period date self.to_java_unit
 
     ## PRIVATE
     to_duration : Duration
     to_duration self = case self of
-        Time_Period.Day -> Duration.new hours=24
         Time_Period.Hour -> Duration.new hours=1
         Time_Period.Minute -> Duration.new minutes=1
         Time_Period.Second -> Duration.new seconds=1

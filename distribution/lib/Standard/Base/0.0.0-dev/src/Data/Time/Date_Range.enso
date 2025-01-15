@@ -11,6 +11,7 @@ import project.Data.Time.Period.Period
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Common.Index_Out_Of_Bounds
+import project.Errors.Common.Not_Found
 import project.Errors.Empty_Error.Empty_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Function.Function
@@ -101,9 +102,22 @@ type Date_Range
         start + step + "]"
 
     ## PRIVATE
-       Convert to a human-readable representation.
+       GROUP convert
+       ICON enso_logo
+       Convert the value to a corresponding Enso code representation.
+
+       > Example
+         Getting the Enso code of the date range 10-September-2024 until
+         29-October-2024.
+
+             (Date.new 2024 09 10).up_to (Date.new 2024 10 29) . pretty
+             ## Returns a Text
+                Date_Range.new (Date.new 2024 09 10) (Date.new 2024 10 29)
     pretty : Text
-    pretty self = self.to_text
+    pretty self =
+        start = self.start.pretty
+        end = self.end.pretty
+        "Date_Range.new (" + start + ") (" + end + (if self.step == (Period.new days=1) then ")" else ") (" + self.step.pretty + ")")
 
     ## PRIVATE
        Converts this value to a JSON serializable object.
@@ -256,7 +270,7 @@ type Date_Range
          Selecting all elements that are greater than 2020-10-12.
 
              (Date.new 2020 10 01).up_to (Date.new 2020 10 15) . filter (> (Date.new 2020 10 12))
-             (Date.new 2020 10 01).up_to (Date.new 2020 10 15) . filter (Filter_Condition.Greater than=(Date.new 2020 10 12))
+             (Date.new 2020 10 01).up_to (Date.new 2020 10 15) . filter (..Greater than=(Date.new 2020 10 12))
     @filter date_range_default_filter_condition_widget
     filter : (Filter_Condition | (Date -> Boolean)) -> Vector Date
     filter self (filter : Filter_Condition | (Date -> Boolean)) =
@@ -401,10 +415,11 @@ type Date_Range
        > Example
          Checking that at least one date in the range is after 2020-10-01.
 
-             (Date.new 2020 10 01).up_to (Date.new 2020 10 31) . any (Filter_Condition.Greater (Date.new 2020 10 01))
+             (Date.new 2020 10 01).up_to (Date.new 2020 10 31) . any (..Greater (Date.new 2020 10 01))
     @condition date_range_default_filter_condition_widget
     any : (Filter_Condition | (Date -> Boolean)) -> Boolean
-    any self (condition : Filter_Condition | (Date -> Boolean)) = self.find condition . is_nothing . not
+    any self (condition : Filter_Condition | (Date -> Boolean)) =
+        self.find condition if_missing=Nothing . is_nothing . not
 
     ## GROUP Selections
        ICON find
@@ -424,7 +439,7 @@ type Date_Range
                 (Date.new 2020 10 01).up_to (Date.new 2020 10 31) . find (d-> d.day_of_week == Day_Of_Week.Monday)
     @condition date_range_default_filter_condition_widget
     find : (Filter_Condition | (Date -> Boolean)) -> Integer -> Any -> Any
-    find self (condition : Filter_Condition | (Date -> Boolean)) (start : Integer = 0) ~if_missing=Nothing =
+    find self (condition : Filter_Condition | (Date -> Boolean)) (start : Integer = 0) ~if_missing=(Error.throw Not_Found) =
         predicate = unify_condition_or_predicate condition
         index = self.index_of predicate start
         case index of
@@ -605,7 +620,7 @@ unify_condition_for_index_of (condition : Date | Filter_Condition | Function) =
 
 ## PRIVATE
 date_range_default_filter_condition_widget =
-    Filter_Condition.default_widget include_text=False include_boolean=False include_numeric=False include_nullable=False
+    Filter_Condition.default_widget include_text=False include_boolean=False include_numeric=False include_nullable=False include_time=False include_date_time=False
 
 ## PRIVATE
 Vector.from (that:Date_Range) = that.to_vector

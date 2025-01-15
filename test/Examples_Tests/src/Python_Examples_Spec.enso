@@ -29,7 +29,7 @@ pending = if should_run_test then Nothing else """
 bin_dir =
     p = Java_System.getProperty "jdk.module.path"
     s = p.split Java_File.separator
-    paths = s.take (Index_Sub_Range.While _!="..")
+    paths = s.take (..While _!="..")
     j = paths . join Java_File.separator
     File.new j
 

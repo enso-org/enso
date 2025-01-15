@@ -64,7 +64,6 @@ public class EqualsBenchmarks {
         import Standard.Base.Data.Numbers.Number
         import Standard.Base.Data.Ordering.Ordering
         import Standard.Base.Data.Ordering.Comparable
-        import Standard.Base.Data.Ordering.Default_Comparator
 
         type Num
             Value n
@@ -75,7 +74,7 @@ public class EqualsBenchmarks {
 
         type Num_Comparator
             compare x:Num y:Num = Ordering.compare x.n y.n
-            hash x:Num = Default_Comparator.hash x.n
+            hash x:Num = Ordering.hash x.n
 
         type Node
             C1 f1

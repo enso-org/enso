@@ -17,11 +17,13 @@ object Cli {
   val PROJECTS_DIRECTORY = "projects-directory"
   val PROJECT_LIST       = "project-list"
 
+  val FILESYSTEM_EXISTS           = "filesystem-exists"
   val FILESYSTEM_LIST             = "filesystem-list"
   val FILESYSTEM_CREATE_DIRECTORY = "filesystem-create-directory"
   val FILESYSTEM_DELETE           = "filesystem-delete"
   val FILESYSTEM_MOVE_FROM        = "filesystem-move-from"
   val FILESYSTEM_MOVE_TO          = "filesystem-move-to"
+  val FILESYSTEM_READ_PATH        = "filesystem-read-path"
   val FILESYSTEM_WRITE_PATH       = "filesystem-write-path"
 
   object option {
@@ -90,6 +92,14 @@ object Cli {
       .desc("List user projects.")
       .build()
 
+    val filesystemExists: cli.Option = cli.Option.builder
+      .hasArg(true)
+      .numberOfArgs(1)
+      .argName("path")
+      .longOpt(FILESYSTEM_EXISTS)
+      .desc("Check if a file or directory exists.")
+      .build()
+
     val filesystemList: cli.Option = cli.Option.builder
       .hasArg(true)
       .numberOfArgs(1)
@@ -130,6 +140,14 @@ object Cli {
       .desc("Move directory. Destination.")
       .build()
 
+    val filesystemReadPath: cli.Option = cli.Option.builder
+      .hasArg(true)
+      .numberOfArgs(1)
+      .argName("path")
+      .longOpt(FILESYSTEM_READ_PATH)
+      .desc("Read the contents of the provided file")
+      .build()
+
     val filesystemWritePath: cli.Option = cli.Option.builder
       .hasArg(true)
       .numberOfArgs(1)
@@ -150,11 +168,13 @@ object Cli {
       .addOption(option.profilingTime)
       .addOption(option.projectsDirectory)
       .addOption(option.projectList)
+      .addOption(option.filesystemExists)
       .addOption(option.filesystemList)
       .addOption(option.filesystemCreateDirectory)
       .addOption(option.filesystemDelete)
       .addOption(option.filesystemMoveFrom)
       .addOption(option.filesystemMoveTo)
+      .addOption(option.filesystemReadPath)
       .addOption(option.filesystemWritePath)
 
   /** Parse the command line options. */

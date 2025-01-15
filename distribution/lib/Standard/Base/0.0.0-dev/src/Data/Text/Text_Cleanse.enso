@@ -6,7 +6,8 @@ type Text_Cleanse
     ## PRIVATE
     Value named_pattern:Named_Pattern
 
-    ## Apply the cleanse operation to the text.
+    ## PRIVATE
+       Apply the cleanse operation to the text.
     apply self input:Cleansable_Text -> Any =
         input.replace self.named_pattern.regex_pattern ""
 

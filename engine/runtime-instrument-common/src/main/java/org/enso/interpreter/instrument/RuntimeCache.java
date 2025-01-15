@@ -10,15 +10,16 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import org.enso.common.CachePreferences;
 import org.enso.interpreter.service.ExecutionService;
 
 /** A storage for computed values. */
 public final class RuntimeCache implements java.util.function.Function<String, Object> {
   private final Map<UUID, Reference<Object>> cache = new HashMap<>();
   private final Map<UUID, Reference<Object>> expressions = new HashMap<>();
-  private final Map<UUID, String> types = new HashMap<>();
+  private final Map<UUID, String[]> types = new HashMap<>();
   private final Map<UUID, ExecutionService.FunctionCallInfo> calls = new HashMap<>();
-  private Map<UUID, Double> weights = new HashMap<>();
+  private CachePreferences preferences = CachePreferences.empty();
   private Consumer<UUID> observer;
 
   /**
@@ -30,8 +31,7 @@ public final class RuntimeCache implements java.util.function.Function<String, O
    */
   @CompilerDirectives.TruffleBoundary
   public boolean offer(UUID key, Object value) {
-    var weight = weights.get(key);
-    if (weight != null && weight > 0) {
+    if (preferences.contains(key)) {
       var ref = new SoftReference<>(value);
       cache.put(key, ref);
       expressions.put(key, new WeakReference<>(value));
@@ -88,20 +88,34 @@ public final class RuntimeCache implements java.util.function.Function<String, O
   }
 
   /**
+   * Clear cached values of the provided kind.
+   *
+   * @param kind the kind of cached value to clear
+   * @return the set of cleared keys
+   */
+  public Set<UUID> clear(CachePreferences.Kind kind) {
+    var keys = preferences.get(kind);
+    for (var key : keys) {
+      cache.remove(key);
+    }
+    return keys;
+  }
+
+  /**
    * Cache the type of expression.
    *
    * @return the previously cached type.
    */
   @CompilerDirectives.TruffleBoundary
-  public String putType(UUID key, String typeName) {
-    return types.put(key, typeName);
+  public String[] putType(UUID key, String[] typeNames) {
+    return types.put(key, typeNames);
   }
 
   /**
    * @return the cached type of the expression
    */
   @CompilerDirectives.TruffleBoundary
-  public String getType(UUID key) {
+  public String[] getType(UUID key) {
     return types.get(key);
   }
 
@@ -161,25 +175,33 @@ public final class RuntimeCache implements java.util.function.Function<String, O
   }
 
   /**
-   * @return the weights of this cache.
+   * @return the preferences of this cache.
    */
-  public Map<UUID, Double> getWeights() {
-    return weights;
+  public CachePreferences getPreferences() {
+    return preferences;
   }
 
-  /** Set the new weights. */
-  public void setWeights(Map<UUID, Double> weights) {
-    this.weights = weights;
+  /**
+   * Set the new cache preferences.
+   *
+   * @param preferences the new cache preferences
+   */
+  public void setPreferences(CachePreferences preferences) {
+    this.preferences = preferences;
   }
 
-  /** Remove the weight associated with the provided key. */
-  public void removeWeight(UUID key) {
-    weights.remove(key);
+  /**
+   * Remove the cache preference associated with the provided key.
+   *
+   * @param key the preference to remove
+   */
+  public void removePreference(UUID key) {
+    preferences.remove(key);
   }
 
-  /** Clear the weights. */
-  public void clearWeights() {
-    weights.clear();
+  /** Clear the cache preferences. */
+  public void clearPreferences() {
+    preferences.clear();
   }
 
   /**

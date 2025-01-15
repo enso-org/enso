@@ -3,7 +3,6 @@ package org.enso.compiler.core.ir;
 import java.io.IOException;
 import java.util.AbstractList;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 import org.enso.compiler.core.ir.expression.Application;
@@ -70,28 +69,43 @@ import scala.collection.immutable.Seq;
 @Persistable(clazz = Warning.WrongBuiltinMethod.class, id = 789)
 @Persistable(clazz = Warning.NotInvokable.class, id = 791)
 @Persistable(clazz = Warning.TypeMismatch.class, id = 792)
+@Persistable(clazz = Warning.NoSuchMethod.class, id = 793)
+@Persistable(clazz = Warning.NonUnitTypeUsedOnValueLevel.class, id = 794)
 @Persistable(clazz = Operator.Binary.class, id = 790)
 public final class IrPersistance {
   private IrPersistance() {}
 
   @ServiceProvider(service = Persistance.class)
   public static final class PersistIdentifiedLocation extends Persistance<IdentifiedLocation> {
+
+    private static final int EMPTY_LOCATION = -1;
+
     public PersistIdentifiedLocation() {
-      super(IdentifiedLocation.class, false, 2);
+      super(IdentifiedLocation.class, false, 11259);
     }
 
     @Override
     protected void writeObject(IdentifiedLocation obj, Output out) throws IOException {
-      out.writeInline(Location.class, obj.location());
-      out.writeInline(Option.class, obj.id());
+      if (obj == null) {
+        out.writeInt(EMPTY_LOCATION);
+      } else {
+        out.writeInt(obj.start());
+        out.writeInt(obj.end());
+        out.writeInline(UUID.class, obj.uuid());
+      }
     }
 
     @Override
     @SuppressWarnings("unchecked")
     protected IdentifiedLocation readObject(Input in) throws IOException, ClassNotFoundException {
-      var obj = in.readInline(Location.class);
-      var id = in.readInline(Option.class);
-      return IdentifiedLocation.create((Location) obj, id);
+      var start = in.readInt();
+      if (start == EMPTY_LOCATION) {
+        return null;
+      } else {
+        var end = in.readInt();
+        var uuid = in.readInline(UUID.class);
+        return new IdentifiedLocation(start, end, uuid);
+      }
     }
   }
 
@@ -433,33 +447,6 @@ public final class IrPersistance {
   }
 
   @ServiceProvider(service = Persistance.class)
-  public static final class PersistMetadataStorage extends Persistance<MetadataStorage> {
-    public PersistMetadataStorage() {
-      super(MetadataStorage.class, false, 389);
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
-    protected void writeObject(MetadataStorage obj, Output out) throws IOException {
-      var map = new LinkedHashMap<ProcessingPass, ProcessingPass.Metadata>();
-      obj.map(
-          (processingPass, data) -> {
-            map.put(processingPass, data);
-            return null;
-          });
-      out.writeInline(java.util.Map.class, map);
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
-    protected MetadataStorage readObject(Input in) throws IOException, ClassNotFoundException {
-      var map = in.readInline(java.util.Map.class);
-      var storage = new MetadataStorage(map);
-      return storage;
-    }
-  }
-
-  @ServiceProvider(service = Persistance.class)
   public static final class PersistDiagnosticStorage extends Persistance<DiagnosticStorage> {
     public PersistDiagnosticStorage() {
       super(DiagnosticStorage.class, false, 302);
@@ -467,14 +454,23 @@ public final class IrPersistance {
 
     @Override
     protected void writeObject(DiagnosticStorage obj, Output out) throws IOException {
-      out.writeInline(List.class, obj.toList());
+      if (obj == null) {
+        out.writeBoolean(false);
+      } else {
+        out.writeBoolean(true);
+        out.writeInline(List.class, obj.toList());
+      }
     }
 
     @Override
     @SuppressWarnings("unchecked")
     protected DiagnosticStorage readObject(Input in) throws IOException, ClassNotFoundException {
-      var diags = in.readInline(List.class);
-      return new DiagnosticStorage(diags);
+      if (in.readBoolean()) {
+        var diags = in.readInline(List.class);
+        return new DiagnosticStorage(diags);
+      } else {
+        return null;
+      }
     }
   }
 }

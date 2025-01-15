@@ -219,7 +219,7 @@ final class PerInputImpl implements Input {
     res = cache.resolveObject(res);
     var prev = cache.putObjectAt(at, res);
     if (prev != null) {
-      var bothObjectsAreTheSame = Objects.equals(res, prev);
+      var bothObjectsAreTheSame = gentlyEquals(res, prev);
       var sb = new StringBuilder();
       sb.append("Adding at ").append(at).append(" object:\n  ");
       dumpObject(sb, res);
@@ -234,6 +234,11 @@ final class PerInputImpl implements Input {
       }
     }
     return res;
+  }
+
+  @SuppressWarnings("unchecked")
+  private static boolean gentlyEquals(Object o1, Object o2) {
+    return Objects.equals(o1, o2);
   }
 
   private static void dumpObject(StringBuilder sb, Object obj) {

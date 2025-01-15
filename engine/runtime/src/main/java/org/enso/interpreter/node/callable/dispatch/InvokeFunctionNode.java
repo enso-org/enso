@@ -1,6 +1,7 @@
 package org.enso.interpreter.node.callable.dispatch;
 
 import com.oracle.truffle.api.CompilerAsserts;
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.dsl.Cached;
@@ -119,6 +120,7 @@ public abstract class InvokeFunctionNode extends BaseNode {
     if (!isPrivateCheckDisabled
         && functionSchema.isProjectPrivate()
         && !isInSameProject(function)) {
+      CompilerDirectives.transferToInterpreter();
       throw makePrivateAccessPanic(function);
     }
   }

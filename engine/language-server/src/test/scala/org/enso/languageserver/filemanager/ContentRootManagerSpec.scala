@@ -3,15 +3,19 @@ package org.enso.languageserver.filemanager
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{TestDuration, TestKit, TestProbe}
 import org.apache.commons.lang3.SystemUtils
-import org.enso.languageserver.boot.{ProfilingConfig, StartupConfig}
+import org.enso.runner.common.ProfilingConfig
+import org.enso.languageserver.boot.StartupConfig
 import org.enso.languageserver.data._
 import org.enso.languageserver.filemanager.ContentRootManagerProtocol.{
   ContentRootsAddedNotification,
   SubscribeToNotifications
 }
-import org.enso.logger.ReportLogsOnFailure
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.testkit.{EitherValue, WithTemporaryDirectory}
+import org.enso.testkit.{
+  EitherValue,
+  ReportLogsOnFailure,
+  WithTemporaryDirectory
+}
 import org.scalatest.concurrent.Futures
 import org.scalatest.concurrent.ScalaFutures.convertScalaFuture
 import org.scalatest.matchers.should.Matchers

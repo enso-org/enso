@@ -1,6 +1,6 @@
 package org.enso.editions
 
-import io.circe.syntax._
+import io.circe.syntax.EncoderOps
 import io.circe.{Decoder, DecodingFailure, Encoder}
 import org.enso.semver.SemVer
 

@@ -1,8 +1,0 @@
-{
-  "extends": "./tsconfig.app.json",
-  "exclude": [],
-  "compilerOptions": {
-    "lib": [],
-    "types": ["node", "jsdom", "vitest/importMeta"]
-  }
-}

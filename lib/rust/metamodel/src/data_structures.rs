@@ -2,7 +2,6 @@
 
 use vecmap::*;
 
-use derivative::Derivative;
 use derive_where::derive_where;
 use enso_zst::ZST;
 
@@ -153,14 +152,6 @@ impl<T> std::ops::IndexMut<&Key<T, MaybeBound>> for VecMap<T> {
         &mut self[*key]
     }
 }
-impl<'a, T> IntoIterator for &'a VecMap<T> {
-    type Item = (Key<T>, &'a T);
-    type IntoIter = impl Iterator<Item = Self::Item>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.iter()
-    }
-}
 
 /// Types used by `VecMap`.
 pub mod vecmap {
@@ -175,15 +166,12 @@ pub mod vecmap {
     pub struct Unbound;
 
     /// Identifies a location within a `VecMap`.
-    #[derive(Derivative)]
-    #[derivative(Debug)]
-    #[derive_where(Clone, Copy; State)]
-    #[derive_where(Eq, PartialEq, Ord, PartialOrd, Hash)]
+    #[derive_where(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
     pub struct Key<T, State = MaybeBound> {
         pub(super) index: usize,
-        #[derivative(Debug = "ignore")]
+        #[derive_where(skip)]
         marker:           ZST<T>,
-        #[derivative(Debug = "ignore")]
+        #[derive_where(skip)]
         state:            ZST<State>,
     }
 

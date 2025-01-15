@@ -57,6 +57,12 @@ impl<T> NonEmptyVec<T> {
         Self { elems }
     }
 
+    /// Construct a new `NonEmptyVec<T>` from a `Vec<T>` and an element `last`.
+    pub fn from_vec_and_last(mut vec: Vec<T>, last: T) -> NonEmptyVec<T> {
+        vec.push(last);
+        Self { elems: vec }
+    }
+
     /// Construct a new, `NonEmptyVec<T>` containing the provided element and with the
     /// provided `capacity`.
     ///
