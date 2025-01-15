@@ -23,15 +23,43 @@ public class AddRunning {
       Column[] orderingColumns,
       int[] directions,
       ProblemAggregator problemAggregator) {
-    var runningStatistic = createRunningStatistic(statistic, sourceColumn, problemAggregator);
-    RunningLooper.loop(
+    var runningStatistic = new RunningStatisticRowVisitorFactory(statistic, sourceColumn, problemAggregator);
+    GroupingOrderingVisitor.visit(
         groupingColumns,
         orderingColumns,
         directions,
         problemAggregator,
         runningStatistic,
         sourceColumn.getSize());
-    return runningStatistic.getResult();
+    return runningStatistic.runningStatistic.getResult();
+  }
+
+  private static class RunningStatisticRowVisitorFactory implements RowVisitorFactory {
+
+    RunningStatisticBase<?> runningStatistic;
+
+    RunningStatisticRowVisitorFactory(Statistic statistic, Column sourceColumn, ProblemAggregator problemAggregator) {
+        runningStatistic = createRunningStatistic(statistic, sourceColumn, problemAggregator);
+    }
+
+    @Override
+    public RowVisitor getNewRowVisitor() {
+      return new RunningStatisticRowVisitor<>(runningStatistic);
+    }
+    private static class RunningStatisticRowVisitor<T> implements RowVisitor {
+      RunningStatisticBase<T> runningStatistic;
+      RunningIterator<T> iterator;
+
+      RunningStatisticRowVisitor(RunningStatisticBase<T> runningStatistic) {
+          this.runningStatistic = runningStatistic;
+          iterator = runningStatistic.getNewIterator();
+      }
+
+      @Override
+      public void visit(int row) {
+          runningStatistic.calculateNextValue(row, iterator);
+      }
+    }
   }
 
   private static RunningStatisticBase<?> createRunningStatistic(
