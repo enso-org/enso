@@ -356,6 +356,14 @@ add_specs suite_builder =
             case m of
                 ac : Meta.Constructor ->
                     ac.name . should_equal "No_Value"
+                    ac.fields.length . should_equal 0
+                    ac.declaring_type . should_equal (Meta.meta Test_Type)
+                    case ac.value... of
+                        _ : Function -> "OK"
+                        other -> Test.fail "Expecting function, but was: "+other.to_text
+                    case ac.value of
+                        v : Test_Type -> v . should_equal Test_Type.No_Value
+                        other -> Test.fail "Expecting atom, but was: "+other.to_text
                 _ ->
                     Test.fail "Expecting Meta.Constructor, but was: "+m.to_text
 

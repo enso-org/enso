@@ -25,10 +25,8 @@ type Type
        ICON metadata
 
        Returns a vector of `Meta.Constructor` for this type
-    constructors : Vector Constructor
-    constructors self =
-        arr = Meta_Helpers.get_type_constructors_builtin self.value Meta.Constructor.Value
-        Vector.from_polyglot_array arr
+    constructors self -> Vector Constructor =
+        Meta_Helpers.get_type_constructors_builtin self.value Meta.Constructor.Value
 
     ## ADVANCED
        GROUP Metadata
@@ -52,19 +50,14 @@ type Type
          `Integer.method_name...`:
 
             Meta.meta (Meta.type_of Integer) . methods
-
-
-    methods : Vector
-    methods self =
-        Vector.from_polyglot_array (Meta_Helpers.get_type_methods_builtin self.value)
+    methods self -> Vector = Meta_Helpers.get_type_methods_builtin self.value
 
     ## ADVANCED
        GROUP Metadata
        ICON metadata
 
        Returns the fully qualified name of the type.
-    qualified_name : Text
-    qualified_name self =
+    qualified_name self -> Text =
         c = self.value
         @Tail_Call Meta_Helpers.get_qualified_type_name_builtin c
 
@@ -73,8 +66,7 @@ type Type
        ICON metadata
 
        Returns the short name of the type.
-    name : Text
-    name self =
+    name self -> Text =
         c = self.value
         @Tail_Call Meta_Helpers.get_short_type_name_builtin c
 
@@ -88,11 +80,10 @@ type Type
 
        Arguments:
        - qualified_name: fully qualified name.
-    find : Text -> Type ! Not_Found
-    find qualified_name =
+    find qualified_name:Text -> Type ! Not_Found =
         raw = Meta_Helpers.find_type_by_qualified_name_builtin qualified_name
         case Meta.meta raw of
-            t:Meta.Type -> t
+            t:Type -> t
             _ -> Base_Error.throw Not_Found
 
 type Atom
@@ -110,28 +101,25 @@ type Atom
        ICON metadata
 
        Returns a vector of field values of the given atom.
-    fields : Vector
-    fields self = Vector.from_polyglot_array (Meta_Helpers.get_atom_fields_builtin self.value)
+    fields self -> Vector Any = Meta_Helpers.get_atom_fields_builtin self.value
 
     ## ADVANCED
        ICON metadata
 
        Returns a constructor value of the given atom.
-    constructor : Constructor
-    constructor self =
+    constructor self -> Constructor =
         c = Meta_Helpers.get_atom_constructor_builtin self.impl ...
         Meta.Constructor.Value c...
 
 type Constructor
-    private Value impl
+    private Value impl:Function
 
     ## ADVANCED
        GROUP Metadata
        ICON metadata
 
        Obtains the qualified accessor function of the constructor
-    value : Function
-    value self = self.impl...
+    value self -> Function = self.impl...
 
     ## ADVANCED
        GROUP Metadata
@@ -139,7 +127,7 @@ type Constructor
 
        Returns a vector of field names defined by a constructor.
     fields self -> Vector Text =
-        Vector.from_polyglot_array (Meta_Helpers.get_constructor_fields_builtin (self.impl...))
+        Meta_Helpers.get_constructor_fields_builtin (self.impl...)
 
     ## ADVANCED
        GROUP Metadata
@@ -164,8 +152,7 @@ type Constructor
        GROUP Metadata
        ICON metadata
        Returns the type that this constructor is a part of.
-    declaring_type : Type
-    declaring_type self =
+    declaring_type self -> Type =
         Type.Value (Meta_Helpers.get_constructor_declaring_type_builtin (self.value...))
 
 type Primitive
@@ -188,8 +175,7 @@ type Unresolved_Symbol
 
        Arguments:
        - new_name: The new name for the unresolved symbol.
-    rename : Text -> Any
-    rename self new_name =
+    rename self new_name:Text -> Any =
         Meta_Helpers.create_unresolved_symbol_builtin new_name self.value
 
     ## ADVANCED
@@ -197,16 +183,14 @@ type Unresolved_Symbol
        ICON metadata
 
        Returns the name of an unresolved symbol.
-    name : Text
-    name self = @Tail_Call Meta_Helpers.get_unresolved_symbol_name_builtin self.value
+    name self -> Text = @Tail_Call Meta_Helpers.get_unresolved_symbol_name_builtin self.value
 
     ## ADVANCED
        GROUP Metadata
        ICON metadata
 
        Starts building an instrumentation for a given node
-    instrument : Instrumentor
-    instrument self = Instrumentor.Value (Meta_Helpers.instrumentor_builtin "newBuilder" [ self.value ])
+    instrument self -> Instrumentor = Instrumentor.Value (Meta_Helpers.instrumentor_builtin "newBuilder" [ self.value ])
 
 type Error
     private Value impl
@@ -233,8 +217,7 @@ type Polyglot
        ICON metadata
 
        Returns the language with which a polyglot value is associated.
-    get_language : Language
-    get_language self =
+    get_language self -> Language =
         lang_str = Meta_Helpers.get_polyglot_language_builtin self.impl
         if lang_str == "java" then Language.Java else Language.Unknown
 
@@ -246,8 +229,7 @@ type Polyglot
    Arguments:
    - value_1: The first value.
    - value_2: The second value.
-Any.is_same_object_as : Any -> Boolean
-Any.is_same_object_as self value = is_same_object self value
+Any.is_same_object_as self value -> Boolean = is_same_object self value
 
 ## ADVANCED
    ICON metadata
@@ -256,8 +238,7 @@ Any.is_same_object_as self value = is_same_object self value
 
    Arguments:
    - typ: The type to check `self` against.
-Any.is_a : Any -> Boolean
-Any.is_a self typ = Meta_Helpers.is_a_builtin self typ
+Any.is_a self typ -> Boolean = Meta_Helpers.is_a_builtin self typ
 
 ## ADVANCED
    ICON metadata
@@ -266,8 +247,7 @@ Any.is_a self typ = Meta_Helpers.is_a_builtin self typ
 
    Arguments:
    - typ: The type to check `self` against.
-Base_Error.is_a : Any -> Boolean
-Base_Error.is_a self typ = typ==Any || typ==Base_Error
+Base_Error.is_a self typ -> Boolean = typ==Any || typ==Base_Error
 
 ## PRIVATE
 
@@ -317,8 +297,7 @@ meta ~value =
    Arguments:
    - value_1: The first value.
    - value_2: The second value.
-is_same_object : Any -> Any -> Boolean
-is_same_object value_1 value_2 = @Tail_Call Meta_Helpers.is_same_object_builtin value_1 value_2
+is_same_object value_1 value_2 -> Boolean = @Tail_Call Meta_Helpers.is_same_object_builtin value_1 value_2
 
 ## PRIVATE
    ADVANCED
@@ -328,14 +307,7 @@ is_same_object value_1 value_2 = @Tail_Call Meta_Helpers.is_same_object_builtin 
    Arguments:
    - value: The value to check for being an instance of `typ`.
    - typ: The type to check `self` against.
-is_a : Any -> Any -> Boolean
-is_a value typ = @Tail_Call Meta_Helpers.is_a_builtin value typ
-
-## PRIVATE
-java_instance_check value typ =
-    val_java = Meta_Helpers.get_polyglot_language_builtin value == "java"
-    typ_java = Meta_Helpers.get_polyglot_language_builtin typ == "java"
-    val_java && typ_java && Java.is_instance value typ
+is_a value typ -> Boolean = @Tail_Call Meta_Helpers.is_a_builtin value typ
 
 ## PRIVATE
    ADVANCED
@@ -380,8 +352,7 @@ type Language
 
    Arguments:
    - value: The value to check.
-is_atom_constructor : Any -> Boolean
-is_atom_constructor ~value = Meta_Helpers.find_atom_constructor_builtin value . is_nothing . not
+is_atom_constructor ~value -> Boolean = Meta_Helpers.find_atom_constructor_builtin value . is_nothing . not
 
 ## PRIVATE
 
@@ -389,8 +360,7 @@ is_atom_constructor ~value = Meta_Helpers.find_atom_constructor_builtin value . 
 
    Arguments:
    - value: The value to check.
-is_atom : Any -> Boolean
-is_atom value = @Tail_Call Meta_Helpers.is_atom_builtin value
+is_atom value -> Boolean = @Tail_Call Meta_Helpers.is_atom_builtin value
 
 ## PRIVATE
 
@@ -398,8 +368,7 @@ is_atom value = @Tail_Call Meta_Helpers.is_atom_builtin value
 
    Arguments:
    - value: The value to check.
-is_error : Any -> Boolean
-is_error value = @Tail_Call Meta_Helpers.is_error_builtin value
+is_error value -> Boolean = @Tail_Call Meta_Helpers.is_error_builtin value
 
 ## PRIVATE
 
@@ -407,16 +376,14 @@ is_error value = @Tail_Call Meta_Helpers.is_error_builtin value
 
    Arguments:
    - value: The value to check.
-is_type : Any -> Boolean
-is_type value = @Tail_Call Meta_Helpers.is_type_builtin value
+is_type value -> Boolean = @Tail_Call Meta_Helpers.is_type_builtin value
 ## PRIVATE
 
    Checks if the provided value is a polyglot value.
 
    Arguments:
    - value: The value to check.
-is_polyglot : Any -> Boolean
-is_polyglot value = @Builtin_Method "Meta.is_polyglot"
+is_polyglot value -> Boolean = @Builtin_Method "Meta.is_polyglot"
 
 ## PRIVATE
 
