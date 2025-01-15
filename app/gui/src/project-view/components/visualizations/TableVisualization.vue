@@ -743,11 +743,11 @@ function checkSortAndFilter(e: SortChangedEvent) {
       columnName: key,
       filterType: value.filterType,
       filterAction: value.type,
-      filter: value.filter, 
-      filterTo: value.filterTo, 
+      filter: value.filter,
+      filterTo: value.filterTo,
       dateFrom: value.dateFrom,
       dateTo: value.dateTo,
-      values: value.values
+      values: value.values,
     }
   })
   if (sort.length || filter.length) {
