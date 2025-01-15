@@ -9,7 +9,8 @@ import java.io.PrintStream
   * @param warningsEnabled whether or not warnings are enabled
   * @param privateCheckEnabled whether or not private keyword is enabled
   * @param staticTypeInferenceEnabled whether or not type inference is enabled
-  * @param dumpIrs whether or not to dump IRs. See [[org.enso.compiler.dump.IRDumper]].
+  * @param irDumper Class name for the [[org.enso.compiler.dump.service.IRDumpService]] to use
+ *                 for IR dumping. If empty, no dumping will be performed.
   * @param isStrictErrors if true, presence of any Error in IR will result in an exception
   * @oaram isLintingDisabled if true, compilation should not run any linting passes
   * @param outputRedirect redirection of the output of warnings and errors of compiler
@@ -19,7 +20,7 @@ case class CompilerConfig(
   warningsEnabled: Boolean            = true,
   privateCheckEnabled: Boolean        = true,
   staticTypeInferenceEnabled: Boolean = false,
-  dumpIrs: Boolean                    = false,
+  irDumper: Option[String]            = None,
   isStrictErrors: Boolean             = false,
   isLintingDisabled: Boolean          = false,
   outputRedirect: Option[PrintStream] = None

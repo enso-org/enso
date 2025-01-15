@@ -66,6 +66,11 @@ class Passes(config: CompilerConfig) {
     )
   )
 
+  private val irDumperPass = config.irDumper match {
+    case Some(dumperClassName) => List(new IRDumperPass(dumperClassName))
+    case None => Nil
+  }
+
   val functionBodyPasses = new PassGroup(
     List(
       ExpressionAnnotations,
@@ -109,9 +114,7 @@ class Passes(config: CompilerConfig) {
                      TypeInferenceSignatures.INSTANCE,
                      StaticModuleScopeAnalysis.INSTANCE
                    )
-                 } else Nil) ++ (if (config.dumpIrs) {
-                                   List(IRDumperPass.INSTANCE)
-                                 } else Nil)
+                 } else Nil) ++ irDumperPass
   )
 
   val typeInferenceFinalPasses = new PassGroup(
