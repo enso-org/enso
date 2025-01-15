@@ -30,7 +30,7 @@ exchange_one_time_code_for_refresh_token code:Text -> Text =
     response.get "refresh_token"
 
 make_secret_payload refresh_token:Text -> Text =
-    JS_Object.from_pairs [["type", "authorized_user"], ["refresh_token", refresh_token], ["client_id", desktop_client_id], ["client_secret", desktop_client_secret]]
+    JS_Object.from_pairs [["type", "authorized_user"], ["refresh_token", refresh_token], ["client_id", client_id], ["client_secret", client_secret]]
         . to_json
 
 create_authorization_uri scopes:Vector -> URI =
@@ -53,8 +53,6 @@ get_env_var name:Text -> Text =
     Environment.get name if_missing=(Panic.throw (Illegal_State.Error "Environment variable not set: "+name))
 client_id = get_env_var "GOOGLE_APP_CLIENT_ID"
 client_secret = get_env_var "GOOGLE_APP_CLIENT_SECRET"
-desktop_client_id = get_env_var "GOOGLE_APP_DESKTOP_CLIENT_ID"
-desktop_client_secret = get_env_var "GOOGLE_APP_DESKTOP_CLIENT_SECRET"
 redirect_uri = "http://localhost:51234/oauth"
 
 type OAuth_Callback_Response
