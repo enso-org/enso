@@ -27,9 +27,8 @@ public final class IGVDumper implements IRDumpService {
     try (var dumpChannel = createFileChannel(outPath)) {
       var output = GraphOutput.newBuilder(EnsoAST.AST_DUMP_STRUCTURE).build(dumpChannel);
       var properties = new HashMap<>();
-      var format = "%s";
       output.beginGroup(ensoAst, groupName, shortName, null, 0, null);
-      output.print(ensoAst, properties, 0, format);
+      output.print(ensoAst, properties, 0, "%s", moduleName);
       output.endGroup();
       output.close();
     } catch (IOException e) {
