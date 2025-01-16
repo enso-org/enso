@@ -2,6 +2,7 @@ package org.enso.table.operations;
 
 import java.util.LinkedList;
 import java.util.Queue;
+import java.util.Arrays;
 
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.mask.OrderMask;
@@ -9,23 +10,24 @@ import org.enso.table.data.table.Column;
 import org.enso.table.problems.ProblemAggregator;
 
 public class Offset {
-    public static Storage<?> offset(
-      Column sourceColumn,
+    public static Storage<?>[] offset(
+      Column[] sourceColumns,
       int n,
       OffFill offFill,
       Column[] groupingColumns,
       Column[] orderingColumns,
       int[] directions,
       ProblemAggregator problemAggregator) {
-        var offsetRunningStatistic = new OffsetRowVisitorFactory(sourceColumn, n, offFill);
+        if (n==0) return Arrays.stream(sourceColumns).map(c -> c.getStorage()).toArray(Storage<?>[]::new);
+        var offsetRunningStatistic = new OffsetRowVisitorFactory(sourceColumns[0], n, offFill);
         GroupingOrderingVisitor.visit(
             groupingColumns,
             orderingColumns,
             directions,
             problemAggregator,
             offsetRunningStatistic,
-            sourceColumn.getSize());
-        return sourceColumn.getStorage().applyMask(OrderMask.fromArray(offsetRunningStatistic.result));
+            sourceColumns[0].getSize());
+        return Arrays.stream(sourceColumns).map(c -> c.getStorage().applyMask(OrderMask.fromArray(offsetRunningStatistic.result))).toArray(Storage<?>[]::new);
       }
 
     private static class OffsetRowVisitorFactory implements RowVisitorFactory {
