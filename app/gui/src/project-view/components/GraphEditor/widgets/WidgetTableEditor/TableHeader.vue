@@ -1,7 +1,6 @@
 <script lang="ts">
 import SvgButton from '@/components/SvgButton.vue'
 import type { IHeaderParams } from 'ag-grid-community'
-import { nextTick } from 'process'
 import { computed, Raw, Ref, ref, toRef, watch } from 'vue'
 
 export type ColumnSpecificProps =
@@ -74,10 +73,8 @@ watch(
   (newVal, oldVal) => {
     if (newVal != null && oldVal == null) {
       // Whenever input field appears, focus and select text
-      nextTick(() => {
-        newVal.focus()
-        newVal.select()
-      })
+      newVal.focus()
+      newVal.select()
     }
   },
   { immediate: true },
