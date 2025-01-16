@@ -15,6 +15,7 @@ import * as twv from '#/utilities/tailwindVariants'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as dialogProvider from './DialogProvider'
 import * as dialogStackProvider from './DialogStackProvider'
+import { DialogTrigger } from './DialogTrigger'
 import * as utlities from './utilities'
 import * as variants from './variants'
 
@@ -29,8 +30,13 @@ export interface PopoverProps
 }
 
 export const POPOVER_STYLES = twv.tv({
-  base: 'shadow-xl w-full overflow-clip z-tooltip',
+  base: 'shadow-xl w-full overflow-clip',
   variants: {
+    variant: {
+      custom: { dialog: '' },
+      primary: { dialog: variants.DIALOG_BACKGROUND({ variant: 'light' }) },
+      inverted: { dialog: variants.DIALOG_BACKGROUND({ variant: 'dark' }) },
+    },
     isEntering: {
       true: 'animate-in fade-in placement-bottom:slide-in-from-top-1 placement-top:slide-in-from-bottom-1 placement-left:slide-in-from-right-1 placement-right:slide-in-from-left-1 ease-out duration-200',
     },
@@ -38,12 +44,12 @@ export const POPOVER_STYLES = twv.tv({
       true: 'animate-out fade-out placement-bottom:slide-out-to-top-1 placement-top:slide-out-to-bottom-1 placement-left:slide-out-to-right-1 placement-right:slide-out-to-left-1 ease-in duration-150',
     },
     size: {
-      auto: { base: 'w-[unset]', dialog: 'p-2.5' },
-      xxsmall: { base: 'max-w-[206px]', dialog: 'p-2' },
-      xsmall: { base: 'max-w-xs', dialog: 'p-2.5' },
-      small: { base: 'max-w-sm', dialog: 'p-3.5' },
-      medium: { base: 'max-w-md', dialog: 'p-3.5' },
-      large: { base: 'max-w-lg', dialog: 'px-4 py-4' },
+      auto: { base: 'w-[unset]', dialog: 'p-2.5 px-0' },
+      xxsmall: { base: 'max-w-[206px]', dialog: 'p-2 px-0' },
+      xsmall: { base: 'max-w-xs', dialog: 'p-2.5 px-0' },
+      small: { base: 'max-w-sm', dialog: 'py-3 px-2' },
+      medium: { base: 'max-w-md', dialog: 'p-3.5 px-2.5' },
+      large: { base: 'max-w-lg', dialog: 'px-4 py-3' },
       hero: { base: 'max-w-xl', dialog: 'px-6 py-5' },
     },
     rounded: {
@@ -58,9 +64,9 @@ export const POPOVER_STYLES = twv.tv({
     },
   },
   slots: {
-    dialog: variants.DIALOG_BACKGROUND({ class: 'flex-auto overflow-y-auto max-h-[inherit]' }),
+    dialog: 'flex-auto overflow-y-auto [scrollbar-gutter:stable_both-edges] max-h-[inherit]',
   },
-  defaultVariants: { rounded: 'xxxlarge', size: 'small' },
+  defaultVariants: { rounded: 'xxxlarge', size: 'small', variant: 'primary' },
 })
 
 const SUSPENSE_LOADER_PROPS = { minHeight: 'h32' } as const
@@ -75,6 +81,7 @@ export function Popover(props: PopoverProps) {
     className,
     size,
     rounded,
+    variant,
     placement = 'bottom start',
     isDismissable = true,
     ...ariaPopoverProps
@@ -93,8 +100,10 @@ export function Popover(props: PopoverProps) {
           isExiting: values.isExiting,
           size,
           rounded,
+          variant,
+        }).base({
           className: typeof className === 'function' ? className(values) : className,
-        }).base()
+        })
       }
       UNSTABLE_portalContainer={root}
       placement={placement}
@@ -109,6 +118,7 @@ export function Popover(props: PopoverProps) {
           rounded={rounded}
           opts={opts}
           isDismissable={isDismissable}
+          variant={variant}
         >
           {children}
         </PopoverContent>
@@ -127,13 +137,14 @@ interface PopoverContentProps {
   readonly opts: aria.PopoverRenderProps
   readonly popoverRef: React.RefObject<HTMLDivElement>
   readonly isDismissable: boolean
+  readonly variant: PopoverProps['variant']
 }
 
 /**
  * The content of a popover.
  */
 function PopoverContent(props: PopoverContentProps) {
-  const { children, size, rounded, opts, isDismissable, popoverRef } = props
+  const { children, size, rounded, opts, isDismissable, popoverRef, variant } = props
 
   const dialogRef = React.useRef<HTMLDivElement>(null)
   const dialogId = aria.useId()
@@ -179,7 +190,12 @@ function PopoverContent(props: PopoverContentProps) {
         role="dialog"
         aria-labelledby={labelledBy}
         tabIndex={-1}
-        className={POPOVER_STYLES({ ...opts, size, rounded }).dialog()}
+        className={POPOVER_STYLES({
+          ...opts,
+          size,
+          rounded,
+          variant,
+        }).dialog()}
       >
         <dialogProvider.DialogProvider dialogId={dialogId} close={close}>
           <errorBoundary.ErrorBoundary>
@@ -192,3 +208,5 @@ function PopoverContent(props: PopoverContentProps) {
     </>
   )
 }
+
+Popover.Trigger = DialogTrigger

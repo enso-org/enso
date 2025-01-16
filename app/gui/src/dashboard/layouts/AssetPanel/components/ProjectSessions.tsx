@@ -1,12 +1,11 @@
 /** @file A list of previous versions of an asset. */
-import { useSuspenseQuery } from '@tanstack/react-query'
-
 import { Result } from '#/components/Result'
 import { AssetPanelPlaceholder } from '#/layouts/AssetPanel/components/AssetPanelPlaceholder'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import { AssetType, BackendType, type ProjectAsset } from '#/services/Backend'
 import { useStore } from '#/utilities/zustand'
+import { useSuspenseQuery } from '@tanstack/react-query'
 import { assetPanelStore } from '../AssetPanelState'
 import { ProjectSession } from './ProjectSession'
 

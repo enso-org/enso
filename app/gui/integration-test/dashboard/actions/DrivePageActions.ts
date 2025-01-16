@@ -41,7 +41,9 @@ function locateAssetRows(page: Page) {
 
 /** Find assets table placeholder rows. */
 function locateNonAssetRows(page: Page) {
-  return locateAssetsTable(page).locator('tbody tr:not([data-testid="asset-row"])')
+  return locateAssetsTable(page).locator(
+    'tbody tr:not([data-testid="asset-row"]):not([data-testid="dummy-row"])',
+  )
 }
 
 /** Find a "new secret" icon. */
@@ -131,6 +133,27 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
     )
   }
 
+  /**
+   * Expect the category to be selected.
+   */
+  expectCategory(category: string) {
+    return this.step(`Expect category '${category}'`, (page) =>
+      expect(page.getByRole('button', { name: category })).toHaveAttribute('data-selected', 'true'),
+    )
+  }
+
+  /**
+   * Expect the category to be not selected.
+   */
+  expectCategoryNotSelected(category: string) {
+    return this.step(`Expect category '${category}' not selected`, (page) =>
+      expect(page.getByRole('button', { name: category })).toHaveAttribute(
+        'data-selected',
+        'false',
+      ),
+    )
+  }
+
   /** Actions specific to the Drive table. */
   get driveTable() {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
@@ -145,6 +168,11 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
         .getByLabel(TEXT.sortByModificationDate)
         .or(page.getByLabel(TEXT.sortByModificationDateDescending))
         .or(page.getByLabel(TEXT.stopSortingByModificationDate))
+
+    const locatePathColumnHeading = (page: Page) => page.getByTestId('path-column-heading')
+    const locatePathColumnCell = (page: Page, title: string) =>
+      page.getByTestId(`path-column-cell-${title.toLowerCase().replace(/\s+/g, '-')}`)
+
     return {
       /** Click the column heading for the "name" column to change its sort order. */
       clickNameColumnHeading() {
@@ -156,6 +184,16 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
       withNameColumnHeading(callback: LocatorCallback<Context>) {
         return self.step('Interact with "name" column heading', (page, context) =>
           callback(locateNameColumnHeading(page), context),
+        )
+      },
+      withPathColumnHeading(callback: LocatorCallback<Context>) {
+        return self.step('Interact with "path" column heading', (page, context) =>
+          callback(locatePathColumnHeading(page), context),
+        )
+      },
+      withPathColumnCell(title: string, callback: LocatorCallback<Context>) {
+        return self.step(`Interact with "path" column cell '${title}'`, (page, context) =>
+          callback(locatePathColumnCell(page, title), context),
         )
       },
       /** Click the column heading for the "modified" column to change its sort order. */
@@ -206,10 +244,16 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
           await callback(locateAssetRows(page), locateNonAssetRows(page), self.context, page)
         })
       },
+      withSelectedRows(callback: LocatorCallback<Context>) {
+        return self.step('Interact with selected drive table rows', async (page, context) => {
+          await callback(locateAssetRows(page).and(page.locator('[data-selected="true"]')), context)
+        })
+      },
       /** Drag a row onto another row. */
       dragRowToRow(from: number, to: number) {
         return self.step(`Drag drive table row #${from} to row #${to}`, async (page) => {
           const rows = locateAssetRows(page)
+          rows.nth(from).click()
           await rows.nth(from).dragTo(rows.nth(to), {
             sourcePosition: ASSET_ROW_SAFE_POSITION,
             targetPosition: ASSET_ROW_SAFE_POSITION,
@@ -226,6 +270,28 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
               ...(force == null ? {} : { force }),
             }),
         )
+      },
+      expandDirectory(index: number) {
+        return self.step(`Expand drive table row #${index}`, async (page) => {
+          const expandButton = locateAssetRows(page)
+            .nth(index)
+            .getByTestId('directory-row-expand-button')
+
+          await expect(expandButton).toHaveAttribute('aria-label', TEXT.expand)
+
+          await expandButton.click()
+        })
+      },
+      collapseDirectory(index: number) {
+        return self.step(`Collapse drive table row #${index}`, async (page) => {
+          const collapseButton = locateAssetRows(page)
+            .nth(index)
+            .getByTestId('directory-row-expand-button')
+
+          await expect(collapseButton).toHaveAttribute('aria-label', TEXT.collapse)
+
+          return collapseButton.click()
+        })
       },
       /**
        * A test assertion to confirm that there is only one row visible, and that row is the
@@ -306,6 +372,14 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
   expectStartModal() {
     return this.into(StartModalActions<Context>).withStartModal(async (startModal) => {
       await expect(startModal).toBeVisible()
+    })
+  }
+
+  /** Clear trash. */
+  clearTrash() {
+    return this.step('Clear trash', async (page) => {
+      await page.getByText(TEXT.clearTrash).click()
+      await page.getByRole('button', { name: TEXT.delete }).getByText(TEXT.delete).click()
     })
   }
 

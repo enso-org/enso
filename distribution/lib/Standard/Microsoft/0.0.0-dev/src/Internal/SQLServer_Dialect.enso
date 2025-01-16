@@ -212,8 +212,27 @@ type SQLServer_Dialect
        is used only to override the type in cases where the default one that the
        database uses is not what we want.
     cast_op_type self (op_kind:Text) (args:(Vector Internal_Column)) (expression:SQL_Expression) =
-        _ = [op_kind, args]
-        expression
+        is_int ic =
+            typeid = ic.sql_type_reference.get.typeid
+            typeid == Java_Types.SMALLINT || typeid == Java_Types.INTEGER || typeid == Java_Types.BIGINT
+
+        cast_to = case op_kind of
+            "AVG" ->
+                if is_int (args.at 0) then "FLOAT" else Nothing
+            "STDDEV_POP" ->
+                if is_int (args.at 0) then "FLOAT" else Nothing
+            "STDDEV_SAMP" ->
+                if is_int (args.at 0) then "FLOAT" else Nothing
+            _ -> Nothing
+
+        if cast_to.is_nothing then expression else
+            SQL_Expression.Operation "CAST" [expression, SQL_Expression.Literal cast_to]
+
+    ## PRIVATE
+       Add an extra cast to adjust the output type of aggregate operations.
+       Some DBs do CAST(SUM(x) AS FLOAT) others do SUM(CAST(x AS FLOAT)).
+    cast_aggregate_columns self op_kind:Text columns:(Vector Internal_Column) =
+        SQL_Expression.Operation op_kind (columns.map c->(self.cast_op_type op_kind columns (Internals_Access.column_expression c)))
 
     ## PRIVATE
     prepare_fetch_types_query : SQL_Expression -> Context -> SQL_Statement
@@ -224,10 +243,32 @@ type SQLServer_Dialect
     generate_collate self collation_name:Text -> Text = Base_Generator.default_generate_collate collation_name quote_char=""
 
     ## PRIVATE
-    check_aggregate_support : Aggregate_Column -> Boolean ! Unsupported_Database_Operation
-    check_aggregate_support self aggregate =
-        _ = aggregate
-        True
+    check_aggregate_support self aggregate:Aggregate_Column -> Boolean ! Unsupported_Database_Operation =
+        unsupported name =
+            Error.throw (Unsupported_Database_Operation.Error name) 
+        case aggregate of
+            Group_By _ _ -> True
+            Count _ -> True
+            Count_Distinct columns _ _ ->
+                if columns.length == 1 then True else
+                    unsupported "Count_Distinct on multiple columns"
+            Count_Not_Nothing _ _ -> True
+            Count_Nothing _ _ -> True
+            Count_Not_Empty _ _ -> True
+            Count_Empty _ _ -> True
+            Percentile _ _ _ -> unsupported "Percentile"
+            Mode _ _ -> unsupported "Mode"
+            First _ _ _ _ -> unsupported "First"
+            Last _ _ _ _ -> unsupported "Last"
+            Maximum _ _ -> True
+            Minimum _ _ -> True
+            Shortest _ _ -> unsupported "Shortest"
+            Longest _ _ -> unsupported "Longest"
+            Standard_Deviation _ _ _ -> True
+            Concatenate _ _ _ _ _ _ -> True
+            Sum _ _ -> True
+            Average _ _ -> True
+            Median _ _ -> unsupported "Median"
 
     ## PRIVATE
        Checks if an operation is supported by the dialect.
@@ -243,6 +284,7 @@ type SQLServer_Dialect
             Feature.Filter -> True
             Feature.Join -> True
             Feature.Union -> True
+            Feature.Aggregate -> True
             _ -> False
 
     ## PRIVATE
@@ -259,8 +301,10 @@ type SQLServer_Dialect
             Dialect_Flag.Supports_Infinity -> False
             Dialect_Flag.Case_Sensitive_Text_Comparison -> False
             Dialect_Flag.Supports_Sort_Digits_As_Numbers -> False
-            Dialect_Flag.Case_Insensitive_Ordering -> True
+            Dialect_Flag.Supports_Case_Insensitive_Ordering -> True
             Dialect_Flag.Order_By_Unicode_Normalization_By_Default -> True
+            Dialect_Flag.Order_By_Unicode_Normalization_When_Case_Insensitive -> True
+            Dialect_Flag.Case_Insensitive_Ordering_By_Default -> True
             Dialect_Flag.Allows_Mixed_Type_Comparisons -> False
             Dialect_Flag.Supports_Unicode_Normalization -> False
             Dialect_Flag.NaN_Non_Comparable -> True
@@ -399,6 +443,7 @@ private _generate_expression dialect base_gen expr expression_kind:Expression_Ki
 
         pair final_expr null_checks_result
     query : Query -> pair (base_gen.generate_sub_query dialect query) []
+    descriptor : Order_Descriptor -> pair (base_gen.generate_order dialect descriptor) []
 
 ## PRIVATE
 type Expression_Kind
@@ -435,7 +480,7 @@ private _op_return_kind op -> Expression_Kind =
     if return_bool_ops.contains op then Expression_Kind.Boolean_Condition else Expression_Kind.Value
 
 private _op_needs_to_materialize_null_checks op -> Boolean =
-    ["FILL_NULL", "COALESCE"].contains op
+    ["FILL_NULL", "COALESCE", "COUNT_IS_NULL", "COUNT_EMPTY", "COUNT_NOT_EMPTY", "COUNT", "SUM", "AVG", "LONGEST", "SHORTEST", "COUNT_DISTINCT", "COUNT_DISTINCT_INCLUDE_NULL", "STDDEV_POP", "STDDEV_SAMP", "CONCAT", "CONCAT_QUOTE_IF_NEEDED", "MIN", "MAX"].contains op
 
 ## PRIVATE
 make_dialect_operations =
@@ -445,13 +490,13 @@ make_dialect_operations =
     arith_extensions = [floating_point_div, mod_op, decimal_div, decimal_mod, ["ROW_MIN", Base_Generator.make_function "LEAST"], ["ROW_MAX", Base_Generator.make_function "GREATEST"]]
     bool = [bool_or]
 
-    stddev_pop = ["STDDEV_POP", Base_Generator.make_function "stddev_pop"]
-    stddev_samp = ["STDDEV_SAMP", Base_Generator.make_function "stddev_samp"]
-    stats = [agg_median, agg_mode, agg_percentile, stddev_pop, stddev_samp]
+    stddev_pop = ["STDDEV_POP", Base_Generator.make_function "STDEVP"]
+    stddev_samp = ["STDDEV_SAMP", Base_Generator.make_function "STDEV"]
+    stats = [stddev_pop, stddev_samp]
     date_ops = [["year", Base_Generator.make_function "year"], make_datepart "quarter", ["month", Base_Generator.make_function "month"], make_datepart "week" "iso_week", ["day", Base_Generator.make_function "day"], make_datepart "hour", make_datepart "minute", make_datepart "day_of_year" "dayofyear", make_day_of_week, make_datepart "second", make_datepart "millisecond", make_extract_microsecond, ["date_add", make_date_add], ["date_diff", make_date_diff], ["date_trunc_to_day", make_date_trunc_to_day]]
     special_overrides = [is_empty, ["IIF", _make_iif]]
     other = [["RUNTIME_ERROR", make_runtime_error_op]]
-    my_mappings = text + counts + stats + first_last_aggregators + arith_extensions + bool + date_ops + special_overrides + other
+    my_mappings = text + counts + arith_extensions + bool + stats + date_ops + special_overrides + other
     base = Base_Generator.base_dialect_operations . extend_with my_mappings
     Base_Generator.Dialect_Operations.Value (base.operations_dict.remove "IS_IN")
 
@@ -467,68 +512,29 @@ private _make_iif arguments:Vector -> SQL_Builder =
 
 ## PRIVATE
 agg_count_is_null = Base_Generator.lift_unary_op "COUNT_IS_NULL" arg->
-    SQL_Builder.code "SUM(CASE WHEN " ++ arg.paren ++ " IS NULL THEN 1 ELSE 0 END)"
+    SQL_Builder.code "COALESCE(SUM(CASE WHEN " ++ arg.paren ++ " IS NULL THEN 1 ELSE 0 END), 0)"
 
 ## PRIVATE
 agg_count_empty = Base_Generator.lift_unary_op "COUNT_EMPTY" arg->
-    SQL_Builder.code "SUM(CASE WHEN (" ++ arg.paren ++ " IS NULL) OR (" ++ arg.paren ++ " = '') THEN 1 ELSE 0 END)"
+    SQL_Builder.code "COALESCE(SUM(CASE WHEN (" ++ arg.paren ++ " IS NULL) OR (" ++ arg.paren ++ " = '') THEN 1 ELSE 0 END), 0)"
 
 ## PRIVATE
 agg_count_not_empty = Base_Generator.lift_unary_op "COUNT_NOT_EMPTY" arg->
-    SQL_Builder.code "SUM(CASE WHEN (" ++ arg.paren ++ " IS NOT NULL) AND (" ++ arg.paren ++ " != '') THEN 1 ELSE 0 END)"
-
-
-## PRIVATE
-agg_median = Base_Generator.lift_unary_op "MEDIAN" arg->
-    median = SQL_Builder.code "MEDIAN(" ++ arg ++ ")"
-    has_nan = SQL_Builder.code "BOOLOR_AGG(" ++ arg ++ " = 'NaN'::Double)"
-    SQL_Builder.code "CASE WHEN " ++ has_nan ++ " THEN 'NaN'::Double ELSE " ++ median ++ " END"
-
-## PRIVATE
-agg_mode = Base_Generator.lift_unary_op "MODE" arg->
-    SQL_Builder.code "MODE(" ++ arg ++ ")"
-
-## PRIVATE
-agg_percentile = Base_Generator.lift_binary_op "PERCENTILE" p-> expr->
-    percentile = SQL_Builder.code "percentile_cont(" ++ p ++ ") WITHIN GROUP (ORDER BY " ++ expr ++ ")"
-    has_nan = SQL_Builder.code "BOOLOR_AGG(" ++ expr ++ " = 'NaN'::Double)"
-    SQL_Builder.code "CASE WHEN " ++ has_nan ++ " THEN 'NaN' ELSE " ++ percentile ++ " END"
-
-## PRIVATE
-   These are written in a not most-efficient way, but a way that makes them
-   compatible with other group-by aggregations out-of-the-box. In the future, we
-   may want to consider some alternative solutions.
-first_last_aggregators =
-    first = make_first_aggregator reverse=False ignore_null=False
-    first_not_null = make_first_aggregator reverse=False ignore_null=True
-    last = make_first_aggregator reverse=True ignore_null=False
-    last_not_null = make_first_aggregator reverse=True ignore_null=True
-    [["FIRST", first], ["FIRST_NOT_NULL", first_not_null], ["LAST", last], ["LAST_NOT_NULL", last_not_null]]
-
-## PRIVATE
-make_first_aggregator reverse ignore_null args =
-    if args.length < 2 then Error.throw (Illegal_State.Error "Insufficient number of arguments for the operation.") else
-        result_expr = args.first
-        order_bys = args.drop 1
-
-        method_name = if reverse then "LAST_VALUE" else "FIRST_VALUE"
-        filter_clause = if ignore_null then ") IGNORE NULLS OVER" else ") OVER"
-        order_clause = SQL_Builder.code " ORDER BY " ++ SQL_Builder.join "," order_bys
-        SQL_Builder.code (method_name + "(") ++ result_expr ++ filter_clause ++ order_clause
+    SQL_Builder.code "COALESCE(SUM(CASE WHEN (" ++ arg.paren ++ " IS NOT NULL) AND (" ++ arg.paren ++ " != '') THEN 1 ELSE 0 END), 0)"
 
 ## PRIVATE
 agg_shortest = Base_Generator.lift_unary_op "SHORTEST" arg->
-     SQL_Builder.code "FIRST_VALUE(" ++ arg ++ ") IGNORE NULLS OVER (ORDER BY LENGTH(" ++ arg ++ "))"
+     SQL_Builder.code "FIRST_VALUE(" ++ arg ++ ") IGNORE NULLS OVER (ORDER BY LEN(" ++ arg ++ "))"
 
 ## PRIVATE
 agg_longest = Base_Generator.lift_unary_op "LONGEST" arg->
-     SQL_Builder.code "FIRST_VALUE(" ++ arg ++ ") IGNORE NULLS OVER (ORDER BY LENGTH(" ++ arg ++ ") DESC)"
+     SQL_Builder.code "FIRST_VALUE(" ++ arg ++ ") IGNORE NULLS OVER (ORDER BY LEN(" ++ arg ++ ") DESC)"
 
 ## PRIVATE
 concat_ops =
     make_raw_concat_expr expr separator =
         SQL_Builder.code "string_agg(" ++ expr ++ ", " ++ separator ++ ")"
-    concat = Base_Generator.make_concat make_raw_concat_expr make_contains_expr
+    concat = Base_Generator.make_concat make_raw_concat_expr make_contains_expr append_char="+"
     [["CONCAT", concat (has_quote=False)], ["CONCAT_QUOTE_IF_NEEDED", concat (has_quote=True)]]
 
 ## PRIVATE
@@ -552,14 +558,7 @@ agg_count_distinct args = if args.is_empty then (Error.throw (Illegal_Argument.E
         True ->
             ## A single null value will be skipped.
             SQL_Builder.code "COUNT(DISTINCT " ++ args.first ++ ")"
-        False ->
-            ## A tuple of nulls is not a null, so it will not be skipped - but
-               we want to ignore all-null columns. So we manually filter them
-               out.
-            count = SQL_Builder.code "COUNT(DISTINCT (" ++ SQL_Builder.join ", " args ++ "))"
-            are_nulls = args.map arg-> arg.paren ++ " IS NULL"
-            all_nulls_filter = SQL_Builder.code " FILTER (WHERE NOT (" ++ SQL_Builder.join " AND " are_nulls ++ "))"
-            (count ++ all_nulls_filter).paren
+        False -> Error.throw (Illegal_Argument.Error "COUNT_DISTINCT supports only single arguments in SQLServer.")
 
 ## PRIVATE
 agg_count_distinct_include_null args = case args.length == 1 of
@@ -593,12 +592,11 @@ ends_with = Base_Generator.lift_binary_op "ENDS_WITH" str-> sub->
     res.paren
 
 ## PRIVATE
-contains = Base_Generator.lift_binary_op "CONTAINS" str-> sub->
-    res = SQL_Builder.code "CHARINDEX(" ++ sub ++ ", " ++ str ++ ") > 0"
-    res.paren
+make_contains_expr expr substring =
+    SQL_Builder.code "CHARINDEX(" ++ substring ++ ", " ++ expr ++ ") > 0"
 
 ## PRIVATE
-make_contains_expr expr substring = contains [expr, substring]
+contains = Base_Generator.lift_binary_op "CONTAINS" make_contains_expr
 
 ## PRIVATE
 make_case_sensitive = Base_Generator.lift_unary_op "MAKE_CASE_SENSITIVE" arg->

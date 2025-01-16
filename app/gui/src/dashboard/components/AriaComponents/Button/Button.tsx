@@ -46,7 +46,12 @@ export interface BaseButtonProps<Render>
   readonly tooltip?: ReactElement | string | false | null
   readonly tooltipPlacement?: aria.Placement
   /** The icon to display in the button */
-  readonly icon?: ReactElement | string | ((render: Render) => ReactElement | string | null) | null
+  readonly icon?:
+    | ReactElement
+    | string
+    | ((render: Render) => ReactElement | string | null)
+    | null
+    | undefined
   /** When `true`, icon will be shown only when hovered. */
   readonly showIconOnHover?: boolean
   /**
@@ -163,7 +168,7 @@ export const BUTTON_STYLES = tv({
           color: 'custom',
           weight: 'medium',
           disableLineHeightCompensation: true,
-          className: 'flex px-[5px] pt-[0.5px] pb-[2.5px]',
+          className: 'flex px-[5px] pt-[1px] pb-[2px]',
         }),
         icon: '-mb-0.5 h-3 w-3',
         content: 'gap-1',
@@ -289,12 +294,13 @@ export const BUTTON_STYLES = tv({
   },
   compoundVariants: [
     { isFocused: true, iconOnly: true, class: 'focus-visible:outline-offset-[3px]' },
+
     { size: 'custom', iconOnly: true, class: { icon: 'w-full h-full' } },
     { size: 'xxsmall', iconOnly: true, class: { base: 'p-0 rounded-full', icon: 'w-2.5 h-2.5' } },
     { size: 'xsmall', iconOnly: true, class: { base: 'p-0 rounded-full', icon: 'w-3 h-3' } },
     { size: 'small', iconOnly: true, class: { base: 'p-0 rounded-full', icon: 'w-3.5 h-3.5' } },
     { size: 'medium', iconOnly: true, class: { base: 'p-0 rounded-full', icon: 'w-4 h-4' } },
-    { size: 'large', iconOnly: true, class: { base: 'p-0 rounded-full', icon: 'w-4.5 h-4.5' } },
+    { size: 'large', iconOnly: true, class: { base: 'p-0 rounded-full', icon: 'w-5 h-5' } },
     { size: 'hero', iconOnly: true, class: { base: 'p-0 rounded-full', icon: 'w-12 h-12' } },
 
     { size: 'xsmall', class: { addonStart: '-ml-[3.5px]', addonEnd: '-mr-[3.5px]' } },
@@ -318,197 +324,200 @@ export const BUTTON_STYLES = tv({
 const ICON_LOADER_DELAY = 150
 
 /** A button allows a user to perform an action, with mouse, touch, and keyboard interactions. */
-export const Button = memo(
-  forwardRef(function Button(props: ButtonProps, ref: ForwardedRef<HTMLButtonElement>) {
-    const {
-      className,
-      contentClassName,
-      children,
-      variant,
-      icon,
-      loading = false,
-      isActive,
-      showIconOnHover,
-      iconPosition,
-      size,
-      fullWidth,
-      rounded,
-      tooltip,
-      tooltipPlacement,
-      testId,
-      loaderPosition = 'full',
-      extraClickZone: extraClickZoneProp,
-      onPress = () => {},
-      variants = BUTTON_STYLES,
-      addonStart,
-      addonEnd,
-      ...ariaProps
-    } = props
+// Manually casting types to make TS infer the final type correctly (e.g. RenderProps in icon)
+export const Button: (props: ButtonProps & { ref?: ForwardedRef<HTMLButtonElement> }) => ReactNode =
+  memo(
+    forwardRef(function Button(props: ButtonProps, ref: ForwardedRef<HTMLButtonElement>) {
+      const {
+        className,
+        contentClassName,
+        children,
+        variant,
+        icon,
+        loading = false,
+        isActive,
+        showIconOnHover,
+        iconPosition,
+        size,
+        fullWidth,
+        rounded,
+        tooltip,
+        tooltipPlacement,
+        testId,
+        loaderPosition = 'full',
+        extraClickZone: extraClickZoneProp,
+        onPress = () => {},
+        variants = BUTTON_STYLES,
+        addonStart,
+        addonEnd,
+        ...ariaProps
+      } = props
 
-    const [implicitlyLoading, setImplicitlyLoading] = useState(false)
+      const [implicitlyLoading, setImplicitlyLoading] = useState(false)
 
-    const contentRef = useRef<HTMLSpanElement>(null)
-    const loaderRef = useRef<HTMLSpanElement>(null)
+      const contentRef = useRef<HTMLSpanElement>(null)
+      const loaderRef = useRef<HTMLSpanElement>(null)
 
-    const isLink = ariaProps.href != null
+      const isLink = ariaProps.href != null
 
-    const Tag = isLink ? aria.Link : aria.Button
+      const Tag = isLink ? aria.Link : aria.Button
 
-    const goodDefaults = {
-      ...(isLink ? { rel: 'noopener noreferrer' } : { type: 'button' as const }),
-      'data-testid': testId,
-    }
-
-    const isIconOnly = (children == null || children === '' || children === false) && icon != null
-
-    const shouldShowTooltip = (() => {
-      if (tooltip === false) {
-        return false
-      } else if (isIconOnly) {
-        return true
-      } else {
-        return tooltip != null
+      const goodDefaults = {
+        ...(isLink ? { rel: 'noopener noreferrer' } : { type: 'button' as const }),
+        'data-testid': testId,
       }
-    })()
 
-    const tooltipElement = shouldShowTooltip ? tooltip ?? ariaProps['aria-label'] : null
+      const isIconOnly = (children == null || children === '' || children === false) && icon != null
 
-    const isLoading = loading || implicitlyLoading
-    const isDisabled = props.isDisabled ?? isLoading
-    const shouldUseVisualTooltip = shouldShowTooltip && isDisabled
-    const extraClickZone = extraClickZoneProp ?? variant === 'icon'
+      const shouldShowTooltip = (() => {
+        if (tooltip === false) {
+          return false
+        } else if (isIconOnly) {
+          return true
+        } else {
+          return tooltip != null
+        }
+      })()
 
-    useLayoutEffect(() => {
-      const delay = ICON_LOADER_DELAY
+      const tooltipElement = shouldShowTooltip ? (tooltip ?? ariaProps['aria-label']) : null
 
-      if (isLoading) {
-        const loaderAnimation = loaderRef.current?.animate(
-          [{ opacity: 0 }, { opacity: 0, offset: 1 }, { opacity: 1 }],
-          { duration: delay, easing: 'linear', delay: 0, fill: 'forwards' },
-        )
-        const contentAnimation =
-          loaderPosition !== 'full' ? null : (
-            contentRef.current?.animate([{ opacity: 1 }, { opacity: 0 }], {
-              duration: 0,
-              easing: 'linear',
-              delay,
-              fill: 'forwards',
-            })
+      const isLoading = loading || implicitlyLoading
+      const isDisabled = props.isDisabled ?? isLoading
+      const shouldUseVisualTooltip = shouldShowTooltip && isDisabled
+      const extraClickZone = extraClickZoneProp ?? variant === 'icon'
+
+      useLayoutEffect(() => {
+        const delay = ICON_LOADER_DELAY
+
+        if (isLoading) {
+          const loaderAnimation = loaderRef.current?.animate(
+            [{ opacity: 0 }, { opacity: 0, offset: 1 }, { opacity: 1 }],
+            { duration: delay, easing: 'linear', delay: 0, fill: 'forwards' },
           )
+          const contentAnimation =
+            loaderPosition !== 'full' ? null : (
+              contentRef.current?.animate([{ opacity: 1 }, { opacity: 0 }], {
+                duration: 0,
+                easing: 'linear',
+                delay,
+                fill: 'forwards',
+              })
+            )
 
-        return () => {
-          loaderAnimation?.cancel()
-          contentAnimation?.cancel()
+          return () => {
+            loaderAnimation?.cancel()
+            contentAnimation?.cancel()
+          }
+        } else {
+          return () => {}
         }
-      } else {
-        return () => {}
-      }
-    }, [isLoading, loaderPosition])
+      }, [isLoading, loaderPosition])
 
-    const handlePress = useEventCallback((event: aria.PressEvent): void => {
-      if (!isDisabled) {
-        const result = onPress?.(event)
+      const handlePress = useEventCallback((event: aria.PressEvent): void => {
+        if (!isDisabled) {
+          const result = onPress?.(event)
 
-        if (result instanceof Promise) {
-          setImplicitlyLoading(true)
+          if (result instanceof Promise) {
+            setImplicitlyLoading(true)
 
-          void result.finally(() => {
-            setImplicitlyLoading(false)
-          })
+            void result.finally(() => {
+              setImplicitlyLoading(false)
+            })
+          }
         }
-      }
-    })
+      })
 
-    const styles = variants({
-      isDisabled,
-      isActive,
-      loading: isLoading,
-      fullWidth,
-      size,
-      rounded,
-      variant,
-      iconPosition,
-      showIconOnHover,
-      extraClickZone,
-      iconOnly: isIconOnly,
-    })
+      const styles = variants({
+        isDisabled,
+        isActive,
+        loading: isLoading,
+        fullWidth,
+        size,
+        rounded,
+        variant,
+        iconPosition,
+        showIconOnHover,
+        extraClickZone,
+        iconOnly: isIconOnly,
+      })
 
-    const { tooltip: visualTooltip, targetProps } = useVisualTooltip({
-      targetRef: contentRef,
-      children: tooltipElement,
-      isDisabled: !shouldUseVisualTooltip,
-      ...(tooltipPlacement && { overlayPositionProps: { placement: tooltipPlacement } }),
-    })
+      const { tooltip: visualTooltip, targetProps } = useVisualTooltip({
+        targetRef: contentRef,
+        children: tooltipElement,
+        isDisabled: !shouldUseVisualTooltip,
+        ...(tooltipPlacement && { overlayPositionProps: { placement: tooltipPlacement } }),
+      })
 
-    const button = (
-      <Tag
-        // @ts-expect-error ts errors are expected here because we are merging props with different types
-        ref={ref}
-        // @ts-expect-error ts errors are expected here because we are merging props with different types
-        {...aria.mergeProps<aria.ButtonProps>()(goodDefaults, ariaProps, {
-          isDisabled,
-          // we use onPressEnd instead of onPress because for some reason react-aria doesn't trigger
-          // onPress on EXTRA_CLICK_ZONE, but onPress{start,end} are triggered
-          onPressEnd: (e) => {
-            if (!isDisabled) {
-              handlePress(e)
-            }
-          },
-          className: aria.composeRenderProps(className, (classNames, states) =>
-            styles.base({ className: classNames, ...states }),
-          ),
-        })}
-      >
-        {(render: aria.ButtonRenderProps | aria.LinkRenderProps) => (
-          <span className={styles.wrapper()}>
-            <span
-              ref={contentRef}
-              className={styles.content({ className: contentClassName })}
-              {...targetProps}
-            >
-              <ButtonContent
-                isIconOnly={isIconOnly}
-                isLoading={isLoading}
-                loaderPosition={loaderPosition}
-                icon={icon}
-                styles={styles}
-                /* @ts-expect-error any here is safe because we transparently pass it to the children, and ts infer the type outside correctly */
-                addonStart={typeof addonStart === 'function' ? addonStart(render) : addonStart}
-                /* @ts-expect-error any here is safe because we transparently pass it to the children, and ts infer the type outside correctly */
-                addonEnd={typeof addonEnd === 'function' ? addonEnd(render) : addonEnd}
+      const button = (
+        <Tag
+          // @ts-expect-error ts errors are expected here because we are merging props with different types
+          ref={ref}
+          // @ts-expect-error ts errors are expected here because we are merging props with different types
+          {...aria.mergeProps<aria.ButtonProps>()(goodDefaults, ariaProps, {
+            isDisabled,
+            // we use onPressEnd instead of onPress because for some reason react-aria doesn't trigger
+            // onPress on EXTRA_CLICK_ZONE, but onPress{start,end} are triggered
+            onPressEnd: (e) => {
+              if (!isDisabled) {
+                handlePress(e)
+              }
+            },
+            className: aria.composeRenderProps(className, (classNames, states) =>
+              styles.base({ className: classNames, ...states }),
+            ),
+          })}
+        >
+          {(render: aria.ButtonRenderProps | aria.LinkRenderProps) => (
+            <span className={styles.wrapper()}>
+              <span
+                ref={contentRef}
+                className={styles.content({ className: contentClassName })}
+                {...targetProps}
               >
-                {/* @ts-expect-error any here is safe because we transparently pass it to the children, and ts infer the type outside correctly */}
-                {typeof children === 'function' ? children(render) : children}
-              </ButtonContent>
-            </span>
-
-            {isLoading && loaderPosition === 'full' && (
-              <span ref={loaderRef} className={styles.loader()}>
-                <StatelessSpinner state="loading-medium" size={16} />
+                <ButtonContent
+                  isIconOnly={isIconOnly}
+                  isLoading={isLoading}
+                  loaderPosition={loaderPosition}
+                  /* @ts-expect-error any here is safe because we transparently pass it to the children, and ts infer the type outside correctly */
+                  icon={typeof icon === 'function' ? icon(render) : icon}
+                  styles={styles}
+                  /* @ts-expect-error any here is safe because we transparently pass it to the children, and ts infer the type outside correctly */
+                  addonStart={typeof addonStart === 'function' ? addonStart(render) : addonStart}
+                  /* @ts-expect-error any here is safe because we transparently pass it to the children, and ts infer the type outside correctly */
+                  addonEnd={typeof addonEnd === 'function' ? addonEnd(render) : addonEnd}
+                >
+                  {/* @ts-expect-error any here is safe because we transparently pass it to the children, and ts infer the type outside correctly */}
+                  {typeof children === 'function' ? children(render) : children}
+                </ButtonContent>
               </span>
-            )}
 
-            {shouldShowTooltip && visualTooltip}
-          </span>
-        )}
-      </Tag>
-    )
+              {isLoading && loaderPosition === 'full' && (
+                <span ref={loaderRef} className={styles.loader()}>
+                  <StatelessSpinner state="loading-medium" size={16} />
+                </span>
+              )}
 
-    if (tooltipElement == null) {
-      return button
-    }
+              {shouldShowTooltip && visualTooltip}
+            </span>
+          )}
+        </Tag>
+      )
 
-    return (
-      <TooltipTrigger delay={0} closeDelay={0}>
-        {button}
+      if (tooltipElement == null) {
+        return button
+      }
 
-        <Tooltip {...(tooltipPlacement != null ? { placement: tooltipPlacement } : {})}>
-          {tooltipElement}
-        </Tooltip>
-      </TooltipTrigger>
-    )
-  }),
-)
+      return (
+        <TooltipTrigger delay={0} closeDelay={0}>
+          {button}
+
+          <Tooltip {...(tooltipPlacement != null ? { placement: tooltipPlacement } : {})}>
+            {tooltipElement}
+          </Tooltip>
+        </TooltipTrigger>
+      )
+    }),
+  )
 
 /**
  * Props for {@link ButtonContent}.
@@ -517,7 +526,7 @@ interface ButtonContentProps {
   readonly isIconOnly: boolean
   readonly isLoading: boolean
   readonly loaderPosition: 'full' | 'icon'
-  readonly icon: ButtonProps['icon']
+  readonly icon: ReactElement | string | null | undefined
   readonly styles: ReturnType<typeof BUTTON_STYLES>
   readonly children: ReactNode
   readonly addonStart?: ReactElement | string | false | null | undefined
@@ -567,7 +576,7 @@ const ButtonContent = memo(function ButtonContent(props: ButtonContentProps) {
 interface IconProps {
   readonly isLoading: boolean
   readonly loaderPosition: 'full' | 'icon'
-  readonly icon: ButtonProps['icon']
+  readonly icon: ReactElement | string | null | undefined
   readonly styles: ReturnType<typeof BUTTON_STYLES>
 }
 
@@ -600,13 +609,9 @@ const Icon = memo(function Icon(props: IconProps) {
   }
 
   const actualIcon = (() => {
-    /* @ts-expect-error any here is safe because we transparently pass it to the children, and ts infer the type outside correctly */
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    const iconRender = typeof icon === 'function' ? icon(render) : icon
-
-    return typeof iconRender === 'string' ?
-        <SvgMask src={iconRender} className={styles.icon()} />
-      : <span className={styles.icon()}>{iconRender}</span>
+    return typeof icon === 'string' ?
+        <SvgMask src={icon} className={styles.icon()} />
+      : <span className={styles.icon()}>{icon}</span>
   })()
 
   if (shouldShowLoader) {

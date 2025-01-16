@@ -1,6 +1,7 @@
 package org.enso.table.excel.xssfreader;
 
 import java.io.IOException;
+import java.nio.channels.ClosedByInterruptException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -8,7 +9,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 import javax.xml.XMLConstants;
 import javax.xml.namespace.NamespaceContext;
 import javax.xml.xpath.XPathConstants;
@@ -26,6 +26,7 @@ import org.apache.poi.xssf.model.SharedStrings;
 import org.apache.poi.xssf.usermodel.XSSFRelation;
 import org.enso.table.excel.ExcelSheet;
 import org.enso.table.excel.ExcelWorkbook;
+import org.enso.table.util.ConsumerWithException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -90,7 +91,7 @@ public class XSSFReaderWorkbook implements ExcelWorkbook {
   private SharedStrings sharedStrings;
   private XSSFReaderFormats styles;
 
-  public XSSFReaderWorkbook(String path) throws IOException {
+  public XSSFReaderWorkbook(String path) throws IOException, InterruptedException {
     this.path = path;
 
     // Read the workbook data
@@ -101,7 +102,8 @@ public class XSSFReaderWorkbook implements ExcelWorkbook {
     return path;
   }
 
-  void withReader(Consumer<XSSFReader> action) throws IOException {
+  void withReader(ConsumerWithException<XSSFReader, InterruptedException> action)
+      throws IOException, InterruptedException {
     try (var pkg = OPCPackage.open(path, PackageAccess.READ)) {
       var reader = new XSSFReader(pkg);
       action.accept(reader);
@@ -115,7 +117,7 @@ public class XSSFReaderWorkbook implements ExcelWorkbook {
 
   private record NamedRange(String name, String formula) {}
 
-  private void readWorkbookData() throws IOException {
+  private void readWorkbookData() throws IOException, InterruptedException {
     withReader(
         reader -> {
           try {
@@ -124,6 +126,8 @@ public class XSSFReaderWorkbook implements ExcelWorkbook {
             read1904DateSetting(workbookDoc);
             readSheetInfo(workbookDoc);
             readNamedRanges(workbookDoc);
+          } catch (ClosedByInterruptException e) {
+            throw new InterruptedException(e.getMessage());
           } catch (SAXException
               | IOException
               | InvalidFormatException
@@ -171,7 +175,7 @@ public class XSSFReaderWorkbook implements ExcelWorkbook {
     }
   }
 
-  private synchronized void ensureReadShared() {
+  private synchronized void ensureReadShared() throws InterruptedException {
     if (hasReadShared) {
       return;
     }
@@ -207,6 +211,8 @@ public class XSSFReaderWorkbook implements ExcelWorkbook {
               styles = new XSSFReaderFormats(stylesTable);
 
               hasReadShared = true;
+            } catch (ClosedByInterruptException e) {
+              throw new InterruptedException(e.getMessage());
             } catch (InvalidFormatException | IOException e) {
               throw new RuntimeException(e);
             }
@@ -258,12 +264,12 @@ public class XSSFReaderWorkbook implements ExcelWorkbook {
     return namedRange == null ? null : namedRange.formula;
   }
 
-  public SharedStrings getSharedStrings() {
+  public SharedStrings getSharedStrings() throws InterruptedException {
     ensureReadShared();
     return sharedStrings;
   }
 
-  public XSSFReaderFormats getStyles() {
+  public XSSFReaderFormats getStyles() throws InterruptedException {
     ensureReadShared();
     return styles;
   }

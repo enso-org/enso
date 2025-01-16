@@ -9,6 +9,7 @@ import org.enso.logger.Converter;
 import org.enso.logger.JulHandler;
 import org.enso.logging.config.LoggerSetup;
 import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.Engine;
 import org.graalvm.polyglot.HostAccess;
 import org.graalvm.polyglot.io.MessageTransport;
 import org.slf4j.event.Level;
@@ -52,6 +53,7 @@ public final class ContextFactory {
   private String checkForWarnings;
   private int warningsLimit = 100;
   private java.util.Map<String, String> options = new HashMap<>();
+  private String runtimerServerKey;
   private boolean enableDebugServer;
 
   private ContextFactory() {}
@@ -145,6 +147,11 @@ public final class ContextFactory {
     return this;
   }
 
+  public ContextFactory enableRuntimeServerInfoKey(String keyName) {
+    this.runtimerServerKey = keyName;
+    return this;
+  }
+
   public ContextFactory checkForWarnings(String fqnOfMethod) {
     this.checkForWarnings = fqnOfMethod;
     return this;
@@ -161,6 +168,16 @@ public final class ContextFactory {
     }
     var julLogLevel = Converter.toJavaLevel(logLevel);
     var logLevelName = julLogLevel.getName();
+    var inAOTMode = java.lang.Boolean.getBoolean("com.oracle.graalvm.isaot");
+    java.util.Map<String, String> engineOptions = null;
+    if (runtimerServerKey != null) {
+      if (!inAOTMode) {
+        options.put(runtimerServerKey, "true");
+      } else {
+        engineOptions = new java.util.HashMap<>();
+        engineOptions.put(runtimerServerKey, "true");
+      }
+    }
     var builder =
         Context.newBuilder()
             .allowExperimentalOptions(true)
@@ -188,9 +205,6 @@ public final class ContextFactory {
     }
     if (enableDebugServer) {
       builder.option(DebugServerInfo.ENABLE_OPTION, "true");
-    }
-    if (messageTransport != null) {
-      builder.serverTransport(messageTransport);
     }
     builder.option(RuntimeOptions.LOG_LEVEL, logLevelName);
     var logHandler = JulHandler.get();
@@ -226,6 +240,18 @@ public final class ContextFactory {
           .option("java.Polyglot", "true")
           .option("java.UseBindingsLoader", "true")
           .allowCreateThread(true);
+    }
+
+    if (inAOTMode) {
+      // In AOT mode one must not use a shared engine; the latter causes issues when initializing
+      // message transport - it is set to `null`.
+      var eng = Engine.newBuilder().allowExperimentalOptions(true).options(engineOptions);
+      if (messageTransport != null) {
+        eng.serverTransport(messageTransport);
+      }
+      builder.engine(eng.build());
+    } else if (messageTransport != null) {
+      builder.serverTransport(messageTransport);
     }
 
     var ctx = builder.build();

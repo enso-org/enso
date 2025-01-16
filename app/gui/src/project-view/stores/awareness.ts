@@ -1,7 +1,7 @@
 import { Vec2 } from '@/util/data/vec2'
 import { reactive } from 'vue'
 import { Awareness as YjsAwareness } from 'y-protocols/awareness'
-import type { StackItem } from 'ydoc-shared/languageServerTypes'
+import { type ExternalId } from 'ydoc-shared/yjsModel'
 import * as Y from 'yjs'
 
 // === Public types ===
@@ -10,7 +10,7 @@ export type FileName = string
 
 export interface UploadingFile {
   sizePercentage: number
-  stackItem: StackItem
+  method: ExternalId
   position: Vec2
 }
 

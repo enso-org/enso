@@ -40,7 +40,7 @@ export interface FieldChildrenRenderProps {
   readonly isTouched: boolean
   readonly isValidating: boolean
   readonly hasError: boolean
-  readonly error?: string | undefined
+  readonly error?: string | null | undefined
 }
 
 export const FIELD_STYLES = tv({
@@ -91,7 +91,7 @@ export const Field = forwardRef(function Field<Schema extends types.TSchema>(
 
   const classes = variants({ fullWidth, isInvalid: invalid, isHidden })
 
-  const hasError = (error ?? fieldState.error) != null
+  const hasError = (error !== undefined ? error : fieldState.error) != null
 
   return (
     <fieldset
@@ -112,7 +112,7 @@ export const Field = forwardRef(function Field<Schema extends types.TSchema>(
             {label}
 
             {isRequired && (
-              <span aria-hidden="true" className="scale-80 text-danger">
+              <span aria-hidden="true" className="scale-80 text-danger" data-testid="required-mark">
                 {' *'}
               </span>
             )}
@@ -134,7 +134,7 @@ export const Field = forwardRef(function Field<Schema extends types.TSchema>(
       </aria.Label>
 
       {description != null && (
-        <span id={descriptionId} className={classes.description()}>
+        <span id={descriptionId} className={classes.description()} data-testid="description">
           {description}
         </span>
       )}

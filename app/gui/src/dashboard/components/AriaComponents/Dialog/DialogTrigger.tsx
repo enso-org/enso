@@ -20,7 +20,7 @@ export interface DialogTriggerRenderProps {
 export interface DialogTriggerProps extends Omit<aria.DialogTriggerProps, 'children'> {
   /** The trigger element. */
   readonly children: [
-    React.ReactElement,
+    React.ReactElement | ((props: DialogTriggerRenderProps) => React.ReactElement),
     React.ReactElement | ((props: DialogTriggerRenderProps) => React.ReactElement),
   ]
   readonly onOpen?: () => void
@@ -68,7 +68,7 @@ export function DialogTrigger(props: DialogTriggerProps) {
 
   return (
     <aria.DialogTrigger {...state} onOpenChange={onOpenChangeInternal}>
-      {trigger}
+      {typeof trigger === 'function' ? trigger(renderProps) : trigger}
 
       {typeof dialog === 'function' ? dialog(renderProps) : dialog}
     </aria.DialogTrigger>

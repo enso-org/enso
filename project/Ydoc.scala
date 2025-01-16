@@ -53,7 +53,7 @@ object Ydoc {
           ydocServerResourceManaged / "org" / "enso" / "ydoc" / "server" / "ydoc.cjs"
 
         if (changed) {
-          val command = s"$pnpmCommand -r compile"
+          val command = s"$pnpmCommand build:ydoc-server-polyglot"
           streams.log.info(command)
           val exitCode = command ! streams.log
 

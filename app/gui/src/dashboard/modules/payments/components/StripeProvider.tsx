@@ -6,6 +6,7 @@
 
 import * as React from 'react'
 
+import { OfflineError } from '#/utilities/error'
 import * as stripeReact from '@stripe/react-stripe-js'
 import type * as stripeTypes from '@stripe/stripe-js'
 import * as stripe from '@stripe/stripe-js/pure'
@@ -23,27 +24,37 @@ export interface StripeProviderRenderProps {
   readonly elements: stripeTypes.StripeElements
 }
 
-export const stripeQuery = reactQuery.queryOptions({
-  queryKey: ['stripe', process.env.ENSO_CLOUD_STRIPE_KEY] as const,
-  staleTime: Infinity,
-  gcTime: Infinity,
-  meta: { persist: false },
-  queryFn: async ({ queryKey }) => {
-    const stripeKey = queryKey[1]
+/**
+ * Creates options for quering stripe instance
+ */
+export function stripeQueryOptions() {
+  return reactQuery.queryOptions({
+    queryKey: ['stripe', $config.STRIPE_KEY] as const,
+    staleTime: Infinity,
+    gcTime: Infinity,
+    meta: { persist: false },
+    queryFn: async ({ queryKey }) => {
+      const isOnline = reactQuery.onlineManager.isOnline()
+      const stripeKey = queryKey[1]
 
-    if (stripeKey == null) {
-      throw new Error('Stripe key not found')
-    } else {
+      if (stripeKey == null) {
+        throw new Error('Stripe key not found')
+      }
+
+      if (!isOnline) {
+        throw new OfflineError()
+      }
+
       return stripe.loadStripe(stripeKey).then((maybeStripeInstance) => {
         if (maybeStripeInstance == null) {
           throw new Error('Stripe instance not found')
-        } else {
-          return maybeStripeInstance
         }
+
+        return maybeStripeInstance
       })
-    }
-  },
-})
+    },
+  })
+}
 
 /** A component that provides a Stripe context. */
 export function StripeProvider(props: StripeProviderProps) {
@@ -90,5 +101,5 @@ export function useStripe() {
  * @returns The Stripe instance.
  */
 export function useStripeLoader() {
-  return reactQuery.useSuspenseQuery(stripeQuery)
+  return reactQuery.useSuspenseQuery(stripeQueryOptions())
 }

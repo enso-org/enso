@@ -230,7 +230,7 @@ watchEffect(() => {
       rawBins.value = rawData.data?.bins ?? undefined
     }
 
-    const values = Array.isArray(newData) ? newData : newData?.values ?? []
+    const values = Array.isArray(newData) ? newData : (newData?.values ?? [])
     points.value = values.filter((value) => typeof value === 'number' && !Number.isNaN(value))
   }
 })

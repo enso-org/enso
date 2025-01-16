@@ -9,11 +9,11 @@ import SvgMask from '#/components/SvgMask'
 
 import * as backendModule from '#/services/Backend'
 
+import { useText } from '#/providers/TextProvider'
 import * as eventModule from '#/utilities/event'
 import * as fileIcon from '#/utilities/fileIcon'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
-import * as string from '#/utilities/string'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // ================
@@ -35,6 +35,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
   const { backend, nodeMap } = state
   const isCloud = backend.type === backendModule.BackendType.remote
 
+  const { getText } = useText()
   const updateFileMutation = useMutation(backendMutationOptions(backend, 'updateFile'))
 
   const setIsEditing = (isEditingName: boolean) => {
@@ -43,24 +44,15 @@ export default function FileNameColumn(props: FileNameColumnProps) {
     }
   }
 
-  // TODO[sb]: Wait for backend implementation. `editable` should also be re-enabled, and the
-  // context menu entry should be re-added.
-  // Backend implementation is tracked here: https://github.com/enso-org/cloud-v2/issues/505.
   const doRename = async (newTitle: string) => {
-    if (isEditable) {
-      setIsEditing(false)
-      if (string.isWhitespaceOnly(newTitle)) {
-        // Do nothing.
-      } else if (!isCloud && newTitle !== item.title) {
-        await updateFileMutation.mutateAsync([item.id, { title: newTitle }, item.title])
-      }
-    }
+    await updateFileMutation.mutateAsync([item.id, { title: newTitle }, item.title])
+    setIsEditing(false)
   }
 
   return (
     <div
       className={tailwindMerge.twJoin(
-        'flex h-table-row w-auto min-w-48 max-w-96 items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y contain-strict rounded-rows-child [contain-intrinsic-size:37px] [content-visibility:auto]',
+        'flex h-table-row w-auto min-w-48 max-w-full items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y rounded-rows-child',
         indent.indentClass(depth),
       )}
       onKeyDown={(event) => {
@@ -81,17 +73,21 @@ export default function FileNameColumn(props: FileNameColumnProps) {
         data-testid="asset-row-name"
         editable={rowState.isEditingName}
         className="grow bg-transparent font-naming"
-        checkSubmittable={(newTitle) =>
-          backendModule.isNewTitleValid(
-            item,
-            newTitle,
-            nodeMap.current.get(item.parentId)?.children?.map((child) => child.item),
-          )
-        }
         onSubmit={doRename}
         onCancel={() => {
           setIsEditing(false)
         }}
+        schema={(z) =>
+          z.refine(
+            (value) =>
+              backendModule.isNewTitleUnique(
+                item,
+                value,
+                nodeMap.current.get(item.parentId)?.children?.map((child) => child.item),
+              ),
+            { message: getText('nameShouldBeUnique') },
+          )
+        }
       >
         {item.title}
       </EditableSpan>

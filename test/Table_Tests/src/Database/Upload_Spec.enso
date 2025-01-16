@@ -242,7 +242,7 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
         group_builder.specify "should not issue a DELETE statement for the original table name in dry run mode, even if the table does not exist" <|
             original_table_name = Name_Generator.random_name "no-delete-test"
 
-            log_file = enso_project.data / "transient" / "sql.log"
+            log_file = (Project_Description.new enso_dev.Table_Tests).data / "transient" / "sql.log"
             log_file.delete_if_exists
             Test_Environment.unsafe_with_environment_override "ENSO_SQL_LOG_PATH" log_file.absolute.path <|
                 Context.Output.with_disabled <|

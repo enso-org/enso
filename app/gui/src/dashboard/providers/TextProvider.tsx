@@ -31,11 +31,9 @@ export type GetText = <K extends text.TextId>(
   ...replacements: text.Replacements[K]
 ) => string
 
-const DEFAULT_LANGUAGE = text.Language.english
-
 const TextContext = React.createContext<TextContextType>({
-  language: DEFAULT_LANGUAGE,
-  locale: text.LANGUAGE_TO_LOCALE[DEFAULT_LANGUAGE],
+  language: text.resolveUserLanguage(),
+  locale: navigator.language,
   /**
    * Set `this.language`. It is NOT RECOMMENDED to use the default value, as this does not trigger
    * reactive updates.
@@ -56,7 +54,7 @@ export type TextProviderProps = Readonly<React.PropsWithChildren>
 export default function TextProvider(props: TextProviderProps) {
   const { children } = props
 
-  const [language, setLanguage] = React.useState(text.Language.english)
+  const [language, setLanguage] = React.useState(() => text.resolveUserLanguage())
   const locale = text.LANGUAGE_TO_LOCALE[language]
 
   const contextValue = React.useMemo<TextContextType>(
@@ -70,18 +68,12 @@ export default function TextProvider(props: TextProviderProps) {
 /** Exposes a property to get localized text, and get and set the current language. */
 export function useText() {
   const { language, setLanguage, locale } = React.useContext(TextContext)
-  const localizedText = text.TEXTS[language]
+
+  const localizedText = text.getDictionary(language)
 
   const getText = React.useCallback<GetText>(
     (key, ...replacements) => {
-      const template = localizedText[key]
-      return replacements.length === 0 ?
-          template
-        : template.replace(/[$]([$]|\d+)/g, (_match, placeholder: string) =>
-            placeholder === '$' ? '$' : (
-              String(replacements[Number(placeholder)] ?? `$${placeholder}`)
-            ),
-          )
+      return text.getText(localizedText, key, ...replacements)
     },
     [localizedText],
   )

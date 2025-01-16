@@ -5,7 +5,7 @@ import { EmailAddress, UserId } from '#/services/Backend'
 
 import { PermissionAction } from '#/utilities/permissions'
 
-import { mockAllAndLogin } from './actions'
+import { mockAllAndLogin, TEXT } from './actions'
 
 /** Find an asset panel. */
 function locateAssetPanel(page: Page) {
@@ -87,4 +87,25 @@ test('Asset Panel documentation view', ({ page }) =>
       await expect(assetPanel.getByTestId('asset-panel-tab-panel-docs')).toBeVisible()
       await expect(assetPanel.getByTestId('asset-docs-content')).toBeVisible()
       await expect(assetPanel.getByTestId('asset-docs-content')).toHaveText(/Project Goal/)
+      await expect(assetPanel.getByText(TEXT.arbitraryFetchImageError)).not.toBeVisible()
     }))
+
+test('Assets Panel docs images', ({ page }) => {
+  return mockAllAndLogin({
+    page,
+    setupAPI: (api) => {
+      api.addProject({})
+    },
+  })
+    .do(() => {})
+    .driveTable.clickRow(0)
+    .toggleDocsAssetPanel()
+    .withAssetPanel(async (assetPanel) => {
+      await expect(assetPanel.getByTestId('asset-docs-content')).toBeVisible()
+
+      for (const image of await assetPanel.getByRole('img').all()) {
+        await expect(image).toBeVisible()
+        await expect(image).toHaveJSProperty('complete', true)
+      }
+    })
+})

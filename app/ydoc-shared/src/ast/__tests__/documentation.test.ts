@@ -22,8 +22,8 @@ describe('Component documentation (plain text)', () => {
       text: 'A multiline\ncomponent comment',
     },
   ]
-  const cases = plaintextDocumentableStatements.flatMap(statement =>
-    textCases.map(textCase => ({ statement, ...textCase })),
+  const cases = plaintextDocumentableStatements.flatMap((statement) =>
+    textCases.map((textCase) => ({ statement, ...textCase })),
   )
 
   test.each(cases)('Enso source comments to normalized text', ({ statement, source, text }) => {

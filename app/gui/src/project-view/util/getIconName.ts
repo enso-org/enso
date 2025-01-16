@@ -1,8 +1,11 @@
 import type { NodeId } from '@/stores/graph'
 import { GraphDb } from '@/stores/graph/graphDatabase'
-import type { SuggestionEntry, Typename } from '@/stores/suggestionDatabase/entry'
-import { SuggestionKind } from '@/stores/suggestionDatabase/entry'
-import type { Icon } from '@/util/iconName'
+import {
+  SuggestionKind,
+  type SuggestionEntry,
+  type Typename,
+} from '@/stores/suggestionDatabase/entry'
+import type { Icon } from '@/util/iconMetadata/iconName'
 import type { MethodPointer } from 'ydoc-shared/languageServerTypes'
 
 const typeNameToIconLookup: Record<string, Icon> = {

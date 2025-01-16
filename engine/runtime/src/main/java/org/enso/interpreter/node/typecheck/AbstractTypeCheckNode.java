@@ -34,12 +34,12 @@ abstract sealed class AbstractTypeCheckNode extends Node
   @ExplodeLoop
   final boolean isAllTypes() {
     Node p = this;
-    CompilerAsserts.compilationConstant(p);
+    CompilerAsserts.partialEvaluationConstant(p);
     for (; ; ) {
       if (p instanceof TypeCheckValueNode vn) {
-        CompilerAsserts.compilationConstant(vn);
+        CompilerAsserts.partialEvaluationConstant(vn);
         var allTypes = vn.isAllTypes();
-        CompilerAsserts.compilationConstant(allTypes);
+        CompilerAsserts.partialEvaluationConstant(allTypes);
         return allTypes;
       }
       p = p.getParent();

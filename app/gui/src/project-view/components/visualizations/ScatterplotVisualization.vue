@@ -7,6 +7,7 @@ import { Pattern } from '@/util/ast/match'
 import { getTextWidthBySizeAndFamily } from '@/util/measurement'
 import { defineKeybinds } from '@/util/visualizationBuiltins'
 import { computed, ref, watch, watchEffect, watchPostEffect } from 'vue'
+import { ToolbarItem } from './toolbar'
 
 export const name = 'Scatter Plot'
 export const icon = 'points'
@@ -161,7 +162,7 @@ const data = computed<Data>(() => {
     Array.isArray(rawData) ?
       // eslint-disable-next-line camelcase
       rawData.map((y, index) => ({ x: index, y, row_number: index }))
-    : rawData.data ?? []
+    : (rawData.data ?? [])
   let data: Point[]
   const isTimeSeries: boolean =
     'x_value_type' in rawData ?
@@ -526,7 +527,7 @@ watch([boxWidth, boxHeight], () => (shouldAnimate.value = false))
 
 /** Helper function to match a d3 shape from its name. */
 function matchShape(d: Point) {
-  return d.shape != null ? SHAPE_TO_SYMBOL[d.shape] ?? d3.symbolCircle : d3.symbolCircle
+  return d.shape != null ? (SHAPE_TO_SYMBOL[d.shape] ?? d3.symbolCircle) : d3.symbolCircle
 }
 
 watchEffect(() => {
@@ -707,12 +708,12 @@ watchPostEffect(() => {
   const yScale_ = yScale.value
   const plotData = getPlotData(data.value) as Point[]
   const series = Object.keys(data.value.axis).filter((s) => s != 'x')
-  const colorScale = (d: string) => {
+  const colorScale = (d: Point) => {
     const color = d3.scaleOrdinal(d3.schemeCategory10).domain(series)
     if (data.value.is_multi_series) {
-      return color(d)
+      return color(d.series ?? '')
     }
-    return DEFAULT_FILL_COLOR
+    return d.color ?? DEFAULT_FILL_COLOR
   }
   d3Points.value
     .selectAll<SVGPathElement, unknown>('path')
@@ -730,7 +731,7 @@ watchPostEffect(() => {
       'd',
       symbol.type(matchShape).size((d) => (d.size ?? 0.15) * SIZE_SCALE_MULTIPLER),
     )
-    .style('fill', (d) => colorScale(d.series || ''))
+    .style('fill', (d) => colorScale(d))
     .attr('transform', (d) => `translate(${xScale_(Number(d.x))}, ${yScale_(d.y)})`)
   if (data.value.points.labels === VISIBLE_POINTS) {
     d3Points.value
@@ -865,42 +866,49 @@ const makeSeriesLabelOptions = () => {
   return seriesOptions
 }
 
-config.setToolbar([
-  {
-    icon: 'select',
-    title: 'Enable Selection',
-    toggle: selectionEnabled,
-  },
-  {
-    icon: 'show_all',
-    title: 'Fit All',
-    onClick: () => zoomToSelected(false),
-  },
-  {
-    icon: 'zoom',
-    title: 'Zoom to Selected',
-    disabled: () => brushExtent.value == null,
-    onClick: zoomToSelected,
-  },
-  {
-    icon: 'add_to_graph_editor',
-    title: 'Create component of selected points',
-    disabled: () => !createNewFilterNodeEnabled.value,
-    onClick: createNewFilterNode,
-  },
-  {
-    type: 'textSelectionMenu',
-    selectedTextOption: yAxisSelected,
-    title: 'Choose Y Axis Label',
-    heading: 'Y Axis Label: ',
-    options: {
-      none: {
-        label: 'No Label',
-      },
-      ...makeSeriesLabelOptions(),
+const createTextSelectionButton = (): ToolbarItem => ({
+  type: 'textSelectionMenu',
+  selectedTextOption: yAxisSelected,
+  title: 'Choose Y Axis Label',
+  heading: 'Y Axis Label: ',
+  options: {
+    none: {
+      label: 'No Label',
     },
+    ...makeSeriesLabelOptions(),
   },
-])
+})
+
+function useScatterplotVizToolbar() {
+  const textSelectionButton = createTextSelectionButton()
+  return computed<ToolbarItem[]>(() => [
+    {
+      icon: 'select',
+      title: 'Enable Selection',
+      toggle: selectionEnabled,
+    },
+    {
+      icon: 'show_all',
+      title: 'Fit All',
+      onClick: () => zoomToSelected(false),
+    },
+    {
+      icon: 'zoom',
+      title: 'Zoom to Selected',
+      disabled: () => brushExtent.value == null,
+      onClick: zoomToSelected,
+    },
+    {
+      icon: 'add_to_graph_editor',
+      title: 'Create component of selected points',
+      disabled: () => !createNewFilterNodeEnabled.value,
+      onClick: createNewFilterNode,
+    },
+    ...(data.value.is_multi_series ? [textSelectionButton] : []),
+  ])
+}
+
+config.setToolbar(useScatterplotVizToolbar())
 </script>
 
 <template>

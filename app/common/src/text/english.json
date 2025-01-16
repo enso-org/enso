@@ -1,6 +1,10 @@
 {
   "submit": "Submit",
   "retry": "Retry",
+
+  "arbitraryFetchError": "An error occurred while fetching data",
+  "arbitraryFetchImageError": "An error occurred while fetching an image",
+
   "createFolderError": "Could not create new folder",
   "createProjectError": "Could not create new project",
   "createDatalinkError": "Could not create new Datalink",
@@ -17,6 +21,9 @@
   "deleteAssetError": "Could not delete '$0'",
   "restoreAssetError": "Could not restore '$0'",
 
+  "refetchQueriesPending": "Getting latest updates...",
+  "refetchQueriesError": "Could not get latest updates. Some information may be outdated",
+
   "localBackendDatalinkError": "Cannot create Datalinks on the local drive",
   "localBackendSecretError": "Cannot create secrets on the local drive",
   "offlineUploadFilesError": "Cannot upload files when offline",
@@ -32,7 +39,6 @@
   "editDescriptionError": "Could not edit description",
   "canOnlyDownloadFilesError": "You currently can only download files.",
   "noProjectSelectedError": "First select a project to download.",
-  "downloadInvalidTypeError": "You can only download files, projects, and Datalinks",
   "downloadProjectError": "Could not download project '$0'",
   "downloadFileError": "Could not download file '$0'",
   "downloadDatalinkError": "Could not download Datalink '$0'",
@@ -52,10 +58,10 @@
   "otherUserIsUsingProjectError": "Someone else is using this project",
   "localBackendNotDetectedError": "Could not detect the local backend",
 
+  "invalidInput": "Invalid input",
+  "nameShouldBeUnique": "Name must be unique",
+  "nameShouldNotContainInvalidCharacters": "Name should not contain invalid characters",
   "invalidEmailValidationError": "Please enter a valid email address",
-
-  "projectHasNoSourceFilesPhrase": "project has no source files",
-  "fileNotFoundPhrase": "file not found",
 
   "noNewProfilePictureError": "Could not upload a new profile picture because no image was found",
 
@@ -179,6 +185,7 @@
   "getCustomerPortalUrlBackendError": "Could not get customer portal URL",
   "duplicateLabelError": "This label already exists.",
   "emptyStringError": "This value must not be empty.",
+  "resolveProjectAssetPathBackendError": "Could not get asset",
 
   "directoryAssetType": "folder",
   "directoryDoesNotExistError": "Unable to find directory. Does it exist?",
@@ -407,6 +414,7 @@
   "thisFolderFailedToFetch": "This folder failed to fetch.",
   "yourTrashIsEmpty": "Your trash is empty.",
   "deleteTheAssetTypeTitle": "delete the $0 '$1'",
+  "deleteTheAssetTypeTitleForever": "permanently delete the $0 '$1'",
   "trashTheAssetTypeTitle": "move the $0 '$1' to Trash",
   "notImplemetedYet": "Not implemented yet.",
   "newLabelButtonLabel": "New label",
@@ -452,7 +460,8 @@
   "youHaveNoRecentProjects": "You have no recent projects. Switch to another category to create a project.",
   "youHaveNoFiles": "This folder is empty. You can create a project using the buttons above.",
   "placeholderChatPrompt": "Login or register to access live chat with our support team.",
-  "confirmPrompt": "Are you sure you want to $0?",
+  "confirmPrompt": "Do you really want to $0?",
+  "thisOperationCannotBeUndone": "This operation is final and cannot be undone.",
   "couldNotInviteUser": "Could not invite user $0",
   "inviteFormSeatsLeft": "You have $0 seats left on your plan. Upgrade to invite more",
   "inviteFormSeatsLeftError": "You have exceed the number of seats on your plan by $0",
@@ -484,21 +493,20 @@
   "hidePassword": "Hide password",
   "showPassword": "Show password",
   "copiedToClipboard": "Copied to clipboard",
-  "noResultsFound": "No results found.",
-  "youAreOffline": "You are offline.",
-  "cannotCreateAssetsHere": "You do not have the permissions to create assets here.",
+  "noResultsFound": "No results found",
+  "youAreOffline": "You are offline",
+  "cannotCreateAssetsHere": "You do not have the permissions to create assets here",
   "enableVersionChecker": "Enable Version Checker",
   "enableVersionCheckerDescription": "Show a dialog if the current version of the desktop app does not match the latest version.",
   "disableAnimations": "Disable animations",
   "disableAnimationsDescription": "Disable all animations in the app.",
-  "removeTheLocalDirectoryXFromFavorites": "remove the local folder '$0' from your favorites",
-  "pleaseSelectAtLeastOneItem": "Please select at least one item.",
+  "removeTheLocalDirectoryXFromFavorites": "remove the local folder '$0' from your sidebar",
   "changeLocalRootDirectoryInSettings": "Change the root folder",
   "localStorage": "Local Storage",
   "addLocalDirectory": "Add Folder",
   "browseForNewLocalRootDirectory": "Browse for new Root Folder",
   "resetLocalRootDirectory": "Reset Root Folder",
-  "removeDirectoryFromFavorites": "Remove folder from favorites",
+  "removeDirectoryFromFavorites": "Remove from Sidebar",
   "organizationInviteTitle": "You have been invited!",
   "organizationInvitePrefix": "The organization '",
   "organizationInviteSuffix": "' is inviting you. Would you like to accept? All your assets will be moved with you to your personal space.",
@@ -774,6 +782,7 @@
   "accessedDataColumnName": "Accessed data",
   "docsColumnName": "Docs",
   "rootFolderColumnName": "Root folder",
+  "pathColumnName": "Location",
 
   "settingsShortcut": "Settings",
   "closeTabShortcut": "Close Tab",
@@ -843,6 +852,10 @@
   "accessedDataColumnHide": "Accessed Data",
   "docsColumnShow": "Docs",
   "docsColumnHide": "Docs",
+  "pathColumnShow": "Location",
+  "pathColumnHide": "Location",
+
+  "hideColumn": "Hide column",
 
   "activityLog": "Activity Log",
   "startDate": "Start Date",

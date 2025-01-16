@@ -5,12 +5,15 @@ import * as reactQuery from '@tanstack/react-query'
 
 import UntrashIcon from '#/assets/untrash.svg'
 
-import * as authProvider from '#/providers/AuthProvider'
+import { useAuth } from '#/providers/AuthProvider'
 import * as textProvider from '#/providers/TextProvider'
 
+import { LOGIN_PATH } from '#/appUtils'
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import SvgMask from '#/components/SvgMask'
+import { useSessionAPI } from '#/providers/SessionProvider'
+import { useNavigate } from 'react-router'
 
 // ======================
 // === RestoreAccount ===
@@ -19,9 +22,16 @@ import SvgMask from '#/components/SvgMask'
 /** Restore an account that has been deleted. */
 export default function RestoreAccount() {
   const { getText } = textProvider.useText()
-  const { signOut, restoreUser } = authProvider.useAuth()
+  const { restoreUser } = useAuth()
+  const { signOut } = useSessionAPI()
+  const navigate = useNavigate()
 
-  const signOutMutation = reactQuery.useMutation({ mutationFn: signOut })
+  const signOutMutation = reactQuery.useMutation({
+    mutationFn: signOut,
+    onSuccess: () => {
+      navigate(LOGIN_PATH)
+    },
+  })
   const restoreAccountMutation = reactQuery.useMutation({
     mutationFn: () => restoreUser(),
   })
@@ -37,14 +47,15 @@ export default function RestoreAccount() {
         <aria.Heading level={1} className="mb-4 text-3xl">
           {getText('restoreAccount')}
         </aria.Heading>
+
         <p className="max-w-[36rem] text-balance text-center">
           {getText('restoreAccountDescription')}
         </p>
 
         <div className="mt-8 flex items-center gap-8">
           <ariaComponents.Button
-            onPress={() => {
-              restoreAccountMutation.mutate()
+            onPress={async () => {
+              await restoreAccountMutation.mutateAsync()
             }}
             loading={restoreAccountMutation.isPending}
             isDisabled={restoreAccountMutation.isPending}
@@ -53,12 +64,13 @@ export default function RestoreAccount() {
           >
             {getText('restoreAccountSubmit')}
           </ariaComponents.Button>
+
           <ariaComponents.Button
             variant="icon"
             loading={signOutMutation.isPending}
             isDisabled={signOutMutation.isPending}
-            onPress={() => {
-              signOutMutation.mutate()
+            onPress={async () => {
+              await signOutMutation.mutateAsync()
             }}
           >
             {getText('signOutShortcut')}

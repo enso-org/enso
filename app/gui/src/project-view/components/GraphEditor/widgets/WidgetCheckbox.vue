@@ -43,7 +43,7 @@ const value = computed({
         value ? ('True' as Identifier) : ('False' as Identifier),
       )
       if (requiresImport) graph.addMissingImports(edit, theImport)
-      props.onUpdate({ edit })
+      props.onUpdate({ edit, directInteraction: true })
     } else {
       graph.addMissingImports(edit, theImport)
       props.onUpdate({
@@ -52,6 +52,7 @@ const value = computed({
           value: value ? 'True' : 'False',
           origin: props.input.portId,
         },
+        directInteraction: true,
       })
     }
   },

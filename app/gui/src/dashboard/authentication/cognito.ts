@@ -74,8 +74,12 @@ interface UserAttributes {
 }
 /* eslint-enable @typescript-eslint/naming-convention */
 
-/** The type of multi-factor authentication (MFA) that the user has set up. */
-export type MfaType = 'NOMFA' | 'SMS_MFA' | 'SOFTWARE_TOKEN_MFA' | 'TOTP'
+/** The type of multi-factor authentication (MFA) including non-specified MFA */
+export type MfaType = MfaProtectionTypes | 'NOMFA' | 'TOTP'
+/**
+ * MFA protection types that the user can set up.
+ */
+export type MfaProtectionTypes = 'SMS_MFA' | 'SOFTWARE_TOKEN_MFA'
 
 /**
  * The type of challenge that the user is currently facing after signing in.
@@ -184,6 +188,82 @@ interface CognitoError {
   readonly message: string
 }
 
+/**
+ * Return type for Confirm sign up endpoint
+ */
+export type ConfirmSignInReturn = Promise<
+  results.Err<AmplifyError> | results.Ok<cognito.CognitoUser>
+>
+
+/**
+ * Return type for Setup TOTP endpoint
+ */
+export interface SetupTOTPReturn {
+  /** The URL to scan the QR code */
+  readonly url: string
+  /** The secret to use for the TOTP */
+  readonly secret: string
+}
+
+/**
+ * Interface that represents Auth Provider API
+ * Currently, it's tightly coupled with Cognito, but in the future, it should be decoupled from
+ * Cognito and be able to be used with other Auth Providers.
+ *
+ * Currently used in unit tests to mock the Auth Provider API
+ */
+export interface ISessionProvider {
+  readonly userSession: () => Promise<UserSession | null>
+  readonly organizationId: () => Promise<string | null>
+  readonly email: () => Promise<string>
+  readonly signUp: (
+    username: string,
+    password: string,
+    organizationId: string | null,
+  ) => Promise<results.Err<SignUpError> | results.Ok<unknown>>
+  readonly confirmSignUp: (
+    email: string,
+    code: string,
+  ) => Promise<results.Err<ConfirmSignUpError> | results.Ok<unknown>>
+  readonly signInWithGoogle: () => Promise<void>
+  readonly signInWithGitHub: () => Promise<void>
+  readonly signInWithPassword: (
+    username: string,
+    password: string,
+  ) => Promise<results.Err<SignInWithPasswordError> | results.Ok<amplify.CognitoUser>>
+  readonly refreshUserSession: () => Promise<UserSession | null>
+  readonly signOut: () => Promise<void>
+  readonly forgotPassword: (
+    email: string,
+  ) => Promise<results.Err<ForgotPasswordError> | results.Ok<unknown>>
+  readonly forgotPasswordSubmit: (
+    email: string,
+    code: string,
+    password: string,
+  ) => Promise<results.Err<ForgotPasswordSubmitError> | results.Ok<unknown>>
+  readonly changePassword: (
+    oldPassword: string,
+    newPassword: string,
+  ) => Promise<results.Err<AmplifyError> | results.Ok<unknown>>
+  readonly setupTOTP: () => Promise<results.Err<AmplifyError> | results.Ok<SetupTOTPReturn>>
+  readonly verifyTotpSetup: (
+    totpToken: string,
+  ) => Promise<results.Err<AmplifyError> | results.Ok<unknown>>
+  readonly updateMFAPreference: (
+    mfaMethod: MfaType,
+  ) => Promise<results.Err<AmplifyError> | results.Ok<void>>
+  readonly getMFAPreference: () => Promise<results.Err<AmplifyError> | results.Ok<MfaType>>
+  readonly verifyTotpToken: (
+    totpToken: string,
+  ) => Promise<results.Err<AmplifyError> | results.Ok<boolean>>
+  readonly saveAccessToken: (accessTokenPayload: saveAccessToken.AccessToken | null) => void
+  readonly confirmSignIn: (
+    user: cognito.CognitoUser,
+    otp: string,
+    mfaType: MfaProtectionTypes,
+  ) => ConfirmSignInReturn
+}
+
 // ===============
 // === Cognito ===
 // ===============
@@ -193,7 +273,7 @@ interface CognitoError {
  * This way, the methods don't throw all errors, but define exactly which errors they return.
  * The caller can then handle them via pattern matching on the {@link results.Result} type.
  */
-export class Cognito {
+export class Cognito implements ISessionProvider {
   /** Create a new Cognito wrapper. */
   constructor(
     private readonly logger: loggerProvider.Logger,
@@ -468,9 +548,9 @@ export class Cognito {
     const cognitoUserResult = await currentAuthenticatedUser()
     if (cognitoUserResult.ok) {
       const cognitoUser = cognitoUserResult.unwrap()
-      const result = await results.Result.wrapAsync(
-        async () => await amplify.Auth.setPreferredMFA(cognitoUser, mfaMethod),
-      )
+      const result = await results.Result.wrapAsync(async () => {
+        await amplify.Auth.setPreferredMFA(cognitoUser, mfaMethod)
+      })
       return result.mapErr(intoAmplifyErrorOrThrow)
     } else {
       return results.Err(cognitoUserResult.val)
@@ -503,7 +583,9 @@ export class Cognito {
       const cognitoUser = cognitoUserResult.unwrap()
 
       return (
-        await results.Result.wrapAsync(() => amplify.Auth.verifyTotpToken(cognitoUser, totpToken))
+        await results.Result.wrapAsync(() =>
+          amplify.Auth.verifyTotpToken(cognitoUser, totpToken).then(() => true),
+        )
       ).mapErr(intoAmplifyErrorOrThrow)
     } else {
       return results.Err(cognitoUserResult.val)
@@ -514,8 +596,8 @@ export class Cognito {
   async confirmSignIn(
     user: amplify.CognitoUser,
     confirmationCode: string,
-    mfaType: 'SMS_MFA' | 'SOFTWARE_TOKEN_MFA',
-  ) {
+    mfaType: MfaProtectionTypes,
+  ): ConfirmSignInReturn {
     const result = await results.Result.wrapAsync(() =>
       amplify.Auth.confirmSignIn(user, confirmationCode, mfaType),
     )

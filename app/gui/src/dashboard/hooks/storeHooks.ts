@@ -7,6 +7,7 @@ import type { DispatchWithoutAction, Reducer, RefObject } from 'react'
 import { useEffect, useReducer, useRef } from 'react'
 import { type StoreApi } from 'zustand'
 import { useStoreWithEqualityFn } from 'zustand/traditional'
+
 import { objectEquality, refEquality, shallowEquality } from '../utilities/equalities'
 
 /**
@@ -54,11 +55,8 @@ export function useStore<State, Slice>(
   options: UseStoreOptions<Slice> = {},
 ) {
   const { unsafeEnableTransition = false, areEqual } = options
-
   const prevUnsafeEnableTransition = useRef(unsafeEnableTransition)
-
   const equalityFunction = resolveAreEqual(areEqual)
-
   return useNonCompilableConditionalStore(
     store,
     selector,

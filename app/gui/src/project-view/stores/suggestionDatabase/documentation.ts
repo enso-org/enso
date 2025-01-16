@@ -2,8 +2,9 @@ import type { Group } from '@/stores/suggestionDatabase'
 import { findIndexOpt } from '@/util/data/array'
 import { isSome, type Opt } from '@/util/data/opt'
 import { parseDocs, type Doc } from '@/util/docParser'
-import type { Icon } from '@/util/iconName'
+import type { Icon } from '@/util/iconMetadata/iconName'
 import { type QualifiedName } from '@/util/qualifiedName'
+import { type DeepReadonly } from 'vue'
 
 export interface DocumentationData {
   documentation: Doc.Section[]
@@ -31,7 +32,7 @@ export function tagValue(doc: Doc.Section[], tag: string): Opt<string> {
 export function getGroupIndex(
   groupName: string,
   entryModule: QualifiedName,
-  groups: Group[],
+  groups: DeepReadonly<Group[]>,
 ): Opt<number> {
   let normalized: string
   if (groupName.indexOf('.') >= 0) {
@@ -48,7 +49,7 @@ export function getGroupIndex(
 export function documentationData(
   documentation: Opt<string>,
   definedIn: QualifiedName,
-  groups: Group[],
+  groups: DeepReadonly<Group[]>,
 ): DocumentationData {
   const parsed = documentation != null ? parseDocs(documentation) : []
   const groupName = tagValue(parsed, 'Group')

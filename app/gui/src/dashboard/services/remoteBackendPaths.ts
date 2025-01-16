@@ -1,7 +1,6 @@
 /** @file Paths used by the `RemoteBackend`. */
+import * as backend from '#/services/Backend'
 import { newtypeConstructor, type Newtype } from 'enso-common/src/utilities/data/newtype'
-
-import type * as backend from '#/services/Backend'
 
 /** Relative HTTP path to the "list users" endpoint of the Cloud backend API. */
 export const LIST_USERS_PATH = 'users'
@@ -217,8 +216,7 @@ export function getCheckoutSessionPath(checkoutSessionId: backend.CheckoutSessio
 type DirectoryId = Newtype<string, 'DirectoryId'>
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 const DirectoryId = newtypeConstructor<DirectoryId>()
-export const ROOT_PARENT_DIRECTORY_ID = DirectoryId('')
 /** The ID of the directory containing the home directories of all users. */
-export const USERS_DIRECTORY_ID = DirectoryId('directory-0000000000000000000000users')
+export const USERS_DIRECTORY_ID = backend.DirectoryId('directory-0000000000000000000000users')
 /** The ID of the directory containing home directories of all teams. */
-export const TEAMS_DIRECTORY_ID = DirectoryId('directory-0000000000000000000000teams')
+export const TEAMS_DIRECTORY_ID = backend.DirectoryId('directory-0000000000000000000000teams')

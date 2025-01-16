@@ -8,14 +8,15 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
 
-import * as ariaComponents from '#/components/AriaComponents'
 import type * as column from '#/components/dashboard/column'
 import SvgMask from '#/components/SvgMask'
 
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 
-import type * as backendModule from '#/services/Backend'
+import * as backendModule from '#/services/Backend'
 
+import EditableSpan from '#/components/EditableSpan'
+import { useText } from '#/providers/TextProvider'
 import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
@@ -37,11 +38,17 @@ export interface SecretNameColumnProps extends column.AssetColumnProps {
  */
 export default function SecretNameColumn(props: SecretNameColumnProps) {
   const { item, selected, state, rowState, setRowState, isEditable, depth } = props
-  const { backend } = state
+  const { backend, nodeMap } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
+  const { getText } = useText()
   const { setModal } = modalProvider.useSetModal()
 
   const updateSecretMutation = useMutation(backendMutationOptions(backend, 'updateSecret'))
+
+  const doRename = async (newTitle: string) => {
+    await updateSecretMutation.mutateAsync([item.id, { title: newTitle, value: null }, item.title])
+    setIsEditing(false)
+  }
 
   const setIsEditing = (isEditingName: boolean) => {
     if (isEditable) {
@@ -52,7 +59,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
   return (
     <div
       className={tailwindMerge.twMerge(
-        'flex h-table-row w-auto min-w-48 max-w-96 items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y contain-strict rounded-rows-child [contain-intrinsic-size:37px] [content-visibility:auto]',
+        'flex h-table-row w-auto min-w-48 max-w-full items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y rounded-rows-child',
         indent.indentClass(depth),
       )}
       onKeyDown={(event) => {
@@ -69,9 +76,9 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
             <UpsertSecretModal
               id={item.id}
               name={item.title}
-              doCreate={async (_name, value) => {
+              doCreate={async (title, value) => {
                 try {
-                  await updateSecretMutation.mutateAsync([item.id, { value }, item.title])
+                  await updateSecretMutation.mutateAsync([item.id, { title, value }, item.title])
                 } catch (error) {
                   toastAndLog(null, error)
                 }
@@ -82,14 +89,28 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
       }}
     >
       <SvgMask src={KeyIcon} className="m-name-column-icon size-4" />
-      {/* Secrets cannot be renamed. */}
-      <ariaComponents.Text
+      <EditableSpan
         data-testid="asset-row-name"
-        font="naming"
-        className="grow bg-transparent"
+        editable={rowState.isEditingName}
+        className="grow bg-transparent font-naming"
+        onSubmit={doRename}
+        onCancel={() => {
+          setIsEditing(false)
+        }}
+        schema={(z) =>
+          z.refine(
+            (value) =>
+              backendModule.isNewTitleUnique(
+                item,
+                value,
+                nodeMap.current.get(item.parentId)?.children?.map((child) => child.item),
+              ),
+            { message: getText('nameShouldBeUnique') },
+          )
+        }
       >
         {item.title}
-      </ariaComponents.Text>
+      </EditableSpan>
     </div>
   )
 }

@@ -1,6 +1,7 @@
 package org.enso.table.excel.xssfreader;
 
 import java.io.IOException;
+import java.nio.channels.ClosedByInterruptException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.SortedMap;
@@ -33,7 +34,7 @@ public class XSSFReaderSheet implements ExcelSheet {
     this.parent = parent;
   }
 
-  private synchronized void ensureReadSheetData() {
+  private synchronized void ensureReadSheetData() throws InterruptedException {
     if (hasReadSheetData) {
       return;
     }
@@ -70,6 +71,8 @@ public class XSSFReaderSheet implements ExcelSheet {
               try {
                 var sheet = reader.getSheet(relId);
                 xmlReader.parse(new InputSource(sheet));
+              } catch (ClosedByInterruptException e) {
+                throw new InterruptedException(e.getMessage());
               } catch (SAXException | InvalidFormatException | IOException e) {
                 throw new RuntimeException(e);
               }
@@ -94,25 +97,25 @@ public class XSSFReaderSheet implements ExcelSheet {
     return sheetName;
   }
 
-  public String getDimensions() {
+  public String getDimensions() throws InterruptedException {
     ensureReadSheetData();
     return dimensions;
   }
 
   @Override
-  public int getFirstRow() {
+  public int getFirstRow() throws InterruptedException {
     ensureReadSheetData();
     return firstRow;
   }
 
   @Override
-  public int getLastRow() {
+  public int getLastRow() throws InterruptedException {
     ensureReadSheetData();
     return lastRow;
   }
 
   @Override
-  public ExcelRow get(int row) {
+  public ExcelRow get(int row) throws InterruptedException {
     ensureReadSheetData();
 
     if (!rowData.containsKey(row)) {

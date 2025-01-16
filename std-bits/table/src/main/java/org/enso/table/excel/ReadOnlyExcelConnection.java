@@ -1,7 +1,7 @@
 package org.enso.table.excel;
 
 import java.io.IOException;
-import java.util.function.Function;
+import org.enso.table.util.FunctionWithException;
 
 public class ReadOnlyExcelConnection implements AutoCloseable {
 
@@ -27,7 +27,9 @@ public class ReadOnlyExcelConnection implements AutoCloseable {
     record = null;
   }
 
-  public synchronized <T> T withWorkbook(Function<ExcelWorkbook, T> f) throws IOException {
+  public synchronized <T> T withWorkbook(
+      FunctionWithException<ExcelWorkbook, T, InterruptedException> f)
+      throws IOException, InterruptedException {
     if (record == null) {
       throw new IllegalStateException("ReadOnlyExcelConnection is being used after it was closed.");
     }

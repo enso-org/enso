@@ -28,7 +28,7 @@ type Data_Link_With_Input_Stream
     ## PRIVATE
        Creates a `Data_Link_With_Input_Stream` from a data link instance, if
        that data link supports streaming. If it does not, an error is thrown.
-    find data_link_instance (if_not_supported = (Error.throw (Illegal_Argument.Error "The "+(data_link_name data_link_instance)+" cannot be opened as a stream."))) -> Data_Link_With_Input_Stream ! Illegal_Argument =
+    find data_link_instance (if_not_supported = (Error.throw (Illegal_Argument.Error "The "+(data_link_name data_link_instance)+" cannot be opened as a stream."))) =
         handle_no_conversion _ = if_not_supported
         # `if_not_error` as workaround for https://github.com/enso-org/enso/issues/9669
         data_link_instance . if_not_error <|
@@ -50,7 +50,7 @@ type Data_Link_With_Output_Stream
     ## PRIVATE
        Creates a `Data_Link_With_Output_Stream` from a data link instance, if
        that data link supports streaming. If it does not, an error is thrown.
-    find data_link_instance (if_not_supported = (Error.throw (Illegal_Argument.Error "The "+(data_link_name data_link_instance)+" does not support writing raw data to it."))) -> Data_Link_With_Output_Stream ! Illegal_Argument =
+    find data_link_instance (if_not_supported = (Error.throw (Illegal_Argument.Error "The "+(data_link_name data_link_instance)+" does not support writing raw data to it."))) =
         handle_no_conversion _ = if_not_supported
         # `if_not_error` as workaround for https://github.com/enso-org/enso/issues/9669
         data_link_instance . if_not_error <|
@@ -72,7 +72,7 @@ type Writable_Data_Link
     ## PRIVATE
        Creates a `Writable_Data_Link` from a data link instance, if that data
        link supports writing. If it does not, an error is thrown.
-    find data_link_instance (if_not_supported = (Error.throw (Illegal_Argument.Error "The "+(data_link_name data_link_instance)+" does not support writing."))) -> Writable_Data_Link ! Illegal_Argument =
+    find data_link_instance (if_not_supported = (Error.throw (Illegal_Argument.Error "The "+(data_link_name data_link_instance)+" does not support writing."))) =
         handle_no_conversion _ = if_not_supported
         Panic.catch No_Such_Conversion (Writable_Data_Link.from data_link_instance) handle_no_conversion
 
@@ -86,6 +86,6 @@ type File_Like_Data_Link
     ## PRIVATE
        Creates a `Writable_Data_Link` from a data link instance, if that data
        link supports writing. If it does not, an error is thrown.
-    find data_link_instance (if_not_supported = (Error.throw (Illegal_Argument.Error "The "+(data_link_name data_link_instance)+" is not a link to a file object."))) -> File_Like_Data_Link ! Illegal_Argument =
+    find data_link_instance (if_not_supported = (Error.throw (Illegal_Argument.Error "The "+(data_link_name data_link_instance)+" is not a link to a file object."))) =
         handle_no_conversion _ = if_not_supported
         Panic.catch No_Such_Conversion (File_Like_Data_Link.from data_link_instance) handle_no_conversion

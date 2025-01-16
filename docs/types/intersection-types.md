@@ -68,7 +68,7 @@ Just as demonstrated at
 https://github.com/enso-org/enso/commit/3d8a0e1b90b20cfdfe5da8d2d3950f644a4b45b8#diff-c6ef852899778b52ce6a11ebf9564d102c273021b212a4848b7678e120776287R23
 -->
 
-## Narrowing Type Check
+### Narrowing Type Check
 
 When an _intersection type_ value is being downcast to _some of the types it
 already represents_, these types become its _visible_ types. Any additional
@@ -160,9 +160,9 @@ Table.join self right:Table -> Table = ...
 
 Such a `Table&Column` value can be returned from the above `Table.join` function
 and while having only `Table` behavior by default, still being able to be
-explicitly casted by the visual environment to `Column`.
+explicitly cast by the visual environment to `Column`.
 
-## Converting Type Check
+### Converting Type Check
 
 When an _intersection type_ is being checked against a type it doesn't
 represent, any of its component types can be used for
@@ -180,3 +180,21 @@ case it looses its `Float` type and `ct:Float` would fail.
 In short: when a [conversion](../syntax/conversions.md) is needed to satisfy a
 type check a new value is created to satisfy just the types requested in the
 check.
+
+## Equality & Hash Code
+
+A value of an intersection type is equal with other value, if all values _it has
+been cast to_ are equal to the other value. E.g. a value of `Complex&Float` is
+equal to some other value only if its `Complex` part and `Float` part are equal
+to the other value. The _hidden_ types of a value (e.g. those that it _can be
+cast to_, if any) aren't considered in the equality check.
+
+The order of types isn't important for equality. E.g. `Complex&Float` value can
+be equal to `Float&Complex` if the individual components (values _it has been
+cast to_) match. As implied by (custom)
+[equality rules](../syntax/functions.md#custom-equality) the `hash` of a value
+of _intersection type_ must thus be a sum of `hash` values of all the values it
+_has been cast to_. As a special case any value wrapped into an _intersection
+type_, but _cast down_ to the original type is `==` and has the same `hash` as
+the original value. E.g. `4.2 : Complex&Float : Float` is `==` and has the same
+`hash` as `4.2` (in spite it _can be cast to_ `Complex`).

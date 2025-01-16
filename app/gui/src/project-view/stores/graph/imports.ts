@@ -1,7 +1,7 @@
 import { SuggestionDb } from '@/stores/suggestionDatabase'
 import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
-import { MutableModule, parseIdent, parseIdents, parseQualifiedName } from '@/util/ast/abstract'
+import { astToQualifiedName, MutableModule, parseIdent, parseIdents } from '@/util/ast/abstract'
 import { unwrap } from '@/util/data/result'
 import {
   qnLastSegment,
@@ -24,7 +24,7 @@ export function recognizeImport(ast: Ast.Import): Import | null {
   const all = ast.all
   const hiding = ast.hiding
   const moduleAst = from ?? import_
-  const module = moduleAst ? parseQualifiedName(moduleAst) : null
+  const module = moduleAst ? astToQualifiedName(moduleAst) : null
   if (!module) return null
   if (all) {
     const except = (hiding != null ? parseIdents(hiding) : []) ?? []

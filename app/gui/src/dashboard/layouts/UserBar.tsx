@@ -2,7 +2,8 @@
 import { SUBSCRIBE_PATH } from '#/appUtils'
 import ChatIcon from '#/assets/chat.svg'
 import DefaultUserIcon from '#/assets/default_user.svg'
-import { Button, DialogTrigger } from '#/components/AriaComponents'
+import Offline from '#/assets/offline_filled.svg'
+import { Button, DialogTrigger, Text } from '#/components/AriaComponents'
 import { PaywallDialogButton } from '#/components/Paywall'
 import FocusArea from '#/components/styled/FocusArea'
 import { usePaywall } from '#/hooks/billing'
@@ -11,6 +12,9 @@ import InviteUsersModal from '#/modals/InviteUsersModal'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useText } from '#/providers/TextProvider'
 import { Plan } from '#/services/Backend'
+import { AnimatePresence, motion } from 'framer-motion'
+import SvgMask from '../components/SvgMask'
+import { useOffline } from '../hooks/offlineHooks'
 
 /** Whether the chat button should be visible. Temporarily disabled. */
 const SHOULD_SHOW_CHAT_BUTTON: boolean = false
@@ -25,36 +29,51 @@ export interface UserBarProps {
   readonly setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
   readonly goToSettingsPage: () => void
   readonly onSignOut: () => void
-  readonly onShareClick?: (() => void) | null | undefined
 }
 
 /** A toolbar containing chat and the user menu. */
 export default function UserBar(props: UserBarProps) {
-  const { invisible = false, setIsHelpChatOpen, onShareClick, goToSettingsPage, onSignOut } = props
+  const { invisible = false, setIsHelpChatOpen, goToSettingsPage, onSignOut } = props
 
   const { user } = useFullUserSession()
   const { getText } = useText()
   const { isFeatureUnderPaywall } = usePaywall({ plan: user.plan })
+  const { isOffline } = useOffline()
 
   const shouldShowUpgradeButton =
     user.isOrganizationAdmin && user.plan !== Plan.enterprise && user.plan !== Plan.team
   // eslint-disable-next-line no-restricted-syntax
   const shouldShowPaywallButton = (false as boolean) && isFeatureUnderPaywall('inviteUser')
-  // FIXME[sb]: Re-enable when they are wanted again.
-  // eslint-disable-next-line no-restricted-syntax
-  const shouldShowShareButton = (false as boolean) && onShareClick != null
   const shouldShowInviteButton =
     // eslint-disable-next-line no-restricted-syntax
-    (false as boolean) && !shouldShowShareButton && !shouldShowPaywallButton
+    (false as boolean) && !shouldShowPaywallButton
 
   return (
     <FocusArea active={!invisible} direction="horizontal">
       {(innerProps) => (
-        <div className="bg-primary/5 pt-0.5">
+        <div className="bg-primary/10 pt-0.5">
           <div
             className="flex h-[46px] shrink-0 cursor-default items-center gap-user-bar pl-icons-x pr-3"
             {...innerProps}
           >
+            <AnimatePresence initial={false}>
+              {isOffline && (
+                <motion.div
+                  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+                  initial={{ opacity: 0, x: 12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+                  exit={{ opacity: 0, x: 12 }}
+                  className="mr-2 flex items-center gap-2"
+                >
+                  <SvgMask src={Offline} className="aspect-square w-4 flex-none" />
+                  <Text tooltip={getText('offlineToastMessage')} tooltipDisplay="always">
+                    {getText('youAreOffline')}
+                  </Text>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {SHOULD_SHOW_CHAT_BUTTON && (
               <Button
                 variant="icon"
@@ -90,16 +109,6 @@ export default function UserBar(props: UserBarProps) {
               </Button>
             )}
 
-            {shouldShowShareButton && (
-              <Button
-                size="medium"
-                variant="accent"
-                aria-label={getText('shareButtonAltText')}
-                onPress={onShareClick}
-              >
-                {getText('share')}
-              </Button>
-            )}
             <DialogTrigger>
               <Button
                 size="custom"
@@ -114,6 +123,7 @@ export default function UserBar(props: UserBarProps) {
               />
               <UserMenu goToSettingsPage={goToSettingsPage} onSignOut={onSignOut} />
             </DialogTrigger>
+
             {/* Required for shortcuts to work. */}
             <div className="hidden">
               <UserMenu hidden goToSettingsPage={goToSettingsPage} onSignOut={onSignOut} />

@@ -1,5 +1,3 @@
-import { expect, test } from 'vitest'
-
 import {
   compareSuggestions,
   labelOfEntry,
@@ -14,9 +12,10 @@ import {
   makeModule,
   makeModuleMethod,
   makeStaticMethod,
-} from '@/stores/suggestionDatabase/entry'
+} from '@/stores/suggestionDatabase/mockSuggestion'
 import { allRanges } from '@/util/data/range'
 import shuffleSeed from 'shuffle-seed'
+import { expect, test } from 'vitest'
 
 test.each([
   [makeModuleMethod('Standard.Base.Data.read'), 'Data.read'],

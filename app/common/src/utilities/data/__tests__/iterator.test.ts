@@ -82,7 +82,7 @@ function makeCases(): IteratorCase<unknown>[] {
       count: 2,
     },
     {
-      iterable: iter.filter([7, 'a', 8, 'b', 9], el => typeof el === 'string'),
+      iterable: iter.filter([7, 'a', 8, 'b', 9], (el) => typeof el === 'string'),
       soleValue: undefined,
       first: 'a',
       last: 'b',

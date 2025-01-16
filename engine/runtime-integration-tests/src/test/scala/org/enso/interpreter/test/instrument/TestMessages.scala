@@ -479,4 +479,33 @@ object TestMessages {
       )
     )
 
+  /** Create an pending interrupted response.
+    *
+    * @param contextId an identifier of the context
+    * @param expressionIds a list of pending expressions
+    * @return the expression update response
+    */
+  def pendingInterrupted(
+    contextId: UUID,
+    methodCall: Option[Api.MethodCall],
+    expressionIds: UUID*
+  ): Api.Response =
+    Api.Response(
+      Api.ExpressionUpdates(
+        contextId,
+        expressionIds.toSet.map { expressionId =>
+          Api.ExpressionUpdate(
+            expressionId,
+            None,
+            methodCall,
+            Vector(Api.ProfilingInfo.ExecutionTime(0)),
+            false,
+            true,
+            Api.ExpressionUpdate.Payload
+              .Pending(None, None, wasInterrupted = true)
+          )
+        }
+      )
+    )
+
 }

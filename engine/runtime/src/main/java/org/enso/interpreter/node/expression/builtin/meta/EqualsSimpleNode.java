@@ -155,7 +155,7 @@ abstract class EqualsSimpleNode extends Node {
     return EqualsAndInfo.FALSE;
   }
 
-  @Specialization
+  @Specialization(guards = "!isMulti(other)")
   EqualsAndInfo equalsDoubleInterop(
       double self,
       Object other,
@@ -323,7 +323,54 @@ abstract class EqualsSimpleNode extends Node {
     }
   }
 
+  static boolean isMulti(Object obj) {
+    return obj instanceof EnsoMultiValue;
+  }
+
   @Specialization
+  EqualsAndInfo equalsMultiValueMultiValue(
+      VirtualFrame frame,
+      EnsoMultiValue self,
+      EnsoMultiValue other,
+      @Shared("multiCast") @Cached EnsoMultiValue.CastToNode castNode,
+      @Shared("multiType") @Cached TypeOfNode typesNode,
+      @Shared("multiEquals") @Cached EqualsSimpleNode delegate) {
+    if (self == other) {
+      return EqualsAndInfo.TRUE;
+    }
+
+    var typesSelf = typesNode.findAllTypesOrNull(self, false);
+    var typesOther = typesNode.findAllTypesOrNull(other, false);
+    assert typesSelf != null;
+    assert typesOther != null;
+    for (var t : typesSelf) {
+      var selfValue = castNode.findTypeOrNull(t, self, false, false);
+      assert selfValue != null;
+      var otherValue = castNode.findTypeOrNull(t, other, false, false);
+      if (otherValue == null) {
+        return EqualsAndInfo.FALSE;
+      }
+      var res = delegate.execute(frame, selfValue, otherValue);
+      if (!res.isTrue()) {
+        return res;
+      }
+    }
+    for (var t : typesOther) {
+      var selfValue = castNode.findTypeOrNull(t, self, false, false);
+      if (selfValue == null) {
+        return EqualsAndInfo.FALSE;
+      }
+      var otherValue = castNode.findTypeOrNull(t, other, false, false);
+      assert otherValue != null;
+      var res = delegate.execute(frame, selfValue, otherValue);
+      if (!res.isTrue()) {
+        return res;
+      }
+    }
+    return EqualsAndInfo.TRUE;
+  }
+
+  @Specialization(guards = "!isMulti(other)")
   EqualsAndInfo equalsMultiValue(
       VirtualFrame frame,
       EnsoMultiValue self,
@@ -339,14 +386,14 @@ abstract class EqualsSimpleNode extends Node {
         continue;
       }
       var res = delegate.execute(frame, value, other);
-      if (res.isTrue()) {
+      if (!res.isTrue()) {
         return res;
       }
     }
-    return EqualsAndInfo.FALSE;
+    return EqualsAndInfo.TRUE;
   }
 
-  @Specialization
+  @Specialization(guards = "!isMulti(self)")
   EqualsAndInfo equalsMultiValueReversed(
       VirtualFrame frame,
       Object self,
@@ -438,6 +485,10 @@ abstract class EqualsSimpleNode extends Node {
 
   static boolean isPrimitiveValue(Object object) {
     return object instanceof Boolean || object instanceof Long || object instanceof Double;
+  }
+
+  static boolean isEnsoObject(Object v) {
+    return v instanceof EnsoObject;
   }
 
   static boolean isNotMulti(Object v) {

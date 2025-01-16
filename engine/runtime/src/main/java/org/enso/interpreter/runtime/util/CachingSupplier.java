@@ -1,6 +1,7 @@
 package org.enso.interpreter.runtime.util;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 public final class CachingSupplier<T> implements Supplier<T> {
@@ -53,6 +54,17 @@ public final class CachingSupplier<T> implements Supplier<T> {
       }
       return memo;
     }
+  }
+
+  /**
+   * Transform the result of this supplier by applying a mapping function {@code f}.
+   *
+   * @param f the mapping function
+   * @return the supplier providing the value with the mapping function applied
+   * @param <R> the result type
+   */
+  public <R> CachingSupplier<R> map(Function<T, R> f) {
+    return wrap(() -> f.apply(get()));
   }
 
   /**

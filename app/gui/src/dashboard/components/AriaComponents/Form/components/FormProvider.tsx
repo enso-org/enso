@@ -3,7 +3,6 @@
  *
  * Context that injects form instance into the component tree.
  */
-import type { PropsWithChildren } from 'react'
 import { createContext, useContext } from 'react'
 import invariant from 'tiny-invariant'
 import type * as types from './types'
@@ -20,7 +19,7 @@ const FormContext = createContext<FormContextType<any> | null>(null)
 
 /** Provides the form instance to the component tree. */
 export function FormProvider<Schema extends types.TSchema>(
-  props: FormContextType<Schema> & PropsWithChildren,
+  props: FormContextType<Schema> & { children: React.ReactNode },
 ) {
   const { children, form } = props
 

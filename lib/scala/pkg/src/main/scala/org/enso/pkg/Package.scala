@@ -40,6 +40,7 @@ class Package[F](
   val configFile: F        = root.getChild(Package.configFileName)
   val thumbFile: F         = root.getChild(Package.thumbFileName)
   val polyglotDir: F       = root.getChild(Package.polyglotExtensionsDirName)
+  val nativeLibraryDir: F  = polyglotDir.getChild(Package.nativeLibraryDirName)
   val internalDirectory: F = root.getChild(Package.internalDirName)
   val irCacheDirectory: F = internalDirectory
     .getChild(Package.cacheDirName)
@@ -599,6 +600,7 @@ object Package {
   val configFileName            = "package.yaml"
   val sourceDirName             = "src"
   val polyglotExtensionsDirName = "polyglot"
+  val nativeLibraryDirName      = "lib"
   val internalDirName           = ".enso"
   val mainFileName              = "Main.enso"
   val thumbFileName             = "thumb.png"

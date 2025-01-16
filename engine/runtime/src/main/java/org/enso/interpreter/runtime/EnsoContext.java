@@ -170,7 +170,7 @@ public final class EnsoContext {
 
   /** Perform expensive initialization logic for the context. */
   public void initialize() {
-    TruffleFileSystem fs = new TruffleFileSystem();
+    TruffleFileSystem fs = TruffleFileSystem.INSTANCE;
     PackageManager<TruffleFile> packageManager = new PackageManager<>(fs);
 
     Optional<TruffleFile> projectRoot = OptionsHelper.getProjectRoot(environment);

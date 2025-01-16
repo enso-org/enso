@@ -201,7 +201,7 @@ type No_Such_Method
     to_display_text self =
         target_name =
           is_poly = Meta.is_polyglot self.target
-          is_fn = Meta.type_of self.target == Function
+          is_fn = Meta.is_same_object Function (Meta.type_of self.target)
           if is_poly then "type " + self.target.to_display_text else
              if is_fn then self.target.to_text else
                 "type " + (Meta.type_of self.target).to_display_text

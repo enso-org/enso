@@ -55,8 +55,9 @@ public class EqualsMultiValueTest {
           var intType = builtins.number().getInteger();
           var textText = builtins.text();
           var fourExtraText =
-              EnsoMultiValue.create(
-                  new Type[] {intType, textText}, 1, new Object[] {4L, Text.create("Hi")});
+              EnsoMultiValue.NewNode.getUncached()
+                  .newValue(
+                      new Type[] {intType, textText}, 1, 0, new Object[] {4L, Text.create("Hi")});
 
           assertTrue("4 == 4t", equalityCheck(4L, fourExtraText));
           assertFalse("5 != 4t", equalityCheck(5L, fourExtraText));
@@ -85,7 +86,8 @@ public class EqualsMultiValueTest {
           //     x = _ : (Text & Integer) : Text
           // e.g. multi value with Text and Integer, casted to Text only
           //
-          var multiV = EnsoMultiValue.create(bothTypes, 1, text, integer);
+          var multiV =
+              EnsoMultiValue.NewNode.getUncached().newValue(bothTypes, 1, 0, text, integer);
 
           assertTrue("'Hi' == multiV", equalityCheck(text, multiV));
           assertFalse("'Ahoj' != multiV", equalityCheck(ahoj, multiV));
@@ -111,15 +113,27 @@ public class EqualsMultiValueTest {
           var intType = builtins.number().getInteger();
           var textText = builtins.text();
           var hi = Text.create("Hi");
-          var fourExtraText =
-              EnsoMultiValue.create(new Type[] {textText, intType}, 2, new Object[] {hi, 4L});
+          var textFour =
+              EnsoMultiValue.NewNode.getUncached()
+                  .newValue(new Type[] {textText, intType}, 2, 0, new Object[] {hi, 4L});
+          var textFive =
+              EnsoMultiValue.NewNode.getUncached()
+                  .newValue(new Type[] {textText, intType}, 2, 0, new Object[] {hi, 5L});
+          var fourText =
+              EnsoMultiValue.NewNode.getUncached()
+                  .newValue(new Type[] {intType, textText}, 2, 0, new Object[] {4L, hi});
 
-          assertTrue("4 == 4t", equalityCheck(4L, fourExtraText));
-          assertFalse("5 != 4t", equalityCheck(5L, fourExtraText));
-          assertTrue("4t == 4", equalityCheck(fourExtraText, 4L));
-          assertFalse("4t != 5", equalityCheck(fourExtraText, 5L));
-          assertTrue("4t == 'Hi'", equalityCheck(fourExtraText, hi));
-          assertTrue("'Hi' == 4t", equalityCheck(hi, fourExtraText));
+          assertFalse("4 != t", equalityCheck(4L, hi));
+          assertFalse("4 != 4t", equalityCheck(4L, textFour));
+          assertFalse("5 != 4t", equalityCheck(5L, textFour));
+          assertFalse("5t != 4t", equalityCheck(textFive, textFour));
+          assertFalse("4t != 4", equalityCheck(textFour, 4L));
+          assertFalse("4t != 5", equalityCheck(textFour, 5L));
+          assertFalse("4t != 'Hi'", equalityCheck(textFour, hi));
+          assertFalse("'Hi' != 4t", equalityCheck(hi, textFour));
+
+          assertTrue("t4 == 4t", equalityCheck(textFour, fourText));
+          assertTrue("4t == t4", equalityCheck(fourText, textFour));
 
           return null;
         });
@@ -134,12 +148,13 @@ public class EqualsMultiValueTest {
           var intType = builtins.number().getInteger();
           var textText = builtins.text();
           var fourExtraText =
-              EnsoMultiValue.create(
-                  new Type[] {intType, textText}, 2, new Object[] {4L, Text.create("Hi")});
+              EnsoMultiValue.NewNode.getUncached()
+                  .newValue(
+                      new Type[] {intType, textText}, 2, 0, new Object[] {4L, Text.create("Hi")});
 
-          assertTrue("4 == 4t", equalityCheck(4L, fourExtraText));
+          assertFalse("4 != 4t", equalityCheck(4L, fourExtraText));
           assertFalse("5 != 4t", equalityCheck(5L, fourExtraText));
-          assertTrue("4t == 4", equalityCheck(fourExtraText, 4L));
+          assertFalse("4t != 4", equalityCheck(fourExtraText, 4L));
           assertFalse("4t != 5", equalityCheck(fourExtraText, 5L));
 
           return null;
@@ -155,14 +170,17 @@ public class EqualsMultiValueTest {
           var intType = builtins.number().getInteger();
           var textText = builtins.text();
           var fourExtraText =
-              EnsoMultiValue.create(
-                  new Type[] {intType, textText}, 1, new Object[] {4L, Text.create("Hi")});
+              EnsoMultiValue.NewNode.getUncached()
+                  .newValue(
+                      new Type[] {intType, textText}, 1, 0, new Object[] {4L, Text.create("Hi")});
           var fourExtraText2 =
-              EnsoMultiValue.create(
-                  new Type[] {intType, textText}, 1, new Object[] {4L, Text.create("Hi")});
+              EnsoMultiValue.NewNode.getUncached()
+                  .newValue(
+                      new Type[] {intType, textText}, 1, 0, new Object[] {4L, Text.create("Hi")});
           var fiveExtraText =
-              EnsoMultiValue.create(
-                  new Type[] {intType, textText}, 1, new Object[] {5L, Text.create("Hi")});
+              EnsoMultiValue.NewNode.getUncached()
+                  .newValue(
+                      new Type[] {intType, textText}, 1, 0, new Object[] {5L, Text.create("Hi")});
 
           assertFalse("!= for sure #1", equalityCheck(fiveExtraText, fourExtraText));
           assertFalse("!= for sure #2", equalityCheck(fourExtraText, fiveExtraText));

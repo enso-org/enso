@@ -5,23 +5,19 @@ import RestoreIcon from '#/assets/restore.svg'
 
 import * as textProvider from '#/providers/TextProvider'
 
-import AssetListEventType from '#/events/AssetListEventType'
-
 import * as assetDiffView from '#/layouts/AssetDiffView'
-import * as eventListProvider from '#/layouts/Drive/EventListProvider'
 
 import * as ariaComponents from '#/components/AriaComponents'
 
 import type Backend from '#/services/Backend'
 import * as backendService from '#/services/Backend'
 
+import { duplicateProjectMutationOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { useOpenProject } from '#/hooks/projectHooks'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
-import * as dateTime from 'enso-common/src/utilities/data/dateTime'
-
-// ====================
-// === AssetVersion ===
-// ====================
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { formatDateTime } from 'enso-common/src/utilities/data/dateTime'
 
 /** Props for a {@link AssetVersion}. */
 export interface AssetVersionProps {
@@ -38,18 +34,21 @@ export interface AssetVersionProps {
 export function AssetVersion(props: AssetVersionProps) {
   const { placeholder = false, number, version, item, backend, latestVersion, doRestore } = props
   const { getText } = textProvider.useText()
-  const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
+  const queryClient = useQueryClient()
+  const openProject = useOpenProject()
+  const duplicateProjectMutation = useMutation(
+    duplicateProjectMutationOptions(backend, queryClient, openProject),
+  )
   const isProject = item.type === backendService.AssetType.project
 
-  const doDuplicate = useEventCallback(() => {
+  const doDuplicate = useEventCallback(async () => {
     if (isProject) {
-      dispatchAssetListEvent({
-        type: AssetListEventType.duplicateProject,
-        parentKey: item.parentId,
-        parentId: item.parentId,
-        original: item,
-        versionId: version.versionId,
-      })
+      await duplicateProjectMutation.mutateAsync([
+        item.id,
+        item.title,
+        item.parentId,
+        version.versionId,
+      ])
     }
   })
 
@@ -66,7 +65,7 @@ export function AssetVersion(props: AssetVersionProps) {
         </div>
 
         <time className="text-xs text-not-selected">
-          {getText('onDateX', dateTime.formatDateTime(new Date(version.lastModified)))}
+          {getText('onDateX', formatDateTime(new Date(version.lastModified)))}
         </time>
       </div>
 
@@ -107,8 +106,8 @@ export function AssetVersion(props: AssetVersionProps) {
                       loaderPosition="icon"
                       icon={DuplicateIcon}
                       isDisabled={placeholder}
-                      onPress={() => {
-                        doDuplicate()
+                      onPress={async () => {
+                        await doDuplicate()
                         opts.close()
                       }}
                     >

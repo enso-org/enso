@@ -89,7 +89,7 @@ function getClientArguments(args = process.argv): readonly string[] {
       args
         .slice(1)
         // Omitting $ in --inspect and --remote-debugging-port is intentional.
-        .filter(option => !/^--no-sandbox$|^--inspect|^--remote-debugging-port/.test(option))
+        .filter((option) => !/^--no-sandbox$|^--inspect|^--remote-debugging-port/.test(option))
     )
   }
 }

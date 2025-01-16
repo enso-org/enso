@@ -745,12 +745,12 @@ case object DataflowAnalysis extends IRPass {
     info: DependencyInfo
   ): CallArgument = {
     argument match {
-      case spec @ CallArgument.Specified(name, value, _, _, _) =>
+      case spec: CallArgument.Specified =>
         val specDep  = asStatic(spec)
-        val valueDep = asStatic(value)
+        val valueDep = asStatic(spec.value)
         info.dependents.updateAt(valueDep, Set(specDep))
         info.dependencies.updateAt(specDep, Set(valueDep))
-        name.foreach(name => {
+        spec.name.foreach(name => {
           val nameDep = asStatic(name)
           info.dependents.updateAt(nameDep, Set(specDep))
           info.dependencies.updateAt(specDep, Set(nameDep))
@@ -758,7 +758,7 @@ case object DataflowAnalysis extends IRPass {
 
         spec
           .copy(
-            value = analyseExpression(value, info)
+            value = analyseExpression(spec.value, info)
           )
           .updateMetadata(new MetadataPair(this, info))
     }

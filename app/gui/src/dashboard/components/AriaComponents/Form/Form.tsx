@@ -131,6 +131,7 @@ export const Form = forwardRef(function Form<
   Field: typeof components.Field
   FormError: typeof components.FormError
   FieldValue: typeof components.FieldValue
+  Provider: typeof components.FormProvider
   useFormSchema: typeof components.useFormSchema
   Controller: typeof components.Controller
   FIELD_STYLES: typeof components.FIELD_STYLES
@@ -139,6 +140,7 @@ export const Form = forwardRef(function Form<
   useWatch: typeof components.useWatch
   useFieldRegister: typeof components.useFieldRegister
   useFieldState: typeof components.useFieldState
+  useFormError: typeof components.useFormError
   /* eslint-enable @typescript-eslint/naming-convention */
 }
 
@@ -155,7 +157,9 @@ Form.useFormContext = components.useFormContext
 Form.useOptionalFormContext = components.useOptionalFormContext
 Form.Field = components.Field
 Form.Controller = components.Controller
+Form.Provider = components.FormProvider
 Form.useWatch = components.useWatch
 Form.FIELD_STYLES = components.FIELD_STYLES
 Form.useFieldRegister = components.useFieldRegister
 Form.useFieldState = components.useFieldState
+Form.useFormError = components.useFormError

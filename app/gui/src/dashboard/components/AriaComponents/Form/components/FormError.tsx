@@ -3,83 +3,45 @@
  *
  * Form error component.
  */
-
-import * as React from 'react'
-
-import * as textProvider from '#/providers/TextProvider'
-
-import * as reactAriaComponents from '#/components/AriaComponents'
-
-import * as formContext from './FormProvider'
-import type * as types from './types'
+import Offline from '#/assets/offline_filled.svg'
+import { Alert, Text, type AlertProps } from '#/components/AriaComponents'
+import { useFormError, type UseFormErrorProps } from './useFormError'
 
 /** Props for the FormError component. */
-export interface FormErrorProps extends Omit<reactAriaComponents.AlertProps, 'children'> {
-  // We do not need to know the form fields.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  readonly form?: types.FormInstance<any>
-}
+export interface FormErrorProps extends Omit<AlertProps, 'children'>, UseFormErrorProps {}
 
 /** Form error component. */
 export function FormError(props: FormErrorProps) {
-  const { size = 'large', variant = 'error', rounded = 'large', ...alertProps } = props
+  const { size = 'large', variant = 'error', rounded = 'xxlarge', ...alertProps } = props
 
-  const form = formContext.useFormContext(props.form)
-  const { formState } = form
-  const { errors } = formState
-  const { getText } = textProvider.useText()
+  const errors = useFormError(props)
 
-  /** Get the error message. */
-  const getSubmitError = (): string | null => {
-    const formErrors = errors.root
-
-    if (formErrors) {
-      const submitError = formErrors.submit
-
-      if (submitError) {
-        return (
-          submitError.message ??
-          getText('arbitraryErrorTitle') + '. ' + getText('arbitraryErrorSubtitle')
-        )
-      } else {
-        return null
-      }
-    } else {
-      return null
-    }
+  if (errors.length === 0) {
+    return null
   }
 
-  const offlineMessage = errors.root?.offline?.message ?? null
-  const errorMessage = getSubmitError()
+  return (
+    <div className="flex w-full flex-col gap-4">
+      {errors.map((error) => {
+        const testId = `form-submit-${error.type}`
+        const finalVariant = error.type === 'offline' ? 'outline' : variant
+        const icon = error.type === 'offline' ? Offline : null
 
-  const submitErrorAlert =
-    errorMessage != null ?
-      <reactAriaComponents.Alert size={size} variant={variant} rounded={rounded} {...alertProps}>
-        <reactAriaComponents.Text
-          data-testid="form-submit-error"
-          variant="body"
-          truncate="3"
-          color="primary"
-        >
-          {errorMessage}
-        </reactAriaComponents.Text>
-      </reactAriaComponents.Alert>
-    : null
-
-  const offlineErrorAlert =
-    offlineMessage != null ?
-      <reactAriaComponents.Alert size={size} variant="outline" rounded={rounded} {...alertProps}>
-        <reactAriaComponents.Text variant="body" truncate="3" color="primary">
-          {offlineMessage}
-        </reactAriaComponents.Text>
-      </reactAriaComponents.Alert>
-    : null
-
-  const hasSomethingToShow = submitErrorAlert || offlineErrorAlert
-
-  return hasSomethingToShow ?
-      <div className="flex w-full flex-col gap-4">
-        {submitErrorAlert} {offlineErrorAlert}
-      </div>
-    : null
+        return (
+          <Alert
+            key={error.message}
+            size={size}
+            variant={finalVariant}
+            rounded={rounded}
+            icon={icon}
+            {...alertProps}
+          >
+            <Text variant="body" truncate="3" color="primary" testId={testId}>
+              {error.message}
+            </Text>
+          </Alert>
+        )
+      })}
+    </div>
+  )
 }

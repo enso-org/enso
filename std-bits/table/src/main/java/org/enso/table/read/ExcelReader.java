@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.poi.ss.util.CellReference;
@@ -24,6 +23,7 @@ import org.enso.table.excel.ExcelSheet;
 import org.enso.table.excel.ExcelWorkbook;
 import org.enso.table.excel.ReadOnlyExcelConnection;
 import org.enso.table.problems.ProblemAggregator;
+import org.enso.table.util.FunctionWithException;
 import org.graalvm.polyglot.Context;
 
 /** A table reader for MS Excel files. */
@@ -36,7 +36,8 @@ public class ExcelReader {
    * @return a String[] containing the sheet names.
    * @throws IOException when the action fails
    */
-  public static String[] readSheetNames(File file, ExcelFileFormat format) throws IOException {
+  public static String[] readSheetNames(File file, ExcelFileFormat format)
+      throws IOException, InterruptedException {
     return withWorkbook(file, format, ExcelReader::readSheetNames);
   }
 
@@ -65,7 +66,8 @@ public class ExcelReader {
    * @return a String[] containing the range names.
    * @throws IOException when the action fails
    */
-  public static String[] readRangeNames(File file, ExcelFileFormat format) throws IOException {
+  public static String[] readRangeNames(File file, ExcelFileFormat format)
+      throws IOException, InterruptedException {
     return withWorkbook(file, format, ExcelWorkbook::getRangeNames);
   }
 
@@ -89,7 +91,7 @@ public class ExcelReader {
       Integer row_limit,
       ExcelFileFormat format,
       ProblemAggregator problemAggregator)
-      throws IOException, InvalidLocationException {
+      throws IOException, InvalidLocationException, InterruptedException {
     return withWorkbook(
         file,
         format,
@@ -130,7 +132,7 @@ public class ExcelReader {
       Integer row_limit,
       ExcelFileFormat format,
       ProblemAggregator problemAggregator)
-      throws IOException, InvalidLocationException {
+      throws IOException, InvalidLocationException, InterruptedException {
     return withWorkbook(
         file,
         format,
@@ -175,7 +177,7 @@ public class ExcelReader {
       Integer row_limit,
       ExcelFileFormat format,
       ProblemAggregator problemAggregator)
-      throws IOException, InvalidLocationException {
+      throws IOException, InvalidLocationException, InterruptedException {
     return withWorkbook(
         file,
         format,
@@ -202,7 +204,7 @@ public class ExcelReader {
       int skip_rows,
       Integer row_limit,
       ProblemAggregator problemAggregator)
-      throws InvalidLocationException {
+      throws InvalidLocationException, InterruptedException {
     int sheetIndex = workbook.getSheetIndex(rangeNameOrAddress);
     if (sheetIndex != -1) {
       return readTable(
@@ -247,7 +249,7 @@ public class ExcelReader {
       Integer row_limit,
       ExcelFileFormat format,
       ProblemAggregator problemAggregator)
-      throws IOException, InvalidLocationException {
+      throws IOException, InvalidLocationException, InterruptedException {
     return withWorkbook(
         file,
         format,
@@ -256,7 +258,10 @@ public class ExcelReader {
   }
 
   private static <T> T withWorkbook(
-      File file, ExcelFileFormat format, Function<ExcelWorkbook, T> action) throws IOException {
+      File file,
+      ExcelFileFormat format,
+      FunctionWithException<ExcelWorkbook, T, InterruptedException> action)
+      throws IOException, InterruptedException {
     try (ReadOnlyExcelConnection connection =
         ExcelConnectionPool.INSTANCE.openReadOnlyConnection(file, format)) {
       return connection.withWorkbook(action);
@@ -270,7 +275,7 @@ public class ExcelReader {
       int skip_rows,
       Integer row_limit,
       ProblemAggregator problemAggregator)
-      throws InvalidLocationException {
+      throws InvalidLocationException, InterruptedException {
     int sheetIndex = workbook.getSheetIndex(excelRange.getSheetName());
     if (sheetIndex == -1) {
       throw new InvalidLocationException(
@@ -294,7 +299,8 @@ public class ExcelReader {
       ExcelHeaders.HeaderBehavior headers,
       int skipRows,
       int rowCount,
-      ProblemAggregator problemAggregator) {
+      ProblemAggregator problemAggregator)
+      throws InterruptedException {
 
     ExcelSheet sheet = workbook.getSheetAt(sheetIndex);
 

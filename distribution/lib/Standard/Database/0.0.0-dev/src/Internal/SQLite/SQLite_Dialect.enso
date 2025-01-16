@@ -216,6 +216,12 @@ type SQLite_Dialect
         expression
 
     ## PRIVATE
+       Add an extra cast to adjust the output type of aggregate operations.
+       Some DBs do CAST(SUM(x) AS FLOAT) others do SUM(CAST(x AS FLOAT)).
+    cast_aggregate_columns self op_kind:Text columns:(Vector Internal_Column) =
+        self.cast_op_type op_kind columns (SQL_Expression.Operation op_kind (columns.map c->c.expression))
+
+    ## PRIVATE
     prepare_fetch_types_query : SQL_Expression -> Context -> SQL_Statement
     prepare_fetch_types_query self expression context =
         _ = [expression, context]
@@ -281,8 +287,10 @@ type SQLite_Dialect
             Dialect_Flag.Supports_Infinity -> True
             Dialect_Flag.Case_Sensitive_Text_Comparison -> True
             Dialect_Flag.Supports_Sort_Digits_As_Numbers -> False
-            Dialect_Flag.Case_Insensitive_Ordering -> False
+            Dialect_Flag.Supports_Case_Insensitive_Ordering -> True
             Dialect_Flag.Order_By_Unicode_Normalization_By_Default -> False
+            Dialect_Flag.Order_By_Unicode_Normalization_When_Case_Insensitive -> False
+            Dialect_Flag.Case_Insensitive_Ordering_By_Default -> False
             Dialect_Flag.Allows_Mixed_Type_Comparisons -> True
             Dialect_Flag.Supports_Unicode_Normalization -> False
             Dialect_Flag.NaN_Non_Comparable -> True

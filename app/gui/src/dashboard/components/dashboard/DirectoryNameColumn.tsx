@@ -9,18 +9,16 @@ import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useDriveStore, useToggleDirectoryExpansion } from '#/providers/DriveProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import * as ariaComponents from '#/components/AriaComponents'
 import type * as column from '#/components/dashboard/column'
 import EditableSpan from '#/components/EditableSpan'
-import SvgMask from '#/components/SvgMask'
 
 import * as backendModule from '#/services/Backend'
 
+import { Button } from '#/components/AriaComponents'
 import { useStore } from '#/hooks/storeHooks'
 import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
-import * as string from '#/utilities/string'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import * as validation from '#/utilities/validation'
 
@@ -61,18 +59,14 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
   }
 
   const doRename = async (newTitle: string) => {
-    if (isEditable) {
-      setIsEditing(false)
-      if (!string.isWhitespaceOnly(newTitle) && newTitle !== item.title) {
-        await updateDirectoryMutation.mutateAsync([item.id, { title: newTitle }, item.title])
-      }
-    }
+    await updateDirectoryMutation.mutateAsync([item.id, { title: newTitle }, item.title])
+    setIsEditing(false)
   }
 
   return (
     <div
       className={tailwindMerge.twJoin(
-        'group flex h-table-row w-auto min-w-48 max-w-96 items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y contain-strict rounded-rows-child [contain-intrinsic-size:37px] [content-visibility:auto]',
+        'group flex h-table-row w-auto min-w-48 max-w-full items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y rounded-rows-child',
         indent.indentClass(depth),
       )}
       onKeyDown={(event) => {
@@ -91,21 +85,23 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         }
       }}
     >
-      <ariaComponents.Button
-        icon={FolderArrowIcon}
+      <Button
+        icon={({ isHovered }) => (isHovered || isExpanded ? FolderArrowIcon : FolderIcon)}
         size="medium"
-        variant="custom"
+        variant="icon"
         aria-label={isExpanded ? getText('collapse') : getText('expand')}
         tooltipPlacement="left"
+        data-testid="directory-row-expand-button"
+        data-expanded={isExpanded}
         className={tailwindMerge.twJoin(
-          'm-0 hidden cursor-pointer border-0 transition-transform duration-arrow group-hover:m-name-column-icon group-hover:inline-block',
+          'mx-1 transition-transform duration-arrow',
           isExpanded && 'rotate-90',
         )}
         onPress={() => {
           toggleDirectoryExpansion(item.id)
         }}
       />
-      <SvgMask src={FolderIcon} className="m-name-column-icon size-4 group-hover:hidden" />
+
       <EditableSpan
         data-testid="asset-row-name"
         editable={rowState.isEditingName}
@@ -113,13 +109,20 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
           'cursor-pointer bg-transparent font-naming',
           rowState.isEditingName ? 'cursor-text' : 'cursor-pointer',
         )}
-        checkSubmittable={(newTitle) =>
-          validation.DIRECTORY_NAME_REGEX.test(newTitle) &&
-          backendModule.isNewTitleValid(
-            item,
-            newTitle,
-            nodeMap.current.get(item.parentId)?.children?.map((child) => child.item),
-          )
+        schema={(z) =>
+          z
+            .refine((value) => !validation.isDirectoryNameContainInvalidCharacters(value), {
+              message: getText('nameShouldNotContainInvalidCharacters'),
+            })
+            .refine(
+              (value) =>
+                backendModule.isNewTitleUnique(
+                  item,
+                  value,
+                  nodeMap.current.get(item.parentId)?.children?.map((child) => child.item),
+                ),
+              { message: getText('nameShouldBeUnique') },
+            )
         }
         onSubmit={doRename}
         onCancel={() => {

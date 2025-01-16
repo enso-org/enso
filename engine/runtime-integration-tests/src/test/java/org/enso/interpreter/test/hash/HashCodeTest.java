@@ -73,6 +73,7 @@ public class HashCodeTest {
     values.addAll(valGenerator.numbers());
     values.addAll(valGenerator.booleans());
     values.addAll(valGenerator.textual());
+    values.addAll(valGenerator.numbersMultiText());
     values.addAll(valGenerator.arrayLike());
     values.addAll(valGenerator.vectors());
     values.addAll(valGenerator.maps());

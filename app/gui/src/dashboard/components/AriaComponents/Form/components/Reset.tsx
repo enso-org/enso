@@ -28,6 +28,7 @@ export function Reset(props: ResetProps): React.JSX.Element {
     size = 'medium',
     testId = 'form-reset-button',
     children = getText('reset'),
+    onPress,
     ...buttonProps
   } = props
 
@@ -41,14 +42,13 @@ export function Reset(props: ResetProps): React.JSX.Element {
       isDisabled={formState.isSubmitting || !formState.isDirty}
       testId={testId}
       children={children}
-      onPress={() => {
+      onPress={(event) => {
         // `type="reset"` triggers native HTML reset, which does not work here as it clears inputs
         // rather than resetting them to default values.
         form.reset()
+        return onPress?.(event)
       }}
-      /* This is safe because we are passing all props to the button */
-      /* eslint-disable-next-line @typescript-eslint/no-explicit-any,no-restricted-syntax */
-      {...(buttonProps as any)}
+      {...buttonProps}
     />
   )
 }

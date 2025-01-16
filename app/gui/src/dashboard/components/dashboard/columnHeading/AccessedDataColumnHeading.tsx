@@ -24,7 +24,9 @@ export default function AccessedDataColumnHeading(props: AssetColumnHeadingProps
         tooltip={false}
         onPress={hideThisColumn}
       />
-      <Text className="text-sm font-semibold">{getText('accessedDataColumnName')}</Text>
+      <Text weight="bold" truncate="1" color="custom">
+        {getText('accessedDataColumnName')}
+      </Text>
     </div>
   )
 }

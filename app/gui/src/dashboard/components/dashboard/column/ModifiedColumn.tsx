@@ -7,9 +7,5 @@ import { formatDateTime } from 'enso-common/src/utilities/data/dateTime'
 export default function ModifiedColumn(props: AssetColumnProps) {
   const { item } = props
 
-  return (
-    <Text className="contain-strict [contain-intrinsic-size:37px] [content-visibility:auto]">
-      {formatDateTime(new Date(item.modifiedAt))}
-    </Text>
-  )
+  return <Text>{formatDateTime(new Date(item.modifiedAt))}</Text>
 }

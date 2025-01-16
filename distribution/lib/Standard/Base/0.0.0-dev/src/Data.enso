@@ -447,7 +447,7 @@ download : (URI | Text) -> Writable_File -> HTTP_Method -> Vector (Header | Pair
 download (uri:(URI | Text)=(Missing_Argument.throw "uri")) file:Writable_File (method:HTTP_Method=..Get) (headers:(Vector (Header | Pair Text Text))=[]) =
     Context.Output.if_enabled disabled_message="As writing is disabled, cannot download to a file. Press the Write button ▶ to perform the operation." panic=False <|
         response = HTTP.fetch uri method headers cache_policy=Cache_Policy.No_Cache
-        case Data_Link.is_data_link response.body.metadata of
+        case Data_Link.is_data_link_from_metadata response.body.metadata of
             True ->
                 # If the resource was a data link, we follow it, download the target data and try to write it to a file.
                 data_link = Data_Link_Helpers.interpret_json_as_data_link response.decode_as_json

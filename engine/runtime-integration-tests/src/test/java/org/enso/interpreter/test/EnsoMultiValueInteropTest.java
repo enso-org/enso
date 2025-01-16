@@ -57,8 +57,18 @@ public class EnsoMultiValueInteropTest {
       var rawT2 = ContextUtils.unwrapValue(ctx(), t2);
       if (rawT1 instanceof Type typ1 && rawT2 instanceof Type typ2) {
         var r1 = ContextUtils.unwrapValue(ctx, v1);
+        if (r1 instanceof EnsoMultiValue) {
+          return;
+        }
         var r2 = ContextUtils.unwrapValue(ctx, v2);
-        var both = EnsoMultiValue.create(new Type[] {typ1, typ2}, 2, new Object[] {r1, r2});
+        if (r2 instanceof EnsoMultiValue) {
+          return;
+        }
+        if (typ1 == typ2) {
+          return;
+        }
+        var both =
+            EnsoMultiValue.NewNode.getUncached().newValue(new Type[] {typ1, typ2}, 2, 0, r1, r2);
         data.add(new Object[] {both});
       }
     }

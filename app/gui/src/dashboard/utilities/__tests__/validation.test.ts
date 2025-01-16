@@ -61,10 +61,9 @@ v.test.each([
   { name: '\\/', valid: false },
 ])('directory name validation', (args) => {
   const { name, valid } = args
-  const regex = validation.DIRECTORY_NAME_REGEX
-  if (valid) {
-    v.expect(name, `'${name}' is a valid directory name`).toMatch(regex)
-  } else {
-    v.expect(name, `'${name}' is not a valid directory name`).not.toMatch(regex)
-  }
+
+  v.expect(
+    !validation.isDirectoryNameContainInvalidCharacters(name),
+    `'${name}' is a valid directory name`,
+  ).toBe(valid)
 })

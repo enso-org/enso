@@ -105,7 +105,7 @@ case object SectionsToBinOpMegaPass extends IRPass {
       case sectionLeft @ Section.Left(arg, op, loc, passData) =>
         val rightArgName = freshNameSupply.newName()
         val rightCallArg =
-          CallArgument.Specified(
+          new CallArgument.Specified(
             None,
             rightArgName,
             true,
@@ -122,7 +122,7 @@ case object SectionsToBinOpMegaPass extends IRPass {
         if (arg.value.isInstanceOf[Name.Blank]) {
           val leftArgName = freshNameSupply.newName()
           val leftCallArg =
-            CallArgument.Specified(
+            new CallArgument.Specified(
               None,
               leftArgName,
               true,
@@ -171,7 +171,7 @@ case object SectionsToBinOpMegaPass extends IRPass {
       case sectionSides @ Section.Sides(op, loc, passData) =>
         val leftArgName = freshNameSupply.newName()
         val leftCallArg =
-          CallArgument.Specified(
+          new CallArgument.Specified(
             None,
             leftArgName,
             true,
@@ -187,7 +187,7 @@ case object SectionsToBinOpMegaPass extends IRPass {
 
         val rightArgName = freshNameSupply.newName()
         val rightCallArg =
-          CallArgument.Specified(
+          new CallArgument.Specified(
             None,
             rightArgName,
             true,
@@ -244,7 +244,7 @@ case object SectionsToBinOpMegaPass extends IRPass {
       case sectionRight @ Section.Right(op, arg, loc, passData) =>
         val leftArgName = freshNameSupply.newName()
         val leftCallArg =
-          CallArgument.Specified(
+          new CallArgument.Specified(
             None,
             leftArgName,
             true,
@@ -263,7 +263,7 @@ case object SectionsToBinOpMegaPass extends IRPass {
           // Note [Blanks in Sections]
           val rightArgName = freshNameSupply.newName()
           val rightCallArg =
-            CallArgument.Specified(
+            new CallArgument.Specified(
               None,
               rightArgName,
               true,

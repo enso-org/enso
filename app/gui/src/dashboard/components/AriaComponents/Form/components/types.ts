@@ -34,6 +34,12 @@ export type TSchema =
   | z.ZodEffects<z.AnyZodObject>
   | z.ZodEffects<z.ZodEffects<z.AnyZodObject>>
 
+/** A callback that returns a schema. */
+export type SchemaCallback<Schema extends TSchema = TSchema> = (z: SchemaBuilder) => Schema
+
+/** The schema builder. */
+export type SchemaBuilder = typeof schemaModule.schema
+
 /** OnSubmitCallbacks type. */
 export interface OnSubmitCallbacks<Schema extends TSchema, SubmitResult = void> {
   readonly onSubmit?:
@@ -74,7 +80,7 @@ export interface UseFormOptions<Schema extends TSchema, SubmitResult = void>
       'handleSubmit' | 'resetOptions' | 'resolver'
     >,
     OnSubmitCallbacks<Schema, SubmitResult> {
-  readonly schema: Schema | ((schema: typeof schemaModule.schema) => Schema)
+  readonly schema: Schema | SchemaCallback<Schema>
   /**
    * Whether the form can submit offline.
    * @default false
@@ -130,6 +136,10 @@ export interface UseFormReturn<Schema extends TSchema>
   readonly schema: Schema
   readonly setFormError: (error: string) => void
   readonly closeRef: React.MutableRefObject<() => void>
+  readonly formProps: {
+    readonly onSubmit: (event?: FormEvent<HTMLFormElement> | null) => Promise<void>
+    readonly noValidate: boolean
+  }
 }
 
 /**
@@ -175,6 +185,12 @@ export type FormInstanceValidated<
   // We use any here because we want to bypass the type check for Error type as it won't be a case here
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 > = FormInstance<Schema> | (any[] & NonNullable<unknown>)
+
+/**
+ * Form instance with unknown schema.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type AnyFormInstance = FormInstance<any>
 
 /** Props for the Field component. */
 // Readonly omitted here to avoid type mismatch with native HTML attributes

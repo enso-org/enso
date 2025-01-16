@@ -49,6 +49,7 @@ import {
 import { useLocalStorage } from '#/providers/LocalStorageProvider'
 import * as backend from '#/services/Backend'
 import LocalStorage, { type LocalStorageData } from '#/utilities/LocalStorage'
+import { unsafeKeys } from '#/utilities/object'
 
 /** A component that provides a UI for toggling paywall features. */
 export function EnsoDevtools() {
@@ -82,15 +83,16 @@ export function EnsoDevtools() {
   return (
     <Portal>
       <ariaComponents.DialogTrigger>
-        <ariaComponents.Button
-          icon={DevtoolsLogo}
-          aria-label={getText('ensoDevtoolsButtonLabel')}
-          variant="icon"
-          rounded="full"
-          size="hero"
-          className="fixed bottom-16 right-3 z-50"
-          data-ignore-click-outside
-        />
+        <ariaComponents.Underlay className="fixed bottom-16 right-3 z-50 rounded-full">
+          <ariaComponents.Button
+            icon={DevtoolsLogo}
+            aria-label={getText('ensoDevtoolsButtonLabel')}
+            variant="icon"
+            rounded="full"
+            size="hero"
+            data-ignore-click-outside
+          />
+        </ariaComponents.Underlay>
 
         <Popover>
           <Text.Heading disableLineHeightCompensation>
@@ -142,7 +144,7 @@ export function EnsoDevtools() {
 
               <Separator orientation="horizontal" className="my-3" />
 
-              {/* eslint-disable-next-line no-restricted-syntax */}
+              {}
               <Button variant="link" href={SETUP_PATH + '?__qd-debg__=true'}>
                 Open setup page
               </Button>
@@ -198,12 +200,10 @@ export function EnsoDevtools() {
               gap="small"
               schema={FEATURE_FLAGS_SCHEMA}
               formOptions={{ mode: 'onChange' }}
-              defaultValues={{
-                enableMultitabs: featureFlags.enableMultitabs,
-                enableAssetsTableBackgroundRefresh: featureFlags.enableAssetsTableBackgroundRefresh,
-                assetsTableBackgroundRefreshInterval:
-                  featureFlags.assetsTableBackgroundRefreshInterval,
-              }}
+              defaultValues={Object.fromEntries(
+                // FEATURE_FLAGS_SCHEMA is statically known, so we can safely cast to keyof FeatureFlags.
+                unsafeKeys(FEATURE_FLAGS_SCHEMA.shape).map((key) => [key, featureFlags[key]]),
+              )}
             >
               {(form) => (
                 <>
@@ -248,6 +248,16 @@ export function EnsoDevtools() {
                       }}
                     />
                   </div>
+
+                  <ariaComponents.Switch
+                    form={form}
+                    name="enableCloudExecution"
+                    label="Enable Cloud Execution"
+                    description="Enable Cloud Execution"
+                    onChange={(value) => {
+                      setFeatureFlags('enableCloudExecution', value)
+                    }}
+                  />
                 </>
               )}
             </ariaComponents.Form>

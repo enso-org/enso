@@ -29,18 +29,24 @@ test('copy', ({ page }) =>
     .createFolder()
     // Assets: [0: Folder 2, 1: Folder 1]
     .createFolder()
-    .driveTable.rightClickRow(0)
+    .driveTable.rightClickRow(1)
     // Assets: [0: Folder 2 <copied>, 1: Folder 1]
     .contextMenu.copy()
-    .driveTable.rightClickRow(1)
+    .driveTable.rightClickRow(0)
     // Assets: [0: Folder 2, 1: Folder 1, 2: Folder 2 (copy) <child { depth=1 }>]
     .contextMenu.paste()
     .driveTable.withRows(async (rows) => {
       await expect(rows).toHaveCount(3)
-      await expect(rows.nth(2)).toBeVisible()
-      await expect(rows.nth(2)).toHaveText(/^New Folder 1 [(]copy[)]*/)
-      const parentLeft = await getAssetRowLeftPx(rows.nth(1))
-      const childLeft = await getAssetRowLeftPx(rows.nth(2))
+
+      const child = rows.nth(1)
+      const parent = rows.nth(0)
+
+      await expect(child).toBeVisible()
+      await expect(child).toHaveText(/^New Folder 1 [(]copy[)]*/)
+
+      const parentLeft = await getAssetRowLeftPx(parent)
+      const childLeft = await getAssetRowLeftPx(child)
+
       expect(childLeft, 'child is indented further than parent').toBeGreaterThan(parentLeft)
     }))
 
@@ -50,18 +56,24 @@ test('copy (keyboard)', ({ page }) =>
     .createFolder()
     // Assets: [0: Folder 2, 1: Folder 1]
     .createFolder()
-    .driveTable.clickRow(0)
+    .driveTable.clickRow(1)
     // Assets: [0: Folder 2 <copied>, 1: Folder 1]
     .press('Mod+C')
-    .driveTable.clickRow(1)
+    .driveTable.clickRow(0)
     // Assets: [0: Folder 2, 1: Folder 1, 2: Folder 2 (copy) <child { depth=1 }>]
     .press('Mod+V')
     .driveTable.withRows(async (rows) => {
       await expect(rows).toHaveCount(3)
-      await expect(rows.nth(2)).toBeVisible()
-      await expect(rows.nth(2)).toHaveText(/^New Folder 1 [(]copy[)]*/)
-      const parentLeft = await getAssetRowLeftPx(rows.nth(1))
-      const childLeft = await getAssetRowLeftPx(rows.nth(2))
+
+      const child = rows.nth(1)
+      const parent = rows.nth(0)
+
+      await expect(child).toBeVisible()
+      await expect(child).toHaveText(/^New Folder 1 [(]copy[)]*/)
+
+      const parentLeft = await getAssetRowLeftPx(parent)
+      const childLeft = await getAssetRowLeftPx(child)
+
       expect(childLeft, 'child is indented further than parent').toBeGreaterThan(parentLeft)
     }))
 
@@ -79,39 +91,58 @@ test('move', ({ page }) =>
     .contextMenu.paste()
     .driveTable.withRows(async (rows) => {
       await expect(rows).toHaveCount(2)
-      await expect(rows.nth(1)).toBeVisible()
-      await expect(rows.nth(1)).toHaveText(/^New Folder 1/)
-      const parentLeft = await getAssetRowLeftPx(rows.nth(0))
-      const childLeft = await getAssetRowLeftPx(rows.nth(1))
+
+      const child = rows.nth(1)
+      const parent = rows.nth(0)
+
+      await expect(child).toBeVisible()
+      await expect(child).toHaveText(/^New Folder 2/)
+
+      const parentLeft = await getAssetRowLeftPx(parent)
+      const childLeft = await getAssetRowLeftPx(child)
+
       expect(childLeft, 'child is indented further than parent').toBeGreaterThan(parentLeft)
     }))
 
 test('move (drag)', ({ page }) =>
-  mockAllAndLogin({ page })
-    // Assets: [0: Folder 1]
-    .createFolder()
-    // Assets: [0: Folder 2, 1: Folder 1]
-    .createFolder()
-    // Assets: [0: Folder 1, 1: Folder 2 <child { depth=1 }>]
+  mockAllAndLogin({
+    page,
+    setupAPI: (api) => {
+      api.addDirectory({
+        title: 'New Folder 1',
+      })
+      api.addDirectory({
+        title: 'New Folder 2',
+      })
+    },
+  })
     .driveTable.dragRowToRow(0, 1)
     .driveTable.withRows(async (rows) => {
       await expect(rows).toHaveCount(2)
-      await expect(rows.nth(1)).toBeVisible()
-      await expect(rows.nth(1)).toHaveText(/^New Folder 1/)
-      const parentLeft = await getAssetRowLeftPx(rows.nth(0))
-      const childLeft = await getAssetRowLeftPx(rows.nth(1))
+
+      const child = rows.nth(1)
+      const parent = rows.nth(0)
+
+      await expect(child).toBeVisible()
+      await expect(child).toHaveText(/^New Folder 1/)
+
+      const parentLeft = await getAssetRowLeftPx(parent)
+      const childLeft = await getAssetRowLeftPx(child)
+
       expect(childLeft, 'child is indented further than parent').toBeGreaterThan(parentLeft)
     }))
 
 test('move to trash', ({ page }) =>
-  mockAllAndLogin({ page })
-    // Assets: [0: Folder 1]
-    .createFolder()
-    // Assets: [0: Folder 2, 1: Folder 1]
-    .createFolder()
+  mockAllAndLogin({
+    page,
+    setupAPI: (api) => {
+      api.addDirectory()
+      api.addDirectory()
+    },
+  })
     // NOTE: For some reason, `react-aria-components` causes drag-n-drop to break if `Mod` is still
     // held.
-    .withModPressed((modActions) => modActions.driveTable.clickRow(0).driveTable.clickRow(1))
+    .withModPressed((modActions) => modActions.driveTable.clickRow(1).driveTable.clickRow(0))
     .driveTable.dragRow(0, locateTrashCategory(page))
     .driveTable.expectPlaceholderRow()
     .goToCategory.trash()
@@ -134,7 +165,7 @@ test('move (keyboard)', ({ page }) =>
     .driveTable.withRows(async (rows) => {
       await expect(rows).toHaveCount(2)
       await expect(rows.nth(1)).toBeVisible()
-      await expect(rows.nth(1)).toHaveText(/^New Folder 1/)
+      await expect(rows.nth(1)).toHaveText(/^New Folder 2/)
       const parentLeft = await getAssetRowLeftPx(rows.nth(0))
       const childLeft = await getAssetRowLeftPx(rows.nth(1))
       expect(childLeft, 'child is indented further than parent').toBeGreaterThan(parentLeft)

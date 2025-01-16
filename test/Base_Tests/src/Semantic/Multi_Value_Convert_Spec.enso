@@ -85,46 +85,65 @@ add_specs suite_builder =
             c1 . should_equal "c"
 
     suite_builder.group "Equals and hash" group_builder->
-        group_builder.specify "Dictionary with value and multi value" <|
-            pi = 3.14
-            a = pi : A
-            b = pi : B
-            c = pi : C
-            abc = pi : A&B&C
-            downcast_a = abc : A
-            downcast_ab = abc : A&B
-            downcast_ba = abc : B&A
-            downcast_b = abc : B
-            downcast_c = abc : C
+        pi = 3.14
+        a = pi : A
+        b = pi : B
+        c = pi : C
+        abc = pi : A&B&C
+        downcast_a = abc : A
+        downcast_ab = abc : A&B
+        downcast_ba = abc : B&A
+        downcast_b = abc : B
+        downcast_c = abc : C
 
+        group_builder.specify "Ordering and multi value" <|
             Ordering.compare a b . catch Any e->
                 e.should_equal (Standard.Base.Errors.Common.Incomparable_Values.Error a b)
 
             Ordering.compare a downcast_a . should_equal Ordering.Equal
-            Ordering.compare a downcast_ab . should_equal Ordering.Equal
-            Ordering.compare a abc . should_equal Ordering.Equal
 
-            Ordering.compare a downcast_ba . should_equal Ordering.Equal
-            Ordering.compare downcast_ba b . should_equal Ordering.Equal
-            # if a == downcast_ba && downcast_ba == b then # due to transitivity
-            # Ordering.compare a b . should_equal Ordering.Equal
+            Ordering.hash a . should_equal (Ordering.hash downcast_a)
 
+            Ordering.compare a downcast_ab . catch Any e->
+                e.should_equal (Standard.Base.Errors.Common.Incomparable_Values.Error a downcast_ab)
+            Ordering.compare a abc . catch Any e->
+                e.should_equal (Standard.Base.Errors.Common.Incomparable_Values.Error a abc)
+
+            Ordering.compare a downcast_ba . catch Any e->
+                e.should_equal (Standard.Base.Errors.Common.Incomparable_Values.Error a downcast_ba)
+            Ordering.compare downcast_ba b . catch Any e->
+                e.should_equal (Standard.Base.Errors.Common.Incomparable_Values.Error downcast_ba b)
+            Ordering.compare a b . catch Any e->
+                e.should_equal (Standard.Base.Errors.Common.Incomparable_Values.Error a b)
+
+        group_builder.specify "Dictionary with value and multi value" <|
             dict = Dictionary.empty
                 . insert a "A"
                 . insert b "B"
                 . insert c "C"
+                . insert downcast_ab "AB_"
+                . insert downcast_ba "BA_"
                 . insert downcast_a "A_"
                 . insert downcast_b "B_"
                 . insert downcast_c "C_"
                 . insert abc "Multi"
 
-            # dict . get a . should_equal "A" # sometimes it is A and sometimes it is Multi
-            # dict . get b . should_equal "B"
-            # dict . get c . should_equal "C" # sometimes it is C and sometimes it is Multi
-            dict . get downcast_a . should_equal "Multi"
-            dict . get downcast_b . should_equal "Multi"
-            dict . get downcast_c . should_equal "Multi"
+            # downcast single value is equal to the value
+            dict . get downcast_a . should_equal "A_"
+            dict . get downcast_b . should_equal "B_"
+            dict . get downcast_c . should_equal "C_"
+
+            # hence "A" ,"B", "C" were replaced
+            dict . get a . should_equal "A_"
+            dict . get b . should_equal "B_"
+            dict . get c . should_equal "C_"
+
+            # multi value must be equal to all its values
             dict . get abc . should_equal "Multi"
+
+            # order of types in multi value isn't important
+            dict . get downcast_ab . should_equal "BA_"
+            dict . get downcast_ba . should_equal "BA_"
 
 main filter=Nothing =
     suite = Test.build suite_builder->

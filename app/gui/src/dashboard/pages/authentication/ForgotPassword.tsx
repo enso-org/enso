@@ -14,10 +14,10 @@ import GoBackIcon from '#/assets/go_back.svg'
 import { Form, Input } from '#/components/AriaComponents'
 import Link from '#/components/Link'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
-import { useAuth } from '#/providers/AuthProvider'
 import { useLocalBackend } from '#/providers/BackendProvider'
+import { useSessionAPI } from '#/providers/SessionProvider'
 import { type GetText, useText } from '#/providers/TextProvider'
-import { useLocation } from 'react-router'
+import { useLocation, useNavigate } from 'react-router'
 
 /** Create the schema for this form. */
 function createForgotPasswordFormSchema(getText: GetText) {
@@ -32,9 +32,12 @@ function createForgotPasswordFormSchema(getText: GetText) {
 
 /** A form for users to request for their password to be reset. */
 export default function ForgotPassword() {
-  const { forgotPassword } = useAuth()
+  const { forgotPassword } = useSessionAPI()
   const location = useLocation()
   const { getText } = useText()
+
+  const navigate = useNavigate()
+
   const localBackend = useLocalBackend()
   const supportsOffline = localBackend != null
 
@@ -54,7 +57,11 @@ export default function ForgotPassword() {
         />
       }
       supportsOffline={supportsOffline}
-      onSubmit={({ email }) => forgotPassword(email)}
+      onSubmit={({ email }) => {
+        return forgotPassword(email).then(() => {
+          navigate(LOGIN_PATH)
+        })
+      }}
     >
       <Input
         autoFocus

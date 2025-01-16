@@ -16,7 +16,7 @@ export default function DocsColumnHeading(props: AssetColumnHeadingProps) {
   })
 
   return (
-    <div className="flex h-table-row w-full items-center gap-icon-with-text">
+    <div className="isolate flex h-table-row w-full items-center gap-icon-with-text">
       <Button
         variant="icon"
         icon={DocsIcon}
@@ -24,7 +24,9 @@ export default function DocsColumnHeading(props: AssetColumnHeadingProps) {
         tooltip={false}
         onPress={hideThisColumn}
       />
-      <Text className="text-sm font-semibold">{getText('docsColumnName')}</Text>
+      <Text weight="bold" truncate="1" color="custom">
+        {getText('docsColumnName')}
+      </Text>
     </div>
   )
 }

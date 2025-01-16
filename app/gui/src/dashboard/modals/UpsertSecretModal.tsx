@@ -27,40 +27,36 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
   const { getText } = useText()
 
   const isCreatingSecret = id == null
-  const isNameEditable = nameRaw == null
 
   const form = Form.useForm({
     method: 'dialog',
     schema: (z) =>
-      z.object({ name: z.string().min(1, getText('emptyStringError')), value: z.string() }),
-    defaultValues: { name: nameRaw ?? '', value: '' },
-    onSubmit: async ({ name, value }) => {
-      await doCreate(name, value)
+      z.object({ title: z.string().min(1, getText('emptyStringError')), value: z.string() }),
+    defaultValues: { title: nameRaw ?? '', value: '' },
+    onSubmit: async ({ title, value }) => {
+      await doCreate(title, value)
+      form.reset({ title, value })
     },
   })
 
   const content = (
     <Form form={form} testId="upsert-secret-modal" gap="none" className="w-full">
-      {isNameEditable && (
-        <Input
-          form={form}
-          name="name"
-          autoFocus={isNameEditable}
-          autoComplete="off"
-          isDisabled={!isNameEditable}
-          label={getText('name')}
-          placeholder={getText('secretNamePlaceholder')}
-        />
-      )}
+      <Input
+        form={form}
+        name="title"
+        autoFocus
+        autoComplete="off"
+        label={getText('name')}
+        placeholder={getText('secretNamePlaceholder')}
+      />
       <Input
         form={form}
         name="value"
         type="password"
-        autoFocus={!isNameEditable}
         autoComplete="off"
         label={getText('value')}
         placeholder={
-          isNameEditable ? getText('secretValuePlaceholder') : getText('secretValueHidden')
+          nameRaw == null ? getText('secretValuePlaceholder') : getText('secretValueHidden')
         }
       />
       <ButtonGroup className="mt-2">

@@ -1912,11 +1912,13 @@ type DB_Column
     parse self type:(Value_Type | Auto) format:(Text | Data_Formatter)="" on_problems:Problem_Behavior=..Report_Warning =
         if type == Auto then Error.throw (Unsupported_Database_Operation.Error "`Auto` parse type") else
             if format != "" then Error.throw (Unsupported_Database_Operation.Error "Custom formatting") else
-                Value_Type.expect_text self <|
-                    ## In the future we may have some specific logic, for example
-                       allowing to support formatting settings. For now, the
-                       Database parse just boils down to a simple CAST.
-                    self.internal_do_cast type on_problems
+                if self.value_type.is_same_type type then self else
+                    Value_Type.expect_text self <|
+                        ## In the future we may have some specific logic, for example
+                           allowing to support formatting settings. For now, the
+                           Database parse just boils down to a simple CAST.
+                        self.internal_do_cast type on_problems
+
 
     ## GROUP Standard.Base.Conversions
        ICON convert

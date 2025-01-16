@@ -13,6 +13,7 @@ const inputComponent = ref<ComponentInstance<typeof NumericInputWidget>>()
 function setValue(value: string | undefined) {
   props.onUpdate({
     portUpdate: { value, origin: props.input.portId },
+    directInteraction: true,
   })
 }
 

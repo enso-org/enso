@@ -15,7 +15,7 @@ export function sourceRangeKey({ from, to }: SourceRange): SourceRangeKey {
 }
 /** Deserializes a {@link SourceRange} that was serialized by {@link sourceRangeKey} */
 export function sourceRangeFromKey(key: SourceRangeKey): SourceRange {
-  const [from, to] = key.split(':').map(x => parseInt(x, 16)) as [number, number]
+  const [from, to] = key.split(':').map((x) => parseInt(x, 16)) as [number, number]
   return { from, to }
 }
 
@@ -141,7 +141,7 @@ export function applyTextEditsToSpans(
   let offset = 0
   for (const textEdit of textEdits) {
     const { from, to, insert } = textEdit
-    starts.advanceWhile(start => {
+    starts.advanceWhile((start) => {
       if (start < from) {
         startMap.set(start, start + offset)
         return true
@@ -151,7 +151,7 @@ export function applyTextEditsToSpans(
       }
       return false
     })
-    ends.advanceWhile(end => {
+    ends.advanceWhile((end) => {
       if (end <= from) {
         endMap.set(end, end + offset)
         return true
@@ -163,8 +163,8 @@ export function applyTextEditsToSpans(
     })
     offset += insert.length - rangeLength(textEdit)
   }
-  starts.forEach(start => startMap.set(start, start + offset))
-  ends.forEach(end => endMap.set(end, end + offset))
+  starts.forEach((start) => startMap.set(start, start + offset))
+  ends.forEach((end) => endMap.set(end, end + offset))
 
   // Apply the translations to the map.
   const spansBeforeAndAfter = new Array<readonly [SourceRange, SourceRange]>()
@@ -196,7 +196,7 @@ export function enclosingSpans<NodeId>(
   for (const child of tree.children()) {
     const childSpan = child.span()
     const childRanges: SourceRange[] = []
-    ranges = ranges.filter(range => {
+    ranges = ranges.filter((range) => {
       if (rangeEncloses(childSpan, range)) {
         childRanges.push(range)
         return false

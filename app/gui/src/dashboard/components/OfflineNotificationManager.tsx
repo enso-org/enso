@@ -32,21 +32,24 @@ export function OfflineNotificationManager(props: OfflineNotificationManagerProp
   const toastId = 'offline'
   const { getText } = textProvider.useText()
 
-  offlineHooks.useOfflineChange((isOffline) => {
-    toast.toast.dismiss(toastId)
+  offlineHooks.useOfflineChange(
+    (isOffline) => {
+      toast.toast.dismiss(toastId)
 
-    if (isOffline) {
-      toast.toast.info(getText('offlineToastMessage'), {
-        toastId,
-        hideProgressBar: true,
-      })
-    } else {
-      toast.toast.info(getText('onlineToastMessage'), {
-        toastId,
-        hideProgressBar: true,
-      })
-    }
-  })
+      if (isOffline) {
+        toast.toast.info(getText('offlineToastMessage'), {
+          toastId,
+          hideProgressBar: true,
+        })
+      } else {
+        toast.toast.info(getText('onlineToastMessage'), {
+          toastId,
+          hideProgressBar: true,
+        })
+      }
+    },
+    { triggerImmediate: false },
+  )
 
   return (
     <OfflineNotificationManagerContext.Provider value={{ isNested: true, toastId }}>

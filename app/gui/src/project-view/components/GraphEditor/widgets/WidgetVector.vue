@@ -39,6 +39,7 @@ const value = computed({
     const newAst = Ast.Vector.build(value, (element, tempModule) => tempModule.copy(element))
     props.onUpdate({
       portUpdate: { value: newAst, origin: props.input.portId },
+      directInteraction: true,
     })
   },
 })

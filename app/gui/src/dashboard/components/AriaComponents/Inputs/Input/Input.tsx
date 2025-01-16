@@ -43,7 +43,7 @@ export interface InputProps<
     FieldVariantProps,
     Omit<VariantProps<typeof INPUT_STYLES>, 'disabled' | 'invalid'>,
     TestIdProps {
-  readonly className?: string
+  // readonly className?: string
   readonly style?: CSSProperties
   readonly inputRef?: Ref<HTMLInputElement>
   readonly addonStart?: ReactNode
@@ -76,10 +76,12 @@ export const Input = forwardRef(function Input<
     fieldVariants,
     form: formRaw,
     autoFocus = false,
+    className,
+    testId: testIdRaw,
     ...inputProps
   } = props
   const form = Form.useFormContext(formRaw)
-  const testId = props.testId ?? props['data-testid']
+  const testId = testIdRaw ?? props['data-testid']
   const privateInputRef = useRef<HTMLInputElement>(null)
 
   const { fieldProps, formInstance } = Form.useFieldRegister<
@@ -105,14 +107,28 @@ export const Input = forwardRef(function Input<
     },
   })
 
+  const invalid = inputProps.isInvalid ?? fieldProps.isInvalid
+  const disabled = fieldProps.disabled || formInstance.formState.isSubmitting
+
   const classes = variants({
     variant,
     size,
     rounded,
-    invalid: fieldProps.isInvalid,
+    invalid,
     readOnly: inputProps.readOnly,
-    disabled: fieldProps.disabled || formInstance.formState.isSubmitting,
+    disabled,
   })
+
+  const computedClassName = (states: aria.InputRenderProps) => {
+    if (typeof className === 'function') {
+      return className({
+        ...states,
+        defaultClassName: classes.textArea(),
+      })
+    } else {
+      return className
+    }
+  }
 
   useAutoFocus({ ref: privateInputRef, disabled: !autoFocus })
 
@@ -133,28 +149,45 @@ export const Input = forwardRef(function Input<
         onClick={() => privateInputRef.current?.focus({ preventScroll: true })}
       >
         <div className={classes.content()}>
-          {addonStart != null && <div className={classes.addonStart()}>{addonStart}</div>}
+          {addonStart != null && (
+            <div className={classes.addonStart()} data-testid="addon-start">
+              {addonStart}
+            </div>
+          )}
+
           {icon != null &&
             (typeof icon === 'string' ? <SvgMask src={icon} className={classes.icon()} /> : icon)}
 
           <div className={classes.inputContainer()}>
             <aria.Input
               {...aria.mergeProps<aria.InputProps>()(
-                { className: classes.textArea(), type, name },
+                {
+                  className: (classNameStates) =>
+                    classes.textArea({ className: computedClassName(classNameStates) }),
+                  type,
+                  name,
+                  // eslint-disable-next-line @typescript-eslint/naming-convention
+                  'aria-invalid': invalid,
+                },
                 omit(inputProps, 'isInvalid', 'isRequired', 'isDisabled'),
                 omit(fieldProps, 'isInvalid', 'isRequired', 'isDisabled', 'invalid'),
               )}
               ref={(el) => {
                 mergeRefs(inputRef, privateInputRef, fieldProps.ref)(el)
               }}
+              data-testid="input"
             />
           </div>
 
-          {addonEnd != null && <div className={classes.addonEnd()}>{addonEnd}</div>}
+          {addonEnd != null && (
+            <div className={classes.addonEnd()} data-testid="addon-end">
+              {addonEnd}
+            </div>
+          )}
         </div>
 
         {description != null && (
-          <Text slot="description" className={classes.description()}>
+          <Text slot="description" className={classes.description()} data-testid="description">
             {description}
           </Text>
         )}

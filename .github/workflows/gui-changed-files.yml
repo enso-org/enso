@@ -36,12 +36,9 @@ jobs:
             .prettierrc.js
             .prettierignore
             vitest.workspace.ts
-            .github/workflows/gui-changed-files.yml
-            .github/workflows/gui-checks.yml
-            .github/workflows/gui-pull-request.yml
+            .github/workflows/gui*
             .github/workflows/storybook.yml
           files_ignore: |
-            app/ide-desktop/**
             app/gui/scripts/**
             app/gui/.gitignore
             .git-*

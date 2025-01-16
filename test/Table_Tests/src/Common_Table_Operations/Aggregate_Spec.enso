@@ -1262,7 +1262,7 @@ add_aggregate_specs suite_builder setup =
             loc = Meta.get_source_location 2
             Test.fail "Expected a Nothing or NaN but got: "+value.to_text+" (at "+loc+")."
 
-    suite_builder.group prefix+"Table.aggregate should correctly handle infinities" group_builder->
+    if setup.flagged ..Supports_Infinity then suite_builder.group prefix+"Table.aggregate should correctly handle infinities" group_builder->
         pos_inf = 1/0
         neg_inf = -1/0
 
@@ -1341,7 +1341,7 @@ add_aggregate_specs suite_builder setup =
             expect_null_or_nan <| m1.columns.first.at 0
             expect_null_or_nan <| m1.columns.second.at 0
 
-    suite_builder.group prefix+"Table.aggregate should correctly handle NaN" pending=(resolve_pending test_selection.nan) group_builder->
+    if setup.flagged ..Supports_Separate_NaN then suite_builder.group prefix+"Table.aggregate should correctly handle NaN" pending=(resolve_pending test_selection.nan) group_builder->
         nan = 0.log 0
         group_builder.specify "on Average" <|
             t1 = table_builder [["X", [Nothing, nan, 0, 1, 2]]]
@@ -1790,7 +1790,7 @@ add_aggregate_specs suite_builder setup =
                     table = table_builder [["A", [3,2,1]], ["X", [1,2,3]]]
                     order = [Sort_Column.Name "A"]
                     expect_sum_and_unsupported_errors 2 <|
-                        table.aggregate columns=[Sum "X", First ignore_nothing=False "X" (order_by=order), Last ignore_nothing=False "X" (order_by=order)]
+                        table.aggregate columns=[Sum "X", First "X" ignore_nothing=False order_by=order, Last "X" ignore_nothing=False order_by=order] on_problems=..Report_Warning
 
             if test_selection.first_last_ignore_nothing.not then
                 group_builder.specify "with First and Last with ignore_nothing=True" <|
@@ -1817,7 +1817,7 @@ add_aggregate_specs suite_builder setup =
                     expect_sum_and_unsupported_errors 2 <|
                         table.aggregate columns=[Sum "X", Shortest "Y", Longest "Y"]
 
-            if test_selection.text_concat.not && (setup.prefix.contains "Snowflake" . not) then
+            if test_selection.text_concat.not && (setup.prefix.contains "Snowflake" . not && setup.prefix.contains "SQLServer" . not) then
                 group_builder.specify "with Concatenate" <|
                     table = table_builder [["X", [1,2,3]], ["Y", ["a", "bb", "ccc"]]]
                     expect_sum_and_unsupported_errors 1 <|

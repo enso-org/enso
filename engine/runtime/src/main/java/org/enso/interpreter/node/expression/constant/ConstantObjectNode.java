@@ -11,6 +11,7 @@ public final class ConstantObjectNode extends ExpressionNode {
   private final Object object;
 
   private ConstantObjectNode(Object object) {
+    assert object != null;
     this.object = Objects.requireNonNull(object);
   }
 

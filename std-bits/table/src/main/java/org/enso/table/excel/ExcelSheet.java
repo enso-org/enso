@@ -12,10 +12,10 @@ public interface ExcelSheet {
   String getName();
 
   /** Gets the initial row index within the sheet (1-based). */
-  int getFirstRow();
+  int getFirstRow() throws InterruptedException;
 
   /** Gets the final row index within the sheet (1-based). */
-  int getLastRow();
+  int getLastRow() throws InterruptedException;
 
   /**
    * Gets the row at the given index within the sheet (1-based)
@@ -23,7 +23,7 @@ public interface ExcelSheet {
    * @param row the row index (1-based)/
    * @return the row object or null if the row index is out of range or doesn't exist.
    */
-  ExcelRow get(int row);
+  ExcelRow get(int row) throws InterruptedException;
 
   /** Gets the underlying Apache POI Sheet object - may be null. Provided for Writer use only. */
   Sheet getSheet();

@@ -1835,17 +1835,18 @@ type Column
     @format (make_format_chooser include_number=False)
     parse : Value_Type | Auto -> Text | Data_Formatter -> Problem_Behavior -> Column
     parse self type:(Value_Type | Auto)=Auto format:(Text | Data_Formatter)="" on_problems:Problem_Behavior=..Report_Warning =
-        Value_Type.expect_text self <|
-            formatter = case format of
-                _ : Text -> if format == "" then Data_Formatter.Value else Data_Formatter.Value.with_format type format
-                _ : Data_Formatter -> format
-            parser = formatter.make_value_type_parser type
-            storage = self.java_column.getStorage
+        if type != Auto && self.value_type.is_same_type type then self else
+            Value_Type.expect_text self <|
+                formatter = case format of
+                    _ : Text -> if format == "" then Data_Formatter.Value else Data_Formatter.Value.with_format type format
+                    _ : Data_Formatter -> format
+                parser = formatter.make_value_type_parser type
+                storage = self.java_column.getStorage
 
-            new_storage = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
-                parse_problem_aggregator = ParseProblemAggregator.make java_problem_aggregator self.name type
-                parser.parseColumn storage parse_problem_aggregator
-            Column.Value (Java_Column.new self.name new_storage)
+                new_storage = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+                    parse_problem_aggregator = ParseProblemAggregator.make java_problem_aggregator self.name type
+                    parser.parseColumn storage parse_problem_aggregator
+                Column.Value (Java_Column.new self.name new_storage)
 
     ## GROUP Standard.Base.Conversions
        ICON convert

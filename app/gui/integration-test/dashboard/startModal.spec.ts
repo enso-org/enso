@@ -6,7 +6,7 @@ import { mockAllAndLogin } from './actions'
 /** Find an editor container. */
 function locateEditor(page: Page) {
   // Test ID of a placeholder editor component used during testing.
-  return page.locator('.App')
+  return page.locator('.ProjectView')
 }
 
 /** Find a samples list. */
@@ -21,12 +21,9 @@ function locateSamples(page: Page) {
   return locateSamplesList(page).getByRole('button')
 }
 
-// FIXME[sb]: https://github.com/enso-org/cloud-v2/issues/1615
-// Unskip once cloud execution in the browser is re-enabled.
-
-test.skip('create project from template', ({ page }) =>
-  mockAllAndLogin({ page })
-    .expectStartModal()
+test('create project from template', ({ page }) =>
+  mockAllAndLogin({ page, setupAPI: (api) => api.setFeatureFlags({ enableCloudExecution: true }) })
+    .openStartModal()
     .createProjectFromTemplate(0)
     .do(async (thePage) => {
       await expect(locateEditor(thePage)).toBeAttached()
