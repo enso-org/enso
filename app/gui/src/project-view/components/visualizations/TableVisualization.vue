@@ -390,6 +390,9 @@ function toField(
     field: name,
     headerName: name, // AGGrid would demangle it its own way if not specified.
     filter: filterType,
+    filterParams: {
+      maxNumConditions: 1,
+    },
     headerComponentParams: {
       template,
       setAriaSort: () => {},
@@ -741,18 +744,6 @@ function checkSortAndFilter(e: SortChangedEvent) {
     })
     .filter((sort) => sort)
   const filter = Object.entries(gridFilterModel).map(([key, value]) => {
-    if (value.operator === 'AND') {
-      value.conditions.map((comparator: any) => ({
-        columnName: key,
-        filterType: comparator.filterType,
-        filterAction: comparator.type,
-        filter: comparator.filter,
-        filterTo: comparator.filterTo,
-        dateFrom: comparator.dateFrom,
-        dateTo: comparator.dateTo,
-        values: comparator.values,
-      }))
-    }
     return {
       columnName: key,
       filterType: value.filterType,
