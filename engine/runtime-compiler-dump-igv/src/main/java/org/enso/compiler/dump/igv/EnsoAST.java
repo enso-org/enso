@@ -1,8 +1,11 @@
 package org.enso.compiler.dump.igv;
 
+import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.CallArgument;
 import org.enso.compiler.core.ir.DefinitionArgument;
@@ -32,7 +35,14 @@ final class EnsoAST {
 
   private final ASTNode root;
   private final Map<Integer, ASTNode> nodes = new HashMap<>();
-  private int currentId = 0;
+
+  /** List of blocks that are already built. */
+  private final List<ASTBlock> blocks = new ArrayList<>();
+
+  /** Stack of blocks that are being built. */
+  private final Queue<ASTBlock.Builder> blockStack = new ArrayDeque<>();
+
+  private int currentNodeId = 0;
 
   private EnsoAST(Module moduleIr) {
     this.root = buildTree(moduleIr);
@@ -44,6 +54,10 @@ final class EnsoAST {
 
   public List<ASTNode> getNodes() {
     return nodes.values().stream().toList();
+  }
+
+  public List<ASTBlock> getBlocks() {
+    return blocks;
   }
 
   private void createEdge(ASTNode from, ASTNode to, String label) {
@@ -119,6 +133,7 @@ final class EnsoAST {
   private ASTNode buildTree(Definition definitionIr) {
     return switch (definitionIr) {
       case Method.Explicit explicitMethodIr -> {
+        startBlock();
         Map<String, Object> props =
             Map.of(
                 "methodName", explicitMethodIr.methodName().name(),
@@ -130,9 +145,11 @@ final class EnsoAST {
         var body = explicitMethodIr.body();
         var bodyNode = buildTree(body);
         createEdge(methodNode, bodyNode, "body");
+        endBlock();
         yield methodNode;
       }
       case Method.Conversion conversionMethod -> {
+        startBlock();
         Map<String, Object> props =
             Map.of(
                 "methodName", conversionMethod.methodName().name(),
@@ -142,9 +159,11 @@ final class EnsoAST {
         var body = conversionMethod.body();
         var bodyNode = buildTree(body);
         createEdge(methodNode, bodyNode, "body");
+        endBlock();
         yield methodNode;
       }
       case Method.Binding binding -> {
+        startBlock();
         Map<String, Object> props =
             Map.of(
                 "methodName", binding.methodName().name(),
@@ -159,9 +178,11 @@ final class EnsoAST {
         var body = binding.body();
         var bodyNode = buildTree(body);
         createEdge(methodNode, bodyNode, "body");
+        endBlock();
         yield methodNode;
       }
       case Definition.Type type -> {
+        startBlock();
         Map<String, Object> props = Map.of("typeName", type.name().name());
         var typeNode = newNode(type, props);
         for (var i = 0; i < type.members().size(); i++) {
@@ -169,6 +190,7 @@ final class EnsoAST {
           var memberNode = buildTree(member);
           createEdge(typeNode, memberNode, "member[" + i + "]");
         }
+        endBlock();
         yield typeNode;
       }
       case Name.GenericAnnotation genericAnnotation -> {
@@ -379,19 +401,41 @@ final class EnsoAST {
   private ASTNode newNode(Object object, Map<String, Object> props) {
     ASTNode.Builder bldr;
     if (object instanceof IR ir) {
-      bldr = ASTNode.Builder.fromIr(ir).id(currentId++);
+      bldr = ASTNode.Builder.fromIr(ir).id(currentNodeId++);
     } else {
-      bldr = ASTNode.Builder.fromObject(object).id(currentId++);
+      bldr = ASTNode.Builder.fromObject(object).id(currentNodeId++);
     }
     props.forEach(bldr::property);
     var node = bldr.build();
     assert !nodes.containsKey(node.getId());
     nodes.put(node.getId(), node);
+    if (currentBlockBldr() != null) {
+      currentBlockBldr().addNode(node);
+    }
     return node;
   }
 
   private ASTNode newNode(Object object) {
     return newNode(object, Map.of());
+  }
+
+  private void startBlock() {
+    var blockBldr = ASTBlock.Builder.fromId(blocks.size());
+    blockStack.add(blockBldr);
+  }
+
+  private ASTBlock.Builder currentBlockBldr() {
+    return blockStack.peek();
+  }
+
+  private void endBlock() {
+    assert !blockStack.isEmpty();
+    var block = blockStack.remove().build();
+    var parentBlock = blockStack.peek();
+    if (parentBlock != null) {
+      parentBlock.addSuccessor(block);
+    }
+    blocks.add(block);
   }
 
   private static RuntimeException unimpl(Object obj) {

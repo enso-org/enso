@@ -4,10 +4,12 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import org.enso.compiler.dump.igv.ASTEdge.EdgeType;
+import org.graalvm.graphio.GraphBlocks;
 import org.graalvm.graphio.GraphStructure;
 
 final class ASTDumpStructure
-    implements GraphStructure<EnsoAST, ASTNode, ASTNodeClass, List<ASTEdge>> {
+    implements GraphStructure<EnsoAST, ASTNode, ASTNodeClass, List<ASTEdge>>,
+        GraphBlocks<EnsoAST, ASTBlock, ASTNode> {
 
   @Override
   public EnsoAST graph(EnsoAST currentGraph, Object obj) {
@@ -107,5 +109,25 @@ final class ASTDumpStructure
   public Collection<? extends ASTNode> edgeNodes(
       EnsoAST graph, ASTNode node, List<ASTEdge> port, int index) {
     return List.of(port.get(index).node());
+  }
+
+  @Override
+  public Collection<? extends ASTBlock> blocks(EnsoAST graph) {
+    return graph.getBlocks();
+  }
+
+  @Override
+  public int blockId(ASTBlock block) {
+    return block.getId();
+  }
+
+  @Override
+  public Collection<? extends ASTNode> blockNodes(EnsoAST info, ASTBlock block) {
+    return block.getNodes();
+  }
+
+  @Override
+  public Collection<? extends ASTBlock> blockSuccessors(ASTBlock block) {
+    return block.getSuccessors();
   }
 }
