@@ -1,7 +1,9 @@
 package org.enso.compiler.dump;
 
 import java.io.IOException;
+import java.util.IdentityHashMap;
 import org.enso.compiler.context.CompilerContext;
+import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.module.scope.Definition;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
@@ -52,12 +54,33 @@ public final class DocsGenerate {
     var dispatch = DocsDispatch.create(visitor, w);
 
     if (dispatch.dispatchModule(moduleName, ir)) {
-      for (var b : asJava(ir.bindings())) {
+      var moduleBindings = asJava(ir.bindings());
+      var alreadyDispatched = new IdentityHashMap<IR, IR>();
+      for (var b : moduleBindings) {
+        if (alreadyDispatched.containsKey(b)) {
+          continue;
+        }
         switch (b) {
           case Definition.Type t -> {
             if (dispatch.dispatchType(t)) {
               for (var d : asJava(t.members())) {
                 dispatch.dispatchConstructor(t, d);
+              }
+              for (var mb : moduleBindings) {
+                if (mb instanceof Method.Explicit m) {
+                  if (m.isStaticWrapperForInstanceMethod()) {
+                    alreadyDispatched.put(m, m);
+                    continue;
+                  }
+                  var p = m.methodReference().typePointer();
+                  if (p.isDefined()) {
+                    var methodTypeName = p.get().name();
+                    if (methodTypeName.equals(t.name().name())) {
+                      dispatch.dispatchMethod(t, m);
+                      alreadyDispatched.put(m, m);
+                    }
+                  }
+                }
               }
             }
           }
@@ -67,7 +90,7 @@ public final class DocsGenerate {
           case Definition.SugaredType s -> {
             w.append("#### sugar " + s.name().name() + "\n");
           }
-          case Method.Explicit m -> dispatch.dispatchMethod(m);
+          case Method.Explicit m -> dispatch.dispatchMethod(null, m);
           case Method.Conversion c -> dispatch.dispatchConversion(c);
           default -> throw new AssertionError("unknown type " + b.getClass());
         }

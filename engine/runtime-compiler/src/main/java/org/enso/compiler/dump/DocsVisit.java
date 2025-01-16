@@ -16,7 +16,7 @@ public interface DocsVisit {
 
   boolean visitUnknown(IR ir, Appendable w) throws IOException;
 
-  void visitMethod(Method.Explicit m, Appendable writer) throws IOException;
+  void visitMethod(Definition.Type t, Method.Explicit m, Appendable writer) throws IOException;
 
   void visitConversion(Method.Conversion c, Appendable w) throws IOException;
 

@@ -18,8 +18,8 @@ abstract class DocsDispatch {
       }
 
       @Override
-      void dispatchMethod(Method.Explicit m) throws IOException {
-        visitor.visitMethod(m, writer);
+      void dispatchMethod(Definition.Type t, Method.Explicit m) throws IOException {
+        visitor.visitMethod(t, m, writer);
       }
 
       @Override
@@ -43,7 +43,7 @@ abstract class DocsDispatch {
 
   abstract boolean dispatchModule(QualifiedName name, Module ir) throws IOException;
 
-  abstract void dispatchMethod(Method.Explicit m) throws IOException;
+  abstract void dispatchMethod(Definition.Type t, Method.Explicit m) throws IOException;
 
   abstract void dispatchConversion(Method.Conversion c) throws IOException;
 

@@ -25,7 +25,7 @@ final class DocsEmitMarkdown implements DocsVisit {
   }
 
   @Override
-  public void visitMethod(Method.Explicit m, Appendable w) throws IOException {
+  public void visitMethod(Definition.Type t, Method.Explicit m, Appendable w) throws IOException {
     w.append("#### method " + m.methodName().name() + "\n");
     writeDocs(m, w);
   }

@@ -89,10 +89,33 @@ public class DocsGenerateTest {
 
           assertEquals("One type found", 1, v.visitType.size());
           assertEquals("Three constructors", 3, v.visitConstructor.size());
+
+          var typeMethods =
+              v.visitMethod.stream()
+                  .filter(p -> p.t() != null)
+                  .map(
+                      p -> {
+                        assertEquals("Name of the type is", "Calc", p.t().name().name());
+                        return p;
+                      })
+                  .toList();
+          var moduleMethods = new ArrayList<>(v.visitMethod);
+          moduleMethods.removeAll(typeMethods);
+
           assertEquals(
-              "Two methods: " + v.visitMethod.stream().map(m -> m.methodName().name()).toList(),
+              "Two type methods: "
+                  + typeMethods.stream()
+                      .map(
+                          p -> {
+                            var typePref = p.t() != null ? p.t().name().name() + "." : "";
+                            return typePref + p.ir().methodName().name();
+                          })
+                      .toList(),
               2,
-              v.visitMethod.size());
+              typeMethods.size());
+
+          assertEquals("One module method", 1, moduleMethods.size());
+          assertEquals("main", moduleMethods.get(0).ir().methodName().name());
         });
   }
 
@@ -101,7 +124,7 @@ public class DocsGenerateTest {
     private final List<Definition.Type> visitType = new ArrayList<>();
     private final List<Definition.Data> visitConstructor = new ArrayList<>();
     private final List<IR> visitUnknown = new ArrayList<>();
-    private final List<Method.Explicit> visitMethod = new ArrayList<>();
+    private final List<TypeAnd<Method.Explicit>> visitMethod = new ArrayList<>();
     private final List<Method.Conversion> visitConversion = new ArrayList<>();
 
     @Override
@@ -118,8 +141,9 @@ public class DocsGenerateTest {
     }
 
     @Override
-    public void visitMethod(Method.Explicit m, Appendable writer) throws IOException {
-      visitMethod.add(m);
+    public void visitMethod(Definition.Type t, Method.Explicit m, Appendable writer)
+        throws IOException {
+      visitMethod.add(new TypeAnd<>(t, m));
     }
 
     @Override
@@ -144,4 +168,6 @@ public class DocsGenerateTest {
   private static <E extends Exception> E raise(Class<E> type, Exception t) throws E {
     throw (E) t;
   }
+
+  record TypeAnd<IRElement>(Definition.Type t, IRElement ir) {}
 }
