@@ -24,6 +24,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+// This is not our code, so I just blocked failing lints.
+/* eslint-disable vue/require-default-prop */
+/* eslint-disable vue/require-prop-types */
+/* eslint-disable vue/order-in-components */
 
 import type { AgEventType, GridApi, GridOptions, IRowNode, Module } from 'ag-grid-community'
 import {
@@ -80,7 +84,7 @@ export const AgGridVue = defineComponent({
     gridCreated: boolean
     isDestroyed: boolean
     gridReadyFired: boolean
-    emitRowModel?: () => void | null
+    emitRowModel?: (() => void | null) | undefined
     batchTimeout: number | null
     batchChanges: { [key: string]: any }
   } {

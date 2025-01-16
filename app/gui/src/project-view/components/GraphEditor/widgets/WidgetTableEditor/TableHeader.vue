@@ -3,6 +3,9 @@ import SvgButton from '@/components/SvgButton.vue'
 import type { IHeaderParams } from 'ag-grid-community'
 import { computed, ref, watch } from 'vue'
 
+/**
+ * Column-specific header parameters, set in particular column's definitions.
+ */
 export interface ColumnSpecificParams {
   columnParams:
     | {
@@ -14,13 +17,16 @@ export interface ColumnSpecificParams {
     | { type: 'rowIndexColumn' }
 }
 
+/**
+ * General header parameters, set in default column configuration.
+ */
 export interface HeaderParams {
-  /**
-   * The id of column whose header is currently edited.
-   */
+  /** The id of column whose header is currently edited. */
   editedColId?: string | undefined
-  onHeaderEditingStarted?: (colId: string, revertChanges: () => void) => void
-  onHeaderEditingStopped?: (colId: string) => void
+  /** Callback called when editing this column is requested. */
+  onHeaderEditingStarted: (colId: string, revertChanges: () => void) => void
+  /** Callback called when editing of this column should be finished. */
+  onHeaderEditingStopped: (colId: string) => void
 }
 </script>
 
