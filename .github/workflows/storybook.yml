@@ -57,6 +57,9 @@ jobs:
       - name: 📦 Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: ⚙️ Compile dependencies
+        run: corepack pnpm run -r --filter enso-common compile
+
       - name: 📥 Download storybook cache
         uses: actions/cache@v4
         with:

@@ -1,7 +1,5 @@
 /** @file Utilities for manipulating {@link Iterator}s and {@link Iterable}s. */
 
-import { iteratorFilter, mapIterator } from 'lib0/iterator'
-
 /** Similar to {@link Array.prototype.reduce|}, but consumes elements from any iterable. */
 export function reduce<T, A>(
   iterable: Iterable<T>,
@@ -53,8 +51,8 @@ export function* range(start: number, stop: number, step = start <= stop ? 1 : -
 }
 
 /** @returns An iterator that yields the results of applying the given function to each value of the given iterable. */
-export function map<T, U>(it: Iterable<T>, f: (value: T) => U): IterableIterator<U> {
-  return mapIterator(it[Symbol.iterator](), f)
+export function* map<T, U>(it: Iterable<T>, f: (value: T) => U): IterableIterator<U> {
+  for (const value of it) yield f(value)
 }
 
 export function filter<T, S extends T>(
@@ -66,8 +64,8 @@ export function filter<T>(iter: Iterable<T>, include: (value: T) => boolean): It
  * Return an {@link Iterable} that `yield`s only the values from the given source iterable
  * that pass the given predicate.
  */
-export function filter<T>(iter: Iterable<T>, include: (value: T) => boolean): IterableIterator<T> {
-  return iteratorFilter(iter[Symbol.iterator](), include)
+export function* filter<T>(iter: Iterable<T>, include: (value: T) => boolean): IterableIterator<T> {
+  for (const value of iter) if (include(value)) yield value
 }
 
 /**

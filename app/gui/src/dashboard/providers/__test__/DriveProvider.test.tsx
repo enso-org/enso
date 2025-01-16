@@ -1,10 +1,10 @@
 import { Suspense } from '#/components/Suspense'
 import { DirectoryId } from '#/services/Backend'
 import { act, renderHook, waitFor, type RenderHookOptions, type RenderHookResult } from '#/test'
+import { useStore } from '#/utilities/zustand'
 import { useState } from 'react'
 import invariant from 'tiny-invariant'
 import { describe, expect, it } from 'vitest'
-import { useStore } from 'zustand'
 import type { CategoryId } from '../../layouts/CategorySwitcher/Category'
 import DriveProvider, { useDriveStore } from '../DriveProvider'
 

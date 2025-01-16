@@ -1,20 +1,22 @@
 package org.enso.interpreter.node;
 
-import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.nodes.RootNode;
+import org.enso.compiler.context.LocalScope;
+import org.enso.interpreter.EnsoLanguage;
+import org.enso.interpreter.runtime.scope.ModuleScope;
 
-public final class ConstantNode extends RootNode {
+public final class ConstantNode extends EnsoRootNode {
   private final Object constant;
 
   /**
    * Creates a new instance of this node.
    *
    * @param language the current language instance.
-   * @param atomConstructor the constructor to return.
+   * @param moduleScope the scope
+   * @param constant the value to return.
    */
-  public ConstantNode(TruffleLanguage<?> language, Object constant) {
-    super(language);
+  public ConstantNode(EnsoLanguage language, ModuleScope moduleScope, Object constant) {
+    super(language, LocalScope.empty(), moduleScope, constant.toString(), null);
     this.constant = constant;
   }
 

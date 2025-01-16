@@ -1,7 +1,7 @@
 /** Generates code lazily deserializing from an application-specific binary format. */
 
 import ts from 'typescript'
-import { makeArrow } from './util'
+import { makeArrow } from './util.js'
 
 const { factory: tsf } = ts
 

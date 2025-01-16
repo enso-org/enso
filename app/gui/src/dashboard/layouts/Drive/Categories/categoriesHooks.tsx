@@ -6,8 +6,6 @@
  * It's not the same as the categories like LocalBackend
  */
 
-import { useSuspenseQuery } from '@tanstack/react-query'
-
 import CloudIcon from '#/assets/cloud.svg'
 import ComputerIcon from '#/assets/computer.svg'
 import FolderFilledIcon from '#/assets/folder_filled.svg'
@@ -18,21 +16,16 @@ import Trash2Icon from '#/assets/trash2.svg'
 
 import { useUser } from '#/providers/AuthProvider'
 
-import { backendQueryOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOffline } from '#/hooks/offlineHooks'
 import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
-import { useBackend, useLocalBackend, useRemoteBackend } from '#/providers/BackendProvider'
+import { useBackend, useLocalBackend } from '#/providers/BackendProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import { type DirectoryId, Path, userHasUserAndTeamSpaces } from '#/services/Backend'
 import { newDirectoryId } from '#/services/LocalBackend'
-import {
-  organizationIdToDirectoryId,
-  userGroupIdToDirectoryId,
-  userIdToDirectoryId,
-} from '#/services/RemoteBackend'
+import { organizationIdToDirectoryId, userIdToDirectoryId } from '#/services/RemoteBackend'
 import { getFileName } from '#/utilities/fileInfo'
 import LocalStorage from '#/utilities/LocalStorage'
 import type { ReactNode } from 'react'
@@ -75,8 +68,6 @@ export type CloudCategoryResult = ReturnType<typeof useCloudCategoryList>
  * List of categories in the Cloud.
  */
 export function useCloudCategoryList() {
-  const remoteBackend = useRemoteBackend()
-
   const user = useUser()
   const { getText } = useText()
 
@@ -115,14 +106,7 @@ export function useCloudCategoryList() {
     trashCategory,
   ]
 
-  const { data: allUserGroupsRaw } = useSuspenseQuery(
-    backendQueryOptions(remoteBackend, 'listUserGroups', []),
-  )
-
-  const allUserGroups =
-    allUserGroupsRaw.length === 0 || !hasUserAndTeamSpaces ? null : allUserGroupsRaw
-
-  const userSpace: UserCategory | null =
+  const userCategory: UserCategory | null =
     hasUserAndTeamSpaces ?
       {
         type: 'user',
@@ -135,35 +119,21 @@ export function useCloudCategoryList() {
       }
     : null
 
-  const doesHaveUserGroups =
-    user.userGroups != null && user.userGroups.length > 0 && allUserGroups != null
-
-  const userGroupDynamicCategories =
-    doesHaveUserGroups ?
-      user.userGroups.map<TeamCategory>((id) => {
-        const group = allUserGroups.find((userGroup) => userGroup.id === id)
-
-        invariant(
-          group != null,
-          `Unable to find user group by id: ${id}, allUserGroups: ${JSON.stringify(allUserGroups, null, 2)}`,
-        )
-
-        return {
-          type: 'team',
-          id,
-          team: group,
-          rootPath: Path(`enso://Teams/${group.groupName}`),
-          homeDirectoryId: userGroupIdToDirectoryId(group.id),
-          label: getText('teamCategory', group.groupName),
-          icon: PeopleIcon,
-        }
-      })
-    : null
+  const teamCategories =
+    user.groups?.map<TeamCategory>((group) => ({
+      type: 'team',
+      id: group.id,
+      team: group,
+      rootPath: Path(`enso://Teams/${group.name}`),
+      homeDirectoryId: group.homeDirectoryId,
+      label: getText('teamCategory', group.name),
+      icon: PeopleIcon,
+    })) ?? []
 
   const categories = [
     ...predefinedCloudCategories,
-    ...(userSpace != null ? [userSpace] : []),
-    ...(userGroupDynamicCategories != null ? [...userGroupDynamicCategories] : []),
+    ...(userCategory != null ? [userCategory] : []),
+    ...teamCategories,
   ] as const
 
   const getCategoryById = useEventCallback(
@@ -193,8 +163,8 @@ export function useCloudCategoryList() {
     cloudCategory,
     recentCategory,
     trashCategory,
-    userCategory: userSpace,
-    teamCategories: userGroupDynamicCategories,
+    userCategory,
+    teamCategories,
     getCategoryById,
     getCategoriesByType,
     isCloudCategory,

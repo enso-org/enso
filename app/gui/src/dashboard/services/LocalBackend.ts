@@ -107,7 +107,8 @@ export function extractTypeAndId<Id extends backend.AssetId>(id: Id): AssetTypeA
  * This is used instead of the cloud backend API when managing local projects from the dashboard.
  */
 export default class LocalBackend extends Backend {
-  readonly type = backend.BackendType.local
+  static readonly type = backend.BackendType.local
+  readonly type = LocalBackend.type
   /** All files that have been uploaded to the Project Manager. */
   uploadedFiles: Map<string, backend.UploadedLargeAsset> = new Map()
   private readonly projectManager: ProjectManager
