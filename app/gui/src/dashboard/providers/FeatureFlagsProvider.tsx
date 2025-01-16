@@ -4,9 +4,10 @@
  * Feature flags provider.
  * Feature flags are used to enable or disable certain features in the application.
  */
+import { createStore, useStore } from '#/utilities/zustand'
 import { IS_DEV_MODE, isOnElectron } from 'enso-common/src/detect'
 import { z } from 'zod'
-import { createStore, useStore } from 'zustand'
+
 import { persist } from 'zustand/middleware'
 import { unsafeWriteValue } from '../utilities/write'
 export const FEATURE_FLAGS_SCHEMA = z.object({

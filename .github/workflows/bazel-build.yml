@@ -1,0 +1,50 @@
+name: Bazel build
+on:
+  push:
+    branches:
+      - develop
+  pull_request: {}
+jobs:
+  build-gui:
+    name: Run bazel GUI build
+    # if: github.ref != 'refs/heads/develop'
+    runs-on:
+      - ubuntu-latest
+    steps:
+      - uses: bazel-contrib/setup-bazel@0.9.0
+        with:
+          bazelisk-cache: true
+          disk-cache: true
+          repository-cache: true
+      - uses: actions/checkout@v4
+      - name: Expose env variables
+        run: |
+          cat << END > app/gui/.env.production
+          ENSO_IDE_ENVIRONMENT="${{ vars.ENSO_CLOUD_ENVIRONMENT }}"
+          ENSO_IDE_API_URL="${{ vars.ENSO_CLOUD_API_URL }}"
+          ENSO_IDE_CHAT_URL="${{ vars.ENSO_CLOUD_CHAT_URL }}"
+          ENSO_IDE_COGNITO_DOMAIN="${{ vars.ENSO_CLOUD_COGNITO_DOMAIN }}"
+          ENSO_IDE_COGNITO_REGION="${{ vars.ENSO_CLOUD_COGNITO_REGION }}"
+          ENSO_IDE_COGNITO_USER_POOL_ID="${{ vars.ENSO_CLOUD_COGNITO_USER_POOL_ID }}"
+          ENSO_IDE_COGNITO_USER_POOL_WEB_CLIENT_ID="${{ vars.ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID }}"
+          ENSO_IDE_GOOGLE_ANALYTICS_TAG="${{ vars.ENSO_CLOUD_GOOGLE_ANALYTICS_TAG }}"
+          ENSO_IDE_SENTRY_DSN="${{ vars.ENSO_CLOUD_SENTRY_DSN }}"
+          ENSO_IDE_STRIPE_KEY="${{ vars.ENSO_CLOUD_STRIPE_KEY }}"
+          ENSO_IDE_AG_GRID_LICENSE_KEY="${{ vars.ENSO_AG_GRID_LICENSE_KEY }}"
+          ENSO_IDE_MAPBOX_API_TOKEN="${{ vars.ENSO_MAPBOX_API_TOKEN }}"
+          ENSO_IDE_COMMIT_HASH="${{ github.sha }}"
+          ENSO_IDE_VERSION="SNAPSHOT-${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}"
+          ENSO_IDE_CLOUD_BUILD="false"
+          END
+      - run: bazel build //app/gui:dist
+      - name: Get build output location
+        id: get_bazel_output
+        run: |
+          OUTPUT_SYMLINK=$(bazel cquery --output=files //app/gui:dist)
+          BAZEL_OUTPUT=$(readlink -f "$OUTPUT_SYMLINK")
+          echo "location=$BAZEL_OUTPUT" >> $GITHUB_OUTPUT
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gui-static
+          path: ${{ steps.get_bazel_output.outputs.location }}
+          if-no-files-found: error
