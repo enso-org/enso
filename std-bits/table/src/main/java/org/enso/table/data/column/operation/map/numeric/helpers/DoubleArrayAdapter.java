@@ -18,13 +18,13 @@ public interface DoubleArrayAdapter {
 
   default DoubleStorage intoStorage() {
     int n = size();
-    long[] values = new long[n];
+    double[] values = new double[n];
     BitSet isNothing = new BitSet();
     for (int i = 0; i < n; i++) {
       if (isNothing(i)) {
         isNothing.set(i);
       } else {
-        values[i] = Double.doubleToRawLongBits(getItemAsDouble(i));
+        values[i] = getItemAsDouble(i);
       }
     }
     return new DoubleStorage(values, n, isNothing);

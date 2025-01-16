@@ -1,6 +1,5 @@
 package org.enso.table.data.column.builder;
 
-import java.util.BitSet;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.BigDecimalType;
@@ -79,7 +78,7 @@ public interface Builder {
       throw new IllegalArgumentException("Only 64-bit floats are currently supported.");
     }
 
-    return new DoubleBuilder(new BitSet(), new long[size], 0, problemAggregator);
+    return new DoubleBuilder(size, problemAggregator);
   }
 
   /**

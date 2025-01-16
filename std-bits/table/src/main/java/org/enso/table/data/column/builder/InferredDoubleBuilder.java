@@ -20,49 +20,13 @@ public class InferredDoubleBuilder extends DoubleBuilder implements BuilderWithR
    */
   static InferredDoubleBuilder retypeFromLongBuilder(LongBuilder longBuilder) {
     int currentSize = longBuilder.currentSize;
-    InferredDoubleBuilder newBuilder =
-        new InferredDoubleBuilder(
-            longBuilder.isNothing, longBuilder.data, currentSize, longBuilder.problemAggregator);
+    var newBuilder = new InferredDoubleBuilder(longBuilder.getDataSize(), longBuilder.problemAggregator);
 
-    // Invalidate the old builder.
-    longBuilder.data = null;
-    longBuilder.isNothing = null;
-    longBuilder.currentSize = -1;
-
-    // Assume all longs will be compacted.
-    newBuilder.isLongCompactedAsDouble.set(0, currentSize, true);
-
-    // Translate the data in-place to avoid unnecessary allocations.
     for (int i = 0; i < currentSize; i++) {
-      if (!newBuilder.isNothing.get(i)) {
-        long currentIntegerValue = newBuilder.data[i];
-        double convertedFloatValue = (double) currentIntegerValue;
-        boolean isLossy = currentIntegerValue != (long) convertedFloatValue;
-        if (isLossy) {
-          // Save it raw for recovery.
-          newBuilder.setRaw(i, currentIntegerValue);
-          newBuilder.precisionLossAggregator.reportIntegerPrecisionLoss(
-              currentIntegerValue, convertedFloatValue);
-          // Unmark the long that did not fit:
-          newBuilder.isLongCompactedAsDouble.set(i, false);
-        }
-
-        newBuilder.data[i] = Double.doubleToRawLongBits(convertedFloatValue);
-      }
+      newBuilder.appendLongNoGrow(longBuilder.data[i]);
     }
 
     return newBuilder;
-  }
-
-  InferredDoubleBuilder(int capacity, ProblemAggregator problemAggregator) {
-    this(new BitSet(), new long[capacity], 0, problemAggregator);
-  }
-
-  private InferredDoubleBuilder(
-      BitSet isNothing, long[] doubleData, int currentSize, ProblemAggregator problemAggregator) {
-    super(isNothing, doubleData, currentSize, problemAggregator);
-    rawData = null;
-    isLongCompactedAsDouble = new BitSet();
   }
 
   /**
@@ -84,6 +48,12 @@ public class InferredDoubleBuilder extends DoubleBuilder implements BuilderWithR
    */
   private final BitSet isLongCompactedAsDouble;
 
+  InferredDoubleBuilder(int initialSize, ProblemAggregator problemAggregator) {
+    super(initialSize, problemAggregator);
+    rawData = null;
+    isLongCompactedAsDouble = new BitSet();
+  }
+
   @Override
   public void copyDataTo(Object[] items) {
     int rawN = rawData == null ? 0 : rawData.length;
@@ -92,14 +62,11 @@ public class InferredDoubleBuilder extends DoubleBuilder implements BuilderWithR
         items[i] = null;
       } else {
         if (isLongCompactedAsDouble.get(i)) {
-          double value = Double.longBitsToDouble(data[i]);
-          long reconstructed = (long) value;
-          items[i] = reconstructed;
+          items[i] = (long)data[i];
         } else if (i < rawN && rawData[i] != null) {
           items[i] = rawData[i];
         } else {
-          double value = Double.longBitsToDouble(data[i]);
-          items[i] = value;
+          items[i] = data[i];
         }
       }
     }
@@ -117,22 +84,8 @@ public class InferredDoubleBuilder extends DoubleBuilder implements BuilderWithR
   }
 
   @Override
-  public void appendDouble(double value) {
-    if (currentSize >= this.data.length) {
-      grow();
-    }
-
-    data[currentSize] = Double.doubleToRawLongBits(value);
-    currentSize++;
-  }
-
-  @Override
   public void appendLong(long value) {
-    if (currentSize >= this.data.length) {
-      grow();
-    }
-
-    appendLongNoGrow(value);
+    super.appendLong(value);
   }
 
   private void appendLongNoGrow(long integer) {
@@ -145,24 +98,26 @@ public class InferredDoubleBuilder extends DoubleBuilder implements BuilderWithR
       isLongCompactedAsDouble.set(currentSize, true);
     }
 
-    data[currentSize] = Double.doubleToRawLongBits(convertedFloatValue);
-    currentSize++;
+    data[currentSize++] = convertedFloatValue;
   }
 
   @Override
   public void appendNoGrow(Object o) {
     if (o == null) {
       isNothing.set(currentSize++);
-    } else if (NumericConverter.isFloatLike(o)) {
-      double value = NumericConverter.coerceToDouble(o);
-      data[currentSize++] = Double.doubleToRawLongBits(value);
+      return;
+    }
+
+    if (NumericConverter.isFloatLike(o)) {
+      data[currentSize++] = NumericConverter.coerceToDouble(o);
     } else if (NumericConverter.isCoercibleToLong(o)) {
-      long value = NumericConverter.coerceToLong(o);
-      appendLongNoGrow(value);
+      appendLongNoGrow(NumericConverter.coerceToLong(o));
     } else if (o instanceof BigInteger bigInteger) {
       setRaw(currentSize, bigInteger);
-      double converted = convertBigIntegerToDouble(bigInteger);
-      data[currentSize++] = Double.doubleToRawLongBits(converted);
+      data[currentSize++] = convertBigIntegerToDouble(bigInteger);
+    } else if (o instanceof BigDecimal bigDecimal) {
+      setRaw(currentSize, bigDecimal);
+      data[currentSize++] = convertBigDecimalToDouble(bigDecimal);
     } else {
       throw new ValueTypeMismatchException(getType(), o);
     }
@@ -201,8 +156,7 @@ public class InferredDoubleBuilder extends DoubleBuilder implements BuilderWithR
         if (isNothing.get(i)) {
           res.appendNulls(1);
         } else {
-          double d = Double.longBitsToDouble(data[i]);
-          BigDecimal bigDecimal = BigDecimal.valueOf(d);
+          BigDecimal bigDecimal = BigDecimal.valueOf(data[i]);
           res.appendNoGrow(bigDecimal);
         }
       }

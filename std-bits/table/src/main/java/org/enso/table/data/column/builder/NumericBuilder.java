@@ -1,18 +1,15 @@
 package org.enso.table.data.column.builder;
 
-import java.util.Arrays;
 import java.util.BitSet;
 
 /** A common base for numeric builders. */
 public abstract class NumericBuilder implements Builder {
   protected BitSet isNothing;
-  protected long[] data;
   protected int currentSize;
 
-  protected NumericBuilder(BitSet isNothing, long[] data, int currentSize) {
-    this.isNothing = isNothing;
-    this.data = data;
-    this.currentSize = currentSize;
+  protected NumericBuilder() {
+    this.isNothing = new BitSet();
+    this.currentSize = 0;
   }
 
   @Override
@@ -23,7 +20,7 @@ public abstract class NumericBuilder implements Builder {
 
   @Override
   public void append(Object o) {
-    if (currentSize >= data.length) {
+    if (currentSize >= getDataSize()) {
       grow();
     }
     appendNoGrow(o);
@@ -35,7 +32,7 @@ public abstract class NumericBuilder implements Builder {
   }
 
   protected void ensureFreeSpaceFor(int additionalSize) {
-    if (currentSize + additionalSize > data.length) {
+    if (currentSize + additionalSize > getDataSize()) {
       resize(currentSize + additionalSize);
     }
   }
@@ -48,23 +45,12 @@ public abstract class NumericBuilder implements Builder {
    * free slot.
    */
   protected void grow() {
-    int desiredCapacity = 3;
-    if (data.length > 1) {
-      desiredCapacity = (data.length * 3 / 2);
-    }
-
-    // It is possible for the `currentSize` to grow arbitrarily larger than
-    // the capacity, because when nulls are being added the array is not
-    // resized, only the counter is incremented. Thus, we need to ensure
-    // that we have allocated enough space for at least one element.
-    if (currentSize >= desiredCapacity) {
-      desiredCapacity = currentSize + 1;
-    }
-
+    int dataLength = getDataSize();
+    int desiredCapacity = Math.max(currentSize + 1, dataLength > 1 ? dataLength * 3 / 2 : 3);
     resize(desiredCapacity);
   }
 
-  protected void resize(int desiredCapacity) {
-    this.data = Arrays.copyOf(data, desiredCapacity);
-  }
+  protected abstract int getDataSize();
+
+  protected abstract void resize(int desiredCapacity);
 }

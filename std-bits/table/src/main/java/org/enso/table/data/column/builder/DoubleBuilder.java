@@ -2,7 +2,6 @@ package org.enso.table.data.column.builder;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.BitSet;
 import java.util.Objects;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.operation.cast.ToFloatStorageConverter;
@@ -22,10 +21,25 @@ import org.enso.table.util.BitSets;
 
 /** A builder for floating point columns. */
 public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
-  DoubleBuilder(
-      BitSet isNothing, long[] data, int currentSize, ProblemAggregator problemAggregator) {
-    super(isNothing, data, currentSize);
+  protected final PrecisionLossAggregator precisionLossAggregator;
+  protected double[] data;
+
+  DoubleBuilder(int initialSize, ProblemAggregator problemAggregator) {
+    super();
+    this.data = new double[initialSize];
     precisionLossAggregator = new PrecisionLossAggregator(problemAggregator);
+  }
+
+  @Override
+  protected int getDataSize() {
+    return data.length;
+  }
+
+  @Override
+  protected void resize(int desiredCapacity) {
+    double[] newData = new double[desiredCapacity];
+    System.arraycopy(data, 0, newData, 0, currentSize);
+    data = newData;
   }
 
   @Override
@@ -46,22 +60,24 @@ public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
   public void appendNoGrow(Object o) {
     if (o == null) {
       isNothing.set(currentSize++);
-    } else if (NumericConverter.isFloatLike(o)) {
-      double value = NumericConverter.coerceToDouble(o);
-      data[currentSize++] = Double.doubleToRawLongBits(value);
+      return;
+    }
+
+    double value;
+    if (NumericConverter.isFloatLike(o)) {
+      value = NumericConverter.coerceToDouble(o);
     } else if (NumericConverter.isCoercibleToLong(o)) {
-      long value = NumericConverter.coerceToLong(o);
-      double converted = convertLongToDouble(value);
-      data[currentSize++] = Double.doubleToRawLongBits(converted);
+      long longValue = NumericConverter.coerceToLong(o);
+      value = convertLongToDouble(longValue);
     } else if (o instanceof BigInteger bigInteger) {
-      double converted = convertBigIntegerToDouble(bigInteger);
-      data[currentSize++] = Double.doubleToRawLongBits(converted);
+      value = convertBigIntegerToDouble(bigInteger);
     } else if (o instanceof BigDecimal bigDecimal) {
-      double converted = convertBigDecimalToDouble(bigDecimal);
-      data[currentSize++] = Double.doubleToRawLongBits(converted);
+      value = convertBigDecimalToDouble(bigDecimal);
     } else {
       throw new ValueTypeMismatchException(getType(), o);
     }
+
+    data[currentSize++] = value;
   }
 
   @Override
@@ -85,8 +101,7 @@ public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
         BitSets.copy(longStorage.getIsNothingMap(), isNothing, currentSize, n);
         for (int i = 0; i < n; i++) {
           long item = longStorage.getItem(i);
-          double converted = convertLongToDouble(item);
-          data[currentSize++] = Double.doubleToRawLongBits(converted);
+          data[currentSize++] = convertLongToDouble(item);
         }
       } else {
         throw new IllegalStateException(
@@ -102,8 +117,7 @@ public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
           if (item == null) {
             isNothing.set(currentSize++);
           } else {
-            double converted = convertBigIntegerToDouble(item);
-            data[currentSize++] = Double.doubleToRawLongBits(converted);
+            data[currentSize++] = convertBigIntegerToDouble(item);
           }
         }
       } else {
@@ -119,8 +133,7 @@ public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
           if (boolStorage.isNothing(i)) {
             isNothing.set(currentSize++);
           } else {
-            double x = ToFloatStorageConverter.booleanAsDouble(boolStorage.getItem(i));
-            data[currentSize++] = Double.doubleToRawLongBits(x);
+            data[currentSize++] = ToFloatStorageConverter.booleanAsDouble(boolStorage.getItem(i));
           }
         }
       } else {
@@ -143,7 +156,7 @@ public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
     if (currentSize >= data.length) {
       grow();
     }
-    data[currentSize++] = Double.doubleToRawLongBits(value);
+    data[currentSize++] = value;
   }
 
   /**
@@ -235,6 +248,4 @@ public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
       }
     }
   }
-
-  protected final PrecisionLossAggregator precisionLossAggregator;
 }

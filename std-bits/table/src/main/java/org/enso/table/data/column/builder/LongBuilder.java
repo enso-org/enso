@@ -1,6 +1,5 @@
 package org.enso.table.data.column.builder;
 
-import java.util.BitSet;
 import java.util.Objects;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.operation.cast.ToIntegerStorageConverter;
@@ -20,21 +19,31 @@ import org.enso.table.util.BitSets;
 /** A builder for integer columns. */
 public class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithRetyping {
   protected final ProblemAggregator problemAggregator;
+  protected long[] data;
 
-  protected LongBuilder(
-      BitSet isNothing, long[] data, int currentSize, ProblemAggregator problemAggregator) {
-    super(isNothing, data, currentSize);
+  protected LongBuilder(int initialSize, ProblemAggregator problemAggregator) {
+    this.data = new long[initialSize];
     this.problemAggregator = problemAggregator;
   }
 
   static LongBuilder make(int initialSize, IntegerType type, ProblemAggregator problemAggregator) {
-    BitSet isNothing = new BitSet();
-    long[] data = new long[initialSize];
     if (type.equals(IntegerType.INT_64)) {
-      return new LongBuilder(isNothing, data, 0, problemAggregator);
+      return new LongBuilder(initialSize, problemAggregator);
     } else {
-      return new LongBuilderChecked(isNothing, data, 0, type, problemAggregator);
+      return new LongBuilderChecked(initialSize, type, problemAggregator);
     }
+  }
+
+  @Override
+  protected int getDataSize() {
+    return data.length;
+  }
+
+  @Override
+  protected void resize(int desiredCapacity) {
+    long[] newData = new long[desiredCapacity];
+    System.arraycopy(data, 0, newData, 0, currentSize);
+    data = newData;
   }
 
   @Override

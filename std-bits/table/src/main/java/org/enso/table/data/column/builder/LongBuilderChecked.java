@@ -1,6 +1,5 @@
 package org.enso.table.data.column.builder;
 
-import java.util.BitSet;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.operation.cast.CastProblemAggregator;
 import org.enso.table.data.column.storage.type.IntegerType;
@@ -13,12 +12,10 @@ public class LongBuilderChecked extends LongBuilder {
   private final CastProblemAggregator castProblemAggregator;
 
   protected LongBuilderChecked(
-      BitSet isNothing,
-      long[] data,
-      int currentSize,
+      int initialSize,
       IntegerType type,
       ProblemAggregator problemAggregator) {
-    super(isNothing, data, currentSize, problemAggregator);
+    super(initialSize, problemAggregator);
     this.type = type;
 
     // Currently we have no correlation with column name, and it may not be necessary for now.
