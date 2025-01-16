@@ -1,7 +1,6 @@
 import { sentryVitePlugin } from '@sentry/vite-plugin'
 import react from '@vitejs/plugin-react'
 import vue from '@vitejs/plugin-vue'
-import { COOP_COEP_CORP_HEADERS } from 'enso-common'
 import { fileURLToPath } from 'node:url'
 import postcssNesting from 'postcss-nesting'
 import tailwindcss from 'tailwindcss'
@@ -75,10 +74,14 @@ export default defineConfig({
   ],
   optimizeDeps: {
     entries: fileURLToPath(new URL('./index.html', import.meta.url)),
+    exclude: ['enso-common'],
     holdUntilCrawlEnd: true,
   },
   server: {
-    headers: Object.fromEntries(COOP_COEP_CORP_HEADERS),
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Resource-Policy': 'same-origin',
+    },
     ...(process.env.GUI_HOSTNAME ? { host: process.env.GUI_HOSTNAME } : {}),
   },
   resolve: {

@@ -13,7 +13,7 @@ import url from 'node:url'
 
 const DEBUG = process.env.DEBUG_TEST === 'true'
 const isCI = process.env.CI === 'true'
-
+const isProd = process.env.PROD === 'true'
 const TIMEOUT_MS = DEBUG ? 100_000_000 : 25_000
 
 // We tend to use less CPU on CI to reduce the number of failures due to timeouts.
@@ -162,7 +162,10 @@ export default defineConfig({
       reuseExistingServer: false,
     },
     {
-      command: `corepack pnpm exec vite -c vite.test.config.ts build && vite -c vite.test.config.ts preview --port ${ports.dashboard} --strictPort`,
+      command:
+        isCI || isProd ?
+          `corepack pnpm exec vite -c vite.test.config.ts build && vite -c vite.test.config.ts preview --port ${ports.dashboard} --strictPort`
+        : `NODE_ENV=test corepack pnpm exec vite -c vite.test.config.ts --port ${ports.dashboard}`,
       timeout: 240 * 1000,
       port: ports.dashboard,
       reuseExistingServer: false,

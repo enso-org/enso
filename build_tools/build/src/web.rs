@@ -66,8 +66,6 @@ pub fn assume_installed() {
 #[strum(serialize_all = "kebab-case")]
 pub enum Script {
     CiCheck,
-    #[strum(serialize = "build:gui")]
-    Build,
     Format,
     #[strum(serialize = "format:workflows")]
     FormatWorkflows,
