@@ -24,6 +24,7 @@
   "files.watcherExclude": {
     "**/target": true
   },
+  "vitest.workspaceConfig": "vitest.workspace.ts",
   "metals.inlayHints.implicitArguments.enable": true,
-  "metals.inlayHints.implicitConversions.enable": true
+  "metals.inlayHints.implicitConversions.enable": true,
 }

@@ -24,10 +24,10 @@ import * as listen from '#/authentication/listen'
 import { Dialog } from '#/components/AriaComponents'
 import { Result } from '#/components/Result'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import * as gtag from '#/hooks/gtagHooks'
 import { useOffline } from '#/hooks/offlineHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { unsafeWriteValue } from '#/utilities/write'
-import * as gtag from 'enso-common/src/gtag'
 import { toast } from 'react-toastify'
 import { useSetModal } from './ModalProvider'
 import { useText } from './TextProvider'
@@ -146,17 +146,20 @@ export default function SessionProvider(props: SessionProviderProps) {
       unsafeWriteValue(document, 'cookie', `logged_in=no;max-age=0;domain=${parentDomain}`)
 
       authService.saveAccessToken(null)
-
-      await queryClient.invalidateQueries({ queryKey: sessionQuery.queryKey })
-      await queryClient.clearWithPersister()
     },
     // If the User Menu is still visible, it breaks when `userSession` is set to `null`.
     onMutate: unsetModal,
     onSuccess: async () => {
       await onLogout?.()
-      sentry.setUser(null)
 
-      return toast.success(getText('signOutSuccess'))
+      sentry.setUser(null)
+      toast.success(getText('signOutSuccess'))
+
+      // On sign out, we need to clear the query client.
+      // But we dont want to delay the logoutMutation to avoid possible side effects,
+      // like refetching some data. By the moment of clearing the query client,
+      // the logoutMutation is already resolved, and user is navigated to the login page.
+      void queryClient.clearWithPersister()
     },
     onError: () => toast.error(getText('signOutError')),
   })
@@ -216,25 +219,19 @@ export default function SessionProvider(props: SessionProviderProps) {
   const signInWithGoogle = useEventCallback(() => {
     gtag.event('cloud_sign_in', { provider: 'Google' })
 
-    return authService
-      .signInWithGoogle()
-      .then(() => queryClient.invalidateQueries({ queryKey: sessionQuery.queryKey }))
-      .then(
-        () => true,
-        () => false,
-      )
+    return authService.signInWithGoogle().then(
+      () => true,
+      () => false,
+    )
   })
 
   const signInWithGitHub = useEventCallback(() => {
     gtag.event('cloud_sign_in', { provider: 'GitHub' })
 
-    return authService
-      .signInWithGitHub()
-      .then(() => queryClient.invalidateQueries({ queryKey: sessionQuery.queryKey }))
-      .then(
-        () => true,
-        () => false,
-      )
+    return authService.signInWithGitHub().then(
+      () => true,
+      () => false,
+    )
   })
 
   const confirmSignIn = useEventCallback((user: CognitoUser, otp: string) =>
@@ -325,6 +322,7 @@ export default function SessionProvider(props: SessionProviderProps) {
       throw result.val
     }
   })
+
   const verifyTotpToken = useEventCallback(async (otp: string) => {
     const result = await authService.verifyTotpToken(otp)
     if (result.err) {
@@ -333,6 +331,7 @@ export default function SessionProvider(props: SessionProviderProps) {
       return result.unwrap()
     }
   })
+
   const setupTOTP = useEventCallback(async () => {
     const result = await authService.setupTOTP()
     if (result.err) {

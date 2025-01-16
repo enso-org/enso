@@ -74,6 +74,9 @@ public and private constructors in a single type is a compilation error. A type
 with all constructors public is called an _open_ type and a type with all
 constructors private is called a _closed_ type.
 
+To make a _type private_ put it into a _private module_. Then it is hidden, just
+like anything else in the module.
+
 ### Methods
 
 Methods on types (or on modules) can be specified private. To check whether a
@@ -89,25 +92,35 @@ private entities are not visible.
 
 ## Example
 
-Lib/src/Pub_Type.enso:
+Lib/src/Open_Type.enso:
 
-```
-type Pub_Type
+```ruby
+type Open_Type
   Constructor field
   private priv_method self = ...
   pub_method self = self.field.to_text
 ```
 
+Lib/src/Closed_Type.enso:
+
+```ruby
+type Closed_Type
+  private Constructor field
+  private priv_method self = ...
+  factory field = Closed_Type.Constructor field
+  pub_method self = self.field.to_text
+```
+
 Lib/src/Methods.enso:
 
-```
+```ruby
 pub_stat_method x y = x + y
 private priv_stat_method x y = x - y
 ```
 
 Lib/src/Internal/Helpers.enso:
 
-```
+```ruby
 # Mark the whole module as private
 private
 
@@ -115,25 +128,32 @@ private
 
 Lib/src/Main.enso:
 
-```
-import project.Pub_Type.Pub_Type
-export project.Pub_Type.Pub_Type
+```ruby
+import project.Open_Type.Open_Type
+export project.Open_Type.Open_Type
 ```
 
 tmp.enso:
 
-```
-from Lib import Pub_Type
+```ruby
+from Lib import Open_Type, Closed_Type
 import Lib.Methods
 import Lib.Internal.Helpers # Fails during compilation - cannot import private module from different project
 
 main =
   # This constructor is not private, we can use it here.
-  obj = Pub_Type.Constructor field=42
+  obj = Open_Type.Constructor field=42
   obj.field # OK - Constructor is public, therefore, field is public
   obj.priv_method # Runtime failure - priv_method is private
-  Pub_Type.priv_method self=obj # Runtime failure
+  Open_Type.priv_method self=obj # Runtime failure
   obj.pub_method # OK
+
+  # This constructor is private, we have to use factory method.
+  opaque = Closed_Type.Constructor field=42
+  opaque.field # Runtime failure - Constructor is private, therefore, no getter is generated
+  opaque.priv_method # Runtime failure - priv_method is private
+  Closed_Type.priv_method self=opaque # Runtime failure
+  opaque.pub_method # OK
 
   Methods.pub_stat_method 1 2 # OK
   Methods.priv_stat_method # Fails at runtime

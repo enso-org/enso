@@ -21,7 +21,7 @@ overrides:
       arrowParens: "always"
       organizeImportsSkipDestructiveCodeActions: true
       experimentalTernaries: true
-      tailwindConfig: ./app/gui/tailwind.config.js
+      tailwindConfig: ./app/gui/tailwind.config.ts
 
   - files: "*.md"
     options:
