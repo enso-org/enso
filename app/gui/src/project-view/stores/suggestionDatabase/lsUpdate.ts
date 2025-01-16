@@ -143,29 +143,6 @@ class FunctionSuggestionEntryImpl extends BaseSuggestionEntry implements Functio
   }
 }
 
-/*
-type GConstructor<T = {}> = new (...args: any[]) => T
-function AddReturnType<TBase extends GConstructor<FunctionSuggestionEntryImpl>>(Base: TBase) {
-  return class WithReturnType extends Base {
-    private constructor(...args: any[]) {
-      super(...args)
-    }
-
-    override setLsReturnType(returnType: Typename) {
-      this.returnType = returnType
-    }
-
-    static parse(
-      lsEntry: lsTypes.SuggestionEntry.Function,
-      groups: DeepReadonly<Group[]>,
-    ): Result<FunctionSuggestionEntry> {
-      return new this()
-      return FunctionSuggestionEntryImpl.parse(lsEntry, groups)
-    }
-  }
-}
- */
-
 class ModuleSuggestionEntryImpl extends BaseSuggestionEntry implements ModuleSuggestionEntry {
   readonly kind = SuggestionKind.Module
 
