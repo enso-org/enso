@@ -99,7 +99,10 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
   const [isCreatingExecution, setIsCreatingExecution] = useState(false)
   const [newProjectExecutionInfo, setNewProjectExecutionInfo] =
     useState<ProjectExecutionInfo | null>(null)
-  const form = Form.useForm({ schema: (z) => z.object({ date: z.instanceof(CalendarDate) }) })
+  const form = Form.useForm({
+    schema: (z) => z.object({ date: z.instanceof(CalendarDate) }),
+    onSubmit: () => {},
+  })
   const timeZone = preferredTimeZone ?? getLocalTimeZone()
   const [focusedMonth, setFocusedMonth] = useState(() => startOfMonth(today(timeZone)))
   const todayDate = today(timeZone)
