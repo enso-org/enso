@@ -2,6 +2,7 @@ package org.enso.compiler.dump;
 
 import java.io.IOException;
 import org.enso.compiler.core.IR;
+import org.enso.compiler.core.ir.DefinitionArgument;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.module.scope.Definition;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
@@ -25,6 +26,10 @@ public interface DocsVisit {
 
   void visitConstructor(Definition.Type t, Definition.Data d, Appendable w) throws IOException;
 
+  //
+  // helper methods
+  //
+
   /**
    * Converts a method into textual representation of its signature.
    *
@@ -43,5 +48,37 @@ public interface DocsVisit {
    */
   public static String toSignature(Definition.Data cons) {
     return DocsUtils.toSignature(cons);
+  }
+
+  /**
+   * Converts an argument definition into textual representation of its signature.
+   *
+   * @param arg the argument to process
+   * @return text representing the argument
+   */
+  public static String toSignature(DefinitionArgument arg) {
+    return DocsUtils.toSignature(arg);
+  }
+
+  //
+  // Standard visitor implementations
+  //
+
+  /**
+   * Generates markdown files with documentation content.
+   *
+   * @return new instance of visitor generating markdown documentation format
+   */
+  public static DocsVisit createMarkdown() {
+    return new DocsEmitMarkdown();
+  }
+
+  /**
+   * Ignore comments, but generate fully qualified signatures of the visible elements
+   *
+   * @return new instance of visitor generating just signatures
+   */
+  public static DocsVisit createSignatures() {
+    return new DocsEmitSignatures();
   }
 }

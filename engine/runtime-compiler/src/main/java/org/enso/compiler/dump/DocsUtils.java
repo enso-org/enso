@@ -40,7 +40,7 @@ final class DocsUtils {
     return sb.toString();
   }
 
-  private static String toSignature(DefinitionArgument a) {
+  static String toSignature(DefinitionArgument a) {
     var sb = new StringBuilder();
     if (a.suspended()) {
       sb.append("~");

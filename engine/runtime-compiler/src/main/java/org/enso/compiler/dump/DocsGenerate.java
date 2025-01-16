@@ -21,18 +21,19 @@ public final class DocsGenerate {
    * FileSystem}.
    *
    * @param <File> abstract file to operate with
+   * @param visitor visitor to use to generate the output
    * @param pkg library to generate the documentation for
    * @param modules parsed modules found in the library
+   * @return directory where the output was generated
    * @throws IOException when I/O problem occurs
    */
-  public static <File> void write(
-      org.enso.pkg.Package<File> pkg, Iterable<CompilerContext.Module> modules) throws IOException {
+  public static <File> File write(
+      DocsVisit visitor, org.enso.pkg.Package<File> pkg, Iterable<CompilerContext.Module> modules)
+      throws IOException {
     var fs = pkg.fileSystem();
     var docs = fs.getChild(pkg.root(), "docs");
     var api = fs.getChild(docs, "api");
     fs.createDirectories(api);
-
-    var visitor = new DocsEmitMarkdown();
 
     for (var module : modules) {
       var ir = module.getIr();
@@ -46,7 +47,8 @@ public final class DocsGenerate {
         visitModule(visitor, moduleName, ir, mdWriter);
       }
     }
-    System.out.println("Documentation generated into " + api);
+    // System.out.println("Documentation generated into " + api);
+    return api;
   }
 
   public static void visitModule(

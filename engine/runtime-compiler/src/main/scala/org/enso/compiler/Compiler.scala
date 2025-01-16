@@ -8,6 +8,7 @@ import org.enso.compiler.context.{
   ModuleContext
 }
 import org.enso.compiler.dump.DocsGenerate
+import org.enso.compiler.dump.DocsVisit
 import org.enso.compiler.context.CompilerContext.Module
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.Implicits.AsMetadata
@@ -191,7 +192,10 @@ class Compiler(
             )
 
             if (generateDocs) {
-              DocsGenerate.write(pkg, packageModules.asJava)
+              val v = DocsVisit.createMarkdown();
+              // val v      = DocsVisit.createSignatures();
+              val outDir = DocsGenerate.write(v, pkg, packageModules.asJava)
+              printDiagnostic(s"Documentation generated to ${outDir}")
             }
 
             if (shouldWriteCache) {
