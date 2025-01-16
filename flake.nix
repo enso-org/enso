@@ -25,9 +25,39 @@
                 minimal.rustc
                 targets.x86_64-unknown-linux-musl.latest.rust-std
               ] else fenix.packages.${system}.minimal.toolchain;
+	    # https://github.com/NixOS/nixpkgs/blob/618c81f7b15d3e2dd73d9d413d9e7b13fbc9520f/pkgs/development/tools/build-managers/bazel/bazel_7/default.nix#L58
+	    defaultShellUtils = with pkgs; [
+	      bash
+	      coreutils
+	      diffutils
+	      file
+	      findutils
+	      gawk
+	      gnugrep
+	      gnupatch
+	      gnused
+	      gnutar
+	      gzip
+	      python3
+	      unzip
+	      which
+	      zip
+	      makeWrapper
+	    ];
+	    # https://github.com/NixOS/nixpkgs/blob/618c81f7b15d3e2dd73d9d413d9e7b13fbc9520f/pkgs/development/tools/build-managers/bazel/bazel_7/default.nix#L257
+            defaultShellPath = pkgs.lib.makeBinPath defaultShellUtils;
           in
           pkgs.mkShell rec {
             buildInputs = with pkgs; [
+              # === Bazel ===
+              (bazel_7.overrideAttrs (self: super: {
+	        patches = super.patches ++ [
+		  (substituteAll {
+		    src = ./nix/patches/bazel_actions_path.patch;
+		    actionsPathPatch = defaultShellPath;
+		  })
+		];
+	      }))
               # === Graal dependencies ===
               libxcrypt-legacy
               # === Rust dependencies ===
