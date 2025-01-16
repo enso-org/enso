@@ -1920,7 +1920,7 @@ lazy val `ydoc-polyfill` = project
       "com.github.sbt"       % "junit-interface"             % junitIfVersion            % Test
     ),
     libraryDependencies ++= {
-      GraalVM.modules ++ GraalVM.jsPkgs ++ GraalVM.chromeInspectorPkgs ++ helidon
+      GraalVM.modules ++ GraalVM.jsPkgs.map(_ % "provided") ++ GraalVM.chromeInspectorPkgs ++ helidon
     }
   )
   .dependsOn(`syntax-rust-definition`)
@@ -3707,7 +3707,8 @@ lazy val `engine-runner` = project
       val stdLibsJars =
         `base-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
         `image-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
-        `table-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath())
+        `table-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
+        `database-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath())
       core ++ stdLibsJars
     },
     buildSmallJdk := {
@@ -3794,7 +3795,8 @@ lazy val `engine-runner` = project
               // you may need to set smallJdk := None to use following flags:
               // "--trace-class-initialization=org.enso.syntax2.Parser",
               "-Dnic=nic",
-              "-Dorg.enso.feature.native.lib.output=" + (engineDistributionRoot.value / "bin")
+              "-Dorg.enso.feature.native.lib.output=" + (engineDistributionRoot.value / "bin"),
+              "-Dorg.sqlite.lib.exportPath=" + (engineDistributionRoot.value / "bin")
             ),
             mainClass = Some("org.enso.runner.Main"),
             initializeAtRuntime = Seq(
@@ -3816,6 +3818,7 @@ lazy val `engine-runner` = project
               "org.enso.base",
               "org.enso.image",
               "org.enso.table",
+              "org.enso.database",
               "org.eclipse.jgit"
             )
           )
