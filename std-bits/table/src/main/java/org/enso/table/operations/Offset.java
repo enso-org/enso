@@ -94,40 +94,30 @@ public class Offset {
 
         @Override
         public void finalise() {
-            int fillValue = switch (offFill) {
-                case NOTHING -> -1;
-                case CLOSEST_VALUE -> closestPos;
-                case WRAP_AROUND -> -1;
-                case CONSTANT -> -1;
-            };
+            while (offFill == OffFill.WRAP_AROUND && current_n < Math.abs(n) && !fill_queue.isEmpty()) {
+                var i = fill_queue.poll();
+                fill_queue.add(i);
+                current_n++;
+            }
 
-            if (offFill != OffFill.WRAP_AROUND) {
-                if (n<0) {
-                    while (!fill_queue.isEmpty()) {
-                        result[fill_queue.poll()] = fillValue;
-                        }
-                } else {
-                    while (!rolling_queue.isEmpty()) {
-                        result[rolling_queue.poll()] = fillValue;
-                        }
-                }
-            } else {
-                while (current_n < Math.abs(n) && !fill_queue.isEmpty())
-                {
-                    var i = fill_queue.poll();
-                    fill_queue.add(i);
-                    current_n++;
-                }
-                if (n<0) {
-                    while (!fill_queue.isEmpty()) {
-                        result[fill_queue.poll()] = rolling_queue.poll();
-                        }
-                } else {
-                    while (!rolling_queue.isEmpty()) {
-                        result[rolling_queue.poll()]  = fill_queue.poll();
-                        }
-                }
+            while (n<0 && !fill_queue.isEmpty()) {
+                result[fill_queue.poll()] = getFillValue();
+            }
+
+            while (n>0 && !rolling_queue.isEmpty()) {
+                result[rolling_queue.poll()] = getFillValue();
             }
         }
+    
+        int getFillValue()
+        {
+            return switch (offFill) {
+                case NOTHING -> -1;
+                case CLOSEST_VALUE -> closestPos;
+                case WRAP_AROUND -> n<0 ? rolling_queue.poll() : fill_queue.poll();
+                case CONSTANT -> -1;
+            };
+        }
+
   }
 }
