@@ -43,7 +43,7 @@ type FilterValueRange = {
 type FilterValue = string | string[] | FilterValueRange
 
 const actionMap = {
-  equals: '..Equals',
+  equals: '..Equal',
   notEqual: '..Not_Equal',
   greaterThan: '..Greater',
   greaterThanOrEqual: '..Equal_Or_Greater',
