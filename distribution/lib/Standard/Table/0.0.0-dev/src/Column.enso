@@ -2223,7 +2223,7 @@ type Column
        Used for data quality indicator in Table Viz.
     count_untrimmed : Integer -> Integer | Nothing
     count_untrimmed self sample_size:Integer=Column.default_sample_size =
-        if (Column.is_eligible_for_text_data_metric_count self.value_type).not then Nothing else
+        if (Column.can_contain_text self.value_type).not then Nothing else
             CountUntrimmed.apply self.java_column sample_size
 
     ## PRIVATE
@@ -2231,13 +2231,12 @@ type Column
       Used for data quality indicator in Table Viz.
     count_non_trivial_whitespace : Integer -> Integer | Nothing
     count_non_trivial_whitespace self sample_size:Integer=Column.default_sample_size =
-        if (Column.is_eligible_for_text_data_metric_count self.value_type).not then Nothing else
+        if (Column.can_contain_text self.value_type).not then Nothing else
             CountNonTrivialWhitespace.apply self.java_column sample_size
 
     ## PRIVATE
        Determines if a value type is eligable for a text data quality count
-    can_contain_text : Value_Type -> Boolean
-    is_eligible_for_text_data_metric_count value_type = 
+    private can_contain_text value_type:Value_Type -> Boolean = 
         value_type == Value_Type.Mixed || value_type.is_text
 
     ## PRIVATE
