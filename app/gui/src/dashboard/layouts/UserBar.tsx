@@ -29,12 +29,11 @@ export interface UserBarProps {
   readonly setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
   readonly goToSettingsPage: () => void
   readonly onSignOut: () => void
-  readonly onShareClick?: (() => void) | null | undefined
 }
 
 /** A toolbar containing chat and the user menu. */
 export default function UserBar(props: UserBarProps) {
-  const { invisible = false, setIsHelpChatOpen, onShareClick, goToSettingsPage, onSignOut } = props
+  const { invisible = false, setIsHelpChatOpen, goToSettingsPage, onSignOut } = props
 
   const { user } = useFullUserSession()
   const { getText } = useText()
@@ -45,12 +44,9 @@ export default function UserBar(props: UserBarProps) {
     user.isOrganizationAdmin && user.plan !== Plan.enterprise && user.plan !== Plan.team
   // eslint-disable-next-line no-restricted-syntax
   const shouldShowPaywallButton = (false as boolean) && isFeatureUnderPaywall('inviteUser')
-  // FIXME[sb]: Re-enable when they are wanted again.
-  // eslint-disable-next-line no-restricted-syntax
-  const shouldShowShareButton = (false as boolean) && onShareClick != null
   const shouldShowInviteButton =
     // eslint-disable-next-line no-restricted-syntax
-    (false as boolean) && !shouldShowShareButton && !shouldShowPaywallButton
+    (false as boolean) && !shouldShowPaywallButton
 
   return (
     <FocusArea active={!invisible} direction="horizontal">
@@ -113,16 +109,6 @@ export default function UserBar(props: UserBarProps) {
               </Button>
             )}
 
-            {shouldShowShareButton && (
-              <Button
-                size="medium"
-                variant="accent"
-                aria-label={getText('shareButtonAltText')}
-                onPress={onShareClick}
-              >
-                {getText('share')}
-              </Button>
-            )}
             <DialogTrigger>
               <Button
                 size="custom"

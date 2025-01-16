@@ -4,6 +4,7 @@
 
 use crate::prelude::*;
 
+use crate::ide::web::env as ide_env;
 use crate::ide::web::IdeDesktop;
 use crate::paths::generated::RepoRootAppGuiDist;
 use crate::paths::generated::RepoRootDistGuiAssets;
@@ -11,8 +12,8 @@ use crate::project::Context;
 use crate::project::IsArtifact;
 use crate::project::IsTarget;
 use crate::source::WithDestination;
-
 use ide_ci::ok_ready_boxed;
+use ide_ci::programs::Pnpm;
 
 
 
@@ -46,8 +47,15 @@ impl Artifact {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Gui;
 
+#[derive_where(Debug)]
+pub struct BuildInput {
+    pub version:     Version,
+    #[derive_where(skip)]
+    pub commit_hash: BoxFuture<'static, Result<String>>,
+}
+
 impl IsTarget for Gui {
-    type BuildInput = ();
+    type BuildInput = BuildInput;
     type Artifact = Artifact;
 
     fn artifact_name(&self) -> String {
@@ -63,11 +71,20 @@ impl IsTarget for Gui {
         context: Context,
         job: WithDestination<Self::BuildInput>,
     ) -> BoxFuture<'static, Result<Self::Artifact>> {
-        let WithDestination { inner: _, destination } = job;
+        let WithDestination { inner: BuildInput { version, commit_hash }, destination } = job;
         async move {
             let repo_root = &context.repo_root;
+            let version_string = version.to_string();
             crate::web::install(repo_root).await?;
-            crate::web::run_script(repo_root, crate::web::Script::Build).await?;
+            let commit_hash = commit_hash.await?;
+            Pnpm.cmd()?
+                .current_dir(repo_root)
+                .set_env(ide_env::ENSO_IDE_COMMIT_HASH, &commit_hash)?
+                .set_env(ide_env::ENSO_IDE_VERSION, &version_string)?
+                .run("build:gui")
+                .run_ok()
+                .await?;
+
             ide_ci::fs::mirror_directory(
                 &repo_root.app.gui.dist,
                 &destination.join(RepoRootDistGuiAssets::segment_name()),
