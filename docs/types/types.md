@@ -53,8 +53,8 @@ Arguments to atom constructors can have defaults and explicit type signatures.
 > effectively represented as atoms and type constructors are atom constructors
 > as well.
 >
-> `List` plays multiple roles here. It acts as the type constructor which can be
-> fed type arguments to build a fully saturated type:
+> `List` plays multiple roles here. It acts as a higher-kinded type constructor
+> which can be fed type arguments to build a fully saturated type:
 >
 > ```
 > Int : Type
