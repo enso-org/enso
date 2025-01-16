@@ -1,31 +1,36 @@
 package org.enso.compiler.dump.igv;
 
+import java.net.URI;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import org.enso.compiler.dump.igv.ASTEdge.EdgeType;
 import org.graalvm.graphio.GraphBlocks;
+import org.graalvm.graphio.GraphElements;
+import org.graalvm.graphio.GraphLocations;
 import org.graalvm.graphio.GraphStructure;
 
 final class ASTDumpStructure
-    implements GraphStructure<EnsoAST, ASTNode, ASTNodeClass, List<ASTEdge>>,
-        GraphBlocks<EnsoAST, ASTBlock, ASTNode> {
+    implements GraphStructure<EnsoModuleAST, ASTNode, ASTNodeClass, List<ASTEdge>>,
+        GraphBlocks<EnsoModuleAST, ASTBlock, ASTNode>,
+        GraphElements<ASTMethod, Object, Object, ASTLocation>,
+        GraphLocations<ASTMethod, ASTLocation, ASTLocation> {
 
   @Override
-  public EnsoAST graph(EnsoAST currentGraph, Object obj) {
-    if (obj instanceof EnsoAST ensoAST) {
+  public EnsoModuleAST graph(EnsoModuleAST currentGraph, Object obj) {
+    if (obj instanceof EnsoModuleAST ensoAST) {
       return ensoAST;
     }
     return null;
   }
 
   @Override
-  public Iterable<? extends ASTNode> nodes(EnsoAST graph) {
+  public Iterable<? extends ASTNode> nodes(EnsoModuleAST graph) {
     return graph.getNodes();
   }
 
   @Override
-  public int nodesCount(EnsoAST graph) {
+  public int nodesCount(EnsoModuleAST graph) {
     return graph.getNodes().size();
   }
 
@@ -40,7 +45,8 @@ final class ASTDumpStructure
   }
 
   @Override
-  public void nodeProperties(EnsoAST graph, ASTNode node, Map<String, ? super Object> properties) {
+  public void nodeProperties(
+      EnsoModuleAST graph, ASTNode node, Map<String, ? super Object> properties) {
     properties.putAll(node.getProperties());
   }
 
@@ -107,12 +113,12 @@ final class ASTDumpStructure
 
   @Override
   public Collection<? extends ASTNode> edgeNodes(
-      EnsoAST graph, ASTNode node, List<ASTEdge> port, int index) {
+      EnsoModuleAST graph, ASTNode node, List<ASTEdge> port, int index) {
     return List.of(port.get(index).node());
   }
 
   @Override
-  public Collection<? extends ASTBlock> blocks(EnsoAST graph) {
+  public Collection<? extends ASTBlock> blocks(EnsoModuleAST graph) {
     return graph.getBlocks();
   }
 
@@ -122,12 +128,151 @@ final class ASTDumpStructure
   }
 
   @Override
-  public Collection<? extends ASTNode> blockNodes(EnsoAST info, ASTBlock block) {
+  public Collection<? extends ASTNode> blockNodes(EnsoModuleAST info, ASTBlock block) {
     return block.getNodes();
   }
 
   @Override
   public Collection<? extends ASTBlock> blockSuccessors(ASTBlock block) {
     return block.getSuccessors();
+  }
+
+  @Override
+  public ASTMethod method(Object obj) {
+    if (obj instanceof ASTMethod m) {
+      return m;
+    }
+    return null;
+  }
+
+  @Override
+  public byte[] methodCode(ASTMethod method) {
+    return new byte[0];
+  }
+
+  @Override
+  public int methodModifiers(ASTMethod method) {
+    return 0;
+  }
+
+  @Override
+  public Object methodSignature(ASTMethod method) {
+    return null;
+  }
+
+  @Override
+  public String methodName(ASTMethod method) {
+    return method.getName();
+  }
+
+  @Override
+  public Object methodDeclaringClass(ASTMethod method) {
+    return null;
+  }
+
+  @Override
+  public Object field(Object object) {
+    return null;
+  }
+
+  @Override
+  public int fieldModifiers(Object field) {
+    return 0;
+  }
+
+  @Override
+  public String fieldTypeName(Object field) {
+    return null;
+  }
+
+  @Override
+  public String fieldName(Object field) {
+    return null;
+  }
+
+  @Override
+  public Object fieldDeclaringClass(Object field) {
+    return null;
+  }
+
+  @Override
+  public Object signature(Object object) {
+    return null;
+  }
+
+  @Override
+  public int signatureParameterCount(Object signature) {
+    return 0;
+  }
+
+  @Override
+  public String signatureParameterTypeName(Object signature, int index) {
+    return null;
+  }
+
+  @Override
+  public String signatureReturnTypeName(Object signature) {
+    return null;
+  }
+
+  @Override
+  public ASTLocation nodeSourcePosition(Object object) {
+    if (object instanceof ASTLocation location) {
+      return location;
+    }
+    if (object instanceof ASTNode node) {
+      return node.getLocation();
+    }
+    return null;
+  }
+
+  @Override
+  public ASTMethod nodeSourcePositionMethod(ASTLocation pos) {
+    return null;
+  }
+
+  @Override
+  public ASTLocation nodeSourcePositionCaller(ASTLocation pos) {
+    return null;
+  }
+
+  @Override
+  public int nodeSourcePositionBCI(ASTLocation pos) {
+    return 0;
+  }
+
+  @Override
+  public StackTraceElement methodStackTraceElement(ASTMethod method, int bci, ASTLocation pos) {
+    return null;
+  }
+
+  @Override
+  public Iterable<ASTLocation> methodLocation(ASTMethod method, int bci, ASTLocation pos) {
+    return List.of(pos);
+  }
+
+  @Override
+  public String locationLanguage(ASTLocation location) {
+    return "enso";
+  }
+
+  @Override
+  public URI locationURI(ASTLocation location) {
+    return location.getLocationUri();
+  }
+
+  @Override
+  public int locationLineNumber(ASTLocation location) {
+    return location.getLineNum();
+  }
+
+  @Override
+  public int locationOffsetStart(ASTLocation location) {
+    return location.getOffsetStart();
+  }
+
+  @Override
+  public int locationOffsetEnd(ASTLocation location) {
+    return location.getOffsetEnd();
   }
 }

@@ -1,5 +1,6 @@
 package org.enso.compiler.dump.igv;
 
+import java.io.File;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -30,10 +31,14 @@ import org.enso.compiler.core.ir.module.scope.imports.Polyglot;
  * Implemented only for dumping the AST to IGV. Heavily inspired by the internal {@code
  * org.graalvm.compiler.truffle.compiler.TruffleAST}.
  */
-final class EnsoAST {
+final class EnsoModuleAST {
   static final ASTDumpStructure AST_DUMP_STRUCTURE = new ASTDumpStructure();
 
   private final ASTNode root;
+
+  /** Underlying source file. May be null. */
+  private final File srcFile;
+
   private final Map<Integer, ASTNode> nodes = new HashMap<>();
 
   /** List of blocks that are already built. */
@@ -44,12 +49,17 @@ final class EnsoAST {
 
   private int currentNodeId = 0;
 
-  private EnsoAST(Module moduleIr) {
+  private EnsoModuleAST(Module moduleIr, File srcFile) {
+    this.srcFile = srcFile;
     this.root = buildTree(moduleIr);
   }
 
-  static EnsoAST fromIR(Module module) {
-    return new EnsoAST(module);
+  static EnsoModuleAST fromIR(Module module, File srcFile) {
+    return new EnsoModuleAST(module, srcFile);
+  }
+
+  public File getSrcFile() {
+    return srcFile;
   }
 
   public List<ASTNode> getNodes() {
@@ -401,7 +411,7 @@ final class EnsoAST {
   private ASTNode newNode(Object object, Map<String, Object> props) {
     ASTNode.Builder bldr;
     if (object instanceof IR ir) {
-      bldr = ASTNode.Builder.fromIr(ir).id(currentNodeId++);
+      bldr = ASTNode.Builder.fromIr(ir, srcFile).id(currentNodeId++);
     } else {
       bldr = ASTNode.Builder.fromObject(object).id(currentNodeId++);
     }

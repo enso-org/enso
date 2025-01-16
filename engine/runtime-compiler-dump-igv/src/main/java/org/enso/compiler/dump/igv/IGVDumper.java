@@ -22,12 +22,18 @@ public final class IGVDumper implements IRDumpService {
   @Override
   public void dump(Module ir, String moduleName, Package<File> pkg) {
     LOGGER.info("Dumping IR for module {} in IGV", moduleName);
-    var ensoAst = EnsoAST.fromIR(ir);
+    var src = findSource(moduleName, pkg);
+    var ensoAst = EnsoModuleAST.fromIR(ir, src);
     var groupName = "Enso: " + moduleName;
     var shortName = "Enso: " + moduleName.substring(moduleName.lastIndexOf('.') + 1);
     var outPath = outputForModule(moduleName);
     try (var dumpChannel = createFileChannel(outPath)) {
-      var output = GraphOutput.newBuilder(EnsoAST.AST_DUMP_STRUCTURE).build(dumpChannel);
+      var output =
+          GraphOutput.newBuilder(EnsoModuleAST.AST_DUMP_STRUCTURE)
+              .blocks(EnsoModuleAST.AST_DUMP_STRUCTURE)
+              .elementsAndLocations(
+                  EnsoModuleAST.AST_DUMP_STRUCTURE, EnsoModuleAST.AST_DUMP_STRUCTURE)
+              .build(dumpChannel);
       var properties = new HashMap<>();
       output.beginGroup(ensoAst, groupName, shortName, null, 0, null);
       output.print(ensoAst, properties, 0, "%s", moduleName);
@@ -37,6 +43,19 @@ public final class IGVDumper implements IRDumpService {
       throw new IllegalStateException("Failed to dump Enso AST", e);
     }
     LOGGER.info("IR dumped in {}", outPath);
+  }
+
+  private static File findSource(String moduleName, Package<File> pkg) {
+    if (pkg != null) {
+      var source =
+          pkg.listSourcesJava().stream()
+              .filter(src -> src.qualifiedName().toString().equals(moduleName))
+              .findFirst();
+      if (source.isPresent()) {
+        return source.get().file();
+      }
+    }
+    return null;
   }
 
   private static WritableByteChannel createFileChannel(Path path) {

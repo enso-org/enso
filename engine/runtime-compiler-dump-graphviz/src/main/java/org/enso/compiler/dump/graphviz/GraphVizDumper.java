@@ -28,7 +28,6 @@ import org.enso.compiler.core.ir.module.scope.Import;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.compiler.core.ir.module.scope.imports.Polyglot;
 import org.enso.compiler.data.BindingsMap;
-import org.enso.pkg.Package;
 import org.enso.compiler.data.BindingsMap.ResolvedConstructor;
 import org.enso.compiler.data.BindingsMap.ResolvedModuleMethod;
 import org.enso.compiler.data.BindingsMap.ResolvedPolyglotField;
@@ -40,6 +39,7 @@ import org.enso.compiler.pass.analyse.alias.graph.Graph;
 import org.enso.compiler.pass.resolve.FullyQualifiedNames.FQNResolution;
 import org.enso.compiler.pass.resolve.FullyQualifiedNames.ResolvedLibrary;
 import org.enso.compiler.pass.resolve.FullyQualifiedNames.ResolvedModule;
+import org.enso.pkg.Package;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

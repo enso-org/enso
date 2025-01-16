@@ -1,5 +1,6 @@
 package org.enso.compiler.dump.igv;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -18,12 +19,18 @@ final class ASTNode {
   private final Map<String, Object> properties;
   private final ASTNodeClass nodeClass;
   private final List<ASTNode> children = new ArrayList<>();
+  // May be null;
+  private final ASTLocation location;
 
-  ASTNode(int id, Object object, Map<String, Object> props) {
+  ASTNode(int id, Object object, Map<String, Object> props, ASTLocation location) {
     this.id = id;
     this.object = object;
     this.properties = props;
     this.nodeClass = new ASTNodeClass(this);
+    this.location = location;
+    if (object instanceof IR && location == null) {
+      throw new IllegalArgumentException("IR object must have location");
+    }
   }
 
   public Object getObject() {
@@ -46,6 +53,10 @@ final class ASTNode {
     return properties;
   }
 
+  public ASTLocation getLocation() {
+    return location;
+  }
+
   public void addChild(ASTNode child) {
     children.add(child);
   }
@@ -58,11 +69,14 @@ final class ASTNode {
     private int id = -1;
     private Object object;
     private final Map<String, Object> properties = new LinkedHashMap<>();
+    private ASTLocation location;
 
-    public static Builder fromIr(IR ir) {
+    public static Builder fromIr(IR ir, File srcFile) {
       var bldr = new Builder();
       var label = Utils.label(ir);
+      var location = ASTLocation.fromIdentifiedLocation(ir.identifiedLocation(), srcFile);
       bldr.object = ir;
+      bldr.location = location;
       bldr.property("label", label);
       bldr.property("IRClassName", ir.getClass().getName());
       bldr.property("location", ir.identifiedLocation());
@@ -88,6 +102,11 @@ final class ASTNode {
       return this;
     }
 
+    public Builder location(ASTLocation location) {
+      this.location = location;
+      return this;
+    }
+
     public ASTNode build() {
       if (id == -1) {
         throw new IllegalArgumentException("ID must be set");
@@ -95,7 +114,7 @@ final class ASTNode {
       if (object == null) {
         throw new IllegalArgumentException("IR must be set");
       }
-      return new ASTNode(id, object, properties);
+      return new ASTNode(id, object, properties, location);
     }
 
     private static String simpleClassName(Object obj) {
