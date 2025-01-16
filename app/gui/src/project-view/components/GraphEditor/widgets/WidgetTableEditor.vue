@@ -30,9 +30,10 @@ import type {
   ProcessDataFromClipboardParams,
   RowDragEndEvent,
 } from 'ag-grid-enterprise'
-import { ComponentInstance, computed, h, markRaw, ref } from 'vue'
+import { ComponentInstance, computed, h, proxyRefs, ref } from 'vue'
 import type { ComponentExposed, ComponentProps } from 'vue-component-type-helpers'
 import { z } from 'zod'
+import TableHeader, { HeaderParams } from './WidgetTableEditor/TableHeader.vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
@@ -236,22 +237,21 @@ function processDataFromClipboard({ data, api }: ProcessDataFromClipboardParams<
 
 // === Column Default Definition ===
 
-const headerProps = computed(() => ({
-  editedColId: headerEditHandler.editedColId.value,
+const headerComponentParams = proxyRefs({
+  editedColId: headerEditHandler.editedColId,
   onHeaderEditingStarted: headerEditHandler.headerEditedInGrid.bind(headerEditHandler),
   onHeaderEditingStopped: headerEditHandler.headerEditingStoppedInGrid.bind(headerEditHandler),
-}))
+})
+
 const defaultColDef: ColDef<RowData> & {
-  headerComponentParams: GeneralHeaderParams
+  headerComponentParams: HeaderParams
 } = {
   editable: true,
   resizable: true,
   sortable: false,
   lockPinned: true,
   menuTabs: ['generalMenuTab'],
-  headerComponentParams: {
-    general: markRaw(ref(headerProps)),
-  },
+  headerComponentParams,
 }
 
 const vueComponentHost = ref<VueHost>()
