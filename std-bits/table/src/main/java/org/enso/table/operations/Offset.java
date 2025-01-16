@@ -72,22 +72,23 @@ public class Offset {
         @Override
         public void visit(int i) {
             rolling_queue.add(i);
+            
+            if (n<0 && current_n <= Math.abs(n)) {
+                closestPos = rolling_queue.peek();
+            } else if (n>0) {
+                closestPos = i;
+            }
+            
             if (current_n < Math.abs(n)) {
                 fill_queue.add(i);
-            }
-            if (n<0) {
-                if (current_n <= Math.abs(n)) {
-                    closestPos = rolling_queue.peek();
-                } 
-                if (current_n >= Math.abs(n)) {
-                    result[i] = rolling_queue.poll();
-                }
             } else {
-                closestPos = i;
-                if (current_n >= Math.abs(n)) {
+                if (n<0) {
+                    result[i] = rolling_queue.poll();
+                } else {
                     result[rolling_queue.poll()] = i;
                 }
             }
+
             current_n++;
         }
 
