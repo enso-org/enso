@@ -248,14 +248,12 @@ trait CompilerRunner {
     moduleName: QualifiedName                    = QualifiedName.simpleName("Test_Module"),
     freshNameSupply: Option[FreshNameSupply]     = None,
     passConfiguration: Option[PassConfiguration] = None,
-    compilerConfig: CompilerConfig               = defaultConfig,
-    isGeneratingDocs: Boolean                    = false
+    compilerConfig: CompilerConfig               = defaultConfig
   ): ModuleContext = buildModuleContextModule(
     moduleName,
     freshNameSupply,
     passConfiguration,
-    compilerConfig,
-    isGeneratingDocs
+    compilerConfig
   )._1
 
   /** Builds a module context with a mocked module for testing purposes.
@@ -269,16 +267,14 @@ trait CompilerRunner {
     moduleName: QualifiedName                    = QualifiedName.simpleName("Test_Module"),
     freshNameSupply: Option[FreshNameSupply]     = None,
     passConfiguration: Option[PassConfiguration] = None,
-    compilerConfig: CompilerConfig               = defaultConfig,
-    isGeneratingDocs: Boolean                    = false
+    compilerConfig: CompilerConfig               = defaultConfig
   ): (ModuleContext, runtime.Module) = {
     val mod = runtime.Module.empty(moduleName, null)
     val ctx = ModuleContext(
       module            = mod.asCompilerModule(),
       freshNameSupply   = freshNameSupply,
       passConfiguration = passConfiguration,
-      compilerConfig    = compilerConfig,
-      isGeneratingDocs  = isGeneratingDocs
+      compilerConfig    = compilerConfig
     )
     (ctx, mod)
   }

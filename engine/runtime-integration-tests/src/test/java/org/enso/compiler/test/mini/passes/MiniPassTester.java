@@ -49,12 +49,7 @@ public abstract class MiniPassTester {
     var isGeneratingDocs = false;
     var runtimeMod = org.enso.interpreter.runtime.Module.empty(moduleName, null);
     return ModuleContext.apply(
-        runtimeMod.asCompilerModule(),
-        compilerConf,
-        freshNameSupply,
-        passConfig,
-        isGeneratingDocs,
-        pkgRepo);
+        runtimeMod.asCompilerModule(), compilerConf, freshNameSupply, passConfig, pkgRepo);
   }
 
   private static CompilerConfig defaultCompilerConfig() {

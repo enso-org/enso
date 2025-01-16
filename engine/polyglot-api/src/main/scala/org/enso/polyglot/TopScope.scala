@@ -35,8 +35,13 @@ class TopScope(private val value: Value) {
   }
 
   def compile(
+    shouldCompileDependencies: Boolean
+  ): Unit = {
+    compile(shouldCompileDependencies, false)
+  }
+  def compile(
     shouldCompileDependencies: Boolean,
-    generateDocs: Boolean = false
+    generateDocs: Boolean
   ): Unit = {
     value.invokeMember(COMPILE, shouldCompileDependencies, generateDocs)
   }
