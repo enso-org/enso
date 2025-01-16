@@ -51,7 +51,7 @@ const actionMap = {
   lessThanOrEqual: '..Equal_Or_Less',
   inRange: '..Between',
   blank: '..Is_Nothing',
-  notBlank: '..Not_Nothing'
+  notBlank: '..Not_Nothing',
 }
 
 export interface SortFilterNodesButtonOptions {
@@ -159,10 +159,7 @@ function useSortFilterNodesButton({
     ])
   }
 
-  function makeNothingFilterPattern(
-    columnName: string,
-    filterAction: FilterAction
-  ) {
+  function makeNothingFilterPattern(columnName: string, filterAction: FilterAction) {
     const action = actionMap[filterAction]
     return filterNothingPattern.value.instantiateCopied([
       Ast.TextLiteral.new(columnName),
@@ -195,18 +192,14 @@ function useSortFilterNodesButton({
     )
   }
 
-  function getAstNothingPatternFilter(
-    columnName: string,
-    filterAction: FilterAction
-  ) {
+  function getAstNothingPatternFilter(columnName: string, filterAction: FilterAction) {
     return Pattern.new<Ast.Expression>((ast) =>
       Ast.App.positional(
         Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('filter')!),
-          makeNothingFilterPattern(columnName, filterAction),
+        makeNothingFilterPattern(columnName, filterAction),
       ),
     )
   }
-
 
   function getAstPatternFilterAndSort(
     columnName: string,
@@ -232,16 +225,13 @@ function useSortFilterNodesButton({
     )
   }
 
-  function getAstNothingPatternFilterAndSort(
-    columnName: string,
-    filterAction: FilterAction
-  ) {
+  function getAstNothingPatternFilterAndSort(columnName: string, filterAction: FilterAction) {
     return Pattern.new<Ast.Expression>((ast) =>
       Ast.OprApp.new(
         ast.module,
         Ast.App.positional(
           Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('filter')!),
-            makeNothingFilterPattern(columnName, filterAction),
+          makeNothingFilterPattern(columnName, filterAction),
         ),
         '.',
         Ast.App.positional(
@@ -264,10 +254,10 @@ function useSortFilterNodesButton({
         const filterType = filterModel.filterType
         if (filterAction === 'blank' || filterAction === 'notBlank') {
           const filterPatterns =
-          sortModelValue.length ?
-            getAstNothingPatternFilterAndSort(columnName, filterAction)
-          : getAstNothingPatternFilter(columnName, filterAction)
-        patterns.push(filterPatterns)
+            sortModelValue.length ?
+              getAstNothingPatternFilterAndSort(columnName, filterAction)
+            : getAstNothingPatternFilter(columnName, filterAction)
+          patterns.push(filterPatterns)
         }
 
         let value: FilterValue

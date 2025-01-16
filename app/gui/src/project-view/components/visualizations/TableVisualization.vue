@@ -18,6 +18,7 @@ import type {
   SortChangedEvent,
 } from 'ag-grid-enterprise'
 import { computed, onMounted, ref, shallowRef, watchEffect, type Ref } from 'vue'
+import { provideDocumentationImageUrlTransformer } from '../MarkdownEditor/imageUrlTransformer'
 import { TableVisualisationTooltip } from './TableVisualization/TableVisualisationTooltip'
 import { getCellValueType, isNumericType } from './TableVisualization/tableVizUtils'
 
@@ -727,6 +728,7 @@ function checkSortAndFilter(e: SortChangedEvent) {
   }
   const colState = gridApi.getColumnState()
   const gridFilterModel = gridApi.getFilterModel()
+  console.log({ gridFilterModel })
   const sort = colState
     .map((cs) => {
       if (cs.sort) {
@@ -739,6 +741,18 @@ function checkSortAndFilter(e: SortChangedEvent) {
     })
     .filter((sort) => sort)
   const filter = Object.entries(gridFilterModel).map(([key, value]) => {
+    if (value.operator === 'AND') {
+      value.conditions.map((comparator: any) => ({
+        columnName: key,
+        filterType: comparator.filterType,
+        filterAction: comparator.type,
+        filter: comparator.filter,
+        filterTo: comparator.filterTo,
+        dateFrom: comparator.dateFrom,
+        dateTo: comparator.dateTo,
+        values: comparator.values,
+      }))
+    }
     return {
       columnName: key,
       filterType: value.filterType,
