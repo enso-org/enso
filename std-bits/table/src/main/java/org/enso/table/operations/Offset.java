@@ -81,12 +81,10 @@ public class Offset {
             
             if (current_n < Math.abs(n)) {
                 fill_queue.add(i);
-            } else {
-                if (n<0) {
-                    result[i] = rolling_queue.poll();
-                } else {
-                    result[rolling_queue.poll()] = i;
-                }
+            } else if (n<0) {
+                result[i] = rolling_queue.poll();
+            } else if (n>0) {
+                result[rolling_queue.poll()] = i;
             }
 
             current_n++;
