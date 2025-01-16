@@ -1,7 +1,9 @@
 package org.enso.compiler.dump.test;
 
+import static org.enso.scala.wrapper.ScalaConversions.asJava;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
@@ -9,11 +11,17 @@ import java.util.ArrayList;
 import java.util.List;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.core.IR;
+import org.enso.compiler.core.ir.DefinitionArgument;
+import org.enso.compiler.core.ir.Function.Lambda;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.module.scope.Definition;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
+import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.dump.DocsGenerate;
 import org.enso.compiler.dump.DocsVisit;
+import org.enso.compiler.pass.resolve.TypeNames$;
+import org.enso.compiler.pass.resolve.TypeSignatures;
+import org.enso.compiler.pass.resolve.TypeSignatures$;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.pkg.QualifiedName;
 import org.enso.test.utils.ContextUtils;
@@ -95,6 +103,71 @@ public class DocsGenerateTest {
 
     assertEquals("One module method", 1, moduleMethods.size());
     assertEquals("main", moduleMethods.get(0).ir().methodName().name());
+  }
+
+  @Test
+  public void functionArgumentTypes() throws Exception {
+    var code =
+        """
+    from Standard.Base import Integer
+
+    sum x:Integer y:Integer -> Integer = x+y
+    """;
+
+    var v = new MockVisitor();
+    generateDocumentation("Sum", code, v);
+
+    assertEquals("One method only", 1, v.visitMethod.size());
+    assertNull("No type associated", v.visitMethod.get(0).t());
+    var sum = v.visitMethod.get(0).ir();
+    assertEquals(
+        "sum self x:Standard.Base.Data.Numbers.Integer y:Standard.Base.Data.Numbers.Integer ->"
+            + " Standard.Base.Data.Numbers.Integer",
+        toSignature(sum));
+  }
+
+  private static String toSignature(Method.Explicit m) {
+    var sb = new StringBuilder();
+    sb.append(m.methodName().name());
+    if (m.body() instanceof Lambda fn) {
+      for (var a : asJava(fn.arguments())) {
+        sb.append(" ").append(toSignature(a));
+      }
+      var ret = extractTypeOrNull(fn.body());
+      if (ret != null) {
+        sb.append(" -> ").append(ret);
+      }
+    }
+    return sb.toString();
+  }
+
+  private static String toSignature(DefinitionArgument a) {
+    var sb = new StringBuilder();
+    if (a.suspended()) {
+      sb.append("~");
+    }
+    sb.append(a.name().name());
+    var type = extractTypeOrNull(a);
+    if (type != null) {
+      sb.append(":").append(type);
+    }
+    if (a.defaultValue().isDefined()) {
+      sb.append("=");
+    }
+    return sb.toString();
+  }
+
+  private static QualifiedName extractTypeOrNull(IR ir) {
+    var meta = ir.passData().get(TypeSignatures$.MODULE$);
+    if (meta.isDefined()) {
+      var sig = (TypeSignatures.Signature) meta.get();
+      var typeNameOpt = sig.signature().passData().get(TypeNames$.MODULE$);
+      if (typeNameOpt.isDefined()) {
+        var typeName = (BindingsMap.Resolution) typeNameOpt.get();
+        return typeName.target().qualifiedName();
+      }
+    }
+    return null;
   }
 
   private static void generateDocumentation(String name, String code, DocsVisit v)
