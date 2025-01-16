@@ -37,13 +37,21 @@ class TopScope(private val value: Value) {
   def compile(
     shouldCompileDependencies: Boolean
   ): Unit = {
-    compile(shouldCompileDependencies, false)
+    compile(shouldCompileDependencies, None)
   }
   def compile(
     shouldCompileDependencies: Boolean,
-    generateDocs: Boolean
+    generateDocs: Option[String]
   ): Unit = {
-    value.invokeMember(COMPILE, shouldCompileDependencies, generateDocs)
+    val docsArg = generateDocs.map {
+      case "api" => "api"
+      case _     => "md"
+    }
+    value.invokeMember(
+      COMPILE,
+      shouldCompileDependencies,
+      docsArg.getOrElse(false)
+    )
   }
 
 }

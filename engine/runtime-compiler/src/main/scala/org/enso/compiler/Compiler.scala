@@ -149,7 +149,7 @@ class Compiler(
     shouldCompileDependencies: Boolean,
     shouldWriteCache: Boolean,
     useGlobalCacheLocations: Boolean,
-    generateDocs: Boolean
+    generateDocs: Option[String]
   ): Future[java.lang.Boolean] = {
     getPackageRepository.getMainProjectPackage match {
       case None =>
@@ -191,9 +191,12 @@ class Compiler(
               shouldCompileDependencies
             )
 
-            if (generateDocs) {
-              val v = DocsVisit.createMarkdown();
-              // val v      = DocsVisit.createSignatures();
+            if (generateDocs.isDefined) {
+              val v = if (generateDocs.get == "api") {
+                DocsVisit.createSignatures();
+              } else {
+                DocsVisit.createMarkdown();
+              }
               val outDir = DocsGenerate.write(v, pkg, packageModules.asJava)
               printDiagnostic(s"Documentation generated to ${outDir}")
             }

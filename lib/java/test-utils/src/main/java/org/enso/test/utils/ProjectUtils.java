@@ -8,6 +8,7 @@ import java.util.Comparator;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+
 import org.enso.common.RuntimeOptions;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.PolyglotContext;
@@ -15,6 +16,8 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Context.Builder;
 import org.graalvm.polyglot.Value;
 import org.slf4j.LoggerFactory;
+
+import scala.Option;
 
 /** Utility methods for creating and running Enso projects. */
 public class ProjectUtils {
@@ -112,11 +115,13 @@ prefer-local-libraries: true
    * Tests running the project located in the given {@code projDir}. Is equal to running {@code enso
    * --run <projDir>}.
    *
+     * @param docsFormat format of the documentation to generate
    * @param ctxBuilder A context builder that might be initialized with some specific options.
    * @param projDir Root directory of the project.
    * @param whenDone callback when generated
    */
   public static void generateProjectDocs(
+    String docsFormat,
       Context.Builder ctxBuilder, Path projDir, Consumer<Context> whenDone) {
     if (!(projDir.toFile().exists() && projDir.toFile().isDirectory())) {
       throw new IllegalArgumentException(
@@ -133,7 +138,7 @@ prefer-local-libraries: true
       if (!mainSrcPath.toFile().exists()) {
         throw new IllegalArgumentException("Main module not found in " + projDir);
       }
-      polyCtx.getTopScope().compile(false, true);
+      polyCtx.getTopScope().compile(false, Option.apply(docsFormat));
       whenDone.accept(polyCtx.context());
     }
   }

@@ -146,8 +146,13 @@ public class Main {
             .build();
     var docs =
         cliOptionBuilder()
+            .hasArg(true)
+            .numberOfArgs(1)
+            .optionalArg(true)
             .longOpt(DOCS_OPTION)
-            .desc("Runs the Enso documentation generator.")
+            .desc(
+                "Runs the Enso documentation generator. Additional argument may specify format -"
+                    + " either the default md or api.")
             .build();
     var preinstall =
         cliOptionBuilder()
@@ -652,7 +657,7 @@ public class Main {
 
     var topScope = context.getTopScope();
     try {
-      topScope.compile(shouldCompileDependencies, false);
+      topScope.compile(shouldCompileDependencies, scala.Option.empty());
       throw exitSuccess();
     } catch (Throwable t) {
       logger.error("Unexpected internal error", t);
@@ -785,12 +790,16 @@ public class Main {
    * @param enableIrCaches are the IR caches enabled
    */
   private void genDocs(
-      String projectPath, Level logLevel, boolean logMasking, boolean enableIrCaches) {
+      String docsFormat,
+      String projectPath,
+      Level logLevel,
+      boolean logMasking,
+      boolean enableIrCaches) {
     if (projectPath == null || projectPath.isEmpty()) {
       println("Specify path to a project with --in-project option");
       throw exitFail();
     }
-    generateDocsFrom(projectPath, logLevel, logMasking, enableIrCaches);
+    generateDocsFrom(docsFormat, projectPath, logLevel, logMasking, enableIrCaches);
     throw exitSuccess();
   }
 
@@ -799,7 +808,7 @@ public class Main {
    * path.
    */
   private void generateDocsFrom(
-      String path, Level logLevel, boolean logMasking, boolean enableIrCaches) {
+      String docsFormat, String path, Level logLevel, boolean logMasking, boolean enableIrCaches) {
     var executionContext =
         new PolyglotContext(
             ContextFactory.create()
@@ -816,9 +825,8 @@ public class Main {
     var main = pkg.map(x -> x.mainFile());
 
     if (main.exists(x -> x.exists())) {
-      var mainFile = main.get();
       var topScope = executionContext.getTopScope();
-      topScope.compile(false, true);
+      topScope.compile(false, scala.Option.apply(docsFormat == null ? "md" : docsFormat));
     }
   }
 
@@ -1156,7 +1164,11 @@ public class Main {
     }
     if (line.hasOption(DOCS_OPTION)) {
       genDocs(
-          line.getOptionValue(IN_PROJECT_OPTION), logLevel, logMasking, shouldEnableIrCaches(line));
+          line.getOptionValue(DOCS_OPTION),
+          line.getOptionValue(IN_PROJECT_OPTION),
+          logLevel,
+          logMasking,
+          shouldEnableIrCaches(line));
     }
     if (line.hasOption(PREINSTALL_OPTION)) {
       preinstallDependencies(line.getOptionValue(IN_PROJECT_OPTION), logLevel);

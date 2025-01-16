@@ -1,6 +1,5 @@
 package org.enso.compiler.test;
 
-import com.oracle.truffle.api.TruffleFile;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.concurrent.ExecutionException;
@@ -8,6 +7,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
+
 import org.apache.commons.io.FileUtils;
 import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames;
@@ -23,6 +23,8 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.oracle.truffle.api.TruffleFile;
 
 public class SerializationManagerTest {
 
@@ -89,7 +91,7 @@ public class SerializationManagerTest {
     Object result =
         ensoContext
             .getCompiler()
-            .compile(false, true, false, false)
+            .compile(false, true, false, scala.Option.empty())
             .get(COMPILE_TIMEOUT_SECONDS, TimeUnit.SECONDS);
     Assert.assertEquals(Boolean.TRUE, result);
 
