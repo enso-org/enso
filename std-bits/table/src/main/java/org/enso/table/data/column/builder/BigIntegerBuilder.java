@@ -55,7 +55,7 @@ public class BigIntegerBuilder extends TypedBuilder<BigInteger> {
         }
         return res;
       }
-      case null, default -> throw new UnsupportedOperationException();
+      default -> throw new UnsupportedOperationException();
     }
   }
 

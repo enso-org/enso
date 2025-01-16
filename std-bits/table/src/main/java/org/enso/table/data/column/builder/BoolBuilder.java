@@ -49,10 +49,10 @@ public class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping {
   /**
    * Append a new boolean to this builder.
    *
-   * @param data the boolean to append
+   * @param value the boolean to append
    */
-  public void appendBoolean(boolean data) {
-    if (data) {
+  public void appendBoolean(boolean value) {
+    if (value) {
       vals.set(size);
     }
     size++;

@@ -4,8 +4,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.BitSet;
 import org.enso.base.polyglot.NumericConverter;
-import org.enso.table.data.column.builder.LongBuilder;
-import org.enso.table.data.column.builder.NumericBuilder;
+import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
@@ -52,8 +51,7 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
   public Storage<Long> castFromMixed(
       Storage<?> mixedStorage, CastProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
-    LongBuilder builder =
-        NumericBuilder.createLongBuilder(mixedStorage.size(), targetType, problemAggregator);
+    var builder = Builder.getForLong(targetType, mixedStorage.size(), problemAggregator);
     for (int i = 0; i < mixedStorage.size(); i++) {
       Object o = mixedStorage.getItemBoxed(i);
       if (o == null) {
@@ -63,7 +61,7 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
       } else if (NumericConverter.isCoercibleToLong(o)) {
         long x = NumericConverter.coerceToLong(o);
         if (targetType.fits(x)) {
-          builder.appendLongUnchecked(x);
+          builder.appendLong(x);
         } else {
           problemAggregator.reportNumberOutOfRange(x);
           builder.appendNulls(1);
@@ -72,14 +70,14 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
         double x = NumericConverter.coerceToDouble(o);
         if (targetType.fits(x)) {
           long converted = (long) x;
-          builder.appendLongUnchecked(converted);
+          builder.appendLong(converted);
         } else {
           problemAggregator.reportNumberOutOfRange(x);
           builder.appendNulls(1);
         }
       } else if (o instanceof BigInteger bigInteger) {
         if (targetType.fits(bigInteger)) {
-          builder.appendLongUnchecked(bigInteger.longValue());
+          builder.appendLong(bigInteger.longValue());
         } else {
           problemAggregator.reportNumberOutOfRange(bigInteger);
           builder.appendNulls(1);
@@ -87,7 +85,7 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
       } else if (o instanceof BigDecimal bigDecimal) {
         BigInteger bigInteger = bigDecimal.toBigInteger();
         if (targetType.fits(bigInteger)) {
-          builder.appendLongUnchecked(bigInteger.longValue());
+          builder.appendLong(bigInteger.longValue());
         } else {
           problemAggregator.reportNumberOutOfRange(bigDecimal);
           builder.appendNulls(1);
@@ -100,14 +98,14 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
       context.safepoint();
     }
 
-    return builder.seal();
+    return (Storage<Long>)builder.seal();
   }
 
   private Storage<Long> convertBoolStorage(
       BoolStorage boolStorage, CastProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     int n = boolStorage.size();
-    LongBuilder builder = NumericBuilder.createLongBuilder(n, targetType, problemAggregator);
+    var builder = Builder.getForLong(targetType, n, problemAggregator);
     for (int i = 0; i < n; i++) {
       if (boolStorage.isNothing(i)) {
         builder.appendNulls(1);
@@ -119,14 +117,14 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
       context.safepoint();
     }
 
-    return builder.seal();
+    return (Storage<Long>)builder.seal();
   }
 
   private Storage<Long> convertDoubleStorage(
       DoubleStorage doubleStorage, CastProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     int n = doubleStorage.size();
-    LongBuilder builder = NumericBuilder.createLongBuilder(n, targetType, problemAggregator);
+    var builder = Builder.getForLong(targetType, n, problemAggregator);
     for (int i = 0; i < n; i++) {
       if (doubleStorage.isNothing(i)) {
         builder.appendNulls(1);
@@ -144,7 +142,7 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
       context.safepoint();
     }
 
-    return builder.seal();
+    return (Storage<Long>)builder.seal();
   }
 
   private Storage<Long> convertLongStorage(

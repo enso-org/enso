@@ -6,14 +6,14 @@ public interface BuilderForDouble extends Builder {
    * Append a new long to this builder. If the value cannot be represented exactly as a double, a
    * problem will be attached.
    *
-   * @param data the long to append
+   * @param value the long to append
    */
-  void appendLong(long data);
+  void appendLong(long value);
 
   /**
    * Append a new double to this builder.
    *
-   * @param data the double to append
+   * @param value the double to append
    */
-  void appendDouble(double data);
+  void appendDouble(double value);
 }

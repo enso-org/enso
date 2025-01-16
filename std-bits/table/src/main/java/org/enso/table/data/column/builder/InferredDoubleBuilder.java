@@ -117,22 +117,22 @@ public class InferredDoubleBuilder extends DoubleBuilder implements BuilderWithR
   }
 
   @Override
-  public void appendDouble(double x) {
+  public void appendDouble(double value) {
     if (currentSize >= this.data.length) {
       grow();
     }
 
-    data[currentSize] = Double.doubleToRawLongBits(x);
+    data[currentSize] = Double.doubleToRawLongBits(value);
     currentSize++;
   }
 
   @Override
-  public void appendLong(long integer) {
+  public void appendLong(long value) {
     if (currentSize >= this.data.length) {
       grow();
     }
 
-    appendLongNoGrow(integer);
+    appendLongNoGrow(value);
   }
 
   private void appendLongNoGrow(long integer) {
@@ -166,13 +166,6 @@ public class InferredDoubleBuilder extends DoubleBuilder implements BuilderWithR
     } else {
       throw new ValueTypeMismatchException(getType(), o);
     }
-  }
-
-  @Override
-  public void appendRawNoGrow(long rawData) {
-    throw new UnsupportedOperationException(
-        "appendRawNoGrow is not supported on InferredDoubleBuilder. "
-            + "A DoubleBuilder should be used instead. This is a bug in the Table library.");
   }
 
   private void setRaw(int ix, Number o) {

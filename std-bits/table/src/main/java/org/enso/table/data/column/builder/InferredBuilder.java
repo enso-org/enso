@@ -68,7 +68,7 @@ public class InferredBuilder implements Builder {
       }
     }
     if (o == null) {
-      currentBuilder.appendNoGrow(o);
+      currentBuilder.appendNoGrow(null);
     } else {
       if (currentBuilder.accepts(o)) {
         currentBuilder.appendNoGrow(o);
@@ -93,7 +93,7 @@ public class InferredBuilder implements Builder {
       }
     }
     if (o == null) {
-      currentBuilder.append(o);
+      currentBuilder.appendNulls(1);
     } else {
       if (currentBuilder.accepts(o)) {
         currentBuilder.append(o);

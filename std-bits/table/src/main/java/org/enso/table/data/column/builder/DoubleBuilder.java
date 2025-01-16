@@ -137,13 +137,13 @@ public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
   /**
    * Append a new double to this builder.
    *
-   * @param data the double to append
+   * @param value the double to append
    */
-  public void appendDouble(double data) {
-    if (currentSize >= this.data.length) {
+  public void appendDouble(double value) {
+    if (currentSize >= data.length) {
       grow();
     }
-    appendRawNoGrow(Double.doubleToRawLongBits(data));
+    data[currentSize++] = Double.doubleToRawLongBits(value);
   }
 
   /**
@@ -151,13 +151,8 @@ public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
    *
    * <p>It ensures that any loss of precision is reported.
    */
-  public void appendLong(long integer) {
-    if (currentSize >= this.data.length) {
-      grow();
-    }
-
-    double converted = convertLongToDouble(integer);
-    appendRawNoGrow(Double.doubleToRawLongBits(converted));
+  public void appendLong(long value) {
+    appendDouble(convertLongToDouble(value));
   }
 
   @Override

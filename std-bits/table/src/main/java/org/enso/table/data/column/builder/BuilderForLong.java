@@ -5,7 +5,7 @@ public interface BuilderForLong extends Builder {
   /**
    * Append a new long to this builder.
    *
-   * @param data the long to append
+   * @param value the long to append
    */
-  void appendLong(long data);
+  void appendLong(long value);
 }

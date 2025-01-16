@@ -2,8 +2,6 @@ package org.enso.table.data.column.builder;
 
 import java.util.Arrays;
 import java.util.BitSet;
-import org.enso.table.data.column.storage.type.IntegerType;
-import org.enso.table.problems.ProblemAggregator;
 
 /** A common base for numeric builders. */
 public abstract class NumericBuilder implements Builder {
@@ -15,11 +13,6 @@ public abstract class NumericBuilder implements Builder {
     this.isNothing = isNothing;
     this.data = data;
     this.currentSize = currentSize;
-  }
-
-  public static LongBuilder createLongBuilder(
-      int size, IntegerType type, ProblemAggregator problemAggregator) {
-    return LongBuilder.make(size, type, problemAggregator);
   }
 
   @Override
@@ -34,19 +27,6 @@ public abstract class NumericBuilder implements Builder {
       grow();
     }
     appendNoGrow(o);
-  }
-
-  /**
-   * Append a new item in raw form to this builder, assuming that it has enough allocated space.
-   *
-   * <p>This function should only be used when it is guaranteed that the builder has enough
-   * capacity, for example if it was initialized with an initial capacity known up-front.
-   *
-   * @param rawData the raw encoding of the item, for long numbers just the number and for doubles,
-   *     its long bytes
-   */
-  public void appendRawNoGrow(long rawData) {
-    data[currentSize++] = rawData;
   }
 
   @Override

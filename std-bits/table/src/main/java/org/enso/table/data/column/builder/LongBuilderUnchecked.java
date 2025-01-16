@@ -32,7 +32,7 @@ public class LongBuilderUnchecked extends LongBuilder {
 
   @Override
   public void appendLongNoGrow(long data) {
-    appendRawNoGrow(data);
+    this.data[currentSize++] = data;
   }
 
   @Override

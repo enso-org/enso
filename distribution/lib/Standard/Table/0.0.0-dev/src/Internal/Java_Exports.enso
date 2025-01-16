@@ -8,9 +8,8 @@ import project.Value_Type.Value_Type
 polyglot java import org.enso.table.data.column.builder.Builder
 polyglot java import org.enso.table.data.column.builder.BuilderForBoolean
 polyglot java import org.enso.table.data.column.builder.BuilderForDouble
-polyglot java import org.enso.table.data.column.builder.NumericBuilder
+polyglot java import org.enso.table.data.column.builder.BuilderForLong
 polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
-polyglot java import org.enso.table.data.column.storage.type.FloatType
 polyglot java import org.enso.table.problems.ProblemAggregator
 
 ## PRIVATE
@@ -27,13 +26,14 @@ make_bool_builder initial_size = Builder.getForBoolean initial_size
 ## PRIVATE
 make_double_builder : Integer -> ProblemAggregator -> BuilderForDouble
 make_double_builder initial_size java_problem_aggregator=(Missing_Argument.ensure_present "java_problem_aggregator") =
-    Builder.getForDouble FloatType.FLOAT_64 initial_size java_problem_aggregator
+    float_type = Storage.from_value_type_strict Value_Type.Float
+    Builder.getForDouble float_type initial_size java_problem_aggregator
 
 ## PRIVATE
-make_long_builder : Integer -> Bits -> ProblemAggregator -> NumericBuilder
+make_long_builder : Integer -> Bits -> ProblemAggregator -> BuilderForLong
 make_long_builder initial_size bits java_problem_aggregator=(Missing_Argument.ensure_present "java_problem_aggregator") =
     integer_type = Storage.from_value_type_strict (Value_Type.Integer bits)
-    NumericBuilder.createLongBuilder initial_size integer_type java_problem_aggregator
+    Builder.getForLong integer_type initial_size java_problem_aggregator
 
 ## PRIVATE
 make_string_builder : Integer -> Value_Type -> Builder

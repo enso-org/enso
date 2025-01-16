@@ -4,7 +4,6 @@ import org.enso.base.parser.FormatDetectingNumberParser;
 import org.enso.base.parser.NegativeSign;
 import org.enso.base.parser.NumberWithSeparators;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.builder.NumericBuilder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
@@ -103,7 +102,7 @@ public class NumberParser extends IncrementalDatatypeParser {
   @Override
   protected Builder makeBuilderWithCapacity(int capacity, ProblemAggregator problemAggregator) {
     return isInteger()
-        ? NumericBuilder.createLongBuilder(capacity, integerTargetType, problemAggregator)
+        ? Builder.getForLong(integerTargetType, capacity, problemAggregator)
         : Builder.getForDouble(FloatType.FLOAT_64, capacity, problemAggregator);
   }
 

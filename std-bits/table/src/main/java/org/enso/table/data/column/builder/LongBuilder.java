@@ -124,27 +124,18 @@ public abstract class LongBuilder extends NumericBuilder
   /**
    * Append a new integer to this builder.
    *
-   * @param data the integer to append
+   * @param value the integer to append
    */
-  public void appendLong(long data) {
+  public void appendLong(long value) {
     if (currentSize >= this.data.length) {
       grow();
     }
 
     assert currentSize < this.data.length;
-    appendLongNoGrow(data);
+    appendLongNoGrow(value);
   }
 
   public abstract void appendLongNoGrow(long data);
-
-  /**
-   * Append a new integer to this builder, without checking for overflows.
-   *
-   * <p>Used if the range has already been checked by the caller.
-   */
-  public void appendLongUnchecked(long data) {
-    appendRawNoGrow(data);
-  }
 
   @Override
   public Storage<Long> seal() {

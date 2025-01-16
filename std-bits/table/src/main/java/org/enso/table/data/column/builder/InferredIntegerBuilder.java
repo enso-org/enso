@@ -21,8 +21,14 @@ public class InferredIntegerBuilder implements Builder {
 
   /** Creates a new instance of this builder, with the given known result length. */
   public InferredIntegerBuilder(int initialSize, ProblemAggregator problemAggregator) {
-    longBuilder =
-        NumericBuilder.createLongBuilder(initialSize, IntegerType.INT_64, problemAggregator);
+    var baseBuilder = Builder.getForLong(IntegerType.INT_64, initialSize, problemAggregator);
+    if (baseBuilder instanceof BuilderWithRetyping builderWithRetyping) {
+      longBuilder = builderWithRetyping;
+    } else {
+      throw new IllegalStateException(
+          "InferredIntegerBuilder must be able to retype to BigIntegerBuilder, but the base "
+              + "builder does not support retyping.");
+    }
   }
 
   @Override

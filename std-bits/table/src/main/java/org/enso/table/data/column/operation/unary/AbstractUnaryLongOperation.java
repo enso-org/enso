@@ -1,7 +1,7 @@
 package org.enso.table.data.column.operation.unary;
 
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.builder.LongBuilder;
+import org.enso.table.data.column.builder.BuilderForLong;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
@@ -25,21 +25,21 @@ abstract class AbstractUnaryLongOperation extends AbstractUnaryOperation {
   }
 
   @Override
-  protected LongBuilder createBuilder(
+  protected BuilderForLong createBuilder(
       ColumnStorage storage, MapOperationProblemAggregator problemAggregator) {
     if (storage.getSize() > Integer.MAX_VALUE) {
       throw new IllegalArgumentException(
           "Cannot currently operate on columns larger than " + Integer.MAX_VALUE + ".");
     }
-    return LongBuilder.createLongBuilder((int) storage.getSize(), returnType, problemAggregator);
+    return Builder.getForLong(returnType, (int) storage.getSize(), problemAggregator);
   }
 
   @Override
   protected final void applyObjectRow(
       Object value, Builder builder, MapOperationProblemAggregator problemAggregator) {
-    applyObjectRow(value, (LongBuilder) builder, problemAggregator);
+    applyObjectRow(value, (BuilderForLong) builder, problemAggregator);
   }
 
   protected abstract void applyObjectRow(
-      Object value, LongBuilder builder, MapOperationProblemAggregator problemAggregator);
+      Object value, BuilderForLong builder, MapOperationProblemAggregator problemAggregator);
 }
