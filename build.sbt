@@ -3454,6 +3454,7 @@ lazy val `runtime-compiler-dump-igv` =
   (project in file("engine/runtime-compiler-dump-igv"))
     .enablePlugins(JPMSPlugin)
     .settings(
+      scalaModuleDependencySetting,
       javaModuleName := "org.enso.runtime.compiler.dump.igv",
       Compile / internalModuleDependencies := {
         val transitiveDeps =
@@ -3462,6 +3463,9 @@ lazy val `runtime-compiler-dump-igv` =
           (`runtime-compiler` / Compile / exportedModule).value
         ) ++ transitiveDeps
       },
+      Compile / moduleDependencies ++= Seq(
+        "org.slf4j" % "slf4j-api" % slf4jVersion
+      ),
       Compile / addExports ++= {
         Map(
           "jdk.internal.vm.compiler/org.graalvm.graphio" -> Seq(

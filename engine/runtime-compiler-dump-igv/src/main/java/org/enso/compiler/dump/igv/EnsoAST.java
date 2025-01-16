@@ -1,0 +1,401 @@
+package org.enso.compiler.dump.igv;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import org.enso.compiler.core.IR;
+import org.enso.compiler.core.ir.CallArgument;
+import org.enso.compiler.core.ir.DefinitionArgument;
+import org.enso.compiler.core.ir.Expression;
+import org.enso.compiler.core.ir.Function;
+import org.enso.compiler.core.ir.Literal.Number;
+import org.enso.compiler.core.ir.Literal.Text;
+import org.enso.compiler.core.ir.Module;
+import org.enso.compiler.core.ir.Name;
+import org.enso.compiler.core.ir.Pattern;
+import org.enso.compiler.core.ir.Type;
+import org.enso.compiler.core.ir.expression.Application;
+import org.enso.compiler.core.ir.expression.Case;
+import org.enso.compiler.core.ir.module.scope.Definition;
+import org.enso.compiler.core.ir.module.scope.Definition.Data;
+import org.enso.compiler.core.ir.module.scope.Export;
+import org.enso.compiler.core.ir.module.scope.Import;
+import org.enso.compiler.core.ir.module.scope.definition.Method;
+import org.enso.compiler.core.ir.module.scope.imports.Polyglot;
+
+/**
+ * Implemented only for dumping the AST to IGV. Heavily inspired by the internal {@code
+ * org.graalvm.compiler.truffle.compiler.TruffleAST}.
+ */
+final class EnsoAST {
+  static final ASTDumpStructure AST_DUMP_STRUCTURE = new ASTDumpStructure();
+
+  private final ASTNode root;
+  private final Map<Integer, ASTNode> nodes = new HashMap<>();
+  private int currentId = 0;
+
+  private EnsoAST(Module moduleIr) {
+    this.root = buildTree(moduleIr);
+  }
+
+  static EnsoAST fromIR(Module module) {
+    return new EnsoAST(module);
+  }
+
+  public List<ASTNode> getNodes() {
+    return nodes.values().stream().toList();
+  }
+
+  private void createEdge(ASTNode from, ASTNode to, String label) {
+    if (!nodes.containsKey(from.getId())) {
+      throw new IllegalArgumentException("Node " + from.getId() + " is not defined.");
+    }
+    if (!nodes.containsKey(to.getId())) {
+      throw new IllegalArgumentException("Node " + to.getId() + " is not defined.");
+    }
+    from.addChild(to);
+    from.addEdge(new ASTEdge(to, label));
+  }
+
+  private ASTNode buildTree(Module module) {
+    var root = newNode(module);
+    for (var i = 0; i < module.bindings().size(); i++) {
+      var bindingIr = module.bindings().apply(i);
+      var bindingNode = buildTree(bindingIr);
+      var edgeDescr = "binding[" + i + "]";
+      createEdge(root, bindingNode, edgeDescr);
+    }
+    for (var i = 0; i < module.imports().size(); i++) {
+      var imp = module.imports().apply(i);
+      var impNode = buildTree(imp);
+      var edgeDescr = "import[" + i + "]";
+      createEdge(root, impNode, edgeDescr);
+    }
+    for (var i = 0; i < module.exports().size(); i++) {
+      var export = module.exports().apply(i);
+      var exportNode = buildTree(export);
+      var edgeDescr = "export[" + i + "]";
+      createEdge(root, exportNode, edgeDescr);
+    }
+    return root;
+  }
+
+  private ASTNode buildTree(Import importIr) {
+    return switch (importIr) {
+      case Import.Module importModIr -> {
+        Map<String, Object> props =
+            Map.of(
+                "isSynthetic", importModIr.isSynthetic(),
+                "name", importModIr.name(),
+                "isAll", importModIr.isAll(),
+                "rename", importModIr.rename());
+        yield newNode(importModIr, props);
+      }
+      case Polyglot polyImport -> {
+        Map<String, Object> props =
+            Map.of(
+                "entity", polyImport.entity(),
+                "visibleName", polyImport.getVisibleName(),
+                "rename", polyImport.rename());
+        yield newNode(polyImport, props);
+      }
+      default -> throw unimpl(importIr);
+    };
+  }
+
+  private ASTNode buildTree(Export exportIr) {
+    return switch (exportIr) {
+      case Export.Module exportModIr -> {
+        Map<String, Object> props =
+            Map.of(
+                "isSynthetic", exportModIr.isSynthetic(),
+                "name", exportModIr.name());
+        yield newNode(exportModIr, props);
+      }
+      default -> throw unimpl(exportIr);
+    };
+  }
+
+  private ASTNode buildTree(Definition definitionIr) {
+    return switch (definitionIr) {
+      case Method.Explicit explicitMethodIr -> {
+        Map<String, Object> props =
+            Map.of(
+                "methodName", explicitMethodIr.methodName().name(),
+                "isStatic", explicitMethodIr.isStatic(),
+                "isPrivate", explicitMethodIr.isPrivate(),
+                "typeName", explicitMethodIr.typeName(),
+                "methodReference", explicitMethodIr.methodReference());
+        var methodNode = newNode(explicitMethodIr, props);
+        var body = explicitMethodIr.body();
+        var bodyNode = buildTree(body);
+        createEdge(methodNode, bodyNode, "body");
+        yield methodNode;
+      }
+      case Method.Conversion conversionMethod -> {
+        Map<String, Object> props =
+            Map.of(
+                "methodName", conversionMethod.methodName().name(),
+                "isPrivate", conversionMethod.isPrivate(),
+                "methodReference", conversionMethod.methodReference());
+        var methodNode = newNode(conversionMethod, props);
+        var body = conversionMethod.body();
+        var bodyNode = buildTree(body);
+        createEdge(methodNode, bodyNode, "body");
+        yield methodNode;
+      }
+      case Method.Binding binding -> {
+        Map<String, Object> props =
+            Map.of(
+                "methodName", binding.methodName().name(),
+                "isPrivate", binding.isPrivate(),
+                "methodReference", binding.methodReference());
+        var methodNode = newNode(binding, props);
+        for (var i = 0; i < binding.arguments().size(); i++) {
+          var arg = binding.arguments().apply(i);
+          var argNode = buildTree(arg);
+          createEdge(methodNode, argNode, "arg[" + i + "]");
+        }
+        var body = binding.body();
+        var bodyNode = buildTree(body);
+        createEdge(methodNode, bodyNode, "body");
+        yield methodNode;
+      }
+      case Definition.Type type -> {
+        Map<String, Object> props = Map.of("typeName", type.name().name());
+        var typeNode = newNode(type, props);
+        for (var i = 0; i < type.members().size(); i++) {
+          var member = type.members().apply(i);
+          var memberNode = buildTree(member);
+          createEdge(typeNode, memberNode, "member[" + i + "]");
+        }
+        yield typeNode;
+      }
+      case Name.GenericAnnotation genericAnnotation -> {
+        Map<String, Object> props =
+            Map.of(
+                "name", genericAnnotation.name(),
+                "isMethod", genericAnnotation.isMethod());
+        var anotNode = newNode(genericAnnotation, props);
+        var expr = genericAnnotation.expression();
+        var exprNode = buildTree(expr);
+        createEdge(anotNode, exprNode, "expression");
+        yield anotNode;
+      }
+      case Name.BuiltinAnnotation builtinAnnotation -> {
+        Map<String, Object> props = Map.of("name", builtinAnnotation.name());
+        yield newNode(builtinAnnotation, props);
+      }
+      case Type.Ascription ascription -> {
+        var ascrNode = newNode(ascription);
+        var typed = ascription.typed();
+        var typedNode = buildTree(typed);
+        createEdge(ascrNode, typedNode, "typed");
+        var signature = ascription.signature();
+        var signatureNode = buildTree(signature);
+        createEdge(ascrNode, signatureNode, "signature");
+        yield ascrNode;
+      }
+      default -> throw unimpl(definitionIr);
+    };
+  }
+
+  private ASTNode buildTree(Data atomCons) {
+    Map<String, Object> props = Map.of("name", atomCons.name().name());
+    var consNode = newNode(atomCons, props);
+    for (var i = 0; i < atomCons.arguments().size(); i++) {
+      var arg = atomCons.arguments().apply(i);
+      var argNode = buildTree(arg);
+      createEdge(consNode, argNode, "arg[" + i + "]");
+    }
+    return consNode;
+  }
+
+  private ASTNode buildTree(Expression expression) {
+    return switch (expression) {
+      case Expression.Block block -> {
+        var blockNode = newNode(block);
+        for (var i = 0; i < block.expressions().size(); i++) {
+          var expr = block.expressions().apply(i);
+          var exprNode = buildTree(expr);
+          createEdge(blockNode, exprNode, "expression[" + i + "]");
+        }
+        var retValNode = buildTree(block.returnValue());
+        createEdge(blockNode, retValNode, "returnValue");
+        yield blockNode;
+      }
+      case Case.Expr caseExpr -> {
+        Map<String, Object> props = Map.of("isNested", caseExpr.isNested());
+        var caseNode = newNode(caseExpr, props);
+        var scrutineeNode = buildTree(caseExpr.scrutinee());
+        createEdge(caseNode, scrutineeNode, "scrutinee");
+        for (var i = 0; i < caseExpr.branches().size(); i++) {
+          var branch = caseExpr.branches().apply(i);
+          var branchNode = buildTree(branch);
+          createEdge(caseNode, branchNode, "branch[" + i + "]");
+        }
+        yield caseNode;
+      }
+      case Case.Branch caseBranch -> {
+        Map<String, Object> props = Map.of("isTerminal", caseBranch.terminalBranch());
+        var branchNode = newNode(caseBranch, props);
+        var patternNode = buildTree(caseBranch.pattern());
+        createEdge(branchNode, patternNode, "pattern");
+        var exprNode = buildTree(caseBranch.expression());
+        createEdge(branchNode, exprNode, "expression");
+        yield branchNode;
+      }
+      case Application.Prefix prefixApp -> {
+        Map<String, Object> props =
+            Map.of("hasDefaultsSuspended", prefixApp.hasDefaultsSuspended());
+        var prefixAppNode = newNode(prefixApp, props);
+        var funcNode = buildTree(prefixApp.function());
+        createEdge(prefixAppNode, funcNode, "function");
+        for (var i = 0; i < prefixApp.arguments().size(); i++) {
+          var arg = prefixApp.arguments().apply(i);
+          var argNode = buildTree(arg);
+          createEdge(prefixAppNode, argNode, "arg[" + i + "]");
+        }
+        yield prefixAppNode;
+      }
+      case Function.Lambda lambda -> {
+        var lambdaNode = newNode(lambda);
+        var bodyNode = buildTree(lambda.body());
+        createEdge(lambdaNode, bodyNode, "body");
+        for (var i = 0; i < lambda.arguments().size(); i++) {
+          var arg = lambda.arguments().apply(i);
+          var argNode = buildTree(arg);
+          createEdge(lambdaNode, argNode, "arg[" + i + "]");
+        }
+        yield lambdaNode;
+      }
+      case Expression.Binding exprBinding -> {
+        Map<String, Object> props = Map.of("name", exprBinding.name().name());
+        var node = newNode(exprBinding, props);
+        var exprNode = buildTree(exprBinding.expression());
+        createEdge(node, exprNode, "expression");
+        yield node;
+      }
+      case Number number -> {
+        Map<String, Object> props = Map.of("value", number.value());
+        yield newNode(number, props);
+      }
+      case Text text -> {
+        Map<String, Object> props = Map.of("text", text.text());
+        yield newNode(text, props);
+      }
+      case Name.Literal literal -> {
+        Map<String, Object> props =
+            Map.of(
+                "name", literal.name(),
+                "isMethod", literal.isMethod(),
+                "originalName", literal.originalName());
+        yield newNode(literal, props);
+      }
+      case Name.MethodReference methodRef -> {
+        Map<String, Object> props =
+            Map.of(
+                "methodName", methodRef.methodName().name(),
+                "typePointer", methodRef.typePointer());
+        yield newNode(methodRef, props);
+      }
+      default -> newNode(expression);
+    };
+  }
+
+  private ASTNode buildTree(Pattern pattern) {
+    return switch (pattern) {
+      case Pattern.Constructor constrPat -> {
+        Map<String, Object> props = Map.of("constructor", constrPat.constructor().name());
+        var node = newNode(constrPat, props);
+        for (var i = 0; i < constrPat.fields().size(); i++) {
+          var field = constrPat.fields().apply(i);
+          var fieldNode = buildTree(field);
+          createEdge(node, fieldNode, "field[" + i + "]");
+        }
+        yield node;
+      }
+      case Pattern.Type tp -> {
+        var node = newNode(tp);
+        var nameNode = buildTree(tp.name());
+        var tpeNode = buildTree(tp.tpe());
+        createEdge(node, nameNode, "name");
+        createEdge(node, tpeNode, "tpe");
+        yield node;
+      }
+      case Pattern.Literal litPat -> {
+        var node = newNode(litPat);
+        var litNode = buildTree(litPat.literal());
+        createEdge(node, litNode, "literal");
+        yield node;
+      }
+      case Pattern.Name name -> {
+        Map<String, Object> props = Map.of("name", name.name().name());
+        yield newNode(name, props);
+      }
+      case Pattern.Documentation doc -> {
+        Map<String, Object> props = Map.of("doc", doc.doc());
+        yield newNode(doc, props);
+      }
+      default -> throw unimpl(pattern);
+    };
+  }
+
+  private ASTNode buildTree(CallArgument argument) {
+    return switch (argument) {
+      case CallArgument.Specified specifiedArg -> {
+        Map<String, Object> props = Map.of("name", specifiedArg.name());
+        var node = newNode(specifiedArg, props);
+        var valueNode = buildTree(specifiedArg.value());
+        createEdge(node, valueNode, "value");
+        yield node;
+      }
+      default -> throw unimpl(argument);
+    };
+  }
+
+  private ASTNode buildTree(DefinitionArgument argument) {
+    return switch (argument) {
+      case DefinitionArgument.Specified specifiedArg -> {
+        Map<String, Object> props =
+            Map.of(
+                "name", specifiedArg.name().name(),
+                "suspended", specifiedArg.suspended());
+        var node = newNode(specifiedArg, props);
+        if (specifiedArg.ascribedType().isDefined()) {
+          var ascribedTypeNode = buildTree(specifiedArg.ascribedType().get());
+          createEdge(node, ascribedTypeNode, "ascribedType");
+        }
+        if (specifiedArg.defaultValue().isDefined()) {
+          var defaultValueNode = buildTree(specifiedArg.defaultValue().get());
+          createEdge(node, defaultValueNode, "defaultValue");
+        }
+        yield node;
+      }
+      default -> throw unimpl(argument);
+    };
+  }
+
+  private ASTNode newNode(Object object, Map<String, Object> props) {
+    ASTNode.Builder bldr;
+    if (object instanceof IR ir) {
+      bldr = ASTNode.Builder.fromIr(ir).id(currentId++);
+    } else {
+      bldr = ASTNode.Builder.fromObject(object).id(currentId++);
+    }
+    props.forEach(bldr::property);
+    var node = bldr.build();
+    assert !nodes.containsKey(node.getId());
+    nodes.put(node.getId(), node);
+    return node;
+  }
+
+  private ASTNode newNode(Object object) {
+    return newNode(object, Map.of());
+  }
+
+  private static RuntimeException unimpl(Object obj) {
+    throw new UnsupportedOperationException(
+        "Not implemented IR processing for class: " + obj.getClass().getName());
+  }
+}
