@@ -96,9 +96,6 @@ object Contact {
   *                             edition
   * @param componentGroups the description of component groups provided by this
   *                        package
-  * @param originalJson a Json object holding the original values that this
-  *                     Config was created from, used to preserve configuration
-  *                     keys that are not known
   */
 case class Config(
   name: String,

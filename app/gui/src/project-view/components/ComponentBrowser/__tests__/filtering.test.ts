@@ -1,8 +1,6 @@
-import { expect, test } from 'vitest'
-
 import { Filtering, type MatchResult } from '@/components/ComponentBrowser/filtering'
+import { entryQn, SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import {
-  entryQn,
   makeConstructor,
   makeFunction,
   makeLocal,
@@ -10,9 +8,9 @@ import {
   makeModule,
   makeModuleMethod,
   makeStaticMethod,
-  SuggestionEntry,
-} from '@/stores/suggestionDatabase/entry'
+} from '@/stores/suggestionDatabase/mockSuggestion'
 import { qnLastSegment, QualifiedName } from '@/util/qualifiedName'
+import { expect, test } from 'vitest'
 import { Opt } from 'ydoc-shared/util/data/opt'
 
 test.each([

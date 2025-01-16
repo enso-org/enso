@@ -50,7 +50,6 @@ import * as inputBindingsModule from '#/configurations/inputBindings'
 
 import AuthProvider, * as authProvider from '#/providers/AuthProvider'
 import BackendProvider, { useLocalBackend } from '#/providers/BackendProvider'
-import DriveProvider from '#/providers/DriveProvider'
 import { useHttpClientStrict } from '#/providers/HttpClientProvider'
 import InputBindingsProvider from '#/providers/InputBindingsProvider'
 import LocalStorageProvider, * as localStorageProvider from '#/providers/LocalStorageProvider'
@@ -71,7 +70,6 @@ import Dashboard from '#/pages/dashboard/Dashboard'
 import * as subscribe from '#/pages/subscribe/Subscribe'
 import * as subscribeSuccess from '#/pages/subscribe/SubscribeSuccess'
 
-import type * as editor from '#/layouts/Editor'
 import * as openAppWatcher from '#/layouts/OpenAppWatcher'
 import VersionChecker from '#/layouts/VersionChecker'
 
@@ -144,7 +142,6 @@ function getMainPageUrl() {
 
 /** Global configuration for the `App` component. */
 export interface AppProps {
-  readonly vibrancy: boolean
   /** Whether the application may have the local backend running. */
   readonly supportsLocalBackend: boolean
   /** If true, the app can only be used in offline mode. */
@@ -154,15 +151,11 @@ export interface AppProps {
    * the installed app on macOS and Windows.
    */
   readonly supportsDeepLinks: boolean
-  /** Whether the dashboard should be rendered. */
-  readonly shouldShowDashboard: boolean
   /** The name of the project to open on startup, if any. */
   readonly initialProjectName: string | null
   readonly onAuthenticated: (accessToken: string | null) => void
   readonly projectManagerUrl: string | null
   readonly ydocUrl: string | null
-  readonly appRunner: editor.GraphEditorRunner | null
-  readonly queryClient: reactQuery.QueryClient
 }
 
 /**
@@ -218,8 +211,7 @@ export default function App(props: AppProps) {
 
   const { isOffline } = useOffline()
   const { getText } = textProvider.useText()
-
-  const queryClient = props.queryClient
+  const queryClient = reactQuery.useQueryClient()
 
   // Force all queries to be stale
   // We don't use the `staleTime` option because it's not performant
@@ -243,7 +235,7 @@ export default function App(props: AppProps) {
   const { mutate: executeBackgroundUpdate } = useMutation({
     mutationKey: ['refetch-queries', { isOffline }],
     scope: { id: 'refetch-queries' },
-    mutationFn: () => queryClient.refetchQueries({ type: 'all' }),
+    mutationFn: () => queryClient.refetchQueries({ type: 'all', queryKey: [RemoteBackend.type] }),
     networkMode: 'online',
     onError: () => {
       toastify.toast.error(getText('refetchQueriesError'), {
@@ -305,7 +297,6 @@ export interface AppRouterProps extends AppProps {
  * component as the component that defines the provider.
  */
 function AppRouter(props: AppRouterProps) {
-  const { isAuthenticationDisabled, shouldShowDashboard } = props
   const { onAuthenticated, projectManagerInstance } = props
   const httpClient = useHttpClientStrict()
   const logger = useLogger()
@@ -409,8 +400,6 @@ function AppRouter(props: AppRouterProps) {
 
   const authService = useInitAuthService(props)
 
-  const userSession = authService.cognito.userSession.bind(authService.cognito)
-  const refreshUserSession = authService.cognito.refreshUserSession.bind(authService.cognito)
   const registerAuthEventListener = authService.registerAuthEventListener
 
   React.useEffect(() => {
@@ -484,10 +473,7 @@ function AppRouter(props: AppRouterProps) {
             <router.Route element={<SetupOrganizationAfterSubscribe />}>
               <router.Route element={<InvitedToOrganizationModal />}>
                 <router.Route element={<openAppWatcher.OpenAppWatcher />}>
-                  <router.Route
-                    path={appUtils.DASHBOARD_PATH}
-                    element={shouldShowDashboard && <Dashboard {...props} />}
-                  />
+                  <router.Route path={appUtils.DASHBOARD_PATH} element={<Dashboard {...props} />} />
 
                   <router.Route
                     path={appUtils.SUBSCRIBE_PATH}
@@ -543,31 +529,24 @@ function AppRouter(props: AppRouterProps) {
   return (
     <RouterProvider navigate={navigate}>
       <SessionProvider
-        saveAccessToken={authService.cognito.saveAccessToken.bind(authService.cognito)}
+        onLogout={() => {
+          localStorage.clearUserSpecificEntries()
+        }}
+        authService={authService.cognito}
         mainPageUrl={mainPageUrl}
-        userSession={userSession}
         registerAuthEventListener={registerAuthEventListener}
-        refreshUserSession={refreshUserSession}
       >
         <BackendProvider remoteBackend={remoteBackend} localBackend={localBackend}>
-          <AuthProvider
-            shouldStartInOfflineMode={isAuthenticationDisabled}
-            authService={authService}
-            onAuthenticated={onAuthenticated}
-          >
+          <AuthProvider onAuthenticated={onAuthenticated}>
             <InputBindingsProvider inputBindings={inputBindings}>
-              {/* Ideally this would be in `Drive.tsx`, but it currently must be all the way out here
-               * due to modals being in `TheModal`. */}
-              <DriveProvider>
-                <LocalBackendPathSynchronizer />
-                <VersionChecker />
-                {routes}
-                <suspense.Suspense>
-                  <errorBoundary.ErrorBoundary>
-                    <devtools.EnsoDevtools />
-                  </errorBoundary.ErrorBoundary>
-                </suspense.Suspense>
-              </DriveProvider>
+              <LocalBackendPathSynchronizer />
+              <VersionChecker />
+              {routes}
+              <suspense.Suspense>
+                <errorBoundary.ErrorBoundary>
+                  <devtools.EnsoDevtools />
+                </errorBoundary.ErrorBoundary>
+              </suspense.Suspense>
             </InputBindingsProvider>
           </AuthProvider>
         </BackendProvider>
@@ -575,10 +554,6 @@ function AppRouter(props: AppRouterProps) {
     </RouterProvider>
   )
 }
-
-// ====================================
-// === LocalBackendPathSynchronizer ===
-// ====================================
 
 /** Keep `localBackend.rootPath` in sync with the saved root path state. */
 function LocalBackendPathSynchronizer() {
@@ -591,5 +566,6 @@ function LocalBackendPathSynchronizer() {
       localBackend.resetRootPath()
     }
   }
+
   return null
 }

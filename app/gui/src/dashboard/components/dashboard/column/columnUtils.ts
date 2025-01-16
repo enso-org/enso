@@ -1,6 +1,8 @@
 /** @file Types and constants related to `Column`s. */
 import type * as text from 'enso-common/src/text'
 
+import DirectoryIcon from '#/assets/folder.svg'
+
 import AccessedByProjectsIcon from '#/assets/accessed_by_projects.svg'
 import AccessedDataIcon from '#/assets/accessed_data.svg'
 import BlankIcon from '#/assets/blank.svg'
@@ -22,6 +24,7 @@ export enum Column {
   modified = 'modified',
   sharedWith = 'sharedWith',
   labels = 'labels',
+  path = 'path',
   accessedByProjects = 'accessedByProjects',
   accessedData = 'accessedData',
   docs = 'docs',
@@ -39,6 +42,7 @@ export const DEFAULT_ENABLED_COLUMNS: ReadonlySet<Column> = new Set([
   Column.modified,
   Column.sharedWith,
   Column.labels,
+  Column.path,
 ])
 
 export const COLUMN_ICONS: Readonly<Record<Column, string>> = {
@@ -51,6 +55,7 @@ export const COLUMN_ICONS: Readonly<Record<Column, string>> = {
   [Column.accessedByProjects]: AccessedByProjectsIcon,
   [Column.accessedData]: AccessedDataIcon,
   [Column.docs]: DocsIcon,
+  [Column.path]: DirectoryIcon,
 }
 
 export const COLUMN_SHOW_TEXT_ID: Readonly<Record<Column, text.TextId>> = {
@@ -61,6 +66,7 @@ export const COLUMN_SHOW_TEXT_ID: Readonly<Record<Column, text.TextId>> = {
   [Column.accessedByProjects]: 'accessedByProjectsColumnShow',
   [Column.accessedData]: 'accessedDataColumnShow',
   [Column.docs]: 'docsColumnShow',
+  [Column.path]: 'pathColumnShow',
 } satisfies { [C in Column]: `${C}ColumnShow` }
 
 const COLUMN_CSS_CLASSES =
@@ -76,6 +82,7 @@ export const COLUMN_CSS_CLASS: Readonly<Record<Column, string>> = {
   [Column.accessedByProjects]: `min-w-drive-accessed-by-projects-column rounded-rows-have-level ${NORMAL_COLUMN_CSS_CLASSES}`,
   [Column.accessedData]: `min-w-drive-accessed-data-column rounded-rows-have-level ${NORMAL_COLUMN_CSS_CLASSES}`,
   [Column.docs]: `min-w-drive-docs-column rounded-rows-have-level ${NORMAL_COLUMN_CSS_CLASSES}`,
+  [Column.path]: `min-w-drive-path-column rounded-rows-have-level ${NORMAL_COLUMN_CSS_CLASSES}`,
 }
 
 // =====================
@@ -102,10 +109,18 @@ export function getColumnList(
     return isCloud && isEnterprise && Column.sharedWith
   }
 
+  const pathColumn = () => {
+    if (isTrash) return Column.path
+    if (isRecent) return Column.path
+
+    return false
+  }
+
   const columns = [
     Column.name,
     Column.modified,
     sharedWithColumn(),
+    pathColumn(),
     isCloud && Column.labels,
     // FIXME[sb]: https://github.com/enso-org/cloud-v2/issues/1525
     // Bring back these columns when they are ready for use again.

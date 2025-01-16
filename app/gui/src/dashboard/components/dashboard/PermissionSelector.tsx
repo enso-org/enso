@@ -198,6 +198,9 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
       )
       break
     }
+    case permissions.Permission.owner:
+    case permissions.Permission.admin:
+    case permissions.Permission.edit:
     default: {
       permissionDisplay = (
         <ariaComponents.Button

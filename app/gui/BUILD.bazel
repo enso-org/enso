@@ -1,0 +1,146 @@
+load("@aspect_bazel_lib//lib:write_source_files.bzl", "write_source_files")
+load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_run_binary")
+load("@aspect_rules_ts//ts:defs.bzl", "ts_config")
+load("@env//:defs.bzl", "getenv")
+load("@npm//:defs.bzl", "npm_link_all_packages", "npm_link_targets")
+load("@npm//app/gui:vite/package_json.bzl", vite_bin = "bin")
+
+npm_link_all_packages(name = "node_modules")
+
+ts_config(
+    name = "tsconfig",
+    src = "tsconfig.json",
+    deps = ["//:tsconfig"],
+)
+
+ts_config(
+    name = "tsconfig_node",
+    src = "tsconfig.node.json",
+    deps = [":tsconfig"],
+)
+
+ts_config(
+    name = "tsconfig_app",
+    src = "tsconfig.app.json",
+    deps = [":tsconfig"],
+)
+
+ts_config(
+    name = "tsconfig_scripts",
+    src = "tsconfig.scripts.json",
+)
+
+ts_config(
+    name = "tsconfig_app_vitest",
+    src = "tsconfig.app.vitest.json",
+    deps = [":tsconfig_app"],
+)
+
+ICON_GENERATED_DIR = "src/project-view/util/iconMetadata"
+
+SRCS = [
+    "//:tsconfig",
+    ":tsconfig",
+    ":tsconfig_app",
+    ":tsconfig_node",
+    ":tsconfig_app_vitest",
+    ":tsconfig_scripts",
+    ":icon_metadata",
+    "vite.config.ts",
+    "tailwind.config.ts",
+    "package.json",
+    "index.html",
+] + glob(
+    [
+        "src/**",
+        "public/**",
+        "project-manager-shim-middleware/**",
+    ],
+    [ICON_GENERATED_DIR + "/**"],
+) + npm_link_targets()
+
+ENV_FILES = glob([".env*"])
+
+vite_bin.vite(
+    name = "dist",
+    srcs = SRCS + ENV_FILES,
+    args = [
+        "build",
+        "--mode=production",
+    ],
+    chdir = package_name(),
+    env = {
+        "NODE_ENV": getenv("NODE_ENV"),
+    },
+    out_dirs = ["dist"],
+)
+
+vite_bin.vite_binary(
+    name = "vite_preview",
+    args = ["preview", "--outDir", "../../$(rootpath :dist)"],
+    chdir = package_name(),
+    data = [
+        "vite.config.ts",
+        ":dist",
+    ],
+)
+
+vite_bin.vite_binary(
+    name = "dev_server",
+    chdir = package_name(),
+    data = SRCS,
+    # Under ibazel, let vite hot-reload changed files rather than restart it
+    tags = ["ibazel_notify_changes"],
+)
+
+js_binary(
+    name = "script_generate_icon_metadata",
+    entry_point = "scripts/generateIconMetadata.mjs",
+)
+
+js_run_binary(
+    name = "icon_metadata",
+    srcs = ["src/project-view/assets/icons.svg"],
+    chdir = package_name(),
+    out_dirs = [ICON_GENERATED_DIR],
+    tool = ":script_generate_icon_metadata",
+    visibility = ["//visibility:public"],
+)
+
+# TODO: Maybe make env replacement a separate post-build step, TBD.
+# js_binary(
+#     name = "script_env_replacer",
+#     entry_point = "scripts/envReplacer.mjs",
+# )
+
+# js_run_binary(
+#     name = "dist",
+#     srcs = [
+#         "node_modules/dotenv",
+#         ":build",
+#     ] + glob([".env*"]),
+#     args = [
+#         "$(rootpath :build)",
+#         package_name() + "/env_replaced",
+#         package_name(),
+#     ],
+#     env = {
+#         "NODE_ENV": getenv("NODE_ENV"),
+#     },
+#     out_dirs = ["env_replaced"],
+#     tool = ":script_env_replacer",
+#     visibility = ["//visibility:public"],
+# )
+
+# Convenience rule to output built artifacts to the filesystem, so JS tooling can see them.
+# Important! Make sure the output of this rule is NOT used during the build process, which
+# is currently ensured by ICON_GENERATED_DIR definition being used as an glob exclusion
+# in `SRC` definition.
+write_source_files(
+    name = "write_icon_metadata",
+    files = {
+        ICON_GENERATED_DIR: ":icon_metadata",
+    },
+    suggested_update_target = "//:write_all",
+    visibility = ["//visibility:public"],
+)

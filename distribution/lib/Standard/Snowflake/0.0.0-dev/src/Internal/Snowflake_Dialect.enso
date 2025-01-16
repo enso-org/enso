@@ -223,7 +223,7 @@ type Snowflake_Dialect
        Add an extra cast to adjust the output type of aggregate operations.
        Some DBs do CAST(SUM(x) AS FLOAT) others do SUM(CAST(x AS FLOAT)).
     cast_aggregate_columns self op_kind:Text columns:(Vector Internal_Column) =
-        self.cast_op_type op_kind columns (SQL_Expression.Operation op_kind (columns.map c->c.expression))
+        self.cast_op_type op_kind columns (SQL_Expression.Operation op_kind (columns.map Internals_Access.column_expression))
 
     ## PRIVATE
     prepare_fetch_types_query : SQL_Expression -> Context -> SQL_Statement

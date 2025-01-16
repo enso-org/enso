@@ -125,7 +125,7 @@ const sourceMask = computed<NodeMask | undefined>(() => {
   if (!nodeRect) return
   const animProgress =
     startsInPort.value ?
-      (sourceNode.value && graph.nodeHoverAnimations.get(sourceNode.value)) ?? 0
+      ((sourceNode.value && graph.nodeHoverAnimations.get(sourceNode.value)) ?? 0)
     : 0
   const padding = animProgress * VISIBLE_PORT_MASK_PADDING
   if (!maskSource && padding === 0) return

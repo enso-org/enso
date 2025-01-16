@@ -7,7 +7,7 @@ import type { AssetId } from '#/services/Backend'
 import { queryOptions, useQuery } from '@tanstack/react-query'
 
 /**
- *
+ * Options for {@link useAssetVersions}.
  */
 export interface AssetVersionsQueryOptions {
   readonly assetId: AssetId

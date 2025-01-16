@@ -1,7 +1,7 @@
 import { createContextStore } from '@/providers'
 import { type ProjectStore } from '@/stores/project'
 import { entryQn, type SuggestionEntry, type SuggestionId } from '@/stores/suggestionDatabase/entry'
-import { applyUpdates, entryFromLs } from '@/stores/suggestionDatabase/lsUpdate'
+import { SuggestionUpdateProcessor } from '@/stores/suggestionDatabase/lsUpdate'
 import { ReactiveDb, ReactiveIndex } from '@/util/database/reactiveDb'
 import { AsyncQueue } from '@/util/net'
 import {
@@ -11,7 +11,7 @@ import {
   tryQualifiedName,
   type QualifiedName,
 } from '@/util/qualifiedName'
-import { markRaw, proxyRefs, ref, type Ref } from 'vue'
+import { markRaw, proxyRefs, readonly, ref } from 'vue'
 import { LanguageServer } from 'ydoc-shared/languageServer'
 import type { MethodPointer } from 'ydoc-shared/languageServerTypes'
 import * as lsTypes from 'ydoc-shared/languageServerTypes/suggestions'
@@ -79,18 +79,17 @@ class Synchronizer {
   constructor(
     projectStore: ProjectStore,
     public entries: SuggestionDb,
-    public groups: Ref<Group[]>,
+    updateProcessor: Promise<SuggestionUpdateProcessor>,
   ) {
     const lsRpc = projectStore.lsRpcConnection
     const initState = exponentialBackoff(() =>
       lsRpc.acquireCapability('search/receivesSuggestionsDatabaseUpdates', {}),
-    ).then((capability) => {
+    ).then(async (capability) => {
       if (!capability.ok) {
         capability.error.log('Will not receive database updates')
       }
-      this.#setupUpdateHandler(lsRpc)
-      this.#loadGroups(lsRpc, projectStore.firstExecution)
-      return Synchronizer.loadDatabase(entries, lsRpc, groups.value)
+      this.#setupUpdateHandler(lsRpc, await updateProcessor)
+      return Synchronizer.loadDatabase(entries, lsRpc, await updateProcessor)
     })
 
     this.queue = new AsyncQueue(initState)
@@ -99,7 +98,7 @@ class Synchronizer {
   static async loadDatabase(
     entries: SuggestionDb,
     lsRpc: LanguageServer,
-    groups: Group[],
+    updateProcessor: SuggestionUpdateProcessor,
   ): Promise<{ currentVersion: number }> {
     const initialDb = await exponentialBackoff(() => lsRpc.getSuggestionsDatabase())
     if (!initialDb.ok) {
@@ -109,7 +108,7 @@ class Synchronizer {
       return { currentVersion: 0 }
     }
     for (const lsEntry of initialDb.value.entries) {
-      const entry = entryFromLs(lsEntry.suggestion, groups)
+      const entry = updateProcessor.entryFromLs(lsEntry.suggestion)
       if (!entry.ok) {
         entry.error.log()
         console.error(`Skipping entry ${lsEntry.id}, the suggestion database will be incomplete!`)
@@ -120,7 +119,7 @@ class Synchronizer {
     return { currentVersion: initialDb.value.currentVersion }
   }
 
-  #setupUpdateHandler(lsRpc: LanguageServer) {
+  #setupUpdateHandler(lsRpc: LanguageServer, updateProcessor: SuggestionUpdateProcessor) {
     lsRpc.on('search/suggestionsDatabaseUpdates', (param) => {
       this.queue.pushTask(async ({ currentVersion }) => {
         // There are rare cases where the database is updated twice in quick succession, with the
@@ -140,33 +139,30 @@ class Synchronizer {
           )
           return { currentVersion }
         } else {
-          applyUpdates(this.entries, param.updates, this.groups.value)
+          updateProcessor.applyUpdates(this.entries, param.updates)
           return { currentVersion: param.currentVersion }
         }
       })
     })
   }
+}
 
-  async #loadGroups(lsRpc: LanguageServer, firstExecution: Promise<unknown>) {
-    this.queue.pushTask(async ({ currentVersion }) => {
-      await firstExecution
-      const groups = await exponentialBackoff(() => lsRpc.getComponentGroups())
-      if (!groups.ok) {
-        if (!lsRpc.isDisposed) {
-          groups.error.log('Cannot read component groups. Continuing without groups')
-        }
-        return { currentVersion }
-      }
-      this.groups.value = groups.value.componentGroups.map(
-        (group): Group => ({
-          name: group.name,
-          ...(group.color ? { color: group.color } : {}),
-          project: group.library as QualifiedName,
-        }),
-      )
-      return { currentVersion }
-    })
+async function loadGroups(lsRpc: LanguageServer, firstExecution: Promise<unknown>) {
+  await firstExecution
+  const groups = await exponentialBackoff(() => lsRpc.getComponentGroups())
+  if (!groups.ok) {
+    if (!lsRpc.isDisposed) {
+      groups.error.log('Cannot read component groups. Continuing without groups')
+    }
+    return []
   }
+  return groups.value.componentGroups.map(
+    (group): Group => ({
+      name: group.name,
+      ...(group.color ? { color: group.color } : {}),
+      project: group.library as QualifiedName,
+    }),
+  )
 }
 
 /** {@link useSuggestionDbStore} composable object */
@@ -177,23 +173,32 @@ export const [provideSuggestionDbStore, useSuggestionDbStore] = createContextSto
     const entries = new SuggestionDb()
     const groups = ref<Group[]>([])
 
+    const updateProcessor = loadGroups(
+      projectStore.lsRpcConnection,
+      projectStore.firstExecution,
+    ).then((loadedGroups) => {
+      groups.value = loadedGroups
+      return new SuggestionUpdateProcessor(loadedGroups)
+    })
+
     /** Add an entry to the suggestion database. */
     function mockSuggestion(entry: lsTypes.SuggestionEntry) {
       const id = Math.max(...entries.nameToId.reverse.keys()) + 1
-      applyUpdates(
-        entries,
-        [
-          {
-            type: 'Add',
-            id,
-            suggestion: entry,
-          },
-        ],
-        groups.value,
-      )
+      new SuggestionUpdateProcessor([]).applyUpdates(entries, [
+        {
+          type: 'Add',
+          id,
+          suggestion: entry,
+        },
+      ])
     }
 
-    const _synchronizer = new Synchronizer(projectStore, entries, groups)
-    return proxyRefs({ entries: markRaw(entries), groups, _synchronizer, mockSuggestion })
+    const _synchronizer = new Synchronizer(projectStore, entries, updateProcessor)
+    return proxyRefs({
+      entries: markRaw(entries),
+      groups: readonly(groups),
+      _synchronizer,
+      mockSuggestion,
+    })
   },
 )

@@ -3,11 +3,6 @@
     "window": {
       "description": "The visual and tactile configurations of the application window.",
       "options": {
-        "topBarOffset": {
-          "description": "The offset of the IDE's toolbar from the window's left edge.",
-          "value": 0,
-          "primary": false
-        },
         "vibrancy": {
           "description": "Enable the vibrancy effect.",
           "value": false,
@@ -36,24 +31,9 @@
           "value": "",
           "primary": false
         },
-        "rpcUrl": {
-          "description": "The address of the Language Server RPC endpoint. This argument should be provided together with `dataUrl`, `namespace`, `project` and `displayedProjectName` options. They enable Enso to connect directly to an already-spawned Language Server of some project.",
-          "value": "",
-          "primary": false
-        },
-        "dataUrl": {
-          "description": "The address of the Language Server Data endpoint. This argument should be provided together with `rpcUrl`, `namespace`, `project` and `dislayedProjectName` options. They enable Enso to connect directly to an already-spawned Language Server of some project.",
-          "value": "",
-          "primary": false
-        },
         "ydocUrl": {
           "description": "The address of the Ydoc Server endpoint.",
           "value": "",
-          "primary": false
-        },
-        "namespace": {
-          "description": "The namespace of the opened project. It can be used when connecting to an existing Language Server process.",
-          "value": "local",
           "primary": false
         }
       }

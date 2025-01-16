@@ -557,37 +557,56 @@ add_conversion_specs suite_builder setup =
     suite_builder.group prefix+"(Conversion_Spec) Simple variant of Table/Column.parse in all backends" group_builder->
         group_builder.specify "should be able to parse simple integers" <|
             t = table_builder [["X", ["42", "0", "-1"]]]
+            v = [42, 0, -1]
 
             c1 = t.at "X" . parse Value_Type.Integer
             setup.expect_integer_type c1
-            c1.to_vector . should_equal [42, 0, -1]
+            c1.to_vector . should_equal v
 
             c2 = t.parse ["X"] Value_Type.Integer . at "X"
             setup.expect_integer_type c2
-            c2.to_vector . should_equal [42, 0, -1]
+            c2.to_vector . should_equal v
+
+            t2 = table_builder [["X", v]]
+            c3 = t2.parse ["X"] Value_Type.Integer . at "X"
+            setup.expect_integer_type c3
+            c3.to_vector . should_equal v
 
         group_builder.specify "should be able to parse simple floats" <|
             t = table_builder [["X", ["42.5", "0.25", "-1.0"]]]
+            v = [42.5, 0.25, -1.0]
 
             c1 = t.at "X" . parse Value_Type.Float
             c1.value_type.is_floating_point . should_be_true
-            c1.to_vector . should_equal [42.5, 0.25, -1.0]
+            c1.to_vector . should_equal v
 
             c2 = t.parse ["X"] Value_Type.Float . at "X"
             c2.value_type.is_floating_point . should_be_true
-            c2.to_vector . should_equal [42.5, 0.25, -1.0]
+            c2.to_vector . should_equal v
+
+            t2 = table_builder [["X", v]]
+            c3 = t2.parse ["X"] Value_Type.Float . at "X"
+            c3.value_type.is_floating_point . should_be_true
+            c3.to_vector . should_equal v
 
         if supports_dates then
             group_builder.specify "should be able to parse dates using a default format" <|
                 t = table_builder [["X", ["2018-01-01", "2023-12-31"]]]
+                v = [Date.new 2018 1 1, Date.new 2023 12 31]
 
                 c1 = t.at "X" . parse Value_Type.Date
                 c1.value_type.should_equal Value_Type.Date
-                c1.to_vector . should_equal [Date.new 2018 1 1, Date.new 2023 12 31]
+                c1.to_vector . should_equal v
 
                 c2 = t.parse ["X"] Value_Type.Date . at "X"
                 c2.value_type.should_equal Value_Type.Date
-                c2.to_vector . should_equal [Date.new 2018 1 1, Date.new 2023 12 31]
+                c2.to_vector . should_equal v
+
+                t2 = table_builder [["X", v]]
+                c3 = t2.parse ["X"] Value_Type.Date . at "X"
+                c3.value_type.should_equal Value_Type.Date
+                c3.to_vector . should_equal v
+
         if supports_dates.not then
             group_builder.specify "should report that date parsing is unsupported" <|
                 t = table_builder [["X", ["2018-01-01", "2023-12-31"]]]
@@ -600,14 +619,20 @@ add_conversion_specs suite_builder setup =
 
         group_builder.specify "should be able to parse booleans with default format" <|
             t = table_builder [["X", ["true", "false", "true"]]]
+            v = [True, False, True]
 
             c1 = t.at "X" . parse Value_Type.Boolean
             c1.value_type.should_equal Value_Type.Boolean
-            c1.to_vector . should_equal [True, False, True]
+            c1.to_vector . should_equal v
 
             c2 = t.parse ["X"] Value_Type.Boolean . at "X"
             c2.value_type.should_equal Value_Type.Boolean
-            c2.to_vector . should_equal [True, False, True]
+            c2.to_vector . should_equal v
+
+            t2 = table_builder [["X", v]]
+            c3 = t2.parse ["X"] Value_Type.Boolean . at "X"
+            c3.value_type.should_equal Value_Type.Boolean
+            c3.to_vector . should_equal v
 
         group_builder.specify "should report missing columns" <|
             t = table_builder [["X", ["42", "0", "-1"]]]

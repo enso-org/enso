@@ -111,10 +111,8 @@ add_specs suite_builder =
             hello_txt.parent . should_equal (root / "examples/" / "folder 2/")
             hello_txt.parent.is_directory . should_be_true
 
-            # Leading slash will mean starting back from bucket root:
-            (hello_txt / "/foo/bar") . should_equal (root / "foo/bar")
-            (hello_txt / "/") . should_equal root
-            (hello_txt / "////") . should_equal root
+            # Multiple consecutive slashes are ignored
+            (root / "//foo////bar") . should_equal (root / "foo/bar")
 
         group_builder.specify "should support path traversal using `join`" <|
             root.join ["foo", "bar"] . path . should_equal "s3://"+bucket_name+"/foo/bar"
@@ -260,6 +258,22 @@ add_specs suite_builder =
                 r3 = Data.list root.path
                 r3.should_be_a Vector
                 r3.map .name . should_contain object_name
+
+        group_builder.specify "list should sort its output" <|
+            r = root.list
+            r.should_be_a Vector
+            as_strings = r.map .to_text
+            as_strings . should_equal as_strings.sort
+
+        group_builder.specify "should be able to list buckets by constructing a root object" <|
+            with_default_credentials <|
+                just_s3 = File.new "s3://"
+                just_s3.list . map .path . should_contain root.path
+
+        group_builder.specify "should be able to construct bucket reference by resolving a path from root" <|
+            with_default_credentials <|
+                just_s3 = File.new "s3://"
+                (just_s3 / bucket_name).path . should_equal root.path
 
         group_builder.specify "will fail if no credentials are provided and no Default credentials are available" pending=(if AWS_Credential.is_default_credential_available then "Default AWS credentials are defined in the environment and this test has no way of overriding them, so it is impossible to test this scenario in such environment.") <|
             root_without_credentials = S3_File.new "s3://"+bucket_name+"/"
@@ -571,15 +585,15 @@ add_specs suite_builder =
             Panic.with_finalizer s3_link.delete <|
                 s3_link.read . should_equal "Hello WORLD!"
 
-        s3_to_s3_datalinks = Symlink_Test_Setup.make (my_writable_dir / "target-link-dir-1") (my_writable_dir / "datalink-dir-1") (create_data_link_to_s3 test_credentials)
+        s3_to_s3_datalinks = Symlink_Test_Setup.make (my_writable_dir / "target-link-dir-1") (my_writable_dir / "datalink-dir-1") (create_data_link_to_s3 test_credentials) needs_directory_suffix=True with_prepared_environment_for_file_new=with_default_credentials
         add_symlink_spec group_builder "S3 -> S3" s3_to_s3_datalinks
 
         cloud_test_root = Temporary_Directory.make "DataLinks-from-3S-to-Cloud"
         group_builder.teardown cloud_test_root.cleanup
-        s3_to_cloud_datalinks = Symlink_Test_Setup.make (cloud_test_root.get / "target-link-dir-2") (my_writable_dir / "datalink-dir-2") create_data_link_to_cloud
+        s3_to_cloud_datalinks = Symlink_Test_Setup.make (cloud_test_root.get / "target-link-dir-2") (my_writable_dir / "datalink-dir-2") create_data_link_to_cloud needs_directory_suffix=True with_prepared_environment_for_file_new=with_default_credentials
         add_symlink_spec group_builder "S3 -> Cloud" s3_to_cloud_datalinks pending=cloud_setup.real_cloud_pending
 
-        cloud_to_s3_datalinks = Symlink_Test_Setup.make (my_writable_dir / "target-link-dir-3") (cloud_test_root.get / "datalink-dir-3") (create_data_link_to_s3 test_credentials)
+        cloud_to_s3_datalinks = Symlink_Test_Setup.make (my_writable_dir / "target-link-dir-3") (cloud_test_root.get / "datalink-dir-3") (create_data_link_to_s3 test_credentials) needs_directory_suffix=True
         add_symlink_spec group_builder "Cloud -> S3" cloud_to_s3_datalinks pending=cloud_setup.real_cloud_pending
 
         group_builder.specify "should be able to read an S3 data link overriding the format" <| with_default_credentials <|

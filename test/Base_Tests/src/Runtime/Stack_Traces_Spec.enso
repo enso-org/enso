@@ -8,6 +8,9 @@ from Standard.Test import all
 
 type My_Type
 
+type My_Error
+    Error
+
 bar = Runtime.get_stack_trace
 baz = bar
 Number.foo self = baz
@@ -20,7 +23,106 @@ deep_c = deep_d
 deep_b = deep_c
 deep_a = deep_b
 
+pending_js_missing = if Polyglot.is_language_installed "js" then Nothing else "Can't run JavaScript tests, language `js` is not installed."
+
+foreign js js_throw what = """
+    throw what
+
 add_specs suite_builder = suite_builder.group "Stack traces" group_builder->
+    print_stack_trace collect caught_panic prefix="" =
+        st = caught_panic.stack_trace
+        st.each el->
+            collect.append prefix+el.to_display_text
+
+    stack_trace_check appender ~throw_action rethrow=False print_before_rethrow=False =
+        rethrow_handler caught_panic =
+            if print_before_rethrow then
+                print_stack_trace appender caught_panic
+
+            Panic.throw caught_panic
+
+        my_exception_handler caught_panic =
+            print_stack_trace appender caught_panic
+
+        f5 ~a = a
+        f4 ~a = f5 a...
+        f3 ~a =
+            Panic.catch Any handler=(if rethrow then rethrow_handler else my_exception_handler) <|
+                f4 a...
+        f2 ~a = f3 a...
+        f1 ~a = f2 a...
+
+        f1 throw_action...
+
+    group_builder.specify "avoid handler frames in stacktrace" <|
+        lines = Vector.build b->
+            stack_trace_check b (Panic.throw My_Error.Error)
+
+        top_lines = lines.take (..While l-> l.contains "Vector.type" . not)
+        out = top_lines.join '\n'
+
+        out . should_not_contain "my_exception_handler"
+        out . should_not_contain "print_stack_trace"
+        out . should_contain "f1"
+        out . should_contain "f5"
+
+    group_builder.specify "stacktrace when an exception is rethrown" <|
+        lines = Vector.build b->
+            pst2 err =
+                print_stack_trace prefix="2nd: " b err
+
+            Panic.catch Any handler=pst2 <|
+                stack_trace_check b (Panic.throw My_Error.Error) rethrow=True
+
+        top_lines = lines.take (..While l-> l.contains "Vector.type" . not)
+        out = top_lines.join '\n'
+
+        out . should_not_contain "my_exception_handler"
+        out . should_not_contain "print_stack_trace"
+        out . should_contain "rethrow_handler"
+        out . should_contain "f3"
+        out . should_contain "f4"
+        out . should_contain "f5"
+
+        top_lines.take (..While l-> l.starts_with "2nd:") . length . should_equal 11
+
+    group_builder.specify "stacktrace requested multiple times" <|
+        lines = Vector.build b->
+            pst2 err =
+                print_stack_trace prefix="2nd: " b err
+
+            Panic.catch Any handler=pst2 <|
+                stack_trace_check b (Panic.throw My_Error.Error) rethrow=True print_before_rethrow=True
+
+        top_lines = lines.take (..While l-> l.contains "Vector.type" . not)
+        out = top_lines.join '\n'
+
+        stack2 = lines.filter (l-> l.starts_with "2nd:")
+        top_lines2 = stack2.take (..While l-> l.contains "Vector.type" . not)
+        out2 = top_lines2.join '\n'
+
+        out . should_not_contain "my_exception_handler"
+        out . should_not_contain "print_stack_trace"
+        out . should_contain "f3"
+        out . should_contain "f4"
+        out . should_contain "f5"
+
+        # stacktraces are identical except the 2nd: prefix
+        out2.replace "2nd: " "" . should_equal out
+
+    group_builder.specify "avoid handler frames in JavaScript stacktrace" pending=pending_js_missing <|
+        lines = Vector.build b->
+            stack_trace_check b (js_throw My_Error.Error)
+
+        top_lines = lines.take (..While l-> l.contains "Vector.type" . not)
+        out = top_lines.join '\n'
+
+        out . should_not_contain "my_exception_handler"
+        out . should_not_contain "print_stack_trace"
+        out . should_contain "f3"
+        out . should_contain "f4"
+        out . should_contain "f5"
+
     group_builder.specify "should capture traces correctly" <|
         modname = Meta.get_simple_type_name Stack_Traces_Spec
         stack = My_Type.foo

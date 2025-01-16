@@ -2,18 +2,11 @@
 target-dir = "target/rust/"
 rustflags = ["--cfg", "tokio_unstable"]
 
-[target.wasm32-unknown-unknown]
-rustflags = [
-    # Increas the stack size from 1MB to 2MB. This is required to avoid running out of stack space
-    # in debug builds. The error is reported as `RuntimeError: memory access out of bounds`.
-    "-C",
-    "link-args=-z stack-size=2097152",
-]
-
 [target.x86_64-pc-windows-msvc]
+linker = "rust-lld"
 # Static linking is required to avoid the need for the Visual C++ Redistributable. We care about this primarily for our
 # installer binary package.
-rustflags = ["-C", "link-arg=/STACK:2097152", "-C", "target-feature=+crt-static"]
+rustflags = ["-C", "target-feature=+crt-static"]
 
-[target.x86_64-pc-windows-gnu]
-rustflags = ["-C", "link-arg=-Wl,--stack,2097152"]
+[target.x86_64-unknown-linux-gnu]
+rustflags = ["-Clink-arg=-fuse-ld=lld"]

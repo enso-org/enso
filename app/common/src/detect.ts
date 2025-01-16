@@ -166,17 +166,21 @@ export function isOnUnknownBrowser() {
 
 let detectedArchitecture: string | null = null
 // Only implemented by Chromium.
-// @ts-expect-error This API exists, but no typings exist for it yet.
-navigator.userAgentData?.getHighEntropyValues(['architecture']).then((values: unknown) => {
-  if (
-    typeof values === 'object' &&
-    values != null &&
-    'architecture' in values &&
-    typeof values.architecture === 'string'
-  ) {
-    detectedArchitecture = String(values.architecture)
-  }
-})
+// navigator is undefined in Node.js, e.g. in integration tests(mock server).
+// So we need to check if it is defined before using it.
+if (typeof navigator !== 'undefined' && 'userAgentData' in navigator) {
+  // @ts-expect-error This API exists, but no typings exist for it yet.
+  navigator.userAgentData.getHighEntropyValues(['architecture']).then((values: unknown) => {
+    if (
+      typeof values === 'object' &&
+      values != null &&
+      'architecture' in values &&
+      typeof values.architecture === 'string'
+    ) {
+      detectedArchitecture = String(values.architecture)
+    }
+  })
+}
 
 /** Possible processor architectures. */
 export enum Architecture {

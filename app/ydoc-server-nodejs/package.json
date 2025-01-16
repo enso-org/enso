@@ -16,12 +16,13 @@
     "format": "prettier --version && prettier --write src/ && eslint . --fix"
   },
   "dependencies": {
-    "ydoc-server": "workspace:*"
+    "ydoc-server": "workspace:*",
+    "ws": "^8.18.0"
   },
   "devDependencies": {
-    "@types/node": "^22.9.0",
-    "esbuild": "^0.23.0",
+    "@types/node": "^22.10.4",
+    "esbuild": "^0.24.2",
     "esbuild-plugin-wasm": "^1.1.0",
-    "typescript": "^5.5.3"
+    "typescript": "^5.7.2"
   }
 }

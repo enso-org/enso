@@ -15,3 +15,5 @@ Documents in this section describe Enso's library ecosystem.
 - [**Repositories:**](./repositories.md) Information on the structure of
   repositories providing Enso libraries and Editions.
 - [**Sharing Libraries:**](./sharing.md) Information on how to share libraries.
+- [**Database IR:**](./database-ir.md) The backend-independent internal
+  representation used for database queries.

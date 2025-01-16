@@ -18,7 +18,8 @@ module org.enso.runner {
   requires org.enso.version.output;
   requires org.graalvm.nativeimage;
   requires org.graalvm.polyglot;
-  requires org.jline;
+  requires org.jline.terminal;
+  requires org.jline.reader;
   requires scala.library;
   requires org.slf4j;
 }

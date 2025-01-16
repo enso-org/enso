@@ -53,12 +53,13 @@ export default function KeyboardShortcutsSettingsSection() {
           <ConfirmDeleteModal
             actionText={getText('resetAllKeyboardShortcuts')}
             actionButtonLabel={getText('resetAll')}
-            doDelete={() => {
+            doDelete={async () => {
               for (const k in inputBindings.metadata) {
                 // eslint-disable-next-line no-restricted-syntax
                 inputBindings.reset(k as DashboardBindingKey)
               }
               doRefresh()
+              await Promise.resolve()
             }}
           />
         </DialogTrigger>

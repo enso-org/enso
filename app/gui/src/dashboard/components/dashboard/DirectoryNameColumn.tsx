@@ -9,13 +9,12 @@ import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useDriveStore, useToggleDirectoryExpansion } from '#/providers/DriveProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import * as ariaComponents from '#/components/AriaComponents'
 import type * as column from '#/components/dashboard/column'
 import EditableSpan from '#/components/EditableSpan'
-import SvgMask from '#/components/SvgMask'
 
 import * as backendModule from '#/services/Backend'
 
+import { Button } from '#/components/AriaComponents'
 import { useStore } from '#/hooks/storeHooks'
 import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
@@ -86,21 +85,23 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         }
       }}
     >
-      <ariaComponents.Button
-        icon={FolderArrowIcon}
+      <Button
+        icon={({ isHovered }) => (isHovered || isExpanded ? FolderArrowIcon : FolderIcon)}
         size="medium"
-        variant="custom"
+        variant="icon"
         aria-label={isExpanded ? getText('collapse') : getText('expand')}
         tooltipPlacement="left"
+        data-testid="directory-row-expand-button"
+        data-expanded={isExpanded}
         className={tailwindMerge.twJoin(
-          'm-0 hidden cursor-pointer border-0 transition-transform duration-arrow group-hover:m-name-column-icon group-hover:inline-block',
+          'mx-1 transition-transform duration-arrow',
           isExpanded && 'rotate-90',
         )}
         onPress={() => {
           toggleDirectoryExpansion(item.id)
         }}
       />
-      <SvgMask src={FolderIcon} className="m-name-column-icon size-4 group-hover:hidden" />
+
       <EditableSpan
         data-testid="asset-row-name"
         editable={rowState.isEditingName}

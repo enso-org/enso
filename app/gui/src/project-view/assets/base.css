@@ -1,8 +1,8 @@
-@import url('./font-enso.css');
-@import url('./font-enso-prose.css');
-@import url('./font-enso-naming.css');
-@import url('./font-mplus1.css');
-@import url('./font-dejavu.css');
+@import url("./font-enso.css");
+@import url("./font-enso-prose.css");
+@import url("./font-enso-naming.css");
+@import url("./font-mplus1.css");
+@import url("./font-dejavu.css");
 
 /*************************************************
  *** semantic color variables for this project ***
@@ -71,10 +71,22 @@
   --color-node-text: white;
   --color-node-background: var(--node-group-color);
   --color-node-primary: var(--node-group-color);
-  --color-node-edge: color-mix(in oklab, var(--node-group-color) 85%, white 15%);
+  --color-node-edge: color-mix(
+    in oklab,
+    var(--node-group-color) 85%,
+    white 15%
+  );
   --color-node-port: var(--color-node-edge);
-  --color-node-error: color-mix(in oklab, var(--node-group-color) 30%, rgb(255, 0, 0) 70%);
-  --color-node-pending: color-mix(in oklab, var(--node-group-color) 60%, #aaa 40%);
+  --color-node-error: color-mix(
+    in oklab,
+    var(--node-group-color) 30%,
+    rgb(255, 0, 0) 70%
+  );
+  --color-node-pending: color-mix(
+    in oklab,
+    var(--node-group-color) 60%,
+    #aaa 40%
+  );
   --color-node-text-missing-value: white;
 
   &.pending {
@@ -82,9 +94,21 @@
   }
 
   &.selected {
-    --color-node-background: color-mix(in oklab, var(--color-node-primary) 30%, white 70%);
-    --color-node-port: color-mix(in oklab, var(--color-node-background) 40%, white 60%);
-    --color-node-text: color-mix(in oklab, var(--color-node-primary) 70%, black 30%);
+    --color-node-background: color-mix(
+      in oklab,
+      var(--color-node-primary) 30%,
+      white 70%
+    );
+    --color-node-port: color-mix(
+      in oklab,
+      var(--color-node-background) 40%,
+      white 60%
+    );
+    --color-node-text: color-mix(
+      in oklab,
+      var(--color-node-primary) 70%,
+      black 30%
+    );
   }
 }
 
@@ -102,15 +126,17 @@
   --radius-default: 16px;
   --node-port-height: 24px;
   --section-gap: 160px;
-  --font-sans: 'M PLUS 1', /* System sans-serif font stack */ system-ui, -apple-system,
-    BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans',
-    'Droid Sans', 'Helvetica Neue', Arial, sans-serif;
-  --font-code: 'M PLUS 1', /* System sans-serif font stack */ system-ui, -apple-system,
-    BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans',
-    'Droid Sans', 'Helvetica Neue', Arial, sans-serif;
-  --font-mono: 'DejaVu Sans Mono', /* System monspace font stack */ ui-monospace, Menlo, Monaco,
-    'Cascadia Mono', 'Segoe UI Mono', 'Roboto Mono', 'Oxygen Mono', 'Ubuntu Monospace',
-    'Source Code Pro', 'Fira Mono', 'Droid Sans Mono', 'Courier New', monospace;
+  --font-sans: "M PLUS 1", /* System sans-serif font stack */ system-ui,
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu",
+    "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", Arial, sans-serif;
+  --font-code: "M PLUS 1", /* System sans-serif font stack */ system-ui,
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu",
+    "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "DejaVu Sans Mono",
+    /* System monspace font stack */ ui-monospace, Menlo, Monaco,
+    "Cascadia Mono", "Segoe UI Mono", "Roboto Mono", "Oxygen Mono",
+    "Ubuntu Monospace", "Source Code Pro", "Fira Mono", "Droid Sans Mono",
+    "Courier New", monospace;
   /* Default resize handle widths, used for panels. */
   --resize-handle-inside: 3px;
   --resize-handle-outside: 3px;

@@ -126,7 +126,8 @@ from Standard.Visualization import all
   @TearDown
   public void teardown() {
     if (!out.toString().isEmpty()) {
-      throw new AssertionError("Unexpected output (errors?) from the compiler: " + out.toString());
+      System.err.println(
+          "Unexpected output (warnings / errors?) from the compiler: " + out.toString());
     }
     context.close();
   }

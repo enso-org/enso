@@ -12,9 +12,10 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import SearchBar from '#/layouts/SearchBar'
-import { useAuth, useFullUserSession } from '#/providers/AuthProvider'
+import { useFullUserSession } from '#/providers/AuthProvider'
 import { useLocalBackend, useRemoteBackend } from '#/providers/BackendProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
+import { useSessionAPI } from '#/providers/SessionProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import { Path } from '#/services/ProjectManager'
@@ -53,7 +54,7 @@ export default function Settings() {
     includesPredicate(Object.values(SettingsTabType)),
   )
   const { user, accessToken } = useFullUserSession()
-  const { changePassword } = useAuth()
+  const { changePassword } = useSessionAPI()
   const { getText } = useText()
   const toastAndLog = useToastAndLog()
   const [query, setQuery] = React.useState('')
@@ -160,7 +161,7 @@ export default function Settings() {
       )
     }
   }, [isQueryBlank, doesEntryMatchQuery, getText, isMatch])
-  const effectiveTab = tabsToShow.includes(tab) ? tab : tabsToShow[0] ?? SettingsTabType.account
+  const effectiveTab = tabsToShow.includes(tab) ? tab : (tabsToShow[0] ?? SettingsTabType.account)
 
   const data = React.useMemo<SettingsTabData>(() => {
     const tabData = SETTINGS_TAB_DATA[effectiveTab]
@@ -226,7 +227,7 @@ export default function Settings() {
           className="ml-2.5 mr-8 max-w-[min(32rem,_100%)] rounded-full bg-white px-2.5 font-bold"
           aria-hidden
         >
-          {data.organizationOnly === true ? organization?.name ?? 'your organization' : user.name}
+          {data.organizationOnly === true ? (organization?.name ?? 'your organization') : user.name}
         </Text>
       </Heading>
       <div className="sm:ml-[14rem]">

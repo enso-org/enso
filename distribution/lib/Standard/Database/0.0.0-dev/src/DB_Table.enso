@@ -1021,8 +1021,7 @@ type DB_Table
         Error.throw (Unsupported_Database_Operation.Error "add_group_number")
 
 
-    ## ALIAS order_by
-       GROUP Standard.Base.Selections
+    ## GROUP Standard.Base.Selections
        ICON select_row
 
        Returns a new Table that will include at most `max_rows` rows from the
@@ -1313,7 +1312,7 @@ type DB_Table
             table = self.connection.read_statement sql column_types last_row_only=True
             table.rows.first
 
-    ## ALIAS sort
+    ## ALIAS order_by
        GROUP Standard.Base.Selections
        ICON order
        Sorts the rows of the table according to the specified columns and order.
@@ -2320,8 +2319,11 @@ type DB_Table
     parse self columns=(self.columns . filter (c-> c.value_type.is_text) . map .name) type:(Value_Type | Auto) format:(Text | Data_Formatter)='' error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning =
         selected = self.columns_helper.select_columns columns Case_Sensitivity.Default reorder=False error_on_missing_columns=error_on_missing_columns on_problems=on_problems error_on_empty=False . map self.make_column
         selected.fold self table-> column_to_parse->
-            new_column = column_to_parse.parse type format on_problems
-            table.set new_column as=column_to_parse.name set_mode=Set_Mode.Update
+            column_value_type = column_to_parse.value_type
+            already_parsed = Auto != type && column_value_type.is_same_type type
+            if already_parsed then table else
+                new_column = column_to_parse.parse type format on_problems
+                table.set new_column as=column_to_parse.name set_mode=Set_Mode.Update
 
     ## GROUP Standard.Base.Conversions
        ICON convert
@@ -3091,7 +3093,7 @@ type DB_Table
     @from (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     @remove make_data_cleanse_vector_selector
     text_cleanse : Vector (Integer | Text | Regex | By_Type) -> Vector Named_Pattern -> DB_Table
-    text_cleanse self from:(Vector (Integer | Text | Regex | By_Type)) remove =
+    text_cleanse self from:(Vector (Integer | Text | Regex | By_Type)) remove:Vector=[] =
         Feature.Text_Cleanse.if_supported_else_throw self.connection.dialect "text_cleanse" <|
             transformer col = col.text_cleanse remove
             Table_Helpers.replace_columns_with_transformed_columns self from transformer

@@ -17,7 +17,7 @@ export default function SharedWithColumnHeading(props: AssetColumnHeadingProps) 
   })
 
   return (
-    <div className="flex h-table-row w-full items-center gap-icon-with-text">
+    <div className="isolate flex h-table-row w-full items-center gap-icon-with-text">
       <Button
         variant="icon"
         icon={PeopleIcon}
@@ -27,7 +27,9 @@ export default function SharedWithColumnHeading(props: AssetColumnHeadingProps) 
       />
 
       <div className="flex items-center gap-1">
-        <Text className="text-sm font-semibold">{getText('sharedWithColumnName')}</Text>
+        <Text weight="bold" truncate="1" color="custom">
+          {getText('sharedWithColumnName')}
+        </Text>
       </div>
     </div>
   )

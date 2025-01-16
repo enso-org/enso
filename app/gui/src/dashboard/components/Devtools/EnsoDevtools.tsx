@@ -83,15 +83,16 @@ export function EnsoDevtools() {
   return (
     <Portal>
       <ariaComponents.DialogTrigger>
-        <ariaComponents.Button
-          icon={DevtoolsLogo}
-          aria-label={getText('ensoDevtoolsButtonLabel')}
-          variant="icon"
-          rounded="full"
-          size="hero"
-          className="fixed bottom-16 right-3 z-50"
-          data-ignore-click-outside
-        />
+        <ariaComponents.Underlay className="fixed bottom-16 right-3 z-50 rounded-full">
+          <ariaComponents.Button
+            icon={DevtoolsLogo}
+            aria-label={getText('ensoDevtoolsButtonLabel')}
+            variant="icon"
+            rounded="full"
+            size="hero"
+            data-ignore-click-outside
+          />
+        </ariaComponents.Underlay>
 
         <Popover>
           <Text.Heading disableLineHeightCompensation>

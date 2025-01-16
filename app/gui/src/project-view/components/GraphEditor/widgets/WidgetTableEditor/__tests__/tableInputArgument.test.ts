@@ -10,7 +10,7 @@ import {
 import { MenuItem } from '@/components/shared/AgGridTableView.vue'
 import { WidgetInput } from '@/providers/widgetRegistry'
 import { SuggestionDb } from '@/stores/suggestionDatabase'
-import { makeType } from '@/stores/suggestionDatabase/entry'
+import { makeType } from '@/stores/suggestionDatabase/mockSuggestion'
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { GetContextMenuItems, GetMainMenuItems } from 'ag-grid-enterprise'

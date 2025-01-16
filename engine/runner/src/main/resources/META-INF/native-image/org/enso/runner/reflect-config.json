@@ -3437,6 +3437,22 @@
   "allDeclaredFields":true
 },
 {
+  "name":"org.jline.terminal.impl.jna.osx.CLibrary$termios",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.jline.terminal.impl.jna.osx.CLibrary$winsize",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.jline.terminal.impl.jna.windows.CLibrary$termios",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.jline.terminal.impl.jna.windows.CLibrary$winsize",
+  "allDeclaredFields":true
+},
+{
   "name":"org.openide.util.RequestProcessor"
 },
 {

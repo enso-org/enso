@@ -7,6 +7,7 @@ import {
 } from '@/components/visualizations/TableVisualization/tableVizToolbar'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
+import { LINKABLE_URL_REGEX } from '@/util/link'
 import { useVisualizationConfig } from '@/util/visualizationBuiltins'
 import type {
   CellClassParams,
@@ -197,7 +198,8 @@ function formatText(params: ICellRendererParams) {
     .replaceAll('>', '&gt;')
 
   if (textFormatterSelected.value === 'off') {
-    return htmlEscaped.replace(/^\s+|\s+$/g, '&nbsp;')
+    const replaceLinks = replaceLinksWithTag(htmlEscaped)
+    return replaceLinks.replace(/^\s+|\s+$/g, '&nbsp;')
   }
 
   const partialMappings = {
@@ -218,10 +220,7 @@ function formatText(params: ICellRendererParams) {
         return `<span style="color: #df8800">${match.replaceAll(' ', '&#183;')}</span>`
       })
 
-  const replaceLinks = replaceSpaces.replace(
-    /https?:\/\/([-()_.!~*';/?:@&=+$,A-Za-z0-9])+/g,
-    (url: string) => `<a href="${url}" target="_blank" class="link">${url}</a>`,
-  )
+  const replaceLinks = replaceLinksWithTag(replaceSpaces)
 
   const replaceReturns = replaceLinks.replace(
     /\r\n/g,
@@ -249,6 +248,13 @@ function setRowLimit(newRowLimit: number) {
       newRowLimit.toString(),
     )
   }
+}
+
+function replaceLinksWithTag(str: string) {
+  return str.replace(
+    LINKABLE_URL_REGEX,
+    (url: string) => `<a href="${url}" target="_blank" class="link">${url}</a>`,
+  )
 }
 
 function escapeHTML(str: string) {
@@ -438,10 +444,7 @@ function toLinkField(fieldName: string, options: LinkFieldOptions = {}): ColDef 
       params.node?.rowPinned === 'top' ?
         null
       : `Double click to view this ${tooltipValue ?? 'value'} in a separate component`,
-    cellRenderer: (params: ICellRendererParams) =>
-      params.node.rowPinned === 'top' ?
-        `<div> ${params.value}</div>`
-      : `<div class='link'> ${params.value} </div>`,
+    cellRenderer: (params: ICellRendererParams) => `<div class='link'> ${params.value} </div>`,
   }
 }
 
@@ -585,7 +588,7 @@ watchEffect(() => {
           ...dataHeader,
         ]
       : dataHeader
-    const rows = data_.data && data_.data.length > 0 ? data_.data[0]?.length ?? 0 : 0
+    const rows = data_.data && data_.data.length > 0 ? (data_.data[0]?.length ?? 0) : 0
     rowData.value = Array.from({ length: rows }, (_, i) => {
       const shift = data_.has_index_col ? 1 : 0
       return Object.fromEntries(

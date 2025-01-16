@@ -160,7 +160,7 @@ export async function uploadBundle(
 
   const targetPath = generateDirectoryName(name ?? 'Project', directory)
   fs.mkdirSync(targetPath, { recursive: true })
-  await new Promise<void>(resolve => {
+  await new Promise<void>((resolve) => {
     bundle.pipe(tar.extract({ cwd: targetPath })).on('finish', resolve)
   })
   const entries = fs.readdirSync(targetPath)
@@ -336,7 +336,7 @@ export function prefixInBundle(bundlePath: string): string | null {
   tar.list({
     file: bundlePath,
     sync: true,
-    onentry: entry => {
+    onentry: (entry) => {
       const path = entry.path
       commonPrefix = commonPrefix == null ? path : buildUtils.getCommonPrefix(commonPrefix, path)
     },
@@ -453,7 +453,7 @@ export function bumpMetadata(
     name = index == null ? currentName : `${currentName} (${index})`
   }
   updatePackageName(projectRoot, name)
-  const id = updateMetadata(projectRoot, metadata => ({
+  const id = updateMetadata(projectRoot, (metadata) => ({
     ...metadata,
     id: generateId(),
     lastOpened: new Date().toISOString(),

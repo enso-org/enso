@@ -64,7 +64,11 @@ public class EnsoMultiValueInteropTest {
         if (r2 instanceof EnsoMultiValue) {
           return;
         }
-        var both = EnsoMultiValue.create(new Type[] {typ1, typ2}, 2, new Object[] {r1, r2});
+        if (typ1 == typ2) {
+          return;
+        }
+        var both =
+            EnsoMultiValue.NewNode.getUncached().newValue(new Type[] {typ1, typ2}, 2, 0, r1, r2);
         data.add(new Object[] {both});
       }
     }

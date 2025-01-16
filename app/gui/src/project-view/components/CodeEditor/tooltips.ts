@@ -69,7 +69,7 @@ export function ensoHoverTooltip(
       nodeId,
       syntax: syn.name,
       graphDb: graphStore.db,
-      suggestionDbStore: suggestionDbStore,
+      suggestionDbStore,
     })
   })
 }

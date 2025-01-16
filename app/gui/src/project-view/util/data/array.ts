@@ -7,7 +7,7 @@ export type NonEmptyArray<T> = [T, ...T[]]
 
 /** An equivalent of `Array.prototype.findIndex` method, but returns null instead of -1. */
 export function findIndexOpt<T>(
-  arr: T[],
+  arr: ReadonlyArray<T>,
   pred: (elem: T, index: number) => boolean,
 ): number | null {
   const index = arr.findIndex(pred)

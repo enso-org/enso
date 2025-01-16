@@ -58,7 +58,7 @@ private class DefaultPackageRepository(
 
   private val logger = Logger[DefaultPackageRepository]
 
-  implicit private val fs: TruffleFileSystem               = new TruffleFileSystem
+  implicit private val fs: TruffleFileSystem               = TruffleFileSystem.INSTANCE
   private val packageManager                               = new PackageManager[TruffleFile]
   private var projectPackage: Option[Package[TruffleFile]] = None
 

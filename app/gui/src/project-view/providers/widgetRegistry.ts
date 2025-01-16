@@ -171,6 +171,11 @@ export interface WidgetUpdate {
     | { value: Ast.Owned<Ast.MutableExpression> | string | undefined }
     | { metadataKey: string; metadata: unknown }
   )
+  /**
+   * Set to true if the updated is caused by direct interaction with the origin widget - a usual case.
+   * An example if _nondirect_ interaction is an update of a port connected to a removed node).
+   */
+  directInteraction: boolean
 }
 
 /**

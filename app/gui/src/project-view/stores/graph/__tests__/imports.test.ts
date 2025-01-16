@@ -16,7 +16,7 @@ import {
   makeModule,
   makeStaticMethod,
   makeType,
-} from '@/stores/suggestionDatabase/entry'
+} from '@/stores/suggestionDatabase/mockSuggestion'
 import { Ast } from '@/util/ast'
 import { unwrap } from '@/util/data/result'
 import { tryIdentifier, tryQualifiedName } from '@/util/qualifiedName'
