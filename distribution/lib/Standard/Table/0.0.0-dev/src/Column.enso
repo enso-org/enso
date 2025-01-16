@@ -2235,7 +2235,7 @@ type Column
 
     ## PRIVATE
        Determines if a value type is eligable for a text data quality count
-    is_eligible_for_text_data_metric_count : Value_Type -> Boolean
+    can_contain_text : Value_Type -> Boolean
     is_eligible_for_text_data_metric_count value_type = 
         value_type == Value_Type.Mixed || value_type.is_text
 
