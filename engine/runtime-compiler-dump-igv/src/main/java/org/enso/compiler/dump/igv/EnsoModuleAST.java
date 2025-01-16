@@ -110,8 +110,9 @@ final class EnsoModuleAST {
         Map<String, Object> props =
             Map.of(
                 "isSynthetic", importModIr.isSynthetic(),
-                "name", importModIr.name(),
+                "importName", importModIr.name().name(),
                 "isAll", importModIr.isAll(),
+                "hiddenName", importModIr.hiddenNames(),
                 "rename", importModIr.rename());
         yield newNode(importModIr, props);
       }
@@ -133,7 +134,7 @@ final class EnsoModuleAST {
         Map<String, Object> props =
             Map.of(
                 "isSynthetic", exportModIr.isSynthetic(),
-                "name", exportModIr.name());
+                "exportName", exportModIr.name().name());
         yield newNode(exportModIr, props);
       }
       default -> throw unimpl(exportIr);
@@ -149,12 +150,12 @@ final class EnsoModuleAST {
                 "methodName", explicitMethodIr.methodName().name(),
                 "isStatic", explicitMethodIr.isStatic(),
                 "isPrivate", explicitMethodIr.isPrivate(),
-                "typeName", explicitMethodIr.typeName(),
-                "methodReference", explicitMethodIr.methodReference());
+                "typeName", explicitMethodIr.typeName());
         var methodNode = newNode(explicitMethodIr, props);
-        var body = explicitMethodIr.body();
-        var bodyNode = buildTree(body);
+        var methodRefNode = buildTree(explicitMethodIr.methodReference());
+        var bodyNode = buildTree(explicitMethodIr.body());
         createEdge(methodNode, bodyNode, "body");
+        createEdge(methodNode, methodRefNode, "methodReference");
         endBlock();
         yield methodNode;
       }
@@ -163,12 +164,13 @@ final class EnsoModuleAST {
         Map<String, Object> props =
             Map.of(
                 "methodName", conversionMethod.methodName().name(),
-                "isPrivate", conversionMethod.isPrivate(),
-                "methodReference", conversionMethod.methodReference());
+                "isPrivate", conversionMethod.isPrivate());
         var methodNode = newNode(conversionMethod, props);
+        var methodRefNode = buildTree(conversionMethod.methodReference());
         var body = conversionMethod.body();
         var bodyNode = buildTree(body);
         createEdge(methodNode, bodyNode, "body");
+        createEdge(methodNode, methodRefNode, "methodReference");
         endBlock();
         yield methodNode;
       }
@@ -177,9 +179,10 @@ final class EnsoModuleAST {
         Map<String, Object> props =
             Map.of(
                 "methodName", binding.methodName().name(),
-                "isPrivate", binding.isPrivate(),
-                "methodReference", binding.methodReference());
+                "isPrivate", binding.isPrivate());
         var methodNode = newNode(binding, props);
+        var methodRefNode = buildTree(binding.methodReference());
+        createEdge(methodNode, methodRefNode, "methodReference");
         for (var i = 0; i < binding.arguments().size(); i++) {
           var arg = binding.arguments().apply(i);
           var argNode = buildTree(arg);
@@ -206,7 +209,7 @@ final class EnsoModuleAST {
       case Name.GenericAnnotation genericAnnotation -> {
         Map<String, Object> props =
             Map.of(
-                "name", genericAnnotation.name(),
+                "annotationName", genericAnnotation.name(),
                 "isMethod", genericAnnotation.isMethod());
         var anotNode = newNode(genericAnnotation, props);
         var expr = genericAnnotation.expression();
@@ -215,7 +218,7 @@ final class EnsoModuleAST {
         yield anotNode;
       }
       case Name.BuiltinAnnotation builtinAnnotation -> {
-        Map<String, Object> props = Map.of("name", builtinAnnotation.name());
+        Map<String, Object> props = Map.of("annotationName", builtinAnnotation.name());
         yield newNode(builtinAnnotation, props);
       }
       case Type.Ascription ascription -> {
@@ -233,7 +236,7 @@ final class EnsoModuleAST {
   }
 
   private ASTNode buildTree(Data atomCons) {
-    Map<String, Object> props = Map.of("name", atomCons.name().name());
+    Map<String, Object> props = Map.of("consName", atomCons.name().name());
     var consNode = newNode(atomCons, props);
     for (var i = 0; i < atomCons.arguments().size(); i++) {
       var arg = atomCons.arguments().apply(i);
@@ -302,7 +305,7 @@ final class EnsoModuleAST {
         yield lambdaNode;
       }
       case Expression.Binding exprBinding -> {
-        Map<String, Object> props = Map.of("name", exprBinding.name().name());
+        Map<String, Object> props = Map.of("bindingName", exprBinding.name().name());
         var node = newNode(exprBinding, props);
         var exprNode = buildTree(exprBinding.expression());
         createEdge(node, exprNode, "expression");
@@ -319,10 +322,18 @@ final class EnsoModuleAST {
       case Name.Literal literal -> {
         Map<String, Object> props =
             Map.of(
-                "name", literal.name(),
+                "literalName", literal.name(),
                 "isMethod", literal.isMethod(),
                 "originalName", literal.originalName());
         yield newNode(literal, props);
+      }
+      case Name.Qualified qualName -> {
+        Map<String, Object> props =
+            Map.of(
+                "qualName", qualName.name(),
+                "isMethod", qualName.isMethod(),
+                "parts", qualName.parts());
+        yield newNode(qualName, props);
       }
       case Name.MethodReference methodRef -> {
         Map<String, Object> props =
@@ -362,7 +373,7 @@ final class EnsoModuleAST {
         yield node;
       }
       case Pattern.Name name -> {
-        Map<String, Object> props = Map.of("name", name.name().name());
+        Map<String, Object> props = Map.of("patternName", name.name().name());
         yield newNode(name, props);
       }
       case Pattern.Documentation doc -> {
@@ -376,7 +387,7 @@ final class EnsoModuleAST {
   private ASTNode buildTree(CallArgument argument) {
     return switch (argument) {
       case CallArgument.Specified specifiedArg -> {
-        Map<String, Object> props = Map.of("name", specifiedArg.name());
+        Map<String, Object> props = Map.of("argName", specifiedArg.name());
         var node = newNode(specifiedArg, props);
         var valueNode = buildTree(specifiedArg.value());
         createEdge(node, valueNode, "value");
@@ -391,7 +402,7 @@ final class EnsoModuleAST {
       case DefinitionArgument.Specified specifiedArg -> {
         Map<String, Object> props =
             Map.of(
-                "name", specifiedArg.name().name(),
+                "argName", specifiedArg.name().name(),
                 "suspended", specifiedArg.suspended());
         var node = newNode(specifiedArg, props);
         if (specifiedArg.ascribedType().isDefined()) {

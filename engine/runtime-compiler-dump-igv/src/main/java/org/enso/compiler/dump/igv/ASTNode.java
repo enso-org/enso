@@ -80,6 +80,7 @@ final class ASTNode {
       bldr.property("label", label);
       bldr.property("IRClassName", ir.getClass().getName());
       bldr.property("location", ir.identifiedLocation());
+      bldr.property("passData", ir.passData());
       bldr.property("uuid", ir.getId());
       return bldr;
     }
