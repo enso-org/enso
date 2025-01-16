@@ -29,13 +29,30 @@ public class LongBuilderChecked extends LongBuilder {
   }
 
   @Override
+  public void appendLong(long value) {
+    if (!type.fits(value)) {
+      castProblemAggregator.reportNumberOutOfRange(value);
+      appendNulls(1);
+      return;
+    }
+    super.appendLong(value);
+  }
+
+  @Override
   public void appendNoGrow(Object o) {
+    if (o != null) {
+      Long x = NumericConverter.tryConvertingToLong(o);
+      if (x != null && type.fits(x)) {
+        appendLong(x);
+        return;
+      }
+    }
     if (o == null) {
-      isNothing.set(currentSize++);
+      appendNulls(1);
     } else {
       Long x = NumericConverter.tryConvertingToLong(o);
       if (x != null) {
-        appendLongNoGrow(x);
+        this.data[currentSize++] = x;
       } else {
         throw new ValueTypeMismatchException(type, o);
       }
@@ -45,15 +62,5 @@ public class LongBuilderChecked extends LongBuilder {
   @Override
   public IntegerType getType() {
     return type;
-  }
-
-  @Override
-  public void appendLongNoGrow(long x) {
-    if (type.fits(x)) {
-      data[currentSize++] = x;
-    } else {
-      isNothing.set(currentSize++);
-      castProblemAggregator.reportNumberOutOfRange(x);
-    }
   }
 }

@@ -33,16 +33,6 @@ public class InferredBuilder implements Builder {
   private final boolean allowDateToDateTimeConversion;
 
   /**
-   * Creates a new instance of this builder, with the given known result length.
-   *
-   * @param initialSize the result length
-   * @param problemAggregator the problem aggregator to use
-   */
-  public InferredBuilder(int initialSize, ProblemAggregator problemAggregator) {
-    this(initialSize, problemAggregator, false);
-  }
-
-  /**
    * Creates a new instance of this builder, with the given known result length. This is a special
    * constructor that allows for date to date-time conversion (for Excel).
    *

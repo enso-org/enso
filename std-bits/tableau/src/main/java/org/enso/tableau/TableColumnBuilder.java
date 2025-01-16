@@ -7,7 +7,6 @@ import java.time.Period;
 import java.time.ZoneId;
 import java.util.function.Consumer;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.builder.InferredBuilder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
@@ -67,7 +66,8 @@ record TableColumnBuilder(Builder builder, Consumer<Result> appendMethod) {
                 column.index(),
                 r -> boolBuilder.appendBoolean(r.getBool(column.index()))));
       case Types.BIGINT:
-        var longBuilder = Builder.getForLong(IntegerType.INT_64, initialRowCount, problemAggregator);
+        var longBuilder =
+            Builder.getForLong(IntegerType.INT_64, initialRowCount, problemAggregator);
         return new TableColumnBuilder(
             longBuilder,
             nullAppender(
@@ -81,7 +81,8 @@ record TableColumnBuilder(Builder builder, Consumer<Result> appendMethod) {
             nullAppender(
                 intBuilder, column.index(), r -> intBuilder.appendLong(r.getInt(column.index()))));
       case Types.SMALLINT:
-        var shortBuilder = Builder.getForLong(IntegerType.INT_16, initialRowCount, problemAggregator);
+        var shortBuilder =
+            Builder.getForLong(IntegerType.INT_16, initialRowCount, problemAggregator);
         return new TableColumnBuilder(
             shortBuilder,
             nullAppender(
@@ -183,7 +184,7 @@ record TableColumnBuilder(Builder builder, Consumer<Result> appendMethod) {
             nullAppender(
                 jsonBuilder, column.index(), r -> jsonBuilder.append(r.getString(column.index()))));
       case HyperTableColumn.INTERVAL:
-        var intervalBuilder = new InferredBuilder(initialRowCount, problemAggregator);
+        var intervalBuilder = Builder.getForType(null, initialRowCount, problemAggregator);
         return new TableColumnBuilder(
             intervalBuilder,
             nullAppender(

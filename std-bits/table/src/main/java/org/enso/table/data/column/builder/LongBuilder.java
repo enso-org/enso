@@ -13,12 +13,12 @@ import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
+import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.BitSets;
 
 /** A builder for integer columns. */
-public abstract class LongBuilder extends NumericBuilder
-    implements BuilderForLong, BuilderWithRetyping {
+public class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithRetyping {
   protected final ProblemAggregator problemAggregator;
 
   protected LongBuilder(
@@ -31,7 +31,7 @@ public abstract class LongBuilder extends NumericBuilder
     BitSet isNothing = new BitSet();
     long[] data = new long[initialSize];
     if (type.equals(IntegerType.INT_64)) {
-      return new LongBuilderUnchecked(isNothing, data, 0, problemAggregator);
+      return new LongBuilder(isNothing, data, 0, problemAggregator);
     } else {
       return new LongBuilderChecked(isNothing, data, 0, type, problemAggregator);
     }
@@ -66,7 +66,9 @@ public abstract class LongBuilder extends NumericBuilder
   }
 
   @Override
-  public abstract IntegerType getType();
+  public IntegerType getType() {
+    return IntegerType.INT_64;
+  }
 
   @Override
   public boolean accepts(Object o) {
@@ -91,7 +93,7 @@ public abstract class LongBuilder extends NumericBuilder
           if (longStorage.isNothing(i)) {
             isNothing.set(currentSize++);
           } else {
-            appendLongNoGrow(longStorage.getItem(i));
+            appendLong(longStorage.getItem(i));
           }
         }
       } else {
@@ -132,10 +134,21 @@ public abstract class LongBuilder extends NumericBuilder
     }
 
     assert currentSize < this.data.length;
-    appendLongNoGrow(value);
+    this.data[currentSize++] = value;
   }
 
-  public abstract void appendLongNoGrow(long data);
+  public void appendNoGrow(Object o) {
+    if (o == null) {
+      isNothing.set(currentSize++);
+    } else {
+      Long x = NumericConverter.tryConvertingToLong(o);
+      if (x != null) {
+        this.data[currentSize++] = x;
+      } else {
+        throw new ValueTypeMismatchException(getType(), o);
+      }
+    }
+  }
 
   @Override
   public Storage<Long> seal() {

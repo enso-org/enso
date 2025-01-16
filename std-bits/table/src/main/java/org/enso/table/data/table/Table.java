@@ -13,7 +13,6 @@ import org.enso.base.Text_Utils;
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.aggregations.Aggregator;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.builder.InferredBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.TextType;
@@ -460,7 +459,7 @@ public class Table {
                         id_columns[i].getStorage().getType(), new_count, problemAggregator));
     storage[id_columns.length] =
         Builder.getForType(TextType.VARIABLE_LENGTH, new_count, problemAggregator);
-    storage[id_columns.length + 1] = new InferredBuilder(new_count, problemAggregator);
+    storage[id_columns.length + 1] = Builder.getForType(null, new_count, problemAggregator);
 
     // Load Data
     Context context = Context.getCurrent();

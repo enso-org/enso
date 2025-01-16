@@ -17,7 +17,6 @@ import project.Internal.Java_Problems
 import project.Internal.Widget_Helpers
 import project.Prefix_Name.Prefix_Name
 import project.Table.Table
-from project.Internal.Java_Exports import make_inferred_builder
 
 ## PRIVATE
 expand_column : Table -> Text | Integer -> (Vector Text) | Nothing -> Prefix_Name -> Table ! Type_Error | No_Such_Column | Index_Out_Of_Bounds
@@ -97,7 +96,7 @@ expand_to_rows table column:(Text | Integer) at_least_one_row=False sequences_on
             . map name-> if name=="Value" then column else column+" "+name
 
     Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
-        builder size = make_inferred_builder size java_problem_aggregator
+        builder size = Java_Exports.make_inferred_builder size java_problem_aggregator
         Fan_Out.fan_out_to_rows table column row_expander column_names at_least_one_row column_builder=builder
 
 create_table_from_objects (base_value : Convertible_To_Rows) (fields : Vector | Nothing) (treat_dictionary_as_sequence : Boolean = False) -> Table = if fields.is_nothing.not && fields.is_empty then Error.throw (Illegal_Argument.Error "The fields parameter cannot be empty.") else

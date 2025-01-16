@@ -3,7 +3,6 @@ package org.enso.table.data.column.operation.unary;
 import java.time.temporal.ChronoField;
 import java.time.temporal.Temporal;
 import java.time.temporal.TemporalField;
-
 import org.enso.table.data.column.builder.BuilderForLong;
 import org.enso.table.data.column.operation.UnaryOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;

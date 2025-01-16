@@ -37,7 +37,7 @@ public interface Builder {
           case TextType textType -> new StringBuilder(size, textType);
           case BigDecimalType _ -> new BigDecimalBuilder(size);
           case BigIntegerType _ -> new BigIntegerBuilder(size, problemAggregator);
-          case null -> new InferredBuilder(size, problemAggregator);
+          case null -> new InferredBuilder(size, problemAggregator, false);
         };
     assert java.util.Objects.equals(builder.getType(), type);
     return builder;

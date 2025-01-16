@@ -98,7 +98,7 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
       context.safepoint();
     }
 
-    return (Storage<Long>)builder.seal();
+    return (Storage<Long>) builder.seal();
   }
 
   private Storage<Long> convertBoolStorage(
@@ -117,7 +117,7 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
       context.safepoint();
     }
 
-    return (Storage<Long>)builder.seal();
+    return (Storage<Long>) builder.seal();
   }
 
   private Storage<Long> convertDoubleStorage(
@@ -142,7 +142,7 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
       context.safepoint();
     }
 
-    return (Storage<Long>)builder.seal();
+    return (Storage<Long>) builder.seal();
   }
 
   private Storage<Long> convertLongStorage(
