@@ -247,16 +247,22 @@ const InternalAssetPanelTabs = memo(function InternalAssetPanelTabs(
           <AssetPanelTabs.Tab
             id="executions"
             icon={RepeatIcon}
-            label={getText('executions')}
+            label={isLocal ? getText('assetProjectExecutions.localBackend') : getText('executions')}
             isExpanded={isExpanded}
             onPress={expandTab}
+            isDisabled={isLocal}
           />
           <AssetPanelTabs.Tab
             id="executionsCalendar"
             icon={CalendarIcon}
-            label={getText('executionsCalendar')}
+            label={
+              isLocal ?
+                getText('assetProjectExecutionsCalendar.localBackend')
+              : getText('executionsCalendar')
+            }
             isExpanded={isExpanded}
             onPress={expandTab}
+            isDisabled={isLocal}
           />
           <AssetPanelTabs.Tab
             id="docs"

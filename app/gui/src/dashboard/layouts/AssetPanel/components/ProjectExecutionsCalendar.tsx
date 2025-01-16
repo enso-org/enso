@@ -72,13 +72,15 @@ export function ProjectExecutionsCalendar(props: ProjectExecutionsCalendarProps)
   })
 
   if (backend.type === BackendType.local) {
-    return <AssetPanelPlaceholder title={getText('assetProjectExecutions.localBackend')} />
+    return <AssetPanelPlaceholder title={getText('assetProjectExecutionsCalendar.localBackend')} />
   }
   if (item == null) {
-    return <AssetPanelPlaceholder title={getText('assetProjectExecutions.notSelected')} />
+    return <AssetPanelPlaceholder title={getText('assetProjectExecutionsCalendar.notSelected')} />
   }
   if (item.type !== AssetType.project) {
-    return <AssetPanelPlaceholder title={getText('assetProjectExecutions.notProjectAsset')} />
+    return (
+      <AssetPanelPlaceholder title={getText('assetProjectExecutionsCalendar.notProjectAsset')} />
+    )
   }
   return <ProjectExecutionsCalendarInternal {...props} item={item} />
 }

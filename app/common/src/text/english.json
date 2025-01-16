@@ -1084,10 +1084,13 @@
   "assetVersions.localAssetsDoNotHaveVersions": "Local assets do not have versions.",
   "assetVersions.notSelected": "Select a single asset to view its versions.",
   "assetProjectSessions.noSessions": "No sessions yet! Open the project to start a session.",
-  "assetProjectSessions.notSelected": "Select a single project to view its sessions.",
   "assetProjectSessions.localBackend": "Sessions are not available for local projects.",
+  "assetProjectSessions.notSelected": "Select a single project to view its sessions.",
   "assetProjectSessions.notProjectAsset": "Select a single project to view its sessions.",
   "assetProjectExecutions.notSelected": "Select a single project to view its executions.",
   "assetProjectExecutions.localBackend": "Executions are not available for local projects.",
-  "assetProjectExecutions.notProjectAsset": "Select a single project to view its executions."
+  "assetProjectExecutions.notProjectAsset": "Select a single project to view its executions.",
+  "assetProjectExecutionsCalendar.localBackend": "The execution calendar is not available for local projects.",
+  "assetProjectExecutionsCalendar.notSelected": "Select a single project to view its execution calendar.",
+  "assetProjectExecutionsCalendar.notProjectAsset": "Select a single project to view its execution calendar."
 }
