@@ -3416,13 +3416,16 @@ lazy val `runtime-compiler-dump` =
       javaModuleName := "org.enso.runtime.compiler.dump",
       Compile / internalModuleDependencies := {
         val transitiveDeps =
-          (`runtime-parser` / Compile / internalModuleDependencies).value
+          (`runtime-parser` / Compile / internalModuleDependencies).value ++
+          (pkg / Compile / internalModuleDependencies).value
         Seq(
-          (`runtime-parser` / Compile / exportedModule).value
+          (`runtime-parser` / Compile / exportedModule).value,
+          (pkg / Compile / exportedModule).value
         ) ++ transitiveDeps
       }
     )
     .dependsOn(`runtime-parser`)
+    .dependsOn(pkg)
 
 /** IRDumpService implementation for GraphViz format.
   */
@@ -3458,9 +3461,11 @@ lazy val `runtime-compiler-dump-igv` =
       javaModuleName := "org.enso.runtime.compiler.dump.igv",
       Compile / internalModuleDependencies := {
         val transitiveDeps =
-          (`runtime-compiler` / Compile / internalModuleDependencies).value
+          (`runtime-compiler` / Compile / internalModuleDependencies).value ++
+          (`runtime-compiler-dump` / Compile / internalModuleDependencies).value
         Seq(
-          (`runtime-compiler` / Compile / exportedModule).value
+          (`runtime-compiler` / Compile / exportedModule).value,
+          (`runtime-compiler-dump` / Compile / exportedModule).value
         ) ++ transitiveDeps
       },
       Compile / moduleDependencies ++= Seq(
