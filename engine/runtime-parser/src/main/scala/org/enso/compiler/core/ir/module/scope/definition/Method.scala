@@ -62,6 +62,8 @@ object Method {
       with IRKind.Primitive
       with LazyDiagnosticStorage
       with LazyId {
+    new Exception("Explicit: " + methodReference.name + " static: " + isStatic)
+      .printStackTrace()
 
     /** Create an [[Explicit]] object from [[Method.Binding]].
       *

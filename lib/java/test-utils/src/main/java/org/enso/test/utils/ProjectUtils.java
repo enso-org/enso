@@ -109,6 +109,36 @@ prefer-local-libraries: true
   }
 
   /**
+   * Tests running the project located in the given {@code projDir}. Is equal to running {@code enso
+   * --run <projDir>}.
+   *
+   * @param ctxBuilder A context builder that might be initialized with some specific options.
+   * @param projDir Root directory of the project.
+   * @param whenDone callback when generated
+   */
+  public static void generateProjectDocs(
+      Context.Builder ctxBuilder, Path projDir, Consumer<Context> whenDone) {
+    if (!(projDir.toFile().exists() && projDir.toFile().isDirectory())) {
+      throw new IllegalArgumentException(
+          "Project directory " + projDir + " must already be created");
+    }
+    try (var ctx =
+        ctxBuilder
+            .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
+            .option(RuntimeOptions.STRICT_ERRORS, "true")
+            .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
+            .build()) {
+      var polyCtx = new PolyglotContext(ctx);
+      var mainSrcPath = projDir.resolve("src").resolve("Main.enso");
+      if (!mainSrcPath.toFile().exists()) {
+        throw new IllegalArgumentException("Main module not found in " + projDir);
+      }
+      polyCtx.getTopScope().compile(false, true);
+      whenDone.accept(polyCtx.context());
+    }
+  }
+
+  /**
    * Just a wrapper for {@link ProjectUtils#testProjectRun(Builder, Path, Consumer)}.
    *
    * @param projDir Root directory of the project.
