@@ -1,6 +1,5 @@
 package org.enso.compiler.dump.igv;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.channels.WritableByteChannel;
 import java.nio.file.Files;
@@ -9,7 +8,6 @@ import java.nio.file.StandardOpenOption;
 import java.util.HashMap;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.dump.service.IRDumpService;
-import org.enso.pkg.Package;
 import org.graalvm.graphio.GraphOutput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,7 +18,7 @@ public final class IGVDumper implements IRDumpService {
   private static final Logger LOGGER = LoggerFactory.getLogger(IGVDumper.class);
 
   @Override
-  public void dump(Module ir, String moduleName, Package<File> pkg) {
+  public void dump(Module ir, String moduleName) {
     LOGGER.info("Dumping IR for module {} in IGV", moduleName);
     var src = findSource(moduleName, pkg);
     var ensoAst = EnsoModuleAST.fromIR(ir, src);

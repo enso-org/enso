@@ -1,6 +1,5 @@
 package org.enso.compiler.dump.graphviz;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
@@ -89,9 +88,8 @@ public final class GraphVizDumper implements IRDumpService {
    * IllegalStateException} within this class.
    *
    * @param ir the IR to dump.
-   * @param pkg
    */
-  public void dump(Module ir, String moduleName, Package<File> pkg) {
+  public void dump(Module ir, String moduleName) {
     var irDumpPath = outputForModule(moduleName);
     try {
       this.out =
