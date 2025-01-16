@@ -51,7 +51,7 @@ import AuthProvider, * as authProvider from '#/providers/AuthProvider'
 import BackendProvider, { useLocalBackend } from '#/providers/BackendProvider'
 import { useHttpClientStrict } from '#/providers/HttpClientProvider'
 import InputBindingsProvider from '#/providers/InputBindingsProvider'
-import LocalStorageProvider from '#/providers/LocalStorageProvider'
+import LocalStorageProvider, { useLocalStorage } from '#/providers/LocalStorageProvider'
 import { useLogger } from '#/providers/LoggerProvider'
 import ModalProvider, * as modalProvider from '#/providers/ModalProvider'
 import * as navigator2DProvider from '#/providers/Navigator2DProvider'
@@ -266,6 +266,7 @@ function AppRouter(props: AppRouterProps) {
   const httpClient = useHttpClientStrict()
   const logger = useLogger()
   const navigate = router.useNavigate()
+  const { localStorage } = useLocalStorage()
 
   const { getText } = textProvider.useText()
   const { setModal } = modalProvider.useSetModal()
