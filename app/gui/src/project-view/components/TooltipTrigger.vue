@@ -1,12 +1,16 @@
 <script setup lang="ts">
 import { useTooltipRegistry } from '@/providers/tooltipRegistry'
 import { usePropagateScopesToAllRoots } from '@/util/patching'
-import { toRef, useSlots } from 'vue'
+import { toRef } from 'vue'
 
 usePropagateScopesToAllRoots()
 
 const registry = useTooltipRegistry()
-const slots = useSlots()
+const slots = defineSlots<{
+  default(props: any): any
+  tooltip(): any
+}>()
+
 const tooltipSlot = toRef(slots, 'tooltip')
 const registered = registry.registerTooltip(tooltipSlot)
 function onEnter(e: PointerEvent) {
@@ -20,6 +24,12 @@ function onLeave(e: PointerEvent) {
     registered.onTargetLeave(e.target)
   }
 }
+
+defineExpose({
+  hideTooltip() {
+    registered.forceHide()
+  },
+})
 </script>
 
 <template>

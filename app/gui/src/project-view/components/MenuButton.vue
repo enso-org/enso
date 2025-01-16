@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import TooltipTrigger from '@/components/TooltipTrigger.vue'
+import { ref } from 'vue'
 
 /**
  * A button. Supports toggling and disabled state.
@@ -13,14 +14,18 @@ import TooltipTrigger from '@/components/TooltipTrigger.vue'
 
 const toggledOn = defineModel<boolean>({ default: undefined })
 const props = defineProps<{ disabled?: boolean | undefined; title?: string | undefined }>()
+const tooltipTrigger = ref<typeof TooltipTrigger>()
 
 function onClick() {
   if (!props.disabled && toggledOn.value != null) toggledOn.value = !toggledOn.value
+  if (tooltipTrigger.value) {
+    tooltipTrigger.value.hideTooltip()
+  }
 }
 </script>
 
 <template>
-  <TooltipTrigger>
+  <TooltipTrigger ref="tooltipTrigger">
     <template #default="triggerProps">
       <button
         class="MenuButton clickable"
