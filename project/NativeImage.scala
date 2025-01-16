@@ -17,7 +17,7 @@ object NativeImage {
     )
 
   lazy val additionalOpts = settingKey[Seq[String]](
-    "Additional options the native-image tool"
+    "Additional options for the native-image tool"
   )
 
   /** List of classes that should be initialized at build time by the native image.
