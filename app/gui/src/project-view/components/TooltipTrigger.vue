@@ -14,13 +14,13 @@ const slots = defineSlots<{
 const tooltipSlot = toRef(slots, 'tooltip')
 const registered = registry.registerTooltip(tooltipSlot)
 function onEnter(e: PointerEvent) {
-  if (e.target instanceof HTMLElement) {
+  if (e.target instanceof HTMLElement && tooltipSlot.value != null) {
     registered.onTargetEnter(e.target)
   }
 }
 
 function onLeave(e: PointerEvent) {
-  if (e.target instanceof HTMLElement) {
+  if (e.target instanceof HTMLElement && tooltipSlot.value != null) {
     registered.onTargetLeave(e.target)
   }
 }
