@@ -196,9 +196,25 @@ export interface User extends UserInfo {
   readonly isOrganizationAdmin: boolean
   readonly rootDirectoryId: DirectoryId
   readonly profilePicture?: HttpsUrl
+  /**
+   * Contains the IDs of the user groups that the user is a member of.
+   * @deprecated Use `groups` instead.
+   */
   readonly userGroups: readonly UserGroupId[] | null
   readonly removeAt?: dateTime.Rfc3339DateTime | null
   readonly plan?: Plan | undefined
+  /**
+   * Contains the user groups that the user is a member of.
+   * Has enriched metadata, like the name of the group and the home directory ID.
+   */
+  readonly groups?: readonly UserGroup[]
+}
+
+/** A user related to the current user. */
+export interface UserGroup {
+  readonly id: UserGroupId
+  readonly name: string
+  readonly homeDirectoryId: DirectoryId
 }
 
 /** A `Directory` returned by `createDirectory`. */
@@ -488,7 +504,7 @@ export interface UserPermission {
 
 /** User permission for a specific user group. */
 export interface UserGroupPermission {
-  readonly userGroup: UserGroupInfo
+  readonly userGroup: UserGroup
   readonly permission: permissions.PermissionAction
 }
 
@@ -544,7 +560,7 @@ export function isUserGroupPermissionAnd(predicate: (permission: UserGroupPermis
 
 /** Get the property representing the name on an arbitrary variant of {@link UserPermission}. */
 export function getAssetPermissionName(permission: AssetPermission) {
-  return isUserPermission(permission) ? permission.user.name : permission.userGroup.groupName
+  return isUserPermission(permission) ? permission.user.name : permission.userGroup.name
 }
 
 /** Get the property representing the id on an arbitrary variant of {@link UserPermission}. */
@@ -1170,8 +1186,8 @@ export function compareAssetPermissions(a: AssetPermission, b: AssetPermission) 
   } else {
     // NOTE [NP]: Although `userId` is unique, and therefore sufficient to sort permissions, sort
     // name first, so that it's easier to find a permission in a long list (i.e., for readability).
-    const aName = 'user' in a ? a.user.name : a.userGroup.groupName
-    const bName = 'user' in b ? b.user.name : b.userGroup.groupName
+    const aName = 'user' in a ? a.user.name : a.userGroup.name
+    const bName = 'user' in b ? b.user.name : b.userGroup.name
     const aUserId = 'user' in a ? a.user.userId : a.userGroup.id
     const bUserId = 'user' in b ? b.user.userId : b.userGroup.id
     return (

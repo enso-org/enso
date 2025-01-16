@@ -451,6 +451,6 @@ public abstract class Atom extends EnsoObject {
   }
 
   private boolean hasProjectPrivateConstructor() {
-    return constructor.getType().isProjectPrivate();
+    return constructor.getType().hasAllConstructorsPrivate();
   }
 }

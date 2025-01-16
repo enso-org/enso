@@ -10,7 +10,6 @@ import * as path from 'node:path'
 import * as tar from 'tar'
 import * as yaml from 'yaml'
 
-import * as common from 'enso-common'
 import GLOBAL_CONFIG from 'enso-common/src/config.json' with { type: 'json' }
 
 import * as projectManagement from './projectManagement'
@@ -23,6 +22,11 @@ const HTTP_STATUS_OK = 200
 const HTTP_STATUS_BAD_REQUEST = 400
 const HTTP_STATUS_NOT_FOUND = 404
 const PROJECTS_ROOT_DIRECTORY = projectManagement.getProjectsDirectory()
+
+const COMMON_HEADERS = {
+  'Cross-Origin-Opener-Policy': 'same-origin',
+  'Cross-Origin-Resource-Policy': 'same-origin',
+}
 
 // =============
 // === Types ===
@@ -139,7 +143,7 @@ export default function projectManagerShimMiddleware(
         const directory = url.searchParams.get('directory') ?? PROJECTS_ROOT_DIRECTORY
         if (fileName == null) {
           response
-            .writeHead(HTTP_STATUS_BAD_REQUEST, common.COOP_COEP_CORP_HEADERS)
+            .writeHead(HTTP_STATUS_BAD_REQUEST, COMMON_HEADERS)
             .end('Request is missing search parameter `file_name`.')
         } else {
           const filePath = path.join(directory, fileName)
@@ -147,16 +151,16 @@ export default function projectManagerShimMiddleware(
             .writeFile(filePath, request)
             .then(() => {
               response
-                .writeHead(HTTP_STATUS_OK, [
-                  ['Content-Length', String(filePath.length)],
-                  ['Content-Type', 'text/plain'],
-                  ...common.COOP_COEP_CORP_HEADERS,
-                ])
+                .writeHead(HTTP_STATUS_OK, {
+                  'Content-Length': String(filePath.length),
+                  'Content-Type': 'text/plain',
+                  ...COMMON_HEADERS,
+                })
                 .end(filePath)
             })
             .catch((e) => {
               console.error(e)
-              response.writeHead(HTTP_STATUS_BAD_REQUEST, common.COOP_COEP_CORP_HEADERS).end()
+              response.writeHead(HTTP_STATUS_BAD_REQUEST, COMMON_HEADERS).end()
             })
         }
         break
@@ -172,15 +176,15 @@ export default function projectManagerShimMiddleware(
           .uploadBundle(request, directory, name)
           .then((id) => {
             response
-              .writeHead(HTTP_STATUS_OK, [
-                ['Content-Length', String(id.length)],
-                ['Content-Type', 'text/plain'],
-                ...common.COOP_COEP_CORP_HEADERS,
-              ])
+              .writeHead(HTTP_STATUS_OK, {
+                'Content-Length': String(id.length),
+                'Content-Type': 'text/plain',
+                ...COMMON_HEADERS,
+              })
               .end(id)
           })
           .catch(() => {
-            response.writeHead(HTTP_STATUS_BAD_REQUEST, common.COOP_COEP_CORP_HEADERS).end()
+            response.writeHead(HTTP_STATUS_BAD_REQUEST, COMMON_HEADERS).end()
           })
         break
       }
@@ -193,7 +197,7 @@ export default function projectManagerShimMiddleware(
           !cliArguments.every((item): item is string => typeof item === 'string')
         ) {
           response
-            .writeHead(HTTP_STATUS_BAD_REQUEST, common.COOP_COEP_CORP_HEADERS)
+            .writeHead(HTTP_STATUS_BAD_REQUEST, COMMON_HEADERS)
             .end('Command arguments must be an array of strings.')
         } else {
           void (async () => {
@@ -335,11 +339,11 @@ export default function projectManagerShimMiddleware(
             }
             const buffer = Buffer.from(result)
             response
-              .writeHead(HTTP_STATUS_OK, [
-                ['Content-Length', String(buffer.byteLength)],
-                ['Content-Type', 'application/json'],
-                ...common.COOP_COEP_CORP_HEADERS,
-              ])
+              .writeHead(HTTP_STATUS_OK, {
+                'Content-Length': String(buffer.byteLength),
+                'Content-Type': 'application/json',
+                ...COMMON_HEADERS,
+              })
               .end(buffer)
           })()
         }
@@ -370,10 +374,10 @@ export default function projectManagerShimMiddleware(
                     'id' in metadata &&
                     metadata.id === uuid
                   ) {
-                    response.writeHead(HTTP_STATUS_OK, [
-                      ['Content-Type', 'application/gzip+x-enso-project'],
-                      ...common.COOP_COEP_CORP_HEADERS,
-                    ])
+                    response.writeHead(HTTP_STATUS_OK, {
+                      'Content-Type': 'application/gzip+x-enso-project',
+                      ...COMMON_HEADERS,
+                    })
                     tar
                       .create({ gzip: true, cwd: projectRoot }, [projectRoot])
                       .pipe(response, { end: true })
@@ -386,22 +390,22 @@ export default function projectManagerShimMiddleware(
               }
             }
             if (!success) {
-              response.writeHead(HTTP_STATUS_NOT_FOUND, common.COOP_COEP_CORP_HEADERS).end()
+              response.writeHead(HTTP_STATUS_NOT_FOUND, COMMON_HEADERS).end()
             }
           })
           break
         }
-        response.writeHead(HTTP_STATUS_NOT_FOUND, common.COOP_COEP_CORP_HEADERS).end()
+        response.writeHead(HTTP_STATUS_NOT_FOUND, COMMON_HEADERS).end()
         break
       }
     }
   } else if (request.method === 'GET' && requestPath === '/api/root-directory') {
     response
-      .writeHead(HTTP_STATUS_OK, [
-        ['Content-Length', String(PROJECTS_ROOT_DIRECTORY.length)],
-        ['Content-Type', 'text/plain'],
-        ...common.COOP_COEP_CORP_HEADERS,
-      ])
+      .writeHead(HTTP_STATUS_OK, {
+        'Content-Length': String(PROJECTS_ROOT_DIRECTORY.length),
+        'Content-Type': 'text/plain',
+        ...COMMON_HEADERS,
+      })
       .end(PROJECTS_ROOT_DIRECTORY)
   } else {
     next()

@@ -1,10 +1,10 @@
 /** @file Modal for setting the organization name. */
 import * as React from 'react'
 
-import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { useMutation, useSuspenseQueries } from '@tanstack/react-query'
 import * as router from 'react-router'
 
-import { backendMutationOptions } from '#/hooks/backendHooks'
+import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
@@ -17,55 +17,74 @@ import { Button } from '#/components/AriaComponents'
 import { Result } from '#/components/Result'
 import { Stepper } from '#/components/Stepper'
 import * as backendModule from '#/services/Backend'
-
-// =================
-// === Constants ===
-// =================
+import type RemoteBackend from '../services/RemoteBackend'
 
 const PLANS_TO_SPECIFY_ORG_NAME = [backendModule.Plan.team, backendModule.Plan.enterprise]
-
-// ================================
-// === SetOrganizationNameModal ===
-// ================================
 
 /**
  * Modal for setting the organization name.
  * Shows up when the user is on the team plan and the organization name is the default.
  */
 export function SetupOrganizationAfterSubscribe() {
-  const { getText } = textProvider.useText()
-
   const backend = backendProvider.useRemoteBackend()
-  const { session } = authProvider.useAuth()
 
-  const user = session != null && 'user' in session ? session.user : null
-  const userIsAdmin = user?.isOrganizationAdmin ?? false
-  const userId = user?.userId ?? null
-  const userPlan = user?.plan ?? backendModule.Plan.free
+  const session = authProvider.useFullUserSession()
+  const { user } = session
+  const { isOrganizationAdmin, userId, plan = backendModule.Plan.free } = user
 
-  const { data: organizationName } = useSuspenseQuery({
-    queryKey: ['organization', userId],
-    queryFn: () => backend.getOrganization().catch(() => null),
-    staleTime: Infinity,
-    select: (data) => data?.name ?? '',
-  })
+  const shouldShowModal = PLANS_TO_SPECIFY_ORG_NAME.includes(plan) && isOrganizationAdmin
 
-  const { data: userGroupsCount } = useSuspenseQuery({
-    queryKey: ['userGroups', userId],
-    queryFn: () => backend.listUserGroups().catch(() => null),
-    staleTime: Infinity,
-    select: (data) => data?.length ?? 0,
+  if (shouldShowModal) {
+    return <SetupOrganizationAfterSubscribeInternal userId={userId} backend={backend} />
+  }
+
+  return <router.Outlet context={session} />
+}
+
+/**
+ * Props for the SetupOrganizationAfterSubscribeInternal component.
+ * @param props - The props for the component.
+ * @returns The component.
+ */
+interface SetupOrganizationAfterSubscribeInternalProps {
+  readonly userId: string
+  readonly backend: RemoteBackend
+}
+
+/**
+ * Internal implementation of the SetupOrganizationAfterSubscribe modal.
+ * @param props - The props for the component.
+ * @returns The component.
+ */
+function SetupOrganizationAfterSubscribeInternal(
+  props: SetupOrganizationAfterSubscribeInternalProps,
+) {
+  const { backend } = props
+
+  const { getText } = textProvider.useText()
+  const session = authProvider.useFullUserSession()
+
+  const { organizationName, userGroupsCount } = useSuspenseQueries({
+    queries: [
+      backendQueryOptions(backend, 'getOrganization', []),
+      backendQueryOptions(backend, 'listUserGroups', []),
+    ],
+    combine: ([organizationQuery, userGroupsQuery]) => ({
+      // Null is used to indicate that the user is not an admin of an organization,
+      // Or organization info has not yet been created, This means that the dialog
+      // should not be shown.
+      organizationName: organizationQuery.data?.name ?? null,
+      userGroupsCount: userGroupsQuery.data.length,
+    }),
   })
 
   const [hideModal, setHideModal] = React.useState(false)
 
-  const queryClient = useQueryClient()
   const updateOrganization = useMutation(backendMutationOptions(backend, 'updateOrganization'))
   const createDefaultUserGroup = useMutation(backendMutationOptions(backend, 'createUserGroup'))
 
-  const shouldSetOrgName = PLANS_TO_SPECIFY_ORG_NAME.includes(userPlan) && organizationName === ''
-  const shouldSetDefaultUserGroup =
-    PLANS_TO_SPECIFY_ORG_NAME.includes(userPlan) && userGroupsCount === 0
+  const shouldSetOrgName = organizationName === ''
+  const shouldSetDefaultUserGroup = userGroupsCount === 0
 
   const steps = [
     {
@@ -112,14 +131,12 @@ export function SetupOrganizationAfterSubscribe() {
     })
   }
 
-  const shouldShowModal = steps.length > 1 && userIsAdmin && !hideModal
+  const shouldShowModal = steps.length > 1 && !hideModal
 
   const { stepperState } = Stepper.useStepperState({
     steps: steps.length,
     defaultStep: 0,
     onCompleted: () => {
-      void queryClient.invalidateQueries({ queryKey: ['organization'] })
-      void queryClient.invalidateQueries({ queryKey: ['userGroups'] })
       setHideModal(true)
     },
   })
@@ -137,8 +154,8 @@ export function SetupOrganizationAfterSubscribe() {
       >
         <Stepper
           state={stepperState}
-          renderStep={(props) => (
-            <Stepper.Step {...props} title={steps[props.index]?.title ?? ''} />
+          renderStep={(stepProps) => (
+            <Stepper.Step {...stepProps} title={steps[stepProps.index]?.title ?? ''} />
           )}
         >
           {({ currentStep, nextStep }) => <>{steps[currentStep]?.component({ nextStep })}</>}
@@ -191,9 +208,9 @@ export function SetOrganizationNameForm(props: SetOrganizationNameFormProps) {
         )}
       />
 
-      <ariaComponents.Form.FormError />
-
       <ariaComponents.Form.Submit />
+
+      <ariaComponents.Form.FormError />
     </ariaComponents.Form>
   )
 }
@@ -226,6 +243,8 @@ export function CreateUserGroupForm(props: CreateUserGroupFormProps) {
       />
 
       <ariaComponents.Form.Submit />
+
+      <ariaComponents.Form.FormError />
     </ariaComponents.Form>
   )
 }
