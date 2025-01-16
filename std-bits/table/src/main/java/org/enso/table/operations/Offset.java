@@ -116,6 +116,5 @@ public class Offset {
                 case CONSTANT -> -1;
             };
         }
-
   }
 }
