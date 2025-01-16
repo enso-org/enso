@@ -2,9 +2,11 @@ package org.enso.compiler.dump;
 
 import java.io.IOException;
 import org.enso.compiler.context.CompilerContext;
+import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.module.scope.Definition;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.filesystem.FileSystem;
+import org.enso.pkg.QualifiedName;
 import scala.collection.immutable.Seq;
 import scala.jdk.CollectionConverters;
 
@@ -36,37 +38,41 @@ public final class DocsGenerate {
       if (ir.isPrivate()) {
         continue;
       }
-      var md = fs.getChild(api, module.getName() + ".md");
-      DONE:
-      try (var w = fs.newBufferedWriter(md)) {
-        var dispatch = DocsDispatch.create(visitor, w);
+      var moduleName = module.getName();
+      var md = fs.getChild(api, moduleName + ".md");
+      try (var mdWriter = fs.newBufferedWriter(md)) {
+        visitModule(visitor, moduleName, ir, mdWriter);
+      }
+    }
+    System.out.println("Documentation generated into " + api);
+  }
 
-        if (dispatch.dispatchModule(module.getName(), ir)) {
-          for (var b : asJava(ir.bindings())) {
-            switch (b) {
-              case Definition.Type t -> {
-                if (dispatch.dispatchType(t)) {
-                  for (var d : asJava(t.members())) {
-                    dispatch.dispatchConstructor(t, d);
-                  }
-                }
+  public static void visitModule(
+      DocsVisit visitor, QualifiedName moduleName, Module ir, Appendable w) throws IOException {
+    var dispatch = DocsDispatch.create(visitor, w);
+
+    if (dispatch.dispatchModule(moduleName, ir)) {
+      for (var b : asJava(ir.bindings())) {
+        switch (b) {
+          case Definition.Type t -> {
+            if (dispatch.dispatchType(t)) {
+              for (var d : asJava(t.members())) {
+                dispatch.dispatchConstructor(t, d);
               }
-              case Definition.Data d -> {
-                dispatch.dispatchConstructor(null, d);
-              }
-              case Definition.SugaredType s -> {
-                w.append("#### sugar " + s.name().name() + "\n");
-              }
-              case Method.Explicit m -> dispatch.dispatchMethod(m);
-              case Method.Conversion c -> dispatch.dispatchConversion(c);
-              default -> throw new AssertionError("unknown type " + b.getClass());
             }
           }
+          case Definition.Data d -> {
+            dispatch.dispatchConstructor(null, d);
+          }
+          case Definition.SugaredType s -> {
+            w.append("#### sugar " + s.name().name() + "\n");
+          }
+          case Method.Explicit m -> dispatch.dispatchMethod(m);
+          case Method.Conversion c -> dispatch.dispatchConversion(c);
+          default -> throw new AssertionError("unknown type " + b.getClass());
         }
       }
     }
-
-    System.out.println("Documentation generated into " + api);
   }
 
   private static <T> Iterable<T> asJava(Seq<T> seq) {

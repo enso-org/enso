@@ -1,6 +1,5 @@
 package org.enso.compiler.dump;
 
-import java.io.BufferedWriter;
 import java.io.IOException;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.module.scope.Definition;
@@ -11,7 +10,7 @@ import org.enso.pkg.QualifiedName;
  * Class to use from {@link DocsGenerate} to dispatch individual IR elements to provided visitor.
  */
 abstract class DocsDispatch {
-  static DocsDispatch create(DocsVisit visitor, BufferedWriter writer) {
+  static DocsDispatch create(DocsVisit visitor, Appendable writer) {
     return new DocsDispatch() {
       @Override
       boolean dispatchModule(QualifiedName name, Module ir) throws IOException {
