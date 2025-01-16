@@ -1,5 +1,6 @@
 package org.enso.compiler.dump.igv;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.channels.WritableByteChannel;
 import java.nio.file.Files;
@@ -18,10 +19,9 @@ public final class IGVDumper implements IRDumpService {
   private static final Logger LOGGER = LoggerFactory.getLogger(IGVDumper.class);
 
   @Override
-  public void dump(Module ir, String moduleName) {
+  public void dump(Module ir, String moduleName, File srcFile) {
     LOGGER.info("Dumping IR for module {} in IGV", moduleName);
-    var src = findSource(moduleName, pkg);
-    var ensoAst = EnsoModuleAST.fromIR(ir, src);
+    var ensoAst = EnsoModuleAST.fromIR(ir, srcFile);
     var groupName = "Enso: " + moduleName;
     var shortName = "Enso: " + moduleName.substring(moduleName.lastIndexOf('.') + 1);
     var outPath = outputForModule(moduleName);
@@ -41,19 +41,6 @@ public final class IGVDumper implements IRDumpService {
       throw new IllegalStateException("Failed to dump Enso AST", e);
     }
     LOGGER.info("IR dumped in {}", outPath);
-  }
-
-  private static File findSource(String moduleName, Package<File> pkg) {
-    if (pkg != null) {
-      var source =
-          pkg.listSourcesJava().stream()
-              .filter(src -> src.qualifiedName().toString().equals(moduleName))
-              .findFirst();
-      if (source.isPresent()) {
-        return source.get().file();
-      }
-    }
-    return null;
   }
 
   private static WritableByteChannel createFileChannel(Path path) {

@@ -1,5 +1,6 @@
 package org.enso.compiler.dump.graphviz;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
@@ -38,7 +39,6 @@ import org.enso.compiler.pass.analyse.alias.graph.Graph;
 import org.enso.compiler.pass.resolve.FullyQualifiedNames.FQNResolution;
 import org.enso.compiler.pass.resolve.FullyQualifiedNames.ResolvedLibrary;
 import org.enso.compiler.pass.resolve.FullyQualifiedNames.ResolvedModule;
-import org.enso.pkg.Package;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -89,7 +89,8 @@ public final class GraphVizDumper implements IRDumpService {
    *
    * @param ir the IR to dump.
    */
-  public void dump(Module ir, String moduleName) {
+  @Override
+  public void dump(Module ir, String moduleName, File srcFile) {
     var irDumpPath = outputForModule(moduleName);
     try {
       this.out =

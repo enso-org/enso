@@ -13,7 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.collection.immutable.Seq;
 
-/** A pass that just dumps IR to the local {@code ir-dumps} directory. See {@link IRDumper}. */
+/** A pass that just dumps IR to the local {@code ir-dumps} directory. */
 public final class IRDumperPass implements IRPass {
   public static final String SYSTEM_PROP = "enso.compiler.dumpIr";
   private final Logger logger = LoggerFactory.getLogger(IRDumperPass.class);
@@ -53,8 +53,9 @@ public final class IRDumperPass implements IRPass {
 
   @Override
   public Module runModule(Module ir, ModuleContext moduleContext) {
+    var moduleName = moduleContext.getName().toString();
     if (dumpService != null) {
-      dumpService.dump(ir, moduleContext.getName().toString());
+      dumpService.dump(ir, moduleName, null);
     }
     return ir;
   }
