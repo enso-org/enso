@@ -3,7 +3,7 @@ import SvgButton from '@/components/SvgButton.vue'
 import type { IHeaderParams } from 'ag-grid-community'
 import { computed, Raw, Ref, ref, toRef, watch } from 'vue'
 
-export type ColumnSpecificProps =
+export type ColumnSpecificParams =
   | {
       type: 'astColumn'
       /** Setter called when column name is changed by the user. */
@@ -12,7 +12,7 @@ export type ColumnSpecificProps =
   | { type: 'newColumn'; enabled?: boolean; newColumnRequested: () => void }
   | { type: 'rowIndexColumn' }
 
-export interface GeneralProps {
+export interface HeaderParams {
   /**
    * The id of column whose header is currently edited.
    */
@@ -20,34 +20,12 @@ export interface GeneralProps {
   onHeaderEditingStarted?: (colId: string, revertChanges: () => void) => void
   onHeaderEditingStopped?: (colId: string) => void
 }
-
-/**
- * General (column-intependent) parameters recognized by this header component.
- *
- * They are set through `headerComponentParams` option in AGGrid default column definition.
- */
-export interface GeneralHeaderParams {
-  general: Raw<Ref<GeneralProps>>
-}
-
-/**
- * Column-specific parameters recognized by this header component.
- *
- * They are set through `headerComponentParams` option in AGGrid column definition.
- */
-export interface ColumnSpecificHeaderParams {
-  columnSpecific: Raw<Ref<ColumnSpecificProps>>
-}
 </script>
 
 <script setup lang="ts">
-const props = defineProps<{
-  params: IHeaderParams & GeneralHeaderParams & ColumnSpecificHeaderParams
-}>()
-const generalProps = toRef(() => props.params.general.value)
-const columnProps = toRef(() => props.params.columnSpecific.value)
+const props = defineProps<IHeaderParams & ColumnSpecificParams & HeaderParams>()
 
-const editing = computed(() => generalProps.value.editedColId === props.params.column.getColId())
+const editing = computed(() => props.editedColId === props.column.getColId())
 watch(editing, (newVal) => {
   if (!newVal) {
     acceptNewName()
@@ -57,15 +35,15 @@ watch(editing, (newVal) => {
 const inputElement = ref<HTMLInputElement>()
 
 function emitEditStart() {
-  generalProps.value.onHeaderEditingStarted?.(props.params.column.getColId(), () => {
+  props.onHeaderEditingStarted?.(props.column.getColId(), () => {
     if (inputElement.value) {
-      inputElement.value.value = props.params.displayName
+      inputElement.value.value = props.displayName
     }
   })
 }
 
 function emitEditEnd() {
-  generalProps.value.onHeaderEditingStopped?.(props.params.column.getColId())
+  props.onHeaderEditingStopped?.(props.column.getColId())
 }
 
 watch(
@@ -81,7 +59,7 @@ watch(
 )
 
 function acceptNewName() {
-  if (columnProps.value.type !== 'astColumn') {
+  if (props.type !== 'astColumn') {
     console.error("Tried to accept header new name where it's not editable!")
     return
   }
@@ -89,13 +67,12 @@ function acceptNewName() {
     console.error('Tried to accept header new name without input element!')
     return
   }
-  if (inputElement.value.value !== props.params.displayName)
-    columnProps.value.nameSetter(inputElement.value.value)
+  if (inputElement.value.value !== props.displayName) props.nameSetter(inputElement.value.value)
   if (editing.value) emitEditEnd()
 }
 
 function onMouseClick(event: MouseEvent) {
-  if (!editing.value && columnProps.value.type === 'astColumn') {
+  if (!editing.value && props.type === 'astColumn') {
     emitEditStart()
   } else {
     event.stopPropagation()
@@ -104,7 +81,7 @@ function onMouseClick(event: MouseEvent) {
 
 function onMouseRightClick(event: MouseEvent) {
   if (!editing.value) {
-    props.params.showColumnMenuAfterMouseClick(event)
+    props.showColumnMenuAfterMouseClick(event)
     event.preventDefault()
     event.stopPropagation()
   }
@@ -113,12 +90,12 @@ function onMouseRightClick(event: MouseEvent) {
 
 <template>
   <SvgButton
-    v-if="columnProps.type === 'newColumn'"
+    v-if="props.type === 'newColumn'"
     class="addColumnButton"
     name="add"
     title="Add new column"
-    :disabled="!(columnProps.enabled ?? true)"
-    @click.stop="columnProps.newColumnRequested()"
+    :disabled="!(props.enabled ?? true)"
+    @click.stop="props.newColumnRequested()"
   />
   <div
     v-else
@@ -133,18 +110,15 @@ function onMouseRightClick(event: MouseEvent) {
         v-if="editing"
         ref="inputElement"
         class="ag-input-field-input ag-text-field-input"
-        :value="params.displayName"
+        :value="displayName"
         @keydown.arrow-left.stop
         @keydown.arrow-right.stop
         @keydown.arrow-up.stop
         @keydown.arrow-down.stop
       />
-      <span
-        v-else
-        class="ag-header-cell-text"
-        :class="{ virtualColumn: columnProps.type !== 'astColumn' }"
-        >{{ params.displayName }}</span
-      >
+      <span v-else class="ag-header-cell-text" :class="{ virtualColumn: type !== 'astColumn' }">{{
+        displayName
+      }}</span>
     </div>
   </div>
 </template>

@@ -11,7 +11,7 @@ import type { ToValue } from '@/util/reactivity'
 import type { ColDef } from 'ag-grid-enterprise'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import { computed, markRaw, ref, toValue } from 'vue'
-import type { ColumnSpecificHeaderParams } from './TableHeader.vue'
+import type { ColumnSpecificParams } from './TableHeader.vue'
 
 /** Id of a fake column with "Add new column" option. */
 export const NEW_COLUMN_ID = 'NewColumn'
@@ -44,7 +44,7 @@ export interface ColumnDef extends ColDef<RowData> {
   mainMenuItems: (string | MenuItem<RowData>)[]
   contextMenuItems: (string | MenuItem<RowData>)[]
   rowDrag?: ({ data }: { data: RowData | undefined }) => boolean
-  headerComponentParams: ColumnSpecificHeaderParams
+  headerComponentParams: ColumnSpecificParams
 }
 
 namespace cellValueConversion {

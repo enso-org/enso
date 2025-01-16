@@ -1,9 +1,5 @@
 <script setup lang="ts">
 import { WidgetInputIsSpecificMethodCall } from '@/components/GraphEditor/widgets/WidgetFunction.vue'
-import TableHeader, {
-  ColumnSpecificHeaderParams,
-  GeneralHeaderParams,
-} from '@/components/GraphEditor/widgets/WidgetTableEditor/TableHeader.vue'
 import {
   CELLS_LIMIT,
   tableInputCallMayBeHandled,
@@ -31,12 +27,11 @@ import type {
   Column,
   ColumnMovedEvent,
   IHeaderComp,
-  IHeaderParams,
   ProcessDataFromClipboardParams,
   RowDragEndEvent,
 } from 'ag-grid-enterprise'
 import { ComponentInstance, computed, h, markRaw, ref } from 'vue'
-import type { ComponentExposed } from 'vue-component-type-helpers'
+import type { ComponentExposed, ComponentProps } from 'vue-component-type-helpers'
 import { z } from 'zod'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -265,21 +260,21 @@ class TableHaderComponent implements IHeaderComp {
   private container: HTMLElement = document.createElement('div')
   private handle: VueComponentHandle | undefined
 
-  init(params: IHeaderParams & GeneralHeaderParams & ColumnSpecificHeaderParams) {
+  init(params: ComponentProps<typeof TableHeader>) {
     if (!vueComponentHost.value) {
       console.error('Missing vue component host!')
       // TODO[ao]: what's now?
       return
     }
-    this.handle = vueComponentHost.value.register(h(TableHeader, { params }), this.container)
+    this.handle = vueComponentHost.value.register(h(TableHeader, params), this.container)
   }
 
   getGui() {
     return this.container
   }
 
-  refresh(params: IHeaderParams & GeneralHeaderParams & ColumnSpecificHeaderParams) {
-    this.handle?.update(h(TableHeader, { params }), this.container)
+  refresh(params: ComponentProps<typeof TableHeader>) {
+    this.handle?.update(h(TableHeader, params), this.container)
     return true
   }
 
