@@ -222,8 +222,9 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
       parallelMode: 'restart',
       startDate: defaultDate ?? minFirstOccurrence,
       maxDurationMinutes: MAX_DURATION_DEFAULT_MINUTES,
-      days: [1],
-      months: [0],
+      // Use `en-US` locale because it matches JavaScript conventions.
+      days: [getDayOfWeek(minFirstOccurrence, 'en-US')],
+      months: [minFirstOccurrence.month - 1],
       startHour: 0,
       endHour: HOURS_PER_DAY - 1,
     },
