@@ -62,60 +62,66 @@ public class DocsGenerateTest {
         main = Calc.create 42
         """;
 
-    var pathCalc = TEMP.newFolder("Calc");
-    ProjectUtils.createProject("Calc", code, pathCalc.toPath());
+    var v = new MockVisitor();
+
+    generateDocumentation("Calc", code, v);
+
+    assertEquals("One type found", 1, v.visitType.size());
+    assertEquals("Three constructors", 3, v.visitConstructor.size());
+
+    var typeMethods =
+        v.visitMethod.stream()
+            .filter(p -> p.t() != null)
+            .map(
+                p -> {
+                  assertEquals("Name of the type is", "Calc", p.t().name().name());
+                  return p;
+                })
+            .toList();
+    var moduleMethods = new ArrayList<>(v.visitMethod);
+    moduleMethods.removeAll(typeMethods);
+
+    assertEquals(
+        "Two type methods: "
+            + typeMethods.stream()
+                .map(
+                    p -> {
+                      var typePref = p.t() != null ? p.t().name().name() + "." : "";
+                      return typePref + p.ir().methodName().name();
+                    })
+                .toList(),
+        2,
+        typeMethods.size());
+
+    assertEquals("One module method", 1, moduleMethods.size());
+    assertEquals("main", moduleMethods.get(0).ir().methodName().name());
+  }
+
+  private static void generateDocumentation(String name, String code, DocsVisit v)
+      throws IOException {
+    var pathCalc = TEMP.newFolder(name);
+    ProjectUtils.createProject(name, code, pathCalc.toPath());
     ProjectUtils.generateProjectDocs(
         ContextUtils.defaultContextBuilder(),
         pathCalc.toPath(),
-        (ctx) -> {
-          var enso = ContextUtils.leakContext(ctx);
+        (context) -> {
+          var enso = ContextUtils.leakContext(context);
           var modules = enso.getTopScope().getModules();
           var optMod =
-              modules.stream().filter(m -> m.getName().toString().contains("Calc")).findFirst();
+              modules.stream().filter(m -> m.getName().toString().contains(name)).findFirst();
           assertTrue(
-              "Found Calc in " + modules.stream().map(m -> m.getName()).toList(),
+              "Found " + name + " in " + modules.stream().map(m -> m.getName()).toList(),
               optMod.isPresent());
           var mod = optMod.get();
-          assertEquals("local.Calc.Main", mod.getName().toString());
+          assertEquals("local." + name + ".Main", mod.getName().toString());
           var ir = mod.getIr();
           assertNotNull("Ir for " + mod + " found", ir);
 
-          var v = new MockVisitor();
           try {
             DocsGenerate.visitModule(v, mod.getName(), ir, null);
           } catch (IOException e) {
             throw raise(RuntimeException.class, e);
           }
-
-          assertEquals("One type found", 1, v.visitType.size());
-          assertEquals("Three constructors", 3, v.visitConstructor.size());
-
-          var typeMethods =
-              v.visitMethod.stream()
-                  .filter(p -> p.t() != null)
-                  .map(
-                      p -> {
-                        assertEquals("Name of the type is", "Calc", p.t().name().name());
-                        return p;
-                      })
-                  .toList();
-          var moduleMethods = new ArrayList<>(v.visitMethod);
-          moduleMethods.removeAll(typeMethods);
-
-          assertEquals(
-              "Two type methods: "
-                  + typeMethods.stream()
-                      .map(
-                          p -> {
-                            var typePref = p.t() != null ? p.t().name().name() + "." : "";
-                            return typePref + p.ir().methodName().name();
-                          })
-                      .toList(),
-              2,
-              typeMethods.size());
-
-          assertEquals("One module method", 1, moduleMethods.size());
-          assertEquals("main", moduleMethods.get(0).ir().methodName().name());
         });
   }
 
