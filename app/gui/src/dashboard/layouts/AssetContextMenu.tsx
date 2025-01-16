@@ -4,7 +4,6 @@ import * as React from 'react'
 import * as reactQuery from '@tanstack/react-query'
 import * as toast from 'react-toastify'
 
-import * as billingHooks from '#/hooks/billing'
 import * as copyHooks from '#/hooks/copyHooks'
 import * as projectHooks from '#/hooks/projectHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
@@ -24,7 +23,6 @@ import Separator from '#/components/styled/Separator'
 
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import ManageLabelsModal from '#/modals/ManageLabelsModal'
-import ManagePermissionsModal from '#/modals/ManagePermissionsModal'
 
 import * as backendModule from '#/services/Backend'
 import * as localBackendModule from '#/services/LocalBackend'
@@ -36,7 +34,7 @@ import {
   downloadAssetsMutationOptions,
   restoreAssetsMutationOptions,
 } from '#/hooks/backendBatchedHooks'
-import { useNewProject, useRemoveSelfPermissionMutation } from '#/hooks/backendHooks'
+import { useNewProject } from '#/hooks/backendHooks'
 import { useUploadFileWithToastMutation } from '#/hooks/backendUploadFilesHooks'
 import { usePasteData } from '#/providers/DriveProvider'
 import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from '#/services/remoteBackendPaths'
@@ -64,7 +62,7 @@ export interface AssetContextMenuProps {
 
 /** The context menu for an arbitrary {@link backendModule.Asset}. */
 export default function AssetContextMenu(props: AssetContextMenuProps) {
-  const { innerProps, rootDirectoryId, event, eventTarget, hidden = false, triggerRef } = props
+  const { innerProps, rootDirectoryId, event, hidden = false, triggerRef } = props
   const { doCopy, doCut, doPaste } = props
   const { asset, path: pathRaw, state, setRowState } = innerProps
   const { backend, category, nodeMap } = state
@@ -84,7 +82,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const restoreAssetsMutation = reactQuery.useMutation(restoreAssetsMutationOptions(backend))
   const copyAssetsMutation = reactQuery.useMutation(copyAssetsMutationOptions(backend))
   const downloadAssetsMutation = reactQuery.useMutation(downloadAssetsMutationOptions(backend))
-  const removeSelfPermissionMutation = useRemoveSelfPermissionMutation(backend)
   const openProjectMutation = projectHooks.useOpenProjectMutation()
   const self = permissions.tryFindSelfPermission(user, asset.permissions)
   const isCloud = categoryModule.isCloudCategory(category)
@@ -101,9 +98,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const copyMutation = copyHooks.useCopy({ copyText: path ?? '' })
   const uploadFileToCloudMutation = useUploadFileWithToastMutation(remoteBackend)
   const disabledTooltip = !canOpenProjects ? getText('downloadToOpenWorkflow') : undefined
-
-  const { isFeatureUnderPaywall } = billingHooks.usePaywall({ plan: user.plan })
-  const isUnderPaywall = isFeatureUnderPaywall('share')
 
   const newProject = useNewProject(backend, category)
 
@@ -429,29 +423,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           />
         )}
         {isCloud && <Separator hidden={hidden} />}
-
-        {isCloud && managesThisAsset && self != null && (
-          <PaywallContextMenuEntry
-            feature="share"
-            isUnderPaywall={isUnderPaywall}
-            action="share"
-            hidden={hidden}
-            doAction={() => {
-              setModal(
-                <ManagePermissionsModal
-                  backend={backend}
-                  category={category}
-                  item={asset}
-                  self={self}
-                  eventTarget={eventTarget}
-                  doRemoveSelf={() => {
-                    removeSelfPermissionMutation.mutate(asset.id)
-                  }}
-                />,
-              )
-            }}
-          />
-        )}
 
         {isCloud && (
           <ContextMenuEntry
