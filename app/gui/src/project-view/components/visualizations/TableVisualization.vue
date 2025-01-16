@@ -325,7 +325,6 @@ function getValueTypeIcon(valueType: string) {
 function getFilterType(valueType: string) {
   switch (valueType) {
     case 'Date':
-    case 'Date_Time':
       return 'agDateColumnFilter'
     case 'Integer':
     case 'Float':
@@ -714,6 +713,7 @@ const createDateValue = (item: string, module: Ast.MutableModule) => {
   const dateOrTimePattern = Pattern.parseExpression('(Date.new __ __ __)')
   const dateTimeParts = item
     .match(/\d+/g)!
+    .filter((part, i) => i < 3)
     .map((part) => Ast.tryNumberToEnso(Number(part), module)!)
   return dateOrTimePattern.instantiateCopied([...dateTimeParts])
 }

@@ -50,6 +50,8 @@ const actionMap = {
   lessThan: '..Less',
   lessThanOrEqual: '..Equal_Or_Less',
   inRange: '..Between',
+  blank: '..Is_Nothing',
+  notBlank: '..Not_Nothing'
 }
 
 export interface SortFilterNodesButtonOptions {
@@ -99,6 +101,7 @@ function useSortFilterNodesButton({
 
   const filterPattern = computed(() => Pattern.parseExpression('__ (__ __)')!)
   const filterBetweenPattern = computed(() => Pattern.parseExpression('__ (..Between __ __)')!)
+  const filterNothingPattern = computed(() => Pattern.parseExpression('__ __')!)
 
   function makeFilterPattern(module: Ast.MutableModule, columnName: string, items: string[]) {
     if (
@@ -141,19 +144,29 @@ function useSortFilterNodesButton({
     if (filterAction === 'inRange' && typeof item === 'object') {
       const filterToValue = valueFormatter(item.toValue, module)
       const filterFromValue = valueFormatter(item.fromValue, module)
-      filterBetweenPattern.value.instantiateCopied([
+      return filterBetweenPattern.value.instantiateCopied([
         Ast.TextLiteral.new(columnName),
-        filterToValue as Expression | MutableExpression,
         filterFromValue as Expression | MutableExpression,
+        filterToValue as Expression | MutableExpression,
       ])
     }
-
     const filterValue = valueFormatter(item as string, module)
-    const action = actionMap[filterAction as keyof typeof actionMap]
+    const action = actionMap[filterAction]
     return filterPattern.value.instantiateCopied([
       Ast.TextLiteral.new(columnName),
       Ast.parseExpression(action)!,
       filterValue as Expression | MutableExpression,
+    ])
+  }
+
+  function makeNothingFilterPattern(
+    columnName: string,
+    filterAction: FilterAction
+  ) {
+    const action = actionMap[filterAction]
+    return filterNothingPattern.value.instantiateCopied([
+      Ast.TextLiteral.new(columnName),
+      Ast.parseExpression(action)!,
     ])
   }
 
@@ -182,6 +195,19 @@ function useSortFilterNodesButton({
     )
   }
 
+  function getAstNothingPatternFilter(
+    columnName: string,
+    filterAction: FilterAction
+  ) {
+    return Pattern.new<Ast.Expression>((ast) =>
+      Ast.App.positional(
+        Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('filter')!),
+          makeNothingFilterPattern(columnName, filterAction),
+      ),
+    )
+  }
+
+
   function getAstPatternFilterAndSort(
     columnName: string,
     items: string[] | string | FilterValue,
@@ -206,6 +232,26 @@ function useSortFilterNodesButton({
     )
   }
 
+  function getAstNothingPatternFilterAndSort(
+    columnName: string,
+    filterAction: FilterAction
+  ) {
+    return Pattern.new<Ast.Expression>((ast) =>
+      Ast.OprApp.new(
+        ast.module,
+        Ast.App.positional(
+          Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('filter')!),
+            makeNothingFilterPattern(columnName, filterAction),
+        ),
+        '.',
+        Ast.App.positional(
+          Ast.Ident.new(ast.module, Ast.identifier('sort')!),
+          makeSortPattern(ast.module),
+        ),
+      ),
+    )
+  }
+
   function createNewNodes() {
     const patterns = new Array<Pattern>()
     const filterModelValue = toValue(filterModel)
@@ -217,7 +263,11 @@ function useSortFilterNodesButton({
         const filterAction = filterModel.filterAction
         const filterType = filterModel.filterType
         if (filterAction === 'blank' || filterAction === 'notBlank') {
-          //BLANK/NOT BLANK FILTER
+          const filterPatterns =
+          sortModelValue.length ?
+            getAstNothingPatternFilterAndSort(columnName, filterAction)
+          : getAstNothingPatternFilter(columnName, filterAction)
+        patterns.push(filterPatterns)
         }
 
         let value: FilterValue
@@ -232,7 +282,7 @@ function useSortFilterNodesButton({
             value =
               filterAction === 'inRange' ?
                 { toValue: filterModel.dateTo!, fromValue: filterModel.dateFrom! }
-              : (filterModel.dateTo as FilterValue)
+              : (filterModel.dateFrom as FilterValue)
             break
           default:
             value = filterModel.values as FilterValue
