@@ -859,6 +859,7 @@
 
   "activityLog": "Activity Log",
   "startDate": "Start Date",
+  "endDate": "End Date",
   "types": "Types",
   "users": "Users",
   "type": "Type",

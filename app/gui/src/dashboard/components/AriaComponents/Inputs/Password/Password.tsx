@@ -37,7 +37,7 @@ export function Password<Schema extends TSchema, TFieldName extends FieldPath<Sc
         <>
           {props.addonEnd}
 
-          <Form.FieldValue form={form} name={props.name}>
+          <Form.FieldValue<Schema, TFieldName, string> form={form} name={props.name}>
             {(value) => (
               <AnimatePresence>
                 {value != null && value.length > 0 && (
