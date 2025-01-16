@@ -42,9 +42,12 @@ public class LongBuilderChecked extends LongBuilder {
   public void appendNoGrow(Object o) {
     if (o != null) {
       Long x = NumericConverter.tryConvertingToLong(o);
-      if (x != null && type.fits(x)) {
-        appendLong(x);
-        return;
+      if (x != null) {
+        if (type.fits(x)) {
+          appendLong(x);
+          return;
+        }
+        castProblemAggregator.reportNumberOutOfRange(x);
       }
     }
     if (o == null) {
