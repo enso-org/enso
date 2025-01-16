@@ -20,7 +20,12 @@ final class DocsUtils {
     var sb = new StringBuilder();
     sb.append(m.methodName().name());
     if (m.body() instanceof Lambda fn) {
+      var first = m.isStatic();
       for (var a : asJava(fn.arguments())) {
+        if (first) {
+          first = false;
+          continue;
+        }
         sb.append(" ").append(toSignature(a));
       }
       var ret = extractTypeOrNull(fn.body());

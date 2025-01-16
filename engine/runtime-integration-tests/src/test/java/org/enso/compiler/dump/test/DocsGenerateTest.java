@@ -102,10 +102,10 @@ public class DocsGenerateTest {
   public void functionArgumentTypes() throws Exception {
     var code =
         """
-    from Standard.Base import Integer
+        from Standard.Base import Integer
 
-    sum x:Integer y:Integer -> Integer = x+y
-    """;
+        sum x:Integer y:Integer -> Integer = x+y
+        """;
 
     var v = new MockVisitor();
     generateDocumentation("Sum", code, v);
@@ -114,7 +114,7 @@ public class DocsGenerateTest {
     assertNull("No type associated", v.visitMethod.get(0).t());
     var sum = v.visitMethod.get(0).ir();
     assertEquals(
-        "sum self x:Standard.Base.Data.Numbers.Integer y:Standard.Base.Data.Numbers.Integer ->"
+        "sum x:Standard.Base.Data.Numbers.Integer y:Standard.Base.Data.Numbers.Integer ->"
             + " Standard.Base.Data.Numbers.Integer",
         DocsVisit.toSignature(sum));
   }
@@ -123,10 +123,10 @@ public class DocsGenerateTest {
   public void suspendAndDefault() throws Exception {
     var code =
         """
-    from Standard.Base import Integer
+        from Standard.Base import Integer
 
-    sum ~x:Integer y:Integer=10 = x+y
-    """;
+        sum ~x:Integer y:Integer=10 = x+y
+        """;
 
     var v = new MockVisitor();
     generateDocumentation("Suspend", code, v);
@@ -135,7 +135,7 @@ public class DocsGenerateTest {
     assertNull("No type associated", v.visitMethod.get(0).t());
     var sum = v.visitMethod.get(0).ir();
     assertEquals(
-        "sum self ~x:Standard.Base.Data.Numbers.Integer y:Standard.Base.Data.Numbers.Integer=",
+        "sum ~x:Standard.Base.Data.Numbers.Integer y:Standard.Base.Data.Numbers.Integer=",
         DocsVisit.toSignature(sum));
   }
 
@@ -143,11 +143,11 @@ public class DocsGenerateTest {
   public void constructorSignature() throws Exception {
     var code =
         """
-    from Standard.Base import Integer
+        from Standard.Base import Integer
 
-    type Result
-        Sum ~x:Integer y:Integer=10
-    """;
+        type Result
+            Sum ~x:Integer y:Integer=10
+        """;
 
     var v = new MockVisitor();
     generateDocumentation("TypeResult", code, v);
@@ -157,6 +157,48 @@ public class DocsGenerateTest {
     var sum = v.visitConstructor.get(0);
     assertEquals(
         "Sum ~x:Standard.Base.Data.Numbers.Integer y:Standard.Base.Data.Numbers.Integer=",
+        DocsVisit.toSignature(sum));
+  }
+
+  @Test
+  public void instanceMethodSignature() throws Exception {
+    var code =
+        """
+        from Standard.Base import Integer
+
+        type Result
+            sum self y = self+y
+        """;
+
+    var v = new MockVisitor();
+    generateDocumentation("InstanceResult", code, v);
+
+    assertEquals("No methods", 1, v.visitMethod.size());
+    var p = v.visitMethod.get(0);
+    assertEquals("Result", p.t().name().name());
+    var sum = p.ir();
+    assertEquals("sum self y", DocsVisit.toSignature(sum));
+  }
+
+  @Test
+  public void staticMethodSignature() throws Exception {
+    var code =
+        """
+        from Standard.Base import Integer
+
+        type Result
+            sum ~x:Integer y:Integer=10 = x+y
+        """;
+
+    var v = new MockVisitor();
+    generateDocumentation("StaticResult", code, v);
+
+    assertEquals("No methods", 1, v.visitMethod.size());
+    var p = v.visitMethod.get(0);
+    assertEquals("Result", p.t().name().name());
+    var sum = p.ir();
+    assertEquals(
+        "sum ~x:Standard.Base.Data.Numbers.Integer y:Standard.Base.Data.Numbers.Integer=",
         DocsVisit.toSignature(sum));
   }
 
