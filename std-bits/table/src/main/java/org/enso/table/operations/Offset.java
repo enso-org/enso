@@ -110,7 +110,7 @@ public class Offset {
         int getFillValue()
         {
             return switch (offFill) {
-                case NOTHING -> -1;
+                case NOTHING -> Storage.NOT_FOUND_INDEX;
                 case CLOSEST_VALUE -> closestPos;
                 case WRAP_AROUND -> n<0 ? rolling_queue.poll() : fill_queue.poll();
                 case CONSTANT -> -1;
