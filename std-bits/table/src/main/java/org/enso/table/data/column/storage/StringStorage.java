@@ -44,7 +44,8 @@ public final class StringStorage extends SpecializedStorage<String> {
     super(data, size, buildOps());
     this.type = type;
 
-    dataQualityMetricsValues = CompletableFuture.supplyAsync(() -> createDataQualityMetricsWitDefaultSize());
+    dataQualityMetricsValues =
+        CompletableFuture.supplyAsync(() -> createDataQualityMetricsWitDefaultSize());
   }
 
   @Override
@@ -77,7 +78,8 @@ public final class StringStorage extends SpecializedStorage<String> {
   public Long cachedUntrimmedCount() throws InterruptedException {
     if (dataQualityMetricsValues.isCancelled()) {
       // Need to recompute the value, as was cancelled.
-      dataQualityMetricsValues = CompletableFuture.supplyAsync(() -> createDataQualityMetricsWitDefaultSize());
+      dataQualityMetricsValues =
+          CompletableFuture.supplyAsync(() -> createDataQualityMetricsWitDefaultSize());
     }
 
     try {
@@ -97,7 +99,8 @@ public final class StringStorage extends SpecializedStorage<String> {
   public Long cachedWhitespaceCount() throws InterruptedException {
     if (dataQualityMetricsValues.isCancelled()) {
       // Need to recompute the value, as was cancelled.
-      dataQualityMetricsValues = CompletableFuture.supplyAsync(() -> createDataQualityMetricsWitDefaultSize());
+      dataQualityMetricsValues =
+          CompletableFuture.supplyAsync(() -> createDataQualityMetricsWitDefaultSize());
     }
 
     try {
