@@ -44,14 +44,17 @@ public class DocsGenerateTest {
   public void simpleType() throws Exception {
     var code =
         """
-        type Open_Type
+        type Calc
             Zero
             One x
-            Two y
+            Two x y
+
+            create v = Calc.One v
+            sum self = self.x+self.y
         """;
     var ir = ContextUtils.compileModule(ctx, code);
     var v = new MockVisitor();
-    DocsGenerate.visitModule(v, QualifiedName.fromString("test.Open_Type"), ir, null);
+    DocsGenerate.visitModule(v, QualifiedName.fromString("test.Calc"), ir, null);
 
     assertEquals("One type found", 1, v.visitType.size());
     assertEquals("Three constructors", 3, v.visitConstructor.size());
