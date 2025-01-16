@@ -175,7 +175,7 @@ export function defaultOnFailure(
 export function defaultOnSuccess(
   description: string,
 ): NonNullable<BackoffOptions<any>['onSuccess']> {
-  return retryCount => {
+  return (retryCount) => {
     if (retryCount === 0) return
     console.info(
       'Successfully ' +

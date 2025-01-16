@@ -51,7 +51,6 @@ const contentNodeStyle = {
 const props = defineProps<{
   node: Node
   edited: boolean
-  graphNodeSelections: HTMLElement | undefined
 }>()
 
 const emit = defineEmits<{
@@ -161,7 +160,6 @@ const visibleMessage = computed(
 const nodeHovered = ref(false)
 
 const selected = computed(() => nodeSelection?.isSelected(nodeId.value) ?? false)
-const selectionVisible = ref(false)
 
 const isOnlyOneSelected = computed(
   () =>
@@ -407,7 +405,6 @@ const nodeStyle = computed(() => {
 const nodeClass = computed(() => {
   return {
     selected: selected.value,
-    selectionVisible: selectionVisible.value,
     pending: pending.value,
     inputNode: props.node.type === 'input',
     outputNode: props.node.type === 'output',
@@ -475,8 +472,8 @@ const showMenuAt = ref<{ x: number; y: number }>()
     :style="nodeStyle"
     :class="nodeClass"
     :data-node-id="nodeId"
-    @pointerenter="(nodeHovered = true), updateNodeHover($event)"
-    @pointerleave="(nodeHovered = false), updateNodeHover(undefined)"
+    @pointerenter="((nodeHovered = true), updateNodeHover($event))"
+    @pointerleave="((nodeHovered = false), updateNodeHover(undefined))"
     @pointermove="updateNodeHover"
   >
     <div class="binding" v-text="node.pattern?.code()" />
@@ -484,7 +481,7 @@ const showMenuAt = ref<{ x: number; y: number }>()
       v-if="!menuVisible && isRecordingOverridden"
       class="overrideRecordButton clickable"
       data-testid="recordingOverriddenButton"
-      @click="(isRecordingOverridden = false), setSoleSelected()"
+      @click="((isRecordingOverridden = false), setSoleSelected())"
     >
       <SvgIcon name="record" />
     </button>
@@ -530,7 +527,7 @@ const showMenuAt = ref<{ x: number; y: number }>()
       :style="contentNodeStyle"
       v-on="dragPointer.events"
       @click="handleNodeClick"
-      @contextmenu.stop.prevent="ensureSelected(), (showMenuAt = $event)"
+      @contextmenu.stop.prevent="(ensureSelected(), (showMenuAt = $event))"
     >
       <ComponentWidgetTree
         :ast="props.node.innerExpr"
@@ -562,7 +559,7 @@ const showMenuAt = ref<{ x: number; y: number }>()
         :nodeId="nodeId"
         :forceVisible="nodeHovered"
         @newNodeClick="
-          setSoleSelected(), emit('createNodes', [{ commit: false, content: undefined }])
+          (setSoleSelected(), emit('createNodes', [{ commit: false, content: undefined }]))
         "
         @portClick="(...args) => emit('outputPortClick', ...args)"
         @portDoubleClick="(...args) => emit('outputPortDoubleClick', ...args)"
@@ -634,7 +631,7 @@ const showMenuAt = ref<{ x: number; y: number }>()
   white-space: nowrap;
 }
 
-.selectionVisible .binding {
+.selected .binding {
   opacity: 1;
 }
 
@@ -691,7 +688,7 @@ const showMenuAt = ref<{ x: number; y: number }>()
   transition: opacity 0.2s ease-in-out;
 }
 
-.GraphNode.selectionVisible .statuses {
+.GraphNode.selected .statuses {
   opacity: 0;
 }
 

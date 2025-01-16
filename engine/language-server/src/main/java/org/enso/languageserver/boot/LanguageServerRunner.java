@@ -8,6 +8,7 @@ import org.enso.runner.common.WrongOption;
 import org.slf4j.event.Level;
 import scala.concurrent.ExecutionContext;
 
+@org.openide.util.lookup.ServiceProvider(service = LanguageServerApi.class)
 public final class LanguageServerRunner extends LanguageServerApi {
   public LanguageServerRunner() {}
 

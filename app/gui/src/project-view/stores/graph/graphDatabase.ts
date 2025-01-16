@@ -150,7 +150,7 @@ export class GraphDb {
 
   /** TODO: Add docs */
   getNodeFirstOutputPort(id: NodeId | undefined): AstId | undefined {
-    return id ? set.first(this.nodeOutputPorts.lookup(id)) ?? this.idFromExternal(id) : undefined
+    return id ? (set.first(this.nodeOutputPorts.lookup(id)) ?? this.idFromExternal(id)) : undefined
   }
 
   /** TODO: Add docs */

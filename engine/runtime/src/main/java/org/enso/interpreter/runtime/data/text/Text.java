@@ -33,10 +33,12 @@ public final class Text extends BuiltinObject {
   }
 
   private Text(String string) {
+    assert string != null;
     this.contents = string;
   }
 
   private Text(ConcatRope contents) {
+    assert contents != null;
     this.contents = contents;
   }
 

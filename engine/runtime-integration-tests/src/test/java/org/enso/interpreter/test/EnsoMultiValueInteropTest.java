@@ -68,8 +68,7 @@ public class EnsoMultiValueInteropTest {
           return;
         }
         var both =
-            EnsoMultiValue.NewNode.getUncached()
-                .newValue(new Type[] {typ1, typ2}, 2, new Object[] {r1, r2});
+            EnsoMultiValue.NewNode.getUncached().newValue(new Type[] {typ1, typ2}, 2, 0, r1, r2);
         data.add(new Object[] {both});
       }
     }

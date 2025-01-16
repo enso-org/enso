@@ -102,6 +102,19 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
                 return {
                   message: getText('arbitraryFieldInvalid'),
                 }
+              case 'invalid_literal':
+              case 'invalid_enum_value':
+              case 'invalid_union':
+              case 'unrecognized_keys':
+              case 'invalid_union_discriminator':
+              case 'invalid_arguments':
+              case 'invalid_return_type':
+              case 'invalid_string':
+              case 'not_multiple_of':
+              case 'custom':
+              case 'invalid_intersection_types':
+              case 'invalid_date':
+              case 'not_finite':
               default:
                 return {
                   message: getText('arbitraryFieldInvalid'),

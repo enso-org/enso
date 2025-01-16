@@ -4,10 +4,6 @@ import * as z from 'zod'
 import { ButtonGroup, Dialog, Form, Text } from '#/components/AriaComponents'
 import { useText } from '#/providers/TextProvider'
 
-// ==============================
-// === ConfirmDeleteUserModal ===
-// ==============================
-
 /** Props for a {@link ConfirmDeleteUserModal}. */
 export interface ConfirmDeleteUserModalProps {
   readonly doDelete: () => Promise<void>

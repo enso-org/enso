@@ -50,7 +50,6 @@
               gnumake
               # === WASM parser dependencies ===
               rust
-              wasm-pack
             ];
 
             shellHook = ''

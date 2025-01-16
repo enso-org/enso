@@ -625,9 +625,7 @@ const SuggestionRenderer = React.memo(function SuggestionRenderer(props: Suggest
   )
 })
 
-/**
- * Props for a {@link Labels}.
- */
+/** Props for a {@link Labels}. */
 interface LabelsProps {
   readonly isCloud: boolean
   readonly query: AssetQuery
@@ -637,9 +635,7 @@ interface LabelsProps {
   readonly baseQuery: React.MutableRefObject<AssetQuery>
 }
 
-/**
- * Renders labels.
- */
+/** Renders labels. */
 const Labels = React.memo(function Labels(props: LabelsProps) {
   const { isCloud, query, setQuery, backend, querySource, baseQuery } = props
 

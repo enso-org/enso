@@ -1,11 +1,9 @@
 package org.enso.compiler.pass
 
-import org.enso.common.{Asserts, CompilationStage}
 import org.slf4j.LoggerFactory
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.ir.{Expression, Module}
 import org.enso.compiler.core.{CompilerError, IR}
-import org.enso.compiler.pass.analyse.BindingAnalysis
 
 import scala.collection.mutable.ListBuffer
 
@@ -73,8 +71,6 @@ class PassManager(
     moduleContext: ModuleContext,
     passGroup: PassGroup
   ): Module = {
-    Asserts.assertInJvm(validateConsistency(ir, moduleContext))
-
     if (!passes.contains(passGroup)) {
       throw new CompilerError("Cannot run an unvalidated pass group.")
     }
@@ -245,51 +241,6 @@ class PassManager(
     val totalLength = before.map(_.passes.length).sum
 
     ix - totalLength == indexOfPassInGroup
-  }
-
-  /** Validates consistency between the IR accessible via `moduleContext` and `ir`.
-    * There is no way to enforce this consistency statically.
-    * Should be called only iff assertions are enabled.
-    * @return true if they are consistent, otherwise throws [[AssertionError]].
-    */
-  private def validateConsistency(
-    ir: Module,
-    moduleContext: ModuleContext
-  ): Boolean = {
-    def hex(obj: Object): String = {
-      if (obj != null) {
-        val hexStr    = Integer.toHexString(System.identityHashCode(obj))
-        val className = obj.getClass.getSimpleName
-        s"$className@${hexStr}"
-      } else {
-        "null"
-      }
-    }
-
-    if (
-      moduleContext.module.getCompilationStage.isAtLeast(
-        CompilationStage.AFTER_PARSING
-      )
-    ) {
-      if (!(moduleContext.module.getIr eq ir)) {
-        throw new AssertionError(
-          "Mismatch of IR between ModuleContext and IR in module '" + moduleContext
-            .getName() + "'. " +
-          s"IR from moduleContext: ${hex(moduleContext.module.getIr)}, IR from module: ${hex(ir)}"
-        )
-      }
-      val bmFromCtx  = moduleContext.bindingsAnalysis()
-      val bmFromMeta = ir.passData.get(BindingAnalysis)
-      if (bmFromMeta.isDefined || bmFromCtx != null) {
-        Asserts.assertInJvm(
-          bmFromCtx eq bmFromMeta.get,
-          s"BindingsMap mismatch between ModuleContext and IR in module '" +
-          moduleContext.getName() + "'. " +
-          s"BindingsMap from moduleContext: ${hex(bmFromCtx)}, BindingsMap from IR: ${hex(bmFromMeta.get)}"
-        )
-      }
-    }
-    true
   }
 
   /** Updates the metadata in a copy of the IR when updating that metadata

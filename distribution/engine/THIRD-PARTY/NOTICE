@@ -1,5 +1,5 @@
 Enso
-Copyright 2020 - 2024 New Byte Order sp. z o. o.
+Copyright 2020 - 2025 New Byte Order sp. z o. o.
 
 'shapeless_2.13', licensed under the Apache 2, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
@@ -189,11 +189,6 @@ Copyright notices related to this dependency can be found in the directory `io.c
 'circe-parser_2.13', licensed under the Apache-2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `io.circe.circe-parser_2.13-0.14.7`.
-
-
-'java-diff-utils', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
-The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `io.github.java-diff-utils.java-diff-utils-4.12`.
 
 
 'helidon-builder-api', licensed under the Apache 2.0, is distributed with the engine.
@@ -506,9 +501,24 @@ The license file can be found at `licenses/Universal_Permissive_License__Version
 Copyright notices related to this dependency can be found in the directory `org.graalvm.truffle.truffle-runtime-24.0.0`.
 
 
-'jline', licensed under the The BSD License, is distributed with the engine.
+'jline-native', licensed under the The BSD License, is distributed with the engine.
 The license file can be found at `licenses/BSD-3-Clause`.
-Copyright notices related to this dependency can be found in the directory `org.jline.jline-3.26.3`.
+Copyright notices related to this dependency can be found in the directory `org.jline.jline-native-3.26.3`.
+
+
+'jline-reader', licensed under the The BSD License, is distributed with the engine.
+The license file can be found at `licenses/BSD-3-Clause`.
+Copyright notices related to this dependency can be found in the directory `org.jline.jline-reader-3.26.3`.
+
+
+'jline-terminal', licensed under the The BSD License, is distributed with the engine.
+The license file can be found at `licenses/BSD-3-Clause`.
+Copyright notices related to this dependency can be found in the directory `org.jline.jline-terminal-3.26.3`.
+
+
+'jline-terminal-jna', licensed under the The BSD License, is distributed with the engine.
+The license file can be found at `licenses/BSD-3-Clause`.
+Copyright notices related to this dependency can be found in the directory `org.jline.jline-terminal-jna-3.26.3`.
 
 
 'org-netbeans-modules-sampler', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
@@ -539,11 +549,6 @@ Copyright notices related to this dependency can be found in the directory `org.
 'scala-parser-combinators_2.13', licensed under the Apache-2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `org.scala-lang.modules.scala-parser-combinators_2.13-1.1.2`.
-
-
-'scala-compiler', licensed under the Apache-2.0, is distributed with the engine.
-The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `org.scala-lang.scala-compiler-2.13.15`.
 
 
 'scala-library', licensed under the Apache-2.0, is distributed with the engine.

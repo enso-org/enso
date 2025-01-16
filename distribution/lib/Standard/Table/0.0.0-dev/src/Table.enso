@@ -1559,12 +1559,15 @@ type Table
                     Dictionary.from_vector <| selected_columns.map c-> [c.name, True]
 
             new_columns = self.columns.map on_problems=No_Wrap.Value column-> if selected_column_names.contains_key column.name . not then column else
-                Value_Type.expect_text column <|
-                    storage = column.java_column.getStorage
-                    new_storage = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
-                        parse_problem_aggregator = ParseProblemAggregator.make java_problem_aggregator column.name type
-                        parser.parseColumn storage parse_problem_aggregator
-                    Column.Value (Java_Column.new column.name new_storage)
+                column_value_type = column.value_type
+                already_parsed = Auto != type && column_value_type.is_same_type type
+                if already_parsed then column else
+                    Value_Type.expect_text column <|
+                        storage = column.java_column.getStorage
+                        new_storage = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+                            parse_problem_aggregator = ParseProblemAggregator.make java_problem_aggregator column.name type
+                            parser.parseColumn storage parse_problem_aggregator
+                        Column.Value (Java_Column.new column.name new_storage)
             Table.new new_columns
 
     ## GROUP Standard.Base.Conversions
@@ -3740,7 +3743,7 @@ type Table
     @from (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     @remove make_data_cleanse_vector_selector
     text_cleanse : Vector (Integer | Text | Regex | By_Type) -> Vector Named_Pattern -> Table
-    text_cleanse self from:(Vector (Integer | Text | Regex | By_Type)) remove =
+    text_cleanse self from:(Vector (Integer | Text | Regex | By_Type)) remove:Vector=[] =
         transformer col = col.text_cleanse remove
         Table_Helpers.replace_columns_with_transformed_columns self from transformer
 

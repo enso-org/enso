@@ -1,9 +1,8 @@
 /** @file */
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { type StoreApi, createStore } from '#/utilities/zustand'
 import type { PropsWithChildren } from 'react'
 import { createContext, useContext, useMemo, useState } from 'react'
-import type { StoreApi } from 'zustand'
-import { createStore } from 'zustand'
 import type { TSchema, UseFormRegisterReturn } from '../Form'
 
 /** Context for the checkbox. */

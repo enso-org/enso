@@ -73,7 +73,6 @@ import {
   watch,
   type ComponentInstance,
 } from 'vue'
-import { isDevMode } from 'ydoc-shared/util/detect'
 import RightDockPanel from './RightDockPanel.vue'
 
 const keyboard = provideKeyboard()
@@ -88,7 +87,7 @@ provideNodeExecution(projectStore)
 
 onMounted(() => {
   widgetRegistry.loadWidgets(Object.entries(builtinWidgets))
-  if (isDevMode) {
+  if (import.meta.env.DEV) {
     ;(window as any).suggestionDb = toRaw(suggestionDb.entries)
   }
 })
@@ -690,11 +689,8 @@ const groupColors = computed(() => {
 
 <style scoped>
 .GraphEditor {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  width: 100%;
+  height: 100%;
   contain: layout;
   user-select: none;
   /* Prevent touchpad back gesture, which can be triggered while panning. */

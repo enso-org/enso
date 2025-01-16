@@ -4419,8 +4419,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       new String(data1, StandardCharsets.UTF_8) shouldEqual "C"
   }
 
-  // Attaching visualizations to subexpressions is currently disabled, see #11882
-  ignore should "emit visualization update for the target of a method call (subexpression) with IdMap" in withContext() {
+  it should "emit visualization update for the target of a method call (subexpression) with IdMap" in withContext() {
     context =>
       val contextId       = UUID.randomUUID()
       val requestId       = UUID.randomUUID()

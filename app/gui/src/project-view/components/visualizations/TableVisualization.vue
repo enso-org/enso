@@ -588,7 +588,7 @@ watchEffect(() => {
           ...dataHeader,
         ]
       : dataHeader
-    const rows = data_.data && data_.data.length > 0 ? data_.data[0]?.length ?? 0 : 0
+    const rows = data_.data && data_.data.length > 0 ? (data_.data[0]?.length ?? 0) : 0
     rowData.value = Array.from({ length: rows }, (_, i) => {
       const shift = data_.has_index_col ? 1 : 0
       return Object.fromEntries(

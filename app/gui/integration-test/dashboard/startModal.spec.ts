@@ -6,7 +6,7 @@ import { mockAllAndLogin } from './actions'
 /** Find an editor container. */
 function locateEditor(page: Page) {
   // Test ID of a placeholder editor component used during testing.
-  return page.locator('.App')
+  return page.locator('.ProjectView')
 }
 
 /** Find a samples list. */

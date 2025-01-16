@@ -41,6 +41,12 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
         Data.list test_root.get . map .name . should_contain "test_file.json"
         Data.list test_root.get.path . map .name . should_contain "test_file.json"
 
+    group_builder.specify "list should sort its output" <|
+        r = Enso_File.home.list
+        r.should_be_a Vector
+        as_strings = r.map .to_text
+        as_strings . should_equal as_strings.sort
+
     group_builder.specify "should allow to create and delete a directory" <|
         my_name = "my_test_dir-" + (Random.uuid.take 5)
         my_dir = (test_root.get / my_name).create_directory

@@ -99,16 +99,16 @@ public class TypeOfNodeMultiValueTest {
         }
         var singleMultiValue =
             EnsoMultiValue.NewNode.getUncached()
-                .newValue(new Type[] {type}, 1, new Object[] {rawValue});
+                .newValue(new Type[] {type}, 1, 0, new Object[] {rawValue});
         var n = t.getMetaSimpleName();
         data.add(new Object[] {singleMultiValue, n, 0});
         var secondMultiValue =
             EnsoMultiValue.NewNode.getUncached()
-                .newValue(new Type[] {rawInt, type}, 2, new Object[] {5L, rawValue});
+                .newValue(new Type[] {rawInt, type}, 2, 0, new Object[] {5L, rawValue});
         data.add(new Object[] {secondMultiValue, n, 1});
         var firstMultiValue =
             EnsoMultiValue.NewNode.getUncached()
-                .newValue(new Type[] {type, rawInt}, 2, new Object[] {rawValue, 6L});
+                .newValue(new Type[] {type, rawInt}, 2, 0, new Object[] {rawValue, 6L});
         data.add(new Object[] {firstMultiValue, n, 0});
       } else {
         if (!t.isHostObject()) {

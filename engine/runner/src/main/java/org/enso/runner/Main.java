@@ -78,6 +78,7 @@ public class Main {
   private static final String PROFILING_PATH = "profiling-path";
   private static final String PROFILING_TIME = "profiling-time";
   private static final String LANGUAGE_SERVER_OPTION = "server";
+  private static final String LANGUAGE_SERVER_NATIVE_OPTION = "native-server";
   private static final String IN_PROJECT_OPTION = "in-project";
   private static final String VERSION_OPTION = "version";
   private static final String JSON_OPTION = "json";
@@ -215,6 +216,11 @@ public class Main {
             .build();
     var lsOption =
         cliOptionBuilder().longOpt(LANGUAGE_SERVER_OPTION).desc("Runs Language Server").build();
+    var lsNativeOption =
+        cliOptionBuilder()
+            .longOpt(LANGUAGE_SERVER_NATIVE_OPTION)
+            .desc("Runs Language Server in native-image mode")
+            .build();
     var lsProfilingPathOption =
         cliOptionBuilder()
             .hasArg(true)
@@ -483,6 +489,7 @@ public class Main {
         .addOption(newProjectAuthorNameOpt)
         .addOption(newProjectAuthorEmailOpt)
         .addOption(lsOption)
+        .addOption(lsNativeOption)
         .addOption(lsProfilingPathOption)
         .addOption(lsProfilingTimeOption)
         .addOption(deamonizeOption)
@@ -577,14 +584,13 @@ public class Main {
 
     var template =
         templateOption.map(
-            (n) -> {
-              return Template.fromString(n)
-                  .getOrElse(
-                      () -> {
-                        logger.error("Unknown project template name: '" + n + "'.");
-                        throw exitFail();
-                      });
-            });
+            (n) ->
+                Template.fromString(n)
+                    .getOrElse(
+                        () -> {
+                          logger.error("Unknown project template name: '" + n + "'.");
+                          throw exitFail();
+                        }));
 
     PackageManager$.MODULE$
         .Default()
@@ -699,8 +705,7 @@ public class Main {
     if (projectMode) {
       var result = PackageManager$.MODULE$.Default().loadPackage(file);
       if (result.isSuccess()) {
-        @SuppressWarnings("unchecked")
-        var pkg = (org.enso.pkg.Package<java.io.File>) result.get();
+        var pkg = result.get();
 
         mainFile = pkg.mainFile();
         if (!mainFile.exists()) {
@@ -748,13 +753,11 @@ public class Main {
       if (projectMode) {
         var result = PackageManager$.MODULE$.Default().loadPackage(file);
         if (result.isSuccess()) {
-          var s = (scala.util.Success) result;
-          @SuppressWarnings("unchecked")
-          var pkg = (org.enso.pkg.Package<java.io.File>) s.get();
+          var pkg = result.get();
           var mainModuleName = pkg.moduleNameForFile(pkg.mainFile()).toString();
           runPackage(context, mainModuleName, file, additionalArgs);
         } else {
-          println(((scala.util.Failure) result).exception().getMessage());
+          System.err.println(result.failed().get().getMessage());
           throw exitFail();
         }
       } else {
@@ -1462,6 +1465,14 @@ public class Main {
         throw exitFail();
       }
     } else {
+      if (line.hasOption(LANGUAGE_SERVER_NATIVE_OPTION)) {
+        System.out.println(
+            "\"--"
+                + LANGUAGE_SERVER_NATIVE_OPTION
+                + "\" has no effect without --\""
+                + LANGUAGE_SERVER_OPTION
+                + "\"");
+      }
       try {
         var conf = parseProfilingConfig(line);
         try {

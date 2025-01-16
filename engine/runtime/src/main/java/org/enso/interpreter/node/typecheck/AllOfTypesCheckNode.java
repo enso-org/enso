@@ -81,7 +81,7 @@ final class AllOfTypesCheckNode extends AbstractTypeCheckNode {
       values = Arrays.copyOf(values, at);
       valueTypes = Arrays.copyOf(valueTypes, at);
     }
-    return newNode.newValue(valueTypes, valueTypes.length, values);
+    return newNode.newValue(valueTypes, valueTypes.length, 0, values);
   }
 
   @Override

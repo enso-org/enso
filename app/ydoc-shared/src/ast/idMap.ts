@@ -63,7 +63,7 @@ export function spanMapToSpanGetter(spans: NodeSpanMap): (id: AstId) => SourceRa
       reverseMap.set(ast.id, sourceRangeFromKey(key))
     }
   }
-  return id => reverseMap.get(id)
+  return (id) => reverseMap.get(id)
 }
 
 /** Returns a function that can look up token source ranges. */

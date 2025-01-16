@@ -188,7 +188,10 @@
           },
           "required": ["username", "password"]
         },
-        "table": { "title": "Table to access", "$ref": "#/$defs/DatabaseTableDefinition" }
+        "table": {
+          "title": "Table to access",
+          "$ref": "#/$defs/DatabaseTableDefinition"
+        }
       },
       "required": ["type", "libraryName", "host", "port", "database_name"]
     },
@@ -233,7 +236,10 @@
           },
           "required": ["username", "password"]
         },
-        "table": { "title": "Table to access", "$ref": "#/$defs/DatabaseTableDefinition" }
+        "table": {
+          "title": "Table to access",
+          "$ref": "#/$defs/DatabaseTableDefinition"
+        }
       },
       "required": ["type", "libraryName", "account", "database_name", "credentials"]
     },
@@ -277,7 +283,10 @@
           },
           "required": ["username", "password"]
         },
-        "table": { "title": "Table to access", "$ref": "#/$defs/DatabaseTableDefinition" }
+        "table": {
+          "title": "Table to access",
+          "$ref": "#/$defs/DatabaseTableDefinition"
+        }
       },
       "required": ["type", "libraryName", "host", "port", "database_name"]
     },

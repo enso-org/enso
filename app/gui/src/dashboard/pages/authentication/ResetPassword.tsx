@@ -17,10 +17,10 @@ import Link from '#/components/Link'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import { passwordWithPatternSchema } from '#/pages/authentication/schemas'
-import { useAuth } from '#/providers/AuthProvider'
 import { useLocalBackend } from '#/providers/BackendProvider'
 import { type GetText, useText } from '#/providers/TextProvider'
 import { PASSWORD_REGEX } from '#/utilities/validation'
+import { useSessionAPI } from '../../providers/SessionProvider'
 
 /** Create the schema for this form. */
 function createResetPasswordFormSchema(getText: GetText) {
@@ -51,7 +51,7 @@ function createResetPasswordFormSchema(getText: GetText) {
 
 /** A form for users to reset their password. */
 export default function ResetPassword() {
-  const { resetPassword } = useAuth()
+  const { resetPassword } = useSessionAPI()
   const { getText } = useText()
   const location = router.useLocation()
   const navigate = router.useNavigate()
@@ -86,7 +86,9 @@ export default function ResetPassword() {
         />
       }
       onSubmit={({ email, verificationCode, newPassword }) =>
-        resetPassword(email, verificationCode, newPassword)
+        resetPassword(email, verificationCode, newPassword).then(() => {
+          navigate(LOGIN_PATH)
+        })
       }
     >
       <Input

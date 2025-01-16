@@ -3,10 +3,9 @@ import { useMutation } from '@tanstack/react-query'
 import invariant from 'tiny-invariant'
 import * as z from 'zod'
 
-import AssetEventType from '#/events/AssetEventType'
-import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
+import { deleteAssetsMutationOptions, moveAssetsMutationOptions } from '#/hooks/backendBatchedHooks'
+import { useBackendQuery } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useDispatchAssetEvent } from '#/layouts/Drive/EventListProvider'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useBackend, useLocalBackend, useRemoteBackend } from '#/providers/BackendProvider'
 import type { UserId } from '#/services/Backend'
@@ -17,8 +16,8 @@ import {
   type DirectoryId,
   type Path,
   type User,
+  type UserGroup,
   type UserGroupId,
-  type UserGroupInfo,
 } from '#/services/Backend'
 import { newDirectoryId } from '#/services/LocalBackend'
 
@@ -73,7 +72,7 @@ export const TEAM_CATEGORY_SCHEMA = z
   .object({
     type: z.literal('team'),
     id: z.custom<UserGroupId>(() => true),
-    team: z.custom<UserGroupInfo>(() => true),
+    team: z.custom<UserGroup>(() => true),
     rootPath: PATH_SCHEMA,
     homeDirectoryId: DIRECTORY_ID_SCHEMA,
   })
@@ -225,53 +224,25 @@ export function useTransferBetweenCategories(currentCategory: Category) {
   const backend = useBackend(currentCategory)
   const { user } = useFullUserSession()
   const { data: organization = null } = useBackendQuery(remoteBackend, 'getOrganization', [])
-  const deleteAssetMutation = useMutation(backendMutationOptions(backend, 'deleteAsset'))
-  const updateAssetMutation = useMutation(backendMutationOptions(backend, 'updateAsset'))
-  const dispatchAssetEvent = useDispatchAssetEvent()
+  const deleteAssetsMutation = useMutation(deleteAssetsMutationOptions(backend))
+  const moveAssetsMutation = useMutation(moveAssetsMutationOptions(backend))
+
   return useEventCallback(
-    (
-      from: Category,
-      to: Category,
-      keys: Iterable<AssetId>,
-      newParentKey?: DirectoryId | null,
-      newParentId?: DirectoryId | null,
-    ) => {
+    (from: Category, to: Category, keys: Iterable<AssetId>, newParentId?: DirectoryId | null) => {
       switch (from.type) {
         case 'cloud':
         case 'recent':
         case 'team':
         case 'user': {
           if (to.type === 'trash') {
-            if (from === currentCategory) {
-              dispatchAssetEvent({ type: AssetEventType.delete, ids: new Set(keys) })
-            } else {
-              for (const id of keys) {
-                deleteAssetMutation.mutate([id, { force: false }, '(unknown)'])
-              }
-            }
+            deleteAssetsMutation.mutate([[...keys], false])
           } else if (to.type === 'cloud' || to.type === 'team' || to.type === 'user') {
             newParentId ??=
               to.type === 'cloud' ?
                 remoteBackend.rootDirectoryId(user, organization)
               : to.homeDirectoryId
             invariant(newParentId != null, 'The Cloud backend is missing a root directory.')
-            newParentKey ??= newParentId
-            if (from === currentCategory) {
-              dispatchAssetEvent({
-                type: AssetEventType.move,
-                newParentKey,
-                newParentId,
-                ids: new Set(keys),
-              })
-            } else {
-              for (const id of keys) {
-                updateAssetMutation.mutate([
-                  id,
-                  { description: null, parentDirectoryId: newParentId },
-                  '(unknown)',
-                ])
-              }
-            }
+            moveAssetsMutation.mutate([[...keys], newParentId])
           }
           break
         }
@@ -284,23 +255,7 @@ export function useTransferBetweenCategories(currentCategory: Category) {
             const parentDirectory = to.type === 'local' ? localBackend?.rootPath() : to.rootPath
             invariant(parentDirectory != null, 'The Local backend is missing a root directory.')
             newParentId ??= newDirectoryId(parentDirectory)
-            newParentKey ??= newParentId
-            if (from === currentCategory) {
-              dispatchAssetEvent({
-                type: AssetEventType.move,
-                newParentKey,
-                newParentId,
-                ids: new Set(keys),
-              })
-            } else {
-              for (const id of keys) {
-                updateAssetMutation.mutate([
-                  id,
-                  { description: null, parentDirectoryId: newParentId },
-                  '(unknown)',
-                ])
-              }
-            }
+            moveAssetsMutation.mutate([[...keys], newParentId])
           }
         }
       }

@@ -162,7 +162,7 @@ const data = computed<Data>(() => {
     Array.isArray(rawData) ?
       // eslint-disable-next-line camelcase
       rawData.map((y, index) => ({ x: index, y, row_number: index }))
-    : rawData.data ?? []
+    : (rawData.data ?? [])
   let data: Point[]
   const isTimeSeries: boolean =
     'x_value_type' in rawData ?
@@ -527,7 +527,7 @@ watch([boxWidth, boxHeight], () => (shouldAnimate.value = false))
 
 /** Helper function to match a d3 shape from its name. */
 function matchShape(d: Point) {
-  return d.shape != null ? SHAPE_TO_SYMBOL[d.shape] ?? d3.symbolCircle : d3.symbolCircle
+  return d.shape != null ? (SHAPE_TO_SYMBOL[d.shape] ?? d3.symbolCircle) : d3.symbolCircle
 }
 
 watchEffect(() => {

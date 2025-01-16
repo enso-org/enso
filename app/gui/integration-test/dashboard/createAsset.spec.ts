@@ -1,5 +1,5 @@
 /** @file Test copying, moving, cutting and pasting. */
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 import { mockAllAndLogin } from './actions'
 
@@ -11,13 +11,6 @@ const FILE_CONTENTS = 'hello world'
 const SECRET_NAME = 'a secret name'
 /** The value of the created secret. */
 const SECRET_VALUE = 'a secret value'
-
-/** Find an editor container. */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function locateEditor(page: Page) {
-  // Test ID of a placeholder editor component used during testing.
-  return page.locator('.App')
-}
 
 test('create folder', ({ page }) =>
   mockAllAndLogin({ page })

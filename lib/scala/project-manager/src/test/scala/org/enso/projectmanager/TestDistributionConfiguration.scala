@@ -25,7 +25,7 @@ import org.enso.runtimeversionmanager.releases.{
   ReleaseProvider,
   SimpleReleaseProvider
 }
-import org.enso.runtimeversionmanager.runner.{JVMSettings, JavaCommand}
+import org.enso.runtimeversionmanager.runner.{JVMSettings, JavaExecCommand}
 import org.enso.runtimeversionmanager.test.{
   FakeEnvironment,
   TestLocalLockManager
@@ -94,11 +94,12 @@ class TestDistributionConfiguration(
   override def defaultJVMSettings: JVMSettings = {
     val currentProcess =
       ProcessHandle.current().info().command().toScala.getOrElse("java")
-    val javaCommand = JavaCommand(currentProcess, None)
+    val javaCommand = new JavaExecCommand(currentProcess, None)
     new JVMSettings(
       javaCommandOverride = Some(javaCommand),
       jvmOptions          = Seq(),
-      extraOptions        = Seq()
+      extraOptions        = Seq(),
+      nativeImage         = false
     )
   }
 

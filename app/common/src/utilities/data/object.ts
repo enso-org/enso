@@ -32,7 +32,7 @@ export function merge<T extends object>(object: T, update: Partial<T>): T {
 
 /** Return a function to update an object with the given partial update. */
 export function merger<T extends object>(update: Partial<NoInfer<T>>): (object: T) => T {
-  return object => merge(object, update)
+  return (object) => merge(object, update)
 }
 
 // ================
@@ -120,7 +120,7 @@ export function mapEntries<K extends PropertyKey, V, W>(
   // @ts-expect-error It is known that the set of keys is the same for the input and the output,
   // because the output is dynamically generated based on the input.
   return Object.fromEntries(
-    unsafeEntries(object).map<[K, W]>(kv => {
+    unsafeEntries(object).map<[K, W]>((kv) => {
       const [k, v] = kv
       return [k, map(k, v)]
     }),
@@ -219,3 +219,12 @@ export function useObjectId() {
  * can be used to splice together objects without the risk of collisions.
  */
 export type DisjointKeysUnion<A, B> = keyof A & keyof B extends never ? A & B : never
+
+/**
+ * Merge types of values of an object union. Useful to return an object that UNSAFELY
+ * (at runtime) conforms to the shape of a discriminated union.
+ * Especially useful for things like Tanstack Query results.
+ */
+export type MergeValuesOfObjectUnion<T> = {
+  [K in `${keyof T & string}`]: T[K & keyof T]
+}

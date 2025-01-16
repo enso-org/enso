@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Data.Read.Return_As.Return_As as Return_As_Base
 import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Deprecated.Deprecated
@@ -12,6 +13,7 @@ import Standard.Base.Runtime.Ref.Ref
 import Standard.Base.System.File.Advanced.Temporary_File.Temporary_File
 import Standard.Base.System.Input_Stream.Input_Stream
 from Standard.Base.Data.Filter_Condition import sql_like_to_regex
+from Standard.Base.Metadata import make_single_choice
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Multiple_Choice, Single_Choice
 
@@ -359,7 +361,8 @@ type Excel_Workbook
        - on_problems: how to handle problems during reading. Defaults to
          `Report_Warning`.
     @sheet_names build_sheet_selector
-    read_many : Vector Text -> Headers -> Return_As_Table -> Problem_Behavior -> Table
+    @return make_single_choice Return_As_Table.get_dropdown_options
+    read_many : Vector Text -> Headers -> Return_As_Base -> Problem_Behavior -> Table
     read_many self sheet_names:Vector=self.sheet_names (headers:Headers=..Detect_Headers) (return=..As_Merged_Table) (on_problems:Problem_Behavior=..Report_Warning) =
         resolved_return = _resolve_return_as_compatibility return
         if sheet_names.is_empty then Error.throw (Illegal_Argument.Error "No sheets selected.") else

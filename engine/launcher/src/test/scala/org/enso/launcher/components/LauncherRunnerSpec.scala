@@ -70,7 +70,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
       val jvmOptions       = Seq(("locally-added-options", "value1"))
       val runnerEntryPoint = "org.enso.runner/org.enso.runner.Main"
 
-      def checkCommandLine(command: Command): Unit = {
+      def checkCommandLine(command: RawCommand): Unit = {
         val arguments     = command.command.tail
         val javaArguments = arguments.takeWhile(_ != "-jar")
         val appArguments  = arguments.dropWhile(_ != runnerEntryPoint).tail

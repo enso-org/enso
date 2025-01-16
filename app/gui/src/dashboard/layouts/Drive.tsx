@@ -11,14 +11,11 @@ import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import AssetListEventType from '#/events/AssetListEventType'
-
 import { AssetPanel } from '#/layouts/AssetPanel'
 import type * as assetsTable from '#/layouts/AssetsTable'
 import AssetsTable, { AssetsTableAssetsUnselector } from '#/layouts/AssetsTable'
 import CategorySwitcher from '#/layouts/CategorySwitcher'
 import * as categoryModule from '#/layouts/CategorySwitcher/Category'
-import * as eventListProvider from '#/layouts/Drive/EventListProvider'
 import DriveBar from '#/layouts/DriveBar'
 import Labels from '#/layouts/Labels'
 
@@ -28,7 +25,6 @@ import * as result from '#/components/Result'
 import { ErrorBoundary, useErrorBoundary } from '#/components/ErrorBoundary'
 import SvgMask from '#/components/SvgMask'
 import { listDirectoryQueryOptions } from '#/hooks/backendHooks'
-import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
 import { useTargetDirectory } from '#/providers/DriveProvider'
 import { DirectoryDoesNotExistError, Plan } from '#/services/Backend'
@@ -148,9 +144,7 @@ function Drive(props: DriveProps) {
   }
 }
 
-/**
- * Props for a {@link DriveAssetsView}.
- */
+/** Props for a {@link DriveAssetsView}. */
 interface DriveAssetsViewProps extends DriveProps {
   readonly category: Category
   readonly setCategory: (categoryId: Category['id']) => void
@@ -175,7 +169,6 @@ function DriveAssetsView(props: DriveAssetsViewProps) {
   const { user } = authProvider.useFullUserSession()
   const localBackend = backendProvider.useLocalBackend()
   const backend = backendProvider.useBackend(category)
-  const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
 
   const [query, setQuery] = React.useState(() => AssetQuery.fromString(''))
   const [shouldForceHideStartModal, setShouldForceHideStartModal] = React.useState(false)
@@ -189,10 +182,6 @@ function DriveAssetsView(props: DriveAssetsViewProps) {
     isCloud && isOffline ? 'offline'
     : isCloud && !user.isEnabled ? 'not-enabled'
     : 'ok'
-
-  const doEmptyTrash = useEventCallback(() => {
-    dispatchAssetListEvent({ type: AssetListEventType.emptyTrash })
-  })
 
   const { rootDirectoryId } = useDirectoryIds({ category })
 
@@ -264,7 +253,6 @@ function DriveAssetsView(props: DriveAssetsViewProps) {
           query={query}
           setQuery={setQuery}
           category={category}
-          doEmptyTrash={doEmptyTrash}
           isEmpty={isEmpty}
           shouldDisplayStartModal={shouldDisplayStartModal}
           isDisabled={shouldDisableActions}
@@ -305,9 +293,7 @@ function DriveAssetsView(props: DriveAssetsViewProps) {
   )
 }
 
-/**
- * Props for {@link OfflineMessage}
- */
+/** Props for an {@link OfflineMessage}. */
 interface OfflineMessageProps {
   readonly supportLocalBackend: boolean
   readonly setCategory: (category: categoryModule.Category['id']) => void

@@ -1,4 +1,5 @@
 /** @file ESLint configuration file. */
+
 /**
  * NOTE: The "Experimental: Use Flat Config" option must be enabled.
  * Flat config is still not quite mature, so is disabled by default.
@@ -186,13 +187,14 @@ const RESTRICTED_SYNTAXES = [
 // === ESLint configuration ===
 // ============================
 
-export default [
+const config = [
   {
     // Playwright build cache and Vite build directory.
     ignores: [
       '**/.cache/**',
       '**/playwright-report',
       '**/dist',
+      '**/test-results',
       '**/mockDist',
       '**/build.mjs',
       '**/*.timestamp-*.mjs',
@@ -214,8 +216,10 @@ export default [
         extraFileExtensions: ['.vue'],
         projectService: {
           allowDefaultProject: [
-            'app/ydoc-server/vitest.config.ts',
+            'eslint.config.mjs',
+            // 'app/ydoc-server/vitest.config.ts',
             'app/ydoc-shared/vitest.config.ts',
+            'app/ide-desktop/icons/src/index.js',
           ],
         },
       },
@@ -451,7 +455,10 @@ export default [
       '@typescript-eslint/restrict-template-expressions': 'error',
       '@typescript-eslint/sort-type-constituents': 'error',
       '@typescript-eslint/strict-boolean-expressions': 'error',
-      '@typescript-eslint/switch-exhaustiveness-check': 'error',
+      '@typescript-eslint/switch-exhaustiveness-check': [
+        'error',
+        { allowDefaultCaseForExhaustiveSwitch: true },
+      ],
       'default-param-last': 'off',
       '@typescript-eslint/default-param-last': 'error',
       'no-invalid-this': 'off',
@@ -577,7 +584,7 @@ export default [
       'no-restricted-syntax': [
         'error',
         ...RESTRICTED_SYNTAXES.filter(
-          syntax =>
+          (syntax) =>
             syntax.message !== 'Use a `getText()` from `useText` instead of a literal string',
         ),
       ],
@@ -591,3 +598,5 @@ export default [
     rules: { 'react-compiler/react-compiler': 'error' },
   },
 ]
+
+export default config

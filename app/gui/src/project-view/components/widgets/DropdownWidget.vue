@@ -1,7 +1,7 @@
 <script setup lang="ts" generic="Entry extends DropdownEntry">
 import SvgIcon from '@/components/SvgIcon.vue'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
-import type { Icon } from '@/util/iconName'
+import type { Icon } from '@/util/iconMetadata/iconName'
 import { computed, ref } from 'vue'
 
 enum SortDirection {
