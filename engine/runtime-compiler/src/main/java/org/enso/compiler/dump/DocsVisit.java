@@ -1,7 +1,6 @@
 package org.enso.compiler.dump;
 
 import java.io.IOException;
-
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.module.scope.Definition;
@@ -9,8 +8,8 @@ import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.pkg.QualifiedName;
 
 /**
- * Visitor for processing documentation elements in a module.
- * Pass into {@link DocsGenerate#visitModule}. 
+ * Visitor for processing documentation elements in a module. Pass into {@link
+ * DocsGenerate#visitModule}.
  */
 public interface DocsVisit {
   boolean visitModule(QualifiedName name, Module ir, Appendable writer) throws IOException;
