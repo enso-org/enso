@@ -38,7 +38,9 @@ table_offset_impl table:Table (columns:(Vector | Text | Integer | Regex)=[]) n:I
     grouping_java_columns = grouping_columns.map c->c.java_column
     ordering_java_columns = ordering.map c->c.column.java_column
     directions = ordering.map c->c.associated_selector.direction.to_sign
-    new_names = resolved_columns.map c-> Column_Naming_Helper.in_memory.function_name "offset" [c, n, offFill]
+    new_names = resolved_columns.map c-> 
+        if set_mode==Set_Mode.Update then c.name else
+            Column_Naming_Helper.in_memory.function_name "offset" [c, n, offFill]
     new_storages = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
         Java_Offset.offset resolved_java_columns n offFill_java grouping_java_columns ordering_java_columns directions java_problem_aggregator
       

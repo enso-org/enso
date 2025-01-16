@@ -1,8 +1,8 @@
 package org.enso.table.operations;
 
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.Queue;
-import java.util.Arrays;
 
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.mask.OrderMask;
@@ -19,15 +19,14 @@ public class Offset {
       int[] directions,
       ProblemAggregator problemAggregator) {
         if (n==0) return Arrays.stream(sourceColumns).map(c -> c.getStorage()).toArray(Storage<?>[]::new);
-        var offsetRunningStatistic = new OffsetRowVisitorFactory(sourceColumns[0], n, offFill);
-        GroupingOrderingVisitor.visit(
-            groupingColumns,
+        var offsetRowVisitorFactory = new OffsetRowVisitorFactory(sourceColumns[0], n, offFill);
+        GroupingOrderingVisitor.visit(groupingColumns,
             orderingColumns,
             directions,
             problemAggregator,
-            offsetRunningStatistic,
+            offsetRowVisitorFactory,
             sourceColumns[0].getSize());
-        return Arrays.stream(sourceColumns).map(c -> c.getStorage().applyMask(OrderMask.fromArray(offsetRunningStatistic.result))).toArray(Storage<?>[]::new);
+        return Arrays.stream(sourceColumns).map(c -> c.getStorage().applyMask(OrderMask.fromArray(offsetRowVisitorFactory.result))).toArray(Storage<?>[]::new);
       }
 
     private static class OffsetRowVisitorFactory implements RowVisitorFactory {
