@@ -127,9 +127,7 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
     return innerLoop(
         Builder.getForDouble(FloatType.FLOAT_64, storage.size(), problemAggregator),
         storage,
-        (builder, i) -> {
-          builder.append(storage.getItemBoxed(i));
-        });
+        (builder, i) -> builder.append(storage.getItemBoxed(i)));
   }
 
   private Storage<Double> convertBigDecimalStorage(
@@ -137,8 +135,6 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
     return innerLoop(
         Builder.getForDouble(FloatType.FLOAT_64, storage.size(), problemAggregator),
         storage,
-        (builder, i) -> {
-          builder.append(storage.getItemBoxed(i));
-        });
+        (builder, i) -> builder.append(storage.getItemBoxed(i)));
   }
 }
