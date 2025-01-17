@@ -10,7 +10,9 @@ const TOOLTIP_SHOW_DELAY_MS = 1500
 // Time after which tooltip will disappear once an element is no longer hovered.
 const TOOLTIP_HIDE_DELAY_MS = 300
 
+// Currently hovered element and its tooltip entry.
 const activeTooltip = props.registry.lastHoveredElement
+// Previously hovered element and its tooltip entry.
 const previousTooltip = shallowRef<HoveredElement>()
 const show = ref(false)
 
@@ -27,7 +29,7 @@ function resetTimeout(timeout: Timeout) {
 
 watch(activeTooltip, (newValue, oldValue) => {
   if (oldValue == null && newValue != null) {
-    // Show tooltip because we are hovering a new element.
+    // We are hovering some element, show its tooltip after delay.
     resetTimeout(showTimeout)
     resetTimeout(hideTimeout)
     showTimeout = setTimeout(() => {
@@ -36,7 +38,7 @@ watch(activeTooltip, (newValue, oldValue) => {
     }, TOOLTIP_SHOW_DELAY_MS)
     previousTooltip.value = toValue(newValue)
   } else if (oldValue != null && newValue == null) {
-    // Hide tooltip because we are no longer hovering any element.
+    // We no longer hover any element, hide the tooltip after delay.
     resetTimeout(showTimeout)
     resetTimeout(hideTimeout)
     hideTimeout = setTimeout(() => {
@@ -44,10 +46,13 @@ watch(activeTooltip, (newValue, oldValue) => {
       hideTimeout = null
     }, TOOLTIP_HIDE_DELAY_MS)
   }
+  // There is no need to check if both `oldValue` and `newValue` are not null, because
+  // `activeTooltip` is always set to null intermitently when switching between elements.
 })
 
 const displayedTooltip = computed(() => {
   if (!show.value) return undefined
+  // When hovering the element, display its tooltip.
   if (
     activeTooltip.value != null &&
     !activeTooltip.value.entry.isHidden &&
@@ -55,6 +60,8 @@ const displayedTooltip = computed(() => {
   ) {
     return activeTooltip.value
   }
+  // If no element with the tooltip is being hovered, display the tooltip of the previously hovered element.
+  // (until it will be hidden after timeout, by changing the `show` ref)
   if (
     previousTooltip.value != null &&
     !previousTooltip.value.entry.isHidden &&
