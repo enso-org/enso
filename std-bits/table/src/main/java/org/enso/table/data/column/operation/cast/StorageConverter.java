@@ -49,7 +49,7 @@ public interface StorageConverter<T> {
     }
 
     for (int i = 0; i < n; i++) {
-      if (storage.isNothing(n)) {
+      if (storage.isNothing(i)) {
         builder.appendNulls(1);
       } else {
         builder.appendNoGrow(converter.apply(i));
