@@ -25,40 +25,40 @@ public class AddGroupNumber {
         problemAggregator,
         groupNumberRowVisitorFactory,
         numRows);
-    return new LongStorage(groupNumberRowVisitorFactory.numbers, IntegerType.INT_64);
+    return new LongStorage(groupNumberRowVisitorFactory.storageForResult, IntegerType.INT_64);
   }
 
   private static class GroupNumberRowVisitorFactory implements RowVisitorFactory {
 
     private long current;
     private final long step;
-    long[] numbers;
+    long[] storageForResult;
 
     GroupNumberRowVisitorFactory(long start, long step, int size) {
       this.current = start;
       this.step = step;
-      numbers = new long[size];
+      storageForResult = new long[size];
     }
 
     @Override
-    public RowVisitor getNewRowVisitor() {
+    public GroupRowVisitor getNewRowVisitor() {
       var nextGroupNumber = current;
       current = Math.addExact(current, step);
-      return new GroupNumberRowVisitor(nextGroupNumber, numbers);
+      return new GroupNumberRowVisitor(nextGroupNumber, storageForResult);
     }
 
-    private static class GroupNumberRowVisitor implements RowVisitor {
+    private static class GroupNumberRowVisitor implements GroupRowVisitor {
       private final long groupNumber;
-      private final long[] numbers;
+      private final long[] storageForResult;
 
-      GroupNumberRowVisitor(long groupNumber, long[] numbers) {
+      GroupNumberRowVisitor(long groupNumber, long[] storageForResult) {
         this.groupNumber = groupNumber;
-        this.numbers = numbers;
+        this.storageForResult = storageForResult;
       }
 
       @Override
       public void visit(int row) {
-        numbers[row] = groupNumber;
+        storageForResult[row] = groupNumber;
       }
     }
   }
@@ -80,7 +80,7 @@ public class AddGroupNumber {
         problemAggregator,
         equalCountRowVisitorFactory,
         numRows);
-    return new LongStorage(equalCountRowVisitorFactory.numbers, IntegerType.INT_64);
+    return new LongStorage(equalCountRowVisitorFactory.storageForResult, IntegerType.INT_64);
   }
 
   private static class EqualCountRowVisitorFactory implements RowVisitorFactory {
@@ -88,21 +88,21 @@ public class AddGroupNumber {
     private final long start;
     private final long step;
     private final long groupSize;
-    long[] numbers;
+    long[] storageForResult;
 
     EqualCountRowVisitorFactory(long start, long step, long totalCount, long numgroups) {
       this.start = start;
       this.step = step;
       groupSize = (long) Math.ceil((double) totalCount / (double) numgroups);
-      numbers = new long[Math.toIntExact(totalCount)];
+      storageForResult = new long[Math.toIntExact(totalCount)];
     }
 
     @Override
-    public RowVisitor getNewRowVisitor() {
+    public GroupRowVisitor getNewRowVisitor() {
       return new EqualCountRowVisitor(this);
     }
 
-    private static class EqualCountRowVisitor implements RowVisitor {
+    private static class EqualCountRowVisitor implements GroupRowVisitor {
       private final EqualCountRowVisitorFactory parent;
       private long currentIndex = 0;
 
@@ -112,7 +112,7 @@ public class AddGroupNumber {
 
       @Override
       public void visit(int row) {
-        parent.numbers[row] =
+        parent.storageForResult[row] =
             Math.addExact(
                 parent.start, Math.multiplyExact(parent.step, (currentIndex / parent.groupSize)));
         currentIndex = Math.addExact(currentIndex, 1L);

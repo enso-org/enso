@@ -1,6 +1,6 @@
 package org.enso.table.operations;
 
-public interface RowVisitor {
+public interface GroupRowVisitor {
 
   void visit(int row);
 

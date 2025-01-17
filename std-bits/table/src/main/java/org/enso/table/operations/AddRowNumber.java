@@ -45,11 +45,11 @@ public class AddRowNumber {
     }
 
     @Override
-    public RowVisitor getNewRowVisitor() {
+    public GroupRowVisitor getNewRowVisitor() {
       return new RowNumberRowVisitor(start, step, numbers);
     }
 
-    private static class RowNumberRowVisitor implements RowVisitor {
+    private static class RowNumberRowVisitor implements GroupRowVisitor {
 
       private final long start;
       private final long step;

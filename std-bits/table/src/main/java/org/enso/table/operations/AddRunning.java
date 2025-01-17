@@ -44,11 +44,11 @@ public class AddRunning {
     }
 
     @Override
-    public RowVisitor getNewRowVisitor() {
+    public GroupRowVisitor getNewRowVisitor() {
       return new RunningStatisticRowVisitor<>(runningStatistic);
     }
 
-    private static class RunningStatisticRowVisitor<T> implements RowVisitor {
+    private static class RunningStatisticRowVisitor<T> implements GroupRowVisitor {
       RunningStatisticBase<T> runningStatistic;
       RunningIterator<T> iterator;
 
