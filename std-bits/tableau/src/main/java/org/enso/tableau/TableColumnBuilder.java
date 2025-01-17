@@ -184,7 +184,7 @@ record TableColumnBuilder(Builder builder, Consumer<Result> appendMethod) {
             nullAppender(
                 jsonBuilder, column.index(), r -> jsonBuilder.append(r.getString(column.index()))));
       case HyperTableColumn.INTERVAL:
-        var intervalBuilder = Builder.getForType(null, initialRowCount, problemAggregator);
+        var intervalBuilder = Builder.getInferredBuilder(initialRowCount, problemAggregator);
         return new TableColumnBuilder(
             intervalBuilder,
             nullAppender(

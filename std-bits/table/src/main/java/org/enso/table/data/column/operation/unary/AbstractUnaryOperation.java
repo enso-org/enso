@@ -59,7 +59,7 @@ abstract class AbstractUnaryOperation implements UnaryOperation {
           "Cannot currently operate on columns larger than " + Integer.MAX_VALUE + ".");
     }
 
-    return Builder.getForType(null, (int) storage.getSize(), problemAggregator);
+    return Builder.getInferredBuilder((int) storage.getSize(), problemAggregator);
   }
 
   /** Apply the operation to a Boolean Storage. */

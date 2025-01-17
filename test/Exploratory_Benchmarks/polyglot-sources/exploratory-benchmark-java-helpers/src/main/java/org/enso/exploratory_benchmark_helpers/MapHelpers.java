@@ -100,10 +100,7 @@ public class MapHelpers {
       StorageType expectedType,
       ProblemAggregator problemAggregator) {
     int n = storage.size();
-    Builder builder =
-        expectedType == null
-            ? Builder.getForType(null, n, problemAggregator)
-            : Builder.getForType(expectedType, n, problemAggregator);
+    Builder builder = Builder.getForType(expectedType, n, problemAggregator);
     for (int i = 0; i < n; i++) {
       if (!storage.isNothing(i)) {
         builder.append(fn.apply(storage.getItemBoxed(i)));

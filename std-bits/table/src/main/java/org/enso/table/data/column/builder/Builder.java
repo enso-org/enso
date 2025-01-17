@@ -36,10 +36,19 @@ public interface Builder {
           case TextType textType -> new StringBuilder(size, textType);
           case BigDecimalType _ -> new BigDecimalBuilder(size);
           case BigIntegerType _ -> new BigIntegerBuilder(size, problemAggregator);
-          case null -> new InferredBuilder(size, problemAggregator, false);
+          case null -> getInferredBuilder(size, problemAggregator);
         };
     assert java.util.Objects.equals(builder.getType(), type);
     return builder;
+  }
+
+  /**
+   * Constructs a builder for deducing the type of the column based on
+   *
+   * @param size the initial size of the builder.
+   */
+  static Builder getInferredBuilder(int size, ProblemAggregator problemAggregator) {
+    return new InferredBuilder(size, problemAggregator, false);
   }
 
   /**

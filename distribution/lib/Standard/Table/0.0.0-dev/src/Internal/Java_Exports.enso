@@ -44,4 +44,4 @@ make_string_builder initial_size value_type=Value_Type.Char =
 ## PRIVATE
 make_inferred_builder : Integer -> ProblemAggregator -> Builder
 make_inferred_builder initial_size java_problem_aggregator=(Missing_Argument.ensure_present "java_problem_aggregator") =
-    Builder.getForType Nothing initial_size java_problem_aggregator
+    Builder.getInferredBuilder initial_size java_problem_aggregator

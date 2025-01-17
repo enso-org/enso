@@ -38,7 +38,8 @@ public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
   @Override
   protected void resize(int desiredCapacity) {
     double[] newData = new double[desiredCapacity];
-    System.arraycopy(data, 0, newData, 0, currentSize);
+    int toCopy = Math.min(currentSize, data.length);
+    System.arraycopy(data, 0, newData, 0, toCopy);
     data = newData;
   }
 
