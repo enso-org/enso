@@ -1,7 +1,7 @@
 package org.enso.table.data.column.builder;
 
 /** A builder for long columns - avoids boxing. */
-public interface BuilderForLong extends Builder {
+public interface BuilderForLong extends BuilderForType<Long> {
   /**
    * Append a new long to this builder.
    *

@@ -10,8 +10,6 @@ import org.enso.table.data.column.storage.numeric.BigDecimalStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
-import org.enso.table.data.column.storage.type.BigIntegerType;
-import org.graalvm.polyglot.Context;
 
 public class ToBigIntegerConverter implements StorageConverter<BigInteger> {
   @Override
@@ -36,106 +34,70 @@ public class ToBigIntegerConverter implements StorageConverter<BigInteger> {
 
   private Storage<BigInteger> convertDoubleStorage(
       DoubleStorage doubleStorage, CastProblemAggregator problemAggregator) {
-    Context context = Context.getCurrent();
-    int n = doubleStorage.size();
-    var builder = Builder.getForType(BigIntegerType.INSTANCE, n, problemAggregator);
-    for (int i = 0; i < n; i++) {
-      if (doubleStorage.isNothing(i)) {
-        builder.appendNulls(1);
-      } else {
-        double x = doubleStorage.getItemAsDouble(i);
-        BigInteger bigInteger = BigDecimal.valueOf(x).toBigInteger();
-        builder.appendNoGrow(bigInteger);
-      }
-
-      context.safepoint();
-    }
-    return (Storage<BigInteger>) builder.seal();
+    return StorageConverter.innerLoop(
+        Builder.getForBigInteger(doubleStorage.size(), problemAggregator),
+        doubleStorage,
+        (i) -> {
+          double x = doubleStorage.getItemAsDouble(i);
+          return BigDecimal.valueOf(x).toBigInteger();
+        });
   }
 
   private Storage<BigInteger> convertLongStorage(
       AbstractLongStorage longStorage, CastProblemAggregator problemAggregator) {
-    Context context = Context.getCurrent();
-    int n = longStorage.size();
-    var builder = Builder.getForType(BigIntegerType.INSTANCE, n, problemAggregator);
-    for (int i = 0; i < n; i++) {
-      if (longStorage.isNothing(i)) {
-        builder.appendNulls(1);
-      } else {
-        long x = longStorage.getItem(i);
-        BigInteger bigInteger = BigInteger.valueOf(x);
-        builder.appendNoGrow(bigInteger);
-      }
-
-      context.safepoint();
-    }
-    return (Storage<BigInteger>) builder.seal();
+    return StorageConverter.innerLoop(
+        Builder.getForBigInteger(longStorage.size(), problemAggregator),
+        longStorage,
+        (i) -> {
+          long x = longStorage.getItem(i);
+          return BigInteger.valueOf(x);
+        });
   }
 
   private Storage<BigInteger> convertBoolStorage(
       BoolStorage boolStorage, CastProblemAggregator problemAggregator) {
-    Context context = Context.getCurrent();
-    int n = boolStorage.size();
-    var builder = Builder.getForType(BigIntegerType.INSTANCE, n, problemAggregator);
-    for (int i = 0; i < n; i++) {
-      if (boolStorage.isNothing(i)) {
-        builder.appendNulls(1);
-      } else {
-        boolean x = boolStorage.getItem(i);
-        BigInteger bigInteger = booleanAsBigInteger(x);
-        builder.appendNoGrow(bigInteger);
-      }
-
-      context.safepoint();
-    }
-    return (Storage<BigInteger>) builder.seal();
+    return StorageConverter.innerLoop(
+        Builder.getForBigInteger(boolStorage.size(), problemAggregator),
+        boolStorage,
+        (i) -> {
+          boolean x = boolStorage.getItem(i);
+          return booleanAsBigInteger(x);
+        });
   }
 
   private Storage<BigInteger> convertBigDecimalStorage(
       BigDecimalStorage bigDecimalStorage, CastProblemAggregator problemAggregator) {
-    Context context = Context.getCurrent();
-    int n = bigDecimalStorage.size();
-    var builder = Builder.getForType(BigIntegerType.INSTANCE, n, problemAggregator);
-    for (int i = 0; i < n; i++) {
-      BigDecimal value = bigDecimalStorage.getItemBoxed(i);
-      if (value == null) {
-        builder.appendNulls(1);
-      } else {
-        BigInteger bigInteger = value.toBigInteger();
-        builder.appendNoGrow(bigInteger);
-      }
-
-      context.safepoint();
-    }
-    return (Storage<BigInteger>) builder.seal();
+    return StorageConverter.innerLoop(
+        Builder.getForBigInteger(bigDecimalStorage.size(), problemAggregator),
+        bigDecimalStorage,
+        (i) -> {
+          BigDecimal x = bigDecimalStorage.getItemBoxed(i);
+          return x.toBigInteger();
+        });
   }
 
   private Storage<BigInteger> castFromMixed(
       Storage<?> storage, CastProblemAggregator problemAggregator) {
-    Context context = Context.getCurrent();
-    int n = storage.size();
-    var builder = Builder.getForType(BigIntegerType.INSTANCE, n, problemAggregator);
-    for (int i = 0; i < n; i++) {
-      Object o = storage.getItemBoxed(i);
-      switch (o) {
-        case null -> builder.appendNulls(1);
-        case Boolean b -> builder.appendNoGrow(booleanAsBigInteger(b));
-        case Long l -> builder.appendNoGrow(BigInteger.valueOf(l));
-        case Double d -> builder.appendNoGrow(BigDecimal.valueOf(d).toBigInteger());
-        case BigInteger bigInteger -> builder.appendNoGrow(bigInteger);
-        case BigDecimal bigDecimal -> builder.appendNoGrow(bigDecimal.toBigInteger());
-        default -> {
-          problemAggregator.reportConversionFailure(o);
-          builder.appendNulls(1);
-        }
-      }
-
-      context.safepoint();
-    }
-    return (Storage<BigInteger>) builder.seal();
+    return StorageConverter.innerLoop(
+        Builder.getForBigInteger(storage.size(), problemAggregator),
+        storage,
+        (i) -> {
+          Object o = storage.getItemBoxed(i);
+          return switch (o) {
+            case Boolean b -> booleanAsBigInteger(b);
+            case Long l -> BigInteger.valueOf(l);
+            case Double d -> BigDecimal.valueOf(d).toBigInteger();
+            case BigInteger bigInteger -> bigInteger;
+            case BigDecimal bigDecimal -> bigDecimal.toBigInteger();
+            default -> {
+              problemAggregator.reportConversionFailure(o);
+              yield null;
+            }
+          };
+        });
   }
 
-  public static BigInteger booleanAsBigInteger(boolean value) {
+  private static BigInteger booleanAsBigInteger(boolean value) {
     return value ? BigInteger.ONE : BigInteger.ZERO;
   }
 }

@@ -1,7 +1,7 @@
 package org.enso.table.data.column.builder;
 
 /** A builder for boolean columns - avoids boxing. */
-public interface BuilderForBoolean extends Builder {
+public interface BuilderForBoolean extends BuilderForType<Boolean> {
   /**
    * Append a new boolean to this builder.
    *

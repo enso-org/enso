@@ -4,7 +4,6 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Objects;
 import org.enso.base.polyglot.NumericConverter;
-import org.enso.table.data.column.operation.cast.ToFloatStorageConverter;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
@@ -134,7 +133,7 @@ public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
           if (boolStorage.isNothing(i)) {
             isNothing.set(currentSize++);
           } else {
-            data[currentSize++] = ToFloatStorageConverter.booleanAsDouble(boolStorage.getItem(i));
+            data[currentSize++] = boolStorage.getItem(i) ? 1.0 : 0.0;
           }
         }
       } else {

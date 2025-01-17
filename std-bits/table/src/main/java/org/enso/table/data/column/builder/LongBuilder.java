@@ -2,7 +2,6 @@ package org.enso.table.data.column.builder;
 
 import java.util.Objects;
 import org.enso.base.polyglot.NumericConverter;
-import org.enso.table.data.column.operation.cast.ToIntegerStorageConverter;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
@@ -119,7 +118,7 @@ public class LongBuilder extends NumericBuilder implements BuilderForLong, Build
           if (boolStorage.isNothing(i)) {
             isNothing.set(currentSize++);
           } else {
-            data[currentSize++] = ToIntegerStorageConverter.booleanAsLong(boolStorage.getItem(i));
+            data[currentSize++] = boolStorage.getItem(i) ? 1L : 0L;
           }
         }
       } else {

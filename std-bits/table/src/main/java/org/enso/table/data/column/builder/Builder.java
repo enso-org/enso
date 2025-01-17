@@ -15,6 +15,12 @@ import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.problems.ProblemAggregator;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZonedDateTime;
+
 /** Interface defining a builder for creating columns dynamically. */
 public interface Builder {
   /**
@@ -28,14 +34,14 @@ public interface Builder {
         switch (type) {
           case AnyObjectType _ -> new MixedBuilder(size);
           case BooleanType _ -> getForBoolean(size);
-          case DateType _ -> new DateBuilder(size, false);
-          case DateTimeType _ -> new DateTimeBuilder(size, false);
-          case TimeOfDayType _ -> new TimeOfDayBuilder(size);
+          case DateType _ -> getForDate(size);
+          case DateTimeType _ -> getForDateTime(size);
+          case TimeOfDayType _ -> getForTime(size);
           case FloatType floatType -> getForDouble(floatType, size, problemAggregator);
           case IntegerType integerType -> getForLong(integerType, size, problemAggregator);
-          case TextType textType -> new StringBuilder(size, textType);
-          case BigDecimalType _ -> new BigDecimalBuilder(size);
-          case BigIntegerType _ -> new BigIntegerBuilder(size, problemAggregator);
+          case TextType textType -> getForText(size, textType);
+          case BigDecimalType _ -> getForBigDecimal(size);
+          case BigIntegerType _ -> getForBigInteger(size, problemAggregator);
           case null -> getInferredBuilder(size, problemAggregator);
         };
     assert java.util.Objects.equals(builder.getType(), type);
@@ -98,6 +104,30 @@ public interface Builder {
    */
   static Builder getObjectBuilder(int size) {
     return new ObjectBuilder(size);
+  }
+
+  static BuilderForType<BigDecimal> getForBigDecimal(int size) {
+    return new BigDecimalBuilder(size);
+  }
+
+  static BuilderForType<BigInteger> getForBigInteger(int size, ProblemAggregator problemAggregator) {
+    return new BigIntegerBuilder(size, problemAggregator);
+  }
+
+  static BuilderForType<LocalDate> getForDate(int size) {
+    return new DateBuilder(size, false);
+  }
+
+  static BuilderForType<ZonedDateTime> getForDateTime(int size) {
+    return new DateTimeBuilder(size, false);
+  }
+
+  static BuilderForType<String> getForText(int size, TextType textType) {
+    return new StringBuilder(size, textType);
+  }
+
+  static BuilderForType<LocalTime> getForTime(int size) {
+    return new TimeOfDayBuilder(size);
   }
 
   /**
