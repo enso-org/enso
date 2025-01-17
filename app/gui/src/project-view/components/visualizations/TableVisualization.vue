@@ -2,6 +2,7 @@
 import icons from '@/assets/icons.svg'
 import AgGridTableView, { commonContextMenuActions } from '@/components/shared/AgGridTableView.vue'
 import {
+  GridFilterModel,
   useTableVizToolbar,
   type SortModel,
 } from '@/components/visualizations/TableVisualization/tableVizToolbar'
@@ -123,7 +124,7 @@ const rowCount = ref(0)
 const showRowCount = ref(true)
 const isTruncated = ref(false)
 const isCreateNodeEnabled = ref(false)
-const filterModel = ref({})
+const filterModel = ref<GridFilterModel[]>([])
 const sortModel = ref<SortModel[]>([])
 const dataGroupingMap = shallowRef<Map<string, boolean>>()
 const defaultColDef: Ref<ColDef> = ref({
@@ -760,7 +761,7 @@ function checkSortAndFilter(e: SortChangedEvent) {
   } else {
     isCreateNodeEnabled.value = false
     sortModel.value = []
-    filterModel.value = {}
+    filterModel.value = []
   }
 }
 

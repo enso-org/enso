@@ -25,7 +25,7 @@ type FilterAction =
   | 'inRange'
   | 'blank'
   | 'notBlank'
-export type FilterModel = {
+export type GridFilterModel = {
   columnName: string
   filterType: FilterType
   filter?: string
@@ -55,7 +55,7 @@ const actionMap = {
 }
 
 export interface SortFilterNodesButtonOptions {
-  filterModel: ToValue<FilterModel[]>
+  filterModel: ToValue<GridFilterModel[]>
   sortModel: ToValue<SortModel[]>
   isDisabled: ToValue<boolean>
   isFilterSortNodeEnabled: ToValue<boolean>
@@ -247,7 +247,7 @@ function useSortFilterNodesButton({
     const filterModelValue = toValue(filterModel)
     const sortModelValue = toValue(sortModel)
     if (filterModelValue.length) {
-      filterModelValue.map((filterModel: FilterModel) => {
+      filterModelValue.map((filterModel: GridFilterModel) => {
         const columnName = filterModel.columnName
         const filterAction = filterModel.filterAction
         const filterType = filterModel.filterType
