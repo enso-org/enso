@@ -1,8 +1,7 @@
 package org.enso.table.operations;
 
-public enum OffFill {
+public enum FillWith {
     NOTHING,
     CLOSEST_VALUE,
     WRAP_AROUND,
-    CONSTANT;
 }

@@ -13,13 +13,13 @@ public class Offset {
     public static Storage<?>[] offset(
       Column[] sourceColumns,
       int n,
-      OffFill offFill,
+      FillWith fillWith,
       Column[] groupingColumns,
       Column[] orderingColumns,
       int[] directions,
       ProblemAggregator problemAggregator) {
         if (n==0 || sourceColumns.length==0) return Arrays.stream(sourceColumns).map(c -> c.getStorage()).toArray(Storage<?>[]::new);
-        var offsetRowVisitorFactory = new OffsetRowVisitorFactory(sourceColumns[0], n, offFill);
+        var offsetRowVisitorFactory = new OffsetRowVisitorFactory(sourceColumns[0], n, fillWith);
         GroupingOrderingVisitor.visit(groupingColumns,
             orderingColumns,
             directions,
@@ -33,17 +33,17 @@ public class Offset {
 
         int[] result;
         int n;
-        OffFill offFill;
+        FillWith fillWith;
 
-        OffsetRowVisitorFactory(Column sourceColumn, int n, OffFill offFill) {
+        OffsetRowVisitorFactory(Column sourceColumn, int n, FillWith fillWith) {
             result = new int[sourceColumn.getSize()];
             this.n = n;
-            this.offFill = offFill;
+            this.fillWith = fillWith;
         }
 
         @Override
         public OffsetRowVisitor getNewRowVisitor() {
-            return new OffsetRowVisitor(n, offFill, result);
+            return new OffsetRowVisitor(n, fillWith, result);
         }
     }
 
@@ -54,17 +54,17 @@ public class Offset {
         int n;
         int current_n;
         int closestPos;
-        OffFill offFill;
+        FillWith fillWith;
         int[] result;
 
-        public OffsetRowVisitor(int n, OffFill offFill, int[] result)
+        public OffsetRowVisitor(int n, FillWith fillWith, int[] result)
         {
             this.rolling_queue = new LinkedList<>();
             this.fill_queue = new LinkedList<>();
             this.current_n = 0;
             this.closestPos = -1;
             this.n = n;
-            this.offFill = offFill;
+            this.fillWith = fillWith;
             this.result = result;
         }
 
@@ -91,7 +91,7 @@ public class Offset {
 
         @Override
         public void finalise() {
-            while (offFill == OffFill.WRAP_AROUND && current_n < Math.abs(n) && !fill_queue.isEmpty()) {
+            while (fillWith == FillWith.WRAP_AROUND && current_n < Math.abs(n) && !fill_queue.isEmpty()) {
                 var i = fill_queue.poll();
                 fill_queue.add(i);
                 current_n++;
@@ -108,11 +108,10 @@ public class Offset {
     
         int getFillValue()
         {
-            return switch (offFill) {
+            return switch (fillWith) {
                 case NOTHING -> Storage.NOT_FOUND_INDEX;
                 case CLOSEST_VALUE -> closestPos;
                 case WRAP_AROUND -> n<0 ? rolling_queue.poll() : fill_queue.poll();
-                case CONSTANT -> -1;
             };
         }
   }

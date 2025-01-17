@@ -51,7 +51,7 @@ import project.Internal.Join_Helpers
 import project.Internal.Lookup_Helpers
 import project.Internal.Lookup_Helpers.Lookup_Column
 import project.Internal.Offset
-import project.Internal.Offset.OffFill
+import project.Internal.Offset.Fill_With
 import project.Internal.Parse_Values_Helper
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Read_Many_Helpers
@@ -3808,7 +3808,7 @@ type Table
     @default (self-> Widget_Helpers.make_fill_default_value_selector2)
     @group_by Widget_Helpers.make_column_name_multi_selector
     @order_by Widget_Helpers.make_order_by_selector
-    offset self columns:(Vector (Integer | Text | Regex | By_Type))=(Missing_Argument.throw "columns") n:Integer=-1 default:OffFill=..Nothing (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (set_mode:Set_Mode=..Add) -> Table =
+    offset self columns:(Vector (Integer | Text | Regex | By_Type))=(Missing_Argument.throw "columns") n:Integer=-1 default:Fill_With=..Nothing (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (set_mode:Set_Mode=..Add) -> Table =
         Offset.table_offset_impl self columns n default group_by order_by set_mode
 
     ## PRIVATE
