@@ -108,6 +108,9 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
               problemAggregator.reportNumberOutOfRange(bigDecimal);
               builder.appendNulls(1);
             }
+          } else {
+            problemAggregator.reportConversionFailure(o);
+            builder.appendNulls(1);
           }
         });
   }
