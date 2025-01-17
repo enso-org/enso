@@ -54,6 +54,7 @@ export const colorForMessageType: Record<MessageType, string> = {
   color: var(--color-text-inversed);
   background-color: var(--background-color);
   line-height: 20px;
+  z-index: 30;
 }
 
 .icon {
