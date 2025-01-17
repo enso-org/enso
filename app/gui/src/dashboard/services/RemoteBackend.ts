@@ -18,11 +18,16 @@ import { DirectoryId, UserGroupId } from '#/services/Backend'
 import * as download from '#/utilities/download'
 import type HttpClient from '#/utilities/HttpClient'
 import * as object from '#/utilities/object'
+import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import invariant from 'tiny-invariant'
 
 // =================
 // === Constants ===
 // =================
+
+// FIXME[sb]: Temporary
+// eslint-disable-next-line no-restricted-syntax
+const MOCK_PROJECT_EXECUTIONS = true as boolean
 
 /** HTTP status indicating that the request was successful. */
 const STATUS_SUCCESS_FIRST = 200
@@ -199,6 +204,9 @@ interface RemoteBackendPostOptions {
 
 /** Class for sending requests to the Cloud backend API endpoints. */
 export default class RemoteBackend extends Backend {
+  // FIXME: For mock endpoint only, remove when backend is ready.
+  readonly projectExecutions: backend.ProjectExecution[] = []
+
   static readonly type = backend.BackendType.remote
 
   readonly type = RemoteBackend.type
@@ -844,11 +852,23 @@ export default class RemoteBackend extends Backend {
   ): Promise<backend.ProjectExecution> {
     const { projectId, ...rest } = body
     const path = remoteBackendPaths.createProjectExecutionPath(projectId)
-    const response = await this.post<backend.ProjectExecution>(path, rest)
-    if (!responseIsSuccessful(response)) {
-      return await this.throw(response, 'createProjectExecutionBackendError', title)
+    if (MOCK_PROJECT_EXECUTIONS) {
+      console.log('createProjectExecution', path, rest)
+      const projectExecution: backend.ProjectExecution = {
+        versionId: backend.S3ObjectVersionId(''),
+        projectExecutionId: backend.ProjectExecutionId(uniqueString()),
+        enabled: true,
+        ...body,
+      }
+      this.projectExecutions.push(projectExecution)
+      return Promise.resolve(projectExecution)
     } else {
-      return await response.json()
+      const response = await this.post<backend.ProjectExecution>(path, rest)
+      if (!responseIsSuccessful(response)) {
+        return await this.throw(response, 'createProjectExecutionBackendError', title)
+      } else {
+        return await response.json()
+      }
     }
   }
 
@@ -862,11 +882,24 @@ export default class RemoteBackend extends Backend {
     projectTitle: string,
   ): Promise<backend.ProjectExecution> {
     const path = remoteBackendPaths.updateProjectExecutionPath(executionId)
-    const response = await this.post<backend.ProjectExecution>(path, body)
-    if (!responseIsSuccessful(response)) {
-      return await this.throw(response, 'updateProjectExecutionBackendError', projectTitle)
+    if (MOCK_PROJECT_EXECUTIONS) {
+      console.log('updateProjectExecution', path, body)
+      const execution = this.projectExecutions.find(
+        (otherExecution) => otherExecution.projectExecutionId === executionId,
+      )
+      if (execution) {
+        object.unsafeMutable(execution).enabled = body.enabled ?? execution.enabled
+        return execution
+      } else {
+        return await this.throw(null, 'updateProjectExecutionBackendError', projectTitle)
+      }
     } else {
-      return await response.json()
+      const response = await this.post<backend.ProjectExecution>(path, body)
+      if (!responseIsSuccessful(response)) {
+        return await this.throw(response, 'updateProjectExecutionBackendError', projectTitle)
+      } else {
+        return await response.json()
+      }
     }
   }
 
@@ -879,11 +912,22 @@ export default class RemoteBackend extends Backend {
     projectTitle: string,
   ): Promise<void> {
     const path = remoteBackendPaths.deleteProjectExecutionPath(executionId)
-    const response = await this.delete<backend.ProjectExecution>(path)
-    if (!responseIsSuccessful(response)) {
-      return await this.throw(response, 'createProjectExecutionBackendError', projectTitle)
+    if (MOCK_PROJECT_EXECUTIONS) {
+      console.log('deleteProjectExecution', path)
+      const index = this.projectExecutions.findIndex(
+        (execution) => execution.projectExecutionId === executionId,
+      )
+      if (index !== -1) {
+        this.projectExecutions.splice(index, 1)
+      }
+      return Promise.resolve()
     } else {
-      return
+      const response = await this.delete<backend.ProjectExecution>(path)
+      if (!responseIsSuccessful(response)) {
+        return await this.throw(response, 'createProjectExecutionBackendError', projectTitle)
+      } else {
+        return
+      }
     }
   }
 
@@ -896,11 +940,18 @@ export default class RemoteBackend extends Backend {
     title: string,
   ): Promise<readonly backend.ProjectExecution[]> {
     const path = remoteBackendPaths.listProjectExecutionsPath(projectId)
-    const response = await this.get<readonly backend.ProjectExecution[]>(path)
-    if (!responseIsSuccessful(response)) {
-      return await this.throw(response, 'listProjectExecutionsBackendError', title)
+    if (MOCK_PROJECT_EXECUTIONS) {
+      console.log('listProjectExecutions', path)
+      return Promise.resolve(
+        this.projectExecutions.filter((execution) => execution.projectId === projectId),
+      )
     } else {
-      return await response.json()
+      const response = await this.get<readonly backend.ProjectExecution[]>(path)
+      if (!responseIsSuccessful(response)) {
+        return await this.throw(response, 'listProjectExecutionsBackendError', title)
+      } else {
+        return await response.json()
+      }
     }
   }
 
@@ -913,12 +964,24 @@ export default class RemoteBackend extends Backend {
     projectTitle: string,
   ): Promise<backend.ProjectExecution> {
     const path = remoteBackendPaths.syncProjectExecutionPath(executionId)
-
-    const response = await this.post<backend.ProjectExecution>(path, {})
-    if (!responseIsSuccessful(response)) {
-      return await this.throw(response, 'syncProjectExecutionBackendError', projectTitle)
+    if (MOCK_PROJECT_EXECUTIONS) {
+      console.log('syncProjectExecution', path)
+      const execution = this.projectExecutions.find(
+        (otherExecution) => otherExecution.projectExecutionId === executionId,
+      )
+      if (execution) {
+        object.unsafeMutable(execution).versionId = backend.S3ObjectVersionId(uniqueString())
+        return execution
+      } else {
+        return await this.throw(null, 'syncProjectExecutionBackendError', projectTitle)
+      }
     } else {
-      return await response.json()
+      const response = await this.post<backend.ProjectExecution>(path, {})
+      if (!responseIsSuccessful(response)) {
+        return await this.throw(response, 'syncProjectExecutionBackendError', projectTitle)
+      } else {
+        return await response.json()
+      }
     }
   }
 
