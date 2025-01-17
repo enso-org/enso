@@ -1,5 +1,6 @@
 package org.enso.compiler.dump;
 
+import java.io.File;
 import java.util.ServiceLoader;
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.context.ModuleContext;
@@ -55,7 +56,9 @@ public final class IRDumperPass implements IRPass {
   public Module runModule(Module ir, ModuleContext moduleContext) {
     var moduleName = moduleContext.getName().toString();
     if (dumpService != null) {
-      dumpService.dump(ir, moduleName, null);
+      var path = moduleContext.module().getPath();
+      var file = path == null ? null : new File(path);
+      dumpService.dump(ir, moduleName, file);
     }
     return ir;
   }

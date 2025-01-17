@@ -1,8 +1,16 @@
 package org.enso.compiler.dump.igv;
 
 final class ASTMethod {
+  static final ASTMethod UNKNOWN = new ASTMethod();
 
   public String getName() {
-    throw new UnsupportedOperationException("unimplemented");
+    return "<unknown>";
+  }
+
+  static final class Signature {
+    static final Signature NONE = new Signature();
+
+    private Signature() {
+    }
   }
 }
