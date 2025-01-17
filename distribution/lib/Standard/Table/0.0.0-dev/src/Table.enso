@@ -3790,7 +3790,7 @@ type Table
     running self (statistic:Statistic=..Count) (of:(Text | Integer)=0) (as:Text='') (set_mode:Set_Mode=..Add) (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (on_problems:Problem_Behavior=..Report_Warning) =
         Incomparable_Values.handle_errors <| Add_Running.add_running self statistic of as set_mode group_by order_by on_problems
 
-    ## ALIAS shift, lag, slide, displace
+    ## ALIAS shift, lead, lag, slide, displace
        GROUP Standard.Base.Values
        ICON column_add
 
