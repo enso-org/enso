@@ -40,6 +40,8 @@ final class EnsoModuleAST {
   /** Underlying source file. May be null. */
   private final File srcFile;
 
+  private final String moduleName;
+
   private final Map<Integer, ASTNode> nodes = new HashMap<>();
 
   /** List of blocks that are already built. */
@@ -48,19 +50,31 @@ final class EnsoModuleAST {
   /** Stack of blocks that are being built. */
   private final Queue<ASTBlock.Builder> blockStack = new ArrayDeque<>();
 
-  private int currentNodeId = 0;
+  private int currentNodeId;
 
-  private EnsoModuleAST(Module moduleIr, File srcFile) {
+  private EnsoModuleAST(Module moduleIr, File srcFile, String moduleName, int nodeId) {
+    this.currentNodeId = nodeId;
     this.srcFile = srcFile;
+    this.moduleName = moduleName;
     this.root = buildTree(moduleIr);
   }
 
-  static EnsoModuleAST fromIR(Module module, File srcFile) {
-    return new EnsoModuleAST(module, srcFile);
+  /**
+   * @param srcFile Source file for the module. May be null.
+   * @param moduleName FQN of the module.
+   * @param nodeId First node id that we should start with. Every node in the whole graph should
+   *     have a different ID.
+   */
+  static EnsoModuleAST fromIR(Module module, File srcFile, String moduleName, int nodeId) {
+    return new EnsoModuleAST(module, srcFile, moduleName, nodeId);
   }
 
   public File getSrcFile() {
     return srcFile;
+  }
+
+  public String getModuleName() {
+    return moduleName;
   }
 
   public List<ASTNode> getNodes() {
