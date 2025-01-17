@@ -2,7 +2,9 @@ package org.enso.compiler.dump;
 
 import static org.enso.scala.wrapper.ScalaConversions.asJava;
 
+import java.util.ArrayList;
 import java.util.List;
+import org.enso.compiler.core.ConstantsNames;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.DefinitionArgument;
 import org.enso.compiler.core.ir.Expression;
@@ -18,7 +20,9 @@ import org.enso.compiler.pass.resolve.TypeSignatures$;
 import org.enso.pkg.QualifiedName;
 
 final class DocsUtils {
-  DocsUtils() {}
+  private static final String ANY = "Standard.Base.Any.Any";
+
+  private DocsUtils() {}
 
   static String toSignature(Method.Explicit m) {
     var sb = new StringBuilder();
@@ -32,10 +36,8 @@ final class DocsUtils {
         }
         sb.append(" ").append(toSignature(a));
       }
-      var ret = extractTypeOrNull(fn.body());
-      if (ret != null) {
-        sb.append(" -> ").append(ret);
-      }
+      var ret = extractTypeOrAny(fn.body());
+      sb.append(" -> ").append(ret);
     }
     return sb.toString();
   }
@@ -54,9 +56,10 @@ final class DocsUtils {
     if (a.suspended()) {
       sb.append("~");
     }
-    sb.append(a.name().name());
-    var type = extractTypeOrNull(a);
-    if (type != null) {
+    var name = a.name().name();
+    sb.append(name);
+    if (!ConstantsNames.SELF_ARGUMENT.equals(name)) {
+      var type = extractTypeOrAny(a);
       sb.append(":").append(type);
     }
     if (a.defaultValue().isDefined()) {
@@ -65,7 +68,7 @@ final class DocsUtils {
     return sb.toString();
   }
 
-  private static String extractTypeOrNull(IR ir) {
+  private static String extractTypeOrAny(IR ir) {
     var meta = ir.passData().get(TypeSignatures$.MODULE$);
     if (meta.isDefined()) {
       var sigMeta = (TypeSignatures.Signature) meta.get();
@@ -84,8 +87,7 @@ final class DocsUtils {
               sb.append("(");
               sb.append(typeConstructor);
               for (var a : asJava(app.arguments())) {
-                var fqn = extractFqnOrNull(a.value());
-                assert fqn != null : "No FQN for " + a;
+                var fqn = extractTypeOrAny(a.value());
                 sb.append(" ");
                 sb.append(fqn);
               }
@@ -93,12 +95,26 @@ final class DocsUtils {
               yield sb.toString();
             }
             case Set.Union union -> extractSet(asJava(union.operands()), "|");
-            default -> null;
+            case Set.Intersection inter -> extractSet(collectInter(inter, new ArrayList<>()), "&");
+            default -> ANY;
           };
       return type;
     } else {
+      if (ir instanceof Application.Force force) {
+        return extractTypeOrAny(force.target());
+      }
       var fqn = extractFqnOrNull(ir);
-      return fqn == null ? null : fqn.toString();
+      return fqn == null ? ANY : fqn.toString();
+    }
+  }
+
+  private static List<Expression> collectInter(Expression ir, List<Expression> append) {
+    if (ir instanceof Set.Intersection inter) {
+      var left = collectInter(inter.left(), append);
+      return collectInter(inter.right(), left);
+    } else {
+      append.add(ir);
+      return append;
     }
   }
 
@@ -110,8 +126,7 @@ final class DocsUtils {
       } else {
         sb.append(sep);
       }
-      var opType = extractTypeOrNull(op);
-      assert opType != null;
+      var opType = extractTypeOrAny(op);
       sb.append(opType);
     }
     sb.append(")");

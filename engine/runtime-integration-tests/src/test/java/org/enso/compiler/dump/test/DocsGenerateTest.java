@@ -135,7 +135,8 @@ public class DocsGenerateTest {
     assertNull("No type associated", v.visitMethod.get(0).t());
     var sum = v.visitMethod.get(0).ir();
     assertEquals(
-        "sum ~x:Standard.Base.Data.Numbers.Integer y:Standard.Base.Data.Numbers.Integer=",
+        "sum ~x:Standard.Base.Data.Numbers.Integer y:Standard.Base.Data.Numbers.Integer= ->"
+            + " Standard.Base.Any.Any",
         DocsVisit.toSignature(sum));
   }
 
@@ -177,7 +178,8 @@ public class DocsGenerateTest {
     var p = v.visitMethod.get(0);
     assertEquals("Result", p.t().name().name());
     var sum = p.ir();
-    assertEquals("sum self y", DocsVisit.toSignature(sum));
+    assertEquals(
+        "sum self y:Standard.Base.Any.Any -> Standard.Base.Any.Any", DocsVisit.toSignature(sum));
   }
 
   @Test
@@ -198,7 +200,8 @@ public class DocsGenerateTest {
     assertEquals("Result", p.t().name().name());
     var sum = p.ir();
     assertEquals(
-        "sum ~x:Standard.Base.Data.Numbers.Integer y:Standard.Base.Data.Numbers.Integer=",
+        "sum ~x:Standard.Base.Data.Numbers.Integer y:Standard.Base.Data.Numbers.Integer= ->"
+            + " Standard.Base.Any.Any",
         DocsVisit.toSignature(sum));
   }
 
@@ -274,6 +277,35 @@ public class DocsGenerateTest {
         "Generates vector with argument type as return type",
         "one a:local.Union.Main.A -> (local.Union.Main.A|local.Union.Main.B|local.Union.Main.C)",
         DocsVisit.toSignature(m));
+  }
+
+  @Test
+  public void intersectionTypes() throws Exception {
+    var code =
+        """
+        type A
+        type B
+        type C
+
+        one a:A -> A & B & C = a
+        """;
+
+    var v = new MockVisitor();
+    generateDocumentation("Inter", code, v);
+
+    assertEquals("One methods", 1, v.visitMethod.size());
+    assertEquals("No constructors", 0, v.visitConstructor.size());
+
+    var p = v.visitMethod.get(0);
+    assertNull("It is a module method", p.t());
+
+    var m = p.ir();
+    var sig = DocsVisit.toSignature(m);
+    assertEquals("one", m.methodName().name());
+    assertEquals(
+        "Generates vector with argument type as return type",
+        "one a:local.Inter.Main.A -> (local.Inter.Main.A&local.Inter.Main.B&local.Inter.Main.C)",
+        sig);
   }
 
   private static void generateDocumentation(String name, String code, DocsVisit v)
