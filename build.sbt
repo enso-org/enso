@@ -3782,6 +3782,10 @@ lazy val `engine-runner` = project
             "enso",
             targetDir     = engineDistributionRoot.value / "bin",
             staticOnLinux = false,
+            // sqlite-jdbc includes `--enable-url-protocols=jar` in its native-image.properites file,
+            // which breaks all our class loading. We still want to run `SqliteJdbcFeature` which extracts a proper
+            // native library from the jar.
+            excludeConfigs = Seq(s".*sqlite-jdbc-.*\\.jar,META-INF/native-image/org\\.xerial/sqlite-jdbc/native-image\\.properties"),
             additionalOptions = Seq(
               "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
               "-H:IncludeResources=.*Main.enso$",
@@ -3794,9 +3798,11 @@ lazy val `engine-runner` = project
               // "-H:-DeleteLocalSymbols",
               // you may need to set smallJdk := None to use following flags:
               // "--trace-class-initialization=org.enso.syntax2.Parser",
+              // "--diagnostics-mode",
+              // "--verbose",
               "-Dnic=nic",
               "-Dorg.enso.feature.native.lib.output=" + (engineDistributionRoot.value / "bin"),
-              "-Dorg.sqlite.lib.exportPath=" + (engineDistributionRoot.value / "bin")
+              "-Dorg.sqlite.lib.exportPath=" + (engineDistributionRoot.value / "bin"),
             ),
             mainClass = Some("org.enso.runner.Main"),
             initializeAtRuntime = Seq(

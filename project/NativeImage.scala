@@ -87,6 +87,7 @@ object NativeImage {
     name: String,
     staticOnLinux: Boolean,
     targetDir: File                          = null,
+    excludeConfigs: Seq[String]              = Seq.empty,
     additionalOptions: Seq[String]           = Seq.empty,
     buildMemoryLimitMegabytes: Option[Int]   = Some(15608),
     runtimeThreadStackMegabytes: Option[Int] = Some(2),
@@ -199,8 +200,10 @@ object NativeImage {
       log.debug("Class-path: " + cpStr)
 
       val verboseOpt = if (verbose) Seq("--verbose") else Seq()
+      val excludeConfigsOpt = if (excludeConfigs.nonEmpty) excludeConfigs.flatMap(ex => Seq("--exclude-config") ++ ex.split(",")) else Seq.empty
 
       var args: Seq[String] =
+        excludeConfigsOpt ++
         Seq("-cp", cpStr) ++
         quickBuildOption ++
         debugParameters ++ staticParameters ++ configs ++
