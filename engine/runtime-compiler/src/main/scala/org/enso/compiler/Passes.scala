@@ -1,7 +1,6 @@
 package org.enso.compiler
 
 import org.enso.compiler.data.CompilerConfig
-import org.enso.compiler.dump.{IRDumper}
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse._
 import org.enso.compiler.pass.analyse.types.scope.StaticModuleScopeAnalysis
@@ -142,14 +141,9 @@ class Passes(config: CompilerConfig) {
     AliasAnalysis -->> AliasAnalysis.Configuration()
   )
 
-  private val irDumper: Option[IRDumper] = config.irDumper match {
-    case Some(dumperName) => Some(new IRDumper(dumperName))
-    case None             => None
-  }
-
   /** The pass manager for running compiler passes. */
   val passManager: PassManager =
-    new PassManager(passOrdering, passConfig, irDumper)
+    new PassManager(passOrdering, passConfig)
 
   /** Slices the compiler's pass ordering to provide the list of all passes that
     * run _before_ [[pass]].

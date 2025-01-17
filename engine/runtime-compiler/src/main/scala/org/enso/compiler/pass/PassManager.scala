@@ -22,8 +22,7 @@ import scala.collection.mutable.ListBuffer
 //noinspection DuplicatedCode
 class PassManager(
   protected val passes: List[PassGroup],
-  passConfiguration: PassConfiguration,
-  private val irDumper: Option[IRDumper] = None
+  passConfiguration: PassConfiguration
 ) {
   private val logger = LoggerFactory.getLogger(classOf[PassManager])
   val allPasses      = verifyPassOrdering(passes.flatMap(_.passes))
@@ -71,7 +70,8 @@ class PassManager(
   def runPassesOnModule(
     ir: Module,
     moduleContext: ModuleContext,
-    passGroup: PassGroup
+    passGroup: PassGroup,
+    irDumper: Option[IRDumper]
   ): Module = {
     if (!passes.contains(passGroup)) {
       throw new CompilerError("Cannot run an unvalidated pass group.")
@@ -91,6 +91,7 @@ class PassManager(
       newContext,
       passGroup,
       moduleName = Some(moduleContext.getName().toString),
+      irDumper   = irDumper,
       createMiniPass =
         (factory, ctx) => factory.createForModuleCompilation(ctx),
       miniPassCompile = (miniPass, ir) =>
@@ -138,6 +139,7 @@ class PassManager(
       newContext,
       passGroup,
       moduleName = null,
+      irDumper   = None,
       createMiniPass =
         (factory, ctx) => factory.createForInlineCompilation(ctx),
       miniPassCompile = (miniPass, ir) =>
@@ -149,6 +151,7 @@ class PassManager(
   private def dump(
     ir: IR,
     moduleName: Option[String],
+    irDumper: Option[IRDumper],
     passName: String
   ): Unit = {
     (ir, moduleName, irDumper) match {
@@ -172,6 +175,7 @@ class PassManager(
     context: ContextType,
     passGroup: PassGroup,
     moduleName: Option[String],
+    irDumper: Option[IRDumper],
     createMiniPass: (MiniPassFactory, ContextType) => MiniIRPass,
     miniPassCompile: (MiniIRPass, IRType) => IRType,
     megaPassCompile: (IRPass, IRType, ContextType) => IRType
@@ -187,7 +191,7 @@ class PassManager(
         if (combinedPass != null) {
           logger.trace("  flushing pending mini pass: {}", combinedPass)
           val ret = miniPassCompile(combinedPass, in)
-          dump(ret, moduleName, combinedPass.toString)
+          dump(ret, moduleName, irDumper, combinedPass.toString)
           ret
         } else {
           in
@@ -236,7 +240,7 @@ class PassManager(
               megaPass
             )
             val ret = megaPassCompile(megaPass, flushedIR, context)
-            dump(ret, moduleName, megaPass.toString)
+            dump(ret, moduleName, irDumper, megaPass.toString)
             ret
         }
     }

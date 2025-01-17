@@ -35,6 +35,11 @@ public final class IRDumper {
     dumpService.dump(moduleIr, moduleName, srcFile, afterPass);
   }
 
+  /** Close and flush all the graphs. */
+  public void close() {
+    logger.debug("Closing IRDumper");
+  }
+
   private static IRDumpService loadService(String implName) {
     var loader = ServiceLoader.load(IRDumpService.class);
     for (IRDumpService service : loader) {
