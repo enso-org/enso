@@ -235,6 +235,9 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
           item={item}
           defaultDate={toZoned(selectedDate, timeZone)}
           onChange={setNewProjectExecutionInfo}
+          onCancel={() => {
+            setIsCreatingExecution(false)
+          }}
         />
       : <>
           <Text>

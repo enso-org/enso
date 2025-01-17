@@ -26,6 +26,7 @@ import {
 } from 'enso-common/src/services/Backend'
 
 import {
+  Button,
   ButtonGroup,
   DatePicker,
   Dialog,
@@ -202,11 +203,12 @@ export function NewProjectExecutionModal(props: NewProjectExecutionModalProps) {
 /** Props for a {@link NewProjectExecutionForm}. */
 export interface NewProjectExecutionFormProps extends NewProjectExecutionModalProps {
   readonly onChange?: (value: ProjectExecutionInfo) => void
+  readonly onCancel?: () => void
 }
 
 /** A modal for confirming the deletion of an asset. */
 export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
-  const { backend, item, defaultDate, onChange } = props
+  const { backend, item, defaultDate, onChange, onCancel } = props
   const { getText } = useText()
   const [preferredTimeZone] = useLocalStorageState('preferredTimeZone')
   const getOrdinal = useGetOrdinal()
@@ -408,7 +410,11 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
       <Form.FormError />
       <ButtonGroup>
         <Form.Submit />
-        <DialogDismiss />
+        {onCancel ?
+          <Button variant="outline" onPress={onCancel}>
+            {getText('cancel')}
+          </Button>
+        : <DialogDismiss />}
       </ButtonGroup>
     </Form>
   )
