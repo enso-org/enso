@@ -51,7 +51,6 @@ import project.Internal.Join_Helpers
 import project.Internal.Lookup_Helpers
 import project.Internal.Lookup_Helpers.Lookup_Column
 import project.Internal.Offset
-import project.Internal.Offset.Fill_With
 import project.Internal.Parse_Values_Helper
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Read_Many_Helpers
@@ -63,6 +62,7 @@ import project.Internal.Table_Ref.Table_Ref
 import project.Internal.Union
 import project.Internal.Value_Type_Helpers
 import project.Internal.Widget_Helpers
+import project.Fill_With.Fill_With
 import project.Join_Condition.Join_Condition
 import project.Join_Kind.Join_Kind
 import project.Match_Columns.Match_Columns

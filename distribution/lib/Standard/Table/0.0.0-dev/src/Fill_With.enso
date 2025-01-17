@@ -1,0 +1,16 @@
+from Standard.Base import all
+
+polyglot java import org.enso.table.operations.FillWith as Java_Fill_With
+
+type Fill_With
+    Nothing
+    Closest_Value
+    Wrap_Around
+
+    to_java self = case self of
+        Fill_With.Nothing -> Java_Fill_With.NOTHING
+        Fill_With.Closest_Value -> Java_Fill_With.CLOSEST_VALUE
+        Fill_With.Wrap_Around -> Java_Fill_With.WRAP_AROUND
+        _ -> Nothing
+
+## Fill_With.from (that:Any) = Fill_With.Constant that
