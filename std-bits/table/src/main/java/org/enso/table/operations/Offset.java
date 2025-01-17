@@ -28,7 +28,9 @@ public class Offset {
         offsetRowVisitorFactory,
         sourceColumns[0].getSize());
     return Arrays.stream(sourceColumns)
-        .map(c -> c.getStorage().applyMask(OrderMask.fromArray(offsetRowVisitorFactory.rowOrderMask)))
+        .map(
+            c ->
+                c.getStorage().applyMask(OrderMask.fromArray(offsetRowVisitorFactory.rowOrderMask)))
         .toArray(Storage<?>[]::new);
   }
 
