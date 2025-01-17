@@ -4,7 +4,9 @@ import static org.enso.scala.wrapper.ScalaConversions.asJava;
 
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.DefinitionArgument;
+import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Function.Lambda;
+import org.enso.compiler.core.ir.expression.Application;
 import org.enso.compiler.core.ir.module.scope.Definition;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.compiler.data.BindingsMap;
@@ -61,15 +63,39 @@ final class DocsUtils {
     return sb.toString();
   }
 
-  private static QualifiedName extractTypeOrNull(IR ir) {
+  private static String extractTypeOrNull(IR ir) {
     var meta = ir.passData().get(TypeSignatures$.MODULE$);
     if (meta.isDefined()) {
-      var sig = (TypeSignatures.Signature) meta.get();
-      var typeNameOpt = sig.signature().passData().get(TypeNames$.MODULE$);
-      if (typeNameOpt.isDefined()) {
-        var typeName = (BindingsMap.Resolution) typeNameOpt.get();
-        return typeName.target().qualifiedName();
+      var sigMeta = (TypeSignatures.Signature) meta.get();
+      var sigFqn = extractFqnOrNull(sigMeta.signature());
+      if (sigFqn != null) {
+        return sigFqn.toString();
       }
+      if (sigMeta.signature() instanceof Application.Prefix app) {
+        var typeConstructor = extractFqnOrNull(app.function()).toString();
+        if (typeConstructor != null) {
+          var sb = new StringBuilder();
+          sb.append("(");
+          sb.append(typeConstructor);
+          for (var a : asJava(app.arguments())) {
+            var fqn = extractFqnOrNull(a.value());
+            assert fqn != null : "No FQN for " + a;
+            sb.append(" ");
+            sb.append(fqn);
+          }
+          sb.append(")");
+          return sb.toString();
+        }
+      }
+    }
+    return null;
+  }
+
+  private static QualifiedName extractFqnOrNull(Expression ir) {
+    var typeNameOpt = ir.passData().get(TypeNames$.MODULE$);
+    if (typeNameOpt.isDefined()) {
+      var typeName = (BindingsMap.Resolution) typeNameOpt.get();
+      return typeName.target().qualifiedName();
     }
     return null;
   }

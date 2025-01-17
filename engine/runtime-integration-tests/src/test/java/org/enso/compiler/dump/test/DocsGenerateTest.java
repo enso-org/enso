@@ -221,6 +221,33 @@ public class DocsGenerateTest {
     assertEquals("No constructors", 0, v.visitConstructor.size());
   }
 
+  @Test
+  public void vectorWithElements() throws Exception {
+    var code =
+        """
+        from Standard.Base import Vector, Text
+
+        values a:Text -> Vector Text = [a]
+        """;
+
+    var v = new MockVisitor();
+    generateDocumentation("VectorText", code, v);
+
+    assertEquals("One methods", 1, v.visitMethod.size());
+    assertEquals("No constructors", 0, v.visitConstructor.size());
+
+    var p = v.visitMethod.get(0);
+    assertNull("It is a module method", p.t());
+
+    var m = p.ir();
+    assertEquals("values", m.methodName().name());
+    assertEquals(
+        "Generates vector with argument type as return type",
+        "values a:Standard.Base.Data.Text.Text -> (Standard.Base.Data.Vector.Vector"
+            + " Standard.Base.Data.Text.Text)",
+        DocsVisit.toSignature(m));
+  }
+
   private static void generateDocumentation(String name, String code, DocsVisit v)
       throws IOException {
     var pathCalc = TEMP.newFolder(name);
