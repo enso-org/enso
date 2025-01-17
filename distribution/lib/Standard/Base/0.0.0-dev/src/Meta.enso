@@ -175,7 +175,7 @@ type Unresolved_Symbol
 
        Arguments:
        - new_name: The new name for the unresolved symbol.
-    rename self new_name:Text -> Any =
+    rename self new_name:Text -> Unresolved_Symbol =
         Meta_Helpers.create_unresolved_symbol_builtin new_name self.value
 
     ## ADVANCED
@@ -278,8 +278,7 @@ atom_with_hole factory = @Tail_Call Meta_Helpers.atom_with_hole_builtin factory
 
    Arguments:
    - value: The runtime entity to get the meta representation of.
-meta : Any -> Atom | Constructor | Primitive | Polyglot | Unresolved_Symbol | Error
-meta ~value =
+meta ~value -> Atom | Constructor | Primitive | Polyglot | Unresolved_Symbol | Error =
     ac = Meta_Helpers.find_atom_constructor_builtin value...
     if ac.is_nothing.not then Constructor.Value ac else
         if Meta_Helpers.is_atom_builtin value... then Atom.Value value else
@@ -383,7 +382,7 @@ is_type value -> Boolean = @Tail_Call Meta_Helpers.is_type_builtin value
 
    Arguments:
    - value: The value to check.
-is_polyglot value -> Boolean = @Builtin_Method "Meta.is_polyglot"
+is_polyglot value -> Boolean = @Tail_Call Meta_Helpers.is_polyglot_builtin value
 
 ## PRIVATE
 
