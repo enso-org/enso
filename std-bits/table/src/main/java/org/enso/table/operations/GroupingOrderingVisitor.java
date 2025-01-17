@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
-
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.index.MultiValueIndex;
@@ -17,46 +16,25 @@ import org.enso.table.problems.ColumnAggregatedProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.ConstantList;
 
-
 /**
  * Abstract class GroupingOrderingVisitor
- * 
- * Overview:
- * This class provides a mechanism for visiting rows of data based on grouping and ordering criteria. 
- * Usage :
- *       GroupingOrderingVisitor.visit(
- *          groupingColumns,
- *          orderingColumns,
- *          directions,
- *          problemAggregator,
- *          rowVisitorFactory,
- *          sourceColumn.getSize());
  *
- * Static Method:
- * - static void visit(
- *       Column[] groupingColumns,
- *       Column[] orderingColumns,
- *       int[] directions,
- *       ProblemAggregator problemAggregator,
- *       RowVisitorFactory visitor,
- *       long numRows)
- *   Description:
- *     For each group: will call getNewRowVisitor()
- *     Then for each row in that group will call visit(rowNumber) on the visitor for that group in the order specified by the OrderingColumns
- *     Then calls finalise() to indicate that group is complete and there will be no more calls to visit
- *   Parameters:
- *     - groupingColumns: Columns used to group data.
- *     - orderingColumns: Columns used to order data within groups.
- *     - directions: Array specifying the sort direction for each orderingColumn.
- *     - problemAggregator: Collects problems with grouping/ordering
- *     - visitor: Factory to generate row visitors.
- *     - numRows: The total number of rows in the data set.
- *   Exceptions:
- *     - Throws IllegalArgumentException if the length of orderingColumns and directions do not match.
- *   Notes:
- *     - Can be used without any groupingColumns in which case the whole dataset is treated as a single group
- *     - Can be used without orderingColumns in which case the orginal record order is used
- * 
+ * <p>Overview: This class provides a mechanism for visiting rows of data based on grouping and
+ * ordering criteria. Usage : GroupingOrderingVisitor.visit( groupingColumns, orderingColumns,
+ * directions, problemAggregator, rowVisitorFactory, sourceColumn.getSize());
+ *
+ * <p>Static Method: - static void visit( Column[] groupingColumns, Column[] orderingColumns, int[]
+ * directions, ProblemAggregator problemAggregator, RowVisitorFactory visitor, long numRows)
+ * Description: For each group: will call getNewRowVisitor() Then for each row in that group will
+ * call visit(rowNumber) on the visitor for that group in the order specified by the OrderingColumns
+ * Then calls finalise() to indicate that group is complete and there will be no more calls to visit
+ * Parameters: - groupingColumns: Columns used to group data. - orderingColumns: Columns used to
+ * order data within groups. - directions: Array specifying the sort direction for each
+ * orderingColumn. - problemAggregator: Collects problems with grouping/ordering - visitor: Factory
+ * to generate row visitors. - numRows: The total number of rows in the data set. Exceptions: -
+ * Throws IllegalArgumentException if the length of orderingColumns and directions do not match.
+ * Notes: - Can be used without any groupingColumns in which case the whole dataset is treated as a
+ * single group - Can be used without orderingColumns in which case the orginal record order is used
  */
 abstract class GroupingOrderingVisitor {
   public static void visit(

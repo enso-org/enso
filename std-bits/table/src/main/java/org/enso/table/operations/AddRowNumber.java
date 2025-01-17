@@ -19,7 +19,8 @@ public class AddRowNumber {
       throw new IllegalArgumentException("At least one grouping or ordering column is required.");
     }
     var sourceColumn = groupingColumns.length > 0 ? groupingColumns[0] : orderingColumns[0];
-    var numberingStatistic = new RowNumberRowVisitorFactory(start, step, sourceColumn.getSize(), problemAggregator);
+    var numberingStatistic =
+        new RowNumberRowVisitorFactory(start, step, sourceColumn.getSize(), problemAggregator);
     GroupingOrderingVisitor.visit(
         groupingColumns,
         orderingColumns,
@@ -37,7 +38,7 @@ public class AddRowNumber {
     long[] numbers;
 
     RowNumberRowVisitorFactory(
-      long start, long step, int size, ProblemAggregator problemAggregator) {
+        long start, long step, int size, ProblemAggregator problemAggregator) {
       this.start = start;
       this.step = step;
       numbers = new long[size];
@@ -47,6 +48,7 @@ public class AddRowNumber {
     public RowVisitor getNewRowVisitor() {
       return new RowNumberRowVisitor(start, step, numbers);
     }
+
     private static class RowNumberRowVisitor implements RowVisitor {
 
       private final long start;
@@ -63,7 +65,7 @@ public class AddRowNumber {
 
       @Override
       public void visit(int row) {
-          numbers[row] = next();
+        numbers[row] = next();
       }
 
       public Long next() throws ArithmeticException {

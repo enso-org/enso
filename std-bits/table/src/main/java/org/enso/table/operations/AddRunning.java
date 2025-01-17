@@ -1,7 +1,6 @@
 package org.enso.table.operations;
 
 import java.util.BitSet;
-
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.base.statistics.Statistic;
 import org.enso.table.data.column.storage.Storage;
@@ -23,7 +22,8 @@ public class AddRunning {
       Column[] orderingColumns,
       int[] directions,
       ProblemAggregator problemAggregator) {
-    var runningStatistic = new RunningStatisticRowVisitorFactory(statistic, sourceColumn, problemAggregator);
+    var runningStatistic =
+        new RunningStatisticRowVisitorFactory(statistic, sourceColumn, problemAggregator);
     GroupingOrderingVisitor.visit(
         groupingColumns,
         orderingColumns,
@@ -38,26 +38,28 @@ public class AddRunning {
 
     RunningStatisticBase<?> runningStatistic;
 
-    RunningStatisticRowVisitorFactory(Statistic statistic, Column sourceColumn, ProblemAggregator problemAggregator) {
-        runningStatistic = createRunningStatistic(statistic, sourceColumn, problemAggregator);
+    RunningStatisticRowVisitorFactory(
+        Statistic statistic, Column sourceColumn, ProblemAggregator problemAggregator) {
+      runningStatistic = createRunningStatistic(statistic, sourceColumn, problemAggregator);
     }
 
     @Override
     public RowVisitor getNewRowVisitor() {
       return new RunningStatisticRowVisitor<>(runningStatistic);
     }
+
     private static class RunningStatisticRowVisitor<T> implements RowVisitor {
       RunningStatisticBase<T> runningStatistic;
       RunningIterator<T> iterator;
 
       RunningStatisticRowVisitor(RunningStatisticBase<T> runningStatistic) {
-          this.runningStatistic = runningStatistic;
-          iterator = runningStatistic.getNewIterator();
+        this.runningStatistic = runningStatistic;
+        iterator = runningStatistic.getNewIterator();
       }
 
       @Override
       public void visit(int row) {
-          runningStatistic.calculateNextValue(row, iterator);
+        runningStatistic.calculateNextValue(row, iterator);
       }
     }
   }
@@ -163,7 +165,8 @@ public class AddRunning {
     }
   }
 
-  private abstract static class RunningStatisticBase<T> implements RunningStatistic<RunningIterator<T>> {
+  private abstract static class RunningStatisticBase<T>
+      implements RunningStatistic<RunningIterator<T>> {
 
     long[] result;
     BitSet isNothing;
