@@ -552,8 +552,8 @@ const showMenuAt = ref<{ x: number; y: number }>()
       :message="visibleMessage.text"
       :type="visibleMessage.type"
     />
+    <div class="nodeBackground"></div>
     <svg class="bgPaths">
-      <rect class="bgFill" />
       <GraphNodeOutputPorts
         v-if="props.node.type !== 'output'"
         :nodeId="nodeId"
@@ -585,20 +585,22 @@ const showMenuAt = ref<{ x: number; y: number }>()
   --output-port-transform: translateY(var(--viz-below-node));
 }
 
-.bgFill {
-  width: var(--node-size-x);
-  height: var(--node-size-y);
-  rx: var(--node-border-radius);
-
-  fill: var(--color-node-background);
-  transition: fill 0.2s ease;
-}
-
 .GraphNode {
   position: absolute;
   border-radius: var(--node-border-radius);
   transition: box-shadow 0.2s ease-in-out;
   box-sizing: border-box;
+}
+
+.nodeBackground {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--node-border-radius);
+  background-color: var(--color-node-background);
+  transition: background-color 0.2s ease;
 }
 
 .content {
