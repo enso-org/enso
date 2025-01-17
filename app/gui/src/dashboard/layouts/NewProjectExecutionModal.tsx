@@ -54,7 +54,7 @@ import {
   MONTH_3_LETTER_TEXT_IDS,
   toRfc3339,
 } from 'enso-common/src/utilities/data/dateTime'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 
 const MAX_DURATION_DEFAULT_MINUTES = 60
 const MAX_DURATION_MINIMUM_MINUTES = 1
@@ -216,6 +216,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
   const enableAdvancedProjectExecutionOptions = useFeatureFlag(
     'enableAdvancedProjectExecutionOptions',
   )
+  const valueJson = useRef('')
 
   const nowZonedDateTime = now(timeZone)
   const minFirstOccurrence = nowZonedDateTime
@@ -254,7 +255,11 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
     if (onChange) {
       const parsed = form.schema.safeParse(form.getValues())
       if (parsed.success) {
-        onChange(parsed.data)
+        const newJson = JSON.stringify(parsed)
+        if (newJson !== valueJson.current) {
+          onChange(parsed.data)
+          valueJson.current = newJson
+        }
       }
     }
   })
