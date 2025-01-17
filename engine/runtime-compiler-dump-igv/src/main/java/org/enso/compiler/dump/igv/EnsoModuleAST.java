@@ -20,6 +20,7 @@ import org.enso.compiler.core.ir.Pattern;
 import org.enso.compiler.core.ir.Type;
 import org.enso.compiler.core.ir.expression.Application;
 import org.enso.compiler.core.ir.expression.Case;
+import org.enso.compiler.core.ir.expression.Comment;
 import org.enso.compiler.core.ir.module.scope.Definition;
 import org.enso.compiler.core.ir.module.scope.Definition.Data;
 import org.enso.compiler.core.ir.module.scope.Export;
@@ -206,6 +207,16 @@ final class EnsoModuleAST {
         endBlock();
         yield typeNode;
       }
+      case Definition.SugaredType type -> {
+        Map<String, Object> props = Map.of("typeName", type.name().name());
+        var node = newNode(type, props);
+        for (var i = 0; i < type.arguments().size(); i++) {
+          var arg = type.arguments().apply(i);
+          var argNode = buildTree(arg);
+          createEdge(node, argNode, "arg[" + i + "]");
+        }
+        yield node;
+      }
       case Name.GenericAnnotation genericAnnotation -> {
         Map<String, Object> props =
             Map.of(
@@ -230,6 +241,10 @@ final class EnsoModuleAST {
         var signatureNode = buildTree(signature);
         createEdge(ascrNode, signatureNode, "signature");
         yield ascrNode;
+      }
+      case Comment.Documentation doc -> {
+        Map<String, Object> props = Map.of("doc", doc.doc());
+        yield newNode(doc, props);
       }
       default -> throw unimpl(definitionIr);
     };
