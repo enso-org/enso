@@ -24,7 +24,7 @@ const emit = defineEmits<{
   portDoubleClick: [event: PointerEvent, portId: AstId]
   newNodeClick: [portId: AstId]
   'update:hoverAnim': [progress: number]
-  'update:nodeHovered': [hovered: boolean]
+  'update:nodeOutputHovered': [hovered: boolean]
 }>()
 
 const graph = useGraphStore()
@@ -67,7 +67,7 @@ const mouseOverOutput = ref<AstId>()
 const outputHovered = computed(() => (graph.mouseEditedEdge ? undefined : mouseOverOutput.value))
 watch(outputHovered, (newVal, oldVal) => {
   if ((newVal != null) !== (oldVal != null)) {
-    emit('update:nodeHovered', newVal != null)
+    emit('update:nodeOutputHovered', newVal != null)
   }
 })
 

@@ -157,7 +157,7 @@ const visibleMessage = computed(
     availableMessage.value,
 )
 
-const nodeHovered = ref(false)
+const nodeHovered = computed(() => graph.nodeHovered.get(nodeId.value) ?? false)
 
 const selected = computed(() => nodeSelection?.isSelected(nodeId.value) ?? false)
 
@@ -222,7 +222,7 @@ function ensureSelected() {
   }
 }
 
-const outputHovered = ref(false)
+const outputHovered = computed(() => graph.nodeOutputHovered.get(nodeId.value) ?? false)
 const keyboard = injectKeyboard()
 
 const visualizationWidth = computed(() => props.node.vis?.width ?? null)
@@ -472,8 +472,8 @@ const showMenuAt = ref<{ x: number; y: number }>()
     :style="nodeStyle"
     :class="nodeClass"
     :data-node-id="nodeId"
-    @pointerenter="((nodeHovered = true), updateNodeHover($event))"
-    @pointerleave="((nodeHovered = false), updateNodeHover(undefined))"
+    @pointerenter="(graph.setNodeHovered(nodeId, true), updateNodeHover($event))"
+    @pointerleave="(graph.setNodeHovered(nodeId, false), updateNodeHover(undefined))"
     @pointermove="updateNodeHover"
   >
     <div class="binding" v-text="node.pattern?.code()" />
@@ -553,20 +553,7 @@ const showMenuAt = ref<{ x: number; y: number }>()
       :type="visibleMessage.type"
     />
     <div class="nodeBackground"></div>
-    <svg class="bgPaths">
-      <GraphNodeOutputPorts
-        v-if="props.node.type !== 'output'"
-        :nodeId="nodeId"
-        :forceVisible="nodeHovered"
-        @newNodeClick="
-          (setSoleSelected(), emit('createNodes', [{ commit: false, content: undefined }]))
-        "
-        @portClick="(...args) => emit('outputPortClick', ...args)"
-        @portDoubleClick="(...args) => emit('outputPortDoubleClick', ...args)"
-        @update:hoverAnim="emit('update:hoverAnim', $event)"
-        @update:nodeHovered="outputHovered = $event"
-      />
-    </svg>
+    <svg class="bgPaths"></svg>
   </div>
   <PointFloatingMenu v-if="showMenuAt" :point="showMenuAt" @close="showMenuAt = undefined">
     <ComponentContextMenu @close="showMenuAt = undefined" />

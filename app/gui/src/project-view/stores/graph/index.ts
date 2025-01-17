@@ -89,6 +89,8 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
 
     const nodeRects = reactive(new Map<NodeId, Rect>())
     const nodeHoverAnimations = reactive(new Map<NodeId, number>())
+    const nodeHovered = reactive(new Map<NodeId, boolean>())
+    const nodeOutputHovered = reactive(new Map<NodeId, boolean>())
     const vizRects = reactive(new Map<NodeId, Rect>())
     // The currently visible nodes' areas (including visualization).
     const visibleNodeAreas = computed(() => {
@@ -340,7 +342,9 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
           const outerAst = edit.getVersion(node.outerAst)
           if (outerAst.isStatement()) Ast.deleteFromParentBlock(outerAst)
           nodeRects.delete(id)
+          nodeHovered.delete(id)
           nodeHoverAnimations.delete(id)
+          nodeOutputHovered.delete(id)
           deletedNodes.add(id)
         }
       })
@@ -461,6 +465,14 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
       if (rect.pos.equals(Vec2.Infinity)) {
         nodesToPlace.push(nodeId)
       }
+    }
+
+    function setNodeHovered(nodeId: NodeId, hovered: boolean) {
+      nodeHovered.set(nodeId, hovered)
+    }
+
+    function setNodeOutputHovered(nodeId: NodeId, hovered: boolean) {
+      nodeOutputHovered.set(nodeId, hovered)
     }
 
     function updateNodeHoverAnim(nodeId: NodeId, progress: number) {
@@ -805,6 +817,8 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
       editedNodeInfo,
       moduleSource,
       nodeRects,
+      nodeHovered,
+      nodeOutputHovered,
       nodeHoverAnimations,
       vizRects,
       visibleNodeAreas,
@@ -825,6 +839,8 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
       setNodeVisualization,
       undoManager,
       updateNodeRect,
+      setNodeHovered,
+      setNodeOutputHovered,
       updateNodeHoverAnim,
       updateVizRect,
       addPortInstance,
