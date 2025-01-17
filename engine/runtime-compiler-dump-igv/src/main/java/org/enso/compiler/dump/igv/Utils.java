@@ -24,6 +24,7 @@ final class Utils {
       case Export.Module exp -> "Export.Module ('" + exp.name().name() + "')";
       case Method.Explicit m -> "Method.Explicit ('" + m.methodName().name() + "')";
       case Method.Conversion c -> "Method.Conversion ('" + c.methodName().name() + "')";
+      case Method.Binding b -> "Method.Binding ('" + b.methodName().name() + "')";
       case DefinitionArgument.Specified arg -> "DefinitionArgument.Specified ('"
           + arg.name().name()
           + "')";
