@@ -18,7 +18,6 @@ import type {
   SortChangedEvent,
 } from 'ag-grid-enterprise'
 import { computed, onMounted, ref, shallowRef, watchEffect, type Ref } from 'vue'
-import { provideDocumentationImageUrlTransformer } from '../MarkdownEditor/imageUrlTransformer'
 import { TableVisualisationTooltip } from './TableVisualization/TableVisualisationTooltip'
 import { getCellValueType, isNumericType } from './TableVisualization/tableVizUtils'
 
