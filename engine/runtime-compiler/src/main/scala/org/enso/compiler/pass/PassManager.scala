@@ -6,6 +6,7 @@ import org.enso.compiler.core.ir.{Expression, Module}
 import org.enso.compiler.core.{CompilerError, IR}
 import org.enso.compiler.dump.IRDumper
 
+import java.io.File
 import scala.collection.mutable.ListBuffer
 
 // TODO [AA] In the future, the pass ordering should be _computed_ from the list
@@ -86,12 +87,22 @@ class PassManager(
     val newContext =
       moduleContext.copy(passConfiguration = Some(passConfiguration))
 
+    def getSrcFile(): File = {
+      val modPath = newContext.module.getPath
+      if (modPath == null) {
+        null
+      } else {
+        new File(modPath)
+      }
+    }
+
     runPasses[Module, ModuleContext](
       ir,
       newContext,
       passGroup,
       moduleName = Some(moduleContext.getName().toString),
       irDumper   = irDumper,
+      getSrcFile = getSrcFile,
       createMiniPass =
         (factory, ctx) => factory.createForModuleCompilation(ctx),
       miniPassCompile = (miniPass, ir) =>
@@ -134,11 +145,21 @@ class PassManager(
     val newContext =
       inlineContext.copy(passConfiguration = Some(passConfiguration))
 
+    def getSrcFile(): File = {
+      val modPath = inlineContext.getModule().getPath
+      if (modPath == null) {
+        null
+      } else {
+        new File(modPath)
+      }
+    }
+
     runPasses[Expression, InlineContext](
       ir,
       newContext,
       passGroup,
       moduleName = null,
+      getSrcFile = getSrcFile,
       irDumper   = None,
       createMiniPass =
         (factory, ctx) => factory.createForInlineCompilation(ctx),
@@ -152,11 +173,12 @@ class PassManager(
     ir: IR,
     moduleName: Option[String],
     irDumper: Option[IRDumper],
-    passName: String
+    passName: String,
+    getSrcFile: () => File
   ): Unit = {
     (ir, moduleName, irDumper) match {
       case (moduleIr: Module, Some(modName), Some(dumper)) =>
-        dumper.dumpModule(moduleIr, modName, passName, null)
+        dumper.dumpModule(moduleIr, modName, passName, getSrcFile())
       case _ => ()
     }
   }
@@ -176,6 +198,7 @@ class PassManager(
     passGroup: PassGroup,
     moduleName: Option[String],
     irDumper: Option[IRDumper],
+    getSrcFile: () => File,
     createMiniPass: (MiniPassFactory, ContextType) => MiniIRPass,
     miniPassCompile: (MiniIRPass, IRType) => IRType,
     megaPassCompile: (IRPass, IRType, ContextType) => IRType
@@ -191,7 +214,7 @@ class PassManager(
         if (combinedPass != null) {
           logger.trace("  flushing pending mini pass: {}", combinedPass)
           val ret = miniPassCompile(combinedPass, in)
-          dump(ret, moduleName, irDumper, combinedPass.toString)
+          dump(ret, moduleName, irDumper, combinedPass.toString, getSrcFile)
           ret
         } else {
           in
@@ -240,7 +263,7 @@ class PassManager(
               megaPass
             )
             val ret = megaPassCompile(megaPass, flushedIR, context)
-            dump(ret, moduleName, irDumper, megaPass.toString)
+            dump(ret, moduleName, irDumper, megaPass.toString, getSrcFile)
             ret
         }
     }
