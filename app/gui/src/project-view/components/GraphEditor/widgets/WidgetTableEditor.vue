@@ -8,7 +8,6 @@ import {
 } from '@/components/GraphEditor/widgets/WidgetTableEditor/tableInputArgument'
 import ResizeHandles from '@/components/ResizeHandles.vue'
 import AgGridTableView from '@/components/shared/AgGridTableView.vue'
-import VueComponentHost, { VueComponentHandle, VueHost } from '@/components/VueComponentHost.vue'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { defineWidget, Score, widgetProps } from '@/providers/widgetRegistry'
 import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
@@ -26,12 +25,11 @@ import type {
   ColDef,
   Column,
   ColumnMovedEvent,
-  IHeaderComp,
   ProcessDataFromClipboardParams,
   RowDragEndEvent,
 } from 'ag-grid-enterprise'
-import { ComponentInstance, computed, h, proxyRefs, ref } from 'vue'
-import type { ComponentExposed, ComponentProps } from 'vue-component-type-helpers'
+import { ComponentInstance, computed, proxyRefs, ref } from 'vue'
+import type { ComponentExposed } from 'vue-component-type-helpers'
 import { z } from 'zod'
 import TableHeader, { HeaderParams } from './WidgetTableEditor/TableHeader.vue'
 
@@ -253,35 +251,6 @@ const defaultColDef: ColDef<RowData> & {
   menuTabs: ['generalMenuTab'],
   headerComponentParams,
 }
-
-const vueComponentHost = ref<VueHost>()
-
-class TableHaderComponent implements IHeaderComp {
-  private container: HTMLElement = document.createElement('div')
-  private handle: VueComponentHandle | undefined
-
-  init(params: ComponentProps<typeof TableHeader>) {
-    if (!vueComponentHost.value) {
-      console.error('Missing vue component host!')
-      // TODO[ao]: what's now?
-      return
-    }
-    this.handle = vueComponentHost.value.register(h(TableHeader, params), this.container)
-  }
-
-  getGui() {
-    return this.container
-  }
-
-  refresh(params: ComponentProps<typeof TableHeader>) {
-    this.handle?.update(h(TableHeader, params), this.container)
-    return true
-  }
-
-  destroy() {
-    this.handle?.unregister()
-  }
-}
 </script>
 
 <script lang="ts">
@@ -313,7 +282,7 @@ export const widgetDefinition = defineWidget(
         :rowData="rowData"
         :getRowId="(row) => `${row.data.index}`"
         :components="{
-          agColumnHeader: TableHaderComponent,
+          agColumnHeader: TableHeader,
         }"
         :stopEditingWhenCellsLoseFocus="true"
         :suppressDragLeaveHidesColumns="true"
@@ -336,7 +305,6 @@ export const widgetDefinition = defineWidget(
       />
     </Suspense>
     <ResizeHandles v-model="clientBounds" bottom right />
-    <VueComponentHost ref="vueComponentHost" />
   </div>
 </template>
 

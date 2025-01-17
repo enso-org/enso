@@ -54,17 +54,13 @@ function emitEditEnd() {
   props.onHeaderEditingStopped?.(props.column.getColId())
 }
 
-watch(
-  inputElement,
-  (newVal, oldVal) => {
-    if (newVal != null && oldVal == null) {
-      // Whenever input field appears, focus and select text
-      newVal.focus()
-      newVal.select()
-    }
-  },
-  { immediate: true },
-)
+watch(inputElement, (newVal, oldVal) => {
+  if (newVal != null) {
+    // Whenever input field appears, focus and select text
+    newVal.focus()
+    newVal.select()
+  }
+})
 
 function acceptNewName() {
   if (props.columnParams.type !== 'astColumn') {

@@ -1,5 +1,5 @@
 import LinkEditPopup from '@/components/LinkEditPopup.vue'
-import { type VueHost } from '@/components/VueComponentHost.vue'
+import { type VueHost } from '@/components/VueHostRender.vue'
 import {
   contentFocused,
   contentFocusedChanged,
