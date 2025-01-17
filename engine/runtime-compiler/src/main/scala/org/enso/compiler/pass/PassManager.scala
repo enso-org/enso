@@ -4,6 +4,7 @@ import org.slf4j.LoggerFactory
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.ir.{Expression, Module}
 import org.enso.compiler.core.{CompilerError, IR}
+import org.enso.compiler.dump.IRDumper
 
 import scala.collection.mutable.ListBuffer
 
@@ -21,7 +22,8 @@ import scala.collection.mutable.ListBuffer
 //noinspection DuplicatedCode
 class PassManager(
   protected val passes: List[PassGroup],
-  passConfiguration: PassConfiguration
+  passConfiguration: PassConfiguration,
+  private val irDumper: Option[IRDumper] = None
 ) {
   private val logger = LoggerFactory.getLogger(classOf[PassManager])
   val allPasses      = verifyPassOrdering(passes.flatMap(_.passes))
@@ -88,6 +90,7 @@ class PassManager(
       ir,
       newContext,
       passGroup,
+      moduleName = Some(moduleContext.getName().toString),
       createMiniPass =
         (factory, ctx) => factory.createForModuleCompilation(ctx),
       miniPassCompile = (miniPass, ir) =>
@@ -134,12 +137,25 @@ class PassManager(
       ir,
       newContext,
       passGroup,
+      moduleName = null,
       createMiniPass =
         (factory, ctx) => factory.createForInlineCompilation(ctx),
       miniPassCompile = (miniPass, ir) =>
         MiniIRPass.compile[Expression](classOf[Expression], ir, miniPass),
       megaPassCompile = (megaPass, ir, ctx) => megaPass.runExpression(ir, ctx)
     )
+  }
+
+  private def dump(
+    ir: IR,
+    moduleName: Option[String],
+    passName: String
+  ): Unit = {
+    (ir, moduleName, irDumper) match {
+      case (moduleIr: Module, Some(modName), Some(dumper)) =>
+        dumper.dumpModule(moduleIr, modName, passName, null)
+      case _ => ()
+    }
   }
 
   /** Runs all the passes in the given `passGroup` on `ir` with `context`.
@@ -155,6 +171,7 @@ class PassManager(
     ir: IRType,
     context: ContextType,
     passGroup: PassGroup,
+    moduleName: Option[String],
     createMiniPass: (MiniPassFactory, ContextType) => MiniIRPass,
     miniPassCompile: (MiniIRPass, IRType) => IRType,
     megaPassCompile: (IRPass, IRType, ContextType) => IRType
@@ -169,7 +186,9 @@ class PassManager(
         pendingMiniPasses.clear()
         if (combinedPass != null) {
           logger.trace("  flushing pending mini pass: {}", combinedPass)
-          miniPassCompile(combinedPass, in)
+          val ret = miniPassCompile(combinedPass, in)
+          dump(ret, moduleName, combinedPass.toString)
+          ret
         } else {
           in
         }
@@ -216,7 +235,9 @@ class PassManager(
               "  mega running: {}",
               megaPass
             )
-            megaPassCompile(megaPass, flushedIR, context)
+            val ret = megaPassCompile(megaPass, flushedIR, context)
+            dump(ret, moduleName, megaPass.toString)
+            ret
         }
     }
 

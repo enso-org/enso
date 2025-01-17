@@ -19,11 +19,11 @@ public final class IGVDumper implements IRDumpService {
   private static final Logger LOGGER = LoggerFactory.getLogger(IGVDumper.class);
 
   @Override
-  public void dump(Module ir, String moduleName, File srcFile) {
-    LOGGER.info("Dumping IR for module {} in IGV", moduleName);
+  public void dump(Module ir, String moduleName, File srcFile, String afterPass) {
+    LOGGER.trace("Dumping IR for module {} after pass {} in IGV", moduleName, afterPass);
     var ensoAst = EnsoModuleAST.fromIR(ir, srcFile);
-    var groupName = "Enso: " + moduleName;
-    var shortName = "Enso: " + moduleName.substring(moduleName.lastIndexOf('.') + 1);
+    var groupName = afterPass;
+    var shortName = afterPass;
     var outPath = outputForModule(moduleName);
     try (var dumpChannel = createFileChannel(outPath)) {
       var output =
@@ -40,12 +40,12 @@ public final class IGVDumper implements IRDumpService {
     } catch (IOException e) {
       throw new IllegalStateException("Failed to dump Enso AST", e);
     }
-    LOGGER.info("IR dumped in {}", outPath);
+    LOGGER.debug("IR dumped in {}", outPath);
   }
 
   private static WritableByteChannel createFileChannel(Path path) {
     try {
-      return Files.newByteChannel(path, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+      return Files.newByteChannel(path, StandardOpenOption.WRITE, StandardOpenOption.APPEND);
     } catch (IOException e) {
       throw new IllegalStateException(e);
     }

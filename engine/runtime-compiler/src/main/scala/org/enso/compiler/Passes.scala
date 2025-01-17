@@ -142,9 +142,14 @@ class Passes(config: CompilerConfig) {
     AliasAnalysis -->> AliasAnalysis.Configuration()
   )
 
+  private val irDumper: Option[IRDumper] = config.irDumper match {
+    case Some(dumperName) => Some(new IRDumper(dumperName))
+    case None             => None
+  }
+
   /** The pass manager for running compiler passes. */
   val passManager: PassManager =
-    new PassManager(passOrdering, passConfig)
+    new PassManager(passOrdering, passConfig, irDumper)
 
   /** Slices the compiler's pass ordering to provide the list of all passes that
     * run _before_ [[pass]].

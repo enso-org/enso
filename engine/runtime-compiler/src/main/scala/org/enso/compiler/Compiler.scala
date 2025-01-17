@@ -71,9 +71,6 @@ class Compiler(
       new PrintStream(config.outputRedirect.get)
     else context.getOut
 
-  /** Java accessor */
-  def getConfig(): CompilerConfig = config
-
   /** The thread pool that handles parsing of modules. */
   private val pool: ExecutorService = if (config.parallelParsing) {
     new ThreadPoolExecutor(
@@ -87,6 +84,9 @@ class Compiler(
       }
     )
   } else null
+
+  /** Java accessor */
+  def getConfig(): CompilerConfig = config
 
   /** Duplicates this compiler with a different config.
     * @param newConfig Configuration to be used in the duplicated Compiler.

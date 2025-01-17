@@ -88,9 +88,10 @@ public final class GraphVizDumper implements IRDumpService {
    * IllegalStateException} within this class.
    *
    * @param ir the IR to dump.
+   * @param afterPass
    */
   @Override
-  public void dump(Module ir, String moduleName, File srcFile) {
+  public void dump(Module ir, String moduleName, File srcFile, String afterPass) {
     var irDumpPath = outputForModule(moduleName);
     try {
       this.out =
