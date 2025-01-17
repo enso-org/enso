@@ -78,6 +78,7 @@ final class ASTNode {
       bldr.object = ir;
       bldr.location = location;
       bldr.property("label", label);
+      bldr.property("hashCode", Utils.hash(ir));
       bldr.property("IRClassName", ir.getClass().getName());
       bldr.property("location", ir.identifiedLocation());
       bldr.property("passData", ir.passData());
@@ -90,6 +91,7 @@ final class ASTNode {
       var label = Utils.label(object);
       bldr.object = object;
       bldr.property("label", label);
+      bldr.property("hashCode", Utils.hash(object));
       return bldr;
     }
 
