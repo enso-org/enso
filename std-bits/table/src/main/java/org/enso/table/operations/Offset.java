@@ -28,25 +28,25 @@ public class Offset {
         offsetRowVisitorFactory,
         sourceColumns[0].getSize());
     return Arrays.stream(sourceColumns)
-        .map(c -> c.getStorage().applyMask(OrderMask.fromArray(offsetRowVisitorFactory.result)))
+        .map(c -> c.getStorage().applyMask(OrderMask.fromArray(offsetRowVisitorFactory.rowOrderMask)))
         .toArray(Storage<?>[]::new);
   }
 
   private static class OffsetRowVisitorFactory implements RowVisitorFactory {
 
-    int[] result;
+    int[] rowOrderMask;
     int n;
     FillWith fillWith;
 
     OffsetRowVisitorFactory(Column sourceColumn, int n, FillWith fillWith) {
-      result = new int[sourceColumn.getSize()];
+      rowOrderMask = new int[sourceColumn.getSize()];
       this.n = n;
       this.fillWith = fillWith;
     }
 
     @Override
     public OffsetRowVisitor getNewRowVisitor() {
-      return new OffsetRowVisitor(n, fillWith, result);
+      return new OffsetRowVisitor(n, fillWith, rowOrderMask);
     }
   }
 
@@ -57,16 +57,16 @@ public class Offset {
     int current_n;
     int closestPos;
     FillWith fillWith;
-    int[] result;
+    int[] rowOrderMask;
 
-    public OffsetRowVisitor(int n, FillWith fillWith, int[] result) {
+    public OffsetRowVisitor(int n, FillWith fillWith, int[] rowOrderMask) {
       this.rolling_queue = new LinkedList<>();
       this.fill_queue = new LinkedList<>();
       this.current_n = 0;
       this.closestPos = -1;
       this.n = n;
       this.fillWith = fillWith;
-      this.result = result;
+      this.rowOrderMask = rowOrderMask;
     }
 
     @Override
@@ -82,9 +82,9 @@ public class Offset {
       if (current_n < Math.abs(n)) {
         fill_queue.add(i);
       } else if (n < 0) {
-        result[i] = rolling_queue.poll();
+        rowOrderMask[i] = rolling_queue.poll();
       } else if (n > 0) {
-        result[rolling_queue.poll()] = i;
+        rowOrderMask[rolling_queue.poll()] = i;
       }
 
       current_n++;
@@ -99,11 +99,11 @@ public class Offset {
       }
 
       while (n < 0 && !fill_queue.isEmpty()) {
-        result[fill_queue.poll()] = getFillValue();
+        rowOrderMask[fill_queue.poll()] = getFillValue();
       }
 
       while (n > 0 && !rolling_queue.isEmpty()) {
-        result[rolling_queue.poll()] = getFillValue();
+        rowOrderMask[rolling_queue.poll()] = getFillValue();
       }
     }
 

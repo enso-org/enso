@@ -23,7 +23,7 @@
 - [Added Table.Offset][12071]
 
 [11926]: https://github.com/enso-org/enso/pull/11926
-[12071] : https://github.com/enso-org/enso/pull/12071
+[12071]: https://github.com/enso-org/enso/pull/12071
 
 #### Enso Language & Runtime
 
