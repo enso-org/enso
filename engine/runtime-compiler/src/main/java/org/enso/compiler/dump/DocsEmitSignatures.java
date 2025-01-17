@@ -28,9 +28,14 @@ final class DocsEmitSignatures implements DocsVisit {
   @Override
   public void visitMethod(Definition.Type t, Method.Explicit m, Appendable w) throws IOException {
     if (t != null) {
-      w.append("    ");
+      w.append("    - ");
+    } else {
+      if (m.typeName().isDefined()) {
+        var fqn = DocsUtils.toFqnOrSimpleName(m.typeName().get());
+        w.append(fqn + ".");
+      }
     }
-    w.append("- " + DocsVisit.toSignature(m) + "\n");
+    w.append(DocsVisit.toSignature(m) + "\n");
   }
 
   @Override

@@ -9,11 +9,13 @@ import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.DefinitionArgument;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Function.Lambda;
+import org.enso.compiler.core.ir.Name;
 import org.enso.compiler.core.ir.expression.Application;
 import org.enso.compiler.core.ir.module.scope.Definition;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.compiler.core.ir.type.Set;
 import org.enso.compiler.data.BindingsMap;
+import org.enso.compiler.pass.resolve.MethodDefinitions;
 import org.enso.compiler.pass.resolve.TypeNames$;
 import org.enso.compiler.pass.resolve.TypeSignatures;
 import org.enso.compiler.pass.resolve.TypeSignatures$;
@@ -49,6 +51,15 @@ final class DocsUtils {
       sb.append(" ").append(toSignature(a));
     }
     return sb.toString();
+  }
+
+  static String toFqnOrSimpleName(Name ir) {
+    var typeNameOpt = ir.passData().get(MethodDefinitions.INSTANCE);
+    if (typeNameOpt.isDefined()) {
+      var typeName = (BindingsMap.Resolution) typeNameOpt.get();
+      return typeName.target().qualifiedName().toString();
+    }
+    return ir.name();
   }
 
   static String toSignature(DefinitionArgument a) {
