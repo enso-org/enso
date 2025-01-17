@@ -12,9 +12,7 @@ public class BoundCheckedIntegerBuilder extends LongBuilder {
   private final CastProblemAggregator castProblemAggregator;
 
   protected BoundCheckedIntegerBuilder(
-      int initialSize,
-      IntegerType type,
-      ProblemAggregator problemAggregator) {
+      int initialSize, IntegerType type, ProblemAggregator problemAggregator) {
     super(initialSize, problemAggregator);
     this.type = type;
 

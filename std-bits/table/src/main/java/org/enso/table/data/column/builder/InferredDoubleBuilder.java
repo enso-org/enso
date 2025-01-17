@@ -20,7 +20,8 @@ public class InferredDoubleBuilder extends DoubleBuilder implements BuilderWithR
    */
   static InferredDoubleBuilder retypeFromLongBuilder(LongBuilder longBuilder) {
     int currentSize = longBuilder.currentSize;
-    var newBuilder = new InferredDoubleBuilder(longBuilder.getDataSize(), longBuilder.problemAggregator);
+    var newBuilder =
+        new InferredDoubleBuilder(longBuilder.getDataSize(), longBuilder.problemAggregator);
 
     for (int i = 0; i < currentSize; i++) {
       newBuilder.appendLongNoGrow(longBuilder.data[i]);
@@ -63,7 +64,7 @@ public class InferredDoubleBuilder extends DoubleBuilder implements BuilderWithR
         items[i] = null;
       } else {
         if (isLongCompactedAsDouble.get(i)) {
-          items[i] = (long)data[i];
+          items[i] = (long) data[i];
         } else if (i < rawN && rawData[i] != null) {
           items[i] = rawData[i];
         } else {
