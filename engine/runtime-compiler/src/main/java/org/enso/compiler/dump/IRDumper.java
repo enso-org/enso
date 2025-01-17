@@ -37,7 +37,7 @@ public final class IRDumper {
 
   /** Close and flush all the graphs. */
   public void close() {
-    logger.debug("Closing IRDumper");
+    dumpService.close();
   }
 
   private static IRDumpService loadService(String implName) {

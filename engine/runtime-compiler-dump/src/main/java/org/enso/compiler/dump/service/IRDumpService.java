@@ -12,4 +12,7 @@ public interface IRDumpService {
    * @param afterPass Name of the pass that this dumper runs after.
    */
   void dump(Module ir, String moduleName, File srcFile, String afterPass);
+
+  /** Close and flush all the graphs. */
+  void close();
 }

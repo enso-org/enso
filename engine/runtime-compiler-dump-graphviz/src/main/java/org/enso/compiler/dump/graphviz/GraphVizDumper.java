@@ -113,6 +113,9 @@ public final class GraphVizDumper implements IRDumpService {
     LOGGER.info("IR dumped to {}", irDumpPath);
   }
 
+  @Override
+  public void close() {}
+
   private void createIRGraph(Module moduleIr) {
     var moduleNode = GraphVizNode.Builder.fromIr(moduleIr).build();
     addNode(moduleNode);
