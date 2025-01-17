@@ -40,6 +40,7 @@ import {
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useGetOrdinal } from '#/hooks/ordinalHooks'
+import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import { useText } from '#/providers/TextProvider'
 import {
@@ -210,6 +211,9 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
   const [preferredTimeZone] = useLocalStorageState('preferredTimeZone')
   const getOrdinal = useGetOrdinal()
   const timeZone = preferredTimeZone ?? getLocalTimeZone()
+  const enableAdvancedProjectExecutionOptions = useFeatureFlag(
+    'enableAdvancedProjectExecutionOptions',
+  )
 
   const nowZonedDateTime = now(timeZone)
   const minFirstOccurrence = nowZonedDateTime
@@ -374,30 +378,32 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
           {(n) => getText(MONTH_3_LETTER_TEXT_IDS[n] ?? 'january3')}
         </MultiSelector>
       )}
-      <details className="w-full">
-        <summary className="cursor-pointer">{getText('advancedOptions')}</summary>
-        <div className="flex w-full flex-col">
-          <Selector
+      {enableAdvancedProjectExecutionOptions && (
+        <details className="w-full">
+          <summary className="cursor-pointer">{getText('advancedOptions')}</summary>
+          <div className="flex w-full flex-col">
+            <Selector
+              form={form}
+              isRequired
+              name="parallelMode"
+              label={getText('parallelModeLabel')}
+              items={PROJECT_PARALLEL_MODES}
+            >
+              {(interval) => getText(PARALLEL_MODE_TO_TEXT_ID[interval])}
+            </Selector>
+            <Text>{getText(PARALLEL_MODE_TO_DESCRIPTION_ID[parallelMode])}</Text>
+          </div>
+          <Input
             form={form}
-            isRequired
-            name="parallelMode"
-            label={getText('parallelModeLabel')}
-            items={PROJECT_PARALLEL_MODES}
-          >
-            {(interval) => getText(PARALLEL_MODE_TO_TEXT_ID[interval])}
-          </Selector>
-          <Text>{getText(PARALLEL_MODE_TO_DESCRIPTION_ID[parallelMode])}</Text>
-        </div>
-        <Input
-          form={form}
-          name="maxDurationMinutes"
-          type="number"
-          defaultValue={MAX_DURATION_DEFAULT_MINUTES}
-          min={MAX_DURATION_MINIMUM_MINUTES}
-          max={MAX_DURATION_MAXIMUM_MINUTES}
-          label={getText('maxDurationMinutesLabel')}
-        />
-      </details>
+            name="maxDurationMinutes"
+            type="number"
+            defaultValue={MAX_DURATION_DEFAULT_MINUTES}
+            min={MAX_DURATION_MINIMUM_MINUTES}
+            max={MAX_DURATION_MAXIMUM_MINUTES}
+            label={getText('maxDurationMinutesLabel')}
+          />
+        </details>
+      )}
 
       <Form.FormError />
       <ButtonGroup>

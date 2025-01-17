@@ -4,18 +4,21 @@
  * Feature flags provider.
  * Feature flags are used to enable or disable certain features in the application.
  */
+import { unsafeWriteValue } from '#/utilities/write'
 import { createStore, useStore } from '#/utilities/zustand'
 import { IS_DEV_MODE, isOnElectron } from 'enso-common/src/detect'
 import { z } from 'zod'
-
 import { persist } from 'zustand/middleware'
-import { unsafeWriteValue } from '../utilities/write'
+
+const MIN_ASSETS_TABLE_REFRESH_INTERVAL_MS = 100
+const DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS = 3_000
+
 export const FEATURE_FLAGS_SCHEMA = z.object({
   enableMultitabs: z.boolean(),
   enableAssetsTableBackgroundRefresh: z.boolean(),
-  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-  assetsTableBackgroundRefreshInterval: z.number().min(100),
+  assetsTableBackgroundRefreshInterval: z.number().min(MIN_ASSETS_TABLE_REFRESH_INTERVAL_MS),
   enableCloudExecution: z.boolean(),
+  enableAdvancedProjectExecutionOptions: z.boolean(),
 })
 
 /** Feature flags. */
@@ -36,9 +39,9 @@ const flagsStore = createStore<FeatureFlagsStore>()(
       featureFlags: {
         enableMultitabs: false,
         enableAssetsTableBackgroundRefresh: true,
-        // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-        assetsTableBackgroundRefreshInterval: 3_000,
+        assetsTableBackgroundRefreshInterval: DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS,
         enableCloudExecution: IS_DEV_MODE || isOnElectron(),
+        enableAdvancedProjectExecutionOptions: false,
       },
       setFeatureFlags: (key, value) => {
         set(({ featureFlags }) => ({ featureFlags: { ...featureFlags, [key]: value } }))
