@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
+
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.index.MultiValueIndex;
@@ -66,7 +67,7 @@ abstract class GroupingOrderingVisitor {
     } else {
       visitMethod = new NoGroupingNoOrderingRunning();
     }
-    visitMethod.visitImpl(visitor, numRows);
+    visitMethod.visitImpl(visitorFactory, numRows);
   }
 
   // interface for the different implementations
