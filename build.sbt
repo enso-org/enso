@@ -3786,7 +3786,6 @@ lazy val `engine-runner` = project
               "-H:IncludeResources=.*Main.enso$",
               "-H:+AddAllCharsets",
               "-H:+IncludeAllLocales",
-              "-ea",
               // useful perf & debug switches:
               // "-g",
               // "-H:+SourceLevelDebug",
@@ -3823,7 +3822,7 @@ lazy val `engine-runner` = project
       .dependsOn(NativeImage.additionalCp)
       .dependsOn(NativeImage.smallJdk)
       .dependsOn(
-        buildEngineDistribution
+        createEnginePackage
       )
       .value,
     buildNativeImage := Def.taskDyn {
@@ -5103,9 +5102,9 @@ launcherDistributionRoot := packageBuilder.localArtifact("launcher") / "enso"
 projectManagerDistributionRoot :=
   packageBuilder.localArtifact("project-manager") / "enso"
 
-lazy val buildEngineDistribution =
-  taskKey[Unit]("Builds the engine distribution")
-buildEngineDistribution := {
+lazy val createEnginePackage =
+  taskKey[Unit]("Creates the engine distribution package")
+createEnginePackage := {
   updateLibraryManifests.value
   val modulesToCopy = componentModulesPaths.value
   val root          = engineDistributionRoot.value
@@ -5128,10 +5127,43 @@ buildEngineDistribution := {
   log.info(s"Engine package created at $root")
 }
 
+ThisBuild / createEnginePackage := {
+  createEnginePackage.result.value
+}
+
+lazy val buildEngineDistribution =
+  taskKey[Unit]("Builds the engine distribution and optionally native image")
+buildEngineDistribution := Def.taskIf {
+  if (shouldBuildNativeImage.value) {
+    createEnginePackage.value
+    (`engine-runner` / buildNativeImage).value
+  } else {
+    createEnginePackage.value
+  }
+}.value
+
 // This makes the buildEngineDistribution task usable as a dependency
 // of other tasks.
 ThisBuild / buildEngineDistribution := {
   buildEngineDistribution.result.value
+}
+
+lazy val shouldBuildNativeImage = taskKey[Boolean](
+  "Whether native image should be build within buildEngineDistribution task"
+)
+
+ThisBuild / shouldBuildNativeImage := {
+  val prop = System.getenv("ENSO_LAUNCHER")
+  prop == "native" || prop == "debugnative"
+}
+
+ThisBuild / NativeImage.additionalOpts := {
+  val prop = System.getenv("ENSO_LAUNCHER")
+  if (prop == "native") {
+    Seq("-O3")
+  } else {
+    Seq("-ea", "-Ob", "-H:GenerateDebugInfo=1")
+  }
 }
 
 ThisBuild / engineDistributionRoot := {
