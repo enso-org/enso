@@ -1,10 +1,11 @@
 import {
-  SuggestionKind,
   type SuggestionEntry,
+  SuggestionKind,
   type Typename,
 } from '@/stores/suggestionDatabase/entry'
 import type { Opt } from '@/util/data/opt'
 import { Range } from '@/util/data/range'
+import { ANY_TYPE_QN } from '@/util/ensoTypes'
 import { qnIsTopElement, qnLastSegment, type QualifiedName } from '@/util/qualifiedName'
 import escapeStringRegexp from '@/util/regexp'
 
@@ -220,7 +221,7 @@ class FilteringWithPattern {
  *
  * - If `pattern` is specified with dot, the part after dot must match entry name or alias, while
  *   on the left side of the dot must match type/module on which the entry is specified.
- *   there must exists a subsequence of words in name/alias (words are separated by `_`), so each
+ *   there must exist a subsequence of words in name/alias (words are separated by `_`), so each
  *   word:
  *   - starts with respective word in the pattern,
  *   - or starts with respective _letter_ in the pattern (initials match).
@@ -249,13 +250,14 @@ export class Filtering {
   }
 
   private selfTypeMatches(entry: SuggestionEntry, additionalSelfTypes: QualifiedName[]): boolean {
-    if (this.selfArg == null) return entry.selfType == null
-    else if (this.selfArg.type == 'known')
-      return (
-        entry.selfType === this.selfArg.typename ||
-        additionalSelfTypes.some((t) => entry.selfType === t)
-      )
-    else return entry.selfType != null
+    if (this.selfArg == null) return entry.kind !== SuggestionKind.Method || entry.selfType == null
+    if (entry.kind !== SuggestionKind.Method || entry.selfType == null) return false
+    return (
+      this.selfArg.type !== 'known' ||
+      entry.selfType === this.selfArg.typename ||
+      entry.selfType === ANY_TYPE_QN ||
+      additionalSelfTypes.some((t) => entry.selfType === t)
+    )
   }
 
   /** TODO: Add docs */
@@ -281,7 +283,6 @@ export class Filtering {
     if (this.selfArg == null && isInternal(entry)) return null
     if (!this.selfTypeMatches(entry, additionalSelfTypes)) return null
     if (this.pattern) {
-      if (entry.memberOf == null) return null
       const patternMatch = this.pattern.tryMatch(entry.name, entry.aliases, entry.memberOf)
       if (!patternMatch) return null
       if (this.isLocal(entry)) patternMatch.score *= 2

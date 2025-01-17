@@ -225,7 +225,10 @@ export function requiredImportsByFQN(
 }
 
 function selfTypeEntry(db: SuggestionDb, entry: SuggestionEntry): SuggestionEntry | undefined {
-  if (entry.memberOf) {
+  if (
+    (entry.kind === SuggestionKind.Method || entry.kind === SuggestionKind.Constructor) &&
+    entry.memberOf
+  ) {
     return db.getEntryByQualifiedName(entry.memberOf)
   }
 }

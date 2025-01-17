@@ -10,16 +10,15 @@ import scala.sys.process._
 
 object NativeImage {
 
-  /** Specifies whether the build executable should include debug symbols.
-    * Should be set to false for production builds. May work only on Linux.
-    */
-  private val includeDebugInfo: Boolean = false
-
   lazy val smallJdk = taskKey[Option[File]]("Location of a minimal JDK")
   lazy val additionalCp =
     taskKey[Seq[String]](
       "Additional class-path entries to be added to the native image"
     )
+
+  lazy val additionalOpts = settingKey[Seq[String]](
+    "Additional options for the native-image tool"
+  )
 
   /** List of classes that should be initialized at build time by the native image.
     * Note that we strive to initialize as much classes during the native image build
@@ -143,9 +142,6 @@ object NativeImage {
 
       }
 
-      val debugParameters =
-        if (includeDebugInfo) Seq("-H:GenerateDebugInfo=1") else Seq()
-
       val (staticParameters, pathExts) =
         if (staticOnLinux && Platform.isLinux) {
           // Note [Static Build On Linux]
@@ -168,9 +164,6 @@ object NativeImage {
           )
           Seq()
         }
-
-      val quickBuildOption =
-        if (BuildInfo.isReleaseMode) Seq() else Seq("-Ob")
 
       val buildMemoryLimitOptions =
         buildMemoryLimitMegabytes.map(megs => s"-J-Xmx${megs}M").toSeq
@@ -202,8 +195,8 @@ object NativeImage {
 
       var args: Seq[String] =
         Seq("-cp", cpStr) ++
-        quickBuildOption ++
-        debugParameters ++ staticParameters ++ configs ++
+        staticParameters ++
+        configs ++
         Seq("--no-fallback", "--no-server") ++
         Seq("-march=compatibility") ++
         initializeAtBuildtimeOptions ++
@@ -211,6 +204,7 @@ object NativeImage {
         buildMemoryLimitOptions ++
         runtimeMemoryOptions ++
         additionalOptions ++
+        additionalOpts.value ++
         Seq("-o", targetLoc.toString)
 
       args = mainClass match {
@@ -306,7 +300,7 @@ object NativeImage {
           else
             Def.task {
               streams.value.log.info(
-                s"No source changes, $artifactName Native Image is up to date."
+                s"No source changes, $name Native Image is up to date."
               )
             }
       }
