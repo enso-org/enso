@@ -3,6 +3,8 @@ from Standard.Test import all
 
 from Standard.Database.Errors import Unsupported_Database_Operation
 import Standard.Database.Feature.Feature
+import Standard.Base.Errors.Common.Missing_Argument
+from Standard.Table.Errors import Missing_Input_Columns
 
 from project.Common_Table_Operations.Util import run_default_backend
 import project.Common_Table_Operations.Util
@@ -433,4 +435,27 @@ add_offset_specs suite_builder setup =
             r = t2.offset ["Col1", "Col2"] 1024 ..Nothing set_mode=..Update
             r . at "Col1" .  to_vector . should_equal [Nothing, Nothing, Nothing, Nothing]
             r . at "Col2" .  to_vector . should_equal [Nothing, Nothing, Nothing, Nothing]
+        group_builder.specify "Add_Or_Update equivalent to update" <|
+            r = t2.offset ["Col1", "Col2"] -1 ..Nothing set_mode=..Add_Or_Update
+            r . at "Col1" .  to_vector . should_equal [Nothing, "A", "B", "C"]
+            r . at "Col2" .  to_vector . should_equal [Nothing, 1, 2, 3]
+    suite_builder.group prefix+"Table.Offset handles bad inputs gracefully" group_builder->
+        t2 = build_sorted_table [["Col1", ["A", "B", "C", "D"]], ["Col2", [1, 2, 3, 4]]]
+        group_builder.specify "Missing offset columns error" <|
+            r = t2.offset
+            r.should_fail_with (Missing_Argument.Error "columns")
+        group_builder.specify "Empty offset columns is a no-op" <|
+            r = t2.offset []
+            r . at "Col1" .  to_vector . should_equal ["A", "B", "C", "D"]
+            r . at "Col2" .  to_vector . should_equal [1, 2, 3, 4]
+        group_builder.specify "Missing column is an error" <|
+            r = t2.offset ["NotAColumn"]
+            r.should_fail_with (Missing_Input_Columns.Error ["NotAColumn"])
+        group_builder.specify "Missing column is an error - grouping" <|
+            r = t2.offset [] group_by=["NotAColumn"]
+            r.should_fail_with (Missing_Input_Columns.Error ["NotAColumn"])
+        group_builder.specify "Missing column is an error - ordering" <|
+            r = t2.offset [] order_by=["NotAColumn"]
+            r.should_fail_with (Missing_Input_Columns.Error ["NotAColumn"])
+
 

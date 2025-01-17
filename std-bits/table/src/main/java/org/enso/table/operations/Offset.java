@@ -18,7 +18,7 @@ public class Offset {
       Column[] orderingColumns,
       int[] directions,
       ProblemAggregator problemAggregator) {
-        if (n==0) return Arrays.stream(sourceColumns).map(c -> c.getStorage()).toArray(Storage<?>[]::new);
+        if (n==0 || sourceColumns.length==0) return Arrays.stream(sourceColumns).map(c -> c.getStorage()).toArray(Storage<?>[]::new);
         var offsetRowVisitorFactory = new OffsetRowVisitorFactory(sourceColumns[0], n, offFill);
         GroupingOrderingVisitor.visit(groupingColumns,
             orderingColumns,
