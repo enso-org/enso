@@ -42,7 +42,7 @@ export function firstProjectExecutionOnOrAfter(
     }
     case 'daily': {
       const currentDay = nextDate.getDay()
-      const day = repeat.daysOfWeek.find(day => day >= currentDay) ?? repeat.daysOfWeek[0] ?? 0
+      const day = repeat.daysOfWeek.find((day) => day >= currentDay) ?? repeat.daysOfWeek[0] ?? 0
       const dayOffset = (day - currentDay + DAYS_PER_WEEK) % DAYS_PER_WEEK
       nextDate.setDate(nextDate.getDate() + dayOffset)
       break
@@ -87,7 +87,7 @@ export function firstProjectExecutionOnOrAfter(
     case 'monthly-date':
     case 'monthly-weekday': {
       const currentMonth = nextDate.getMonth()
-      const month = repeat.months.find(month => month >= currentMonth) ?? repeat.months[0] ?? 0
+      const month = repeat.months.find((month) => month >= currentMonth) ?? repeat.months[0] ?? 0
       const monthOffset = (month - currentMonth + MONTHS_PER_YEAR) % MONTHS_PER_YEAR
       nextDate.setMonth(nextDate.getMonth() + monthOffset)
     }
@@ -120,7 +120,7 @@ export function nextProjectExecutionDate(projectExecution: ProjectExecutionInfo,
     }
     case 'daily': {
       const currentDay = nextDate.getDay()
-      const day = repeat.daysOfWeek.find(day => day > currentDay) ?? repeat.daysOfWeek[0] ?? 0
+      const day = repeat.daysOfWeek.find((day) => day > currentDay) ?? repeat.daysOfWeek[0] ?? 0
       const dayOffset = ((day - currentDay + 6) % 7) + 1
       nextDate.setDate(nextDate.getDate() + dayOffset)
       break
@@ -151,7 +151,7 @@ export function nextProjectExecutionDate(projectExecution: ProjectExecutionInfo,
     case 'monthly-date':
     case 'monthly-weekday': {
       const currentMonth = nextDate.getMonth()
-      const month = repeat.months.find(month => month >= currentMonth) ?? repeat.months[0] ?? 0
+      const month = repeat.months.find((month) => month >= currentMonth) ?? repeat.months[0] ?? 0
       const monthOffset = (month - currentMonth + MONTHS_PER_YEAR) % MONTHS_PER_YEAR
       nextDate.setMonth(nextDate.getMonth() + monthOffset)
     }
