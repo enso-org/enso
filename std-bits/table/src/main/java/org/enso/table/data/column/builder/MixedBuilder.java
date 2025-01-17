@@ -7,7 +7,7 @@ import org.enso.table.data.column.storage.type.StorageType;
 /** A builder for Mixed columns. It will create a MixedStorage. */
 public class MixedBuilder extends ObjectBuilder implements BuilderWithRetyping {
   /** Creates a new builder with the given size. Copies the data from the given source Builder. */
-  static MixedBuilder copyFromData(Builder source, int capacity) {
+  static MixedBuilder fromBuilder(Builder source, int capacity) {
     var sourceCurrentSize = source.getCurrentSize();
 
     var dataSize = Math.max(capacity, sourceCurrentSize);

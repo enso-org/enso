@@ -25,6 +25,7 @@ public class InferredDoubleBuilder extends DoubleBuilder implements BuilderWithR
     for (int i = 0; i < currentSize; i++) {
       newBuilder.appendLongNoGrow(longBuilder.data[i]);
     }
+    newBuilder.isNothing = longBuilder.isNothing;
 
     return newBuilder;
   }

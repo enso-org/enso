@@ -30,7 +30,7 @@ public class LongBuilder extends NumericBuilder implements BuilderForLong, Build
     if (type.equals(IntegerType.INT_64)) {
       return new LongBuilder(initialSize, problemAggregator);
     } else {
-      return new LongBuilderChecked(initialSize, type, problemAggregator);
+      return new BoundCheckedIntegerBuilder(initialSize, type, problemAggregator);
     }
   }
 

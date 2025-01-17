@@ -197,7 +197,7 @@ public class InferredBuilder implements Builder {
     // caller might be using appendNoGrow and is expecting to write at least
     // that many values.
     int capacity = Math.max(initialSize, currentSize);
-    currentBuilder = MixedBuilder.copyFromData(currentBuilder, capacity);
+    currentBuilder = MixedBuilder.fromBuilder(currentBuilder, capacity);
   }
 
   @Override

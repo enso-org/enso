@@ -7,11 +7,11 @@ import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.problems.ProblemAggregator;
 
 /** A LongBuilder that ensures values it is given fit the target type. */
-public class LongBuilderChecked extends LongBuilder {
+public class BoundCheckedIntegerBuilder extends LongBuilder {
   private final IntegerType type;
   private final CastProblemAggregator castProblemAggregator;
 
-  protected LongBuilderChecked(
+  protected BoundCheckedIntegerBuilder(
       int initialSize,
       IntegerType type,
       ProblemAggregator problemAggregator) {
@@ -37,22 +37,17 @@ public class LongBuilderChecked extends LongBuilder {
 
   @Override
   public void appendNoGrow(Object o) {
-    if (o != null) {
-      Long x = NumericConverter.tryConvertingToLong(o);
-      if (x != null) {
-        if (type.fits(x)) {
-          appendLong(x);
-          return;
-        }
-        castProblemAggregator.reportNumberOutOfRange(x);
-      }
-    }
     if (o == null) {
-      appendNulls(1);
+      isNothing.set(currentSize++);
     } else {
       Long x = NumericConverter.tryConvertingToLong(o);
       if (x != null) {
-        this.data[currentSize++] = x;
+        if (type.fits(x)) {
+          this.data[currentSize++] = x;
+        } else {
+          isNothing.set(currentSize++);
+          castProblemAggregator.reportNumberOutOfRange(x);
+        }
       } else {
         throw new ValueTypeMismatchException(type, o);
       }
