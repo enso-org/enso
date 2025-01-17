@@ -28,7 +28,7 @@ type OffFill
 
 OffFill.from (that:Any) = OffFill.Constant that
 
-table_offset_impl table:Table (columns:(Vector | Text | Integer | Regex)=[]) n:Integer=-1 offFill:OffFill=..Nothing (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (set_mode:Set_Mode=..Add) (on_problems:Problem_Behavior=..Report_Warning) -> Table =
+table_offset_impl table:Table (columns:(Vector | Text | Integer | Regex)=[]) n:Integer=-1 offFill:OffFill=..Nothing (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (set_mode:Set_Mode=..Add) -> Table =
     problem_builder = Problem_Builder.new error_on_missing_columns=True
     resolved_columns = table.columns_helper.select_columns_helper columns Case_Sensitivity.Default True problem_builder
     grouping_columns = table.columns_helper.select_columns_helper group_by Case_Sensitivity.Default True problem_builder 
@@ -38,12 +38,12 @@ table_offset_impl table:Table (columns:(Vector | Text | Integer | Regex)=[]) n:I
     grouping_java_columns = grouping_columns.map c->c.java_column
     ordering_java_columns = ordering.map c->c.column.java_column
     directions = ordering.map c->c.associated_selector.direction.to_sign
-    problem_builder.attach_problems_before on_problems <|
+    problem_builder.attach_problems_before ..Report_Error <|
         new_names = resolved_columns.map c-> 
             if set_mode!=Set_Mode.Add then c.name else
                 Column_Naming_Helper.in_memory.function_name "offset" [c, n, offFill]
-        new_storages = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+        new_storages = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Error java_problem_aggregator->
             Java_Offset.offset resolved_java_columns n offFill_java grouping_java_columns ordering_java_columns directions java_problem_aggregator
         new_columns = new_names.zip new_storages.to_vector new_name-> new_storage -> Column.from_storage new_name new_storage
         new_columns.fold table t-> c->
-            t.set c c.name set_mode
+            t.set c c.name
