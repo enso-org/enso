@@ -3807,6 +3807,7 @@ type Table
        - group_by: Applies the offset to each group as a separate batch of records.
        - order_by: The order to slide the records through. The actual record order remains the same but the records move as per the order defined by these columns.
        - set_mode: By default creates new columns, but choosing Update replaces the existing fields being offset.
+       - on_problems: Missing columns are always an error. Other warnings like grouping on floating point numbers can be ignored or made an error with this argument.
 
        Returns:
        - A Table of all records, with the selected columns offset by the number specifed by n.
@@ -3828,8 +3829,8 @@ type Table
     @default (self-> Widget_Helpers.make_fill_default_value_selector2)
     @group_by Widget_Helpers.make_column_name_multi_selector
     @order_by Widget_Helpers.make_order_by_selector
-    offset self columns:(Vector (Integer | Text | Regex | By_Type))=(Missing_Argument.throw "columns") n:Integer=-1 fill_with:Fill_With=..Nothing (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (set_mode:Set_Mode=..Add) -> Table =
-        Offset.table_offset_impl self columns n fill_with group_by order_by set_mode
+    offset self columns:(Vector (Integer | Text | Regex | By_Type))=(Missing_Argument.throw "columns") n:Integer=-1 fill_with:Fill_With=..Nothing (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (set_mode:Set_Mode=..Add) (on_problems:Problem_Behavior=..Report_Warning) -> Table =
+        Offset.table_offset_impl self columns n fill_with group_by order_by set_mode on_problems
 
     ## PRIVATE
     column_naming_helper : Column_Naming_Helper
