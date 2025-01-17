@@ -13,7 +13,7 @@ import org.graalvm.graphio.GraphStructure;
 final class ASTDumpStructure
     implements GraphStructure<EnsoModuleAST, ASTNode, ASTNodeClass, List<ASTEdge>>,
         GraphBlocks<EnsoModuleAST, ASTBlock, ASTNode>,
-        GraphElements<ASTMethod, Object, Object, ASTLocation>,
+        GraphElements<ASTMethod, Object, ASTMethod.Signature, ASTLocation>,
         GraphLocations<ASTMethod, ASTLocation, ASTLocation> {
 
   @Override
@@ -156,8 +156,8 @@ final class ASTDumpStructure
   }
 
   @Override
-  public Object methodSignature(ASTMethod method) {
-    return null;
+  public ASTMethod.Signature methodSignature(ASTMethod method) {
+    return ASTMethod.Signature.NONE;
   }
 
   @Override
@@ -196,22 +196,22 @@ final class ASTDumpStructure
   }
 
   @Override
-  public Object signature(Object object) {
-    return null;
+  public ASTMethod.Signature signature(Object object) {
+    return object instanceof ASTMethod.Signature s ? s : null;
   }
 
   @Override
-  public int signatureParameterCount(Object signature) {
+  public int signatureParameterCount(ASTMethod.Signature signature) {
     return 0;
   }
 
   @Override
-  public String signatureParameterTypeName(Object signature, int index) {
+  public String signatureParameterTypeName(ASTMethod.Signature signature, int index) {
     return null;
   }
 
   @Override
-  public String signatureReturnTypeName(Object signature) {
+  public String signatureReturnTypeName(ASTMethod.Signature signature) {
     return null;
   }
 
@@ -228,7 +228,7 @@ final class ASTDumpStructure
 
   @Override
   public ASTMethod nodeSourcePositionMethod(ASTLocation pos) {
-    return null;
+    return ASTMethod.UNKNOWN;
   }
 
   @Override

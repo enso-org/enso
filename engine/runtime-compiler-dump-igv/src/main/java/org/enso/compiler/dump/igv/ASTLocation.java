@@ -21,7 +21,7 @@ final class ASTLocation {
   public static ASTLocation fromIdentifiedLocation(IdentifiedLocation loc, File srcFile) {
     int offStart = -1;
     int offEnd = -1;
-    int lineNum = -1;
+    int lineNum = 1;
     URI uri = null;
     if (loc != null) {
       offStart = loc.start();

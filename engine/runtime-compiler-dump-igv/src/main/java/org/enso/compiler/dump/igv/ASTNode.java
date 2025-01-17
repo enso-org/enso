@@ -25,6 +25,7 @@ final class ASTNode {
   ASTNode(int id, Object object, Map<String, Object> props, ASTLocation location) {
     this.id = id;
     this.object = object;
+    props.put("nodeSourcePosition", location);
     this.properties = props;
     this.nodeClass = new ASTNodeClass(this);
     this.location = location;
