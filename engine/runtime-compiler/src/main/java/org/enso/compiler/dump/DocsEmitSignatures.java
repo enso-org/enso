@@ -20,7 +20,8 @@ final class DocsEmitSignatures implements DocsVisit {
 
   @Override
   public boolean visitModule(QualifiedName name, Module module, Appendable w) throws IOException {
-    w.append("## " + name + "\n");
+    w.append("## Enso Signatures 1.0\n");
+    w.append("## module " + name + "\n");
     return true;
   }
 
