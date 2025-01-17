@@ -248,6 +248,34 @@ public class DocsGenerateTest {
         DocsVisit.toSignature(m));
   }
 
+  @Test
+  public void unionTypes() throws Exception {
+    var code =
+        """
+        type A
+        type B
+        type C
+
+        one a:A -> A | B | C = A
+        """;
+
+    var v = new MockVisitor();
+    generateDocumentation("Union", code, v);
+
+    assertEquals("One methods", 1, v.visitMethod.size());
+    assertEquals("No constructors", 0, v.visitConstructor.size());
+
+    var p = v.visitMethod.get(0);
+    assertNull("It is a module method", p.t());
+
+    var m = p.ir();
+    assertEquals("one", m.methodName().name());
+    assertEquals(
+        "Generates vector with argument type as return type",
+        "one a:local.Union.Main.A -> (local.Union.Main.A|local.Union.Main.B|local.Union.Main.C)",
+        DocsVisit.toSignature(m));
+  }
+
   private static void generateDocumentation(String name, String code, DocsVisit v)
       throws IOException {
     var pathCalc = TEMP.newFolder(name);

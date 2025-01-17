@@ -2,6 +2,7 @@ package org.enso.compiler.dump;
 
 import static org.enso.scala.wrapper.ScalaConversions.asJava;
 
+import java.util.List;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.DefinitionArgument;
 import org.enso.compiler.core.ir.Expression;
@@ -9,6 +10,7 @@ import org.enso.compiler.core.ir.Function.Lambda;
 import org.enso.compiler.core.ir.expression.Application;
 import org.enso.compiler.core.ir.module.scope.Definition;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
+import org.enso.compiler.core.ir.type.Set;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.pass.resolve.TypeNames$;
 import org.enso.compiler.pass.resolve.TypeSignatures;
@@ -71,27 +73,52 @@ final class DocsUtils {
       if (sigFqn != null) {
         return sigFqn.toString();
       }
-      if (sigMeta.signature() instanceof Application.Prefix app) {
-        var typeConstructor = extractFqnOrNull(app.function()).toString();
-        if (typeConstructor != null) {
-          var sb = new StringBuilder();
-          sb.append("(");
-          sb.append(typeConstructor);
-          for (var a : asJava(app.arguments())) {
-            var fqn = extractFqnOrNull(a.value());
-            assert fqn != null : "No FQN for " + a;
-            sb.append(" ");
-            sb.append(fqn);
-          }
-          sb.append(")");
-          return sb.toString();
-        }
-      }
+      var type =
+          switch (sigMeta.signature()) {
+            case Application.Prefix app -> {
+              var typeConstructor = extractFqnOrNull(app.function());
+              if (typeConstructor == null) {
+                yield null;
+              }
+              var sb = new StringBuilder();
+              sb.append("(");
+              sb.append(typeConstructor);
+              for (var a : asJava(app.arguments())) {
+                var fqn = extractFqnOrNull(a.value());
+                assert fqn != null : "No FQN for " + a;
+                sb.append(" ");
+                sb.append(fqn);
+              }
+              sb.append(")");
+              yield sb.toString();
+            }
+            case Set.Union union -> extractSet(asJava(union.operands()), "|");
+            default -> null;
+          };
+      return type;
+    } else {
+      var fqn = extractFqnOrNull(ir);
+      return fqn == null ? null : fqn.toString();
     }
-    return null;
   }
 
-  private static QualifiedName extractFqnOrNull(Expression ir) {
+  private static String extractSet(List<Expression> operands, String sep) {
+    var sb = new StringBuilder();
+    for (var op : operands) {
+      if (sb.isEmpty()) {
+        sb.append("(");
+      } else {
+        sb.append(sep);
+      }
+      var opType = extractTypeOrNull(op);
+      assert opType != null;
+      sb.append(opType);
+    }
+    sb.append(")");
+    return sb.toString();
+  }
+
+  private static QualifiedName extractFqnOrNull(IR ir) {
     var typeNameOpt = ir.passData().get(TypeNames$.MODULE$);
     if (typeNameOpt.isDefined()) {
       var typeName = (BindingsMap.Resolution) typeNameOpt.get();
