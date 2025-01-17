@@ -246,7 +246,6 @@ function useSortFilterNodesButton({
     const patterns = new Array<Pattern>()
     const filterModelValue = toValue(filterModel)
     const sortModelValue = toValue(sortModel)
-    console.log({ filterModelValue })
     if (filterModelValue.length) {
       filterModelValue.map((filterModel: FilterModel) => {
         const columnName = filterModel.columnName

@@ -731,7 +731,6 @@ function checkSortAndFilter(e: SortChangedEvent) {
   }
   const colState = gridApi.getColumnState()
   const gridFilterModel = gridApi.getFilterModel()
-  console.log({ gridFilterModel })
   const sort = colState
     .map((cs) => {
       if (cs.sort) {
