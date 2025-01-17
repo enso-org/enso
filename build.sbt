@@ -1920,7 +1920,8 @@ lazy val `ydoc-polyfill` = project
       "com.github.sbt"       % "junit-interface"             % junitIfVersion            % Test
     ),
     libraryDependencies ++= {
-      GraalVM.modules ++ GraalVM.jsPkgs.map(_ % "provided") ++ GraalVM.chromeInspectorPkgs ++ helidon
+      GraalVM.modules ++ GraalVM.jsPkgs
+        .map(_ % "provided") ++ GraalVM.chromeInspectorPkgs ++ helidon
     }
   )
   .dependsOn(`syntax-rust-definition`)
@@ -3785,7 +3786,9 @@ lazy val `engine-runner` = project
             // sqlite-jdbc includes `--enable-url-protocols=jar` in its native-image.properites file,
             // which breaks all our class loading. We still want to run `SqliteJdbcFeature` which extracts a proper
             // native library from the jar.
-            excludeConfigs = Seq(s".*sqlite-jdbc-.*\\.jar,META-INF/native-image/org\\.xerial/sqlite-jdbc/native-image\\.properties"),
+            excludeConfigs = Seq(
+              s".*sqlite-jdbc-.*\\.jar,META-INF/native-image/org\\.xerial/sqlite-jdbc/native-image\\.properties"
+            ),
             additionalOptions = Seq(
               "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
               "-H:IncludeResources=.*Main.enso$",
@@ -3802,7 +3805,7 @@ lazy val `engine-runner` = project
               // "--verbose",
               "-Dnic=nic",
               "-Dorg.enso.feature.native.lib.output=" + (engineDistributionRoot.value / "bin"),
-              "-Dorg.sqlite.lib.exportPath=" + (engineDistributionRoot.value / "bin"),
+              "-Dorg.sqlite.lib.exportPath=" + (engineDistributionRoot.value / "bin")
             ),
             mainClass = Some("org.enso.runner.Main"),
             initializeAtRuntime = Seq(

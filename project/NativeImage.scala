@@ -64,9 +64,10 @@ object NativeImage {
     * of its resources directory. More information can be found at
     * [[https://github.com/oracle/graal/blob/master/substratevm/BuildConfiguration.md]].
     *
-    * @param artifactName name of the artifact to create
+    * @param name name of the artifact to create
     * @param staticOnLinux specifies whether to link statically (applies only
     *                      on Linux)
+    * @param excludeConfigs comma-separated list of jar-/file-patterns to exclude undesired NI configs
     * @param additionalOptions additional options for the Native Image build
     *                          tool
     * @param buildMemoryLimitMegabytes a memory limit for the build tool, in
@@ -200,7 +201,10 @@ object NativeImage {
       log.debug("Class-path: " + cpStr)
 
       val verboseOpt = if (verbose) Seq("--verbose") else Seq()
-      val excludeConfigsOpt = if (excludeConfigs.nonEmpty) excludeConfigs.flatMap(ex => Seq("--exclude-config") ++ ex.split(",")) else Seq.empty
+      val excludeConfigsOpt =
+        if (excludeConfigs.nonEmpty)
+          excludeConfigs.flatMap(ex => Seq("--exclude-config") ++ ex.split(","))
+        else Seq.empty
 
       var args: Seq[String] =
         excludeConfigsOpt ++
