@@ -76,7 +76,7 @@ add_specs suite_builder =
             meta_sym.name.should_equal "does_not_exist"
             new_sym = meta_sym . rename "my_method"
             object = My_Type.Value 1 2 3
-            new_sym object . should_equal 6
+            new_sym.value object . should_equal 6
         group_builder.specify "should allow manipulating atoms" <|
             atom = My_Type.Value 1 "foo" Nothing
             meta_atom = Meta.meta atom

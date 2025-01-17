@@ -165,7 +165,13 @@ type Primitive
     value self = self.impl
 
 type Unresolved_Symbol
-    private Value value
+    private Value impl
+
+    ## PRIVATE
+       ADVANCED
+
+       Returns the raw unresolved symbol
+    value self = self.impl...
 
     ## PRIVATE
        ADVANCED
@@ -176,21 +182,22 @@ type Unresolved_Symbol
        Arguments:
        - new_name: The new name for the unresolved symbol.
     rename self new_name:Text -> Unresolved_Symbol =
-        Meta_Helpers.create_unresolved_symbol_builtin new_name self.value
+        raw = Meta_Helpers.create_unresolved_symbol_builtin new_name self.impl
+        Unresolved_Symbol.Value raw
 
     ## ADVANCED
        GROUP Metadata
        ICON metadata
 
        Returns the name of an unresolved symbol.
-    name self -> Text = @Tail_Call Meta_Helpers.get_unresolved_symbol_name_builtin self.value
+    name self -> Text = @Tail_Call Meta_Helpers.get_unresolved_symbol_name_builtin self.impl
 
     ## ADVANCED
        GROUP Metadata
        ICON metadata
 
        Starts building an instrumentation for a given node
-    instrument self -> Instrumentor = Instrumentor.Value (Meta_Helpers.instrumentor_builtin "newBuilder" [ self.value ])
+    instrument self -> Instrumentor = Instrumentor.Value (Meta_Helpers.instrumentor_builtin "newBuilder" [ self.impl ])
 
 type Error
     private Value impl
@@ -278,7 +285,7 @@ atom_with_hole factory = @Tail_Call Meta_Helpers.atom_with_hole_builtin factory
 
    Arguments:
    - value: The runtime entity to get the meta representation of.
-meta ~value -> Atom | Constructor | Primitive | Polyglot | Unresolved_Symbol | Error =
+meta ~value -> Atom | Constructor | Primitive | Polyglot | Unresolved_Symbol | Error | Type =
     ac = Meta_Helpers.find_atom_constructor_builtin value...
     if ac.is_nothing.not then Constructor.Value ac else
         if Meta_Helpers.is_atom_builtin value... then Atom.Value value else
@@ -397,8 +404,7 @@ is_polyglot value -> Boolean = @Tail_Call Meta_Helpers.is_polyglot_builtin value
    frames to the stack and there is no guarantee that the amount of frames that
    need to be skipped will not change between versions, so this method should be
    used carefully.
-get_source_location : Integer -> Text
-get_source_location skip_frames = Meta_Helpers.get_source_location_builtin skip_frames
+get_source_location skip_frames:Integer -> Text = Meta_Helpers.get_source_location_builtin skip_frames
 
 ## PRIVATE
 
@@ -406,8 +412,7 @@ get_source_location skip_frames = Meta_Helpers.get_source_location_builtin skip_
 
    Arguments:
    - value: The value for which to display the type.
-get_simple_type_name : Any -> Text
-get_simple_type_name value = @Tail_Call Meta_Helpers.get_simple_type_name_builtin value
+get_simple_type_name value -> Text = @Tail_Call Meta_Helpers.get_simple_type_name_builtin value
 
 ## PRIVATE
 
@@ -415,8 +420,7 @@ get_simple_type_name value = @Tail_Call Meta_Helpers.get_simple_type_name_builti
 
    Arguments:
    - value: the value to get the type of.
-get_qualified_type_name : Any -> Text
-get_qualified_type_name value = @Tail_Call Meta_Helpers.get_qualified_type_name_builtin value
+get_qualified_type_name value -> Text = @Tail_Call Meta_Helpers.get_qualified_type_name_builtin value
 
 ## PRIVATE
    ADVANCED
