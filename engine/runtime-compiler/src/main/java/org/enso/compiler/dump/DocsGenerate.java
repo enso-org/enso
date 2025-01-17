@@ -66,11 +66,13 @@ public final class DocsGenerate {
           case Definition.Type t -> {
             if (dispatch.dispatchType(t)) {
               for (var d : asJava(t.members())) {
-                dispatch.dispatchConstructor(t, d);
+                if (!d.isPrivate()) {
+                  dispatch.dispatchConstructor(t, d);
+                }
               }
               for (var mb : moduleBindings) {
                 if (mb instanceof Method.Explicit m) {
-                  if (m.isStaticWrapperForInstanceMethod()) {
+                  if (m.isStaticWrapperForInstanceMethod() || m.isPrivate()) {
                     alreadyDispatched.put(m, m);
                     continue;
                   }
@@ -86,13 +88,11 @@ public final class DocsGenerate {
               }
             }
           }
-          case Definition.Data d -> {
-            dispatch.dispatchConstructor(null, d);
+          case Method.Explicit m -> {
+            if (!m.isPrivate()) {
+              dispatch.dispatchMethod(null, m);
+            }
           }
-          case Definition.SugaredType s -> {
-            w.append("#### sugar " + s.name().name() + "\n");
-          }
-          case Method.Explicit m -> dispatch.dispatchMethod(null, m);
           case Method.Conversion c -> dispatch.dispatchConversion(c);
           default -> throw new AssertionError("unknown type " + b.getClass());
         }

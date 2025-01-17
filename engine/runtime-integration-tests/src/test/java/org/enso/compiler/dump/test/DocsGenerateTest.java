@@ -191,15 +191,34 @@ public class DocsGenerateTest {
         """;
 
     var v = new MockVisitor();
-    generateDocumentation("StaticResult", code, v);
+    generateDocumentation("PrivateResult", code, v);
 
-    assertEquals("No methods", 1, v.visitMethod.size());
+    assertEquals("One sum method", 1, v.visitMethod.size());
     var p = v.visitMethod.get(0);
     assertEquals("Result", p.t().name().name());
     var sum = p.ir();
     assertEquals(
         "sum ~x:Standard.Base.Data.Numbers.Integer y:Standard.Base.Data.Numbers.Integer=",
         DocsVisit.toSignature(sum));
+  }
+
+  @Test
+  public void privateAreHidden() throws Exception {
+    var code =
+        """
+        type Result
+            private Zero
+            private One x
+
+            private create v = Result.One v
+            private power self = self.x*self.x
+        """;
+
+    var v = new MockVisitor();
+    generateDocumentation("StaticResult", code, v);
+
+    assertEquals("No methods", 0, v.visitMethod.size());
+    assertEquals("No constructors", 0, v.visitConstructor.size());
   }
 
   private static void generateDocumentation(String name, String code, DocsVisit v)
