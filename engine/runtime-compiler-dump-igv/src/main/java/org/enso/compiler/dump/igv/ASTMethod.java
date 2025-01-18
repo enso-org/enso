@@ -10,7 +10,6 @@ final class ASTMethod {
   static final class Signature {
     static final Signature NONE = new Signature();
 
-    private Signature() {
-    }
+    private Signature() {}
   }
 }

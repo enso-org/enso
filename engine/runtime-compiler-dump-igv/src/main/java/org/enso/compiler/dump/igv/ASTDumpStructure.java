@@ -167,7 +167,7 @@ final class ASTDumpStructure
 
   @Override
   public Object methodDeclaringClass(ASTMethod method) {
-    return null;
+    return ASTMethod.class;
   }
 
   @Override
