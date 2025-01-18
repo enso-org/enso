@@ -174,7 +174,7 @@ class ModuleSuggestionEntryImpl extends BaseSuggestionEntry implements ModuleSug
     return Ok(
       new ModuleSuggestionEntryImpl(
         normalizeQualifiedName(lsEntry.module),
-        lsEntry.reexport,
+        lsEntry.reexport && normalizeQualifiedName(lsEntry.reexport),
         lsEntry.documentation,
         groups,
       ),
@@ -221,7 +221,7 @@ class TypeSuggestionEntryImpl extends BaseSuggestionEntry implements TypeSuggest
         lsEntry.params,
         lsEntry.parentType === ANY_TYPE_QN ? undefined : lsEntry.parentType,
         normalizeQualifiedName(lsEntry.module),
-        lsEntry.reexport,
+        lsEntry.reexport && normalizeQualifiedName(lsEntry.reexport),
         lsEntry.documentation,
         groups,
       ),
@@ -273,7 +273,7 @@ class ConstructorSuggestionEntryImpl
       new ConstructorSuggestionEntryImpl(
         lsEntry.name,
         lsEntry.arguments,
-        lsEntry.reexport,
+        lsEntry.reexport && normalizeQualifiedName(lsEntry.reexport),
         lsEntry.annotations,
         normalizeQualifiedName(lsEntry.module),
         lsEntry.returnType,
@@ -334,7 +334,7 @@ class MethodSuggestionEntryImpl extends BaseSuggestionEntry implements MethodSug
       new MethodSuggestionEntryImpl(
         lsEntry.name,
         lsEntry.arguments,
-        lsEntry.reexport,
+        lsEntry.reexport && normalizeQualifiedName(lsEntry.reexport),
         lsEntry.annotations,
         lsEntry.isStatic,
         lsEntry.selfType,
@@ -598,7 +598,7 @@ export class SuggestionUpdateProcessor {
 
     if (update.reexport) {
       if (!isOptQN(update.reexport.value)) return Err('Invalid reexport')
-      entry.setLsReexported(update.reexport.value)
+      entry.setLsReexported(update.reexport.value && normalizeQualifiedName(update.reexport.value))
     }
 
     return Ok()

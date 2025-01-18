@@ -302,8 +302,7 @@ export interface DetectedConflict {
 
 export type ConflictInfo = DetectedConflict | undefined
 
-/* Detect possible name clash when adding `importsForEntry` with `existingImports` present. */
-/** TODO: Add docs */
+/** Detect possible name clash when adding `importsForEntry` with `existingImports` present. */
 export function detectImportConflicts(
   suggestionDb: SuggestionDb,
   existingImports: Import[],
