@@ -44,7 +44,7 @@ import org.enso.common.RuntimeOptions;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.core.EnsoParser;
 import org.enso.compiler.data.CompilerConfig;
-import org.enso.compiler.dump.IRDumperPass;
+import org.enso.compiler.dump.IRDumper;
 import org.enso.distribution.DistributionManager;
 import org.enso.distribution.locking.LockManager;
 import org.enso.editions.LibraryName;
@@ -149,7 +149,7 @@ public final class EnsoContext {
     this.assertionsEnabled = shouldAssertionsBeEnabled();
     this.shouldWaitForPendingSerializationJobs =
         getOption(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS_KEY);
-    var irDumper = System.getProperty(IRDumperPass.SYSTEM_PROP);
+    var irDumper = System.getProperty(IRDumper.SYSTEM_PROP);
     this.compilerConfig =
         new CompilerConfig(
             isParallelismEnabled,

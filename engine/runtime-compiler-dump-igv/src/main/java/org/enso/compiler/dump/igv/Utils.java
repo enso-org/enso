@@ -19,10 +19,12 @@ final class Utils {
       case Literal.Number num -> "Literal.Number (" + num.value() + ")";
       case Name.Literal lit -> "Name.Literal ('" + lit.name() + "')";
       case Definition.Type tp -> "Definition.Type ('" + tp.name().name() + "')";
+      case Definition.SugaredType tp -> "Definition.SugaredType ('" + tp.name().name() + "')";
       case Import.Module imp -> "Import.Module ('" + imp.name().name() + "')";
       case Export.Module exp -> "Export.Module ('" + exp.name().name() + "')";
       case Method.Explicit m -> "Method.Explicit ('" + m.methodName().name() + "')";
       case Method.Conversion c -> "Method.Conversion ('" + c.methodName().name() + "')";
+      case Method.Binding b -> "Method.Binding ('" + b.methodName().name() + "')";
       case DefinitionArgument.Specified arg -> "DefinitionArgument.Specified ('"
           + arg.name().name()
           + "')";

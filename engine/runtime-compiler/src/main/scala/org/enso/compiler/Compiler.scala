@@ -29,6 +29,7 @@ import org.enso.compiler.phase.{ImportResolver, ImportResolverAlgorithm}
 import org.enso.editions.LibraryName
 import org.enso.pkg.QualifiedName
 import org.enso.common.CompilationStage
+import org.enso.compiler.dump.IRDumper
 import org.enso.compiler.phase.exports.{
   ExportCycleException,
   ExportSymbolAnalysis,
@@ -70,9 +71,10 @@ class Compiler(
     if (config.outputRedirect.isDefined)
       new PrintStream(config.outputRedirect.get)
     else context.getOut
-
-  /** Java accessor */
-  def getConfig(): CompilerConfig = config
+  private val irDumper: Option[IRDumper] = config.irDumper match {
+    case Some(dumperName) => Some(new IRDumper(dumperName))
+    case None             => None
+  }
 
   /** The thread pool that handles parsing of modules. */
   private val pool: ExecutorService = if (config.parallelParsing) {
@@ -87,6 +89,9 @@ class Compiler(
       }
     )
   } else null
+
+  /** Java accessor */
+  def getConfig(): CompilerConfig = config
 
   /** Duplicates this compiler with a different config.
     * @param newConfig Configuration to be used in the duplicated Compiler.
@@ -809,7 +814,8 @@ class Compiler(
     passManager.runPassesOnModule(
       module,
       moduleContext,
-      passes.moduleDiscoveryPasses
+      passes.moduleDiscoveryPasses,
+      irDumper
     )
   }
 
@@ -827,7 +833,12 @@ class Compiler(
       "Passing module {0} with method body passes",
       moduleContext.module.getName
     )
-    passManager.runPassesOnModule(ir, moduleContext, passes.functionBodyPasses)
+    passManager.runPassesOnModule(
+      ir,
+      moduleContext,
+      passes.functionBodyPasses,
+      irDumper
+    )
   }
 
   private def runGlobalTypingPasses(
@@ -839,7 +850,12 @@ class Compiler(
       "Passing module {0} with global typing passes",
       moduleContext.module.getName
     )
-    passManager.runPassesOnModule(ir, moduleContext, passes.globalTypingPasses)
+    passManager.runPassesOnModule(
+      ir,
+      moduleContext,
+      passes.globalTypingPasses,
+      irDumper
+    )
   }
 
   /** Runs the final type inference passes, if they are enabled.
@@ -853,7 +869,8 @@ class Compiler(
     passManager.runPassesOnModule(
       ir,
       moduleContext,
-      passes.typeInferenceFinalPasses
+      passes.typeInferenceFinalPasses,
+      irDumper
     )
   }
 
@@ -1049,6 +1066,10 @@ class Compiler(
   def shutdown(waitForPendingJobCompletion: Boolean): Unit = {
     context.shutdown(waitForPendingJobCompletion)
     shutdownParsingPool(waitForPendingJobCompletion)
+    irDumper match {
+      case Some(dumper) => dumper.close()
+      case None         => ()
+    }
   }
 
   private def shutdownParsingPool(waitForPendingCompilation: Boolean): Unit = {
