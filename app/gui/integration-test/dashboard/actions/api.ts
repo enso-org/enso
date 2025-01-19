@@ -23,14 +23,13 @@ import invariant from 'tiny-invariant'
 // === Constants ===
 // =================
 
-let lastTimestamp = 0
-
 /** Return a new date that has not yet been returned. */
 function newUniqueDate(): Date {
   const timestamp = Number(new Date())
-  const newTimestamp = Math.max(timestamp, lastTimestamp + 1)
-  lastTimestamp = newTimestamp
-  return new Date(newTimestamp)
+  while (Number(new Date()) <= timestamp) {
+    // Busy loop
+  }
+  return new Date()
 }
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -338,7 +337,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     )
 
   const createUserGroupPermission = (
-    userGroup: backend.UserGroupInfo,
+    userGroup: backend.UserGroup,
     permission: permissions.PermissionAction = permissions.PermissionAction.own,
     rest: Partial<backend.UserGroupPermission> = {},
   ): backend.UserGroupPermission =>
