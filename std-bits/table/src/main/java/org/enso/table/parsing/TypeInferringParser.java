@@ -67,7 +67,7 @@ public class TypeInferringParser extends DatatypeParser {
           }
           builder.appendNoGrow(parsed);
         } else {
-          builder.appendNoGrow(null);
+          builder.appendNulls(1);
         }
 
         context.safepoint();

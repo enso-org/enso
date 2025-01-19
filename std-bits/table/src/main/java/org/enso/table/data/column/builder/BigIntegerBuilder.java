@@ -1,12 +1,10 @@
 package org.enso.table.data.column.builder;
 
 import java.math.BigInteger;
-import java.util.Arrays;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
-import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.FloatType;
@@ -16,73 +14,54 @@ import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 
-public class BigIntegerBuilder extends TypedBuilderImpl<BigInteger> {
+public class BigIntegerBuilder extends TypedBuilder<BigInteger> {
   // The problem aggregator is only used so that when we are retyping, we can pass it on.
   private final ProblemAggregator problemAggregator;
 
-  @Override
-  protected BigInteger[] newArray(int size) {
-    return new BigInteger[size];
-  }
-
-  public BigIntegerBuilder(int size, ProblemAggregator problemAggregator) {
-    super(size);
+  BigIntegerBuilder(int size, ProblemAggregator problemAggregator) {
+    super(BigIntegerType.INSTANCE, new BigInteger[size]);
     this.problemAggregator = problemAggregator;
-  }
-
-  @Override
-  public void retypeToMixed(Object[] items) {
-    super.retypeToMixed(items);
   }
 
   @Override
   public boolean canRetypeTo(StorageType type) {
     return type instanceof FloatType
-        || type instanceof BigDecimalType
-        || type instanceof AnyObjectType;
+        || type instanceof BigDecimalType;
   }
 
   @Override
-  public TypedBuilder retypeTo(StorageType type) {
-    if (type instanceof FloatType) {
-      DoubleBuilder res =
-          NumericBuilder.createInferringDoubleBuilder(currentSize, problemAggregator);
-      for (int i = 0; i < currentSize; i++) {
-        if (data[i] == null) {
-          res.appendNulls(1);
-        } else {
-          res.appendBigInteger(data[i]);
+  public Builder retypeTo(StorageType type) {
+    switch (type) {
+      case FloatType _ -> {
+        // Needs to be an InferredDoubleBuilder so we can keep the raw data.
+        var res = new InferredDoubleBuilder(currentSize, problemAggregator);
+        for (int i = 0; i < currentSize; i++) {
+          if (data[i] == null) {
+            res.appendNulls(1);
+          } else {
+            res.append(data[i]);
+          }
         }
+        return res;
       }
-      return res;
-    } else if (type instanceof BigDecimalType) {
-      BigDecimalBuilder res = new BigDecimalBuilder(currentSize);
-      for (int i = 0; i < currentSize; i++) {
-        if (data[i] == null) {
-          res.appendNulls(1);
-        } else {
-          res.appendNoGrow(data[i]);
+      case BigDecimalType _ -> {
+        var res = Builder.getForType(type, data.length, problemAggregator);
+        for (int i = 0; i < currentSize; i++) {
+          if (data[i] == null) {
+            res.appendNulls(1);
+          } else {
+            res.appendNoGrow(data[i]);
+          }
         }
+        return res;
       }
-      return res;
-    } else if (type instanceof AnyObjectType) {
-      Object[] widenedData = Arrays.copyOf(data, data.length, Object[].class);
-      ObjectBuilder res = new MixedBuilder(widenedData);
-      res.setCurrentSize(currentSize);
-      return res;
-    } else {
-      throw new UnsupportedOperationException();
+      default -> throw new UnsupportedOperationException();
     }
   }
 
   @Override
   protected Storage<BigInteger> doSeal() {
     return new BigIntegerStorage(data, currentSize);
-  }
-
-  @Override
-  public StorageType getType() {
-    return BigIntegerType.INSTANCE;
   }
 
   @Override
@@ -94,6 +73,8 @@ public class BigIntegerBuilder extends TypedBuilderImpl<BigInteger> {
   public void appendNoGrow(Object o) {
     if (o == null) {
       data[currentSize++] = null;
+    } else if (o instanceof BigInteger value) {
+      data[currentSize++] = value;
     } else {
       try {
         data[currentSize++] = NumericConverter.coerceToBigInteger(o);
@@ -103,13 +84,8 @@ public class BigIntegerBuilder extends TypedBuilderImpl<BigInteger> {
     }
   }
 
-  public void appendRawNoGrow(BigInteger value) {
-    data[currentSize++] = value;
-  }
-
-  public static BigIntegerBuilder retypeFromLongBuilder(LongBuilder longBuilder) {
-    BigIntegerBuilder res =
-        new BigIntegerBuilder(longBuilder.data.length, longBuilder.problemAggregator);
+  public static Builder retypeFromLongBuilder(LongBuilder longBuilder) {
+    var res = new BigIntegerBuilder(longBuilder.data.length, longBuilder.problemAggregator);
     int n = longBuilder.currentSize;
     Context context = Context.getCurrent();
     for (int i = 0; i < n; i++) {

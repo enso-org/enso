@@ -8,8 +8,8 @@ import project.Table.Common_Setup.Common_Setup
 import project.Table.Helpers
 
 polyglot java import org.enso.exploratory_benchmark_helpers.MapHelpers
-polyglot java import org.enso.table.data.column.builder.BoolBuilder
-polyglot java import org.enso.table.data.column.builder.NumericBuilder
+polyglot java import org.enso.table.data.column.builder.Builder
+polyglot java import org.enso.table.data.column.storage.type.IntegerType;
 
 ## This tests an operation on a boxed value (e.g. ends_with on a String).
    It is the basic benchmark for comparing the performance between the vectorized Java op and approaches relying on Enso.
@@ -33,7 +33,7 @@ type Boxed_Map_Test
     enso_map_with_builder self =
         suffix = self.suffix
         n = self.text_column.length
-        builder = BoolBuilder.new n
+        builder = Builder.getForBoolean n
         storage = get_storage_for_column self.text_column
         0.up_to n . each i->
             item = storage.getItemBoxed i
@@ -70,7 +70,7 @@ type Primitive_Map_Test
     enso_map_with_builder self =
         shift = self.shift
         n = self.int_column.length
-        builder = NumericBuilder.createLongBuilder n
+        builder = Builder.getForLong IntegerType.INT_64 n Nothing
         storage = get_storage_for_column self.int_column
         0.up_to n . each i->
             case storage.isNothing i of
