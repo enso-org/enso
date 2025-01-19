@@ -19,26 +19,25 @@ import {
   useWidgetFunctionCallInfo,
 } from '../widgetFunctionCallInfo'
 
-const moduleMethod = {
-  ...makeMethod('local.Project.module_method', 'Text'),
-  arguments: [makeArgument('arg')],
+const moduleMethod = makeMethod('local.Project.module_method', {
+  returnType: 'Text',
+  args: [makeArgument('arg')],
   annotations: ['arg'],
-}
-const con = {
-  ...makeConstructor('local.Project.Type.Con'),
-  arguments: [makeArgument('arg')],
+})
+const con = makeConstructor('local.Project.Type.Con', {
+  args: [makeArgument('arg')],
   annotations: ['arg'],
-}
-const method = {
-  ...makeMethod('local.Project.Type.method', 'Text'),
-  arguments: [makeArgument('self'), makeArgument('arg')],
+})
+const method = makeMethod('local.Project.Type.method', {
+  returnType: 'Text',
+  args: [makeArgument('self'), makeArgument('arg')],
   annotations: ['arg'],
-}
-const staticMethod = {
-  ...makeStaticMethod('local.Project.Type.static_method', 'Text'),
-  arguments: [makeArgument('arg')],
+})
+const staticMethod = makeStaticMethod('local.Project.Type.static_method', {
+  returnType: 'Text',
+  args: [makeArgument('arg')],
   annotations: ['arg'],
-}
+})
 
 test.each`
   code                                       | callSuggestion  | subjectSpan            | attachedSpan            | subjectType                  | methodName

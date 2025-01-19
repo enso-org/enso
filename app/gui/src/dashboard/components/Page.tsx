@@ -44,13 +44,9 @@ export default function Page(props: PageProps) {
           {(
             !hideInfoBar &&
             session?.type === authProvider.UserSessionType.full &&
-            process.env.ENSO_CLOUD_CHAT_URL != null
+            $config.CHAT_URL != null
           ) ?
-            <Chat
-              isOpen={isHelpChatOpen}
-              doClose={doCloseChat}
-              endpoint={process.env.ENSO_CLOUD_CHAT_URL}
-            />
+            <Chat isOpen={isHelpChatOpen} doClose={doCloseChat} endpoint={$config.CHAT_URL} />
           : <ChatPlaceholder hideLoginButtons isOpen={isHelpChatOpen} doClose={doCloseChat} />}
         </>
       )}

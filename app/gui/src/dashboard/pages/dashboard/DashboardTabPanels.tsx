@@ -12,6 +12,7 @@ import Editor from '#/layouts/Editor'
 import Settings from '#/layouts/Settings'
 import { TabType, useLaunchedProjects, usePage } from '#/providers/ProjectsProvider'
 import type { ProjectId } from '#/services/Backend'
+import type { ReactNode } from 'react'
 import { Collection } from 'react-aria-components'
 
 /** The props for the {@link DashboardTabPanels} component. */
@@ -83,7 +84,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
 
   return (
     <Collection items={tabPanels}>
-      {(tabPanelProps) => (
+      {(tabPanelProps: aria.TabPanelProps & { children: ReactNode }) => (
         <aria.TabPanel {...tabPanelProps}>
           <Suspense>
             <ErrorBoundary>{tabPanelProps.children}</ErrorBoundary>

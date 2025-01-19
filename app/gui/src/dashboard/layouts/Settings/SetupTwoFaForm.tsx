@@ -22,7 +22,7 @@ import {
 } from '#/components/AriaComponents'
 import { ErrorBoundary } from '#/components/ErrorBoundary'
 import { Suspense } from '#/components/Suspense'
-import { useAuth } from '#/providers/AuthProvider'
+import { useSessionAPI } from '#/providers/SessionProvider'
 import { useText } from '#/providers/TextProvider'
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
 import { lazy } from 'react'
@@ -39,31 +39,17 @@ const LazyQRCode = lazy(() =>
  */
 export function SetupTwoFaForm() {
   const { getText } = useText()
-  const { cognito } = useAuth()
+  const { getMFAPreference, updateMFAPreference, verifyTotpToken } = useSessionAPI()
 
   const { data } = useSuspenseQuery({
     queryKey: ['twoFaPreference'],
-    queryFn: () =>
-      cognito.getMFAPreference().then((res) => {
-        if (res.err) {
-          throw res.val
-        } else {
-          return res.unwrap()
-        }
-      }),
+    queryFn: () => getMFAPreference(),
   })
 
   const MFAEnabled = data !== 'NOMFA'
 
   const updateMFAPreferenceMutation = useMutation({
-    mutationFn: (preference: MfaType) =>
-      cognito.updateMFAPreference(preference).then((res) => {
-        if (res.err) {
-          throw res.val
-        } else {
-          return res.unwrap()
-        }
-      }),
+    mutationFn: (preference: MfaType) => updateMFAPreference(preference),
     meta: { invalidates: [['twoFaPreference']] },
   })
 
@@ -100,11 +86,11 @@ export function SetupTwoFaForm() {
                 formOptions={{ mode: 'onSubmit' }}
                 method="dialog"
                 onSubmit={({ otp }) =>
-                  cognito.verifyTotpToken(otp).then((res) => {
-                    if (res.ok) {
+                  verifyTotpToken(otp).then((passed) => {
+                    if (passed) {
                       return updateMFAPreferenceMutation.mutateAsync('NOMFA')
                     } else {
-                      throw res.val
+                      throw new Error('Invalid OTP')
                     }
                   })
                 }
@@ -139,11 +125,11 @@ export function SetupTwoFaForm() {
       defaultValues={{ enabled: false, display: 'QR' }}
       onSubmit={async ({ enabled, otp }) => {
         if (enabled) {
-          return cognito.verifyTotpToken(otp).then((res) => {
-            if (res.ok) {
+          return verifyTotpToken(otp).then((passed) => {
+            if (passed) {
               return updateMFAPreferenceMutation.mutateAsync('TOTP')
             } else {
-              throw res.val
+              throw new Error('Invalid OTP')
             }
           })
         }
@@ -170,19 +156,12 @@ export function SetupTwoFaForm() {
 
 /** Two Factor Authentication Setup Form. */
 function TwoFa() {
-  const { cognito } = useAuth()
+  const { setupTOTP } = useSessionAPI()
   const { getText } = useText()
 
   const { data } = useSuspenseQuery({
     queryKey: ['setupTOTP'],
-    queryFn: () =>
-      cognito.setupTOTP().then((res) => {
-        if (res.err) {
-          throw res.val
-        } else {
-          return res.unwrap()
-        }
-      }),
+    queryFn: () => setupTOTP(),
   })
 
   return (

@@ -900,7 +900,7 @@ public final class ValuesGenerator {
 
   private void addMultiToCollect(
       List<Value> collect, Type[] types, int dispatchTypes, Object... values) {
-    var raw = EnsoMultiValue.NewNode.getUncached().newValue(types, dispatchTypes, values);
+    var raw = EnsoMultiValue.NewNode.getUncached().newValue(types, dispatchTypes, 0, values);
     var wrap = ctx.asValue(raw);
     collect.add(wrap);
   }

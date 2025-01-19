@@ -42,7 +42,7 @@ public abstract class IncrementalDatatypeParser extends DatatypeParser {
         Object parsed = parseSingleValue(cell, problemAggregator);
         builder.appendNoGrow(parsed);
       } else {
-        builder.appendNoGrow(null);
+        builder.appendNulls(1);
       }
 
       context.safepoint();

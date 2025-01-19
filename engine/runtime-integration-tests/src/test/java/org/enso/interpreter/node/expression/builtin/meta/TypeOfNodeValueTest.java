@@ -95,7 +95,7 @@ public class TypeOfNodeValueTest {
               };
           var multi =
               EnsoMultiValue.NewNode.getUncached()
-                  .newValue(types, 1, new Object[] {42L, "Meaning"});
+                  .newValue(types, 1, 0, new Object[] {42L, "Meaning"});
           var arr = (Object[]) testTypesCall.call(multi, true);
           var allTypes = (Type[]) arr[1];
           assertEquals("Two types", 2, allTypes.length);

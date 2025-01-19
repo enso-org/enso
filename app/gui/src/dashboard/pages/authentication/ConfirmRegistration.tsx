@@ -11,10 +11,10 @@ import { Result } from '#/components/Result'
 
 import { Button, ButtonGroup } from '#/components/AriaComponents'
 import { useMounted } from '#/hooks/mountHooks'
-import * as authProvider from '#/providers/AuthProvider'
 import { useText } from '#/providers/TextProvider'
 import { unsafeWriteValue } from '#/utilities/write'
 import { useMutation } from '@tanstack/react-query'
+import { useSessionAPI } from '../../providers/SessionProvider'
 import AuthenticationPage from './AuthenticationPage'
 
 // ===========================
@@ -23,7 +23,7 @@ import AuthenticationPage from './AuthenticationPage'
 
 /** An empty component redirecting users based on the backend response to user registration. */
 export default function ConfirmRegistration() {
-  const auth = authProvider.useAuth()
+  const { confirmSignUp } = useSessionAPI()
   const { getText } = useText()
 
   const navigate = router.useNavigate()
@@ -36,7 +36,7 @@ export default function ConfirmRegistration() {
   const confirmRegistrationMutation = useMutation({
     mutationKey: ['confirmRegistration'],
     mutationFn: (params: { email: string; verificationCode: string }) =>
-      auth.confirmSignUp(params.email, params.verificationCode),
+      confirmSignUp(params.email, params.verificationCode),
     onSuccess: () => {
       if (redirectUrl != null) {
         unsafeWriteValue(window.location, 'href', redirectUrl)

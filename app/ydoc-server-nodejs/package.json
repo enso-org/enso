@@ -16,7 +16,8 @@
     "format": "prettier --version && prettier --write src/ && eslint . --fix"
   },
   "dependencies": {
-    "ydoc-server": "workspace:*"
+    "ydoc-server": "workspace:*",
+    "ws": "^8.18.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.4",

@@ -72,7 +72,6 @@ export function useUploadFiles(backend: Backend, category: Category) {
   const { setModal } = useSetModal()
   const { user } = useFullUserSession()
   const { data: users } = useBackendQuery(backend, 'listUsers', [])
-  const { data: userGroups } = useBackendQuery(backend, 'listUserGroups', [])
   const uploadFileMutation = useUploadFileWithToastMutation(backend)
   const setSelectedAssets = useSetSelectedAssets()
 
@@ -94,7 +93,7 @@ export function useUploadFiles(backend: Backend, category: Category) {
         category,
         user,
         users ?? [],
-        userGroups ?? [],
+        user.groups ?? [],
       )
       const files = reversedFiles.filter(fileIsNotProject).map((file) => {
         const asset = createPlaceholderFileAsset(

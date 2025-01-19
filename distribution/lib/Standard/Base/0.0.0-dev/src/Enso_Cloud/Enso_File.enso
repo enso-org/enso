@@ -1,6 +1,7 @@
 import project.Any.Any
 import project.Data.Color.Color
 import project.Data.Json.JS_Object
+import project.Data.Ordering.Vector_Lexicographic_Order
 import project.Data.Numbers.Integer
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
@@ -488,10 +489,11 @@ type Enso_File
                     if self.is_directory.not then Error.throw (Illegal_Argument.Error "Cannot `list` a non-directory.") else
                         # Remove secrets from the list - they are handled separately in `Enso_Secret.list`.
                         assets = list_assets self . filter f-> f.asset_type != Enso_Asset_Type.Secret
-                        assets.map asset->
+                        results = assets.map asset->
                             file = Enso_File.Value (self.enso_path.resolve asset.name)
                             Asset_Cache.update file asset
                             file
+                        results.sort on=.path
 
     ## GROUP Output
        ICON folder_add

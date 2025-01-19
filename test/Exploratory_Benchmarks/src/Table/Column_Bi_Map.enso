@@ -8,8 +8,9 @@ import project.Table.Common_Setup.Common_Setup
 import project.Table.Helpers
 
 polyglot java import org.enso.exploratory_benchmark_helpers.MapHelpers
-polyglot java import org.enso.table.data.column.builder.NumericBuilder
-polyglot java import org.enso.table.data.column.builder.StringBuilder
+polyglot java import org.enso.table.data.column.builder.Builder
+polyglot java import org.enso.table.data.column.storage.type.IntegerType;
+polyglot java import org.enso.table.data.column.storage.type.TextType;
 
 # Adding two String columns
 type Boxed_Bi_Map_Test
@@ -31,7 +32,7 @@ type Boxed_Bi_Map_Test
     enso_map_with_builder self =
         n = self.text_column_1.length
         if self.text_column_2.length != n then Panic.throw "LENGTH MISMATCH" else
-            builder = StringBuilder.new n
+            builder = Builder.getForType TextType.VARIABLE_LENGTH n Nothing
             storage_1 = get_storage_for_column self.text_column_1
             storage_2 = get_storage_for_column self.text_column_2
             0.up_to n . each i->
@@ -65,7 +66,7 @@ type Primitive_Bi_Map_Test
     enso_map_with_builder self =
         n = self.int_column_1.length
         if self.int_column_2.length != n then Panic.throw "LENGTH MISMATCH" else
-            builder = NumericBuilder.createLongBuilder n
+            builder = Builder.getForLong IntegerType.INT_64 n Nothing
             storage_1 = get_storage_for_column self.int_column_1
             storage_2 = get_storage_for_column self.int_column_2
             0.up_to n . each i->

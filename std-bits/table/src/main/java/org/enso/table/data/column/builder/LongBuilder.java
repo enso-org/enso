@@ -1,9 +1,7 @@
 package org.enso.table.data.column.builder;
 
-import java.util.BitSet;
 import java.util.Objects;
 import org.enso.base.polyglot.NumericConverter;
-import org.enso.table.data.column.operation.cast.ToIntegerStorageConverter;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
@@ -13,31 +11,43 @@ import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
+import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.BitSets;
 
 /** A builder for integer columns. */
-public abstract class LongBuilder extends NumericBuilder {
+public class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithRetyping {
   protected final ProblemAggregator problemAggregator;
+  protected long[] data;
 
-  protected LongBuilder(
-      BitSet isNothing, long[] data, int currentSize, ProblemAggregator problemAggregator) {
-    super(isNothing, data, currentSize);
+  protected LongBuilder(int initialSize, ProblemAggregator problemAggregator) {
+    this.data = new long[initialSize];
     this.problemAggregator = problemAggregator;
   }
 
   static LongBuilder make(int initialSize, IntegerType type, ProblemAggregator problemAggregator) {
-    BitSet isNothing = new BitSet();
-    long[] data = new long[initialSize];
     if (type.equals(IntegerType.INT_64)) {
-      return new LongBuilderUnchecked(isNothing, data, 0, problemAggregator);
+      return new LongBuilder(initialSize, problemAggregator);
     } else {
-      return new LongBuilderChecked(isNothing, data, 0, type, problemAggregator);
+      return new BoundCheckedIntegerBuilder(initialSize, type, problemAggregator);
     }
   }
 
   @Override
-  public void retypeToMixed(Object[] items) {
+  protected int getDataSize() {
+    return data.length;
+  }
+
+  @Override
+  protected void resize(int desiredCapacity) {
+    long[] newData = new long[desiredCapacity];
+    int toCopy = Math.min(currentSize, data.length);
+    System.arraycopy(data, 0, newData, 0, toCopy);
+    data = newData;
+  }
+
+  @Override
+  public void copyDataTo(Object[] items) {
     for (int i = 0; i < currentSize; i++) {
       if (isNothing.get(i)) {
         items[i] = null;
@@ -54,18 +64,20 @@ public abstract class LongBuilder extends NumericBuilder {
   }
 
   @Override
-  public TypedBuilder retypeTo(StorageType type) {
+  public Builder retypeTo(StorageType type) {
     if (Objects.equals(type, BigIntegerType.INSTANCE)) {
       return BigIntegerBuilder.retypeFromLongBuilder(this);
     } else if (Objects.equals(type, FloatType.FLOAT_64)) {
-      return InferringDoubleBuilder.retypeFromLongBuilder(this);
+      return InferredDoubleBuilder.retypeFromLongBuilder(this);
     } else {
       throw new UnsupportedOperationException();
     }
   }
 
   @Override
-  public abstract IntegerType getType();
+  public IntegerType getType() {
+    return IntegerType.INT_64;
+  }
 
   @Override
   public boolean accepts(Object o) {
@@ -90,7 +102,7 @@ public abstract class LongBuilder extends NumericBuilder {
           if (longStorage.isNothing(i)) {
             isNothing.set(currentSize++);
           } else {
-            appendLongNoGrow(longStorage.getItem(i));
+            appendLong(longStorage.getItem(i));
           }
         }
       } else {
@@ -106,7 +118,7 @@ public abstract class LongBuilder extends NumericBuilder {
           if (boolStorage.isNothing(i)) {
             isNothing.set(currentSize++);
           } else {
-            data[currentSize++] = ToIntegerStorageConverter.booleanAsLong(boolStorage.getItem(i));
+            data[currentSize++] = boolStorage.getItem(i) ? 1L : 0L;
           }
         }
       } else {
@@ -123,26 +135,28 @@ public abstract class LongBuilder extends NumericBuilder {
   /**
    * Append a new integer to this builder.
    *
-   * @param data the integer to append
+   * @param value the integer to append
    */
-  public void appendLong(long data) {
+  public void appendLong(long value) {
     if (currentSize >= this.data.length) {
       grow();
     }
 
     assert currentSize < this.data.length;
-    appendLongNoGrow(data);
+    this.data[currentSize++] = value;
   }
 
-  public abstract void appendLongNoGrow(long data);
-
-  /**
-   * Append a new integer to this builder, without checking for overflows.
-   *
-   * <p>Used if the range has already been checked by the caller.
-   */
-  public void appendLongUnchecked(long data) {
-    appendRawNoGrow(data);
+  public void appendNoGrow(Object o) {
+    if (o == null) {
+      isNothing.set(currentSize++);
+    } else {
+      Long x = NumericConverter.tryConvertingToLong(o);
+      if (x != null) {
+        this.data[currentSize++] = x;
+      } else {
+        throw new ValueTypeMismatchException(getType(), o);
+      }
+    }
   }
 
   @Override

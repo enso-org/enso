@@ -1,4 +1,4 @@
-import { type Icon } from '@/util/iconName'
+import { type Icon } from '@/util/iconMetadata/iconName'
 import { computed, type ComputedRef, markRaw, type MaybeRef, type Ref, unref } from 'vue'
 
 export type ActionOrStateRequired = { action: () => void } | { state: Ref<boolean> }

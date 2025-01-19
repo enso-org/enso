@@ -259,6 +259,12 @@ add_specs suite_builder =
                 r3.should_be_a Vector
                 r3.map .name . should_contain object_name
 
+        group_builder.specify "list should sort its output" <|
+            r = root.list
+            r.should_be_a Vector
+            as_strings = r.map .to_text
+            as_strings . should_equal as_strings.sort
+
         group_builder.specify "should be able to list buckets by constructing a root object" <|
             with_default_credentials <|
                 just_s3 = File.new "s3://"

@@ -74,15 +74,6 @@ async function ensoPackageSignables(resourcesDir: string): Promise<Signable[]> {
   const engineDir = `${resourcesDir}/enso/dist/*`
   const archivePatterns: ArchivePattern[] = [
     [
-      '/component/runner/runner.jar',
-      [
-        'org/sqlite/native/Mac/x86_64/libsqlitejdbc.jnilib',
-        'org/sqlite/native/Mac/aarch64/libsqlitejdbc.jnilib',
-        'com/sun/jna/darwin-aarch64/libjnidispatch.jnilib',
-        'com/sun/jna/darwin-x86-64/libjnidispatch.jnilib',
-      ],
-    ],
-    [
       'component/python-resources-*.jar',
       [
         'META-INF/resources/darwin/*/lib/graalpy*/*.dylib',
@@ -134,12 +125,12 @@ async function ensoPackageSignables(resourcesDir: string): Promise<Signable[]> {
       ['META-INF/native/libconscrypt_openjdk_jni-osx-*.dylib'],
     ],
     ['lib/Standard/Tableau/*/polyglot/java/jna-*.jar', ['com/sun/jna/*/libjnidispatch.jnilib']],
-    [
-      'lib/Standard/Image/*/polyglot/java/opencv-*.jar',
-      ['nu/pattern/opencv/osx/*/libopencv_java*.dylib'],
-    ],
   ]
-  return ArchiveToSign.lookupMany(engineDir, archivePatterns)
+  const binariesPattern = 'lib/Standard/Image/*/polyglot/lib/*.dylib'
+
+  const binaries = await BinaryToSign.lookupMany(engineDir, [binariesPattern])
+  const archives = await ArchiveToSign.lookupMany(engineDir, archivePatterns)
+  return [...archives, ...binaries]
 }
 
 // ================
@@ -223,9 +214,10 @@ class ArchiveToSign implements Signable {
       }
 
       if (isJar) {
-        if (archiveName.includes('runner')) {
-          run('jar', ['-cfm', TEMPORARY_ARCHIVE_PATH, 'META-INF/MANIFEST.MF', '.'], workingDir)
-        } else {
+        const meta = 'META-INF/MANIFEST.MF'
+        try {
+          run('jar', ['-cfm', TEMPORARY_ARCHIVE_PATH, meta, '.'], workingDir)
+        } catch {
           run('jar', ['-cf', TEMPORARY_ARCHIVE_PATH, '.'], workingDir)
         }
       } else {

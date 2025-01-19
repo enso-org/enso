@@ -5,6 +5,7 @@ import sbt.io.IO
 import sbt.librarymanagement.{ConfigurationFilter, DependencyFilter}
 
 import java.io.File
+import java.util.Locale
 
 object StdBits {
 
@@ -132,7 +133,10 @@ object StdBits {
       if (
         strippedEntryName.contains("linux/ARM") ||
         strippedEntryName.contains("linux/x86_32") ||
-        strippedEntryName.contains("README.md")
+        strippedEntryName.contains("README.md")    ||
+        // Remove native libs for different platforms
+        (!strippedEntryName.contains(osName())) ||
+        (!strippedEntryName.contains(arch()))
       ) {
         None
       } else {
@@ -169,6 +173,32 @@ object StdBits {
       logger,
       streams.value.cacheStoreFactory
     )
+  }
+
+  /** Inspired by `org.enso.pkg.NativeLibraryFinder`
+    */
+  private def osName(): String = {
+    var osName = System.getProperty("os.name").toLowerCase(Locale.ENGLISH)
+    if (osName.contains(" ")) {
+      // Strip version
+      osName = osName.substring(0, osName.indexOf(' '))
+    }
+    if (osName.contains("linux")) {
+      "linux"
+    } else if (osName.contains("mac")) {
+      "osx"
+    } else if (osName.contains("windows")) {
+      "windows"
+    } else {
+      throw new IllegalStateException(s"Unsupported OS: $osName")
+    }
+  }
+
+  /** Inspired by `org.enso.pkg.NativeLibraryFinder`
+    */
+  private def arch(): String = {
+    val arch = System.getProperty("os.arch").toLowerCase(Locale.ENGLISH)
+    arch.replace("amd64", "x86_64")
   }
 
   private def updateDependency(
