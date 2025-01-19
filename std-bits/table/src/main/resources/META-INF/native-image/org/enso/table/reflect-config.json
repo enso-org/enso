@@ -1,0 +1,176 @@
+[
+{
+  "name":"org.enso.table.util.NamingProperties"
+},
+{
+  "name":"org.enso.table.data.column.storage.Storage",
+  "methods":[
+    {
+      "name":"<init>",
+      "parameterTypes":[]
+    }
+  ],
+  "fields":[
+    {"name":"Maps"}
+  ]
+},
+{
+  "name":"org.enso.table.data.column.storage.Storage.Maps"
+},
+{
+  "name":"org.enso.table.data.column.storage.Storage$Maps",
+  "fields":[
+    {
+      "name":"EQ"
+    },
+    {
+      "name":"LT"
+    },
+    {
+      "name":"LTE"
+    },
+    {
+      "name":"GT"
+    },
+    {
+      "name":"GTE"
+    },
+    {
+      "name":"MUL"
+    },
+    {
+      "name":"ADD"
+    },
+    {
+      "name":"SUB"
+    },
+    {
+      "name":"DIV"
+    },
+    {
+      "name":"MOD"
+    },
+    {
+      "name":"POWER"
+    },
+    {
+      "name":"ROUND"
+    },
+    {
+      "name":"AND"
+    },
+    {
+      "name":"OR"
+    },
+    {
+      "name":"STARTS_WITH"
+    },
+    {
+      "name":"ENDS_WITH"
+    },
+    {
+      "name":"TEXT_LEFT"
+    },
+    {
+      "name":"TEXT_RIGHT"
+    },
+    {
+      "name":"CONTAINS"
+    },
+    {
+      "name":"IS_IN"
+    },
+    {
+      "name":"LIKE"
+    },
+    {
+      "name":"MIN"
+    },
+    {
+      "name":"MAX"
+    }
+  ]
+},
+{
+  "name": "org.enso.table.expressions.ExpressionVisitorImpl",
+  "methods":[
+    {
+      "name":"<init>",
+      "parameterTypes":[]
+    }
+  ],
+  "fields":[
+    {"name":"SyntaxErrorException"}
+  ]
+},
+{
+  "name": "org.enso.table.expressions.ExpressionVisitorImpl.SyntaxErrorException"
+},
+{
+  "name": "org.enso.table.expressions.ExpressionVisitorImpl$SyntaxErrorException",
+  "methods":[
+    {
+      "name":"getLine",
+      "parameterTypes":[]
+    },
+    {
+      "name":"getColumn",
+      "parameterTypes":[]
+    }
+  ]
+},
+{
+  "name": "org.enso.table.data.table.join.between.SortedListIndex",
+  "methods":[
+    {
+      "name":"build",
+      "parameterTypes":["java.util.List","java.util.Comparator"]
+    }
+  ]
+},
+{
+  "name": "org.enso.table.data.column.builder.LongBuilder",
+  "methods":[
+    {
+      "name":"appendLong",
+      "parameterTypes":["long"]
+    }
+  ]
+},
+{
+  "name": "org.enso.table.data.column.builder.DoubleBuilder",
+  "methods":[
+    {
+      "name":"appendDouble",
+      "parameterTypes":["double"]
+    }
+  ]
+},
+{
+  "name": "org.enso.table.excel.ExcelHeaders.HeaderBehavior"
+},
+{
+  "name": "org.enso.table.excel.ExcelHeaders$HeaderBehavior"
+},
+{
+  "name": "org.enso.table.read.DelimitedFileMetadata",
+  "methods":[
+    {
+      "name":"columnCount",
+      "parameterTypes":[]
+    },
+    {
+      "name":"definedColumnNames",
+      "parameterTypes":[]
+    },
+    {
+      "name":"hasAnyContent",
+      "parameterTypes":[]
+    },
+    {
+      "name":"effectiveLineSeparator",
+      "parameterTypes":[]
+    }
+  ]
+}
+]

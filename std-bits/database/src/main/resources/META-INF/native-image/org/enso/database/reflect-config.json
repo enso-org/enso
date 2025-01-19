@@ -1,0 +1,14 @@
+[
+{
+  "name":"org.enso.table.util.NamingProperties"
+},
+{
+  "name":"java.sql.ParameterMetaData",
+  "methods":[
+    {
+      "name":"getParameterCount",
+      "parameterTypes":[]
+    }
+  ]
+}
+]
