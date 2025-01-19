@@ -132,7 +132,8 @@ interface PlaceholderOverrides {
   readonly xItemsCopied: [count: number]
   readonly xItemsCut: [count: number]
   readonly uploadingXFilesWithProgressNotification: [
-    fileCount: number,
+    sentFiles: number,
+    totalFiles: number,
     progressMb: number,
     totalMb: number,
   ]

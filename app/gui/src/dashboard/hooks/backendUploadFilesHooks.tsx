@@ -462,7 +462,7 @@ export function useUploadFileMutation(
     async ([body, file]: [body: UploadFileRequestParams, file: File]) => {
       const progressId = uniqueString()
       setVariables([body, file])
-      const fileSizeBytes = file.size / MB_BYTES
+      const fileSizeBytes = file.size
       const beginProgress: UploadFileMutationProgress = {
         event: 'begin',
         sentBytes: 0,
@@ -492,7 +492,10 @@ export function useUploadFileMutation(
           const fullPromise = promise.then(uploadNextChunk)
           parts[currentI] = await promise
           completedChunkCount += 1
-          const newSentBytes = Math.min(completedChunkCount * S3_CHUNK_SIZE_MB, fileSizeBytes)
+          const newSentBytes = Math.min(
+            completedChunkCount * S3_CHUNK_SIZE_MB * MB_BYTES,
+            fileSizeBytes,
+          )
           setSentBytes(newSentBytes)
           const chunkProgress: UploadFileMutationProgress = {
             event: 'chunk',

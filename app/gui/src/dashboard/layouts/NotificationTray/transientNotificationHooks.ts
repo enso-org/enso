@@ -72,9 +72,13 @@ export function useTransientNotifications(): readonly NotificationInfo[] {
   const uploadingFilesEntries = Object.entries(uploadingFiles)
   if (uploadingFilesEntries.length !== 0) {
     const totalFiles = uploadingFilesEntries.length
+    let sentFiles = 0
     let sentBytes = 0
     let totalBytes = 0
     for (const [, progress] of uploadingFilesEntries) {
+      if (progress.sentBytes === progress.totalBytes) {
+        sentFiles += 1
+      }
       sentBytes += progress.sentBytes
       totalBytes += progress.totalBytes
     }
@@ -82,8 +86,15 @@ export function useTransientNotifications(): readonly NotificationInfo[] {
     const totalMb = totalBytes / MB_BYTES
     notifications.push({
       id: 'temporary-uploading-files',
-      message: getText('uploadingXFilesWithProgressNotification', totalFiles, sentMb, totalMb),
+      message: getText(
+        'uploadingXFilesWithProgressNotification',
+        sentFiles,
+        totalFiles,
+        sentMb,
+        totalMb,
+      ),
       icon: UploadIcon,
+      progress: sentBytes / totalBytes,
     })
   }
 

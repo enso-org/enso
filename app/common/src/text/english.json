@@ -196,7 +196,7 @@
   "restoringAssetsNotification": "Restoring assets...",
   "copyingAssetsNotification": "Copying assets...",
   "movingAssetsNotification": "Moving assets...",
-  "uploadingXFilesWithProgressNotification": "Uploading $0 files... ($1/$2MB)",
+  "uploadingXFilesWithProgressNotification": "Uploading $0/$1 files... ($2/$3MB)",
 
   "couldNotConnectToPM": "Could not connect to the Project Manager. Please try restarting Enso, or manually launching the Project Manager.",
   "upgradeToUseCloud": "Upgrade your plan to use Enso Cloud.",
