@@ -2,6 +2,7 @@
 
 import * as aria from '#/components/aria'
 
+import { Activity } from '#/components/Activity'
 import { ErrorBoundary } from '#/components/ErrorBoundary'
 import { Suspense } from '#/components/Suspense'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
@@ -47,6 +48,8 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
     {
       id: 'drive',
       className: 'flex min-h-0 grow [&[data-inert]]:hidden',
+      wrapInActivity: true,
+      shouldForceMount: true,
       children: (
         <LazyDrive
           assetsManagementApiRef={assetManagementApiRef}
@@ -59,6 +62,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
     ...launchedProjects.map((project) => ({
       id: project.id,
       shouldForceMount: true,
+      wrapInActivity: false,
       className: 'flex min-h-0 grow [&[data-inert]]:hidden',
       children: (
         <LazyEditor
@@ -76,6 +80,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
 
     {
       id: 'settings',
+      wrapInActivity: true,
       className: 'flex min-h-0 grow',
       children: <LazySettings />,
     },
@@ -83,13 +88,29 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
 
   return (
     <Collection items={tabPanels}>
-      {(tabPanelProps: aria.TabPanelProps & { children: ReactNode }) => (
-        <aria.TabPanel {...tabPanelProps}>
-          <Suspense>
-            <ErrorBoundary>{tabPanelProps.children}</ErrorBoundary>
-          </Suspense>
-        </aria.TabPanel>
-      )}
+      {(tabPanelProps: aria.TabPanelProps & { children: ReactNode; wrapInActivity: boolean }) => {
+        return (
+          <aria.TabPanel {...tabPanelProps}>
+            {({ state }) => {
+              const content = (
+                <Suspense>
+                  <ErrorBoundary>{tabPanelProps.children}</ErrorBoundary>
+                </Suspense>
+              )
+
+              if (tabPanelProps.wrapInActivity) {
+                return (
+                  <Activity mode={state.selectedKey === tabPanelProps.id ? 'active' : 'inactive'}>
+                    {content}
+                  </Activity>
+                )
+              }
+
+              return content
+            }}
+          </aria.TabPanel>
+        )
+      }}
     </Collection>
   )
 }
