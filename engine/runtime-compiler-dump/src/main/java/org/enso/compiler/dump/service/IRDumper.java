@@ -3,7 +3,7 @@ package org.enso.compiler.dump.service;
 import java.io.File;
 import org.enso.compiler.core.ir.Module;
 
-public interface IRDumpService {
+public interface IRDumper {
 
   /**
    * @param ir IR of the module to dump

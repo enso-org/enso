@@ -33,7 +33,7 @@ import org.enso.compiler.data.BindingsMap.ResolvedModuleMethod;
 import org.enso.compiler.data.BindingsMap.ResolvedPolyglotField;
 import org.enso.compiler.data.BindingsMap.ResolvedPolyglotSymbol;
 import org.enso.compiler.data.BindingsMap.ResolvedType;
-import org.enso.compiler.dump.service.IRDumpService;
+import org.enso.compiler.dump.service.IRDumper;
 import org.enso.compiler.pass.analyse.alias.AliasMetadata;
 import org.enso.compiler.pass.analyse.alias.graph.Graph;
 import org.enso.compiler.pass.resolve.FullyQualifiedNames.FQNResolution;
@@ -51,7 +51,7 @@ import org.slf4j.LoggerFactory;
  * href="https://marketplace.visualstudio.com/items?itemName=tintinweb.graphviz-interactive-preview">GraphViz
  * Interactive Preview extension</a>.
  */
-public final class GraphVizDumper implements IRDumpService {
+public final class GraphVizDumper implements IRDumper {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(GraphVizDumper.class);
 

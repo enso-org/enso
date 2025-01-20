@@ -1,3 +1,5 @@
+import org.enso.compiler.dump.service.IRDumper;
+
 module org.enso.runtime.compiler.dump.graphviz {
   requires scala.library;
   requires org.enso.runtime.parser;
@@ -6,6 +8,6 @@ module org.enso.runtime.compiler.dump.graphviz {
   requires org.enso.pkg;
   requires org.slf4j;
 
-  provides org.enso.compiler.dump.service.IRDumpService with
+  provides IRDumper with
       org.enso.compiler.dump.graphviz.GraphVizDumper;
 }

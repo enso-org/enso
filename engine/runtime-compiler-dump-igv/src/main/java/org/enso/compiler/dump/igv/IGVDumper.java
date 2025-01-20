@@ -7,11 +7,11 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import org.enso.compiler.core.ir.Module;
-import org.enso.compiler.dump.service.IRDumpService;
+import org.enso.compiler.dump.service.IRDumper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class IGVDumper implements IRDumpService {
+public final class IGVDumper implements IRDumper {
 
   private static final String DEFAULT_DUMP_DIR = "ir-dumps";
   private static final Logger LOGGER = LoggerFactory.getLogger(IGVDumper.class);

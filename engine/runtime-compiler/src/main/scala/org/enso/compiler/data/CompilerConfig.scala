@@ -1,17 +1,18 @@
 package org.enso.compiler.data
 
+
 import java.io.PrintStream
 
 /** Configuration for the compiler.
   *
-  * @param autoParallelismEnabled whether or not automatic parallelism detection
-  *                               is enabled.
-  * @param warningsEnabled whether or not warnings are enabled
-  * @param privateCheckEnabled whether or not private keyword is enabled
+  * @param autoParallelismEnabled     whether or not automatic parallelism detection
+  *                                   is enabled.
+  * @param warningsEnabled            whether or not warnings are enabled
+  * @param privateCheckEnabled        whether or not private keyword is enabled
   * @param staticTypeInferenceEnabled whether or not type inference is enabled
-  * @param irDumper Class name for the [[org.enso.compiler.dump.service.IRDumpService]] to use
-  *                 for IR dumping. If empty, no dumping will be performed.
-  * @param isStrictErrors if true, presence of any Error in IR will result in an exception
+  * @param irDumper                   Class name for the [[org.enso.compiler.dump.service.IRDumpFactoryService]] to use
+  *                                   for IR dumping. If empty, no dumping will be performed.
+  * @param isStrictErrors             if true, presence of any Error in IR will result in an exception
   * @oaram isLintingDisabled if true, compilation should not run any linting passes
   * @param outputRedirect redirection of the output of warnings and errors of compiler
   */

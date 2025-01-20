@@ -29,7 +29,7 @@ import org.enso.compiler.phase.{ImportResolver, ImportResolverAlgorithm}
 import org.enso.editions.LibraryName
 import org.enso.pkg.QualifiedName
 import org.enso.common.CompilationStage
-import org.enso.compiler.dump.service.{IRDumpFactoryService, IRDumpService}
+import org.enso.compiler.dump.service.{IRDumpFactoryService, IRDumper}
 import org.enso.compiler.phase.exports.{
   ExportCycleException,
   ExportSymbolAnalysis,
@@ -299,9 +299,9 @@ class Compiler(
       }
     )
 
-    var moduleIrDumpers: HashMap[Module, IRDumpService] = new HashMap()
+    var moduleIrDumpers: HashMap[Module, IRDumper] = new HashMap()
 
-    def getOrCreateDumper(module: Module): Option[IRDumpService] = {
+    def getOrCreateDumper(module: Module): Option[IRDumper] = {
       irDumperFactory match {
         case None => None
         case Some(factory) =>
@@ -658,7 +658,7 @@ class Compiler(
     module: Module,
     useCaches: Boolean,
     isGenDocs: Boolean              = false,
-    irDumper: Option[IRDumpService] = None
+    irDumper: Option[IRDumper] = None
   ): Unit = {
     context.log(
       Compiler.defaultLogLevel,
@@ -694,7 +694,7 @@ class Compiler(
   private def uncachedParseModule(
     module: Module,
     isGenDocs: Boolean,
-    irDumper: Option[IRDumpService]
+    irDumper: Option[IRDumper]
   ): Unit = {
     context.log(
       Compiler.defaultLogLevel,
@@ -884,7 +884,7 @@ class Compiler(
   private def recognizeBindings(
     module: IRModule,
     moduleContext: ModuleContext,
-    irDumper: Option[IRDumpService]
+    irDumper: Option[IRDumper]
   ): IRModule = {
     passManager.runPassesOnModule(
       module,
@@ -902,7 +902,7 @@ class Compiler(
   private def runMethodBodyPasses(
     ir: IRModule,
     moduleContext: ModuleContext,
-    irDumper: Option[IRDumpService]
+    irDumper: Option[IRDumper]
   ): IRModule = {
     context.log(
       Level.FINEST,
@@ -920,7 +920,7 @@ class Compiler(
   private def runGlobalTypingPasses(
     ir: IRModule,
     moduleContext: ModuleContext,
-    irDumper: Option[IRDumpService]
+    irDumper: Option[IRDumper]
   ): IRModule = {
     context.log(
       Level.FINEST,
@@ -942,7 +942,7 @@ class Compiler(
   private def runFinalTypeInferencePasses(
     ir: IRModule,
     moduleContext: ModuleContext,
-    irDumper: Option[IRDumpService]
+    irDumper: Option[IRDumper]
   ): IRModule = {
     passManager.runPassesOnModule(
       ir,
