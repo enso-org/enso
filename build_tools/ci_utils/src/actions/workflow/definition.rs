@@ -1098,7 +1098,7 @@ pub fn checkout_repo_step() -> Step {
             repository:         None,
             clean:              Some(false),
             submodules:         Some(CheckoutArgumentSubmodules::Recursive),
-            set_safe_directory: Some(true),
+            set_safe_directory: Some(false),
         }),
         ..default()
     }
