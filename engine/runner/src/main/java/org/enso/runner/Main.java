@@ -152,7 +152,7 @@ public class Main {
             .longOpt(DOCS_OPTION)
             .desc(
                 "Runs the Enso documentation generator. Additional argument may specify format -"
-                    + " either the default md or api.")
+                    + " either the default `md` or `api`.")
             .build();
     var preinstall =
         cliOptionBuilder()
