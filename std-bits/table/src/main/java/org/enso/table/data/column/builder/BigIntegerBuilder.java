@@ -50,7 +50,7 @@ public class BigIntegerBuilder extends TypedBuilder<BigInteger> {
           if (data[i] == null) {
             res.appendNulls(1);
           } else {
-            res.appendNoGrow(data[i]);
+            res.append(data[i]);
           }
         }
         return res;
@@ -70,10 +70,9 @@ public class BigIntegerBuilder extends TypedBuilder<BigInteger> {
   }
 
   @Override
-  public void appendNoGrow(Object o) {
-    if (o == null) {
-      data[currentSize++] = null;
-    } else if (o instanceof BigInteger value) {
+  public void append(Object o) {
+    ensureSpaceToAppend();
+    if (o instanceof BigInteger value) {
       data[currentSize++] = value;
     } else {
       try {
@@ -89,7 +88,7 @@ public class BigIntegerBuilder extends TypedBuilder<BigInteger> {
     int n = longBuilder.currentSize;
     Context context = Context.getCurrent();
     for (int i = 0; i < n; i++) {
-      res.appendNoGrow(BigInteger.valueOf(longBuilder.data[i]));
+      res.append(BigInteger.valueOf(longBuilder.data[i]));
       context.safepoint();
     }
     return res;

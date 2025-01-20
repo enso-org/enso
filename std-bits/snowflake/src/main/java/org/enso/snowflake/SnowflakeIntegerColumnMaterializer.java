@@ -56,12 +56,15 @@ public class SnowflakeIntegerColumnMaterializer implements Builder {
   }
 
   @Override
-  public void appendNoGrow(Object o) {
+  public void append(Object o) {
+    if (currentSize >= capacity()) {
+      grow();
+    }
+
     switch (o) {
       case BigInteger bigInteger -> {
         switch (mode) {
           case BIG_INTEGER -> bigInts[currentSize++] = bigInteger;
-
           case LONG -> {
             if (fitsInLong(bigInteger)) {
               ints[currentSize++] = bigInteger.longValue();
@@ -72,19 +75,8 @@ public class SnowflakeIntegerColumnMaterializer implements Builder {
           }
         }
       }
-
-      case null -> appendNulls(1);
       default -> throw new ValueTypeMismatchException(BigIntegerType.INSTANCE, o);
     }
-  }
-
-  @Override
-  public void append(Object o) {
-    if (currentSize >= capacity()) {
-      grow();
-    }
-
-    appendNoGrow(o);
   }
 
   @Override

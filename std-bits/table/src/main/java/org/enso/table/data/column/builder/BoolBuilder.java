@@ -21,7 +21,7 @@ public class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping {
   }
 
   @Override
-  public void appendNoGrow(Object o) {
+  public void append(Object o) {
     if (o == null) {
       isNothing.set(size);
     } else {
@@ -39,11 +39,6 @@ public class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping {
   @Override
   public boolean accepts(Object o) {
     return o instanceof Boolean;
-  }
-
-  @Override
-  public void append(Object o) {
-    appendNoGrow(o);
   }
 
   /**

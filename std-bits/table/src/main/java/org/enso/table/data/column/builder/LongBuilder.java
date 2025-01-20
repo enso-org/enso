@@ -138,24 +138,18 @@ public class LongBuilder extends NumericBuilder implements BuilderForLong, Build
    * @param value the integer to append
    */
   public void appendLong(long value) {
-    if (currentSize >= this.data.length) {
-      grow();
-    }
-
-    assert currentSize < this.data.length;
+    ensureSpaceToAppend();
     this.data[currentSize++] = value;
   }
 
-  public void appendNoGrow(Object o) {
-    if (o == null) {
-      isNothing.set(currentSize++);
+  @Override
+  public void append(Object o) {
+    Long x = NumericConverter.tryConvertingToLong(o);
+    if (x != null) {
+      ensureSpaceToAppend();
+      this.data[currentSize++] = x;
     } else {
-      Long x = NumericConverter.tryConvertingToLong(o);
-      if (x != null) {
-        this.data[currentSize++] = x;
-      } else {
-        throw new ValueTypeMismatchException(getType(), o);
-      }
+      throw new ValueTypeMismatchException(getType(), o);
     }
   }
 

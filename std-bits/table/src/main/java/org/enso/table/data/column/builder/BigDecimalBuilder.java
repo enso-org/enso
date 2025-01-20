@@ -13,7 +13,8 @@ public class BigDecimalBuilder extends TypedBuilder<BigDecimal> {
   }
 
   @Override
-  public void appendNoGrow(Object o) {
+  public void append(Object o) {
+    ensureSpaceToAppend();
     try {
       data[currentSize++] = (BigDecimal) o;
     } catch (ClassCastException e) {

@@ -52,7 +52,7 @@ public interface StorageConverter<T> {
       if (storage.isNothing(i)) {
         builder.appendNulls(1);
       } else {
-        builder.appendNoGrow(converter.apply(i));
+        builder.append(converter.apply(i));
       }
 
       context.safepoint();

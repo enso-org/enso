@@ -135,7 +135,7 @@ public final class MixedStorage extends ObjectStorage implements ColumnStorageWi
         Builder builder =
             Builder.getForType(inferredType, size(), BlackholeProblemAggregator.INSTANCE);
         for (int i = 0; i < size(); i++) {
-          builder.appendNoGrow(getItemBoxed(i));
+          builder.append(getItemBoxed(i));
         }
         cachedInferredStorage = builder.seal();
       }
