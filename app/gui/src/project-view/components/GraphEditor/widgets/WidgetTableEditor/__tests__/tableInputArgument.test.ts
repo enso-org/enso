@@ -168,8 +168,8 @@ test.each([
     )
     expect(tableNewArgs.rowData.value.length).toBe(rows + (expectNewRowEnabled ? 1 : 0))
     const lastColDef = tableNewArgs.columnDefs.value[tableNewArgs.columnDefs.value.length - 1]
-    assert(lastColDef?.headerComponentParams?.type === 'newColumn')
-    expect(lastColDef.headerComponentParams.enabled ?? true).toBe(expectNewColEnabled)
+    assert(lastColDef?.headerComponentParams.columnParams.type === 'newColumn')
+    expect(lastColDef.headerComponentParams.columnParams.enabled ?? true).toBe(expectNewColEnabled)
   },
 )
 
@@ -312,9 +312,9 @@ test.each([
     (colDef) => colDef.colId === NEW_COLUMN_ID,
   )
   assert(newColumnDef != null)
-  assert(newColumnDef.headerComponentParams?.type === 'newColumn')
-  assert(newColumnDef.headerComponentParams.newColumnRequested != null)
-  newColumnDef.headerComponentParams.newColumnRequested()
+  assert(newColumnDef.headerComponentParams?.columnParams.type === 'newColumn')
+  assert(newColumnDef.headerComponentParams.columnParams.newColumnRequested != null)
+  newColumnDef.headerComponentParams.columnParams.newColumnRequested()
   expect(onUpdate).toHaveBeenCalledOnce()
   if (importExpected) expect(addMissingImports).toHaveBeenCalled()
   else expect(addMissingImports).not.toHaveBeenCalled()
