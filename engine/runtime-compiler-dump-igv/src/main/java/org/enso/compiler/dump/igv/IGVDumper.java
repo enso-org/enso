@@ -6,9 +6,11 @@ import java.nio.channels.WritableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.dump.service.IRDumper;
 import org.graalvm.graphio.GraphOutput;
@@ -19,10 +21,12 @@ public final class IGVDumper implements IRDumper {
 
   private static final String DEFAULT_DUMP_DIR = "ir-dumps";
   private static final Logger LOGGER = LoggerFactory.getLogger(IGVDumper.class);
-  private final List<PassGraph> passGraphs = new ArrayList<>();
   private final String moduleName;
   private final Path outPath;
   private final GraphOutput<EnsoModuleAST, ASTMethod> graphOutput;
+  private final ExecutorService executor;
+  private final ConcurrentLinkedQueue<CompletableFuture<Void>> tasks =
+      new ConcurrentLinkedQueue<>();
   private int currGraphId;
   private boolean groupCreated;
 
@@ -30,13 +34,17 @@ public final class IGVDumper implements IRDumper {
   private int nodesCnt;
 
   private IGVDumper(
-      String moduleName, Path outPath, GraphOutput<EnsoModuleAST, ASTMethod> graphOutput) {
+      String moduleName,
+      Path outPath,
+      GraphOutput<EnsoModuleAST, ASTMethod> graphOutput,
+      ExecutorService executor) {
     this.moduleName = moduleName;
     this.outPath = outPath;
     this.graphOutput = graphOutput;
+    this.executor = executor;
   }
 
-  static IGVDumper createForModule(String moduleName) {
+  static IGVDumper createForModule(String moduleName, ExecutorService executor) {
     var outPath = outputForModule(moduleName);
     var channel = createFileChannel(outPath);
     GraphOutput<EnsoModuleAST, ASTMethod> graphOutput;
@@ -51,12 +59,18 @@ public final class IGVDumper implements IRDumper {
       LOGGER.error("Failed to create graph output for module {}", moduleName, e);
       return null;
     }
-    return new IGVDumper(moduleName, outPath, graphOutput);
+    return new IGVDumper(moduleName, outPath, graphOutput, executor);
   }
 
   @Override
   public void dump(Module ir, String moduleName, File srcFile, String afterPass) {
     assert moduleName.equals(this.moduleName);
+    var task =
+        CompletableFuture.runAsync(() -> dumpTask(ir, moduleName, srcFile, afterPass), executor);
+    tasks.add(task);
+  }
+
+  private void dumpTask(Module ir, String moduleName, File srcFile, String afterPass) {
     LOGGER.trace(
         "[{}] Creating EnsoModuleAST after pass {}, nodeId = {}", moduleName, afterPass, nodesCnt);
     var moduleAst = EnsoModuleAST.fromIR(ir, srcFile, moduleName, nodesCnt);
@@ -67,6 +81,7 @@ public final class IGVDumper implements IRDumper {
         groupCreated = true;
       }
       var props = new HashMap<>();
+      LOGGER.trace("[{}] Printing module AST with ID {}", moduleName, currGraphId);
       graphOutput.print(moduleAst, props, currGraphId, "%s", afterPass);
     } catch (IOException e) {
       LOGGER.error("[{}] Failed to dump the graph for pass {}", moduleName, afterPass);
@@ -78,6 +93,13 @@ public final class IGVDumper implements IRDumper {
 
   @Override
   public void close() {
+    var tasksArr = tasks.toArray(CompletableFuture[]::new);
+    var allTasks = CompletableFuture.allOf(tasksArr);
+    try {
+      allTasks.get();
+    } catch (InterruptedException | ExecutionException e) {
+      LOGGER.error("Failed to wait for all tasks to complete", e);
+    }
     try {
       graphOutput.endGroup();
     } catch (IOException e) {

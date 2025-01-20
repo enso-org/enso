@@ -6,4 +6,6 @@ public interface IRDumpFactoryService {
   String DEFAULT_DUMP_DIR = "ir-dumps";
 
   IRDumper create(String moduleName);
+
+  void shutdown();
 }
