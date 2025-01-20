@@ -657,7 +657,7 @@ class Compiler(
   private def parseModule(
     module: Module,
     useCaches: Boolean,
-    isGenDocs: Boolean              = false,
+    isGenDocs: Boolean         = false,
     irDumper: Option[IRDumper] = None
   ): Unit = {
     context.log(

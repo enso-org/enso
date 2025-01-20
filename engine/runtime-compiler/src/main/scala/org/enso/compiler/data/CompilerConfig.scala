@@ -1,6 +1,5 @@
 package org.enso.compiler.data
 
-
 import java.io.PrintStream
 
 /** Configuration for the compiler.
