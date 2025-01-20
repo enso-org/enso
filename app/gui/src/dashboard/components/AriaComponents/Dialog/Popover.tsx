@@ -153,9 +153,9 @@ function PopoverContent(props: PopoverContentProps) {
   const dialogRef = React.useRef<HTMLDivElement>(null)
   const dialogId = aria.useId()
 
+  // eslint-disable-next-line no-restricted-syntax
   const contextState = React.useContext(
     aria.OverlayTriggerStateContext,
-  // @eslint-disable-next-line no-restricted-syntax
   ) as aria.OverlayTriggerState | null
   const dialogContext = React.useContext(aria.DialogContext)
 
