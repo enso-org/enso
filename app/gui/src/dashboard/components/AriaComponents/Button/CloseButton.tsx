@@ -1,14 +1,11 @@
 /** @file A button for closing a modal. */
 import DismissIcon from '#/assets/dismiss.svg'
-import { Button, type ButtonProps } from '#/components/AriaComponents/Button'
 import { useText } from '#/providers/TextProvider'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { isOnMacOS } from 'enso-common/src/detect'
 import { memo } from 'react'
-
-// ===================
-// === CloseButton ===
-// ===================
+import { Button } from './Button'
+import type { ButtonProps } from './types'
 
 /** Props for a {@link CloseButton}. */
 export type CloseButtonProps = Omit<ButtonProps, 'children' | 'rounding' | 'size' | 'variant'>
