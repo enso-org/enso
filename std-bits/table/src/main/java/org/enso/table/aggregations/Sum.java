@@ -32,7 +32,7 @@ public class Sum extends Aggregator {
   @Override
   public Builder makeBuilder(int size, ProblemAggregator problemAggregator) {
     return switch (inputType) {
-      case IntegerType integerType -> new InferredIntegerBuilder(size, problemAggregator);
+      case IntegerType integerType -> Builder.getInferredBuilder(size, problemAggregator);
       case BigIntegerType bigIntegerType -> Builder.getForType(
           bigIntegerType, size, problemAggregator);
       case FloatType floatType -> Builder.getForDouble(floatType, size, problemAggregator);

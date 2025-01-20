@@ -47,12 +47,7 @@ public class UnaryRoundOperation extends AbstractUnaryOperation {
 
   protected Builder createBuilder(
       ColumnStorage storage, MapOperationProblemAggregator problemAggregator) {
-    if (storage.getSize() > Integer.MAX_VALUE) {
-      throw new IllegalArgumentException(
-          "Cannot currently operate on columns larger than " + Integer.MAX_VALUE + ".");
-    }
-
-    return new InferredIntegerBuilder((int) storage.getSize(), problemAggregator);
+    return Builder.getInferredBuilder(storage.getSize(), problemAggregator);
   }
 
   @Override

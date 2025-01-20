@@ -24,12 +24,7 @@ public class DateTruncateOperation extends AbstractUnaryOperation {
   @Override
   protected Builder createBuilder(
       ColumnStorage storage, MapOperationProblemAggregator problemAggregator) {
-    if (storage.getSize() > Integer.MAX_VALUE) {
-      throw new IllegalArgumentException(
-          "Cannot currently operate on columns larger than " + Integer.MAX_VALUE + ".");
-    }
-
-    return Builder.getForType(DateType.INSTANCE, (int) storage.getSize(), problemAggregator);
+    return Builder.getForType(DateType.INSTANCE, storage.getSize(), problemAggregator);
   }
 
   @Override

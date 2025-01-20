@@ -24,15 +24,31 @@ import java.time.ZonedDateTime;
 /** Interface defining a builder for creating columns dynamically. */
 public interface Builder {
   /**
+   * The maximum size of a builder.
+   * Currently, just the maximum value of an integer, but should be tested and limited.
+   * For array based builders, must be less than the maximum array size.
+   * */
+  long MAX_SIZE = Integer.MAX_VALUE;
+
+  private static void checkSize(long size) {
+    if (size > MAX_SIZE) {
+      throw new IllegalArgumentException("Columns cannot exceed " + MAX_SIZE + " rows.");
+    }
+  }
+
+  /**
    * Constructs a builder accepting values of a specific type.
    *
    * <p>If {@code type} is {@code null}, it will return an {@link InferredBuilder} that will infer
    * the type from the data.
    */
-  static Builder getForType(StorageType type, int size, ProblemAggregator problemAggregator) {
+  static Builder getForType(StorageType type, long size, ProblemAggregator problemAggregator) {
     Builder builder =
         switch (type) {
-          case AnyObjectType _ -> new MixedBuilder(size);
+          case AnyObjectType _ -> {
+            checkSize(size);
+            yield new MixedBuilder((int)size);
+          }
           case BooleanType _ -> getForBoolean(size);
           case DateType _ -> getForDate(size);
           case DateTimeType _ -> getForDateTime(size);
@@ -44,6 +60,7 @@ public interface Builder {
           case BigIntegerType _ -> getForBigInteger(size, problemAggregator);
           case null -> getInferredBuilder(size, problemAggregator);
         };
+
     assert java.util.Objects.equals(builder.getType(), type);
     return builder;
   }
@@ -53,8 +70,9 @@ public interface Builder {
    *
    * @param size the initial size of the builder.
    */
-  static Builder getInferredBuilder(int size, ProblemAggregator problemAggregator) {
-    return new InferredBuilder(size, problemAggregator, false);
+  static Builder getInferredBuilder(long size, ProblemAggregator problemAggregator) {
+    checkSize(size);
+    return new InferredBuilder((int)size, problemAggregator, false);
   }
 
   /**
@@ -62,8 +80,9 @@ public interface Builder {
    *
    * @param size the initial size of the builder.
    */
-  static BuilderForBoolean getForBoolean(int size) {
-    return new BoolBuilder(size);
+  static BuilderForBoolean getForBoolean(long size) {
+    checkSize(size);
+    return new BoolBuilder((int)size);
   }
 
   /**
@@ -75,8 +94,9 @@ public interface Builder {
    * @param problemAggregator the problem aggregator to use for this builder.
    */
   static BuilderForLong getForLong(
-      IntegerType integerType, int size, ProblemAggregator problemAggregator) {
-    return LongBuilder.make(size, integerType, problemAggregator);
+      IntegerType integerType, long size, ProblemAggregator problemAggregator) {
+    checkSize(size);
+    return LongBuilder.make((int)size, integerType, problemAggregator);
   }
 
   /**
@@ -88,12 +108,13 @@ public interface Builder {
    * @param problemAggregator the problem aggregator to use for this builder.
    */
   static BuilderForDouble getForDouble(
-      FloatType floatType, int size, ProblemAggregator problemAggregator) {
+      FloatType floatType, long size, ProblemAggregator problemAggregator) {
     if (floatType.bits() != Bits.BITS_64) {
       throw new IllegalArgumentException("Only 64-bit floats are currently supported.");
     }
 
-    return new DoubleBuilder(size, problemAggregator);
+    checkSize(size);
+    return new DoubleBuilder((int)size, problemAggregator);
   }
 
   /**
@@ -102,32 +123,39 @@ public interface Builder {
    *
    * @param size the initial size of the builder.
    */
-  static Builder getObjectBuilder(int size) {
-    return new ObjectBuilder(size);
+  static Builder getObjectBuilder(long size) {
+    checkSize(size);
+    return new ObjectBuilder((int)size);
   }
 
-  static BuilderForType<BigDecimal> getForBigDecimal(int size) {
-    return new BigDecimalBuilder(size);
+  static BuilderForType<BigDecimal> getForBigDecimal(long size) {
+    checkSize(size);
+    return new BigDecimalBuilder((int)size);
   }
 
-  static BuilderForType<BigInteger> getForBigInteger(int size, ProblemAggregator problemAggregator) {
-    return new BigIntegerBuilder(size, problemAggregator);
+  static BuilderForType<BigInteger> getForBigInteger(long size, ProblemAggregator problemAggregator) {
+    checkSize(size);
+    return new BigIntegerBuilder((int)size, problemAggregator);
   }
 
-  static BuilderForType<LocalDate> getForDate(int size) {
-    return new DateBuilder(size, false);
+  static BuilderForType<LocalDate> getForDate(long size) {
+    checkSize(size);
+    return new DateBuilder((int)size, false);
   }
 
-  static BuilderForType<ZonedDateTime> getForDateTime(int size) {
-    return new DateTimeBuilder(size, false);
+  static BuilderForType<ZonedDateTime> getForDateTime(long size) {
+    checkSize(size);
+    return new DateTimeBuilder((int)size, false);
   }
 
-  static BuilderForType<String> getForText(int size, TextType textType) {
-    return new StringBuilder(size, textType);
+  static BuilderForType<String> getForText(long size, TextType textType) {
+    checkSize(size);
+    return new StringBuilder((int)size, textType);
   }
 
-  static BuilderForType<LocalTime> getForTime(int size) {
-    return new TimeOfDayBuilder(size);
+  static BuilderForType<LocalTime> getForTime(long size) {
+    checkSize(size);
+    return new TimeOfDayBuilder((int)size);
   }
 
   /**

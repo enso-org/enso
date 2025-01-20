@@ -83,7 +83,7 @@ public class BigIntegerBuilder extends TypedBuilder<BigInteger> {
     }
   }
 
-  public static Builder retypeFromLongBuilder(LongBuilder longBuilder) {
+  static Builder retypeFromLongBuilder(LongBuilder longBuilder) {
     var res = new BigIntegerBuilder(longBuilder.data.length, longBuilder.problemAggregator);
     int n = longBuilder.currentSize;
     Context context = Context.getCurrent();
