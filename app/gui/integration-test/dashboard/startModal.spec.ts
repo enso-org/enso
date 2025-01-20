@@ -2,6 +2,7 @@
 import { expect, test, type Page } from '@playwright/test'
 
 import { mockAllAndLogin } from './actions'
+import StartModalActions from './actions/StartModalActions'
 
 /** Find an editor container. */
 function locateEditor(page: Page) {
@@ -22,8 +23,12 @@ function locateSamples(page: Page) {
 }
 
 test('create project from template', ({ page }) =>
-  mockAllAndLogin({ page, setupAPI: (api) => api.setFeatureFlags({ enableCloudExecution: true }) })
-    .openStartModal()
+  mockAllAndLogin({
+    page,
+    setupAPI: (api) => api.setFeatureFlags({ enableCloudExecution: true }),
+    hideStartModal: false,
+  })
+    .into(StartModalActions)
     .createProjectFromTemplate(0)
     .do(async (thePage) => {
       await expect(locateEditor(thePage)).toBeAttached()

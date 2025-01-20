@@ -156,17 +156,24 @@ export function mockAll({ page, setupAPI }: MockParams) {
     })
 }
 
+export interface MockAllAndLoginParams extends MockParams {
+  readonly hideStartModal?: boolean | undefined
+}
+
 /** Set up all mocks, and log in with dummy credentials. */
-export function mockAllAndLogin({ page, setupAPI }: MockParams) {
+export function mockAllAndLogin({ page, setupAPI, hideStartModal = true }: MockAllAndLoginParams) {
   const actions = mockAll({ page, setupAPI })
+
   return actions
     .step('Login', (page) => login({ page }))
     .step('Wait for dashboard to load', waitForDashboardToLoad)
     .step('Check if start modal is shown', async (page) => {
-      // @ts-expect-error This is the only place in which the private member `.context`
-      // should be accessed.
-      const context = actions.context
-      await new StartModalActions(page, context).close()
+      if (hideStartModal) {
+        // @ts-expect-error This is the only place in which the private member `.context`
+        // should be accessed.
+        const context = actions.context
+        await new StartModalActions(page, context).close()
+      }
     })
     .into(DrivePageActions<Context>)
 }
