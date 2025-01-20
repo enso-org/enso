@@ -1,6 +1,7 @@
 import { Filtering, type MatchResult } from '@/components/ComponentBrowser/filtering'
 import { SuggestionDb } from '@/stores/suggestionDatabase'
 import {
+  entryIsStatic,
   SuggestionKind,
   type SuggestionEntry,
   type SuggestionId,
@@ -8,11 +9,9 @@ import {
 import { compareOpt } from '@/util/compare'
 import { isSome } from '@/util/data/opt'
 import { Range } from '@/util/data/range'
-import { ANY_TYPE_QN } from '@/util/ensoTypes'
 import { displayedIconOf } from '@/util/getIconName'
-import type { Icon } from '@/util/iconName'
-import type { QualifiedName } from '@/util/qualifiedName'
-import { qnLastSegmentIndex, tryQualifiedName } from '@/util/qualifiedName'
+import type { Icon } from '@/util/iconMetadata/iconName'
+import { qnJoin, qnLastSegment, tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
 
 interface ComponentLabelInfo {
   label: string
@@ -34,19 +33,18 @@ export interface Component extends ComponentLabel {
 
 /** @returns the displayed label of given suggestion entry with information of highlighted ranges. */
 export function labelOfEntry(entry: SuggestionEntry, match: MatchResult): ComponentLabelInfo {
-  if (entry.memberOf && entry.selfType == null) {
-    const ownerLastSegmentStart = qnLastSegmentIndex(entry.memberOf) + 1
-    const ownerName = entry.memberOf.substring(ownerLastSegmentStart)
-    const nameOffset = ownerName.length + '.'.length
+  if (entryIsStatic(entry) && entry.memberOf) {
+    const label = qnJoin(qnLastSegment(entry.memberOf), entry.name)
     if ((!match.ownerNameRanges && !match.nameRanges) || match.matchedAlias) {
       return {
-        label: `${ownerName}.${entry.name}`,
+        label,
         matchedAlias: match.matchedAlias,
         matchedRanges: match.nameRanges,
       }
     }
+    const nameOffset = label.length - entry.name.length
     return {
-      label: `${ownerName}.${entry.name}`,
+      label,
       matchedAlias: match.matchedAlias,
       matchedRanges: [
         ...(match.ownerNameRanges ?? []),
@@ -112,12 +110,13 @@ export function makeComponent({ id, entry, match }: ComponentInfo): Component {
 /** Create {@link Component} list from filtered suggestions. */
 export function makeComponentList(db: SuggestionDb, filtering: Filtering): Component[] {
   function* matchSuggestions() {
-    // All types are descendants of `Any`, so we can safely prepopulate it here.
-    // This way, we will use it even when `selfArg` is not a valid qualified name.
-    const additionalSelfTypes: QualifiedName[] = [ANY_TYPE_QN]
+    const additionalSelfTypes: QualifiedName[] = []
     if (filtering.selfArg?.type === 'known') {
       const maybeName = tryQualifiedName(filtering.selfArg.typename)
-      if (maybeName.ok) populateAdditionalSelfTypes(db, additionalSelfTypes, maybeName.value)
+      if (maybeName.ok) {
+        const entry = db.getEntryByQualifiedName(maybeName.value)
+        if (entry) additionalSelfTypes.push(...db.ancestors(entry))
+      }
     }
 
     for (const [id, entry] of db.entries()) {
@@ -129,17 +128,4 @@ export function makeComponentList(db: SuggestionDb, filtering: Filtering): Compo
   }
   const matched = Array.from(matchSuggestions()).sort(compareSuggestions)
   return Array.from(matched, (info) => makeComponent(info))
-}
-
-/**
- * Type can inherit methods from `parentType`, and it can do that recursively.
- * In practice, these hierarchies are at most two levels deep.
- */
-function populateAdditionalSelfTypes(db: SuggestionDb, list: QualifiedName[], name: QualifiedName) {
-  let entry = db.getEntryByQualifiedName(name)
-  // We don’t need to add `Any` to the list, because the caller already did that.
-  while (entry != null && entry.parentType != null && entry.parentType !== ANY_TYPE_QN) {
-    list.push(entry.parentType)
-    entry = db.getEntryByQualifiedName(entry.parentType)
-  }
 }

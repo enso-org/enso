@@ -28,7 +28,14 @@ export function FormError(props: FormErrorProps) {
         const icon = error.type === 'offline' ? Offline : null
 
         return (
-          <Alert size={size} variant={finalVariant} rounded={rounded} icon={icon} {...alertProps}>
+          <Alert
+            key={error.message}
+            size={size}
+            variant={finalVariant}
+            rounded={rounded}
+            icon={icon}
+            {...alertProps}
+          >
             <Text variant="body" truncate="3" color="primary" testId={testId}>
               {error.message}
             </Text>

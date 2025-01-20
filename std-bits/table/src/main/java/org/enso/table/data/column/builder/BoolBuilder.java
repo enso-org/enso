@@ -9,17 +9,13 @@ import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.util.BitSets;
 
 /** A builder for boolean columns. */
-public class BoolBuilder extends TypedBuilder {
+public class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping {
   private final BitSet vals;
   private final BitSet isNothing;
   int size = 0;
 
-  public BoolBuilder() {
-    vals = new BitSet();
-    isNothing = new BitSet();
-  }
-
-  public BoolBuilder(int capacity) {
+  // ** Creates a new builder for boolean columns. Should be built via Builder.getForBoolean. */
+  BoolBuilder(int capacity) {
     vals = new BitSet(capacity);
     isNothing = new BitSet(capacity);
   }
@@ -53,10 +49,10 @@ public class BoolBuilder extends TypedBuilder {
   /**
    * Append a new boolean to this builder.
    *
-   * @param data the boolean to append
+   * @param value the boolean to append
    */
-  public void appendBoolean(boolean data) {
-    if (data) {
+  public void appendBoolean(boolean value) {
+    if (value) {
       vals.set(size);
     }
     size++;
@@ -97,7 +93,7 @@ public class BoolBuilder extends TypedBuilder {
   }
 
   @Override
-  public void retypeToMixed(Object[] items) {
+  public void copyDataTo(Object[] items) {
     for (int i = 0; i < size; i++) {
       if (isNothing.get(i)) {
         items[i] = null;
@@ -113,7 +109,7 @@ public class BoolBuilder extends TypedBuilder {
   }
 
   @Override
-  public TypedBuilder retypeTo(StorageType type) {
+  public Builder retypeTo(StorageType type) {
     throw new UnsupportedOperationException();
   }
 

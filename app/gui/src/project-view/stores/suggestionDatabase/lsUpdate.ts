@@ -1,36 +1,498 @@
-import { SuggestionDb, type Group } from '@/stores/suggestionDatabase'
+import { type Group, SuggestionDb } from '@/stores/suggestionDatabase'
 import {
   documentationData,
   type DocumentationData,
 } from '@/stores/suggestionDatabase/documentation'
 import {
-  SuggestionKind,
+  type ConstructorSuggestionEntry,
+  type FunctionSuggestionEntry,
+  type LocalSuggestionEntry,
+  type MethodSuggestionEntry,
+  type ModuleSuggestionEntry,
   type SuggestionEntry,
   type SuggestionEntryArgument,
+  type SuggestionEntryCommon,
+  SuggestionKind,
   type Typename,
+  type TypeSuggestionEntry,
 } from '@/stores/suggestionDatabase/entry'
 import { assert, assertNever } from '@/util/assert'
 import { type Opt } from '@/util/data/opt'
-import { Err, Ok, withContext, type Result } from '@/util/data/result'
+import { Err, Ok, type Result, withContext } from '@/util/data/result'
+import { ANY_TYPE_QN } from '@/util/ensoTypes'
 import {
+  type IdentifierOrOperatorIdentifier,
+  isIdentifierOrOperatorIdentifier,
+  isQualifiedName,
   normalizeQualifiedName,
   qnJoin,
   qnLastSegment,
-  tryIdentifierOrOperatorIdentifier,
-  tryQualifiedName,
-  type IdentifierOrOperatorIdentifier,
   type QualifiedName,
+  tryQualifiedName,
 } from '@/util/qualifiedName'
 import { type ToValue } from '@/util/reactivity'
-import { toValue, type DeepReadonly } from 'vue'
+import { type DeepReadonly, toValue } from 'vue'
 import * as lsTypes from 'ydoc-shared/languageServerTypes/suggestions'
 import {
   SuggestionArgumentUpdate,
   SuggestionsDatabaseUpdate,
 } from 'ydoc-shared/languageServerTypes/suggestions'
 
-interface UnfinishedEntry extends Partial<SuggestionEntry> {
-  kind: SuggestionKind
+function isOptQN(optQn: string | undefined): optQn is QualifiedName | undefined {
+  if (optQn == null) return true
+  return isQualifiedName(optQn)
+}
+
+abstract class BaseSuggestionEntry implements SuggestionEntryCommon {
+  abstract readonly kind: SuggestionKind
+  private documentationData: DocumentationData
+  abstract name: IdentifierOrOperatorIdentifier
+  abstract returnType: Typename
+
+  protected constructor(
+    documentation: string | undefined,
+    public definedIn: QualifiedName,
+    groups: DeepReadonly<Group[]>,
+  ) {
+    this.documentationData = documentationData(documentation, definedIn, groups)
+  }
+
+  get documentation() {
+    return this.documentationData.documentation
+  }
+  get aliases() {
+    return this.documentationData.aliases
+  }
+  get iconName() {
+    return this.documentationData.iconName
+  }
+  get groupIndex() {
+    return this.documentationData.groupIndex
+  }
+  get isPrivate() {
+    return this.documentationData.isPrivate
+  }
+  get isUnstable() {
+    return this.documentationData.isUnstable
+  }
+  get definitionPath() {
+    return qnJoin(this.definedIn, this.name)
+  }
+
+  setDocumentation(documentation: string | undefined, groups: DeepReadonly<Group[]>) {
+    this.documentationData = documentationData(documentation, this.definedIn, groups)
+  }
+  setLsModule(lsModule: string) {
+    const qn = tryQualifiedName(lsModule)
+    if (!qn.ok) return false
+    this.definedIn = normalizeQualifiedName(qn.value)
+    return true
+  }
+  setLsReturnType(_returnType: Typename) {
+    console.warn(`Cannot modify \`returnType\` of entry type ${this.kind}.`)
+  }
+  setLsReexported(_reexported: QualifiedName | undefined) {
+    console.warn(`Cannot modify \`reexported\` of entry type ${this.kind}.`)
+  }
+  setLsScope(_scope: lsTypes.SuggestionEntryScope | undefined) {
+    console.warn(`Cannot modify \`scope\` of entry type ${this.kind}.`)
+  }
+}
+
+class FunctionSuggestionEntryImpl extends BaseSuggestionEntry implements FunctionSuggestionEntry {
+  readonly kind = SuggestionKind.Function
+  arguments: lsTypes.SuggestionEntryArgument[]
+
+  private constructor(
+    readonly name: IdentifierOrOperatorIdentifier,
+    public scope: lsTypes.SuggestionEntryScope | undefined,
+    args: lsTypes.SuggestionEntryArgument[],
+    definedIn: QualifiedName,
+    public returnType: Typename,
+    documentation: string | undefined,
+    groups: DeepReadonly<Group[]>,
+  ) {
+    super(documentation, definedIn, groups)
+    this.arguments = args
+  }
+
+  static parse(
+    lsEntry: lsTypes.SuggestionEntry.Function,
+    groups: DeepReadonly<Group[]>,
+  ): Result<FunctionSuggestionEntry> {
+    if (!isIdentifierOrOperatorIdentifier(lsEntry.name)) return Err('Invalid name')
+    if (!isQualifiedName(lsEntry.module)) return Err('Invalid module name')
+    return Ok(
+      new FunctionSuggestionEntryImpl(
+        lsEntry.name,
+        lsEntry.scope,
+        lsEntry.arguments,
+        normalizeQualifiedName(lsEntry.module),
+        lsEntry.returnType,
+        lsEntry.documentation,
+        groups,
+      ),
+    )
+  }
+
+  override setLsReturnType(returnType: Typename) {
+    this.returnType = returnType
+  }
+  override setLsScope(scope: lsTypes.SuggestionEntryScope | undefined) {
+    this.scope = scope
+  }
+}
+
+class ModuleSuggestionEntryImpl extends BaseSuggestionEntry implements ModuleSuggestionEntry {
+  readonly kind = SuggestionKind.Module
+
+  private constructor(
+    definedIn: QualifiedName,
+    public reexportedIn: QualifiedName | undefined,
+    documentation: string | undefined,
+    groups: DeepReadonly<Group[]>,
+  ) {
+    super(documentation, definedIn, groups)
+  }
+
+  get name() {
+    return qnLastSegment(this.definedIn)
+  }
+  get returnType() {
+    return this.definedIn
+  }
+  override get definitionPath() {
+    return this.definedIn
+  }
+
+  static parse(
+    lsEntry: lsTypes.SuggestionEntry.Module,
+    groups: DeepReadonly<Group[]>,
+  ): Result<ModuleSuggestionEntry> {
+    if (!isQualifiedName(lsEntry.module)) return Err('Invalid module name')
+    if (!isOptQN(lsEntry.reexport)) return Err('Invalid reexport')
+    return Ok(
+      new ModuleSuggestionEntryImpl(
+        normalizeQualifiedName(lsEntry.module),
+        lsEntry.reexport,
+        lsEntry.documentation,
+        groups,
+      ),
+    )
+  }
+
+  override setLsReexported(reexported: QualifiedName | undefined) {
+    this.reexportedIn = reexported
+  }
+}
+
+class TypeSuggestionEntryImpl extends BaseSuggestionEntry implements TypeSuggestionEntry {
+  readonly kind = SuggestionKind.Type
+  arguments: lsTypes.SuggestionEntryArgument[]
+
+  private constructor(
+    readonly name: IdentifierOrOperatorIdentifier,
+    args: lsTypes.SuggestionEntryArgument[],
+    public parentType: QualifiedName | undefined,
+    definedIn: QualifiedName,
+    public reexportedIn: QualifiedName | undefined,
+    documentation: string | undefined,
+    groups: DeepReadonly<Group[]>,
+  ) {
+    super(documentation, definedIn, groups)
+    this.arguments = args
+  }
+
+  get returnType() {
+    return qnJoin(this.definedIn, this.name)
+  }
+
+  static parse(
+    lsEntry: lsTypes.SuggestionEntry.Type,
+    groups: DeepReadonly<Group[]>,
+  ): Result<TypeSuggestionEntry> {
+    if (!isIdentifierOrOperatorIdentifier(lsEntry.name)) return Err('Invalid name')
+    if (!isQualifiedName(lsEntry.module)) return Err('Invalid module name')
+    if (!isOptQN(lsEntry.reexport)) return Err('Invalid reexport')
+    if (!isOptQN(lsEntry.parentType)) return Err('Invalid parent type')
+    return Ok(
+      new TypeSuggestionEntryImpl(
+        lsEntry.name,
+        lsEntry.params,
+        lsEntry.parentType === ANY_TYPE_QN ? undefined : lsEntry.parentType,
+        normalizeQualifiedName(lsEntry.module),
+        lsEntry.reexport,
+        lsEntry.documentation,
+        groups,
+      ),
+    )
+  }
+
+  override setLsReexported(reexported: QualifiedName | undefined) {
+    this.reexportedIn = reexported
+  }
+}
+
+class ConstructorSuggestionEntryImpl
+  extends BaseSuggestionEntry
+  implements ConstructorSuggestionEntry
+{
+  readonly kind = SuggestionKind.Constructor
+  arguments: lsTypes.SuggestionEntryArgument[]
+
+  private constructor(
+    readonly name: IdentifierOrOperatorIdentifier,
+    args: lsTypes.SuggestionEntryArgument[],
+    public reexportedIn: QualifiedName | undefined,
+    public annotations: string[],
+    definedIn: QualifiedName,
+    public returnType: Typename,
+    documentation: string | undefined,
+    groups: DeepReadonly<Group[]>,
+  ) {
+    super(documentation, definedIn, groups)
+    this.arguments = args
+  }
+
+  get memberOf() {
+    const qn = tryQualifiedName(this.returnType)
+    return qn.ok ? normalizeQualifiedName(qn.value) : undefined
+  }
+  override get definitionPath() {
+    return this.memberOf ? qnJoin(this.memberOf, this.name) : super.definitionPath
+  }
+
+  static parse(
+    lsEntry: lsTypes.SuggestionEntry.Constructor,
+    groups: DeepReadonly<Group[]>,
+  ): Result<ConstructorSuggestionEntry> {
+    if (!isIdentifierOrOperatorIdentifier(lsEntry.name)) return Err('Invalid name')
+    if (!isQualifiedName(lsEntry.module)) return Err('Invalid module name')
+    if (!isOptQN(lsEntry.reexport)) return Err('Invalid reexport')
+    return Ok(
+      new ConstructorSuggestionEntryImpl(
+        lsEntry.name,
+        lsEntry.arguments,
+        lsEntry.reexport,
+        lsEntry.annotations,
+        normalizeQualifiedName(lsEntry.module),
+        lsEntry.returnType,
+        lsEntry.documentation,
+        groups,
+      ),
+    )
+  }
+
+  override setLsReturnType(returnType: Typename) {
+    this.returnType = returnType
+  }
+  override setLsReexported(reexported: QualifiedName | undefined) {
+    this.reexportedIn = reexported
+  }
+}
+
+class MethodSuggestionEntryImpl extends BaseSuggestionEntry implements MethodSuggestionEntry {
+  readonly kind = SuggestionKind.Method
+  arguments: lsTypes.SuggestionEntryArgument[]
+
+  private constructor(
+    readonly name: IdentifierOrOperatorIdentifier,
+    args: lsTypes.SuggestionEntryArgument[],
+    public reexportedIn: QualifiedName | undefined,
+    public annotations: string[],
+    private readonly isStatic: boolean,
+    private lsSelfType: string,
+    definedIn: QualifiedName,
+    public returnType: Typename,
+    documentation: string | undefined,
+    groups: DeepReadonly<Group[]>,
+  ) {
+    super(documentation, definedIn, groups)
+    this.arguments = args
+  }
+
+  get memberOf() {
+    const qn = tryQualifiedName(this.lsSelfType)
+    return qn.ok ? normalizeQualifiedName(qn.value) : undefined
+  }
+  override get definitionPath() {
+    return this.memberOf ? qnJoin(this.memberOf, this.name) : super.definitionPath
+  }
+  get selfType() {
+    if (this.isStatic) return undefined
+    return this.lsSelfType
+  }
+
+  static parse(
+    lsEntry: lsTypes.SuggestionEntry.Method,
+    groups: DeepReadonly<Group[]>,
+  ): Result<MethodSuggestionEntry> {
+    if (!isIdentifierOrOperatorIdentifier(lsEntry.name)) return Err('Invalid name')
+    if (!isQualifiedName(lsEntry.module)) return Err('Invalid module name')
+    if (!isOptQN(lsEntry.reexport)) return Err('Invalid reexport')
+    return Ok(
+      new MethodSuggestionEntryImpl(
+        lsEntry.name,
+        lsEntry.arguments,
+        lsEntry.reexport,
+        lsEntry.annotations,
+        lsEntry.isStatic,
+        lsEntry.selfType,
+        normalizeQualifiedName(lsEntry.module),
+        lsEntry.returnType,
+        lsEntry.documentation,
+        groups,
+      ),
+    )
+  }
+
+  override setLsReturnType(returnType: Typename) {
+    this.returnType = returnType
+  }
+  override setLsReexported(reexported: QualifiedName | undefined) {
+    this.reexportedIn = reexported
+  }
+  setLsSelfType(selfType: string) {
+    this.lsSelfType = selfType
+  }
+}
+
+class LocalSuggestionEntryImpl extends BaseSuggestionEntry implements LocalSuggestionEntry {
+  readonly kind = SuggestionKind.Local
+
+  private constructor(
+    readonly name: IdentifierOrOperatorIdentifier,
+    public scope: lsTypes.SuggestionEntryScope | undefined,
+    definedIn: QualifiedName,
+    public returnType: Typename,
+    documentation: string | undefined,
+    groups: DeepReadonly<Group[]>,
+  ) {
+    super(documentation, definedIn, groups)
+  }
+
+  static parse(
+    lsEntry: lsTypes.SuggestionEntry.Local,
+    groups: DeepReadonly<Group[]>,
+  ): Result<LocalSuggestionEntry> {
+    if (!isIdentifierOrOperatorIdentifier(lsEntry.name)) return Err('Invalid name')
+    if (!isQualifiedName(lsEntry.module)) return Err('Invalid module name')
+    return Ok(
+      new LocalSuggestionEntryImpl(
+        lsEntry.name,
+        lsEntry.scope,
+        normalizeQualifiedName(lsEntry.module),
+        lsEntry.returnType,
+        lsEntry.documentation,
+        groups,
+      ),
+    )
+  }
+
+  override setLsReturnType(returnType: Typename) {
+    this.returnType = returnType
+  }
+  override setLsScope(scope: lsTypes.SuggestionEntryScope | undefined) {
+    this.scope = scope
+  }
+}
+
+function applyFieldUpdate<K extends string, T, R>(
+  name: K,
+  update: { [P in K]?: lsTypes.FieldUpdate<T> },
+  updater: (newValue: T) => R,
+): Result<Opt<R>> {
+  const field = update[name]
+  if (field == null) return Ok(null)
+  return withContext(
+    () => `when handling field "${name}" update`,
+    () => {
+      switch (field.tag) {
+        case 'Set':
+          if (field.value != null) {
+            return Ok(updater(field.value))
+          } else {
+            return Err('Received "Set" update with no value')
+          }
+        case 'Remove':
+          return Err(`Received "Remove" for non-optional field`)
+        default:
+          return Err(`Received field update with unknown value`)
+      }
+    },
+  )
+}
+
+function applyPropertyUpdate<K extends string, T>(
+  name: K,
+  obj: { [P in K]: T },
+  update: { [P in K]?: lsTypes.FieldUpdate<T> },
+): Result<void> {
+  const apply = applyFieldUpdate(name, update, (newValue) => {
+    obj[name] = newValue
+  })
+  if (!apply.ok) return apply
+  return Ok()
+}
+
+function applyOptPropertyUpdate<K extends string, T>(
+  name: K,
+  obj: { [P in K]?: T },
+  update: { [P in K]?: lsTypes.FieldUpdate<T> },
+) {
+  const field = update[name]
+  switch (field?.tag) {
+    case 'Set':
+      obj[name] = field.value
+      break
+    case 'Remove':
+      delete obj[name]
+      break
+  }
+}
+
+function applyArgumentsUpdate(
+  args: SuggestionEntryArgument[],
+  update: lsTypes.SuggestionArgumentUpdate,
+): Result<void> {
+  switch (update.type) {
+    case 'Add': {
+      args.splice(update.index, 0, update.argument)
+      return Ok()
+    }
+    case 'Remove': {
+      args.splice(update.index, 1)
+      return Ok()
+    }
+    case 'Modify': {
+      return withContext(
+        () => `when modifying argument with index ${update.index}`,
+        () => {
+          const arg = args[update.index]
+          if (arg == null) return Err(`Wrong argument index ${update.index}`)
+          return modifyArgument(arg, update)
+        },
+      )
+    }
+  }
+}
+
+function modifyArgument(
+  arg: SuggestionEntryArgument,
+  update: SuggestionArgumentUpdate.Modify,
+): Result<void> {
+  const nameUpdate = applyPropertyUpdate('name', arg, update)
+  if (!nameUpdate.ok) return nameUpdate
+  const typeUpdate = applyFieldUpdate('reprType', update, (type) => {
+    arg.reprType = type
+  })
+  if (!typeUpdate.ok) return typeUpdate
+  const isSuspendedUpdate = applyPropertyUpdate('isSuspended', arg, update)
+  if (!isSuspendedUpdate.ok) return isSuspendedUpdate
+  const hasDefaultUpdate = applyPropertyUpdate('hasDefault', arg, update)
+  if (!hasDefaultUpdate.ok) return hasDefaultUpdate
+  applyOptPropertyUpdate('defaultValue', arg, update)
+  return Ok()
 }
 
 /** Interprets language server messages to create and update suggestion database entries. */
@@ -38,294 +500,30 @@ export class SuggestionUpdateProcessor {
   /** Constructor. */
   constructor(private readonly groups: ToValue<DeepReadonly<Group[]>>) {}
 
-  private setLsName(
-    entry: UnfinishedEntry,
-    name: string,
-  ): entry is UnfinishedEntry & { name: IdentifierOrOperatorIdentifier } {
-    const ident = tryIdentifierOrOperatorIdentifier(name)
-    if (!ident.ok) return false
-    entry.name = ident.value
-    return true
-  }
-
-  private setLsModule(
-    entry: UnfinishedEntry & { name: IdentifierOrOperatorIdentifier },
-    module: string,
-  ): entry is UnfinishedEntry & { name: IdentifierOrOperatorIdentifier; definedIn: QualifiedName } {
-    const qn = tryQualifiedName(module)
-    if (!qn.ok) return false
-    const normalizedQn = normalizeQualifiedName(qn.value)
-    entry.definedIn = normalizedQn
-    switch (entry.kind) {
-      case SuggestionKind.Module:
-        entry.name = qnLastSegment(normalizedQn)
-        entry.returnType = normalizedQn
-        break
-      case SuggestionKind.Type:
-        entry.returnType = qnJoin(normalizedQn, entry.name)
-        break
-    }
-    return true
-  }
-
-  private setAsOwner(entry: UnfinishedEntry, type: string) {
-    const qn = tryQualifiedName(type)
-    if (qn.ok) {
-      entry.memberOf = normalizeQualifiedName(qn.value)
-    } else {
-      delete entry.memberOf
-    }
-  }
-
-  private setLsSelfType(entry: UnfinishedEntry, selfType: Typename, isStaticParam?: boolean) {
-    const isStatic = isStaticParam ?? entry.selfType == null
-    if (!isStatic) entry.selfType = selfType
-    this.setAsOwner(entry, selfType)
-  }
-
-  private setLsReturnType(
-    entry: UnfinishedEntry,
-    returnType: Typename,
-  ): asserts entry is UnfinishedEntry & { returnType: Typename } {
-    entry.returnType = returnType
-    if (entry.kind == SuggestionKind.Constructor) {
-      this.setAsOwner(entry, returnType)
-    }
-  }
-
-  private setLsReexported(
-    entry: UnfinishedEntry,
-    reexported: string,
-  ): entry is UnfinishedEntry & { reexprotedIn: QualifiedName } {
-    const qn = tryQualifiedName(reexported)
-    if (!qn.ok) return false
-    entry.reexportedIn = normalizeQualifiedName(qn.value)
-    return true
-  }
-
-  private setLsParentType(
-    entry: UnfinishedEntry,
-    parentType: string,
-  ): entry is UnfinishedEntry & { parentType: QualifiedName } {
-    const qn = tryQualifiedName(parentType)
-    if (!qn.ok) return false
-    entry.parentType = normalizeQualifiedName(qn.value)
-    return true
-  }
-
-  private setLsDocumentation(
-    entry: UnfinishedEntry & { definedIn: QualifiedName },
-    documentation: Opt<string>,
-  ): asserts entry is UnfinishedEntry & { definedIn: QualifiedName } & DocumentationData {
-    const data = documentationData(documentation, entry.definedIn, toValue(this.groups))
-    Object.assign(entry, data)
-    // Removing optional fields. I don't know a better way to do this.
-    if (data.groupIndex == null) delete entry.groupIndex
-    if (data.iconName == null) delete entry.iconName
-  }
-
   /** Create a suggestion DB entry from data provided by the given language server. */
   entryFromLs(lsEntry: lsTypes.SuggestionEntry): Result<SuggestionEntry> {
     return withContext(
       () => `when creating entry`,
-      () => {
+      (): Result<SuggestionEntry> => {
+        const groups = toValue(this.groups)
         switch (lsEntry.type) {
-          case 'function': {
-            const entry = {
-              kind: SuggestionKind.Function,
-              annotations: [],
-            }
-            if (!this.setLsName(entry, lsEntry.name)) return Err('Invalid name')
-            if (!this.setLsModule(entry, lsEntry.module)) return Err('Invalid module name')
-            this.setLsReturnType(entry, lsEntry.returnType)
-            this.setLsDocumentation(entry, lsEntry.documentation)
-            return Ok({
-              scope: lsEntry.scope,
-              arguments: lsEntry.arguments,
-              ...entry,
-            })
-          }
-          case 'module': {
-            const entry = {
-              kind: SuggestionKind.Module,
-              name: 'MODULE' as IdentifierOrOperatorIdentifier,
-              arguments: [],
-              returnType: '',
-              annotations: [],
-            }
-            if (!this.setLsModule(entry, lsEntry.module)) return Err('Invalid module name')
-            if (lsEntry.reexport != null && !this.setLsReexported(entry, lsEntry.reexport))
-              return Err('Invalid reexported module name')
-            this.setLsDocumentation(entry, lsEntry.documentation)
-            assert(entry.returnType !== '') // Should be overwriten
-            return Ok(entry)
-          }
-          case 'type': {
-            const entry = {
-              kind: SuggestionKind.Type,
-              returnType: '',
-              annotations: [],
-            }
-            if (!this.setLsName(entry, lsEntry.name)) return Err('Invalid name')
-            if (!this.setLsModule(entry, lsEntry.module)) return Err('Invalid module name')
-            if (lsEntry.reexport != null && !this.setLsReexported(entry, lsEntry.reexport))
-              return Err('Invalid reexported module name')
-            if (lsEntry.parentType != null && !this.setLsParentType(entry, lsEntry.parentType))
-              return Err('Invalid parent type')
-            this.setLsDocumentation(entry, lsEntry.documentation)
-            assert(entry.returnType !== '') // Should be overwriten
-            return Ok({
-              arguments: lsEntry.params,
-              ...entry,
-            })
-          }
-          case 'constructor': {
-            const entry = { kind: SuggestionKind.Constructor }
-            if (!this.setLsName(entry, lsEntry.name)) return Err('Invalid name')
-            if (!this.setLsModule(entry, lsEntry.module)) return Err('Invalid module name')
-            if (lsEntry.reexport != null && !this.setLsReexported(entry, lsEntry.reexport))
-              return Err('Invalid reexported module name')
-            this.setLsDocumentation(entry, lsEntry.documentation)
-            this.setLsReturnType(entry, lsEntry.returnType)
-            return Ok({
-              arguments: lsEntry.arguments,
-              annotations: lsEntry.annotations,
-              ...entry,
-            })
-          }
-          case 'method': {
-            const entry = { kind: SuggestionKind.Method }
-            if (!this.setLsName(entry, lsEntry.name)) return Err('Invalid name')
-            if (!this.setLsModule(entry, lsEntry.module)) return Err('Invalid module name')
-            if (lsEntry.reexport != null && !this.setLsReexported(entry, lsEntry.reexport))
-              return Err('Invalid reexported module name')
-            this.setLsDocumentation(entry, lsEntry.documentation)
-            this.setLsSelfType(entry, lsEntry.selfType, lsEntry.isStatic)
-            this.setLsReturnType(entry, lsEntry.returnType)
-            return Ok({
-              arguments: lsEntry.arguments,
-              annotations: lsEntry.annotations,
-              ...entry,
-            })
-          }
-          case 'local': {
-            const entry = {
-              kind: SuggestionKind.Local,
-              arguments: [],
-              annotations: [],
-            }
-            if (!this.setLsName(entry, lsEntry.name)) return Err('Invalid name')
-            if (!this.setLsModule(entry, lsEntry.module)) return Err('Invalid module name')
-            this.setLsReturnType(entry, lsEntry.returnType)
-            this.setLsDocumentation(entry, lsEntry.documentation)
-            return Ok({
-              scope: lsEntry.scope,
-              ...entry,
-            })
-          }
+          case 'function':
+            return FunctionSuggestionEntryImpl.parse(lsEntry, groups)
+          case 'module':
+            return ModuleSuggestionEntryImpl.parse(lsEntry, groups)
+          case 'type':
+            return TypeSuggestionEntryImpl.parse(lsEntry, groups)
+          case 'constructor':
+            return ConstructorSuggestionEntryImpl.parse(lsEntry, groups)
+          case 'method':
+            return MethodSuggestionEntryImpl.parse(lsEntry, groups)
+          case 'local':
+            return LocalSuggestionEntryImpl.parse(lsEntry, groups)
           default:
             assertNever(lsEntry)
         }
       },
     )
-  }
-
-  private applyFieldUpdate<K extends string, T, R>(
-    name: K,
-    update: { [P in K]?: lsTypes.FieldUpdate<T> },
-    updater: (newValue: T) => R,
-  ): Result<Opt<R>> {
-    const field = update[name]
-    if (field == null) return Ok(null)
-    return withContext(
-      () => `when handling field "${name}" update`,
-      () => {
-        switch (field.tag) {
-          case 'Set':
-            if (field.value != null) {
-              return Ok(updater(field.value))
-            } else {
-              return Err('Received "Set" update with no value')
-            }
-          case 'Remove':
-            return Err(`Received "Remove" for non-optional field`)
-          default:
-            return Err(`Received field update with unknown value`)
-        }
-      },
-    )
-  }
-
-  private applyPropertyUpdate<K extends string, T>(
-    name: K,
-    obj: { [P in K]: T },
-    update: { [P in K]?: lsTypes.FieldUpdate<T> },
-  ): Result<void> {
-    const apply = this.applyFieldUpdate(name, update, (newValue) => {
-      obj[name] = newValue
-    })
-    if (!apply.ok) return apply
-    return Ok()
-  }
-
-  private applyOptPropertyUpdate<K extends string, T>(
-    name: K,
-    obj: { [P in K]?: T },
-    update: { [P in K]?: lsTypes.FieldUpdate<T> },
-  ) {
-    const field = update[name]
-    switch (field?.tag) {
-      case 'Set':
-        obj[name] = field.value
-        break
-      case 'Remove':
-        delete obj[name]
-        break
-    }
-  }
-
-  private applyArgumentsUpdate(
-    args: SuggestionEntryArgument[],
-    update: lsTypes.SuggestionArgumentUpdate,
-  ): Result<void> {
-    switch (update.type) {
-      case 'Add': {
-        args.splice(update.index, 0, update.argument)
-        return Ok()
-      }
-      case 'Remove': {
-        args.splice(update.index, 1)
-        return Ok()
-      }
-      case 'Modify': {
-        return withContext(
-          () => `when modifying argument with index ${update.index}`,
-          () => {
-            const arg = args[update.index]
-            if (arg == null) return Err(`Wrong argument index ${update.index}`)
-            return this.modifyArgument(arg, update)
-          },
-        )
-      }
-    }
-  }
-
-  private modifyArgument(
-    arg: SuggestionEntryArgument,
-    update: SuggestionArgumentUpdate.Modify,
-  ): Result<void> {
-    const nameUpdate = this.applyPropertyUpdate('name', arg, update)
-    if (!nameUpdate.ok) return nameUpdate
-    const typeUpdate = this.applyFieldUpdate('reprType', update, (type) => {
-      arg.reprType = type
-    })
-    if (!typeUpdate.ok) return typeUpdate
-    const isSuspendedUpdate = this.applyPropertyUpdate('isSuspended', arg, update)
-    if (!isSuspendedUpdate.ok) return isSuspendedUpdate
-    const hasDefaultUpdate = this.applyPropertyUpdate('hasDefault', arg, update)
-    if (!hasDefaultUpdate.ok) return hasDefaultUpdate
-    this.applyOptPropertyUpdate('defaultValue', arg, update)
-    return Ok()
   }
 
   private applyUpdate(
@@ -369,39 +567,38 @@ export class SuggestionUpdateProcessor {
     entry: SuggestionEntry,
     update: SuggestionsDatabaseUpdate.Modify,
   ): Result<void> {
-    for (const argumentUpdate of update.arguments ?? []) {
-      const updateResult = this.applyArgumentsUpdate(entry.arguments, argumentUpdate)
-      if (!updateResult.ok) return updateResult
+    assert(entry instanceof BaseSuggestionEntry)
+
+    if ('arguments' in entry) {
+      for (const argumentUpdate of update.arguments ?? []) {
+        const updateResult = applyArgumentsUpdate(entry.arguments, argumentUpdate)
+        if (!updateResult.ok) return updateResult
+      }
     }
 
-    const moduleUpdate = this.applyFieldUpdate('module', update, (module) =>
-      this.setLsModule(entry, module),
-    )
+    const moduleUpdate = applyFieldUpdate('module', update, (module) => entry.setLsModule(module))
     if (!moduleUpdate.ok) return moduleUpdate
     if (moduleUpdate.value === false) return Err('Invalid module name')
 
-    const selfTypeUpdate = this.applyFieldUpdate('selfType', update, (selfType) =>
-      this.setLsSelfType(entry, selfType),
-    )
+    const selfTypeUpdate = applyFieldUpdate('selfType', update, (selfType) => {
+      if (!(entry instanceof MethodSuggestionEntryImpl)) return false
+      entry.setLsSelfType(selfType)
+    })
     if (!selfTypeUpdate.ok) return selfTypeUpdate
 
-    const returnTypeUpdate = this.applyFieldUpdate('returnType', update, (returnType) => {
-      this.setLsReturnType(entry, returnType)
+    const returnTypeUpdate = applyFieldUpdate('returnType', update, (returnType) => {
+      entry.setLsReturnType(returnType)
     })
     if (!returnTypeUpdate.ok) return returnTypeUpdate
 
-    if (update.documentation != null) this.setLsDocumentation(entry, update.documentation.value)
+    if (update.documentation)
+      entry.setDocumentation(update.documentation.value, toValue(this.groups))
 
-    this.applyOptPropertyUpdate('scope', entry, update)
+    if (update.scope) entry.setLsScope(update.scope.value)
 
-    if (update.reexport != null) {
-      if (update.reexport.value != null) {
-        const reexport = tryQualifiedName(update.reexport.value)
-        if (!reexport.ok) return reexport
-        entry.reexportedIn = reexport.value
-      } else {
-        delete entry.reexportedIn
-      }
+    if (update.reexport) {
+      if (!isOptQN(update.reexport.value)) return Err('Invalid reexport')
+      entry.setLsReexported(update.reexport.value)
     }
 
     return Ok()

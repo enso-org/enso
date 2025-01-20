@@ -235,7 +235,7 @@ export default function App(props: AppProps) {
   const { mutate: executeBackgroundUpdate } = useMutation({
     mutationKey: ['refetch-queries', { isOffline }],
     scope: { id: 'refetch-queries' },
-    mutationFn: () => queryClient.refetchQueries({ type: 'all' }),
+    mutationFn: () => queryClient.refetchQueries({ type: 'all', queryKey: [RemoteBackend.type] }),
     networkMode: 'online',
     onError: () => {
       toastify.toast.error(getText('refetchQueriesError'), {
@@ -297,7 +297,7 @@ export interface AppRouterProps extends AppProps {
  * component as the component that defines the provider.
  */
 function AppRouter(props: AppRouterProps) {
-  const { isAuthenticationDisabled, onAuthenticated, projectManagerInstance } = props
+  const { onAuthenticated, projectManagerInstance } = props
   const httpClient = useHttpClientStrict()
   const logger = useLogger()
   const navigate = router.useNavigate()
@@ -400,8 +400,6 @@ function AppRouter(props: AppRouterProps) {
 
   const authService = useInitAuthService(props)
 
-  const userSession = authService.cognito.userSession.bind(authService.cognito)
-  const refreshUserSession = authService.cognito.refreshUserSession.bind(authService.cognito)
   const registerAuthEventListener = authService.registerAuthEventListener
 
   React.useEffect(() => {
@@ -531,18 +529,15 @@ function AppRouter(props: AppRouterProps) {
   return (
     <RouterProvider navigate={navigate}>
       <SessionProvider
-        saveAccessToken={authService.cognito.saveAccessToken.bind(authService.cognito)}
+        onLogout={() => {
+          localStorage.clearUserSpecificEntries()
+        }}
+        authService={authService.cognito}
         mainPageUrl={mainPageUrl}
-        userSession={userSession}
         registerAuthEventListener={registerAuthEventListener}
-        refreshUserSession={refreshUserSession}
       >
         <BackendProvider remoteBackend={remoteBackend} localBackend={localBackend}>
-          <AuthProvider
-            shouldStartInOfflineMode={isAuthenticationDisabled}
-            authService={authService}
-            onAuthenticated={onAuthenticated}
-          >
+          <AuthProvider onAuthenticated={onAuthenticated}>
             <InputBindingsProvider inputBindings={inputBindings}>
               <LocalBackendPathSynchronizer />
               <VersionChecker />

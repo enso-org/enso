@@ -266,6 +266,7 @@ Text.characters self =
          example_find_insensitive =
              ## This matches `aBc` @ character 11
              "aabbbbccccaaBcaaaa".find "a[ab]c" Case_Sensitivity.Insensitive
+@pattern make_regex_text_widget
 Text.find : (Regex | Text) -> Case_Sensitivity -> Match | Nothing ! Regex_Syntax_Error | Illegal_Argument
 Text.find self pattern:(Regex | Text)=".*" case_sensitivity:Case_Sensitivity=..Sensitive =
     case_insensitive = case_sensitivity.is_case_insensitive_in_memory
@@ -299,6 +300,7 @@ Text.find self pattern:(Regex | Text)=".*" case_sensitivity:Case_Sensitivity=..S
          example_find_all_insensitive =
               ## This matches `aABbbbc` @ character 0 and `aBC` @ character 11
              "aABbbbccccaaBCaaaa".find_all "a[ab]+c" Case_Sensitivity.Insensitive
+@pattern make_regex_text_widget
 Text.find_all : Text|Regex -> Case_Sensitivity -> Vector Match ! Regex_Syntax_Error | Illegal_Argument
 Text.find_all self pattern:Text|Regex=".*" case_sensitivity:Case_Sensitivity=..Sensitive =
     case_insensitive = case_sensitivity.is_case_insensitive_in_memory

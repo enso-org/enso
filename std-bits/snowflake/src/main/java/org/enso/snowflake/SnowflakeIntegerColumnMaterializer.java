@@ -13,7 +13,7 @@ import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.error.ValueTypeMismatchException;
 import org.graalvm.polyglot.Context;
 
-public class SnowflakeIntegerColumnMaterializer extends Builder {
+public class SnowflakeIntegerColumnMaterializer implements Builder {
   private static final BigInteger LONG_MIN = BigInteger.valueOf(Long.MIN_VALUE);
   private static final BigInteger LONG_MAX = BigInteger.valueOf(Long.MAX_VALUE);
   // We start in integer mode and will switch to BigInteger mode if we encounter a value that
@@ -119,8 +119,24 @@ public class SnowflakeIntegerColumnMaterializer extends Builder {
   @Override
   public StorageType getType() {
     // The type of the builder can change over time, so we do not report any stable type here.
-    // Same as in InferredBuilder.
     return null;
+  }
+
+  @Override
+  public void copyDataTo(Object[] items) {
+    if (currentSize > 0) {
+      if (mode == Mode.LONG) {
+        for (int i = 0; i < currentSize; i++) {
+          if (intsMissing.get(i)) {
+            items[i] = null;
+          } else {
+            items[i] = ints[i];
+          }
+        }
+      } else {
+        System.arraycopy(bigInts, 0, items, 0, currentSize);
+      }
+    }
   }
 
   private int capacity() {

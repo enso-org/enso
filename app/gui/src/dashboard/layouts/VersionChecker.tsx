@@ -20,8 +20,7 @@ import { download } from '#/utilities/download'
 import { getDownloadUrl, getLatestRelease } from '#/utilities/github'
 import { startTransition, useState } from 'react'
 
-// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-const CURRENT_VERSION: string = import.meta.env.ENSO_IDE_VERSION ?? 'unknown-dev'
+const CURRENT_VERSION: string = $config.VERSION ?? 'unknown-dev'
 const CURRENT_VERSION_IS_DEV = CURRENT_VERSION.endsWith('-dev')
 const CURRENT_VERSION_IS_NIGHTLY = CURRENT_VERSION.includes('-nightly')
 const CURRENT_VERSION_NUMBER = getVersionNumber(CURRENT_VERSION)

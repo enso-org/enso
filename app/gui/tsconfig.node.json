@@ -7,12 +7,11 @@
     "project-manager-shim-middleware/*.ts",
     "playwright.config.*",
     "eslint.config.js",
-    "tailwind.config.js",
+    "tailwind.config.ts",
     "integration-test/**/*",
     "src/dashboard/hooks/eventCallbackHooks.ts",
     "src/dashboard/modules/payments/constants.ts",
     "src/dashboard/services/Backend.ts",
-    "src/dashboard/services/RemoteBackend.ts",
     "src/dashboard/utilities/**/*",
     "node.env.d.ts"
   ],

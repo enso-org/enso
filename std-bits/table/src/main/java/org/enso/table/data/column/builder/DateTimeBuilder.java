@@ -9,33 +9,18 @@ import org.enso.table.data.column.storage.datetime.DateStorage;
 import org.enso.table.data.column.storage.datetime.DateTimeStorage;
 import org.enso.table.data.column.storage.type.DateTimeType;
 import org.enso.table.data.column.storage.type.DateType;
-import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.error.ValueTypeMismatchException;
 import org.graalvm.polyglot.Context;
 
 /** A builder for ZonedDateTime columns. */
-public class DateTimeBuilder extends TypedBuilderImpl<ZonedDateTime> {
-  @Override
-  protected ZonedDateTime[] newArray(int size) {
-    return new ZonedDateTime[size];
-  }
-
+public class DateTimeBuilder extends TypedBuilder<ZonedDateTime> {
   private final boolean allowDateToDateTimeConversion;
   private final BitSet wasLocalDate;
 
-  public DateTimeBuilder(int size) {
-    this(size, false);
-  }
-
-  public DateTimeBuilder(int size, boolean allowDateToDateTimeConversion) {
-    super(size);
+  DateTimeBuilder(int size, boolean allowDateToDateTimeConversion) {
+    super(DateTimeType.INSTANCE, new ZonedDateTime[size]);
     this.allowDateToDateTimeConversion = allowDateToDateTimeConversion;
     this.wasLocalDate = allowDateToDateTimeConversion ? new BitSet(size) : null;
-  }
-
-  @Override
-  public StorageType getType() {
-    return DateTimeType.INSTANCE;
   }
 
   /**
@@ -99,7 +84,7 @@ public class DateTimeBuilder extends TypedBuilderImpl<ZonedDateTime> {
   }
 
   @Override
-  public void retypeToMixed(Object[] items) {
+  public void copyDataTo(Object[] items) {
     if (allowDateToDateTimeConversion) {
       if (currentSize >= 0) {
         System.arraycopy(data, 0, items, 0, currentSize);
@@ -112,7 +97,7 @@ public class DateTimeBuilder extends TypedBuilderImpl<ZonedDateTime> {
         }
       }
     } else {
-      super.retypeToMixed(items);
+      super.copyDataTo(items);
     }
   }
 }

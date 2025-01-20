@@ -4,6 +4,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.AllOf.allOf;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -36,6 +37,32 @@ public class PrivateConstructorAccessTest {
       assertThat(res.isNumber(), is(true));
       assertThat(res.asInt(), is(42));
     }
+  }
+
+  @Test
+  public void accessMethodOnATypeWithAllPrivateConstructors() throws IOException {
+    var codeA =
+        """
+            type A
+                private Cons data
+                find d = A.Cons d
+            """;
+    var codeUse =
+        """
+        import local.Proj_A
+        create x = local.Proj_A.Main.A.find x
+        main = create
+        """;
+    var proj1Dir = tempFolder.newFolder("Proj_A").toPath();
+    ProjectUtils.createProject("Proj_A", codeA, proj1Dir);
+    var proj2Dir = tempFolder.newFolder("Proj_Use").toPath();
+    ProjectUtils.createProject("Proj_Use", codeUse, proj2Dir);
+    ProjectUtils.testProjectRun(
+        proj2Dir,
+        create -> {
+          var res = create.execute("Hello");
+          assertEquals("It is object: " + res, "(Cons 'Hello')", res.toString());
+        });
   }
 
   @Test

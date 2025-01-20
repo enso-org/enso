@@ -5,6 +5,7 @@ import { useGraphStore } from '@/stores/graph'
 import { QualifiedImport } from '@/stores/graph/imports'
 import type { Icon } from '@/util/iconName'
 import { QualifiedName } from '@/util/qualifiedName'
+import type { Icon } from '@/util/iconMetadata/iconName'
 
 const graph = useGraphStore()
 

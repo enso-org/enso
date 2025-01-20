@@ -101,6 +101,7 @@ export function createQueryClient<TStorageValue = string>(
         const shouldAwaitInvalidates = mutation.meta?.awaitInvalidates ?? false
         const refetchType = mutation.meta?.refetchType ?? 'active'
         const invalidates = mutation.meta?.invalidates ?? []
+
         const invalidatesToAwait = (() => {
           if (Array.isArray(shouldAwaitInvalidates)) {
             return shouldAwaitInvalidates
@@ -108,6 +109,7 @@ export function createQueryClient<TStorageValue = string>(
             return shouldAwaitInvalidates ? invalidates : []
           }
         })()
+
         const invalidatesToIgnore = invalidates.filter(
           (queryKey) => !invalidatesToAwait.includes(queryKey),
         )
