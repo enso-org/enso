@@ -4,7 +4,6 @@ import java.math.BigInteger;
 import java.util.List;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.builder.InferredIntegerBuilder;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;

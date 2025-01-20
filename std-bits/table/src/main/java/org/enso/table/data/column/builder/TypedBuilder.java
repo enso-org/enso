@@ -70,12 +70,11 @@ public abstract class TypedBuilder<T> implements BuilderWithRetyping, BuilderFor
   }
 
   /**
-   * Checks if space to append single element, grows the underlying array if
-   * needed.
+   * Checks if space to append single element, grows the underlying array if needed.
    *
-   * <p>The method grows the array by 50% by default to amortize the
-   * re-allocation time over appends. It tries to keep the invariant that
-   * after calling `grow` the array has at least one free slot.
+   * <p>The method grows the array by 50% by default to amortize the re-allocation time over
+   * appends. It tries to keep the invariant that after calling `grow` the array has at least one
+   * free slot.
    */
   protected void ensureSpaceToAppend() {
     // Check current size. If there is space, we don't need to grow.

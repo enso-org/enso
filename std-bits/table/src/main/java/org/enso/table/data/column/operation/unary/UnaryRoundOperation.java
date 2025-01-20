@@ -6,7 +6,6 @@ import java.util.function.DoubleToLongFunction;
 import java.util.function.Function;
 import org.enso.base.numeric.Decimal_Utils;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.builder.InferredIntegerBuilder;
 import org.enso.table.data.column.operation.UnaryOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.ColumnLongStorage;

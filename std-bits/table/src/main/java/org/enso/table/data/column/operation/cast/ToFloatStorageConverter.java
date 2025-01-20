@@ -50,7 +50,9 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
 
   /** Specialised innerLoop so that we can avoid boxing. */
   static Storage<Double> innerLoop(
-      BuilderForDouble builder, ColumnStorage storage, ObjLongConsumer<BuilderForDouble> converter) {
+      BuilderForDouble builder,
+      ColumnStorage storage,
+      ObjLongConsumer<BuilderForDouble> converter) {
     Context context = Context.getCurrent();
 
     long n = storage.getSize();
@@ -124,7 +126,7 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
     return innerLoop(
         Builder.getForDouble(FloatType.FLOAT_64, storage.size(), problemAggregator),
         storage,
-        (builder, i) -> builder.append(storage.getItemBoxed((int)i)));
+        (builder, i) -> builder.append(storage.getItemBoxed((int) i)));
   }
 
   private Storage<Double> convertBigDecimalStorage(
@@ -132,6 +134,6 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
     return innerLoop(
         Builder.getForDouble(FloatType.FLOAT_64, storage.size(), problemAggregator),
         storage,
-        (builder, i) -> builder.append(storage.getItemBoxed((int)i)));
+        (builder, i) -> builder.append(storage.getItemBoxed((int) i)));
   }
 }
