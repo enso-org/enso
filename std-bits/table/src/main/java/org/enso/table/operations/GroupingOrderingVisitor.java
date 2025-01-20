@@ -16,58 +16,84 @@ import org.enso.table.problems.ColumnAggregatedProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.ConstantList;
 
-abstract class RunningLooper<T> {
-
-  // implement this method in subclasses to control the order you want to loop over the data
-  public abstract void loopImpl(RunningStatistic<T> runningStatistic, long numRows);
-
-  public static <T> void loop(
+/**
+ * Abstract class GroupingOrderingVisitor
+ *
+ * <p>Overview: This class provides a mechanism for visiting rows of data based on grouping and
+ * ordering criteria.
+ *
+ * <p>Usage : GroupingOrderingVisitor.visit( groupingColumns, orderingColumns, directions,
+ * problemAggregator, rowVisitorFactory, sourceColumn.getSize());
+ */
+abstract class GroupingOrderingVisitor {
+  /**
+   * For each group: will call getNewRowVisitor() Then for each row in that group will call
+   * visit(rowNumber) on the visitor for that group in the order specified by the OrderingColumns
+   * Then calls finalise() to indicate that group is complete and there will be no more calls to
+   * visit. Can be used without any groupingColumns in which case the whole dataset is treated as a
+   * single group. Can be used without orderingColumns in which case the orginal record order is
+   * used.
+   *
+   * @param groupingColumns Columns used to group data.
+   * @param orderingColumns Columns used to order data within groups.
+   * @param directions Array specifying the sort direction for each orderingColumn.
+   * @param problemAggregator Collects problems with grouping/ordering.
+   * @param visitorFactory The factory which we call getNewRowVisitor on.
+   * @param numRows Number of rows in the datset. Must be the same as any columns used for grouping
+   *     and ordering.
+   * @throws IllegalArgumentException if the length of orderingColumns and directions do not match.
+   */
+  public static void visit(
       Column[] groupingColumns,
       Column[] orderingColumns,
       int[] directions,
       ProblemAggregator problemAggregator,
-      RunningStatistic<T> runningStatistic,
+      RowVisitorFactory visitorFactory,
       long numRows) {
     if (orderingColumns.length != directions.length) {
       throw new IllegalArgumentException(
           "The number of ordering columns and directions must be the same.");
     }
-    RunningLooper<T> runningLooper;
+    GroupingOrderingVisitor visitMethod;
     if (groupingColumns.length > 0 && orderingColumns.length > 0) {
-      runningLooper =
-          new GroupingOrderingRunning<>(
+      visitMethod =
+          new GroupingOrderingRunning(
               groupingColumns, orderingColumns, directions, problemAggregator);
     } else if (groupingColumns.length > 0) {
-      runningLooper = new GroupingNoOrderingRunning<>(groupingColumns, problemAggregator);
+      visitMethod = new GroupingNoOrderingRunning(groupingColumns, problemAggregator);
     } else if (orderingColumns.length > 0) {
-      runningLooper = new NoGroupingOrderingRunning<>(orderingColumns, directions);
+      visitMethod = new NoGroupingOrderingRunning(orderingColumns, directions);
     } else {
-      runningLooper = new NoGroupingNoOrderingRunning<>();
+      visitMethod = new NoGroupingNoOrderingRunning();
     }
-    runningLooper.loopImpl(runningStatistic, numRows);
+    visitMethod.visitImpl(visitorFactory, numRows);
   }
+
+  // interface for the different implementations
+  public abstract void visitImpl(RowVisitorFactory runningStatistic, long numRows);
 }
 
-class NoGroupingNoOrderingRunning<T> extends RunningLooper<T> {
+class NoGroupingNoOrderingRunning extends GroupingOrderingVisitor {
 
   NoGroupingNoOrderingRunning() {}
 
   @Override
-  public void loopImpl(RunningStatistic<T> runningStatistic, long numRows) {
-    var it = runningStatistic.getNewIterator();
+  public void visitImpl(RowVisitorFactory runningStatistic, long numRows) {
+    var it = runningStatistic.getNewRowVisitor();
     for (int i = 0; i < numRows; i++) {
-      runningStatistic.calculateNextValue(i, it);
+      it.visit(i);
     }
+    it.finalise();
   }
 }
 
-class GroupingNoOrderingRunning<T> extends RunningLooper<T> {
+class GroupingNoOrderingRunning extends GroupingOrderingVisitor {
 
   private final Column[] groupingColumns;
   private final Storage<?>[] groupingStorages;
   private final ColumnAggregatedProblemAggregator groupingProblemAggregator;
   private final List<TextFoldingStrategy> textFoldingStrategy;
-  private final Map<UnorderedMultiValueKey, RunningIterator<T>> groups;
+  private final Map<UnorderedMultiValueKey, GroupRowVisitor> groups;
 
   public GroupingNoOrderingRunning(Column[] groupingColumns, ProblemAggregator problemAggregator) {
     this.groupingColumns = groupingColumns;
@@ -80,18 +106,19 @@ class GroupingNoOrderingRunning<T> extends RunningLooper<T> {
   }
 
   @Override
-  public void loopImpl(RunningStatistic<T> runningStatistic, long numRows) {
+  public void visitImpl(RowVisitorFactory runningStatistic, long numRows) {
     for (int i = 0; i < numRows; i++) {
       var key = new UnorderedMultiValueKey(groupingStorages, i, textFoldingStrategy);
       key.checkAndReportFloatingEquality(
           groupingProblemAggregator, columnIx -> groupingColumns[columnIx].getName());
-      var it = groups.computeIfAbsent(key, k -> runningStatistic.getNewIterator());
-      runningStatistic.calculateNextValue(i, it);
+      var it = groups.computeIfAbsent(key, k -> runningStatistic.getNewRowVisitor());
+      it.visit(i);
     }
+    groups.forEach((key, it) -> it.finalise());
   }
 }
 
-class NoGroupingOrderingRunning<T> extends RunningLooper<T> {
+class NoGroupingOrderingRunning extends GroupingOrderingVisitor {
 
   private final Storage<?>[] orderingStorages;
   private final List<OrderedMultiValueKey> keys;
@@ -109,16 +136,17 @@ class NoGroupingOrderingRunning<T> extends RunningLooper<T> {
   }
 
   @Override
-  public void loopImpl(RunningStatistic<T> runningStatistic, long numRows) {
-    var it = runningStatistic.getNewIterator();
+  public void visitImpl(RowVisitorFactory runningStatistic, long numRows) {
+    var it = runningStatistic.getNewRowVisitor();
     for (var key : keys) {
       var i = key.getRowIndex();
-      runningStatistic.calculateNextValue(i, it);
+      it.visit(i);
     }
+    it.finalise();
   }
 }
 
-class GroupingOrderingRunning<T> extends RunningLooper<T> {
+class GroupingOrderingRunning extends GroupingOrderingVisitor {
 
   private final Column[] groupingColumns;
   private final Column[] orderingColumns;
@@ -144,7 +172,7 @@ class GroupingOrderingRunning<T> extends RunningLooper<T> {
   }
 
   @Override
-  public void loopImpl(RunningStatistic<T> runningStatistic, long numRows) {
+  public void visitImpl(RowVisitorFactory runningStatistic, long numRows) {
     var groupIndex =
         MultiValueIndex.makeUnorderedIndex(
             groupingColumns,
@@ -159,11 +187,12 @@ class GroupingOrderingRunning<T> extends RunningLooper<T> {
                   .map(i -> new OrderedMultiValueKey(orderingStorages, i, directions))
                   .toList());
       orderingKeys.sort(null);
-      var it = runningStatistic.getNewIterator();
+      var it = runningStatistic.getNewRowVisitor();
       for (OrderedMultiValueKey key : orderingKeys) {
         var i = key.getRowIndex();
-        runningStatistic.calculateNextValue(i, it);
+        it.visit(i);
       }
+      it.finalise();
     }
   }
 }

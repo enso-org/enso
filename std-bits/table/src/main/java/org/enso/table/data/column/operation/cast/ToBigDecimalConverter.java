@@ -2,7 +2,7 @@ package org.enso.table.data.column.operation.cast;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import org.enso.table.data.column.builder.BigDecimalBuilder;
+import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
@@ -10,7 +10,6 @@ import org.enso.table.data.column.storage.numeric.BigDecimalStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
-import org.graalvm.polyglot.Context;
 
 public class ToBigDecimalConverter implements StorageConverter<BigDecimal> {
   @Override
@@ -35,106 +34,70 @@ public class ToBigDecimalConverter implements StorageConverter<BigDecimal> {
 
   private Storage<BigDecimal> convertDoubleStorage(
       DoubleStorage doubleStorage, CastProblemAggregator problemAggregator) {
-    Context context = Context.getCurrent();
-    int n = doubleStorage.size();
-    BigDecimalBuilder builder = new BigDecimalBuilder(n);
-    for (int i = 0; i < n; i++) {
-      if (doubleStorage.isNothing(i)) {
-        builder.appendNulls(1);
-      } else {
-        double x = doubleStorage.getItemAsDouble(i);
-        BigDecimal bigDecimal = BigDecimal.valueOf(x);
-        builder.appendRawNoGrow(bigDecimal);
-      }
-
-      context.safepoint();
-    }
-    return builder.seal();
+    return StorageConverter.innerLoop(
+        Builder.getForBigDecimal(doubleStorage.size()),
+        doubleStorage,
+        (i) -> {
+          double x = doubleStorage.getItemAsDouble(i);
+          return BigDecimal.valueOf(x);
+        });
   }
 
   private Storage<BigDecimal> convertLongStorage(
       AbstractLongStorage longStorage, CastProblemAggregator problemAggregator) {
-    Context context = Context.getCurrent();
-    int n = longStorage.size();
-    BigDecimalBuilder builder = new BigDecimalBuilder(n);
-    for (int i = 0; i < n; i++) {
-      if (longStorage.isNothing(i)) {
-        builder.appendNulls(1);
-      } else {
-        long x = longStorage.getItem(i);
-        BigDecimal bigDecimal = BigDecimal.valueOf(x);
-        builder.appendRawNoGrow(bigDecimal);
-      }
-
-      context.safepoint();
-    }
-    return builder.seal();
+    return StorageConverter.innerLoop(
+        Builder.getForBigDecimal(longStorage.size()),
+        longStorage,
+        (i) -> {
+          long x = longStorage.getItem(i);
+          return BigDecimal.valueOf(x);
+        });
   }
 
   private Storage<BigDecimal> convertBoolStorage(
       BoolStorage boolStorage, CastProblemAggregator problemAggregator) {
-    Context context = Context.getCurrent();
-    int n = boolStorage.size();
-    BigDecimalBuilder builder = new BigDecimalBuilder(n);
-    for (int i = 0; i < n; i++) {
-      if (boolStorage.isNothing(i)) {
-        builder.appendNulls(1);
-      } else {
-        boolean x = boolStorage.getItem(i);
-        BigDecimal bigDecimal = booleanAsBigDecimal(x);
-        builder.appendRawNoGrow(bigDecimal);
-      }
-
-      context.safepoint();
-    }
-    return builder.seal();
+    return StorageConverter.innerLoop(
+        Builder.getForBigDecimal(boolStorage.size()),
+        boolStorage,
+        (i) -> {
+          boolean x = boolStorage.getItem(i);
+          return booleanAsBigDecimal(x);
+        });
   }
 
   private Storage<BigDecimal> convertBigIntegerStorage(
       BigIntegerStorage bigIntegerStorage, CastProblemAggregator problemAggregator) {
-    Context context = Context.getCurrent();
-    int n = bigIntegerStorage.size();
-    BigDecimalBuilder builder = new BigDecimalBuilder(n);
-    for (int i = 0; i < n; i++) {
-      if (bigIntegerStorage.isNothing(i)) {
-        builder.appendNulls(1);
-      } else {
-        BigInteger x = bigIntegerStorage.getItem(i);
-        BigDecimal bigDecimal = new BigDecimal(x);
-        builder.appendRawNoGrow(bigDecimal);
-      }
-
-      context.safepoint();
-    }
-    return builder.seal();
+    return StorageConverter.innerLoop(
+        Builder.getForBigDecimal(bigIntegerStorage.size()),
+        bigIntegerStorage,
+        (i) -> {
+          BigInteger x = bigIntegerStorage.getItem(i);
+          return new BigDecimal(x);
+        });
   }
 
   private Storage<BigDecimal> castFromMixed(
       Storage<?> storage, CastProblemAggregator problemAggregator) {
-    Context context = Context.getCurrent();
-    int n = storage.size();
-    BigDecimalBuilder builder = new BigDecimalBuilder(n);
-    for (int i = 0; i < n; i++) {
-      Object o = storage.getItemBoxed(i);
-      switch (o) {
-        case null -> builder.appendNulls(1);
-        case Boolean b -> builder.appendRawNoGrow(booleanAsBigDecimal(b));
-        case Long l -> builder.appendRawNoGrow(BigDecimal.valueOf(l));
-        case Double d -> builder.appendRawNoGrow(BigDecimal.valueOf(d));
-        case BigInteger bigInteger -> builder.appendRawNoGrow(new BigDecimal(bigInteger));
-        case BigDecimal bigDecimal -> builder.appendRawNoGrow(bigDecimal);
-        default -> {
-          problemAggregator.reportConversionFailure(o);
-          builder.appendNulls(1);
-        }
-      }
-
-      context.safepoint();
-    }
-    return builder.seal();
+    return StorageConverter.innerLoop(
+        Builder.getForBigDecimal(storage.size()),
+        storage,
+        (i) -> {
+          Object o = storage.getItemBoxed(i);
+          return switch (o) {
+            case Boolean b -> booleanAsBigDecimal(b);
+            case Long l -> BigDecimal.valueOf(l);
+            case Double d -> BigDecimal.valueOf(d);
+            case BigInteger bigInteger -> new BigDecimal(bigInteger);
+            case BigDecimal bigDecimal -> bigDecimal;
+            default -> {
+              problemAggregator.reportConversionFailure(o);
+              yield null;
+            }
+          };
+        });
   }
 
-  public static BigDecimal booleanAsBigDecimal(boolean value) {
+  private static BigDecimal booleanAsBigDecimal(boolean value) {
     return value ? BigDecimal.ONE : BigDecimal.ZERO;
   }
 }

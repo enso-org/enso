@@ -250,6 +250,7 @@ const defaultColDef: ColDef<RowData> & {
   lockPinned: true,
   menuTabs: ['generalMenuTab'],
   headerComponentParams,
+  cellStyle: { 'padding-left': 0, 'border-right': '1px solid #C0C0C0' },
 }
 </script>
 

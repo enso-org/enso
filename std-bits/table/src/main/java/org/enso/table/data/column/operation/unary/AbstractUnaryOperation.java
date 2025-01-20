@@ -1,7 +1,6 @@
 package org.enso.table.data.column.operation.unary;
 
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.builder.InferredBuilder;
 import org.enso.table.data.column.operation.UnaryOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
@@ -60,7 +59,7 @@ abstract class AbstractUnaryOperation implements UnaryOperation {
           "Cannot currently operate on columns larger than " + Integer.MAX_VALUE + ".");
     }
 
-    return new InferredBuilder((int) storage.getSize(), problemAggregator);
+    return Builder.getInferredBuilder((int) storage.getSize(), problemAggregator);
   }
 
   /** Apply the operation to a Boolean Storage. */

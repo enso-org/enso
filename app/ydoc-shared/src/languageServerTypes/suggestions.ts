@@ -44,19 +44,19 @@ export interface SuggestionEntryScope {
 // A type of suggestion entries.
 export type SuggestionEntry =
   // A module
-  | suggestionEntryVariant.Module
+  | SuggestionEntry.Module
   // A type
-  | suggestionEntryVariant.Type
+  | SuggestionEntry.Type
   // A type constructor
-  | suggestionEntryVariant.Constructor
+  | SuggestionEntry.Constructor
   // A method defined on a type
-  | suggestionEntryVariant.Method
+  | SuggestionEntry.Method
   // A function
-  | suggestionEntryVariant.Function
+  | SuggestionEntry.Function
   // A local value
-  | suggestionEntryVariant.Local
+  | SuggestionEntry.Local
 
-namespace suggestionEntryVariant {
+export namespace SuggestionEntry {
   export interface Module {
     type: 'module'
     /** The fully qualified module name. */
