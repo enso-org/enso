@@ -186,7 +186,12 @@ function useSortFilterNodesButton({
         Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('filter')!),
         filterType === 'set' ?
           makeFilterPattern(ast.module, columnName, items as string[])
-        : makeNumericFilterPattern(ast.module, columnName, items as string | FilterValueRange, filterAction!),
+        : makeNumericFilterPattern(
+            ast.module,
+            columnName,
+            items as string | FilterValueRange,
+            filterAction!,
+          ),
       ),
     )
   }
@@ -213,7 +218,12 @@ function useSortFilterNodesButton({
           Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('filter')!),
           filterType === 'set' ?
             makeFilterPattern(ast.module, columnName, items as string[])
-          : makeNumericFilterPattern(ast.module, columnName, items as string | FilterValueRange, filterAction!),
+          : makeNumericFilterPattern(
+              ast.module,
+              columnName,
+              items as string | FilterValueRange,
+              filterAction!,
+            ),
         ),
         '.',
         Ast.App.positional(
