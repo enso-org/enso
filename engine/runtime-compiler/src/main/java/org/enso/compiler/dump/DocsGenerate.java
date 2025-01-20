@@ -47,7 +47,6 @@ public final class DocsGenerate {
         visitModule(visitor, moduleName, ir, mdWriter);
       }
     }
-    // System.out.println("Documentation generated into " + api);
     return api;
   }
 
