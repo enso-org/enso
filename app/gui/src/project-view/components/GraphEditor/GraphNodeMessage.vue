@@ -3,8 +3,8 @@ import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useGraphStore } from '@/stores/graph'
 import { QualifiedImport } from '@/stores/graph/imports'
-import { QualifiedName } from '@/util/qualifiedName'
 import type { Icon } from '@/util/iconMetadata/iconName'
+import { QualifiedName } from '@/util/qualifiedName'
 
 const graph = useGraphStore()
 
