@@ -2,10 +2,16 @@ package org.enso.compiler.dump.igv;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.channels.WritableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.dump.service.IRDumper;
+import org.graalvm.graphio.GraphOutput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,37 +19,78 @@ public final class IGVDumper implements IRDumper {
 
   private static final String DEFAULT_DUMP_DIR = "ir-dumps";
   private static final Logger LOGGER = LoggerFactory.getLogger(IGVDumper.class);
-  private final ModuleGraph moduleGraph;
+  private final List<PassGraph> passGraphs = new ArrayList<>();
+  private final String moduleName;
+  private final Path outPath;
+  private final GraphOutput<EnsoModuleAST, ASTMethod> graphOutput;
+  private int currGraphId;
+  private boolean groupCreated;
 
-  IGVDumper(String moduleName) {
-    this.moduleGraph = new ModuleGraph(moduleName);
+  /** Count of all the nodes for all the subgraphs */
+  private int nodesCnt;
+
+  private IGVDumper(
+      String moduleName, Path outPath, GraphOutput<EnsoModuleAST, ASTMethod> graphOutput) {
+    this.moduleName = moduleName;
+    this.outPath = outPath;
+    this.graphOutput = graphOutput;
+  }
+
+  static IGVDumper createForModule(String moduleName) {
+    var outPath = outputForModule(moduleName);
+    var channel = createFileChannel(outPath);
+    GraphOutput<EnsoModuleAST, ASTMethod> graphOutput;
+    try {
+      graphOutput =
+          GraphOutput.newBuilder(EnsoModuleAST.AST_DUMP_STRUCTURE)
+              .blocks(EnsoModuleAST.AST_DUMP_STRUCTURE)
+              .elementsAndLocations(
+                  EnsoModuleAST.AST_DUMP_STRUCTURE, EnsoModuleAST.AST_DUMP_STRUCTURE)
+              .build(channel);
+    } catch (IOException e) {
+      LOGGER.error("Failed to create graph output for module {}", moduleName, e);
+      return null;
+    }
+    return new IGVDumper(moduleName, outPath, graphOutput);
   }
 
   @Override
   public void dump(Module ir, String moduleName, File srcFile, String afterPass) {
-    assert moduleName.equals(moduleName());
-    var nodesCnt = moduleGraph.getAllNodes().size() + 1;
+    assert moduleName.equals(this.moduleName);
     LOGGER.trace(
-        "[{}] Creating EnsoModuleAST for module {}, nodeId = {}", moduleName, moduleName, nodesCnt);
+        "[{}] Creating EnsoModuleAST after pass {}, nodeId = {}", moduleName, afterPass, nodesCnt);
     var moduleAst = EnsoModuleAST.fromIR(ir, srcFile, moduleName, nodesCnt);
-    moduleGraph.addSubGraphForPass(afterPass, moduleAst);
+    nodesCnt += moduleAst.getNodes().size();
+    try {
+      if (!groupCreated) {
+        graphOutput.beginGroup(moduleAst, moduleName, moduleName, null, 0, null);
+        groupCreated = true;
+      }
+      var props = new HashMap<>();
+      graphOutput.print(moduleAst, props, currGraphId, "%s", afterPass);
+    } catch (IOException e) {
+      LOGGER.error("[{}] Failed to dump the graph for pass {}", moduleName, afterPass);
+      throw new RuntimeException(e);
+    }
+    currGraphId++;
+    LOGGER.trace("[{}] Dumped after pass {}", moduleName, afterPass);
   }
 
   @Override
   public void close() {
-    var modName = moduleGraph.getModuleName();
-    var outPath = outputForModule(modName);
-    LOGGER.trace("[{}] Dumping graph to {}", modName, outPath);
     try {
-      moduleGraph.dump(outPath);
+      graphOutput.endGroup();
     } catch (IOException e) {
-      LOGGER.error("[{}] Failed to dump graph: {}", modName, e);
+      LOGGER.error("[%s] Failed to end the group".formatted(moduleName), e);
+      return;
     }
-    LOGGER.trace("[{}] Graph dumped", modName);
+    graphOutput.close();
+    LOGGER.trace("[{}] Graph dumped to {}", moduleName, outPath);
   }
 
-  private String moduleName() {
-    return moduleGraph.getModuleName();
+  private List<ASTNode> getAllNodes() {
+    var allNodes = passGraphs.stream().flatMap(passGraph -> passGraph.ast.getNodes().stream());
+    return allNodes.toList();
   }
 
   private static Path outputForModule(String moduleName) {
@@ -55,6 +102,25 @@ public final class IGVDumper implements IRDumper {
         throw new IllegalStateException(e);
       }
     }
-    return irDumpsDir.resolve(moduleName + ".bgv");
+    var outPath = irDumpsDir.resolve(moduleName + ".bgv");
+    if (!outPath.toFile().exists()) {
+      try {
+        Files.createFile(outPath);
+      } catch (IOException e) {
+        LOGGER.error("Failed to create output: {}", outPath, e);
+      }
+    }
+    return outPath;
   }
+
+  private static WritableByteChannel createFileChannel(Path path) {
+    try {
+      return Files.newByteChannel(
+          path, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
+    } catch (IOException e) {
+      throw new IllegalStateException(e);
+    }
+  }
+
+  private record PassGraph(String passName, EnsoModuleAST ast) {}
 }

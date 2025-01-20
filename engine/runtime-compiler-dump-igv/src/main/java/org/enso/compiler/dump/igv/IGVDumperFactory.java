@@ -12,6 +12,6 @@ public class IGVDumperFactory implements IRDumpFactoryService {
   @Override
   public IRDumper create(String moduleName) {
     LOGGER.trace("Creating IGV dumper for module {}", moduleName);
-    return new IGVDumper(moduleName);
+    return IGVDumper.createForModule(moduleName);
   }
 }
