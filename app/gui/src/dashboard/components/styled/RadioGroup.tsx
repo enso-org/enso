@@ -28,7 +28,7 @@ interface RenderPropsHookOptions<T> extends aria.DOMProps, aria.AriaLabelingProp
   /** The CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. A function may be provided to compute the class based on component state. */
   readonly className?: string | ((values: T) => string)
   /** The inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. A function may be provided to compute the style based on component state. */
-  readonly style?: React.CSSProperties | ((values: T) => React.CSSProperties)
+  readonly style?: React.CSSProperties | ((values: T) => React.CSSProperties | undefined)
   /** The children of the component. A function may be provided to alter the children based on component state. */
   readonly children?: React.ReactNode | ((values: T) => React.ReactNode)
   readonly values: T

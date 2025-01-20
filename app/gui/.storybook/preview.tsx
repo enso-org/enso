@@ -14,6 +14,7 @@ import { createQueryClient } from 'enso-common/src/queryClient'
 import { MotionGlobalConfig } from 'framer-motion'
 import z from 'zod'
 import '../src/dashboard/tailwind.css'
+import './storybook.css'
 
 if (isChromatic()) {
   MotionGlobalConfig.skipAnimations = true
@@ -69,6 +70,7 @@ const reactPreview: ReactPreview = {
         <div className="enso-app">
           <Story {...context} />
         </div>
+
         <div id="enso-portal-root" className="enso-portal-root" />
       </>
     ),

@@ -10,7 +10,7 @@ import { omit } from '#/utilities/object'
 import { forwardRef } from '#/utilities/react'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
-import type { CSSProperties, ForwardedRef, ReactElement } from 'react'
+import type { CSSProperties, ForwardedRef, ReactElement, ReactNode } from 'react'
 import type { FieldVariantProps } from '../Form'
 import { Form, type FieldPath, type FieldProps, type FieldStateProps, type TSchema } from '../Form'
 import type { TestIdProps } from '../types'
@@ -26,7 +26,7 @@ export interface CheckboxGroupProps<Schema extends TSchema, TFieldName extends F
   readonly className?: string
   readonly style?: CSSProperties
   readonly checkboxRef?: ForwardedRef<HTMLInputElement>
-  readonly children: ReactElement | ((props: AriaCheckboxGroupProps) => ReactElement)
+  readonly children: ReactNode | ((props: AriaCheckboxGroupProps) => ReactNode)
 }
 
 const CHECKBOX_GROUP_STYLES = tv({
@@ -38,7 +38,7 @@ const CHECKBOX_GROUP_STYLES = tv({
 export const CheckboxGroup = forwardRef(
   <Schema extends TSchema, TFieldName extends FieldPath<Schema>>(
     props: CheckboxGroupProps<Schema, TFieldName>,
-    ref: ForwardedRef<HTMLFieldSetElement>,
+    ref: ForwardedRef<HTMLDivElement>,
   ): ReactElement => {
     const {
       children,
@@ -48,7 +48,7 @@ export const CheckboxGroup = forwardRef(
       defaultValue: defaultValueOverride,
       isDisabled = false,
       isRequired = false,
-      isInvalid = false,
+      isInvalid,
       isReadOnly = false,
       label,
       name,
@@ -70,6 +70,7 @@ export const CheckboxGroup = forwardRef(
         {...(defaultValueOverride != null && { defaultValue: defaultValueOverride })}
         render={({ field, fieldState }) => {
           const defaultValue = defaultValueOverride ?? formInstance.control._defaultValues[name]
+          const invalid = isInvalid ?? fieldState.invalid
           return (
             <>
               <CheckboxGroupProvider
@@ -84,7 +85,7 @@ export const CheckboxGroup = forwardRef(
                 <AriaCheckboxGroup
                   {...mergeProps<AriaCheckboxGroupProps>()(omit(checkboxGroupProps, 'validate'), {
                     className: styles,
-                    isInvalid,
+                    isInvalid: invalid,
                     isDisabled,
                     isReadOnly,
                     name,
@@ -101,7 +102,7 @@ export const CheckboxGroup = forwardRef(
                       description={description}
                       isRequired={isRequired}
                       fullWidth={fullWidth}
-                      isInvalid={isInvalid || fieldState.invalid}
+                      isInvalid={invalid}
                       variants={fieldVariants}
                       {...checkboxGroupProps}
                     >

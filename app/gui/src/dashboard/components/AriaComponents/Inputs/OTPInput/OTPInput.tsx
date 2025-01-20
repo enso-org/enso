@@ -80,7 +80,7 @@ const SLOT_STYLES = tv({
 export const OTPInput = forwardRef(function OTPInput<
   Schema extends TSchema,
   TFieldName extends FieldPath<Schema>,
->(props: OtpInputProps<Schema, TFieldName>, ref: ForwardedRef<HTMLFieldSetElement>) {
+>(props: OtpInputProps<Schema, TFieldName>, ref: ForwardedRef<HTMLDivElement>) {
   const {
     maxLength,
     variants = STYLES,

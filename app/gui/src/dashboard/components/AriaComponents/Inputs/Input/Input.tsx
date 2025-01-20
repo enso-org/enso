@@ -55,7 +55,7 @@ export interface InputProps<Schema extends TSchema, TFieldName extends FieldPath
 export const Input = forwardRef(function Input<
   Schema extends TSchema,
   TFieldName extends FieldPath<Schema>,
->(props: InputProps<Schema, TFieldName>, ref: ForwardedRef<HTMLFieldSetElement>) {
+>(props: InputProps<Schema, TFieldName>, ref: ForwardedRef<HTMLDivElement>) {
   const {
     name,
     description,

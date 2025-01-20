@@ -96,7 +96,7 @@ export interface DatePickerProps<Schema extends TSchema, TFieldName extends Fiel
 export const DatePicker = forwardRef(function DatePicker<
   Schema extends TSchema,
   TFieldName extends FieldPath<Schema>,
->(props: DatePickerProps<Schema, TFieldName>, ref: ForwardedRef<HTMLFieldSetElement>) {
+>(props: DatePickerProps<Schema, TFieldName>, ref: ForwardedRef<HTMLDivElement>) {
   const {
     noResetButton = false,
     noCalendarHeader = false,
@@ -213,7 +213,7 @@ function DatePickerResetButton(props: DatePickerResetButtonProps) {
       icon={CrossIcon}
       className={className ?? ''}
       onPress={() => {
-        state.setValue(null)
+        state?.setValue(null)
       }}
     />
   )
