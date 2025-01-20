@@ -10,7 +10,7 @@ import org.enso.pkg.QualifiedName;
  * Class to use from {@link DocsGenerate} to dispatch individual IR elements to provided visitor.
  */
 abstract class DocsDispatch {
-  static DocsDispatch create(DocsVisit visitor, Appendable writer) {
+  static DocsDispatch create(DocsVisit visitor, java.io.PrintWriter writer) {
     return new DocsDispatch() {
       @Override
       boolean dispatchModule(QualifiedName name, Module ir) throws IOException {

@@ -3,6 +3,7 @@ package org.enso.compiler.dump;
 import static org.enso.scala.wrapper.ScalaConversions.asJava;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.module.scope.Definition;
@@ -13,20 +14,20 @@ import org.enso.pkg.QualifiedName;
 final class DocsEmitSignatures implements DocsVisit {
 
   @Override
-  public boolean visitUnknown(IR ir, Appendable w) throws IOException {
-    w.append("- Unknown IR " + ir.getClass().getName() + "\n");
+  public boolean visitUnknown(IR ir, PrintWriter w) throws IOException {
+    w.println("- Unknown IR " + ir.getClass().getName());
     return true;
   }
 
   @Override
-  public boolean visitModule(QualifiedName name, Module module, Appendable w) throws IOException {
-    w.append("## Enso Signatures 1.0\n");
-    w.append("## module " + name + "\n");
+  public boolean visitModule(QualifiedName name, Module module, PrintWriter w) throws IOException {
+    w.println("## Enso Signatures 1.0");
+    w.println("## module " + name);
     return true;
   }
 
   @Override
-  public void visitMethod(Definition.Type t, Method.Explicit m, Appendable w) throws IOException {
+  public void visitMethod(Definition.Type t, Method.Explicit m, PrintWriter w) throws IOException {
     if (t != null) {
       w.append("    - ");
     } else {
@@ -35,29 +36,28 @@ final class DocsEmitSignatures implements DocsVisit {
         w.append(fqn + ".");
       }
     }
-    w.append(DocsVisit.toSignature(m) + "\n");
+    w.println(DocsVisit.toSignature(m));
   }
 
   @Override
-  public void visitConversion(Method.Conversion c, Appendable w) throws IOException {
-    w.append("#### conversion " + c.methodName().name() + "\n");
+  public void visitConversion(Method.Conversion c, PrintWriter w) throws IOException {
+    w.println("#### conversion " + c.methodName().name());
   }
 
   @Override
-  public boolean visitType(Definition.Type t, Appendable w) throws IOException {
+  public boolean visitType(Definition.Type t, PrintWriter w) throws IOException {
     var sb = new StringBuilder();
     sb.append("- type ").append(t.name().name());
     for (var a : asJava(t.params())) {
       sb.append(" ").append(DocsVisit.toSignature(a));
     }
-    sb.append("\n");
-    w.append(sb.toString());
+    w.println(sb.toString());
     return true;
   }
 
   @Override
-  public void visitConstructor(Definition.Type t, Definition.Data d, Appendable w)
+  public void visitConstructor(Definition.Type t, Definition.Data d, PrintWriter w)
       throws IOException {
-    w.append("    - " + DocsVisit.toSignature(d) + "\n");
+    w.println("    - " + DocsVisit.toSignature(d));
   }
 }

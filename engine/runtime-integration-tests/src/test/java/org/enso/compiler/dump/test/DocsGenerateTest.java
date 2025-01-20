@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 import org.enso.compiler.Compiler;
@@ -346,37 +347,37 @@ public class DocsGenerateTest {
     private final List<Method.Conversion> visitConversion = new ArrayList<>();
 
     @Override
-    public boolean visitModule(QualifiedName name, Module ir, Appendable writer)
+    public boolean visitModule(QualifiedName name, Module ir, PrintWriter writer)
         throws IOException {
       visitModule.add(ir);
       return true;
     }
 
     @Override
-    public boolean visitUnknown(IR ir, Appendable w) throws IOException {
+    public boolean visitUnknown(IR ir, PrintWriter w) throws IOException {
       visitUnknown.add(ir);
       return true;
     }
 
     @Override
-    public void visitMethod(Definition.Type t, Method.Explicit m, Appendable writer)
+    public void visitMethod(Definition.Type t, Method.Explicit m, PrintWriter writer)
         throws IOException {
       visitMethod.add(new TypeAnd<>(t, m));
     }
 
     @Override
-    public void visitConversion(Method.Conversion c, Appendable w) throws IOException {
+    public void visitConversion(Method.Conversion c, PrintWriter w) throws IOException {
       visitConversion.add(c);
     }
 
     @Override
-    public boolean visitType(Definition.Type t, Appendable w) throws IOException {
+    public boolean visitType(Definition.Type t, PrintWriter w) throws IOException {
       visitType.add(t);
       return true;
     }
 
     @Override
-    public void visitConstructor(Definition.Type t, Definition.Data d, Appendable w)
+    public void visitConstructor(Definition.Type t, Definition.Data d, PrintWriter w)
         throws IOException {
       visitConstructor.add(d);
     }

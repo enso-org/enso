@@ -1,6 +1,7 @@
 package org.enso.compiler.dump;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.DefinitionArgument;
 import org.enso.compiler.core.ir.Module;
@@ -14,17 +15,17 @@ import org.enso.pkg.QualifiedName;
  * with the {@link IR}.
  */
 public interface DocsVisit {
-  boolean visitModule(QualifiedName name, Module ir, Appendable writer) throws IOException;
+  boolean visitModule(QualifiedName name, Module ir, PrintWriter writer) throws IOException;
 
-  boolean visitUnknown(IR ir, Appendable w) throws IOException;
+  boolean visitUnknown(IR ir, PrintWriter w) throws IOException;
 
-  void visitMethod(Definition.Type t, Method.Explicit m, Appendable writer) throws IOException;
+  void visitMethod(Definition.Type t, Method.Explicit m, PrintWriter writer) throws IOException;
 
-  void visitConversion(Method.Conversion c, Appendable w) throws IOException;
+  void visitConversion(Method.Conversion c, PrintWriter w) throws IOException;
 
-  boolean visitType(Definition.Type t, Appendable w) throws IOException;
+  boolean visitType(Definition.Type t, PrintWriter w) throws IOException;
 
-  void visitConstructor(Definition.Type t, Definition.Data d, Appendable w) throws IOException;
+  void visitConstructor(Definition.Type t, Definition.Data d, PrintWriter w) throws IOException;
 
   //
   // helper methods

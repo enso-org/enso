@@ -1,6 +1,7 @@
 package org.enso.compiler.dump;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.IdentityHashMap;
 import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.core.IR;
@@ -43,15 +44,16 @@ public final class DocsGenerate {
       }
       var moduleName = module.getName();
       var md = fs.getChild(api, moduleName + ".md");
-      try (var mdWriter = fs.newBufferedWriter(md)) {
-        visitModule(visitor, moduleName, ir, mdWriter);
+      try (var mdWriter = fs.newBufferedWriter(md);
+          var pw = new PrintWriter(mdWriter)) {
+        visitModule(visitor, moduleName, ir, pw);
       }
     }
     return api;
   }
 
   public static void visitModule(
-      DocsVisit visitor, QualifiedName moduleName, Module ir, Appendable w) throws IOException {
+      DocsVisit visitor, QualifiedName moduleName, Module ir, PrintWriter w) throws IOException {
     var dispatch = DocsDispatch.create(visitor, w);
 
     if (dispatch.dispatchModule(moduleName, ir)) {
