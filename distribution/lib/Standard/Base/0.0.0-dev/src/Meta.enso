@@ -280,13 +280,21 @@ atom_with_hole factory = @Tail_Call Meta_Helpers.atom_with_hole_builtin factory
    - value: The runtime entity to get the meta representation of.
 meta ~value -> Atom | Constructor | Primitive | Polyglot | Unresolved_Symbol | Error | Type =
     ac = Meta_Helpers.find_atom_constructor_builtin value...
-    if ac.is_nothing.not then Constructor.Value ac else
-        if Meta_Helpers.is_atom_builtin value... then Atom.Value value else
-            if Meta_Helpers.is_polyglot_builtin value then Polyglot.Value value else
-                if Meta_Helpers.is_unresolved_symbol_builtin value then Unresolved_Symbol.Value value else
-                    if Meta_Helpers.is_error_builtin value then Error.Value value.catch else
-                        if Meta_Helpers.is_type_builtin value then Type.Value value.catch else
-                            Primitive.Value value
+    kind = if ac.is_nothing.not then 1 else
+        if Meta_Helpers.is_atom_builtin value... then 2 else
+            if Meta_Helpers.is_polyglot_builtin value then 3 else
+                if Meta_Helpers.is_unresolved_symbol_builtin value then 4 else
+                    if Meta_Helpers.is_error_builtin value then 5 else
+                        if Meta_Helpers.is_type_builtin value then 6 else 0
+
+    case kind of
+        1 -> Constructor.Value ac
+        2 -> Atom.Value value
+        3 -> Polyglot.Value value
+        4 -> Unresolved_Symbol.Value value
+        5 -> Error.Value value.catch
+        6 -> Type.Value value
+        _ -> Primitive.Value value
 
 ## PRIVATE
    ADVANCED
