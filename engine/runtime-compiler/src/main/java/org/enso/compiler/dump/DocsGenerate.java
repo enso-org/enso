@@ -43,13 +43,24 @@ public final class DocsGenerate {
         continue;
       }
       var moduleName = module.getName();
-      var md = fs.getChild(api, moduleName + ".md");
+      var dir = createPkg(fs, api, moduleName);
+      var md = fs.getChild(dir, moduleName.item() + ".md");
       try (var mdWriter = fs.newBufferedWriter(md);
           var pw = new PrintWriter(mdWriter)) {
         visitModule(visitor, moduleName, ir, pw);
       }
     }
     return api;
+  }
+
+  private static <File> File createPkg(FileSystem<File> fs, File root, QualifiedName pkg)
+      throws IOException {
+    var dir = root;
+    for (var item : pkg.pathAsJava()) {
+      dir = fs.getChild(dir, item);
+    }
+    fs.createDirectories(dir);
+    return dir;
   }
 
   public static void visitModule(
