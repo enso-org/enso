@@ -1,9 +1,10 @@
 /** @file The tab panels for the dashboard page. */
 
-import * as aria from '#/components/aria'
+import type * as aria from '#/components/aria'
 
 import { Activity } from '#/components/Activity'
 import { ErrorBoundary } from '#/components/ErrorBoundary'
+import { TabPanel, type TabPanelRenderProps } from '#/components/styled/Tabs'
 import { Suspense } from '#/components/Suspense'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOpenProjectMutation, useRenameProjectMutation } from '#/hooks/projectHooks'
@@ -88,29 +89,27 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
 
   return (
     <Collection items={tabPanels}>
-      {(tabPanelProps: aria.TabPanelProps & { children: ReactNode; wrapInActivity: boolean }) => {
-        return (
-          <aria.TabPanel {...tabPanelProps}>
-            {({ state }) => {
-              const content = (
-                <Suspense>
-                  <ErrorBoundary>{tabPanelProps.children}</ErrorBoundary>
-                </Suspense>
+      {(tabPanelProps: aria.TabPanelProps & { children: ReactNode; wrapInActivity: boolean }) => (
+        <TabPanel {...tabPanelProps}>
+          {({ state }: TabPanelRenderProps) => {
+            const content = (
+              <Suspense>
+                <ErrorBoundary>{tabPanelProps.children}</ErrorBoundary>
+              </Suspense>
+            )
+
+            if (tabPanelProps.wrapInActivity) {
+              return (
+                <Activity mode={state.selectedKey === tabPanelProps.id ? 'active' : 'inactive'}>
+                  {content}
+                </Activity>
               )
+            }
 
-              if (tabPanelProps.wrapInActivity) {
-                return (
-                  <Activity mode={state.selectedKey === tabPanelProps.id ? 'active' : 'inactive'}>
-                    {content}
-                  </Activity>
-                )
-              }
-
-              return content
-            }}
-          </aria.TabPanel>
-        )
-      }}
+            return content
+          }}
+        </TabPanel>
+      )}
     </Collection>
   )
 }

@@ -24,10 +24,11 @@ export interface ActivityProps {
 
 /**
  * A component that pauses all activity inside it's subtree.
- *
  * ---
  * ## The component is EXPERIMENTAL, please use with caution.
  * ---
+ *
+ * This component should stay above Suspense components because otherwise user won't see a loader state.
  */
 export function Activity(props: ActivityProps) {
   const { mode, children } = props

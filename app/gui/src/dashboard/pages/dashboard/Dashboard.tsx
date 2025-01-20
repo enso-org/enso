@@ -35,6 +35,7 @@ import * as backendModule from '#/services/Backend'
 import * as localBackendModule from '#/services/LocalBackend'
 import * as projectManager from '#/services/ProjectManager'
 
+import { Tabs } from '#/components/styled/Tabs'
 import { useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
 import { baseName } from '#/utilities/fileInfo'
 import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
@@ -200,7 +201,7 @@ function DashboardInner(props: DashboardProps) {
           modalProvider.unsetModal()
         }}
       >
-        <aria.Tabs
+        <Tabs
           className="relative flex min-h-full grow select-none flex-col container-size"
           selectedKey={page}
           onSelectionChange={(newPage) => {
@@ -224,7 +225,7 @@ function DashboardInner(props: DashboardProps) {
             ydocUrl={ydocUrl}
             assetManagementApiRef={assetManagementApiRef}
           />
-        </aria.Tabs>
+        </Tabs>
         {$config.CHAT_URL != null ?
           <Chat
             isOpen={isHelpChatOpen}

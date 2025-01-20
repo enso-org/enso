@@ -102,7 +102,6 @@ import {
 import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { useLocalStorage } from '#/providers/LocalStorageProvider'
 import { useSetModal } from '#/providers/ModalProvider'
-import { useNavigator2D } from '#/providers/Navigator2DProvider'
 import { useLaunchedProjects } from '#/providers/ProjectsProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
@@ -221,7 +220,6 @@ function AssetsTable(props: AssetsTableProps) {
   const { localStorage } = useLocalStorage()
   const { getText } = useText()
   const inputBindings = useInputBindings()
-  const navigator2D = useNavigator2D()
   const toastAndLog = useToastAndLog()
   const didLoadingProjectManagerFail = useDidLoadingProjectManagerFail()
   const reconnectToProjectManager = useReconnectToProjectManager()
@@ -612,19 +610,6 @@ function AssetsTable(props: AssetsTableProps) {
       })
     },
   )
-
-  useEffect(() => {
-    const body = bodyRef.current
-    if (body == null) {
-      return
-    } else {
-      return navigator2D.register(body, {
-        focusPrimaryChild: () => {
-          setMostRecentlySelectedIndex(0, true)
-        },
-      })
-    }
-  }, [navigator2D, setMostRecentlySelectedIndex])
 
   const onKeyDown = useEventCallback((event: KeyboardEvent) => {
     const isTextInputFocused = isElementTextInput(document.activeElement)
