@@ -38,6 +38,7 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-tags: false
+          set-safe-directory: false
 
       - name: 📦 Setup pnpm
         uses: pnpm/action-setup@v4
@@ -85,6 +86,8 @@ jobs:
     needs: deploy-chromatic-react
     steps:
       - uses: actions/checkout@v4
+        with:
+          set-safe-directory: false
       - uses: actions/setup-node@v4
         with:
           node-version-file: .node-version

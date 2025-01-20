@@ -20,12 +20,14 @@ jobs:
         with:
           repository: enso-org/enso
           path: enso
+          set-safe-directory: false
       - name: Checkout engine-benchmark-results repository
         uses: actions/checkout@v4
         with:
           repository: enso-org/engine-benchmark-results
           path: engine-benchmark-results
           token: ${{ secrets.ENSO_BENCHMARK_RESULTS_TOKEN }}
+          set-safe-directory: false
       - name: Install dependencies
         run: |
           sudo apt-get update

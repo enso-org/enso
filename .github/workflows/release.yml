@@ -61,6 +61,7 @@ jobs:
         with:
           clean: false
           submodules: recursive
+          set-safe-directory: true
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -106,6 +107,7 @@ jobs:
         with:
           clean: false
           submodules: recursive
+          set-safe-directory: true
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -170,6 +172,7 @@ jobs:
         with:
           clean: false
           submodules: recursive
+          set-safe-directory: true
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -234,6 +237,7 @@ jobs:
         with:
           clean: false
           submodules: recursive
+          set-safe-directory: true
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -290,6 +294,7 @@ jobs:
         with:
           clean: false
           submodules: recursive
+          set-safe-directory: true
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -350,6 +355,7 @@ jobs:
         with:
           clean: false
           submodules: recursive
+          set-safe-directory: true
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -408,6 +414,7 @@ jobs:
         with:
           clean: false
           submodules: recursive
+          set-safe-directory: true
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -467,6 +474,7 @@ jobs:
         with:
           clean: false
           submodules: recursive
+          set-safe-directory: true
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -531,6 +539,7 @@ jobs:
         with:
           clean: false
           submodules: recursive
+          set-safe-directory: true
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -594,6 +603,7 @@ jobs:
         with:
           clean: false
           submodules: recursive
+          set-safe-directory: true
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -671,6 +681,7 @@ jobs:
         with:
           clean: false
           submodules: recursive
+          set-safe-directory: true
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -753,6 +764,7 @@ jobs:
         with:
           clean: false
           submodules: recursive
+          set-safe-directory: true
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -836,6 +848,7 @@ jobs:
         with:
           clean: false
           submodules: recursive
+          set-safe-directory: true
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:

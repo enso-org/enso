@@ -1036,11 +1036,13 @@ pub mod step {
                 skip_serializing_if = "Option::is_none",
                 with = "crate::serde::via_string_opt"
             )]
-            repository: Option<github::Repo>,
+            repository:         Option<github::Repo>,
             #[serde(skip_serializing_if = "Option::is_none")]
-            clean:      Option<bool>,
+            clean:              Option<bool>,
             #[serde(skip_serializing_if = "Option::is_none")]
-            submodules: Option<CheckoutArgumentSubmodules>,
+            submodules:         Option<CheckoutArgumentSubmodules>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            set_safe_directory: Option<bool>,
         },
         #[serde(rename_all = "kebab-case")]
         GitHubScript {
@@ -1093,9 +1095,10 @@ pub fn checkout_repo_step() -> Step {
         name: Some("Checking out the repository".into()),
         uses: Some("actions/checkout@v4".into()),
         with: Some(step::Argument::Checkout {
-            repository: None,
-            clean:      Some(false),
-            submodules: Some(CheckoutArgumentSubmodules::Recursive),
+            repository:         None,
+            clean:              Some(false),
+            submodules:         Some(CheckoutArgumentSubmodules::Recursive),
+            set_safe_directory: Some(true),
         }),
         ..default()
     }

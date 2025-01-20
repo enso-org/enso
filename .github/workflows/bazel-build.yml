@@ -17,6 +17,8 @@ jobs:
           disk-cache: true
           repository-cache: true
       - uses: actions/checkout@v4
+        with:
+          set-safe-directory: false
       - name: Expose env variables
         run: |
           cat << END > app/gui/.env.production

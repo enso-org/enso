@@ -22,6 +22,8 @@ jobs:
       fail-fast: false
     steps:
       - uses: actions/checkout@v2
+        with:
+          set-safe-directory: false
       - name: Setup GraalVM Environment
         uses: graalvm/setup-graalvm@v1
         with:
