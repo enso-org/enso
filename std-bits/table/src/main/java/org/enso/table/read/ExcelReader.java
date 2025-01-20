@@ -354,7 +354,7 @@ public class ExcelReader {
     while (row <= endRow && (row - startRow) < rowCount) {
       ExcelRow currentRow = sheet.get(row);
       if (currentRow == null) {
-        builders.forEach(b -> b.append(null));
+        builders.forEach(b -> b.appendNulls(1));
       } else {
         int currentEndCol =
             endCol == -1

@@ -278,7 +278,7 @@ public class DelimitedReader {
         // values.
         // If it had more columns, the excess columns are discarded.
         for (int i = row.length; i < builders.size(); i++) {
-          builders.get(i).append(null);
+          builders.get(i).appendNulls(1);
         }
 
         targetTableIndex++;

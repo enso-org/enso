@@ -215,7 +215,7 @@ public final class BoolStorage extends Storage<Boolean>
     Builder builder = Builder.getForType(resultStorageType, size, problemAggregator);
     for (int i = 0; i < size; i++) {
       if (isNothing.get(i)) {
-        builder.append(null);
+        builder.appendNulls(1);
       } else if (getItem(i)) {
         builder.append(on_true.apply(i));
       } else {
