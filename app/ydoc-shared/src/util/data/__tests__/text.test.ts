@@ -72,7 +72,8 @@ test.prop({
 })('textChangeToEdits / applyTextEdits round-trip', ({ before, after }) => {
   // Generate strings composed of a mix of only two characters so that `textChangeToEdits` will find a variety of
   // similarities between the inputs.
-  const stringFromBools = (bools: Array<boolean>) => bools.map(bool => (bool ? 't' : 'f')).join('')
+  const stringFromBools = (bools: Array<boolean>) =>
+    bools.map((bool) => (bool ? 't' : 'f')).join('')
   const beforeString = stringFromBools(before)
   const afterString = stringFromBools(after)
   const edits = textChangeToEdits(beforeString, afterString)

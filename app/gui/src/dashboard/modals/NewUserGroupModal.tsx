@@ -1,5 +1,5 @@
 /** @file A modal to create a user group. */
-import * as React from 'react'
+import { useState, type MouseEvent } from 'react'
 
 import { useMutation } from '@tanstack/react-query'
 
@@ -26,7 +26,7 @@ import * as tailwindMerge from '#/utilities/tailwindMerge'
 /** Props for a {@link NewUserGroupModal}. */
 export interface NewUserGroupModalProps {
   readonly backend: Backend
-  readonly event?: Pick<React.MouseEvent, 'pageX' | 'pageY'>
+  readonly event?: Pick<MouseEvent, 'pageX' | 'pageY'>
 }
 
 /** A modal to create a user group. */
@@ -35,16 +35,13 @@ export default function NewUserGroupModal(props: NewUserGroupModalProps) {
   const { unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const [name, setName] = React.useState('')
+  const [name, setName] = useState('')
   const listUserGroupsQuery = useBackendQuery(backend, 'listUserGroups', [])
   const userGroups = listUserGroupsQuery.data ?? null
-  const userGroupNames = React.useMemo(
-    () =>
-      userGroups == null ? null : (
-        new Set(userGroups.map((group) => string.normalizeName(group.groupName)))
-      ),
-    [userGroups],
-  )
+  const userGroupNames =
+    userGroups == null ? null : (
+      new Set(userGroups.map((group) => string.normalizeName(group.groupName)))
+    )
   const nameError =
     userGroupNames != null && userGroupNames.has(string.normalizeName(name)) ?
       getText('duplicateUserGroupError')

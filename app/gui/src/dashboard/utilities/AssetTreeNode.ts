@@ -1,6 +1,4 @@
 /** @file A node in the drive's item tree. */
-import type * as assetEvent from '#/events/assetEvent'
-
 import * as backendModule from '#/services/Backend'
 
 // =====================
@@ -8,17 +6,7 @@ import * as backendModule from '#/services/Backend'
 // =====================
 
 /** An {@link AssetTreeNode}, but excluding its methods. */
-export type AssetTreeNodeData = Pick<
-  AssetTreeNode,
-  | 'children'
-  | 'depth'
-  | 'directoryId'
-  | 'directoryKey'
-  | 'initialAssetEvents'
-  | 'item'
-  | 'key'
-  | 'path'
->
+export type AssetTreeNodeData = Pick<AssetTreeNode, 'children' | 'depth' | 'item' | 'path'>
 
 /** All possible variants of {@link AssetTreeNode}s. */
 // The `Item extends Item` is required to trigger distributive conditional types:
@@ -37,26 +25,12 @@ export default class AssetTreeNode<Item extends backendModule.AnyAsset = backend
      */
     public item: Item,
     /**
-     * The id of the asset's parent directory (or the placeholder id for new assets).
-     * This must never change.
-     */
-    public readonly directoryKey: backendModule.DirectoryId,
-    /** The actual id of the asset's parent directory (or the placeholder id for new assets). */
-    public readonly directoryId: backendModule.DirectoryId,
-    /**
      * This is `null` if the asset is not a directory asset, OR a directory asset whose contents
      * have not yet been fetched.
      */
     public readonly children: AnyAssetTreeNode[] | null,
     public readonly depth: number,
     public readonly path: string,
-    public readonly initialAssetEvents: readonly assetEvent.AssetEvent[] | null,
-    /**
-     * The internal (to the frontend) id of the asset (or the placeholder id for new assets).
-     * This must never change, otherwise the component's state is lost when receiving the real id
-     * from the backend.
-     */
-    public readonly key: Item['id'] = item.id,
   ) {
     this.type = item.type
   }
@@ -73,23 +47,10 @@ export default class AssetTreeNode<Item extends backendModule.AnyAsset = backend
   static fromAsset<Asset extends backendModule.AnyAsset>(
     this: void,
     asset: Asset,
-    directoryKey: backendModule.DirectoryId,
-    directoryId: backendModule.DirectoryId,
     depth: number,
     path: string,
-    initialAssetEvents: readonly assetEvent.AssetEvent[] | null = null,
-    key: Asset['id'] = asset.id,
   ): AnyAssetTreeNode {
-    return new AssetTreeNode(
-      asset,
-      directoryKey,
-      directoryId,
-      null,
-      depth,
-      path,
-      initialAssetEvents,
-      key,
-    ).asUnion()
+    return new AssetTreeNode(asset, null, depth, path).asUnion()
   }
 
   /** Return `this`, coerced into an {@link AnyAssetTreeNode}. */
@@ -111,15 +72,11 @@ export default class AssetTreeNode<Item extends backendModule.AnyAsset = backend
   with(update: Partial<AssetTreeNodeData>): AnyAssetTreeNode {
     return new AssetTreeNode(
       update.item ?? this.item,
-      update.directoryKey ?? this.directoryKey,
-      update.directoryId ?? this.directoryId,
-      // `null` MUST be special-cases in the following line.
+      // `null` MUST be special-cased in the following line.
       // eslint-disable-next-line eqeqeq
-      update.children === null ? update.children : update.children ?? this.children,
+      update.children === null ? update.children : (update.children ?? this.children),
       update.depth ?? this.depth,
       update.path ?? this.path,
-      update.initialAssetEvents ?? this.initialAssetEvents,
-      update.key ?? this.key,
     ).asUnion()
   }
 
@@ -184,7 +141,7 @@ export default class AssetTreeNode<Item extends backendModule.AnyAsset = backend
     }
     return result?.children?.length === 0 ?
         result.with({ children: null })
-      : result ?? this.asUnion()
+      : (result ?? this.asUnion())
   }
 
   /** Returns all items in the tree, flattened into an array using pre-order traversal. */
@@ -227,7 +184,7 @@ export default class AssetTreeNode<Item extends backendModule.AnyAsset = backend
       newTitle !== '' &&
       newTitle !== this.item.title &&
       siblings.every((sibling) => {
-        const isSelf = sibling.key === this.key
+        const isSelf = sibling.item.id === this.item.id
         const hasSameType = sibling.item.type === this.item.type
         const hasSameTitle = sibling.item.title === newTitle
         return !(!isSelf && hasSameType && hasSameTitle)

@@ -39,7 +39,6 @@
   "editDescriptionError": "Could not edit description",
   "canOnlyDownloadFilesError": "You currently can only download files.",
   "noProjectSelectedError": "First select a project to download.",
-  "downloadInvalidTypeError": "You can only download files, projects, and Datalinks",
   "downloadProjectError": "Could not download project '$0'",
   "downloadFileError": "Could not download file '$0'",
   "downloadDatalinkError": "Could not download Datalink '$0'",
@@ -63,9 +62,6 @@
   "nameShouldBeUnique": "Name must be unique",
   "nameShouldNotContainInvalidCharacters": "Name should not contain invalid characters",
   "invalidEmailValidationError": "Please enter a valid email address",
-
-  "projectHasNoSourceFilesPhrase": "project has no source files",
-  "fileNotFoundPhrase": "file not found",
 
   "noNewProfilePictureError": "Could not upload a new profile picture because no image was found",
 

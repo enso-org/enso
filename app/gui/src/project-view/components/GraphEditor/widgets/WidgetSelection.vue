@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import ConditionalTeleport from '@/components/ConditionalTeleport.vue'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { enclosingTopLevelArgument } from '@/components/GraphEditor/widgets/WidgetTopLevelArgument.vue'
 import SizeTransition from '@/components/SizeTransition.vue'
@@ -19,6 +18,8 @@ import { useGraphStore } from '@/stores/graph'
 import { requiredImports, type RequiredImport } from '@/stores/graph/imports'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import {
+  SuggestionKind,
+  entryIsStatic,
   type SuggestionEntry,
   type SuggestionEntryArgument,
 } from '@/stores/suggestionDatabase/entry'
@@ -27,7 +28,7 @@ import { targetIsOutside } from '@/util/autoBlur'
 import { ArgumentInfoKey } from '@/util/callTree'
 import { arrayEquals } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
-import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
+import { qnJoin, qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
 import { autoUpdate, offset, shift, size, useFloating } from '@floating-ui/vue'
 import type { Ref, RendererNode, VNode } from 'vue'
 import { computed, proxyRefs, ref, shallowRef, watch } from 'vue'
@@ -120,8 +121,8 @@ class ExpressionTag {
 
   static FromEntry(entry: SuggestionEntry, label?: Opt<string>): ExpressionTag {
     const expression =
-      entry.selfType != null ? `_.${entry.name}`
-      : entry.memberOf ? `${qnLastSegment(entry.memberOf)}.${entry.name}`
+      entryIsStatic(entry) && entry.memberOf ? qnJoin(qnLastSegment(entry.memberOf), entry.name)
+      : entry.kind === SuggestionKind.Method ? `_.${entry.name}`
       : entry.name
     return new ExpressionTag(
       expression,
@@ -476,13 +477,13 @@ declare module '@/providers/widgetRegistry' {
     @pointerout="isHovered = false"
   >
     <NodeWidget :input="innerWidgetInput" />
-    <ConditionalTeleport v-if="showArrow" :disabled="!arrowLocation" :to="arrowLocation">
+    <teleport v-if="showArrow" :disabled="!arrowLocation" :to="arrowLocation">
       <SvgIcon
         name="arrow_right_head_only"
         class="arrow widgetOutOfLayout"
         :class="{ hovered: isHovered }"
       />
-    </ConditionalTeleport>
+    </teleport>
     <Teleport v-if="tree.rootElement" :to="tree.rootElement">
       <div ref="dropdownElement" :style="floatingStyles" class="widgetOutOfLayout floatingElement">
         <SizeTransition height :duration="100">

@@ -18,7 +18,6 @@ import {
   useTransferBetweenCategories,
   type Category,
 } from '#/layouts/CategorySwitcher/Category'
-import * as eventListProvider from '#/layouts/Drive/EventListProvider'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
@@ -32,9 +31,6 @@ import { AnimatedBackground } from '../components/AnimatedBackground'
 import { useEventCallback } from '../hooks/eventCallbackHooks'
 
 import { useCloudCategoryList, useLocalCategoryList } from './Drive/Categories/categoriesHooks'
-// ========================
-// === CategoryMetadata ===
-// ========================
 
 /** Metadata for a categoryModule.categoryType. */
 interface CategoryMetadata {
@@ -47,10 +43,6 @@ interface CategoryMetadata {
   readonly className?: string
   readonly iconClassName?: string
 }
-
-// ============================
-// === CategorySwitcherItem ===
-// ============================
 
 /** Props for a {@link CategorySwitcherItem}. */
 interface InternalCategorySwitcherItemProps extends CategoryMetadata {
@@ -215,10 +207,6 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
     : element
 }
 
-// ========================
-// === CategorySwitcher ===
-// ========================
-
 /** Props for a {@link CategorySwitcher}. */
 export interface CategorySwitcherProps {
   readonly category: Category
@@ -231,14 +219,13 @@ function CategorySwitcher(props: CategorySwitcherProps) {
 
   const { getText } = textProvider.useText()
   const [, setSearchParams] = useSearchParams()
-  const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
 
   const { isOffline } = offlineHooks.useOffline()
 
   const cloudCategories = useCloudCategoryList()
   const localCategories = useLocalCategoryList()
 
-  const itemProps = { currentCategory: category, setCategoryId, dispatchAssetEvent }
+  const itemProps = { currentCategory: category, setCategoryId }
 
   const { cloudCategory, recentCategory, trashCategory, userCategory, teamCategories } =
     cloudCategories
@@ -282,7 +269,7 @@ function CategorySwitcher(props: CategorySwitcherProps) {
             />
           )}
 
-          {teamCategories?.map((teamCategory) => (
+          {teamCategories.map((teamCategory) => (
             <CategorySwitcherItem
               key={teamCategory.id}
               {...itemProps}
@@ -291,8 +278,8 @@ function CategorySwitcher(props: CategorySwitcherProps) {
               icon={teamCategory.icon}
               label={teamCategory.label}
               isDisabled={isOffline}
-              buttonLabel={getText('teamCategoryButtonLabel', teamCategory.team.groupName)}
-              dropZoneLabel={getText('teamCategoryDropZoneLabel', teamCategory.team.groupName)}
+              buttonLabel={getText('teamCategoryButtonLabel', teamCategory.team.name)}
+              dropZoneLabel={getText('teamCategoryDropZoneLabel', teamCategory.team.name)}
             />
           ))}
 
@@ -375,8 +362,9 @@ function CategorySwitcher(props: CategorySwitcherProps) {
                   <ConfirmDeleteModal
                     actionText={getText('removeTheLocalDirectoryXFromFavorites', directory.label)}
                     actionButtonLabel={getText('remove')}
-                    doDelete={() => {
+                    doDelete={async () => {
                       removeDirectory(directory.id)
+                      await Promise.resolve()
                     }}
                   />
                 </ariaComponents.DialogTrigger>

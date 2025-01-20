@@ -2,7 +2,7 @@
 import SvgIcon from '@/components/SvgIcon.vue'
 import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import type { URLString } from '@/util/data/urlString'
-import type { Icon } from '@/util/iconName'
+import type { Icon } from '@/util/iconMetadata/iconName'
 import NodeWidget from '../NodeWidget.vue'
 
 const props = defineProps(widgetProps(widgetDefinition))

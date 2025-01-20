@@ -5,10 +5,6 @@ import { ButtonGroup, Dialog, DialogDismiss, Form, Text } from '#/components/Ari
 import { useSetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
 
-// ==========================
-// === ConfirmDeleteModal ===
-// ==========================
-
 /** Props for a {@link ConfirmDeleteModal}. */
 export interface ConfirmDeleteModalProps {
   readonly defaultOpen?: boolean | undefined
@@ -17,7 +13,7 @@ export interface ConfirmDeleteModalProps {
   readonly actionText: string
   /** The label shown on the colored confirmation button. "Delete" by default. */
   readonly actionButtonLabel?: string | undefined
-  readonly doDelete: () => void
+  readonly doDelete: () => Promise<void>
 }
 
 /** A modal for confirming the deletion of an asset. */

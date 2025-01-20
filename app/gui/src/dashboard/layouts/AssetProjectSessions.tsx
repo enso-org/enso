@@ -1,6 +1,7 @@
 /** @file A list of previous versions of an asset. */
 import * as reactQuery from '@tanstack/react-query'
 
+import { assetPanelStore } from '#/layouts/AssetPanel'
 import AssetProjectSession from '#/layouts/AssetProjectSession'
 
 import type Backend from '#/services/Backend'
@@ -9,7 +10,6 @@ import { Result } from '#/components/Result'
 import { useText } from '#/providers/TextProvider'
 import { AssetType, BackendType, type ProjectAsset } from '#/services/Backend'
 import { useStore } from '#/utilities/zustand'
-import { assetPanelStore } from './AssetPanel'
 
 /** Props for a {@link AssetProjectSessions}. */
 export interface AssetProjectSessionsProps {

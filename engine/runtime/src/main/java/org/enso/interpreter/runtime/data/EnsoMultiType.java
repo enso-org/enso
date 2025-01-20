@@ -147,36 +147,46 @@ final class EnsoMultiType {
      *
      * @param first first set of types
      * @param second second set of types
+     * @param moveToFirst what type index to move to first
      * @return union of both types
      */
-    abstract Type[] executeAllTypes(EnsoMultiType first, EnsoMultiType second);
+    abstract Type[] executeAllTypes(EnsoMultiType first, EnsoMultiType second, int moveToFirst);
 
     @Specialization(
         limit = INLINE_CACHE_LIMIT,
         guards = {
           "self == cachedSelf",
           "nextOrNull == cachedNextOrNull",
+          "moveToFirst == cachedMovedToFirst",
         })
     Type[] optimizeForTypes(
         EnsoMultiType self,
         EnsoMultiType nextOrNull,
+        int moveToFirst,
         @Cached("self") EnsoMultiType cachedSelf,
         @Cached("nextOrNull") EnsoMultiType cachedNextOrNull,
-        @Cached("slowlyComputeTypes(self, nextOrNull)") Type[] result) {
+        @Cached("moveToFirst") int cachedMovedToFirst,
+        @Cached("slowlyComputeTypes(self, nextOrNull, moveToFirst)") Type[] result) {
       return result;
     }
 
     @Specialization(replaces = "optimizeForTypes")
-    Type[] slowlyComputeTypes(EnsoMultiType self, EnsoMultiType nextOrNull) {
+    Type[] slowlyComputeTypes(EnsoMultiType self, EnsoMultiType nextOrNull, int moveToFirst) {
+      Type[] concat;
       if (nextOrNull == null || nextOrNull.types.length == 0) {
-        return self.types.clone();
+        concat = self.types.clone();
       } else {
         var next = nextOrNull;
-        var arr = new Type[self.types.length + next.types.length];
-        System.arraycopy(self.types, 0, arr, 0, self.types.length);
-        System.arraycopy(next.types, 0, arr, self.types.length, next.types.length);
-        return arr;
+        concat = new Type[self.types.length + next.types.length];
+        System.arraycopy(self.types, 0, concat, 0, self.types.length);
+        System.arraycopy(next.types, 0, concat, self.types.length, next.types.length);
       }
+      if (moveToFirst != 0) {
+        var first = concat[0];
+        concat[0] = concat[moveToFirst];
+        concat[moveToFirst] = first;
+      }
+      return concat;
     }
   }
 }

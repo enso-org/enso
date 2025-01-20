@@ -21,11 +21,6 @@ test('delete and restore', ({ page }) =>
     .contextMenu.restoreFromTrash()
     .driveTable.expectTrashPlaceholderRow()
     .goToCategory.cloud()
-    .expectStartModal()
-    .withStartModal(async (startModal) => {
-      await expect(startModal).toBeVisible()
-    })
-    .close()
     .driveTable.withRows(async (rows) => {
       await expect(rows).toHaveCount(1)
     }))
@@ -50,8 +45,6 @@ test('delete and restore (keyboard)', ({ page }) =>
     .press('Mod+R')
     .driveTable.expectTrashPlaceholderRow()
     .goToCategory.cloud()
-    .expectStartModal()
-    .close()
     .driveTable.withRows(async (rows) => {
       await expect(rows).toHaveCount(1)
     }))

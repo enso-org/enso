@@ -10,8 +10,9 @@ import project.Table.Common_Setup.Common_Setup
 import project.Table.Helpers
 
 polyglot java import org.enso.exploratory_benchmark_helpers.MapHelpers
-polyglot java import org.enso.table.data.column.builder.StringBuilder
-polyglot java import org.enso.table.data.column.builder.NumericBuilder
+polyglot java import org.enso.table.data.column.builder.Builder
+polyglot java import org.enso.table.data.column.storage.type.IntegerType;
+polyglot java import org.enso.table.data.column.storage.type.TextType;
 polyglot java import org.enso.table.data.table.Column as Java_Column
 
 ## This tests an operation that executes an Enso function on each element of a column.
@@ -36,7 +37,7 @@ type Boxed_Enso_Callback_Test
     enso_map_with_builder self =
         n = self.text_column.length
         fn = self.fn
-        builder = StringBuilder.new n
+        builder = Builder.getForType TextType.VARIABLE_LENGTH n Nothing
         storage = Storage.get_storage_for_column self.text_column
         0.up_to n . each i->
             case storage.getItemBoxed i of
@@ -87,7 +88,7 @@ type Primitive_Enso_Callback_Test
     enso_map_with_builder_2_calls_unboxed self =
         n = self.int_column.length
         fn = self.fn
-        builder = NumericBuilder.createLongBuilder n
+        builder = Builder.getForLong IntegerType.INT_64 n Nothing
         storage = Storage.get_storage_for_column self.int_column
         0.up_to n . each i->
             case storage.isNothing i of
@@ -101,7 +102,7 @@ type Primitive_Enso_Callback_Test
     enso_map_with_builder_1_call_boxed self =
         n = self.int_column.length
         fn = self.fn
-        builder = NumericBuilder.createLongBuilder n
+        builder = Builder.getForLong IntegerType.INT_64 n Nothing
         storage = Storage.get_storage_for_column self.int_column
         0.up_to n . each i->
             case storage.getItemBoxed i of

@@ -6,7 +6,7 @@ import { DisplayMode } from '@/providers/widgetRegistry/configuration'
 import type { MethodCallInfo } from '@/stores/graph/graphDatabase'
 import {
   isRequiredArgument,
-  type SuggestionEntry,
+  type CallableSuggestionEntry,
   type SuggestionEntryArgument,
 } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
@@ -96,8 +96,8 @@ abstract class Argument {
  * represented in the AST.
  */
 export class ArgumentPlaceholder extends Argument {
-  public declare index: number
-  public declare argInfo: SuggestionEntryArgument
+  declare public index: number
+  declare public argInfo: SuggestionEntryArgument
   /** TODO: Add docs */
   constructor(
     callId: string,
@@ -213,7 +213,7 @@ export function interpretCall(callRoot: Ast.Expression): InterpretedCall {
 
 interface CallInfo {
   notAppliedArguments?: number[] | undefined
-  suggestion?: SuggestionEntry | undefined
+  suggestion?: CallableSuggestionEntry | undefined
   widgetCfg?: widgetCfg.FunctionCall | undefined
   subjectAsSelf?: boolean | undefined
 }
@@ -225,7 +225,7 @@ export class ArgumentApplication {
     public target: ArgumentApplication | Ast.Expression | ArgumentPlaceholder | ArgumentAst,
     public infixOperator: Ast.Token | undefined,
     public argument: ArgumentAst | ArgumentPlaceholder,
-    public calledFunction: SuggestionEntry | undefined,
+    public calledFunction: CallableSuggestionEntry | undefined,
     public isInnermost: boolean,
   ) {}
 

@@ -48,7 +48,7 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
   const { user } = useFullUserSession()
   const toastAndLog = useToastAndLog()
   const { data: users } = useBackendQuery(backend, 'listUsers', [])
-  const userGroups = useListUserGroupsWithUsers(backend)
+  const { data: userGroups } = useListUserGroupsWithUsers(backend)
   const rootRef = useRef<HTMLDivElement>(null)
   const bodyRef = useRef<HTMLTableSectionElement>(null)
   const changeUserGroup = useMutation(

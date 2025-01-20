@@ -18,7 +18,6 @@ import org.enso.compiler.data.BindingsMap.{
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
-import org.enso.persist.Persistance
 
 class BindingAnalysisTest extends CompilerTest {
 
@@ -168,18 +167,15 @@ class BindingAnalysisTest extends CompilerTest {
               List(
                 Argument(
                   "a",
-                  hasDefaultValue = false,
-                  Persistance.Reference.none()
+                  hasDefaultValue = false
                 ),
                 Argument(
                   "b",
-                  hasDefaultValue = false,
-                  Persistance.Reference.none()
+                  hasDefaultValue = false
                 ),
                 Argument(
                   "c",
-                  hasDefaultValue = false,
-                  Persistance.Reference.none()
+                  hasDefaultValue = false
                 )
               ),
               isProjectPrivate = false

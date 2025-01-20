@@ -379,7 +379,7 @@ export const Button: (props: ButtonProps & { ref?: ForwardedRef<HTMLButtonElemen
         }
       })()
 
-      const tooltipElement = shouldShowTooltip ? tooltip ?? ariaProps['aria-label'] : null
+      const tooltipElement = shouldShowTooltip ? (tooltip ?? ariaProps['aria-label']) : null
 
       const isLoading = loading || implicitlyLoading
       const isDisabled = props.isDisabled ?? isLoading

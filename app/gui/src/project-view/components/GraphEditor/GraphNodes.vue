@@ -12,7 +12,7 @@ import { useProjectStore } from '@/stores/project'
 import type { AstId } from '@/util/ast/abstract'
 import type { Vec2 } from '@/util/data/vec2'
 import { set } from 'lib0'
-import { computed, shallowRef } from 'vue'
+import { computed } from 'vue'
 
 const emit = defineEmits<{
   nodeOutputPortDoubleClick: [portId: AstId]
@@ -51,23 +51,15 @@ const uploadingFiles = computed<[FileName, File][]>(() => {
   const currentMethod = graphStore.methodAst.value.externalId
   return uploads.filter(([, file]) => file.method === currentMethod)
 })
-
-const graphNodeSelections = shallowRef<HTMLElement>()
 </script>
 
 <template>
-  <div
-    ref="graphNodeSelections"
-    class="layer"
-    :style="{ transform: navigator.transform, 'z-index': -1 }"
-  />
   <div class="layer" :style="{ transform: navigator.transform }">
     <GraphNode
       v-for="[id, node] in graphStore.db.nodeIdToNode.entries()"
       :key="id"
       :node="node"
       :edited="id === graphStore.editedNodeInfo?.id"
-      :graphNodeSelections="graphNodeSelections"
       @dragging="nodeIsDragged(id, $event)"
       @draggingCommited="dragging.finishDrag()"
       @draggingCancelled="dragging.cancelDrag()"

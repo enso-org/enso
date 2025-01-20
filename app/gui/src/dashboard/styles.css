@@ -6,7 +6,7 @@
 
 :where(body:not(.vibrancy)) {
   &::before {
-    content: '';
+    content: "";
     inset: 0 -16vw -16vh 0;
     z-index: -1;
 
@@ -20,6 +20,6 @@
   }
 }
 
-:where(.enso-dashboard) {
-  @apply absolute inset-0 isolate flex flex-col overflow-hidden;
+:where(.enso-app) {
+  @apply absolute inset-0 isolate overflow-hidden;
 }

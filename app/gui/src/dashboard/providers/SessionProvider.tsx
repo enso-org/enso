@@ -4,19 +4,33 @@
  */
 import * as React from 'react'
 
+import * as sentry from '@sentry/react'
 import * as reactQuery from '@tanstack/react-query'
 import invariant from 'tiny-invariant'
-
-import * as eventCallback from '#/hooks/eventCallbackHooks'
 
 import * as httpClientProvider from '#/providers/HttpClientProvider'
 
 import * as errorModule from '#/utilities/error'
 
 import type * as cognito from '#/authentication/cognito'
+import {
+  CognitoErrorType,
+  type CognitoUser,
+  type ConfirmSignInReturn,
+  type ISessionProvider,
+  type UserSessionChallenge,
+} from '#/authentication/cognito'
 import * as listen from '#/authentication/listen'
+import { Dialog } from '#/components/AriaComponents'
+import { Result } from '#/components/Result'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import * as gtag from '#/hooks/gtagHooks'
 import { useOffline } from '#/hooks/offlineHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
+import { unsafeWriteValue } from '#/utilities/write'
+import { toast } from 'react-toastify'
+import { useSetModal } from './ModalProvider'
+import { useText } from './TextProvider'
 
 // ======================
 // === SessionContext ===
@@ -25,7 +39,27 @@ import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 /** State contained in a {@link SessionContext}. */
 interface SessionContextType {
   readonly session: cognito.UserSession | null
-  readonly sessionQueryKey: reactQuery.QueryKey
+  readonly signUp: (email: string, password: string, organizationId: string | null) => Promise<void>
+  readonly confirmSignUp: (email: string, code: string) => Promise<void>
+  readonly signInWithGoogle: () => Promise<boolean>
+  readonly signInWithGitHub: () => Promise<boolean>
+  readonly signInWithPassword: (
+    email: string,
+    password: string,
+  ) => Promise<{
+    readonly challenge: UserSessionChallenge
+    readonly user: CognitoUser
+  }>
+  readonly confirmSignIn: (user: CognitoUser, otp: string) => ConfirmSignInReturn
+  readonly forgotPassword: (email: string) => Promise<null>
+  readonly changePassword: (oldPassword: string, newPassword: string) => Promise<boolean>
+  readonly resetPassword: (email: string, code: string, password: string) => Promise<null>
+  readonly signOut: () => Promise<void>
+  readonly organizationId: () => Promise<string | null>
+  readonly getMFAPreference: () => Promise<cognito.MfaType>
+  readonly updateMFAPreference: (mfaType: cognito.MfaType) => Promise<void>
+  readonly verifyTotpToken: (otp: string) => Promise<boolean>
+  readonly setupTOTP: () => Promise<cognito.SetupTOTPReturn>
 }
 
 const SessionContext = React.createContext<SessionContextType | null>(null)
@@ -51,47 +85,43 @@ export interface SessionProviderProps {
    */
   readonly mainPageUrl: URL
   readonly registerAuthEventListener: listen.ListenFunction | null
-  readonly userSession: (() => Promise<cognito.UserSession | null>) | null
-  readonly saveAccessToken?: ((accessToken: cognito.UserSession) => void) | null
-  readonly refreshUserSession: (() => Promise<cognito.UserSession | null>) | null
+  readonly authService: ISessionProvider
+  readonly onLogout?: () => Promise<void> | void
+
   readonly children: React.ReactNode | ((props: SessionContextType) => React.ReactNode)
 }
 
 /** Create a query for the user session. */
-function createSessionQuery(userSession: (() => Promise<cognito.UserSession | null>) | null) {
+function createSessionQuery(authService: ISessionProvider) {
   return reactQuery.queryOptions({
     queryKey: ['userSession'],
-    queryFn: () => userSession?.().catch(() => null) ?? null,
+    queryFn: () => authService.userSession().catch(() => null),
   })
 }
 
 /** A React provider for the session of the authenticated user. */
 export default function SessionProvider(props: SessionProviderProps) {
-  const {
-    mainPageUrl,
-    children,
-    userSession,
-    registerAuthEventListener,
-    refreshUserSession,
-    saveAccessToken,
-  } = props
+  const { mainPageUrl, children, registerAuthEventListener, authService, onLogout } = props
+
+  const { unsetModal } = useSetModal()
+  const { getText } = useText()
 
   // stabilize the callback so that it doesn't change on every render
-  const saveAccessTokenEventCallback = eventCallback.useEventCallback(
-    (accessToken: cognito.UserSession) => saveAccessToken?.(accessToken),
-  )
+  const saveAccessTokenEventCallback = useEventCallback((accessToken: cognito.UserSession) => {
+    authService.saveAccessToken(accessToken)
+  })
 
   const httpClient = httpClientProvider.useHttpClient()
   const queryClient = reactQuery.useQueryClient()
   const toastAndLog = useToastAndLog()
 
-  const sessionQuery = createSessionQuery(userSession)
+  const sessionQuery = createSessionQuery(authService)
 
   const session = reactQuery.useSuspenseQuery(sessionQuery)
 
   const refreshUserSessionMutation = reactQuery.useMutation({
     mutationKey: ['refreshUserSession', { expireAt: session.data?.expireAt }],
-    mutationFn: async () => refreshUserSession?.() ?? null,
+    mutationFn: async () => authService.refreshUserSession(),
     onSuccess: (data) => {
       if (data) {
         httpClient?.setSessionToken(data.accessToken)
@@ -102,7 +132,139 @@ export default function SessionProvider(props: SessionProviderProps) {
       // Something went wrong with the refresh token, so we need to sign the user out.
       toastAndLog('sessionExpiredError', error)
       queryClient.setQueryData(sessionQuery.queryKey, null)
+      return logoutMutation.mutateAsync()
     },
+  })
+
+  const logoutMutation = reactQuery.useMutation({
+    mutationKey: ['session', 'logout', session.data?.clientId] as const,
+    mutationFn: async () => {
+      await authService.signOut()
+
+      gtag.event('cloud_sign_out')
+      const parentDomain = location.hostname.replace(/^[^.]*\./, '')
+      unsafeWriteValue(document, 'cookie', `logged_in=no;max-age=0;domain=${parentDomain}`)
+
+      authService.saveAccessToken(null)
+    },
+    // If the User Menu is still visible, it breaks when `userSession` is set to `null`.
+    onMutate: unsetModal,
+    onSuccess: async () => {
+      await onLogout?.()
+
+      sentry.setUser(null)
+      toast.success(getText('signOutSuccess'))
+
+      // On sign out, we need to clear the query client.
+      // But we dont want to delay the logoutMutation to avoid possible side effects,
+      // like refetching some data. By the moment of clearing the query client,
+      // the logoutMutation is already resolved, and user is navigated to the login page.
+      void queryClient.clearWithPersister()
+    },
+    onError: () => toast.error(getText('signOutError')),
+  })
+
+  const signUp = useEventCallback(
+    async (username: string, password: string, organizationId: string | null) => {
+      gtag.event('cloud_sign_up')
+      const result = await authService.signUp(username, password, organizationId)
+
+      if (result.err) {
+        throw new Error(result.val.message)
+      } else {
+        return
+      }
+    },
+  )
+
+  const confirmSignUp = useEventCallback(async (email: string, code: string) => {
+    gtag.event('cloud_confirm_sign_up')
+    const result = await authService.confirmSignUp(email, code)
+
+    if (result.err) {
+      switch (result.val.type) {
+        case CognitoErrorType.userAlreadyConfirmed:
+        case CognitoErrorType.userNotFound: {
+          return
+        }
+        default: {
+          throw new errorModule.UnreachableCaseError(result.val.type)
+        }
+      }
+    }
+  })
+
+  const signInWithPassword = useEventCallback(async (email: string, password: string) => {
+    gtag.event('cloud_sign_in', { provider: 'Email' })
+
+    const result = await authService.signInWithPassword(email, password)
+
+    if (result.ok) {
+      const user = result.unwrap()
+
+      const challenge = user.challengeName ?? 'NO_CHALLENGE'
+
+      if (['SMS_MFA', 'SOFTWARE_TOKEN_MFA'].includes(challenge)) {
+        return { challenge, user } as const
+      }
+
+      return queryClient
+        .invalidateQueries({ queryKey: sessionQuery.queryKey })
+        .then(() => ({ challenge, user }) as const)
+    } else {
+      throw new Error(result.val.message)
+    }
+  })
+
+  const signInWithGoogle = useEventCallback(() => {
+    gtag.event('cloud_sign_in', { provider: 'Google' })
+
+    return authService.signInWithGoogle().then(
+      () => true,
+      () => false,
+    )
+  })
+
+  const signInWithGitHub = useEventCallback(() => {
+    gtag.event('cloud_sign_in', { provider: 'GitHub' })
+
+    return authService.signInWithGitHub().then(
+      () => true,
+      () => false,
+    )
+  })
+
+  const confirmSignIn = useEventCallback((user: CognitoUser, otp: string) =>
+    authService.confirmSignIn(user, otp, 'SOFTWARE_TOKEN_MFA'),
+  )
+
+  const forgotPassword = useEventCallback(async (email: string) => {
+    const result = await authService.forgotPassword(email)
+    if (result.ok) {
+      return null
+    } else {
+      throw new Error(result.val.message)
+    }
+  })
+
+  const resetPassword = useEventCallback(async (email: string, code: string, password: string) => {
+    const result = await authService.forgotPasswordSubmit(email, code, password)
+
+    if (result.ok) {
+      return null
+    } else {
+      throw new Error(result.val.message)
+    }
+  })
+
+  const changePassword = useEventCallback(async (oldPassword: string, newPassword: string) => {
+    const result = await authService.changePassword(oldPassword, newPassword)
+
+    if (result.err) {
+      throw new Error(result.val.message)
+    }
+
+    return result.ok
   })
 
   if (session.data) {
@@ -142,6 +304,43 @@ export default function SessionProvider(props: SessionProviderProps) {
     [registerAuthEventListener, mainPageUrl, queryClient, sessionQuery.queryKey],
   )
 
+  const organizationId = useEventCallback(() => authService.organizationId())
+
+  const getMFAPreference = useEventCallback(async () => {
+    const result = await authService.getMFAPreference()
+    if (result.err) {
+      throw result.val
+    } else {
+      return result.unwrap()
+    }
+  })
+
+  const updateMFAPreference = useEventCallback(async (mfaType: cognito.MfaType) => {
+    const result = await authService.updateMFAPreference(mfaType)
+
+    if (result.err) {
+      throw result.val
+    }
+  })
+
+  const verifyTotpToken = useEventCallback(async (otp: string) => {
+    const result = await authService.verifyTotpToken(otp)
+    if (result.err) {
+      throw result.val
+    } else {
+      return result.unwrap()
+    }
+  })
+
+  const setupTOTP = useEventCallback(async () => {
+    const result = await authService.setupTOTP()
+    if (result.err) {
+      throw result.val
+    } else {
+      return result.unwrap()
+    }
+  })
+
   React.useEffect(() => {
     if (session.data) {
       // Save access token so can it be reused by backend services
@@ -150,12 +349,28 @@ export default function SessionProvider(props: SessionProviderProps) {
   }, [session.data, saveAccessTokenEventCallback])
 
   const sessionContextValue = {
+    signUp,
     session: session.data,
-    sessionQueryKey: sessionQuery.queryKey,
-  }
+    confirmSignUp,
+    signInWithPassword,
+    signInWithGitHub,
+    signInWithGoogle,
+    confirmSignIn,
+    forgotPassword,
+    resetPassword,
+    changePassword,
+    signOut: logoutMutation.mutateAsync,
+    organizationId,
+    getMFAPreference,
+    updateMFAPreference,
+    verifyTotpToken,
+    setupTOTP,
+  } satisfies SessionContextType
 
   return (
     <SessionContext.Provider value={sessionContextValue}>
+      {typeof children === 'function' ? children(sessionContextValue) : children}
+
       {session.data && (
         <SessionRefresher
           session={session.data}
@@ -163,7 +378,15 @@ export default function SessionProvider(props: SessionProviderProps) {
         />
       )}
 
-      {typeof children === 'function' ? children(sessionContextValue) : children}
+      <Dialog
+        aria-label={getText('loggingOut')}
+        isDismissable={false}
+        isKeyboardDismissDisabled
+        hideCloseButton
+        modalProps={{ isOpen: logoutMutation.isPending }}
+      >
+        <Result status="loading" title={getText('loggingOut')} />
+      </Dialog>
     </SessionContext.Provider>
   )
 }
@@ -230,13 +453,23 @@ export function useSession() {
 }
 
 /**
+ * Returns API to work with a session.
+ */
+export function useSessionAPI(): Omit<SessionContextType, 'session'> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { session, ...api } = useSession()
+
+  return api
+}
+
+/**
  * React context hook returning the session of the authenticated user.
- * @throws {invariant} if the session is not defined.
+ * @throws {Error} if the session is not defined.
  */
 export function useSessionStrict() {
-  const { session, sessionQueryKey } = useSession()
+  const { session } = useSession()
 
   invariant(session != null, 'Session must be defined')
 
-  return { session, sessionQueryKey } as const
+  return { session } as const
 }

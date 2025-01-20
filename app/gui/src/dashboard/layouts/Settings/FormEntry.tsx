@@ -38,7 +38,7 @@ export function SettingsFormEntry<T extends Record<keyof T, string>>(
   const isEditable = data.inputs.some((inputData) =>
     typeof inputData.editable === 'boolean' ?
       inputData.editable
-    : inputData.editable?.(context) ?? true,
+    : (inputData.editable?.(context) ?? true),
   )
 
   const form = Form.useForm({

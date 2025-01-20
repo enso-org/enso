@@ -500,6 +500,7 @@ function calculateRectangleFromScrollDirection(
         bottom: start.bottom - diff.top,
         left: start.left - diff.left,
       }
+    case DIRECTION.NONE:
     default:
       return start
   }
@@ -558,6 +559,7 @@ function calculateNewStartPositionFromScrollDirection(
         top: rectangle.bottom,
         left: rectangle.left,
       }
+    case DIRECTION.NONE:
     default:
       return start
   }

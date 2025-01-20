@@ -18,6 +18,7 @@ import { DirectoryId, UserGroupId } from '#/services/Backend'
 import * as download from '#/utilities/download'
 import type HttpClient from '#/utilities/HttpClient'
 import * as object from '#/utilities/object'
+import invariant from 'tiny-invariant'
 
 // =================
 // === Constants ===
@@ -198,7 +199,9 @@ interface RemoteBackendPostOptions {
 
 /** Class for sending requests to the Cloud backend API endpoints. */
 export default class RemoteBackend extends Backend {
-  readonly type = backend.BackendType.remote
+  static readonly type = backend.BackendType.remote
+
+  readonly type = RemoteBackend.type
   private user: object.Mutable<backend.User> | null = null
 
   /**
@@ -837,7 +840,6 @@ export default class RemoteBackend extends Backend {
    */
   override async getProjectDetails(
     projectId: backend.ProjectId,
-    _directoryId: null,
     getPresignedUrl = false,
   ): Promise<backend.Project> {
     const paramsString = new URLSearchParams({
@@ -1308,7 +1310,7 @@ export default class RemoteBackend extends Backend {
   async logEvent(message: string, projectId?: string | null, metadata?: object | null) {
     // Prevent events from being logged in dev mode, since we are often using production environment
     // and are polluting real logs.
-    if (detect.IS_DEV_MODE && process.env.ENSO_CLOUD_ENVIRONMENT === 'production') {
+    if (detect.IS_DEV_MODE) {
       return
     }
 
@@ -1332,10 +1334,45 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Download from an arbitrary URL that is assumed to originate from this backend. */
-  override async download(url: string, name?: string) {
-    download.download(url, name)
-    return Promise.resolve()
+  /** Download an asset. */
+  override async download(id: backend.AssetId, title: string) {
+    const asset = backend.extractTypeFromId(id)
+    switch (asset.type) {
+      case backend.AssetType.project: {
+        const details = await this.getProjectDetails(asset.id, true)
+        invariant(details.url != null, 'The download URL of the project must be present.')
+        download.download(details.url, `${title}.enso-project`)
+        break
+      }
+      case backend.AssetType.file: {
+        const details = await this.getFileDetails(asset.id, title, true)
+        invariant(details.url != null, 'The download URL of the file must be present.')
+        download.download(details.url, details.file.fileName ?? '')
+        break
+      }
+      case backend.AssetType.datalink: {
+        const value = await this.getDatalink(asset.id, title)
+        const fileName = `${title}.datalink`
+        download.download(
+          URL.createObjectURL(
+            new File([JSON.stringify(value)], fileName, {
+              type: 'application/json+x-enso-data-link',
+            }),
+          ),
+          fileName,
+        )
+        break
+      }
+      case backend.AssetType.secret:
+      case backend.AssetType.directory:
+      case backend.AssetType.specialLoading:
+      case backend.AssetType.specialEmpty:
+      case backend.AssetType.specialError:
+      default: {
+        invariant(`'${asset.type}' assets cannot be downloaded.`)
+        break
+      }
+    }
   }
 
   /** Fetch the URL of the customer portal. */
@@ -1398,36 +1435,36 @@ export default class RemoteBackend extends Backend {
 
   /** Send an HTTP GET request to the given path. */
   private get<T = void>(path: string) {
-    return this.client.get<T>(`${process.env.ENSO_CLOUD_API_URL}/${path}`)
+    return this.client.get<T>(`${$config.API_URL}/${path}`)
   }
 
   /** Send a JSON HTTP POST request to the given path. */
   private post<T = void>(path: string, payload: object, options?: RemoteBackendPostOptions) {
-    return this.client.post<T>(`${process.env.ENSO_CLOUD_API_URL}/${path}`, payload, options)
+    return this.client.post<T>(`${$config.API_URL}/${path}`, payload, options)
   }
 
   /** Send a binary HTTP POST request to the given path. */
   private postBinary<T = void>(path: string, payload: Blob) {
-    return this.client.postBinary<T>(`${process.env.ENSO_CLOUD_API_URL}/${path}`, payload)
+    return this.client.postBinary<T>(`${$config.API_URL}/${path}`, payload)
   }
 
   /** Send a JSON HTTP PATCH request to the given path. */
   private patch<T = void>(path: string, payload: object) {
-    return this.client.patch<T>(`${process.env.ENSO_CLOUD_API_URL}/${path}`, payload)
+    return this.client.patch<T>(`${$config.API_URL}/${path}`, payload)
   }
 
   /** Send a JSON HTTP PUT request to the given path. */
   private put<T = void>(path: string, payload: object) {
-    return this.client.put<T>(`${process.env.ENSO_CLOUD_API_URL}/${path}`, payload)
+    return this.client.put<T>(`${$config.API_URL}/${path}`, payload)
   }
 
   /** Send a binary HTTP PUT request to the given path. */
   private putBinary<T = void>(path: string, payload: Blob) {
-    return this.client.putBinary<T>(`${process.env.ENSO_CLOUD_API_URL}/${path}`, payload)
+    return this.client.putBinary<T>(`${$config.API_URL}/${path}`, payload)
   }
 
   /** Send an HTTP DELETE request to the given path. */
   private delete<T = void>(path: string, payload?: Record<string, unknown>) {
-    return this.client.delete<T>(`${process.env.ENSO_CLOUD_API_URL}/${path}`, payload)
+    return this.client.delete<T>(`${$config.API_URL}/${path}`, payload)
   }
 }

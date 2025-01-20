@@ -1,42 +1,120 @@
 package org.enso.table.data.column.builder;
 
+import java.util.Arrays;
+import org.enso.table.data.column.storage.SpecializedStorage;
+import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.StorageType;
 
-/** A builder for the given storage type and known result length. */
-public abstract class TypedBuilder extends Builder {
-  /**
-   * Dump all the items into a given boxed buffer.
-   *
-   * @param items the buffer to dump elements into
-   */
-  public abstract void retypeToMixed(Object[] items);
+public abstract class TypedBuilder<T> implements BuilderWithRetyping, BuilderForType<T> {
+  private final StorageType storageType;
+  protected T[] data;
+  protected int currentSize = 0;
+
+  protected TypedBuilder(StorageType storageType, T[] data) {
+    this.data = data;
+    this.storageType = storageType;
+  }
+
+  @Override
+  public StorageType getType() {
+    return storageType;
+  }
+
+  @Override
+  public void copyDataTo(Object[] items) {
+    if (currentSize >= 0) {
+      System.arraycopy(data, 0, items, 0, currentSize);
+    }
+  }
+
+  @Override
+  public boolean canRetypeTo(StorageType type) {
+    return false;
+  }
+
+  @Override
+  public Builder retypeTo(StorageType type) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public void append(Object o) {
+    if (currentSize >= data.length) {
+      grow();
+    }
+
+    appendNoGrow(o);
+  }
+
+  @Override
+  public void appendNulls(int count) {
+    currentSize += count;
+  }
+
+  @Override
+  public void appendBulkStorage(Storage<?> storage) {
+    if (storage.getType().equals(getType())) {
+      if (storage instanceof SpecializedStorage<?>) {
+        // This cast is safe, because storage.getType() == this.getType() iff storage.T == this.T
+        @SuppressWarnings("unchecked")
+        SpecializedStorage<T> specializedStorage = (SpecializedStorage<T>) storage;
+        System.arraycopy(specializedStorage.getData(), 0, data, currentSize, storage.size());
+        currentSize += storage.size();
+      } else {
+        throw new IllegalStateException(
+            "Unexpected storage implementation for type "
+                + storage.getType()
+                + ": "
+                + storage
+                + ". This is a bug in the Table library.");
+      }
+    } else {
+      throw new StorageTypeMismatchException(getType(), storage.getType());
+    }
+  }
+
+  @Override
+  public int getCurrentSize() {
+    return currentSize;
+  }
 
   /**
-   * Checks if the builder can be efficiently retyped to the given storage type.
+   * Grows the underlying array.
    *
-   * @param type the storage type
-   * @return whether the column can be retyped
+   * <p>The method grows the array by 50% by default to amortize the re-allocation time over
+   * appends. It tries to keep the invariant that after calling `grow` the array has at least one
+   * free slot.
    */
-  public abstract boolean canRetypeTo(StorageType type);
+  private void grow() {
+    int desiredCapacity = 3;
+    if (data.length > 1) {
+      desiredCapacity = (data.length * 3 / 2);
+    }
 
-  /**
-   * Retype this builder to the given type. Can only be called if {@link #canRetypeTo(StorageType)}
-   * returns true for the type.
-   *
-   * @param type the target type
-   * @return a retyped builder
-   */
-  public abstract TypedBuilder retypeTo(StorageType type);
+    // It is possible for the `currentSize` to grow arbitrarily larger than
+    // the capacity, because when nulls are being added the array is not
+    // resized, only the counter is incremented. Thus, we need to ensure
+    // that we have allocated enough space for at least one element.
+    if (currentSize >= desiredCapacity) {
+      desiredCapacity = currentSize + 1;
+    }
 
-  /**
-   * Specifies if the following object will be accepted by this builder's append* methods.
-   *
-   * <p>This is used to determine if a given value can be appended to the current builder, or if it
-   * needs to be retyped to a more general one.
-   *
-   * <p>Note that the {@code appendBulkStorage} method may still accept more types than {@code
-   * accept}. This is exploited by operations like Union where more flexibility in merging column
-   * types is allowed than in building new columns from scratch.
-   */
-  public abstract boolean accepts(Object o);
+    resize(desiredCapacity);
+  }
+
+  private void resize(int desiredCapacity) {
+    this.data = Arrays.copyOf(data, desiredCapacity);
+  }
+
+  protected abstract Storage<T> doSeal();
+
+  @Override
+  public Storage<T> seal() {
+    // We grow the array to the exact size, because we want to avoid index out of bounds errors.
+    // Most of the time, the builder was initialized with the right size anyway - the only
+    // exceptions are e.g. reading results from a database, where the count is unknown.
+    // In the future we may rely on smarter storage for sparse columns.
+    resize(currentSize);
+    return doSeal();
+  }
 }

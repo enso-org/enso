@@ -1,7 +1,7 @@
 import { computeNodeColor } from '@/composables/nodeColors'
 import { ComputedValueRegistry, type ExpressionInfo } from '@/stores/project/computedValueRegistry'
 import { SuggestionDb, type Group } from '@/stores/suggestionDatabase'
-import type { SuggestionEntry } from '@/stores/suggestionDatabase/entry'
+import { type CallableSuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import type { AstId, NodeMetadata } from '@/util/ast/abstract'
@@ -49,7 +49,7 @@ import { isUuid, visMetadataEquals } from 'ydoc-shared/yjsModel'
 export interface MethodCallInfo {
   methodCall: MethodCall
   methodCallSource: Ast.AstId
-  suggestion: SuggestionEntry
+  suggestion: CallableSuggestionEntry
 }
 
 /** TODO: Add docs */
@@ -150,7 +150,7 @@ export class GraphDb {
 
   /** TODO: Add docs */
   getNodeFirstOutputPort(id: NodeId | undefined): AstId | undefined {
-    return id ? set.first(this.nodeOutputPorts.lookup(id)) ?? this.idFromExternal(id) : undefined
+    return id ? (set.first(this.nodeOutputPorts.lookup(id)) ?? this.idFromExternal(id)) : undefined
   }
 
   /** TODO: Add docs */
@@ -221,9 +221,7 @@ export class GraphDb {
   getMethodCallInfo(id: AstId): MethodCallInfo | undefined {
     const methodCall = this.getMethodCall(id)
     if (methodCall == null) return
-    const suggestionId = this.suggestionDb.findByMethodPointer(methodCall.methodPointer)
-    if (suggestionId == null) return
-    const suggestion = this.suggestionDb.get(suggestionId)
+    const suggestion = this.suggestionDb.entryByMethodPointer(methodCall.methodPointer)
     if (suggestion == null) return
     return { methodCall, methodCallSource: id, suggestion }
   }

@@ -59,7 +59,7 @@ export class SourceDocument {
           assertDefined(oldSpan)
           const oldCode = this.rawState.text.slice(oldSpan.from, oldSpan.to)
           const newCode = printed.code.slice(range.from, range.to)
-          const subedits = textChangeToEdits(oldCode, newCode).map(textEdit =>
+          const subedits = textChangeToEdits(oldCode, newCode).map((textEdit) =>
             translateRange(textEdit, oldSpan.from),
           )
           subtreeTextEdits.push(...subedits)

@@ -66,6 +66,7 @@ export const Radio = forwardRef(function Radio(
     value: props.value,
   })
 
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const { isSelected, isDisabled, isPressed, inputProps, labelProps } = aria.useRadio(
     aria.mergeProps<aria.RadioProps>()(ariaProps, {
       id,
@@ -125,6 +126,7 @@ export const Radio = forwardRef(function Radio(
 
   return (
     <label
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       {...aria.mergeProps<React.LabelHTMLAttributes<HTMLLabelElement>>()(hoverProps, labelProps)}
       ref={(el) => {
         mergeRefs.mergeRefs(labelRef, ref)(el)
@@ -132,6 +134,7 @@ export const Radio = forwardRef(function Radio(
       className={base()}
     >
       <input
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         {...aria.mergeProps<React.InputHTMLAttributes<HTMLInputElement>>()(inputProps, focusProps)}
         ref={inputRef}
         id={id}
