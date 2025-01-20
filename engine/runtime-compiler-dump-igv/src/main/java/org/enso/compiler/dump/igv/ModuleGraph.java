@@ -49,7 +49,11 @@ public final class ModuleGraph {
     assert outPath.toFile().exists();
     assert outPath.toFile().isFile();
     try (var channel = createFileChannel(outPath)) {
-      var output = GraphOutput.newBuilder(EnsoModuleAST.AST_DUMP_STRUCTURE).build(channel);
+      var output = GraphOutput
+          .newBuilder(EnsoModuleAST.AST_DUMP_STRUCTURE)
+          .blocks(EnsoModuleAST.AST_DUMP_STRUCTURE)
+          .elementsAndLocations(EnsoModuleAST.AST_DUMP_STRUCTURE, EnsoModuleAST.AST_DUMP_STRUCTURE)
+          .build(channel);
       int currGraphId = 0;
       boolean groupCreated = false;
       var props = new HashMap<>();
