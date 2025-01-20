@@ -32,9 +32,9 @@ public final class ModuleGraph {
   public void addSubGraphForPass(String passName, EnsoModuleAST ast) {
     var containsGraphForPass = passGraphs.stream().anyMatch(g -> g.passName.equals(passName));
     if (containsGraphForPass) {
-      LOGGER.warn("Pass graph already exists for {}", passName);
+      LOGGER.warn("[{}] Pass graph already exists for {}", moduleName, passName);
     } else {
-      LOGGER.trace("Adding pass graph for {}", passName);
+      LOGGER.trace("[{}] Adding pass graph for {}", moduleName, passName);
       passGraphs.add(new PassGraph(passName, ast));
     }
   }
@@ -44,16 +44,26 @@ public final class ModuleGraph {
     return allNodes.toList();
   }
 
-  /** Dump all the module graphs into single output. */
+  /**
+   * Dump all the module graphs into single output.
+   *
+   * @param outPath Output to dump to. Will be created if not exist. Not null.
+   */
   public void dump(Path outPath) throws IOException {
-    assert outPath.toFile().exists();
-    assert outPath.toFile().isFile();
+    if (passGraphs.isEmpty()) {
+      LOGGER.warn("[{}] No passes were added - not dumping anything", moduleName);
+      return;
+    }
+    if (!outPath.toFile().exists()) {
+      Files.createFile(outPath);
+    }
     try (var channel = createFileChannel(outPath)) {
-      var output = GraphOutput
-          .newBuilder(EnsoModuleAST.AST_DUMP_STRUCTURE)
-          .blocks(EnsoModuleAST.AST_DUMP_STRUCTURE)
-          .elementsAndLocations(EnsoModuleAST.AST_DUMP_STRUCTURE, EnsoModuleAST.AST_DUMP_STRUCTURE)
-          .build(channel);
+      var output =
+          GraphOutput.newBuilder(EnsoModuleAST.AST_DUMP_STRUCTURE)
+              .blocks(EnsoModuleAST.AST_DUMP_STRUCTURE)
+              .elementsAndLocations(
+                  EnsoModuleAST.AST_DUMP_STRUCTURE, EnsoModuleAST.AST_DUMP_STRUCTURE)
+              .build(channel);
       int currGraphId = 0;
       boolean groupCreated = false;
       var props = new HashMap<>();
