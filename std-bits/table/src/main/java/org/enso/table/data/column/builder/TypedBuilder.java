@@ -87,7 +87,7 @@ public abstract class TypedBuilder<T> implements BuilderWithRetyping, BuilderFor
     resize(desiredCapacity);
   }
 
-  private void resize(int desiredCapacity) {
+  protected void resize(int desiredCapacity) {
     if (data.length == desiredCapacity) {
       return;
     }
