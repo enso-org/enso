@@ -4,7 +4,7 @@ import org.slf4j.LoggerFactory
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.ir.{Expression, Module}
 import org.enso.compiler.core.{CompilerError, IR}
-import org.enso.compiler.dump.IRDumper
+import org.enso.compiler.dump.service.IRDumpService
 
 import java.io.File
 import scala.collection.mutable.ListBuffer
@@ -72,7 +72,7 @@ class PassManager(
     ir: Module,
     moduleContext: ModuleContext,
     passGroup: PassGroup,
-    irDumper: Option[IRDumper]
+    irDumper: Option[IRDumpService]
   ): Module = {
     if (!passes.contains(passGroup)) {
       throw new CompilerError("Cannot run an unvalidated pass group.")
@@ -172,13 +172,13 @@ class PassManager(
   private def dump(
     ir: IR,
     moduleName: Option[String],
-    irDumper: Option[IRDumper],
+    irDumper: Option[IRDumpService],
     passName: String,
     getSrcFile: () => File
   ): Unit = {
     (ir, moduleName, irDumper) match {
       case (moduleIr: Module, Some(modName), Some(dumper)) =>
-        dumper.dumpModule(moduleIr, modName, passName, getSrcFile())
+        dumper.dump(moduleIr, modName, getSrcFile(), passName)
       case _ => ()
     }
   }
@@ -197,7 +197,7 @@ class PassManager(
     context: ContextType,
     passGroup: PassGroup,
     moduleName: Option[String],
-    irDumper: Option[IRDumper],
+    irDumper: Option[IRDumpService],
     getSrcFile: () => File,
     createMiniPass: (MiniPassFactory, ContextType) => MiniIRPass,
     miniPassCompile: (MiniIRPass, IRType) => IRType,

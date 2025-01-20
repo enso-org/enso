@@ -5,6 +5,6 @@ module org.enso.runtime.compiler.dump.igv {
   requires org.slf4j;
   requires scala.library;
 
-  provides org.enso.compiler.dump.service.IRDumpService with
-      org.enso.compiler.dump.igv.IGVDumper;
+  provides org.enso.compiler.dump.service.IRDumpFactoryService with
+      org.enso.compiler.dump.igv.IGVDumperFactory;
 }

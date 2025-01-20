@@ -32,5 +32,5 @@ module org.enso.runtime.compiler {
   exports org.enso.compiler.refactoring;
   exports org.enso.compiler.common;
 
-  uses org.enso.compiler.dump.service.IRDumpService;
+  uses org.enso.compiler.dump.service.IRDumpFactoryService;
 }

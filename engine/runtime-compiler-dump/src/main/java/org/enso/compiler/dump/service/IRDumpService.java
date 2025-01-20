@@ -13,6 +13,9 @@ public interface IRDumpService {
    */
   void dump(Module ir, String moduleName, File srcFile, String afterPass);
 
-  /** Close and flush all the graphs. */
+  /**
+   * Close and flush all the underlying resources. There will be no more dumps for the module after
+   * this call.
+   */
   void close();
 }

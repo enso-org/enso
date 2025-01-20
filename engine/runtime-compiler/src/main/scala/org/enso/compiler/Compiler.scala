@@ -29,7 +29,7 @@ import org.enso.compiler.phase.{ImportResolver, ImportResolverAlgorithm}
 import org.enso.editions.LibraryName
 import org.enso.pkg.QualifiedName
 import org.enso.common.CompilationStage
-import org.enso.compiler.dump.IRDumper
+import org.enso.compiler.dump.service.{IRDumpFactoryService, IRDumpService}
 import org.enso.compiler.phase.exports.{
   ExportCycleException,
   ExportSymbolAnalysis,
@@ -39,6 +39,7 @@ import org.enso.syntax2.Tree
 import org.enso.syntax2.Parser
 
 import java.io.PrintStream
+import java.util.ServiceLoader
 import java.util.concurrent.{
   CompletableFuture,
   ExecutorService,
@@ -48,6 +49,7 @@ import java.util.concurrent.{
   TimeUnit
 }
 import java.util.logging.Level
+import scala.collection.immutable.HashMap
 
 /** This class encapsulates the static transformation processes that take place
   * on source code, including parsing, desugaring, type-checking, static
@@ -71,10 +73,8 @@ class Compiler(
     if (config.outputRedirect.isDefined)
       new PrintStream(config.outputRedirect.get)
     else context.getOut
-  private val irDumper: Option[IRDumper] = config.irDumper match {
-    case Some(dumperName) => Some(new IRDumper(dumperName))
-    case None             => None
-  }
+  private val irDumperFactory: Option[IRDumpFactoryService] =
+    loadDumperFactoryService()
 
   /** The thread pool that handles parsing of modules. */
   private val pool: ExecutorService = if (config.parallelParsing) {
@@ -89,6 +89,32 @@ class Compiler(
       }
     )
   } else null
+
+  private def loadDumperFactoryService(): Option[IRDumpFactoryService] = {
+    config.irDumper match {
+      case None => None
+      case Some(dumperFactName) =>
+        val loader = ServiceLoader.load(classOf[IRDumpFactoryService])
+        val it     = loader.iterator()
+        while (it.hasNext) {
+          val service = it.next()
+          if (service.getClass.getName == dumperFactName) {
+            context.log(
+              Level.INFO,
+              "Found IRDumpServiceFactory {}",
+              dumperFactName
+            )
+            return Some(service)
+          }
+        }
+        context.log(
+          Level.SEVERE,
+          "No IRDumpServiceFactory found for {}",
+          dumperFactName
+        )
+        None
+    }
+  }
 
   /** Java accessor */
   def getConfig(): CompilerConfig = config
@@ -273,6 +299,27 @@ class Compiler(
       }
     )
 
+    var moduleIrDumpers: HashMap[Module, IRDumpService] = new HashMap()
+
+    def getOrCreateDumper(module: Module): Option[IRDumpService] = {
+      irDumperFactory match {
+        case None => None
+        case Some(factory) =>
+          moduleIrDumpers.get(module) match {
+            case Some(existing) => Some(existing)
+            case None =>
+              val dumper =
+                factory.create(module.getName.toString)
+              moduleIrDumpers = moduleIrDumpers.updated(module, dumper)
+              Some(dumper)
+          }
+      }
+    }
+
+    def closeAllDumpers(): Unit = {
+      moduleIrDumpers.foreach { case (_, dumper) => dumper.close() }
+    }
+
     val requiredModules = modules.flatMap { module =>
       val isLoadedFromSource =
         (m: Module) => !context.wasLoadedFromCache(m) && !context.isSynthetic(m)
@@ -298,12 +345,20 @@ class Compiler(
           )
         )
         context.updateModule(module, _.invalidateCache())
-        parseModule(module, irCachingEnabled && !context.isInteractive(module))
+        parseModule(
+          module,
+          irCachingEnabled && !context.isInteractive(module),
+          irDumper = getOrCreateDumper(module)
+        )
         importedModules
           .filter(isLoadedFromSource)
           .foreach(m => {
             if (m.getBindingsMap == null) {
-              parseModule(m, irCachingEnabled && !context.isInteractive(module))
+              parseModule(
+                m,
+                irCachingEnabled && !context.isInteractive(module),
+                irDumper = getOrCreateDumper(module)
+              )
             }
           })
         runImportsAndExportsResolution(module, generateCode)
@@ -332,7 +387,11 @@ class Compiler(
           compilerConfig  = config
         )
         val compilerOutput =
-          runGlobalTypingPasses(context.getIr(module), moduleContext)
+          runGlobalTypingPasses(
+            context.getIr(module),
+            moduleContext,
+            irDumper = getOrCreateDumper(module)
+          )
 
         context.updateModule(
           module,
@@ -359,7 +418,11 @@ class Compiler(
           pkgRepo         = Some(packageRepository)
         )
         val compilerOutput =
-          runMethodBodyPasses(context.getIr(module), moduleContext)
+          runMethodBodyPasses(
+            context.getIr(module),
+            moduleContext,
+            irDumper = getOrCreateDumper(module)
+          )
         context.updateModule(
           module,
           { u =>
@@ -386,7 +449,11 @@ class Compiler(
           pkgRepo         = Some(packageRepository)
         )
         val compilerOutput =
-          runFinalTypeInferencePasses(context.getIr(module), moduleContext)
+          runFinalTypeInferencePasses(
+            context.getIr(module),
+            moduleContext,
+            irDumper = getOrCreateDumper(module)
+          )
         context.updateModule(
           module,
           { u =>
@@ -478,6 +545,8 @@ class Compiler(
         }
       }
     }
+
+    closeAllDumpers()
 
     requiredModules
   }
@@ -588,7 +657,8 @@ class Compiler(
   private def parseModule(
     module: Module,
     useCaches: Boolean,
-    isGenDocs: Boolean = false
+    isGenDocs: Boolean              = false,
+    irDumper: Option[IRDumpService] = None
   ): Unit = {
     context.log(
       Compiler.defaultLogLevel,
@@ -604,7 +674,7 @@ class Compiler(
       return
     }
 
-    uncachedParseModule(module, isGenDocs)
+    uncachedParseModule(module, isGenDocs, irDumper)
   }
 
   /** Retrieve module bindings from cache, if available.
@@ -621,7 +691,11 @@ class Compiler(
     } else None
   }
 
-  private def uncachedParseModule(module: Module, isGenDocs: Boolean): Unit = {
+  private def uncachedParseModule(
+    module: Module,
+    isGenDocs: Boolean,
+    irDumper: Option[IRDumpService]
+  ): Unit = {
     context.log(
       Compiler.defaultLogLevel,
       "Loading module [{0}] from source.",
@@ -647,7 +721,7 @@ class Compiler(
         injectSyntheticModuleExports(expr, module.getDirectModulesRefs)
     context.updateModule(module, _.ir(exprWithModuleExports))
     val discoveredModule =
-      recognizeBindings(exprWithModuleExports, moduleContext)
+      recognizeBindings(exprWithModuleExports, moduleContext, irDumper)
     if (context.wasLoadedFromCache(module)) {
       if (module.getBindingsMap() != null) {
         discoveredModule.passData.update(
@@ -809,7 +883,8 @@ class Compiler(
 
   private def recognizeBindings(
     module: IRModule,
-    moduleContext: ModuleContext
+    moduleContext: ModuleContext,
+    irDumper: Option[IRDumpService]
   ): IRModule = {
     passManager.runPassesOnModule(
       module,
@@ -826,7 +901,8 @@ class Compiler(
     */
   private def runMethodBodyPasses(
     ir: IRModule,
-    moduleContext: ModuleContext
+    moduleContext: ModuleContext,
+    irDumper: Option[IRDumpService]
   ): IRModule = {
     context.log(
       Level.FINEST,
@@ -843,7 +919,8 @@ class Compiler(
 
   private def runGlobalTypingPasses(
     ir: IRModule,
-    moduleContext: ModuleContext
+    moduleContext: ModuleContext,
+    irDumper: Option[IRDumpService]
   ): IRModule = {
     context.log(
       Level.FINEST,
@@ -864,7 +941,8 @@ class Compiler(
     */
   private def runFinalTypeInferencePasses(
     ir: IRModule,
-    moduleContext: ModuleContext
+    moduleContext: ModuleContext,
+    irDumper: Option[IRDumpService]
   ): IRModule = {
     passManager.runPassesOnModule(
       ir,
@@ -1066,10 +1144,6 @@ class Compiler(
   def shutdown(waitForPendingJobCompletion: Boolean): Unit = {
     context.shutdown(waitForPendingJobCompletion)
     shutdownParsingPool(waitForPendingJobCompletion)
-    irDumper match {
-      case Some(dumper) => dumper.close()
-      case None         => ()
-    }
   }
 
   private def shutdownParsingPool(waitForPendingCompilation: Boolean): Unit = {
