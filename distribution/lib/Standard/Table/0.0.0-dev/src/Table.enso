@@ -50,7 +50,7 @@ import project.Internal.Java_Problems
 import project.Internal.Join_Helpers
 import project.Internal.Lookup_Helpers
 import project.Internal.Lookup_Helpers.Lookup_Column
-import project.Internal.Offset
+import project.Internal.Offset_Helper
 import project.Internal.Parse_Values_Helper
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Read_Many_Helpers
@@ -3831,7 +3831,7 @@ type Table
     @group_by Widget_Helpers.make_column_name_multi_selector
     @order_by Widget_Helpers.make_order_by_selector
     offset self columns:(Vector (Integer | Text | Regex | By_Type))=(Missing_Argument.throw "columns") n:Integer=-1 fill_with:Fill_With=..Nothing (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (set_mode:Set_Mode=..Add) (on_problems:Problem_Behavior=..Report_Warning) -> Table =
-        Offset.table_offset_impl self columns n fill_with group_by order_by set_mode on_problems
+        Offset_Helper.table_offset_impl self columns n fill_with group_by order_by set_mode on_problems
 
     ## PRIVATE
     column_naming_helper : Column_Naming_Helper
