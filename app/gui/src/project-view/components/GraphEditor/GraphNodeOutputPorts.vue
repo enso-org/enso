@@ -29,6 +29,9 @@ const emit = defineEmits<{
 
 const graph = useGraphStore()
 
+const nodeRect = computed(() => graph.nodeRects.get(props.nodeId))
+const nodeColor = computed(() => graph.db.getNodeColorStyle(props.nodeId))
+
 // === Ports ===
 
 interface PortData {
@@ -127,8 +130,12 @@ function portGroupStyle(port: PortData) {
     '--direct-hover-animation': hoverAnimations.get(port.portId)?.[0].value ?? 0,
     '--port-clip-start': start,
     '--port-clip-end': end,
-    '--port-label-transform-x': `calc(${((end - start) / 2 + start) * 100}%)`,
-    transform: 'var(--output-port-transform)',
+    '--port-label-transform-x': `${((end - start) / 2 + start) * 100}%`,
+    '--node-size-x': `${nodeRect.value?.size.x}px`,
+    '--node-size-y': `${nodeRect.value?.size.y}px`,
+    '--node-group-color': nodeColor.value,
+    transform: `translate(${nodeRect.value?.pos.x}px, ${nodeRect.value?.pos.y}px)`,
+    // transform: 'var(--output-port-transform)',
   }
 }
 
@@ -136,27 +143,29 @@ graph.suggestEdgeFromOutput(outputHovered)
 </script>
 
 <template>
-  <template v-for="port of outputPorts" :key="port.portId">
-    <g :style="portGroupStyle(port)">
-      <g
-        class="portClip"
-        @pointerenter="mouseOverOutput = port.portId"
-        @pointerleave="mouseOverOutput = undefined"
-      >
-        <rect
-          class="outputPortHoverArea clickable"
-          @pointerdown.stop.prevent="handlePortClick($event, port.portId)"
+  <g class="GraphNodeOutputPorts">
+    <template v-for="port of outputPorts" :key="port.portId">
+      <g :style="portGroupStyle(port)" class="define-node-colors">
+        <g
+          class="portClip"
+          @pointerenter="mouseOverOutput = port.portId"
+          @pointerleave="mouseOverOutput = undefined"
+        >
+          <rect
+            class="outputPortHoverArea clickable"
+            @pointerdown.stop.prevent="handlePortClick($event, port.portId)"
+          />
+          <rect class="outputPort" />
+        </g>
+        <text class="outputPortLabel">{{ port.label }}</text>
+        <CreateNodeFromPortButton
+          v-if="!componentBrowserOpened"
+          :portId="port.portId"
+          @click="emit('newNodeClick', port.portId)"
         />
-        <rect class="outputPort" />
       </g>
-      <text class="outputPortLabel">{{ port.label }}</text>
-      <CreateNodeFromPortButton
-        v-if="!componentBrowserOpened"
-        :portId="port.portId"
-        @click="emit('newNodeClick', port.portId)"
-      />
-    </g>
-  </template>
+    </template>
+  </g>
 </template>
 
 <style scoped>

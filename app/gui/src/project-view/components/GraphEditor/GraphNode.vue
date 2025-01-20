@@ -233,12 +233,31 @@ const isVisualizationEnabled = computed({
     emit('update:visualizationEnabled', enabled)
   },
 })
-const isVisualizationPreviewed = computed(
-  () => keyboard.mod && outputHovered.value && !isVisualizationEnabled.value,
+const visualizationHovered = ref(false)
+watch(outputHovered, (val) => console.log('outputHovered', val))
+watch(
+  () => keyboard.mod,
+  (val) => console.log('keyboard.mod', val),
+  { immediate: true },
 )
+
+const isVisualizationPreviewed = computed(
+  () =>
+    keyboard.mod &&
+    // (outputHovered.value || visualizationHovered.value) &&
+    !isVisualizationEnabled.value,
+)
+watch(isVisualizationPreviewed, (val) => {
+  console.log('isVisualizationPreviewed', val)
+})
 const isVisualizationVisible = computed(
   () => isVisualizationEnabled.value || isVisualizationPreviewed.value,
 )
+watch(isVisualizationVisible, (val) => {
+  if (!val) {
+    visualizationHovered.value = false
+  }
+})
 watch(isVisualizationPreviewed, (newVal, oldVal) => {
   if (newVal && !oldVal) {
     graph.db.moveNodeToTop(nodeId.value)
@@ -506,6 +525,8 @@ const showMenuAt = ref<{ x: number; y: number }>()
       :isPreview="isVisualizationPreviewed"
       :isFullscreenAllowed="true"
       :isResizable="true"
+      @pointerenter="((visualizationHovered = true), console.log('pointerenter'))"
+      @pointerleave="((visualizationHovered = false), console.log('pointerleave'))"
       @update:rect="updateVisualizationRect"
       @update:id="emit('update:visualizationId', $event)"
       @update:enabled="emit('update:visualizationEnabled', $event)"
