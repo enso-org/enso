@@ -66,7 +66,7 @@ export const colorForMessageType: Record<MessageType, string> = {
       <SvgButton
         v-if="containsLibraryName()"
         name="edit"
-        class="quickFixButton"
+        class="copyButton"
         title="Fix Import"
         @click.stop="fixImport"
       />
@@ -123,9 +123,6 @@ export const colorForMessageType: Record<MessageType, string> = {
 }
 
 .copyButton:active {
-  color: var(--color-text-inversed);
-}
-.quickFixButton:active {
   color: var(--color-text-inversed);
 }
 </style>
