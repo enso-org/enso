@@ -137,7 +137,15 @@ public class AddRunning {
 
     @Override
     public Storage<Double> createStorage(long[] result, int size, BitSet isNothing) {
-      return new DoubleStorage(result, size, isNothing);
+      // Have to convert the long[] to double[].
+      double[] values = new double[size];
+      for (int i = 0; i < size; i++) {
+        if (!isNothing.get(i)) {
+          values[i] = Double.longBitsToDouble(result[i]);
+        }
+      }
+
+      return new DoubleStorage(values, size, isNothing);
     }
   }
 
