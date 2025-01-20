@@ -7,6 +7,9 @@
   },
   {
     "interfaces":["org.enso.table.data.mask.SliceRange"]
+  },
+  {
+    "interfaces":["org.enso.table.data.table.join.lookup.LookupColumnDescription"]
   }
 ]
 

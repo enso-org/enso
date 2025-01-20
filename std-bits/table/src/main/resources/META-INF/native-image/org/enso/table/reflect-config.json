@@ -104,6 +104,15 @@
   ]
 },
 {
+  "name": "org.enso.table.data.column.storage.BoolStorage",
+  "methods":[
+    {
+      "name":"iif",
+      "parameterTypes":["org.graalvm.polyglot.Value", "org.graalvm.polyglot.Value", "org.enso.table.data.column.storage.type.StorageType", "org.enso.table.problems.ProblemAggregator"]
+    }
+  ]
+},
+{
   "name": "org.enso.table.expressions.ExpressionVisitorImpl.SyntaxErrorException"
 },
 {
@@ -125,8 +134,64 @@
     {
       "name":"build",
       "parameterTypes":["java.util.List","java.util.Comparator"]
+    },
+    {
+      "name":"findSubRange",
+      "parameterTypes":["java.lang.Object","java.lang.Object"]
+
     }
   ]
+},
+{
+  "name":"org.enso.table.data.table.join.lookup.LookupColumnDescription.KeepOriginal"
+},
+{
+  "name":"org.enso.table.data.table.join.lookup.LookupColumnDescription$KeepOriginal",
+  "methods": [
+    {
+      "name": "<init>",
+      "parameterTypes": ["org.enso.table.data.table.Column"]
+    },
+    {
+      "name": "new",
+      "parameterTypes": ["org.enso.table.data.table.Column"]
+    }
+  ]
+},
+{
+  "name":"org.enso.table.data.table.join.lookup.LookupColumnDescription.AddNew"
+},
+{
+  "name":"org.enso.table.data.table.join.lookup.LookupColumnDescription$AddNew",
+  "methods": [
+    {
+      "name": "<init>",
+      "parameterTypes": ["org.enso.table.data.table.Column"]
+    },
+    {
+      "name": "new",
+      "parameterTypes": ["org.enso.table.data.table.Column"]
+    }
+  ]
+},
+{
+  "name":"org.enso.table.data.table.join.lookup.LookupColumnDescription.MergeColumns"
+},
+{
+  "name":"org.enso.table.data.table.join.lookup.LookupColumnDescription$MergeColumns",
+  "methods": [
+    {
+      "name": "<init>",
+      "parameterTypes": ["org.enso.table.data.table.Column", "org.enso.table.data.table.Column", "org.enso.table.data.column.storage.type.StorageType"]
+    },
+    {
+      "name": "new",
+      "parameterTypes": ["org.enso.table.data.table.Column", "org.enso.table.data.table.Column", "org.enso.table.data.column.storage.type.StorageType"]
+    }
+  ]
+},
+{
+  "name":"org.enso.table.data.table.join.lookup.LookupJoin"
 },
 {
   "name": "org.enso.table.data.column.builder.LongBuilder",
@@ -150,7 +215,150 @@
   "name": "org.enso.table.excel.ExcelHeaders.HeaderBehavior"
 },
 {
-  "name": "org.enso.table.excel.ExcelHeaders$HeaderBehavior"
+  "name": "org.enso.table.excel.ExcelHeaders$HeaderBehavior",
+  "fields": [
+    {
+      "name": "INFER"
+    },
+    {
+      "name": "USE_FIRST_ROW_AS_HEADERS"
+    },
+    {
+      "name": "EXCEL_COLUMN_NAMES"
+    }
+  ]
+},
+{
+  "name":"org.enso.table.excel.ExcelConnectionPool",
+  "methods":[
+    {
+      "name": "getConnectionRecordCount"
+    },
+    {
+      "name": "simulateReloadTestOnly"
+    }
+  ]
+},
+{
+  "name":"org.enso.table.excel.ExcelConnectionPool.WriteHelper"
+},
+{
+  "name":"org.enso.table.excel.ExcelConnectionPool$WriteHelper",
+  "methods":[
+    {
+      "name":"writeWorkbook",
+      "parameterTypes":["java.io.File","java.util.function.Function"]
+    },
+    {
+      "name":"lockForWriting",
+      "parameterTypes":["java.io.File","org.enso.table.excel.ExcelFileFormat","java.io.File[]","java.util.Function"]
+    }
+  ]
+},
+{
+  "name":"org.enso.table.excel.ExcelFileFormat"
+},
+{
+  "name":"org.enso.table.excel.ExcelRange"
+},
+{
+  "name":"org.enso.table.excel.ExcelUtils"
+},
+{
+  "name":"org.enso.table.formatting.AnyObjectFormatter"
+},
+{
+  "name":"org.enso.table.formatting.BooleanFormatter"
+},
+{
+  "name":"org.enso.table.formatting.DateFormatter"
+},
+{
+  "name":"org.enso.table.formatting.DateTimeFormatter"
+},
+{
+  "name":"org.enso.table.formatting.DecimalFormatter"
+},
+{
+  "name":"org.enso.table.formatting.IntegerFormatter"
+},
+{
+  "name":"org.enso.table.formatting.TextFormatter"
+},
+{
+  "name":"org.enso.table.formatting.TimeFormatter"
+},
+{
+  "name":"org.enso.table.operations.AddGroupNumber"
+},
+{
+  "name":"org.enso.table.operations.AddRowNumber"
+},
+{
+  "name":"org.enso.table.operations.AddRunning"
+},
+{
+  "name":"org.enso.table.operations.OrderBuilder",
+  "methods":[
+    {
+      "name":"buildOrderMask",
+      "parameterTypes":["java.util.List"]
+    }
+  ]
+},
+{
+  "name":"org.enso.table.operations.OrderBuilder.OrderRule"
+},
+{
+  "name":"org.enso.table.operations.OrderBuilder$OrderRule",
+  "methods":[
+    {
+      "name": "<init>",
+      "parameterTypes": ["org.enso.table.data.table.Column", "boolean", "boolean"]
+    }
+  ]
+},
+{
+"name":"org.enso.table.parsing.BooleanParser"
+},
+{
+  "name":"org.enso.table.parsing.DateParser"
+},
+{
+  "name":"org.enso.table.parsing.DateTimeParser"
+},
+{
+  "name":"org.enso.table.parsing.IdentityParser"
+},
+{
+  "name":"org.enso.table.parsing.NumberParser"
+},
+{
+  "name":"org.enso.table.parsing.TimeOfDayParser"
+},
+{
+  "name":"org.enso.table.parsing.TypeInferringParser"
+},
+{
+  "name":"org.enso.table.parsing.WhitespaceStrippingParser"
+},
+{
+  "name":"org.enso.table.parsing.problems.AdditionalInvalidRows"
+},
+{
+  "name":"org.enso.table.parsing.problems.InvalidFormat"
+},
+{
+  "name":"org.enso.table.parsing.problems.InvalidRow"
+},
+{
+  "name":"org.enso.table.parsing.problems.MismatchedQuote"
+},
+{
+  "name":"org.enso.table.parsing.problems.ParseProblemAggregator"
+},
+{
+  "name":"org.enso.table.problems.ProblemAggregator"
 },
 {
   "name": "org.enso.table.read.DelimitedFileMetadata",
@@ -170,6 +378,172 @@
     {
       "name":"effectiveLineSeparator",
       "parameterTypes":[]
+    }
+  ]
+},
+{
+  "name":"org.enso.table.read.DelimitedReader"
+},
+{
+  "name":"org.enso.table.read.ExcelReader"
+},
+{
+  "name":"org.enso.table.read.ParsingFailedException"
+},
+{
+  "name":"org.enso.table.read.QuoteStrippingParser"
+},
+{
+  "name":"org.enso.table.util.ColumnMapper"
+},
+{
+  "name":"org.enso.table.util.NameDeduplicator"
+},
+{
+  "name":"org.enso.table.util.problems.DuplicateNames"
+},
+{
+  "name":"org.enso.table.util.problems.InvalidNames"
+},
+{
+  "name":"org.enso.table.write.DelimitedWriter"
+},
+{
+  "name":"org.enso.table.write.ExcelWriter"
+},
+{
+  "name":"org.enso.table.write.ExistingDataMode"
+},
+{
+  "name":"org.enso.table.write.WriteQuoteBehavior"
+},
+{
+  "name":"org.enso.base_test_helpers.FileSystemHelper"
+},
+{
+  "name":"org.enso.table_test_helpers.PolyglotHelpers",
+  "methods": [
+    {
+      "name": "createBigBigIntegerComingFromJava",
+      "parameterTypes": []
+    },
+    {
+      "name": "createSmallBigIntegerComingFromJava",
+      "parameterTypes": []
+    }
+  ]
+},
+{
+  "name":"org.enso.table_test_helpers.RandomHelpers",
+  "methods": [
+    {
+      "name": "<init>",
+      "parameterTypes": ["int"]
+    },
+    {
+      "name": "makeRandomString",
+      "parameterTypes": ["int"]
+    }
+  ]
+},
+{
+  "name":"org.enso.table_test_helpers.ExplodingStoragePayload",
+  "methods": [
+    {
+      "name": "<init>",
+      "parameterTypes": []
+    }
+  ]
+},
+{
+  "name":"org.enso.table_test_helpers.ExplodingStorage",
+  "methods": [
+    {
+      "name": "<init>",
+      "parameterTypes": ["long[]", "long"]
+    }
+  ]
+},
+{
+  "name":"org.apache.poi.UnsupportedFileFormatException"
+},
+{
+  "name":"org.apache.poi.poifs.filesystem.NotOLE2FileException"
+},
+{
+  "name":"org.apache.poi.poifs.filesystem.POIFSFileSystem",
+  "methods": [
+    {
+      "name": "<init>",
+      "parameterTypes": ["java.io.File"]
+    },
+    {
+      "name": "<init>",
+      "parameterTypes": ["java.io.InputStream"]
+    },
+    {
+      "name": "<init>",
+      "parameterTypes": ["java.io.File", "boolean"]
+    },
+    {
+      "name": "<init>",
+      "parameterTypes": []
+    }
+  ]
+},
+{
+  "name":"org.apache.poi.xssf.usermodel.XSSFWorkbook",
+  "methods": [
+    {
+      "name": "<init>",
+      "parameterTypes": []
+    },
+    {
+      "name": "<init>",
+      "parameterTypes": ["org.apache.poi.openxml4j.opc.OPCPackage"]
+    }
+  ]
+},
+{
+  "name":"org.apache.poi.xssf.usermodel.HSSFWorkbook",
+  "methods": [
+    {
+      "name": "<init>",
+      "parameterTypes": ["org.apache.poi.poifs.filesystem.POIFSFileSystem"]
+    }
+  ]
+},
+{
+  "name":"org.apache.poi.ss.usermodel.Workbook"
+},
+{
+  "name":"org.apache.poi.openxml4j.opc.OPCPackage",
+  "methods": [
+    {
+      "name": "open",
+      "parameterTypes": ["java.lang.String", "org.apache.poi.openxml4j.opc.PackageAccess"]
+    },
+    {
+      "name": "open",
+      "parameterTypes": ["java.io.File", "org.apache.poi.openxml4j.opc.PackageAccess"]
+    }
+  ]
+},
+{
+  "name":"org.apache.logging.log4j.LogManager",
+  "methods": [
+    {
+      "name": "getLogger",
+      "parameterTypes": ["java.lang.Class"]
+    }
+  ]
+},
+{
+  "name":"java.util.Comparator",
+  "methods": [
+    {
+      "name": "naturalOrder",
+      "parameterTypes": []
     }
   ]
 }
