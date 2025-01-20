@@ -386,21 +386,6 @@ is_polyglot value -> Boolean = @Tail_Call Meta_Helpers.is_polyglot_builtin value
 
 ## PRIVATE
 
-   Returns a Text representing the source location of a stack frame above
-   the call.
-
-   Arguments:
-   - skip_frames: how many frames on the stack to skip.
-
-   If the function is called with 0 it will return the location of that call.
-   Note that not only function calls, but also things like pattern matching add
-   frames to the stack and there is no guarantee that the amount of frames that
-   need to be skipped will not change between versions, so this method should be
-   used carefully.
-get_source_location skip_frames:Integer -> Text = Meta_Helpers.get_source_location_builtin skip_frames
-
-## PRIVATE
-
    Displays the type of the provided value as text.
 
    Arguments:

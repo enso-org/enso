@@ -18,7 +18,7 @@ add_specs suite_builder = suite_builder.group "Meta-Value Inspection" group_buil
         _ -> Nothing
 
     group_builder.specify "should allow to get the source location of a frame" pending=location_pending <|
-        src = Meta.get_source_location 0
+        src = Test.get_source_location 0
         loc = "Meta_Location_Spec.enso:21:15-40"
         src.take (..Last loc.length) . should_equal loc
 
