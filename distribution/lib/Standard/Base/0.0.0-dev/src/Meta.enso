@@ -281,13 +281,9 @@ atom_with_hole factory = @Tail_Call Meta_Helpers.atom_with_hole_builtin factory
 meta ~value -> Atom | Constructor | Primitive | Polyglot | Unresolved_Symbol | Error | Type =
     ac = Meta_Helpers.find_atom_constructor_builtin value...
     kind = if ac.is_nothing.not then 1 else
-        if Meta_Helpers.is_atom_builtin value... then 2 else
-            if Meta_Helpers.is_polyglot_builtin value then 3 else
-                if Meta_Helpers.is_unresolved_symbol_builtin value then 4 else
-                    if Meta_Helpers.is_error_builtin value then 5 else
-                        if Meta_Helpers.is_type_builtin value then 6 else 0
+        Meta_Helpers.get_kind_builtin value
 
-    case kind of
+    case kind:Integer of
         1 -> Constructor.Value ac
         2 -> Atom.Value value
         3 -> Polyglot.Value value
@@ -367,7 +363,7 @@ is_atom_constructor ~value -> Boolean = Meta_Helpers.find_atom_constructor_built
 
    Arguments:
    - value: The value to check.
-is_atom value -> Boolean = @Tail_Call Meta_Helpers.is_atom_builtin value
+is_atom value -> Boolean = 2 == Meta_Helpers.get_kind_builtin value
 
 ## PRIVATE
 
@@ -375,7 +371,7 @@ is_atom value -> Boolean = @Tail_Call Meta_Helpers.is_atom_builtin value
 
    Arguments:
    - value: The value to check.
-is_error value -> Boolean = @Tail_Call Meta_Helpers.is_error_builtin value
+is_error value -> Boolean = 5 == Meta_Helpers.get_kind_builtin value
 
 ## PRIVATE
 
@@ -383,14 +379,14 @@ is_error value -> Boolean = @Tail_Call Meta_Helpers.is_error_builtin value
 
    Arguments:
    - value: The value to check.
-is_type value -> Boolean = @Tail_Call Meta_Helpers.is_type_builtin value
+is_type value -> Boolean = 6 == Meta_Helpers.get_kind_builtin value
 ## PRIVATE
 
    Checks if the provided value is a polyglot value.
 
    Arguments:
    - value: The value to check.
-is_polyglot value -> Boolean = @Tail_Call Meta_Helpers.is_polyglot_builtin value
+is_polyglot value -> Boolean = 3 == Meta_Helpers.get_kind_builtin value
 
 ## PRIVATE
 
