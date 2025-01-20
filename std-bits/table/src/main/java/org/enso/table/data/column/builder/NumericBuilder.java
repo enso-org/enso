@@ -1,39 +1,15 @@
 package org.enso.table.data.column.builder;
 
-import java.util.Arrays;
 import java.util.BitSet;
-import org.enso.table.data.column.storage.type.IntegerType;
-import org.enso.table.problems.ProblemAggregator;
 
 /** A common base for numeric builders. */
-public abstract class NumericBuilder extends TypedBuilder {
+public abstract class NumericBuilder implements Builder {
   protected BitSet isNothing;
-  protected long[] data;
   protected int currentSize;
 
-  NumericBuilder(BitSet isNothing, long[] data, int currentSize) {
-    this.isNothing = isNothing;
-    this.data = data;
-    this.currentSize = currentSize;
-  }
-
-  /**
-   * Creates a {@link DoubleBuilder} that should be used to create columns of boolean type and are
-   * not expected to be retyped.
-   */
-  public static DoubleBuilder createDoubleBuilder(int size, ProblemAggregator problemAggregator) {
-    return new DoubleBuilder(new BitSet(), new long[size], 0, problemAggregator);
-  }
-
-  /** Creates a {@link DoubleBuilder} that may be retyped to Mixed type. */
-  public static DoubleBuilder createInferringDoubleBuilder(
-      int size, ProblemAggregator problemAggregator) {
-    return new InferringDoubleBuilder(new BitSet(), new long[size], 0, problemAggregator);
-  }
-
-  public static LongBuilder createLongBuilder(
-      int size, IntegerType type, ProblemAggregator problemAggregator) {
-    return LongBuilder.make(size, type, problemAggregator);
+  protected NumericBuilder() {
+    this.isNothing = new BitSet();
+    this.currentSize = 0;
   }
 
   @Override
@@ -42,36 +18,23 @@ public abstract class NumericBuilder extends TypedBuilder {
     currentSize += count;
   }
 
-  protected void ensureFreeSpaceFor(int additionalSize) {
-    if (currentSize + additionalSize > data.length) {
-      resize(currentSize + additionalSize);
-    }
-  }
-
   @Override
   public void append(Object o) {
-    if (currentSize >= data.length) {
+    if (currentSize >= getDataSize()) {
       grow();
     }
     appendNoGrow(o);
   }
 
-  /**
-   * Append a new item in raw form to this builder, assuming that it has enough allocated space.
-   *
-   * <p>This function should only be used when it is guaranteed that the builder has enough
-   * capacity, for example if it was initialized with an initial capacity known up-front.
-   *
-   * @param rawData the raw encoding of the item, for long numbers just the number and for doubles,
-   *     its long bytes
-   */
-  public void appendRawNoGrow(long rawData) {
-    data[currentSize++] = rawData;
-  }
-
   @Override
   public int getCurrentSize() {
     return currentSize;
+  }
+
+  protected void ensureFreeSpaceFor(int additionalSize) {
+    if (currentSize + additionalSize > getDataSize()) {
+      resize(currentSize + additionalSize);
+    }
   }
 
   /**
@@ -82,23 +45,12 @@ public abstract class NumericBuilder extends TypedBuilder {
    * free slot.
    */
   protected void grow() {
-    int desiredCapacity = 3;
-    if (data.length > 1) {
-      desiredCapacity = (data.length * 3 / 2);
-    }
-
-    // It is possible for the `currentSize` to grow arbitrarily larger than
-    // the capacity, because when nulls are being added the array is not
-    // resized, only the counter is incremented. Thus, we need to ensure
-    // that we have allocated enough space for at least one element.
-    if (currentSize >= desiredCapacity) {
-      desiredCapacity = currentSize + 1;
-    }
-
+    int dataLength = getDataSize();
+    int desiredCapacity = Math.max(currentSize + 1, dataLength > 1 ? dataLength * 3 / 2 : 3);
     resize(desiredCapacity);
   }
 
-  protected void resize(int desiredCapacity) {
-    this.data = Arrays.copyOf(data, desiredCapacity);
-  }
+  protected abstract int getDataSize();
+
+  protected abstract void resize(int desiredCapacity);
 }

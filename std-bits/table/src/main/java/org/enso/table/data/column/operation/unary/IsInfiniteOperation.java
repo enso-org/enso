@@ -1,8 +1,8 @@
 package org.enso.table.data.column.operation.unary;
 
 import java.util.BitSet;
-import org.enso.table.data.column.builder.BoolBuilder;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.builder.BuilderForBoolean;
 import org.enso.table.data.column.operation.UnaryOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.*;
@@ -38,7 +38,7 @@ public class IsInfiniteOperation extends AbstractUnaryBooleanOperation {
       ColumnLongStorage longStorage,
       Builder builder,
       MapOperationProblemAggregator problemAggregator) {
-    var boolBuilder = (BoolBuilder) builder;
+    var boolBuilder = (BuilderForBoolean) builder;
     UnaryOperation.applyOverLongStorage(
         longStorage, true, builder, (isNothing, value) -> boolBuilder.appendBoolean(false));
   }
@@ -48,7 +48,7 @@ public class IsInfiniteOperation extends AbstractUnaryBooleanOperation {
       ColumnDoubleStorage doubleStorage,
       Builder builder,
       MapOperationProblemAggregator problemAggregator) {
-    var boolBuilder = (BoolBuilder) builder;
+    var boolBuilder = (BuilderForBoolean) builder;
     UnaryOperation.applyOverDoubleStorage(
         doubleStorage,
         true,
@@ -58,7 +58,7 @@ public class IsInfiniteOperation extends AbstractUnaryBooleanOperation {
 
   @Override
   protected void applyObjectRow(
-      Object value, BoolBuilder builder, MapOperationProblemAggregator problemAggregator) {
+      Object value, BuilderForBoolean builder, MapOperationProblemAggregator problemAggregator) {
     // Null handled by base class
     switch (value) {
       case Double d -> builder.appendBoolean(Double.isInfinite(d));

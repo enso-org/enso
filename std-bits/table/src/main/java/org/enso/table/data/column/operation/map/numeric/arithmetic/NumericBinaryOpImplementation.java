@@ -162,14 +162,13 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
     Context context = Context.getCurrent();
     int n = a.size();
     int m = Math.min(a.size(), b.size());
-    long[] out = new long[n];
+    double[] out = new double[n];
     BitSet isNothing = new BitSet();
     for (int i = 0; i < m; i++) {
       if (a.isNothing(i) || b.isNothing(i)) {
         isNothing.set(i);
       } else {
-        double r = doDouble(a.getItemAsDouble(i), b.getItemAsDouble(i), i, problemAggregator);
-        out[i] = Double.doubleToRawLongBits(r);
+        out[i] = doDouble(a.getItemAsDouble(i), b.getItemAsDouble(i), i, problemAggregator);
       }
 
       context.safepoint();
@@ -201,14 +200,13 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
     double bNonNull = b;
     Context context = Context.getCurrent();
     int n = a.size();
-    long[] out = new long[n];
+    double[] out = new double[n];
     BitSet isNothing = new BitSet();
     for (int i = 0; i < n; i++) {
       if (a.isNothing(i)) {
         isNothing.set(i);
       } else {
-        double r = doDouble(a.getItemAsDouble(i), bNonNull, i, problemAggregator);
-        out[i] = Double.doubleToRawLongBits(r);
+        out[i] = doDouble(a.getItemAsDouble(i), bNonNull, i, problemAggregator);
       }
 
       context.safepoint();

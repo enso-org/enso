@@ -346,7 +346,7 @@ public class ExcelReader {
         wholeRow
             ? new ArrayList<>()
             : IntStream.range(startCol, endCol + 1)
-                .mapToObj(i -> new InferredBuilder(size, problemAggregator))
+                .mapToObj(i -> new InferredBuilder(size, problemAggregator, true))
                 .collect(Collectors.toList());
 
     // Read Cell Data
