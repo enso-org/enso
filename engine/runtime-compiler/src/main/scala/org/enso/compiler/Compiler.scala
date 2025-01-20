@@ -192,11 +192,7 @@ class Compiler(
             )
 
             if (generateDocs.isDefined) {
-              val v = if (generateDocs.get == "api") {
-                DocsVisit.createSignatures();
-              } else {
-                DocsVisit.createMarkdown();
-              }
+              val v = generateDocs.get == "api" ? DocsVisit.createSignatures() : DocsVisit.createMarkdown();
               val outDir = DocsGenerate.write(v, pkg, packageModules.asJava)
               printDiagnostic(s"Documentation generated to ${outDir}")
             }
