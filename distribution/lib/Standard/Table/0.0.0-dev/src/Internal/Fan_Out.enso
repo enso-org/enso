@@ -1,7 +1,9 @@
 from Standard.Base import all
+import Standard.Base.Data.Vector.Builder
 import Standard.Base.Runtime.Ref.Ref
 
 import project.Column.Column
+import project.Columns_To_Add.Columns_To_Add
 import project.Conversions.Convertible_To_Rows.Key_Value
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Table.Table
@@ -21,11 +23,13 @@ polyglot java import org.enso.table.data.mask.OrderMask
    - input_column: The column to transform.
    - function: A function that transforms a single element of `input_column`
      to multiple values.
-fan_out_to_columns : Table -> Text | Integer -> (Any -> Vector Any) -> Integer | Nothing -> (Integer -> Any) -> Problem_Behavior -> Table | Nothing
-fan_out_to_columns table input_column_id function column_count=Nothing column_builder=make_string_builder on_problems=Report_Error =
+   - column_count: The number of columns to split to.
+     If `All_Columns` then columns will be added to fit all data.  
+fan_out_to_columns : Table -> Text | Integer -> (Any -> Vector Any) -> Columns_To_Add -> (Integer -> Any) -> Problem_Behavior -> Table | Nothing
+fan_out_to_columns table input_column_id function column_count column_builder=make_string_builder on_problems:Problem_Behavior=..Report_Error =
     input_column = table.get input_column_id
     problem_builder = Problem_Builder.new
-    new_columns_unrenamed = map_columns_to_multiple input_column function column_count column_builder=column_builder problem_builder=problem_builder
+    new_columns_unrenamed = map_columns_to_multiple input_column function column_count=column_count.columns_to_split column_builder=column_builder problem_builder=problem_builder
     new_columns = rename_new_columns table input_column.name new_columns_unrenamed problem_builder
     new_table = replace_column_with_columns table input_column new_columns
     problem_builder.attach_problems_after on_problems new_table
@@ -47,7 +51,7 @@ fan_out_to_columns table input_column_id function column_count=Nothing column_bu
      single row is output with `Nothing` for the transformed column. If false,
     the row is not output at all.
 fan_out_to_rows : Table -> Text -> (Any -> Vector Any) -> Vector | Function -> Boolean -> (Integer -> Any) -> Problem_Behavior -> Table
-fan_out_to_rows table input_column_id:Text function column_names=[input_column_id] at_least_one_row=False column_builder=make_string_builder on_problems=Report_Error =
+fan_out_to_rows table input_column_id:Text function column_names=[input_column_id] at_least_one_row=False column_builder=make_string_builder on_problems:Problem_Behavior=..Report_Error =
     ## Treat this as a special case of fan_out_to_rows_and_columns, with one
        column. Wrap the provided function to convert each value to a singleton
        `Vector`.
@@ -98,7 +102,7 @@ fan_out_to_rows table input_column_id:Text function column_names=[input_column_i
    - column_names: The names for the generated columns.
    - on_problems: Specifies the behavior when a problem occurs.
 fan_out_to_rows_and_columns : Table -> Text | Integer -> (Any -> Vector (Vector Any)) -> Vector Text -> Boolean -> (Integer -> Any) -> Problem_Behavior -> Table
-fan_out_to_rows_and_columns table input_column_id function column_names at_least_one_row=False column_builder=make_string_builder on_problems=Report_Error =
+fan_out_to_rows_and_columns table input_column_id function column_names at_least_one_row=False column_builder=make_string_builder on_problems:Problem_Behavior=..Report_Error =
     problem_builder = Problem_Builder.new
     unique = table.column_naming_helper.create_unique_name_strategy
 
@@ -142,7 +146,7 @@ fan_out_to_rows_and_columns_fixed input_storage function at_least_one_row:Boolea
     output_column_builders = Vector.new num_output_columns _-> column_builder num_input_rows
 
     # Accumulates repeated position indices for the order mask.
-    order_mask_positions = Vector.new_builder num_input_rows
+    order_mask_positions = Builder.new num_input_rows
 
     empty_row = [Vector.fill num_output_columns Nothing]
     maybe_add_empty_row vecs = if vecs.is_empty && at_least_one_row then empty_row else vecs
@@ -168,21 +172,21 @@ fan_out_to_rows_and_columns_fixed input_storage function at_least_one_row:Boolea
 fan_out_to_rows_and_columns_dynamic : Any -> (Any -> Vector (Vector Any)) -> Boolean -> (Any -> Text) -> (Integer -> Any) -> Problem_Builder -> Vector
 fan_out_to_rows_and_columns_dynamic input_storage function at_least_one_row column_names_for_row column_builder problem_builder =
     # Accumulates the outputs of the function.
-    column_map = Ref.new Map.empty
-    output_column_builders = Vector.new_builder
+    column_dict = Ref.new Dictionary.empty
+    output_column_builders = Builder.new
 
     # Guess that most of the time, we'll get at least one value for each input.
     num_input_rows = input_storage.size
 
     # Column Builder add function
     add_column n current_length =
-        column_map.put (column_map.get.insert n output_column_builders.length)
+        column_dict.put (column_dict.get.insert n output_column_builders.length)
         builder = column_builder num_input_rows
         builder.appendNulls current_length
         output_column_builders.append builder
 
     # Accumulates repeated position indices for the order mask.
-    order_mask_positions = Vector.new_builder num_input_rows
+    order_mask_positions = Builder.new num_input_rows
 
     maybe_add_empty_row vecs = if (vecs.is_empty && at_least_one_row).not then vecs else
         [Vector.fill output_column_builders.length Nothing]
@@ -196,11 +200,11 @@ fan_out_to_rows_and_columns_dynamic input_storage function at_least_one_row colu
 
         # Add any missing columns.
         row_column_names.each n->
-            if column_map.get.contains_key n . not then 
+            if column_dict.get.contains_key n . not then
                 add_column n order_mask_positions.length
 
         # Append each group of values to the builder.
-        current_columns = column_map.get
+        current_columns = column_dict.get
         output_values.each row_unchecked->
             row = uniform_length row_column_names.length row_unchecked problem_builder
             row_column_names.each_with_index i->n->
@@ -216,7 +220,7 @@ fan_out_to_rows_and_columns_dynamic input_storage function at_least_one_row colu
         repeat_each output_values.length <| order_mask_positions.append i
 
     # Build the output column
-    output_columns = column_map.get.to_vector.sort on=_.second . map pair->
+    output_columns = column_dict.get.to_vector.sort on=_.second . map pair->
         Column.from_storage pair.first (output_column_builders.at pair.second . seal)
 
     [output_columns, order_mask_positions]
@@ -236,7 +240,6 @@ fan_out_to_rows_and_columns_dynamic input_storage function at_least_one_row colu
      If `Nothing` then columns will be added to fit all data.
      If the data exceeds the `column_count`, a `Column_Count_Exceeded` error
      will follow the `on_problems` behavior.
-   - on_problems: Specifies the behavior when a problem occurs.
 map_columns_to_multiple : Column -> (Any -> Vector Any) -> Integer | Nothing -> (Integer -> Any) -> Problem_Builder -> Vector Column
 map_columns_to_multiple input_column function column_count column_builder=make_string_builder problem_builder =
     num_rows = input_column.length
@@ -244,7 +247,7 @@ map_columns_to_multiple input_column function column_count column_builder=make_s
 
     builders = case column_count of
         Nothing ->
-            builders = Vector.new_builder
+            builders = Builder.new
 
             0.up_to num_rows . each i->
                 input_value = input_storage.getItemBoxed i

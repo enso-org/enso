@@ -1,0 +1,95 @@
+import project.Any.Any
+import project.Data.Read.Many_Files_List.Many_Files_List
+import project.Data.Text.Text
+import project.Data.Vector.Vector
+import project.Error.Error
+import project.Errors.Common.Type_Error
+import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Errors.Problem_Behavior.Problem_Behavior
+import project.Function.Function
+import project.Metadata.Display
+import project.Metadata.Widget
+import project.Nothing.Nothing
+import project.Panic.Panic
+from project.Data.Boolean import Boolean, False, True
+from project.Metadata.Choice import Option
+from project.Metadata.Widget import Single_Choice
+
+polyglot java import org.enso.base.read.ReadManyReturnSPI
+
+private _get_known_return_classes -> Vector =
+    Vector.from_polyglot_array (ReadManyReturnSPI.get_types False)
+
+## A common interface that represents ways to return a list of files that have
+   been read.
+type Return_As
+    ## PRIVATE
+    Instance underlying
+
+    ## PRIVATE
+    to_text self -> Text = self.underlying.to_text
+
+    ## PRIVATE
+    to_display_text self -> Text = self.underlying.to_display_text
+
+    ## PRIVATE
+    make_return self (input : Many_Files_List) (objects : Vector Any) (on_problems : Problem_Behavior) =
+        self.underlying.make_return input objects on_problems
+
+    ## PRIVATE
+       Resolve an unresolved constructor to the actual type.
+    private resolve value = case value of
+        _ : Function ->
+            # Result when we fail to resolve an autoscoped constructor.
+            symbol_not_found =
+                is_the_default = (Return_As_Table_Mock.resolve value).is_nothing.not
+                case is_the_default of
+                    True ->
+                        Error.throw (Illegal_Argument.Error "The method returns a merged Table by default, but Standard.Table is not imported. Add an import, or use `As_Vector`.")
+                    False ->
+                        Error.throw (Illegal_Argument.Error "Expected Return_As, but got a function.")
+            types = _get_known_return_classes
+            try_next idx =
+                if idx >= types.length then symbol_not_found else
+                    resolved = (types.at idx).resolve value
+                    if resolved.is_nothing then @Tail_Call try_next (idx + 1) else resolved
+            try_next 0
+        _ : Return_As -> value
+        _ -> Panic.throw (Type_Error.Error Return_As value "Expected `return` to be a Return_As type, but got {got}.")
+
+    ## PRIVATE
+    default_widget display:Display=..When_Modified -> Widget =
+        options = _get_known_return_classes.flat_map .get_dropdown_options
+        Single_Choice display=display values=options
+
+## PRIVATE
+type Return_As_Base
+    ## Will return a Vector of objects that were loaded.
+       The order of the returned Vector is the same as in the input.
+    As_Vector
+
+    ## PRIVATE
+    get_dropdown_options : Vector Option
+    get_dropdown_options = [Option "As Vector" "..As_Vector"]
+
+    ## PRIVATE
+    resolve value =
+        Panic.catch Type_Error (value:Return_As_Base) _->Nothing
+
+    ## PRIVATE
+    make_return self (input : Many_Files_List) (objects : Vector Any) (on_problems : Problem_Behavior) =
+        _ = [input, on_problems]
+        objects
+
+## PRIVATE
+Return_As.from (that : Return_As_Base) =
+    Return_As.Instance that
+
+## PRIVATE
+   A mock type used only to check the autoscoped `As_Merged_Table` constructor.
+   TODO If we get support for `Unresolved_Constructor` in `Meta`, this type may be removed.
+type Return_As_Table_Mock
+    private As_Merged_Table columns_to_keep=Nothing match=Nothing
+
+    private resolve value =
+        Panic.catch Type_Error (value:Return_As_Table_Mock) _->Nothing

@@ -11,7 +11,7 @@ import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 
 /** Aggregate Column finding the longest or shortest string in a group. */
-public class ShortestOrLongest extends Aggregator {
+public class ShortestOrLongest extends KnownTypeAggregator {
   public static final int SHORTEST = -1;
   public static final int LONGEST = 1;
   private final Storage<?> storage;

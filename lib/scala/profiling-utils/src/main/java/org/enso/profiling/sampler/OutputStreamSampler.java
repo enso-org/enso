@@ -7,6 +7,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import org.netbeans.modules.sampler.Sampler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Gathers application performance statistics that can be visualised in Java VisualVM, and writes it
@@ -18,6 +20,8 @@ public final class OutputStreamSampler implements MethodsSampler {
   private final OutputStream outputStream;
 
   private boolean isSamplingStarted = false;
+
+  private static Logger logger = LoggerFactory.getLogger(OutputStreamSampler.class);
 
   /**
    * Creates the {@link OutputStreamSampler} for provided output stream.
@@ -35,7 +39,8 @@ public final class OutputStreamSampler implements MethodsSampler {
   @Override
   public void start() {
     synchronized (this) {
-      if (!isSamplingStarted) {
+      if (sampler != null && !isSamplingStarted) {
+        logger.trace("Starting profiling sampler");
         sampler.start();
         isSamplingStarted = true;
       }
@@ -46,6 +51,7 @@ public final class OutputStreamSampler implements MethodsSampler {
   public void stop() throws IOException {
     synchronized (this) {
       if (isSamplingStarted) {
+        logger.trace("Stopping profiling sampler");
         try (DataOutputStream dos = new DataOutputStream(outputStream)) {
           sampler.stopAndWriteTo(dos);
         }

@@ -1,5 +1,6 @@
 from Standard.Base import all
 from Standard.Table import all
+from Standard.Table.Internal.Storage import get_storage_for_column
 
 from Standard.Test import Bench
 
@@ -7,8 +8,8 @@ import project.Table.Common_Setup.Common_Setup
 import project.Table.Helpers
 
 polyglot java import org.enso.exploratory_benchmark_helpers.MapHelpers
-polyglot java import org.enso.table.data.column.builder.BoolBuilder
-polyglot java import org.enso.table.data.column.builder.NumericBuilder
+polyglot java import org.enso.table.data.column.builder.Builder
+polyglot java import org.enso.table.data.column.storage.type.IntegerType;
 
 ## This tests an operation on a boxed value (e.g. ends_with on a String).
    It is the basic benchmark for comparing the performance between the vectorized Java op and approaches relying on Enso.
@@ -21,7 +22,7 @@ type Boxed_Map_Test
 
     java_map self =
         Column.from_storage "result" <|
-            MapHelpers.textEndsWith self.text_column.java_column.getStorage self.suffix
+            MapHelpers.textEndsWith (get_storage_for_column self.text_column) self.suffix
 
     enso_map_as_vector self convert_polyglot_dates =
         suffix = self.suffix
@@ -32,8 +33,8 @@ type Boxed_Map_Test
     enso_map_with_builder self =
         suffix = self.suffix
         n = self.text_column.length
-        builder = BoolBuilder.new n
-        storage = self.text_column.java_column.getStorage
+        builder = Builder.getForBoolean n
+        storage = get_storage_for_column self.text_column
         0.up_to n . each i->
             item = storage.getItemBoxed i
             case item of
@@ -58,7 +59,7 @@ type Primitive_Map_Test
 
     java_map self =
         Column.from_storage "result" <|
-            MapHelpers.longAdd self.int_column.java_column.getStorage self.shift
+            MapHelpers.longAdd (get_storage_for_column self.int_column) self.shift
 
     enso_map_as_vector self convert_polyglot_dates =
         shift = self.shift
@@ -69,8 +70,8 @@ type Primitive_Map_Test
     enso_map_with_builder self =
         shift = self.shift
         n = self.int_column.length
-        builder = NumericBuilder.createLongBuilder n
-        storage = self.int_column.java_column.getStorage
+        builder = Builder.getForLong IntegerType.INT_64 n Nothing
+        storage = get_storage_for_column self.int_column
         0.up_to n . each i->
             case storage.isNothing i of
                 True ->

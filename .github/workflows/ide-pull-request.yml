@@ -1,0 +1,59 @@
+# This file is not auto-generated. Feel free to edit it.
+
+name: ✨ IDE
+
+on:
+  push:
+    branches:
+      - develop
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-ide-pull-request
+  cancel-in-progress: ${{ github.ref != 'refs/heads/develop' }}
+
+jobs:
+  gui-changed-files:
+    name: 🔍 GUI Files Changed
+    uses: ./.github/workflows/gui-changed-files.yml
+    secrets: inherit
+
+  ide-changed-files:
+    name: 🔍 IDE Files Changed
+    uses: ./.github/workflows/ide-changed-files.yml
+    secrets: inherit
+
+  engine-changed-files:
+    name: 🔍 Engine Files Changed
+    uses: ./.github/workflows/engine-changed-files.yml
+    secrets: inherit
+
+  ide-packaging:
+    name: 📦 Package
+    uses: ./.github/workflows/ide-packaging.yml
+    needs: [gui-changed-files, ide-changed-files, engine-changed-files]
+    if: needs.gui-changed-files.outputs.any_changed == 'true' || needs.ide-changed-files.outputs.any_changed == 'true' || needs.engine-changed-files.outputs.any_changed == 'true' || github.ref == 'refs/heads/develop'
+    secrets: inherit
+
+  ide-packaging-optional:
+    name: 📦 Package (Optional)
+    uses: ./.github/workflows/ide-packaging-optional.yml
+    needs: [gui-changed-files, ide-changed-files, engine-changed-files]
+    if: needs.gui-changed-files.outputs.any_changed == 'true' || needs.ide-changed-files.outputs.any_changed == 'true' || needs.engine-changed-files.outputs.any_changed == 'true' || github.ref == 'refs/heads/develop'
+    secrets: inherit
+
+  required-checks:
+    name: IDE Required Checks
+    runs-on: ubuntu-latest
+    needs: [ide-packaging]
+    if: always()
+    steps:
+      - name: Checks Summary
+        run: |
+          echo "IDE: ${{ needs.ide-packaging.result }}"
+
+          if [[ "${{ needs.ide-packaging.result }}" == "failure" ]]; then
+            exit 1
+          fi
+
+          echo "Success!"

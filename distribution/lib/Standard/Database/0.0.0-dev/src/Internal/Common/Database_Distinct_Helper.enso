@@ -1,6 +1,5 @@
 from Standard.Base import all
-
-from Standard.Table.Errors import Floating_Point_Equality
+import Standard.Base.Errors.Common.Floating_Point_Equality
 
 import project.Internal.Helpers
 import project.Internal.IR.SQL_Expression.SQL_Expression

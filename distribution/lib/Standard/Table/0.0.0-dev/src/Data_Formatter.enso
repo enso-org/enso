@@ -13,7 +13,7 @@ import project.Value_Type.Auto
 import project.Value_Type.Bits
 import project.Value_Type.Value_Type
 
-polyglot java import java.lang.Exception as Java_Exception
+polyglot java import java.lang.Exception as JException
 polyglot java import java.lang.IllegalArgumentException
 polyglot java import org.enso.table.formatting.AnyObjectFormatter
 polyglot java import org.enso.table.formatting.BooleanFormatter
@@ -59,9 +59,9 @@ type Data_Formatter
        - time_formats: Expected time formats.
        - true_values: Values representing True.
        - false_values: Values representing False.
-    @datetime_formats (make_vector_widget make_date_time_format_selector)
-    @date_formats (make_vector_widget make_date_format_selector)
-    @time_formats (make_vector_widget make_time_format_selector)
+    @datetime_formats make_vector_widget make_date_time_format_selector
+    @date_formats make_vector_widget make_date_format_selector
+    @time_formats make_vector_widget make_time_format_selector
     Value trim_values:Boolean=True allow_leading_zeros:Boolean=False decimal_point:Text|Auto=Auto thousand_separator:Text='' allow_exponential_notation:Boolean=False datetime_formats:(Vector Date_Time_Formatter)=[Date_Time_Formatter.default_enso_zoned_date_time] date_formats:(Vector Date_Time_Formatter)=[Date_Time_Formatter.iso_date] time_formats:(Vector Text)=[Date_Time_Formatter.iso_time] true_values:(Vector Text)=["True","true","TRUE"] false_values:(Vector Text)=["False","false","FALSE"]
 
     ## PRIVATE
@@ -78,7 +78,7 @@ type Data_Formatter
          If set to `Ignore`, the operation proceeds without errors or warnings.
     @type Widget_Helpers.parse_type_selector
     parse : Text -> (Value_Type | Auto) -> Problem_Behavior -> Any
-    parse self text type=Auto on_problems=Problem_Behavior.Report_Warning =
+    parse self text type:(Value_Type | Auto)=Auto on_problems:Problem_Behavior=..Report_Warning =
         parser = self.make_value_type_parser type
         Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
             related_column_name = Nothing
@@ -120,16 +120,16 @@ type Data_Formatter
        - datetime_formats: Expected datetime formats.
        - date_formats: Expected date formats.
        - time_formats: Expected time formats.
-    @datetime_formats (make_vector_widget make_date_time_format_selector)
-    @date_formats (make_vector_widget make_date_format_selector)
-    @time_formats (make_vector_widget make_time_format_selector)
+    @datetime_formats make_vector_widget make_date_time_format_selector
+    @date_formats make_vector_widget make_date_format_selector
+    @time_formats make_vector_widget make_time_format_selector
     with_datetime_formats : (Vector Date_Time_Formatter | Date_Time_Formatter) -> (Vector Date_Time_Formatter | Date_Time_Formatter) -> (Vector Date_Time_Formatter | Date_Time_Formatter) -> Data_Formatter
     with_datetime_formats self datetime_formats:(Vector | Date_Time_Formatter)=self.datetime_formats date_formats:(Vector | Date_Time_Formatter)=self.date_formats time_formats:(Vector | Date_Time_Formatter)=self.time_formats =
         convert_formats formats =
             vector = case formats of
                 v : Vector -> v
                 singleton -> [singleton]
-            converted = vector.map on_problems=No_Wrap elem->
+            converted = vector.map on_problems=No_Wrap.Value elem->
                 ## Ensure the element is a `Date_Time_Formatter` or is converted to it.
                    We need to convert _each_ element - we cannot perform a 'bulk' conversion like `vector : Vector Date_Time_Formatter` because of erasure.
                 checked = elem : Date_Time_Formatter
@@ -215,18 +215,18 @@ type Data_Formatter
 
     ## PRIVATE
     make_date_parser self = self.wrap_base_parser <|
-        Panic.catch Java_Exception handler=(caught_panic-> Error.throw (Illegal_Argument.Error caught_panic.payload.getMessage)) <|
-            DateParser.new (self.date_formats.map on_problems=No_Wrap .get_java_formatter_for_parsing)
+        Panic.catch JException handler=(caught_panic-> Error.throw (Illegal_Argument.Error caught_panic.payload.getMessage)) <|
+            DateParser.new (self.date_formats.map on_problems=No_Wrap.Value .get_java_formatter_for_parsing)
 
     ## PRIVATE
     make_date_time_parser self = self.wrap_base_parser <|
-        Panic.catch Java_Exception handler=(caught_panic-> Error.throw (Illegal_Argument.Error caught_panic.payload.getMessage)) <|
-            DateTimeParser.new (self.datetime_formats.map on_problems=No_Wrap  .get_java_formatter_for_parsing)
+        Panic.catch JException handler=(caught_panic-> Error.throw (Illegal_Argument.Error caught_panic.payload.getMessage)) <|
+            DateTimeParser.new (self.datetime_formats.map on_problems=No_Wrap.Value  .get_java_formatter_for_parsing)
 
     ## PRIVATE
     make_time_of_day_parser self = self.wrap_base_parser <|
-        Panic.catch Java_Exception handler=(caught_panic-> Error.throw (Illegal_Argument.Error caught_panic.payload.getMessage)) <|
-            TimeOfDayParser.new (self.time_formats.map on_problems=No_Wrap .get_java_formatter_for_parsing)
+        Panic.catch JException handler=(caught_panic-> Error.throw (Illegal_Argument.Error caught_panic.payload.getMessage)) <|
+            TimeOfDayParser.new (self.time_formats.map on_problems=No_Wrap.Value .get_java_formatter_for_parsing)
 
     ## PRIVATE
     make_identity_parser self = self.wrap_base_parser IdentityParser.new
@@ -247,25 +247,14 @@ type Data_Formatter
 
     ## PRIVATE
     get_specific_type_parsers self =
-        try_us_parsers_first = self.decimal_point == Auto && self.thousand_separator != "."
-        preferred_auto_parsers = case try_us_parsers_first of
-            ## If we are in auto mode, we will first try parsing US integers,
-               then US floats and only then other integers and floats.
-
-               Under normal circumstances, we first try integers and later
-               floats - but this would cause `1.000` to be interpreted as `1000`
-               because _all_ integers take precedence and floats are considered
-               later. But we want `1.000` to be interpreted as a `1.0` float by
-               default, so we change the ordering a bit.
-            True ->
-                us_preferred = self.with_number_formatting decimal_point='.'
-                [us_preferred.make_integer_parser auto_mode=True, us_preferred.make_decimal_parser auto_mode=True]
-
-            ## However, if the `decimal_point` is set to something else,
-               we don't do auto inference, so this extra logic is not needed.
-            False -> []
-        remaining_parsers = [self.make_integer_parser auto_mode=True, self.make_decimal_parser auto_mode=True, self.make_date_time_parser, self.make_date_parser, self.make_time_of_day_parser, self.make_boolean_parser]
-        parsers = preferred_auto_parsers + remaining_parsers
+        ## Have to do date parsing first to allow for pure numeric formats.
+        date_parsers = [self.make_date_time_parser, self.make_date_parser, self.make_time_of_day_parser]
+        us_parsers = if self.decimal_point != Auto || self.thousand_separator != "" then [] else
+            ## In default mode, add the English pattern to ensure they dominate.
+            english = self.with_number_formatting decimal_point='.' thousand_separator=','
+            [english.make_integer_parser auto_mode=True, english.make_decimal_parser auto_mode=True]
+        remaining_parsers = [self.make_integer_parser auto_mode=True, self.make_decimal_parser auto_mode=True, self.make_boolean_parser]
+        parsers = date_parsers + us_parsers + remaining_parsers
         ## Unfortunately, the [] literal allows to create a vector containing
            dataflow errors. That is not handled well later by Polyglot. So we
            ensure all errors surface here.
@@ -289,19 +278,19 @@ type Data_Formatter
     ## PRIVATE
     make_date_formatter self =
         if self.date_formats.is_empty then Error.throw (Illegal_Argument.Error "Formatting dates requires at least one entry in the `date_formats` parameter") else
-            Panic.catch Java_Exception handler=(caught_panic-> Error.throw (Illegal_Argument.Error caught_panic.payload.getMessage)) <|
+            Panic.catch JException handler=(caught_panic-> Error.throw (Illegal_Argument.Error caught_panic.payload.getMessage)) <|
                 DateFormatter.new self.date_formats.first.underlying
 
     ## PRIVATE
     make_time_of_day_formatter self =
         if self.time_formats.is_empty then Error.throw (Illegal_Argument.Error "Formatting times requires at least one entry in the `time_formats` parameter") else
-            Panic.catch Java_Exception handler=(caught_panic-> Error.throw (Illegal_Argument.Error caught_panic.payload.getMessage)) <|
+            Panic.catch JException handler=(caught_panic-> Error.throw (Illegal_Argument.Error caught_panic.payload.getMessage)) <|
                 TimeFormatter.new self.time_formats.first.underlying
 
     ## PRIVATE
     make_date_time_formatter self =
         if self.datetime_formats.is_empty then Error.throw (Illegal_Argument.Error "Formatting date-times requires at least one entry in the `datetime_formats` parameter") else
-            Panic.catch Java_Exception handler=(caught_panic-> Error.throw (Illegal_Argument.Error caught_panic.payload.getMessage)) <|
+            Panic.catch JException handler=(caught_panic-> Error.throw (Illegal_Argument.Error caught_panic.payload.getMessage)) <|
                 DateTimeFormatter.new self.datetime_formats.first.underlying
 
     ## PRIVATE

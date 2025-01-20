@@ -1,6 +1,5 @@
 package org.enso.interpreter.runtime.library.dispatch;
 
-import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
@@ -15,8 +14,7 @@ public class DefaultLongExports {
   }
 
   @ExportMessage
-  static Type getType(
-      Long receiver, @CachedLibrary("receiver") TypesLibrary thisLib, @Cached("1") int ignore) {
+  static Type getType(Long receiver, @CachedLibrary("receiver") TypesLibrary thisLib) {
     return EnsoContext.get(thisLib).getBuiltins().number().getInteger();
   }
 }

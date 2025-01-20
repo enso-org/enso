@@ -2,7 +2,9 @@ package org.enso.interpreter.test.instrument
 
 import org.enso.interpreter.runtime.`type`.{Constants, ConstantsGen}
 import org.enso.interpreter.test.Metadata
-import org.enso.polyglot._
+import org.enso.common.LanguageInfo
+import org.enso.common.RuntimeOptions
+import org.enso.polyglot.RuntimeServerInfo
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.{ContentVersion, Sha3_224VersionCalculator}
 import org.graalvm.polyglot.Context
@@ -326,7 +328,20 @@ class RuntimeInstrumentTest
         )
       ),
       TestMessages.update(contextId, zExpr, ConstantsGen.INTEGER),
-      TestMessages.update(contextId, mainResExpr, ConstantsGen.NOTHING),
+      TestMessages.update(
+        contextId,
+        mainResExpr,
+        ConstantsGen.NOTHING,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.IO",
+              "Standard.Base.IO",
+              "println"
+            )
+          )
+        )
+      ),
       TestMessages.update(contextId, mainBody, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
     )
@@ -386,7 +401,20 @@ class RuntimeInstrumentTest
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, xExpr, ConstantsGen.DATE),
-      TestMessages.update(contextId, mainResExpr, ConstantsGen.NOTHING),
+      TestMessages.update(
+        contextId,
+        mainResExpr,
+        ConstantsGen.NOTHING,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.IO",
+              "Standard.Base.IO",
+              "println"
+            )
+          )
+        )
+      ),
       TestMessages.update(contextId, mainBody, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
     )
@@ -464,7 +492,20 @@ class RuntimeInstrumentTest
         )
       ),
       TestMessages.update(contextId, mainRes1Expr, ConstantsGen.INTEGER),
-      TestMessages.update(contextId, mainResExpr, ConstantsGen.NOTHING),
+      TestMessages.update(
+        contextId,
+        mainResExpr,
+        ConstantsGen.NOTHING,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.IO",
+              "Standard.Base.IO",
+              "println"
+            )
+          )
+        )
+      ),
       TestMessages.update(contextId, mainBody, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
     )
@@ -720,7 +761,20 @@ class RuntimeInstrumentTest
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, aExpr, ConstantsGen.INTEGER),
       TestMessages.update(contextId, fApp, ConstantsGen.INTEGER),
-      TestMessages.update(contextId, mainRes, ConstantsGen.NOTHING),
+      TestMessages.update(
+        contextId,
+        mainRes,
+        ConstantsGen.NOTHING,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.IO",
+              "Standard.Base.IO",
+              "println"
+            )
+          )
+        )
+      ),
       TestMessages.update(contextId, mainExpr, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
     )
@@ -784,7 +838,20 @@ class RuntimeInstrumentTest
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, aExpr, ConstantsGen.INTEGER),
       TestMessages.update(contextId, lamArg, ConstantsGen.INTEGER),
-      TestMessages.update(contextId, mainRes, ConstantsGen.NOTHING),
+      TestMessages.update(
+        contextId,
+        mainRes,
+        ConstantsGen.NOTHING,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.IO",
+              "Standard.Base.IO",
+              "println"
+            )
+          )
+        )
+      ),
       context.executionComplete(contextId)
     )
   }
@@ -845,7 +912,20 @@ class RuntimeInstrumentTest
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, aExpr, ConstantsGen.INTEGER),
       TestMessages.update(contextId, lamArg, ConstantsGen.INTEGER),
-      TestMessages.update(contextId, mainRes, ConstantsGen.NOTHING),
+      TestMessages.update(
+        contextId,
+        mainRes,
+        ConstantsGen.NOTHING,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.IO",
+              "Standard.Base.IO",
+              "println"
+            )
+          )
+        )
+      ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("2")

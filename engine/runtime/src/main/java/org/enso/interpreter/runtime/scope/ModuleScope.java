@@ -1,19 +1,16 @@
 package org.enso.interpreter.runtime.scope;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import org.enso.compiler.common.MethodResolutionAlgorithm;
+import org.enso.compiler.context.CompilerContext;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.EnsoObject;
@@ -25,15 +22,21 @@ import org.enso.interpreter.runtime.util.CachingSupplier;
 
 /** A representation of Enso's per-file top-level scope. */
 @ExportLibrary(TypesLibrary.class)
-public final class ModuleScope implements EnsoObject {
+public final class ModuleScope extends EnsoObject {
   private final Type associatedType;
   private final Module module;
-  private Map<String, Object> polyglotSymbols;
-  private Map<String, Type> types;
-  private Map<Type, Map<String, Supplier<Function>>> methods;
-  private Map<Type, Map<Type, Function>> conversions;
-  private Set<ModuleScope> imports;
-  private Set<ModuleScope> exports;
+  private final Map<String, Supplier<TruffleObject>> polyglotSymbols;
+  private final Map<String, Type> types;
+  private final Map<Type, Map<String, Supplier<Function>>> methods;
+
+  /**
+   * First key is target type, second key is source type. The value is the conversion function from
+   * source to target.
+   */
+  private final Map<Type, Map<Type, Function>> conversions;
+
+  private final Set<ImportExportScope> imports;
+  private final Set<ImportExportScope> exports;
 
   private static final Type noTypeKey;
 
@@ -41,31 +44,15 @@ public final class ModuleScope implements EnsoObject {
     noTypeKey = Type.noType();
   }
 
-  /**
-   * Creates a new object of this class.
-   *
-   * @param module the module related to the newly created scope.
-   */
-  public ModuleScope(Module module) {
-    this.polyglotSymbols = new HashMap<>();
-    this.types = new HashMap<>();
-    this.methods = new ConcurrentHashMap<>();
-    this.conversions = new ConcurrentHashMap<>();
-    this.imports = new HashSet<>();
-    this.exports = new HashSet<>();
-    this.module = module;
-    this.associatedType = Type.createSingleton(module.getName().item(), this, null, false);
-  }
-
   public ModuleScope(
       Module module,
       Type associatedType,
-      Map<String, Object> polyglotSymbols,
+      Map<String, Supplier<TruffleObject>> polyglotSymbols,
       Map<String, Type> types,
       Map<Type, Map<String, Supplier<Function>>> methods,
       Map<Type, Map<Type, Function>> conversions,
-      Set<ModuleScope> imports,
-      Set<ModuleScope> exports) {
+      Set<ImportExportScope> imports,
+      Set<ImportExportScope> exports) {
     this.module = module;
     this.associatedType = associatedType;
     this.polyglotSymbols = polyglotSymbols;
@@ -74,11 +61,6 @@ public final class ModuleScope implements EnsoObject {
     this.conversions = conversions;
     this.imports = imports;
     this.exports = exports;
-  }
-
-  public Type registerType(Type type) {
-    Type current = types.putIfAbsent(type.getName(), type);
-    return current == null ? type : current;
   }
 
   /**
@@ -96,115 +78,6 @@ public final class ModuleScope implements EnsoObject {
   }
 
   /**
-   * @return the set of modules imported by this module.
-   */
-  public Set<ModuleScope> getImports() {
-    return imports;
-  }
-
-  /**
-   * Returns a map of methods defined in this module for a given constructor.
-   *
-   * @param type the type for which method map is requested
-   * @return a map containing all the defined methods by name
-   */
-  private Map<String, Supplier<Function>> ensureMethodMapFor(Type type) {
-    Type tpeKey = type == null ? noTypeKey : type;
-    return methods.computeIfAbsent(tpeKey, k -> new HashMap<>());
-  }
-
-  private Map<String, Supplier<Function>> getMethodMapFor(Type type) {
-    Type tpeKey = type == null ? noTypeKey : type;
-    Map<String, Supplier<Function>> result = methods.get(tpeKey);
-    if (result == null) {
-      return new HashMap<>();
-    }
-    return result;
-  }
-
-  /**
-   * Registers a method defined for a given type.
-   *
-   * @param type the type the method was defined for
-   * @param method method name
-   * @param function the {@link Function} associated with this definition
-   */
-  public void registerMethod(Type type, String method, Function function) {
-    Map<String, Supplier<Function>> methodMap = ensureMethodMapFor(type);
-
-    // Builtin types will have double definition because of
-    // BuiltinMethod and that's OK
-    if (methodMap.containsKey(method) && !type.isBuiltin()) {
-      throw new RedefinedMethodException(type.getName(), method);
-    } else {
-      methodMap.put(method, new CachingSupplier<>(function));
-    }
-  }
-
-  /**
-   * Registers a lazily constructed method defined for a given type.
-   *
-   * @param type the type the method was defined for
-   * @param method method name
-   * @param supply provider of the {@link Function} associated with this definition
-   */
-  public void registerMethod(Type type, String method, Supplier<Function> supply) {
-    Map<String, Supplier<Function>> methodMap = ensureMethodMapFor(type);
-
-    // Builtin types will have double definition because of
-    // BuiltinMethod and that's OK
-    if (methodMap.containsKey(method) && !type.isBuiltin()) {
-      throw new RedefinedMethodException(type.getName(), method);
-    } else {
-      methodMap.put(method, new CachingSupplier<>(supply));
-    }
-  }
-
-  /**
-   * Returns a list of the conversion methods defined in this module for a given constructor.
-   *
-   * @param type the type for which method map is requested
-   * @return a list containing all the defined conversions in definition order
-   */
-  private Map<Type, Function> ensureConversionsFor(Type type) {
-    return conversions.computeIfAbsent(type, k -> new HashMap<>());
-  }
-
-  private Map<Type, Function> getConversionsFor(Type type) {
-    var result = conversions.get(type);
-    if (result == null) {
-      return new HashMap<>();
-    }
-    return result;
-  }
-
-  /**
-   * Registers a conversion method for a given type
-   *
-   * @param toType type the conversion was defined to
-   * @param fromType type the conversion was defined from
-   * @param function the {@link Function} associated with this definition
-   */
-  public void registerConversionMethod(Type toType, Type fromType, Function function) {
-    var sourceMap = ensureConversionsFor(toType);
-    if (sourceMap.containsKey(fromType)) {
-      throw new RedefinedConversionException(toType.getName(), fromType.getName());
-    } else {
-      sourceMap.put(fromType, function);
-    }
-  }
-
-  /**
-   * Registers a new symbol in the polyglot namespace.
-   *
-   * @param name the name of the symbol
-   * @param sym the value being exposed
-   */
-  public void registerPolyglotSymbol(String name, Object sym) {
-    polyglotSymbols.put(name, sym);
-  }
-
-  /**
    * Looks up the definition for a given type and method name.
    *
    * <p>The resolution algorithm is first looking for methods defined at the constructor definition
@@ -215,101 +88,133 @@ public final class ModuleScope implements EnsoObject {
    * @param name the method name.
    * @return the matching method definition or null if not found.
    */
-  @TruffleBoundary
+  @CompilerDirectives.TruffleBoundary
   public Function lookupMethodDefinition(Type type, String name) {
-    var definedWithAtom = type.getDefinitionScope().getMethodMapFor(type).get(name);
-    if (definedWithAtom != null) {
-      return definedWithAtom.get();
-    }
-
-    var definedHere = getMethodMapFor(type).get(name);
-    if (definedHere != null) {
-      return definedHere.get();
-    }
-
-    return imports.stream()
-        .map(scope -> scope.getExportedMethod(type, name))
-        .filter(Objects::nonNull)
-        .findFirst()
-        .orElse(null);
+    return methodResolutionAlgorithm.lookupMethodDefinition(this, type, name);
   }
 
-  @TruffleBoundary
-  public Function lookupConversionDefinition(Type original, Type target) {
-    Function definedWithOriginal =
-        original.getDefinitionScope().getConversionsFor(target).get(original);
-    if (definedWithOriginal != null) {
-      return definedWithOriginal;
+  private final RuntimeMethodResolution methodResolutionAlgorithm = new RuntimeMethodResolution();
+
+  private static final class RuntimeMethodResolution
+      extends MethodResolutionAlgorithm<Function, Type, ImportExportScope, ModuleScope> {
+
+    @Override
+    protected Collection<ImportExportScope> getImportsFromModuleScope(ModuleScope moduleScope) {
+      return moduleScope.getImports();
     }
-    Function definedWithTarget =
-        target.getDefinitionScope().getConversionsFor(target).get(original);
-    if (definedWithTarget != null) {
-      return definedWithTarget;
+
+    @Override
+    protected Collection<ImportExportScope> getExportsFromModuleScope(ModuleScope moduleScope) {
+      return moduleScope.getExports();
     }
-    Function definedHere = getConversionsFor(target).get(original);
-    if (definedHere != null) {
-      return definedHere;
+
+    @Override
+    protected Function getConversionFromModuleScope(
+        ModuleScope moduleScope, Type target, Type source) {
+      return moduleScope.getConversionFor(target, source);
     }
-    return imports.stream()
-        .map(scope -> scope.getExportedConversion(original, target))
-        .filter(Objects::nonNull)
-        .findFirst()
-        .orElse(null);
+
+    @Override
+    protected Function getMethodFromModuleScope(
+        ModuleScope moduleScope, Type type, String methodName) {
+      return moduleScope.getMethodForType(type, methodName);
+    }
+
+    @Override
+    protected ModuleScope findDefinitionScope(Type type) {
+      return type.getDefinitionScope();
+    }
+
+    @Override
+    protected Function getMethodForTypeFromScope(
+        ImportExportScope scope, Type type, String methodName) {
+      return scope.getMethodForType(type, methodName);
+    }
+
+    @Override
+    protected Function getExportedMethodFromScope(
+        ImportExportScope scope, Type type, String methodName) {
+      return scope.getExportedMethod(type, methodName);
+    }
+
+    @Override
+    protected Function getConversionFromScope(ImportExportScope scope, Type target, Type source) {
+      return scope.getConversionForType(target, source);
+    }
+
+    @Override
+    protected Function getExportedConversionFromScope(
+        ImportExportScope scope, Type target, Type source) {
+      return scope.getExportedConversion(target, source);
+    }
+
+    @Override
+    protected Function onMultipleDefinitionsFromImports(
+        String methodName, List<MethodFromImport<Function, ImportExportScope>> methodFromImports) {
+      assert !methodFromImports.isEmpty();
+      return methodFromImports.get(0).resolutionResult();
+    }
   }
 
-  private Function getExportedMethod(Type type, String name) {
-    var here = getMethodMapFor(type).get(name);
-    if (here != null) {
-      return here.get();
-    }
-    return exports.stream()
-        .map(scope -> scope.getMethodMapFor(type).get(name))
-        .filter(Objects::nonNull)
-        .map(s -> s.get())
-        .findFirst()
-        .orElse(null);
+  public Collection<ImportExportScope> getImports() {
+    return imports;
   }
 
-  private Function getExportedConversion(Type type, Type target) {
-    Function here = getConversionsFor(target).get(type);
-    if (here != null) {
-      return here;
-    }
-    return exports.stream()
-        .map(scope -> scope.getConversionsFor(target).get(type))
-        .filter(Objects::nonNull)
-        .findFirst()
-        .orElse(null);
+  public Collection<ImportExportScope> getExports() {
+    return exports;
   }
 
   /**
-   * Adds a dependency for this module.
+   * Looks up a conversion method from source type to target type. The conversion method
+   * implementation looks like this:
    *
-   * @param scope the scope of the newly added dependency
+   * <pre>
+   *   Target_Type.from (other : Source_Type) = ...
+   * </pre>
+   *
+   * The conversion method is first looked up in the scope of the source type, then in the scope of
+   * the target type and finally in all the imported scopes.
+   *
+   * @param source Source type
+   * @param target Target type
+   * @return The conversion method or null if not found.nie
    */
-  public void addImport(ModuleScope scope) {
-    imports.add(scope);
+  @CompilerDirectives.TruffleBoundary
+  public Function lookupConversionDefinition(Type source, Type target) {
+    return methodResolutionAlgorithm.lookupConversionDefinition(this, source, target);
   }
 
-  /**
-   * Adds an information about the module exporting another module.
-   *
-   * @param scope the exported scope
-   */
-  public void addExport(ModuleScope scope) {
-    exports.add(scope);
+  Function getExportedMethod(Type type, String name) {
+    return methodResolutionAlgorithm.getExportedMethod(this, type, name);
   }
 
-  public Map<String, Type> getTypes() {
-    return types;
+  Function getExportedConversion(Type target, Type source) {
+    return methodResolutionAlgorithm.getExportedConversion(this, target, source);
+  }
+
+  public List<Type> getAllTypes(String name) {
+    var tpes = new ArrayList<Type>(types.size() + 1);
+    var tpe0 = getType(name, false);
+    if (tpe0 != null) tpes.add(tpe0);
+    tpes.addAll(types.values());
+    return tpes;
+  }
+
+  public List<Type> getAllTypes() {
+    return types.values().stream().collect(Collectors.toUnmodifiableList());
   }
 
   @ExportMessage.Ignore
-  public Optional<Type> getType(String name) {
-    if (associatedType.getName().equals(name)) {
-      return Optional.of(associatedType);
+  public Type getType(String name, boolean ignoreAssociatedType) {
+    if (!ignoreAssociatedType && associatedType.getName().equals(name)) {
+      return associatedType;
     }
-    return Optional.ofNullable(types.get(name));
+    return types.get(name);
+  }
+
+  @ExportMessage.Ignore
+  public boolean hasType(Type type) {
+    return types.get(type.getName()) == type;
   }
 
   /**
@@ -328,8 +233,8 @@ public final class ModuleScope implements EnsoObject {
   /**
    * Returns the names of methods for the given type.
    *
-   * @param tpe the type in the scope
-   * @return names of methods
+   * @param tpe the type in the scope. If null, treated as {@code noType}.
+   * @return names of methods or null
    */
   public Set<String> getMethodNamesForType(Type tpe) {
     Type tpeKey = tpe == null ? noTypeKey : tpe;
@@ -338,17 +243,28 @@ public final class ModuleScope implements EnsoObject {
   }
 
   /**
-   * Registers all methods of a type in the provided scope.
+   * Returns a set of all the functions for a type, or null.
    *
-   * @param tpe the methods of which type should be registered
-   * @param scope target scope where methods should be registered to
+   * @param tpe the type in the scope. If null, treated as {@code noType}.
+   * @return set of methods or null.
    */
-  public void registerAllMethodsOfTypeToScope(Type tpe, ModuleScope scope) {
+  public Set<Function> getMethodsForType(Type tpe) {
     Type tpeKey = tpe == null ? noTypeKey : tpe;
-    var allTypeMethods = methods.get(tpeKey);
-    if (allTypeMethods != null) {
-      allTypeMethods.forEach((name, fun) -> scope.registerMethod(tpeKey, name, fun));
+    var allTpeMethods = methods.get(tpeKey);
+    if (allTpeMethods != null) {
+      return allTpeMethods.values().stream().map(Supplier::get).collect(Collectors.toSet());
+    } else {
+      return null;
     }
+  }
+
+  public Function getConversionFor(Type target, Type source) {
+    var conversionsOnType = conversions.get(target);
+    if (conversionsOnType == null) {
+      return null;
+    }
+
+    return conversionsOnType.get(source);
   }
 
   /**
@@ -371,64 +287,20 @@ public final class ModuleScope implements EnsoObject {
   }
 
   /**
-   * @return the polyglot symbol imported into this scope.
-   */
-  public Object getPolyglotSymbol(String symbolName) {
-    return polyglotSymbols.get(symbolName);
-  }
-
-  public void reset() {
-    imports = new HashSet<>();
-    exports = new HashSet<>();
-    methods = new HashMap<>();
-    conversions = new HashMap<>();
-    polyglotSymbols = new HashMap<>();
-  }
-
-  /**
-   * Create a copy of this `ModuleScope` while taking into account only the provided list of types.
+   * Finds a polyglot symbol supplier. The supplier will then load the provided {@code symbolName}
+   * when its {@link Supplier#get()} method is called.
    *
-   * @param typeNames list of types to copy to the new scope
-   * @return a copy of this scope modulo the requested types
+   * @param symbolName name of the symbol to search for
+   * @return non-{@code null} supplier of a polyglot symbol imported into this scope
    */
-  public ModuleScope withTypes(List<String> typeNames) {
-    Map<String, Object> polyglotSymbols = new HashMap<>(this.polyglotSymbols);
-    Map<String, Type> requestedTypes = new HashMap<>(this.types);
-    Map<Type, Map<String, Supplier<Function>>> methods = new ConcurrentHashMap<>();
-    Map<Type, Map<Type, Function>> conversions = new ConcurrentHashMap<>();
-    Set<ModuleScope> imports = new HashSet<>(this.imports);
-    Set<ModuleScope> exports = new HashSet<>(this.exports);
-    this.types
-        .entrySet()
-        .forEach(
-            entry -> {
-              if (typeNames.contains(entry.getKey())) {
-                requestedTypes.put(entry.getKey(), entry.getValue());
-              }
-            });
-    Collection<Type> validTypes = requestedTypes.values();
-    this.methods.forEach(
-        (tpe, meths) -> {
-          if (validTypes.contains(tpe)) {
-            methods.put(tpe, meths);
-          }
-        });
-    this.conversions.forEach(
-        (tpe, meths) -> {
-          if (validTypes.contains(tpe)) {
-            conversions.put(tpe, meths);
-          }
-        });
-
-    return new ModuleScope(
-        module,
-        associatedType,
-        polyglotSymbols,
-        requestedTypes,
-        methods,
-        conversions,
-        imports,
-        exports);
+  public Supplier<TruffleObject> getPolyglotSymbolSupplier(String symbolName) {
+    var supplier = polyglotSymbols.get(symbolName);
+    if (supplier != null) {
+      return supplier;
+    }
+    var ctx = EnsoContext.get(null);
+    var err = ctx.getBuiltins().error().makeMissingPolyglotImportError(symbolName);
+    return CachingSupplier.forValue(err);
   }
 
   @ExportMessage
@@ -444,5 +316,277 @@ public final class ModuleScope implements EnsoObject {
   @Override
   public String toString() {
     return "Scope" + module;
+  }
+
+  @Override
+  @TruffleBoundary
+  public Object toDisplayString(boolean allowSideEffects) {
+    return toString();
+  }
+
+  public static class Builder {
+
+    @CompilerDirectives.CompilationFinal private ModuleScope moduleScope = null;
+    private final Module module;
+    private final Type associatedType;
+    private final Map<String, Supplier<TruffleObject>> polyglotSymbols;
+    private final Map<String, Type> types;
+    private final Map<Type, Map<String, Supplier<Function>>> methods;
+    private final Map<Type, Map<Type, Function>> conversions;
+    private final Set<ImportExportScope> imports;
+    private final Set<ImportExportScope> exports;
+
+    public Builder(Module module) {
+      this.module = module;
+      this.polyglotSymbols = new LinkedHashMap<>();
+      this.types = new LinkedHashMap<>();
+      this.methods = new LinkedHashMap<>();
+      this.conversions = new LinkedHashMap<>();
+      this.imports = new LinkedHashSet<>();
+      this.exports = new LinkedHashSet<>();
+      this.associatedType = Type.createSingleton(module.getName().item(), this, null, false, false);
+    }
+
+    public Builder(Module module, Map<String, Type> types) {
+      this.module = module;
+      this.polyglotSymbols = new LinkedHashMap<>();
+      this.types = types;
+      this.methods = new LinkedHashMap<>();
+      this.conversions = new LinkedHashMap<>();
+      this.imports = new LinkedHashSet<>();
+      this.exports = new LinkedHashSet<>();
+      this.associatedType = Type.createSingleton(module.getName().item(), this, null, false, false);
+    }
+
+    public Builder(
+        Module module,
+        Type associatedType,
+        Map<String, Supplier<TruffleObject>> polyglotSymbols,
+        Map<String, Type> types,
+        Map<Type, Map<String, Supplier<Function>>> methods,
+        Map<Type, Map<Type, Function>> conversions,
+        Set<ImportExportScope> imports,
+        Set<ImportExportScope> exports) {
+      this.module = module;
+      this.associatedType = associatedType;
+      this.polyglotSymbols = polyglotSymbols;
+      this.types = types;
+      this.methods = methods;
+      this.conversions = conversions;
+      this.imports = imports;
+      this.exports = exports;
+    }
+
+    public Type registerType(Type type) {
+      assert moduleScope == null;
+      Type current = types.putIfAbsent(type.getName(), type);
+      return current == null ? type : current;
+    }
+
+    /**
+     * Returns a map of methods defined in this module for a given type.
+     *
+     * @param type the type for which method map is requested
+     * @return a map containing all the defined methods by name
+     */
+    private Map<String, Supplier<Function>> ensureMethodMapFor(Type type) {
+      Type tpeKey = type == null ? noTypeKey : type;
+      return methods.computeIfAbsent(tpeKey, k -> new LinkedHashMap<>());
+    }
+
+    /**
+     * Registers a method defined for a given type.
+     *
+     * @param type the type the method was defined for
+     * @param method method name
+     * @param function the {@link Function} associated with this definition
+     */
+    public void registerMethod(Type type, String method, Function function) {
+      assert moduleScope == null;
+      Map<String, Supplier<Function>> methodMap = ensureMethodMapFor(type);
+
+      // Builtin types will have double definition because of
+      // BuiltinMethod and that's OK
+      if (methodMap.containsKey(method) && !type.isBuiltin()) {
+        throw new RedefinedMethodException(type.getName(), method);
+      } else {
+        methodMap.put(method, CachingSupplier.forValue(function));
+      }
+    }
+
+    /**
+     * Registers a lazily constructed method defined for a given type.
+     *
+     * @param type the type the method was defined for
+     * @param method method name
+     * @param supply provider of the {@link Function} associated with this definition
+     */
+    public void registerMethod(Type type, String method, Supplier<Function> supply) {
+      assert moduleScope == null;
+      Map<String, Supplier<Function>> methodMap = ensureMethodMapFor(type);
+
+      // Builtin types will have double definition because of
+      // BuiltinMethod and that's OK
+      if (methodMap.containsKey(method) && !type.isBuiltin()) {
+        throw new RedefinedMethodException(type.getName(), method);
+      } else {
+        methodMap.put(method, CachingSupplier.wrap(supply));
+      }
+    }
+
+    /**
+     * Registers a conversion method for a given type
+     *
+     * @param toType type the conversion was defined to
+     * @param fromType type the conversion was defined from
+     * @param function the {@link Function} associated with this definition
+     */
+    public void registerConversionMethod(Type toType, Type fromType, Function function) {
+      assert moduleScope == null;
+      var sourceMap = conversions.computeIfAbsent(toType, k -> new LinkedHashMap<>());
+      if (sourceMap.containsKey(fromType)) {
+        throw new RedefinedConversionException(toType.getName(), fromType.getName());
+      } else {
+        sourceMap.put(fromType, function);
+      }
+    }
+
+    /**
+     * Registers a new symbol in the polyglot namespace.
+     *
+     * @param name the name of the symbol
+     * @param symbolFactory the value being exposed
+     */
+    public void registerPolyglotSymbol(String name, Supplier<TruffleObject> symbolFactory) {
+      assert moduleScope == null;
+      polyglotSymbols.put(name, CachingSupplier.wrap(symbolFactory));
+    }
+
+    /**
+     * Registers all methods of a type in the provided scope.
+     *
+     * @param tpe the methods of which type should be registered
+     * @param scope target scope where methods should be registered to
+     */
+    public void registerAllMethodsOfTypeToScope(Type tpe, ModuleScope.Builder scope) {
+      // FIXME: because of Builtins can't enable 'assert moduleScope == null;'
+      Type tpeKey = tpe == null ? noTypeKey : tpe;
+      var allTypeMethods = methods.get(tpeKey);
+      if (allTypeMethods != null) {
+        allTypeMethods.forEach((name, fun) -> scope.registerMethod(tpeKey, name, fun));
+      }
+    }
+
+    /**
+     * Adds a dependency for this module.
+     *
+     * @param scope the scope of the newly added dependency
+     */
+    public void addImport(ImportExportScope scope) {
+      assert moduleScope == null;
+      imports.add(scope);
+    }
+
+    /**
+     * Adds an information about the module exporting another module.
+     *
+     * @param scope the exported scope
+     */
+    public void addExport(ImportExportScope scope) {
+      assert moduleScope == null;
+      exports.add(scope);
+    }
+
+    public Module getModule() {
+      return module;
+    }
+
+    /**
+     * Create a new ModuleScope.Builder which inherits from `this` `module` and `types` that need to
+     * survive the compilation.
+     *
+     * @return new ModuleScope.Builder
+     */
+    public Builder newBuilderInheritingTypes() {
+      return new Builder(this.module, new LinkedHashMap<>(this.types));
+    }
+
+    /**
+     * Materializes the builder and ensures that no further modifications to ModuleScope are
+     * possible. Action is idempotent.
+     *
+     * @return an immutable ModuleScope
+     */
+    public ModuleScope build() {
+      if (moduleScope == null) {
+        moduleScope =
+            new ModuleScope(
+                module,
+                associatedType,
+                Collections.unmodifiableMap(polyglotSymbols),
+                Collections.unmodifiableMap(types),
+                Collections.unmodifiableMap(methods),
+                Collections.unmodifiableMap(conversions),
+                Collections.unmodifiableSet(imports),
+                Collections.unmodifiableSet(exports));
+      }
+      return moduleScope;
+    }
+
+    public Type getAssociatedType() {
+      return associatedType;
+    }
+
+    public static ModuleScope.Builder fromCompilerModuleScopeBuilder(
+        CompilerContext.ModuleScopeBuilder scopeBuilder) {
+      return ((TruffleCompilerModuleScopeBuilder) scopeBuilder).unsafeScopeBuilder();
+    }
+
+    /**
+     * Return a view on `this` as a ModuleScope, rather than its builder.
+     *
+     * @return ModuleScope, if the builder has already been `built`, a proxy instance with the
+     *     currently registered entities
+     */
+    public ModuleScope asModuleScope() {
+      if (moduleScope != null) {
+        return moduleScope;
+      } else {
+        CompilerDirectives.transferToInterpreterAndInvalidate();
+        return createModuleScope();
+      }
+    }
+
+    @CompilerDirectives.TruffleBoundary
+    private ModuleScope createModuleScope() {
+      return new ModuleScope(
+          module,
+          associatedType,
+          Collections.unmodifiableMap(polyglotSymbols),
+          Collections.unmodifiableMap(types),
+          Collections.unmodifiableMap(methods),
+          Collections.unmodifiableMap(conversions),
+          Collections.unmodifiableSet(imports),
+          Collections.unmodifiableSet(exports));
+    }
+
+    @Override
+    public java.lang.String toString() {
+      StringBuilder builder = new StringBuilder();
+      builder.append("ModuleScope builder for " + module.getName());
+      builder.append(",\n");
+      builder.append("Polyglot Symbols: " + polyglotSymbols);
+      builder.append(",\n");
+      builder.append("Methods: " + methods);
+      builder.append(",\n");
+      builder.append("Conversions: " + conversions);
+      builder.append(",\n");
+      builder.append("Imports: " + imports);
+      builder.append(",\n");
+      builder.append("Exports: " + exports);
+      builder.append(",\n");
+      builder.append("Types: " + types);
+      return builder.toString();
+    }
   }
 }

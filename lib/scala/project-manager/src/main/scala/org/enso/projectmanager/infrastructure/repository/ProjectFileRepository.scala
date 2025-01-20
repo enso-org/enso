@@ -4,9 +4,9 @@ import java.io.File
 import java.nio.file.Path
 import java.nio.file.attribute.FileTime
 import java.util.UUID
-
 import org.enso.pkg.{Package, PackageManager}
-import org.enso.projectmanager.boot.configuration.StorageConfig
+import org.enso.pkg.validation.NameValidation
+import org.enso.projectmanager.boot.configuration.MetadataStorageConfig
 import org.enso.projectmanager.control.core.{
   Applicative,
   CovariantFlatMap,
@@ -15,6 +15,7 @@ import org.enso.projectmanager.control.core.{
 import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.effect.syntax._
 import org.enso.projectmanager.control.effect.{ErrorChannel, Sync}
+import org.enso.projectmanager.infrastructure.desktop.TrashCan
 import org.enso.projectmanager.infrastructure.file.FileSystem
 import org.enso.projectmanager.infrastructure.file.FileSystemFailure.{
   FileNotFound,
@@ -31,18 +32,21 @@ import org.enso.projectmanager.model.{Project, ProjectMetadata}
 
 /** File based implementation of the project repository.
   *
-  * @param storageConfig a storage config
+  * @param metadataStorageConfig a metadata storage config
   * @param clock a clock
   * @param fileSystem a file system abstraction
   * @param gen a random generator
+  * @param trash a trash can
   */
 class ProjectFileRepository[
   F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap: Applicative
 ](
-  storageConfig: StorageConfig,
+  projectsPath: File,
+  metadataStorageConfig: MetadataStorageConfig,
   clock: Clock[F],
   fileSystem: FileSystem[F],
-  gen: Generator[F]
+  gen: Generator[F],
+  trash: TrashCan[F]
 ) extends ProjectRepository[F] {
 
   /** @inheritdoc */
@@ -60,12 +64,14 @@ class ProjectFileRepository[
   /** @inheritdoc */
   override def getAll(): F[ProjectRepositoryFailure, List[Project]] = {
     fileSystem
-      .list(storageConfig.userProjectsPath)
+      .list(projectsPath)
       .map(_.filter(_.isDirectory))
       .recover { case FileNotFound | NotDirectory =>
         Nil
       }
-      .mapError(th => StorageFailure(th.toString))
+      .mapError(th =>
+        StorageFailure(s"Cannot find projects at $projectsPath: ${th.toString}")
+      )
       .flatMap { dirs =>
         Traverse[List].traverse(dirs)(tryLoadProject).map(_.flatten)
       }
@@ -171,14 +177,18 @@ class ProjectFileRepository[
   ): F[ProjectRepositoryFailure, Option[Package[File]]] =
     Sync[F]
       .blockingOp { PackageManager.Default.fromDirectory(projectPath) }
-      .mapError(th => StorageFailure(th.toString))
+      .mapError(th => StorageFailure(s"Cannot load package $projectPath: $th"))
 
   private def getDirectoryCreationTime(
     pkg: Package[File]
   ): F[ProjectRepositoryFailure, FileTime] =
     Sync[F]
       .blockingOp(pkg.fileSystem.getCreationTime(pkg.root))
-      .mapError(th => StorageFailure(th.toString))
+      .mapError(th =>
+        StorageFailure(
+          s"Cannot find creation time for package ${pkg.root}: $th"
+        )
+      )
 
   private def getPackage(
     projectPath: File
@@ -201,21 +211,20 @@ class ProjectFileRepository[
         Sync[F]
           .blockingOp { projectPackage.rename(newName) }
           .map(_ => ())
-          .mapError(th => StorageFailure(th.toString))
+          .mapError(th =>
+            StorageFailure(
+              s"Cannot rename package $newName at $projectPath: $th"
+            )
+          )
       }
 
   /** @inheritdoc */
   def update(project: Project): F[ProjectRepositoryFailure, Unit] =
     metadataStorage(project.path)
-      .persist(
-        ProjectMetadata(
-          id         = project.id,
-          kind       = project.kind,
-          created    = project.created,
-          lastOpened = project.lastOpened
-        )
+      .persist(ProjectMetadata(project))
+      .mapError(th =>
+        StorageFailure(s"Cannot update project at ${project.path}: $th")
       )
-      .mapError(th => StorageFailure(th.toString))
 
   /** @inheritdoc */
   override def delete(projectId: UUID): F[ProjectRepositoryFailure, Unit] = {
@@ -224,55 +233,87 @@ class ProjectFileRepository[
         case Some(project) =>
           fileSystem
             .remove(project.path)
-            .mapError(th => StorageFailure(th.toString))
+            .mapError(th =>
+              StorageFailure(s"Cannot delete project at ${project.path}: $th")
+            )
         case None =>
           ErrorChannel[F].fail(ProjectNotFoundInIndex)
       }
   }
 
   /** @inheritdoc */
-  override def moveProjectToTargetDir(
+  override def moveToTrash(
+    projectId: UUID
+  ): F[ProjectRepositoryFailure, Boolean] = {
+    findById(projectId)
+      .flatMap {
+        case Some(project) =>
+          trash.moveToTrash(project.path)
+        case None =>
+          ErrorChannel[F].fail(ProjectNotFoundInIndex)
+      }
+  }
+
+  /** @inheritdoc */
+  override def moveProject(
     projectId: UUID,
     newName: String
   ): F[ProjectRepositoryFailure, File] = {
     def move(project: Project) =
       for {
-        targetPath <- findTargetPath(newName)
-        _          <- moveProjectDir(project, targetPath)
+        targetPath <- findTargetPath(NameValidation.normalizeName(newName))
+        _          <- moveProjectDir(project.path, targetPath)
       } yield targetPath
 
     for {
-      project <- getProject(projectId)
-      primaryPath = new File(storageConfig.userProjectsPath, newName)
-      finalPath <-
-        if (isLocationOk(project.path, primaryPath)) {
-          CovariantFlatMap[F].pure(primaryPath)
-        } else {
-          move(project)
-        }
-    } yield finalPath
+      project     <- getProject(projectId)
+      projectPath <- move(project)
+    } yield projectPath
   }
 
-  private def isLocationOk(
-    currentFile: File,
-    primaryFile: File
-  ): Boolean = {
-    val currentPath = currentFile.toString
-    val primaryPath = primaryFile.toString
-    if (currentPath.startsWith(primaryPath)) {
-      val suffixPattern = "_\\d+"
-      val suffix        = currentPath.substring(primaryPath.length, currentPath.length)
-      suffix.matches(suffixPattern)
-    } else {
-      false
-    }
+  /** @inheritdoc */
+  override def copyProject(
+    project: Project,
+    newName: String,
+    newMetadata: ProjectMetadata
+  ): F[ProjectRepositoryFailure, Project] = {
+    def copy(project: Project) =
+      for {
+        targetPath <- findTargetPath(NameValidation.normalizeName(newName))
+        _          <- copyProjectDir(project.path, targetPath)
+      } yield targetPath
+
+    for {
+      newProjectPath <- copy(project)
+      _ <- metadataStorage(newProjectPath)
+        .persist(newMetadata)
+        .mapError(th =>
+          StorageFailure(
+            s"Cannot persist new project name at $newProjectPath: $th"
+          )
+        )
+      _          <- renamePackage(newProjectPath, newName)
+      newProject <- getProject(newMetadata.id)
+    } yield newProject
   }
 
-  private def moveProjectDir(project: Project, targetPath: File) = {
+  private def moveProjectDir(projectPath: File, targetPath: File) = {
     fileSystem
-      .move(project.path, targetPath)
+      .move(projectPath, targetPath)
       .mapError[ProjectRepositoryFailure](failure =>
-        StorageFailure(failure.toString)
+        StorageFailure(
+          s"Cannot move project path from $projectPath to $targetPath: $failure"
+        )
+      )
+  }
+
+  private def copyProjectDir(projectPath: File, targetPath: File) = {
+    fileSystem
+      .copy(projectPath, targetPath)
+      .mapError[ProjectRepositoryFailure](failure =>
+        StorageFailure(
+          s"Cannot copy project directory $projectPath to $targetPath: $failure"
+        )
       )
   }
 
@@ -283,13 +324,13 @@ class ProjectFileRepository[
       .tailRecM[ProjectRepositoryFailure, Int, File](0) { number =>
         val path =
           new File(
-            storageConfig.userProjectsPath,
+            projectsPath,
             moduleName + genSuffix(number)
           )
         fileSystem
           .exists(path)
           .mapError[ProjectRepositoryFailure](failure =>
-            StorageFailure(failure.toString)
+            StorageFailure(s"Cannot find path $path: $failure")
           )
           .flatMap { fileExists =>
             if (fileExists) {
@@ -307,7 +348,7 @@ class ProjectFileRepository[
   private def metadataStorage(projectPath: File): MetadataFileStorage[F] =
     new MetadataFileStorage[F](
       projectPath,
-      storageConfig,
+      metadataStorageConfig,
       clock,
       fileSystem,
       gen
@@ -326,9 +367,9 @@ class ProjectFileRepository[
     Traverse[List].traverse(clashing) { case (isClashing, project) =>
       if (isClashing) {
         for {
-          newId <- gen.randomUUID()
-          updatedProject = project.copy(id = newId)
-          _ <- update(updatedProject)
+          newId          <- gen.randomUUID()
+          updatedProject <- Applicative[F].pure(project.copy(id = newId))
+          _              <- update(updatedProject)
         } yield updatedProject
       } else {
         Applicative[F].pure(project)

@@ -1,0 +1,115 @@
+private
+
+from Standard.Base import all
+import Standard.Base.Data.Read.Many_Files_List.Many_Files_List
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+import project.Column.Column
+import project.Errors.Invalid_Value_Type
+import project.Internal.Column_Naming_Helper.Column_Naming_Helper
+import project.Internal.Read_Many_As_Merged_Table_Strategy.Read_Many_As_Merged_Table_Strategy
+import project.Internal.Read_Many_As_Merged_Table_Strategy.Read_Many_As_Table_Result
+import project.Return_As_Table.Return_As_Table
+import project.Table.Table
+import project.Value_Type.Value_Type
+from project.Internal.Table_Helpers import duplicate_rows
+
+find_files_list_in_table (that : Table) -> Many_Files_List =
+    found_column = if that.column_count == 1 then that.at 0 else
+        path_columns = that.select_columns "path" case_sensitivity=..Insensitive on_problems=..Report_Error
+        not_found = path_columns.is_error || (path_columns.column_count == 0)
+        if not_found then Error.throw (Illegal_Argument.Error "To use a Table as file list, it must be a single column or contain a `path` column (case insensitive).") else
+            if path_columns.column_count > 1 then Error.throw (Illegal_Argument.Error "Multiple 'paths' column candidates found: "+path_columns.column_names.to_display_text+".") else
+                path_columns.at 0
+    ensure_column_type_valid_to_be_files_list found_column <|
+        Many_Files_List.Value that found_column.to_vector
+
+ensure_column_type_valid_to_be_files_list (column : Column) ~action =
+    is_expected_type = case column.value_type of
+        # Columns containing File objects will be Mixed
+        Value_Type.Mixed -> True
+        # Columns containing paths as Text will be Char
+        Value_Type.Char _ _ -> True
+        _ -> False
+    if is_expected_type then action else
+        Error.throw (Invalid_Value_Type.Column "Text or Mixed" column.value_type column.name)
+
+make_return (return_shape : Return_As_Table) (input : Many_Files_List) (objects : Vector Any) (on_problems : Problem_Behavior) -> Table =
+    base_table = _input_as_table input
+    case return_shape of
+        Return_As_Table.With_New_Column ->
+            _add_objects_column base_table objects
+        Return_As_Table.As_Merged_Table columns_to_keep match_columns ->
+            tables = input.paths_to_load.zip objects path-> object->
+                strategy = Read_Many_As_Merged_Table_Strategy.from object
+                strategy.into_table path columns_to_keep match_columns on_problems
+            _merge_input_and_tables base_table tables columns_to_keep match_columns on_problems
+
+_input_as_table (input : Many_Files_List) -> Table =
+    case input.original_value of
+        table : Table -> table
+        column : Column -> column.to_table
+        ## Fallback - any unknown input shape is treated the same as
+           Vector input - we just extract the list of files from it
+        _ ->
+            Table.new [["Path", input.paths_to_load]]
+
+## Expands each table from `tables_for_rows` and computes their union, also
+   duplicating the corresponding rows from `input_table`.
+_merge_input_and_tables (input_table : Table) (tables_for_rows : Vector Read_Many_As_Table_Result) columns_to_keep match_columns on_problems -> Table =
+    counts = tables_for_rows.map table-> case table of
+        Read_Many_As_Table_Result.No_Data -> 0
+        Read_Many_As_Table_Result.Table _ data -> data.row_count
+    adapted_tables = _inherit_warnings_from_vector tables_for_rows <| 
+        tables_for_rows.filter r-> r != Read_Many_As_Table_Result.No_Data
+        
+    ## If there are no tables to merge, union would fail. 
+       Each entry is then contributing 0 rows, so we need to return an empty table. 
+       But it should have the same structure as the input table.
+    if adapted_tables.is_empty then (input_table.take 0) else
+        unified_metadata = _unify_metadata adapted_tables on_problems
+        unified_data = Table.from_union (adapted_tables.map .data) columns_to_keep match_columns on_problems
+
+        multiplicated_inputs = duplicate_rows input_table counts
+        Runtime.assert (unified_data.row_count == multiplicated_inputs.row_count)
+        Runtime.assert (unified_metadata.is_nothing || (unified_metadata.row_count == unified_data.row_count))
+
+        first_pass = if unified_metadata.is_nothing then multiplicated_inputs else
+            multiplicated_inputs.zip unified_metadata right_prefix=""
+        first_pass.zip unified_data right_prefix=""
+
+## Unifies provided metadata tables, knowing that some tables may have no 
+   metadata - in such case we want to insert as many Nothing rows for metadata 
+   as there are rows in the corresponding data table.
+_unify_metadata (tables : Vector Read_Many_As_Table_Result) (on_problems : Problem_Behavior) -> Table | Nothing =
+    has_no_metadata = tables.all r-> r.metadata.is_nothing
+    if has_no_metadata then Nothing else
+        unique = Column_Naming_Helper.in_memory.create_unique_name_strategy
+        tables.each r->
+            if r.metadata.is_nothing.not then unique.mark_used r.metadata.column_names
+        
+        # A dummy column because we cannot create a table with 0 columns, it will be removed after union. We find an unique name for it to avoid conflicts.
+        dummy_column_name = unique.make_unique "_Internal_Placeholder_Column_"
+        tables_for_union = tables.map r->
+            if r.metadata.is_nothing.not then r.metadata else
+                Table.new [Column.from_repeated_item dummy_column_name Nothing r.data.row_count]
+        
+        # Metadata are always merged by-name and columns that appear only in some tables are kept.
+        unified_metadata = Table.from_union tables_for_union ..In_Any ..By_Name on_problems
+        unified_metadata.remove_columns [dummy_column_name] on_problems=..Ignore
+
+_make_table_with_one_null_row (empty_table : Table) -> Table =
+    Runtime.assert (empty_table.row_count == 0) "The table must be empty."
+    Table.new (empty_table.columns.map c-> Column.from_vector c.name [Nothing] c.value_type)
+
+_add_objects_column (base_table : Table) (objects : Vector Any) -> Table  =
+    unique_naming = base_table.column_naming_helper.create_unique_name_strategy
+    unique_naming.mark_used base_table.column_names
+    objects_column_name = unique_naming.make_unique "Value"
+    base_table.set (Column.from_vector objects_column_name objects) as=objects_column_name set_mode=..Add
+
+## Workaround for bug https://github.com/enso-org/enso/issues/11570
+   TODO: Remove workaround one #11570 is closed.
+private _inherit_warnings_from_vector vector:Vector ~action =
+    result = action
+    Warning.set result (Warning.get_all vector + Warning.get_all result)

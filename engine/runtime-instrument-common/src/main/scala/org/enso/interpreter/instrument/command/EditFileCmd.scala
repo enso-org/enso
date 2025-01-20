@@ -3,6 +3,7 @@ package org.enso.interpreter.instrument.command
 import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.interpreter.instrument.execution.model.PendingEdit
 import org.enso.interpreter.instrument.job.{EnsureCompiledJob, ExecuteJob}
+import org.enso.logger.masking.MaskedPath
 import org.enso.polyglot.runtime.Runtime.Api
 
 import java.util.logging.Level
@@ -23,43 +24,49 @@ class EditFileCmd(request: Api.EditFileNotification)
     ctx: RuntimeContext,
     ec: ExecutionContext
   ): Unit = {
-    val logger            = ctx.executionService.getLogger
-    val fileLockTimestamp = ctx.locking.acquireFileLock(request.path)
-    try {
-      val pendingEditsLockTimestamp = ctx.locking.acquirePendingEditsLock()
-      try {
-        logger.log(
-          Level.FINE,
-          "Adding pending file edits: {}",
-          request.edits.map(e => (e.range, e.text.length))
+    val logger = ctx.executionService.getLogger
+    ctx.locking.withFileLock(
+      request.path,
+      this.getClass,
+      () =>
+        ctx.locking.withPendingEditsLock(
+          this.getClass,
+          () => {
+            logger.log(
+              Level.FINEST,
+              "Adding pending file [{0}] edits [{1}] and IdMap of length {2}",
+              Array[Any](
+                MaskedPath(request.path.toPath),
+                request.edits.map(e => (e.range, e.text.length)),
+                request.idMap.map(_.values.length)
+              )
+            )
+            val edits =
+              request.edits.map(edit =>
+                PendingEdit.ApplyEdit(edit, request.execute)
+              )
+            ctx.state.pendingEdits.enqueue(request.path, edits)
+            request.idMap.foreach { idMap =>
+              ctx.state.pendingEdits.updateIdMap(request.path, idMap)
+            }
+            if (request.execute) {
+              ctx.jobControlPlane.abortAllJobs("edit file")
+              ctx.jobProcessor
+                .run(compileJob())
+                .foreach(_ => executeJobs.foreach(ctx.jobProcessor.run))
+            } else if (request.idMap.isDefined) {
+              ctx.jobProcessor.run(compileJob())
+            }
+          }
         )
-        val edits =
-          request.edits.map(edit =>
-            PendingEdit.ApplyEdit(edit, request.execute)
-          )
-        ctx.state.pendingEdits.enqueue(request.path, edits)
-        if (request.execute) {
-          ctx.jobControlPlane.abortAllJobs()
-          ctx.jobProcessor.run(new EnsureCompiledJob(Seq(request.path)))
-          executeJobs.foreach(ctx.jobProcessor.run)
-        }
-      } finally {
-        ctx.locking.releasePendingEditsLock()
-        logger.log(
-          Level.FINEST,
-          "Kept pending edits lock [EditFileCmd] for " + (System.currentTimeMillis - pendingEditsLockTimestamp) + " milliseconds"
-        )
-      }
-    } finally {
-      ctx.locking.releaseFileLock(request.path)
-      logger.log(
-        Level.FINEST,
-        "Kept file lock [EditFileCmd] for " + (System.currentTimeMillis - fileLockTimestamp) + " milliseconds"
-      )
-    }
+    )
   }
 
-  private def executeJobs(implicit
+  protected def compileJob(): EnsureCompiledJob = {
+    new EnsureCompiledJob(Seq(request.path))
+  }
+
+  protected def executeJobs(implicit
     ctx: RuntimeContext
   ): Iterable[ExecuteJob] = {
     ctx.contextManager.getAllContexts

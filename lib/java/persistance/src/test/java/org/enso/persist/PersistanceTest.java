@@ -1,13 +1,14 @@
-package org.enso.compiler.core;
+package org.enso.persist;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
 
 import java.io.IOException;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import org.enso.persist.Persistable;
-import org.enso.persist.Persistance;
 import org.junit.Test;
 import org.openide.util.lookup.ServiceProvider;
 
@@ -99,7 +100,7 @@ public class PersistanceTest {
     assertEquals("Multiplied on write", 15, (int) plain.get(IntegerSupply.class).supply().get());
   }
 
-  private static <T> T serde(Class<T> clazz, T l, int expectedSize) throws IOException {
+  static <T> T serde(Class<T> clazz, T l, int expectedSize) throws IOException {
     var arr = Persistance.write(l, (Function<Object, Object>) null);
     if (expectedSize >= 0) {
       assertEquals(expectedSize, arr.length - 12);
@@ -171,5 +172,111 @@ public class PersistanceTest {
   // @start region="self-annotation"
   @Persistable(id = 432436)
   public record ServiceSupply(Service supply) {}
+
   // @end region="self-annotation"
+
+  @Persistable(id = 432437)
+  public static class SelfLoop {
+    public Persistance.Reference<SelfLoop> self;
+
+    public Persistance.Reference<SelfLoop> self() {
+      return self;
+    }
+
+    public SelfLoop(Persistance.Reference<SelfLoop> self) {
+      this.self = self;
+    }
+  }
+
+  @Test
+  public void testReferenceLoopsInPersistance() throws Exception {
+    var obj = new SelfLoop(null);
+    // make the loop
+    obj.self = Persistance.Reference.of(obj, true);
+
+    var loaded = serde(SelfLoop.class, obj, -1);
+    var next = loaded.self.get(SelfLoop.class);
+    var next2 = next.self.get(SelfLoop.class);
+    assertSame("The recreated object again points to itself", next, next2);
+    assertSame("The recreated object again points to itself", loaded, next);
+  }
+
+  @Persistable(id = 432439)
+  public record LongerLoop1(int x, Persistance.Reference<LongerLoop2> y) {}
+
+  @Persistable(id = 432440)
+  public record LongerLoop2(Persistance.Reference<LongerLoop3> y) {}
+
+  @Persistable(id = 432441)
+  public static class LongerLoop3 {
+    public final String a;
+    public Persistance.Reference<LongerLoop1> y;
+
+    public String a() {
+      return a;
+    }
+
+    public Persistance.Reference<LongerLoop1> y() {
+      return y;
+    }
+
+    public LongerLoop3(String a, Persistance.Reference<LongerLoop1> y) {
+      this.a = a;
+      this.y = y;
+    }
+  }
+
+  @Test
+  public void testLoopsBetweenDifferentTypes() throws Exception {
+    var obj3 = new LongerLoop3("a", null);
+    var obj2 = new LongerLoop2(Persistance.Reference.of(obj3, true));
+    var obj1 = new LongerLoop1(1, Persistance.Reference.of(obj2, true));
+    obj3.y = Persistance.Reference.of(obj1, true);
+
+    var loaded1 = serde(LongerLoop1.class, obj1, -1);
+    var r2 = loaded1.y().get(LongerLoop2.class);
+    var r3 = r2.y().get(LongerLoop3.class);
+    var r1 = r3.y().get(LongerLoop1.class);
+
+    assertSame("The recreated structure contains the loop", loaded1, r1);
+
+    var current = r1;
+    for (var i = 0; i < 10; i++) {
+      var next =
+          loaded1.y().get(LongerLoop2.class).y().get(LongerLoop3.class).y().get(LongerLoop1.class);
+      assertSame("current points back to itself", current, next);
+      current = next;
+    }
+  }
+
+  @Test
+  public void testReferenceLoopsSavedTwiceInPersistance() throws Exception {
+    var obj3 = new LongerLoop3("a", null);
+    var obj2 = new LongerLoop2(Persistance.Reference.of(obj3, true));
+    var obj1 = new LongerLoop1(1, Persistance.Reference.of(obj2, true));
+    obj3.y = Persistance.Reference.of(obj1, true);
+
+    var loaded1 = serde(LongerLoop1.class, obj1, -1);
+    // Now we serialize the deserialized object again - this is to test that references read from
+    // file can be serialized back to a file.
+    var loadedAgain = serde(LongerLoop1.class, loaded1, -1);
+    var r2 =
+        loadedAgain
+            .y()
+            .get(LongerLoop2.class)
+            .y()
+            .get(LongerLoop3.class)
+            .y()
+            .get(LongerLoop1.class);
+    assertSame("The recreated structure contains the loop", loadedAgain, r2);
+  }
+
+  @Test
+  public void testNullReference() throws Exception {
+    var obj1 = new LongerLoop1(1, Persistance.Reference.none());
+
+    var loaded1 = serde(LongerLoop1.class, obj1, -1);
+    var inner1 = loaded1.y().get(LongerLoop2.class);
+    assertSame("The reference points to null", null, inner1);
+  }
 }

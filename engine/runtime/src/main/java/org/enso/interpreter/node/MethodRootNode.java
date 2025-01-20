@@ -14,7 +14,6 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
-import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 
@@ -43,12 +42,13 @@ public class MethodRootNode extends ClosureRootNode {
         shortName(type.getName(), methodName),
         null,
         false);
+
     this.type = type;
     this.methodName = methodName;
   }
 
-  private static String shortName(String atomName, String methodName) {
-    return atomName + "." + methodName;
+  private static String shortName(String typeName, String methodName) {
+    return typeName + "." + methodName;
   }
 
   /**
@@ -214,7 +214,7 @@ public class MethodRootNode extends ClosureRootNode {
         return newNode;
       } catch (CompilerError abnormalException) {
         var ctx = EnsoContext.get(this);
-        var msg = Text.create(abnormalException.getMessage());
+        var msg = abnormalException.getMessage();
         var load = ctx.getBuiltins().error().makeCompileError(msg);
         throw new PanicException(load, this);
       }

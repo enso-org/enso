@@ -1,10 +1,5 @@
 //! Enso documentation parser.
 
-#![recursion_limit = "256"]
-// === Features ===
-#![feature(assert_matches)]
-#![feature(let_chains)]
-#![feature(if_let_guard)]
 // === Non-Standard Linter Configuration ===
 #![allow(clippy::option_map_unit_fn)]
 #![allow(clippy::precedence)]
@@ -246,9 +241,7 @@ impl<'a, L: Location> Span<'a, L> {
                 }
                 Some(_) => break,
                 None => {
-                    let unexpected_condition = "Internal error: Expected greater indent level.";
-                    self.warn(unexpected_condition);
-                    warn!("{unexpected_condition}");
+                    self.warn("Internal error: Expected greater indent level.");
                     break;
                 }
             }
@@ -387,14 +380,14 @@ impl Lexer {
     pub fn line<L: Location>(&mut self, raw: Span<'_, L>, docs: &mut impl TokenConsumer<L>) {
         let line = raw.trim_start();
         match (self.state, line) {
-            (State::Tags, Some(line)) if let Some(tag) = TagWithDescription::new(line.content) => {
-                // TODO: WARN IF: indent != min.
-                docs.tag(tag.name, tag.description);
-            }
-            (State::Tags, Some(line)) => {
-                self.state = State::Normal;
-                self.normal_line(line, docs)
-            }
+            (State::Tags, Some(line)) =>
+                if let Some(tag) = TagWithDescription::new(line.content) {
+                    // TODO: WARN IF: indent != min.
+                    docs.tag(tag.name, tag.description);
+                } else {
+                    self.state = State::Normal;
+                    self.normal_line(line, docs)
+                },
             (State::Tags, None) => raw.warn("Unneeded empty line before content or between tags."),
             (State::ExampleDescription, None) => {
                 self.scopes.end_all().for_each(|scope| docs.end(scope));
@@ -417,7 +410,7 @@ impl Lexer {
                 docs.start_raw();
                 docs.raw_line(line.content);
             }
-            (State::ExampleCode, None) if let Some(_) = self.scopes.raw() => {
+            (State::ExampleCode, None) if self.scopes.raw().is_some() => {
                 docs.raw_line(raw.after());
             }
             (State::ExampleCode, None) => (),
@@ -454,37 +447,32 @@ impl Lexer {
 impl Lexer {
     fn normal_line<L: Location>(&mut self, line: Line<'_, L>, docs: &mut impl TokenConsumer<L>) {
         let Line { indent, content } = line;
-        match content {
-            _ if let Some(marked) = Marked::new(content) => {
-                self.scopes.end_all().for_each(|scope| docs.end(scope));
-                docs.enter_marked_section(marked.mark, marked.header);
-                if marked.mark == Mark::Example {
-                    self.state = State::ExampleDescription;
-                }
+        if let Some(marked) = Marked::new(content) {
+            self.scopes.end_all().for_each(|scope| docs.end(scope));
+            docs.enter_marked_section(marked.mark, marked.header);
+            if marked.mark == Mark::Example {
+                self.state = State::ExampleDescription;
             }
-            t if let Some(t) = t.strip_suffix(':') => {
-                self.scopes.end_all().for_each(|scope| docs.end(scope));
-                docs.enter_keyed_section(t);
+        } else if let Some(t) = content.strip_suffix(':') {
+            self.scopes.end_all().for_each(|scope| docs.end(scope));
+            docs.enter_keyed_section(t);
+        } else if let Some(content) = content.strip_prefix("- ") {
+            self.scopes.end_below(indent).for_each(|scope| docs.end(scope));
+            if self.scopes.start_list_if_not_started(indent) {
+                docs.start_list();
             }
-            t if let Some(content) = t.strip_prefix("- ") => {
-                self.scopes.end_below(indent).for_each(|scope| docs.end(scope));
-                if self.scopes.start_list_if_not_started(indent) {
-                    docs.start_list();
-                }
-                self.scopes.start_list_item(indent);
-                docs.start_list_item();
-                self.text(content, docs);
+            self.scopes.start_list_item(indent);
+            docs.start_list_item();
+            self.text(content, docs);
+        } else {
+            self.scopes.end_below(indent).for_each(|scope| docs.end(scope));
+            if self.scopes.is_in_text() {
+                docs.whitespace();
+            } else {
+                self.scopes.start_paragraph(indent);
+                docs.start_paragraph();
             }
-            _ => {
-                self.scopes.end_below(indent).for_each(|scope| docs.end(scope));
-                if self.scopes.is_in_text() {
-                    docs.whitespace();
-                } else {
-                    self.scopes.start_paragraph(indent);
-                    docs.start_paragraph();
-                }
-                self.text(content, docs);
-            }
+            self.text(content, docs);
         }
     }
 
@@ -549,11 +537,14 @@ struct Scopes {
 }
 
 impl Scopes {
-    fn end_all(&mut self) -> impl Iterator<Item = ScopeType> {
+    fn end_all(&mut self) -> impl Iterator<Item = ScopeType> + '_ {
         self.end_including(VisibleOffset(0))
     }
 
-    fn end_below(&mut self, indent: impl Into<VisibleOffset>) -> impl Iterator<Item = ScopeType> {
+    fn end_below(
+        &mut self,
+        indent: impl Into<VisibleOffset>,
+    ) -> impl Iterator<Item = ScopeType> + '_ {
         let indent = indent.into();
         self.end_including(indent + VisibleOffset(1))
     }
@@ -561,14 +552,14 @@ impl Scopes {
     fn end_including(
         &mut self,
         indent: impl Into<VisibleOffset>,
-    ) -> impl Iterator<Item = ScopeType> {
+    ) -> impl Iterator<Item = ScopeType> + '_ {
         let indent = indent.into();
-        // FIXME: Don't allocate.
-        let mut scopes = vec![];
-        while let Some(scope) = self.scopes.pop_if(|scope| scope.indent >= indent) {
-            scopes.push(scope.r#type);
-        }
-        scopes.into_iter()
+        let new_size = self
+            .scopes
+            .iter()
+            .rposition(move |scope| scope.indent < indent)
+            .map_or(0, |pos| pos + 1);
+        self.scopes.drain(new_size..).map(|s| s.r#type).rev()
     }
 
     fn start_list_if_not_started(&mut self, indent: impl Into<VisibleOffset>) -> bool {
@@ -678,10 +669,9 @@ pub trait TokenConsumer<L> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use pretty_assertions::assert_eq;
 
     #[test]
-    fn test_list_parsing() {
+    fn test_doc_parsing() {
         use crate::doc_sections::Argument;
         use crate::DocSection::*;
         use crate::Mark::*;
@@ -690,13 +680,13 @@ mod tests {
         let docs = r#"
         ALIAS From Text
 
-        Parses a textual representation of an integer into an integer number, returning
+        Parses a textual <representation> of an integer into an integer number, returning
         a `Number_Parse_Error` if the text does not represent a valid integer.
 
         Arguments:
         - text: The text to parse into a integer.
         - radix: The number base to use for parsing (defaults to 10). `radix`
-            must be between 2 and 36 (inclusive)
+            must be between 2 and (&) 36 (inclusive)
         - arg argument without colon
         - argument_without_description
 
@@ -710,8 +700,8 @@ mod tests {
                 Integer.parse "20220216""#;
         let res = parse(docs);
         let expected = [
-            Tag { tag: Alias, body: "From Text".into() }, 
-            Paragraph { body: "Parses a textual representation of an integer into an integer number, \
+            Tag { tag: Alias, body: "From Text".into() },
+            Paragraph { body: "Parses a textual &lt;representation&gt; of an integer into an integer number, \
                 returning a <code>Number_Parse_Error</code> if the text does not represent a valid integer.".into() },
             Keyed { key: "Arguments".into(), body: "".into() },
             Arguments { args: [
@@ -721,7 +711,7 @@ mod tests {
                 Argument {
                     name: "radix".into(),
                     description: "The number base to use for parsing (defaults to 10). <code>radix</code> \
-                    must be between 2 and 36 (inclusive)".into()
+                    must be between 2 and (&amp;) 36 (inclusive)".into()
                 },
                 Argument {
                     name: "arg".into(),
@@ -735,7 +725,7 @@ mod tests {
             List { items: ["List item 1".into(), "List item 2".into(), "List item 3".into()].to_vec() },
             Marked {
                 mark: Example,
-                header: Some("Example".into()), 
+                header: Some("Example".into()),
                 body: "<p>Parse the text \"20220216\" into an integer number.<div class=\"example\">\nInteger.parse \"20220216\"</div>".into()
             }].to_vec();
         assert_eq!(res, expected);

@@ -96,7 +96,7 @@ type Temporary_File
        If the stream is already backed by a temporary or regular file, that file is returned.
     from_stream_light : Input_Stream -> Temporary_File | File
     from_stream_light stream =
-        case stream.associated_file of
+        case stream.associated_source of
             tmp : Temporary_File -> tmp
             file : File -> file
             _ -> Temporary_File.from_stream stream

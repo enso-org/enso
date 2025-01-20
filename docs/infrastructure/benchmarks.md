@@ -55,6 +55,37 @@ to 0, and to run `withDebug` command like this:
 withDebug --debugger benchOnly -- <fully qualified benchmark name>
 ```
 
+Another option that does not require changing the source code is to run
+something like
+
+```
+sbt:runtime-benchmarks> run -w 1 -i 1 -f 1 -jvmArgs -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=localhost:8000 org.enso.compiler.benchmarks.module.ImportStandardLibrariesBenchmark.importStandardLibraries
+```
+
+This command will run the `importStandardLibraries` benchmark in fork waiting
+for the debugger to attach.
+
+### Dumping the compilation info of the benchmark
+
+The following command enables the compilation tracing output from the Truffle
+compiler:
+
+```
+sbt:runtime-benchmarks> run -jvmArgs -Dpolyglot.engine.TraceCompilation=true org.enso.interpreter.bench.benchmarks.semantic.IfVsCaseBenchmarks.ifBench6In
+```
+
+The output will contain lines like:
+
+```
+[error] [engine] opt done   id=1067  ifBench6In.My_Type.Value                           |Tier 2|Time    22(  18+4   )ms|AST    1|Inlined   0Y   0N|IR     17/    20|CodeSize     186|Addr 0x7acf0380f280|Timestamp 96474787822678|Src n/a
+```
+
+You can, e.g., dump Graal graphs with:
+
+```
+sbt:runtime-benchmarks> run -jvmArgs -Dgraal.Dump=Truffle:2 org.enso.interpreter.bench.benchmarks.semantic.IfVsCaseBenchmarks.ifBench6In
+```
+
 ## Standard library benchmarks
 
 Unlike the Engine micro benchmarks, these benchmarks are written entirely in

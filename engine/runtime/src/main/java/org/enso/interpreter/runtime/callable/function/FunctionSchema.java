@@ -31,7 +31,8 @@ public final class FunctionSchema {
     }
   }
 
-  public static final FunctionSchema THUNK = new FunctionSchema();
+  public static final FunctionSchema THUNK =
+      FunctionSchema.newBuilder().callerFrameAccess(CallerFrameAccess.NONE).build();
 
   private final @CompilationFinal(dimensions = 1) ArgumentDefinition[] argumentInfos;
   private final @CompilationFinal(dimensions = 1) boolean[] hasPreApplied;
@@ -41,6 +42,11 @@ public final class FunctionSchema {
   private final boolean hasOversaturatedArguments;
   private final CallerFrameAccess callerFrameAccess;
   private final boolean isFullyApplied;
+  private final boolean isProjectPrivate;
+
+  public static Builder newBuilder() {
+    return new Builder();
+  }
 
   /**
    * Creates an {@link FunctionSchema} instance.
@@ -54,17 +60,19 @@ public final class FunctionSchema {
    *     this function so far.
    * @param annotations the list of annotations defined on this function.
    */
-  public FunctionSchema(
+  private FunctionSchema(
       CallerFrameAccess callerFrameAccess,
       ArgumentDefinition[] argumentInfos,
       boolean[] hasPreApplied,
       CallArgumentInfo[] oversaturatedArguments,
-      Annotation[] annotations) {
+      Annotation[] annotations,
+      boolean isProjectPrivate) {
     this.argumentInfos = argumentInfos;
     this.oversaturatedArguments = oversaturatedArguments;
     this.hasPreApplied = hasPreApplied;
     this.callerFrameAccess = callerFrameAccess;
     this.annotations = annotations;
+    this.isProjectPrivate = isProjectPrivate;
     boolean hasAnyPreApplied = false;
     for (boolean b : hasPreApplied) {
       if (b) {
@@ -76,51 +84,6 @@ public final class FunctionSchema {
     this.hasAnyPreApplied = hasAnyPreApplied;
     this.hasOversaturatedArguments = this.oversaturatedArguments.length > 0;
     this.isFullyApplied = isFullyApplied(InvokeCallableNode.DefaultsExecutionMode.EXECUTE);
-  }
-
-  /**
-   * Creates an {@link FunctionSchema} instance assuming the function has no partially applied
-   * arguments.
-   *
-   * @param callerFrameAccess the declaration of need to access the caller frame from the function.
-   * @param argumentInfos Definition site arguments information.
-   * @param annotations the list of annotations defined on this function.
-   */
-  public FunctionSchema(
-      CallerFrameAccess callerFrameAccess,
-      Annotation[] annotations,
-      ArgumentDefinition... argumentInfos) {
-    this(
-        callerFrameAccess,
-        argumentInfos,
-        new boolean[argumentInfos.length],
-        new CallArgumentInfo[0],
-        annotations);
-  }
-
-  /**
-   * Creates an {@link FunctionSchema} instance assuming the function has no partially applied
-   * arguments.
-   *
-   * <p>Caller frame access is assumed to be {@link CallerFrameAccess#NONE}.
-   *
-   * @param annotations the list of annotations defined on this function.
-   * @param argumentInfos Definition site arguments information.
-   */
-  public FunctionSchema(Annotation[] annotations, ArgumentDefinition... argumentInfos) {
-    this(CallerFrameAccess.NONE, annotations, argumentInfos);
-  }
-
-  /**
-   * Creates an {@link FunctionSchema} instance assuming the function has no annotations or
-   * partially applied arguments.
-   *
-   * <p>Caller frame access is assumed to be {@link CallerFrameAccess#NONE}.
-   *
-   * @param argumentInfos Definition site arguments information
-   */
-  public FunctionSchema(ArgumentDefinition... argumentInfos) {
-    this(CallerFrameAccess.NONE, new Annotation[0], argumentInfos);
   }
 
   /**
@@ -152,6 +115,10 @@ public final class FunctionSchema {
    */
   public boolean hasOversaturatedArgs() {
     return this.hasOversaturatedArguments;
+  }
+
+  public boolean isProjectPrivate() {
+    return isProjectPrivate;
   }
 
   /**
@@ -263,5 +230,78 @@ public final class FunctionSchema {
 
   public boolean isFullyApplied() {
     return isFullyApplied;
+  }
+
+  public static final class Builder {
+    private boolean isProjectPrivate = false;
+    private Annotation[] annotations = new Annotation[0];
+    private ArgumentDefinition[] argDefs = new ArgumentDefinition[0];
+    private CallArgumentInfo[] callArgInfos = new CallArgumentInfo[0];
+    private CallerFrameAccess callerFrameAccess = CallerFrameAccess.NONE;
+    private boolean[] hasPreapplied = new boolean[0];
+
+    private Builder() {}
+
+    /** Set the function to be project private. */
+    public Builder projectPrivate() {
+      this.isProjectPrivate = true;
+      return this;
+    }
+
+    /**
+     * @param annotations the list of annotations defined on this function.
+     */
+    public Builder annotations(Annotation... annotations) {
+      this.annotations = annotations;
+      return this;
+    }
+
+    /**
+     * @param argDefs Definition site arguments information.
+     */
+    public Builder argumentDefinitions(ArgumentDefinition... argDefs) {
+      if (hasPreapplied.length > argDefs.length) {
+        throw new AssertionError("hasPreapplied must not be specified before argument definitions");
+      }
+      this.argDefs = argDefs;
+      this.hasPreapplied = new boolean[argDefs.length];
+      return this;
+    }
+
+    /**
+     * @param callArgumentInfos information about any unused, oversaturated arguments passed to this
+     *     function so far.
+     */
+    public Builder oversaturatedArguments(CallArgumentInfo... callArgumentInfos) {
+      this.callArgInfos = callArgumentInfos;
+      return this;
+    }
+
+    /**
+     * @param callerFrameAccess the declaration of whether access to caller frame is required for
+     *     this function.
+     */
+    public Builder callerFrameAccess(CallerFrameAccess callerFrameAccess) {
+      this.callerFrameAccess = callerFrameAccess;
+      return this;
+    }
+
+    /**
+     * @param hasPreapplied A flags collection such that {@code hasPreApplied[i]} is true iff a
+     *     function has a partially applied argument at position {@code i}.
+     */
+    public Builder hasPreapplied(boolean... hasPreapplied) {
+      if (hasPreapplied.length != argDefs.length) {
+        throw new AssertionError("Argument definitions must be specified before hasPreapplied");
+      }
+      this.hasPreapplied = hasPreapplied;
+      return this;
+    }
+
+    public FunctionSchema build() {
+      assert argDefs.length == hasPreapplied.length;
+      return new FunctionSchema(
+          callerFrameAccess, argDefs, hasPreapplied, callArgInfos, annotations, isProjectPrivate);
+    }
   }
 }

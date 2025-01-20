@@ -4,7 +4,8 @@ import project.Nothing.Nothing
 
 polyglot java import org.enso.base.Environment_Utils
 
-## ALIAS Read Environment
+## ALIAS read environment
+   ICON system
 
    Returns a value of a specified environment variable or Nothing if such
    variable is not defined.

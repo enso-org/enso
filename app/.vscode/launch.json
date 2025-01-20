@@ -1,0 +1,76 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "GUI",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["dev:gui"],
+      "outputCapture": "std"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "GUI (Electron, Linux)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["run", "--filter", "enso", "watch:linux"],
+      "outputCapture": "std"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "GUI (Electron, macOS)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["run", "--filter", "enso", "watch:macos"],
+      "outputCapture": "std"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "GUI (Electron, Windows)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["run", "--filter", "enso", "watch:windows"],
+      "outputCapture": "std"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "GUI (Build)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["build:gui"],
+      "outputCapture": "std"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "GUI (All tests)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["run", "--filter", "enso-gui", "test"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "GUI (Unit tests)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["run", "--filter", "enso-gui", "test:unit"],
+      "outputCapture": "std"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "GUI (Integration tests)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["run", "--filter", "enso-gui", "test:integration"],
+      "outputCapture": "std"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "GUI (Integration tests with UI)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["run", "--filter", "enso-gui", "test-dev:integration"],
+      "outputCapture": "std"
+    },
+  ]
+}

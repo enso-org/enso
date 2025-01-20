@@ -1,28 +1,7 @@
 package org.enso.polyglot
 
-import com.fasterxml.jackson.annotation.{JsonSubTypes, JsonTypeInfo}
+import com.github.plokhotnyuk.jsoniter_scala.macros.named
 
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-@JsonSubTypes(
-  Array(
-    new JsonSubTypes.Type(
-      value = classOf[ExportedSymbol.Module],
-      name  = "exportedModule"
-    ),
-    new JsonSubTypes.Type(
-      value = classOf[ExportedSymbol.Type],
-      name  = "exportedType"
-    ),
-    new JsonSubTypes.Type(
-      value = classOf[ExportedSymbol.Constructor],
-      name  = "exportedConstructor"
-    ),
-    new JsonSubTypes.Type(
-      value = classOf[ExportedSymbol.Method],
-      name  = "exportedMethod"
-    )
-  )
-)
 sealed trait ExportedSymbol {
   def module: String
 
@@ -59,6 +38,7 @@ object ExportedSymbol {
     *
     * @param module the module name
     */
+  @named("exportedModule")
   case class Module(module: String) extends ExportedSymbol {
 
     /** @inheritdoc */
@@ -75,6 +55,7 @@ object ExportedSymbol {
     * @param module the module defining this atom
     * @param name the type name
     */
+  @named("exportedType")
   case class Type(module: String, name: String) extends ExportedSymbol {
 
     /** @inheritdoc */
@@ -87,6 +68,7 @@ object ExportedSymbol {
     * @param module the module where this constructor is defined
     * @param name the constructor name
     */
+  @named("exportedConstructor")
   case class Constructor(module: String, name: String) extends ExportedSymbol {
 
     /** @inheritdoc */
@@ -99,6 +81,7 @@ object ExportedSymbol {
     * @param module the module defining this method
     * @param name the method name
     */
+  @named("exportedMethod")
   case class Method(module: String, name: String) extends ExportedSymbol {
 
     /** @inheritdoc */

@@ -4,8 +4,9 @@ import Standard.Base.Errors.Common.Not_Found
 
 from Standard.Test import all
 
+pending_js_missing = if Polyglot.is_language_installed "js" then Nothing else "Can't run JavaScript tests, language `js` is not installed."
 
-type_spec suite_builder name ctor = suite_builder.group name group_builder->
+type_spec suite_builder name ctor pending=Nothing = suite_builder.group name pending=pending group_builder->
     group_builder.specify "should allow mapping" <|
         ctor 1 2 . map x->x+1 . should_equal (ctor 2 3)
 
@@ -96,9 +97,14 @@ type_spec suite_builder name ctor = suite_builder.group name group_builder->
         ctor "Hello" "World" . reduce (a->b-> a+" "+b) . should_equal "Hello World"
 
     group_builder.specify "should allow applying a function to each element" <|
-        vec_mut = Vector.new_builder
-        ctor 10 20 . each vec_mut.append
-        vec_mut.to_vector . should_equal [10, 20]
+        vec = Vector.build builder->
+            ctor 10 20 . each builder.append
+        vec . should_equal [10, 20]
+
+    group_builder.specify "dataflow errors in .each should become panics" <|
+        do_write x =
+            Error.throw "Failed to write "+x.to_text
+        Test.expect_panic_with (ctor 10 20 . each do_write) Text
 
 add_specs suite_builder =
     suite_builder.group "Pair " group_builder->
@@ -108,7 +114,7 @@ add_specs suite_builder =
     type_spec suite_builder "Pair - from Pair.new" Pair.new
     type_spec suite_builder "Pair - from Pair.Value" Pair.Value
     type_spec suite_builder "Pair - from 2-Item Vector" a->b->[a,b]
-    type_spec suite_builder "Pair - from 2-Item JavaScript Array" js_pair
+    type_spec suite_builder "Pair - from 2-Item JavaScript Array" js_pair pending_js_missing
     type_spec suite_builder "Pair - from 2-Item List" a->b->(List.Cons a (List.Cons b List.Nil))
 
 foreign js js_pair a b = """

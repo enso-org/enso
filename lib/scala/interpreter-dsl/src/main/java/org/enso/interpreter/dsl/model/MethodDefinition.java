@@ -289,6 +289,11 @@ public class MethodDefinition {
     boolean isFrame();
 
     /**
+     * @return whether this argument should be passed the node implementing the method.
+     */
+    boolean isNode();
+
+    /**
      * @return whether this argument should be passed the caller info.
      */
     boolean isCallerInfo();
@@ -368,6 +373,11 @@ public class MethodDefinition {
 
     @Override
     public boolean isFrame() {
+      return false;
+    }
+
+    @Override
+    public boolean isNode() {
       return false;
     }
 
@@ -460,6 +470,7 @@ public class MethodDefinition {
   /** A domain specific representation of a method argument. */
   public static class ArgumentDefinitionFromParameter implements ArgumentDefinition {
     private static final String VIRTUAL_FRAME = "com.oracle.truffle.api.frame.VirtualFrame";
+    private static final String NODE = "com.oracle.truffle.api.nodes.Node";
     private static final String OBJECT = "java.lang.Object";
     private static final String THUNK = "org.enso.interpreter.runtime.callable.argument.Thunk";
     private static final String CALLER_INFO = "org.enso.interpreter.runtime.callable.CallerInfo";
@@ -471,6 +482,7 @@ public class MethodDefinition {
     private final TypeMirror type;
     private final String name;
     private final boolean isState;
+    private final boolean isNode;
     private final boolean isFrame;
     private final boolean isCallerInfo;
     private final boolean isSuspended;
@@ -498,6 +510,7 @@ public class MethodDefinition {
               || type.toString().equals(DATAFLOW_ERROR);
       acceptsWarning = element.getAnnotation(AcceptsWarning.class) != null;
       isFrame = type.toString().equals(VIRTUAL_FRAME);
+      isNode = type.toString().equals(NODE);
       isCallerInfo = type.toString().equals(CALLER_INFO);
       this.position = position;
     }
@@ -561,6 +574,13 @@ public class MethodDefinition {
     }
 
     /**
+     * @return whether this argument should be passed the node.
+     */
+    public boolean isNode() {
+      return isNode;
+    }
+
+    /**
      * @return whether this argument should be passed the caller info.
      */
     public boolean isCallerInfo() {
@@ -571,7 +591,7 @@ public class MethodDefinition {
      * @return whether this argument should be passed the next positional function argument.
      */
     public boolean isPositional() {
-      return !isFrame() && !isState() && !isCallerInfo();
+      return !isFrame() && !isState() && !isCallerInfo() && !isNode();
     }
 
     /**

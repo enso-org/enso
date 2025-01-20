@@ -2,7 +2,7 @@ package org.enso.languageserver.filemanager
 
 import org.apache.commons.io.FileUtils
 import org.enso.languageserver.effect.Effects
-import org.enso.logger.ReportLogsOnFailure
+import org.enso.testkit.ReportLogsOnFailure
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 
@@ -13,6 +13,7 @@ import java.security.MessageDigest
 import scala.collection.mutable.ArrayBuffer
 import scala.io.Source
 import scala.jdk.CollectionConverters._
+import org.slf4j.LoggerFactory
 
 class FileSystemSpec
     extends AnyWordSpecLike
@@ -1020,7 +1021,9 @@ class FileSystemSpec
     val testDirPath = Files.createTempDirectory(null)
     sys.addShutdownHook(FileUtils.deleteQuietly(testDirPath.toFile))
 
-    val objectUnderTest = new FileSystem
+    val objectUnderTest = new FileSystem(
+      LoggerFactory.getLogger(classOf[FileSystemSpec])
+    )
 
   }
 

@@ -24,7 +24,7 @@ case class Project(
   name: String,
   module: String,
   namespace: String,
-  kind: ProjectKind,
+  kind: ProjectKinds.ProjectKind,
   created: OffsetDateTime,
   edition: Option[Editions.RawEdition],
   path: File,

@@ -7,7 +7,6 @@ import java.util.List;
 
 /** Utilities for building and transforming URIs. */
 public class URITransformer {
-
   /** Removes query parameters from the given URI. */
   public static URI removeQueryParameters(URI uri) {
     return buildUriFromParts(
@@ -80,5 +79,22 @@ public class URITransformer {
 
   public static String encode(String value) {
     return URLEncoder.encode(value, StandardCharsets.UTF_8).replace("+", "%20");
+  }
+
+  public static String encodeQuery(String rawQueryString) {
+    var parts = rawQueryString.split("&");
+    StringBuilder sb = new StringBuilder();
+    for (int i = 0; i < parts.length; i++) {
+      if (i > 0) {
+        sb.append("&");
+      }
+      var keyValue = parts[i].split("=", 2);
+      sb.append(encodeForQuery(keyValue[0]));
+      if (keyValue.length > 1) {
+        sb.append("=");
+        sb.append(encodeForQuery(keyValue[1]));
+      }
+    }
+    return sb.toString();
   }
 }

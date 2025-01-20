@@ -131,13 +131,7 @@ class ExpressionAnnotationsTest extends CompilerTest {
     "create an error on a misplaced annotation" in {
       val misplaced = items
         .expressions(4)
-        .asInstanceOf[Application.Prefix]
-        .arguments(0)
-        .value
-      misplaced shouldBe an[errors.Resolution]
-      misplaced
-        .asInstanceOf[errors.Resolution]
-        .reason shouldEqual errors.Resolution.UnexpectedAnnotation
+      misplaced shouldBe an[errors.Syntax]
     }
   }
 

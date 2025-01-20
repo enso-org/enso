@@ -1,0 +1,23 @@
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+polyglot java import org.enso.table.excel.ExcelUtils
+
+## GROUP Standard.Base.Conversions
+   ICON date_and_time
+   Converts an Excel date to a `Date`.
+Date.from_excel : Integer -> Date
+Date.from_excel excel_date:Integer = case excel_date of
+    60 -> Error.throw (Illegal_Argument.Error "29th February 1900 does not exist.")
+    0 -> Error.throw (Illegal_Argument.Error "0 is not a valid Excel date.")
+    _ -> ExcelUtils.fromExcelDateTime excel_date
+
+## GROUP Standard.Base.Conversions
+   ICON date_and_time
+   Converts an Excel date time to a `Date_Time`.
+Date_Time.from_excel : Number -> Date_Time
+Date_Time.from_excel excel_date:Number =
+    if excel_date >= 60 && excel_date < 61 then Error.throw (Illegal_Argument.Error "29th February 1900 does not exist.") else
+        if excel_date >= 0 && excel_date < 1 then Error.throw (Illegal_Argument.Error "0 is not a valid Excel date.") else
+            raw_date = ExcelUtils.fromExcelDateTime excel_date
+            if raw_date.is_a Date then raw_date.to_date_time else raw_date

@@ -22,6 +22,13 @@ following two extensions in the system:
 
 ![Installed VSCode extensions](https://user-images.githubusercontent.com/26887752/274904239-ae1ad4cc-e2ec-4c5b-bca0-c7d7189c6885.png)
 
+## Outline View
+
+Since version 1.40 the extension fills content of _Outline View_ on supported
+platforms (Linux amd64, Mac, Windows):
+
+<img width="862" alt="image" src="https://github.com/enso-org/enso/assets/26887752/7374bf41-bdc6-4322-b562-85a2e761de2a">
+
 ## Debugging a Single Enso File
 
 Open any `.enso` files. Click left editor gutter to place breakpoints. Then

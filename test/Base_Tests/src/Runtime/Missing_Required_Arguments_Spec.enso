@@ -1,5 +1,5 @@
 from Standard.Base import all
-import Standard.Base.Errors.Common.Missing_Required_Argument
+import Standard.Base.Errors.Common.Missing_Argument
 import Standard.Base.Errors.Common.Not_Invokable
 
 import Standard.Base.Runtime.Ref.Ref
@@ -7,19 +7,19 @@ import Standard.Base.Runtime.Ref.Ref
 from Standard.Test import all
 
 
-my_function (xyz : Integer = Missing_Required_Argument.ensure_present "xyz") (y : Integer = 100) =
+my_function (xyz : Integer = Missing_Argument.ensure_present "xyz") (y : Integer = 100) =
     xyz + y
 
-my_function_2 (x : Integer = Missing_Required_Argument.ensure_present "x") =
+my_function_2 (x : Integer = Missing_Argument.ensure_present "x") =
     x * 10
 
 type Foo
-    Ctor (x : Integer = Missing_Required_Argument.ensure_present "x") (y : Integer = 100)
+    Ctor (x : Integer = Missing_Argument.ensure_present "x") (y : Integer = 100)
 
-    member self (txt : Text = Missing_Required_Argument.ensure_present "txt") =
+    member self (txt : Text = Missing_Argument.ensure_present "txt") =
         "Foo(" + self.x.to_text + ", " + self.y.to_text + "): " + txt
 
-add_specs suite_builder = suite_builder.group "Missing_Required_Argument" group_builder->
+add_specs suite_builder = suite_builder.group "Missing_Argument" group_builder->
     group_builder.specify "should do nothing if the argument is provided" <|
         r1 = my_function 23
         r1.should_equal 123
@@ -39,7 +39,7 @@ add_specs suite_builder = suite_builder.group "Missing_Required_Argument" group_
 
     group_builder.specify "should raise an error if a required argument is not specified" <|
         r1 = my_function
-        r1.should_fail_with Missing_Required_Argument
+        r1.should_fail_with Missing_Argument
         r1.catch.argument_name . should_equal "xyz"
         r1.catch.function_name . should_equal "Missing_Required_Arguments_Spec.my_function"
         r1.catch.call_location.file.name . should_equal "Missing_Required_Arguments_Spec.enso"
@@ -47,13 +47,13 @@ add_specs suite_builder = suite_builder.group "Missing_Required_Argument" group_
         r1.catch.to_display_text . should_equal "Missing required argument `xyz` in function `Missing_Required_Arguments_Spec.my_function`."
 
         r2 = my_function_2
-        r2.should_fail_with Missing_Required_Argument
+        r2.should_fail_with Missing_Argument
 
         r3 = Foo.Ctor
-        r3.should_fail_with Missing_Required_Argument
+        r3.should_fail_with Missing_Argument
 
         r4 = Foo.Ctor 44 . member
-        r4.should_fail_with Missing_Required_Argument
+        r4.should_fail_with Missing_Argument
         r4.catch.argument_name . should_equal "txt"
         r4.catch.function_name . should_equal "Foo.member"
         r4.catch.to_display_text . should_equal "Missing required argument `txt` in function `Foo.member`."

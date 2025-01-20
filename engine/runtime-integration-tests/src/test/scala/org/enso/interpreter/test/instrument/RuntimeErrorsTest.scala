@@ -2,7 +2,9 @@ package org.enso.interpreter.test.instrument
 
 import org.enso.interpreter.runtime.`type`.ConstantsGen
 import org.enso.interpreter.test.Metadata
-import org.enso.polyglot._
+import org.enso.common.LanguageInfo
+import org.enso.common.RuntimeOptions
+import org.enso.polyglot.RuntimeServerInfo
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.editing.model
 import org.enso.text.editing.model.TextEdit
@@ -45,6 +47,7 @@ class RuntimeErrorsTest
         .option(RuntimeOptions.ENABLE_PROJECT_SUGGESTIONS, "false")
         .option(RuntimeOptions.ENABLE_GLOBAL_SUGGESTIONS, "false")
         .option(RuntimeOptions.ENABLE_EXECUTION_TIMER, "false")
+        .option(RuntimeOptions.STRICT_ERRORS, "false")
         .option(
           RuntimeOptions.DISABLE_IR_CACHES,
           InstrumentTestContext.DISABLE_IR_CACHE
@@ -692,7 +695,107 @@ class RuntimeErrorsTest
         )
       ),
       TestMessages.update(contextId, yId, ConstantsGen.INTEGER),
-      TestMessages.update(contextId, mainResId, ConstantsGen.NOTHING),
+      TestMessages.update(
+        contextId,
+        mainResId,
+        ConstantsGen.NOTHING,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.IO",
+              "Standard.Base.IO",
+              "println"
+            )
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual Seq("42")
+  }
+
+  it should "catch panic when instrumented" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+    val metadata   = new Metadata
+    val catchId    = metadata.addItem(46, 42, "aa")
+    val throwId    = metadata.addItem(63, 14, "ab")
+
+    val code =
+      """from Standard.Base import all
+        |
+        |main =
+        |    x = Panic.catch Any (Panic.throw 42) _.payload
+        |    IO.println x
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    metadata.assertInCode(
+      catchId,
+      contents,
+      "Panic.catch Any (Panic.throw 42) _.payload"
+    )
+    metadata.assertInCode(throwId, contents, "Panic.throw 42")
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnorePendingExpressionUpdates(
+      4
+    ) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.panic(
+        contextId,
+        throwId,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Panic",
+            "Standard.Base.Panic.Panic",
+            "throw"
+          )
+        ),
+        Api.ExpressionUpdate.Payload.Panic("Integer", Seq(throwId, catchId)),
+        builtin = false
+      ),
+      TestMessages.update(
+        contextId,
+        catchId,
+        ConstantsGen.INTEGER,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Panic",
+            "Standard.Base.Panic.Panic",
+            "catch"
+          )
+        )
+      ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual Seq("42")
@@ -719,6 +822,7 @@ class RuntimeErrorsTest
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
+    metadata.assertInCode(mainResId, code, "IO.println y")
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -777,7 +881,20 @@ class RuntimeErrorsTest
         Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
       ),
       TestMessages.update(contextId, yId, ConstantsGen.INTEGER),
-      TestMessages.update(contextId, mainResId, ConstantsGen.NOTHING),
+      TestMessages.update(
+        contextId,
+        mainResId,
+        ConstantsGen.NOTHING,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.IO",
+              "Standard.Base.IO",
+              "println"
+            )
+          )
+        )
+      ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual Seq("42")
@@ -854,7 +971,20 @@ class RuntimeErrorsTest
         yId,
         Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
       ),
-      TestMessages.update(contextId, mainResId, ConstantsGen.NOTHING),
+      TestMessages.update(
+        contextId,
+        mainResId,
+        ConstantsGen.NOTHING,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.IO",
+              "Standard.Base.IO",
+              "println"
+            )
+          )
+        )
+      ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual Seq("(Error: MyError)")
@@ -870,7 +1000,8 @@ class RuntimeErrorsTest
               "1234567890123456789"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -881,16 +1012,7 @@ class RuntimeErrorsTest
       TestMessages.update(
         contextId,
         xId,
-        ConstantsGen.INTEGER,
-        methodCall = Some(
-          Api.MethodCall(
-            Api.MethodPointer(
-              "Standard.Base.Error",
-              "Standard.Base.Error.Error",
-              "throw"
-            )
-          )
-        )
+        ConstantsGen.INTEGER
       ),
       TestMessages.update(
         contextId,
@@ -919,7 +1041,8 @@ class RuntimeErrorsTest
               "1000000000000.div 0"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -968,7 +1091,8 @@ class RuntimeErrorsTest
               "1000000000000.div 2"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -1077,7 +1201,20 @@ class RuntimeErrorsTest
         yId,
         Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
       ),
-      TestMessages.update(contextId, mainResId, ConstantsGen.NOTHING),
+      TestMessages.update(
+        contextId,
+        mainResId,
+        ConstantsGen.NOTHING,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.IO",
+              "Standard.Base.IO",
+              "println"
+            )
+          )
+        )
+      ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual Seq("(Error: MyError1)")
@@ -1093,7 +1230,8 @@ class RuntimeErrorsTest
               "MyError2"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -1124,7 +1262,16 @@ class RuntimeErrorsTest
         contextId,
         mainResId,
         ConstantsGen.NOTHING,
-        typeChanged = false
+        typeChanged = false,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.IO",
+              "Standard.Base.IO",
+              "println"
+            )
+          )
+        )
       ),
       context.executionComplete(contextId)
     )
@@ -1194,14 +1341,27 @@ class RuntimeErrorsTest
         contextId,
         xId,
         Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "foo")),
-        Api.ExpressionUpdate.Payload.DataflowError(Seq(fooThrowId, xId))
+        Api.ExpressionUpdate.Payload.DataflowError(Seq(fooThrowId))
       ),
       TestMessages.error(
         contextId,
         yId,
-        Api.ExpressionUpdate.Payload.DataflowError(Seq(fooThrowId, xId))
+        Api.ExpressionUpdate.Payload.DataflowError(Seq(fooThrowId))
       ),
-      TestMessages.update(contextId, mainResId, ConstantsGen.NOTHING),
+      TestMessages.update(
+        contextId,
+        mainResId,
+        ConstantsGen.NOTHING,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.IO",
+              "Standard.Base.IO",
+              "println"
+            )
+          )
+        )
+      ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual Seq("(Error: MyError1)")
@@ -1217,7 +1377,8 @@ class RuntimeErrorsTest
               "MyError2"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -1230,19 +1391,28 @@ class RuntimeErrorsTest
         Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "foo")),
         fromCache   = false,
         typeChanged = false,
-        Api.ExpressionUpdate.Payload.DataflowError(Seq(fooThrowId, xId))
+        Api.ExpressionUpdate.Payload.DataflowError(Seq(fooThrowId))
       ),
       TestMessages.error(
         contextId,
         yId,
-        Api.ExpressionUpdate.Payload.DataflowError(Seq(fooThrowId, xId)),
+        Api.ExpressionUpdate.Payload.DataflowError(Seq(fooThrowId)),
         typeChanged = false
       ),
       TestMessages.update(
         contextId,
         mainResId,
         ConstantsGen.NOTHING,
-        typeChanged = false
+        typeChanged = false,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.IO",
+              "Standard.Base.IO",
+              "println"
+            )
+          )
+        )
       ),
       context.executionComplete(contextId)
     )
@@ -1420,10 +1590,18 @@ class RuntimeErrorsTest
       TestMessages.panic(
         contextId,
         mainResId,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.IO",
+            "Standard.Base.IO",
+            "println"
+          )
+        ),
         Api.ExpressionUpdate.Payload.Panic(
           "MyError",
           Seq(xId)
-        )
+        ),
+        false
       ),
       context.executionComplete(contextId)
     )
@@ -1440,7 +1618,8 @@ class RuntimeErrorsTest
               "1234567890123456789"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -1461,7 +1640,20 @@ class RuntimeErrorsTest
           )
         )
       ),
-      TestMessages.update(contextId, mainResId, ConstantsGen.NOTHING),
+      TestMessages.update(
+        contextId,
+        mainResId,
+        ConstantsGen.NOTHING,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.IO",
+              "Standard.Base.IO",
+              "println"
+            )
+          )
+        )
+      ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("1234567890123456788")
@@ -1551,10 +1743,18 @@ class RuntimeErrorsTest
       TestMessages.panic(
         contextId,
         mainResId,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.IO",
+            "Standard.Base.IO",
+            "println"
+          )
+        ),
         Api.ExpressionUpdate.Payload.Panic(
           "Compile error: The name `foo` could not be found.",
           Seq(xId)
-        )
+        ),
+        false
       ),
       context.executionComplete(contextId)
     )
@@ -1571,7 +1771,8 @@ class RuntimeErrorsTest
               "101"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -1602,7 +1803,20 @@ class RuntimeErrorsTest
           )
         )
       ),
-      TestMessages.update(contextId, mainResId, ConstantsGen.NOTHING),
+      TestMessages.update(
+        contextId,
+        mainResId,
+        ConstantsGen.NOTHING,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.IO",
+              "Standard.Base.IO",
+              "println"
+            )
+          )
+        )
+      ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("101")
@@ -1691,10 +1905,18 @@ class RuntimeErrorsTest
       TestMessages.panic(
         contextId,
         mainResId,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.IO",
+            "Standard.Base.IO",
+            "println"
+          )
+        ),
         Api.ExpressionUpdate.Payload.Panic(
           "MyError1",
           Seq(xId)
-        )
+        ),
+        false
       ),
       context.executionComplete(contextId)
     )
@@ -1711,7 +1933,8 @@ class RuntimeErrorsTest
               "MyError2"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -1747,6 +1970,13 @@ class RuntimeErrorsTest
       TestMessages.panic(
         contextId,
         mainResId,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.IO",
+            "Standard.Base.IO",
+            "println"
+          )
+        ),
         Api.ExpressionUpdate.Payload.Panic(
           "MyError2",
           Seq(xId)
@@ -1834,10 +2064,18 @@ class RuntimeErrorsTest
       TestMessages.panic(
         contextId,
         mainResId,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.IO",
+            "Standard.Base.IO",
+            "println"
+          )
+        ),
         Api.ExpressionUpdate.Payload.Panic(
           "Integer",
           Seq(xId)
-        )
+        ),
+        false
       ),
       context.executionComplete(contextId)
     )
@@ -1854,7 +2092,8 @@ class RuntimeErrorsTest
               "10002 - 10000"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -1885,7 +2124,21 @@ class RuntimeErrorsTest
           typeChanged = true
         ),
       TestMessages
-        .update(contextId, mainResId, ConstantsGen.NOTHING, typeChanged = true),
+        .update(
+          contextId,
+          mainResId,
+          ConstantsGen.NOTHING,
+          typeChanged = true,
+          methodCall = Some(
+            Api.MethodCall(
+              Api.MethodPointer(
+                "Standard.Base.IO",
+                "Standard.Base.IO",
+                "println"
+              )
+            )
+          )
+        ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("3")
@@ -2024,17 +2277,26 @@ class RuntimeErrorsTest
         contextId,
         xId,
         Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "foo")),
-        Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
+        Api.ExpressionUpdate.Payload.DataflowError(Seq())
       ),
       TestMessages.error(
         contextId,
         yId,
-        Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
+        Api.ExpressionUpdate.Payload.DataflowError(Seq())
       ),
       TestMessages.update(
         contextId,
         mainResId,
-        ConstantsGen.NOTHING
+        ConstantsGen.NOTHING,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.IO",
+              "Standard.Base.IO",
+              "println"
+            )
+          )
+        )
       ),
       context.executionComplete(contextId)
     )
@@ -2051,7 +2313,8 @@ class RuntimeErrorsTest
               "10002 - 10000"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -2185,14 +2448,26 @@ class RuntimeErrorsTest
               s"import Standard.Base.IO$newline$newline"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
       3
     ) should contain theSameElementsAs Seq(
-      TestMessages.update(contextId, x1Id, ConstantsGen.NOTHING_BUILTIN),
+      TestMessages.update(
+        contextId,
+        x1Id,
+        ConstantsGen.NOTHING_BUILTIN,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.IO",
+            "Standard.Base.IO",
+            "println"
+          )
+        )
+      ),
       TestMessages.update(contextId, mainRes1Id, ConstantsGen.NOTHING_BUILTIN),
       context.executionComplete(contextId)
     )
@@ -2298,14 +2573,26 @@ class RuntimeErrorsTest
               s"import Standard.Base.IO$newline$newline"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
       3
     ) should contain theSameElementsAs Seq(
-      TestMessages.update(contextId, x1Id, ConstantsGen.NOTHING),
+      TestMessages.update(
+        contextId,
+        x1Id,
+        ConstantsGen.NOTHING,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.IO",
+            "Standard.Base.IO",
+            "println"
+          )
+        )
+      ),
       TestMessages.update(contextId, mainRes1Id, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
     )
@@ -2398,7 +2685,8 @@ class RuntimeErrorsTest
               s"y = x - 1${newline}    y"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -2487,7 +2775,8 @@ class RuntimeErrorsTest
               "2"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -2502,6 +2791,64 @@ class RuntimeErrorsTest
         )
       ),
       context.executionComplete(contextId)
+    )
+  }
+
+  it should "return failure result after stack overflow errors" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val metadata = new Metadata
+
+    val code =
+      """from Standard.Base import all
+        |
+        |main =
+        |    operator1 = Main.function1
+        |    operator1
+        |
+        |function1 = function1
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExecutionFailed(
+          contextId,
+          Api.ExecutionResult.Failure("StackOverflowError", None)
+        )
+      )
     )
   }
 

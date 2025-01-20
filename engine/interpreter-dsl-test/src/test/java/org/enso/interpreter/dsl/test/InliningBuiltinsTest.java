@@ -8,6 +8,7 @@ import com.oracle.truffle.api.nodes.DirectCallNode;
 import com.oracle.truffle.api.nodes.RootNode;
 import org.enso.interpreter.node.InlineableNode;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.test.utils.ContextUtils;
 import org.junit.Test;
 
 public class InliningBuiltinsTest {
@@ -17,26 +18,33 @@ public class InliningBuiltinsTest {
    */
   @Test
   public void executeWithoutVirtualFrame() {
-    var fn = InliningBuiltinsInMethodGen.makeFunction(null);
-    if (fn.getCallTarget().getRootNode() instanceof InlineableNode.Root root) {
-      var call = root.createInlineableNode();
-      var clazz = call.getClass();
-      assertEquals("InlineableNode", clazz.getSuperclass().getSimpleName());
-      assertEquals(
-          "org.enso.interpreter.node.InlineableNode$Root",
-          clazz.getEnclosingClass().getInterfaces()[0].getName());
+    try (var ctx = ContextUtils.createDefaultContext()) {
+      ContextUtils.executeInContext(
+          ctx,
+          () -> {
+            var fn = InliningBuiltinsInMethodGen.makeFunction(null);
+            if (fn.getCallTarget().getRootNode() instanceof InlineableNode.Root root) {
+              var call = root.createInlineableNode();
+              var clazz = call.getClass();
+              assertEquals("InlineableNode", clazz.getSuperclass().getSimpleName());
+              assertEquals(
+                  "org.enso.interpreter.node.InlineableNode$Root",
+                  clazz.getEnclosingClass().getInterfaces()[0].getName());
 
-      var res =
-          WithFrame.invoke(
-              (frame) -> {
-                return call.call(
-                    frame,
-                    Function.ArgumentsHelper.buildArguments(
-                        null, null, new Object[] {null, 5L, 7L}));
-              });
-      assertEquals(12L, res);
-    } else {
-      fail("It is inlineable: " + fn.getCallTarget().getRootNode());
+              var res =
+                  WithFrame.invoke(
+                      (frame) -> {
+                        return call.call(
+                            frame,
+                            Function.ArgumentsHelper.buildArguments(
+                                null, null, new Object[] {null, 5L, 7L}));
+                      });
+              assertEquals(12L, res);
+            } else {
+              fail("It is inlineable: " + fn.getCallTarget().getRootNode());
+            }
+            return null;
+          });
     }
   }
 
@@ -45,22 +53,29 @@ public class InliningBuiltinsTest {
    */
   @Test
   public void executeWithVirtualFrame() {
-    var fn = InliningBuiltinsOutMethodGen.makeFunction(null);
-    if (fn.getCallTarget().getRootNode() instanceof InlineableNode.Root root) {
-      fail("The node isn't inlineable: " + fn.getCallTarget().getRootNode());
-    } else {
-      var call = DirectCallNode.create(fn.getCallTarget());
-      var clazz = call.getClass().getSuperclass();
-      assertEquals("com.oracle.truffle.api.nodes.DirectCallNode", clazz.getName());
+    try (var ctx = ContextUtils.createDefaultContext()) {
+      ContextUtils.executeInContext(
+          ctx,
+          () -> {
+            var fn = InliningBuiltinsOutMethodGen.makeFunction(null);
+            if (fn.getCallTarget().getRootNode() instanceof InlineableNode.Root root) {
+              fail("The node isn't inlineable: " + fn.getCallTarget().getRootNode());
+            } else {
+              var call = DirectCallNode.create(fn.getCallTarget());
+              var clazz = call.getClass().getSuperclass();
+              assertEquals("com.oracle.truffle.api.nodes.DirectCallNode", clazz.getName());
 
-      var res =
-          WithFrame.invoke(
-              (frame) -> {
-                return call.call(
-                    Function.ArgumentsHelper.buildArguments(
-                        null, null, new Object[] {null, 3L, 9L}));
-              });
-      assertEquals(12L, res);
+              var res =
+                  WithFrame.invoke(
+                      (frame) -> {
+                        return call.call(
+                            Function.ArgumentsHelper.buildArguments(
+                                null, null, new Object[] {null, 3L, 9L}));
+                      });
+              assertEquals(12L, res);
+            }
+            return null;
+          });
     }
   }
 
@@ -69,22 +84,29 @@ public class InliningBuiltinsTest {
    */
   @Test
   public void executeWhenNeedsVirtualFrame() {
-    var fn = InliningBuiltinsNeedsMethodGen.makeFunction(null);
-    if (fn.getCallTarget().getRootNode() instanceof InlineableNode.Root root) {
-      fail("The node isn't inlineable: " + fn.getCallTarget().getRootNode());
-    } else {
-      var call = DirectCallNode.create(fn.getCallTarget());
-      var clazz = call.getClass().getSuperclass();
-      assertEquals("com.oracle.truffle.api.nodes.DirectCallNode", clazz.getName());
+    try (var ctx = ContextUtils.createDefaultContext()) {
+      ContextUtils.executeInContext(
+          ctx,
+          () -> {
+            var fn = InliningBuiltinsNeedsMethodGen.makeFunction(null);
+            if (fn.getCallTarget().getRootNode() instanceof InlineableNode.Root root) {
+              fail("The node isn't inlineable: " + fn.getCallTarget().getRootNode());
+            } else {
+              var call = DirectCallNode.create(fn.getCallTarget());
+              var clazz = call.getClass().getSuperclass();
+              assertEquals("com.oracle.truffle.api.nodes.DirectCallNode", clazz.getName());
 
-      var res =
-          WithFrame.invoke(
-              (frame) -> {
-                return call.call(
-                    Function.ArgumentsHelper.buildArguments(
-                        null, null, new Object[] {null, 3L, 9L}));
-              });
-      assertEquals(12L, res);
+              var res =
+                  WithFrame.invoke(
+                      (frame) -> {
+                        return call.call(
+                            Function.ArgumentsHelper.buildArguments(
+                                null, null, new Object[] {null, 3L, 9L}));
+                      });
+              assertEquals(12L, res);
+            }
+            return null;
+          });
     }
   }
 
@@ -93,26 +115,33 @@ public class InliningBuiltinsTest {
    */
   @Test
   public void executeWhenNeedNotVirtualFrame() {
-    var fn = InliningBuiltinsNeedNotMethodGen.makeFunction(null);
-    if (fn.getCallTarget().getRootNode() instanceof InlineableNode.Root root) {
-      var call = root.createInlineableNode();
-      var clazz = call.getClass();
-      assertEquals("InlineableNode", clazz.getSuperclass().getSimpleName());
-      assertEquals(
-          "org.enso.interpreter.node.InlineableNode$Root",
-          clazz.getEnclosingClass().getInterfaces()[0].getName());
+    try (var ctx = ContextUtils.createDefaultContext()) {
+      ContextUtils.executeInContext(
+          ctx,
+          () -> {
+            var fn = InliningBuiltinsNeedNotMethodGen.makeFunction(null);
+            if (fn.getCallTarget().getRootNode() instanceof InlineableNode.Root root) {
+              var call = root.createInlineableNode();
+              var clazz = call.getClass();
+              assertEquals("InlineableNode", clazz.getSuperclass().getSimpleName());
+              assertEquals(
+                  "org.enso.interpreter.node.InlineableNode$Root",
+                  clazz.getEnclosingClass().getInterfaces()[0].getName());
 
-      var res =
-          WithFrame.invoke(
-              (frame) -> {
-                return call.call(
-                    frame,
-                    Function.ArgumentsHelper.buildArguments(
-                        null, null, new Object[] {null, 5L, 7L}));
-              });
-      assertEquals(12L, res);
-    } else {
-      fail("It is inlineable: " + fn.getCallTarget().getRootNode());
+              var res =
+                  WithFrame.invoke(
+                      (frame) -> {
+                        return call.call(
+                            frame,
+                            Function.ArgumentsHelper.buildArguments(
+                                null, null, new Object[] {null, 5L, 7L}));
+                      });
+              assertEquals(12L, res);
+            } else {
+              fail("It is inlineable: " + fn.getCallTarget().getRootNode());
+            }
+            return null;
+          });
     }
   }
 

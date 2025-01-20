@@ -4,6 +4,7 @@ from Standard.Test import all
 
 import project.Helpers.Auto_Constructor_Instrumentation_Spec
 import project.Helpers.Sorted_List_Index_Spec
+import project.Helpers.SQL_Statement_Serialization
 import project.Helpers.Unique_Naming_Strategy_Spec
 import project.Helpers.Value_Type_Spec
 
@@ -11,6 +12,7 @@ add_specs suite_builder =
     Auto_Constructor_Instrumentation_Spec.add_specs suite_builder
     Unique_Naming_Strategy_Spec.add_specs suite_builder
     Sorted_List_Index_Spec.add_specs suite_builder
+    SQL_Statement_Serialization.add_specs suite_builder
     Value_Type_Spec.add_specs suite_builder
 
 main filter=Nothing =

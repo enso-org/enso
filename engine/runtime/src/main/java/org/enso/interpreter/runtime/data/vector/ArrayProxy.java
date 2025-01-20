@@ -1,6 +1,7 @@
 package org.enso.interpreter.runtime.data.vector;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.ImportStatic;
 import com.oracle.truffle.api.interop.ArityException;
@@ -12,10 +13,7 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.profiles.BranchProfile;
-import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.data.EnsoObject;
-import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.enso.interpreter.runtime.builtin.BuiltinObject;
 
 /**
  * A wrapper that allows to turn an Enso callback providing elements into a polyglot Array.
@@ -24,9 +22,8 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
  * example exposing rows of a Table without copying any data.
  */
 @ExportLibrary(InteropLibrary.class)
-@ExportLibrary(TypesLibrary.class)
 @ImportStatic(BranchProfile.class)
-final class ArrayProxy implements EnsoObject {
+final class ArrayProxy extends BuiltinObject {
   private final long length;
   private final Object at;
 
@@ -39,6 +36,11 @@ final class ArrayProxy implements EnsoObject {
 
   static ArrayProxy create(long length, Object at) {
     return new ArrayProxy(length, at);
+  }
+
+  @Override
+  protected String builtinName() {
+    return "Array";
   }
 
   @ExportMessage
@@ -74,33 +76,15 @@ final class ArrayProxy implements EnsoObject {
   }
 
   @ExportMessage
-  String toDisplayString(boolean b) {
+  @TruffleBoundary
+  @Override
+  public String toDisplayString(boolean b) {
     return toString();
-  }
-
-  @ExportMessage
-  boolean hasMetaObject() {
-    return true;
-  }
-
-  @ExportMessage
-  Type getMetaObject(@CachedLibrary("this") InteropLibrary thisLib) {
-    return EnsoContext.get(thisLib).getBuiltins().array();
   }
 
   @Override
   @CompilerDirectives.TruffleBoundary
   public String toString() {
     return "(Array_Proxy " + length + " " + at + ")";
-  }
-
-  @ExportMessage
-  boolean hasType() {
-    return true;
-  }
-
-  @ExportMessage
-  Type getType(@CachedLibrary("this") TypesLibrary thisLib, @Cached("1") int ignore) {
-    return EnsoContext.get(thisLib).getBuiltins().array();
   }
 }

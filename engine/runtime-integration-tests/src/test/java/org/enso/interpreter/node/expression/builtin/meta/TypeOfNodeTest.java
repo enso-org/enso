@@ -7,10 +7,12 @@ import com.oracle.truffle.api.interop.TruffleObject;
 import java.util.ArrayList;
 import org.enso.interpreter.runtime.callable.UnresolvedConstructor;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
+import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
-import org.enso.interpreter.test.TestBase;
 import org.enso.interpreter.test.ValuesGenerator;
+import org.enso.test.utils.ContextUtils;
+import org.enso.test.utils.TestRootNode;
 import org.graalvm.polyglot.Context;
 import org.junit.AfterClass;
 import org.junit.Test;
@@ -18,7 +20,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class TypeOfNodeTest extends TestBase {
+public class TypeOfNodeTest {
   @Parameterized.Parameter(0)
   public Object value;
 
@@ -29,7 +31,7 @@ public class TypeOfNodeTest extends TestBase {
 
   private static Context ctx() {
     if (ctx == null) {
-      ctx = defaultContextBuilder().build();
+      ctx = ContextUtils.defaultContextBuilder().build();
     }
     return ctx;
   }
@@ -38,7 +40,7 @@ public class TypeOfNodeTest extends TestBase {
   public static Object[][] allPossibleEnsoInterpreterValues() throws Exception {
     var g = ValuesGenerator.create(ctx());
     var typeOf =
-        evalModule(
+        ContextUtils.evalModule(
             ctx(),
             """
     from Standard.Base import all
@@ -52,7 +54,7 @@ public class TypeOfNodeTest extends TestBase {
       if (!v.isNull()) {
         assertTrue("Type of " + v + " is " + t, t.isMetaObject());
         var n = t.getMetaSimpleName();
-        var raw = unwrapValue(ctx(), v);
+        var raw = ContextUtils.unwrapValue(ctx(), v);
         data.add(new Object[] {raw, n});
       }
     }
@@ -65,6 +67,7 @@ public class TypeOfNodeTest extends TestBase {
   public static void disposeCtx() throws Exception {
     if (ctx != null) {
       ctx.close();
+      ctx = null;
     }
   }
 
@@ -78,12 +81,29 @@ public class TypeOfNodeTest extends TestBase {
     assertType(value, type, true);
   }
 
-  private void assertType(Object symbol, String expectedTypeName, boolean withPriming) {
-    executeInContext(
+  private static void assertType(Object symbol, String expectedTypeName, boolean withPriming) {
+    ContextUtils.executeInContext(
         ctx(),
         () -> {
           var node = TypeOfNode.create();
-          var root = new TestRootNode((frame) -> node.execute(frame.getArguments()[0]));
+          var root =
+              new TestRootNode(
+                  (frame) -> {
+                    var arg = frame.getArguments()[0];
+                    var typeOrNull = node.findTypeOrNull(arg);
+                    var typeOrError = node.findTypeOrError(arg);
+                    if (typeOrNull == null) {
+                      if (typeOrError instanceof EnsoObject) {
+                        assertTrue(
+                            "Expecting error for " + arg, typeOrError instanceof DataflowError);
+                      } else {
+                        // probably HostMetaObject
+                      }
+                    } else {
+                      assertEquals("Types should be the same for " + arg, typeOrNull, typeOrError);
+                    }
+                    return typeOrError;
+                  });
           root.insertChildren(node);
           var call = root.getCallTarget();
 

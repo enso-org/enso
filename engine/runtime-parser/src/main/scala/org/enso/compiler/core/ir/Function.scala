@@ -2,6 +2,7 @@ package org.enso.compiler.core.ir
 
 import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
 import org.enso.compiler.core.{IR, Identifier}
+import org.enso.persist.Persistance
 
 import java.util.UUID
 
@@ -25,6 +26,9 @@ sealed trait Function extends Expression {
     */
   val canBeTCO: Boolean
 
+  /** Whether the method is project-private.
+    */
+  val isPrivate: Boolean
 }
 
 object Function {
@@ -35,34 +39,58 @@ object Function {
     * multi-argument lambdas, our internal representation does so to allow for
     * better optimisation.
     *
-    * @param arguments   the arguments to the lambda
-    * @param body        the body of the lambda
-    * @param location    the source location that the node corresponds to
-    * @param canBeTCO    whether or not the function can be tail-call optimised
-    * @param passData    the pass metadata associated with this node
-    * @param diagnostics compiler diagnostics for this node
+    * @param arguments the arguments to the lambda
+    * @param bodyReference the body of the lambda, stored as a reference to ensure laziness of storage
+    * @param identifiedLocation the source location that the node corresponds to
+    * @param canBeTCO whether or not the function can be tail-call optimised
+    * @param passData the pass metadata associated with this node
     */
   sealed case class Lambda(
     override val arguments: List[DefinitionArgument],
-    bodySeq: Seq[Expression],
-    location: Option[IdentifiedLocation],
+    bodyReference: Persistance.Reference[Expression],
+    override val identifiedLocation: IdentifiedLocation,
     override val canBeTCO: Boolean,
-    passData: MetadataStorage,
-    diagnostics: DiagnosticStorage
+    override val passData: MetadataStorage
   ) extends Function
       with IRKind.Primitive
+      with LazyDiagnosticStorage
       with LazyId {
+
     def this(
       arguments: List[DefinitionArgument],
       body: Expression,
-      location: Option[IdentifiedLocation],
-      canBeTCO: Boolean              = true,
-      passData: MetadataStorage      = new MetadataStorage(),
-      diagnostics: DiagnosticStorage = new DiagnosticStorage()
+      identifiedLocation: IdentifiedLocation,
+      canBeTCO: Boolean         = true,
+      passData: MetadataStorage = new MetadataStorage()
     ) = {
-      this(arguments, Seq(body), location, canBeTCO, passData, diagnostics)
+      this(
+        arguments,
+        Persistance.Reference.of(body, true),
+        identifiedLocation,
+        canBeTCO,
+        passData
+      )
     }
-    override lazy val body = bodySeq.head
+
+    def this(
+      ir: expression.Case.Expr,
+      arguments: List[DefinitionArgument],
+      body: Expression,
+      identifiedLocation: IdentifiedLocation
+    ) = {
+      this(
+        arguments,
+        Persistance.Reference.of(body, true),
+        identifiedLocation,
+        true,
+        ir.passData.duplicate()
+      )
+      diagnostics = ir.diagnostics
+    }
+
+    override lazy val body: Expression = bodyReference.get(classOf[Expression])
+
+    override val isPrivate: Boolean = false
 
     /** Creates a copy of `this`.
       *
@@ -84,10 +112,33 @@ object Function {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Lambda = {
-      val res =
-        Lambda(arguments, Seq(body), location, canBeTCO, passData, diagnostics)
-      res.id = id
-      res
+      if (
+        arguments != this.arguments
+        || body != this.body
+        || location != this.location
+        || canBeTCO != this.canBeTCO
+        || (passData ne this.passData)
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res =
+          Lambda(
+            arguments,
+            Persistance.Reference.of(body, false),
+            location.orNull,
+            canBeTCO,
+            passData
+          )
+        res.diagnostics = diagnostics
+        res.id          = id
+        res
+      } else this
+    }
+
+    def copyWithArguments(
+      arguments: List[DefinitionArgument]
+    ): Lambda = {
+      copy(arguments = arguments)
     }
 
     /** @inheritdoc */
@@ -115,9 +166,8 @@ object Function {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -131,7 +181,7 @@ object Function {
       copy(arguments = arguments.map(_.mapExpressions(fn)), body = fn(body))
     }
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Function.Lambda(
@@ -162,6 +212,7 @@ object Function {
   }
 
   object Lambda {
+
     def unapply(l: Lambda): Some[
       (
         List[DefinitionArgument],
@@ -189,21 +240,22 @@ object Function {
     * @param name        the name of the function
     * @param arguments   the arguments to the function
     * @param body        the body of the function
+    * @param isPrivate    Whether the function is project-private
     * @param location    the source location that the node corresponds to
     * @param canBeTCO    whether or not the function can be tail-call optimised
     * @param passData    the pass metadata associated with this node
-    * @param diagnostics the compiler diagnostics for this node
     */
   sealed case class Binding(
     name: Name,
     override val arguments: List[DefinitionArgument],
     override val body: Expression,
-    location: Option[IdentifiedLocation],
-    override val canBeTCO: Boolean = true,
-    passData: MetadataStorage      = new MetadataStorage(),
-    diagnostics: DiagnosticStorage = DiagnosticStorage()
+    override val isPrivate: Boolean,
+    override val identifiedLocation: IdentifiedLocation,
+    override val canBeTCO: Boolean         = true,
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends Function
       with IRKind.Sugar
+      with LazyDiagnosticStorage
       with LazyId {
 
     /** Creates a copy of `this`.
@@ -211,6 +263,7 @@ object Function {
       * @param name        the name of the function
       * @param arguments   the arguments to the function
       * @param body        the body of the function
+      * @param isPrivate    Whether the function is project-private
       * @param location    the source location that the node corresponds to
       * @param canBeTCO    whether or not the function can be tail-call optimised
       * @param passData    the pass metadata associated with this node
@@ -222,24 +275,38 @@ object Function {
       name: Name                           = name,
       arguments: List[DefinitionArgument]  = arguments,
       body: Expression                     = body,
+      isPrivate: Boolean                   = isPrivate,
       location: Option[IdentifiedLocation] = location,
       canBeTCO: Boolean                    = canBeTCO,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Binding = {
-      val res =
-        Binding(
-          name,
-          arguments,
-          body,
-          location,
-          canBeTCO,
-          passData,
-          diagnostics
-        )
-      res.id = id
-      res
+      if (
+        name != this.name
+        || arguments != this.arguments
+        || body != this.body
+        || isPrivate != this.isPrivate
+        || location != this.location
+        || canBeTCO != this.canBeTCO
+        || (passData ne this.passData)
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res =
+          Binding(
+            name,
+            arguments,
+            body,
+            isPrivate,
+            location.orNull,
+            canBeTCO,
+            passData
+          )
+        res.diagnostics = diagnostics
+        res.id          = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -273,9 +340,8 @@ object Function {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -292,7 +358,7 @@ object Function {
         body      = fn(body)
       )
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Function.Binding(

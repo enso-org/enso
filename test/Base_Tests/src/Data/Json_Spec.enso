@@ -16,6 +16,9 @@ type Author
 type Book
     Value title author
 
+type My_Error
+    Error
+
 Text.should_fail_parsing_with self expected =
     as_fail = case Json.parse self of
         _ -> Spec_Result.Failure "Expected a parse error, but no error reported."
@@ -61,6 +64,7 @@ add_specs suite_builder =
                 JS_Object.from_pairs [["foo", "bar"], ["baz", ["foo", "x", False]], ["y", y_v]]
 
         group_builder.specify "should report meaningful parsing errors" <|
+            "".should_fail_parsing_with "Empty string is not valid JSON."
             "foo".should_fail_parsing_with "Unrecognized token 'foo': was expecting (JSON String, Number, Array, Object or token 'null', 'true' or 'false') at position [line: 1, column: 4]"
             "[,]".should_fail_parsing_with "Unexpected character (',' (code 44)): expected a valid value (JSON String, Number, Array, Object or token 'null', 'true' or 'false') at position [line: 1, column: 3]"
             "{,}".should_fail_parsing_with "Unexpected character (',' (code 44)): was expecting double-quote to start field name at position [line: 1, column: 3]"
@@ -81,13 +85,13 @@ add_specs suite_builder =
             Json.parse '{"constructor": "Skew", "population": true}' . into Statistic . should_equal (Statistic.Skew True)
             Json.parse '{"constructor": "NotARealOne", "population": true}' . into Statistic . should_fail_with Illegal_Argument
 
-        group_builder.specify "should be able to convert a JS_Object into a Map using into" <|
-            Json.parse '{"a": 15, "b": 20, "c": "X", "d": null}' . into Map . should_equal (Map.from_vector [["a", 15], ["b", 20], ["c", "X"], ["d", Nothing]])
-            Json.parse '{}' . into Map . should_equal Map.empty
+        group_builder.specify "should be able to convert a JS_Object into a Dictionary using into" <|
+            Json.parse '{"a": 15, "b": 20, "c": "X", "d": null}' . into Dictionary . should_equal (Dictionary.from_vector [["a", 15], ["b", 20], ["c", "X"], ["d", Nothing]])
+            Json.parse '{}' . into Dictionary . should_equal Dictionary.empty
 
             # [] parses as a vector/array which does not have the `into` method, that only works for {} objects:
             Test.expect_panic No_Such_Method <|
-                Json.parse '[]' . into Map
+                Json.parse '[]' . into Dictionary
 
         group_builder.specify "should be able to deserialize Date" <|
             '{"type": "Date", "constructor": "new", "year": 2018, "month": 7, "day": 3}'.should_parse_as (Date.new 2018 7 3)
@@ -112,6 +116,13 @@ add_specs suite_builder =
             '{"type":"Date_Time","constructor":"new","year":2023,"month":9,"day":29,"hour":11,"minute":52}'.should_parse_as (Date_Time.new 2023 9 29 11 52 00)
             '{"type":"Date_Time","constructor":"new","year":2023,"month":9,"day":29,"hour":11,"second":52}'.should_parse_as (JS_Object.from_pairs [["type", "Date_Time"], ["constructor", "new"], ["year", 2023], ["month", 9], ["day", 29], ["hour", 11], ["second", 52]])
             '{"type":"Date_Time","constructor":"new","year":2023,"month":9,"day":29,"hour":11,"minute":52,"nanosecond":572104300}'.should_parse_as (JS_Object.from_pairs [["type", "Date_Time"], ["constructor", "new"], ["year", 2023], ["month", 9], ["day", 29], ["hour", 11], ["minute", 52], ["nanosecond", 572104300]])
+
+        group_builder.specify "should be able to read a JSON file with a BOM indicating UTF-16 encoding" <|
+            utf_16_le_bom = [-1, -2]
+            bytes = utf_16_le_bom + ("{}".bytes Encoding.utf_16_le)
+            f = File.create_temporary_file "json-with-bom" ".json"
+            bytes.write_bytes f . should_succeed
+            f.read . should_be_a JS_Object
 
     suite_builder.group "JSON Serialization" group_builder->
         group_builder.specify "should print JSON structures to valid json" <|
@@ -142,14 +153,26 @@ add_specs suite_builder =
             Number.positive_infinity.to_json . should_equal "null"
             Number.negative_infinity.to_json . should_equal "null"
 
+        group_builder.specify "should serialise large integers and parse back" <|
+            large_number = 1234567890123456789012345678901234567890
+            large_number.to_json . should_equal '{"type":"Integer","value":"1234567890123456789012345678901234567890"}'
+            large_number.to_json . parse_json . should_equal large_number
+
+        group_builder.specify "should serialise decimals and parse back" <|
+            decimal = Decimal.from_text "1234567890123456789012345678901234567890.1234567890123456789012345678901234567890"
+            decimal.to_json . should_equal '{"type":"Decimal","value":"1234567890123456789012345678901234567890.1234567890123456789012345678901234567890","scale":40,"precision":80}'
+            decimal.to_json . parse_json . should_equal decimal
+            decimal.to_json . parse_json . scale . should_equal 40
+            decimal.to_json . parse_json . precision . should_equal 80
+
     suite_builder.group "JS_Object" group_builder->
         group_builder.specify "should be buildable from pairs" <|
             JS_Object.from_pairs [["foo", "bar"]] . to_json . should_equal '{"foo":"bar"}'
             JS_Object.from_pairs [["foo", "bar"], ["baz", Nothing]] . to_json . should_equal '{"foo":"bar","baz":null}'
 
-        group_builder.specify "should be buildable from pairs" <|
-            JS_Object.from_pairs [["foo", "bar"]] . to_json . should_equal '{"foo":"bar"}'
-            JS_Object.from_pairs [["foo", "bar"], ["baz", Nothing]] . to_json . should_equal '{"foo":"bar","baz":null}'
+        group_builder.specify "`from_pairs` should propagate errors" <|
+            JS_Object.from_pairs [["key", (Error.throw My_Error.Error)]] . should_fail_with My_Error
+            JS_Object.from_pairs [[(Error.throw My_Error.Error), "value"]] . should_fail_with My_Error
 
         group_builder.specify "should be handle equality on a key level" <|
             JS_Object.from_pairs [["a", 42]] . should_equal <| Json.parse '{"a": 42}'

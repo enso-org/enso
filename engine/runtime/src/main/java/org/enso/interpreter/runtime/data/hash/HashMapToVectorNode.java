@@ -18,7 +18,7 @@ import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.error.PanicException;
 
 @BuiltinMethod(
-    type = "Map",
+    type = "Dictionary",
     name = "to_vector",
     description =
         """
@@ -31,6 +31,10 @@ public abstract class HashMapToVectorNode extends Node {
 
   public static HashMapToVectorNode build() {
     return HashMapToVectorNodeGen.create();
+  }
+
+  public static HashMapToVectorNode getUncached() {
+    return HashMapToVectorNodeGen.getUncached();
   }
 
   public abstract Object execute(Object self);

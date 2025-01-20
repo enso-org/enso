@@ -11,7 +11,7 @@ object TaskNotificationApi {
     case class Params(
       taskId: UUID,
       relatedOperation: String,
-      unit: SerializableProgressUnit,
+      unit: SerializableProgressUnits.SerializableProgressUnit,
       total: Option[Long]
     )
 

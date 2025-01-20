@@ -1,11 +1,12 @@
 package org.enso.interpreter.instrument.job;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.interop.ExceptionType;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import java.nio.charset.StandardCharsets;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.error.WithWarnings;
+import org.enso.interpreter.runtime.warning.WithWarnings;
 
 public final class VisualizationResult {
   private VisualizationResult() {}
@@ -39,6 +40,32 @@ public final class VisualizationResult {
       }
     } catch (UnsupportedMessageException ignore) {
       throw CompilerDirectives.shouldNotReachHere(ignore);
+    }
+  }
+
+  public static boolean isInterruptedException(Object object) {
+    if (object instanceof Throwable ex) {
+      var iop = InteropLibrary.getUncached();
+      return isInterruptedException(ex, iop);
+    } else {
+      return false;
+    }
+  }
+
+  private static boolean isInterruptedException(Object ex, InteropLibrary iop) {
+    try {
+      var interrupt = iop.getExceptionType(ex) == ExceptionType.INTERRUPT;
+      if (interrupt) {
+        return true;
+      }
+      try {
+        var cause = iop.getExceptionCause(ex);
+        return cause != null && isInterruptedException(cause, iop);
+      } catch (UnsupportedMessageException e) {
+        return false;
+      }
+    } catch (UnsupportedMessageException e) {
+      throw CompilerDirectives.shouldNotReachHere(e);
     }
   }
 

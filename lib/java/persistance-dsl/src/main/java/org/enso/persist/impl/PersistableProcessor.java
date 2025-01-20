@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.Processor;
 import javax.annotation.processing.RoundEnvironment;
@@ -69,7 +70,7 @@ public class PersistableProcessor extends AbstractProcessor {
   private static String findNameInPackage(Element e) {
     var sb = new StringBuilder();
     while (e != null && !(e instanceof PackageElement)) {
-      if (!sb.isEmpty()) {
+      if (sb.length() > 0) {
         sb.insert(0, ".");
       }
       sb.insert(0, e.getSimpleName());
@@ -100,19 +101,16 @@ public class PersistableProcessor extends AbstractProcessor {
 
             var diff = eb.getParameters().size() - ea.getParameters().size();
             if (diff == 0) {
-              diff = countSeq(eb.getParameters()) - countSeq(ea.getParameters());
+              diff = countInlineRef(eb.getParameters()) - countInlineRef(ea.getParameters());
             }
             return diff;
           }
         };
     var constructors =
         typeElem.getEnclosedElements().stream()
-            .filter(
-                e ->
-                    e.getModifiers().contains(Modifier.PUBLIC)
-                        && e.getKind() == ElementKind.CONSTRUCTOR)
+            .filter(e -> isVisibleFrom(e, orig) && e.getKind() == ElementKind.CONSTRUCTOR)
             .sorted(richerConstructor)
-            .toList();
+            .collect(Collectors.toList());
 
     ExecutableElement cons;
     Element singleton;
@@ -123,9 +121,9 @@ public class PersistableProcessor extends AbstractProcessor {
                   e ->
                       e.getKind() == ElementKind.FIELD
                           && e.getModifiers().contains(Modifier.STATIC)
-                          && e.getModifiers().contains(Modifier.PUBLIC))
+                          && isVisibleFrom(e, orig))
               .filter(e -> tu.isSameType(e.asType(), typeElem.asType()))
-              .toList();
+              .collect(Collectors.toList());
       if (singletonFields.isEmpty()) {
         processingEnv
             .getMessager()
@@ -141,12 +139,14 @@ public class PersistableProcessor extends AbstractProcessor {
       if (constructors.size() > 1) {
         var snd = (ExecutableElement) constructors.get(1);
         if (richerConstructor.compare(cons, snd) == 0) {
-          processingEnv
-              .getMessager()
-              .printMessage(
-                  Kind.ERROR,
-                  "There should be exactly one 'richest' constructor in " + typeElem,
-                  orig);
+          var sb = new StringBuilder();
+          sb.append("There should be exactly one 'richest' constructor in ")
+              .append(typeElem)
+              .append(". Found:");
+          for (var c : constructors) {
+            sb.append("\n  ").append(c);
+          }
+          processingEnv.getMessager().printMessage(Kind.ERROR, sb.toString(), orig);
           return false;
         }
       }
@@ -274,13 +274,28 @@ public class PersistableProcessor extends AbstractProcessor {
     return true;
   }
 
-  private int countSeq(List<? extends VariableElement> parameters) {
+  private boolean isVisibleFrom(Element e, Element from) {
+    if (e.getModifiers().contains(Modifier.PUBLIC)) {
+      return true;
+    }
+    if (e.getModifiers().contains(Modifier.PRIVATE)) {
+      return false;
+    }
+    var eu = processingEnv.getElementUtils();
+    return eu.getPackageOf(e) == eu.getPackageOf(from);
+  }
+
+  private int countInlineRef(List<? extends VariableElement> parameters) {
     var tu = processingEnv.getTypeUtils();
     var cnt = 0;
     for (var p : parameters) {
       var type = tu.asElement(tu.erasure(p.asType()));
-      if (type != null && type.getSimpleName().toString().equals("Seq")) {
-        cnt++;
+      if (type != null) {
+        switch (type.getSimpleName().toString()) {
+          case "Reference" -> cnt++;
+          case "Option" -> cnt++;
+          default -> {}
+        }
       }
     }
     return cnt;

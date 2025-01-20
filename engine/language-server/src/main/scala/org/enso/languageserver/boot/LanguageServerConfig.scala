@@ -2,6 +2,7 @@ package org.enso.languageserver.boot
 
 import java.util.UUID
 
+import org.enso.runner.common.ProfilingConfig
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 
 /**  The config of the running Language Server instance.

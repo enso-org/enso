@@ -14,7 +14,8 @@ object Diagnostic {
   /** An error with the license review that has to be resolved
     * before the report can be accepted.
     */
-  case class Error(message: String) extends Diagnostic
+  case class Error(message: String, metadata: Map[String, String] = Map.empty)
+      extends Diagnostic
 
   def partition(diagnostics: Seq[Diagnostic]): (Seq[Warning], Seq[Error]) = {
     val warnings = diagnostics.collect { case n: Warning => n }

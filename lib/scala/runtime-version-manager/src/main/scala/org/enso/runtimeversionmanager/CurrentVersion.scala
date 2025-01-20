@@ -1,8 +1,8 @@
 package org.enso.runtimeversionmanager
 
-import buildinfo.Info
 import com.typesafe.scalalogging.Logger
 import org.enso.semver.SemVer
+import org.enso.version.BuildVersion
 
 /** Helper object that allows to get the current application version.
   *
@@ -12,12 +12,12 @@ import org.enso.semver.SemVer
 object CurrentVersion {
 
   private var currentVersion: SemVer =
-    SemVer.parse(Info.ensoVersion).getOrElse {
+    SemVer.parse(BuildVersion.ensoVersion).getOrElse {
       throw new IllegalStateException("Cannot parse the built-in version.")
     }
 
   private val defaultDevEnsoVersion: SemVer =
-    SemVer.parse(Info.defaultDevEnsoVersion).getOrElse {
+    SemVer.parse(BuildVersion.defaultDevEnsoVersion).getOrElse {
       throw new IllegalStateException("Cannot parse the built-in dev version.")
     }
 
@@ -36,7 +36,7 @@ object CurrentVersion {
     * calls to [[version]].
     */
   def internalOverrideVersion(newVersion: SemVer): Unit =
-    if (Info.isRelease)
+    if (BuildVersion.isRelease)
       throw new IllegalStateException(
         "Internal testing function internalOverrideVersion used in a " +
         "release build."

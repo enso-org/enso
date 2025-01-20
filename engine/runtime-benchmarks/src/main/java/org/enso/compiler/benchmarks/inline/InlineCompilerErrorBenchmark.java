@@ -4,9 +4,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.concurrent.TimeUnit;
+import org.enso.common.RuntimeOptions;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.benchmarks.Utils;
-import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -80,8 +80,8 @@ public class InlineCompilerErrorBenchmark {
 
   @Benchmark
   public void expressionWithErrors(Blackhole blackhole) throws IOException {
-    try (InlineContextResource resource = mainInlineContextResourceFactory.create()) {
-      var tuppleOpt = compiler.runInline(expressionWithErrors, resource.inlineContext());
+    try (var inlineCtx = mainInlineContextResourceFactory.create()) {
+      var tuppleOpt = compiler.runInline(expressionWithErrors, inlineCtx);
       blackhole.consume(tuppleOpt);
     }
   }

@@ -1,10 +1,8 @@
 package org.enso.interpreter.runtime.data;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import java.time.DateTimeException;
@@ -13,22 +11,25 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import org.enso.interpreter.dsl.Builtin;
-import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.builtin.BuiltinObject;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.polyglot.common_utils.Core_Date_Utils;
 
 @ExportLibrary(InteropLibrary.class)
-@ExportLibrary(TypesLibrary.class)
 @Builtin(
     pkg = "date",
     name = "DateTime",
     stdlibName = "Standard.Base.Data.Time.Date_Time.Date_Time")
-public final class EnsoDateTime implements EnsoObject {
+public final class EnsoDateTime extends BuiltinObject {
   private final ZonedDateTime dateTime;
 
   public EnsoDateTime(ZonedDateTime dateTime) {
     this.dateTime = dateTime;
+  }
+
+  @Override
+  protected String builtinName() {
+    return "Date_Time";
   }
 
   @Builtin.Method(
@@ -205,27 +206,8 @@ public final class EnsoDateTime implements EnsoObject {
   }
 
   @ExportMessage
-  Type getMetaObject(@CachedLibrary("this") InteropLibrary thisLib) {
-    return EnsoContext.get(thisLib).getBuiltins().dateTime();
-  }
-
-  @ExportMessage
-  boolean hasMetaObject() {
-    return true;
-  }
-
-  @ExportMessage
-  boolean hasType() {
-    return true;
-  }
-
-  @ExportMessage
-  Type getType(@CachedLibrary("this") TypesLibrary thisLib, @Cached("1") int ignore) {
-    return EnsoContext.get(thisLib).getBuiltins().dateTime();
-  }
-
-  @ExportMessage
   @CompilerDirectives.TruffleBoundary
+  @Override
   public Object toDisplayString(boolean allowSideEffects) {
     return Core_Date_Utils.defaultZonedDateTimeFormatter.format(dateTime);
   }

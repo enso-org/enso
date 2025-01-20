@@ -9,7 +9,6 @@ import org.enso.logger.masking.MaskedString
 import org.slf4j.event.Level
 
 import java.net.URI
-import org.enso.runtimeversionmanager.components.Manifest.JVMOptionsContext
 import org.enso.runtimeversionmanager.components.{
   Engine,
   GraalRuntime,
@@ -79,7 +78,12 @@ class Runner(
           engineVersion
         )
       }
-      RunSettings(engineVersion, arguments, connectLoggerIfAvailable = false)
+      RunSettings(
+        engineVersion,
+        arguments,
+        workingDirectory         = None,
+        connectLoggerIfAvailable = false
+      )
     }
 
   /** Creates [[RunSettings]] for launching the Language Server. */
@@ -113,6 +117,8 @@ class Runner(
     additionalArguments: Seq[String]
   ): Try[RunSettings] =
     Try {
+      val workingDirectory =
+        Path.of(projectPath).toAbsolutePath.normalize.getParent
       val arguments = Seq(
         "--server",
         "--root-id",
@@ -137,6 +143,7 @@ class Runner(
       RunSettings(
         version,
         arguments ++ additionalArguments,
+        workingDirectory         = Some(workingDirectory),
         connectLoggerIfAvailable = true
       )
     }
@@ -155,9 +162,9 @@ class Runner(
     * the underlying JVM to get the full command for launching the component.
     */
   def withCommand[R](runSettings: RunSettings, jvmSettings: JVMSettings)(
-    action: Command => R
+    action: RawCommand => R
   ): R = {
-    def prepareAndRunCommand(engine: Engine, javaCommand: JavaCommand): R = {
+    def prepareAndRunCommand(engine: Engine, cmd: ExecCommand): R = {
       val jvmOptsFromEnvironment = environment.getEnvVar(JVM_OPTIONS_ENV_VAR)
       jvmOptsFromEnvironment.foreach { opts =>
         Logger[Runner].debug(
@@ -168,49 +175,20 @@ class Runner(
         )
       }
 
-      def translateJVMOption(option: (String, String)): String = {
-        val name  = option._1
-        val value = option._2
-        s"-D$name=$value"
-      }
-
-      val context = JVMOptionsContext(enginePackagePath = engine.path)
-
-      val manifestOptions =
-        engine.defaultJVMOptions.filter(_.isRelevant).map(_.substitute(context))
       val environmentOptions =
         jvmOptsFromEnvironment.map(_.split(' ').toIndexedSeq).getOrElse(Seq())
-      val commandLineOptions        = jvmSettings.jvmOptions.map(translateJVMOption)
-      val shouldInvokeViaModulePath = engine.graalRuntimeVersion.isUnchained
 
-      var jvmArguments =
-        manifestOptions ++ environmentOptions ++ commandLineOptions
-      if (shouldInvokeViaModulePath) {
-        jvmArguments = jvmArguments :++ Seq(
-          "--module-path",
-          engine.componentDirPath.toAbsolutePath.normalize.toString,
-          "-m",
-          "org.enso.runtime/org.enso.EngineRunnerBootLoader"
-        )
-      } else {
-        assert(
-          engine.runnerPath.isDefined,
-          "Engines path to runner.jar must be defined - it is not an unchained engine"
-        )
-        val runnerJar = engine.runnerPath.get.toAbsolutePath.normalize.toString
-        jvmArguments = jvmArguments :++ Seq(
-          "-jar",
-          runnerJar
-        )
-      }
+      val jvmArguments =
+        environmentOptions ++ cmd.cmdArguments(engine, jvmSettings)
 
       val loggingConnectionArguments =
         if (runSettings.connectLoggerIfAvailable)
           forceLoggerConnectionArguments()
         else Seq()
 
-      val command = Seq(javaCommand.executableName) ++
-        jvmArguments ++ loggingConnectionArguments ++ runSettings.runnerArguments
+      val command = Seq(
+        cmd.path
+      ) ++ jvmArguments ++ loggingConnectionArguments ++ runSettings.runnerArguments
 
       val distributionSettings =
         distributionManager.getEnvironmentToInheritSettings
@@ -223,12 +201,18 @@ class Runner(
           )
           p.toString()
         }
-        .orElse(javaCommand.javaHomeOverride)
+        .orElse(cmd.javaHome)
 
       val extraEnvironmentOverrides =
         javaHome.map("JAVA_HOME" -> _).toSeq ++ distributionSettings.toSeq
 
-      action(Command(command, extraEnvironmentOverrides))
+      action(
+        RawCommand(
+          command,
+          extraEnvironmentOverrides,
+          runSettings.workingDirectory
+        )
+      )
     }
 
     val engineVersion = runSettings.engineVersion
@@ -240,7 +224,15 @@ class Runner(
       case None =>
         runtimeVersionManager.withEngineAndRuntime(engineVersion) {
           (engine, runtime) =>
-            prepareAndRunCommand(engine, JavaCommand.forRuntime(runtime))
+            NativeExecCommand.apply(engineVersion.toString) match {
+              case Some(cmd) =>
+                prepareAndRunCommand(engine, cmd)
+              case None =>
+                prepareAndRunCommand(
+                  engine,
+                  JavaExecCommand.forRuntime(runtime)
+                )
+            }
         }
     }
   }

@@ -22,6 +22,8 @@ import java.nio.file.{Path, Paths}
 import scala.sys.process.Process
 import scala.util.Using
 import java.io.FileWriter
+import xsbti.Severity
+import xsbti.Position
 
 object FrgaalJavaCompiler {
   private val ENSO_SOURCES = ".enso-sources"
@@ -32,10 +34,26 @@ object FrgaalJavaCompiler {
   val debugArg =
     "-J-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=localhost:8000"
 
+  /** Returns custom setting for compiler that delegates to `Frgaal`.
+    * @param classpath The dependencyClasspath of the current project
+    * @param sbtCompilers Configuration for compilers for current sbt project
+    * @param javaVersion Target Java version
+    * @param shouldCompileModuleInfo If true, module-info.java will be compiled
+    *                                in addition to other Java sources. See the docs
+    *                                of `shouldCompileModuleInfo` task in `build.sbt` and
+    *                                the docs of [[JPMSPlugin]].
+    * @param javaSourceDir The directory where Java sources are located
+    * @param shouldNotLimitModules Should `--limit-modules` cmdline option be passed to java process
+    *                           to limit set of modules frgaal is able to see?
+    * @return
+    */
   def compilers(
     classpath: sbt.Keys.Classpath,
     sbtCompilers: xsbti.compile.Compilers,
-    javaVersion: String
+    javaVersion: String,
+    shouldCompileModuleInfo: Boolean,
+    javaSourceDir: File,
+    shouldNotLimitModules: Boolean
   ) = {
     // Enable Java 11+ features by invoking Frgaal instead of regular javac
     val javaHome = Option(System.getProperty("java.home")).map(Paths.get(_))
@@ -61,7 +79,10 @@ object FrgaalJavaCompiler {
     val frgaalJavac = new FrgaalJavaCompiler(
       javaHome,
       frgaalOnClasspath.get,
-      target = javaVersion
+      javaSourceDir           = javaSourceDir,
+      target                  = javaVersion,
+      shouldCompileModuleInfo = shouldCompileModuleInfo,
+      shouldNotLimitModules   = shouldNotLimitModules
     )
     val javaTools = sbt.internal.inc.javac
       .JavaTools(frgaalJavac, sbtCompilers.javaTools.javadoc())
@@ -79,7 +100,10 @@ object FrgaalJavaCompiler {
     log: Logger,
     reporter: Reporter,
     source: Option[String],
-    target: String
+    target: String,
+    shouldCompileModuleInfo: Boolean,
+    javaSourceDir: File,
+    shouldNotLimitModules: Boolean
   ): Boolean = {
     val (jArgs, nonJArgs)     = options.partition(_.startsWith("-J"))
     val debugAnotProcessorOpt = jArgs.contains(debugArg)
@@ -113,9 +137,46 @@ object FrgaalJavaCompiler {
       }
       ap
     }
+    val moduleInfoAndSources =
+      sources0.partition(_.toString().endsWith("module-info.java"))
+    val sourcesNoModuleInfo = moduleInfoAndSources._2
+    val out                 = output.getSingleOutputAsPath().get()
+    val shared              = sources0.fold(out)(asCommon).asInstanceOf[Path]
 
-    val out    = output.getSingleOutputAsPath().get()
-    val shared = sources0.fold(out)(asCommon).asInstanceOf[Path]
+    log.debug(
+      s"[FrgaalJavaCompiler] sources0: ${sources0}"
+    )
+    log.debug(
+      s"[FrgaalJavaCompiler] sourcesNoModuleInfo: ${sourcesNoModuleInfo}"
+    )
+    log.debug(
+      s"[FrgaalJavaCompiler] shared: ${shared}"
+    )
+
+    val allSources = if (shouldCompileModuleInfo) {
+      val moduleInfo = javaSourceDir.toPath.resolve("module-info.java").toFile
+      if (!moduleInfo.exists()) {
+        log.warn(
+          s"[FrgaalJavaCompiler] module-info.java not found in $javaSourceDir, but " +
+          "settings of the project require to compile it. Ensure that the setting of " +
+          "`shouldCompileModuleInfoManually` is correctly set."
+        )
+        log.info(
+          s"[FrgaalJavaCompiler] compiling ${sources.size} Java sources to $out ..."
+        )
+        sources
+      } else {
+        log.info(
+          s"[FrgaalJavaCompiler] compiling ${sources.size + 1} Java sources with module-info.java to $out ..."
+        )
+        Seq(moduleInfo.getAbsolutePath) ++ sources
+      }
+    } else {
+      log.info(
+        s"[FrgaalJavaCompiler] compiling ${sources.size} Java sources to $out ..."
+      )
+      sources
+    }
 
     // searching for $shared/src/main/java or
     // $shared/src/test/java or
@@ -148,9 +209,17 @@ object FrgaalJavaCompiler {
       inATargetDir
     }
 
-    val (withTarget, noTarget) = sources0.partition(checkTarget)
+    val (withTarget, noTarget) = sourcesNoModuleInfo
+      .partition(checkTarget)
+    log.debug(
+      s"[FrgaalJavaCompiler] withTarget: ${withTarget}"
+    )
+    log.debug(
+      s"[FrgaalJavaCompiler] noTarget: ${noTarget}"
+    )
     val in = if (noTarget.isEmpty) {
-      None
+      log.debug(s"No target. Using location of ${moduleInfoAndSources._1}")
+      moduleInfoAndSources._1.map(asPath(_).getParent()).headOption
     } else {
       Some(
         findUnder(
@@ -159,6 +228,9 @@ object FrgaalJavaCompiler {
         )
       )
     }
+    log.debug(
+      s"[FrgaalJavaCompiler] input sources are at: ${in}"
+    )
     val generated = if (withTarget.isEmpty) {
       None
     } else {
@@ -171,12 +243,18 @@ object FrgaalJavaCompiler {
         )
       )
     }
+    log.debug(
+      s"[FrgaalJavaCompiler] generated code is at ${generated}"
+    )
 
     if (shared.toFile().exists()) {
       val ensoMarker = new File(shared.toFile(), ENSO_SOURCES)
       val ensoConfig = new File(
         shared.toFile(),
         ENSO_SOURCES + "-" + out.getFileName().toString()
+      )
+      log.debug(
+        s"[FrgaalJavaCompiler] writing compiler configuration into ${ensoConfig}"
       )
       val ensoProperties = new java.util.Properties()
 
@@ -215,7 +293,7 @@ object FrgaalJavaCompiler {
         "-target",
         target
       )
-    val allArguments = outputOption ++ frgaalOptions ++ nonJArgs ++ sources
+    val allArguments = outputOption ++ frgaalOptions ++ nonJArgs ++ allSources
 
     withArgumentFile(allArguments) { argsFile =>
       // List of modules that Frgaal can use for compilation
@@ -228,10 +306,13 @@ object FrgaalJavaCompiler {
         "java.sql",
         "jdk.jfr"
       )
-      val limitModulesArgs = Seq(
-        "--limit-modules",
-        limitModules.mkString(",")
-      )
+      val limitModulesArgs =
+        if (shouldNotLimitModules) Seq()
+        else
+          Seq(
+            "--limit-modules",
+            limitModules.mkString(",")
+          )
       // strippedJArgs needs to be passed via cmd line, and not via the argument file
       val forkArgs = (strippedJArgs ++ limitModulesArgs ++ Seq(
         "-jar",
@@ -250,10 +331,36 @@ object FrgaalJavaCompiler {
           " You should attach the debugger now."
         )
       }
+      log.debug(
+        "[FrgaalJavaCompiler] Running " + (exe +: forkArgs).mkString(" ")
+      )
       try {
         exitCode = Process(exe +: forkArgs, cwd) ! javacLogger
       } finally {
         javacLogger.flush("frgaal", exitCode)
+      }
+      if (exitCode != 0) {
+        class FrgaalPosition extends xsbti.Position {
+          def line(): java.util.Optional[Integer]   = java.util.Optional.empty()
+          def lineContent()                         = "Frgaal errors"
+          def offset(): java.util.Optional[Integer] = java.util.Optional.empty()
+          def pointer(): java.util.Optional[Integer] =
+            java.util.Optional.empty()
+          def pointerSpace(): java.util.Optional[String] =
+            java.util.Optional.empty()
+          def sourceFile(): java.util.Optional[java.io.File] =
+            java.util.Optional.empty()
+          def sourcePath(): java.util.Optional[String] =
+            java.util.Optional.empty()
+        }
+
+        class FrgaalProblem extends xsbti.Problem {
+          def category()           = "Compiler error"
+          def severity(): Severity = Severity.Error
+          def message()            = "Error in frgaal compilation"
+          def position(): Position = new FrgaalPosition()
+        }
+        reporter.log(new FrgaalProblem())
       }
       // We return true or false, depending on success.
       exitCode == 0
@@ -293,7 +400,10 @@ final class FrgaalJavaCompiler(
   javaHome: Option[Path],
   compilerPath: Path,
   target: String,
-  source: Option[String] = None
+  javaSourceDir: File,
+  source: Option[String]           = None,
+  shouldCompileModuleInfo: Boolean = false,
+  shouldNotLimitModules: Boolean   = false
 ) extends XJavaCompiler {
   def run(
     sources: Array[VirtualFile],
@@ -312,6 +422,9 @@ final class FrgaalJavaCompiler(
       log,
       reporter,
       source,
-      target
+      target,
+      shouldCompileModuleInfo,
+      javaSourceDir,
+      shouldNotLimitModules
     )
 }

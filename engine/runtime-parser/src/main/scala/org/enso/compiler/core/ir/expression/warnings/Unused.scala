@@ -21,7 +21,8 @@ object Unused {
 
     override def toString: String = s"Unused.FunctionArgument(${name.name})"
 
-    override val location: Option[IdentifiedLocation] = name.location
+    override val identifiedLocation: IdentifiedLocation =
+      name.identifiedLocation()
   }
 
   sealed case class PatternBinding(override val name: Name) extends Unused {
@@ -32,7 +33,8 @@ object Unused {
 
     override def toString: String = s"Unused.PatternBinding(${name.name})"
 
-    override val location: Option[IdentifiedLocation] = name.location
+    override val identifiedLocation: IdentifiedLocation =
+      name.identifiedLocation()
   }
 
   /** A warning about an unused binding.
@@ -47,6 +49,7 @@ object Unused {
 
     override def toString: String = s"Unused.Binding(${name.name})"
 
-    override val location: Option[IdentifiedLocation] = name.location
+    override val identifiedLocation: IdentifiedLocation =
+      name.identifiedLocation()
   }
 }

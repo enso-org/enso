@@ -4,9 +4,10 @@ import java.math.BigInteger;
 import java.util.BitSet;
 import java.util.List;
 import org.enso.base.polyglot.NumericConverter;
-import org.enso.table.data.column.builder.BigIntegerBuilder;
-import org.enso.table.data.column.builder.NumericBuilder;
+import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.type.BigIntegerType;
+import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
@@ -93,15 +94,13 @@ public final class LongStorage extends AbstractLongStorage {
   }
 
   private Storage<?> fillMissingDouble(double arg, ProblemAggregator problemAggregator) {
-    final var builder = NumericBuilder.createDoubleBuilder(size, problemAggregator);
-    long rawArg = Double.doubleToRawLongBits(arg);
+    var builder = Builder.getForDouble(FloatType.FLOAT_64, size, problemAggregator);
     Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
       if (isNothing.get(i)) {
-        builder.appendRawNoGrow(rawArg);
+        builder.appendDouble(arg);
       } else {
-        double coerced = data[i];
-        builder.appendRawNoGrow(Double.doubleToRawLongBits(coerced));
+        builder.appendLong(data[i]);
       }
 
       context.safepoint();
@@ -111,14 +110,13 @@ public final class LongStorage extends AbstractLongStorage {
   }
 
   private Storage<?> fillMissingLong(long arg, ProblemAggregator problemAggregator) {
-    final var builder =
-        NumericBuilder.createLongBuilder(size, IntegerType.INT_64, problemAggregator);
+    final var builder = Builder.getForLong(IntegerType.INT_64, size, problemAggregator);
     Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
       if (isNothing.get(i)) {
-        builder.appendRawNoGrow(arg);
+        builder.appendLong(arg);
       } else {
-        builder.appendRawNoGrow(data[i]);
+        builder.appendLong(data[i]);
       }
 
       context.safepoint();
@@ -129,13 +127,13 @@ public final class LongStorage extends AbstractLongStorage {
 
   private Storage<?> fillMissingBigInteger(
       BigInteger bigInteger, ProblemAggregator problemAggregator) {
-    final var builder = new BigIntegerBuilder(size, problemAggregator);
+    final var builder = Builder.getForType(BigIntegerType.INSTANCE, size, problemAggregator);
     Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
       if (isNothing.get(i)) {
-        builder.appendRawNoGrow(bigInteger);
+        builder.appendNoGrow(bigInteger);
       } else {
-        builder.appendRawNoGrow(BigInteger.valueOf(data[i]));
+        builder.appendNoGrow(BigInteger.valueOf(data[i]));
       }
 
       context.safepoint();
@@ -210,8 +208,18 @@ public final class LongStorage extends AbstractLongStorage {
   @Override
   public LongStorage slice(int offset, int limit) {
     int newSize = Math.min(size - offset, limit);
-    long[] newData = new long[newSize];
-    System.arraycopy(data, offset, newData, 0, newSize);
+    long[] newData;
+
+    // Special case if slice is after the actual data
+    if (offset >= data.length) {
+      newData = new long[0];
+    } else {
+      // Can only copy as much as there is data
+      int newDataSize = Math.min(data.length - offset, newSize);
+      newData = new long[newDataSize];
+      System.arraycopy(data, offset, newData, 0, newDataSize);
+    }
+
     BitSet newMask = isNothing.get(offset, offset + limit);
     return new LongStorage(newData, newSize, newMask, type);
   }

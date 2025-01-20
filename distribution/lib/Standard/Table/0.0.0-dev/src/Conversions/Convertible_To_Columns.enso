@@ -17,15 +17,15 @@ type Convertible_To_Columns
 
 ## PRIVATE
 Convertible_To_Columns.from (that:JS_Object) =
-    Convertible_To_Columns.Value that.field_names that.get
+    Convertible_To_Columns.Value that.field_names (that.get _)
 
 ## PRIVATE
-Convertible_To_Columns.from (that:Map) =
+Convertible_To_Columns.from (that:Dictionary) =
     pairs = that.keys.map k-> [k.to_text, k]
-    field_map = pairs.if_not_error <|
-        Map.from_vector pairs error_on_duplicates=True . catch Illegal_Argument _->
+    field_dict = pairs.if_not_error <|
+        Dictionary.from_vector pairs error_on_duplicates=True . catch Illegal_Argument _->
             Error.throw (Illegal_Argument.Error "Cannot convert "+that.to_display_text+" to a set of columns, because its keys are duplicated when converted to text.")
-    Convertible_To_Columns.Value field_map.keys (k-> that.get (field_map.get k))
+    Convertible_To_Columns.Value field_dict.keys (k-> that.get (field_dict.get k))
 
 ## PRIVATE
 Convertible_To_Columns.from (that:Pair) =
@@ -38,7 +38,7 @@ Convertible_To_Columns.from (that:Column) =
 
 ## PRIVATE
 Convertible_To_Columns.from (that:Row) =
-    Convertible_To_Columns.Value that.column_names that.get
+    Convertible_To_Columns.Value that.column_names (that.get _)
 
 ## PRIVATE
 Convertible_To_Columns.from (that:Vector) =
@@ -67,5 +67,5 @@ Convertible_To_Columns.from (that:XML_Element) =
     has_child_nodes = that_children.any (_.is_a XML_Element)
     children = if that_children.is_empty.not && has_child_nodes then [["Children", that_children]] else []
     value = if that_children.is_empty.not && has_child_nodes.not then [["Value", that.text]] else []
-    as_map = Map.from_vector (name + tags + children + value)
-    Convertible_To_Columns.from as_map
+    as_dict = Dictionary.from_vector (name + tags + children + value)
+    Convertible_To_Columns.from as_dict

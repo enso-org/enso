@@ -15,11 +15,9 @@ import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
 import org.enso.interpreter.node.expression.builtin.meta.HashCodeNode;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.data.EnsoObject;
-import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.builtin.BuiltinObject;
 import org.enso.interpreter.runtime.data.hash.EnsoHashMapBuilder.StorageEntry;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
-import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 /**
  * Implementation of a hash map structure, capable of holding any types of keys and values. The
@@ -31,10 +29,9 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
  * <p>Users should not use Enso objects as keys to Java maps, because equals won't work the same way
  * as it works in Enso.
  */
-@ExportLibrary(TypesLibrary.class)
 @ExportLibrary(InteropLibrary.class)
-@Builtin(stdlibName = "Standard.Base.Data.Map.Map", name = "Map")
-public final class EnsoHashMap implements EnsoObject {
+@Builtin(stdlibName = "Standard.Base.Data.Dictionary.Dictionary", name = "Dictionary")
+public final class EnsoHashMap extends BuiltinObject {
   private final EnsoHashMapBuilder mapBuilder;
   private final int generation;
   private final int size;
@@ -55,6 +52,11 @@ public final class EnsoHashMap implements EnsoObject {
     return new EnsoHashMap(EnsoHashMapBuilder.create());
   }
 
+  @Override
+  protected String builtinName() {
+    return "Dictionary";
+  }
+
   EnsoHashMapBuilder getMapBuilder(
       VirtualFrame frame, boolean readOnly, HashCodeNode hashCodeNode, EqualsNode equalsNode) {
     if (readOnly) {
@@ -64,6 +66,7 @@ public final class EnsoHashMap implements EnsoObject {
     }
   }
 
+  /** Slow version of {@link #getCachedVectorRepresentation(ConditionProfile)}. */
   Object getCachedVectorRepresentation() {
     return getCachedVectorRepresentation(ConditionProfile.getUncached());
   }
@@ -141,29 +144,10 @@ public final class EnsoHashMap implements EnsoObject {
     }
   }
 
-  @ExportMessage(library = TypesLibrary.class)
-  boolean hasType() {
-    return true;
-  }
-
-  @ExportMessage(library = TypesLibrary.class)
-  Type getType(@CachedLibrary("this") TypesLibrary thisLib, @Cached("1") int ignore) {
-    return EnsoContext.get(thisLib).getBuiltins().map();
-  }
-
-  @ExportMessage
-  boolean hasMetaObject() {
-    return true;
-  }
-
-  @ExportMessage
-  Type getMetaObject(@CachedLibrary("this") InteropLibrary thisLib) {
-    return EnsoContext.get(thisLib).getBuiltins().map();
-  }
-
   @ExportMessage
   @TruffleBoundary
-  Object toDisplayString(boolean allowSideEffects) {
+  @Override
+  public Object toDisplayString(boolean allowSideEffects) {
     return toString(true);
   }
 

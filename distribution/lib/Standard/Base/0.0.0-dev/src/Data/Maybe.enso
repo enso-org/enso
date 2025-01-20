@@ -22,6 +22,7 @@ type Maybe
     Some value
 
     ## GROUP Metadata
+       ICON operators
        Applies the provided function to the contained value if it exists,
        otherwise returning the provided default value.
 

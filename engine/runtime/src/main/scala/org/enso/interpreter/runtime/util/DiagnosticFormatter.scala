@@ -28,6 +28,10 @@ class DiagnosticFormatter(
     case _: Warning => (fansi.Color.Yellow ++ fansi.Bold.On, "warning: ")
     case _          => throw new IllegalStateException("Unexpected diagnostic type")
   }
+  private lazy val both = textAndLocation()
+
+  def format() = both._1
+  def where()  = both._2
 
   def fileLocationFromSection(loc: IdentifiedLocation) = {
     val section =
@@ -54,7 +58,7 @@ class DiagnosticFormatter(
     case None => false
   }
 
-  def format(): String = {
+  private def textAndLocation(): (String, SourceSection) = {
     sourceSection match {
       case Some(section) =>
         val isOneLine = section.getStartLine == section.getEndLine
@@ -108,11 +112,12 @@ class DiagnosticFormatter(
             str ++= "\n"
           }
         }
-        if (outSupportsAnsiColors) {
+        val text = if (outSupportsAnsiColors) {
           str.render.stripLineEnd
         } else {
           str.plainText.stripLineEnd
         }
+        (text, section)
       case None =>
         // There is no source section associated with the diagnostics
         var str = fansi.Str()
@@ -129,11 +134,12 @@ class DiagnosticFormatter(
         str ++= ": "
         str ++= fansi.Str(subject).overlay(textAttrs)
         str ++= diagnostic.formattedMessage(fileLocationFromSection)
-        if (outSupportsAnsiColors) {
+        val text = if (outSupportsAnsiColors) {
           str.render.stripLineEnd
         } else {
           str.plainText.stripLineEnd
         }
+        (text, null)
     }
   }
 
@@ -163,9 +169,15 @@ class DiagnosticFormatter(
     endCol: Int
   ): String = {
     val line = source.createSection(lineNum).getCharacters.toString
-    linePrefix(lineNum) + fansi
-      .Str(line)
-      .overlay(textAttrs, startCol - 1, endCol)
+    val suffix =
+      try {
+        fansi
+          .Str(line)
+          .overlay(textAttrs, startCol - 1, endCol)
+      } catch {
+        case _: IllegalArgumentException => line
+      }
+    linePrefix(lineNum) + suffix
   }
 
   private def linePrefix(lineNum: Int): String = {

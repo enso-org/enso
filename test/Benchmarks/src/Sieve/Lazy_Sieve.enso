@@ -1,0 +1,44 @@
+from Standard.Base import all
+
+type Stream
+    private Item head:Integer ~tail:Stream
+
+primes -> Stream =
+    is_prime s:Stream n:Integer =
+        if n%s.head == 0 then False else
+            if s.head*s.head > n then True else
+                @Tail_Call is_prime s.tail n
+
+    find_next primes:Stream n:Integer =
+        n_is_prime = is_prime primes n
+
+        if n_is_prime then Stream.Item n (find_next primes n+1) else
+            @Tail_Call find_next primes n+1
+
+
+    p = Stream.Item 2 (find_next p 3)
+    p
+
+
+compute_nth_prime n -> Integer =
+    take_nth s:Stream n:Integer -> Integer =
+        if n <= 1 then s.head else
+            @Tail_Call take_nth s.tail n-1
+
+    take_nth primes n
+
+
+
+main n=Nothing =
+    print_nth s:Stream n:Integer|Nothing -> Nothing =
+        if n.is_nothing.not && n <= 0 then IO.println "" else
+            IO.print s.head
+            IO.print " "
+            @Tail_Call print_nth s.tail (n.if_not_nothing n-1)
+
+    compute_and_print_nth nth:Integer|Nothing =
+        p = primes
+        print_nth p nth
+
+    compute_and_print_nth n
+

@@ -1,13 +1,12 @@
 package org.enso.compiler.context;
 
-import com.oracle.truffle.api.TruffleFile;
-import com.oracle.truffle.api.source.Source;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.List;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.logging.Level;
+import org.enso.common.CompilationStage;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.PackageRepository;
 import org.enso.compiler.Passes;
@@ -15,11 +14,10 @@ import org.enso.compiler.core.CompilerStub;
 import org.enso.compiler.core.ir.Diagnostic;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.CompilerConfig;
+import org.enso.compiler.data.IdMap;
 import org.enso.editions.LibraryName;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
-import org.enso.polyglot.CompilationStage;
-import org.enso.polyglot.data.TypeGraph;
 
 /**
  * Interface that encapsulate all services {@link Compiler} needs from Truffle or other environment.
@@ -28,6 +26,7 @@ import org.enso.polyglot.data.TypeGraph;
  * {@link Compiler} & co. classes separately without any dependency on Truffle API.
  */
 public interface CompilerContext extends CompilerStub {
+
   boolean isIrCachingDisabled();
 
   boolean isPrivateCheckDisabled();
@@ -55,12 +54,14 @@ public interface CompilerContext extends CompilerStub {
   /**
    * Format the given diagnostic into a string. The returned string might have ANSI colors.
    *
-   * @param module May be null if inline diagnostics is required.
-   * @param diagnostic
-   * @param isOutputRedirected True if the output is not system's out. If true, no ANSI color escape
+   * @param module may be null if inline diagnostics is required.
+   * @param diagnostic an IR node representing diagnostic information
+   * @param isOutputRedirected true if the output is not system's out. If true, no ANSI color escape
    *     characters will be inside the returned string.
+   * @return exception with a message to display or to throw
    */
-  String formatDiagnostic(Module module, Diagnostic diagnostic, boolean isOutputRedirected);
+  RuntimeException formatDiagnostic(
+      Module module, Diagnostic diagnostic, boolean isOutputRedirected);
 
   // threads
   boolean isCreateThreadAllowed();
@@ -71,11 +72,12 @@ public interface CompilerContext extends CompilerStub {
 
   // Truffle related
 
-  void truffleRunCodegen(Module module, CompilerConfig config) throws IOException;
+  void truffleRunCodegen(Module module, ModuleScopeBuilder scopeBuilder, CompilerConfig config)
+      throws IOException;
 
   // module related
 
-  void runStubsGenerator(Module module);
+  void runStubsGenerator(Module module, ModuleScopeBuilder scopeBuilder);
 
   boolean typeContainsValues(String name);
 
@@ -86,11 +88,15 @@ public interface CompilerContext extends CompilerStub {
 
   CharSequence getCharacters(Module module) throws IOException;
 
+  IdMap getIdMap(Module module);
+
   void updateModule(Module module, Consumer<Updater> callback);
 
   boolean isSynthetic(Module module);
 
   boolean isInteractive(Module module);
+
+  boolean isModuleInRootPackage(Module module);
 
   boolean wasLoadedFromCache(Module module);
 
@@ -98,23 +104,24 @@ public interface CompilerContext extends CompilerStub {
 
   CompilationStage getCompilationStage(Module module);
 
-  TypeGraph getTypeHierarchy();
-
   Future<Boolean> serializeLibrary(
       Compiler compiler, LibraryName libraryName, boolean useGlobalCacheLocations);
+
+  scala.Option<Object> deserializeSuggestions(LibraryName libraryName) throws InterruptedException;
 
   Future<Boolean> serializeModule(
       Compiler compiler, Module module, boolean useGlobalCacheLocations, boolean usePool);
 
   boolean deserializeModule(Compiler compiler, Module module);
 
-  scala.Option<List<org.enso.polyglot.Suggestion>> deserializeSuggestions(LibraryName libraryName)
-      throws InterruptedException;
-
   void shutdown(boolean waitForPendingJobCompletion);
+
+  RuntimeException throwAbortedException();
 
   public static interface Updater {
     void bindingsMap(BindingsMap map);
+
+    void idMap(IdMap idMap);
 
     void ir(org.enso.compiler.core.ir.Module ir);
 
@@ -128,17 +135,18 @@ public interface CompilerContext extends CompilerStub {
   }
 
   public abstract static class Module {
-    public abstract Source getSource() throws IOException;
+
+    public abstract CharSequence getCharacters() throws IOException;
 
     public abstract String getPath();
 
-    public abstract Package<TruffleFile> getPackage();
+    public abstract Package<? extends Object> getPackage();
 
     public abstract QualifiedName getName();
 
     public abstract BindingsMap getBindingsMap();
 
-    public abstract TruffleFile getSourceFile();
+    public abstract IdMap getIdMap();
 
     public abstract List<QualifiedName> getDirectModulesRefs();
 
@@ -149,5 +157,11 @@ public interface CompilerContext extends CompilerStub {
     public abstract org.enso.compiler.core.ir.Module getIr();
 
     public abstract boolean isPrivate();
+
+    public abstract ModuleScopeBuilder getScopeBuilder();
+
+    public abstract ModuleScopeBuilder newScopeBuilder();
   }
+
+  public abstract static class ModuleScopeBuilder {}
 }

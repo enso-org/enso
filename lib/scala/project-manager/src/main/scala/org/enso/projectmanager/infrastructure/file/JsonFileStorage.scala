@@ -35,7 +35,7 @@ class JsonFileStorage[
     */
   override def load(): F[LoadFailure, A] =
     fileSystem
-      .readFile(path)
+      .readTextFile(path)
       .mapError(Coproduct[LoadFailure](_))
       .flatMap(tryDecodeFileContents)
 

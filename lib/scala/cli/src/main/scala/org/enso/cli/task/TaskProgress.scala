@@ -50,7 +50,19 @@ trait TaskProgress[A] {
     *         succeeded and the transformation succeeded too
     */
   def flatMap[B](f: A => Try[B]): TaskProgress[B] =
-    new MappedTask(this, f)
+    new MappedTask(this, (t: Try[A]) => t.flatMap(f))
+
+  /** Alters the task by transforming its failure case with a partial function
+    * `pf`.
+    *
+    * @param pf the partial function that can transform the original error
+    * @tparam B resulting type of `pf`
+    * @return a new [[TaskProgress]] with update failure behaviours
+    */
+  def recoverWith[B >: A](
+    pf: PartialFunction[Throwable, Try[B]]
+  ): TaskProgress[B] =
+    new MappedTask(this, (t: Try[A]) => t.recoverWith(pf))
 
   /** Alters the task by transforming its result with a function `f`.
     *

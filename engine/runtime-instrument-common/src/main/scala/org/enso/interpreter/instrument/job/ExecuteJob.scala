@@ -27,79 +27,121 @@ class ExecuteJob(
       mayInterruptIfRunning = true
     ) {
 
+  private var _threadName: String            = "<unknown>"
+  @volatile private var _hasStarted: Boolean = false
+  private var _jobId: UUID                   = _
+
+  override def threadNameExecutingJob(): String = _threadName
+
+  override def hasStarted(): Boolean = _hasStarted
+
+  override def setJobId(id: UUID): Unit = {
+    _jobId = id
+  }
+
   /** @inheritdoc */
-  override def run(implicit ctx: RuntimeContext): Unit = {
-    val logger       = ctx.executionService.getLogger
-    val acquiredLock = ctx.locking.acquireContextLock(contextId)
+  override def runImpl(implicit ctx: RuntimeContext): Unit = {
+    _hasStarted = true
+    _threadName = Thread.currentThread().getName
     try {
-      val readLockTimestamp = ctx.locking.acquireReadCompilationLock()
-      try {
-        val context = ctx.executionService.getContext
-        val originalExecutionEnvironment =
-          executionEnvironment.map(_ => context.getExecutionEnvironment)
-        executionEnvironment.foreach(env =>
-          context.setExecutionEnvironment(
-            ExecutionEnvironment.forName(env.name)
-          )
-        )
-        val outcome =
-          try ProgramExecutionSupport.runProgram(contextId, stack)
-          finally {
-            originalExecutionEnvironment.foreach(
-              context.setExecutionEnvironment
-            )
-          }
-        outcome match {
-          case Some(diagnostic: Api.ExecutionResult.Diagnostic) =>
-            if (diagnostic.isError) {
-              ctx.endpoint.sendToClient(
-                Api.Response(Api.ExecutionFailed(contextId, diagnostic))
-              )
+      ctx.executionService.getLogger.log(
+        Level.INFO,
+        "Starting ExecuteJob[{}]",
+        _jobId
+      )
+      execute
+    } catch {
+      case t: Throwable =>
+        ctx.executionService.getLogger.log(Level.SEVERE, "Failed to execute", t)
+        val errorMsg = if (t.getMessage == null) {
+          if (t.getCause == null) {
+            t.getClass.getSimpleName
+          } else {
+            val cause = t.getCause
+            if (cause.getMessage == null) {
+              cause.getClass.getSimpleName
             } else {
-              ctx.endpoint.sendToClient(
-                Api.Response(Api.ExecutionUpdate(contextId, Seq(diagnostic)))
-              )
-              ctx.endpoint.sendToClient(
-                Api.Response(Api.ExecutionComplete(contextId))
-              )
+              cause.getMessage
             }
-          case Some(failure: Api.ExecutionResult.Failure) =>
-            ctx.endpoint.sendToClient(
-              Api.Response(Api.ExecutionFailed(contextId, failure))
-            )
-          case None =>
-            ctx.endpoint.sendToClient(
-              Api.Response(Api.ExecutionComplete(contextId))
-            )
-        }
-      } catch {
-        case t: Throwable =>
-          ctx.endpoint.sendToClient(
-            Api.Response(
-              Api.ExecutionFailed(
-                contextId,
-                Api.ExecutionResult.Failure(t.getMessage, None)
-              )
+          }
+        } else t.getMessage
+
+        ctx.endpoint.sendToClient(
+          Api.Response(
+            Api.ExecutionFailed(
+              contextId,
+              Api.ExecutionResult.Failure(errorMsg, None)
             )
           )
-      } finally {
-        ctx.locking.releaseReadCompilationLock()
-        logger.log(
-          Level.FINEST,
-          s"Kept read compilation lock [ExecuteJob] for ${System.currentTimeMillis() - readLockTimestamp} milliseconds"
         )
-      }
     } finally {
-      ctx.locking.releaseContextLock(contextId)
-      logger.log(
+      ctx.executionService.getLogger.log(
         Level.FINEST,
-        s"Kept context lock [ExecuteJob] for ${contextId} for ${System.currentTimeMillis() - acquiredLock} milliseconds"
+        "Finished ExecuteJob[{0}]",
+        _jobId
       )
     }
   }
 
+  private def execute(implicit ctx: RuntimeContext): Unit = {
+    ctx.state.executionHooks.run()
+
+    ctx.locking.withContextLock(
+      ctx.locking.getOrCreateContextLock(contextId),
+      this.getClass,
+      () =>
+        ctx.locking.withReadCompilationLock(
+          this.getClass,
+          () => {
+            val context = ctx.executionService.getContext
+            val originalExecutionEnvironment =
+              executionEnvironment.map(_ =>
+                context.getGlobalExecutionEnvironment
+              )
+            executionEnvironment.foreach(env =>
+              context.setExecutionEnvironment(
+                ExecutionEnvironment.forName(env.name)
+              )
+            )
+            val outcome =
+              try ProgramExecutionSupport.runProgram(contextId, stack)
+              finally {
+                originalExecutionEnvironment.foreach(
+                  context.setExecutionEnvironment
+                )
+              }
+            outcome match {
+              case Some(diagnostic: Api.ExecutionResult.Diagnostic) =>
+                if (diagnostic.isError) {
+                  ctx.endpoint.sendToClient(
+                    Api.Response(Api.ExecutionFailed(contextId, diagnostic))
+                  )
+                } else {
+                  ctx.endpoint.sendToClient(
+                    Api.Response(
+                      Api.ExecutionUpdate(contextId, Seq(diagnostic))
+                    )
+                  )
+                  ctx.endpoint.sendToClient(
+                    Api.Response(Api.ExecutionComplete(contextId))
+                  )
+                }
+              case Some(failure: Api.ExecutionResult.Failure) =>
+                ctx.endpoint.sendToClient(
+                  Api.Response(Api.ExecutionFailed(contextId, failure))
+                )
+              case None =>
+                ctx.endpoint.sendToClient(
+                  Api.Response(Api.ExecutionComplete(contextId))
+                )
+            }
+          }
+        )
+    )
+  }
+
   override def toString(): String = {
-    s"ExecuteJob(contextId=$contextId)"
+    s"ExecuteJob(contextId=$contextId, jobId=${_jobId})"
   }
 
 }

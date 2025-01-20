@@ -41,9 +41,7 @@ public final class NoSpecializationClassGenerator extends MethodNodeClassGenerat
       processingEnvironment
           .getMessager()
           .printMessage(
-              Kind.ERROR,
-              "Value is already TruffleObject, don't use @Builtin.ReturningGuestObject",
-              origin);
+              Kind.ERROR, "Value is already TruffleObject, don't need any conversions", origin);
     }
     return new ExecuteMethodImplGenerator(
         processingEnvironment, origin, asGuestValue, varArgExpansion);

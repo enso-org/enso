@@ -1,20 +1,23 @@
 from Standard.Base import all
+import Standard.Base.Data.Vector.Builder
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
+import Standard.Base.Runtime.Ref.Ref
+import project.Runtime.GC_Example
 
 from Standard.Test import all
 
 
 add_specs suite_builder = suite_builder.group "Managed_Resource" group_builder->
     group_builder.specify "should call the destructor even if the action fails" <|
-        log_1 = Vector.new_builder
+        log_1 = Builder.new
         r_1 = Managed_Resource.bracket 42 log_1.append x->
             log_1.append x+1
             x
         r_1 . should_equal 42
         log_1.to_vector . should_equal [43, 42]
 
-        log_2 = Vector.new_builder
+        log_2 = Builder.new
         r_2 = Panic.recover Any <| Managed_Resource.bracket 42 log_2.append x->
             log_2.append x+1
             Panic.throw (Illegal_State.Error "foo")
@@ -22,7 +25,7 @@ add_specs suite_builder = suite_builder.group "Managed_Resource" group_builder->
         r_2.catch . should_equal (Illegal_State.Error "foo")
         log_2.to_vector . should_equal [43, 42]
 
-        log_3 = Vector.new_builder
+        log_3 = Builder.new
         r_3 = Managed_Resource.bracket 42 log_3.append x->
             log_3.append x+1
             r = Error.throw (Illegal_State.Error "foo")
@@ -32,14 +35,14 @@ add_specs suite_builder = suite_builder.group "Managed_Resource" group_builder->
         log_3.to_vector . should_equal [43, 44, 42]
 
     group_builder.specify "should not proceed further if initialization fails" <|
-        log_1 = Vector.new_builder
+        log_1 = Builder.new
         r_1 = Panic.recover Any <| Managed_Resource.bracket (Panic.throw (Illegal_State.Error "foo")) (_ -> log_1.append "destructor") _->
             log_1.append "action"
             42
         r_1.catch . should_equal (Illegal_State.Error "foo")
         log_1.to_vector . should_equal []
 
-        log_2 = Vector.new_builder
+        log_2 = Builder.new
         r_2 = Managed_Resource.bracket (Error.throw (Illegal_State.Error "foo")) (_ -> log_2.append "destructor") _->
             log_2.append "action"
             42
@@ -55,6 +58,72 @@ add_specs suite_builder = suite_builder.group "Managed_Resource" group_builder->
 
         r_3 = Panic.recover Any <| Managed_Resource.bracket 42 (_-> Nothing) (_-> Panic.throw "action")
         r_3.catch . should_equal "action"
+
+    group_builder.specify "allocate lots of resources at once" <|
+        messages = Vector.build builder->
+            builder.append '\n'
+            remaining = GC_Example.perform_test 100000 builder.append
+            if remaining == 0 then
+                builder.append "OK"
+
+        if messages.last != "OK" then
+            Test.fail (messages.join '\n')
+
+    group_builder.specify "register_with_finalize" <|
+        messages = Vector.build builder->
+            builder.append ""
+
+            create_resource value =
+                # registers new resource
+                Managed_Resource.register (Ref.new value) v->
+                    v.put -1
+                    builder.append "  finalizing:"+v.to_text
+
+            mr = create_resource 42
+
+            builder.append "Allocated: "+mr.to_text
+
+            # operates with its value
+            out = mr.with v->
+                builder.append "  with  :"+v.to_text
+                v.put 7
+                v.modify n->
+                    builder.append "  modify:"+n.to_text
+                    6
+                v
+            builder.append "With finished:"+out.to_text
+
+            # finalizes the resource
+            mr.finalize
+            mr.has_been_finalized . should_be_true
+            builder.append "Finalized:"+mr.to_text
+
+            # operation on finalized resource
+            none = mr.with v->
+                builder.append "  is_error:"+v.is_error.to_text
+                v.if_not_error <|
+                    # should never be called
+                    builder.append "  empty :"+v.to_text
+                    "Don't call me!"
+
+            builder.append none.to_text
+            none.is_error . should_be_true
+
+        exp_text = """
+
+            Allocated: Managed_Resource 42
+              with  :42
+              modify:7
+            With finished:6
+              finalizing:-1
+            Finalized:Managed_Resource -1
+              is_error:True
+            (Error: (Uninitialized_State.Error Managed_Resource -1))
+
+        msg_text = messages.join '\n'
+
+        if msg_text != exp_text then
+            Test.fail (msg_text)
 
 main filter=Nothing =
     suite = Test.build suite_builder->

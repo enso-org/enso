@@ -1,18 +1,17 @@
 package org.enso.interpreter.runtime.data.atom;
 
-import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.oracle.truffle.api.nodes.RootNode;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.scope.ModuleScope;
 
-@NodeInfo(shortName = "get_field", description = "A base for auto-generated Atom getters.")
-final class GetFieldNode extends RootNode {
+@NodeInfo(
+    shortName = "get_field",
+    description = "Returns a single field from an Atom based on the given index.")
+final class GetFieldNode extends GetFieldBaseNode {
   private final int index;
-  private final String name;
-  private final Type type;
 
   private @Child StructsLibrary structs = StructsLibrary.getFactory().createDispatched(10);
 
@@ -22,11 +21,9 @@ final class GetFieldNode extends RootNode {
    * @param language the current language instance.
    * @param index the index this node should use for field lookup.
    */
-  GetFieldNode(TruffleLanguage<?> language, int index, Type type, String name) {
-    super(language);
+  GetFieldNode(EnsoLanguage language, int index, Type type, String name, ModuleScope moduleScope) {
+    super(language, type, name, moduleScope);
     this.index = index;
-    this.type = type;
-    this.name = name;
   }
 
   /**
@@ -43,16 +40,6 @@ final class GetFieldNode extends RootNode {
   }
 
   @Override
-  public String getQualifiedName() {
-    return type.getQualifiedName().createChild(name).toString();
-  }
-
-  @Override
-  public String getName() {
-    return type.getName() + "." + name;
-  }
-
-  @Override
   public boolean isCloningAllowed() {
     return true;
   }
@@ -64,6 +51,7 @@ final class GetFieldNode extends RootNode {
 
   @Override
   protected GetFieldNode cloneUninitialized() {
-    return new GetFieldNode(getLanguage(EnsoLanguage.class), index, type, name);
+    return new GetFieldNode(
+        getLanguage(EnsoLanguage.class), index, type, fieldName, getModuleScope());
   }
 }

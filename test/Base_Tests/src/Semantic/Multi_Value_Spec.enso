@@ -1,0 +1,180 @@
+from Standard.Base import all
+from Standard.Test import all
+import Standard.Base.Errors.Common.Type_Error
+import Standard.Base.Errors.Common.No_Such_Method
+
+import project.Data.Complex.Complex
+
+type A
+    a = "a"
+type B
+    B v
+
+    b self = "b"
+
+type C
+    C v
+
+    c self = "c"
+
+B.from (that:A) = B.B that
+C.from (that:B) = C.C that
+
+type X
+    x = "x"
+
+X.from (_:A) = X
+
+add_specs suite_builder =
+    suite_builder.group "Complex Multi Value" group_builder->
+        group_builder.specify "Cannot convert to Float if it has imaginary part" <|
+            c = Complex.new 1 5
+            Test.expect_panic Type_Error (c:Float)
+        group_builder.specify "Represents both Complex & Float with only real part" <|
+            c = Complex.new 1.5 0.0
+            (c:Complex).re . should_equal 1.5
+            (c:Float) . should_equal 1.5
+
+    suite_builder.group "Chain Multi Value" group_builder->
+        to_b_to_c obj =
+            b = obj : B
+            c = b : C
+            c
+
+        group_builder.specify "Multiple conversions of A work" <|
+            a = A
+            converted = to_b_to_c a
+            converted . to_text . should_equal "(C (B A))"
+
+        group_builder.specify "Multiple conversions of A & X work" <|
+            ax = A:A&X
+            converted = to_b_to_c ax
+            converted . to_text . should_equal "(C (B A & X))"
+
+        group_builder.specify "Multiple conversions of A & X work" <|
+            xa = A:X&A
+            converted = to_b_to_c xa
+            converted . to_text . should_equal "(C (B A & X))"
+
+        group_builder.specify "Multiple conversions of (A & X : A) work" <|
+            ax = A:A&X
+            a = ax : A
+            converted = to_b_to_c a
+            converted . to_text . should_equal "(C (B A & X))"
+
+        group_builder.specify "Multiple conversions of X fail" <|
+            x = X
+
+            # has to fail as X cannot be converted to B in to_b_to_c
+            Test.expect_panic Type_Error <|
+                to_b_to_c x
+
+        group_builder.specify "Multiple conversions of (A & X : X) work" <|
+            ax = A:A&X
+
+            ax.a . should_equal "a"
+            ax.x . should_equal "x"
+
+            x = ax : X
+
+            x.x . should_equal "x"
+            Test.expect_panic No_Such_Method <|
+                # method of A isn't visible for direct dispatch
+                x.a
+
+            # but the object can be converted to A and then
+            # method a is available
+            (x:A).a . should_equal "a"
+
+            call_a obj:A = obj.a
+            call_b obj:B = obj.b
+
+            # A&X type has attribute a
+            call_a ax . should_equal "a"
+            # A&X can be converted to B
+            call_b ax . should_equal "b"
+            call_b (ax:X&A) . should_equal "b"
+
+            # according to "static typing" discussion at
+            # https://github.com/enso-org/enso/pull/11600#discussion_r1867584107
+            # we want the same `call_a` with `x` to fail
+            Test.expect_panic Type_Error <|
+                call_a x . should_equal "a"
+
+            Test.expect_panic Type_Error <|
+                call_b x . should_equal "b"
+
+            call_b (x:X&A) . should_equal "b"
+
+            # multivalue ax restricted to X cannot be converted to B in to_b_to_c
+            Test.expect_panic Type_Error <|
+                to_b_to_c x
+
+            msg1 = case ax of
+                b:B -> "Not a "+b.to_text
+                a:A -> "==="+a.a
+            msg1 . should_equal "===a"
+
+            msg2 = case (ax:X&A) of
+                b:B -> "Not a "+b.to_text
+                a:A -> "==="+a.a
+            msg2 . should_equal "===a"
+
+            msg3 = case x of
+                b:B -> "Not a "+b.to_text
+                a:A -> "==="+a.a
+            msg3 . should_equal "===a"
+
+            msg4 = case x of
+                b:B -> "Not a "+b.to_text
+                a:A -> "A but also "+(a:X).to_text
+            msg4 . should_equal "A but also X"
+
+        group_builder.specify "Intersection type of unrelated types is not possible" <|
+            Test.expect_panic Type_Error <|
+                _ = X:X&B
+            Test.expect_panic Type_Error <|
+                _ = B:X&B
+            Test.expect_panic Type_Error <|
+                _ = X:B&X
+            Test.expect_panic Type_Error <|
+                _ = B:B&X
+
+        group_builder.specify "X:(A|X) --> B is not possible" <|
+            a = X:(A|X)
+            Test.expect_panic Type_Error <|
+                _ = a : B
+
+        group_builder.specify "A:(A|X) --> B is possible" <|
+            a = A:(A|X)
+            b = a : B
+            b.to_text . should_equal "(B A)"
+
+        # This test is failing
+        group_builder.specify "A:(A|B) --> (A&B) is possible" <|
+            a = A:(A|B)
+            both = a : (A&B)
+            both.a . should_equal "a"
+            both.b . should_equal "b"
+
+        group_builder.specify "B:(A|B) --> (A&B) is not possible" <|
+            b = B.B 42
+            a_or_b = b : (A|B)
+            Test.expect_panic Type_Error <|
+                _ = a_or_b : (A&B)
+
+        # This test is failing
+        group_builder.specify "B --> (A|C) is possible" <|
+            b = B.B 42
+            a_or_c = b : (A|C)
+            a_or_c.c . should_equal "c"
+
+        group_builder.specify "no transitive conversions" <|
+            a = A
+            Test.expect_panic Type_Error <|
+                a : C
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter

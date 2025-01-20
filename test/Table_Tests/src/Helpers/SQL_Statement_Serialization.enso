@@ -1,0 +1,35 @@
+from Standard.Base import all
+
+import Standard.Database.SQL.SQL_Builder
+import Standard.Database.SQL_Statement.SQL_Statement
+import Standard.Database.SQL_Statement.Unable_To_Serialize_SQL_Statement
+
+from Standard.Test import all
+
+
+type My_Type
+    Value x
+
+    to_js_object self = JS_Object.from_pairs [["x", self.x]]
+
+add_specs suite_builder = suite_builder.group "SQL_Statement serialization" group_builder->
+    code c = SQL_Builder.code c
+    interp x = SQL_Builder.interpolation x
+    group_builder.specify "should allow to serialize and deserialize a SQL_Statement" <|
+        big_integer = 1234567890123456789012345678901234567890
+        stmt1 = (code "SELECT A + " ++ interp 1 ++ code ", B + " ++ interp 2.5 ++ code " FROM table WHERE C = " ++ interp "str" ++ code " AND D = " ++ interp (Date_Time.new 2021 1 1 12 30) ++ code " AND E = " ++ interp big_integer) . build
+        json = stmt1.to_json
+        stmt2 = SQL_Statement.deserialize json
+        # After deserializing, the result should be equal to the original statement.
+        stmt2 . should_equal stmt1
+
+    group_builder.specify "will throw an error if the interpolation does not round-trip, unless ensure_roundtrip is false" <|
+        stmt = (code "SELECT A + " ++ interp (My_Type.Value 1) ++ code " FROM table") . build
+
+        stmt.to_js_object . should_equal (stmt.serialize (ensure_roundtrip=False))
+        stmt.serialize ensure_roundtrip=True . should_fail_with Unable_To_Serialize_SQL_Statement
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter

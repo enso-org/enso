@@ -1,14 +1,25 @@
 package org.enso.interpreter.arrow.runtime;
 
+import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.Bind;
+import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.GenerateInline;
+import com.oracle.truffle.api.dsl.GenerateUncached;
+import com.oracle.truffle.api.dsl.NeverDefault;
+import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.profiles.InlinedExactClassProfile;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import org.enso.interpreter.arrow.LogicalLayout;
+import org.enso.interpreter.arrow.runtime.ByteBufferDirect.DataBufferNode;
 import org.enso.interpreter.arrow.util.MemoryUtil;
 
 final class ByteBufferDirect implements AutoCloseable {
   private final ByteBuffer allocated;
   private final ByteBuffer dataBuffer;
-  private final ByteBuffer bitmapBuffer;
+  private ByteBuffer bitmapBuffer;
 
   /**
    * Creates a fresh buffer with an empty non-null bitmap..
@@ -22,10 +33,7 @@ final class ByteBufferDirect implements AutoCloseable {
 
     this.allocated = buffer;
     this.dataBuffer = buffer.slice(0, padded.getDataBufferSizeInBytes());
-    this.bitmapBuffer = buffer.slice(dataBuffer.capacity(), padded.getValidityBitmapSizeInBytes());
-    for (int i = 0; i < bitmapBuffer.capacity(); i++) {
-      bitmapBuffer.put(i, (byte) 0);
-    }
+    this.bitmapBuffer = null;
   }
 
   /**
@@ -53,8 +61,13 @@ final class ByteBufferDirect implements AutoCloseable {
     this.dataBuffer = dataBuffer;
     this.bitmapBuffer = allocated.slice(dataBuffer.capacity(), bitmapSizeInBytes);
     for (int i = 0; i < bitmapBuffer.capacity(); i++) {
-      bitmapBuffer.put(i, (byte) 255);
+      bitmapBuffer.put(i, (byte) 0xff);
     }
+    bitmapBuffer.rewind();
+  }
+
+  static ByteBufferDirect forBuffer(ByteBuffer buf) {
+    return new ByteBufferDirect(buf, buf, null);
   }
 
   /**
@@ -93,119 +106,200 @@ final class ByteBufferDirect implements AutoCloseable {
     return new ByteBufferDirect(allocated, dataBuffer, bitmapBuffer);
   }
 
-  public void put(byte b) throws UnsupportedMessageException {
-    setValidityBitmap(0, 1);
-    dataBuffer.put(b);
+  @CompilerDirectives.TruffleBoundary
+  ByteBuffer initializeBitmapBuffer() {
+    assert bitmapBuffer == null;
+    bitmapBuffer =
+        allocated.slice(dataBuffer.capacity(), allocated.capacity() - dataBuffer.capacity());
+    for (var i = 0; i < bitmapBuffer.capacity(); i++) {
+      bitmapBuffer.put(i, (byte) 0xff);
+    }
+    return bitmapBuffer;
+  }
+
+  final ByteBuffer getDataBuffer() {
+    return dataBuffer;
+  }
+
+  final ByteBuffer getBitmapBuffer() {
+    return bitmapBuffer;
+  }
+
+  @GenerateInline(false)
+  @GenerateUncached
+  abstract static class DataBufferNode extends Node {
+    static DataBufferNode create() {
+      return ByteBufferDirectFactory.DataBufferNodeGen.create();
+    }
+
+    static DataBufferNode getUncached() {
+      return ByteBufferDirectFactory.DataBufferNodeGen.getUncached();
+    }
+
+    abstract ByteBuffer executeDataBuffer(ByteBufferDirect direct);
+
+    @Specialization
+    static ByteBuffer profiledDataBuffer(
+        ByteBufferDirect direct,
+        @Bind("$node") Node node,
+        @Cached InlinedExactClassProfile bufferClazz) {
+      return bufferClazz.profile(node, direct.dataBuffer);
+    }
+  }
+
+  @GenerateInline(false)
+  @GenerateUncached
+  abstract static class BitmapBufferNode extends Node {
+    static BitmapBufferNode create() {
+      return ByteBufferDirectFactory.BitmapBufferNodeGen.create();
+    }
+
+    static BitmapBufferNode getUncached() {
+      return ByteBufferDirectFactory.BitmapBufferNodeGen.getUncached();
+    }
+
+    abstract ByteBuffer executeBitmapBuffer(ByteBufferDirect direct, boolean forceCreation);
+
+    @Specialization
+    static ByteBuffer profiledBitmapBuffer(
+        ByteBufferDirect direct,
+        boolean forceCreation,
+        @Bind("$node") Node node,
+        @Cached InlinedExactClassProfile bufferClazz) {
+
+      if (direct.bitmapBuffer == null) {
+        if (forceCreation) {
+          direct.bitmapBuffer = direct.initializeBitmapBuffer();
+        } else {
+          return null;
+        }
+      }
+      return bufferClazz.profile(node, direct.bitmapBuffer);
+    }
+  }
+
+  static final class PutNode extends Node {
+    private static final PutNode UNCACHED =
+        new PutNode(DataBufferNode.getUncached(), BitmapBufferNode.getUncached());
+    private @Child DataBufferNode dataBuffer;
+    private @Child BitmapBufferNode bitmapBuffer;
+
+    private PutNode(DataBufferNode dbn, BitmapBufferNode bbn) {
+      this.dataBuffer = dbn;
+      this.bitmapBuffer = bbn;
+    }
+
+    @NeverDefault
+    static PutNode create() {
+      return new PutNode(DataBufferNode.create(), BitmapBufferNode.create());
+    }
+
+    @NeverDefault
+    static PutNode getUncached() {
+      return UNCACHED;
+    }
+
+    final void put(ByteBufferDirect direct, byte b) {
+      var db = dataBuffer.executeDataBuffer(direct);
+      addValidityBitmap(direct, db.position(), 1);
+      db.put(b);
+    }
+
+    final void putNull(ByteBufferDirect direct, LogicalLayout unit) {
+      var db = dataBuffer.executeDataBuffer(direct);
+      var index = db.position() / unit.sizeInBytes();
+
+      var bb = bitmapBuffer.executeBitmapBuffer(direct, true);
+
+      var bufferIndex = index >> 3;
+      var slot = bb.get(bufferIndex);
+      var byteIndex = index & BYTE_MASK;
+      var mask = ~(1 << byteIndex);
+      bb.put(bufferIndex, (byte) (slot & mask));
+
+      db.position(db.position() + unit.sizeInBytes());
+    }
+
+    final void putShort(ByteBufferDirect direct, short value) {
+      var db = dataBuffer.executeDataBuffer(direct);
+      addValidityBitmap(direct, db.position(), 2);
+      db.putShort(value);
+    }
+
+    final void putInt(ByteBufferDirect direct, int value) {
+      var db = dataBuffer.executeDataBuffer(direct);
+      addValidityBitmap(direct, db.position(), 4);
+      db.putInt(value);
+    }
+
+    final void putLong(ByteBufferDirect direct, long value) throws UnsupportedMessageException {
+      var db = dataBuffer.executeDataBuffer(direct);
+      addValidityBitmap(direct, db.position(), 8);
+      db.putLong(value);
+    }
+
+    private void addValidityBitmap(ByteBufferDirect direct, int pos, int size) {
+      var bb = bitmapBuffer.executeBitmapBuffer(direct, false);
+      if (bb == null) {
+        return;
+      }
+      var index = pos / size;
+      var bufferIndex = index >> 3;
+      var slot = bb.get(bufferIndex);
+      var byteIndex = index & BYTE_MASK;
+
+      var mask = 1 << byteIndex;
+      var updated = (slot | mask);
+      bb.put(bufferIndex, (byte) (updated));
+    }
   }
 
   public byte get(int index) throws UnsupportedMessageException {
     return dataBuffer.get(index);
   }
 
-  public void put(int index, byte b) throws UnsupportedMessageException {
-    setValidityBitmap(index, 1);
-    dataBuffer.put(index, b);
-  }
-
-  public void putShort(short value) throws UnsupportedMessageException {
-    setValidityBitmap(0, 2);
-    dataBuffer.putShort(value);
-  }
-
   public short getShort(int index) throws UnsupportedMessageException {
     return dataBuffer.getShort(index);
-  }
-
-  public void putShort(int index, short value) throws UnsupportedMessageException {
-    setValidityBitmap(index, 2);
-    dataBuffer.putShort(index, value);
-  }
-
-  public void putInt(int value) throws UnsupportedMessageException {
-    setValidityBitmap(0, 4);
-    dataBuffer.putInt(value);
   }
 
   public int getInt(int index) throws UnsupportedMessageException {
     return dataBuffer.getInt(index);
   }
 
-  public void putInt(int index, int value) {
-    setValidityBitmap(index, 4);
-    dataBuffer.putInt(index, value);
-  }
-
-  public void putLong(long value) throws UnsupportedMessageException {
-    setValidityBitmap(0, 8);
-    dataBuffer.putLong(value);
-  }
-
   public long getLong(int index) throws UnsupportedMessageException {
     return dataBuffer.getLong(index);
   }
 
-  public void putLong(int index, long value) {
-    setValidityBitmap(index, 8);
-    dataBuffer.putLong(index, value);
-  }
-
-  public void putFloat(float value) throws UnsupportedMessageException {
-    setValidityBitmap(0, 4);
-    dataBuffer.putFloat(value);
-  }
-
-  public float getFloat(int index) throws UnsupportedMessageException {
-    return dataBuffer.getFloat(index);
-  }
-
-  public void putFloat(int index, float value) throws UnsupportedMessageException {
-    setValidityBitmap(index, 4);
-    dataBuffer.putFloat(index, value);
-  }
-
-  public void putDouble(double value) throws UnsupportedMessageException {
-    setValidityBitmap(0, 8);
-    dataBuffer.putDouble(value);
-  }
-
-  public double getDouble(int index) throws UnsupportedMessageException {
-    return dataBuffer.getDouble(index);
-  }
-
-  public void putDouble(int index, double value) throws UnsupportedMessageException {
-    setValidityBitmap(index, 8);
-    dataBuffer.putDouble(index, value);
+  public long getLong(int index, Node node, InlinedExactClassProfile profile)
+      throws UnsupportedMessageException {
+    var buf = profile.profile(node, dataBuffer);
+    return buf.getLong(index);
   }
 
   public int capacity() throws UnsupportedMessageException {
     return dataBuffer.capacity();
   }
 
+  boolean hasNulls() {
+    return bitmapBuffer != null;
+  }
+
   public boolean isNull(int index) {
+    if (bitmapBuffer == null) {
+      return false;
+    }
+    return checkForNull(index);
+  }
+
+  private boolean checkForNull(int index) {
     var bufferIndex = index >> 3;
     var slot = bitmapBuffer.get(bufferIndex);
-    var byteIndex = index & ~(1 << 3);
+    var byteIndex = index & BYTE_MASK;
     var mask = 1 << byteIndex;
     return (slot & mask) == 0;
   }
 
-  public void setNull(int index) {
-    var bufferIndex = index >> 3;
-    var slot = bitmapBuffer.get(bufferIndex);
-    var byteIndex = index & ~(1 << 3);
-    var mask = ~(1 << byteIndex);
-    bitmapBuffer.put(bufferIndex, (byte) (slot & mask));
-  }
-
-  private void setValidityBitmap(int index0, int unitSize) {
-    var index = index0 / unitSize;
-    var bufferIndex = index >> 3;
-    var slot = bitmapBuffer.get(bufferIndex);
-    var byteIndex = index & ~(1 << 3);
-    var mask = 1 << byteIndex;
-    var updated = (slot | mask);
-    bitmapBuffer.put(bufferIndex, (byte) (updated));
-  }
+  private static final int BYTE_MASK = ~(~(1 << 3) + 1); // 7
 
   @Override
   public void close() throws Exception {

@@ -74,66 +74,86 @@ public and private constructors in a single type is a compilation error. A type
 with all constructors public is called an _open_ type and a type with all
 constructors private is called a _closed_ type.
 
+To make a _type private_ put it into a _private module_. Then it is hidden, just
+like anything else in the module.
+
+### Methods
+
 Methods on types (or on modules) can be specified private. To check whether a
 private method is accessed only from within the same project, a runtime check
 must be performed, as this cannot be checked during the compilation.
 
+Conversion and foreign methods cannot be specified as private.
+
+### Polyglot access
+
+No polyglot foreign code can access private entities. For all the foreign code,
+private entities are not visible.
+
 ## Example
 
-Lib/src/Pub_Type.enso:
+Lib/src/Open_Type.enso:
 
-```
-type Pub_Type
+```ruby
+type Open_Type
   Constructor field
   private priv_method self = ...
   pub_method self = self.field.to_text
+```
 
-private type Priv_Type
+Lib/src/Closed_Type.enso:
+
+```ruby
+type Closed_Type
+  private Constructor field
+  private priv_method self = ...
+  factory field = Closed_Type.Constructor field
+  pub_method self = self.field.to_text
 ```
 
 Lib/src/Methods.enso:
 
-```
+```ruby
 pub_stat_method x y = x + y
 private priv_stat_method x y = x - y
 ```
 
 Lib/src/Internal/Helpers.enso:
 
-```
+```ruby
 # Mark the whole module as private
 private
 
-# OK to import private types in the same project
-import project.Pub_Type.Priv_Type
 ```
 
 Lib/src/Main.enso:
 
-```
-import project.Pub_Type.Pub_Type
-export project.Pub_Type.Pub_Type
-
-import project.Pub_Type.Priv_Type # OK - we can import private types in the same project.
-export project.Pub_Type.Priv_Type # Failes at compile time - re-exporting private types is forbidden.
+```ruby
+import project.Open_Type.Open_Type
+export project.Open_Type.Open_Type
 ```
 
 tmp.enso:
 
-```
-from Lib import Pub_Type
-import Lib.Pub_Type.Priv_Type # Fails during compilation
+```ruby
+from Lib import Open_Type, Closed_Type
 import Lib.Methods
+import Lib.Internal.Helpers # Fails during compilation - cannot import private module from different project
 
 main =
   # This constructor is not private, we can use it here.
-  obj = Pub_Type.Constructor field=42
+  obj = Open_Type.Constructor field=42
   obj.field # OK - Constructor is public, therefore, field is public
   obj.priv_method # Runtime failure - priv_method is private
-  Pub_Type.priv_method self=obj # Runtime failure
+  Open_Type.priv_method self=obj # Runtime failure
   obj.pub_method # OK
 
-  Lib.Pub_Type.Priv_Type # Fails at runtime - accessing private types via FQN is forbidden
+  # This constructor is private, we have to use factory method.
+  opaque = Closed_Type.Constructor field=42
+  opaque.field # Runtime failure - Constructor is private, therefore, no getter is generated
+  opaque.priv_method # Runtime failure - priv_method is private
+  Closed_Type.priv_method self=opaque # Runtime failure
+  opaque.pub_method # OK
 
   Methods.pub_stat_method 1 2 # OK
   Methods.priv_stat_method # Fails at runtime
@@ -173,6 +193,4 @@ during compilation and method resolution.
 ## Other notes
 
 - A private module implies that all the entities defined within are private
-- A private type implies that all the constructors, methods and fields defined
-  within are private
 - A private constructor implies private fields defined in that constructor.

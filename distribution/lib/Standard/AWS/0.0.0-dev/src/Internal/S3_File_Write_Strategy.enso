@@ -16,7 +16,7 @@ instance =
 ## PRIVATE
 create_dry_run_file file copy_original =
     _ = [file, copy_original]
-    Error.throw (Forbidden_Operation.Error "Currently dry-run is not supported for S3_File, so writing to an S3_File is forbidden if the Output context is disabled.")
+    Error.throw (Forbidden_Operation.Error "As writing is disabled, no action has been performed. Press the Write button ▶ to write the file.")
 
 ## PRIVATE
 remote_write_with_local_file file existing_file_behavior action =

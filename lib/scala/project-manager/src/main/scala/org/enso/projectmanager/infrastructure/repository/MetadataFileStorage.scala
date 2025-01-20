@@ -1,9 +1,8 @@
 package org.enso.projectmanager.infrastructure.repository
 
 import java.io.File
-
 import io.circe.generic.auto._
-import org.enso.projectmanager.boot.configuration.StorageConfig
+import org.enso.projectmanager.boot.configuration.MetadataStorageConfig
 import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.effect.syntax._
@@ -21,13 +20,13 @@ import org.enso.projectmanager.infrastructure.file.{
 }
 import org.enso.projectmanager.infrastructure.random.Generator
 import org.enso.projectmanager.infrastructure.time.Clock
-import org.enso.projectmanager.model.{ProjectKind, ProjectMetadata}
+import org.enso.projectmanager.model.{ProjectKinds, ProjectMetadata}
 import shapeless.{Coproduct, Inl, Inr}
 
 /** File based implementation of the project metadata storage.
   *
   * @param directory a project directory
-  * @param storageConfig a storage config
+  * @param metadataStorageConfig a metadata storage config
   * @param clock a clock
   * @param fileSystem a file system abstraction
   * @param gen a random generator
@@ -36,7 +35,7 @@ final class MetadataFileStorage[
   F[+_, +_]: ErrorChannel: CovariantFlatMap
 ](
   directory: File,
-  storageConfig: StorageConfig,
+  metadataStorageConfig: MetadataStorageConfig,
   clock: Clock[F],
   fileSystem: FileSystem[F],
   gen: Generator[F]
@@ -80,7 +79,7 @@ final class MetadataFileStorage[
       projectId <- gen.randomUUID()
     } yield ProjectMetadata(
       id         = projectId,
-      kind       = ProjectKind.UserProject,
+      kind       = ProjectKinds.UserProject,
       created    = now,
       lastOpened = None
     )
@@ -89,8 +88,8 @@ final class MetadataFileStorage[
     new File(
       project,
       new File(
-        storageConfig.projectMetadataDirectory,
-        storageConfig.projectMetadataFileName
+        metadataStorageConfig.projectMetadataDirectory,
+        metadataStorageConfig.projectMetadataFileName
       ).toString
     )
 }

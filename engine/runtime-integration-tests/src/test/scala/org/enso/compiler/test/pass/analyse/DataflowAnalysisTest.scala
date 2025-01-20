@@ -161,7 +161,7 @@ class DataflowAnalysisTest extends CompilerTest {
     */
   def mkInlineContext: InlineContext = {
     buildInlineContext(
-      localScope       = Some(LocalScope.root),
+      localScope       = Some(LocalScope.createEmpty),
       isInTailPosition = Some(false),
       freshNameSupply  = Some(new FreshNameSupply)
     )

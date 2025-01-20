@@ -32,8 +32,8 @@ use syn::Variant;
 /// ======================
 use quote::ToTokens;
 
-/// Implements [`TreeVisitable`], [`TreeVisitableMut`], [`SpanVisitable`], and [`SpanVisitableMut`].
-/// These traits are defined in the [`crate::ast`] module. Macros in this module hardcode the names
+/// Implements [`ItemVisitable`].
+/// This trait is defined in the [`crate::ast`] module. Macros in this module hardcode the names
 /// of the traits and are not implemented in a generic way because the current Rust implementation
 /// does not understand generic definition. See the [`crate::ast`] module to learn more about the
 /// design and the Rust compiler issue.
@@ -42,8 +42,6 @@ pub fn derive_visitor(input: proc_macro::TokenStream) -> proc_macro::TokenStream
     let decl = syn::parse_macro_input!(input as DeriveInput);
     let ident = &decl.ident;
     let (impl_generics, ty_generics, _inherent_where_clause_opt) = &decl.generics.split_for_impl();
-    let body = gen_body(quote!(TreeVisitable::visit), &decl.data, false);
-    let body_span = gen_body(quote!(SpanVisitable::visit_span), &decl.data, false);
     let body_item = gen_body(quote!(ItemVisitable::visit_item), &decl.data, false);
 
     let impl_generics_vec: Vec<_> = impl_generics.to_token_stream().into_iter().collect();
@@ -61,27 +59,9 @@ pub fn derive_visitor(input: proc_macro::TokenStream) -> proc_macro::TokenStream
     let impl_generics = quote!(<#impl_generics 'a>);
 
     let output = quote! {
-        impl #impl_generics TreeVisitable #impl_generics for #ident #ty_generics {
-            fn visit<T: TreeVisitor #impl_generics>(&'a self, visitor:&mut T) {
-                visitor.before_visiting_children();
-                #body
-                visitor.after_visiting_children();
-            }
-        }
-
-        impl #impl_generics SpanVisitable #impl_generics for #ident #ty_generics {
-            fn visit_span<T: SpanVisitor #impl_generics>(&'a self, visitor:&mut T) {
-                visitor.before_visiting_children();
-                #body_span
-                visitor.after_visiting_children();
-            }
-        }
-
         impl #impl_generics ItemVisitable #impl_generics for #ident #ty_generics {
             fn visit_item<T: ItemVisitor #impl_generics>(&'a self, visitor:&mut T) {
-                visitor.before_visiting_children();
                 #body_item
-                visitor.after_visiting_children();
             }
         }
     };

@@ -66,9 +66,7 @@ object LocationResolver {
     ir: IR,
     location: IdentifiedLocation
   ): Option[ExpressionId] =
-    ir.preorder
-      .find(_.location.contains(location))
-      .flatMap(getExpressionId)
+    findByIdentifiedLocation(ir, location).flatMap(getExpressionId)
 
   /** Resolve expression id of the given source location.
     *
@@ -90,14 +88,44 @@ object LocationResolver {
   def getExpressionId(ir: IR): Option[ExpressionId] =
     ir.getExternalId.map(ExpressionId(ir.getId, _))
 
+  /** Find the expression by its identified location.
+    *
+    * @param ir the `IR` to get the expression from
+    * @param location the expression location
+    * @return the expression with the given location
+    */
+  private def findByIdentifiedLocation(
+    ir: IR,
+    location: IdentifiedLocation
+  ): Option[IR] = {
+    IR.preorder(
+      ir,
+      { ir =>
+        if (ir.location.contains(location)) {
+          return Some(ir)
+        }
+      }
+    )
+    None
+  }
+
   /** Find the expression by its location.
     *
     * @param ir the `IR` to get the expression from
     * @param location the expression location
     * @return the expression with the given location
     */
-  def findByLocation(ir: IR, location: Location): Option[IR] =
-    ir.preorder.find(_.location.map(_.location).contains(location))
+  private def findByLocation(ir: IR, location: Location): Option[IR] = {
+    IR.preorder(
+      ir,
+      { ir =>
+        if (ir.location.map(_.location).contains(location)) {
+          return Some(ir)
+        }
+      }
+    )
+    None
+  }
 
   /** Convert truffle source section to the range of text.
     *
@@ -116,7 +144,7 @@ object LocationResolver {
     * @param source the source text
     * @return location of the source section within the source
     */
-  def sectionToLocation[A: IndexedSource](
+  private def sectionToLocation[A: IndexedSource](
     section: SourceSection,
     source: A
   ): Location = {

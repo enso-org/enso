@@ -16,7 +16,7 @@ type Data
         enso_project.data.create_directory
         file = enso_project.data / "sqlite_test.db"
         file.delete_if_exists
-        connection = Database.connect (SQLite file)
+        connection = Database.connect (SQLite.From_File file)
         connection.execute_update 'CREATE TABLE "T" ("A" VARCHAR, "B" INTEGER, "C" INTEGER)'
         t = connection.query (SQL_Query.Table_Name "T")
         [connection, t]

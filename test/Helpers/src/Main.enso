@@ -1,0 +1,8 @@
+import project.Internal.Priv_Type
+
+## Provides access to the methods of the Priv_Type
+type Public_Type
+    cons = Priv_Type.Cons
+    create data = Priv_Type.create data
+    in_ctx ~action = Priv_Type.in_ctx action...
+    private priv_method self = Priv_Type.priv_method

@@ -1,0 +1,137 @@
+# Tests regression of the overall stack trace size when calling nested
+# `Vector.map`. It is tested by invoking a subprocess on a generated code
+# that contains `n` nested `Vector.map` calls.
+# The subprocess has Truffle compiler disabled with `-Dpolyglot.engine.Compiler=false`
+# to ensure there are no (Java) stack frames dropped. Moreover, we
+# set explicitly `-XX:MaxJavaStackTraceDepth=...` for the subprocess to overcome
+# the default length (1024) of `RuntimeException.getStackTrace` which is too low.
+#
+# The test runs two subprocesses with different nesting and computes the
+# difference of Java stack sizes. This difference must not exceed certain limit.
+
+
+private
+
+from Standard.Base import all
+import Standard.Base.Runtime.Ref.Ref
+import Standard.Base.System.Process.Process_Builder.Process_Result
+
+from Standard.Test import all
+
+
+## Find the Enso binary under the `built-distribution` directory
+enso_bin -> File =
+    find_prefix dir prefix =
+        vec = dir.list name_filter=prefix+"*"
+        if vec.length == 1 then vec.at 0 else
+            msg = "Cannot find " + prefix + "* in " + dir.to_text + '\n'
+            err = dir.list.fold msg t-> f->
+                t + f.to_text + '\n'
+            Panic.throw err
+
+    project_root = File.new enso_project.root.to_text
+    repository_root = project_root . parent . parent
+    built_distribution = find_prefix repository_root "built-distribution"
+    enso_engine = find_prefix built_distribution "enso-engine-"
+    enso = find_prefix enso_engine "enso-"
+    bin = find_prefix enso "bin"
+
+    exe = File.new bin / if Platform.os == Platform.OS.Windows then "enso.bat" else "enso"
+
+    if exe.is_regular_file.not then Panic.throw "Cannot find "+exe.to_text
+
+    exe
+
+## Generates code for mapping over a vector with the given nesting level.
+   Returns code of the main method that is meant to be pasted into a separate module.
+   The code prints the count of Java frames to stdout in the deepest `Vector.map` call.
+
+   Example of the code is (for nesting_level 2):
+   ```
+   main =
+       vec = [[42]]
+       vec.map e0->
+           e0.map e1->
+               cnt = RuntimeException.new.getStackTrace.length
+               IO.println 'java_stack_frames='+cnt.to_text
+   ```
+
+   Arguments:
+   - nesting_level How many times should the vector be nested
+generate_code nesting_level:Integer -> Text =
+    bldr = Vector.Builder.new
+    bldr.append "from Standard.Base import all"
+    bldr.append "import Standard.Base.Internal.Extra_Imports.RuntimeException"
+    bldr.append '\n'
+    bldr.append <| "main = "
+    bldr.append <| "    "
+                   + "vec = "
+                   + ("[" * nesting_level)
+                   + "42"
+                   + ("]" * nesting_level)
+    bldr.append <| "    "
+                   + "vec.map e0->"
+    0.up_to (nesting_level - 1) . each \i ->
+        bldr.append <| ("    " * (i + 2))
+                       + "e"
+                       + i.to_text
+                       + ".map e"
+                       + (i + 1).to_text
+                       + "-> "
+    bldr.append <| ("    " * (nesting_level + 1))
+                   + "cnt = RuntimeException.new.getStackTrace.length"
+    bldr.append <| ("    " * (nesting_level + 1))
+                   + "IO.println <| 'java_stack_frames=' + cnt.to_text"
+                   + '\n'
+    bldr.to_vector.reduce \first_line:Text second_line:Text ->
+        first_line + '\n' + second_line
+
+
+## Runs Enso subprocess with disabled Truffle compiler, with
+   larger thread stack and also with larger stack trace element collected
+   (which is needed for `new RuntimeException().getStackTrace().length`)
+   as this value is by default set only to 1024.
+
+   The thread stack size is also set to a sufficiently large value
+   to ensure there is no StackOverflow.
+run_without_compiler enso_args:Vector -> Process_Result =
+    java_opts = "-Dpolyglot.engine.Compilation=false "
+                + "-XX:MaxJavaStackTraceDepth=18000 "
+                + "-Xms16M"
+    args = ["JAVA_OPTS="+java_opts, enso_bin.path] + enso_args
+    Process.run "env" (args + enso_args)
+
+
+## Runs enso as a subprocess with the specified nesting level of `Vector.map` calls.
+   Returns count of Java stack frames from the deepest `Vector.map` call.
+
+   Arguments:
+   - nesting Level of nesting of `Vector.map` method calls.
+run nesting:Integer -> Integer =
+    tmp_file = File.create_temporary_file suffix=".enso"
+    code = generate_code nesting
+    code.write tmp_file
+    proc_res = run_without_compiler ["--run", tmp_file.path]
+    # FInd and parse a specific line from the process stdout
+    j_frames_line = proc_res.stdout.split '\n' . find \line ->
+        line.contains "java_stack_frames"
+    j_frames_line.split '=' . last . parse_integer
+
+
+only_on_linux = if System.os == "linux" then Nothing else "Test runs only on Linux"
+
+
+add_specs suite_builder =
+    suite_builder.group "Stack size" pending=only_on_linux \group_builder ->
+        group_builder.specify "Java stack size of nested Vector.map should be kept reasonably low" <|
+            nesting_10 = run 10
+            nesting_11 = run 11
+            stack_size = nesting_11 - nesting_10
+            Test.with_clue ("Stack size of `Vector.map` should be low, but was " + stack_size.to_text + " ") <|
+                (stack_size < 40) . should_be_true
+
+
+main filter=Nothing =
+    suite = Test.build \suite_builder ->
+        add_specs suite_builder
+    suite.run_with_filter filter

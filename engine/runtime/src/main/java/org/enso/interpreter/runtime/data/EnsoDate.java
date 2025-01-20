@@ -1,28 +1,29 @@
 package org.enso.interpreter.runtime.data;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import org.enso.interpreter.dsl.Builtin;
-import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.enso.interpreter.runtime.builtin.BuiltinObject;
 import org.enso.polyglot.common_utils.Core_Date_Utils;
 
 @ExportLibrary(InteropLibrary.class)
-@ExportLibrary(TypesLibrary.class)
 @Builtin(pkg = "date", name = "Date", stdlibName = "Standard.Base.Data.Time.Date.Date")
-public final class EnsoDate implements EnsoObject {
+public final class EnsoDate extends BuiltinObject {
   private final LocalDate date;
 
   public EnsoDate(LocalDate date) {
     this.date = date;
+  }
+
+  @Override
+  protected String builtinName() {
+    return "Date";
   }
 
   @Builtin.Method(description = "Return current Date", autoRegister = false)
@@ -77,28 +78,9 @@ public final class EnsoDate implements EnsoObject {
     throw UnsupportedMessageException.create();
   }
 
-  @ExportMessage
-  Type getMetaObject(@CachedLibrary("this") InteropLibrary thisLib) {
-    return EnsoContext.get(thisLib).getBuiltins().date();
-  }
-
-  @ExportMessage
-  boolean hasMetaObject() {
-    return true;
-  }
-
-  @ExportMessage
-  boolean hasType() {
-    return true;
-  }
-
-  @ExportMessage
-  Type getType(@CachedLibrary("this") TypesLibrary thisLib, @Cached("1") int ignore) {
-    return EnsoContext.get(thisLib).getBuiltins().date();
-  }
-
   @CompilerDirectives.TruffleBoundary
   @ExportMessage
+  @Override
   public Object toDisplayString(boolean allowSideEffects) {
     return Core_Date_Utils.defaultLocalDateFormatter.format(date);
   }

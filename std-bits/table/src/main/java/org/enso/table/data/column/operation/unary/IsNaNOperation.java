@@ -1,8 +1,8 @@
 package org.enso.table.data.column.operation.unary;
 
 import java.util.BitSet;
-import org.enso.table.data.column.builder.BoolBuilder;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.builder.BuilderForBoolean;
 import org.enso.table.data.column.operation.UnaryOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.BoolStorage;
@@ -10,6 +10,7 @@ import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
+import org.enso.table.data.column.storage.type.AnyObjectType;
 
 public class IsNaNOperation extends AbstractUnaryBooleanOperation {
   public static final String NAME = "is_nan";
@@ -21,7 +22,9 @@ public class IsNaNOperation extends AbstractUnaryBooleanOperation {
 
   @Override
   public boolean canApply(ColumnStorage storage) {
-    return storage.getType().isNumeric();
+    var type = storage.getType();
+    // We also allow this operation on Mixed type to facilitate `internal_is_nan` helper.
+    return type.isNumeric() || type instanceof AnyObjectType;
   }
 
   @Override
@@ -42,7 +45,7 @@ public class IsNaNOperation extends AbstractUnaryBooleanOperation {
       ColumnLongStorage longStorage,
       Builder builder,
       MapOperationProblemAggregator problemAggregator) {
-    var boolBuilder = (BoolBuilder) builder;
+    var boolBuilder = (BuilderForBoolean) builder;
     UnaryOperation.applyOverLongStorage(
         longStorage, true, builder, (isNothing, value) -> boolBuilder.appendBoolean(false));
   }
@@ -52,7 +55,7 @@ public class IsNaNOperation extends AbstractUnaryBooleanOperation {
       ColumnDoubleStorage doubleStorage,
       Builder builder,
       MapOperationProblemAggregator problemAggregator) {
-    var boolBuilder = (BoolBuilder) builder;
+    var boolBuilder = (BuilderForBoolean) builder;
     UnaryOperation.applyOverDoubleStorage(
         doubleStorage,
         true,
@@ -62,14 +65,12 @@ public class IsNaNOperation extends AbstractUnaryBooleanOperation {
 
   @Override
   protected void applyObjectRow(
-      Object value, BoolBuilder builder, MapOperationProblemAggregator problemAggregator) {
+      Object value, BuilderForBoolean builder, MapOperationProblemAggregator problemAggregator) {
     // Null handled by base class
     switch (value) {
       case Double d -> builder.appendBoolean(Double.isNaN(d));
       case Float f -> builder.appendBoolean(Float.isNaN(f));
-      case Number ignored -> builder.appendBoolean(false);
-      default -> throw new IllegalArgumentException(
-          "Unsupported type: " + value.getClass() + " (expected numeric type).");
+      default -> builder.appendBoolean(false);
     }
   }
 }

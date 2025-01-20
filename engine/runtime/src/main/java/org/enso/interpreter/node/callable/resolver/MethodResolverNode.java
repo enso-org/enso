@@ -18,6 +18,10 @@ import org.graalvm.collections.Pair;
 public abstract class MethodResolverNode extends Node {
   protected static final int CACHE_SIZE = 10;
 
+  public static MethodResolverNode getUncached() {
+    return MethodResolverNodeGen.getUncached();
+  }
+
   @NonIdempotent
   EnsoContext getContext() {
     return EnsoContext.get(this);

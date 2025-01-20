@@ -1,0 +1,22 @@
+import project.Data.Text.Text
+import project.Data.Vector.Vector
+
+## A common interface that represents a list of files that can be read.
+
+   Various types (e.g. Vector, Column) can convert to this type to be able to be
+   used in `Data.read_many`.
+type Many_Files_List
+    ## PRIVATE
+    Value original_value paths_to_load:Vector
+
+    ## PRIVATE
+    to_text self -> Text =
+         "Many_Files_List "+self.original_value.to_text
+
+    ## PRIVATE
+    to_display_text self -> Text =
+        "Many_Files_List "+self.original_value.to_display_text
+
+## PRIVATE
+Many_Files_List.from (that : Vector) =
+    Many_Files_List.Value that that

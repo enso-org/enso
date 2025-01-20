@@ -42,33 +42,53 @@ public class SetExecutionEnvironmentCommand extends AsynchronousCommand {
   private void setExecutionEnvironment(
       Runtime$Api$ExecutionEnvironment executionEnvironment, UUID contextId, RuntimeContext ctx) {
     var logger = ctx.executionService().getLogger();
-    var contextLockTimestamp = ctx.locking().acquireContextLock(contextId);
-    try {
-      var writeLockTimestamp = ctx.locking().acquireWriteCompilationLock();
-      try {
-        Stack<InstrumentFrame> stack = ctx.contextManager().getStack(contextId);
-        ctx.jobControlPlane().abortJobs(contextId);
-        ctx.executionService()
-            .getContext()
-            .setExecutionEnvironment(ExecutionEnvironment.forName(executionEnvironment.name()));
-        CacheInvalidation.invalidateAll(stack);
-        ctx.jobProcessor().run(ExecuteJob.apply(contextId, stack.toList()));
-        reply(new Runtime$Api$SetExecutionEnvironmentResponse(contextId), ctx);
-      } finally {
-        ctx.locking().releaseWriteCompilationLock();
-        logger.log(
-            Level.FINEST,
-            "Kept write compilation lock [SetExecutionEnvironmentCommand] for "
-                + (System.currentTimeMillis() - writeLockTimestamp)
-                + " milliseconds");
-      }
-    } finally {
-      ctx.locking().releaseContextLock(contextId);
-      logger.log(
-          Level.FINEST,
-          "Kept context lock [SetExecutionEnvironmentCommand] for "
-              + (System.currentTimeMillis() - contextLockTimestamp)
-              + " milliseconds");
-    }
+    ctx.locking()
+        .withContextLock(
+            ctx.locking().getOrCreateContextLock(contextId),
+            this.getClass(),
+            () -> {
+              var oldEnvironmentName =
+                  ctx.executionService().getContext().getGlobalExecutionEnvironment().getName();
+              if (!oldEnvironmentName.equals(executionEnvironment.name())) {
+                ctx.jobControlPlane()
+                    .abortJobs(
+                        contextId,
+                        "set execution environment to " + executionEnvironment.name(),
+                        false);
+                ctx.locking()
+                    .withWriteCompilationLock(
+                        this.getClass(),
+                        () -> {
+                          Stack<InstrumentFrame> stack = ctx.contextManager().getStack(contextId);
+                          ctx.state()
+                              .executionHooks()
+                              .add(
+                                  () ->
+                                      ctx.locking()
+                                          .withWriteCompilationLock(
+                                              this.getClass(),
+                                              () -> {
+                                                ctx.executionService()
+                                                    .getContext()
+                                                    .setExecutionEnvironment(
+                                                        ExecutionEnvironment.forName(
+                                                            executionEnvironment.name()));
+                                                return null;
+                                              }));
+                          CacheInvalidation.invalidateAll(stack);
+                          ctx.jobProcessor().run(ExecuteJob.apply(contextId, stack.toList()));
+                          reply(new Runtime$Api$SetExecutionEnvironmentResponse(contextId), ctx);
+                          return null;
+                        });
+              } else {
+                logger.log(
+                    Level.FINE,
+                    "Requested environment '{}' is the same as the current one. Request has no"
+                        + " effect",
+                    oldEnvironmentName);
+                reply(new Runtime$Api$SetExecutionEnvironmentResponse(contextId), ctx);
+              }
+              return null;
+            });
   }
 }

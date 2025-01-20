@@ -96,12 +96,17 @@ case object TypeNames extends IRPass {
     def fromMethodReference(m: Name.MethodReference): SelfTypeInfo =
       m.typePointer match {
         case Some(p) =>
-          p.getMetadata(MethodDefinitions) match {
+          p.getMetadata(
+            MethodDefinitions.INSTANCE,
+            classOf[BindingsMap.Resolution]
+          ) match {
             case Some(resolution) =>
               resolution.target match {
                 case typ: BindingsMap.ResolvedType =>
                   val params =
-                    typ.tp.params.map(Name.Literal(_, false, None)).toList
+                    typ.tp.params
+                      .map(Name.Literal(_, false, identifiedLocation = null))
+                      .toList
                   SelfTypeInfo(Some(typ), params)
                 case _: BindingsMap.ResolvedModule =>
                   SelfTypeInfo.empty
@@ -182,8 +187,11 @@ case object TypeNames extends IRPass {
           bindingsMap.resolveQualifiedName(n.parts.map(_.name))
         )
       case selfRef: Name.SelfType =>
-        val resolvedSelfType = selfTypeInfo.selfType.toRight {
-          BindingsMap.SelfTypeOutsideOfTypeDefinition
+        val resolvedSelfType = selfTypeInfo.selfType match {
+          case None =>
+            Left(BindingsMap.SelfTypeOutsideOfTypeDefinition)
+          case Some(selfType) =>
+            Right(List(selfType))
         }
         processResolvedName(selfRef, resolvedSelfType)
       case s: `type`.Set =>
@@ -192,10 +200,17 @@ case object TypeNames extends IRPass {
 
   private def processResolvedName(
     name: Name,
-    resolvedName: Either[BindingsMap.ResolutionError, BindingsMap.ResolvedName]
+    resolvedNamesOpt: Either[BindingsMap.ResolutionError, List[
+      BindingsMap.ResolvedName
+    ]]
   ): Name =
-    resolvedName
-      .map(res => name.updateMetadata(new MetadataPair(this, Resolution(res))))
+    resolvedNamesOpt
+      .map(resolvedNames => {
+        resolvedNames.foreach { resolvedName =>
+          name.updateMetadata(new MetadataPair(this, Resolution(resolvedName)))
+        }
+        name
+      })
       .fold(
         error =>
           errors.Resolution(name, errors.Resolution.ResolverError(error)),

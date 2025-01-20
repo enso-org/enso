@@ -1,6 +1,10 @@
 package org.enso.logger;
 
-import static org.slf4j.event.Level.*;
+import static org.slf4j.event.Level.DEBUG;
+import static org.slf4j.event.Level.ERROR;
+import static org.slf4j.event.Level.INFO;
+import static org.slf4j.event.Level.TRACE;
+import static org.slf4j.event.Level.WARN;
 
 import org.slf4j.event.Level;
 

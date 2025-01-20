@@ -1,6 +1,6 @@
 package org.enso.table.data.column.operation.unary;
 
-import org.enso.table.data.column.builder.BoolBuilder;
+import org.enso.table.data.column.builder.BuilderForBoolean;
 import org.enso.table.data.column.operation.UnaryOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.BoolStorage;
@@ -26,11 +26,7 @@ public class NotOperation extends AbstractUnaryBooleanOperation {
   public ColumnStorage apply(
       ColumnStorage storage, MapOperationProblemAggregator problemAggregator) {
     if (storage instanceof BoolStorage boolStorage) {
-      return new BoolStorage(
-          boolStorage.getValues(),
-          boolStorage.getIsNothingMap(),
-          boolStorage.size(),
-          !boolStorage.isNegated());
+      return boolStorage.makeNegated();
     }
 
     var builder = createBuilder(storage, problemAggregator);
@@ -57,7 +53,7 @@ public class NotOperation extends AbstractUnaryBooleanOperation {
 
   @Override
   protected void applyObjectRow(
-      Object value, BoolBuilder builder, MapOperationProblemAggregator problemAggregator) {
+      Object value, BuilderForBoolean builder, MapOperationProblemAggregator problemAggregator) {
     throw new UnsupportedOperationException();
   }
 }

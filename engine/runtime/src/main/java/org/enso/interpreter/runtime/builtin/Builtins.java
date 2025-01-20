@@ -25,8 +25,6 @@ import org.enso.compiler.context.FreshNameSupply;
 import org.enso.compiler.core.CompilerError;
 import org.enso.compiler.phase.BuiltinsIrBuilder;
 import org.enso.interpreter.EnsoLanguage;
-import org.enso.interpreter.dsl.TypeProcessor;
-import org.enso.interpreter.dsl.model.MethodDefinition;
 import org.enso.interpreter.node.expression.builtin.Any;
 import org.enso.interpreter.node.expression.builtin.Boolean;
 import org.enso.interpreter.node.expression.builtin.Builtin;
@@ -34,7 +32,10 @@ import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
 import org.enso.interpreter.node.expression.builtin.Nothing;
 import org.enso.interpreter.node.expression.builtin.Polyglot;
 import org.enso.interpreter.node.expression.builtin.debug.Debug;
+import org.enso.interpreter.node.expression.builtin.error.AdditionalWarnings;
 import org.enso.interpreter.node.expression.builtin.error.CaughtPanic;
+import org.enso.interpreter.node.expression.builtin.error.NoWrap;
+import org.enso.interpreter.node.expression.builtin.error.ProblemBehavior;
 import org.enso.interpreter.node.expression.builtin.error.Warning;
 import org.enso.interpreter.node.expression.builtin.immutable.Vector;
 import org.enso.interpreter.node.expression.builtin.io.File;
@@ -81,6 +82,7 @@ public final class Builtins {
     }
   }
 
+  private final EnsoContext context;
   private final Map<Class<? extends Builtin>, Builtin> builtins;
   private final Map<String, Map<String, Supplier<LoadedBuiltinMethod>>> builtinMethodNodes;
   private final Map<String, Builtin> builtinsByName;
@@ -96,7 +98,6 @@ public final class Builtins {
   private final Comparable comparable;
   private final DefaultComparator defaultComparator;
   private final System system;
-  private final Special special;
 
   // Builtin types
   private final Builtin any;
@@ -106,7 +107,7 @@ public final class Builtins {
   private final Builtin text;
   private final Builtin array;
   private final Builtin vector;
-  private final Builtin map;
+  private final Builtin dictionary;
   private final Builtin dataflowError;
   private final Builtin ref;
   private final Builtin managedResource;
@@ -119,6 +120,9 @@ public final class Builtins {
   private final Builtin timeOfDay;
   private final Builtin timeZone;
   private final Builtin warning;
+  private final NoWrap noWrap;
+  private final ProblemBehavior problemBehavior;
+  private final AdditionalWarnings additionalWarnings;
 
   /**
    * Creates an instance with builtin methods installed.
@@ -126,21 +130,23 @@ public final class Builtins {
    * @param context the current {@link EnsoContext} instance
    */
   public Builtins(EnsoContext context) {
+    this.context = context;
     EnsoLanguage language = context.getLanguage();
     module = Module.empty(QualifiedName.fromString(MODULE_NAME), null);
-    scope = module.compileScope(context);
+    module.compileScope(context); // Dummy compilation for an empty module
+    ModuleScope.Builder scopeBuilder = module.newScopeBuilder(false);
 
-    builtins = initializeBuiltinTypes(loadedBuiltinConstructors, language, scope);
+    builtins = initializeBuiltinTypes(loadedBuiltinConstructors, language, scopeBuilder);
     builtinsByName =
         builtins.values().stream()
             .collect(
                 Collectors.toMap(
                     v -> v.getType().getName(), java.util.function.Function.identity()));
     if (TruffleOptions.AOT) {
-      builtinMethodNodes = readBuiltinMethodsMetadata(loadedBuiltinMethods, scope);
-      registerBuiltinMethods(scope, language);
+      builtinMethodNodes = readBuiltinMethodsMetadata(loadedBuiltinMethods, scopeBuilder);
+      registerBuiltinMethods(scopeBuilder, language);
     } else {
-      builtinMethodNodes = registerBuiltinMethodsLazily(scope, language);
+      builtinMethodNodes = registerBuiltinMethodsLazily(scopeBuilder, language);
     }
 
     ordering = getBuiltinType(Ordering.class);
@@ -156,7 +162,7 @@ public final class Builtins {
     text = builtins.get(Text.class);
     array = builtins.get(Array.class);
     vector = builtins.get(Vector.class);
-    map = builtins.get(org.enso.interpreter.node.expression.builtin.Map.class);
+    dictionary = builtins.get(org.enso.interpreter.node.expression.builtin.Dictionary.class);
     dataflowError = builtins.get(org.enso.interpreter.node.expression.builtin.Error.class);
     ref = builtins.get(Ref.class);
     managedResource = builtins.get(ManagedResource.class);
@@ -169,11 +175,14 @@ public final class Builtins {
     timeOfDay = builtins.get(org.enso.interpreter.node.expression.builtin.date.TimeOfDay.class);
     timeZone = builtins.get(org.enso.interpreter.node.expression.builtin.date.TimeZone.class);
     warning = builtins.get(Warning.class);
+    noWrap = getBuiltinType(NoWrap.class);
+    problemBehavior = getBuiltinType(ProblemBehavior.class);
+    additionalWarnings = getBuiltinType(AdditionalWarnings.class);
 
     error = new Error(this, context);
     system = new System(this);
     number = new Number(this);
-    special = new Special(language);
+    scope = scopeBuilder.build();
   }
 
   private static Map<String, LoadedBuiltinMethod> loadBuiltinMethodClassesEarly(
@@ -194,7 +203,7 @@ public final class Builtins {
    * @param scope Builtins scope
    * @param language The language the resulting function nodes should be associated with
    */
-  private void registerBuiltinMethods(ModuleScope scope, EnsoLanguage language) {
+  private void registerBuiltinMethods(ModuleScope.Builder scope, EnsoLanguage language) {
     for (Builtin builtin : builtins.values()) {
       var type = builtin.getType();
       Map<String, Supplier<LoadedBuiltinMethod>> methods = builtinMethodNodes.get(type.getName());
@@ -228,7 +237,7 @@ public final class Builtins {
    * @return map from types to builtin methods
    */
   private Map<String, Map<String, Supplier<LoadedBuiltinMethod>>> registerBuiltinMethodsLazily(
-      ModuleScope scope, EnsoLanguage language) {
+      ModuleScope.Builder scope, EnsoLanguage language) {
     Map<String, Map<String, Supplier<LoadedBuiltinMethod>>> builtinMethodNodes = new HashMap<>();
     Map<String, Map<String, LoadedBuiltinMetaMethod>> builtinMetaMethods = new HashMap<>();
     loadedBuiltinMethodsMeta.forEach(
@@ -239,12 +248,12 @@ public final class Builtins {
           }
           String builtinMethodOwner = builtinName[0];
           String builtinMethodName = builtinName[1];
-          Optional.ofNullable(scope.getTypes().get(builtinMethodOwner))
+          Optional.ofNullable(scope.asModuleScope().getType(builtinMethodOwner, true))
               .ifPresentOrElse(
                   constr -> {
                     Map<String, Supplier<LoadedBuiltinMethod>> atomNodes =
                         getOrUpdate(builtinMethodNodes, constr.getName());
-                    atomNodes.put(builtinMethodName, new CachingSupplier<>(() -> meta.toMethod()));
+                    atomNodes.put(builtinMethodName, CachingSupplier.wrap(() -> meta.toMethod()));
 
                     Map<String, LoadedBuiltinMetaMethod> atomNodesMeta =
                         getOrUpdate(builtinMetaMethods, constr.getName());
@@ -253,7 +262,7 @@ public final class Builtins {
                   () -> {
                     Map<String, Supplier<LoadedBuiltinMethod>> atomNodes =
                         getOrUpdate(builtinMethodNodes, builtinMethodOwner);
-                    atomNodes.put(builtinMethodName, new CachingSupplier<>(() -> meta.toMethod()));
+                    atomNodes.put(builtinMethodName, CachingSupplier.wrap(() -> meta.toMethod()));
 
                     Map<String, LoadedBuiltinMetaMethod> atomNodesMeta =
                         getOrUpdate(builtinMetaMethods, builtinMethodOwner);
@@ -337,7 +346,10 @@ public final class Builtins {
   private static List<Constructor<? extends Builtin>> readBuiltinTypes() {
     ClassLoader classLoader = Builtins.class.getClassLoader();
     List<String> lines;
-    try (InputStream resource = classLoader.getResourceAsStream(TypeProcessor.META_PATH)) {
+    final String NODE_PKG = "org.enso.interpreter.node.expression.builtin";
+    final String META_PATH =
+        "META-INF" + "/" + NODE_PKG.replace('.', '/') + "/BuiltinTypes.metadata";
+    try (InputStream resource = classLoader.getResourceAsStream(META_PATH)) {
       lines =
           new BufferedReader(new InputStreamReader(resource, StandardCharsets.UTF_8))
               .lines()
@@ -374,7 +386,9 @@ public final class Builtins {
 
   /** Initialize builting types in the context of the given language and module scope */
   private Map<Class<? extends Builtin>, Builtin> initializeBuiltinTypes(
-      List<Constructor<? extends Builtin>> constrs, EnsoLanguage language, ModuleScope scope) {
+      List<Constructor<? extends Builtin>> constrs,
+      EnsoLanguage language,
+      ModuleScope.Builder scope) {
     Map<Class<? extends Builtin>, Builtin> builtins = new HashMap<>();
 
     for (var constr : constrs) {
@@ -399,7 +413,7 @@ public final class Builtins {
    * @return A map of builtin method nodes per builtin type name
    */
   private Map<String, Map<String, Supplier<LoadedBuiltinMethod>>> readBuiltinMethodsMetadata(
-      Map<String, LoadedBuiltinMethod> classes, ModuleScope scope) {
+      Map<String, LoadedBuiltinMethod> classes, ModuleScope.Builder scope) {
 
     Map<String, Map<String, Supplier<LoadedBuiltinMethod>>> methodNodes = new HashMap<>();
     classes.forEach(
@@ -410,17 +424,17 @@ public final class Builtins {
           }
           String builtinMethodOwner = builtinName[0];
           String builtinMethodName = builtinName[1];
-          Optional.ofNullable(scope.getTypes().get(builtinMethodOwner))
+          Optional.ofNullable(scope.asModuleScope().getType(builtinMethodOwner, true))
               .ifPresentOrElse(
                   constr -> {
                     Map<String, Supplier<LoadedBuiltinMethod>> atomNodes =
                         getOrUpdate(methodNodes, constr.getName());
-                    atomNodes.put(builtinMethodName, new CachingSupplier<>(builtin));
+                    atomNodes.put(builtinMethodName, CachingSupplier.forValue(builtin));
                   },
                   () -> {
                     Map<String, Supplier<LoadedBuiltinMethod>> atomNodes =
                         getOrUpdate(methodNodes, builtinMethodOwner);
-                    atomNodes.put(builtinMethodName, new CachingSupplier<>(builtin));
+                    atomNodes.put(builtinMethodName, CachingSupplier.forValue(builtin));
                   });
         });
     return methodNodes;
@@ -438,7 +452,11 @@ public final class Builtins {
   private static Map<String, LoadedBuiltinMetaMethod> readBuiltinMethodsMeta() {
     ClassLoader classLoader = Builtins.class.getClassLoader();
     List<String> lines;
-    try (InputStream resource = classLoader.getResourceAsStream(MethodDefinition.META_PATH)) {
+
+    final String NODE_PKG = "org.enso.interpreter.node.expression.builtin";
+    final String META_PATH =
+        "META-INF" + "/" + NODE_PKG.replace('.', '/') + "/BuiltinMethods.metadata";
+    try (InputStream resource = classLoader.getResourceAsStream(META_PATH)) {
       lines =
           new BufferedReader(new InputStreamReader(resource, StandardCharsets.UTF_8))
               .lines()
@@ -485,7 +503,11 @@ public final class Builtins {
     if (atomNodes == null) {
       return Optional.empty();
     }
-    LoadedBuiltinMethod builtin = atomNodes.get(methodName).get();
+    var supply = atomNodes.get(methodName);
+    if (supply == null) {
+      return Optional.empty();
+    }
+    LoadedBuiltinMethod builtin = supply.get();
     if (builtin == null) {
       return Optional.empty();
     }
@@ -589,6 +611,21 @@ public final class Builtins {
     return warning.getType();
   }
 
+  /** Returns the {@code Problem_Behavior} type. */
+  public ProblemBehavior problemBehavior() {
+    return problemBehavior;
+  }
+
+  /** Returns the {@code No_Wrap} atom constructor. */
+  public NoWrap noWrap() {
+    return noWrap;
+  }
+
+  /** Returns the {@code Additional_Warnings} atom constructor. */
+  public AdditionalWarnings additionalWarnings() {
+    return additionalWarnings;
+  }
+
   /**
    * Returns the {@code File} atom constructor.
    *
@@ -678,8 +715,8 @@ public final class Builtins {
     return vector.getType();
   }
 
-  public Type map() {
-    return map.getType();
+  public Type dictionary() {
+    return dictionary.getType();
   }
 
   /**
@@ -732,10 +769,6 @@ public final class Builtins {
     return dataflowError.getType();
   }
 
-  public Special special() {
-    return special;
-  }
-
   /**
    * Returns the builtin module scope.
    *
@@ -747,6 +780,10 @@ public final class Builtins {
 
   public Module getModule() {
     return module;
+  }
+
+  public EnsoLanguage getLanguage() {
+    return context.getLanguage();
   }
 
   private static class LoadedBuiltinMetaMethod {

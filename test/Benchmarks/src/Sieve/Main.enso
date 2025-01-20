@@ -2,6 +2,8 @@ from Standard.Base import all
 
 from Standard.Test import Bench
 
+import project.Sieve.Lazy_Sieve
+
 import project.Sieve.Sieve_Original
 import project.Sieve.Sieve_Ascribed
 import project.Sieve.Sieve_Ascribed_With_Return_Checks
@@ -36,3 +38,7 @@ collect_benches = Bench.build builder->
             assert_prime <| Sieve_Java_Script.compute_nth_prime_natural_in_js 100000
         group_builder.specify "Java_Script_Filter" <|
             assert_prime <| Sieve_Java_Script.compute_nth_prime_filter_in_js 100000
+
+    builder.group "Sieve_Lazy" options group_builder->
+        group_builder.specify "Original" <|
+            assert_prime <| Lazy_Sieve.compute_nth_prime 100000

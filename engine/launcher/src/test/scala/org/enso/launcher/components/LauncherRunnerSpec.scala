@@ -64,19 +64,16 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
       val runSettings = RunSettings(
         SemVer.of(0, 0, 0),
         Seq("arg1", "--flag2"),
+        workingDirectory         = None,
         connectLoggerIfAvailable = true
       )
-      val jvmOptions = Seq(("locally-added-options", "value1"))
+      val jvmOptions       = Seq(("locally-added-options", "value1"))
+      val runnerEntryPoint = "org.enso.runner/org.enso.runner.Main"
 
-      val enginePath =
-        getTestDirectory / "test_data" / "dist" / "0.0.0"
-      val runnerPath =
-        (enginePath / "component" / "runner.jar").toAbsolutePath.normalize
-
-      def checkCommandLine(command: Command): Unit = {
+      def checkCommandLine(command: RawCommand): Unit = {
         val arguments     = command.command.tail
         val javaArguments = arguments.takeWhile(_ != "-jar")
-        val appArguments  = arguments.dropWhile(_ != runnerPath.toString).tail
+        val appArguments  = arguments.dropWhile(_ != runnerEntryPoint).tail
         javaArguments should contain("-Xfrom-env")
         javaArguments should contain("-Denv=env")
         javaArguments should contain("-Dlocally-added-options=value1")
@@ -87,12 +84,16 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
         val appCommandLine = appArguments.mkString(" ")
 
         appCommandLine shouldEqual s"--logger-connect $fakeUri arg1 --flag2"
-        command.command.mkString(" ") should include(s"-jar $runnerPath")
+        command.command.mkString(" ") should include(runnerEntryPoint)
       }
 
       runner.withCommand(
         runSettings,
-        JVMSettings(useSystemJVM = true, jvmOptions = jvmOptions)
+        JVMSettings(
+          useSystemJVM = true,
+          jvmOptions   = jvmOptions,
+          extraOptions = Seq()
+        )
       ) { systemCommand =>
         systemCommand.command.head shouldEqual "java"
         checkCommandLine(systemCommand)
@@ -100,7 +101,11 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
 
       runner.withCommand(
         runSettings,
-        JVMSettings(useSystemJVM = false, jvmOptions = jvmOptions)
+        JVMSettings(
+          useSystemJVM = false,
+          jvmOptions   = jvmOptions,
+          extraOptions = Seq()
+        )
       ) { managedCommand =>
         managedCommand.command.head should include("java")
         val javaHome =
@@ -235,6 +240,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
         .get
 
       outsideProject.engineVersion shouldEqual version
+      outsideProject.workingDirectory shouldEqual Some(projectPath.getParent)
       outsideProject.runnerArguments.mkString(" ") should
       (include(s"--in-project $normalizedPath") and include("--repl"))
 
@@ -250,6 +256,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
         .get
 
       insideProject.engineVersion shouldEqual version
+      insideProject.workingDirectory shouldEqual Some(projectPath.getParent)
       insideProject.runnerArguments.mkString(" ") should
       (include(s"--in-project $normalizedPath") and include("--repl"))
 
@@ -296,6 +303,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
         .get
 
       runSettings.engineVersion shouldEqual version
+      runSettings.workingDirectory shouldEqual Some(projectPath.getParent)
       val commandLine = runSettings.runnerArguments.mkString(" ")
       commandLine should include(s"--interface ${options.interface}")
       commandLine should include(s"--rpc-port ${options.rpcPort}")
@@ -338,6 +346,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
         .get
 
       outsideProject.engineVersion shouldEqual version
+      outsideProject.workingDirectory shouldEqual Some(projectPath.getParent)
       outsideProject.runnerArguments.mkString(" ") should
       include(s"--run $normalizedPath")
 
@@ -435,6 +444,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
         .get
 
       runSettings.engineVersion shouldEqual version
+      runSettings.workingDirectory shouldEqual Some(projectPath.getParent)
       runSettings.runnerArguments.mkString(" ") should
       (include(s"--run $normalizedFilePath") and
       include(s"--in-project $normalizedProjectPath"))

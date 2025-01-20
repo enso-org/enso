@@ -1,15 +1,18 @@
 package org.enso.languageserver.requesthandler.text
 
-import akka.actor.{Actor, ActorRef, Cancellable, Props}
+import akka.actor.{Actor, ActorRef, Props}
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.jsonrpc._
-import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.text.TextApi.{CloseFile, FileNotOpenedError}
-import org.enso.languageserver.text.TextProtocol
+import org.enso.languageserver.text.{TextApi, TextProtocol}
 import org.enso.languageserver.text.TextProtocol.{FileClosed, FileNotOpened}
-import org.enso.languageserver.util.UnhandledLogging
+import org.enso.languageserver.util.{
+  RequestHandlerWithRetries,
+  UnhandledLogging
+}
 
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
 
 /** A request handler for `text/closeFile` commands.
@@ -22,45 +25,36 @@ class CloseFileHandler(
   bufferRegistry: ActorRef,
   timeout: FiniteDuration,
   rpcSession: JsonSession
-) extends Actor
+) extends RequestHandlerWithRetries[
+      Request[CloseFile.type, CloseFile.Params],
+      FileClosed.type,
+      FileNotOpened.type,
+      TextProtocol.CloseFile
+    ](bufferRegistry, timeout, 5)
+    with Actor
     with LazyLogging
     with UnhandledLogging {
 
-  import context.dispatcher
-
-  override def receive: Receive = requestStage
-
-  private def requestStage: Receive = {
-    case Request(CloseFile, id, params: CloseFile.Params) =>
-      bufferRegistry ! TextProtocol.CloseFile(rpcSession.clientId, params.path)
-      val cancellable =
-        context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
-      context.become(responseStage(id, sender(), cancellable))
+  override protected def request(
+    msg: Request[TextApi.CloseFile.type, CloseFile.Params]
+  ): TextProtocol.CloseFile = {
+    TextProtocol.CloseFile(rpcSession.clientId, msg.params.path)
   }
 
-  private def responseStage(
-    id: Id,
+  override protected def positiveResponse(
     replyTo: ActorRef,
-    cancellable: Cancellable
-  ): Receive = {
-    case RequestTimeout =>
-      logger.error(
-        "Closing file request [{}] for [{}] timed out.",
-        id,
-        rpcSession.clientId
-      )
-      replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
-      context.stop(self)
+    initialMsg: Request[TextApi.CloseFile.type, CloseFile.Params],
+    msg: TextProtocol.FileClosed.type
+  ): Unit = {
+    replyTo ! ResponseResult(CloseFile, initialMsg.id, Unused)
+  }
 
-    case FileClosed =>
-      replyTo ! ResponseResult(CloseFile, id, Unused)
-      cancellable.cancel()
-      context.stop(self)
-
-    case FileNotOpened =>
-      replyTo ! ResponseError(Some(id), FileNotOpenedError)
-      cancellable.cancel()
-      context.stop(self)
+  override protected def negativeResponse(
+    replyTo: ActorRef,
+    initialMsg: Request[TextApi.CloseFile.type, CloseFile.Params],
+    error: TextProtocol.FileNotOpened.type
+  )(implicit ec: ExecutionContext): Unit = {
+    replyTo ! ResponseError(Some(initialMsg.id), FileNotOpenedError)
   }
 }
 

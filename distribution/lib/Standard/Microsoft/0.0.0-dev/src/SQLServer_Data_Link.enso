@@ -1,0 +1,38 @@
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+from Standard.Base.Enso_Cloud.Data_Link_Helpers import Data_Link_Source_Metadata, parse_secure_value
+from Standard.Base.Enso_Cloud.Public_Utils import get_optional_field, get_required_field
+
+import Standard.Database.Connection.Credentials.Credentials
+import Standard.Database.Internal.Data_Link_Setup.DB_Data_Link_Type
+import Standard.Database.Internal.DB_Data_Link_Helpers
+
+import project.Connection.SQLServer_Details.SQLServer_Details
+
+## PRIVATE
+type SQLServer_Data_Link
+    ## PRIVATE
+    Value details:SQLServer_Details source:Data_Link_Source_Metadata link_type:DB_Data_Link_Type
+
+    ## PRIVATE
+    parse json source -> SQLServer_Data_Link =
+        host = get_required_field "host" json expected_type=Text
+        port = get_required_field "port" json expected_type=Integer
+        db_name = get_required_field "database_name" json expected_type=Text
+
+        credentials_json = get_required_field "credentials" json
+        username = get_required_field "username" credentials_json |> parse_secure_value
+        password = get_required_field "password" credentials_json |> parse_secure_value
+        credentials = Credentials.Username_And_Password username password
+
+        details = SQLServer_Details.SQLServer host=host credentials=credentials port=port database=db_name
+        link_type = DB_Data_Link_Type.from_js (get_optional_field "table" json)
+        SQLServer_Data_Link.Value details source link_type
+
+    ## PRIVATE
+    read self (format = Auto_Detect) (on_problems : Problem_Behavior) =
+        _ = on_problems
+        if format != Auto_Detect then Error.throw (Illegal_Argument.Error "Only Auto_Detect can be used with a SQLServer Data Link, as it points to a database.") else
+            default_options = DB_Data_Link_Helpers.data_link_connection_parameters self.source
+            connection = self.details.connect default_options allow_data_links=False
+            self.link_type.interpret connection

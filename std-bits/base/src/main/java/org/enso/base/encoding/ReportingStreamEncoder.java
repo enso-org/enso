@@ -11,7 +11,6 @@ import java.nio.charset.CoderResult;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.enso.base.Encoding_Utils;
 import org.graalvm.polyglot.Context;
 
 /**

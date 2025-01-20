@@ -1,0 +1,109 @@
+{
+  "resources":{
+  "includes":[{
+    "pattern":"\\QMETA-INF/helidon/feature-metadata.properties\\E"
+  }, {
+    "pattern":"\\QMETA-INF/helidon/serial-config.properties\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/ch.qos.logback.classic.spi.Configurator\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/com.oracle.truffle.api.TruffleLanguage$Provider\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/com.oracle.truffle.api.impl.TruffleLocator\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/com.oracle.truffle.api.instrumentation.TruffleInstrument$Provider\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/com.oracle.truffle.api.instrumentation.provider.TruffleInstrumentProvider\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/com.oracle.truffle.api.library.DefaultExportProvider\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/com.oracle.truffle.api.library.provider.DefaultExportProvider\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/com.oracle.truffle.api.object.LayoutFactory\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/com.oracle.truffle.api.provider.InternalResourceProvider\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/com.oracle.truffle.api.provider.TruffleLanguageProvider\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/com.oracle.truffle.runtime.EngineCacheSupport\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/com.oracle.truffle.runtime.FloodControlHandler\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/com.oracle.truffle.runtime.TruffleTypes\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/io.helidon.common.mapper.spi.MapperProvider\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/io.helidon.common.tls.spi.TlsManagerProvider\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/io.helidon.http.encoding.spi.ContentEncodingProvider\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/io.helidon.http.media.spi.MediaSupportProvider\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/io.helidon.logging.common.spi.LoggingProvider\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/io.helidon.webclient.spi.DnsResolverProvider\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/io.helidon.webclient.spi.HttpClientSpiProvider\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/io.helidon.webclient.spi.ProtocolConfigProvider\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/io.helidon.webclient.spi.SourceHandlerProvider\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/io.helidon.webclient.spi.WebClientServiceProvider\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/io.helidon.webserver.http1.spi.Http1UpgradeProvider\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/io.helidon.webserver.spi.ProtocolConfigProvider\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/io.helidon.webserver.spi.ServerConnectionSelectorProvider\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/io.helidon.webserver.spi.ServerFeatureProvider\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/java.lang.System$LoggerFinder\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/java.net.spi.InetAddressResolverProvider\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/java.net.spi.URLStreamHandlerProvider\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/java.time.zone.ZoneRulesProvider\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/javax.xml.parsers.SAXParserFactory\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/jdk.vm.ci.services.JVMCIServiceLocator\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/org.slf4j.spi.SLF4JServiceProvider\\E"
+  }, {
+    "pattern":"\\Qlogback-test.xml\\E"
+  }, {
+    "pattern":"\\Qlogback.xml\\E"
+  }, {
+    "pattern":"jdk.jfr:\\Qjdk/jfr/internal/types/metadata.bin\\E"
+  }, {
+    "pattern":"org.enso.ydoc:\\Qorg/enso/ydoc/polyfill/parser.js\\E"
+  }, {
+    "pattern":"org.enso.ydoc:\\Qorg/enso/ydoc/polyfill/web/abort-controller.js\\E"
+  }, {
+    "pattern":"org.enso.ydoc:\\Qorg/enso/ydoc/polyfill/web/crypto.js\\E"
+  }, {
+    "pattern":"org.enso.ydoc:\\Qorg/enso/ydoc/polyfill/web/event-emitter.js\\E"
+  }, {
+    "pattern":"org.enso.ydoc:\\Qorg/enso/ydoc/polyfill/web/event-target.js\\E"
+  }, {
+    "pattern":"org.enso.ydoc:\\Qorg/enso/ydoc/polyfill/web/performance.js\\E"
+  }, {
+    "pattern":"org.enso.ydoc:\\Qorg/enso/ydoc/polyfill/web/timers.js\\E"
+  }, {
+    "pattern":"org.enso.ydoc:\\Qorg/enso/ydoc/polyfill/web/util.js\\E"
+  }, {
+    "pattern":"org.enso.ydoc:\\Qorg/enso/ydoc/polyfill/web/websocket.js\\E"
+  }, {
+    "pattern":"org.enso.ydoc:\\Qorg/enso/ydoc/ydoc.cjs\\E"
+  }, {
+    "pattern":"org.graalvm.polyglot:\\QMETA-INF/graalvm/org.graalvm.polyglot/version\\E"
+  }, {
+    "pattern":"org.graalvm.truffle.runtime:\\QMETA-INF/resources/engine/libtruffleattach/linux/amd64/sha256\\E"
+  }, {
+    "pattern":"org.graalvm.truffle:\\QMETA-INF/graalvm/org.graalvm.truffle/version\\E"
+  }]},
+  "bundles":[]
+}

@@ -1,6 +1,9 @@
 package org.enso.tools.enso4igv;
 
 import java.io.IOException;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.netbeans.core.spi.multiview.MultiViewElement;
 import org.netbeans.core.spi.multiview.text.MultiViewEditorElement;
 import org.netbeans.modules.textmate.lexer.api.GrammarRegistration;
@@ -39,6 +42,17 @@ import org.openide.windows.TopComponent;
             id = @ActionID(category = "System", id = "org.openide.actions.OpenAction"),
             position = 100,
             separatorAfter = 200
+    ),
+    @ActionReference(
+            path = "Loaders/application/x-enso/Actions",
+            id = @ActionID(category = "Project", id = "org.netbeans.modules.project.ui.RunSingle"),
+            position = 230
+    ),
+    @ActionReference(
+            path = "Loaders/application/x-enso/Actions",
+            id = @ActionID(category = "Debug", id = "org.netbeans.modules.debugger.ui.actions.DebugFileAction"),
+            position = 270,
+            separatorAfter = 290
     ),
     @ActionReference(
             path = "Loaders/application/x-enso/Actions",
@@ -83,13 +97,27 @@ import org.openide.windows.TopComponent;
             path = "Loaders/application/x-enso/Actions",
             id = @ActionID(category = "System", id = "org.openide.actions.PropertiesAction"),
             position = 1400
-    )
+    ),
+
+    // editor popups
+    @ActionReference(
+            path = "Editors/application/x-enso/Popup",
+            id = @ActionID(category = "Project", id = "org.netbeans.modules.project.ui.RunSingle"),
+            position = 30
+    ),
+    @ActionReference(
+            path = "Editors/application/x-enso/Popup",
+            id = @ActionID(category = "Debug", id = "org.netbeans.modules.debugger.ui.actions.DebugFileAction"),
+            position = 70,
+            separatorAfter = 90
+    ),
+
 })
 public class EnsoDataObject extends MultiDataObject {
-
     public EnsoDataObject(FileObject pf, MultiFileLoader loader) throws DataObjectExistsException, IOException {
         super(pf, loader);
         registerEditor("application/x-enso", true);
+        registerTruffleMimeType("application/x-enso");
     }
 
     @Override
@@ -110,4 +138,20 @@ public class EnsoDataObject extends MultiDataObject {
         return new MultiViewEditorElement(lkp);
     }
 
+    private void registerTruffleMimeType(String mime) throws IOException {
+        ClassLoader all = Lookup.getDefault().lookup(ClassLoader.class);
+        if (all == null) {
+            all = EnsoDataObject.class.getClassLoader();
+        }
+        try {
+            var clazz = all.loadClass("org.netbeans.modules.debugger.jpda.truffle.MIMETypes");
+            var getDefault = clazz.getMethod("getDefault");
+            var mimeTypes = getDefault.invoke(null);
+            var get = clazz.getMethod("get");
+            var toSet = (Set<String>)get.invoke(mimeTypes);
+            toSet.add(mime);
+        } catch (ReflectiveOperationException ex) {
+            Installer.LOG.log(Level.WARNING, "Cannot register breakpoints for Enso", ex);
+        }
+    }
 }

@@ -1,0 +1,35 @@
+from Standard.Base import all
+
+from Standard.Table import Table, Value_Type
+
+from Standard.Test import Bench
+
+options = Bench.options . set_warmup (Bench.phase_conf 2 3) . set_measure (Bench.phase_conf 5 1)
+
+create_table : Table
+create_table num_rows =
+    mixed_text = Vector.new num_rows i->
+        case i % 4 of
+            0 -> "txt"
+            1 -> ""
+            2 -> 42
+            3 -> Nothing
+    t = Table.new [["mixed text", mixed_text]]
+    Runtime.assert ((t.at "mixed text" . value_type) == Value_Type.Mixed)
+    t
+
+
+type Data
+    private Value ~table
+
+    create num_rows = Data.Value (create_table num_rows)
+
+collect_benches = Bench.build builder->
+    num_rows = 500 * 1000
+    data = Data.create num_rows
+
+    builder.group ("Mixed_Column_Operations_" + num_rows.to_text) options group_builder->
+        group_builder.specify "is_blank" <|
+            data.table.at "mixed text" . is_blank
+
+main = collect_benches . run_main

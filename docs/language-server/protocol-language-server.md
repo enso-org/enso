@@ -25,6 +25,8 @@ transport formats, please look [here](./protocol-architecture).
   - [`MethodCall`](#methodcall)
   - [`MethodPointer`](#methodpointer)
   - [`ProfilingInfo`](#profilinginfo)
+  - [`ExecutionEnvironment`](#executionenvironment)
+  - [`ExpressionConfig`](#expressionConfig)
   - [`ExpressionUpdate`](#expressionupdate)
   - [`ExpressionUpdatePayload`](#expressionupdatepayload)
   - [`VisualizationConfiguration`](#visualizationconfiguration)
@@ -158,7 +160,6 @@ transport formats, please look [here](./protocol-architecture).
   - [`search/getSuggestionsDatabaseVersion`](#searchgetsuggestionsdatabaseversion)
   - [`search/suggestionsDatabaseUpdate`](#searchsuggestionsdatabaseupdate)
   - [`search/suggestionsOrderDatabaseUpdate`](#searchsuggestionsorderdatabaseupdate)
-  - [`search/completion`](#searchcompletion)
 - [Input/Output Operations](#inputoutput-operations)
   - [`io/redirectStandardOutput`](#ioredirectstandardoutput)
   - [`io/suppressStandardOutput`](#iosuppressstandardoutput)
@@ -188,6 +189,9 @@ transport formats, please look [here](./protocol-architecture).
 - [Profiling Operations](#profiling-operations)
   - [`profiling/start`](#profilingstart)
   - [`profiling/stop`](#profilingstop)
+- [AI Operations](#ai-operations)
+  - [`ai/completion_v2`](#aicompletionv2)
+  - [`ai/completionProgress`](#aicompletionprogres)
 - [Errors](#errors-75)
   - [`Error`](#error)
   - [`AccessDeniedError`](#accessdeniederror)
@@ -234,6 +238,8 @@ transport formats, please look [here](./protocol-architecture).
   - [`ExpressionNotFoundError`](#expressionnotfounderror)
   - [`FailedToApplyEdits`](#failedtoapplyedits)
   - [`RefactoringNotSupported`](#refactoringnotsupported)
+  - [`ProjectRenameFailed`](#projectrenamefailed)
+  - [`DefinitionAlreadyExists`](#definitionalreadyexists)
 
 <!-- /MarkdownTOC -->
 
@@ -341,6 +347,19 @@ The execution environment of Enso runtime.
 type ExecutionEnvironment = Design | Live;
 ```
 
+### `ExpressionConfig`
+
+The expression configuration used in the recompute request.
+
+```typescript
+interface ExpressionConfig {
+  /** The expression identifier. */
+  expressionId: ExpressionId;
+  /** The execution environment that should be used to run this expression. */
+  executionEnvironment?: ExecutionEnvironment;
+}
+```
+
 ### `ExpressionUpdate`
 
 An update about the computed expression.
@@ -349,8 +368,14 @@ An update about the computed expression.
 interface ExpressionUpdate {
   /** The id of updated expression. */
   expressionId: ExpressionId;
-  /** The updated type of the expression. */
-  type?: string;
+  /** The updated type of the expression.
+   *
+   *  Possible values:
+   *  - empty array indicates no type information for this expression
+   *  - array with a single value contains a value of this expression
+   *  - array with multiple values represents an intersetion type
+   */
+  type: string[];
   /** The updated method call info. */
   methodCall?: MethodCall;
   /** Profiling information about the expression. */
@@ -367,7 +392,7 @@ interface ExpressionUpdate {
 An information about the computed value.
 
 ```typescript
-type ExpressionUpdatePayload = Value | DatafalowError | Panic | Pending;
+type ExpressionUpdatePayload = Value | DataflowError | Panic | Pending;
 
 /** Indicates that the expression was computed to a value. */
 interface Value {
@@ -399,6 +424,8 @@ interface Pending {
   /** Optional amount of already done work as a number between `0.0` to `1.0`.
    */
   progress?: number;
+  /** Indicates whether the computation of the expression has been interrupted and will be retried. */
+  wasInterrupted: boolean;
 }
 
 /** Information about warnings associated with the value. */
@@ -1003,6 +1030,25 @@ The range of `1` is
 }
 ```
 
+For unicode characters, the range is measured in code units, for example given
+the function with the old key emoji `foo 🗝 = ...` argument consisting of two
+unicode code units `\uD83D` and `\uDDDD`.
+
+```rust
+0|foo \uD83D\uDDDD = ...
+  ^^^^^^^^^^^^^^^^^^
+  01234     5     67
+```
+
+The range of old key emoji `🗝` argument is
+
+```typescript
+{
+    start: { line: 0, character: 4},
+    end: { line: 0, character: 6}
+}
+```
+
 #### Format
 
 ```typescript
@@ -1438,6 +1484,9 @@ This message initializes the connection used to send the textual protocol
 messages. This initialization is important such that the client identifier can
 be correlated between the textual and data connections.
 
+The subsequent `session/initProtocolConnection` calls with same clientId will
+immediately return success message.
+
 - **Type:** Request
 - **Direction:** Client -> Server
 - **Connection:** Protocol
@@ -1462,7 +1511,7 @@ interface SessionInitProtocolConnectionResult {
 #### Errors
 
 - [`SessionAlreadyInitialisedError`](#sessionalreadyinitializederror) to signal
-  that the session is already initialized.
+  that the session is already initialized with different clientId.
 - [`ResourcesInitializationError`](#resourcesinitializationerror) to signal
   about the error during the initialization of Language Server resources.
 
@@ -2832,10 +2881,20 @@ that some edits are applied and others are not.
 interface TextApplyEditParameters {
   /** The file edit. */
   edit: FileEdit;
-  /** A flag indicating whether we should re-execute the program after applying
+
+  /**
+   * A flag indicating whether we should re-execute the program after applying
    * the edit. Default value is `true`, indicating the program should be
-   * re-executed. */
+   * re-executed.
+   */
   execute?: boolean;
+
+  /**
+   * An identifiers map associated with this file as an array of
+   * index, length, uuid triples. The old id map format that was used in the
+   * source file is also supported.
+   */
+  idMap?: [number, number, UUID][];
 }
 ```
 
@@ -3096,7 +3155,8 @@ type RefactoringRenameProjectResult = null;
 
 #### Errors
 
-None
+- [`ProjectRenameFailed`](#projectrenamefailed) to signal that the project
+  rename operation has failed.
 
 ### `refactoring/renameSymbol`
 
@@ -3142,14 +3202,6 @@ Current limitations of the method renaming are:
   ```rust
   Main.function1 x = x
   ```
-- Method calls where the self type is not specified will not be renamed, i.e.
-
-  ```rust
-  function1 x = x
-
-  main =
-      operator1 = function1 42
-  ```
 
 #### Parameters
 
@@ -3184,6 +3236,8 @@ interface RefactoringRenameSymbolResult {
   operation was not able to apply generated edits.
 - [`RefactoringNotSupported`](#refactoringnotsupported) to signal that the
   refactoring of the given expression is not supported.
+- [`DefinitionAlreadyExists`](#definitionalreadyexists) to signal that the
+  definition with the provided name already exists in scope.
 
 ### `refactoring/projectRenamed`
 
@@ -3599,10 +3653,23 @@ May include a list of expressions for which caches should be invalidated.
 interface ExecutionContextRecomputeParameters {
   /** The execution context identifier. */
   contextId: ContextId;
-  /** The expressions that will be invalidated before the execution. */
+
+  /** The expressions that will be invalidated before the execution.
+   *
+   *  Only the provided expression ids are invalidated excluding the dependencies.
+   */
   invalidatedExpressions?: "all" | ExpressionId[];
+
   /** The execution environment that will be used in the execution. */
   executionEnvironment?: ExecutionEnvironment;
+
+  /** The execution configurations for particular expressions.
+   *
+   *  The provided expressions will be invalidated from the cache with the
+   *  dependencies. The result of the execution will stay in the cache until the
+   *  cache is invalidated by editing the node or other means.
+   */
+  expressionConfigs?: ExpressionConfig[];
 }
 ```
 
@@ -4297,7 +4364,7 @@ interface SearchGetSuggestionsDatabaseVersionResult {
 
 ### `search/suggestionsDatabaseUpdate`
 
-Sent from server to the client to inform abouth the change in the suggestions
+Sent from server to the client to inform about the change in the suggestions
 database.
 
 - **Type:** Notification
@@ -4316,7 +4383,7 @@ interface SearchSuggestionsDatabaseUpdateNotification {
 
 ### `search/suggestionsOrderDatabaseUpdate`
 
-Sent from server to the client to inform abouth the change in the suggestions
+Sent from server to the client to inform about the change in the suggestions
 order database.
 
 - **Type:** Notification
@@ -5179,6 +5246,92 @@ interface ProfilingStopResult {}
 
 None
 
+## AI Operations
+
+### `ai/completion_v2`
+
+Sent from the client to the server to ask the AI model the code suggestion.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+interface AiCompletionParameters {
+  /** The execution context id to use for executing expressions. */
+  contextId: UUID;
+  /**
+   * The expression providing the execution scope. The same as `expressionId`
+   * parameter of `executionContext/executeExpression` method.
+   */
+  expressionId: UUID;
+  /** The user prompt. */
+  prompt: string;
+  /** The system prompt describing the AI role. */
+  systemPrompt?: string;
+  /** The AI model to use. */
+  model?: string;
+}
+```
+
+#### Result
+
+```typescript
+type AiCompletionResult = AiCompletionResultSuccess | AiCompletionResultFailure;
+
+interface AiCompletionResultSuccess {
+  /** The code of the function producing the desired result. */
+  fn: string;
+
+  /** The code of how to call the suggested function. */
+  fnCall: string;
+}
+
+interface AiCompletionResultFailure {
+  /**
+   * The explanation given by the AI model for why it was unable to provide the
+   * answer.
+   */
+  reason: string;
+}
+```
+
+#### Errors
+
+- [`AiHttpError`](#aihttperror) Signals about an error during the processing of
+  AI http respnse.
+- [`AiEvaluationError`](#aievaluationerror) Signals about an error during the
+  evaluation of expression requested by AI.
+
+### `ai/completionProgress`
+
+Sent from server to the client to inform about the progress of the
+[`ai/completion`](#aicompletion) request.
+
+- **Type:** Notification
+- **Direction:** Server -> Client
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Notification
+
+```typescript
+interface AiCompletionProgressNotification {
+  /** Code snippte that AI model requested to evaluate. */
+  code: string;
+  /** Explanation given by the AI model why it needs an extra information. */
+  reason: string;
+  /**
+   * The id of the visualization being executed. When evaluated, the
+   * visualization update will contain the result of the executed expression.
+   */
+  visualizationId: UUID;
+}
+```
+
 ## Errors
 
 The language server component also has its own set of errors. This section is
@@ -5762,5 +5915,58 @@ Signals that the refactoring of the given expression is not supported.
 "error" : {
   "code" : 9003,
   "message" : "Refactoring not supported for expression [<expression-id>]"
+}
+```
+
+### `ProjectRenameFailed`
+
+Signals that the project rename failed.
+
+```typescript
+"error" : {
+  "code" : 9004,
+  "message" : "Project rename failed [<oldName>, <newName>]"
+}
+```
+
+### `DefinitionAlreadyExists`
+
+Signals that the definition with the provided name already exists in the scope.
+
+```typescript
+"error" : {
+  "code" : 9005,
+  "message" : "Definition [<name>] already exists"
+}
+```
+
+### `AiHttpError`
+
+Signals about an error during the processing of AI http respnse.
+
+```typescript
+"error" : {
+  "code" : 10001,
+  "message" : "Failed to process HTTP response",
+  "payload" : {
+    "reason" : "<Failure reason>",
+    "request" : "<HTTP request sent>",
+    "response" : "<HTTP response received>"
+  }
+}
+```
+
+### `AiEvaluationError`
+
+Signals about an error during the evaluation of expression requested by AI.
+
+```typescript
+"error" : {
+  "code" : 10002,
+  "message" : "Failed to execute expression",
+  "payload" : {
+    "expression" : "<Evaluated expression>",
+    "error" : "<The evaluation error message>"
+  }
 }
 ```

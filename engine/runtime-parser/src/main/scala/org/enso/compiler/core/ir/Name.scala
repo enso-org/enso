@@ -38,19 +38,18 @@ object Name {
   /** A representation of a method reference of the form `Type_Path.method`.
     *
     * @param typePointer the type name
-    * @param methodName  the method on `typeName`
-    * @param location    the source location that the node corresponds to
-    * @param passData    the pass metadata associated with this node
-    * @param diagnostics compiler diagnostics for this node
+    * @param methodName the method on `typeName`
+    * @param identifiedLocation the source location that the node corresponds to
+    * @param passData the pass metadata associated with this node
     */
   final case class MethodReference(
     typePointer: Option[Name],
     methodName: Name,
-    location: Option[IdentifiedLocation],
-    passData: MetadataStorage      = new MetadataStorage(),
-    diagnostics: DiagnosticStorage = DiagnosticStorage()
+    identifiedLocation: IdentifiedLocation,
+    passData: MetadataStorage = new MetadataStorage()
   ) extends Name
       with IRKind.Sugar
+      with LazyDiagnosticStorage
       with LazyId {
 
     override val name: String = showCode()
@@ -73,16 +72,31 @@ object Name {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): MethodReference = {
-      val res =
-        MethodReference(
-          typePointer,
-          methodName,
-          location,
-          passData,
-          diagnostics
-        )
-      res.id = id
-      res
+      if (
+        typePointer != this.typePointer
+        || methodName != this.methodName
+        || location != this.location
+        || (passData ne this.passData)
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res =
+          MethodReference(
+            typePointer,
+            methodName,
+            location.orNull,
+            passData
+          )
+        res.diagnostics = diagnostics
+        res.id          = id
+        res
+      } else this
+    }
+
+    def copyWithTypePointer(
+      typePointer: Option[Name]
+    ) = {
+      copy(typePointer = typePointer)
     }
 
     /** @inheritdoc */
@@ -110,9 +124,8 @@ object Name {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -131,7 +144,7 @@ object Name {
       copy(location = location)
     }
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Name.MethodReference(
@@ -162,9 +175,7 @@ object Name {
       */
     def isSameReferenceAs(that: MethodReference): Boolean = {
       val sameTypePointer = typePointer
-        .map(thisTp =>
-          that.typePointer.map(_.name == thisTp.name).getOrElse(false)
-        )
+        .map(thisTp => that.typePointer.exists(_.name == thisTp.name))
         .getOrElse(that.typePointer.isEmpty)
       sameTypePointer && (methodName.name == that.methodName.name)
     }
@@ -199,19 +210,18 @@ object Name {
 
   /** A representation of a qualified (multi-part) name.
     *
-    * @param parts       the segments of the name
-    * @param location    the source location that the node corresponds to
-    * @param passData    the pass metadata associated with this node
-    * @param diagnostics compiler diagnostics for this node
+    * @param parts the segments of the name
+    * @param identifiedLocation the source location that the node corresponds to
+    * @param passData the pass metadata associated with this node
     * @return a copy of `this`, updated with the specified values
     */
   final case class Qualified(
     parts: List[Name],
-    location: Option[IdentifiedLocation],
-    passData: MetadataStorage      = new MetadataStorage(),
-    diagnostics: DiagnosticStorage = DiagnosticStorage()
+    identifiedLocation: IdentifiedLocation,
+    passData: MetadataStorage = new MetadataStorage()
   ) extends Name
       with IRKind.Primitive
+      with LazyDiagnosticStorage
       with LazyId {
 
     override val name: String = parts.map(_.name).mkString(".")
@@ -239,15 +249,18 @@ object Name {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Qualified = {
-      val res =
-        Qualified(
-          parts,
-          location,
-          passData,
-          diagnostics
-        )
-      res.id = id
-      res
+      if (
+        parts != this.parts
+        || location != this.location
+        || (passData ne this.passData)
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res = Qualified(parts, location.orNull, passData)
+        res.diagnostics = diagnostics
+        res.id          = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -269,9 +282,8 @@ object Name {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -283,17 +295,17 @@ object Name {
 
   /** Represents occurrences of blank (`_`) expressions.
     *
-    * @param location    the source location that the node corresponds to.
-    * @param passData    the pass metadata associated with this node
-    * @param diagnostics compiler diagnostics for this node
+    * @param identifiedLocation the source location that the node corresponds to.
+    * @param passData the pass metadata associated with this node
     */
   sealed case class Blank(
-    location: Option[IdentifiedLocation],
-    passData: MetadataStorage      = new MetadataStorage(),
-    diagnostics: DiagnosticStorage = DiagnosticStorage()
+    identifiedLocation: IdentifiedLocation,
+    passData: MetadataStorage = new MetadataStorage()
   ) extends Name
       with IRKind.Sugar
+      with LazyDiagnosticStorage
       with LazyId {
+
     override val name: String = "_"
 
     /** Creates a copy of `this`.
@@ -310,9 +322,17 @@ object Name {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Blank = {
-      val res = Blank(location, passData, diagnostics)
-      res.id = id
-      res
+      if (
+        location != this.location
+        || (passData ne this.passData)
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res = Blank(location.orNull, passData)
+        res.diagnostics = diagnostics
+        res.id          = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -326,9 +346,8 @@ object Name {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -341,7 +360,7 @@ object Name {
     override def setLocation(location: Option[IdentifiedLocation]): Blank =
       copy(location = location)
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Name.Blank(
@@ -361,11 +380,11 @@ object Name {
 
   sealed case class Special(
     specialName: Special.Ident,
-    location: Option[IdentifiedLocation],
-    passData: MetadataStorage      = new MetadataStorage(),
-    diagnostics: DiagnosticStorage = DiagnosticStorage()
+    override val identifiedLocation: IdentifiedLocation,
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends Name
       with IRKind.Sugar
+      with LazyDiagnosticStorage
       with LazyId {
     override val name: String = s"<special::${specialName}>"
 
@@ -384,9 +403,18 @@ object Name {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Special = {
-      val res = Special(specialName, location, passData, diagnostics)
-      res.id = id
-      res
+      if (
+        specialName != this.specialName
+        || location != this.location
+        || (passData ne this.passData)
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res = Special(specialName, location.orNull, passData)
+        res.diagnostics = diagnostics
+        res.id          = id
+        res
+      } else this
     }
 
     override def duplicate(
@@ -399,9 +427,8 @@ object Name {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     override def mapExpressions(
@@ -444,22 +471,39 @@ object Name {
 
   /** The representation of a literal name.
     *
-    * @param name        the literal text of the name
-    * @param isMethod    is this a method call name
-    * @param location    the source location that the node corresponds to
+    * @param name the literal text of the name
+    * @param isMethod is this a method call name
+    * @param identifiedLocation the source location that the node corresponds to
     * @param originalName the name which this literal has replaced, if any
-    * @param passData    the pass metadata associated with this node
-    * @param diagnostics compiler diagnostics for this node
+    * @param passData the pass metadata associated with this node
     */
-  sealed case class Literal(
+  sealed case class Literal private (
     override val name: String,
     override val isMethod: Boolean,
-    location: Option[IdentifiedLocation],
-    originalName: Option[Name]     = None,
-    passData: MetadataStorage      = new MetadataStorage(),
-    diagnostics: DiagnosticStorage = DiagnosticStorage()
+    override val identifiedLocation: IdentifiedLocation,
+    private val origName: Name,
+    override val passData: MetadataStorage
   ) extends Name
+      with LazyDiagnosticStorage
       with LazyId {
+
+    def this(
+      name: String,
+      isMethod: Boolean,
+      identifiedLocation: IdentifiedLocation,
+      originalName: Option[Name] = None,
+      passData: MetadataStorage  = new MetadataStorage()
+    ) = {
+      this(
+        name.intern(),
+        isMethod,
+        identifiedLocation,
+        originalName.orNull,
+        passData
+      )
+    }
+
+    def originalName: Option[Name] = Option(this.origName)
 
     /** Creates a copy of `this`.
       *
@@ -481,10 +525,21 @@ object Name {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Literal = {
-      val res =
-        Literal(name, isMethod, location, originalName, passData, diagnostics)
-      res.id = id
-      res
+      if (
+        name != this.name
+        || isMethod != this.isMethod
+        || location != this.location
+        || originalName != this.originalName
+        || (passData ne this.passData)
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res =
+          new Literal(name, isMethod, location.orNull, originalName, passData)
+        res.diagnostics = diagnostics
+        res.id          = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -498,9 +553,8 @@ object Name {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -512,7 +566,7 @@ object Name {
       fn: java.util.function.Function[Expression, Expression]
     ): Literal = this
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Name.Literal(
@@ -530,6 +584,16 @@ object Name {
 
     /** @inheritdoc */
     override def showCode(indent: Int): String = name
+  }
+
+  object Literal {
+    def apply(
+      name: String,
+      isMethod: Boolean,
+      identifiedLocation: IdentifiedLocation,
+      originalName: Option[Name] = None,
+      passData: MetadataStorage  = new MetadataStorage()
+    ) = new Literal(name, isMethod, identifiedLocation, originalName, passData)
   }
 
   /** Base trait for annotations. */
@@ -554,18 +618,17 @@ object Name {
 
   /** The representation of builtin annotation.
     *
-    * @param name        the annotation text of the name
-    * @param location    the source location that the node corresponds to
-    * @param passData    the pass metadata associated with this node
-    * @param diagnostics compiler diagnostics for this node
+    * @param name the annotation text of the name
+    * @param identifiedLocation the source location that the node corresponds to
+    * @param passData the pass metadata associated with this node
     */
   sealed case class BuiltinAnnotation(
     override val name: String,
-    location: Option[IdentifiedLocation],
-    passData: MetadataStorage      = new MetadataStorage(),
-    diagnostics: DiagnosticStorage = DiagnosticStorage()
+    override val identifiedLocation: IdentifiedLocation,
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends Annotation
       with IRKind.Primitive
+      with LazyDiagnosticStorage
       with LazyId {
 
     /** Creates a copy of `this`.
@@ -584,9 +647,18 @@ object Name {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): BuiltinAnnotation = {
-      val res = BuiltinAnnotation(name, location, passData, diagnostics)
-      res.id = id
-      res
+      if (
+        name != this.name
+        || location != this.location
+        || (passData ne this.passData)
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res = BuiltinAnnotation(name, location.orNull, passData)
+        res.diagnostics = diagnostics
+        res.id          = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -600,9 +672,8 @@ object Name {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -617,7 +688,7 @@ object Name {
     ): BuiltinAnnotation =
       this
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Name.BuiltinAnnotation(
@@ -638,19 +709,18 @@ object Name {
 
   /** Common annotations of form `@name expression`.
     *
-    * @param name        the annotation text of the name
-    * @param expression  the annotation expression
-    * @param location    the source location that the node corresponds to
-    * @param passData    the pass metadata associated with this node
-    * @param diagnostics compiler diagnostics for this node
+    * @param name the annotation text of the name
+    * @param expression the annotation expression
+    * @param identifiedLocation the source location that the node corresponds to
+    * @param passData the pass metadata associated with this node
     */
   sealed case class GenericAnnotation(
     override val name: String,
     expression: Expression,
-    location: Option[IdentifiedLocation],
-    passData: MetadataStorage      = new MetadataStorage(),
-    diagnostics: DiagnosticStorage = DiagnosticStorage()
+    override val identifiedLocation: IdentifiedLocation,
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends Annotation
+      with LazyDiagnosticStorage
       with LazyId {
 
     /** Creates a copy of `this`.
@@ -671,10 +741,20 @@ object Name {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): GenericAnnotation = {
-      val res =
-        GenericAnnotation(name, expression, location, passData, diagnostics)
-      res.id = id
-      res
+      if (
+        name != this.name
+        || expression != this.expression
+        || location != this.location
+        || (passData ne this.passData)
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res =
+          GenericAnnotation(name, expression, location.orNull, passData)
+        res.diagnostics = diagnostics
+        res.id          = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -688,9 +768,8 @@ object Name {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -705,7 +784,7 @@ object Name {
     ): GenericAnnotation =
       copy(expression = fn(expression))
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Name.GenericAnnotation(
@@ -728,17 +807,35 @@ object Name {
 
   /** A representation of the name `self`, used to refer to the current type.
     *
-    * @param location    the source location that the node corresponds to
-    * @param passData    the pass metadata associated with this node
-    * @param diagnostics compiler diagnostics for this node
+    * @param identifiedLocation the source location that the node corresponds to
+    * @param synthetic the flag indicating that the name was generated
+    * @param passData the pass metadata associated with this node
     */
   sealed case class Self(
-    location: Option[IdentifiedLocation],
-    synthetic: Boolean             = false,
-    passData: MetadataStorage      = new MetadataStorage(),
-    diagnostics: DiagnosticStorage = DiagnosticStorage()
+    override val identifiedLocation: IdentifiedLocation,
+    synthetic: Boolean                     = false,
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends Name
+      with LazyDiagnosticStorage
       with LazyId {
+
+    /** Create a [[Self]] object.
+      *
+      * @param location the source location that the node corresponds to
+      * @param synthetic the flag indicating that the name was generated
+      * @param passData the pass metadata associated with this node
+      * @param diagnostics the compiler diagnostics
+      */
+    def this(
+      location: Option[IdentifiedLocation],
+      synthetic: Boolean,
+      passData: MetadataStorage,
+      diagnostics: DiagnosticStorage
+    ) = {
+      this(location.orNull, synthetic, passData)
+      this.diagnostics = diagnostics
+    }
+
     override val name: String = ConstantsNames.SELF_ARGUMENT
 
     /** Creates a copy of `self`.
@@ -750,15 +847,24 @@ object Name {
       * @return a copy of `this`, updated with the specified values
       */
     def copy(
-      location: Option[IdentifiedLocation] = location,
       synthetic: Boolean                   = synthetic,
+      location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Self = {
-      val res = Self(location, synthetic, passData, diagnostics)
-      res.id = id
-      res
+      if (
+        synthetic != this.synthetic
+        || location != this.location
+        || (passData ne this.passData)
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res = Self(location.orNull, synthetic, passData)
+        res.diagnostics = diagnostics
+        res.id          = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -772,9 +878,8 @@ object Name {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -786,7 +891,7 @@ object Name {
       fn: java.util.function.Function[Expression, Expression]
     ): Self = this
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Name.Self(
@@ -807,16 +912,31 @@ object Name {
 
   /** A representation of the name `Self`, used to refer to the current type.
     *
-    * @param location    the source location that the node corresponds to
-    * @param passData    the pass metadata associated with this node
-    * @param diagnostics compiler diagnostics for this node
+    * @param identifiedLocation the source location that the node corresponds to
+    * @param passData the pass metadata associated with this node
     */
   sealed case class SelfType(
-    location: Option[IdentifiedLocation],
-    passData: MetadataStorage      = new MetadataStorage(),
-    diagnostics: DiagnosticStorage = DiagnosticStorage()
+    identifiedLocation: IdentifiedLocation,
+    passData: MetadataStorage = new MetadataStorage()
   ) extends Name
+      with LazyDiagnosticStorage
       with LazyId {
+
+    /** Create a [[SelfType]] object.
+      *
+      * @param location the source location that the node corresponds to
+      * @param passData the pass metadata associated with this node
+      * @param diagnostics the compiler diagnostics
+      */
+    def this(
+      location: Option[IdentifiedLocation],
+      passData: MetadataStorage,
+      diagnostics: DiagnosticStorage
+    ) = {
+      this(location.orNull, passData)
+      this.diagnostics = diagnostics
+    }
+
     override val name: String = ConstantsNames.SELF_TYPE_ARGUMENT
 
     /** Creates a copy of `Self`.
@@ -833,9 +953,17 @@ object Name {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): SelfType = {
-      val res = SelfType(location, passData, diagnostics)
-      res.id = id
-      res
+      if (
+        location != this.location
+        || (passData ne this.passData)
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res = SelfType(location.orNull, passData)
+        res.diagnostics = diagnostics
+        res.id          = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -849,9 +977,8 @@ object Name {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -863,7 +990,7 @@ object Name {
       fn: java.util.function.Function[Expression, Expression]
     ): SelfType = this
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Name.SelfType(

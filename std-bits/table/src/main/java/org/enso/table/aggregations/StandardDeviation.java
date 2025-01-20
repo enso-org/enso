@@ -11,7 +11,7 @@ import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 
 /** Aggregate Column computing the standard deviation of a group. */
-public class StandardDeviation extends Aggregator {
+public class StandardDeviation extends KnownTypeAggregator {
   private static class Calculation {
     public long count;
     public double total;

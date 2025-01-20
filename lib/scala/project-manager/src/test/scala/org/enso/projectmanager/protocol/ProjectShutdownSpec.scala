@@ -4,7 +4,6 @@ import akka.actor.ActorRef
 import io.circe.literal._
 import org.enso.semver.SemVer
 import org.enso.jsonrpc.ClientControllerFactory
-import org.enso.logger.ReportLogsOnFailure
 import org.enso.projectmanager.boot.configuration.TimeoutConfig
 import org.enso.projectmanager.event.ClientEvent.ClientDisconnected
 import zio.{ZAny, ZIO}
@@ -12,7 +11,7 @@ import zio.{ZAny, ZIO}
 import java.util.UUID
 import org.enso.projectmanager.{BaseServerSpec, ProjectManagementOps}
 import org.enso.runtimeversionmanager.test.OverrideTestVersionSuite
-import org.enso.testkit.FlakySpec
+import org.enso.testkit.{FlakySpec, ReportLogsOnFailure}
 import org.scalactic.source.Position
 
 import scala.concurrent.duration._
@@ -123,7 +122,7 @@ class ProjectShutdownSpec
     deleteProject(projectId)(client2, implicitly[Position])
   }
 
-  "ensure language server does eventually shutdown after last client disconnects" in {
+  "ensure language server does not shutdown after last client disconnects and can re-connect" in {
     val client    = new WsTestClient(address)
     val projectId = createProject("Foo")(client, implicitly[Position])
     val socket1   = openProject(projectId)(client, implicitly[Position])
@@ -155,7 +154,7 @@ class ProjectShutdownSpec
     )
     val client2 = new WsTestClient(address)
     val socket2 = openProject(projectId)(client2, implicitly[Position])
-    socket2 shouldNot be(socket1)
+    socket2 shouldBe socket1
 
     closeProject(projectId)(client2, implicitly[Position])
     deleteProject(projectId)(client2, implicitly[Position])

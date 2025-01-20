@@ -1,7 +1,7 @@
 package org.enso.interpreter.bench;
 
-import org.enso.polyglot.LanguageInfo;
-import org.enso.polyglot.MethodNames.Module;
+import org.enso.common.LanguageInfo;
+import org.enso.common.MethodNames.Module;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;

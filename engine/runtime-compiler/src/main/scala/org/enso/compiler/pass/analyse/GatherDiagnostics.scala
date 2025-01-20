@@ -14,6 +14,10 @@ import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.resolve.{GenericAnnotations, TypeSignatures}
 
+import java.util.function.Consumer
+
+import scala.collection.mutable
+
 /** A pass that traverses the given root IR and accumulates all the encountered
   * diagnostic nodes in the root.
   *
@@ -62,43 +66,57 @@ case object GatherDiagnostics extends IRPass {
     * @return `ir`, with all diagnostics from its subtree associated with it
     */
   private def gatherMetadata(ir: IR): DiagnosticsMeta = {
-    val diagnostics = ir.preorder.collect {
-      case err: Diagnostic =>
-        List(err)
-      case arg: DefinitionArgument =>
-        val typeSignatureDiagnostics =
+    val builder = List.newBuilder[Diagnostic]
+    IR.preorder(
+      ir,
+      {
+        case err: Diagnostic =>
+          builder.addOne(err)
+        case arg: DefinitionArgument =>
           arg
             .getMetadata(TypeSignatures)
-            .map(_.signature.preorder.collect(collectDiagnostics))
-            .getOrElse(Nil)
-        typeSignatureDiagnostics ++ arg.diagnostics.toList
-      case x: definition.Method =>
-        val typeSignatureDiagnostics =
+            .foreach(meta =>
+              IR.preorder(meta.signature, collectDiagnostics(builder))
+            )
+          diagnosticsList(arg).foreach(builder.addOne)
+        case x: definition.Method =>
           x.getMetadata(TypeSignatures)
-            .map(_.signature.preorder.collect(collectDiagnostics))
-            .getOrElse(Nil)
-        val annotationsDiagnostics =
+            .foreach(meta =>
+              IR.preorder(meta.signature, collectDiagnostics(builder))
+            )
           x.getMetadata(GenericAnnotations)
-            .map(_.annotations.flatMap(_.preorder.collect(collectDiagnostics)))
-            .getOrElse(Nil)
-        typeSignatureDiagnostics ++ annotationsDiagnostics ++ x.diagnostics.toList
-      case x: Expression =>
-        val typeSignatureDiagnostics =
+            .foreach(
+              _.annotations.foreach(annotations =>
+                IR.preorder(annotations, collectDiagnostics(builder))
+              )
+            )
+          diagnosticsList(x).foreach(builder.addOne)
+        case x: Expression =>
           x.getMetadata(TypeSignatures)
-            .map(_.signature.preorder.collect(collectDiagnostics))
-            .getOrElse(Nil)
-        typeSignatureDiagnostics ++ x.diagnostics.toList
-      case x =>
-        x.diagnostics.toList
-    }.flatten
+            .foreach(meta =>
+              IR.preorder(meta.signature, collectDiagnostics(builder))
+            )
+          diagnosticsList(x).foreach(builder.addOne)
+        case x =>
+          diagnosticsList(x).foreach(builder.addOne)
+      }: Consumer[IR]
+    )
+
     DiagnosticsMeta(
-      diagnostics.distinctBy(d => new DiagnosticKeys(d))
+      builder.result().distinctBy(d => new DiagnosticKeys(d))
     )
   }
 
-  private val collectDiagnostics: PartialFunction[IR, Diagnostic] = {
-    case err: Diagnostic => err
+  private def collectDiagnostics(
+    builder: mutable.Builder[Diagnostic, List[Diagnostic]]
+  ): Consumer[IR] = {
+    case err: Diagnostic =>
+      builder.addOne(err)
+    case _ =>
   }
+
+  private def diagnosticsList(ir: IR): List[Diagnostic] =
+    if (ir.diagnostics() eq null) Nil else ir.diagnostics().toList
 
   final private class DiagnosticKeys(private val diagnostic: Diagnostic) {
 

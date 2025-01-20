@@ -6,11 +6,16 @@ from Standard.Database.Errors import SQL_Error
 type Redshift_Error_Mapper
 
     ## PRIVATE
-    is_primary_key_violation : SQL_Error -> Boolean
-    is_primary_key_violation error =
+    is_duplicate_primary_key_violation : SQL_Error -> Boolean
+    is_duplicate_primary_key_violation error =
         # Currently not implemented, skipping the error recognition.
         _ = error
         False
+
+    ## PRIVATE
+    is_null_primary_key_violation : SQL_Error -> Boolean
+    is_null_primary_key_violation error =
+        error.java_exception.getMessage.contains "violates not-null constraint"
 
     ## PRIVATE
     transform_custom_errors : SQL_Error -> Any

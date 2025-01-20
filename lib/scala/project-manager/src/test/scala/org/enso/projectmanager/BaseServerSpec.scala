@@ -16,12 +16,12 @@ import org.enso.editions.Editions
 import org.enso.cli.OS
 import org.enso.jsonrpc.test.JsonRpcServerTestKit
 import org.enso.jsonrpc.{ClientControllerFactory, ProtocolFactory}
-import org.enso.logger.LoggerSetup
+import org.enso.logging.config.LoggerSetup
 import org.enso.pkg.{Config, PackageManager}
 import org.enso.projectmanager.boot.Globals.{ConfigFilename, ConfigNamespace}
 import org.enso.projectmanager.boot.configuration._
 import org.enso.projectmanager.control.effect.ZioEnvExec
-import org.enso.projectmanager.data.MissingComponentAction
+import org.enso.projectmanager.data.MissingComponentActions
 import org.enso.projectmanager.infrastructure.file.BlockingFileSystem
 import org.enso.projectmanager.infrastructure.languageserver.{
   ExecutorWithUnlimitedPool,
@@ -42,10 +42,15 @@ import org.enso.projectmanager.service.versionmanagement.{
   RuntimeVersionManagerFactory
 }
 import org.enso.projectmanager.service.{ProjectCreationService, ProjectService}
-import org.enso.projectmanager.test.{ObservableGenerator, ProgrammableClock}
+import org.enso.projectmanager.test.{
+  ObservableGenerator,
+  ProgrammableClock,
+  Shredder
+}
 import org.enso.runtimeversionmanager.CurrentVersion
 import org.enso.runtimeversionmanager.components.GraalVMVersion
 import org.enso.runtimeversionmanager.test.FakeReleases
+import org.enso.version.BuildVersion
 import org.scalatest.BeforeAndAfterAll
 import org.slf4j.event.Level
 import pureconfig.ConfigSource
@@ -54,7 +59,6 @@ import zio.interop.catz.core._
 import zio.{Runtime, Semaphore, ZAny, ZIO}
 
 import java.net.URISyntaxException
-
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
@@ -102,20 +106,24 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
 
   lazy val gen = new ObservableGenerator[ZAny]()
 
+  lazy val trash = new Shredder[ZAny]
+
   val testProjectsRoot = Files.createTempDirectory(null).toFile
   sys.addShutdownHook(FileUtils.deleteQuietly(testProjectsRoot))
 
   val testDistributionRoot = Files.createTempDirectory(null).toFile
   sys.addShutdownHook(FileUtils.deleteQuietly(testDistributionRoot))
 
-  val userProjectDir = new File(testProjectsRoot, "projects")
-
   lazy val testStorageConfig = StorageConfig(
-    projectsRoot             = testProjectsRoot,
-    userProjectsPath         = userProjectDir,
-    projectMetadataDirectory = ".enso",
-    projectMetadataFileName  = "project.json"
+    projectsRoot      = Some(testProjectsRoot),
+    projectsDirectory = "enso-projects",
+    metadata = MetadataStorageConfig(
+      projectMetadataDirectory = ".enso",
+      projectMetadataFileName  = "project.json"
+    )
   )
+
+  lazy val userProjectDir = testStorageConfig.userProjectsPath
 
   lazy val bootloaderConfig = config.bootloader
 
@@ -139,7 +147,8 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
       testStorageConfig,
       testClock,
       fileSystem,
-      gen
+      gen,
+      trash
     )
 
   lazy val projectNameValidator = new ProjectNameValidator[ZIO[ZAny, *, *]]()
@@ -253,7 +262,7 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
     val engineVersion = engineToInstall.getOrElse(CurrentVersion.version)
     val editionsDir   = testDistributionRoot.toPath / "test_data" / "editions"
     Files.createDirectories(editionsDir)
-    val editionName = buildinfo.Info.currentEdition + ".yaml"
+    val editionName = BuildVersion.currentEdition + ".yaml"
     val editionConfig =
       s"""engine-version: $engineVersion
          |""".stripMargin
@@ -343,7 +352,7 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
     val blackhole = system.actorOf(blackholeProps)
     val runtimeVersionManager = RuntimeVersionManagerFactory(
       distributionConfiguration
-    ).makeRuntimeVersionManager(blackhole, MissingComponentAction.Fail)
+    ).makeRuntimeVersionManager(blackhole, MissingComponentActions.Fail)
     val runtime = runtimeVersionManager.findGraalRuntime(graalVMVersion).get
     FileUtils.deleteDirectory(runtime.path.toFile)
   }

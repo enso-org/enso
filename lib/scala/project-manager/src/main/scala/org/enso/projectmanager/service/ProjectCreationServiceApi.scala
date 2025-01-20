@@ -4,7 +4,7 @@ import java.nio.file.Path
 
 import akka.actor.ActorRef
 import org.enso.semver.SemVer
-import org.enso.projectmanager.data.MissingComponentAction
+import org.enso.projectmanager.data.MissingComponentActions.MissingComponentAction
 
 /** An abstraction for creating new project structures under the given location.
   */

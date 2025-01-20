@@ -1,18 +1,17 @@
 package org.enso.languageserver.runtime.handler
 
-import akka.actor.{Actor, ActorRef, Cancellable, Props}
+import akka.actor.{Actor, ActorRef, Props}
 import akka.pattern.pipe
 import com.typesafe.scalalogging.LazyLogging
-import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.runtime.{
   ContextRegistryProtocol,
   RuntimeFailureMapper
 }
-import org.enso.languageserver.util.UnhandledLogging
+import org.enso.languageserver.util.{ApiHandlerWithRetries, UnhandledLogging}
 import org.enso.polyglot.runtime.Runtime.Api
 
 import java.util.UUID
-
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
 
 /** A request handler for setting execution context command.
@@ -25,40 +24,31 @@ final class SetExecutionContextEnvironmentHandler(
   runtimeFailureMapper: RuntimeFailureMapper,
   timeout: FiniteDuration,
   runtime: ActorRef
-) extends Actor
+) extends ApiHandlerWithRetries[
+      Api.SetExecutionEnvironmentRequest,
+      Api.SetExecutionEnvironmentResponse
+    ](runtime, timeout)
+    with Actor
     with LazyLogging
     with UnhandledLogging {
+  override protected def request(
+    msg: Api.SetExecutionEnvironmentRequest
+  ): Api.Request =
+    Api.Request(UUID.randomUUID(), msg)
 
-  import ContextRegistryProtocol._
-  import context.dispatcher
-
-  override def receive: Receive = requestStage
-
-  private def requestStage: Receive = {
-    case msg: Api.SetExecutionEnvironmentRequest =>
-      runtime ! Api.Request(UUID.randomUUID(), msg)
-      val cancellable =
-        context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
-      context.become(responseStage(sender(), cancellable))
+  override protected def positiveResponse(
+    replyTo: ActorRef,
+    msg: Api.SetExecutionEnvironmentResponse
+  ): Unit = {
+    replyTo ! ContextRegistryProtocol.SetExecutionEnvironmentResponse(
+      msg.contextId
+    )
   }
 
-  private def responseStage(
-    replyTo: ActorRef,
-    cancellable: Cancellable
-  ): Receive = {
-    case RequestTimeout =>
-      replyTo ! RequestTimeout
-      context.stop(self)
-
-    case Api.Response(_, Api.SetExecutionEnvironmentResponse(contextId)) =>
-      replyTo ! SetExecutionEnvironmentResponse(contextId)
-      cancellable.cancel()
-      context.stop(self)
-
-    case Api.Response(_, error: Api.Error) =>
-      runtimeFailureMapper.mapApiError(error).pipeTo(replyTo)
-      cancellable.cancel()
-      context.stop(self)
+  override protected def negativeResponse(replyTo: ActorRef, error: Api.Error)(
+    implicit ec: ExecutionContext
+  ): Unit = {
+    runtimeFailureMapper.mapApiError(error).pipeTo(replyTo)
   }
 }
 

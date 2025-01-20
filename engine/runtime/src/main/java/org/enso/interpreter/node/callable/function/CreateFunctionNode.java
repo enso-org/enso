@@ -25,7 +25,7 @@ public class CreateFunctionNode extends ExpressionNode {
 
   private CreateFunctionNode(RootCallTarget callTarget, ArgumentDefinition[] args) {
     this.callTarget = callTarget;
-    this.schema = new FunctionSchema(args);
+    this.schema = FunctionSchema.newBuilder().argumentDefinitions(args).build();
   }
 
   /**

@@ -1,11 +1,11 @@
 package org.enso.interpreter.test.instrument
 
 import org.enso.interpreter.runtime.`type`.ConstantsGen
+import org.enso.common.LanguageInfo
+import org.enso.common.RuntimeOptions
 import org.enso.polyglot.{
   ExportedSymbol,
-  LanguageInfo,
   ModuleExports,
-  RuntimeOptions,
   RuntimeServerInfo,
   Suggestion
 }
@@ -221,7 +221,8 @@ class RuntimeTextEditsTest
               "Meh"
             )
           ),
-          execute = false
+          execute = false,
+          idMap   = None
         )
       )
     )
@@ -236,7 +237,8 @@ class RuntimeTextEditsTest
               "Welcome!"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )

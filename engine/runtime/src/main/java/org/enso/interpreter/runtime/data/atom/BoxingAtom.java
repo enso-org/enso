@@ -1,15 +1,19 @@
 package org.enso.interpreter.runtime.data.atom;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.NodeFactory;
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.profiles.BranchProfile;
 import java.util.List;
 import org.enso.interpreter.runtime.data.atom.UnboxingAtom.FieldGetterNode;
 import org.enso.interpreter.runtime.data.atom.UnboxingAtom.FieldSetterNode;
+import org.enso.interpreter.runtime.warning.WarningsLibrary;
 
 /**
  * A version of {@link org.enso.interpreter.runtime.data.atom.Atom} that stores its fields in an
@@ -80,6 +84,17 @@ final class BoxingAtom extends Atom {
   @ExportMessage
   void setField(int index, Object value) {
     fields[index] = value;
+  }
+
+  @Override
+  @TruffleBoundary
+  public Object toDisplayString(boolean allowSideEffects) {
+    return toDisplayString(
+        allowSideEffects,
+        InteropLibrary.getUncached(),
+        WarningsLibrary.getUncached(),
+        InteropLibrary.getUncached(),
+        BranchProfile.getUncached());
   }
 
   private static class InstantiatorNode extends UnboxingAtom.InstantiatorNode {

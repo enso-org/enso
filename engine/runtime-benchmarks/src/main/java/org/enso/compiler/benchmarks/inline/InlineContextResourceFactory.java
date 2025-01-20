@@ -13,16 +13,15 @@ public record InlineContextResourceFactory(
     EnsoContext ensoCtx,
     PackageRepository pkgRepository) {
 
-  public InlineContextResource create() {
+  public InlineContext create() {
     var mainFunc = moduleScope.getMethodForType(assocTypeReceiver, "main");
     var mainFuncRootNode = (MethodRootNode) mainFunc.getCallTarget().getRootNode();
     var mainLocalScope = mainFuncRootNode.getLocalScope();
-    return new InlineContextResource(
-        InlineContext.fromJava(
-            mainLocalScope.createChild(),
-            moduleScope.getModule().asCompilerModule(),
-            scala.Option.apply(false),
-            ensoCtx.getCompilerConfig(),
-            scala.Option.apply(pkgRepository)));
+    return InlineContext.fromJava(
+        mainLocalScope.createChild(),
+        moduleScope.getModule().asCompilerModule(),
+        scala.Option.apply(false),
+        ensoCtx.getCompilerConfig(),
+        scala.Option.apply(pkgRepository));
   }
 }

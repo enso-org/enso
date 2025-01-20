@@ -8,21 +8,26 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.Builtin;
-import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
+import org.enso.interpreter.node.expression.foreign.HostValueToEnsoNode;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.data.EnsoObject;
-import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.error.Warning;
-import org.enso.interpreter.runtime.error.WarningsLibrary;
-import org.enso.interpreter.runtime.error.WithWarnings;
-import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.enso.interpreter.runtime.builtin.BuiltinObject;
+import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
+import org.enso.interpreter.runtime.warning.AppendWarningNode;
+import org.enso.interpreter.runtime.warning.WarningsLibrary;
 
 @ExportLibrary(InteropLibrary.class)
-@ExportLibrary(TypesLibrary.class)
 @Builtin(pkg = "immutable", stdlibName = "Standard.Base.Data.Vector.Vector")
-abstract class Vector implements EnsoObject {
+abstract class Vector extends BuiltinObject {
+  private static final Vector EMPTY_LONG = new Long(new long[0]);
+  private static final Vector EMPTY_DOUBLE = new Double(new double[0]);
+  private static final Vector EMPTY_VECTOR = new EnsoOnly(new Object[0]);
+
+  @Override
+  protected String builtinName() {
+    return "Vector";
+  }
+
   @ExportMessage
   boolean hasArrayElements() {
     return true;
@@ -67,33 +72,10 @@ abstract class Vector implements EnsoObject {
 
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
-  String toDisplayString(boolean allowSideEffects) {
+  @Override
+  public String toDisplayString(boolean allowSideEffects) {
     final InteropLibrary iop = InteropLibrary.getUncached();
     return DisplayArrayUtils.toDisplayString(this, allowSideEffects, iop);
-  }
-
-  @ExportMessage
-  Type getMetaObject(@CachedLibrary("this") InteropLibrary thisLib) {
-    return EnsoContext.get(thisLib).getBuiltins().vector();
-  }
-
-  @ExportMessage
-  boolean hasMetaObject() {
-    return true;
-  }
-
-  //
-  // methods for TypesLibrary
-  //
-
-  @ExportMessage
-  boolean hasType() {
-    return true;
-  }
-
-  @ExportMessage
-  Type getType(@CachedLibrary("this") TypesLibrary thisLib, @Cached("1") int ignore) {
-    return EnsoContext.get(thisLib).getBuiltins().vector();
   }
 
   //
@@ -111,15 +93,27 @@ abstract class Vector implements EnsoObject {
   }
 
   static Vector fromLongArray(long[] arr) {
-    return new Long(arr);
+    if (arr == null || arr.length == 0) {
+      return EMPTY_LONG;
+    } else {
+      return new Long(arr);
+    }
   }
 
   static Vector fromDoubleArray(double[] arr) {
-    return new Double(arr);
+    if (arr == null || arr.length == 0) {
+      return EMPTY_DOUBLE;
+    } else {
+      return new Double(arr);
+    }
   }
 
-  static Object fromEnsoOnlyArray(Object[] arr) {
-    return new EnsoOnly(arr);
+  static Vector fromEnsoOnlyArray(Object[] arr) {
+    if (arr == null || arr.length == 0) {
+      return EMPTY_VECTOR;
+    } else {
+      return new EnsoOnly(arr);
+    }
   }
 
   @ExportLibrary(InteropLibrary.class)
@@ -161,8 +155,8 @@ abstract class Vector implements EnsoObject {
     }
 
     @ExportMessage
-    Warning[] getWarnings(Node location, boolean shouldWrap) throws UnsupportedMessageException {
-      return new Warning[0];
+    EnsoHashMap getWarnings(boolean shouldWrap) {
+      return EnsoHashMap.empty();
     }
 
     @ExportMessage
@@ -232,15 +226,16 @@ abstract class Vector implements EnsoObject {
         long index,
         @Cached.Shared(value = "interop") @CachedLibrary(limit = "3") InteropLibrary interop,
         @CachedLibrary(limit = "3") WarningsLibrary warnings,
-        @Cached HostValueToEnsoNode toEnso)
+        @Cached HostValueToEnsoNode toEnso,
+        @Cached AppendWarningNode appendWarningNode)
         throws InvalidArrayIndexException, UnsupportedMessageException {
       var v = interop.readArrayElement(this.storage, index);
       if (warnings.hasWarnings(this.storage)) {
-        Warning[] extracted = warnings.getWarnings(this.storage, null, false);
+        var extracted = warnings.getWarnings(this.storage, false);
         if (warnings.hasWarnings(v)) {
           v = warnings.removeWarnings(v);
         }
-        return WithWarnings.wrap(EnsoContext.get(interop), toEnso.execute(v), extracted);
+        return appendWarningNode.executeAppend(null, toEnso.execute(v), extracted);
       }
       return toEnso.execute(v);
     }
@@ -270,12 +265,11 @@ abstract class Vector implements EnsoObject {
     }
 
     @ExportMessage
-    Warning[] getWarnings(
-        Node location,
+    EnsoHashMap getWarnings(
         boolean shouldWrap,
         @Cached.Shared(value = "warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings)
         throws UnsupportedMessageException {
-      return warnings.getWarnings(this.storage, location, shouldWrap);
+      return warnings.getWarnings(this.storage, shouldWrap);
     }
 
     @ExportMessage
@@ -340,8 +334,8 @@ abstract class Vector implements EnsoObject {
     }
 
     @ExportMessage
-    Warning[] getWarnings(Node location, boolean shouldWrap) throws UnsupportedMessageException {
-      return new Warning[0];
+    EnsoHashMap getWarnings(boolean shouldWrap) {
+      return EnsoHashMap.empty();
     }
 
     @ExportMessage
@@ -390,8 +384,8 @@ abstract class Vector implements EnsoObject {
     }
 
     @ExportMessage
-    Warning[] getWarnings(Node location, boolean shouldWrap) throws UnsupportedMessageException {
-      return new Warning[0];
+    EnsoHashMap getWarnings(boolean shouldWrap) {
+      return EnsoHashMap.empty();
     }
 
     @ExportMessage

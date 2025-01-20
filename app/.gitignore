@@ -1,0 +1,5 @@
+dist
+lib/content/assets/
+
+# Fail-safe to not commit locally defined env file that used to be here.
+.env

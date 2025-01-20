@@ -30,7 +30,7 @@ type Process_Builder
        Arguments:
        - arguments: The arguments to pass to the process.
 
-       > Examples
+       > Example
          Set the arguments to the process using a builder.
 
              import Standard.Base.System.Process
@@ -48,7 +48,7 @@ type Process_Builder
        Arguments:
        - stdin: The standard input contents to pass to the process.
 
-       > Examples
+       > Example
          Set the standard input to a process using a builder.
 
              import Standard.Base.System.Process

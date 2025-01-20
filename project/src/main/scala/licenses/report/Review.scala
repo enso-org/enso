@@ -2,10 +2,11 @@ package src.main.scala.licenses.report
 
 import java.nio.file.{InvalidPathException, Path}
 import java.time.LocalDate
-
 import sbt._
 import src.main.scala.licenses._
 
+import java.nio.charset.StandardCharsets
+import java.util.Base64
 import scala.util.control.NonFatal
 
 /** Reads settings from the `root` to add review statuses to discovered
@@ -82,8 +83,8 @@ case class Review(root: File, dependencySummary: DependencySummary) {
       files   = findAdditionalFiles(root / Paths.filesAdd)
       summary = ReviewedSummary(reviews, header, files)
       _ <- ReviewedSummary.warnAboutMissingReviews(summary)
-      existingPackages = dependencySummary.dependencies.map(_._1.packageName)
-      _ <- warnAboutMissingDependencies(existingPackages)
+      expectedPackages = dependencySummary.dependencies.map(_._1)
+      _ <- warnAboutMissingDependencies(expectedPackages)
     } yield summary
 
   /** Returns a list of warnings for dependencies whose configuration has been
@@ -93,19 +94,49 @@ case class Review(root: File, dependencySummary: DependencySummary) {
     * update.
     */
   private def warnAboutMissingDependencies(
-    existingPackageNames: Seq[String]
+    knownPackages: Seq[DependencyInformation]
   ): WithDiagnostics[Unit] = {
     val foundConfigurations = listFiles(root).filter(_.isDirectory)
     val expectedFileNames =
-      existingPackageNames ++ Seq(Paths.filesAdd, Paths.reviewedLicenses)
+      knownPackages.map(_.packageName) ++ Seq(
+        Paths.filesAdd,
+        Paths.reviewedLicenses
+      )
+
     val unexpectedConfigurations =
       foundConfigurations.filter(p => !expectedFileNames.contains(p.getName))
-    val diagnostics = unexpectedConfigurations.map(p =>
-      Diagnostic.Error(
-        s"Found legal review configuration for package ${p.getName}, " +
-        s"but no such dependency has been found. Perhaps it has been removed or renamed (version change)?"
+    val diagnostics = unexpectedConfigurations.map { p: File =>
+      val packageNameFromConfig = p.getName
+      val matchingPackages = knownPackages.filter(other =>
+        packageNameFromConfig.startsWith(other.packageNameWithoutVersion + "-")
       )
-    )
+      val maybeMatchingPackage: Option[DependencyInformation] =
+        if (matchingPackages.length == 1) Some(matchingPackages.head) else None
+
+      maybeMatchingPackage match {
+        case Some(matchingPackage) =>
+          Diagnostic.Error(
+            s"Found legal review configuration for package ${p.getName}, but " +
+            s"no such dependency has been found. Perhaps the version was " +
+            s"changed to `${matchingPackage.packageName}`?",
+            metadata = Map(
+              "class"     -> "rename-dependency-config",
+              "data-from" -> packageNameFromConfig,
+              "data-to"   -> matchingPackage.packageName
+            )
+          )
+        case None =>
+          // The configuration is not related to any known package, so we remove it
+          IO.delete(p)
+          Diagnostic.Warning(
+            s"Found legal review configuration for package ${p.getName}, but " +
+            s"no such dependency has been found. It seems that the " +
+            s"dependency has been removed, so the configuration has been " +
+            s"deleted. If you think this was mistake, please rely on " +
+            s"version control to bring it back."
+          )
+      }
+    }
     WithDiagnostics.justDiagnostics(diagnostics)
   }
 
@@ -121,7 +152,8 @@ case class Review(root: File, dependencySummary: DependencySummary) {
       if (f.isDirectory)
         AttachedFile(
           PortablePath(f.toPath.toAbsolutePath),
-          Review.directoryMark
+          Review.directoryMark,
+          origin = Some(dir.toPath.toString)
         )
       else
         AttachedFile.read(f.toPath, Some(dir.toPath))
@@ -356,7 +388,15 @@ case class Review(root: File, dependencySummary: DependencySummary) {
         s"File $fileName in ${packageRoot.getName} contains entry `$l`, but no " +
         s"such entry has been detected. Perhaps it has disappeared after an " +
         s"update? Please remove it from the file and make sure that the report " +
-        s"contains all necessary elements after this change."
+        s"contains all necessary elements after this change.",
+        metadata = Map(
+          "class"         -> "unexpected-entry-in-file",
+          "data-package"  -> packageRoot.getName,
+          "data-filename" -> fileName,
+          "data-content" -> Base64.getEncoder.encodeToString(
+            l.getBytes(StandardCharsets.UTF_8)
+          )
+        )
       )
     )
     WithDiagnostics(lines, warnings)

@@ -3,7 +3,7 @@ import project.Data.Text.Text
 import project.Meta
 import project.Nothing.Nothing
 
-polyglot java import java.util.logging.Logger
+polyglot java import org.slf4j.LoggerFactory
 
 ## PRIVATE
    Log a message.
@@ -12,13 +12,13 @@ polyglot java import java.util.logging.Logger
 Any.log_message : Text -> Log_Level -> Any
 Any.log_message self ~message:Text level:Log_Level=Log_Level.Info =
     type_name = Meta.get_qualified_type_name self
-    logger = Logger.getLogger type_name
+    logger = LoggerFactory.getLogger type_name
     case level of
-        Log_Level.Finest -> logger.finest message
-        Log_Level.Fine -> logger.fine message
+        Log_Level.Finest -> logger.trace message
+        Log_Level.Fine -> logger.debug message
         Log_Level.Info -> logger.info message
-        Log_Level.Warning -> logger.warning message
-        Log_Level.Severe -> logger.severe message
+        Log_Level.Warning -> logger.warn message
+        Log_Level.Severe -> logger.error message
     self
 
 ## PRIVATE

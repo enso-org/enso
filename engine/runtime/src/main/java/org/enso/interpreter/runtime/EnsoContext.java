@@ -13,6 +13,7 @@ import com.oracle.truffle.api.TruffleLanguage.Env;
 import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.interop.InteropException;
 import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.io.TruffleProcessBuilder;
@@ -21,14 +22,15 @@ import com.oracle.truffle.api.object.Shape;
 import com.oracle.truffle.api.source.Source;
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.net.MalformedURLException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -37,31 +39,34 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.logging.Level;
+import org.enso.common.LanguageInfo;
+import org.enso.common.RuntimeOptions;
 import org.enso.compiler.Compiler;
-import org.enso.compiler.PackageRepository;
-import org.enso.compiler.PackageRepositoryUtils;
+import org.enso.compiler.core.EnsoParser;
 import org.enso.compiler.data.CompilerConfig;
+import org.enso.compiler.dump.IRDumper;
 import org.enso.distribution.DistributionManager;
 import org.enso.distribution.locking.LockManager;
 import org.enso.editions.LibraryName;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.OptionsHelper;
-import org.enso.interpreter.instrument.NotificationHandler;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.data.atom.Atom;
+import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.instrument.NotificationHandler;
 import org.enso.interpreter.runtime.scope.TopLevelScope;
 import org.enso.interpreter.runtime.state.ExecutionEnvironment;
 import org.enso.interpreter.runtime.state.State;
+import org.enso.interpreter.runtime.state.WithContextNode;
 import org.enso.interpreter.runtime.util.TruffleFileSystem;
 import org.enso.librarymanager.ProjectLoadingFailure;
 import org.enso.librarymanager.resolved.LibraryRoot;
+import org.enso.logger.masking.MaskedPath$;
 import org.enso.pkg.Package;
 import org.enso.pkg.PackageManager;
 import org.enso.pkg.QualifiedName;
-import org.enso.polyglot.LanguageInfo;
-import org.enso.polyglot.RuntimeOptions;
 import org.enso.polyglot.debugger.IdExecutionService;
 import org.graalvm.options.OptionKey;
 import scala.jdk.javaapi.OptionConverters;
@@ -80,12 +85,13 @@ public final class EnsoContext {
   private final HostClassLoader hostClassLoader = new HostClassLoader();
   private final boolean assertionsEnabled;
   private final boolean isPrivateCheckDisabled;
+  private final boolean isStaticTypeAnalysisEnabled;
   private @CompilationFinal Compiler compiler;
   private final PrintStream out;
   private final PrintStream err;
   private final InputStream in;
   private final BufferedReader inReader;
-  private @CompilationFinal PackageRepository packageRepository;
+  private @CompilationFinal DefaultPackageRepository packageRepository;
   private @CompilationFinal TopLevelScope topScope;
   private final ThreadManager threadManager;
   private final ThreadExecutors threadExecutors;
@@ -103,7 +109,7 @@ public final class EnsoContext {
   private final AtomicLong clock = new AtomicLong();
 
   private final Shape rootStateShape = Shape.newBuilder().layout(State.Container.class).build();
-  private ExecutionEnvironment executionEnvironment;
+  private ExecutionEnvironment globalExecutionEnvironment;
 
   private final int warningsLimit;
 
@@ -138,16 +144,21 @@ public final class EnsoContext {
     this.isIrCachingDisabled =
         getOption(RuntimeOptions.DISABLE_IR_CACHES_KEY) || isParallelismEnabled;
     this.isPrivateCheckDisabled = getOption(RuntimeOptions.DISABLE_PRIVATE_CHECK_KEY);
-    this.executionEnvironment = getOption(EnsoLanguage.EXECUTION_ENVIRONMENT);
+    this.isStaticTypeAnalysisEnabled = getOption(RuntimeOptions.ENABLE_STATIC_ANALYSIS_KEY);
+    this.globalExecutionEnvironment = getOption(EnsoLanguage.EXECUTION_ENVIRONMENT);
     this.assertionsEnabled = shouldAssertionsBeEnabled();
     this.shouldWaitForPendingSerializationJobs =
         getOption(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS_KEY);
+    var dumpIrs = Boolean.parseBoolean(System.getProperty(IRDumper.SYSTEM_PROP));
     this.compilerConfig =
         new CompilerConfig(
             isParallelismEnabled,
             true,
             !isPrivateCheckDisabled,
+            isStaticTypeAnalysisEnabled,
+            dumpIrs,
             getOption(RuntimeOptions.STRICT_ERRORS_KEY),
+            getOption(RuntimeOptions.DISABLE_LINTING_KEY),
             scala.Option.empty());
     this.home = home;
     this.builtins = new Builtins(this);
@@ -159,10 +170,11 @@ public final class EnsoContext {
 
   /** Perform expensive initialization logic for the context. */
   public void initialize() {
-    TruffleFileSystem fs = new TruffleFileSystem();
+    TruffleFileSystem fs = TruffleFileSystem.INSTANCE;
     PackageManager<TruffleFile> packageManager = new PackageManager<>(fs);
 
     Optional<TruffleFile> projectRoot = OptionsHelper.getProjectRoot(environment);
+    checkWorkingDirectory(projectRoot);
     Optional<Package<TruffleFile>> projectPackage =
         projectRoot.map(
             file ->
@@ -174,8 +186,7 @@ public final class EnsoContext {
                         },
                         res -> res));
 
-    Optional<String> languageHome =
-        OptionsHelper.getLanguageHomeOverride(environment).or(() -> Optional.ofNullable(home));
+    var languageHome = OptionsHelper.findLanguageHome(environment);
     var editionOverride = OptionsHelper.getEditionOverride(environment);
     var resourceManager = new org.enso.distribution.locking.ResourceManager(lockManager);
 
@@ -203,6 +214,28 @@ public final class EnsoContext {
       var run = (Consumer<String>) environment.lookup(epb, Consumer.class);
       if (run != null) {
         run.accept(preinit);
+      }
+    }
+  }
+
+  /** Checks if the working directory is as expected and reports a warning if not. */
+  private void checkWorkingDirectory(Optional<TruffleFile> maybeProjectRoot) {
+    if (maybeProjectRoot.isPresent()) {
+      var root = maybeProjectRoot.get();
+      var parent = root.getAbsoluteFile().normalize().getParent();
+      var cwd = environment.getCurrentWorkingDirectory().getAbsoluteFile().normalize();
+      try {
+        if (!cwd.isSameFile(parent)) {
+          var maskedPath = MaskedPath$.MODULE$.apply(Path.of(parent.toString()));
+          logger.log(
+              Level.WARNING,
+              "Initializing the context in a different working directory than the one containing"
+                  + " the project root. This may lead to relative paths not behaving as advertised"
+                  + " by `File.new`. Please run the engine inside of `{}` directory.",
+              maskedPath);
+        }
+      } catch (IOException e) {
+        logger.severe("Error checking working directory: " + e.getMessage());
       }
     }
   }
@@ -239,8 +272,8 @@ public final class EnsoContext {
         with root nodes: {r}
         """
                   .replace("{n}", "" + n)
-                  .replace("{s}", "" + n.getEncapsulatingSourceSection())
-                  .replace("{r}", "" + n.getRootNode()));
+                  .replace("{s}", "" + (n != null ? n.getEncapsulatingSourceSection() : null))
+                  .replace("{r}", "" + (n != null ? n.getRootNode() : null)));
       ex.printStackTrace();
       checkUntil = System.currentTimeMillis() + 10000;
       var assertsOn = false;
@@ -261,6 +294,11 @@ public final class EnsoContext {
     threadManager.shutdown();
     resourceManager.shutdown();
     compiler.shutdown(shouldWaitForPendingSerializationJobs);
+    packageRepository.shutdown();
+    guestJava = null;
+    topScope = null;
+    hostClassLoader.close();
+    EnsoParser.freeAll();
   }
 
   private boolean shouldAssertionsBeEnabled() {
@@ -365,7 +403,11 @@ public final class EnsoContext {
    * @return a qualified name of the module corresponding to the file, if exists.
    */
   public Optional<QualifiedName> getModuleNameForFile(TruffleFile file) {
-    return PackageRepositoryUtils.getModuleNameForFile(packageRepository, file);
+    return scala.jdk.javaapi.CollectionConverters.asJava(packageRepository.getLoadedPackages())
+        .stream()
+        .filter(pkg -> file.startsWith(pkg.sourceDir()))
+        .map(pkg -> pkg.moduleNameForFile(file))
+        .findFirst();
   }
 
   /**
@@ -516,38 +558,39 @@ public final class EnsoContext {
    * is looked up by iterating the members of the outer class via Truffle's interop protocol.
    *
    * @param className Fully qualified class name, can also be nested static inner class.
-   * @return If the java class is found, return it, otherwise return null.
+   * @return If the java class is found, return it, otherwise return {@link DataflowError}.
    */
   @TruffleBoundary
-  public Object lookupJavaClass(String className) {
-    var items = Arrays.asList(className.split("\\."));
+  public TruffleObject lookupJavaClass(String className) {
+    var binaryName = new StringBuilder(className);
     var collectedExceptions = new ArrayList<Exception>();
-    for (int i = items.size() - 1; i >= 0; i--) {
-      String pkgName = String.join(".", items.subList(0, i));
-      String curClassName = items.get(i);
-      List<String> nestedClassPart =
-          i < items.size() - 1 ? items.subList(i + 1, items.size()) : List.of();
+    for (; ; ) {
+      var fqn = binaryName.toString();
       try {
-        var hostSymbol = lookupHostSymbol(pkgName, curClassName);
-        if (nestedClassPart.isEmpty()) {
-          return hostSymbol;
-        } else {
-          var fullInnerClassName = curClassName + "$" + String.join("$", nestedClassPart);
-          return lookupHostSymbol(pkgName, fullInnerClassName);
+        var hostSymbol = lookupHostSymbol(fqn);
+        if (hostSymbol != null) {
+          return (TruffleObject) hostSymbol;
         }
       } catch (ClassNotFoundException | RuntimeException | InteropException ex) {
         collectedExceptions.add(ex);
       }
+      var at = fqn.lastIndexOf('.');
+      if (at < 0) {
+        break;
+      }
+      binaryName.setCharAt(at, '$');
     }
+    var level = Level.WARNING;
     for (var ex : collectedExceptions) {
-      logger.log(Level.WARNING, null, ex);
+      logger.log(level, ex.getMessage());
+      level = Level.FINE;
+      logger.log(Level.FINE, null, ex);
     }
-    return null;
+    return getBuiltins().error().makeMissingPolyglotImportError(className);
   }
 
-  private Object lookupHostSymbol(String pkgName, String curClassName)
+  private Object lookupHostSymbol(String fqn)
       throws ClassNotFoundException, UnknownIdentifierException, UnsupportedMessageException {
-    var fqn = pkgName + "." + curClassName;
     try {
       if (findGuestJava() == null) {
         return environment.asHostSymbol(hostClassLoader.loadClass(fqn));
@@ -603,7 +646,7 @@ public final class EnsoContext {
    * @return {@code module}'s package, if exists
    */
   public Optional<Package<TruffleFile>> getPackageOf(TruffleFile file) {
-    return PackageRepositoryUtils.getPackageOf(packageRepository, file);
+    return TruffleCompilerContext.getPackageOf(packageRepository, file);
   }
 
   /**
@@ -723,15 +766,15 @@ public final class EnsoContext {
 
   /**
    * @param name human-readable name of the pool
+   * @param min minimal number of threads kept-alive in the pool
+   * @param max maximal number of available threads
+   * @param maxQueueSize maximal number of pending tasks
    * @param systemThreads use system threads or polyglot threads
    * @return new execution service for this context
    */
-  public ExecutorService newCachedThreadPool(String name, boolean systemThreads) {
-    return threadExecutors.newCachedThreadPool(name, systemThreads);
-  }
-
-  public ExecutorService newCachedThreadPool(String name, int min, int max, boolean systemThreads) {
-    return threadExecutors.newCachedThreadPool(name, systemThreads, min, max);
+  public ExecutorService newCachedThreadPool(
+      String name, int min, int max, int maxQueueSize, boolean systemThreads) {
+    return threadExecutors.newCachedThreadPool(name, systemThreads, min, max, maxQueueSize);
   }
 
   /**
@@ -803,7 +846,7 @@ public final class EnsoContext {
   /**
    * @return the package repository
    */
-  public PackageRepository getPackageRepository() {
+  public DefaultPackageRepository getPackageRepository() {
     return packageRepository;
   }
 
@@ -827,13 +870,53 @@ public final class EnsoContext {
     return clock.getAndIncrement();
   }
 
+  public ExecutionEnvironment getGlobalExecutionEnvironment() {
+    return globalExecutionEnvironment;
+  }
+
   public ExecutionEnvironment getExecutionEnvironment() {
-    return executionEnvironment;
+    ExecutionEnvironment env = language.getExecutionEnvironment();
+    return env == null ? getGlobalExecutionEnvironment() : env;
   }
 
   /** Set the runtime execution environment of this context. */
   public void setExecutionEnvironment(ExecutionEnvironment executionEnvironment) {
-    this.executionEnvironment = executionEnvironment;
+    this.globalExecutionEnvironment = executionEnvironment;
+    language.setExecutionEnvironment(executionEnvironment);
+  }
+
+  /**
+   * Enable execution context in the execution environment.
+   *
+   * @param context the execution context
+   * @param environmentName the execution environment name
+   * @return the execution environment version before modification
+   */
+  public ExecutionEnvironment enableExecutionEnvironment(Atom context, String environmentName) {
+    ExecutionEnvironment original = globalExecutionEnvironment;
+    if (original.getName().equals(environmentName)) {
+      var newExecEnv =
+          WithContextNode.getUncached().executeEnvironmentUpdate(original, context, true);
+      setExecutionEnvironment(newExecEnv);
+    }
+    return original;
+  }
+
+  /**
+   * Enable execution context in the execution environment.
+   *
+   * @param context the execution context
+   * @param environmentName the execution environment name
+   * @return the execution environment version before modification
+   */
+  public ExecutionEnvironment disableExecutionEnvironment(Atom context, String environmentName) {
+    ExecutionEnvironment original = globalExecutionEnvironment;
+    if (original.getName().equals(environmentName)) {
+      var newExecEnv =
+          WithContextNode.getUncached().executeEnvironmentUpdate(original, context, false);
+      setExecutionEnvironment(newExecEnv);
+    }
+    return original;
   }
 
   /** Returns a maximal number of warnings that can be attached to a value */
@@ -933,8 +1016,7 @@ public final class EnsoContext {
     if (message != null) {
       msg = msg + sep + message;
     }
-    var txt = Text.create(msg);
-    var err = getBuiltins().error().makeAssertionError(txt);
+    var err = getBuiltins().error().makeAssertionError(msg);
     throw new PanicException(err, e, node);
   }
 

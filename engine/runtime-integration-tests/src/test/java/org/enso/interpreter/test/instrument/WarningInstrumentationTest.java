@@ -8,11 +8,11 @@ import com.oracle.truffle.api.instrumentation.StandardTags;
 import java.nio.file.Paths;
 import java.util.Map;
 import java.util.logging.Level;
+import org.enso.common.RuntimeOptions;
 import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
 import org.enso.interpreter.test.Metadata;
 import org.enso.interpreter.test.instruments.NodeCountingTestInstrument;
-import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Source;
@@ -62,7 +62,9 @@ public class WarningInstrumentationTest {
 
   @After
   public void disposeContext() {
+    instrument = null;
     context.close();
+    context = null;
   }
 
   @Test

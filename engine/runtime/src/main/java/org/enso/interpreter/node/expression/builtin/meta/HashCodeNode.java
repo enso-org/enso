@@ -1,6 +1,5 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
-import com.google.common.base.Objects;
 import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
@@ -22,16 +21,15 @@ import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import com.oracle.truffle.api.profiles.LoopConditionProfile;
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
+import java.util.Objects;
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;
 import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
-import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.node.expression.builtin.ordering.CustomComparatorNode;
 import org.enso.interpreter.node.expression.builtin.ordering.CustomComparatorNodeGen;
 import org.enso.interpreter.node.expression.builtin.ordering.HashCallbackNode;
@@ -42,16 +40,18 @@ import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.EnsoFile;
+import org.enso.interpreter.runtime.data.EnsoMultiValue;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.atom.StructsLibrary;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.error.WarningsLibrary;
+import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.State;
+import org.enso.interpreter.runtime.warning.WarningsLibrary;
 import org.enso.polyglot.common_utils.Core_Text_Utils;
 
 /**
@@ -71,7 +71,7 @@ import org.enso.polyglot.common_utils.Core_Text_Utils;
  */
 @GenerateUncached
 @BuiltinMethod(
-    type = "Comparable",
+    type = "Default_Comparator",
     name = "hash_builtin",
     description =
         """
@@ -89,17 +89,6 @@ public abstract class HashCodeNode extends Node {
 
   public abstract long execute(@AcceptsError Object object);
 
-  /** Specializations for primitive values * */
-  @Specialization
-  long hashCodeForShort(short s) {
-    return s;
-  }
-
-  @Specialization
-  long hashCodeForByte(byte b) {
-    return b;
-  }
-
   @Specialization
   long hashCodeForLong(long l) {
     // By casting long to double, we lose some precision on purpose
@@ -107,48 +96,24 @@ public abstract class HashCodeNode extends Node {
   }
 
   @Specialization
-  long hashCodeForInt(int i) {
-    return hashCodeForLong(i);
-  }
-
-  @Specialization
-  long hashCodeForFloat(float f) {
-    return Float.hashCode(f);
-  }
-
-  @Specialization
   long hashCodeForDouble(double d) {
-    if (Double.isNaN(d)) {
-      // NaN is Incomparable, just return a "random" constant
-      return 456879;
-    } else if (d % 1.0 != 0 || BigIntegerOps.fitsInLong(d)) {
-      return Double.hashCode(d);
-    } else {
-      return bigDoubleHash(d);
-    }
-  }
-
-  @TruffleBoundary
-  private static long bigDoubleHash(double d) {
-    try {
-      return BigDecimal.valueOf(d).toBigIntegerExact().hashCode();
-    } catch (ArithmeticException e) {
-      throw EnsoContext.get(null).raiseAssertionPanic(null, null, e);
-    }
+    return Double.hashCode(d);
   }
 
   @Specialization
   @TruffleBoundary
-  long hashCodeForBigInteger(EnsoBigInteger bigInteger) {
-    return bigInteger.getValue().hashCode();
+  long hashCodeForBigInteger(
+      EnsoBigInteger bigInteger,
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
+    return hashCodeForDouble(bigInteger.getValue().doubleValue());
   }
 
-  @Specialization(guards = {"!interop.fitsInLong(v)", "interop.fitsInBigInteger(v)"})
+  @Specialization(guards = {"interop.fitsInBigInteger(v)", "!isMulti(v)"})
   @TruffleBoundary
   long hashCodeForBigInteger(
       Object v, @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
     try {
-      return interop.asBigInteger(v).hashCode();
+      return hashCodeForDouble(interop.asBigInteger(v).doubleValue());
     } catch (UnsupportedMessageException ex) {
       throw EnsoContext.get(this).raiseAssertionPanic(this, "Expecting BigInteger", ex);
     }
@@ -167,7 +132,7 @@ public abstract class HashCodeNode extends Node {
       @Shared("hashCodeNode") @Cached HashCodeNode hashCodeNode) {
     long nameHash = hashCodeNode.execute(unresolvedSymbol.getName());
     long scopeHash = hashCodeNode.execute(unresolvedSymbol.getScope());
-    return Objects.hashCode(nameHash, scopeHash);
+    return Objects.hash(nameHash, scopeHash);
   }
 
   @Specialization
@@ -208,8 +173,13 @@ public abstract class HashCodeNode extends Node {
       // Nothing should be equal to `null`
       return 0;
     } else {
-      return hashCodeNode.execute(type.getQualifiedName().toString());
+      return hashCodeNode.execute(getQualifiedTypeName(type));
     }
+  }
+
+  @TruffleBoundary
+  private static String getQualifiedTypeName(Type type) {
+    return type.getQualifiedName().toString();
   }
 
   @NeverDefault
@@ -483,6 +453,29 @@ public abstract class HashCodeNode extends Node {
     }
   }
 
+  @Specialization
+  long hashCodeForMultiValue(
+      EnsoMultiValue value,
+      @Cached TypeOfNode typesNode,
+      @Cached EnsoMultiValue.CastToNode castNode,
+      @Shared("hashCodeNode") @Cached HashCodeNode hashCodeNode) {
+    // multi value with single "has been cast to value"
+    // needs the same hash as the "has been cast to value"
+    // hence the sum has to start from 0L
+    var hash = 0L;
+    var types = typesNode.findAllTypesOrNull(value, false);
+    assert types != null;
+    for (var t : types) {
+      var v = castNode.findTypeOrNull(t, value, false, false);
+      assert v != null;
+      var vHash = hashCodeNode.execute(v);
+      // ordering of types in multivalue doesn't matter
+      // need commutative operation here
+      hash = hash + vHash;
+    }
+    return hash;
+  }
+
   @TruffleBoundary
   @Specialization(
       guards = {"interop.isString(selfStr)"},
@@ -616,7 +609,15 @@ public abstract class HashCodeNode extends Node {
     return 0;
   }
 
-  @Specialization(guards = "isJavaObject(hostObject)")
+  @Specialization(
+      guards = {
+        "isJavaObject(hostObject)",
+        "!interop.hasMembers(hostObject)",
+        "!interop.hasArrayElements(hostObject)",
+        "!interop.isTime(hostObject)",
+        "!interop.isDate(hostObject)",
+        "!interop.isTimeZone(hostObject)"
+      })
   long hashCodeForHostObject(
       Object hostObject, @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
     try {
@@ -659,5 +660,9 @@ public abstract class HashCodeNode extends Node {
 
   boolean isJavaFunction(Object object) {
     return EnsoContext.get(this).isJavaPolyglotFunction(object);
+  }
+
+  static boolean isMulti(Object obj) {
+    return obj instanceof EnsoMultiValue;
   }
 }

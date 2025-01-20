@@ -49,7 +49,9 @@ type Span
     start : Integer
     start self = self.range.start
 
-    ## The index of the first character after `start` that is _not_ included in
+    ## GROUP Metadata
+       ICON metadata
+       The index of the first character after `start` that is _not_ included in
        the span.
 
        ! What is a Character?
@@ -120,7 +122,9 @@ type Utf_16_Span
     start : Integer
     start self = self.range.start
 
-    ## The index of the first code unit after `start` that is _not_ included in
+    ## GROUP Metadata
+       ICON metadata
+       The index of the first code unit after `start` that is _not_ included in
        the span.
     end : Integer
     end self = self.range.end

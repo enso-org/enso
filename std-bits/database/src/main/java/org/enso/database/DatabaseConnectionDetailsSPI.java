@@ -1,11 +1,13 @@
 package org.enso.database;
 
-import java.util.ServiceLoader;
+import java.util.List;
+import org.enso.base.spi.EnsoService;
+import org.enso.base.spi.EnsoServiceLoader;
+import org.graalvm.polyglot.Value;
 
-public abstract class DatabaseConnectionDetailsSPI {
-  private static final ServiceLoader<DatabaseConnectionDetailsSPI> loader =
-      ServiceLoader.load(
-          DatabaseConnectionDetailsSPI.class, DatabaseConnectionDetailsSPI.class.getClassLoader());
+public abstract class DatabaseConnectionDetailsSPI extends EnsoService {
+  private static final EnsoServiceLoader<DatabaseConnectionDetailsSPI> loader =
+      EnsoServiceLoader.load(DatabaseConnectionDetailsSPI.class);
 
   /**
    * Returns an array of pairs, where the first element is the user facing connection name and the
@@ -16,22 +18,27 @@ public abstract class DatabaseConnectionDetailsSPI {
     if (refresh) {
       loader.reload();
     }
-    return loader.stream()
+    return loader.getProviders().stream()
         .map(
-            provider -> {
-              var spi = provider.get();
-              return new String[] {
-                spi.getUserFacingConnectionName(), spi.getCodeForDefaultConstructor()
-              };
-            })
+            provider ->
+                new String[] {
+                  provider.getUserFacingConnectionName(), provider.getCodeForDefaultConstructor()
+                })
         .toArray(String[][]::new);
   }
 
-  /** The module in which the connection details type is defined. */
-  protected abstract String getModuleName();
-
-  /** The name of the connection details type. */
-  protected abstract String getTypeName();
+  /**
+   * Returns an array of all the types that implement the `DatabaseConnectionDetailsSPI` interface.
+   *
+   * @param refresh whether to refresh the list of types
+   * @return a list of all the types that implement the `DatabaseConnectionDetailsSPI` interface
+   */
+  public static List<Value> get_types(boolean refresh) {
+    if (refresh) {
+      loader.reload();
+    }
+    return loader.getTypeObjects();
+  }
 
   /** Default code that can be used to construct a default instance of the connection details. */
   protected abstract String getCodeForDefaultConstructor();

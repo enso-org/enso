@@ -1,7 +1,6 @@
 package org.enso.projectmanager.service.validation
 
 import cats.MonadError
-import cats.implicits._
 import org.enso.pkg.validation.{InvalidNameError, NameValidation}
 import org.enso.projectmanager.service.validation.ModuleNameValidator.ValidationFailure
 
@@ -19,7 +18,8 @@ class ModuleNameValidator[F[_, _]](implicit
     M.fromEither {
       NameValidation
         .validateName(name)
-        .leftMap(toValidationFailure)
+        .left
+        .map(toValidationFailure)
         .map(_ => ())
     }
 

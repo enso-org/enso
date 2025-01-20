@@ -3,6 +3,7 @@ package org.enso.interpreter.runtime.data.hash;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
+import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -18,17 +19,21 @@ import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.PanicException;
 
 @BuiltinMethod(
-    type = "Map",
-    name = "insert",
+    type = "Dictionary",
+    name = "insert_builtin",
     description =
         """
         Returns newly created hash map with the given key value mapping.
-        """,
-    autoRegister = false)
+        """)
+@GenerateUncached
 public abstract class HashMapInsertNode extends Node {
 
   public static HashMapInsertNode build() {
     return HashMapInsertNodeGen.create();
+  }
+
+  public static HashMapInsertNode getUncached() {
+    return HashMapInsertNodeGen.getUncached();
   }
 
   public abstract EnsoHashMap execute(VirtualFrame frame, Object self, Object key, Object value);
@@ -41,6 +46,7 @@ public abstract class HashMapInsertNode extends Node {
       Object value,
       @Shared("hash") @Cached HashCodeNode hashCodeNode,
       @Shared("equals") @Cached EqualsNode equalsNode) {
+    assert value != null;
     var mapBuilder = hashMap.getMapBuilder(frame, false, hashCodeNode, equalsNode);
     mapBuilder.put(frame, key, value, hashCodeNode, equalsNode);
     var newMap = mapBuilder.build();
@@ -61,6 +67,7 @@ public abstract class HashMapInsertNode extends Node {
       @CachedLibrary(limit = "3") InteropLibrary iteratorInterop,
       @Shared("hash") @Cached HashCodeNode hashCodeNode,
       @Shared("equals") @Cached EqualsNode equalsNode) {
+    assert valueToInsert != null;
     var mapBuilder = EnsoHashMapBuilder.create();
     try {
       Object entriesIterator = mapInterop.getHashEntriesIterator(foreignMap);

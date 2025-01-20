@@ -30,9 +30,10 @@ public class CallableBenchmarks {
 from Standard.Base.Data.Numbers import all
 
 type Foo
+    Value v
 
 Foo.from (that : Number) current=0 =
-    if current == 0 then that else @Tail_Call Foo.from (that + current) (current - 1)
+    if current == 0 then (Foo.Value that) else @Tail_Call Foo.from (that + current) (current - 1)
 
 main = sumTo ->
     res = Foo.from 0 sumTo
@@ -89,7 +90,7 @@ main = sumTo ->
 
   @Benchmark
   public void benchSumTCOfromCall(Blackhole bh) {
-    var res = sumTCOfromCall.execute(HUNDRED_MILLION);
+    var res = sumTCOfromCall.execute(HUNDRED_MILLION).getMember("v");
     if (!res.fitsInLong()) {
       throw new AssertionError("Should return number");
     }

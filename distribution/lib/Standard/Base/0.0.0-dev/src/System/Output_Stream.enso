@@ -1,18 +1,23 @@
 import project.Any.Any
 import project.Data.Numbers.Integer
+import project.Data.Pair.Pair
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Extensions
 import project.Data.Vector.Vector
 import project.Errors.Encoding_Error.Encoding_Error
+import project.Errors.File_Error.File_Error
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Nothing.Nothing
 import project.Runtime.Managed_Resource.Managed_Resource
 import project.System.Input_Stream.Input_Stream
 from project.System.Input_Stream import close_stream
 
+polyglot java import java.io.ByteArrayOutputStream
 polyglot java import java.io.OutputStream as Java_Output_Stream
+polyglot java import org.enso.base.encoding.Encoding_Utils
 polyglot java import org.enso.base.encoding.ReportingStreamEncoder
-polyglot java import org.enso.base.Encoding_Utils
+polyglot java import org.enso.base.Stream_Utils
+polyglot java import org.enso.base.Stream_Utils.OutputStreamLike
 
 ## PRIVATE
    An output stream, allowing for interactive writing of contents.
@@ -28,13 +33,33 @@ type Output_Stream
         Output_Stream.Value resource error_handler
 
     ## PRIVATE
+       ADVANCED
+       Runs a given action with an output stream that writes to an in-memory
+       byte array.
+       This method can be used when the data will fit in memory and there is no
+       reason to use a backing file.
+
+       The method returns a pair of values: the byte array that was written to
+       and the return value of the `action` is discarded.
+
+       Arguments:
+       - action: A callback to run with the in-memory output stream.
+    with_memory_stream (action : Output_Stream -> Any) -> Pair Vector Any =
+        java_stream = ByteArrayOutputStream.new
+        output_stream = Output_Stream.new java_stream (File_Error.handle_java_exceptions Nothing)
+        action_result = action output_stream
+        action_result.if_not_error <|
+            bytes = Vector.from_polyglot_array java_stream.toByteArray
+            Pair.new bytes action_result
+
+    ## PRIVATE
        An output stream, allowing for interactive writing of contents.
 
        Arguments:
        - stream_resource: The internal resource that represents the underlying
          stream.
        - error_handler: An error handler for IOExceptions thrown when writing.
-    Value stream_resource error_handler
+    private Value stream_resource error_handler
 
     ## PRIVATE
        ADVANCED
@@ -43,7 +68,8 @@ type Output_Stream
        Arguments:
        - contents: A vector of bytes to write.
     write_bytes : Vector Integer -> Nothing
-    write_bytes self contents = self.stream_resource . with java_stream->
+    write_bytes self contents = self.stream_resource . with raw_stream->
+        java_stream = Stream_Utils.asOutputStream raw_stream
         self.error_handler <|
             java_stream.write contents
             java_stream.flush
@@ -57,7 +83,8 @@ type Output_Stream
        - input_stream: An Input_Stream to write to this stream.
     write_stream : Input_Stream -> Nothing
     write_stream self input_stream:Input_Stream =
-        self.stream_resource . with java_output_stream->
+        self.stream_resource . with raw_stream->
+            java_output_stream = Stream_Utils.asOutputStream raw_stream
             self.error_handler <|
                 input_stream.with_java_stream java_input_stream->
                     java_input_stream.transferTo java_output_stream
@@ -84,21 +111,23 @@ type Output_Stream
        Arguments:
        - f: Applies a function over the internal java stream.
     with_java_stream : (Java_Output_Stream -> Any) -> Any
-    with_java_stream self f = self.stream_resource . with f
+    with_java_stream self f = self.stream_resource . with raw_stream->
+         java_stream = Stream_Utils.asOutputStream raw_stream
+         f java_stream
 
     ## PRIVATE
        ADVANCED
        Runs an action with a `ReportingStreamEncoder` encoding data to the
        output stream with the specified encoding.
     with_stream_encoder : Encoding -> Problem_Behavior -> (ReportingStreamEncoder -> Any) -> Any
-    with_stream_encoder self encoding on_problems action = self.with_java_stream java_stream->
+    with_stream_encoder self encoding:Encoding on_problems:Problem_Behavior action = self.with_java_stream java_stream->
         ## We ignore any warnings raised by the `bytes` method, because if the
            original Unicode replacement character failed to encode, the `bytes`
            method will have replaced it with the simple `?` sign which should be
            available in all encodings. And this is exactly the behavior we want:
            if available, we use the `�` character and otherwise we fallback to
            the `?` character.
-        replacement_sequence = Encoding_Utils.INVALID_CHARACTER.bytes encoding on_problems=Problem_Behavior.Ignore
+        replacement_sequence = Encoding_Utils.INVALID_CHARACTER.bytes encoding on_problems=..Ignore
         java_charset = encoding.to_java_charset
         results = Encoding_Utils.with_stream_encoder java_stream java_charset replacement_sequence action
         problems = Vector.from_polyglot_array results.problems . map Encoding_Error.Error

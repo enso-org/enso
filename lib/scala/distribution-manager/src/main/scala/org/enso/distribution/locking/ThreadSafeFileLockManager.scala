@@ -35,7 +35,7 @@ import java.nio.file.Path
   */
 class ThreadSafeFileLockManager(locksRoot: Path) extends ThreadSafeLockManager {
   val fileLockManager = new FileLockManager(locksRoot)
-  val localLocks =
+  lazy val localLocks =
     collection.concurrent.TrieMap.empty[String, ThreadSafeLock]
 
   /** A thread-safe wrapper for a file lock - ensures that the process holds at

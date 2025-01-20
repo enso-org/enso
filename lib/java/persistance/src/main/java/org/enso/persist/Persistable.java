@@ -7,8 +7,8 @@ import java.lang.annotation.Target;
 /**
  * Annotation for an automatic persistance of a class. Use to generate implementation and
  * registration of {@link Persistance} subclass to read and write simple records and case classes:
- *
- * <p>{@snippet file="org/enso/persist/PersistanceTest.java" region="annotation"}
+ * <br>
+ * {@snippet file="org/enso/persist/PersistanceTest.java" region="annotation"}
  */
 @Target(ElementType.TYPE)
 @Repeatable(Persistable.Group.class)
@@ -17,13 +17,10 @@ public @interface Persistable {
   /**
    * The class to generate {@link Persistance} for. If the value is omitted then the code is
    * generated for the class that is annotated by this annotation. Example of multiple
-   * {@code @Persistable} annotations on a single element.
-   *
-   * <p>{@snippet file="org/enso/persist/PersistanceTest.java" region="annotation"}
-   *
-   * <p>Example of self annotated class:
-   *
-   * <p>{@snippet file="org/enso/persist/PersistanceTest.java" region="self-annotation"}
+   * {@code @Persistable} annotations on a single element. <br>
+   * {@snippet file="org/enso/persist/PersistanceTest.java" region="annotation"} <br>
+   * Example of self annotated class: <br>
+   * {@snippet file="org/enso/persist/PersistanceTest.java" region="self-annotation"}
    *
    * @return the class to generate read/write persistance code for
    */
@@ -39,11 +36,11 @@ public @interface Persistable {
   int id();
 
   /**
-   * Should the generated code use {@link Persistance.Output#writeInline(Class<T>, T)} or not. By
-   * default all {@code final} or <em>sealed</em> classes are inlined. Inlining is however not very
-   * helpful when a single object is shared between multiple other objects.
+   * Should the generated code use {@link Persistance.Output#writeInline} or not. By default all
+   * {@code final} or <em>sealed</em> classes are inlined. Inlining is however not very helpful when
+   * a single object is shared between multiple other objects.
    *
-   * @return
+   * @return allow or disallow inlining
    */
   boolean allowInlining() default true;
 

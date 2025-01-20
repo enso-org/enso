@@ -5,7 +5,7 @@ import org.enso.interpreter.test.{
   InterpreterException,
   InterpreterTest
 }
-import org.enso.polyglot.RuntimeOptions
+import org.enso.common.RuntimeOptions
 import org.graalvm.polyglot.Context
 
 class StrictCompileDiagnosticsTest extends InterpreterTest {
@@ -29,8 +29,8 @@ class StrictCompileDiagnosticsTest extends InterpreterTest {
           |    x = 5
           |    y = `
           |""".stripMargin.linesIterator.mkString("\n")
-      the[InterpreterException] thrownBy eval(code) should have message
-      "Compilation aborted due to errors."
+      val ex = the[InterpreterException] thrownBy eval(code)
+      ex.getMessage should include("Parentheses can't be empty")
 
       val errors = consumeOut
       errors

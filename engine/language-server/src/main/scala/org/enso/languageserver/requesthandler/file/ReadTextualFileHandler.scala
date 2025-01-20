@@ -9,6 +9,10 @@ import org.enso.languageserver.filemanager.{
 }
 import org.enso.languageserver.filemanager.FileManagerApi.ReadFile
 import org.enso.languageserver.requesthandler.RequestTimeout
+import org.enso.languageserver.text.TextProtocol.{
+  ReadCollaborativeBuffer,
+  ReadCollaborativeBufferResult
+}
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.logger.masking.MaskedString
 
@@ -16,6 +20,7 @@ import scala.concurrent.duration.FiniteDuration
 
 class ReadTextualFileHandler(
   requestTimeout: FiniteDuration,
+  bufferRegistry: ActorRef,
   fileManager: ActorRef
 ) extends Actor
     with LazyLogging
@@ -27,10 +32,53 @@ class ReadTextualFileHandler(
 
   private def requestStage: Receive = {
     case Request(ReadFile, id, params: ReadFile.Params) =>
+      bufferRegistry ! ReadCollaborativeBuffer(params.path)
+      val cancellable = context.system.scheduler
+        .scheduleOnce(requestTimeout, self, RequestTimeout)
+      context.become(requestBufferStage(id, sender(), cancellable, params))
+  }
+
+  private def requestBufferStage(
+    id: Id,
+    replyTo: ActorRef,
+    cancellable: Cancellable,
+    params: ReadFile.Params
+  ): Receive = {
+    case Status.Failure(ex) =>
+      logger.error(
+        "Failure during [{}] operation: {}",
+        ReadFile,
+        MaskedString(ex.getMessage)
+      )
+      replyTo ! ResponseError(Some(id), Errors.ServiceError)
+      cancellable.cancel()
+      context.stop(self)
+
+    case RequestTimeout =>
+      logger.warn(
+        "Read collaborative buffer timed out. " +
+        "Falling back to reading file contents."
+      )
       fileManager ! FileManagerProtocol.ReadFile(params.path)
       val cancellable = context.system.scheduler
         .scheduleOnce(requestTimeout, self, RequestTimeout)
-      context.become(responseStage(id, sender(), cancellable))
+      context.become(responseStage(id, replyTo, cancellable))
+
+    case ReadCollaborativeBufferResult(None) =>
+      cancellable.cancel()
+      fileManager ! FileManagerProtocol.ReadFile(params.path)
+      val newCancellable = context.system.scheduler
+        .scheduleOnce(requestTimeout, self, RequestTimeout)
+      context.become(responseStage(id, replyTo, newCancellable))
+
+    case ReadCollaborativeBufferResult(Some(buffer)) =>
+      replyTo ! ResponseResult(
+        ReadFile,
+        id,
+        ReadFile.Result(buffer.contents.toString)
+      )
+      cancellable.cancel()
+      context.stop(self)
   }
 
   private def responseStage(
@@ -70,7 +118,11 @@ class ReadTextualFileHandler(
 
 object ReadTextualFileHandler {
 
-  def props(timeout: FiniteDuration, fileManager: ActorRef): Props =
-    Props(new ReadTextualFileHandler(timeout, fileManager))
+  def props(
+    timeout: FiniteDuration,
+    bufferRegistry: ActorRef,
+    fileManager: ActorRef
+  ): Props =
+    Props(new ReadTextualFileHandler(timeout, bufferRegistry, fileManager))
 
 }

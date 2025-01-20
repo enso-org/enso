@@ -1,9 +1,12 @@
 package org.enso.compiler.pass.analyse
 
+import org.enso.common.CachePreferences
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.core.ir.CallArgument.Specified
 import org.enso.compiler.core.{CompilerError, ExternalID}
 import org.enso.compiler.core.ir.{
+  CallArgument,
   DefinitionArgument,
   Expression,
   Module,
@@ -12,40 +15,34 @@ import org.enso.compiler.core.ir.{
 }
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
-import org.enso.compiler.core.ir.expression.{Comment, Error}
+import org.enso.compiler.core.ir.expression.{Application, Comment, Error}
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.IRProcessingPass
 import org.enso.compiler.pass.desugar._
 
-import java.util
 import java.util.UUID
-import scala.collection.mutable
-import scala.jdk.CollectionConverters._
 
 /** This pass implements the preference analysis for caching.
   *
-  * The pass assigns weights to the expressions. The greater the weight, the
-  * more preferable the expression for caching.
-  *
-  * Weights:
-  *
-  *   - `1` - Right hand side expressions
+  * The pass assigns preferences to the expressions. To mark the expression for
+  * caching, it should be added to the [[CachePreferences]] configuration.
   */
 case object CachePreferenceAnalysis extends IRPass {
 
   override type Metadata = WeightInfo
 
   /** Run desugaring passes first. */
-  override lazy val precursorPasses: Seq[IRPass] = List(
+  override lazy val precursorPasses: Seq[IRProcessingPass] = List(
     ComplexType,
     FunctionBinding,
     GenerateMethodBodies,
     LambdaShorthandToLambda,
     OperatorToFunction,
-    SectionsToBinOp
+    SectionsToBinOp.INSTANCE
   )
 
-  override lazy val invalidatedPasses: Seq[IRPass] = List()
+  override lazy val invalidatedPasses: Seq[IRProcessingPass] = List()
 
   /** Performs the cache preference analysis on a module.
     *
@@ -140,9 +137,8 @@ case object CachePreferenceAnalysis extends IRPass {
   ): Expression = {
     expression.transformExpressions {
       case binding: Expression.Binding =>
-        binding.getExternalId.foreach(weights.update(_, Weight.Never))
         binding.expression.getExternalId
-          .foreach(weights.update(_, Weight.Always))
+          .foreach(weights.update(_, CachePreferences.Kind.BINDING_EXPRESSION))
         binding
           .copy(
             name       = binding.name.updateMetadata(new MetadataPair(this, weights)),
@@ -151,13 +147,33 @@ case object CachePreferenceAnalysis extends IRPass {
           .updateMetadata(new MetadataPair(this, weights))
       case error: Error =>
         error
-      case expr =>
-        expr.getExternalId.collect {
-          case id if !weights.contains(id) => weights.update(id, Weight.Never)
+      case app: Application.Prefix =>
+        app.arguments match {
+          case self :: rest =>
+            val newSelf = analyseSelfCallArgument(self, weights)
+            app.copy(arguments = newSelf :: rest)
+          case _ =>
+            app
         }
+      case expr =>
         expr
           .mapExpressions(analyseExpression(_, weights))
           .updateMetadata(new MetadataPair(this, weights))
+    }
+  }
+
+  private def analyseSelfCallArgument(
+    callArgument: CallArgument,
+    weights: WeightInfo
+  ): CallArgument = {
+    callArgument.value.getExternalId
+      .foreach(weights.update(_, CachePreferences.Kind.SELF_ARGUMENT))
+    callArgument match {
+      case arg: Specified =>
+        arg.copy(value =
+          analyseExpression(arg.value, weights)
+            .updateMetadata(new MetadataPair(this, weights))
+        )
     }
   }
 
@@ -172,7 +188,7 @@ case object CachePreferenceAnalysis extends IRPass {
     weights: WeightInfo
   ): DefinitionArgument = {
     argument match {
-      case spec @ DefinitionArgument.Specified(_, _, defValue, _, _, _, _) =>
+      case spec @ DefinitionArgument.Specified(_, _, defValue, _, _, _) =>
         spec
           .copy(defaultValue = defValue.map(analyseExpression(_, weights)))
           .updateMetadata(new MetadataPair(this, weights))
@@ -186,7 +202,7 @@ case object CachePreferenceAnalysis extends IRPass {
     * @param weights the storage for weights of the program components
     */
   sealed case class WeightInfo(
-    weights: mutable.HashMap[UUID @ExternalID, Double] = mutable.HashMap()
+    preferences: CachePreferences = CachePreferences.empty()
   ) extends IRPass.IRMetadata {
 
     /** The name of the metadata as a string. */
@@ -203,35 +219,13 @@ case object CachePreferenceAnalysis extends IRPass {
     /** Assign the weight to an id.
       *
       * @param id the external id
-      * @param weight the assigned weight
+      * @param kind the assigned expression kind
       */
-    def update(id: UUID @ExternalID, weight: Double): Unit =
-      weights.put(id, weight)
+    def update(id: UUID @ExternalID, kind: CachePreferences.Kind): Unit =
+      preferences.set(id, kind)
 
-    /** Get the weight associated with given id */
-    def get(id: UUID @ExternalID): Double =
-      weights.getOrElse(id, Weight.Never)
-
-    /** Check if the weight is assigned to this id. */
-    def contains(id: UUID @ExternalID): Boolean =
-      weights.contains(id)
-
-    /** @return weights as the Java collection */
-    def asJavaWeights: util.Map[UUID @ExternalID, java.lang.Double] =
-      weights.asJava
-        .asInstanceOf[util.Map[UUID @ExternalID, java.lang.Double]]
-
-    override def duplicate(): Option[IRPass.IRMetadata] =
-      Some(copy(weights = this.weights))
-  }
-
-  /** Weight constants */
-  object Weight {
-
-    /** Maximum weight meaning that the program component is always cached. */
-    val Always: Double = 1.0
-
-    /** Minimum weight meaning that the program component is never cached. */
-    val Never: Double = 0.0
+    override def duplicate(): Option[IRPass.IRMetadata] = {
+      Some(copy(preferences = this.preferences.copy()))
+    }
   }
 }

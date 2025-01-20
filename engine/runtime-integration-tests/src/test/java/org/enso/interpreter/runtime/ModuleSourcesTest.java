@@ -6,9 +6,9 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.logging.Level;
-import org.enso.polyglot.LanguageInfo;
-import org.enso.polyglot.MethodNames;
-import org.enso.polyglot.RuntimeOptions;
+import org.enso.common.LanguageInfo;
+import org.enso.common.MethodNames;
+import org.enso.common.RuntimeOptions;
 import org.enso.text.buffer.Rope$;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Engine;
@@ -42,6 +42,7 @@ public class ModuleSourcesTest {
   public void cleanup() {
     f.delete();
     this.ctx.close();
+    this.ctx = null;
   }
 
   @Test

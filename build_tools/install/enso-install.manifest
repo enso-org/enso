@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0" xmlns:asmv3="urn:schemas-microsoft-com:asm.v3">
+    <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
+        <security>
+            <requestedPrivileges>
+                <requestedExecutionLevel level="asInvoker" uiAccess="false"/>
+            </requestedPrivileges>
+        </security>
+    </trustInfo>
+    <assemblyIdentity
+        version="1.0.0.0"
+        processorArchitecture="*"
+        name="app"
+        type="win32"
+    />
+    <asmv3:application>
+        <asmv3:windowsSettings xmlns="http://schemas.microsoft.com/SMI/2019/WindowsSettings">
+            <activeCodePage>UTF-8</activeCodePage>
+        </asmv3:windowsSettings>
+    </asmv3:application>
+    <asmv3:application>
+        <asmv3:windowsSettings xmlns:ws2="http://schemas.microsoft.com/SMI/2016/WindowsSettings">
+            <ws2:longPathAware>true</ws2:longPathAware>
+        </asmv3:windowsSettings>
+    </asmv3:application>
+    <dependency>
+        <dependentAssembly>
+            <!-- Needed for GetWindowSubclass entry point, see https://github.com/gabdube/native-windows-gui/issues/251. -->
+            <assemblyIdentity
+                type="win32"
+                name="Microsoft.Windows.Common-Controls"
+                version="6.0.0.0"
+                processorArchitecture="*"
+                publicKeyToken="6595b64144ccf1df"
+                language="*"
+            />
+        </dependentAssembly>
+    </dependency>
+</assembly>

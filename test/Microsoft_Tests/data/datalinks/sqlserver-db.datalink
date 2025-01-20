@@ -1,0 +1,11 @@
+{
+  "type": "SQLServer_Connection",
+  "libraryName": "Standard.Microsoft",
+  "host": "HOSTNAME",
+  "port": 12345,
+  "database_name": "DBNAME",
+  "credentials": {
+    "username": "USERNAME",
+    "password": "PASSWORD"
+  }
+}

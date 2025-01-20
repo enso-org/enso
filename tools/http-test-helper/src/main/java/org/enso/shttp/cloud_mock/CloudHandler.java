@@ -2,6 +2,7 @@ package org.enso.shttp.cloud_mock;
 
 import com.sun.net.httpserver.HttpExchange;
 import java.io.IOException;
+import org.enso.shttp.HttpMethod;
 
 public interface CloudHandler {
   boolean canHandle(String subPath);
@@ -15,6 +16,10 @@ public interface CloudHandler {
 
     void sendResponse(int code, String response) throws IOException;
 
+    void sendEmptyResponse(int code) throws IOException;
+
     String decodeBodyAsText() throws IOException;
+
+    HttpMethod getMethod();
   }
 }

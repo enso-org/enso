@@ -2,8 +2,8 @@ package org.enso.interpreter.arrow.runtime;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.Fallback;
-import com.oracle.truffle.api.dsl.ImportStatic;
+import com.oracle.truffle.api.dsl.GenerateInline;
+import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
@@ -11,10 +11,11 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.arrow.LogicalLayout;
 
 @ExportLibrary(InteropLibrary.class)
-public class ArrowFixedSizeArrayFactory implements TruffleObject {
+public final class ArrowFixedSizeArrayFactory implements TruffleObject {
 
   private final LogicalLayout logicalLayout;
 
@@ -23,7 +24,7 @@ public class ArrowFixedSizeArrayFactory implements TruffleObject {
   }
 
   @ExportMessage
-  public boolean isInstantiable() {
+  boolean isInstantiable() {
     return true;
   }
 
@@ -32,79 +33,36 @@ public class ArrowFixedSizeArrayFactory implements TruffleObject {
   }
 
   @ExportMessage
-  @ImportStatic(LogicalLayout.class)
-  static class Instantiate {
-    @Specialization(guards = "receiver.getLayout() == Date32")
-    static Object doDate32(
-        ArrowFixedSizeArrayFactory receiver,
-        Object[] args,
-        @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop)
-        throws UnsupportedMessageException {
-      return new ArrowFixedSizeArrayBuilder(arraySize(args, iop), receiver.logicalLayout);
-    }
+  ArrowFixedSizeArrayBuilder instantiate(
+      Object[] args,
+      @Cached InstantiateNode instantiate,
+      @CachedLibrary(limit = "1") InteropLibrary iop)
+      throws UnsupportedMessageException {
+    var size = arraySize(args, iop);
+    return instantiate.allocateBuilder(logicalLayout, size);
+  }
 
-    @Specialization(guards = "receiver.getLayout() == Date64")
-    static Object doDate64(
-        ArrowFixedSizeArrayFactory receiver,
-        Object[] args,
-        @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop)
-        throws UnsupportedMessageException {
-      return new ArrowFixedSizeArrayBuilder(arraySize(args, iop), receiver.logicalLayout);
+  private static int arraySize(Object[] args, InteropLibrary interop)
+      throws UnsupportedMessageException {
+    if (args.length != 1 || !interop.isNumber(args[0]) || !interop.fitsInInt(args[0])) {
+      throw UnsupportedMessageException.create();
     }
+    return interop.asInt(args[0]);
+  }
 
-    @Specialization(guards = "receiver.getLayout() == Int8")
-    static Object doInt8(
-        ArrowFixedSizeArrayFactory receiver,
-        Object[] args,
-        @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop)
-        throws UnsupportedMessageException {
-      return new ArrowFixedSizeArrayBuilder(arraySize(args, iop), receiver.logicalLayout);
-    }
+  @GenerateUncached
+  @GenerateInline(false)
+  abstract static class InstantiateNode extends Node {
+    abstract ArrowFixedSizeArrayBuilder executeNew(LogicalLayout logicalLayout, long size);
 
-    @Specialization(guards = "receiver.getLayout() == Int16")
-    static Object doInt16(
-        ArrowFixedSizeArrayFactory receiver,
-        Object[] args,
-        @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop)
-        throws UnsupportedMessageException {
-      return new ArrowFixedSizeArrayBuilder(arraySize(args, iop), receiver.logicalLayout);
-    }
-
-    @Specialization(guards = "receiver.getLayout() == Int32")
-    static Object doInt32(
-        ArrowFixedSizeArrayFactory receiver,
-        Object[] args,
-        @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop)
-        throws UnsupportedMessageException {
-      return new ArrowFixedSizeArrayBuilder(arraySize(args, iop), receiver.logicalLayout);
-    }
-
-    @Specialization(guards = "receiver.getLayout() == Int64")
-    static Object doInt64(
-        ArrowFixedSizeArrayFactory receiver,
-        Object[] args,
-        @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop)
-        throws UnsupportedMessageException {
-      return new ArrowFixedSizeArrayBuilder(arraySize(args, iop), receiver.logicalLayout);
-    }
-
-    @CompilerDirectives.TruffleBoundary
-    private static int arraySize(Object[] args, InteropLibrary interop)
-        throws UnsupportedMessageException {
-      if (args.length != 1 || !interop.isNumber(args[0]) || !interop.fitsInInt(args[0])) {
-        throw UnsupportedMessageException.create();
+    @Specialization
+    final ArrowFixedSizeArrayBuilder allocateBuilder(LogicalLayout logicalLayout, long size) {
+      try {
+        return new ArrowFixedSizeArrayBuilder(Math.toIntExact(size), logicalLayout);
+      } catch (ArithmeticException ex) {
+        CompilerDirectives.transferToInterpreter();
+        throw ex;
       }
-      return interop.asInt(args[0]);
-    }
-
-    @Fallback
-    static Object doOther(ArrowFixedSizeArrayFactory receiver, Object[] args) {
-      throw CompilerDirectives.shouldNotReachHere(unknownLayoutMessage(receiver.getLayout()));
-    }
-
-    @CompilerDirectives.TruffleBoundary
-    private static String unknownLayoutMessage(SizeInBytes layout) {
-      return "unknown layout: " + layout.toString();
     }
   }
 }

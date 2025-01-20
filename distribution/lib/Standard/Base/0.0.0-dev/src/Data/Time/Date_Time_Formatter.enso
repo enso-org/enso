@@ -41,7 +41,8 @@ type Date_Time_Formatter
        Pattern characters are interpreted case insensitively, with the exception
        of `M/m' and 'H/h'.
 
-       Date pattern characters:
+       ? Date pattern characters
+
        - y: Year. The number of pattern letters determines the minimum number of
          digits.
          - y: The year using any number of digits.
@@ -69,7 +70,8 @@ type Date_Time_Formatter
          If only year and quarter are provided in the pattern, when parsing a
          date, the result will be the first day of that quarter.
 
-       Time pattern characters:
+       ? Time pattern characters
+
        - H: 24h hour of day (0-23).
        - h: 12h hour of day (0-12). The `a` pattern is needed to disambiguate
          between AM and PM.
@@ -80,7 +82,8 @@ type Date_Time_Formatter
          digits will be accepted.
        - a: AM/PM marker.
 
-       Time zone pattern characters:
+       ? Time zone pattern characters
+
        - T: If repeated 3 or less times - Time zone ID (e.g. Europe/Warsaw, Z,
          -08:30), otherwise - Time zone name (e.g. Central European Time, CET).
        - Z: Zone offset.

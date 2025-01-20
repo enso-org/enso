@@ -2,8 +2,9 @@ package org.enso.interpreter.bench.benchmarks.semantic;
 
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import org.enso.common.MethodNames.Module;
 import org.enso.compiler.benchmarks.Utils;
-import org.enso.polyglot.MethodNames.Module;
+import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -14,6 +15,7 @@ import org.openjdk.jmh.annotations.OutputTimeUnit;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.BenchmarkParams;
 import org.openjdk.jmh.infra.Blackhole;
@@ -28,13 +30,15 @@ public class TypePatternBenchmarks {
   private Value patternMatch;
   private Value avg;
   private Value vec;
+  private Context ctx;
 
   @Setup
   public void initializeBenchmark(BenchmarkParams params) throws Exception {
-    var ctx = Utils.createDefaultContextBuilder().build();
+    ctx = Utils.createDefaultContextBuilder().build();
     var code =
         """
         from Standard.Base import Integer, Vector, Any, Float
+        import Standard.Base.Data.Vector.Builder
 
         avg arr =
             sum acc i = if i == arr.length then acc else
@@ -45,7 +49,7 @@ public class TypePatternBenchmarks {
             avg (arr.map (pattern _))
 
         gen_vec size value =
-            b = Vector.new_builder size
+            b = Builder.new size
             b.append value
             b.append value
             add_more n = if n == size then b else
@@ -73,6 +77,11 @@ public class TypePatternBenchmarks {
       default -> throw new IllegalStateException("Unexpected benchmark: " + params.getBenchmark());
     }
     this.avg = getMethod.apply("avg_pattern");
+  }
+
+  @TearDown
+  public void tearDown() {
+    ctx.close();
   }
 
   /**

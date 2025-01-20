@@ -39,7 +39,7 @@ DNS.2 = $pgipaddress
 EOF
 
 docker build --build-arg host_name=${pghostname} -t postgres-ssl .
-docker run -d --name postgres-ssl -p 5432:5432 -e POSTGRES_PASSWORD=$ENSO_DATABASE_TEST_DB_PASSWORD postgres-ssl
+docker run -d --name postgres-ssl -p 5432:5432 -e POSTGRES_PASSWORD=$ENSO_POSTGRES_PASSWORD postgres-ssl
 docker cp postgres-ssl:/openssl/rootCA.crt ../../data/transient/rootCA.crt
 
 rm csr.conf

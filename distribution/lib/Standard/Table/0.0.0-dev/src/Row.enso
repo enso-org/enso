@@ -22,23 +22,24 @@ type Row
     length self = self.table.columns.length
 
     ## GROUP Standard.Base.Selections
-       ICON select_row
+       ICON parse3
        Gets the value of the specified column.
 
        Arguments:
        - column: The name or index of the column being looked up.
     @column (self -> Widget_Helpers.make_column_name_selector self.table)
     at : (Integer | Text) -> Any
-    at self column = self.table.at column . at self.index
+    at self (column:(Integer | Text)=0) = self.table.at column . at self.index
 
-    ## Gets the value of the specified column.
+    ## ICON parse3
+       Gets the value of the specified column.
 
        Arguments:
        - column: The name or index of the column being looked up.
        - if_missing: The value to use if the column isn't present.
     @column (self -> Widget_Helpers.make_column_name_selector self.table)
     get : (Integer | Text) -> Any -> Any
-    get self column ~if_missing=Nothing =
+    get self (column:(Integer | Text)=0) ~if_missing=Nothing =
         table_column = self.table.get column
         case table_column of
             Nothing -> if_missing
@@ -52,11 +53,11 @@ type Row
 
     ## GROUP Standard.Base.Conversions
        ICON convert
-       Gets the row as a Map.
-    to_map : Map
-    to_map self =
+       Gets the row as a Dictionary.
+    to_dictionary : Dictionary
+    to_dictionary self =
         pairs = self.table.column_names.map n-> [n, self.get n]
-        Map.from_vector pairs
+        Dictionary.from_vector pairs
 
     ## PRIVATE
        Converts this row into a JS_Object.

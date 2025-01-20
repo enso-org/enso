@@ -4,7 +4,6 @@ import com.ibm.icu.text.Normalizer2;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.strings.TruffleString;
@@ -15,17 +14,14 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
-import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.data.EnsoObject;
-import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.enso.interpreter.runtime.builtin.BuiltinObject;
 import org.enso.polyglot.common_utils.Core_Text_Utils;
 
 /** The main runtime type for Enso's Text. */
 @ExportLibrary(InteropLibrary.class)
-@ExportLibrary(TypesLibrary.class)
-public final class Text implements EnsoObject {
+public final class Text extends BuiltinObject {
   private static final Lock LOCK = new ReentrantLock();
+  private static final Text EMPTY = new Text("");
   private volatile Object contents;
   private volatile int length = -1;
   private volatile FcdNormalized fcdNormalized = FcdNormalized.UNKNOWN;
@@ -37,11 +33,18 @@ public final class Text implements EnsoObject {
   }
 
   private Text(String string) {
+    assert string != null;
     this.contents = string;
   }
 
   private Text(ConcatRope contents) {
+    assert contents != null;
     this.contents = contents;
+  }
+
+  @Override
+  protected String builtinName() {
+    return "Text";
   }
 
   @Builtin.Method(
@@ -95,6 +98,10 @@ public final class Text implements EnsoObject {
       }
     }
     return false;
+  }
+
+  public static Text empty() {
+    return EMPTY;
   }
 
   /**
@@ -191,6 +198,12 @@ public final class Text implements EnsoObject {
     return Core_Text_Utils.computeGraphemeLength(toString());
   }
 
+  @Override
+  @ExportMessage.Ignore
+  public Object toDisplayString(boolean allowSideEffects) {
+    return toDisplayString(allowSideEffects, ToJavaStringNode.getUncached());
+  }
+
   @CompilerDirectives.TruffleBoundary
   @ExportMessage
   String toDisplayString(
@@ -198,16 +211,6 @@ public final class Text implements EnsoObject {
       @Cached("build()") @Cached.Shared("strings") ToJavaStringNode toJavaStringNode) {
     String str = toJavaStringNode.execute(this);
     return Core_Text_Utils.prettyPrint(str);
-  }
-
-  @ExportMessage
-  Type getMetaObject(@CachedLibrary("this") InteropLibrary thisLib) {
-    return EnsoContext.get(thisLib).getBuiltins().text();
-  }
-
-  @ExportMessage
-  boolean hasMetaObject() {
-    return true;
   }
 
   private void setContents(String contents) {
@@ -231,16 +234,6 @@ public final class Text implements EnsoObject {
     } else {
       return flattenIfNecessary(this);
     }
-  }
-
-  @ExportMessage
-  boolean hasType() {
-    return true;
-  }
-
-  @ExportMessage
-  Type getType(@CachedLibrary("this") TypesLibrary thisLib, @Cached(value = "1") int ignore) {
-    return EnsoContext.get(thisLib).getBuiltins().text();
   }
 
   /**
@@ -278,5 +271,22 @@ public final class Text implements EnsoObject {
       LOCK.unlock();
     }
     return result;
+  }
+
+  @Override
+  public int hashCode() {
+    int hash = 7 * toString().hashCode();
+    return hash;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj instanceof Text other) {
+      return this.toString().equals(other.toString());
+    }
+    return false;
   }
 }

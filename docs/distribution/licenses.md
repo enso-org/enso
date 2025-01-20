@@ -37,9 +37,9 @@ sources to gather copyright information related to the used dependencies.
 To configure the task, `GatherLicenses.distributions` should be set with
 sequence of distributions. Each distribution describes one component that is
 distributed separately and should include all references to all projects that
-are included as part of its distribution. Currently, we have the `launcher`
-distribution that consists of one `launcher` component and the `engine`
-distribution which includes `runtime`, `engine-runner` and `project-manager`.
+are included as part of its distribution. Currently we have three main
+distrbutions (`launcher`, `engine`, and `project-manager`), as well as
+distributions for many of the major components of the standard library.
 
 Another relevant setting is `GatherLicenses.licenseConfigurations` which defines
 which `ivy` configurations are considered to search for dependencies. Currently

@@ -6,11 +6,14 @@ package org.enso.runtimeversionmanager.runner
   *                           instead of the default JVM provided with the
   *                           release; it can be an absolute path to a java
   *                           executable
-  * @param jvmOptions options that should be added to the launched JVM
+  * @param jvmOptions options that should be added to the launched JVM, will be prefixed with `-D`
+  * @param extraOptions extra options that should be added to the launched JVM
   */
 case class JVMSettings(
-  javaCommandOverride: Option[JavaCommand],
-  jvmOptions: Seq[(String, String)]
+  javaCommandOverride: Option[JavaExecCommand],
+  jvmOptions: Seq[(String, String)],
+  extraOptions: Seq[(String, String)],
+  nativeImage: Boolean
 )
 
 object JVMSettings {
@@ -19,20 +22,50 @@ object JVMSettings {
     *
     * @param useSystemJVM if set, the system configured JVM is used instead of
     *                     the one managed by the launcher
-    * @param jvmOptions options that should be added to the launched JVM
+    * @param jvmOptions   options that should be added to the launched JVM, will be prefixed with `-D`
+    * @param extraOptions extra options that should be added to the launched JVM
     */
   def apply(
     useSystemJVM: Boolean,
-    jvmOptions: Seq[(String, String)]
+    jvmOptions: Seq[(String, String)],
+    extraOptions: Seq[(String, String)],
+    nativeImage: Boolean = false
   ): JVMSettings =
     new JVMSettings(
-      if (useSystemJVM) Some(JavaCommand.systemJavaCommand) else None,
-      jvmOptions
+      if (useSystemJVM) Some(JavaExecCommand.defaultSystem) else None,
+      jvmOptions,
+      extraOptions,
+      nativeImage
     )
+
+  // See propositions in #9475 for alternatives
+  private val nioOpen: (String, String) =
+    ("add-opens", "java.base/java.nio=ALL-UNNAMED")
 
   /** Creates a default instance of [[JVMSettings]] that just use the default
     * JVM with no options overrides.
     */
-  def default: JVMSettings =
-    JVMSettings(useSystemJVM = false, jvmOptions = Seq())
+  def default: JVMSettings = {
+    val jvmOptions = Seq.newBuilder[(String, String)]
+    val concurrencyConfigs = Seq(
+      "scala.concurrent.context.minThreads",
+      "scala.concurrent.context.numThreads",
+      "scala.concurrent.context.maxThreads"
+    )
+    concurrencyConfigs.flatMap(jvmOptionIfSet).foreach(jvmOptions.addOne)
+    JVMSettings(
+      useSystemJVM = false,
+      jvmOptions   = jvmOptions.result(),
+      extraOptions = Seq(nioOpen),
+      nativeImage  = false
+    )
+  }
+
+  private def jvmOptionIfSet(name: String): Option[(String, String)] = {
+    val propertyValue = System.getProperty(name)
+    if (propertyValue != null && !propertyValue.isEmpty)
+      Some((name, propertyValue))
+    else None
+  }
+
 }

@@ -17,11 +17,20 @@ class VisualizationHolder {
   /** Upserts a visualization.
     *
     * @param visualization the visualization to upsert
+    * @param specificId UUID to attach visualization to
     */
-  def upsert(visualization: Visualization): Unit = {
-    val visualizations = visualizationMap(visualization.expressionId)
+  def upsert(
+    visualization: Visualization,
+    specificId: ExpressionId = null
+  ): Unit = {
+    val id = if (specificId == null) {
+      visualization.expressionId
+    } else {
+      specificId
+    }
+    val visualizations = visualizationMap(id)
     val rest           = visualizations.filterNot(_.id == visualization.id)
-    visualizationMap.update(visualization.expressionId, visualization :: rest)
+    visualizationMap.update(id, visualization :: rest)
   }
 
   /** Removes a visualization from the holder.

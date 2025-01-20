@@ -1,0 +1,10 @@
+private
+
+## PRIVATE
+   The recommended batch size seems to be between 50 and 100.
+   See: https://docs.oracle.com/cd/E18283_01/java.112/e16548/oraperf.htm#:~:text=batch%20sizes%20in%20the%20general%20range%20of%2050%20to%20100
+default_batch_size = 100
+
+## PRIVATE
+   The maximum number of rows that will be used for the operation in dry run mode.
+dry_run_row_limit = 1000

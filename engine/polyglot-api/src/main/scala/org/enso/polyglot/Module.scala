@@ -7,7 +7,7 @@ import org.graalvm.polyglot.Value
   * @param value the polyglot value of this scope
   */
 class Module(private val value: Value) {
-  import MethodNames.Module._
+  import org.enso.common.MethodNames.Module._
 
   /** @return the name of the module
     */

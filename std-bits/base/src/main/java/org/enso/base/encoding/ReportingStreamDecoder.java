@@ -1,19 +1,17 @@
 package org.enso.base.encoding;
 
-import static org.enso.base.Encoding_Utils.INVALID_CHARACTER;
+import static org.enso.base.encoding.Encoding_Utils.INVALID_CHARACTER;
 
-import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
+import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CoderResult;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
-import org.enso.base.Encoding_Utils;
+import java.nio.charset.CodingErrorAction;
+import org.graalvm.polyglot.Context;
 
 /**
  * A {@code Reader} which takes an {@code InputStream} and decodes it using a provided {@code
@@ -26,13 +24,63 @@ import org.enso.base.Encoding_Utils;
  * then return a bulk report of places where the issues have been encountered.
  */
 public class ReportingStreamDecoder extends Reader {
-  public ReportingStreamDecoder(InputStream stream, CharsetDecoder decoder) {
-    bufferedInputStream = new BufferedInputStream(stream);
-    this.decoder = decoder;
+  private final DecodingProblemAggregator problemAggregator;
+
+  float averageCharsPerByte() {
+    return decoder.averageCharsPerByte();
   }
 
-  private final BufferedInputStream bufferedInputStream;
+  private final InputStream inputStream;
   private final CharsetDecoder decoder;
+  private final Charset charset;
+
+  public Charset getCharset() {
+    return charset;
+  }
+
+  public ReportingStreamDecoder(
+      InputStream stream,
+      Charset charset,
+      DecodingProblemAggregator problemAggregator,
+      boolean pollSafepoints) {
+    inputStream = stream;
+    this.charset = charset;
+    this.decoder =
+        charset
+            .newDecoder()
+            .onMalformedInput(CodingErrorAction.REPORT)
+            .onUnmappableCharacter(CodingErrorAction.REPORT)
+            .reset();
+    this.problemAggregator = problemAggregator;
+    this.pollSafepoints = pollSafepoints;
+  }
+
+  /** Decodes the entire input stream into a String. */
+  public String readAllIntoMemory() throws IOException {
+    int initialCapacity = Math.max((int) (inputStream.available() * averageCharsPerByte()), 16);
+    CharBuffer out = CharBuffer.allocate(initialCapacity);
+    int n;
+    do {
+      if (!out.hasRemaining()) {
+        out = Encoding_Utils.resize(out, CharBuffer::allocate, CharBuffer::put);
+      }
+      // read is already polling safepoints so we don't have to
+      n = this.read(out);
+    } while (n >= 0);
+
+    out.flip();
+    return out.toString();
+  }
+
+  /**
+   * Currently there is no easy way to check if a Context is available in the current thread and we
+   * can use safepoints or not. The issue tracking this feature can be found at: <a
+   * href="https://github.com/oracle/graal/issues/6931">oracle/graal#6931</a>. For the time being we
+   * just manually let the user consciously choose if safepoints shall be enabled or not, based on
+   * the user's knowledge if the thread running the decoding will run on the main thread or in the
+   * background.
+   */
+  private final boolean pollSafepoints;
 
   /**
    * The buffer keeping any characters that have already been decoded, but not consumed by the user
@@ -80,14 +128,28 @@ public class ReportingStreamDecoder extends Reader {
   private boolean hadEofDecodeCall = false;
 
   /**
-   * A list of positions containing encoding issues like malformed characters.
+   * Our read method tries to read as many characters as requested by the user.
    *
-   * <p>Used for reporting warnings.
+   * <p>Unless user specifically asks for `len == 0`, it will never return 0 otherwise - it will
+   * either return a positive number of characters read, or -1 if EOF was reached.
    */
-  List<Integer> encodingIssuePositions = new ArrayList<>();
-
   @Override
   public int read(char[] cbuf, int off, int len) throws IOException {
+    if (off < 0) {
+      throw new IndexOutOfBoundsException("read: off < 0");
+    }
+    if (len < 0) {
+      throw new IndexOutOfBoundsException("read: len < 0");
+    }
+    if (off + len > cbuf.length) {
+      throw new IndexOutOfBoundsException("read: off + len > cbuf.length");
+    }
+
+    if (len == 0) {
+      // early exit
+      return 0;
+    }
+
     int readBytes = 0;
 
     // First feed the pending characters that were already decoded.
@@ -99,39 +161,74 @@ public class ReportingStreamDecoder extends Reader {
       readBytes += toTransfer;
     }
 
+    assert readBytes >= 0;
+
     // If the request is satisfied, we do not continue.
     if (len <= 0) {
+      assert readBytes > 0;
       return readBytes;
     }
 
-    // If we reached end of file, we won't be able to read any more data from the input. We also ran
-    // out of cached characters, so we indicate that there is no more input.
+    // If we are at EOF and no cached characters were available, we return -1 indicating that there
+    // will be no more data.
     if (eof) {
       // If the previous invocation of read set the EOF flag, it must have finished the decoding
       // process and flushed the decoder, so the input buffer must have been consumed in whole.
       assert !inputBuffer.hasRemaining();
-      return -1;
+      assert hadEofDecodeCall : "decoding should have been finalized before returning EOF";
+      if (readBytes == 0) {
+        // No cached data was present, and we already processed EOF on the input, so we can signal
+        // EOF.
+        return -1;
+      } else {
+        // We have read some cached data, so we report that. The next call will yield EOF.
+        return readBytes;
+      }
     }
 
-    // At this point we ran out of cached characters, so we will read some more input to try to get
-    // new characters for the request.
+    /*
+     * At this point we ran out of cached characters, so we will read some more input to try to get
+     * new characters for the request.
+     *
+     * Repeat the input read process as many times as needed to satisfy the request, or until we hit EOF at input.
+     *
+     * Note: it is valid for the decoder to read less than the user requested. But that may mean we may sometimes
+     * read 0 characters, and unfortunately some clients (e.g. our current CSV parser) do not deal well with such
+     * cases (failing with division by zero).
+     */
+    while (len > 0 && !eof) {
+      prepareOutputBuffer(len);
+      int expectedInputSize = Math.max((int) (len / decoder.averageCharsPerByte()), 10);
+      readInputStreamToInputBuffer(expectedInputSize);
+      runDecoderOnInputBuffer();
 
-    prepareOutputBuffer(len);
+      // We transfer as much as the user requested, anything that is remaining will be cached for
+      // the
+      // next invocation.
+      int toTransfer = Math.min(len, outputBuffer.remaining());
+      assert off + toTransfer <= cbuf.length;
+      outputBuffer.get(cbuf, off, toTransfer);
+      readBytes += toTransfer;
+      off += toTransfer;
+      len -= toTransfer;
+      assert (len == 0 || !outputBuffer.hasRemaining())
+          : "if we did not yet satisfy the request, the output buffer should have been completely"
+              + " emptied";
 
-    int expectedInputSize = Math.max((int) (len / decoder.averageCharsPerByte()), 10);
-    readInputStreamToInputBuffer(expectedInputSize);
-    runDecoderOnInputBuffer();
+      // No safepoint is needed here, because the inner loop of `runDecoderOnInputBuffer` already
+      // polls.
+    }
 
-    // We transfer as much as the user requested, anything that is remaining will be cached for the
-    // next invocation.
-    int toTransfer = Math.min(len, outputBuffer.remaining());
-    outputBuffer.get(cbuf, off, toTransfer);
-    readBytes += toTransfer;
+    assert eof || readBytes > 0 : "we either read a positive number of characters or reached EOF";
 
-    // If we did not read any new bytes in the call that reachedn EOF, we return EOF immediately
+    // If we did not read any new bytes in the call that reached EOF, we return EOF immediately
     // instead of postponing to the next call. Returning 0 at the end was causing division by zero
     // in the CSV parser.
-    return (eof && readBytes <= 0) ? -1 : readBytes;
+    int returnValue = (eof && readBytes <= 0) ? -1 : readBytes;
+    assert (returnValue >= 0 || hadEofDecodeCall)
+        : "decoding should have been finalized before returning EOF";
+    assert returnValue != 0 : "we never return 0";
+    return returnValue;
   }
 
   /**
@@ -165,7 +262,7 @@ public class ReportingStreamDecoder extends Reader {
     int bytesToRead = Math.max(expectedInputSize - bufferedInput, 1);
 
     ensureWorkArraySize(bytesToRead);
-    int bytesActuallyRead = bufferedInputStream.read(workArray, 0, bytesToRead);
+    int bytesActuallyRead = inputStream.read(workArray, 0, bytesToRead);
     if (bytesActuallyRead == -1) {
       eof = true;
     }
@@ -195,9 +292,12 @@ public class ReportingStreamDecoder extends Reader {
    * encountered, one decoding step is performed to satisfy the contract of the decoder (it requires
    * one final call to the decode method signifying end of input).
    *
-   * <p>After this call, the output buffer is in reading mode.
+   * <p>After this call, the output buffer is in reading mode. If EOF on the input was encountered,
+   * all buffered input has been consumed after this method finishes.
    */
-  private void runDecoderOnInputBuffer() {
+  private void runDecoderOnInputBuffer() throws IOException {
+    Context context = pollSafepoints ? Context.getCurrent() : null;
+
     while (inputBuffer.hasRemaining() || (eof && !hadEofDecodeCall)) {
       CoderResult cr = decoder.decode(inputBuffer, outputBuffer, eof);
       if (eof) {
@@ -205,7 +305,7 @@ public class ReportingStreamDecoder extends Reader {
       }
 
       if (cr.isMalformed() || cr.isUnmappable()) {
-        reportEncodingProblem();
+        problemAggregator.reportInvalidCharacterProblem(getCurrentInputPosition());
 
         if (outputBuffer.remaining() < Encoding_Utils.INVALID_CHARACTER.length()) {
           growOutputBuffer();
@@ -213,22 +313,23 @@ public class ReportingStreamDecoder extends Reader {
         outputBuffer.put(INVALID_CHARACTER);
         inputBuffer.position(inputBuffer.position() + cr.length());
       } else if (cr.isUnderflow()) {
+        // The input buffer may still have some remaining data, but it was not enough for the
+        // decoder. We need to
+        // break the inner loop and try to read more data (if available), or find out if we are at
+        // EOF.
         break;
       } else if (cr.isOverflow()) {
         growOutputBuffer();
       }
 
-      /*
-       We cannot have a safepoint here, because `read` is called from a separate Thread by the `CsvParser` where
-       there is no context to get. On this separate thread there is no reason to have a safepoint anyway.
-       Ideally, we should be able to check if a context is available and poll safepoints only if it is. The issue
-       tracking this feature can be found at: https://github.com/oracle/graal/issues/6931
-       For now, we just disable safepoints in this method - it is not run directly from Enso code anyway. But we may
-       need to revisit this in the future.
-      */
+      if (pollSafepoints) {
+        context.safepoint();
+      }
     }
 
     if (eof) {
+      assert hadEofDecodeCall;
+      assert !inputBuffer.hasRemaining();
       flushDecoder();
     }
 
@@ -240,10 +341,6 @@ public class ReportingStreamDecoder extends Reader {
   private int getCurrentInputPosition() {
     if (inputBuffer == null) return 0;
     return inputBytesConsumedBeforeCurrentBuffer + inputBuffer.position();
-  }
-
-  private void reportEncodingProblem() {
-    encodingIssuePositions.add(getCurrentInputPosition());
   }
 
   /**
@@ -303,23 +400,9 @@ public class ReportingStreamDecoder extends Reader {
 
   @Override
   public void close() throws IOException {
-    bufferedInputStream.close();
-  }
-
-  /** Returns a list of problems encountered during the decoding. */
-  public List<String> getReportedProblems() {
-    if (encodingIssuePositions.isEmpty()) {
-      return List.of();
-    } else {
-      if (encodingIssuePositions.size() == 1) {
-        return List.of("Encoding issues at byte " + encodingIssuePositions.get(0) + ".");
-      }
-
-      String issues =
-          encodingIssuePositions.stream()
-              .map(String::valueOf)
-              .collect(Collectors.joining(", ", "Encoding issues at bytes ", "."));
-      return List.of(issues);
-    }
+    inputStream.close();
+    inputBuffer = null;
+    outputBuffer = null;
+    workArray = null;
   }
 }

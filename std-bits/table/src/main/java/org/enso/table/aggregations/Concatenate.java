@@ -10,7 +10,7 @@ import org.enso.table.problems.ColumnAggregatedProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 
-public class Concatenate extends Aggregator {
+public class Concatenate extends KnownTypeAggregator {
   private final Storage<?> storage;
   private final String separator;
   private final String prefix;

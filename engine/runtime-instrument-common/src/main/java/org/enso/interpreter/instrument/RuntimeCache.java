@@ -1,20 +1,26 @@
 package org.enso.interpreter.instrument;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import java.lang.ref.Reference;
 import java.lang.ref.SoftReference;
+import java.lang.ref.WeakReference;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+import org.enso.common.CachePreferences;
 import org.enso.interpreter.service.ExecutionService;
 
 /** A storage for computed values. */
-public final class RuntimeCache {
-
-  private final Map<UUID, SoftReference<Object>> cache = new HashMap<>();
-  private final Map<UUID, String> types = new HashMap<>();
+public final class RuntimeCache implements java.util.function.Function<String, Object> {
+  private final Map<UUID, Reference<Object>> cache = new HashMap<>();
+  private final Map<UUID, Reference<Object>> expressions = new HashMap<>();
+  private final Map<UUID, String[]> types = new HashMap<>();
   private final Map<UUID, ExecutionService.FunctionCallInfo> calls = new HashMap<>();
-  private Map<UUID, Double> weights = new HashMap<>();
+  private CachePreferences preferences = CachePreferences.empty();
+  private Consumer<UUID> observer;
 
   /**
    * Add value to the cache if it is possible.
@@ -25,23 +31,47 @@ public final class RuntimeCache {
    */
   @CompilerDirectives.TruffleBoundary
   public boolean offer(UUID key, Object value) {
-    Double weight = weights.get(key);
-    if (weight != null && weight > 0) {
-      cache.put(key, new SoftReference<>(value));
+    if (preferences.contains(key)) {
+      var ref = new SoftReference<>(value);
+      cache.put(key, ref);
+      expressions.put(key, new WeakReference<>(value));
       return true;
+    } else {
+      var ref = new WeakReference<>(value);
+      expressions.put(key, ref);
+      return false;
     }
-    return false;
   }
 
   /** Get the value from the cache. */
   public Object get(UUID key) {
-    SoftReference<Object> ref = cache.get(key);
-    return ref != null ? ref.get() : null;
+    var ref = cache.get(key);
+    var res = ref != null ? ref.get() : null;
+    return res;
+  }
+
+  /** Get the value from the cache. */
+  public Object getAnyValue(UUID key) {
+    var ref = expressions.get(key);
+    var res = ref != null ? ref.get() : null;
+    return res;
+  }
+
+  @Override
+  public Object apply(String uuid) {
+    var key = UUID.fromString(uuid);
+    var ref = expressions.get(key);
+    var res = ref != null ? ref.get() : null;
+    var callback = observer;
+    if (callback != null) {
+      callback.accept(key);
+    }
+    return res;
   }
 
   /** Remove the value from the cache. */
   public Object remove(UUID key) {
-    SoftReference<Object> ref = cache.remove(key);
+    var ref = cache.remove(key);
     return ref == null ? null : ref.get();
   }
 
@@ -58,20 +88,34 @@ public final class RuntimeCache {
   }
 
   /**
+   * Clear cached values of the provided kind.
+   *
+   * @param kind the kind of cached value to clear
+   * @return the set of cleared keys
+   */
+  public Set<UUID> clear(CachePreferences.Kind kind) {
+    var keys = preferences.get(kind);
+    for (var key : keys) {
+      cache.remove(key);
+    }
+    return keys;
+  }
+
+  /**
    * Cache the type of expression.
    *
    * @return the previously cached type.
    */
   @CompilerDirectives.TruffleBoundary
-  public String putType(UUID key, String typeName) {
-    return types.put(key, typeName);
+  public String[] putType(UUID key, String[] typeNames) {
+    return types.put(key, typeNames);
   }
 
   /**
    * @return the cached type of the expression
    */
   @CompilerDirectives.TruffleBoundary
-  public String getType(UUID key) {
+  public String[] getType(UUID key) {
     return types.get(key);
   }
 
@@ -131,24 +175,50 @@ public final class RuntimeCache {
   }
 
   /**
-   * @return the weights of this cache.
+   * @return the preferences of this cache.
    */
-  public Map<UUID, Double> getWeights() {
-    return weights;
+  public CachePreferences getPreferences() {
+    return preferences;
   }
 
-  /** Set the new weights. */
-  public void setWeights(Map<UUID, Double> weights) {
-    this.weights = weights;
+  /**
+   * Set the new cache preferences.
+   *
+   * @param preferences the new cache preferences
+   */
+  public void setPreferences(CachePreferences preferences) {
+    this.preferences = preferences;
   }
 
-  /** Remove the weight associated with the provided key. */
-  public void removeWeight(UUID key) {
-    weights.remove(key);
+  /**
+   * Remove the cache preference associated with the provided key.
+   *
+   * @param key the preference to remove
+   */
+  public void removePreference(UUID key) {
+    preferences.remove(key);
   }
 
-  /** Clear the weights. */
-  public void clearWeights() {
-    weights.clear();
+  /** Clear the cache preferences. */
+  public void clearPreferences() {
+    preferences.clear();
+  }
+
+  /**
+   * Executes a query while tracking access to the cache by {@code callback} observer.
+   *
+   * @param callback call with accessed UUIDs
+   * @param scope the code to execute
+   * @return value computed by the {@code scope}
+   * @param <V> type of the returned value
+   */
+  public <V> V runQuery(Consumer<UUID> callback, Supplier<V> scope) {
+    var previousCallback = this.observer;
+    this.observer = callback;
+    try {
+      return scope.get();
+    } finally {
+      this.observer = previousCallback;
+    }
   }
 }

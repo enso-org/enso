@@ -5,6 +5,7 @@ import Standard.Base.Metadata.Widget
 import Standard.Base.Metadata.Display
 
 from Standard.Database import all
+from Standard.Base.Metadata.Choice import Option
 # This ensures that the Redshift connection details are available in the widget.
 from Standard.AWS import all
 
@@ -14,7 +15,7 @@ from Standard.Test import all
 
 
 add_specs suite_builder =
-    connection = Database.connect (SQLite In_Memory)
+    connection = Database.connect (SQLite.In_Memory)
     connection.execute_update 'CREATE TABLE "mock_table" ("A" VARCHAR, "B C" INTEGER, "D ""E""" BOOLEAN, "F.G/H\\I" REAL)'
     connection.execute_update 'CREATE TABLE "another" ("A" VARCHAR, "B C" INTEGER, "D ""E""" BOOLEAN, "F.G/H\\I" REAL)'
     connection.execute_update 'CREATE TABLE "a_table" ("A" VARCHAR, "B C" INTEGER, "D ""E""" BOOLEAN, "F.G/H\\I" REAL)'
@@ -27,7 +28,8 @@ add_specs suite_builder =
 
     suite_builder.group "Widgets for In-Database Connection with table name sets" group_builder->
         group_builder.specify "works for `query` and `read`" <|
-            choices = ['a_table', 'another', 'mock_table'] . map n-> Choice.Option n n.pretty
+            table_choices = ['a_table', 'another', 'mock_table'] . map n-> Choice.Option n n.pretty
+            choices = table_choices + [Option '<Table_Name>' '..Table_Name ""', Option '<Raw_SQL>' '..Raw_SQL ""']
             expect = [["query", Widget.Single_Choice choices Nothing Display.Always]] . to_json
             Widgets.get_widget_json connection .query ["query"] . should_equal expect
             Widgets.get_widget_json connection .read ["query"] . should_equal expect

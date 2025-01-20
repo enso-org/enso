@@ -39,14 +39,11 @@ case object ModuleNameConflicts extends IRPass {
         case mod @ Export.Module(
               _,
               _,
-              false,
               None,
-              None,
-              None,
+              loc,
               true,
-              _,
               _
-            ) =>
+            ) if loc eq null =>
           Some(mod)
         case mod: Export.Module if moduleContext.isSynthetic() =>
           Some(mod)
@@ -93,8 +90,12 @@ case object ModuleNameConflicts extends IRPass {
         val atomName = cons.name.name
         val `export` = exports(atomName)
         binding.addDiagnostic(
-          warnings.Shadowed
-            .SyntheticModule(atomName, `export`.name, `export`, cons.location)
+          warnings.Shadowed.SyntheticModule(
+            atomName,
+            `export`.name,
+            `export`,
+            cons.identifiedLocation
+          )
         )
       case _ =>
         binding

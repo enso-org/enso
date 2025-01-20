@@ -1,0 +1,13 @@
+from Standard.Base import all
+
+from Standard.Test import all
+
+import project.Internal.Widget_Helpers_Spec
+
+add_specs suite_builder =
+    Widget_Helpers_Spec.add_specs suite_builder
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter

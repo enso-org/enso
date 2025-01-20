@@ -1,0 +1,7 @@
+<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path opacity="0.3" d="M2 8C2 5.79086 3.79086 4 6 4H10C12.2091 4 14 5.79086 14 8V12H2V8Z" fill="black"/>
+<rect x="14.4102" y="1" width="2" height="7.65112" rx="1" transform="rotate(45 14.4102 1)" fill="black"/>
+<rect x="15.8224" y="6.41211" width="2" height="7.64835" rx="1" transform="rotate(135 15.8224 6.41211)" fill="black"/>
+<path opacity="0.3" fill-rule="evenodd" clip-rule="evenodd" d="M15 10.7655C14.4153 10.1518 14 9.26279 14 8V12H15V10.7655Z" fill="black"/>
+<path opacity="0.3" fill-rule="evenodd" clip-rule="evenodd" d="M1 10.7655C1.58473 10.1518 2 9.26279 2 8V12H1V10.7655Z" fill="black"/>
+</svg>

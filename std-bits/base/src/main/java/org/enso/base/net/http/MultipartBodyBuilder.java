@@ -23,11 +23,37 @@ public class MultipartBodyBuilder {
    * @return the body publisher.
    */
   public HttpRequest.BodyPublisher build() {
-    if (partsSpecificationList.size() == 0) {
+    if (partsSpecificationList.isEmpty()) {
       throw new IllegalStateException("Must have at least one part to build multipart message.");
     }
     addFinalBoundaryPart();
     return HttpRequest.BodyPublishers.ofByteArrays(PartsIterator::new);
+  }
+
+  /**
+   * Get the content of the multipart form. The form needs to be built before this.
+   *
+   * @return the content of the multipart form.
+   */
+  public byte[] getContents() {
+    if (partsSpecificationList.isEmpty()
+        || partsSpecificationList.get(partsSpecificationList.size() - 1).type
+            != PartsSpecification.TYPE.FINAL_BOUNDARY) {
+      throw new IllegalStateException(
+          "Must have built the MultipartBodyBuilder, before calling getContents.");
+    }
+
+    var iterator = new PartsIterator();
+    byte[] output = new byte[0];
+    while (iterator.hasNext()) {
+      byte[] part = iterator.next();
+      byte[] newOutput = new byte[output.length + part.length];
+      System.arraycopy(output, 0, newOutput, 0, output.length);
+      System.arraycopy(part, 0, newOutput, output.length, part.length);
+      output = newOutput;
+    }
+
+    return output;
   }
 
   /**

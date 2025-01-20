@@ -4,13 +4,12 @@ import akka.testkit.TestDuration
 import io.circe.literal._
 import org.enso.semver.SemVer
 import org.apache.commons.io.FileUtils
-import org.enso.logger.ReportLogsOnFailure
 import org.enso.pkg.validation.NameValidation
 import org.enso.projectmanager.boot.configuration.TimeoutConfig
 import org.enso.projectmanager.{BaseServerSpec, ProjectManagementOps}
 import org.enso.runtimeversionmanager.CurrentVersion
 import org.enso.runtimeversionmanager.test.OverrideTestVersionSuite
-import org.enso.testkit.FlakySpec
+import org.enso.testkit.{FlakySpec, ReportLogsOnFailure}
 import org.scalactic.source.Position
 
 import java.io.File
@@ -34,8 +33,6 @@ class ProjectManagementApiSpec
   }
 
   override val engineToInstall = Some(SemVer.of(0, 0, 1))
-
-  override val deleteProjectsRootAfterEachTest = false
 
   override lazy val timeoutConfig: TimeoutConfig = {
     config.timeout.copy(delayedShutdownTimeout = 1.nanosecond)
@@ -78,7 +75,8 @@ class ProjectManagementApiSpec
             }
           """)
       val projectId = getGeneratedUUID
-      client.expectJson(json"""
+      client.expectJson(
+        json"""
           {"jsonrpc":"2.0",
           "id":1,
           "result":{
@@ -87,7 +85,9 @@ class ProjectManagementApiSpec
             "projectNormalizedName":$normalizedName
             }
           }
-          """)
+          """,
+        timeout = 10.seconds.dilated
+      )
 
       //teardown
       deleteProject(projectId)
@@ -113,53 +113,6 @@ class ProjectManagementApiSpec
             }
           }
           """)
-    }
-
-    "fail when the project with the same name exists" in {
-      implicit val client: WsTestClient = new WsTestClient(address)
-      client.send(json"""
-            { "jsonrpc": "2.0",
-              "method": "project/create",
-              "id": 1,
-              "params": {
-                "name": "Foo"
-              }
-            }
-          """)
-      val projectId = getGeneratedUUID
-      client.expectJson(json"""
-          {
-            "jsonrpc" : "2.0",
-            "id" : 1,
-            "result" : {
-              "projectId" : $projectId,
-              "projectName" : "Foo",
-              "projectNormalizedName": "Foo"
-            }
-          }
-          """)
-      client.send(json"""
-            { "jsonrpc": "2.0",
-              "method": "project/create",
-              "id": 2,
-              "params": {
-                "name": "Foo"
-              }
-            }
-          """)
-      client.expectJson(json"""
-          {
-            "jsonrpc":"2.0",
-            "id":2,
-            "error":{
-              "code":4003,
-              "message":"Project with the provided name exists"
-            }
-          }
-          """)
-
-      //teardown
-      deleteProject(projectId)
     }
 
     "create project structure" in {
@@ -275,6 +228,27 @@ class ProjectManagementApiSpec
       deleteProject(projectId)
     }
 
+    "find a name when project with the same name exists" in {
+      val projectName = "Foo"
+
+      implicit val client: WsTestClient = new WsTestClient(address)
+
+      val projectId1 = createProject(projectName)
+      val projectId2 = createProject(
+        projectName,
+        nameSuffix = Some(1)
+      )
+
+      val projectDir  = new File(userProjectDir, "Foo_1")
+      val packageFile = new File(projectDir, "package.yaml")
+
+      Files.readAllLines(packageFile.toPath) contains "name: Foo_1"
+
+      //teardown
+      deleteProject(projectId1)
+      deleteProject(projectId2)
+    }
+
     "find a name when project is created from template" in {
       val projectName = "Foo"
 
@@ -306,7 +280,7 @@ class ProjectManagementApiSpec
               "id": 1,
               "params": {
                 "name": "Foo",
-                "version": ${CurrentVersion.version.toString()}
+                "version": ${CurrentVersion.version.toString}
               }
             }
           """)
@@ -581,13 +555,14 @@ class ProjectManagementApiSpec
 
     "fail when project's edition could not be resolved" in {
       pending
-      implicit val client = new WsTestClient(address)
-      val projectId       = createProject("Foo")
+      implicit val client: WsTestClient = new WsTestClient(address)
+      //given
+      val projectId = createProject("Foo")
       setProjectParentEdition(
         "Foo",
         "some_weird_edition_name_that-surely-does-not-exist"
       )
-
+      //when
       client.send(json"""
             { "jsonrpc": "2.0",
               "method": "project/open",
@@ -597,6 +572,7 @@ class ProjectManagementApiSpec
               }
             }
           """)
+      //then
       client.expectJson(json"""
           {
             "jsonrpc":"2.0",
@@ -607,7 +583,7 @@ class ProjectManagementApiSpec
             }
           }
           """)
-
+      //teardown
       deleteProject(projectId)
     }
 
@@ -1345,5 +1321,131 @@ class ProjectManagementApiSpec
       //teardown
       deleteProject(projectId)
     }
+  }
+
+  "project/duplicate" must {
+
+    "duplicate a project" in {
+      implicit val client: WsTestClient = new WsTestClient(address)
+      //given
+      val projectName = "Project To Copy"
+      val projectId   = createProject(projectName)
+      //when
+      client.send(json"""
+        { "jsonrpc": "2.0",
+          "method": "project/duplicate",
+          "id": 0,
+          "params": {
+            "projectId": $projectId
+          }
+        }
+        """)
+      //then
+      val newProjectName = "Project To Copy (copy)"
+      val duplicateReply = client.fuzzyExpectJson(json"""
+        {
+          "jsonrpc": "2.0",
+          "id": 0,
+          "result": {
+            "projectId": "*",
+            "projectName": $newProjectName,
+            "projectNormalizedName": "ProjectToCopycopy"
+          }
+        }
+        """)
+
+      val Some(duplicatedProjectId) = for {
+        reply         <- duplicateReply.asObject
+        resultJson    <- reply("result")
+        result        <- resultJson.asObject
+        projectIdJson <- result("projectId")
+        projectId     <- projectIdJson.asString
+      } yield UUID.fromString(projectId)
+
+      {
+        val projectDir  = new File(userProjectDir, "ProjectToCopycopy")
+        val packageFile = new File(projectDir, "package.yaml")
+        val buffer      = Source.fromFile(packageFile)
+        try {
+          val lines = buffer.getLines()
+          lines.contains(s"name: $newProjectName") shouldBe true
+        } finally {
+          buffer.close()
+        }
+      }
+
+      //when
+      client.send(json"""
+        { "jsonrpc": "2.0",
+          "method": "project/duplicate",
+          "id": 0,
+          "params": {
+            "projectId": $projectId
+          }
+        }
+        """)
+      //then
+      val newProjectName1 = "Project To Copy (copy)_1"
+      val duplicateReply1 = client.fuzzyExpectJson(json"""
+        {
+          "jsonrpc": "2.0",
+          "id": 0,
+          "result": {
+            "projectId": "*",
+            "projectName": $newProjectName1,
+            "projectNormalizedName": "ProjectToCopycopy_1"
+          }
+        }
+        """)
+
+      val Some(duplicatedProjectId1) = for {
+        reply         <- duplicateReply1.asObject
+        resultJson    <- reply("result")
+        result        <- resultJson.asObject
+        projectIdJson <- result("projectId")
+        projectId     <- projectIdJson.asString
+      } yield UUID.fromString(projectId)
+
+      {
+        val projectDir  = new File(userProjectDir, "ProjectToCopycopy_1")
+        val packageFile = new File(projectDir, "package.yaml")
+        val buffer      = Source.fromFile(packageFile)
+        try {
+          val lines = buffer.getLines()
+          lines.contains(s"name: $newProjectName1") shouldBe true
+        } finally {
+          buffer.close()
+        }
+      }
+
+      //teardown
+      deleteProject(duplicatedProjectId)
+      deleteProject(duplicatedProjectId1)
+      deleteProject(projectId)
+    }
+
+    "fail when project doesn't exist" in {
+      val client = new WsTestClient(address)
+      client.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/duplicate",
+              "id": 1,
+              "params": {
+                "projectId": ${UUID.randomUUID()}
+              }
+            }
+          """)
+      client.expectJson(json"""
+          {
+            "jsonrpc":"2.0",
+            "id":1,
+            "error":{
+              "code":4004,
+              "message":"Project with the provided id does not exist"
+            }
+          }
+          """)
+    }
+
   }
 }

@@ -32,4 +32,6 @@ type Project_Description
 
     name self = self.prim_config.name
 
+    enso_project_builtin module = @Builtin_Method "Project_Description.enso_project_builtin"
+
 enso_project = Project_Description.enso_project_builtin Nothing

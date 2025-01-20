@@ -8,7 +8,9 @@ object FileSystemFailure {
 
   /** Signals that a user doesn't have access to a file.
     */
-  case object AccessDenied extends FileSystemFailure
+  case class AccessDenied(file: String) extends FileSystemFailure {
+    override def toString: String = s"AccessDenied[$file]"
+  }
 
   /** Signals that the file cannot be found.
     */

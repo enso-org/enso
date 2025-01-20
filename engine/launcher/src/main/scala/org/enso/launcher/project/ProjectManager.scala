@@ -33,7 +33,7 @@ class ProjectManager {
     */
   def findProject(path: Path): Try[Option[Project]] =
     tryFindingProject(path.toAbsolutePath.normalize).map(Some(_)).recover {
-      case PackageManager.PackageNotFound() => None
+      case PackageManager.PackageNotFound(_) => None
     }
 
   private def tryFindingProject(root: Path): Try[Project] =
@@ -41,7 +41,7 @@ class ProjectManager {
       .loadPackage(root.toFile)
       .map(new Project(_))
       .recoverWith {
-        case PackageManager.PackageNotFound() if root.getParent != null =>
+        case PackageManager.PackageNotFound(_) if root.getParent != null =>
           tryFindingProject(root.getParent)
         case otherError => Failure(otherError)
       }

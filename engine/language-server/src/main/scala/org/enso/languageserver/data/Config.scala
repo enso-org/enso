@@ -1,6 +1,7 @@
 package org.enso.languageserver.data
 
-import org.enso.languageserver.boot.{ProfilingConfig, StartupConfig}
+import org.enso.runner.common.ProfilingConfig
+import org.enso.languageserver.boot.StartupConfig
 import org.enso.languageserver.filemanager.ContentRootWithFile
 import org.enso.logger.masking.{MaskedPath, ToLogString}
 

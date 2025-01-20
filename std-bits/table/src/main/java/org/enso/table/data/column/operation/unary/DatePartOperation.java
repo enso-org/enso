@@ -4,7 +4,7 @@ import java.time.temporal.ChronoField;
 import java.time.temporal.IsoFields;
 import java.time.temporal.Temporal;
 import java.time.temporal.TemporalField;
-import org.enso.table.data.column.builder.LongBuilder;
+import org.enso.table.data.column.builder.BuilderForLong;
 import org.enso.table.data.column.operation.UnaryOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.ColumnStorage;
@@ -30,6 +30,14 @@ public class DatePartOperation extends AbstractUnaryLongOperation {
   public static final String DAY = "day";
   public static final UnaryOperation DAY_INSTANCE =
       new DatePartOperation(DAY, ChronoField.DAY_OF_MONTH, false);
+
+  public static final String DAY_OF_YEAR = "day_of_year";
+  public static final UnaryOperation DAY_OF_YEAR_INSTANCE =
+      new DatePartOperation(DAY_OF_YEAR, ChronoField.DAY_OF_YEAR, false);
+
+  public static final String DAY_OF_WEEK = "day_of_week";
+  public static final UnaryOperation DAY_OF_WEEK_INSTANCE =
+      new DatePartOperation(DAY_OF_WEEK, ChronoField.DAY_OF_WEEK, false);
 
   public static final String HOUR = "hour";
   public static final UnaryOperation HOUR_INSTANCE =
@@ -63,7 +71,7 @@ public class DatePartOperation extends AbstractUnaryLongOperation {
 
   @Override
   protected void applyObjectRow(
-      Object value, LongBuilder builder, MapOperationProblemAggregator problemAggregator) {
+      Object value, BuilderForLong builder, MapOperationProblemAggregator problemAggregator) {
     if (value instanceof Temporal s) {
       var longValue = s.getLong(field);
       builder.appendLong(longValue);

@@ -185,7 +185,7 @@ object FileManagerApi {
 
     case class Params(
       path: Path,
-      kind: FileEventKind,
+      kind: FileEventKinds.FileEventKind,
       attributes: Option[FileAttributes]
     )
 

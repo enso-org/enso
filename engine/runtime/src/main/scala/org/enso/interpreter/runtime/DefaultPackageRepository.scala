@@ -1,5 +1,7 @@
 package org.enso.interpreter.runtime
 
+import scala.jdk.OptionConverters.RichOption
+
 import org.enso.compiler.PackageRepository
 import org.enso.compiler.context.CompilerContext
 import org.enso.compiler.core.ir.{Module => IRModule}
@@ -22,7 +24,7 @@ import org.enso.pkg.{
   SourceFile
 }
 import org.enso.text.buffer.Rope
-import org.enso.polyglot.CompilationStage
+import org.enso.common.CompilationStage
 
 import java.nio.file.Path
 import scala.collection.immutable.ListSet
@@ -32,8 +34,8 @@ import org.enso.distribution.locking.ResourceManager
 import org.enso.distribution.{DistributionManager, LanguageHome}
 import org.enso.editions.updater.EditionManager
 import org.enso.editions.{DefaultEdition, Editions, LibraryName}
-import org.enso.interpreter.instrument.NotificationHandler
 import org.enso.interpreter.runtime.builtin.Builtins
+import org.enso.interpreter.runtime.instrument.NotificationHandler
 import org.enso.librarymanager.DefaultLibraryProvider
 import org.enso.pkg.{ComponentGroups, Package}
 
@@ -52,10 +54,11 @@ private class DefaultPackageRepository(
   builtins: Builtins,
   notificationHandler: NotificationHandler
 ) extends PackageRepository {
+  type TFile = TruffleFile
 
   private val logger = Logger[DefaultPackageRepository]
 
-  implicit private val fs: TruffleFileSystem               = new TruffleFileSystem
+  implicit private val fs: TruffleFileSystem               = TruffleFileSystem.INSTANCE
   private val packageManager                               = new PackageManager[TruffleFile]
   private var projectPackage: Option[Package[TruffleFile]] = None
 
@@ -176,9 +179,16 @@ private class DefaultPackageRepository(
   }
 
   /** @inheritdoc */
-  override def getMainProjectPackage: Option[Package[TruffleFile]] = {
+  override def getMainProjectPackage
+    : Option[Package[com.oracle.truffle.api.TruffleFile]] = {
     projectPackage
   }
+
+  /** Returns a package directory corresponding to the requested library */
+  def getPackageForLibraryJava(
+    libraryName: LibraryName
+  ): java.util.Optional[Package[TruffleFile]] =
+    getPackageForLibrary(libraryName).toJava
 
   private def registerPackageInternal(
     libraryName: LibraryName,
@@ -327,13 +337,8 @@ private class DefaultPackageRepository(
     if (loadedComponents.contains(pkg.libraryName)) Right(())
     else {
       pkg.getConfig().componentGroups match {
-        case Left(err) =>
-          Left(PackageRepository.Error.PackageLoadingError(err.getMessage()))
-        case Right(componentGroups) =>
-          logger.debug(
-            s"Resolving component groups of package [${pkg.normalizedName}]."
-          )
-
+        case None => Right(())
+        case Some(componentGroups) =>
           registerComponentGroups(pkg.libraryName, componentGroups.newGroups)
           componentGroups.extendedGroups
             .foldLeft[Either[PackageRepository.Error, Unit]](Right(())) {
@@ -447,7 +452,7 @@ private class DefaultPackageRepository(
   override def getLoadedPackages: Seq[Package[TruffleFile]] =
     loadedPackages.values.toSeq.flatten
 
-  override def getLoadedPackagesJava: java.lang.Iterable[Package[TruffleFile]] =
+  def getLoadedPackagesJava: java.lang.Iterable[Package[TruffleFile]] =
     loadedPackages.flatMap(_._2).asJava
 
   /** @inheritdoc */
@@ -484,7 +489,7 @@ private class DefaultPackageRepository(
     syntheticModule: Module,
     refs: List[QualifiedName]
   ): Unit = {
-    assert(syntheticModule.isSynthetic)
+    org.enso.common.Asserts.assertInJvm(syntheticModule.isSynthetic)
     if (!loadedModules.contains(syntheticModule.getName.toString)) {
       loadedModules.put(
         syntheticModule.getName.toString,
@@ -492,7 +497,7 @@ private class DefaultPackageRepository(
       )
     } else {
       val loaded = loadedModules(syntheticModule.getName.toString)
-      assert(!loaded.isSynthetic)
+      org.enso.common.Asserts.assertInJvm(!loaded.isSynthetic)
       loaded
         .asInstanceOf[TruffleCompilerContext.Module]
         .unsafeModule()
@@ -578,9 +583,10 @@ private class DefaultPackageRepository(
     val cache = ensurePackageIsLoaded(libraryName).toOption.flatMap { _ =>
       if (!loadedLibraryBindings.contains(libraryName)) {
         loadedPackages.get(libraryName).flatten.foreach(loadDependencies(_))
-        val cachedBindingOption = context
-          .asInstanceOf[TruffleCompilerContext]
-          .deserializeLibraryBindings(libraryName)
+        val cachedBindingOption =
+          context
+            .asInstanceOf[TruffleCompilerContext]
+            .deserializeLibraryBindings(libraryName)
         loadedLibraryBindings.addOne((libraryName, cachedBindingOption))
       }
       loadedLibraryBindings.get(libraryName)
@@ -602,7 +608,14 @@ private class DefaultPackageRepository(
       Using(file.newBufferedReader) { reader =>
         StringUtils.join(reader.lines().iterator(), "\n")
       }
-    else Failure(PackageManager.PackageNotFound())
+    else Failure(PackageManager.PackageNotFound("manifest"))
+  }
+
+  override def shutdown(): Unit = {
+    loadedPackages.clear()
+    loadedModules.clear()
+    loadedComponents.clear()
+    loadedLibraryBindings.clear()
   }
 }
 
@@ -637,7 +650,7 @@ private object DefaultPackageRepository {
     context: EnsoContext,
     builtins: Builtins,
     notificationHandler: NotificationHandler
-  ): PackageRepository = {
+  ): DefaultPackageRepository = {
     val rawEdition = editionOverride
       .map(v => Editions.Raw.Edition(parent = Some(v)))
       .orElse(

@@ -1,0 +1,52 @@
+from Standard.Base import all
+from Standard.Base.Data.Vector import Builder
+
+from Standard.Test import Bench
+
+
+options = Bench.options . set_warmup (Bench.phase_conf 1 5) . set_measure (Bench.phase_conf 1 5)
+
+type Data
+    Value ~batch
+
+    create batch_size =
+        Data.Value (create_batch batch_size)
+
+
+create_batch size =
+    Vector.build builder->
+        0.up_to size . map i->
+            builder.append i
+
+
+collect_benches = Bench.build builder->
+    num_batches = 1000
+    batch_size = 1000
+    num_values = num_batches * batch_size
+
+    data = Data.create batch_size
+
+    builder.group "Vector_Builder" options group_builder->
+        [True, False].map propagate_warnings->
+            suffix = if propagate_warnings then "_With_Warning_Propagation" else "_Without_Warning_Propagation"
+            group_builder.specify "Vector_Build_Append_One"+suffix <|
+                Vector.build propagate_warnings=propagate_warnings builder->
+                    0.up_to num_values . map i->
+                        builder.append i
+            group_builder.specify "Vector_Build_Append_Batch"+suffix <|
+                Vector.build propagate_warnings=propagate_warnings builder->
+                    0.up_to num_batches . map _->
+                        builder.append_vector_range data.batch
+            group_builder.specify "Builder_New_Append_One"+suffix <|
+                builder = Builder.new propagate_warnings=propagate_warnings
+                0.up_to num_values . map i->
+                    builder.append i
+                builder.to_vector
+            group_builder.specify "Builder_New_Append_Batch"+suffix <|
+                builder = Builder.new propagate_warnings=propagate_warnings
+                0.up_to num_batches . map _->
+                    builder.append_vector_range data.batch
+                builder.to_vector
+
+
+main = collect_benches . run_main

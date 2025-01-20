@@ -49,6 +49,14 @@ add_specs suite_builder =
             make_enso_array [] . reduce (+) . should_fail_with (Empty_Error.Error Array)
             make_enso_array [] . reduce (+) 0 . should_equal 0
 
+        group_builder.specify "should have a well-defined debug-printing method" <|
+            ## Enso arrays should be coded as Vectors when Enso code is generated.
+            make_enso_array [] . pretty . should_equal "[]"
+            make_enso_array [1,2,3] . pretty . should_equal "[1, 2, 3]"
+            make_enso_array [Nothing] . pretty . should_equal "[Nothing]"
+            make_enso_array [True, False, 'a'] . pretty . should_equal "[True, False, 'a']"
+            make_enso_array [Date.new 2022 1 1] . pretty . should_equal "[Date.new 2022 1 1]"
+
     suite_builder.group "Compare functionality with Vector" group_builder->
         group_builder.specify "compare methods" <|
             vector_methods = Meta.meta Vector . methods . sort

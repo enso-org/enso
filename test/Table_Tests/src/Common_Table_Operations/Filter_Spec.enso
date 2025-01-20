@@ -1,6 +1,8 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Arithmetic_Error
+import Standard.Base.Errors.Common.Floating_Point_Equality
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
+import Standard.Base.Errors.Common.Missing_Argument
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
@@ -9,7 +11,9 @@ from Standard.Table import all hiding Table
 from Standard.Table.Errors import all
 import Standard.Table.Expression.Expression_Error
 
-from Standard.Database.Errors import SQL_Error
+import Standard.Database.Internal.IR.SQL_Expression.SQL_Expression
+import Standard.Database.Feature.Feature
+from Standard.Database.Errors import all
 
 from Standard.Test import all
 
@@ -19,81 +23,75 @@ from project.Common_Table_Operations.Util import run_default_backend
 
 main filter=Nothing = run_default_backend add_specs filter
 
-type Data
-    Value ~connection
-
-    setup create_connection_fn =
-        Data.Value (create_connection_fn Nothing)
-
-    teardown self =
-        self.connection.close
-
+add_specs suite_builder setup =
+    if setup.is_feature_supported Feature.Filter then (add_filter_specs suite_builder setup) else
+        suite_builder.group setup.prefix+"Table.filter" group_builder->
+            group_builder.specify "filter should report unsupported" <|
+                table_builder = setup.light_table_builder
+                t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", [100, 3, Nothing, 4, 12]], ["Y", [100, 4, 2, Nothing, 11]]]
+                t2 = t.filter "X" (Filter_Condition.Less than=10)
+                t2.should_fail_with (Unsupported_Database_Operation.Error "filter")
 
 ## Currently these tests rely on filtering preserving the insertion ordering
    within tables. This is not necessarily guaranteed by RDBMS, so we may adapt
    this in the future. For now we implicitly assume the ordering is preserved,
    as that seems to be the case.
-add_specs suite_builder setup =
+add_filter_specs suite_builder setup =
     prefix = setup.prefix
-    test_selection = setup.test_selection
-    create_connection_fn = setup.create_connection_func
+    table_builder = setup.light_table_builder
 
     suite_builder.group prefix+"Table.filter" group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
         group_builder.specify "by integer comparisons" <|
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", [100, 3, Nothing, 4, 12]], ["Y", [100, 4, 2, Nothing, 11]]]
             t.filter "X" (Filter_Condition.Less than=10) . at "X" . to_vector . should_equal [3, 4]
+            t.filter "X" (..Less than=10) . at "X" . to_vector . should_equal [3, 4]
             t.filter "X" (Filter_Condition.Less than=4) . at "X" . to_vector . should_equal [3]
-            t.filter "X" (Filter_Condition.Less than=4 action=Filter_Action.Remove) . at "X" . to_vector . should_equal [100, Nothing, 4, 12]
             t.filter "X" (Filter_Condition.Equal_Or_Less than=4) . at "X" . to_vector . should_equal [3, 4]
-            t.filter "X" (Filter_Condition.Equal_Or_Less than=4 action=Filter_Action.Remove) . at "X" . to_vector . should_equal [100, Nothing, 12]
+            t.filter "X" (..Equal_Or_Less than=4) . at "X" . to_vector . should_equal [3, 4]
             t.filter "X" (Filter_Condition.Greater than=4) . at "X" . to_vector . should_equal [100, 12]
-            t.filter "X" (Filter_Condition.Greater than=4 action=Filter_Action.Remove) . at "X" . to_vector . should_equal [3, Nothing, 4]
+            t.filter "X" (..Greater than=4) . at "X" . to_vector . should_equal [100, 12]
             t.filter "X" (Filter_Condition.Equal_Or_Greater than=4) . at "X" . to_vector . should_equal [100, 4, 12]
-            t.filter "X" (Filter_Condition.Equal_Or_Greater than=4 action=Filter_Action.Remove) . at "X" . to_vector . should_equal [3, Nothing]
+            t.filter "X" (..Equal_Or_Greater than=4) . at "X" . to_vector . should_equal [100, 4, 12]
             t.filter "X" (Filter_Condition.Between 4 100) . at "X" . to_vector . should_equal [100, 4, 12]
-            t.filter "X" (Filter_Condition.Between 4 100 action=Filter_Action.Remove) . at "X" . to_vector . should_equal [3, Nothing]
+            t.filter "X" (..Between 4 100) . at "X" . to_vector . should_equal [100, 4, 12]
+            t.filter "X" (Filter_Condition.Between 4 100 keep_or_remove=Filter_Action.Remove) . at "X" . to_vector . should_equal [3, Nothing]
             t.filter "X" (Filter_Condition.Equal to=100) . at "X" . to_vector . should_equal [100]
+            t.filter "X" (..Equal to=100) . at "X" . to_vector . should_equal [100]
             t.filter "X" (Filter_Condition.Equal to=123) . at "X" . to_vector . should_equal []
-            t.filter "X" (Filter_Condition.Equal to=3 action=Filter_Action.Remove) . at "X" . to_vector . should_equal [100, Nothing, 4, 12]
 
-            t.filter "X" (Filter_Condition.Is_Finite) . at "ix" . to_vector . should_equal [1, 2, 4, 5]
-            t.filter "X" (Filter_Condition.Is_Finite action=Filter_Action.Remove) . at "ix" . to_vector . should_equal [3]
-            t.filter "X" (Filter_Condition.Is_Infinite) . at "ix" . to_vector . should_equal []
-            t.filter "X" (Filter_Condition.Is_Infinite action=Filter_Action.Remove) . at "ix" . to_vector . should_equal [1, 2, 3, 4, 5]
-            if test_selection.is_nan_and_nothing_distinct then
-                t.filter "X" (Filter_Condition.Is_Nan) . at "ix" . to_vector . should_equal []
-                t.filter "X" (Filter_Condition.Is_Nan action=Filter_Action.Remove) . at "ix" . to_vector . should_equal [1, 2, 3, 4, 5]
+            case setup.flagged ..Supports_Infinity of
+                True ->
+                    t.filter "X" (Filter_Condition.Is_Finite) . at "ix" . to_vector . should_equal [1, 2, 4, 5]
+                    t.filter "X" (Filter_Condition.Is_Infinite) . at "ix" . to_vector . should_equal []
+                False ->
+                    t.filter "X" (Filter_Condition.Is_Finite) . should_fail_with Unsupported_Database_Operation
+                    t.filter "X" (Filter_Condition.Is_Infinite) . should_fail_with Unsupported_Database_Operation
+            case setup.flagged ..Supports_Separate_NaN of
+                True ->
+                    t.filter "X" (Filter_Condition.Is_Nan) . at "ix" . to_vector . should_equal []
+                    t.filter "X" (Filter_Condition.Not_Nan) . at "ix" . to_vector . should_equal [1, 2, 4, 5]
+                False ->
+                    t.filter "X" (Filter_Condition.Is_Nan) . should_fail_with Unsupported_Database_Operation
+                    t.filter "X" (Filter_Condition.Not_Nan) . should_fail_with Unsupported_Database_Operation
 
             v = t.filter "X" (Filter_Condition.Equal to="SOME TEXT :)") . at "X" . to_vector
             ## We do not do typechecking at Enso level here, as it is
                DB-dependent if such mixing is allowed, so we will rely on an SQL
                error.
-            case test_selection.allows_mixed_type_comparisons of
+            case setup.flagged ..Allows_Mixed_Type_Comparisons of
                 True -> v.should_equal []
                 False -> v.should_fail_with SQL_Error
 
             t.filter "X" (Filter_Condition.Equal to=(t.at "Y")) . at "X" . to_vector . should_equal [100]
-            t.filter "X" (Filter_Condition.Equal to=(t.at "Y") action=Filter_Action.Remove) . at "X" . to_vector . should_equal [3, Nothing, 4, 12]
             t.filter "X" (Filter_Condition.Less than=(t.at "Y")) . at "X" . to_vector . should_equal [3]
-            t.filter "X" (Filter_Condition.Less than=(t.at "Y") action=Filter_Action.Remove) . at "X" . to_vector . should_equal [100, Nothing, 4, 12]
             t.filter "X" (Filter_Condition.Equal_Or_Less than=(t.at "Y")) . at "X" . to_vector . should_equal [100, 3]
-            t.filter "X" (Filter_Condition.Equal_Or_Less than=(t.at "Y") action=Filter_Action.Remove) . at "X" . to_vector . should_equal [Nothing, 4, 12]
             t.filter "X" (Filter_Condition.Equal_Or_Greater than=(t.at "Y")) . at "X" . to_vector . should_equal [100, 12]
-            t.filter "X" (Filter_Condition.Equal_Or_Greater than=(t.at "Y") action=Filter_Action.Remove) . at "X" . to_vector . should_equal [3, Nothing, 4]
             t.filter "X" (Filter_Condition.Greater than=(t.at "Y")) . at "X" . to_vector . should_equal [12]
-            t.filter "X" (Filter_Condition.Greater than=(t.at "Y") action=Filter_Action.Remove) . at "X" . to_vector . should_equal [100, 3, Nothing, 4]
             t.filter "Y" (Filter_Condition.Between (t.at "ix") 100) . at "Y" . to_vector . should_equal [100, 4, 11]
-            t.filter "Y" (Filter_Condition.Between (t.at "ix") 100 action=Filter_Action.Remove) . at "Y" . to_vector . should_equal [2, Nothing]
+            t.filter "Y" (Filter_Condition.Between (t.at "ix") 100 keep_or_remove=Filter_Action.Remove) . at "Y" . to_vector . should_equal [2, Nothing]
 
             t.filter "X" (Filter_Condition.Equal to=(Column_Ref.Name "Y")) . at "X" . to_vector . should_equal [100]
+            t.filter "X" (..Equal to=(..Name "Y")) . at "X" . to_vector . should_equal [100]
             t.filter "X" (Filter_Condition.Equal to=(expr "[Y]-1")) . at "X" . to_vector . should_equal [3]
             t.filter "X" (Filter_Condition.Less than=(Column_Ref.Name "Y")) . at "X" . to_vector . should_equal [3]
             t.filter "X" (Filter_Condition.Equal_Or_Less than=(Column_Ref.Name "Y")) . at "X" . to_vector . should_equal [100, 3]
@@ -104,21 +102,31 @@ add_specs suite_builder setup =
         group_builder.specify "by float operations" <|
             t = table_builder [["ix", [1, 2, 3, 4, 5, 6]], ["X", [100.0, 2.5, Nothing, Number.nan, Number.positive_infinity, Number.negative_infinity]]]
 
-            t.filter "X" (Filter_Condition.Less than=10.0) . at "X" . to_vector . should_equal [2.5, Number.negative_infinity]
+            case setup.flagged ..Supports_Infinity of
+                True -> t.filter "X" (Filter_Condition.Less than=10.0) . at "X" . to_vector . should_equal [2.5, Number.negative_infinity]
+                False -> t.filter "X" (Filter_Condition.Less than=10.0) . at "X" . to_vector . should_equal [2.5]
 
-            # In PostgreSQL, NaN is greater than any other value, so it is > 10.0; in other implementations it is usually not greater nor smaller, so it gets filtered out.
+            # In some backends, NaN is greater than any other value, so it is > 10.0; in other implementations it is usually not greater nor smaller, so it gets filtered out.
+            nan_is_comparable = setup.flagged ..NaN_Non_Comparable . not
             t.filter "X" (Filter_Condition.Greater than=10.0) . at "ix" . to_vector . should_equal <|
-                if prefix.contains "PostgreSQL" . not then [1, 5] else [1, 4, 5]
+                case setup.flagged ..Supports_Infinity of
+                    True -> if nan_is_comparable then [1, 4, 5] else [1, 5]
+                    False -> if nan_is_comparable then [1, 4] else [1]
 
-            # Similarly, PostgreSQL treats NaN==NaN
+            # Similarly, PostgreSQL and Snowflake treats NaN==NaN, we assume `nan_is_comparable` implies that.
+            # If needed, this may become a separate flag in the future.
             t.filter "X" (Filter_Condition.Equal to=Number.nan) . at "ix" . to_vector . should_equal <|
-                if prefix.contains "PostgreSQL" . not then [] else [4]
-            t.filter "X" (Filter_Condition.Equal to=Number.positive_infinity) . at "ix" . to_vector . should_equal [5]
+                if nan_is_comparable then [4] else []
 
-            t.filter "X" Filter_Condition.Is_Infinite . at "ix" . to_vector . should_equal [5, 6]
-            t.filter "X" Filter_Condition.Is_Finite . at "ix" . to_vector . should_equal [1, 2]
-            if test_selection.is_nan_and_nothing_distinct then
+            if setup.flagged ..Supports_Infinity then  
+                t.filter "X" (Filter_Condition.Equal to=Number.positive_infinity) . at "ix" . to_vector . should_equal [5]
+
+                t.filter "X" Filter_Condition.Is_Infinite . at "ix" . to_vector . should_equal [5, 6]
+                t.filter "X" Filter_Condition.Is_Finite . at "ix" . to_vector . should_equal [1, 2]
+            
+            if setup.flagged ..Supports_Separate_NaN then
                 t.filter "X" Filter_Condition.Is_Nan . at "ix" . to_vector . should_equal [4]
+                t.filter "X" Filter_Condition.Not_Nan . at "ix" . to_vector . should_equal [1, 2, 5, 6]
 
         group_builder.specify "Not_Equal test cases" <|
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", [100, 3, Nothing, 4, 12]], ["Y", [100, 4, 2, Nothing, 11]]]
@@ -140,7 +148,7 @@ add_specs suite_builder setup =
             t.filter "X" (Filter_Condition.Between "b" "c") . at "X" . to_vector . should_equal ["baca", "b", "c"]
             t.filter "X" (Filter_Condition.Equal to="baca") . at "X" . to_vector . should_equal ["baca"]
             v = t.filter "X" (Filter_Condition.Equal to=52) . at "X" . to_vector
-            case test_selection.allows_mixed_type_comparisons of
+            case setup.flagged ..Allows_Mixed_Type_Comparisons of
                 True -> v.should_equal []
                 False -> v.should_fail_with SQL_Error
 
@@ -159,7 +167,9 @@ add_specs suite_builder setup =
             t.filter "X" (Filter_Condition.Between (Column_Ref.Name "Y") "bzzzz") . at "X" . to_vector . should_equal ["abb", "baca", "b"]
 
             t2 = table_builder [["X", ["A", "a", "b"]], ["Y", ["a", "B", "b"]]]
-            t2.filter "X" (Filter_Condition.Equal to="a") . at "X" . to_vector . should_equal ["a"]
+            case setup.flagged ..Case_Sensitive_Text_Comparison of
+                True -> t2.filter "X" (Filter_Condition.Equal to="a") . at "X" . to_vector . should_equal ["a"]
+                False -> t2.filter "X" (Filter_Condition.Equal to="a") . at "X" . to_vector . should_equal ["A", "a"]
             t2.filter "X" (Filter_Condition.Equal_Ignore_Case to="a") . at "X" . to_vector . should_equal ["A", "a"]
             t2.filter "X" (Filter_Condition.Equal_Ignore_Case to=(Column_Ref.Name "Y")) . at "X" . to_vector . should_equal ["A", "b"]
 
@@ -167,30 +177,43 @@ add_specs suite_builder setup =
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", ["abb", "bacb", "banana", Nothing, "nana"]], ["Y", ["a", "B", "d", "c", "a"]], ["Z", ["aaaaa", "bbbbb", "[ab]", "[ab]aaaa", "[ab]ccc"]]]
 
             t.filter "X" (Filter_Condition.Starts_With "ba") . at "X" . to_vector . should_equal ["bacb", "banana"]
-            t.filter "X" (Filter_Condition.Starts_With "ba" action=Filter_Action.Remove) . at "X" . to_vector . should_equal ["abb", Nothing, "nana"]
+            t.filter "X" (Filter_Condition.Starts_With "ba" keep_or_remove=Filter_Action.Remove) . at "X" . to_vector . should_equal ["abb", Nothing, "nana"]
             t.filter "X" (Filter_Condition.Starts_With "BA" Case_Sensitivity.Sensitive) . at "X" . to_vector . should_equal []
             t.filter "X" (Filter_Condition.Starts_With "BA" Case_Sensitivity.Insensitive) . at "X" . to_vector . should_equal ["bacb", "banana"]
             t.filter "X" (Filter_Condition.Ends_With "na") . at "X" . to_vector . should_equal ["banana", "nana"]
-            t.filter "X" (Filter_Condition.Ends_With "na" action=Filter_Action.Remove) . at "X" . to_vector . should_equal ["abb", "bacb", Nothing]
+            t.filter "X" (Filter_Condition.Ends_With "na" keep_or_remove=Filter_Action.Remove) . at "X" . to_vector . should_equal ["abb", "bacb", Nothing]
             t.filter "X" (Filter_Condition.Ends_With "NA" Case_Sensitivity.Sensitive) . at "X" . to_vector . should_equal []
             t.filter "X" (Filter_Condition.Ends_With "NA" Case_Sensitivity.Insensitive) . at "X" . to_vector . should_equal ["banana", "nana"]
             t.filter "X" (Filter_Condition.Contains "ac") . at "X" . to_vector . should_equal ["bacb"]
-            t.filter "X" (Filter_Condition.Contains "ac" action=Filter_Action.Remove) . at "X" . to_vector . should_equal ["abb", "banana", Nothing, "nana"]
+            t.filter "X" (Filter_Condition.Contains "ac" keep_or_remove=Filter_Action.Remove) . at "X" . to_vector . should_equal ["abb", "banana", Nothing, "nana"]
             t.filter "X" (Filter_Condition.Contains "AC" Case_Sensitivity.Sensitive) . at "X" . to_vector . should_equal []
             t.filter "X" (Filter_Condition.Contains "AC" Case_Sensitivity.Insensitive) . at "X" . to_vector . should_equal ["bacb"]
 
-            t.filter "X" (Filter_Condition.Starts_With (t.at "Y")) . at "X" . to_vector . should_equal ["abb"]
-            t.filter "X" (Filter_Condition.Starts_With (t.at "Y") action=Filter_Action.Remove) . at "X" . to_vector . should_equal ["bacb", "banana", Nothing, "nana"]
+            case setup.flagged ..Case_Sensitive_Text_Comparison of
+                True -> 
+                    t.filter "X" (Filter_Condition.Starts_With (t.at "Y")) . at "X" . to_vector . should_equal ["abb"]
+                    t.filter "X" (Filter_Condition.Starts_With (t.at "Y") keep_or_remove=Filter_Action.Remove) . at "X" . to_vector . should_equal ["bacb", "banana", Nothing, "nana"]
+                False -> 
+                    t.filter "X" (Filter_Condition.Starts_With (t.at "Y")) . at "X" . to_vector . should_equal ["abb", "bacb"]
+                    t.filter "X" (Filter_Condition.Starts_With (t.at "Y") keep_or_remove=Filter_Action.Remove) . at "X" . to_vector . should_equal ["banana", Nothing, "nana"]
+            
             t.filter "X" (Filter_Condition.Starts_With (t.at "Y") Case_Sensitivity.Sensitive) . at "X" . to_vector . should_equal ["abb"]
             t.filter "X" (Filter_Condition.Starts_With (t.at "Y") Case_Sensitivity.Insensitive) . at "X" . to_vector . should_equal ["abb", "bacb"]
-            t.filter "X" (Filter_Condition.Ends_With (t.at "Y")) . at "X" . to_vector . should_equal ["nana"]
+
+            case setup.flagged ..Case_Sensitive_Text_Comparison of
+                True -> t.filter "X" (Filter_Condition.Ends_With (t.at "Y")) . at "X" . to_vector . should_equal ["nana"]
+                False -> t.filter "X" (Filter_Condition.Ends_With (t.at "Y")) . at "X" . to_vector . should_equal ["bacb", "nana"]
             t.filter "X" (Filter_Condition.Ends_With (t.at "Y") Case_Sensitivity.Sensitive) . at "X" . to_vector . should_equal ["nana"]
             t.filter "X" (Filter_Condition.Ends_With (t.at "Y") Case_Sensitivity.Insensitive) . at "X" . to_vector . should_equal ["bacb", "nana"]
-            t.filter "X" (Filter_Condition.Contains (t.at "Y")) . at "X" . to_vector . should_equal ["abb", "nana"]
+            case setup.flagged ..Case_Sensitive_Text_Comparison of
+                True -> t.filter "X" (Filter_Condition.Contains (t.at "Y")) . at "X" . to_vector . should_equal ["abb", "nana"]
+                False -> t.filter "X" (Filter_Condition.Contains (t.at "Y")) . at "X" . to_vector . should_equal ["abb", "bacb", "nana"]
             t.filter "X" (Filter_Condition.Contains (t.at "Y") Case_Sensitivity.Sensitive) . at "X" . to_vector . should_equal ["abb", "nana"]
             t.filter "X" (Filter_Condition.Contains (t.at "Y") Case_Sensitivity.Insensitive) . at "X" . to_vector . should_equal ["abb", "bacb", "nana"]
 
-            t.filter "X" (Filter_Condition.Starts_With (Column_Ref.Name "Y")) . at "X" . to_vector . should_equal ["abb"]
+            case setup.flagged ..Case_Sensitive_Text_Comparison of
+                True -> t.filter "X" (Filter_Condition.Starts_With (Column_Ref.Name "Y")) . at "X" . to_vector . should_equal ["abb"]
+                False -> t.filter "X" (Filter_Condition.Starts_With (Column_Ref.Name "Y")) . at "X" . to_vector . should_equal ["abb", "bacb"]
             t.filter "X" (Filter_Condition.Ends_With (Column_Ref.Name "Y") Case_Sensitivity.Insensitive) . at "X" . to_vector . should_equal ["bacb", "nana"]
             t.filter "X" (Filter_Condition.Contains (Column_Ref.Name "Y") Case_Sensitivity.Insensitive) . at "X" . to_vector . should_equal ["abb", "bacb", "nana"]
 
@@ -198,7 +221,7 @@ add_specs suite_builder setup =
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", ["abb", "bacb", "banana", Nothing, "nana"]], ["Y", ["a", "B", "d", "c", "a"]], ["Z", ["aaaaa", "bbbbb", "[ab]", "[ab]aaaa", "[ab]ccc"]]]
 
             t.filter "X" (Filter_Condition.Like "%an%") . at "X" . to_vector . should_equal ["banana", "nana"]
-            t.filter "X" (Filter_Condition.Like "%an%" action=Filter_Action.Remove) . at "X" . to_vector . should_equal ["abb", "bacb", Nothing]
+            t.filter "X" (Filter_Condition.Like "%an%" keep_or_remove=Filter_Action.Remove) . at "X" . to_vector . should_equal ["abb", "bacb", Nothing]
             t.filter "X" (Filter_Condition.Like "_a%") . at "X" . to_vector . should_equal ["bacb", "banana", "nana"]
             t.filter "X" (Filter_Condition.Like "%b") . at "X" . to_vector . should_equal ["abb", "bacb"]
             t.filter "X" (Filter_Condition.Like "nana") . at "X" . to_vector . should_equal ["nana"]
@@ -216,7 +239,7 @@ add_specs suite_builder setup =
             t.filter "X" (Filter_Condition.Ends_With '\n') . at "X" . to_vector . should_equal ['a\n\n\n', 'a\n']
             t.filter "X" (Filter_Condition.Starts_With 'c') . at "X" . to_vector . should_equal ['caa\nbb']
 
-        if test_selection.supports_unicode_normalization then
+        if setup.flagged ..Supports_Unicode_Normalization then
             t = table_builder [["X", ['śnieg', 's\u0301nieg', 'X', Nothing, 'połać', 'połac\u0301']]]
             group_builder.specify "text operations should support Unicode normalization" <|
                 t.filter "X" (Filter_Condition.Starts_With 'ś') . at "X" . to_vector . should_equal ['śnieg', 's\u0301nieg']
@@ -281,7 +304,7 @@ add_specs suite_builder setup =
             t2.at "ix" . to_vector . should_equal [2, 4]
             t2.at "X" . to_vector . should_equal [1, 4]
 
-        group_builder.specify "by an Is_In check" <|
+        if setup.is_operation_supported "IS_IN" then group_builder.specify "by an Is_In check" <|
             t = table_builder [["ix", [1, 2, 3, Nothing, 5, 6]], ["X", ["a", "b", "ccc", "X", "f", "2"]]]
             t1 = table_builder [["txt", ["X", "a", "c", Nothing]], ["int", [Nothing, 2, 5, 4]], ["bool", [True, Nothing, Nothing, True]]]
 
@@ -290,7 +313,7 @@ add_specs suite_builder setup =
             t.filter "X" (Filter_Condition.Is_In ["ccc"]) . at "X" . to_vector . should_equal ["ccc"]
             t.filter "X" (Filter_Condition.Is_In []) . at "X" . to_vector . should_equal []
 
-            if test_selection.allows_mixed_type_comparisons then
+            if setup.flagged ..Allows_Mixed_Type_Comparisons then
                 mixed = t.filter "X" (Filter_Condition.Is_In (t1.at "int")) . at "X" . to_vector
                 # Some backends (e.g. SQLite) allow to coerce integer and text types when doing mixed type comparisons.
                 ((mixed == []) || (mixed == ["2"])).should_be_true
@@ -301,11 +324,11 @@ add_specs suite_builder setup =
             t.filter "ix" (Filter_Condition.Is_In [Nothing]) . at "ix" . to_vector . should_equal []
 
             v1 = t.filter "X" (Filter_Condition.Is_In ["c", "f", "b", "b", "b", 15, Nothing]) . at "X" . to_vector
-            case test_selection.allows_mixed_type_comparisons of
+            case setup.flagged ..Allows_Mixed_Type_Comparisons of
                 True -> v1.should_equal ["b", "f"]
                 False -> v1.should_fail_with SQL_Error
             v2 = t.filter "ix" (Filter_Condition.Is_In ["c", 3, 2, "a"]) . at "ix" . to_vector
-            case test_selection.allows_mixed_type_comparisons of
+            case setup.flagged ..Allows_Mixed_Type_Comparisons of
                 True -> v2.should_equal [2, 3]
                 False -> v2.should_fail_with SQL_Error
 
@@ -318,7 +341,7 @@ add_specs suite_builder setup =
             t3.filter "B" (Filter_Condition.Is_In [False]) . at "B" . to_vector . should_equal [False, False, False]
             t3.filter "C" (Filter_Condition.Is_In [False, False]) . at "C" . to_vector . should_equal [False]
 
-        group_builder.specify "does not allow Column_Ref in Is_In because that would be confusing" <|
+        if setup.is_operation_supported "IS_IN" then group_builder.specify "does not allow Column_Ref in Is_In because that would be confusing" <|
             ## Is In and Not In check if a value is contained anywhere in a provided collection (e.g. column),
                NOT on a row-by-row basis like all other operations. Column_Ref is used with row-by-row ops,
                so this would only cause confusion. Very rarely someone wants to filter a column by Is_In
@@ -362,8 +385,9 @@ add_specs suite_builder setup =
 
             check_problem <| t.filter "a" Filter_Condition.Is_Finite
             check_problem <| t.filter "a" Filter_Condition.Is_Infinite
-            if test_selection.is_nan_and_nothing_distinct then
+            if setup.flagged ..Supports_Separate_NaN then
                 check_problem <| t.filter "a" Filter_Condition.Is_Nan
+                check_problem <| t.filter "a" Filter_Condition.Not_Nan
 
         group_builder.specify "by a custom expression built from table's columns" <|
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", [10, 20, 13, 4, 5]], ["Y", [0, -100, 8, 2, 5]]]
@@ -385,23 +409,23 @@ add_specs suite_builder setup =
 
         group_builder.specify "should nicely handle Filter_Condition with unapplied arguments" <|
             t = table_builder [["X", [10, 20, 13, 4, 5]]]
-            t.filter "X" (Filter_Condition.Equal) . should_fail_with Illegal_Argument
-            t.filter "X" (Filter_Condition.Starts_With) . should_fail_with Illegal_Argument
-            t.filter "X" (Filter_Condition.Between) . should_fail_with Illegal_Argument
-            t.filter "X" (Filter_Condition.Between 1) . should_fail_with Illegal_Argument
+            t.filter "X" (Filter_Condition.Equal) . should_fail_with Missing_Argument
+            t.filter "X" (Filter_Condition.Starts_With) . should_fail_with Missing_Argument
+            t.filter "X" (Filter_Condition.Between) . should_fail_with Missing_Argument
+            t.filter "X" (Filter_Condition.Between 1) . should_fail_with Missing_Argument
 
         group_builder.specify "should report issues: floating point equality" <|
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", [10.0, 2.0001, 2.0, 4.5, 2.0]]]
 
-            r1 = t.filter "X" (Filter_Condition.Equal 2) on_problems=Problem_Behavior.Ignore
+            r1 = t.filter "X" (Filter_Condition.Equal 2) on_problems=..Ignore
             r1.at "ix" . to_vector . should_equal [3, 5]
             Problems.assume_no_problems r1
 
-            r2 = t.filter "X" (Filter_Condition.Equal 2) on_problems=Problem_Behavior.Report_Warning
+            r2 = t.filter "X" (Filter_Condition.Equal 2) on_problems=..Report_Warning
             r2.at "ix" . to_vector . should_equal [3, 5]
             Problems.expect_warning Floating_Point_Equality r2
 
-            r3 = t.filter "X" (Filter_Condition.Equal 2) on_problems=Problem_Behavior.Report_Error
+            r3 = t.filter "X" (Filter_Condition.Equal 2) on_problems=..Report_Error
             r3.should_fail_with Floating_Point_Equality
 
             r4 = t.filter "X" (Filter_Condition.Not_Equal 2)
@@ -421,12 +445,12 @@ add_specs suite_builder setup =
             Problems.expect_warning Floating_Point_Equality r1
             r1.at "ix" . to_vector . should_equal [2]
 
-            i1 = t2.filter "Y" (Filter_Condition.Equal 5) on_problems=Problem_Behavior.Ignore
+            i1 = t2.filter "Y" (Filter_Condition.Equal 5) on_problems=..Ignore
             Problems.expect_warning Illegal_State i1
             Problems.not_expect_warning Floating_Point_Equality i1
             i1.at "ix" . to_vector . should_equal [2]
 
-            err1 = t2.filter "Y" (Filter_Condition.Equal 5) on_problems=Problem_Behavior.Report_Error
+            err1 = t2.filter "Y" (Filter_Condition.Equal 5) on_problems=..Report_Error
             err1.should_fail_with Floating_Point_Equality
 
             r2 = t2.filter "Y" (Filter_Condition.Not_Equal 5)
@@ -434,21 +458,24 @@ add_specs suite_builder setup =
             Problems.expect_warning Floating_Point_Equality r2
             r2.at "ix" . to_vector . should_equal [1, 3]
 
-            i2 = t2.filter "Y" (Filter_Condition.Not_Equal 5) on_problems=Problem_Behavior.Ignore
+            i2 = t2.filter "Y" (Filter_Condition.Not_Equal 5) on_problems=..Ignore
             Problems.expect_warning Illegal_State i2
             Problems.not_expect_warning Floating_Point_Equality i2
             i2.at "ix" . to_vector . should_equal [1, 3]
 
-            err2 = t2.filter "Y" (Filter_Condition.Not_Equal 5) on_problems=Problem_Behavior.Report_Error
+            err2 = t2.filter "Y" (Filter_Condition.Not_Equal 5) on_problems=..Report_Error
             err2.should_fail_with Floating_Point_Equality
 
-        group_builder.specify "should attach a warning when Nothing is used as a value in a comparison or `is_in` `Filter_Condition`" <|
+        group_builder.specify "should attach a warning when Nothing is used as a value in a comparison `Filter_Condition`" <|
             t = table_builder [["x", [1, 2, 3]]]
-            fcs = [Filter_Condition.Equal Nothing, Filter_Condition.Not_Equal Nothing]
-                + [Filter_Condition.Less Nothing, Filter_Condition.Equal_Or_Less Nothing]
-                + [Filter_Condition.Equal_Or_Greater Nothing, Filter_Condition.Greater Nothing]
-                + [Filter_Condition.Between Nothing Nothing , Filter_Condition.Is_In [Nothing]]
-                + [Filter_Condition.Is_In [1, Nothing, 2]]
+            fcs = [Filter_Condition.Equal Nothing, Filter_Condition.Not_Equal Nothing, Filter_Condition.Less Nothing, Filter_Condition.Equal_Or_Less Nothing, Filter_Condition.Equal_Or_Greater Nothing, Filter_Condition.Greater Nothing]
+            fcs.map fc->
+                Test.with_clue fc.to_text <|
+                    Problems.expect_warning Nothing_Value_In_Filter_Condition (t.filter "x" fc . at "x")
+
+        if setup.is_operation_supported "IS_IN" then group_builder.specify "should attach a warning when Nothing is used as a value in a `is_in` `Filter_Condition`" <|
+            t = table_builder [["x", [1, 2, 3]]]
+            fcs = [Filter_Condition.Between Nothing Nothing , Filter_Condition.Is_In [Nothing] , Filter_Condition.Is_In [1, Nothing, 2]]
             fcs.map fc->
                 Test.with_clue fc.to_text <|
                     Problems.expect_warning Nothing_Value_In_Filter_Condition (t.filter "x" fc . at "x")
@@ -461,17 +488,10 @@ add_specs suite_builder setup =
             t = table_builder [["x", [1, 2, 3]], ["y", [1, Nothing, 2]]]
             Problems.assume_no_problems (t.filter "x" (Filter_Condition.Equal 12))
             Problems.assume_no_problems (t.filter "x" (Filter_Condition.Equal [Nothing, Nothing]))
-            Problems.assume_no_problems (t.filter "x" (Filter_Condition.Is_In [[Nothing, Nothing]]))
+            if setup.is_operation_supported "IS_IN" then
+                Problems.assume_no_problems (t.filter "x" (Filter_Condition.Is_In [[Nothing, Nothing]]))
 
     suite_builder.group prefix+"Table.filter by an expression" group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
         group_builder.specify "by a boolean column" <|
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["b", [True, False, Nothing, True, True]]]
             t.filter (expr "[b]") . at "ix" . to_vector . should_equal [1, 4, 5]
@@ -507,16 +527,16 @@ add_specs suite_builder setup =
 
         group_builder.specify "should report issues: floating point equality" <|
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", [10.0, 2.0001, 2.0, 4.5, -2.0]]]
-            r1 = t.filter (expr "[X] * [X] == 4.0") on_problems=Problem_Behavior.Ignore
+            r1 = t.filter (expr "[X] * [X] == 4.0") on_problems=..Ignore
             Problems.assume_no_problems r1
             r1.at "ix" . to_vector . should_equal [3, 5]
 
-            r2 = t.filter (expr "[X] * [X] == 4.0") on_problems=Problem_Behavior.Report_Warning
+            r2 = t.filter (expr "[X] * [X] == 4.0") on_problems=..Report_Warning
 
             r2.at "ix" . to_vector . should_equal [3, 5]
             Problems.expect_warning Floating_Point_Equality r2
 
-            r3 = t.filter (expr "[X] * [X] == 4.0") on_problems=Problem_Behavior.Report_Error
+            r3 = t.filter (expr "[X] * [X] == 4.0") on_problems=..Report_Error
             r3.should_fail_with Floating_Point_Equality
 
             r4 = t.filter (expr "[X] * [X] != 4.0")

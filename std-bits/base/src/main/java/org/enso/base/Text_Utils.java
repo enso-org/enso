@@ -36,6 +36,30 @@ public class Text_Utils {
   }
 
   /**
+   * Checks if the string has leading or trailing whitespace.
+   *
+   * @param s the string to check
+   * @return whether the string has leading or trailing whitespace
+   */
+  public static boolean has_leading_trailing_whitespace(String s) {
+    if (s == null || s.isEmpty()) {
+      return false;
+    }
+
+    var leading = Text_Utils.take_prefix(s, 1);
+    if (leading != null && is_all_whitespace(leading)) {
+      return true;
+    }
+
+    var trailing = Text_Utils.take_suffix(s, 1);
+    if (trailing != null && is_all_whitespace(trailing)) {
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
    * Returns a new string containing characters starting at the given UTF-16 index.
    *
    * @param string the string to trim

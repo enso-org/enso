@@ -38,4 +38,5 @@ trait RuntimeVersionManagementUserInterface
 
   /** Called to allow for special handling of info-level logs. */
   def logInfo(message: => String): Unit
+
 }

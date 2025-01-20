@@ -2,25 +2,27 @@ package org.enso.languageserver.runtime
 
 import akka.actor.{Actor, ActorRef, Props, Stash}
 import com.typesafe.scalalogging.LazyLogging
+import org.enso.languageserver.profiling.EventsMonitorProtocol
 import org.enso.languageserver.runtime.RuntimeConnector.{
   Destroy,
   MessageFromRuntime
 }
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.lockmanager.server.LockManagerService
-import org.enso.logger.akka.ActorMessageLogging
 import org.enso.logger.masking.ToLogString
+import org.enso.logging.utils.akka.ActorMessageLogging
 import org.enso.polyglot.runtime.Runtime
 import org.enso.polyglot.runtime.Runtime.{Api, ApiEnvelope}
-import org.enso.profiling.events.EventsMonitor
+import org.enso.polyglot.runtime.serde.ApiSerde
 import org.graalvm.polyglot.io.MessageEndpoint
 
 import java.nio.ByteBuffer
+import scala.util.{Failure, Success}
 
 /** An actor managing a connection to Enso's runtime server. */
 final class RuntimeConnector(
   handlers: Map[Class[_], ActorRef],
-  initialEventsMonitor: EventsMonitor
+  eventsMonitor: ActorRef
 ) extends Actor
     with LazyLogging
     with ActorMessageLogging
@@ -28,40 +30,34 @@ final class RuntimeConnector(
     with Stash {
 
   override def preStart(): Unit = {
-    logger.info("Starting the runtime connector.")
+    logger.debug("Starting the runtime connector")
   }
 
   override def receive: Receive = {
     case RuntimeConnector.Initialize(engine) =>
-      logger.info(
-        s"Runtime connector established connection with the message endpoint [{}].",
-        engine
+      logger.debug(
+        "Runtime connector established connection with the message endpoint"
       )
       unstashAll()
-      context.become(waitingOnEndpoint(engine, initialEventsMonitor))
+      context.become(waitingOnEndpoint(engine))
     case _ => stash()
   }
 
-  private def waitingOnEndpoint(
-    engine: MessageEndpoint,
-    eventsMonitor: EventsMonitor
-  ): Receive =
-    registerEvent(eventsMonitor).andThen(LoggingReceive {
+  private def waitingOnEndpoint(engine: MessageEndpoint): Receive =
+    registerMessage.andThen(LoggingReceive {
       case MessageFromRuntime(
             Runtime.Api.Response(None, Api.InitializedNotification())
           ) =>
         logger.debug(
-          s"Message endpoint [{}] is initialized. Runtime connector can accept messages.",
+          "Message endpoint [{}] is initialized. Runtime connector can accept messages",
           engine
         )
         unstashAll()
-        context.become(initialized(engine, eventsMonitor, Map()))
+        context.become(initialized(engine, Map()))
 
-      case RuntimeConnector.RegisterEventsMonitor(newEventsMonitor) =>
-        eventsMonitor.close()
-        context.become(waitingOnEndpoint(engine, newEventsMonitor))
-
-      case _ => stash()
+      case msg =>
+        logger.trace("Runtime received unexpected message: {}", msg)
+        stash()
     })
 
   /** Performs communication between runtime and language server.
@@ -85,30 +81,21 @@ final class RuntimeConnector(
     * the runtime are forwarded to one of the registered handlers.
     *
     * @param engine  endpoint of a runtime
-    * @param eventsMonitor the current events monitor
     * @param senders request ids with corresponding senders
     */
   def initialized(
     engine: MessageEndpoint,
-    eventsMonitor: EventsMonitor,
     senders: Map[Runtime.Api.RequestId, ActorRef]
-  ): Receive = registerEvent(eventsMonitor).andThen(LoggingReceive {
+  ): Receive = registerMessage.andThen(LoggingReceive {
     case Destroy =>
-      eventsMonitor.close()
       context.stop(self)
 
-    case RuntimeConnector.RegisterEventsMonitor(newEventsMonitor) =>
-      eventsMonitor.close()
-      context.become(initialized(engine, newEventsMonitor, senders))
-
     case msg: Runtime.ApiEnvelope =>
-      engine.sendBinary(Runtime.Api.serialize(msg))
+      engine.sendBinary(ApiSerde.serialize(msg))
 
       msg match {
         case Api.Request(Some(id), _) =>
-          context.become(
-            initialized(engine, eventsMonitor, senders + (id -> sender()))
-          )
+          context.become(initialized(engine, senders + (id -> sender())))
         case _ =>
       }
 
@@ -118,8 +105,8 @@ final class RuntimeConnector(
           handler ! request
         case None =>
           logger.warn(
-            s"No registered handler found for request " +
-            s"[${payload.getClass.getCanonicalName}]."
+            "No registered handler found for request [{}]",
+            payload.getClass.getCanonicalName
           )
       }
 
@@ -134,9 +121,8 @@ final class RuntimeConnector(
           sender ! msg
         case None =>
           logger.warn(
-            "No sender has been found associated with request id [{}], the response [{}] will be dropped.",
-            correlationId,
-            payload.getClass.getCanonicalName
+            "No sender has been found associated with request id [{}], the response [{}] will be dropped",
+            Array[Any](correlationId, payload.getClass.getCanonicalName)
           )
           payload match {
             case msg: ToLogString =>
@@ -144,20 +130,13 @@ final class RuntimeConnector(
             case _ =>
           }
       }
-      context.become(
-        initialized(engine, eventsMonitor, senders - correlationId)
-      )
+      context.become(initialized(engine, senders - correlationId))
   })
 
-  /** Register event in the events monitor
-    *
-    * @param eventsMonitor the current events monitor
-    */
-  private def registerEvent(
-    eventsMonitor: EventsMonitor
-  ): PartialFunction[Any, Any] = { event =>
-    eventsMonitor.registerEvent(event)
-    event
+  /** Register event in the events monitor. */
+  private def registerMessage: PartialFunction[Any, Any] = { message =>
+    eventsMonitor ! EventsMonitorProtocol.RegisterRuntimeMessage(message)
+    message
   }
 }
 
@@ -169,12 +148,6 @@ object RuntimeConnector {
     */
   case class Initialize(engineConnection: MessageEndpoint)
 
-  /** Protocol message to register new events monitor in the runtime connector.
-    *
-    * @param eventsMonitor the events monitor to register
-    */
-  case class RegisterEventsMonitor(eventsMonitor: EventsMonitor)
-
   /** Protocol message to inform the actor about the connection being closed.
     */
   case object Destroy
@@ -182,15 +155,15 @@ object RuntimeConnector {
   /** Helper for creating instances of the [[RuntimeConnector]] actor.
     *
     * @param lockManagerService a reference to the lock manager service actor
-    * @param monitor events monitor that handles messages between the language
+    * @param eventsMonitor events monitor that handles messages between the language
     * server and the runtime
     * @return a [[Props]] instance for the newly created actor.
     */
-  def props(lockManagerService: ActorRef, monitor: EventsMonitor): Props = {
+  def props(lockManagerService: ActorRef, eventsMonitor: ActorRef): Props = {
     val lockRequests =
       LockManagerService.handledRequestTypes.map(_ -> lockManagerService)
     val handlers: Map[Class[_], ActorRef] = Map.from(lockRequests)
-    Props(new RuntimeConnector(handlers, monitor))
+    Props(new RuntimeConnector(handlers, eventsMonitor))
   }
 
   /** Endpoint implementation used to handle connections with the runtime.
@@ -199,13 +172,18 @@ object RuntimeConnector {
     * @param peerEndpoint the runtime server's connection end.
     */
   class Endpoint(actor: ActorRef, peerEndpoint: MessageEndpoint)
-      extends MessageEndpoint {
+      extends MessageEndpoint
+      with LazyLogging {
+
     override def sendText(text: String): Unit = {}
 
     override def sendBinary(data: ByteBuffer): Unit =
-      Runtime.Api
-        .deserializeApiEnvelope(data)
-        .foreach(actor ! MessageFromRuntime(_))
+      ApiSerde.deserializeApiEnvelope(data) match {
+        case Success(msg) =>
+          actor ! MessageFromRuntime(msg)
+        case Failure(ex) =>
+          logger.error("Failed to deserialize runtime API envelope", ex)
+      }
 
     override def sendPing(data: ByteBuffer): Unit = peerEndpoint.sendPong(data)
 
