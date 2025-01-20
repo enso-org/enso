@@ -4,7 +4,7 @@
  * This component is used to suspend the rendering of a subtree until a promise is resolved.
  */
 import { unsafeWriteValue } from '#/utilities/write'
-import { Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { startTransition, Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useAwait } from './Await'
 
 /**
@@ -56,7 +56,10 @@ export function Activity(props: ActivityProps) {
 
     return () => {
       resolve()
-      setPromise(null)
+
+      startTransition(() => {
+        setPromise(null)
+      })
     }
   }, [isActive])
 

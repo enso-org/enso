@@ -39,7 +39,6 @@ import { useDirectoryIds } from './Drive/directoryIdsHooks'
 
 /** Props for a {@link Drive}. */
 export interface DriveProps {
-  readonly hidden: boolean
   readonly initialProjectName: string | null
   readonly assetsManagementApiRef: React.Ref<assetsTable.AssetManagementApi>
 }
@@ -144,13 +143,7 @@ interface DriveAssetsViewProps extends DriveProps {
  * The assets view of the Drive.
  */
 function DriveAssetsView(props: DriveAssetsViewProps) {
-  const {
-    category,
-    setCategory,
-    hidden = false,
-    initialProjectName,
-    assetsManagementApiRef,
-  } = props
+  const { category, setCategory, initialProjectName, assetsManagementApiRef } = props
 
   const deferredCategory = useDeferredValue(category)
 
@@ -172,7 +165,7 @@ function DriveAssetsView(props: DriveAssetsViewProps) {
   const { rootDirectoryId } = useDirectoryIds({ category })
 
   return (
-    <div className={tailwindMerge.twMerge('relative flex grow', hidden && 'hidden')}>
+    <div className="relative flex grow">
       <div
         data-testid="drive-view"
         className="mt-4 flex flex-1 flex-col gap-4 overflow-visible px-4"

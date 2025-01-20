@@ -157,7 +157,7 @@ const AssetSpecialRow = React.memo(function AssetSpecialRow(props: AssetSpecialR
       return (
         <tr>
           <td colSpan={columnsLength} className="border-r p-0">
-            <div className="flex h-table-row w-container items-center justify-center rounded-full">
+            <div className="flex h-table-row items-center justify-center rounded-full">
               <IndefiniteSpinner size={24} />
             </div>
           </td>

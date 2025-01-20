@@ -187,7 +187,7 @@ export interface AssetRowState {
 
 /** Props for a {@link AssetsTable}. */
 export interface AssetsTableProps {
-  readonly hidden: boolean
+  readonly hidden?: boolean
   readonly query: AssetQuery
   readonly setQuery: Dispatch<SetStateAction<AssetQuery>>
   readonly category: Category
@@ -203,7 +203,7 @@ export interface AssetManagementApi {
 
 /** The table of project assets. */
 function AssetsTable(props: AssetsTableProps) {
-  const { hidden, query, setQuery, category, assetManagementApiRef } = props
+  const { hidden = false, query, setQuery, category, assetManagementApiRef } = props
   const { initialProjectName } = props
 
   const openedProjects = useLaunchedProjects()
@@ -892,29 +892,6 @@ function AssetsTable(props: AssetsTableProps) {
     ],
   )
 
-  useEffect(() => {
-    // In some browsers, at least in Chrome 126,
-    // in some situations, when an element has a
-    // 'container-size' style, and the parent element is hidden,
-    // the browser can't calculate the element's size
-    // and thus the element doesn't appear when we unhide the parent.
-    // The only way to fix that is to force browser to recalculate styles
-    // So the trick is to change a property, trigger style recalc(`getBoundlingClientRect()`)
-    // and remove the property.
-    // since everything is happening synchronously, user won't see a broken layout during recalculation
-    if (!hidden && rootRef.current) {
-      for (let i = 0; i < rootRef.current.children.length; i++) {
-        const element = rootRef.current.children[i]
-
-        if (element instanceof HTMLElement) {
-          element.style.width = '0px'
-          element.getBoundingClientRect()
-          element.style.width = ''
-        }
-      }
-    }
-  }, [hidden])
-
   const calculateNewSelection = useEventCallback(
     (
       event: MouseEvent | ReactMouseEvent,
@@ -1368,7 +1345,7 @@ function AssetsTable(props: AssetsTableProps) {
 
       <FocusArea direction="vertical">
         {(innerProps) => (
-          <IsolateLayout className="isolate h-full w-full">
+          <IsolateLayout className="isolate h-full w-full" useRAF>
             <div
               {...mergeProps<JSX.IntrinsicElements['div']>()(innerProps, {
                 className:

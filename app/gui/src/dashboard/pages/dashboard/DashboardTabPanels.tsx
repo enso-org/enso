@@ -13,6 +13,7 @@ import { useLaunchedProjects, usePage } from '#/providers/ProjectsProvider'
 import type { ProjectId } from '#/services/Backend'
 import { lazy, type ReactNode } from 'react'
 import { Collection } from 'react-aria-components'
+import { twJoin } from 'tailwind-merge'
 
 /** The props for the {@link DashboardTabPanels} component. */
 export interface DashboardTabPanelsProps {
@@ -48,13 +49,12 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
   const tabPanels = [
     {
       id: 'drive',
-      className: 'flex min-h-0 grow [&[data-inert]]:hidden',
+      className: twJoin('flex min-h-0 grow [&[data-inert]]:hidden'),
       wrapInActivity: true,
       shouldForceMount: true,
       children: (
         <LazyDrive
           assetsManagementApiRef={assetManagementApiRef}
-          hidden={page !== 'drive'}
           initialProjectName={initialProjectName}
         />
       ),
