@@ -116,6 +116,7 @@ function onMouseRightClick(event: MouseEvent) {
         ref="inputElement"
         class="ag-input-field-input ag-text-field-input"
         :value="displayName"
+        @change="acceptNewName"
         @keydown.arrow-left.stop
         @keydown.arrow-right.stop
         @keydown.arrow-up.stop
