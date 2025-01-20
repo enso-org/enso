@@ -8,7 +8,7 @@
   button protruding from the output port.][11836].
 - [Fixed nodes being selected after deleting other nodes or connections.][11902]
 - [Redo stack is no longer lost when interacting with text literals][11908].
-- [Fixed bug when clicking header in Table Editor Widgetdidn't start editing
+- [Fixed bug when clicking header in Table Editor Widget didn't start editing
   it][12064]
 
 [11889]: https://github.com/enso-org/enso/pull/11889
