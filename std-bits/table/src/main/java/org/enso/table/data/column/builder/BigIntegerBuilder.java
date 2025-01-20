@@ -72,8 +72,9 @@ public class BigIntegerBuilder extends TypedBuilder<BigInteger> {
   @Override
   public void append(Object o) {
     ensureSpaceToAppend();
-    if (o instanceof BigInteger value) {
-      data[currentSize++] = value;
+
+    if (o == null) {
+      appendNulls(1);
     } else {
       try {
         data[currentSize++] = NumericConverter.coerceToBigInteger(o);

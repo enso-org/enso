@@ -100,6 +100,11 @@ public class InferredDoubleBuilder extends DoubleBuilder implements BuilderWithR
 
   @Override
   public void append(Object o) {
+    if (o == null) {
+      appendNulls(1);
+      return;
+    }
+
     if (NumericConverter.isFloatLike(o)) {
       appendDouble(NumericConverter.coerceToDouble(o));
     } else if (NumericConverter.isCoercibleToLong(o)) {

@@ -58,6 +58,11 @@ public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
 
   @Override
   public void append(Object o) {
+    if (o == null) {
+      appendNulls(1);
+      return;
+    }
+
     double value;
     if (NumericConverter.isFloatLike(o)) {
       value = NumericConverter.coerceToDouble(o);

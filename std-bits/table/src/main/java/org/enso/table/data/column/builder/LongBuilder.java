@@ -26,7 +26,7 @@ public class LongBuilder extends NumericBuilder implements BuilderForLong, Build
   }
 
   static LongBuilder make(int initialSize, IntegerType type, ProblemAggregator problemAggregator) {
-    if (type.equals(IntegerType.INT_64)) {
+    if (type == null || type.equals(IntegerType.INT_64)) {
       return new LongBuilder(initialSize, problemAggregator);
     } else {
       return new BoundCheckedIntegerBuilder(initialSize, type, problemAggregator);
@@ -144,6 +144,11 @@ public class LongBuilder extends NumericBuilder implements BuilderForLong, Build
 
   @Override
   public void append(Object o) {
+    if (o == null) {
+      appendNulls(1);
+      return;
+    }
+
     Long x = NumericConverter.tryConvertingToLong(o);
     if (x != null) {
       ensureSpaceToAppend();

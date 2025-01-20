@@ -23,7 +23,7 @@ public class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping {
   @Override
   public void append(Object o) {
     if (o == null) {
-      isNothing.set(size);
+      appendNulls(1);
     } else {
       if (o instanceof Boolean b) {
         if (b) {
