@@ -136,7 +136,7 @@ function useSortFilterNodesButton({
   function makeNumericFilterPattern(
     module: Ast.MutableModule,
     columnName: string,
-    item: string | { toValue: string; fromValue: string },
+    item: string | FilterValueRange,
     filterAction: FilterAction,
   ) {
     const valueFormatter = getColumnValueToEnso(columnName)
@@ -186,7 +186,7 @@ function useSortFilterNodesButton({
         Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('filter')!),
         filterType === 'set' ?
           makeFilterPattern(ast.module, columnName, items as string[])
-        : makeNumericFilterPattern(ast.module, columnName, items as string, filterAction!),
+        : makeNumericFilterPattern(ast.module, columnName, items as string | FilterValueRange, filterAction!),
       ),
     )
   }
@@ -202,7 +202,7 @@ function useSortFilterNodesButton({
 
   function getAstPatternFilterAndSort(
     columnName: string,
-    items: string[] | string | FilterValue,
+    items: string[] | string | FilterValueRange,
     filterType: FilterType,
     filterAction?: FilterAction,
   ) {
@@ -213,7 +213,7 @@ function useSortFilterNodesButton({
           Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('filter')!),
           filterType === 'set' ?
             makeFilterPattern(ast.module, columnName, items as string[])
-          : makeNumericFilterPattern(ast.module, columnName, items as string, filterAction!),
+          : makeNumericFilterPattern(ast.module, columnName, items as string | FilterValueRange, filterAction!),
         ),
         '.',
         Ast.App.positional(
