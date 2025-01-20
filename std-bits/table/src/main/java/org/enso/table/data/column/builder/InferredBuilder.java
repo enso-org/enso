@@ -54,7 +54,7 @@ public class InferredBuilder implements Builder {
 
     if (currentBuilder == null) {
       if (o == null) {
-        currentSize++;
+        appendNulls(1);
         return;
       } else {
         initBuilderFor(o);

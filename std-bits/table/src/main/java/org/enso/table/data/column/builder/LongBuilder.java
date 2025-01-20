@@ -151,8 +151,7 @@ public class LongBuilder extends NumericBuilder implements BuilderForLong, Build
 
     Long x = NumericConverter.tryConvertingToLong(o);
     if (x != null) {
-      ensureSpaceToAppend();
-      this.data[currentSize++] = x;
+      appendLong(x);
     } else {
       throw new ValueTypeMismatchException(getType(), o);
     }

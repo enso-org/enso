@@ -32,8 +32,8 @@ public class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping {
       } else {
         throw new ValueTypeMismatchException(getType(), o);
       }
+      size++;
     }
-    size++;
   }
 
   @Override
