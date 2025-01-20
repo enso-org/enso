@@ -3,7 +3,6 @@ import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useGraphStore } from '@/stores/graph'
 import { QualifiedImport } from '@/stores/graph/imports'
-import type { Icon } from '@/util/iconName'
 import { QualifiedName } from '@/util/qualifiedName'
 import type { Icon } from '@/util/iconMetadata/iconName'
 
@@ -30,7 +29,6 @@ function copyText() {
 function fixImport() {
   const libName = containsLibraryName()
   if (typeof libName == `string`) {
-    window.navigator.clipboard.writeText(libName)
     const theImport = {
       kind: 'Qualified',
       module: libName as QualifiedName,
