@@ -61,8 +61,7 @@ public abstract class TypedBuilder<T> implements BuilderWithRetyping, BuilderFor
                 + ". This is a bug in the Table library.");
       }
     } else if (storage.getType() instanceof NullType) {
-      //appendNulls(storage.size());
-      throw new RuntimeException("Hello!");
+      appendNulls(storage.size());
     } else {
       throw new StorageTypeMismatchException(getType(), storage.getType());
     }
