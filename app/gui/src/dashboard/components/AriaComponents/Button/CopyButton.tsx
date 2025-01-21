@@ -9,14 +9,15 @@ import * as copyHook from '#/hooks/copyHooks'
 
 import * as textProvider from '#/providers/TextProvider'
 
-import * as button from './Button'
+import { Button } from './Button'
+import type { ButtonProps } from './types'
 
 // ==================
 // === CopyButton ===
 // ==================
 
 /** Props for a {@link CopyButton}. */
-export interface CopyButtonProps extends Omit<button.ButtonProps, 'icon' | 'loading' | 'onPress'> {
+export interface CopyButtonProps extends Omit<ButtonProps, 'icon' | 'loading' | 'onPress'> {
   /** The text to copy to the clipboard. */
   readonly copyText: string
   /**
@@ -58,7 +59,7 @@ export function CopyButton(props: CopyButtonProps) {
     : null
 
   return (
-    <button.Button
+    <Button
       /* This is safe because we are passing all props to the button */
       /* eslint-disable-next-line @typescript-eslint/no-explicit-any,no-restricted-syntax */
       {...(buttonProps as any)}

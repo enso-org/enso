@@ -26,7 +26,6 @@ import java.util.Map;
 import java.util.TimeZone;
 import java.util.stream.IntStream;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.builder.StringBuilder;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
@@ -278,7 +277,7 @@ public class GoogleAnalyticsReader {
 
       var builders = new Builder[dimensions.size() + metrics.size()];
       for (int i = 0; i < dimensions.size() + metrics.size(); i++) {
-        builders[i] = new StringBuilder(rowCount, TextType.VARIABLE_LENGTH);
+        builders[i] = Builder.getForType(TextType.VARIABLE_LENGTH, rowCount, null);
       }
 
       // Load the data

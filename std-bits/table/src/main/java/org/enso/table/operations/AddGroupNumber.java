@@ -1,21 +1,10 @@
 package org.enso.table.operations;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.IntStream;
-import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
-import org.enso.table.data.index.OrderedMultiValueKey;
-import org.enso.table.data.index.UnorderedMultiValueKey;
 import org.enso.table.data.table.Column;
-import org.enso.table.problems.ColumnAggregatedProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
-import org.enso.table.util.ConstantList;
 
 public class AddGroupNumber {
   public static Storage<?> numberGroupsUnique(
@@ -27,28 +16,51 @@ public class AddGroupNumber {
     if (groupingColumns.length == 0) {
       throw new IllegalArgumentException("At least one grouping column is required.");
     }
+    var groupNumberRowVisitorFactory =
+        new GroupNumberRowVisitorFactory(start, step, Math.toIntExact(numRows));
+    GroupingOrderingVisitor.visit(
+        groupingColumns,
+        new Column[0],
+        new int[0],
+        problemAggregator,
+        groupNumberRowVisitorFactory,
+        numRows);
+    return new LongStorage(groupNumberRowVisitorFactory.storageForResult, IntegerType.INT_64);
+  }
 
-    var groupNumberIterator = new StepIterator(start, step);
+  private static class GroupNumberRowVisitorFactory implements RowVisitorFactory {
 
-    long[] numbers = new long[Math.toIntExact(numRows)];
+    private long current;
+    private final long step;
+    long[] storageForResult;
 
-    Storage<?>[] groupingStorages =
-        Arrays.stream(groupingColumns).map(Column::getStorage).toArray(Storage[]::new);
-    ColumnAggregatedProblemAggregator groupingProblemAggregator =
-        new ColumnAggregatedProblemAggregator(problemAggregator);
-    List<TextFoldingStrategy> textFoldingStrategy =
-        ConstantList.make(TextFoldingStrategy.unicodeNormalizedFold, groupingStorages.length);
-    Map<UnorderedMultiValueKey, Long> groupNumbers = new HashMap<>();
-
-    for (int i = 0; i < numRows; i++) {
-      var key = new UnorderedMultiValueKey(groupingStorages, i, textFoldingStrategy);
-      key.checkAndReportFloatingEquality(
-          groupingProblemAggregator, columnIx -> groupingColumns[columnIx].getName());
-      var groupNumber = groupNumbers.computeIfAbsent(key, k -> groupNumberIterator.next());
-      numbers[i] = groupNumber;
+    GroupNumberRowVisitorFactory(long start, long step, int size) {
+      this.current = start;
+      this.step = step;
+      storageForResult = new long[size];
     }
 
-    return new LongStorage(numbers, IntegerType.INT_64);
+    @Override
+    public GroupRowVisitor getNewRowVisitor() {
+      var nextGroupNumber = current;
+      current = Math.addExact(current, step);
+      return new GroupNumberRowVisitor(nextGroupNumber, storageForResult);
+    }
+
+    private static class GroupNumberRowVisitor implements GroupRowVisitor {
+      private final long groupNumber;
+      private final long[] storageForResult;
+
+      GroupNumberRowVisitor(long groupNumber, long[] storageForResult) {
+        this.groupNumber = groupNumber;
+        this.storageForResult = storageForResult;
+      }
+
+      @Override
+      public void visit(int row) {
+        storageForResult[row] = groupNumber;
+      }
+    }
   }
 
   public static Storage<?> numberGroupsEqualCount(
@@ -59,64 +71,52 @@ public class AddGroupNumber {
       Column[] orderingColumns,
       int[] directions,
       ProblemAggregator problemAggregator) {
-    long[] numbers = new long[Math.toIntExact(numRows)];
-
-    var equalCountGenerator = new EqualCountGenerator(start, step, numRows, groupCount);
-
-    if (orderingColumns.length == 0) {
-      for (int i = 0; i < numRows; ++i) {
-        numbers[i] = equalCountGenerator.next();
-      }
-    } else {
-      Storage<?>[] orderingStorages =
-          Arrays.stream(orderingColumns).map(Column::getStorage).toArray(Storage[]::new);
-      List<OrderedMultiValueKey> keys =
-          new ArrayList<>(
-              IntStream.range(0, Math.toIntExact(numRows))
-                  .mapToObj(i -> new OrderedMultiValueKey(orderingStorages, i, directions))
-                  .toList());
-      keys.sort(null);
-      for (var key : keys) {
-        var i = key.getRowIndex();
-        numbers[i] = equalCountGenerator.next();
-      }
-    }
-
-    return new LongStorage(numbers, IntegerType.INT_64);
+    var equalCountRowVisitorFactory =
+        new EqualCountRowVisitorFactory(start, step, numRows, groupCount);
+    GroupingOrderingVisitor.visit(
+        new Column[0],
+        orderingColumns,
+        directions,
+        problemAggregator,
+        equalCountRowVisitorFactory,
+        numRows);
+    return new LongStorage(equalCountRowVisitorFactory.storageForResult, IntegerType.INT_64);
   }
 
-  private static class StepIterator {
-    private final long step;
-    private long current;
+  private static class EqualCountRowVisitorFactory implements RowVisitorFactory {
 
-    public StepIterator(long start, long step) {
-      this.step = step;
-      this.current = start;
-    }
-
-    public long next() {
-      var toReturn = current;
-      current = Math.addExact(current, step);
-      return toReturn;
-    }
-  }
-
-  private static class EqualCountGenerator {
     private final long start;
     private final long step;
-    private long currentIndex = 0;
     private final long groupSize;
+    long[] storageForResult;
 
-    public EqualCountGenerator(long start, long step, long totalCount, long numgroups) {
+    EqualCountRowVisitorFactory(long start, long step, long totalCount, long numgroups) {
       this.start = start;
       this.step = step;
       groupSize = (long) Math.ceil((double) totalCount / (double) numgroups);
+      storageForResult = new long[Math.toIntExact(totalCount)];
     }
 
-    public long next() {
-      long toReturn = Math.addExact(start, Math.multiplyExact(step, (currentIndex / groupSize)));
-      currentIndex = Math.addExact(currentIndex, 1L);
-      return toReturn;
+    @Override
+    public GroupRowVisitor getNewRowVisitor() {
+      return new EqualCountRowVisitor(this);
+    }
+
+    private static class EqualCountRowVisitor implements GroupRowVisitor {
+      private final EqualCountRowVisitorFactory parent;
+      private long currentIndex = 0;
+
+      EqualCountRowVisitor(EqualCountRowVisitorFactory parent) {
+        this.parent = parent;
+      }
+
+      @Override
+      public void visit(int row) {
+        parent.storageForResult[row] =
+            Math.addExact(
+                parent.start, Math.multiplyExact(parent.step, (currentIndex / parent.groupSize)));
+        currentIndex = Math.addExact(currentIndex, 1L);
+      }
     }
   }
 }

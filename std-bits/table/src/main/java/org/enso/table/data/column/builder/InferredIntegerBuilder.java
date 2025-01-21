@@ -14,18 +14,21 @@ import org.enso.table.problems.ProblemAggregator;
  * <p>This builder starts off delegating to LongBuilder, but if it receives a BigInteger, it retypes
  * the LongBuilder to a BigIntegerBuilder.
  */
-public class InferredIntegerBuilder extends Builder {
-  private LongBuilder longBuilder = null;
-  private TypedBuilder bigIntegerBuilder = null;
+public class InferredIntegerBuilder implements Builder {
+  private BuilderWithRetyping longBuilder;
+  private Builder bigIntegerBuilder = null;
   private int currentSize = 0;
-  private final int initialSize;
 
   /** Creates a new instance of this builder, with the given known result length. */
   public InferredIntegerBuilder(int initialSize, ProblemAggregator problemAggregator) {
-    this.initialSize = initialSize;
-
-    longBuilder =
-        NumericBuilder.createLongBuilder(this.initialSize, IntegerType.INT_64, problemAggregator);
+    var baseBuilder = Builder.getForLong(IntegerType.INT_64, initialSize, problemAggregator);
+    if (baseBuilder instanceof BuilderWithRetyping builderWithRetyping) {
+      longBuilder = builderWithRetyping;
+    } else {
+      throw new IllegalStateException(
+          "InferredIntegerBuilder must be able to retype to BigIntegerBuilder, but the base "
+              + "builder does not support retyping.");
+    }
   }
 
   @Override
@@ -126,5 +129,14 @@ public class InferredIntegerBuilder extends Builder {
     }
     bigIntegerBuilder = longBuilder.retypeTo(BigIntegerType.INSTANCE);
     longBuilder = null;
+  }
+
+  @Override
+  public void copyDataTo(Object[] items) {
+    if (bigIntegerBuilder != null) {
+      bigIntegerBuilder.copyDataTo(items);
+    } else {
+      longBuilder.copyDataTo(items);
+    }
   }
 }

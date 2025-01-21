@@ -2,16 +2,13 @@ package org.enso.table.data.column.builder;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.BitSet;
 import java.util.Objects;
 import org.enso.base.polyglot.NumericConverter;
-import org.enso.table.data.column.operation.cast.ToFloatStorageConverter;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
-import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.FloatType;
@@ -22,44 +19,36 @@ import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.BitSets;
 
 /** A builder for floating point columns. */
-public class DoubleBuilder extends NumericBuilder {
-  DoubleBuilder(
-      BitSet isNothing, long[] data, int currentSize, ProblemAggregator problemAggregator) {
-    super(isNothing, data, currentSize);
+public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
+  protected final PrecisionLossAggregator precisionLossAggregator;
+  protected double[] data;
+
+  DoubleBuilder(int initialSize, ProblemAggregator problemAggregator) {
+    super();
+    this.data = new double[initialSize];
     precisionLossAggregator = new PrecisionLossAggregator(problemAggregator);
   }
 
   @Override
-  public void retypeToMixed(Object[] items) {
-    throw new IllegalStateException(
-        "The DoubleBuilder cannot be retyped to the Mixed type, because it would lose type"
+  protected int getDataSize() {
+    return data.length;
+  }
+
+  @Override
+  protected void resize(int desiredCapacity) {
+    double[] newData = new double[desiredCapacity];
+    int toCopy = Math.min(currentSize, data.length);
+    System.arraycopy(data, 0, newData, 0, toCopy);
+    data = newData;
+  }
+
+  @Override
+  public void copyDataTo(Object[] items) {
+    throw new UnsupportedOperationException(
+        "The DoubleBuilder cannot be copied to Object[], because it would lose type"
             + " information about integers that were converted to doubles. If recasting is needed,"
-            + " InferringDoubleBuilder should be used instead. This error leaking is a bug in the"
+            + " InferredDoubleBuilder should be used instead. This error leaking is a bug in the"
             + " Table library.");
-  }
-
-  @Override
-  public boolean canRetypeTo(StorageType type) {
-    return type instanceof BigDecimalType;
-  }
-
-  @Override
-  public TypedBuilder retypeTo(StorageType type) {
-    if (type instanceof BigDecimalType) {
-      BigDecimalBuilder res = new BigDecimalBuilder(currentSize);
-      for (int i = 0; i < currentSize; i++) {
-        if (isNothing.get(i)) {
-          res.appendNulls(1);
-        } else {
-          double d = Double.longBitsToDouble(data[i]);
-          BigDecimal bigDecimal = BigDecimal.valueOf(d);
-          res.appendNoGrow(bigDecimal);
-        }
-      }
-      return res;
-    } else {
-      throw new UnsupportedOperationException();
-    }
   }
 
   @Override
@@ -71,24 +60,24 @@ public class DoubleBuilder extends NumericBuilder {
   public void appendNoGrow(Object o) {
     if (o == null) {
       isNothing.set(currentSize++);
-    } else if (NumericConverter.isFloatLike(o)) {
-      double value = NumericConverter.coerceToDouble(o);
-      data[currentSize++] = Double.doubleToRawLongBits(value);
+      return;
+    }
+
+    double value;
+    if (NumericConverter.isFloatLike(o)) {
+      value = NumericConverter.coerceToDouble(o);
     } else if (NumericConverter.isCoercibleToLong(o)) {
-      long value = NumericConverter.coerceToLong(o);
-      double converted = convertIntegerToDouble(value);
-      data[currentSize++] = Double.doubleToRawLongBits(converted);
+      long longValue = NumericConverter.coerceToLong(o);
+      value = convertLongToDouble(longValue);
     } else if (o instanceof BigInteger bigInteger) {
-      double converted = convertBigIntegerToDouble(bigInteger);
-      data[currentSize++] = Double.doubleToRawLongBits(converted);
+      value = convertBigIntegerToDouble(bigInteger);
+    } else if (o instanceof BigDecimal bigDecimal) {
+      value = convertBigDecimalToDouble(bigDecimal);
     } else {
       throw new ValueTypeMismatchException(getType(), o);
     }
-  }
 
-  @Override
-  public boolean accepts(Object o) {
-    return NumericConverter.isCoercibleToDouble(o);
+    data[currentSize++] = value;
   }
 
   @Override
@@ -112,8 +101,7 @@ public class DoubleBuilder extends NumericBuilder {
         BitSets.copy(longStorage.getIsNothingMap(), isNothing, currentSize, n);
         for (int i = 0; i < n; i++) {
           long item = longStorage.getItem(i);
-          double converted = convertIntegerToDouble(item);
-          data[currentSize++] = Double.doubleToRawLongBits(converted);
+          data[currentSize++] = convertLongToDouble(item);
         }
       } else {
         throw new IllegalStateException(
@@ -129,8 +117,7 @@ public class DoubleBuilder extends NumericBuilder {
           if (item == null) {
             isNothing.set(currentSize++);
           } else {
-            double converted = convertBigIntegerToDouble(item);
-            data[currentSize++] = Double.doubleToRawLongBits(converted);
+            data[currentSize++] = convertBigIntegerToDouble(item);
           }
         }
       } else {
@@ -146,8 +133,7 @@ public class DoubleBuilder extends NumericBuilder {
           if (boolStorage.isNothing(i)) {
             isNothing.set(currentSize++);
           } else {
-            double x = ToFloatStorageConverter.booleanAsDouble(boolStorage.getItem(i));
-            data[currentSize++] = Double.doubleToRawLongBits(x);
+            data[currentSize++] = boolStorage.getItem(i) ? 1.0 : 0.0;
           }
         }
       } else {
@@ -164,13 +150,13 @@ public class DoubleBuilder extends NumericBuilder {
   /**
    * Append a new double to this builder.
    *
-   * @param data the double to append
+   * @param value the double to append
    */
-  public void appendDouble(double data) {
-    if (currentSize >= this.data.length) {
+  public void appendDouble(double value) {
+    if (currentSize >= data.length) {
       grow();
     }
-    appendRawNoGrow(Double.doubleToRawLongBits(data));
+    data[currentSize++] = value;
   }
 
   /**
@@ -178,31 +164,8 @@ public class DoubleBuilder extends NumericBuilder {
    *
    * <p>It ensures that any loss of precision is reported.
    */
-  public void appendLong(long integer) {
-    if (currentSize >= this.data.length) {
-      grow();
-    }
-
-    double converted = convertIntegerToDouble(integer);
-    appendRawNoGrow(Double.doubleToRawLongBits(converted));
-  }
-
-  public void appendBigInteger(BigInteger integer) {
-    if (currentSize >= this.data.length) {
-      grow();
-    }
-
-    double converted = convertBigIntegerToDouble(integer);
-    appendRawNoGrow(Double.doubleToRawLongBits(converted));
-  }
-
-  public void appendBigDecimal(BigDecimal integer) {
-    if (currentSize >= this.data.length) {
-      grow();
-    }
-
-    double converted = convertBigDecimalToDouble(integer);
-    appendRawNoGrow(Double.doubleToRawLongBits(converted));
+  public void appendLong(long value) {
+    appendDouble(convertLongToDouble(value));
   }
 
   @Override
@@ -216,7 +179,7 @@ public class DoubleBuilder extends NumericBuilder {
    * <p>It verifies if the integer can be exactly represented in a double, and if not, it reports a
    * warning.
    */
-  protected double convertIntegerToDouble(long integer) {
+  protected double convertLongToDouble(long integer) {
     double floatingPointValue = (double) integer;
     boolean isLosingPrecision = (long) floatingPointValue != integer;
     if (isLosingPrecision) {
@@ -285,6 +248,4 @@ public class DoubleBuilder extends NumericBuilder {
       }
     }
   }
-
-  protected final PrecisionLossAggregator precisionLossAggregator;
 }

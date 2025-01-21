@@ -6,7 +6,6 @@ import project.Column.Column
 import project.Data_Formatter.Data_Formatter
 import project.Internal.Storage
 import project.Value_Type.Value_Type
-from project.Internal.Java_Exports import make_string_builder
 
 polyglot java import java.lang.IllegalArgumentException
 polyglot java import java.time.temporal.UnsupportedTemporalTypeException

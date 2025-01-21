@@ -6,20 +6,16 @@ import java.time.Duration;
 import java.time.Period;
 import java.time.ZoneId;
 import java.util.function.Consumer;
-import org.enso.table.data.column.builder.BigDecimalBuilder;
-import org.enso.table.data.column.builder.BigIntegerBuilder;
-import org.enso.table.data.column.builder.BoolBuilder;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.builder.DateBuilder;
-import org.enso.table.data.column.builder.DateTimeBuilder;
-import org.enso.table.data.column.builder.InferredBuilder;
-import org.enso.table.data.column.builder.NumericBuilder;
-import org.enso.table.data.column.builder.ObjectBuilder;
-import org.enso.table.data.column.builder.StringBuilder;
-import org.enso.table.data.column.builder.TimeOfDayBuilder;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.type.BigDecimalType;
+import org.enso.table.data.column.storage.type.BigIntegerType;
+import org.enso.table.data.column.storage.type.DateTimeType;
+import org.enso.table.data.column.storage.type.DateType;
+import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.TextType;
+import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.problems.ProblemAggregator;
 
 /** A builder for a single column of a table. */
@@ -62,7 +58,7 @@ record TableColumnBuilder(Builder builder, Consumer<Result> appendMethod) {
       HyperTableColumn column, int initialRowCount, ProblemAggregator problemAggregator) {
     switch (column.typeID()) {
       case Types.BOOLEAN:
-        var boolBuilder = new BoolBuilder(initialRowCount);
+        var boolBuilder = Builder.getForBoolean(initialRowCount);
         return new TableColumnBuilder(
             boolBuilder,
             nullAppender(
@@ -71,8 +67,7 @@ record TableColumnBuilder(Builder builder, Consumer<Result> appendMethod) {
                 r -> boolBuilder.appendBoolean(r.getBool(column.index()))));
       case Types.BIGINT:
         var longBuilder =
-            NumericBuilder.createLongBuilder(
-                initialRowCount, IntegerType.INT_64, problemAggregator);
+            Builder.getForLong(IntegerType.INT_64, initialRowCount, problemAggregator);
         return new TableColumnBuilder(
             longBuilder,
             nullAppender(
@@ -80,17 +75,14 @@ record TableColumnBuilder(Builder builder, Consumer<Result> appendMethod) {
                 column.index(),
                 r -> longBuilder.appendLong(r.getLong(column.index()))));
       case Types.INTEGER:
-        var intBuilder =
-            NumericBuilder.createLongBuilder(
-                initialRowCount, IntegerType.INT_32, problemAggregator);
+        var intBuilder = Builder.getForLong(IntegerType.INT_32, initialRowCount, problemAggregator);
         return new TableColumnBuilder(
             intBuilder,
             nullAppender(
                 intBuilder, column.index(), r -> intBuilder.appendLong(r.getInt(column.index()))));
       case Types.SMALLINT:
         var shortBuilder =
-            NumericBuilder.createLongBuilder(
-                initialRowCount, IntegerType.INT_16, problemAggregator);
+            Builder.getForLong(IntegerType.INT_16, initialRowCount, problemAggregator);
         return new TableColumnBuilder(
             shortBuilder,
             nullAppender(
@@ -102,7 +94,8 @@ record TableColumnBuilder(Builder builder, Consumer<Result> appendMethod) {
           throw new IllegalArgumentException("NUMERIC column must have a scale.");
         }
         if (column.scale().getAsInt() == 0) {
-          var bigIntBuilder = new BigIntegerBuilder(initialRowCount, problemAggregator);
+          var bigIntBuilder =
+              Builder.getForType(BigIntegerType.INSTANCE, initialRowCount, problemAggregator);
           return new TableColumnBuilder(
               bigIntBuilder,
               nullAppender(
@@ -110,7 +103,8 @@ record TableColumnBuilder(Builder builder, Consumer<Result> appendMethod) {
                   column.index(),
                   r -> bigIntBuilder.append(r.getBigDecimal(column.index()).toBigInteger())));
         } else {
-          var bigDecimalBuilder = new BigDecimalBuilder(initialRowCount);
+          var bigDecimalBuilder =
+              Builder.getForType(BigDecimalType.INSTANCE, initialRowCount, problemAggregator);
           return new TableColumnBuilder(
               bigDecimalBuilder,
               nullAppender(
@@ -119,7 +113,8 @@ record TableColumnBuilder(Builder builder, Consumer<Result> appendMethod) {
                   r -> bigDecimalBuilder.append(r.getBigDecimal(column.index()))));
         }
       case Types.FLOAT:
-        var floatBuilder = NumericBuilder.createDoubleBuilder(initialRowCount, problemAggregator);
+        var floatBuilder =
+            Builder.getForDouble(FloatType.FLOAT_64, initialRowCount, problemAggregator);
         return new TableColumnBuilder(
             floatBuilder,
             nullAppender(
@@ -127,7 +122,8 @@ record TableColumnBuilder(Builder builder, Consumer<Result> appendMethod) {
                 column.index(),
                 r -> floatBuilder.appendDouble(r.getFloat(column.index()))));
       case Types.DOUBLE:
-        var doubleBuilder = NumericBuilder.createDoubleBuilder(initialRowCount, problemAggregator);
+        var doubleBuilder =
+            Builder.getForDouble(FloatType.FLOAT_64, initialRowCount, problemAggregator);
         return new TableColumnBuilder(
             doubleBuilder,
             nullAppender(
@@ -139,21 +135,22 @@ record TableColumnBuilder(Builder builder, Consumer<Result> appendMethod) {
             column.length().isEmpty()
                 ? new TextType(-1, false)
                 : new TextType(column.length().getAsInt(), column.typeID() == Types.CHAR);
-        var textBuilder = new StringBuilder(initialRowCount, textType);
+        var textBuilder = Builder.getForType(textType, initialRowCount, problemAggregator);
         return new TableColumnBuilder(
             textBuilder,
             nullAppender(
                 textBuilder, column.index(), r -> textBuilder.append(r.getString(column.index()))));
       case Types.DATE:
-        var dateBuilder = new DateBuilder(initialRowCount);
+        var dateBuilder = Builder.getForType(DateType.INSTANCE, initialRowCount, problemAggregator);
         return new TableColumnBuilder(
             dateBuilder,
             nullAppender(
                 dateBuilder,
                 column.index(),
-                r -> dateBuilder.appendDate(r.getLocalDate(column.index()))));
+                r -> dateBuilder.append(r.getLocalDate(column.index()))));
       case Types.TIME:
-        var timeBuilder = new TimeOfDayBuilder(initialRowCount);
+        var timeBuilder =
+            Builder.getForType(TimeOfDayType.INSTANCE, initialRowCount, problemAggregator);
         return new TableColumnBuilder(
             timeBuilder,
             nullAppender(
@@ -161,7 +158,8 @@ record TableColumnBuilder(Builder builder, Consumer<Result> appendMethod) {
                 column.index(),
                 r -> timeBuilder.append(r.getLocalTime(column.index()))));
       case Types.TIMESTAMP:
-        var dateTimeBuilder = new DateTimeBuilder(initialRowCount);
+        var dateTimeBuilder =
+            Builder.getForType(DateTimeType.INSTANCE, initialRowCount, problemAggregator);
         return new TableColumnBuilder(
             dateTimeBuilder,
             nullAppender(
@@ -171,7 +169,8 @@ record TableColumnBuilder(Builder builder, Consumer<Result> appendMethod) {
                     dateTimeBuilder.append(
                         r.getLocalDateTime(column.index()).atZone(ZoneId.systemDefault()))));
       case Types.TIMESTAMP_WITH_TIMEZONE:
-        var dateTimeTzBuilder = new DateTimeBuilder(initialRowCount);
+        var dateTimeTzBuilder =
+            Builder.getForType(DateTimeType.INSTANCE, initialRowCount, problemAggregator);
         return new TableColumnBuilder(
             dateTimeTzBuilder,
             nullAppender(
@@ -179,13 +178,13 @@ record TableColumnBuilder(Builder builder, Consumer<Result> appendMethod) {
                 column.index(),
                 r -> dateTimeTzBuilder.append(r.getZonedDateTime(column.index()))));
       case HyperTableColumn.JSON:
-        var jsonBuilder = new ObjectBuilder(initialRowCount);
+        var jsonBuilder = Builder.getObjectBuilder(initialRowCount);
         return new TableColumnBuilder(
             jsonBuilder,
             nullAppender(
                 jsonBuilder, column.index(), r -> jsonBuilder.append(r.getString(column.index()))));
       case HyperTableColumn.INTERVAL:
-        var intervalBuilder = new InferredBuilder(initialRowCount, problemAggregator);
+        var intervalBuilder = Builder.getInferredBuilder(initialRowCount, problemAggregator);
         return new TableColumnBuilder(
             intervalBuilder,
             nullAppender(
@@ -193,7 +192,7 @@ record TableColumnBuilder(Builder builder, Consumer<Result> appendMethod) {
                 column.index(),
                 r -> intervalBuilder.append(readInterval(r, column.index()))));
       case Types.OTHER:
-        var mixedBuilder = new ObjectBuilder(initialRowCount);
+        var mixedBuilder = Builder.getObjectBuilder(initialRowCount);
         return new TableColumnBuilder(
             mixedBuilder,
             nullAppender(

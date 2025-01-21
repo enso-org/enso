@@ -1,11 +1,14 @@
 package org.enso.compiler
 
+import scala.jdk.CollectionConverters.IterableHasAsJava
 import org.enso.compiler.context.{
   CompilerContext,
   FreshNameSupply,
   InlineContext,
   ModuleContext
 }
+import org.enso.compiler.dump.DocsGenerate
+import org.enso.compiler.dump.DocsVisit
 import org.enso.compiler.context.CompilerContext.Module
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.Implicits.AsMetadata
@@ -170,12 +173,14 @@ class Compiler(
     *                         but no results will be written
     * @param useGlobalCacheLocations whether or not the compilation result should
     *                                  be written to the global cache
+    * @param generateDocs should a documenation be generied
     * @return future to track subsequent serialization of the library
     */
   def compile(
     shouldCompileDependencies: Boolean,
     shouldWriteCache: Boolean,
-    useGlobalCacheLocations: Boolean
+    useGlobalCacheLocations: Boolean,
+    generateDocs: Option[String]
   ): Future[java.lang.Boolean] = {
     getPackageRepository.getMainProjectPackage match {
       case None =>
@@ -217,13 +222,25 @@ class Compiler(
               shouldCompileDependencies
             )
 
+            if (generateDocs.isDefined) {
+              val v = if (generateDocs.get == "api") {
+                DocsVisit.createSignatures()
+              } else {
+                DocsVisit.createMarkdown();
+              }
+              val outDir = DocsGenerate.write(v, pkg, packageModules.asJava)
+              printDiagnostic(s"Documentation generated to ${outDir}")
+            }
+
             if (shouldWriteCache) {
               context.serializeLibrary(
                 this,
                 pkg.libraryName,
                 useGlobalCacheLocations
               )
-            } else CompletableFuture.completedFuture(true)
+            } else {
+              CompletableFuture.completedFuture(true)
+            }
         }
     }
   }
@@ -237,7 +254,7 @@ class Compiler(
     parseModule(
       module,
       irCachingEnabled && !context.isInteractive(module),
-      isGenDocs = true
+      true
     )
     module
   }
@@ -251,7 +268,8 @@ class Compiler(
   private def runInternal(
     modules: List[Module],
     generateCode: Boolean,
-    shouldCompileDependencies: Boolean
+    shouldCompileDependencies: Boolean,
+    generateDocs: Boolean = false
   ): CompilerResult = {
     @scala.annotation.tailrec
     def go(
@@ -264,7 +282,8 @@ class Compiler(
           runCompilerPipeline(
             modulesToCompile,
             generateCode,
-            shouldCompileDependencies
+            shouldCompileDependencies,
+            generateDocs
           )
         val pending =
           packageRepository.getPendingModules.toList
@@ -277,12 +296,17 @@ class Compiler(
   private def runCompilerPipeline(
     modules: List[Module],
     generateCode: Boolean,
-    shouldCompileDependencies: Boolean
+    shouldCompileDependencies: Boolean,
+    generateDocs: Boolean
   ): List[Module] = {
     initialize()
     modules.foreach(m =>
       try {
-        parseModule(m, irCachingEnabled && !context.isInteractive(m))
+        parseModule(
+          m,
+          irCachingEnabled && !context.isInteractive(m),
+          generateDocs
+        )
       } catch {
         case e: Throwable =>
           context.log(
@@ -348,6 +372,7 @@ class Compiler(
         parseModule(
           module,
           irCachingEnabled && !context.isInteractive(module),
+          generateDocs,
           irDumper = getOrCreateDumper(module)
         )
         importedModules
@@ -357,6 +382,7 @@ class Compiler(
               parseModule(
                 m,
                 irCachingEnabled && !context.isInteractive(module),
+                generateDocs,
                 irDumper = getOrCreateDumper(module)
               )
             }
@@ -369,7 +395,7 @@ class Compiler(
 
     if (irCachingEnabled) {
       requiredModules.foreach { module =>
-        ensureParsed(module, !context.isInteractive(module))
+        ensureParsed(module, !context.isInteractive(module), generateDocs)
       }
     }
     requiredModules.foreach { module =>
@@ -382,9 +408,10 @@ class Compiler(
       ) {
 
         val moduleContext = ModuleContext(
-          module          = module,
-          freshNameSupply = Some(freshNameSupply),
-          compilerConfig  = config
+          module           = module,
+          freshNameSupply  = Some(freshNameSupply),
+          compilerConfig   = config,
+          isGeneratingDocs = generateDocs
         )
         val compilerOutput =
           runGlobalTypingPasses(
@@ -402,146 +429,151 @@ class Compiler(
         )
       }
     }
-    requiredModules.foreach { module =>
-      if (
-        !context
-          .getCompilationStage(module)
-          .isAtLeast(
-            CompilationStage.AFTER_STATIC_PASSES
-          )
-      ) {
+    if (!generateDocs) {
 
-        val moduleContext = ModuleContext(
-          module          = module,
-          freshNameSupply = Some(freshNameSupply),
-          compilerConfig  = config,
-          pkgRepo         = Some(packageRepository)
-        )
-        val compilerOutput =
-          runMethodBodyPasses(
-            context.getIr(module),
-            moduleContext,
-            irDumper = getOrCreateDumper(module)
-          )
-        context.updateModule(
-          module,
-          { u =>
-            u.ir(compilerOutput)
-            u.compilationStage(CompilationStage.AFTER_STATIC_PASSES)
-          }
-        )
-      }
-    }
-
-    requiredModules.foreach { module =>
-      if (
-        !context
-          .getCompilationStage(module)
-          .isAtLeast(
-            CompilationStage.AFTER_TYPE_INFERENCE_PASSES
-          )
-      ) {
-
-        val moduleContext = ModuleContext(
-          module          = module,
-          freshNameSupply = Some(freshNameSupply),
-          compilerConfig  = config,
-          pkgRepo         = Some(packageRepository)
-        )
-        val compilerOutput =
-          runFinalTypeInferencePasses(
-            context.getIr(module),
-            moduleContext,
-            irDumper = getOrCreateDumper(module)
-          )
-        context.updateModule(
-          module,
-          { u =>
-            u.ir(compilerOutput)
-            u.compilationStage(CompilationStage.AFTER_TYPE_INFERENCE_PASSES)
-          }
-        )
-      }
-    }
-
-    runErrorHandling(requiredModules)
-
-    val requiredModulesWithScope = requiredModules.map { module =>
-      if (
-        !context
-          .getCompilationStage(module)
-          .isAtLeast(
-            CompilationStage.AFTER_RUNTIME_STUBS
-          )
-      ) {
-        val moduleScopeBuilder = module.getScopeBuilder()
-        context.runStubsGenerator(module, moduleScopeBuilder)
-        context.updateModule(
-          module,
-          { u =>
-            u.compilationStage(CompilationStage.AFTER_RUNTIME_STUBS)
-          }
-        )
-        (module, moduleScopeBuilder)
-      } else {
-        (module, module.getScopeBuilder)
-      }
-    }
-
-    requiredModulesWithScope.foreach { case (module, moduleScopeBuilder) =>
-      if (
-        !context
-          .getCompilationStage(module)
-          .isAtLeast(
-            CompilationStage.AFTER_CODEGEN
-          )
-      ) {
-
-        if (generateCode) {
-          context.log(
-            Compiler.defaultLogLevel,
-            "Generating code for module [{0}].",
-            context.getModuleName(module)
-          )
-
-          context.truffleRunCodegen(module, moduleScopeBuilder, config)
-        }
-        context.updateModule(
-          module,
-          { u =>
-            u.compilationStage(CompilationStage.AFTER_CODEGEN)
-          }
-        )
-
+      requiredModules.foreach { module =>
         if (
-          shouldCompileDependencies || (!context.isInteractive(
-            module
-          ) && context.isModuleInRootPackage(module))
+          !context
+            .getCompilationStage(module)
+            .isAtLeast(
+              CompilationStage.AFTER_STATIC_PASSES
+            )
         ) {
-          val shouldStoreCache =
-            generateCode &&
-            irCachingEnabled && !context.wasLoadedFromCache(module)
-          if (
-            shouldStoreCache && !hasErrors(module) &&
-            !context.isInteractive(module) && !context.isSynthetic(module)
-          ) {
-            if (isInteractiveMode) {
-              context.notifySerializeModule(context.getModuleName(module))
-            } else {
-              context.serializeModule(
-                this,
-                module,
-                useGlobalCacheLocations,
-                true
-              )
-            }
-          }
-        } else {
-          context.log(
-            Compiler.defaultLogLevel,
-            "Skipping serialization for [{0}].",
-            context.getModuleName(module)
+
+          val moduleContext = ModuleContext(
+            module           = module,
+            freshNameSupply  = Some(freshNameSupply),
+            compilerConfig   = config,
+            pkgRepo          = Some(packageRepository),
+            isGeneratingDocs = generateDocs
           )
+          val compilerOutput =
+            runMethodBodyPasses(
+            context.getIr(module),
+            moduleContext,
+            irDumper = getOrCreateDumper(module)
+          )
+          context.updateModule(
+            module,
+            { u =>
+              u.ir(compilerOutput)
+              u.compilationStage(CompilationStage.AFTER_STATIC_PASSES)
+            }
+          )
+        }
+      }
+
+      requiredModules.foreach { module =>
+        if (
+          !context
+            .getCompilationStage(module)
+            .isAtLeast(
+              CompilationStage.AFTER_TYPE_INFERENCE_PASSES
+            )
+        ) {
+
+          val moduleContext = ModuleContext(
+            module           = module,
+            freshNameSupply  = Some(freshNameSupply),
+            compilerConfig   = config,
+            pkgRepo          = Some(packageRepository),
+            isGeneratingDocs = generateDocs
+          )
+          val compilerOutput =
+            runFinalTypeInferencePasses(
+            context.getIr(module),
+            moduleContext,
+            irDumper = getOrCreateDumper(module)
+          )
+          context.updateModule(
+            module,
+            { u =>
+              u.ir(compilerOutput)
+              u.compilationStage(CompilationStage.AFTER_TYPE_INFERENCE_PASSES)
+            }
+          )
+        }
+      }
+
+      runErrorHandling(requiredModules)
+
+      val requiredModulesWithScope = requiredModules.map { module =>
+        if (
+          !context
+            .getCompilationStage(module)
+            .isAtLeast(
+              CompilationStage.AFTER_RUNTIME_STUBS
+            )
+        ) {
+          val moduleScopeBuilder = module.getScopeBuilder()
+          context.runStubsGenerator(module, moduleScopeBuilder)
+          context.updateModule(
+            module,
+            { u =>
+              u.compilationStage(CompilationStage.AFTER_RUNTIME_STUBS)
+            }
+          )
+          (module, moduleScopeBuilder)
+        } else {
+          (module, module.getScopeBuilder)
+        }
+      }
+
+      requiredModulesWithScope.foreach { case (module, moduleScopeBuilder) =>
+        if (
+          !context
+            .getCompilationStage(module)
+            .isAtLeast(
+              CompilationStage.AFTER_CODEGEN
+            )
+        ) {
+
+          if (generateCode) {
+            context.log(
+              Compiler.defaultLogLevel,
+              "Generating code for module [{0}].",
+              context.getModuleName(module)
+            )
+
+            context.truffleRunCodegen(module, moduleScopeBuilder, config)
+          }
+          context.updateModule(
+            module,
+            { u =>
+              u.compilationStage(CompilationStage.AFTER_CODEGEN)
+            }
+          )
+
+          if (
+            shouldCompileDependencies || (!context.isInteractive(
+              module
+            ) && context.isModuleInRootPackage(module))
+          ) {
+            val shouldStoreCache =
+              generateCode &&
+              irCachingEnabled && !context.wasLoadedFromCache(module)
+            if (
+              shouldStoreCache && !hasErrors(module) &&
+              !context.isInteractive(module) && !context.isSynthetic(module)
+            ) {
+              if (isInteractiveMode) {
+                context.notifySerializeModule(context.getModuleName(module))
+              } else {
+                context.serializeModule(
+                  this,
+                  module,
+                  useGlobalCacheLocations,
+                  true
+                )
+              }
+            }
+          } else {
+            context.log(
+              Compiler.defaultLogLevel,
+              "Skipping serialization for [{0}].",
+              context.getModuleName(module)
+            )
+          }
         }
       }
     }
@@ -603,7 +635,11 @@ class Compiler(
 
   private def ensureParsedAndAnalyzed(module: Module): Unit = {
     if (module.getBindingsMap() == null) {
-      ensureParsed(module, irCachingEnabled && !context.isInteractive(module))
+      ensureParsed(
+        module,
+        irCachingEnabled && !context.isInteractive(module),
+        false
+      )
     }
     if (context.isSynthetic(module)) {
       // Synthetic modules need to be import-analyzed
@@ -633,7 +669,11 @@ class Compiler(
     * @param module - the scope from which docs are generated.
     */
   def gatherImportStatements(module: Module): Array[String] = {
-    ensureParsed(module, irCachingEnabled && !context.isInteractive(module))
+    ensureParsed(
+      module,
+      irCachingEnabled && !context.isInteractive(module),
+      false
+    )
     val importedModules = context.getIr(module).imports.flatMap {
       case imp: Import.Module =>
         imp.name.parts.take(2).map(_.name) match {
@@ -657,7 +697,7 @@ class Compiler(
   private def parseModule(
     module: Module,
     useCaches: Boolean,
-    isGenDocs: Boolean         = false,
+    generateDocs: Boolean,
     irDumper: Option[IRDumper] = None
   ): Unit = {
     context.log(
@@ -674,7 +714,7 @@ class Compiler(
       return
     }
 
-    uncachedParseModule(module, isGenDocs, irDumper)
+    uncachedParseModule(module, generateDocs, irDumper)
   }
 
   /** Retrieve module bindings from cache, if available.
@@ -693,7 +733,7 @@ class Compiler(
 
   private def uncachedParseModule(
     module: Module,
-    isGenDocs: Boolean,
+    generateDocs: Boolean,
     irDumper: Option[IRDumper]
   ): Unit = {
     context.log(
@@ -707,7 +747,7 @@ class Compiler(
       module           = module,
       freshNameSupply  = Some(freshNameSupply),
       compilerConfig   = config,
-      isGeneratingDocs = isGenDocs
+      isGeneratingDocs = generateDocs
     )
 
     val src   = context.getCharacters(module)
@@ -768,10 +808,14 @@ class Compiler(
     */
   def ensureParsed(module: Module): Unit = {
     val useCaches = irCachingEnabled && !context.isInteractive(module)
-    ensureParsed(module, useCaches)
+    ensureParsed(module, useCaches, false)
   }
 
-  def ensureParsed(module: Module, useCaches: Boolean): Unit = {
+  def ensureParsed(
+    module: Module,
+    useCaches: Boolean,
+    generateDocs: Boolean
+  ): Unit = {
     if (
       !context
         .getCompilationStage(module)
@@ -779,7 +823,7 @@ class Compiler(
           CompilationStage.AFTER_PARSING
         )
     ) {
-      parseModule(module, useCaches)
+      parseModule(module, useCaches, generateDocs)
     }
   }
 
