@@ -1,5 +1,7 @@
 import {
   ColumnDef,
+  NEW_COLUMN_ID,
+  ROW_INDEX_HEADER,
   RowData,
 } from '@/components/GraphEditor/widgets/WidgetTableEditor/tableInputArgument'
 import { WidgetInput } from '@/providers/widgetRegistry'
@@ -23,6 +25,7 @@ export function useTableEditHandlers(
     | {
         stopEditing(cancel: boolean): void
         startEditingCell(editedCell: StartEditingCellParams): void
+        getEditingCells(): Array<unknown>
       }
     | undefined
   >,
@@ -33,6 +36,7 @@ export function useTableEditHandlers(
   const columnIndexById = computed(
     () => new Map(toValue(colDefs).map((col, index) => [col.colId, index])),
   )
+  const firstColumn = computed(() => toValue(colDefs)[1]) // The 0 col is un-editable row index.
 
   class CellEditing {
     handler: WidgetEditHandler
@@ -57,7 +61,6 @@ export function useTableEditHandlers(
     }
 
     cellEditedInGrid(event: CellEditingStartedEvent) {
-      console.log('CELL EDITED IN GRID', event)
       this.editedCell =
         event.rowIndex != null ? { rowIndex: event.rowIndex, colKey: event.column } : undefined
       if (!this.handler.isActive()) {
@@ -65,15 +68,13 @@ export function useTableEditHandlers(
       }
     }
 
-    cellEditingStoppedInGrid(event: CellEditingStoppedEvent) {
-      if (!this.handler.isActive()) return
+    cellEditingStoppedInGrid(_event: CellEditingStoppedEvent) {
       const api = toValue(gridApi)
-      console.error('EDITING STOPPED', event, api?.getEditingCells())
       if (this.supressNextStopEditEvent && this.editedCell) {
         this.supressNextStopEditEvent = false
         // If row data changed, the editing will be stopped, but we want to continue it.
         api?.startEditingCell(this.editedCell)
-      } else if (!api?.getEditingCells().length) {
+      } else if (!api?.getEditingCells().length && this.handler.isActive()) {
         this.handler.end()
       }
     }
@@ -84,21 +85,20 @@ export function useTableEditHandlers(
       }
     }
 
-    goToNextCell() {
-      if (!this.editedCell) return
-      const currentIndex = columnIndexById.value.get(this.editedCell.colKey.getId())
-      if (currentIndex == null) return
-      const columnDefs = toValue(colDefs)
-      let nextCell
-      const firstCol = columnDefs[1] // The 0 col is un-editable row index.
-      const colOnRight = columnDefs[currentIndex + 1]
-      if (colOnRight != null) {
-        nextCell = { rowIndex: this.editedCell.rowIndex, colKey: colOnRight.colId }
-      } else if (firstCol != null) {
-        nextCell = { rowIndex: this.editedCell.rowIndex + 1, colKey: firstCol.colId }
-      }
-      if (nextCell) {
-        toValue(gridApi)?.startEditingCell(nextCell)
+    enterPressed() {
+      if (this.editedCell != null) {
+        const api = toValue(gridApi)
+        if (firstColumn.value != null) {
+          api?.startEditingCell({
+            rowIndex: this.editedCell.rowIndex + 1,
+            colKey: firstColumn.value.colId,
+          })
+        } else {
+          api?.stopEditing(false)
+        }
+        return true
+      } else {
+        return false
       }
     }
   }
@@ -139,6 +139,30 @@ export function useTableEditHandlers(
           this.handler.end()
         }
       }
+    }
+
+    tabPressed() {
+      if (!this.editedColId.value) return
+      const currentIndex = columnIndexById.value.get(this.editedColId.value)
+      if (currentIndex == null) return
+      const columnDefs = toValue(colDefs)
+      const colOnRight = columnDefs[currentIndex + 1]
+      if (colOnRight != null && colOnRight.colId != NEW_COLUMN_ID) {
+        this.editedColId.value = colOnRight.colId
+      } else if (firstColumn.value != null) {
+        toValue(gridApi)?.startEditingCell({ rowIndex: 0, colKey: firstColumn.value.colId })
+      }
+    }
+
+    enterPressed() {
+      if (this.editedColId.value != null) {
+        this.handler.end()
+        if (firstColumn.value != null) {
+          toValue(gridApi)?.startEditingCell({ rowIndex: 0, colKey: firstColumn.value.colId })
+        }
+        return true
+      }
+      return false
     }
   }
 

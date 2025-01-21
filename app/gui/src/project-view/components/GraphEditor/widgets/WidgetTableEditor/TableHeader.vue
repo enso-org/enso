@@ -121,8 +121,6 @@ function onMouseRightClick(event: MouseEvent) {
         @keydown.arrow-right.stop
         @keydown.arrow-up.stop
         @keydown.arrow-down.stop
-        @focus="console.error"
-        @blur="console.error"
       />
       <span
         v-else

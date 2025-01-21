@@ -207,14 +207,14 @@ export const widgetDefinition = defineWidget(
         :suppressDragLeaveHidesColumns="true"
         :suppressMoveWhenColumnDragging="true"
         :processDataFromClipboard="processDataFromClipboard"
-        @keydown.enter.stop
         @keydown.arrow-left.stop
         @keydown.arrow-right.stop
         @keydown.arrow-up.stop
         @keydown.arrow-down.stop
         @keydown.backspace.stop
         @keydown.delete.stop
-        @keydown.tab.stop
+        @keydown.tab.stop="headerEditHandler.tabPressed()"
+        @keydown.enter.stop="headerEditHandler.enterPressed() || cellEditHandler.enterPressed()"
         @cellEditingStarted="cellEditHandler.cellEditedInGrid($event)"
         @cellEditingStopped="cellEditHandler.cellEditingStoppedInGrid($event)"
         @rowDataUpdated="cellEditHandler.rowDataChanged()"
