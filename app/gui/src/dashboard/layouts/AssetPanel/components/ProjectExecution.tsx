@@ -11,12 +11,8 @@ import {
   MONTH_3_LETTER_TEXT_IDS,
 } from 'enso-common/src/utilities/data/dateTime'
 
-import ParallelIcon from '#/assets/parallel.svg'
-import Play2Icon from '#/assets/play2.svg'
 import RepeatIcon from '#/assets/repeat.svg'
-import Stop2Icon from '#/assets/stop2.svg'
 import TimeIcon from '#/assets/time.svg'
-import UpgradeIcon from '#/assets/upgrade.svg'
 import { DialogTrigger } from '#/components/aria'
 import { Button, ButtonGroup, CloseButton } from '#/components/AriaComponents'
 import { backendMutationOptions } from '#/hooks/backendHooks'
@@ -172,42 +168,10 @@ export function ProjectExecution(props: ProjectExecutionProps) {
     backendMutationOptions(backend, 'deleteProjectExecution'),
   )
 
-  const updateProjectExecution = useMutation(
-    backendMutationOptions(backend, 'updateProjectExecution'),
-  )
-
-  const syncProjectExecution = useMutation(backendMutationOptions(backend, 'syncProjectExecution'))
-
   return (
     <div className={styles.base()}>
       <div className={styles.timeContainer()}>
         <div className={styles.times()}>{repeatString}</div>
-        <Button
-          variant="icon"
-          tooltip={
-            projectExecution.enabled ?
-              getText('currentlyEnabledLabel')
-            : getText('currentlyDisabledLabel')
-          }
-          icon={projectExecution.enabled ? Stop2Icon : Play2Icon}
-          className={styles.timeButtons()}
-          onPress={async () => {
-            await updateProjectExecution.mutateAsync([
-              projectExecution.executionId,
-              { enabled: !projectExecution.enabled },
-              item.title,
-            ])
-          }}
-        />
-        <Button
-          variant="icon"
-          tooltip={getText('updateExecutionToLatestVersionLabel')}
-          icon={UpgradeIcon}
-          className={styles.timeButtons()}
-          onPress={async () => {
-            await syncProjectExecution.mutateAsync([projectExecution.executionId, item.title])
-          }}
-        />
         <DialogTrigger>
           <CloseButton
             className={styles.timeButtons()}
@@ -244,16 +208,6 @@ export function ProjectExecution(props: ProjectExecutionProps) {
           {getText(
             backendModule.PROJECT_EXECUTION_REPEAT_TYPE_TO_TEXT_ID[projectExecution.repeat.type],
           )}
-        </Button>
-        <Button
-          size="xsmall"
-          variant="outline"
-          icon={ParallelIcon}
-          tooltip={getText('parallelModeLabel')}
-          tooltipPlacement="left"
-          className={styles.parallelMode()}
-        >
-          {getText(backendModule.PARALLEL_MODE_TO_TEXT_ID[projectExecution.parallelMode])}
         </Button>
       </ButtonGroup>
     </div>
