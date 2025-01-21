@@ -9,7 +9,6 @@ import org.enso.table.data.column.storage.datetime.DateStorage;
 import org.enso.table.data.column.storage.datetime.DateTimeStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.NullType;
-import org.graalvm.polyglot.Context;
 
 public class ToDateTimeStorageConverter implements StorageConverter<ZonedDateTime> {
   @Override

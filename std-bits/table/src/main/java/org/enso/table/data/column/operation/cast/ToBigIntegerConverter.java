@@ -11,7 +11,6 @@ import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.NullType;
-import org.graalvm.polyglot.Context;
 
 public class ToBigIntegerConverter implements StorageConverter<BigInteger> {
   @Override
