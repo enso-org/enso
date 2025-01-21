@@ -5,7 +5,7 @@
 }
 
 :where(body:not(.vibrancy)) {
-    @apply bg-cover bg-dashboard;
+  @apply bg-cover bg-dashboard;
 }
 
 :where(.enso-app) {
