@@ -449,10 +449,10 @@ class Compiler(
           )
           val compilerOutput =
             runMethodBodyPasses(
-            context.getIr(module),
-            moduleContext,
-            irDumper = getOrCreateDumper(module)
-          )
+              context.getIr(module),
+              moduleContext,
+              irDumper = getOrCreateDumper(module)
+            )
           context.updateModule(
             module,
             { u =>
@@ -481,10 +481,10 @@ class Compiler(
           )
           val compilerOutput =
             runFinalTypeInferencePasses(
-            context.getIr(module),
-            moduleContext,
-            irDumper = getOrCreateDumper(module)
-          )
+              context.getIr(module),
+              moduleContext,
+              irDumper = getOrCreateDumper(module)
+            )
           context.updateModule(
             module,
             { u =>

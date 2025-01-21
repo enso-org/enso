@@ -110,11 +110,6 @@ public final class IGVDumper implements IRDumper {
     LOGGER.trace("[{}] Graph dumped to {}", moduleName, outPath);
   }
 
-  private List<ASTNode> getAllNodes() {
-    var allNodes = passGraphs.stream().flatMap(passGraph -> passGraph.ast.getNodes().stream());
-    return allNodes.toList();
-  }
-
   private static Path outputForModule(String moduleName) {
     var irDumpsDir = Path.of(DEFAULT_DUMP_DIR);
     if (!irDumpsDir.toFile().exists()) {
