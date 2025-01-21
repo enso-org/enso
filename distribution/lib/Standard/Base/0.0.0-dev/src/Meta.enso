@@ -403,17 +403,3 @@ get_simple_type_name value -> Text = @Tail_Call Meta_Helpers.get_simple_type_nam
    Arguments:
    - value: the value to get the type of.
 get_qualified_type_name value -> Text = @Tail_Call Meta_Helpers.get_qualified_type_name_builtin value
-
-## PRIVATE
-   ADVANCED
-
-   Builder to create instrumentation for a function
-type Instrumentor
-    private Value impl
-
-    ## PRIVATE
-       ADVANCED
-
-       Value associated with a UUID if any
-
-    uuid id:Text -> Any = Meta_Helpers.instrumentor_builtin "uuid" id

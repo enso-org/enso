@@ -59,8 +59,6 @@ add_specs suite_builder = suite_builder.group "Standard.Base Signature Checks" g
             is_polyglot value:Standard.Base.Any.Any -> Standard.Base.Data.Boolean.Boolean
             get_simple_type_name value:Standard.Base.Any.Any -> Standard.Base.Data.Text.Text
             get_qualified_type_name value:Standard.Base.Any.Any -> Standard.Base.Data.Text.Text
-            - type Instrumentor
-                - uuid id:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
 
         actual . should_equal expected+'\n'
 
