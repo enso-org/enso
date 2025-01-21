@@ -47,7 +47,9 @@ const reactPreview: ReactPreview = {
   // Decorators are applied in the reverse order they are defined
   decorators: [
     (Story, context) => {
-      const [roots, setRoots] = useState<{ appRoot: HTMLElement; portalRoot: HTMLElement } | null>(null)
+      const [roots, setRoots] = useState<{ appRoot: HTMLElement; portalRoot: HTMLElement } | null>(
+        null,
+      )
 
       useLayoutEffect(() => {
         const appRoot = document.querySelector('#enso-app')
