@@ -93,7 +93,6 @@ private _get_item_as_text storage ix =
     ## Special handling for display of Text to avoid quotes when not necessary.
     case item of
         _ : Text -> _normalize_text_for_display item
-        Nothing -> "Nothing"
         _ -> item.pretty
 
 
