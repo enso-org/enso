@@ -9,19 +9,24 @@
 - [Quick Fix Import Button][12051].
 - [Fixed nodes being selected after deleting other nodes or connections.][11902]
 - [Redo stack is no longer lost when interacting with text literals][11908].
+- [Fixed bug when clicking header in Table Editor Widget didn't start editing
+  it][12064]
 
 [11889]: https://github.com/enso-org/enso/pull/11889
 [11836]: https://github.com/enso-org/enso/pull/11836
 [12051]: https://github.com/enso-org/enso/pull/12051
 [11902]: https://github.com/enso-org/enso/pull/11902
 [11908]: https://github.com/enso-org/enso/pull/11908
+[12064]: https://github.com/enso-org/enso/pull/12064
 
 #### Enso Standard Library
 
 - [Allow using `/` to access files inside a directory reached through a data
   link.][11926]
+- [Added Table.Offset][12071]
 
 [11926]: https://github.com/enso-org/enso/pull/11926
+[12071]: https://github.com/enso-org/enso/pull/12071
 
 #### Enso Language & Runtime
 
