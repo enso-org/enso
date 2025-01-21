@@ -65,7 +65,7 @@ export function ProjectExecution(props: ProjectExecutionProps) {
   const { getText } = useText()
   const getOrdinal = useGetOrdinal()
   const [timeZone] = useLocalStorageState('preferredTimeZone')
-  const repeat = { ...projectExecution.repeat }
+  const { repeat } = projectExecution
 
   const timeZoneOffsetMs =
     now(timeZone ?? getLocalTimeZone()).offset - now(projectExecution.timeZone).offset
@@ -170,15 +170,13 @@ export function ProjectExecution(props: ProjectExecutionProps) {
 
   const deleteProjectExecution = useMutation(
     backendMutationOptions(backend, 'deleteProjectExecution'),
-  ).mutateAsync
+  )
 
   const updateProjectExecution = useMutation(
     backendMutationOptions(backend, 'updateProjectExecution'),
-  ).mutateAsync
+  )
 
-  const syncProjectExecution = useMutation(
-    backendMutationOptions(backend, 'syncProjectExecution'),
-  ).mutateAsync
+  const syncProjectExecution = useMutation(backendMutationOptions(backend, 'syncProjectExecution'))
 
   return (
     <div className={styles.base()}>
@@ -194,8 +192,8 @@ export function ProjectExecution(props: ProjectExecutionProps) {
           icon={projectExecution.enabled ? Stop2Icon : Play2Icon}
           className={styles.timeButtons()}
           onPress={async () => {
-            await updateProjectExecution([
-              projectExecution.projectExecutionId,
+            await updateProjectExecution.mutateAsync([
+              projectExecution.executionId,
               { enabled: !projectExecution.enabled },
               item.title,
             ])
@@ -207,7 +205,7 @@ export function ProjectExecution(props: ProjectExecutionProps) {
           icon={UpgradeIcon}
           className={styles.timeButtons()}
           onPress={async () => {
-            await syncProjectExecution([projectExecution.projectExecutionId, item.title])
+            await syncProjectExecution.mutateAsync([projectExecution.executionId, item.title])
           }}
         />
         <DialogTrigger>
@@ -219,7 +217,7 @@ export function ProjectExecution(props: ProjectExecutionProps) {
           <ConfirmDeleteModal
             actionText={getText('deleteThisProjectExecution')}
             doDelete={async () => {
-              await deleteProjectExecution([projectExecution.projectExecutionId, item.title])
+              await deleteProjectExecution.mutateAsync([projectExecution.executionId, item.title])
             }}
           />
         </DialogTrigger>

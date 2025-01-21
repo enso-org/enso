@@ -469,7 +469,7 @@ export interface ProjectExecutionInfo {
 /** A specific execution schedule of a project. */
 export interface ProjectExecution extends ProjectExecutionInfo {
   readonly enabled: boolean
-  readonly projectExecutionId: ProjectExecutionId
+  readonly executionId: ProjectExecutionId
   readonly versionId: S3ObjectVersionId
 }
 

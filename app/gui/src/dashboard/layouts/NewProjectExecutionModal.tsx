@@ -412,15 +412,17 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
         </details>
       )}
 
-      <Form.FormError />
       <ButtonGroup>
         <Form.Submit />
+
         {onCancel ?
           <Button variant="outline" onPress={onCancel}>
             {getText('cancel')}
           </Button>
         : <DialogDismiss />}
       </ButtonGroup>
+
+      <Form.FormError />
     </Form>
   )
 }

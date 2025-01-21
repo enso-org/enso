@@ -1,7 +1,8 @@
 /** @file A list of exeuctions of a project. */
-import { useSuspenseQuery } from '@tanstack/react-query'
+import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
 
-import { Button, ButtonGroup, DialogTrigger, Text } from '#/components/AriaComponents'
+import { Button, DialogTrigger, Text } from '#/components/AriaComponents'
+import { backendQueryOptions } from '#/hooks/backendHooks'
 import { useStore } from '#/hooks/storeHooks'
 import { assetPanelStore } from '#/layouts/AssetPanel/AssetPanelState'
 import { AssetPanelPlaceholder } from '#/layouts/AssetPanel/components/AssetPanelPlaceholder'
@@ -46,34 +47,34 @@ function ProjectExecutionsInternal(props: ProjectExecutionsInternalProps) {
   const { backend, item } = props
   const { getText } = useText()
 
-  const projectExecutionsQuery = useSuspenseQuery({
-    queryKey: [backend.type, 'listProjectExecutions', item.id, item.title],
-    queryFn: async () => {
-      const executions = await backend.listProjectExecutions(item.id, item.title)
-      return [...executions].reverse()
-    },
-  })
+  const projectExecutionsQuery = useSuspenseQuery(
+    queryOptions({
+      ...backendQueryOptions(backend, 'listProjectExecutions', [item.id, item.title]),
+      select: (executions) => [...executions].reverse(),
+    }),
+  )
   const projectExecutions = projectExecutionsQuery.data
 
   return (
-    <div className="pointer-events-auto flex w-full flex-col items-center gap-2 self-start overflow-y-auto overflow-x-hidden">
-      <ButtonGroup>
-        <DialogTrigger>
-          <Button variant="outline">{getText('newProjectExecution')}</Button>
-          <NewProjectExecutionModal backend={backend} item={item} />
-        </DialogTrigger>
-      </ButtonGroup>
-      {projectExecutions.length === 0 ?
+    <div className="flex w-full flex-col items-center gap-2 self-start overflow-y-auto overflow-x-hidden">
+      <DialogTrigger>
+        <Button variant="outline">{getText('newProjectExecution')}</Button>
+
+        <NewProjectExecutionModal backend={backend} item={item} />
+      </DialogTrigger>
+
+      {projectExecutions.length === 0 && (
         <Text color="disabled">{getText('noProjectExecutions')}</Text>
-      : projectExecutions.map((execution) => (
-          <ProjectExecution
-            key={execution.projectExecutionId}
-            item={item}
-            backend={backend}
-            projectExecution={execution}
-          />
-        ))
-      }
+      )}
+
+      {projectExecutions.map((execution) => (
+        <ProjectExecution
+          key={execution.executionId}
+          item={item}
+          backend={backend}
+          projectExecution={execution}
+        />
+      ))}
     </div>
   )
 }

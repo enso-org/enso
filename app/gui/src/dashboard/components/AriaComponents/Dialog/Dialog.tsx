@@ -14,7 +14,7 @@ import * as mergeRefs from '#/utilities/mergeRefs'
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useMeasure } from '#/hooks/measureHooks'
-import { motion, type Spring } from '#/utilities/motion'
+import { LayoutGroup, motion, type Spring } from '#/utilities/motion'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
 import { Close } from './Close'
@@ -321,7 +321,7 @@ function DialogContent(props: DialogContentProps) {
   }
 
   return (
-    <>
+    <LayoutGroup>
       <MotionDialog
         layout
         transition={TRANSITION}
@@ -400,7 +400,7 @@ function DialogContent(props: DialogContentProps) {
       </MotionDialog>
 
       <dialogStackProvider.DialogStackRegistrar id={dialogId} type={TYPE_TO_DIALOG_TYPE[type]} />
-    </>
+    </LayoutGroup>
   )
 }
 

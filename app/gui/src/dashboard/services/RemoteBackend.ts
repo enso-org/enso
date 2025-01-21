@@ -869,6 +869,8 @@ export default class RemoteBackend extends Backend {
     body: backend.UpdateProjectExecutionRequestBody,
     projectTitle: string,
   ): Promise<backend.ProjectExecution> {
+    console.log('backend updateProjectExecution', executionId, body)
+
     const path = remoteBackendPaths.updateProjectExecutionPath(executionId)
     const response = await this.post<backend.ProjectExecution>(path, body)
     if (!responseIsSuccessful(response)) {
