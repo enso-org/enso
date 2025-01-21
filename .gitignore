@@ -138,11 +138,7 @@ project/metals.sbt
 ## Build Cache ##
 #################
 
-bazel-bin
-bazel-bazel
-bazel-enso
-bazel-out
-bazel-testlogs
+bazel-*
 build-cache
 
 ##################

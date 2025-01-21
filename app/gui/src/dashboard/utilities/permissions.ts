@@ -38,7 +38,7 @@ export function tryCreateOwnerPermission(
   category: Category,
   user: backend.User,
   users: readonly backend.User[],
-  userGroups: readonly backend.UserGroupInfo[],
+  userGroups: readonly backend.UserGroup[],
 ): readonly backend.AssetPermission[] {
   switch (category.type) {
     case 'team': {
@@ -113,7 +113,7 @@ export function canPermissionModifyDirectoryContents(permission: PermissionActio
 /** Replace the first owner permission with the permission of a new user or team. */
 export function replaceOwnerPermission(
   asset: backend.AnyAsset,
-  newOwner: backend.User | backend.UserGroupInfo,
+  newOwner: backend.User | backend.UserGroup,
 ) {
   let found = false
   const newPermissions =
@@ -157,7 +157,7 @@ export function isTeamPath(path: string) {
 export function newOwnerFromPath(
   path: string,
   users: readonly backend.User[],
-  userGroups: readonly backend.UserGroupInfo[],
+  userGroups: readonly backend.UserGroup[],
 ) {
   const [, userName] = path.match(USER_PATH_REGEX) ?? []
   if (userName != null) {
@@ -167,7 +167,7 @@ export function newOwnerFromPath(
     const [, teamName] = path.match(TEAM_PATH_REGEX) ?? []
     if (teamName != null) {
       const teamNameLowercase = teamName.toLowerCase()
-      return userGroups.find((userGroup) => userGroup.groupName === teamNameLowercase)
+      return userGroups.find((userGroup) => userGroup.name === teamNameLowercase)
     } else {
       return
     }

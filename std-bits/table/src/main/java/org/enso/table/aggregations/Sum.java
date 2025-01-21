@@ -3,9 +3,7 @@ package org.enso.table.aggregations;
 import java.math.BigInteger;
 import java.util.List;
 import org.enso.base.polyglot.NumericConverter;
-import org.enso.table.data.column.builder.BigIntegerBuilder;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.builder.DoubleBuilder;
 import org.enso.table.data.column.builder.InferredIntegerBuilder;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.Storage;
@@ -35,8 +33,9 @@ public class Sum extends Aggregator {
   public Builder makeBuilder(int size, ProblemAggregator problemAggregator) {
     return switch (inputType) {
       case IntegerType integerType -> new InferredIntegerBuilder(size, problemAggregator);
-      case BigIntegerType bigIntegerType -> new BigIntegerBuilder(size, problemAggregator);
-      case FloatType floatType -> DoubleBuilder.createDoubleBuilder(size, problemAggregator);
+      case BigIntegerType bigIntegerType -> Builder.getForType(
+          bigIntegerType, size, problemAggregator);
+      case FloatType floatType -> Builder.getForDouble(floatType, size, problemAggregator);
       default -> throw new IllegalStateException(
           "Unexpected input type for Sum aggregate: " + inputType);
     };
@@ -134,15 +133,10 @@ public class Sum extends Aggregator {
     private void addBigInteger(BigInteger value) {
       assert value != null;
       switch (accumulator) {
-        case Long accumulatorAsLong -> {
-          accumulator = BigInteger.valueOf(accumulatorAsLong).add(value);
-        }
-        case BigInteger accumulatorAsBigInteger -> {
-          accumulator = accumulatorAsBigInteger.add(value);
-        }
-        case null -> {
-          accumulator = value;
-        }
+        case Long accumulatorAsLong -> accumulator =
+            BigInteger.valueOf(accumulatorAsLong).add(value);
+        case BigInteger accumulatorAsBigInteger -> accumulator = accumulatorAsBigInteger.add(value);
+        case null -> accumulator = value;
         default -> throw new IllegalStateException(
             "Unexpected accumulator type: " + accumulator.getClass());
       }

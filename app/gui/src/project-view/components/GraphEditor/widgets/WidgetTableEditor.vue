@@ -228,6 +228,7 @@ const defaultColDef: ColDef<RowData> = {
       onHeaderEditingStopped: headerEditHandler.headerEditingStoppedInGrid.bind(headerEditHandler),
     },
   },
+  cellStyle: { 'padding-left': 0, 'border-right': '1px solid #C0C0C0' },
 }
 </script>
 

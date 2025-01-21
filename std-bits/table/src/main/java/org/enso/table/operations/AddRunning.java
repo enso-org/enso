@@ -22,18 +22,49 @@ public class AddRunning {
       Column[] orderingColumns,
       int[] directions,
       ProblemAggregator problemAggregator) {
-    var runningStatistic = createRunningStatistic(statistic, sourceColumn, problemAggregator);
-    RunningLooper.loop(
+    var runningStatistic =
+        new RunningStatisticRowVisitorFactory(statistic, sourceColumn, problemAggregator);
+    GroupingOrderingVisitor.visit(
         groupingColumns,
         orderingColumns,
         directions,
         problemAggregator,
         runningStatistic,
         sourceColumn.getSize());
-    return runningStatistic.getResult();
+    return runningStatistic.runningStatistic.getResult();
   }
 
-  private static RunningStatistic<?> createRunningStatistic(
+  private static class RunningStatisticRowVisitorFactory implements RowVisitorFactory {
+
+    RunningStatisticBase<?> runningStatistic;
+
+    RunningStatisticRowVisitorFactory(
+        Statistic statistic, Column sourceColumn, ProblemAggregator problemAggregator) {
+      runningStatistic = createRunningStatistic(statistic, sourceColumn, problemAggregator);
+    }
+
+    @Override
+    public GroupRowVisitor getNewRowVisitor() {
+      return new RunningStatisticRowVisitor<>(runningStatistic);
+    }
+
+    private static class RunningStatisticRowVisitor<T> implements GroupRowVisitor {
+      RunningStatisticBase<T> runningStatistic;
+      RunningIterator<T> iterator;
+
+      RunningStatisticRowVisitor(RunningStatisticBase<T> runningStatistic) {
+        this.runningStatistic = runningStatistic;
+        iterator = runningStatistic.getNewIterator();
+      }
+
+      @Override
+      public void visit(int row) {
+        runningStatistic.calculateNextValue(row, iterator);
+      }
+    }
+  }
+
+  private static RunningStatisticBase<?> createRunningStatistic(
       Statistic statistic, Column sourceColumn, ProblemAggregator problemAggregator) {
     switch (statistic) {
       case Sum -> {
@@ -106,7 +137,15 @@ public class AddRunning {
 
     @Override
     public Storage<Double> createStorage(long[] result, int size, BitSet isNothing) {
-      return new DoubleStorage(result, size, isNothing);
+      // Have to convert the long[] to double[].
+      double[] values = new double[size];
+      for (int i = 0; i < size; i++) {
+        if (!isNothing.get(i)) {
+          values[i] = Double.longBitsToDouble(result[i]);
+        }
+      }
+
+      return new DoubleStorage(values, size, isNothing);
     }
   }
 
@@ -134,7 +173,7 @@ public class AddRunning {
     }
   }
 
-  private abstract static class RunningStatisticBase<T> implements RunningStatistic<T> {
+  private abstract static class RunningStatisticBase<T> {
 
     long[] result;
     BitSet isNothing;
@@ -151,7 +190,6 @@ public class AddRunning {
       this.typeHandler = typeHandler;
     }
 
-    @Override
     public void calculateNextValue(int i, RunningIterator<T> it) {
       Object value = sourceColumn.getStorage().getItemBoxed(i);
       if (value == null) {
@@ -174,10 +212,11 @@ public class AddRunning {
       }
     }
 
-    @Override
     public Storage<T> getResult() {
       return typeHandler.createStorage(result, sourceColumn.getSize(), isNothing);
     }
+
+    protected abstract RunningIterator<T> getNewIterator();
   }
 
   private abstract static class RunningIteratorBase implements RunningIterator<Double> {
