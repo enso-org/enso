@@ -9,7 +9,6 @@ polyglot java import org.enso.table.data.column.builder.Builder
 polyglot java import org.enso.table.data.column.builder.BuilderForBoolean
 polyglot java import org.enso.table.data.column.builder.BuilderForDouble
 polyglot java import org.enso.table.data.column.builder.BuilderForLong
-polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
 polyglot java import org.enso.table.problems.ProblemAggregator
 
 ## PRIVATE

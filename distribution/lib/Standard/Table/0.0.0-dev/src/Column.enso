@@ -118,7 +118,7 @@ type Column
                 case needs_polyglot_conversion of
                     True -> Java_Column.fromItems name (enso_to_java_maybe items) expected_storage_type java_problem_aggregator
                     False -> Java_Column.fromItemsNoDateConversion name items expected_storage_type java_problem_aggregator
-            result = Column.Value java_column . throw_on_warning Conversion_Failure
+            result = Column.from_java_column java_column . throw_on_warning Conversion_Failure
             result.catch Conversion_Failure error->
                 if error.example_values.is_empty then result else
                     raise_invalid_value_type_error error.example_values.first
@@ -128,7 +128,14 @@ type Column
     from_storage : Text -> Java_Storage -> Column
     from_storage name storage =
         Invalid_Column_Names.handle_java_exception <|
-            Column.Value (Java_Column.new name storage)
+            java_column = Java_Column.new name storage
+            Column.from_java_column java_column
+
+    ## PRIVATE
+       Creates a new column given a Java Column object.
+    from_java_column : Java_Column -> Column
+    from_java_column java_column =
+        Column.Value java_column
 
     ## PRIVATE
        ADVANCED
@@ -143,7 +150,7 @@ type Column
         Invalid_Column_Names.handle_java_exception <| Illegal_Argument.handle_java_exception <|
             java_column = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
                 Java_Column.fromRepeatedItem name item repeats java_problem_aggregator
-            Column.Value java_column
+            Column.from_java_column java_column
 
     ## PRIVATE
 
@@ -828,7 +835,7 @@ type Column
                 rs = Panic.catch No_Such_Method handler=handle_no_iif <|
                     Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
                         s.iif true_val false_val storage_type java_problem_aggregator
-                Column.Value (Java_Column.new new_name rs)
+                Column.from_storage new_name rs
 
     ## PRIVATE
 
@@ -1197,7 +1204,7 @@ type Column
                             storage.fillMissingFrom other_storage storage_type java_problem_aggregator
                         _ ->
                             storage.fillMissing default storage_type java_problem_aggregator
-                Column.Value (Java_Column.new self.name new_storage)
+                Column.from_storage self.name new_storage
 
     ## ALIAS fill empty, if_empty
        GROUP Standard.Base.Values
@@ -1846,7 +1853,7 @@ type Column
                 new_storage = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
                     parse_problem_aggregator = ParseProblemAggregator.make java_problem_aggregator self.name type
                     parser.parseColumn storage parse_problem_aggregator
-                Column.Value (Java_Column.new self.name new_storage)
+                Column.from_storage self.name new_storage
 
     ## GROUP Standard.Base.Conversions
        ICON convert
@@ -2175,7 +2182,7 @@ type Column
     rename : Text -> Column ! Illegal_Argument
     rename self name = naming_helper.ensure_name_is_valid name <|
         Illegal_Argument.handle_java_exception <|
-            Column.Value (self.java_column.rename name)
+            Column.from_java_column (self.java_column.rename name)
 
     ## GROUP Standard.Base.Metadata
        ICON metadata
@@ -2284,8 +2291,7 @@ type Column
             valid_index = (index >= 0) && (index < self.length)
             if valid_index.not then default else
                 storage = self.java_column.getStorage
-                if storage.isNothing index then Nothing else
-                    java_to_enso <| storage.getItemBoxed index
+                java_to_enso <| storage.getItemBoxed index
 
     ## PRIVATE
        ICON data_input
@@ -2428,7 +2434,7 @@ type Column
             rule = OrderBuilder.OrderRule.new self.java_column order_bool missing_last
             mask = OrderBuilder.buildOrderMask [rule]
             new_col = self.java_column.applyMask mask
-            Column.Value new_col
+            Column.from_java_column new_col
         _ ->
             wrapped a b = case a of
                 Nothing -> if b.is_nothing then Ordering.Equal else if missing_last then Ordering.Greater else Ordering.Less
@@ -2493,7 +2499,7 @@ type Column
         length = self.length
         offset = (start.min length).max 0
         limit = ((end - offset).min (length - offset)).max 0
-        Column.Value (self.java_column.slice offset limit)
+        Column.from_java_column (self.java_column.slice offset limit)
 
     ## GROUP Standard.Base.Selections
        ICON parse3
@@ -2541,7 +2547,7 @@ type Column
     reverse : Column
     reverse self =
         mask = OrderMask.reverse self.length
-        Column.Value (self.java_column.applyMask mask)
+        Column.from_java_column (self.java_column.applyMask mask)
 
     ## GROUP Standard.Base.Metadata
        ICON metadata
@@ -2555,7 +2561,8 @@ type Column
 
              example_duplicate_count = Examples.integer_column.duplicate_count
     duplicate_count : Column
-    duplicate_count self = Column.Value self.java_column.duplicateCount
+    duplicate_count self =
+        Column.from_java_column self.java_column.duplicateCount
 
     ## PRIVATE
        Provides a simplified text representation for display in the REPL and errors.
@@ -2647,7 +2654,7 @@ run_vectorized_many_op column name fallback_fn operands new_name=Nothing skip_nu
                         current.vectorizedOrFallbackZip name problem_builder fallback_fn operand.java_column.getStorage skip_nulls storage_type
                     _ -> Polyglot_Helpers.handle_polyglot_dataflow_errors <|
                         current.vectorizedOrFallbackBinaryMap name problem_builder fallback_fn operand skip_nulls storage_type
-            Column.Value (Java_Column.new effective_new_name folded)
+            Column.from_storage effective_new_name folded
 
 ## PRIVATE
 
@@ -2677,12 +2684,12 @@ run_vectorized_binary_op column name operand new_name=Nothing fallback_fn=Nothin
                 s2 = col2.getStorage
                 rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
                     s1.vectorizedOrFallbackZip name problem_builder fallback_fn s2 skip_nulls storage_type
-                Column.Value (Java_Column.new effective_new_name rs)
+                Column.from_storage effective_new_name rs
             _ ->
                 s1 = column.java_column.getStorage
                 rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
                     s1.vectorizedOrFallbackBinaryMap name problem_builder fallback_fn (enso_to_java operand) skip_nulls storage_type
-                Column.Value (Java_Column.new effective_new_name rs)
+                Column.from_storage effective_new_name rs
 
 ## PRIVATE
 
@@ -2708,7 +2715,7 @@ run_vectorized_ternary_op column name operand0 operand1 new_name=Nothing expecte
         s1 = column.java_column.getStorage
         rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
             s1.vectorizedTernaryMap name problem_builder operand0 operand1 skip_nulls storage_type
-        Column.Value (Java_Column.new effective_new_name rs)
+        Column.from_storage effective_new_name rs
 
 ## PRIVATE
    Runs a binary operation over the provided column and operand which may be
@@ -2736,7 +2743,7 @@ run_binary_op column function operand new_name skip_nulls=True expected_result_t
             _ ->
                 Polyglot_Helpers.handle_polyglot_dataflow_errors <|
                     s.binaryMap function operand skip_nulls storage_type problem_builder
-        Column.Value (Java_Column.new new_name new_storage)
+        Column.from_storage new_name new_storage
 
 ## PRIVATE
 
@@ -2770,46 +2777,18 @@ run_vectorized_binary_op_with_fallback_problem_handling column name operand fall
                 s2 = col2.getStorage
                 rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
                     s1.vectorizedOrFallbackZip name problem_builder applied_fn s2 skip_nulls storage_type
-                Column.Value (Java_Column.new new_name rs)
+                Column.from_storage new_name rs
             _ ->
                 s1 = column.java_column.getStorage
                 rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
                     s1.vectorizedOrFallbackBinaryMap name problem_builder applied_fn (enso_to_java operand) skip_nulls storage_type
-                Column.Value (Java_Column.new new_name rs)
-
-## PRIVATE
-
-   Gets a textual representation of the item at position `ix` in `column`.
-
-   Arguments:
-   - column: The column to get the item from.
-   - ix: The index in the column from which to get the item.
-get_item_as_text : Column -> Integer -> Text
-get_item_as_text column ix =
-    item = column.getItemBoxed ix
-    ## TODO This special handling of `Text` is because `"a".to_text` evaluates
-       to "'a'" and not just "a". The code can be simplified once the following
-       task is implemented:
-       https://www.pivotaltracker.com/story/show/181499256
-    case item of
-        _ : Text -> normalize_text_for_display item
-        _ -> item.pretty
-
-## PRIVATE
-   Ensures that the text can be safely displayed in a terminal.
-
-   If the string contains special characters, it will be wrapped in quotes and
-   the characters escaped. Otherwise, the string is returned as-is.
-normalize_text_for_display text =
-    prettified = text.pretty
-    just_quoted = "'" + text + "'"
-    if prettified == just_quoted then text else prettified
+                Column.from_storage new_name rs
 
 ## PRIVATE
    A helper to create a new table consisting of slices of the original table.
 slice_ranges column ranges =
     normalized = normalize_ranges ranges
-    Column.Value (column.java_column.slice normalized)
+    Column.from_java_column (column.java_column.slice normalized)
 
 ## PRIVATE
    Creates a storage builder suitable for building a column for the provided
@@ -2928,7 +2907,7 @@ apply_unary_operation column:Column operation:UnaryOperation new_name:Text|Nothi
     used_name = new_name.if_nothing (naming_helper.function_name operation.getName [column])
     Java_Problems.with_map_operation_problem_aggregator column.name Problem_Behavior.Report_Warning java_problem_aggregator->
         java_column = UnaryOperation.apply column.java_column operation used_name java_problem_aggregator
-        if java_column.is_nothing then if_unsupported else Column.Value java_column
+        if java_column.is_nothing then if_unsupported else Column.from_java_column java_column
 
 ## PRIVATE
    Applies a function to every row in the column.
@@ -2945,7 +2924,7 @@ apply_unary_map column:Column new_name:Text function expected_result_type:Value_
     storage_type = resolve_storage_type expected_result_type
     Java_Problems.with_map_operation_problem_aggregator column.name Problem_Behavior.Report_Warning java_problem_aggregator->
         map_column = UnaryOperation.mapFunction column.java_column function nothing_unchanged storage_type new_name java_problem_aggregator
-        Column.Value map_column
+        Column.from_java_column map_column
 
 ## PRIVATE
 Many_Files_List.from (that : Column) =
