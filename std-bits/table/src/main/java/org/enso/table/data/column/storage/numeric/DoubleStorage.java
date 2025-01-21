@@ -423,6 +423,6 @@ public final class DoubleStorage extends NumericStorage<Double>
     if (isNothing(index)) {
       throw new ValueIsNothingException(index);
     }
-    return getItem((int) index);
+    return getItem(Math.toIntExact(index));
   }
 }
