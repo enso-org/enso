@@ -29,6 +29,7 @@ import project.Common_Table_Operations.Map_Spec
 import project.Common_Table_Operations.Map_To_Table_Spec
 import project.Common_Table_Operations.Missing_Values_Spec
 import project.Common_Table_Operations.Nothing_Spec
+import project.Common_Table_Operations.Offset_Spec
 import project.Common_Table_Operations.Order_By_Spec
 import project.Common_Table_Operations.Select_Columns_Spec
 import project.Common_Table_Operations.Take_Drop_Spec
@@ -118,36 +119,37 @@ type Test_Selection
         self.run_advanced_edge_case_tests_by_default || (Environment.get "ENSO_ADVANCED_EDGE_CASE_TESTS" . is_nothing . not)
 
 add_specs suite_builder setup =
-    Core_Spec.add_specs suite_builder setup
-    Select_Columns_Spec.add_specs suite_builder setup
-    Column_Name_Edge_Cases_Spec.add_specs suite_builder setup
-    Column_Operations_Spec.add_specs suite_builder setup
-    Derived_Columns_Spec.add_specs suite_builder setup
-    Date_Time_Spec.add_specs suite_builder setup
-    Conversion_Spec.add_specs suite_builder setup
-    Aggregate_Spec.add_specs suite_builder setup
-    Filter_Spec.add_specs suite_builder setup
-    Map_Spec.add_specs suite_builder setup
-    Missing_Values_Spec.add_specs suite_builder setup
-    Order_By_Spec.add_specs suite_builder setup
-    Take_Drop_Spec.add_specs suite_builder setup
-    Expression_Spec.add_specs suite_builder detailed=False setup
-    Join_Spec.add_specs suite_builder setup
-    Cross_Join_Spec.add_specs suite_builder setup
-    Zip_Spec.add_specs suite_builder setup
-    Union_Spec.add_specs suite_builder setup
-    Lookup_Spec.add_specs suite_builder setup
-    Replace_Spec.add_specs suite_builder setup
-    Map_To_Table_Spec.add_specs suite_builder setup
-    Distinct_Spec.add_specs suite_builder setup
-    Cross_Tab_Spec.add_specs suite_builder setup
-    Transpose_Spec.add_specs suite_builder setup
     Add_Group_Number_Spec.add_specs suite_builder setup
     Add_Row_Number_Spec.add_specs suite_builder setup
-    Integration_Tests.add_specs suite_builder setup
-    Temp_Column_Spec.add_specs suite_builder setup
-    Nothing_Spec.add_specs suite_builder setup
-    Text_Cleanse_Spec.add_specs suite_builder setup
+    Aggregate_Spec.add_specs suite_builder setup
     Coalesce_Spec.add_specs suite_builder setup
+    Column_Name_Edge_Cases_Spec.add_specs suite_builder setup
+    Column_Operations_Spec.add_specs suite_builder setup
+    Conversion_Spec.add_specs suite_builder setup
+    Core_Spec.add_specs suite_builder setup
+    Cross_Join_Spec.add_specs suite_builder setup
+    Cross_Tab_Spec.add_specs suite_builder setup
+    Date_Time_Spec.add_specs suite_builder setup
+    Derived_Columns_Spec.add_specs suite_builder setup
+    Distinct_Spec.add_specs suite_builder setup
+    Expression_Spec.add_specs suite_builder detailed=False setup
+    Filter_Spec.add_specs suite_builder setup
+    Integration_Tests.add_specs suite_builder setup
+    Join_Spec.add_specs suite_builder setup
+    Lookup_Spec.add_specs suite_builder setup
+    Map_Spec.add_specs suite_builder setup
+    Map_To_Table_Spec.add_specs suite_builder setup
+    Missing_Values_Spec.add_specs suite_builder setup
+    Nothing_Spec.add_specs suite_builder setup
+    Offset_Spec.add_specs suite_builder setup
+    Order_By_Spec.add_specs suite_builder setup
+    Replace_Spec.add_specs suite_builder setup
+    Select_Columns_Spec.add_specs suite_builder setup
+    Take_Drop_Spec.add_specs suite_builder setup
+    Temp_Column_Spec.add_specs suite_builder setup
+    Text_Cleanse_Spec.add_specs suite_builder setup
+    Transpose_Spec.add_specs suite_builder setup
+    Union_Spec.add_specs suite_builder setup
+    Zip_Spec.add_specs suite_builder setup
 
 main filter=Nothing = run_default_backend add_specs filter

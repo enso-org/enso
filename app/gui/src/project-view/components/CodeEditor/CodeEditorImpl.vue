@@ -4,7 +4,7 @@ import { ensoSyntax } from '@/components/CodeEditor/ensoSyntax'
 import { useEnsoSourceSync } from '@/components/CodeEditor/sync'
 import { ensoHoverTooltip } from '@/components/CodeEditor/tooltips'
 import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
-import VueComponentHost from '@/components/VueComponentHost.vue'
+import VueHostRender, { VueHost } from '@/components/VueHostRender.vue'
 import { useGraphStore } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
@@ -31,8 +31,6 @@ const projectStore = useProjectStore()
 const graphStore = useGraphStore()
 const suggestionDbStore = useSuggestionDbStore()
 
-const vueComponentHost =
-  useTemplateRef<ComponentInstance<typeof VueComponentHost>>('vueComponentHost')
 const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('editorRoot')
 const rootElement = computed(() => editorRoot.value?.rootElement)
 useAutoBlur(rootElement)
@@ -42,7 +40,7 @@ const autoindentOnEnter = {
   run: insertNewlineKeepIndent,
 }
 
-const vueHost = computed(() => vueComponentHost.value || undefined)
+const vueHost = new VueHost()
 const { editorView, setExtraExtensions } = useCodeMirror(editorRoot, {
   extensions: [
     keymap.of([indentWithTab, autoindentOnEnter]),
@@ -55,7 +53,7 @@ const { editorView, setExtraExtensions } = useCodeMirror(editorRoot, {
     highlightStyle(useCssModule()),
     ensoHoverTooltip(graphStore, suggestionDbStore, vueHost),
   ],
-  vueHost,
+  vueHost: () => vueHost,
 })
 ;(window as any).__codeEditorApi = testSupport(editorView)
 const { updateListener, connectModuleListener } = useEnsoSourceSync(
@@ -74,7 +72,7 @@ onMounted(() => {
 
 <template>
   <CodeMirrorRoot ref="editorRoot" class="CodeEditor" @keydown.tab.stop.prevent />
-  <VueComponentHost ref="vueComponentHost" />
+  <VueHostRender :host="vueHost" />
 </template>
 
 <style scoped>
