@@ -18,11 +18,11 @@ import org.enso.interpreter.runtime.error.PanicException;
     description = "Gets the method names of a type.",
     autoRegister = false)
 public abstract class GetTypeMethodsNode extends Node {
-  static GetTypeMethodsNode build() {
+  public static GetTypeMethodsNode build() {
     return GetTypeMethodsNodeGen.create();
   }
 
-  abstract EnsoObject execute(Object type);
+  public abstract EnsoObject execute(Object type);
 
   @Specialization
   @CompilerDirectives.TruffleBoundary
