@@ -1,23 +1,18 @@
-import {
-  ColumnDef,
-  NEW_COLUMN_ID,
-  ROW_INDEX_HEADER,
-  RowData,
-} from '@/components/GraphEditor/widgets/WidgetTableEditor/tableInputArgument'
+import { NEW_COLUMN_ID } from '@/components/GraphEditor/widgets/WidgetTableEditor/tableInputArgument'
 import { WidgetInput } from '@/providers/widgetRegistry'
 import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { ToValue } from '@/util/reactivity'
 import {
   CellEditingStartedEvent,
   CellEditingStoppedEvent,
-  Column,
+  CellPosition,
   StartEditingCellParams,
 } from 'ag-grid-enterprise'
-import { computed, ref, toValue } from 'vue'
+import { computed, ref, toValue, watch } from 'vue'
 
 interface EditedCell {
-  rowIndex: number
-  colKey: Column<RowData>
+  rowIndex: number | 'header'
+  colKey: string
 }
 
 export function useTableEditHandlers(
@@ -25,7 +20,7 @@ export function useTableEditHandlers(
     | {
         stopEditing(cancel: boolean): void
         startEditingCell(editedCell: StartEditingCellParams): void
-        getEditingCells(): Array<unknown>
+        getEditingCells(): Array<CellPosition>
       }
     | undefined
   >,
@@ -38,133 +33,118 @@ export function useTableEditHandlers(
   )
   const firstColumn = computed(() => toValue(colDefs)[1]) // The 0 col is un-editable row index.
 
-  class CellEditing {
-    handler: WidgetEditHandler
-    editedCell: EditedCell | undefined
-    supressNextStopEditEvent: boolean = false
-
-    constructor() {
-      this.handler = WidgetEditHandler.New('WidgetTableEditor.cellEditHandler', toValue(input), {
-        cancel() {
-          toValue(gridApi)?.stopEditing(true)
-        },
-        end() {
-          toValue(gridApi)?.stopEditing(false)
-        },
-        pointerdown: (event) => pointerdown(this.handler, event),
-        suspend: () => {
-          return {
-            resume: () => this.editedCell && toValue(gridApi)?.startEditingCell(this.editedCell),
-          }
-        },
-      })
+  const editedCell = ref<EditedCell>()
+  let revertChangesCb: (() => void) | undefined
+  function syncGridWithEditedCell(cell = editedCell.value) {
+    const api = toValue(gridApi)
+    if (!api) return
+    const editedInGrid = api.getEditingCells()[0]
+    if (cell == null || cell.rowIndex === 'header') {
+      api.stopEditing(false)
+    } else if (
+      editedInGrid?.rowIndex !== cell.rowIndex ||
+      editedInGrid?.column.getColId() !== cell.colKey
+    ) {
+      api.startEditingCell({ rowIndex: cell.rowIndex, colKey: cell.colKey })
     }
+  }
+  watch(editedCell, (cell) => {
+    syncGridWithEditedCell(cell)
+    if (cell != null && !handler.isActive()) {
+      handler.start()
+    } else if (cell == null && handler.isActive()) {
+      handler.end()
+    }
+  })
 
-    cellEditedInGrid(event: CellEditingStartedEvent) {
-      this.editedCell =
-        event.rowIndex != null ? { rowIndex: event.rowIndex, colKey: event.column } : undefined
-      if (!this.handler.isActive()) {
-        this.handler.start()
+  const handler = WidgetEditHandler.New('WidgetTableEditor', toValue(input), {
+    cancel() {
+      revertChangesCb?.()
+      editedCell.value = undefined
+    },
+    end() {
+      editedCell.value = undefined
+    },
+    pointerdown: (event) => pointerdown(handler, event),
+    suspend: () => {
+      return {
+        resume: () => syncGridWithEditedCell(),
       }
-    }
+    },
+  })
 
-    cellEditingStoppedInGrid(_event: CellEditingStoppedEvent) {
+  const gridEventHandlers = {
+    cellEditingStarted(event: CellEditingStartedEvent) {
+      console.log('EVENT', event)
+      revertChangesCb = () => toValue(gridApi)?.stopEditing(true)
+      editedCell.value =
+        event.rowIndex != null ?
+          { rowIndex: event.rowIndex, colKey: event.column.getColId() }
+        : undefined
+      if (!handler.isActive()) {
+        handler.start()
+      }
+    },
+    cellEditingStopped(_event: CellEditingStoppedEvent) {
       const api = toValue(gridApi)
-      if (this.supressNextStopEditEvent && this.editedCell) {
-        this.supressNextStopEditEvent = false
-        // If row data changed, the editing will be stopped, but we want to continue it.
-        api?.startEditingCell(this.editedCell)
-      } else if (!api?.getEditingCells().length && this.handler.isActive()) {
-        this.handler.end()
+      if (!api?.getEditingCells().length && handler.isActive()) {
+        handler.end()
       }
-    }
-
-    rowDataChanged() {
-      if (this.handler.isActive()) {
-        this.supressNextStopEditEvent = true
+    },
+    rowDataUpdated() {
+      syncGridWithEditedCell()
+    },
+    keydown(event: KeyboardEvent) {
+      console.log('EVENT', event)
+      const handler =
+        event.code === 'Tab' ? tabPressed
+        : event.code === 'Enter' ? enterPressed
+        : undefined
+      if (handler?.() === false) {
+        event.stopPropagation()
       }
-    }
+    },
+  }
 
-    enterPressed() {
-      if (this.editedCell != null) {
-        const api = toValue(gridApi)
-        if (firstColumn.value != null) {
-          api?.startEditingCell({
-            rowIndex: this.editedCell.rowIndex + 1,
-            colKey: firstColumn.value.colId,
-          })
-        } else {
-          api?.stopEditing(false)
+  const headerEventHandlers = {
+    headerEditingStarted(colKey: string, revertChanges: () => void) {
+      if (editedCell.value?.rowIndex != 'header' || editedCell.value?.colKey !== colKey) {
+        editedCell.value = { rowIndex: 'header', colKey }
+        if (!handler.isActive()) {
+          handler.start()
         }
-        return true
-      } else {
-        return false
       }
+      revertChangesCb = revertChanges
+    },
+
+    headerEditingStopped(colId: string) {
+      if (editedCell.value?.rowIndex === 'header' && editedCell.value.colKey === colId) {
+        editedCell.value = undefined
+      }
+    },
+  }
+
+  function tabPressed() {
+    // When cell is edited, AgGrid handles tab correctly.
+    if (editedCell.value == null || editedCell.value.rowIndex !== 'header') return false
+    const currentIndex = columnIndexById.value.get(editedCell.value.colKey)
+    if (currentIndex == null) return
+    const columnDefs = toValue(colDefs)
+    const colOnRight = columnDefs[currentIndex + 1]
+    console.log(colOnRight)
+    if (colOnRight != null && colOnRight.colId != NEW_COLUMN_ID) {
+      editedCell.value = { rowIndex: 'header', colKey: colOnRight.colId }
+    } else if (firstColumn.value != null) {
+      editedCell.value = { rowIndex: 0, colKey: firstColumn.value.colId }
     }
   }
 
-  class HeaderEditing {
-    handler: WidgetEditHandler
-    editedColId = ref<string>()
-    revertChangesCallback: (() => void) | undefined
+  function enterPressed() {
+    if (editedCell.value == null || firstColumn.value == null) return false
 
-    constructor() {
-      this.handler = WidgetEditHandler.New('WidgetTableEditor.headerEditHandler', toValue(input), {
-        cancel: () => {
-          this.revertChangesCallback?.()
-          this.editedColId.value = undefined
-        },
-        end: () => {
-          this.editedColId.value = undefined
-        },
-        pointerdown: (event) => pointerdown(this.handler, event),
-      })
-    }
-
-    headerEditedInGrid(colId: string, revertChanges: () => void) {
-      if (this.editedColId.value !== colId) {
-        this.editedColId.value = colId
-        if (!this.handler.isActive()) {
-          this.handler.start()
-        }
-      }
-      this.revertChangesCallback = revertChanges
-    }
-
-    headerEditingStoppedInGrid(colId: string) {
-      if (this.editedColId.value === colId) {
-        this.revertChangesCallback = undefined
-        this.editedColId.value = undefined
-        if (this.handler.isActive()) {
-          this.handler.end()
-        }
-      }
-    }
-
-    tabPressed() {
-      if (!this.editedColId.value) return
-      const currentIndex = columnIndexById.value.get(this.editedColId.value)
-      if (currentIndex == null) return
-      const columnDefs = toValue(colDefs)
-      const colOnRight = columnDefs[currentIndex + 1]
-      if (colOnRight != null && colOnRight.colId != NEW_COLUMN_ID) {
-        this.editedColId.value = colOnRight.colId
-      } else if (firstColumn.value != null) {
-        toValue(gridApi)?.startEditingCell({ rowIndex: 0, colKey: firstColumn.value.colId })
-      }
-    }
-
-    enterPressed() {
-      if (this.editedColId.value != null) {
-        this.handler.end()
-        if (firstColumn.value != null) {
-          toValue(gridApi)?.startEditingCell({ rowIndex: 0, colKey: firstColumn.value.colId })
-        }
-        return true
-      }
-      return false
-    }
+    const nextRow = editedCell.value.rowIndex === 'header' ? 0 : editedCell.value.rowIndex + 1
+    editedCell.value = { rowIndex: nextRow, colKey: firstColumn.value.colId }
   }
 
-  return { CellEditing, HeaderEditing }
+  return { handler, editedCell, gridEventHandlers, headerEventHandlers }
 }

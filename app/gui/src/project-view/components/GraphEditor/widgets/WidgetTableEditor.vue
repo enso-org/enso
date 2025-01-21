@@ -23,7 +23,6 @@ import type {
   ColumnMovedEvent,
   ProcessDataFromClipboardParams,
   RowDragEndEvent,
-  TabToNextCellParams,
 } from 'ag-grid-enterprise'
 import { ComponentInstance, computed, proxyRefs, ref } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
@@ -67,7 +66,7 @@ const { rowData, columnDefs, moveColumn, moveRow, pasteFromClipboard } = useTabl
 
 // === Edit Handlers ===
 
-const { CellEditing, HeaderEditing } = useTableEditHandlers(
+const { editedCell, gridEventHandlers, headerEventHandlers } = useTableEditHandlers(
   () => grid.value?.gridApi,
   () => props.input,
   columnDefs,
@@ -79,8 +78,6 @@ const { CellEditing, HeaderEditing } = useTableEditHandlers(
     }
   },
 )
-const cellEditHandler = new CellEditing()
-const headerEditHandler = new HeaderEditing()
 
 // === Resizing ===
 
@@ -150,9 +147,11 @@ function processDataFromClipboard({ data, api }: ProcessDataFromClipboardParams<
 // === Column Default Definition ===
 
 const headerComponentParams = proxyRefs({
-  editedColId: headerEditHandler.editedColId,
-  onHeaderEditingStarted: headerEditHandler.headerEditedInGrid.bind(headerEditHandler),
-  onHeaderEditingStopped: headerEditHandler.headerEditingStoppedInGrid.bind(headerEditHandler),
+  editedColId: computed(() =>
+    editedCell.value?.rowIndex === 'header' ? editedCell.value.colKey : undefined,
+  ),
+  onHeaderEditingStarted: headerEventHandlers.headerEditingStarted,
+  onHeaderEditingStopped: headerEventHandlers.headerEditingStopped,
 })
 
 const defaultColDef: ColDef<RowData> & {
@@ -207,17 +206,13 @@ export const widgetDefinition = defineWidget(
         :suppressDragLeaveHidesColumns="true"
         :suppressMoveWhenColumnDragging="true"
         :processDataFromClipboard="processDataFromClipboard"
+        v-on="gridEventHandlers"
         @keydown.arrow-left.stop
         @keydown.arrow-right.stop
         @keydown.arrow-up.stop
         @keydown.arrow-down.stop
         @keydown.backspace.stop
         @keydown.delete.stop
-        @keydown.tab.stop="headerEditHandler.tabPressed()"
-        @keydown.enter.stop="headerEditHandler.enterPressed() || cellEditHandler.enterPressed()"
-        @cellEditingStarted="cellEditHandler.cellEditedInGrid($event)"
-        @cellEditingStopped="cellEditHandler.cellEditingStoppedInGrid($event)"
-        @rowDataUpdated="cellEditHandler.rowDataChanged()"
         @pointerdown.stop
         @click.stop
         @columnMoved="onColumnMoved"
