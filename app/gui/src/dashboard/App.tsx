@@ -544,11 +544,6 @@ function AppRouter(props: AppRouterProps) {
               <LocalBackendPathSynchronizer />
               <VersionChecker />
               {routes}
-              <suspense.Suspense>
-                <errorBoundary.ErrorBoundary>
-                  <devtools.EnsoDevtools />
-                </errorBoundary.ErrorBoundary>
-              </suspense.Suspense>
             </InputBindingsProvider>
           </AuthProvider>
         </BackendProvider>

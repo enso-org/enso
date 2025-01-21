@@ -14,6 +14,7 @@ import { download } from '#/utilities/download'
 import { getDownloadUrl } from '#/utilities/github'
 import { useNavigate } from 'react-router-dom'
 import { LOGIN_PATH } from '../appUtils'
+import { useToggleEnsoDevtools } from '../components/Devtools'
 import { useSessionAPI } from '../providers/SessionProvider'
 
 /** Props for a {@link UserMenu}. */
@@ -35,6 +36,7 @@ export default function UserMenu(props: UserMenuProps) {
   const { setModal, unsetModal } = useSetModal()
   const { getText } = useText()
   const toastAndLog = useToastAndLog()
+  const toggleEnsoDevtools = useToggleEnsoDevtools()
 
   const entries = (
     <>
@@ -59,6 +61,16 @@ export default function UserMenu(props: UserMenuProps) {
           setModal(<AboutModal />)
         }}
       />
+
+      {user.isEnsoTeamMember && (
+        <MenuEntry
+          action="ensoDevtools"
+          doAction={() => {
+            toggleEnsoDevtools()
+          }}
+        />
+      )}
+
       <MenuEntry
         action="signOut"
         doAction={() => {

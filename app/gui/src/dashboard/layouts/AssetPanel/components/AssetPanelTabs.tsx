@@ -33,6 +33,7 @@ export interface AssetPanelTabProps extends TabProps {
   readonly label: string
   readonly isExpanded: boolean
   readonly onPress?: () => void
+  readonly isHidden?: boolean
 }
 
 const UNDERLAY_ELEMENT = (
@@ -45,7 +46,7 @@ const UNDERLAY_ELEMENT = (
 
 /** Display a tab. */
 export const AssetPanelTab = memo(function AssetPanelTab(props: AssetPanelTabProps) {
-  const { id, icon, label, isExpanded, isDisabled = false } = props
+  const { id, icon, label, isExpanded, isDisabled = false, isHidden = false } = props
 
   const tabRef = useRef<HTMLDivElement>(null)
 
@@ -54,6 +55,10 @@ export const AssetPanelTab = memo(function AssetPanelTab(props: AssetPanelTabPro
     targetRef: tabRef,
     overlayPositionProps: { placement: 'left' },
   })
+
+  if (isHidden) {
+    return null
+  }
 
   return (
     <Tab

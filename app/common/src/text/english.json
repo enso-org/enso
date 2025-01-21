@@ -1,6 +1,7 @@
 {
   "submit": "Submit",
   "retry": "Retry",
+  "hide": "Hide",
 
   "arbitraryFetchError": "An error occurred while fetching data",
   "arbitraryFetchImageError": "An error occurred while fetching an image",
@@ -433,6 +434,7 @@
   "build": "Build",
   "errorColon": "Error: ",
   "developerInfo": "Dev mode info",
+  "ensoDevtools": "Enso Devtools",
   "electronVersion": "Electron",
   "chromeVersion": "Chrome",
   "userAgent": "User Agent",
@@ -784,6 +786,8 @@
   "rootFolderColumnName": "Root folder",
   "pathColumnName": "Location",
 
+  "hideDevtools": "Hide Devtools",
+  "ensoDevtoolsShortcut": "Enso Devtools",
   "settingsShortcut": "Settings",
   "closeTabShortcut": "Close Tab",
   "openShortcut": "Open",

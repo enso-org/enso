@@ -532,7 +532,15 @@ export default class RemoteBackend extends Backend {
       return this.throw(response, 'usersMeBackendError')
     } else {
       const user = await response.json()
-      this.user = { ...user }
+
+      Object.defineProperty(user, 'isEnsoTeamMember', {
+        value: user.email.endsWith('@enso.org') || user.email.endsWith('@ensoanalytics.com'),
+        writable: false,
+        configurable: false,
+        enumerable: true,
+      })
+
+      this.user = user
 
       return user
     }

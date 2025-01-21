@@ -21,6 +21,7 @@ import { isLocalCategory, type Category } from '#/layouts/CategorySwitcher/Categ
 import { useBackend } from '#/providers/BackendProvider'
 import { useText } from '#/providers/TextProvider'
 import { useStore } from '#/utilities/zustand'
+import { useFeatureFlag } from '../../providers/FeatureFlagsProvider'
 import {
   assetPanelStore,
   useIsAssetPanelExpanded,
@@ -121,6 +122,8 @@ const InternalAssetPanelTabs = memo(function InternalAssetPanelTabs(
 
   const isExpanded = useIsAssetPanelExpanded()
   const setIsExpanded = useSetIsAssetPanelExpanded()
+
+  const enableAsyncExecution = useFeatureFlag('enableAsyncExecution')
 
   const expandTab = useEventCallback(() => {
     setIsExpanded(true)
@@ -251,6 +254,7 @@ const InternalAssetPanelTabs = memo(function InternalAssetPanelTabs(
             isExpanded={isExpanded}
             onPress={expandTab}
             isDisabled={isLocal}
+            isHidden={!enableAsyncExecution}
           />
           <AssetPanelTabs.Tab
             id="executionsCalendar"
@@ -263,6 +267,7 @@ const InternalAssetPanelTabs = memo(function InternalAssetPanelTabs(
             isExpanded={isExpanded}
             onPress={expandTab}
             isDisabled={isLocal}
+            isHidden={!enableAsyncExecution}
           />
           <AssetPanelTabs.Tab
             id="docs"

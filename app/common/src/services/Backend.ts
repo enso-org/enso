@@ -213,6 +213,8 @@ export interface User extends UserInfo {
    * Has enriched metadata, like the name of the group and the home directory ID.
    */
   readonly groups?: readonly UserGroup[]
+  /** Whether the user is a member of the Enso team. */
+  readonly isEnsoTeamMember: boolean
 }
 
 /** A user related to the current user. */
