@@ -4,7 +4,6 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.stream.IntStream;
-
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.table.Column;

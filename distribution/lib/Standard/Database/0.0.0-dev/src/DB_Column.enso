@@ -1335,7 +1335,7 @@ type DB_Column
        - - ..Nothing - Add Nothing values in the spaces created by sliding the existing values.
        - - ..Closest_Value - If n is negative the first value gets used, if n is negative the last value gets used.
        - - ..Wrap_Around - In this mode values that slide off the top or bottom reappear at the other end. So no values get lost they are just rotated.
-    @n (Numeric_Input display=..Always)
+    @n (self-> Numeric_Input minimum=0-self.length maximum=self.length-1)
     offset self n=-1:Integer fill_with:Fill_With=..Nothing -> Column =
         _ = [n, fill_with]
         Error.throw (Unsupported_Database_Operation.Error "offset")
