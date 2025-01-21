@@ -5,7 +5,6 @@ import java.util.List;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.InferredIntegerBuilder;
-import org.enso.table.data.column.builder.NullBuilder;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
@@ -38,7 +37,7 @@ public class Sum extends Aggregator {
       case BigIntegerType bigIntegerType -> Builder.getForType(
           bigIntegerType, size, problemAggregator);
       case FloatType floatType -> Builder.getForDouble(floatType, size, problemAggregator);
-      case NullType nullType -> new NullBuilder();
+      case NullType nullType -> Builder.getForType(nullType, size, problemAggregator);
       default -> throw new IllegalStateException(
           "Unexpected input type for Sum aggregate: " + inputType);
     };
