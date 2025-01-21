@@ -24,9 +24,11 @@
 - [Allow using `/` to access files inside a directory reached through a data
   link.][11926]
 - [Added Table.Offset][12071]
+- [Added Column.Offset][12092]
 
 [11926]: https://github.com/enso-org/enso/pull/11926
 [12071]: https://github.com/enso-org/enso/pull/12071
+[12092]: https://github.com/enso-org/enso/pull/12092
 
 #### Enso Language & Runtime
 
