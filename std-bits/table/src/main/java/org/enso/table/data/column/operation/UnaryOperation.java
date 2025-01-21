@@ -78,7 +78,7 @@ public interface UnaryOperation {
         i -> {
           Value result = function.apply(column.getStorage().getItemAsObject(i));
           Object converted = Polyglot_Utils.convertPolyglotValue(result);
-          storageBuilder.appendNoGrow(converted);
+          storageBuilder.append(converted);
         });
     return new Column(newColumnName, storageBuilder.seal());
   }

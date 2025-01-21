@@ -32,7 +32,7 @@ public abstract class NumericBinaryOpCoalescing<T extends Number, I extends Stor
     Context context = Context.getCurrent();
     int n = a.size();
     int m = Math.min(a.size(), b.size());
-    long[] out = new long[n];
+    double[] out = new double[n];
     BitSet isNothing = new BitSet();
     for (int i = 0; i < m; i++) {
       boolean aNothing = a.isNothing(i);
@@ -48,7 +48,7 @@ public abstract class NumericBinaryOpCoalescing<T extends Number, I extends Stor
         } else {
           r = doDouble(a.getItemAsDouble(i), b.getItemAsDouble(i), i, problemAggregator);
         }
-        out[i] = Double.doubleToRawLongBits(r);
+        out[i] = r;
       }
 
       context.safepoint();
@@ -58,7 +58,7 @@ public abstract class NumericBinaryOpCoalescing<T extends Number, I extends Stor
       if (a.isNothing(i)) {
         isNothing.set(i);
       } else {
-        out[i] = Double.doubleToRawLongBits(a.getItemAsDouble(i));
+        out[i] = a.getItemAsDouble(i);
       }
 
       context.safepoint();
@@ -77,14 +77,13 @@ public abstract class NumericBinaryOpCoalescing<T extends Number, I extends Stor
     double bNonNull = b;
     Context context = Context.getCurrent();
     int n = a.size();
-    long[] out = new long[n];
+    double[] out = new double[n];
     BitSet isNothing = new BitSet();
     for (int i = 0; i < n; i++) {
-      double r =
+      out[i] =
           a.isNothing(i)
               ? bNonNull
               : doDouble(a.getItemAsDouble(i), bNonNull, i, problemAggregator);
-      out[i] = Double.doubleToRawLongBits(r);
       context.safepoint();
     }
 

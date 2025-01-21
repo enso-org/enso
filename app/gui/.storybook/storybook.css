@@ -1,0 +1,7 @@
+:where(html) {
+  @apply fixed inset-0 overflow-hidden;
+}
+
+:where(body) {
+  @apply bg-dashboard h-full overflow-auto;
+}

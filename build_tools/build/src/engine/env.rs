@@ -1,6 +1,7 @@
 //! Environment variables used by the engine's SBT-based build system.
 
 //use crate::prelude::*;
+use crate::engine;
 
 use ide_ci::cache::goodie::graalvm;
 use ide_ci::define_env_var;
@@ -16,4 +17,7 @@ define_env_var! {
 
     /// GraalVM edition. Either Community or Enterprise.
     GRAAL_EDITION, graalvm::Edition;
+
+    /// Type of the launcher - either 'native', 'debugnative' or 'shell'
+    ENSO_LAUNCHER, engine::EngineLauncher;
 }

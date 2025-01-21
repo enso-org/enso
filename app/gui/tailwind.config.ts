@@ -30,7 +30,7 @@ export default {
           'rgb(var(--color-dashboard-background-rgb) / var(--color-dashboard-background-opacity))',
         accent: 'rgb(var(--color-accent-rgb) / 100%)',
         danger: 'rgb(var(--color-danger-rgb) / 100%)',
-        'accent-dark': '#3e9152',
+        'accent-dark': 'rgba(62, 145, 82, 1)',
         'hover-bg': 'rgb(0 0 0 / 10%)',
         frame: 'rgb(255 255 255 / 40%)',
         'selected-frame': 'rgb(255 255 255 / 70%)',

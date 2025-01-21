@@ -89,7 +89,7 @@ public class SerializationManagerTest {
     Object result =
         ensoContext
             .getCompiler()
-            .compile(false, true, false)
+            .compile(false, true, false, scala.Option.empty())
             .get(COMPILE_TIMEOUT_SECONDS, TimeUnit.SECONDS);
     Assert.assertEquals(Boolean.TRUE, result);
 

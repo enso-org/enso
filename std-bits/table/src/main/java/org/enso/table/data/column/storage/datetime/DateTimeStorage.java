@@ -4,8 +4,6 @@ import java.time.Duration;
 import java.time.ZonedDateTime;
 import org.enso.base.CompareException;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.builder.DateTimeBuilder;
-import org.enso.table.data.column.builder.ObjectBuilder;
 import org.enso.table.data.column.operation.map.GenericBinaryObjectMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.datetime.DateTimeIsInOp;
@@ -75,7 +73,7 @@ public final class DateTimeStorage extends SpecializedStorage<ZonedDateTime> {
             Maps.SUB, ZonedDateTime.class, DateTimeStorage.class) {
           @Override
           protected Builder createOutputBuilder(int size) {
-            return new ObjectBuilder(size);
+            return Builder.getObjectBuilder(size);
           }
 
           @Override
@@ -87,7 +85,7 @@ public final class DateTimeStorage extends SpecializedStorage<ZonedDateTime> {
         new TimeLikeCoalescingOperation<>(Maps.MIN, ZonedDateTime.class) {
           @Override
           protected Builder createOutputBuilder(int size) {
-            return new DateTimeBuilder(size);
+            return Builder.getForType(DateTimeType.INSTANCE, size, null);
           }
 
           @Override
@@ -99,7 +97,7 @@ public final class DateTimeStorage extends SpecializedStorage<ZonedDateTime> {
         new TimeLikeCoalescingOperation<>(Maps.MAX, ZonedDateTime.class) {
           @Override
           protected Builder createOutputBuilder(int size) {
-            return new DateTimeBuilder(size);
+            return Builder.getForType(DateTimeType.INSTANCE, size, null);
           }
 
           @Override

@@ -36,6 +36,7 @@ export const TEXT_STYLE = twv.tv({
       primary: 'text-primary',
       danger: 'text-danger',
       success: 'text-accent-dark',
+      muted: 'text-primary/40',
       disabled: 'text-disabled',
       invert: 'text-invert',
       inherit: 'text-inherit',
@@ -53,7 +54,7 @@ export const TEXT_STYLE = twv.tv({
       body: 'text-xs leading-[20px] before:h-[2px] after:h-[2px] macos:before:h-[1px] macos:after:h-[3px] font-medium',
       // eslint-disable-next-line @typescript-eslint/naming-convention
       'body-sm':
-        'text-[10.5px] leading-[16px] before:h-[1.5px] after:h-[1.5px] macos:before:h-[0.5px] macos:after:h-[2.5px] font-medium',
+        'text-[10.5px] leading-[16px] before:h-[2px] after:h-[2px] macos:before:h-[1px] macos:after:h-[3px] font-medium',
       h1: 'text-xl leading-[29px] before:h-0.5 after:h-[5px] macos:before:h-[3px] macos:after:h-[3px] font-bold',
       subtitle:
         'text-[13.5px] leading-[19px] before:h-[2px] after:h-[2px] macos:before:h-[1px] macos:after:h-[3px] font-bold',

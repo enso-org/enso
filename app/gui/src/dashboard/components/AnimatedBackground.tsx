@@ -27,17 +27,16 @@ const AnimatedBackgroundContext = createContext<{
   layoutId: string
 } | null>(null)
 
+/* eslint-disable @typescript-eslint/no-magic-numbers */
 const DEFAULT_TRANSITION: Transition = {
   type: 'spring',
-  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-  stiffness: 300,
-  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+  stiffness: 350,
   damping: 20,
-  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-  mass: 0.5,
-  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+  mass: 0.3,
   velocity: 8,
 }
+
+/* eslint-enable @typescript-eslint/no-magic-numbers */
 
 /** `<AnimatedBackground />` component visually highlights selected items by sliding a background into view when hovered over or clicked. */
 export function AnimatedBackground(props: AnimatedBackgroundProps) {

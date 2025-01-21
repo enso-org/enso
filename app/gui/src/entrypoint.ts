@@ -73,7 +73,7 @@ function setupScamWarning() {
 }
 
 function setupSentry() {
-  if (!detect.IS_DEV_MODE && $config.SENTRY_DSN != null && $config.API_URL != null) {
+  if (!detect.IS_DEV_MODE && $config.SENTRY_DSN && $config.API_URL != null) {
     sentry.init({
       dsn: $config.SENTRY_DSN,
       environment: $config.ENVIRONMENT ?? 'dev',

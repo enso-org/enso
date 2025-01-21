@@ -5,84 +5,43 @@ import project.Internal.Storage
 import project.Value_Type.Bits
 import project.Value_Type.Value_Type
 
-polyglot java import org.enso.table.data.column.builder.BigDecimalBuilder
-polyglot java import org.enso.table.data.column.builder.BigIntegerBuilder
-polyglot java import org.enso.table.data.column.builder.BoolBuilder
-polyglot java import org.enso.table.data.column.builder.DateBuilder
-polyglot java import org.enso.table.data.column.builder.DateTimeBuilder
-polyglot java import org.enso.table.data.column.builder.InferredBuilder
-polyglot java import org.enso.table.data.column.builder.NumericBuilder
-polyglot java import org.enso.table.data.column.builder.StringBuilder
-polyglot java import org.enso.table.data.column.builder.TimeOfDayBuilder
+polyglot java import org.enso.table.data.column.builder.Builder
+polyglot java import org.enso.table.data.column.builder.BuilderForBoolean
+polyglot java import org.enso.table.data.column.builder.BuilderForDouble
+polyglot java import org.enso.table.data.column.builder.BuilderForLong
 polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
 polyglot java import org.enso.table.problems.ProblemAggregator
 
 ## PRIVATE
-make_bool_builder : BoolBuilder
-make_bool_builder = BoolBuilder.new
+   Note: Value_Type must have an exact representation in Java.
+make_builder_for_type : Value_Type -> Integer -> ProblemAggregator -> Builder
+make_builder_for_type value_type initial_size java_problem_aggregator=(Missing_Argument.ensure_present "java_problem_aggregator") =
+    storage_type = Storage.from_value_type_strict value_type
+    Builder.getForType storage_type initial_size java_problem_aggregator
 
 ## PRIVATE
-make_double_builder : Integer -> ProblemAggregator -> NumericBuilder
+make_bool_builder : Integer -> BuilderForBoolean
+make_bool_builder initial_size = Builder.getForBoolean initial_size
+
+## PRIVATE
+make_double_builder : Integer -> ProblemAggregator -> BuilderForDouble
 make_double_builder initial_size java_problem_aggregator=(Missing_Argument.ensure_present "java_problem_aggregator") =
-    NumericBuilder.createDoubleBuilder initial_size java_problem_aggregator
+    float_type = Storage.from_value_type_strict Value_Type.Float
+    Builder.getForDouble float_type initial_size java_problem_aggregator
 
 ## PRIVATE
-make_long_builder : Integer -> Bits -> ProblemAggregator -> NumericBuilder
+make_long_builder : Integer -> Bits -> ProblemAggregator -> BuilderForLong
 make_long_builder initial_size bits java_problem_aggregator=(Missing_Argument.ensure_present "java_problem_aggregator") =
     integer_type = Storage.from_value_type_strict (Value_Type.Integer bits)
-    NumericBuilder.createLongBuilder initial_size integer_type java_problem_aggregator
+    Builder.getForLong integer_type initial_size java_problem_aggregator
 
 ## PRIVATE
-make_biginteger_builder : Integer -> ProblemAggregator -> BigIntegerBuilder
-make_biginteger_builder initial_size java_problem_aggregator=(Missing_Argument.ensure_present "java_problem_aggregator") =
-    BigIntegerBuilder.new initial_size java_problem_aggregator
-
-## PRIVATE
-make_bigdecimal_builder : Integer -> BigDecimalBuilder
-make_bigdecimal_builder initial_size =
-    BigDecimalBuilder.new initial_size
-
-## PRIVATE
-make_string_builder : Integer -> Value_Type -> StringBuilder
+make_string_builder : Integer -> Value_Type -> Builder
 make_string_builder initial_size value_type=Value_Type.Char =
     storage_type = Storage.from_value_type_strict value_type
-    StringBuilder.new initial_size storage_type
+    Builder.getForType storage_type initial_size Nothing
 
 ## PRIVATE
-make_time_of_day_builder : Integer -> TimeOfDayBuilder
-make_time_of_day_builder initial_size = TimeOfDayBuilder.new initial_size
-
-## PRIVATE
-make_date_time_builder : Integer -> DateTimeBuilder
-make_date_time_builder initial_size = DateTimeBuilder.new initial_size
-
-## PRIVATE
-make_date_builder : Integer -> DateBuilder
-make_date_builder initial_size = DateBuilder.new initial_size
-
-## PRIVATE
-make_inferred_builder : Integer -> ProblemAggregator -> InferredBuilder
+make_inferred_builder : Integer -> ProblemAggregator -> Builder
 make_inferred_builder initial_size java_problem_aggregator=(Missing_Argument.ensure_present "java_problem_aggregator") =
-    InferredBuilder.new initial_size java_problem_aggregator
-
-## PRIVATE
-   Wrapper around a DateBuilder that uses DateBuilder.appendDate() to append a
-   value (instead of builder.append())
-type Date_Builder_Adapter
-    ## PRIVATE
-    Value (date_builder : DateBuilder)
-
-    ## PRIVATE
-    append : Date -> Nothing
-    append self date =
-        self.date_builder.appendDate date
-
-    ## PRIVATE
-    seal : Java_Storage
-    seal self = self.date_builder.seal
-
-## PRIVATE
-   Date_Builder_Adapter constructor that matches the interface of the other
-   make_*_builder functions.
-make_date_builder_adapter : Integer -> Date_Builder_Adapter
-make_date_builder_adapter n = Date_Builder_Adapter.Value (make_date_builder n)
+    Builder.getInferredBuilder initial_size java_problem_aggregator

@@ -104,11 +104,10 @@ test.each`
   }
 
   const pattern = 'foo_bar'
-  const entry = {
-    ...makeModuleMethod(`local.Project.${name}`),
-    aliases: aliases ?? [],
-  }
+  const entry = makeModuleMethod(`local.Project.${name}`, { aliases: aliases ?? [] })
   const filtering = new Filtering({ pattern })
-  const componentInfo = { id: 0, entry, match: filtering.filter(entry)! }
+  const match = filtering.filter(entry, [])
+  expect(match).not.toBeNull()
+  const componentInfo = { id: 0, entry, match: match! }
   expect(replaceMatches(makeComponent(componentInfo))).toEqual(highlighted)
 })
