@@ -72,7 +72,7 @@ const reactPreview: ReactPreview = {
 
     (Story, context) => (
       <>
-        <div className="enso-app">
+        <div id="enso-app" className="enso-app">
           <Story {...context} />
         </div>
 
