@@ -4,6 +4,7 @@ import java.math.BigInteger;
 import java.util.List;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.builder.InferredIntegerBuilder;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
@@ -31,7 +32,7 @@ public class Sum extends Aggregator {
   @Override
   public Builder makeBuilder(int size, ProblemAggregator problemAggregator) {
     return switch (inputType) {
-      case IntegerType integerType -> Builder.getInferredBuilder(size, problemAggregator);
+      case IntegerType integerType -> new InferredIntegerBuilder(size, problemAggregator);
       case BigIntegerType bigIntegerType -> Builder.getForType(
           bigIntegerType, size, problemAggregator);
       case FloatType floatType -> Builder.getForDouble(floatType, size, problemAggregator);

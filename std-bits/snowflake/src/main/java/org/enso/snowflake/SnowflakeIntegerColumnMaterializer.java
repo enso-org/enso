@@ -57,10 +57,7 @@ public class SnowflakeIntegerColumnMaterializer implements Builder {
 
   @Override
   public void append(Object o) {
-    if (currentSize >= capacity()) {
-      grow();
-    }
-
+    ensureSpaceToAppend();
     switch (o) {
       case BigInteger bigInteger -> {
         switch (mode) {
@@ -135,24 +132,21 @@ public class SnowflakeIntegerColumnMaterializer implements Builder {
     return mode == Mode.LONG ? ints.length : bigInts.length;
   }
 
-  private void grow() {
-    int desiredCapacity = 3;
-    if (capacity() > 1) {
-      desiredCapacity = (capacity() * 3 / 2);
+  private void ensureSpaceToAppend() {
+    // Check current size. If there is space, we don't need to grow.
+    int dataLength = capacity();
+    if (currentSize < dataLength) {
+      return;
     }
 
-    // It is possible for the `currentSize` to grow arbitrarily larger than
-    // the capacity, because when nulls are being added the array is not
-    // resized, only the counter is incremented. Thus, we need to ensure
-    // that we have allocated enough space for at least one element.
-    if (currentSize >= desiredCapacity) {
-      desiredCapacity = currentSize + 1;
-    }
-
+    int desiredCapacity = Math.max(currentSize + 1, dataLength > 1 ? dataLength * 3 / 2 : 3);
     resize(desiredCapacity);
   }
 
   private void resize(int desiredCapacity) {
+    if (capacity() == desiredCapacity) {
+      return;
+    }
     switch (mode) {
       case LONG -> ints = Arrays.copyOf(ints, desiredCapacity);
       case BIG_INTEGER -> bigInts = Arrays.copyOf(bigInts, desiredCapacity);
