@@ -1,8 +1,4 @@
 <script lang="ts">
-import { gridBindings } from '@/bindings'
-import { modKey } from '@/composables/events'
-import type { MenuItemDef } from 'ag-grid-enterprise'
-import { ref } from 'vue'
 /**
  * A more specialized version of AGGrid's `MenuItemDef` to simplify testing (the tests need to provide
  * only values actually used by the composable)
@@ -65,7 +61,9 @@ export const commonContextMenuActions = {
  * Component adding some useful logic to AGGrid table component (like keeping track of colum sizes),
  * and using common style for tables in our application.
  */
+import { gridBindings } from '@/bindings'
 import type { TextFormatOptions } from '@/components/visualizations/TableVisualization.vue'
+import { modKey } from '@/composables/events'
 import { useAutoBlur } from '@/util/autoBlur'
 import type {
   CellEditingStartedEvent,
@@ -77,6 +75,9 @@ import type {
   GetRowIdFunc,
   GridApi,
   GridReadyEvent,
+  IHeaderComp,
+  IHeaderParams,
+  MenuItemDef,
   ProcessDataFromClipboardParams,
   RowDataUpdatedEvent,
   RowEditingStartedEvent,
@@ -86,22 +87,32 @@ import type {
 } from 'ag-grid-enterprise'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import { LINE_BOUNDARIES } from 'enso-common/src/utilities/data/string'
-import { type ComponentInstance, reactive, shallowRef, watch } from 'vue'
+import {
+  Component,
+  type ComponentInstance,
+  computed,
+  h,
+  reactive,
+  ref,
+  shallowRef,
+  watch,
+} from 'vue'
 import { clipboardNodeData, writeClipboard } from '../GraphEditor/clipboard'
 import {
   parseTsvData,
   rowsToTsv,
   tableToEnsoExpression,
 } from '../GraphEditor/widgets/WidgetTableEditor/tableParsing'
+import { VueComponentHandle, default as VueComponentHost, VueHost } from '../VueHostRender.vue'
 
 const DEFAULT_ROW_HEIGHT = 22
 
-const _props = defineProps<{
+const props = defineProps<{
   rowData: TData[]
   columnDefs: (ColDef<TData, TValue> | ColGroupDef<TData>)[] | null
   defaultColDef: ColDef<TData>
   getRowId?: GetRowIdFunc<TData>
-  components?: Record<string, unknown>
+  components?: Record<string, Component>
   singleClickEdit?: boolean
   stopEditingWhenCellsLoseFocus?: boolean
   suppressDragLeaveHidesColumns?: boolean
@@ -130,7 +141,7 @@ function onGridReady(event: GridReadyEvent<TData>) {
 }
 
 function getRowHeight(params: RowHeightParams): number {
-  if (_props.textFormatOption === 'off') {
+  if (props.textFormatOption === 'off') {
     return DEFAULT_ROW_HEIGHT
   }
   const rowData = Object.values(params.data)
@@ -149,7 +160,7 @@ function getRowHeight(params: RowHeightParams): number {
 }
 
 watch(
-  () => _props.textFormatOption,
+  () => props.textFormatOption,
   () => {
     gridApi.value?.redrawRows()
     gridApi.value?.resetRowHeights()
@@ -300,7 +311,41 @@ function stopIfPrevented(event: Event) {
   if (event.defaultPrevented) event.stopPropagation()
 }
 
-const { AgGridVue } = await import('ag-grid-vue3')
+// === Wrapping and Hosting Vue Components ===
+
+const vueHost = new VueHost()
+
+const mappedComponents = computed(() => {
+  if (!props.components) return
+  const retval: Record<string, new () => IHeaderComp> = {}
+  for (const [key, comp] of Object.entries(props.components)) {
+    class ComponentWrapper implements IHeaderComp {
+      private readonly container: HTMLElement = document.createElement('div')
+      private handle: VueComponentHandle | undefined
+
+      init(params: IHeaderParams) {
+        this.handle = vueHost.register(h(comp, params), this.container)
+      }
+
+      getGui() {
+        return this.container
+      }
+
+      refresh(params: IHeaderParams) {
+        this.handle?.update(h(comp, params), this.container)
+        return true
+      }
+
+      destroy() {
+        this.handle?.unregister()
+      }
+    }
+    retval[key] = ComponentWrapper
+  }
+  return retval
+})
+
+const { AgGridVue } = await import('./AgGridTableView/AgGridVue')
 </script>
 
 <template>
@@ -320,7 +365,7 @@ const { AgGridVue } = await import('ag-grid-vue3')
       :suppressFieldDotNotation="true"
       :enableRangeSelection="true"
       :popupParent="popupParent"
-      :components="components"
+      :components="mappedComponents"
       :singleClickEdit="singleClickEdit"
       :stopEditingWhenCellsLoseFocus="stopEditingWhenCellsLoseFocus"
       :suppressDragLeaveHidesColumns="suppressDragLeaveHidesColumns"
@@ -339,6 +384,7 @@ const { AgGridVue } = await import('ag-grid-vue3')
       @filterChanged="emit('sortOrFilterUpdated', $event)"
       @contextmenu="stopIfPrevented"
     />
+    <VueComponentHost :host="vueHost" />
   </div>
 </template>
 

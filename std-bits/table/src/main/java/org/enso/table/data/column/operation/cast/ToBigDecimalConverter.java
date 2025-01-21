@@ -4,6 +4,9 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.BoolStorage;
+import org.enso.table.data.column.storage.ColumnDoubleStorage;
+import org.enso.table.data.column.storage.ColumnLongStorage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.BigDecimalStorage;
@@ -33,23 +36,23 @@ public class ToBigDecimalConverter implements StorageConverter<BigDecimal> {
   }
 
   private Storage<BigDecimal> convertDoubleStorage(
-      DoubleStorage doubleStorage, CastProblemAggregator problemAggregator) {
+      ColumnDoubleStorage doubleStorage, CastProblemAggregator problemAggregator) {
     return StorageConverter.innerLoop(
-        Builder.getForBigDecimal(doubleStorage.size()),
+        Builder.getForBigDecimal(doubleStorage.getSize()),
         doubleStorage,
         (i) -> {
-          double x = doubleStorage.getItemAsDouble(i);
+          double x = doubleStorage.get(i);
           return BigDecimal.valueOf(x);
         });
   }
 
   private Storage<BigDecimal> convertLongStorage(
-      AbstractLongStorage longStorage, CastProblemAggregator problemAggregator) {
+      ColumnLongStorage longStorage, CastProblemAggregator problemAggregator) {
     return StorageConverter.innerLoop(
-        Builder.getForBigDecimal(longStorage.size()),
+        Builder.getForBigDecimal(longStorage.getSize()),
         longStorage,
         (i) -> {
-          long x = longStorage.getItem(i);
+          long x = longStorage.get(i);
           return BigDecimal.valueOf(x);
         });
   }
@@ -77,12 +80,12 @@ public class ToBigDecimalConverter implements StorageConverter<BigDecimal> {
   }
 
   private Storage<BigDecimal> castFromMixed(
-      Storage<?> storage, CastProblemAggregator problemAggregator) {
+      ColumnStorage storage, CastProblemAggregator problemAggregator) {
     return StorageConverter.innerLoop(
-        Builder.getForBigDecimal(storage.size()),
+        Builder.getForBigDecimal(storage.getSize()),
         storage,
         (i) -> {
-          Object o = storage.getItemBoxed(i);
+          Object o = storage.getItemAsObject(i);
           return switch (o) {
             case Boolean b -> booleanAsBigDecimal(b);
             case Long l -> BigDecimal.valueOf(l);

@@ -13,7 +13,8 @@ public class TimeOfDayBuilder extends TypedBuilder<LocalTime> {
   }
 
   @Override
-  public void appendNoGrow(Object o) {
+  public void append(Object o) {
+    ensureSpaceToAppend();
     try {
       data[currentSize++] = (LocalTime) o;
     } catch (ClassCastException e) {

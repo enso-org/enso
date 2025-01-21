@@ -4,17 +4,18 @@
  */
 import * as React from 'react'
 
-import { createHideableComponent } from '@react-aria/collections'
+import { createHideableComponent, createLeafComponent } from '@react-aria/collections'
 import * as aria from 'react-aria-components'
 
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 
-import { memo, useId } from 'react'
+import { twJoin } from '#/utilities/tailwindMerge'
+import { memo } from 'react'
 import { AnimatedBackground } from '../../AnimatedBackground'
 import { Popover } from '../Dialog'
 import { Separator, SEPARATOR_STYLES, type SeparatorProps } from '../Separator'
 import { Text } from '../Text'
-import type { Placement } from '../types'
+import type { Placement, TestIdProps } from '../types'
 import { MenuItem } from './MenuItem'
 import { MenuTrigger } from './MenuTrigger'
 
@@ -40,18 +41,42 @@ export const MENU_SEPARATOR_STYLES = tv({
 /** Props for {@link Menu} */
 export interface MenuProps<T extends object>
   extends aria.MenuProps<T>,
-    VariantProps<typeof MENU_STYLES> {
+    VariantProps<typeof MENU_STYLES>,
+    TestIdProps {
   readonly variant?: 'dark' | 'light'
   readonly className?: string
   readonly placement?: Placement
 }
 
 /** Props for {@link MenuSection} */
-export interface MenuSectionProps<T extends object>
-  extends aria.SectionProps<T>,
-    VariantProps<typeof MENU_SECTION_STYLES> {
+export type MenuSectionProps<T extends object> = BaseMenuSectionProps &
+  TestIdProps &
+  VariantProps<typeof MENU_SECTION_STYLES> &
+  (MenuSectionDynamicProps<T> | MenuSectionStaticProps)
+
+/**
+ * Base props for a menu section.
+ */
+interface BaseMenuSectionProps {
   readonly title: string
   readonly className?: string
+  readonly id?: aria.Key
+}
+
+/**
+ * Props for a dynamic menu section.
+ */
+interface MenuSectionDynamicProps<T extends object> {
+  readonly items: Iterable<T>
+  readonly children: (item: T) => React.ReactNode
+}
+
+/**
+ * Props for a static menu section.
+ */
+interface MenuSectionStaticProps {
+  readonly items?: never
+  readonly children: React.ReactNode
 }
 
 /**
@@ -68,6 +93,7 @@ export const Menu = createHideableComponent(function Menu<T extends object>(prop
     children,
     placement = 'bottom start',
     variants = MENU_STYLES,
+    testId = 'menu',
     ...menuProps
   } = props
 
@@ -83,7 +109,7 @@ export const Menu = createHideableComponent(function Menu<T extends object>(prop
     >
       {() => (
         <AnimatedBackground>
-          <aria.Menu<T> className={styles.base({ className })} {...menuProps}>
+          <aria.Menu<T> data-testid={testId} className={styles.base({ className })} {...menuProps}>
             {children}
           </aria.Menu>
         </AnimatedBackground>
@@ -91,43 +117,87 @@ export const Menu = createHideableComponent(function Menu<T extends object>(prop
     </Popover>
   )
 }) as (<T extends object>(props: MenuProps<T>) => React.ReactElement) & {
-  // eslint-disable-next-line @typescript-eslint/naming-convention
+  /* eslint-disable @typescript-eslint/naming-convention */
   Item: typeof MenuItem
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   Section: typeof MenuSection
-  // eslint-disable-next-line @typescript-eslint/naming-convention
+  SectionHeader: typeof MenuSectionHeader
   Trigger: typeof MenuTrigger
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   Separator: typeof MenuSeparator
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   SubmenuTrigger: typeof aria.SubmenuTrigger
+  /* eslint-enable @typescript-eslint/naming-convention */
 }
 
 /**
  * A section within a menu.
  */
-export function MenuSection<T extends object>(props: MenuSectionProps<T>) {
-  const { className, title, variants = MENU_SECTION_STYLES, ...sectionProps } = props
+function MenuSection<T extends object>(props: MenuSectionProps<T>) {
+  const {
+    className,
+    title,
+    items,
+    children,
+    variants = MENU_SECTION_STYLES,
+    testId = 'menu-section',
+    ...sectionProps
+  } = props
 
   const styles = variants()
-  const id = useId()
 
   return (
-    <>
-      <aria.Header id={id} className={styles.header()}>
-        <Text className="block" variant="body-sm" weight="bold" color="muted" textSelection="none">
-          {title}
-        </Text>
-      </aria.Header>
+    <aria.MenuSection
+      data-testid={testId}
+      aria-label={title}
+      className={styles.base({ className })}
+      {...sectionProps}
+    >
+      <MenuSectionHeader title={title} variants={variants} />
 
-      <aria.MenuSection
-        aria-label={title}
-        className={styles.base({ className })}
-        {...sectionProps}
-      />
-    </>
+      {items ?
+        <aria.Collection items={items}>{children}</aria.Collection>
+      : children}
+    </aria.MenuSection>
   )
 }
+
+/** Props for {@link MenuSectionHeader} */
+export interface MenuSectionHeaderProps
+  extends VariantProps<typeof MENU_SECTION_STYLES>,
+    TestIdProps {
+  readonly title: string
+  readonly className?: string
+}
+
+/**
+ * A header for a menu section.
+ */
+// eslint-disable-next-line no-restricted-syntax
+export const MenuSectionHeader = createLeafComponent(
+  'header',
+  function MenuSectionHeader(props: MenuSectionHeaderProps) {
+    const {
+      className,
+      title,
+      variants = MENU_SECTION_STYLES,
+      testId = 'menu-section-header',
+    } = props
+
+    const styles = variants()
+
+    return (
+      <Text
+        elementType="header"
+        testId={testId}
+        variant="body-sm"
+        weight="bold"
+        color="muted"
+        textSelection="none"
+        className={styles.header({ className: twJoin(className, 'block') })}
+      >
+        {title}
+      </Text>
+    )
+  },
+)
 
 /** Props for {@link MenuSeparator} */
 export interface MenuSeparatorProps
@@ -146,6 +216,7 @@ export const MenuSeparator = memo(function MenuSeparator(props: MenuSeparatorPro
 
 Menu.Item = MenuItem
 Menu.Section = MenuSection
+Menu.SectionHeader = MenuSectionHeader
 Menu.Trigger = MenuTrigger
 Menu.Separator = MenuSeparator
 Menu.SubmenuTrigger = aria.SubmenuTrigger

@@ -2,11 +2,13 @@ package org.enso.table.data.column.operation.cast;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.function.ObjIntConsumer;
+import java.util.function.ObjLongConsumer;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForLong;
 import org.enso.table.data.column.storage.BoolStorage;
+import org.enso.table.data.column.storage.ColumnBooleanStorage;
+import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
@@ -50,16 +52,11 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
 
   /** Specialised innerLoop so that we can avoid boxing. */
   static Storage<Long> innerLoop(
-      BuilderForLong builder, ColumnStorage storage, ObjIntConsumer<BuilderForLong> converter) {
+      BuilderForLong builder, ColumnStorage storage, ObjLongConsumer<BuilderForLong> converter) {
     Context context = Context.getCurrent();
 
     long n = storage.getSize();
-    if (n > Integer.MAX_VALUE) {
-      throw new IllegalArgumentException(
-          "Cannot currently operate on columns larger than " + Integer.MAX_VALUE + ".");
-    }
-
-    for (int i = 0; i < n; i++) {
+    for (long i = 0; i < n; i++) {
       if (storage.isNothing(i)) {
         builder.appendNulls(1);
       } else {
@@ -73,12 +70,12 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
   }
 
   private Storage<Long> castFromMixed(
-      Storage<?> mixedStorage, CastProblemAggregator problemAggregator) {
+      ColumnStorage mixedStorage, CastProblemAggregator problemAggregator) {
     return innerLoop(
-        Builder.getForLong(targetType, mixedStorage.size(), problemAggregator),
+        Builder.getForLong(targetType, mixedStorage.getSize(), problemAggregator),
         mixedStorage,
         (builder, i) -> {
-          Object o = mixedStorage.getItemBoxed(i);
+          Object o = mixedStorage.getItemAsObject(i);
           if (o instanceof Boolean b) {
             builder.appendLong(booleanAsLong(b));
           } else if (NumericConverter.isCoercibleToLong(o)) {
@@ -116,23 +113,23 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
   }
 
   private Storage<Long> convertBoolStorage(
-      BoolStorage boolStorage, CastProblemAggregator problemAggregator) {
+      ColumnBooleanStorage boolStorage, CastProblemAggregator problemAggregator) {
     return innerLoop(
-        Builder.getForLong(targetType, boolStorage.size(), problemAggregator),
+        Builder.getForLong(targetType, boolStorage.getSize(), problemAggregator),
         boolStorage,
         (builder, i) -> {
-          boolean value = boolStorage.getItem(i);
+          boolean value = boolStorage.get(i);
           builder.appendLong(booleanAsLong(value));
         });
   }
 
   private Storage<Long> convertDoubleStorage(
-      DoubleStorage doubleStorage, CastProblemAggregator problemAggregator) {
+      ColumnDoubleStorage doubleStorage, CastProblemAggregator problemAggregator) {
     return innerLoop(
-        Builder.getForLong(targetType, doubleStorage.size(), problemAggregator),
+        Builder.getForLong(targetType, doubleStorage.getSize(), problemAggregator),
         doubleStorage,
         (builder, i) -> {
-          double value = doubleStorage.getItemAsDouble(i);
+          double value = doubleStorage.get(i);
           if (targetType.fits(value)) {
             long converted = (long) value;
             builder.appendLong(converted);
@@ -156,7 +153,7 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
         Builder.getForLong(targetType, longStorage.size(), problemAggregator),
         longStorage,
         (builder, i) -> {
-          long value = longStorage.getItem(i);
+          long value = longStorage.getItem((int) i);
           builder.appendLong(value);
         });
   }
@@ -167,7 +164,7 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
         Builder.getForLong(targetType, storage.size(), problemAggregator),
         storage,
         (builder, i) -> {
-          BigInteger value = storage.getItemBoxed(i);
+          BigInteger value = storage.getItemBoxed((int) i);
           if (targetType.fits(value)) {
             builder.appendLong(value.longValue());
           } else {
@@ -183,7 +180,7 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
         Builder.getForLong(targetType, storage.size(), problemAggregator),
         storage,
         (builder, i) -> {
-          BigDecimal value = storage.getItemBoxed(i);
+          BigDecimal value = storage.getItemBoxed((int) i);
           BigInteger bigInteger = value.toBigInteger();
           if (targetType.fits(bigInteger)) {
             builder.appendLong(bigInteger.longValue());

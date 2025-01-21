@@ -44,7 +44,7 @@ import Standard.Table.Internal.Widget_Helpers
 import Standard.Table.Row.Row
 import Standard.Table.Rows_To_Read.Rows_To_Read
 import Standard.Table.Value_Type.By_Type
-from Standard.Table import Aggregate_Column, Auto, Blank_Selector, Column_Ref, Data_Formatter, Join_Condition, Join_Kind, Match_Columns, Position, Previous_Value, Report_Unmatched, Set_Mode, Simple_Expression, Sort_Column, Table, Value_Type
+from Standard.Table import Aggregate_Column, Auto, Blank_Selector, Column_Ref, Data_Formatter, Fill_With, Join_Condition, Join_Kind, Match_Columns, Position, Previous_Value, Report_Unmatched, Set_Mode, Simple_Expression, Sort_Column, Table, Value_Type
 from Standard.Table.Errors import all
 from Standard.Table.Internal.Filter_Condition_Helpers import make_filter_column
 from Standard.Table.Table import make_fill_nothing_default_widget
@@ -3140,6 +3140,49 @@ type DB_Table
         _ = [statistic, of, as, set_mode, group_by, order_by, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "running")
 
+    ## ALIAS shift, lead, lag, slide, displace
+       GROUP Standard.Base.Values
+       ICON column_add
+
+       Returns a table with new columns offset by n rows, where missing values have been replaced with the
+       provided fill_with strategy.
+
+       Arguments:
+       - columns: The columns to offset
+       - n: The number of rows to offset the new columns by. Negative n slides the values down in the columns' order adding records at the start. 
+            Positive n slides the values up in the columns' order adding records at the end. Defaults to -1.
+       - fill_with: The value to replace missing values with. Defaults to adding Nothing Values.
+       - - ..Nothing - Add Nothing values in the spaces created by sliding the existing values.
+       - - ..Closest_Value - If n is negative the first value gets used, if n is negative the last value gets used.
+       - - ..Wrap_Around - In this mode values that slide off the top or bottom reappear at the other end. So no values get lost they are just rotated.
+       - group_by: Applies the offset to each group as a separate batch of records.
+       - order_by: The order to slide the records through. The actual record order remains the same but the records move as per the order defined by these columns.
+       - set_mode: By default creates new columns, but choosing Update replaces the existing fields being offset.
+       - on_problems: Missing columns are always an error. Other warnings like grouping on floating point numbers can be ignored or made an error with this argument.
+
+       Returns:
+       - A Table of all records, with the selected columns offset by the number specifed by n.
+       
+       ? Ordering of rows
+
+         Note that the ordering of rows from the original table is preserved in
+         all cases. The grouping and ordering settings affect how the values move as they are offset, but the order of the rows itself is
+         not changed by this operation.
+
+       ! Error Conditions
+
+         - If the columns specified in `group_by` or `order_by` are not present
+           in the table, a `Missing_Input_Columns` error is raised.
+         - If grouping on floating point numbers, a `Floating_Point_Equality`
+           problem is reported.
+    @columns Widget_Helpers.make_column_name_multi_selector
+    @n (Widget.Numeric_Input display=..Always)
+    @default (self-> Widget_Helpers.make_fill_default_value_selector2)
+    @group_by Widget_Helpers.make_column_name_multi_selector
+    @order_by Widget_Helpers.make_order_by_selector
+    offset self columns:(Vector (Integer | Text | Regex | By_Type))=(Missing_Argument.throw "columns") n:Integer=-1 fill_with:Fill_With=..Nothing (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (set_mode:Set_Mode=..Add) (on_problems:Problem_Behavior=..Report_Warning) -> Table =
+        _ = [columns, n, fill_with, group_by, order_by, set_mode, on_problems]
+        Error.throw (Unsupported_Database_Operation.Error "offset")
 
 ## PRIVATE
 

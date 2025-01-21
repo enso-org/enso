@@ -11,6 +11,7 @@ import { AnimatedBackground } from '../../AnimatedBackground'
 import SvgMask from '../../SvgMask'
 import { Check } from '../Check'
 import { Text, TEXT_STYLE } from '../Text'
+import type { TestIdProps } from '../types'
 
 export const MENU_ITEM_STYLES = tv({
   base: 'group flex w-full cursor-default gap-3 rounded-3xl px-[14px] py-1 outline-none transition-colors duration-75 text-left',
@@ -26,8 +27,8 @@ export const MENU_ITEM_STYLES = tv({
   slots: {
     checkContainer: 'block',
     icon: 'flex-none h-4 w-4',
-    submenuIndicator: 'flex-none h-4 w-4',
-    shortcut: '',
+    submenuIndicator: 'flex-none h-4 w-4 self-center text-primary',
+    shortcut: 'self-center text-primary mt-[1px]',
     title: 'block w-full flex-1',
     description: 'block w-full flex-1',
     hover: 'bg-primary/5 w-full rounded-3xl',
@@ -37,7 +38,7 @@ export const MENU_ITEM_STYLES = tv({
   },
   compoundSlots: [
     {
-      slots: ['checkContainer', 'icon', 'submenuIndicator'],
+      slots: ['checkContainer', 'icon'],
       className: 'mt-[3.5px] text-primary',
     },
   ],
@@ -47,6 +48,7 @@ export const MENU_ITEM_STYLES = tv({
 /** Props for {@link MenuItem} */
 export type MenuItemProps<T extends object> = MenuItemBaseProps &
   Omit<AriaMenuItemProps<T>, 'children'> &
+  TestIdProps &
   VariantProps<typeof MENU_ITEM_STYLES> &
   (MenuItemCustomContentProps | MenuItemDefaultContentProps)
 
@@ -88,10 +90,17 @@ export interface MenuItemCustomContentProps {
  * An item within a menu that represents a single action or option.
  */
 export const MenuItem = memo(function MenuItem<T extends object>(props: MenuItemProps<T>) {
-  const { icon, shortcut, className, variants = MENU_ITEM_STYLES, ...itemProps } = props
+  const {
+    icon,
+    shortcut,
+    className,
+    variants = MENU_ITEM_STYLES,
+    testId = 'menu-item',
+    ...itemProps
+  } = props
 
   return (
-    <AriaMenuItem {...itemProps}>
+    <AriaMenuItem data-testid={testId} {...itemProps}>
       {(renderProps) => {
         const { isHovered, isDisabled, isPressed, isFocusVisible } = renderProps
         const classes = variants({ isDisabled, className, isPressed })

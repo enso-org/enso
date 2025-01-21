@@ -12,14 +12,12 @@ import * as suspense from '#/components/Suspense'
 
 import * as mergeRefs from '#/utilities/mergeRefs'
 
-import { DialogDismiss, ResetButtonGroupContext } from '#/components/AriaComponents'
+import { DialogDismiss } from '#/components/AriaComponents'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useMeasure } from '#/hooks/measureHooks'
 import { motion, type Spring } from '#/utilities/motion'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
-import { unsafeWriteValue } from '#/utilities/write'
-import { useRootContext } from '../../UIProviders'
 import { Close } from './Close'
 import * as dialogProvider from './DialogProvider'
 import * as dialogStackProvider from './DialogStackProvider'
@@ -27,7 +25,6 @@ import { DialogTrigger } from './DialogTrigger'
 import type * as types from './types'
 import * as utlities from './utilities'
 import { DIALOG_BACKGROUND } from './variants'
-
 // eslint-disable-next-line no-restricted-syntax
 const MotionDialog = motion(aria.Dialog)
 
@@ -257,8 +254,6 @@ function DialogContent(props: DialogContentProps) {
   const scrollerRef = React.useRef<HTMLDivElement | null>(null)
   const dialogId = aria.useId()
 
-  const { app } = useRootContext()
-
   const titleId = `${dialogId}-title`
   const padding = paddingRaw ?? (type === 'modal' ? 'medium' : 'xlarge')
   const isFullscreen = type === 'fullscreen'
@@ -302,20 +297,6 @@ function DialogContent(props: DialogContentProps) {
     }
   }, [isFullscreen])
 
-  React.useEffect(() => {
-    if (isFullscreen && modalState.isOpen) {
-      unsafeWriteValue(app.style, 'scale', '0.99')
-      unsafeWriteValue(app.style, 'filter', 'blur(8px)')
-      unsafeWriteValue(app.style, 'willChange', 'scale, filter')
-
-      return () => {
-        unsafeWriteValue(app.style, 'scale', '')
-        unsafeWriteValue(app.style, 'filter', '')
-        unsafeWriteValue(app.style, 'willChange', '')
-      }
-    }
-  }, [isFullscreen, modalState, app])
-
   const styles = variants({
     className,
     type,
@@ -341,7 +322,7 @@ function DialogContent(props: DialogContentProps) {
   }
 
   return (
-    <ResetButtonGroupContext>
+    <>
       <MotionDialog
         layout
         transition={TRANSITION}
@@ -420,7 +401,7 @@ function DialogContent(props: DialogContentProps) {
       </MotionDialog>
 
       <dialogStackProvider.DialogStackRegistrar id={dialogId} type={TYPE_TO_DIALOG_TYPE[type]} />
-    </ResetButtonGroupContext>
+    </>
   )
 }
 

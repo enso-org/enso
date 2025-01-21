@@ -13,7 +13,7 @@ const defaultFormSchema = z.object({
 type Props = unknown
 
 export default {
-  title: 'Components/AriaComponents/Checkbox',
+  title: 'Components/Checkbox',
   component: Checkbox,
   parameters: { layout: 'centered' },
   decorators: [

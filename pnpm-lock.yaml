@@ -314,8 +314,8 @@ importers:
         specifier: 1.6.0
         version: 1.6.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react-compiler-runtime:
-        specifier: 19.0.0-beta-63e3235-20250105
-        version: 19.0.0-beta-63e3235-20250105(react@18.3.1)
+        specifier: 19.0.0-beta-decd7b8-20250118
+        version: 19.0.0-beta-decd7b8-20250118(react@18.3.1)
       react-dom:
         specifier: ^18.3.1
         version: 18.3.1(react@18.3.1)
@@ -6548,8 +6548,8 @@ packages:
       react: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0-rc.1
       react-dom: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0-rc.1
 
-  react-compiler-runtime@19.0.0-beta-63e3235-20250105:
-    resolution: {integrity: sha512-ojqSg+8uNvomQKpZT+iPgUPWc/ZqFLt9wnoVSNiwVtX51pZgbcgRJnekSYGv0XuyCXQuy4zCz1IaEW+UXjf/ZQ==}
+  react-compiler-runtime@19.0.0-beta-decd7b8-20250118:
+    resolution: {integrity: sha512-zHquorz7ZnawI9qNQd13mLecJiExZAiJgkrOkio+qmAZ+hJ1l1Bq9N8vmkc2wZ55ui/BlU3ylWH/pech3T93Rw==}
     peerDependencies:
       react: ^17.0.0 || ^18.0.0 || ^19.0.0 || ^0.0.0-experimental
 
@@ -14883,7 +14883,7 @@ snapshots:
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
 
-  react-compiler-runtime@19.0.0-beta-63e3235-20250105(react@18.3.1):
+  react-compiler-runtime@19.0.0-beta-decd7b8-20250118(react@18.3.1):
     dependencies:
       react: 18.3.1
 

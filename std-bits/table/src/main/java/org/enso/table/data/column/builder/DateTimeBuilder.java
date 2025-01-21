@@ -32,7 +32,8 @@ public class DateTimeBuilder extends TypedBuilder<ZonedDateTime> {
   }
 
   @Override
-  public void appendNoGrow(Object o) {
+  public void append(Object o) {
+    ensureSpaceToAppend();
     try {
       if (allowDateToDateTimeConversion && o instanceof LocalDate localDate) {
         data[currentSize++] = convertDate(localDate);

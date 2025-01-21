@@ -1,0 +1,21 @@
+from Standard.Base import all
+
+polyglot java import org.enso.table.operations.FillWith as Java_Fill_With
+
+type Fill_With
+
+    ## Fills gaps created by offset with Nothing Values
+    Nothing
+
+    ## Fills gaps created by offset with the first value when shifting downwards
+       or the last value when shifting upwards
+    Closest_Value
+    
+    ## Fills the gaps created by offset with the values that got slid off the other end 
+    Wrap_Around
+
+    to_java self = case self of
+        Fill_With.Nothing -> Java_Fill_With.NOTHING
+        Fill_With.Closest_Value -> Java_Fill_With.CLOSEST_VALUE
+        Fill_With.Wrap_Around -> Java_Fill_With.WRAP_AROUND
+        _ -> Nothing

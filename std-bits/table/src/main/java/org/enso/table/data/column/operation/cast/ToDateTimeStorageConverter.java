@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.datetime.DateStorage;
 import org.enso.table.data.column.storage.datetime.DateTimeStorage;
@@ -25,12 +26,12 @@ public class ToDateTimeStorageConverter implements StorageConverter<ZonedDateTim
   }
 
   public Storage<ZonedDateTime> castFromMixed(
-      Storage<?> mixedStorage, CastProblemAggregator problemAggregator) {
+      ColumnStorage mixedStorage, CastProblemAggregator problemAggregator) {
     return StorageConverter.innerLoop(
-        Builder.getForDateTime(mixedStorage.size()),
+        Builder.getForDateTime(mixedStorage.getSize()),
         mixedStorage,
         (i) -> {
-          Object o = mixedStorage.getItemBoxed(i);
+          Object o = mixedStorage.getItemAsObject(i);
           return switch (o) {
             case ZonedDateTime d -> d;
             case LocalDate d -> convertDate(d);

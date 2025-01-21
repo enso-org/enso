@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { Check } from './Check'
 
 const meta = {
-  title: 'Components/AriaComponents/Check',
+  title: 'Components/Check',
   component: Check,
   parameters: {
     layout: 'centered',

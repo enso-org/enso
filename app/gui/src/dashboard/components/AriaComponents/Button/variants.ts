@@ -221,18 +221,9 @@ export const BUTTON_STYLES = tv({
     showIconOnHover: false,
     isDisabled: false,
     extraClickZone: true,
-    isJoined: false,
-    iconOnly: false,
-    isFocused: false,
-    isPressed: false,
   },
   compoundVariants: [
-    {
-      isFocused: true,
-      iconOnly: true,
-      isJoined: false,
-      class: 'focus-visible:outline-offset-[3px]',
-    },
+    { isFocused: true, iconOnly: true, class: 'focus-visible:outline-offset-[3px]' },
 
     {
       size: 'custom',

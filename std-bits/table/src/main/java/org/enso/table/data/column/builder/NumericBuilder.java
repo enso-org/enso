@@ -19,14 +19,6 @@ public abstract class NumericBuilder implements Builder {
   }
 
   @Override
-  public void append(Object o) {
-    if (currentSize >= getDataSize()) {
-      grow();
-    }
-    appendNoGrow(o);
-  }
-
-  @Override
   public int getCurrentSize() {
     return currentSize;
   }
@@ -44,8 +36,14 @@ public abstract class NumericBuilder implements Builder {
    * appends. It tries to keep the invariant that after calling `grow` the array has at least one
    * free slot.
    */
-  protected void grow() {
+  protected void ensureSpaceToAppend() {
     int dataLength = getDataSize();
+
+    // Check current size. If there is space, we don't need to grow.
+    if (currentSize < dataLength) {
+      return;
+    }
+
     int desiredCapacity = Math.max(currentSize + 1, dataLength > 1 ? dataLength * 3 / 2 : 3);
     resize(desiredCapacity);
   }

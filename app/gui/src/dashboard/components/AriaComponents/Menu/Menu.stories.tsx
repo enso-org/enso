@@ -3,23 +3,26 @@
  * Stories for the Menu component.
  */
 import Camera from '#/assets/camera.svg'
-import ArrowDownIcon from '#/assets/expand_arrow_down.svg'
 import Eye from '#/assets/eye.svg'
 import EyeClosed from '#/assets/eye_crossed.svg'
 import Folder from '#/assets/folder.svg'
 import type { Meta, StoryObj } from '@storybook/react'
 
-import { useText } from '#/providers/TextProvider'
-import { userEvent, within } from '@storybook/test'
+import { expect, userEvent, within } from '@storybook/test'
 import type { MenuProps } from '.'
 import { Menu } from '.'
 import { Button } from '../Button'
 
 const meta = {
-  title: 'Components/AriaComponents/Menu',
+  title: 'Components/Menu',
   component: Menu,
   parameters: {
     layout: 'centered',
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const button = canvas.getByRole('button', { name: 'Open Menu' })
+    await userEvent.click(button)
   },
 } satisfies Meta<MenuProps<object>>
 
@@ -183,7 +186,7 @@ function MenuContentWithDescription() {
       <Menu.Separator />
 
       <Menu.SubmenuTrigger>
-        <Menu.Item icon={Folder} description="This is a description">
+        <Menu.Item icon={Folder} description="This is a description" shortcut="⌘O">
           Open Submenu
         </Menu.Item>
         <Menu selectionMode="multiple" placement="right">
@@ -240,8 +243,8 @@ function MenuContentWithDynamicContent() {
   return (
     <Menu items={sections} selectionMode="single">
       {(section) => (
-        <Menu.Section title={section.name} key={section.id} items={items}>
-          {(item) => <Menu.Item key={item.id}>{item.name}</Menu.Item>}
+        <Menu.Section id={section.id} items={items} title={section.name}>
+          {(item) => <Menu.Item id={`${section.id}-${item.id}`}>{item.name}</Menu.Item>}
         </Menu.Section>
       )}
     </Menu>
@@ -256,46 +259,12 @@ export const DynamicContent: Story = {
       <MenuContentWithDynamicContent />
     </Menu.Trigger>
   ),
-}
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const button = canvas.getByRole('button', { name: 'Open Menu' })
 
-export const WithHref: Story = {
-  render: () => {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const { getText } = useText()
+    await userEvent.click(button)
 
-    return (
-      <Button.Group gap="small" buttonVariants={{ variant: 'icon' }}>
-        <Button
-          rel="noreferrer"
-          target="_blank"
-          href="https://community.ensoanalytics.com/c/what-is-new-in-enso/"
-        >
-          {getText('whatsNew')}
-        </Button>
-
-        <Button.GroupJoin buttonVariants={{ variant: 'icon' }}>
-          <Button href="https://community.ensoanalytics.com/">{getText('community')}</Button>
-
-          <Menu.Trigger>
-            <Button icon={ArrowDownIcon} />
-
-            <Menu>
-              <Menu.Item href="https://community.ensoanalytics.com/" target="_blank">
-                {getText('askAQuestion')}
-              </Menu.Item>
-              <Menu.Item href="https://community.ensoanalytics.com/c/enso101/" target="_blank">
-                {getText('enso101')}
-              </Menu.Item>
-              <Menu.Item
-                href="https://community.ensoanalytics.com/c/enso-component-examples/"
-                target="_blank"
-              >
-                {getText('componentExamples')}
-              </Menu.Item>
-            </Menu>
-          </Menu.Trigger>
-        </Button.GroupJoin>
-      </Button.Group>
-    )
+    await expect(canvas.getByRole('menu')).toBeInTheDocument()
   },
 }

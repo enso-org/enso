@@ -2,11 +2,13 @@ package org.enso.table.data.column.operation.cast;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.function.ObjIntConsumer;
+import java.util.function.ObjLongConsumer;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForDouble;
 import org.enso.table.data.column.storage.BoolStorage;
+import org.enso.table.data.column.storage.ColumnBooleanStorage;
+import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
@@ -48,16 +50,13 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
 
   /** Specialised innerLoop so that we can avoid boxing. */
   static Storage<Double> innerLoop(
-      BuilderForDouble builder, ColumnStorage storage, ObjIntConsumer<BuilderForDouble> converter) {
+      BuilderForDouble builder,
+      ColumnStorage storage,
+      ObjLongConsumer<BuilderForDouble> converter) {
     Context context = Context.getCurrent();
 
     long n = storage.getSize();
-    if (n > Integer.MAX_VALUE) {
-      throw new IllegalArgumentException(
-          "Cannot currently operate on columns larger than " + Integer.MAX_VALUE + ".");
-    }
-
-    for (int i = 0; i < n; i++) {
+    for (long i = 0; i < n; i++) {
       if (storage.isNothing(i)) {
         builder.appendNulls(1);
       } else {
@@ -71,12 +70,12 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
   }
 
   private Storage<Double> castFromMixed(
-      Storage<?> mixedStorage, CastProblemAggregator problemAggregator) {
+      ColumnStorage mixedStorage, CastProblemAggregator problemAggregator) {
     return innerLoop(
-        Builder.getForDouble(FloatType.FLOAT_64, mixedStorage.size(), problemAggregator),
+        Builder.getForDouble(FloatType.FLOAT_64, mixedStorage.getSize(), problemAggregator),
         mixedStorage,
         (builder, i) -> {
-          Object o = mixedStorage.getItemBoxed(i);
+          Object o = mixedStorage.getItemAsObject(i);
 
           if (NumericConverter.isCoercibleToLong(o)) {
             builder.appendLong(NumericConverter.coerceToLong(o));
@@ -97,23 +96,23 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
   }
 
   private Storage<Double> convertLongStorage(
-      AbstractLongStorage longStorage, CastProblemAggregator problemAggregator) {
+      ColumnLongStorage longStorage, CastProblemAggregator problemAggregator) {
     return innerLoop(
-        Builder.getForDouble(FloatType.FLOAT_64, longStorage.size(), problemAggregator),
+        Builder.getForDouble(FloatType.FLOAT_64, longStorage.getSize(), problemAggregator),
         longStorage,
         (builder, i) -> {
-          long value = longStorage.getItem(i);
+          long value = longStorage.get(i);
           builder.appendLong(value);
         });
   }
 
   private Storage<Double> convertBoolStorage(
-      BoolStorage boolStorage, CastProblemAggregator problemAggregator) {
+      ColumnBooleanStorage boolStorage, CastProblemAggregator problemAggregator) {
     return innerLoop(
-        Builder.getForDouble(FloatType.FLOAT_64, boolStorage.size(), problemAggregator),
+        Builder.getForDouble(FloatType.FLOAT_64, boolStorage.getSize(), problemAggregator),
         boolStorage,
         (builder, i) -> {
-          boolean value = boolStorage.getItem(i);
+          boolean value = boolStorage.get(i);
           builder.appendDouble(booleanAsDouble(value));
         });
   }
@@ -127,7 +126,7 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
     return innerLoop(
         Builder.getForDouble(FloatType.FLOAT_64, storage.size(), problemAggregator),
         storage,
-        (builder, i) -> builder.append(storage.getItemBoxed(i)));
+        (builder, i) -> builder.append(storage.getItemBoxed((int) i)));
   }
 
   private Storage<Double> convertBigDecimalStorage(
@@ -135,6 +134,6 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
     return innerLoop(
         Builder.getForDouble(FloatType.FLOAT_64, storage.size(), problemAggregator),
         storage,
-        (builder, i) -> builder.append(storage.getItemBoxed(i)));
+        (builder, i) -> builder.append(storage.getItemBoxed((int) i)));
   }
 }

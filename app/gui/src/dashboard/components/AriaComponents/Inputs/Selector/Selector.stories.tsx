@@ -14,7 +14,7 @@ const schema = z.object({
 type Props = SelectorProps<typeof schema, 'plan'>
 
 export default {
-  title: 'Components/AriaComponents/Inputs/Selector',
+  title: 'Components/Inputs/Selector',
   component: Selector,
   parameters: {
     layout: 'centered',

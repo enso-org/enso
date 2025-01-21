@@ -16,7 +16,8 @@ public class StringBuilder extends TypedBuilder<String> {
   }
 
   @Override
-  public void appendNoGrow(Object o) {
+  public void append(Object o) {
+    ensureSpaceToAppend();
     try {
       String str = (String) o;
       if (type.fits(str)) {
