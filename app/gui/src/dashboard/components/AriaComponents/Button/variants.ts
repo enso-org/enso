@@ -221,6 +221,10 @@ export const BUTTON_STYLES = tv({
     showIconOnHover: false,
     isDisabled: false,
     extraClickZone: true,
+    isJoined: false,
+    iconOnly: false,
+    isFocused: false,
+    isPressed: false,
   },
   compoundVariants: [
     {
