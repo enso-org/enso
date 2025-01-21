@@ -90,10 +90,7 @@ ansi_bold enabled txt =
    Gets a textual representation of the item at position `ix` in `storage`.
 private _get_item_as_text storage ix =
     item = storage.getItemBoxed ix
-    ## TODO This special handling of `Text` is because `"a".to_text` evaluates
-       to "'a'" and not just "a". The code can be simplified once the following
-       task is implemented:
-       https://www.pivotaltracker.com/story/show/181499256
+    ## Special handling for display of Text to avoid quotes when not necessary.
     case item of
         _ : Text -> _normalize_text_for_display item
         Nothing -> "Nothing"
