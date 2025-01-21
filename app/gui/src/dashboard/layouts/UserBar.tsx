@@ -7,6 +7,7 @@ import Offline from '#/assets/offline_filled.svg'
 import { Button, DialogTrigger, Menu, Popover, Text } from '#/components/AriaComponents'
 import { PaywallDialogButton } from '#/components/Paywall'
 import SvgMask from '#/components/SvgMask'
+import TOPBAR_LINKS from '#/configurations/topbarLinks.json' with { type: 'json' }
 import { usePaywall } from '#/hooks/billing'
 import { useOffline } from '#/hooks/offlineHooks'
 import UserMenu from '#/layouts/UserMenu'
@@ -14,7 +15,10 @@ import InviteUsersModal from '#/modals/InviteUsersModal'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useText } from '#/providers/TextProvider'
 import { Plan } from '#/services/Backend'
+import { isAbsoluteUrl } from '#/utilities/url'
+import type { TextId } from 'enso-common/src/text'
 import { AnimatePresence, motion } from 'framer-motion'
+import { z } from 'zod'
 
 /** Whether the chat button should be visible. Temporarily disabled. */
 const SHOULD_SHOW_CHAT_BUTTON: boolean = false
@@ -131,48 +135,98 @@ export default function UserBar(props: UserBarProps) {
   )
 }
 
+// eslint-disable-next-line no-restricted-syntax
+const topbarLinksSchema = z.object({
+  items: z.array(
+    z
+      .object({
+        name: z.custom<TextId>(),
+        url: z.string().url(),
+        menu: z.array(
+          z.object({
+            name: z.custom<TextId>().and(z.string()),
+            url: z.string().url(),
+          }),
+        ),
+      })
+      .or(
+        z.object({
+          name: z.custom<TextId>(),
+          menu: z.array(
+            z.object({
+              name: z.custom<TextId>().and(z.string()),
+              url: z.string().url(),
+            }),
+          ),
+        }),
+      )
+      .or(
+        z.object({
+          name: z.custom<TextId>().and(z.string()),
+          url: z.string().url(),
+        }),
+      ),
+  ),
+})
+
 /**
  * A section containing help buttons.
  */
 function UserBarHelpSection() {
   const { getText } = useText()
 
+  const { items } = topbarLinksSchema.parse(TOPBAR_LINKS)
+
+  const getSafetyProps = (url: string) =>
+    isAbsoluteUrl(url) ? { rel: 'opener', target: '_blank' } : {}
+
   return (
     <Button.Group gap="small" buttonVariants={{ variant: 'icon' }}>
-      <Button
-        rel="noreferrer"
-        target="_blank"
-        href="https://community.ensoanalytics.com/c/what-is-new-in-enso/"
-      >
-        {getText('whatsNew')}
-      </Button>
+      {items.map((item) => {
+        if ('url' in item) {
+          if ('menu' in item) {
+            return (
+              <Button.GroupJoin buttonVariants={{ variant: 'icon' }}>
+                <Button href={item.url} {...getSafetyProps(item.url)}>
+                  {getText(item.name)}
+                </Button>
 
-      <Button.GroupJoin buttonVariants={{ variant: 'icon' }}>
-        <Button href="https://community.ensoanalytics.com/">{getText('community')}</Button>
+                <Menu.Trigger>
+                  <Button icon={ArrowDownIcon} aria-label={getText('more')} />
 
-        <Menu.Trigger>
-          <Button icon={ArrowDownIcon} aria-label={getText('more')} />
+                  <Menu placement="bottom end">
+                    {item.menu.map((menuItem) => (
+                      <Menu.Item href={menuItem.url} {...getSafetyProps(menuItem.url)}>
+                        {getText(menuItem.name)}
+                      </Menu.Item>
+                    ))}
+                  </Menu>
+                </Menu.Trigger>
+              </Button.GroupJoin>
+            )
+          }
+        } else {
+          return (
+            <Menu.Trigger>
+              <Button icon={ArrowDownIcon}>{getText(item.name)}</Button>
 
-          <Menu placement="bottom end">
-            <Menu.Item href="https://community.ensoanalytics.com/" target="_blank">
-              {getText('askAQuestion')}
-            </Menu.Item>
-            <Menu.Item href="https://community.ensoanalytics.com/c/enso101/" target="_blank">
-              {getText('enso101')}
-            </Menu.Item>
-            <Menu.Item
-              href="https://community.ensoanalytics.com/c/enso-component-examples/"
-              target="_blank"
-            >
-              {getText('componentExamples')}
-            </Menu.Item>
-          </Menu>
-        </Menu.Trigger>
-      </Button.GroupJoin>
+              <Menu placement="bottom end">
+                {item.menu.map((menuItem) => (
+                  <Menu.Item href={menuItem.url} {...getSafetyProps(menuItem.url)}>
+                    {getText(menuItem.name)}
+                  </Menu.Item>
+                ))}
+              </Menu>
+            </Menu.Trigger>
+          )
+        }
 
-      <Button rel="noreferrer" target="_blank" href="https://help.enso.org/">
-        {getText('docs')}
-      </Button>
+        return (
+          <Button href={item.url} {...getSafetyProps(item.url)}>
+            {getText(item.name)}
+          </Button>
+        )
+      })}
     </Button.Group>
   )
 }
