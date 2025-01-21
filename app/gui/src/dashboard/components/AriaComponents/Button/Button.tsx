@@ -179,6 +179,7 @@ export const Button = memo(
               handlePress(e)
             }
           },
+          // @ts-expect-error ts errors are expected here because we are merging props with different types
           className: aria.composeRenderProps(className, (classNames, states) =>
             styles.base({ className: classNames, ...states }),
           ),
