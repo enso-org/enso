@@ -171,8 +171,8 @@ public class InferredBuilder implements Builder {
 
   private void retypeToMixed() {
     // The new internal builder must be at least `currentSize` so it can store
-    // all the current values. Make it the same as the `initialSize` to avoid
-    // unnecessary reallocation.
+    // all the current values. In order to avoid any extra reallocations, we
+    // also make it at least as big as the initial size.
     int capacity = Math.max(initialSize, currentSize);
     currentBuilder = MixedBuilder.fromBuilder(currentBuilder, capacity);
   }

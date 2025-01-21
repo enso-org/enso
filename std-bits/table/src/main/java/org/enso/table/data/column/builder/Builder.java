@@ -28,12 +28,14 @@ public interface Builder {
    * Currently, just the maximum value of an integer, but should be tested and limited.
    * For array based builders, must be less than the maximum array size.
    * */
-  long MAX_SIZE = Integer.MAX_VALUE;
+  int MAX_SIZE = Integer.MAX_VALUE;
 
-  private static void checkSize(long size) {
+  private static int checkSize(long size) {
     if (size > MAX_SIZE) {
       throw new IllegalArgumentException("Columns cannot exceed " + MAX_SIZE + " rows.");
     }
+
+    return (int)size;
   }
 
   /**
@@ -45,10 +47,7 @@ public interface Builder {
   static Builder getForType(StorageType type, long size, ProblemAggregator problemAggregator) {
     Builder builder =
         switch (type) {
-          case AnyObjectType _ -> {
-            checkSize(size);
-            yield new MixedBuilder((int)size);
-          }
+          case AnyObjectType _ -> new MixedBuilder(checkSize(size));
           case BooleanType _ -> getForBoolean(size);
           case DateType _ -> getForDate(size);
           case DateTimeType _ -> getForDateTime(size);
@@ -71,8 +70,8 @@ public interface Builder {
    * @param size the initial size of the builder.
    */
   static Builder getInferredBuilder(long size, ProblemAggregator problemAggregator) {
-    checkSize(size);
-    return new InferredBuilder((int)size, problemAggregator, false);
+    int checkedSize = checkSize(size);
+    return new InferredBuilder(checkedSize, problemAggregator, false);
   }
 
   /**
@@ -81,8 +80,8 @@ public interface Builder {
    * @param size the initial size of the builder.
    */
   static BuilderForBoolean getForBoolean(long size) {
-    checkSize(size);
-    return new BoolBuilder((int)size);
+    int checkedSize = checkSize(size);
+    return new BoolBuilder(checkedSize);
   }
 
   /**
@@ -95,8 +94,8 @@ public interface Builder {
    */
   static BuilderForLong getForLong(
       IntegerType integerType, long size, ProblemAggregator problemAggregator) {
-    checkSize(size);
-    return LongBuilder.make((int)size, integerType, problemAggregator);
+    int checkedSize = checkSize(size);
+    return LongBuilder.make(checkedSize, integerType, problemAggregator);
   }
 
   /**
@@ -113,8 +112,8 @@ public interface Builder {
       throw new IllegalArgumentException("Only 64-bit floats are currently supported.");
     }
 
-    checkSize(size);
-    return new DoubleBuilder((int)size, problemAggregator);
+    int checkedSize = checkSize(size);
+    return new DoubleBuilder(checkedSize, problemAggregator);
   }
 
   /**
@@ -124,38 +123,38 @@ public interface Builder {
    * @param size the initial size of the builder.
    */
   static Builder getObjectBuilder(long size) {
-    checkSize(size);
-    return new ObjectBuilder((int)size);
+    int checkedSize = checkSize(size);
+    return new ObjectBuilder(checkedSize);
   }
 
   static BuilderForType<BigDecimal> getForBigDecimal(long size) {
-    checkSize(size);
-    return new BigDecimalBuilder((int)size);
+    int checkedSize = checkSize(size);
+    return new BigDecimalBuilder(checkedSize);
   }
 
   static BuilderForType<BigInteger> getForBigInteger(long size, ProblemAggregator problemAggregator) {
-    checkSize(size);
-    return new BigIntegerBuilder((int)size, problemAggregator);
+    int checkedSize = checkSize(size);
+    return new BigIntegerBuilder(checkedSize, problemAggregator);
   }
 
   static BuilderForType<LocalDate> getForDate(long size) {
-    checkSize(size);
-    return new DateBuilder((int)size, false);
+    int checkedSize = checkSize(size);
+    return new DateBuilder(checkedSize, false);
   }
 
   static BuilderForType<ZonedDateTime> getForDateTime(long size) {
-    checkSize(size);
-    return new DateTimeBuilder((int)size, false);
+    int checkedSize = checkSize(size);
+    return new DateTimeBuilder(checkedSize, false);
   }
 
   static BuilderForType<String> getForText(long size, TextType textType) {
-    checkSize(size);
-    return new StringBuilder((int)size, textType);
+    int checkedSize = checkSize(size);
+    return new StringBuilder(checkedSize, textType);
   }
 
   static BuilderForType<LocalTime> getForTime(long size) {
-    checkSize(size);
-    return new TimeOfDayBuilder((int)size);
+    int checkedSize = checkSize(size);
+    return new TimeOfDayBuilder(checkedSize);
   }
 
   /**
