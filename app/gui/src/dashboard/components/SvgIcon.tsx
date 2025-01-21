@@ -17,7 +17,7 @@ export interface SvgIconProps {
 }
 
 /** A fixed-size container for a SVG image. */
-export default function SvgIcon(props: SvgIconProps) {
+export function SvgIcon(props: SvgIconProps) {
   const { src, className, onClick } = props
   return (
     <div
