@@ -8,7 +8,7 @@ import org.enso.table.data.column.storage.type.StorageType;
 public final class NullBuilder implements Builder {
   private int length = 0;
 
-  public NullBuilder() {}
+  NullBuilder() {}
 
   @Override
   public void appendNoGrow(Object o) {
