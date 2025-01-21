@@ -223,7 +223,12 @@ export const BUTTON_STYLES = tv({
     extraClickZone: true,
   },
   compoundVariants: [
-    { isFocused: true, iconOnly: true, class: 'focus-visible:outline-offset-[3px]' },
+    {
+      isFocused: true,
+      iconOnly: true,
+      isJoined: false,
+      class: 'focus-visible:outline-offset-[3px]',
+    },
 
     {
       size: 'custom',
