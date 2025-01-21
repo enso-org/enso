@@ -458,7 +458,7 @@ public abstract class Storage<T> implements ColumnStorage {
     Builder builder = Builder.getForType(storageType, repeat, problemAggregator);
     Context context = Context.getCurrent();
     for (int i = 0; i < repeat; i++) {
-      builder.appendNoGrow(converted);
+      builder.append(converted);
       context.safepoint();
     }
 
