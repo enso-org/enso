@@ -11,7 +11,7 @@ import type { ToValue } from '@/util/reactivity'
 import type { ColDef } from 'ag-grid-enterprise'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import { computed, toValue } from 'vue'
-import type { ColumnSpecificHeaderParams } from './TableHeader.vue'
+import type { ColumnSpecificParams } from './TableHeader.vue'
 
 /** Id of a fake column with "Add new column" option. */
 export const NEW_COLUMN_ID = 'NewColumn'
@@ -44,7 +44,7 @@ export interface ColumnDef extends ColDef<RowData> {
   mainMenuItems: (string | MenuItem<RowData>)[]
   contextMenuItems: (string | MenuItem<RowData>)[]
   rowDrag?: ({ data }: { data: RowData | undefined }) => boolean
-  headerComponentParams?: ColumnSpecificHeaderParams
+  headerComponentParams: ColumnSpecificParams
 }
 
 namespace cellValueConversion {
@@ -287,13 +287,15 @@ export function useTableInputArgument(
     width: 40,
     maxWidth: 40,
     headerComponentParams: {
-      type: 'newColumn',
-      enabled: mayAddNewColumn(),
-      newColumnRequested: () => {
-        const edit = graph.startEdit()
-        fixColumns(edit)
-        addColumn(edit, `${DEFAULT_COLUMN_PREFIX}${columns.value.length + 1}`)
-        onUpdate({ edit, directInteraction: true })
+      columnParams: {
+        type: 'newColumn',
+        enabled: mayAddNewColumn(),
+        newColumnRequested: () => {
+          const edit = graph.startEdit()
+          fixColumns(edit)
+          addColumn(edit, `${DEFAULT_COLUMN_PREFIX}${columns.value.length + 1}`)
+          onUpdate({ edit, directInteraction: true })
+        },
       },
     },
     mainMenuItems: ['autoSizeThis', 'autoSizeAll'],
@@ -309,9 +311,7 @@ export function useTableInputArgument(
     editable: false,
     resizable: false,
     suppressNavigable: true,
-    headerComponentParams: {
-      type: 'rowIndexColumn',
-    },
+    headerComponentParams: { columnParams: { type: 'rowIndexColumn' } },
     mainMenuItems: ['autoSizeThis', 'autoSizeAll'],
     contextMenuItems: [removeRowMenuItem],
     cellClass: 'rowIndexCell',
@@ -355,8 +355,8 @@ export function useTableInputArgument(
             return true
           },
           headerComponentParams: {
-            type: 'astColumn',
-            editHandlers: {
+            columnParams: {
+              type: 'astColumn',
               nameSetter: (newName: string) => {
                 const edit = graph.startEdit()
                 fixColumns(edit)

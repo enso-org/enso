@@ -21,7 +21,6 @@ const entrypoint = isE2E ? './src/project-view/test-entrypoint.ts' : './src/entr
 
 if (isDevMode) {
   process.env.ENSO_IDE_YDOC_SERVER_URL ||= 'ws://__HOSTNAME__:5976'
-  process.env.ENSO_IDE_PROJECT_MANAGER_URL ||= 'ws://__HOSTNAME__:30535'
 }
 
 // https://vitejs.dev/config/

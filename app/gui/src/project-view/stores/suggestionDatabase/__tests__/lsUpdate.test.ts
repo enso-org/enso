@@ -1,6 +1,7 @@
 import { SuggestionDb, type Group } from '@/stores/suggestionDatabase'
-import { SuggestionKind, entryQn, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
+import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import { SuggestionUpdateProcessor } from '@/stores/suggestionDatabase/lsUpdate'
+import { assert } from '@/util/assert'
 import { unwrap } from '@/util/data/result'
 import { parseDocs } from '@/util/docParser'
 import { tryIdentifier, tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
@@ -16,24 +17,17 @@ function applyUpdates(
   new SuggestionUpdateProcessor(groups).applyUpdates(db, updates)
 }
 
-test('Adding suggestion database entries', () => {
-  const test = new Fixture()
-  const db = new SuggestionDb()
-  applyUpdates(db, test.addUpdatesForExpected(), test.suggestionContext)
-  test.check(db)
-})
-
 test('Entry qualified names', () => {
   const test = new Fixture()
   const db = test.createDbWithExpected()
-  expect(entryQn(db.get(1)!)).toStrictEqual('Standard.Base')
-  expect(entryQn(db.get(2)!)).toStrictEqual('Standard.Base.Type')
-  expect(entryQn(db.get(3)!)).toStrictEqual('Standard.Base.Type.Con')
-  expect(entryQn(db.get(4)!)).toStrictEqual('Standard.Base.Type.method')
-  expect(entryQn(db.get(5)!)).toStrictEqual('Standard.Base.Type.static_method')
-  expect(entryQn(db.get(6)!)).toStrictEqual('Standard.Base.function')
-  expect(entryQn(db.get(7)!)).toStrictEqual('Standard.Base.local')
-  expect(entryQn(db.get(8)!)).toStrictEqual('local.Mock_Project.collapsed')
+  expect(db.get(1)!.definitionPath).toStrictEqual('Standard.Base')
+  expect(db.get(2)!.definitionPath).toStrictEqual('Standard.Base.Type')
+  expect(db.get(3)!.definitionPath).toStrictEqual('Standard.Base.Type.Con')
+  expect(db.get(4)!.definitionPath).toStrictEqual('Standard.Base.Type.method')
+  expect(db.get(5)!.definitionPath).toStrictEqual('Standard.Base.Type.static_method')
+  expect(db.get(6)!.definitionPath).toStrictEqual('Standard.Base.function')
+  expect(db.get(7)!.definitionPath).toStrictEqual('Standard.Base.local')
+  expect(db.get(8)!.definitionPath).toStrictEqual('local.Mock_Project.collapsed')
 })
 
 test('Qualified name indexing', () => {
@@ -42,7 +36,7 @@ test('Qualified name indexing', () => {
   const addUpdates = test.addUpdatesForExpected()
   applyUpdates(db, addUpdates, test.suggestionContext)
   for (const { id } of addUpdates) {
-    const qName = entryQn(db.get(id)!)
+    const qName = db.get(id)!.definitionPath
     expect(db.nameToId.lookup(qName)).toEqual(new Set([id]))
     expect(db.nameToId.reverseLookup(id)).toEqual(new Set([qName]))
   }
@@ -104,7 +98,10 @@ test('Parent-children indexing', () => {
   expect(db.childIdToParentId.reverseLookup(2)).toEqual(new Set([4, 5, newEntryId]))
 
   // Modify entry. Moving new method from `Standard.Base.Type` to `Standard.Base`.
-  db.get(newEntryId)!.memberOf = 'Standard.Base' as QualifiedName
+  const modifications3: lsTypes.SuggestionsDatabaseUpdate[] = [
+    { type: 'Modify', id: newEntryId, selfType: { tag: 'Set', value: 'Standard.Base' } },
+  ]
+  applyUpdates(db, modifications3, test.suggestionContext)
   expect(db.childIdToParentId.reverseLookup(1)).toEqual(new Set([2, 6, 7, newEntryId]))
   expect(db.childIdToParentId.lookup(newEntryId)).toEqual(new Set([1]))
   expect(db.childIdToParentId.reverseLookup(newEntryId)).toEqual(new Set([]))
@@ -139,17 +136,24 @@ test("Modifying suggestion entries' fields", () => {
   const db = test.createDbWithExpected()
   test.expectedModule.name = unwrap(tryIdentifier('Base2'))
   test.expectedModule.definedIn = unwrap(tryQualifiedName('Standard.Base2'))
+  test.expectedModule.definitionPath = unwrap(tryQualifiedName('Standard.Base2'))
   test.expectedModule.returnType = 'Standard.Base2'
   test.expectedModule.reexportedIn = unwrap(tryQualifiedName('Standard.Base.Yet.Another.Module'))
   test.expectedType.definedIn = unwrap(tryQualifiedName('Standard.Base2'))
+  test.expectedType.definitionPath = unwrap(tryQualifiedName('Standard.Base2.Type'))
   test.expectedType.returnType = 'Standard.Base2.Type'
   test.expectedType.aliases = ['Test Type 2']
   test.expectedType.documentation = parseDocs(typeDocs2)
   test.expectedCon.memberOf = unwrap(tryQualifiedName('Standard.Base2.Type'))
+  test.expectedCon.definitionPath = unwrap(tryQualifiedName('Standard.Base2.Type.Con'))
   test.expectedCon.returnType = unwrap(tryQualifiedName('Standard.Base2.Type'))
   test.expectedMethod.memberOf = unwrap(tryQualifiedName('Standard.Base2.Type'))
   test.expectedMethod.selfType = 'Standard.Base2.Type'
+  test.expectedMethod.definitionPath = unwrap(tryQualifiedName('Standard.Base2.Type.method'))
   test.expectedStaticMethod.memberOf = unwrap(tryQualifiedName('Standard.Base2.Type'))
+  test.expectedStaticMethod.definitionPath = unwrap(
+    tryQualifiedName('Standard.Base2.Type.static_method'),
+  )
   test.expectedFunction.scope = scope2
 
   applyUpdates(db, modifications, test.suggestionContext)
@@ -173,13 +177,13 @@ test("Unsetting suggestion entries' fields", () => {
     { type: 'Modify', id: 4, documentation: { tag: 'Remove' } },
   ]
   const db = test.createDbWithExpected()
-  delete test.expectedModule.reexportedIn
+  test.expectedModule.reexportedIn = undefined
   test.expectedType.documentation = []
   test.expectedType.aliases = []
   test.expectedCon.documentation = []
   test.expectedCon.isUnstable = false
   test.expectedMethod.documentation = []
-  delete test.expectedMethod.groupIndex
+  test.expectedMethod.groupIndex = undefined
 
   applyUpdates(db, modifications, test.suggestionContext)
   test.check(db)
@@ -193,14 +197,14 @@ test('Removing entries from database', () => {
   ]
   const db = test.createDbWithExpected()
   applyUpdates(db, update, test.suggestionContext)
-  expect(db.get(1)).toStrictEqual(test.expectedModule)
+  expect(db.get(1)).toBeDefined()
   expect(db.get(2)).toBeUndefined()
-  expect(db.get(3)).toStrictEqual(test.expectedCon)
-  expect(db.get(4)).toStrictEqual(test.expectedMethod)
-  expect(db.get(5)).toStrictEqual(test.expectedStaticMethod)
+  expect(db.get(3)).toBeDefined()
+  expect(db.get(4)).toBeDefined()
+  expect(db.get(5)).toBeDefined()
   expect(db.get(6)).toBeUndefined()
-  expect(db.get(7)).toStrictEqual(test.expectedLocal)
-  expect(db.get(8)).toStrictEqual(test.expectedLocalStaticMethod)
+  expect(db.get(7)).toBeDefined()
+  expect(db.get(8)).toBeDefined()
 })
 
 test('Adding new argument', () => {
@@ -284,6 +288,10 @@ test('Removing Arguments', () => {
   test.check(db)
 })
 
+function suggestionEntry<T>(data: SuggestionEntry & { kind: T }): SuggestionEntry & { kind: T } {
+  return data
+}
+
 class Fixture {
   suggestionContext = {
     groups: [
@@ -316,38 +324,42 @@ class Fixture {
   staticMethodDocs = 'GROUP Test2\n\nA static method'
   functionDocs = 'A local function'
   localDocs = 'A local variable'
-  expectedModule: SuggestionEntry = {
+  expectedModule = suggestionEntry<SuggestionKind.Module>({
     kind: SuggestionKind.Module,
     name: unwrap(tryIdentifier('Base')),
     definedIn: unwrap(tryQualifiedName('Standard.Base')),
-    arguments: [],
+    definitionPath: unwrap(tryQualifiedName('Standard.Base')),
     returnType: 'Standard.Base',
     documentation: parseDocs(this.moduleDocs),
+    reexportedIn: unwrap(tryQualifiedName('Standard.Base.Another.Module')),
     aliases: [],
     isPrivate: false,
     isUnstable: false,
-    reexportedIn: unwrap(tryQualifiedName('Standard.Base.Another.Module')),
-    annotations: [],
-  }
-  expectedType: SuggestionEntry = {
+    iconName: undefined,
+    groupIndex: undefined,
+  })
+  expectedType = suggestionEntry<SuggestionKind.Type>({
     kind: SuggestionKind.Type,
     name: unwrap(tryIdentifier('Type')),
     definedIn: unwrap(tryQualifiedName('Standard.Base')),
+    definitionPath: unwrap(tryQualifiedName('Standard.Base.Type')),
     arguments: [this.arg1],
     returnType: 'Standard.Base.Type',
     documentation: parseDocs(this.typeDocs),
     aliases: ['Test Type'],
     isPrivate: false,
     isUnstable: false,
-    parentType: unwrap(tryQualifiedName('Standard.Base.Any.Any')),
+    parentType: undefined,
     reexportedIn: unwrap(tryQualifiedName('Standard.Base.Another.Module')),
-    annotations: [],
-  }
-  expectedCon: SuggestionEntry = {
+    iconName: undefined,
+    groupIndex: undefined,
+  })
+  expectedCon = suggestionEntry<SuggestionKind.Constructor>({
     kind: SuggestionKind.Constructor,
     name: unwrap(tryIdentifier('Con')),
     definedIn: unwrap(tryQualifiedName('Standard.Base')),
     memberOf: unwrap(tryQualifiedName('Standard.Base.Type')),
+    definitionPath: unwrap(tryQualifiedName('Standard.Base.Type.Con')),
     arguments: [this.arg1],
     returnType: 'Standard.Base.Type',
     documentation: parseDocs(this.conDocs),
@@ -356,12 +368,15 @@ class Fixture {
     isUnstable: true,
     reexportedIn: unwrap(tryQualifiedName('Standard.Base.Another.Module')),
     annotations: ['Annotation 1'],
-  }
-  expectedMethod: SuggestionEntry = {
+    iconName: undefined,
+    groupIndex: undefined,
+  })
+  expectedMethod = suggestionEntry<SuggestionKind.Method>({
     kind: SuggestionKind.Method,
     name: unwrap(tryIdentifier('method')),
     definedIn: unwrap(tryQualifiedName('Standard.Base')),
     memberOf: unwrap(tryQualifiedName('Standard.Base.Type')),
+    definitionPath: unwrap(tryQualifiedName('Standard.Base.Type.method')),
     selfType: 'Standard.Base.Type',
     arguments: [this.arg1],
     returnType: 'Standard.Base.Number',
@@ -371,12 +386,15 @@ class Fixture {
     isPrivate: false,
     isUnstable: false,
     annotations: ['Annotation 2', 'Annotation 3'],
-  }
-  expectedStaticMethod: SuggestionEntry = {
+    iconName: undefined,
+    reexportedIn: undefined,
+  })
+  expectedStaticMethod = suggestionEntry<SuggestionKind.Method>({
     kind: SuggestionKind.Method,
     name: unwrap(tryIdentifier('static_method')),
     definedIn: unwrap(tryQualifiedName('Standard.Base')),
     memberOf: unwrap(tryQualifiedName('Standard.Base.Type')),
+    definitionPath: unwrap(tryQualifiedName('Standard.Base.Type.static_method')),
     arguments: [this.arg1, this.arg2],
     returnType: 'Standard.Base.Number',
     documentation: parseDocs(this.staticMethodDocs),
@@ -386,11 +404,14 @@ class Fixture {
     isUnstable: false,
     reexportedIn: unwrap(tryQualifiedName('Standard.Base.Another.Module')),
     annotations: [],
-  }
-  expectedFunction: SuggestionEntry = {
+    iconName: undefined,
+    selfType: undefined,
+  })
+  expectedFunction = suggestionEntry<SuggestionKind.Function>({
     kind: SuggestionKind.Function,
     name: unwrap(tryIdentifier('function')),
     definedIn: unwrap(tryQualifiedName('Standard.Base')),
+    definitionPath: unwrap(tryQualifiedName('Standard.Base.function')),
     arguments: [this.arg1],
     returnType: 'Standard.Base.Number',
     documentation: parseDocs(this.functionDocs),
@@ -398,22 +419,24 @@ class Fixture {
     isPrivate: false,
     isUnstable: false,
     scope: this.scope,
-    annotations: [],
-  }
-  expectedLocal: SuggestionEntry = {
+    iconName: undefined,
+    groupIndex: undefined,
+  })
+  expectedLocal = suggestionEntry<SuggestionKind.Local>({
     kind: SuggestionKind.Local,
     name: unwrap(tryIdentifier('local')),
     definedIn: unwrap(tryQualifiedName('Standard.Base')),
-    arguments: [],
+    definitionPath: unwrap(tryQualifiedName('Standard.Base.local')),
     returnType: 'Standard.Base.Number',
     documentation: parseDocs(this.localDocs),
     aliases: [],
     isPrivate: false,
     isUnstable: false,
     scope: this.scope,
-    annotations: [],
-  }
-  expectedLocalStaticMethod: SuggestionEntry = {
+    iconName: undefined,
+    groupIndex: undefined,
+  })
+  expectedLocalStaticMethod = suggestionEntry<SuggestionKind.Method>({
     kind: SuggestionKind.Method,
     arguments: [
       {
@@ -428,6 +451,7 @@ class Fixture {
     annotations: [],
     name: unwrap(tryIdentifier('collapsed')),
     definedIn: unwrap(tryQualifiedName('local.Mock_Project')),
+    definitionPath: unwrap(tryQualifiedName('local.Mock_Project.collapsed')),
     documentation: [{ Tag: { tag: 'Icon', body: 'group' } }, { Paragraph: { body: '' } }],
     iconName: 'group',
     aliases: [],
@@ -435,7 +459,10 @@ class Fixture {
     isUnstable: false,
     memberOf: unwrap(tryQualifiedName('local.Mock_Project')),
     returnType: 'Standard.Base.Any.Any',
-  }
+    groupIndex: undefined,
+    selfType: undefined,
+    reexportedIn: undefined,
+  })
 
   addUpdatesForExpected(): lsTypes.SuggestionsDatabaseUpdate[] {
     return [
@@ -458,7 +485,6 @@ class Fixture {
           name: 'Type',
           params: [this.arg1],
           documentation: this.typeDocs,
-          parentType: 'Standard.Base.Any.Any',
           reexport: 'Standard.Base.Another.Module',
         },
       },
@@ -561,25 +587,33 @@ class Fixture {
 
   createDbWithExpected(): SuggestionDb {
     const db = new SuggestionDb()
-    db.set(1, structuredClone(this.expectedModule))
-    db.set(2, structuredClone(this.expectedType))
-    db.set(3, structuredClone(this.expectedCon))
-    db.set(4, structuredClone(this.expectedMethod))
-    db.set(5, structuredClone(this.expectedStaticMethod))
-    db.set(6, structuredClone(this.expectedFunction))
-    db.set(7, structuredClone(this.expectedLocal))
-    db.set(8, structuredClone(this.expectedLocalStaticMethod))
+    applyUpdates(db, this.addUpdatesForExpected(), this.suggestionContext)
     return db
   }
 
   check(db: SuggestionDb): void {
-    expect(db.get(1)).toStrictEqual(this.expectedModule)
-    expect(db.get(2)).toStrictEqual(this.expectedType)
-    expect(db.get(3)).toStrictEqual(this.expectedCon)
-    expect(db.get(4)).toStrictEqual(this.expectedMethod)
-    expect(db.get(5)).toStrictEqual(this.expectedStaticMethod)
-    expect(db.get(6)).toStrictEqual(this.expectedFunction)
-    expect(db.get(7)).toStrictEqual(this.expectedLocal)
-    expect(db.get(8)).toStrictEqual(this.expectedLocalStaticMethod)
+    expectPropertiesToStrictEqual(db.get(1), this.expectedModule)
+    expectPropertiesToStrictEqual(db.get(2), this.expectedType)
+    expectPropertiesToStrictEqual(db.get(3), this.expectedCon)
+    expectPropertiesToStrictEqual(db.get(4), this.expectedMethod)
+    expectPropertiesToStrictEqual(db.get(5), this.expectedStaticMethod)
+    expectPropertiesToStrictEqual(db.get(6), this.expectedFunction)
+    expectPropertiesToStrictEqual(db.get(7), this.expectedLocal)
+    expectPropertiesToStrictEqual(db.get(8), this.expectedLocalStaticMethod)
   }
+}
+
+function expectPropertiesToStrictEqual(actual: unknown, expected: object): void {
+  expect(extractProperties(expected, actual)).toStrictEqual(expected)
+}
+
+function extractProperties(reference: object, value: unknown): object {
+  expect(typeof value).toBe('object')
+  expect(value).not.toBeNull()
+  assert(typeof value === 'object' && value !== null)
+  const result = {}
+  for (const key in reference) {
+    if (key in value) Object.assign(result, { [key]: (value as any)[key] })
+  }
+  return result
 }

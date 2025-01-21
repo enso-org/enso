@@ -6,7 +6,7 @@ import {
 import type { MethodCallInfo } from '@/stores/graph/graphDatabase'
 import type { ExpressionInfo } from '@/stores/project/computedValueRegistry'
 import type { NodeVisualizationConfiguration } from '@/stores/project/executionContext'
-import { entryQn } from '@/stores/suggestionDatabase/entry'
+import { entryIsAnnotatable } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import type { AstId } from '@/util/ast/abstract'
 import {
@@ -60,7 +60,7 @@ export function useWidgetFunctionCallInfo(
     if (analyzed.kind === 'infix') {
       return analyzed.lhs?.externalId
     }
-    const knownArguments = methodCallInfo.value?.suggestion?.arguments
+    const knownArguments = methodCallInfo.value?.suggestion.arguments
     const hasKnownSelfArgument = knownArguments?.[0]?.name === 'self'
 
     // First we always want to attach the visualization to the `self` argument,
@@ -90,8 +90,9 @@ export function useWidgetFunctionCallInfo(
 
     const info = methodCallInfo.value
     if (!info) return null
+    if (!entryIsAnnotatable(info.suggestion)) return null
     const annotatedArgs = info.suggestion.annotations
-    if (annotatedArgs.length === 0) return null
+    if (!annotatedArgs.length) return null
     const name = info.suggestion.name
     const positionalArgumentsExpressions = [
       `.${name}`,
@@ -134,7 +135,7 @@ export function useWidgetFunctionCallInfo(
     if (cfg.kind === 'FunctionCall') return cfg
     if (cfg.kind === 'OneOfFunctionCalls' && methodCallInfo.value != null) {
       const info = methodCallInfo.value
-      const fullName = entryQn(info?.suggestion)
+      const fullName = info?.suggestion.definitionPath
       const autoscopedName = '..' + info?.suggestion.name
       return cfg.possibleFunctions.get(fullName) ?? cfg.possibleFunctions.get(autoscopedName)
     }

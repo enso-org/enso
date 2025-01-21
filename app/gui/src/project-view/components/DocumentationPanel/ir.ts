@@ -1,6 +1,6 @@
 import type { SuggestionDb } from '@/stores/suggestionDatabase'
 import type { SuggestionEntry, SuggestionId } from '@/stores/suggestionDatabase/entry'
-import { SuggestionKind, entryQn } from '@/stores/suggestionDatabase/entry'
+import { SuggestionKind } from '@/stores/suggestionDatabase/entry'
 import type { Doc } from '@/util/docParser'
 import type { QualifiedName } from '@/util/qualifiedName'
 import * as iter from 'enso-common/src/utilities/data/iter'
@@ -104,7 +104,8 @@ export function lookupDocumentation(db: SuggestionDb, id: SuggestionId): Docs {
       `Documentation not available. Entry with id ${id} not found in the database.`,
     )
   const handle = handleDocumentation[entry.kind]
-  return handle ? handle(db, entry, id) : placeholder(`Entry kind ${entry.kind} was not handled.`)
+  if (!handle) return placeholder(`Entry kind ${entry.kind} was not handled.`)
+  return handle(db, entry as any, id)
 }
 
 function getChildren(db: SuggestionDb, id: SuggestionId, kind: SuggestionKind): Docs[] {
@@ -142,30 +143,36 @@ function asTypeDocs(docs: Docs[]): TypeDocs[] {
   })
 }
 
-type DocsHandle = (db: SuggestionDb, entry: SuggestionEntry, id: SuggestionId) => Docs
+type DocsHandler<Kind extends SuggestionKind> = (
+  db: SuggestionDb,
+  entry: SuggestionEntry & { kind: Kind },
+  id: SuggestionId,
+) => Docs
 
-const handleFunction: DocsHandle = (_db, entry, id) => ({
+const handleFunction: DocsHandler<
+  SuggestionKind.Function | SuggestionKind.Method | SuggestionKind.Constructor
+> = (_db, entry, id) => ({
   kind: 'Function',
   id,
-  name: entryQn(entry),
+  name: entry.definitionPath,
   arguments: entry.arguments,
   sections: filterSections(entry.documentation),
 })
 
-const handleDocumentation: Record<SuggestionKind, DocsHandle> = {
+const handleDocumentation: { [Kind in SuggestionKind]: DocsHandler<Kind> } = {
   [SuggestionKind.Function]: handleFunction,
   [SuggestionKind.Method]: handleFunction,
   [SuggestionKind.Constructor]: handleFunction,
   [SuggestionKind.Local]: (_db, entry, id) => ({
     kind: 'Local',
     id,
-    name: entryQn(entry),
+    name: entry.definitionPath,
     sections: filterSections(entry.documentation),
   }),
   [SuggestionKind.Type]: (db, entry, id) => ({
     kind: 'Type',
     id,
-    name: entryQn(entry),
+    name: entry.definitionPath,
     arguments: entry.arguments,
     sections: filterSections(entry.documentation),
     methods: asFunctionDocs(getChildren(db, id, SuggestionKind.Method)),
@@ -174,7 +181,7 @@ const handleDocumentation: Record<SuggestionKind, DocsHandle> = {
   [SuggestionKind.Module]: (db, entry, id) => ({
     kind: 'Module',
     id,
-    name: entryQn(entry),
+    name: entry.definitionPath,
     sections: filterSections(entry.documentation),
     types: asTypeDocs(getChildren(db, id, SuggestionKind.Type)),
     methods: asFunctionDocs(getChildren(db, id, SuggestionKind.Method)),

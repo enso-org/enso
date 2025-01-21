@@ -4,7 +4,6 @@ import java.util.BitSet;
 import java.util.List;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.builder.InferredBuilder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
@@ -107,10 +106,7 @@ public class Column {
       throws ClassCastException {
     Context context = Context.getCurrent();
     int n = items.size();
-    Builder builder =
-        expectedType == null
-            ? new InferredBuilder(n, problemAggregator)
-            : Builder.getForType(expectedType, n, problemAggregator);
+    var builder = Builder.getForType(expectedType, n, problemAggregator);
 
     // ToDo: This a workaround for an issue with polyglot layer. #5590 is related.
     for (Object item : items) {
@@ -142,10 +138,7 @@ public class Column {
       throws ClassCastException {
     Context context = Context.getCurrent();
     int n = items.size();
-    Builder builder =
-        expectedType == null
-            ? new InferredBuilder(n, problemAggregator)
-            : Builder.getForType(expectedType, n, problemAggregator);
+    var builder = Builder.getForType(expectedType, n, problemAggregator);
 
     for (Object item : items) {
       builder.appendNoGrow(item);

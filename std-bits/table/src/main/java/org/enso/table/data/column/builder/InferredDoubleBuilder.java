@@ -1,61 +1,34 @@
 package org.enso.table.data.column.builder;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.BitSet;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.type.BigDecimalType;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.problems.ProblemAggregator;
 
 /** A double builder variant that preserves types and can be retyped to Mixed. */
-public class InferringDoubleBuilder extends DoubleBuilder {
+public class InferredDoubleBuilder extends DoubleBuilder implements BuilderWithRetyping {
   /**
    * Converts the provided LongBuilder to a DoubleBuilder.
    *
    * <p>The original LongBuilder becomes invalidated after this operation and should no longer be
    * used.
    */
-  static InferringDoubleBuilder retypeFromLongBuilder(LongBuilder longBuilder) {
+  static InferredDoubleBuilder retypeFromLongBuilder(LongBuilder longBuilder) {
     int currentSize = longBuilder.currentSize;
-    InferringDoubleBuilder newBuilder =
-        new InferringDoubleBuilder(
-            longBuilder.isNothing, longBuilder.data, currentSize, longBuilder.problemAggregator);
+    var newBuilder =
+        new InferredDoubleBuilder(longBuilder.getDataSize(), longBuilder.problemAggregator);
 
-    // Invalidate the old builder.
-    longBuilder.data = null;
-    longBuilder.isNothing = null;
-    longBuilder.currentSize = -1;
-
-    // Assume all longs will be compacted.
-    newBuilder.isLongCompactedAsDouble.set(0, currentSize, true);
-
-    // Translate the data in-place to avoid unnecessary allocations.
     for (int i = 0; i < currentSize; i++) {
-      if (!newBuilder.isNothing.get(i)) {
-        long currentIntegerValue = newBuilder.data[i];
-        double convertedFloatValue = (double) currentIntegerValue;
-        boolean isLossy = currentIntegerValue != (long) convertedFloatValue;
-        if (isLossy) {
-          // Save it raw for recovery.
-          newBuilder.setRaw(i, currentIntegerValue);
-          newBuilder.precisionLossAggregator.reportIntegerPrecisionLoss(
-              currentIntegerValue, convertedFloatValue);
-          // Unmark the long that did not fit:
-          newBuilder.isLongCompactedAsDouble.set(i, false);
-        }
-
-        newBuilder.data[i] = Double.doubleToRawLongBits(convertedFloatValue);
-      }
+      newBuilder.appendLongNoGrow(longBuilder.data[i]);
     }
+    newBuilder.isNothing = longBuilder.isNothing;
 
     return newBuilder;
-  }
-
-  InferringDoubleBuilder(
-      BitSet isNothing, long[] doubleData, int currentSize, ProblemAggregator problemAggregator) {
-    super(isNothing, doubleData, currentSize, problemAggregator);
-    rawData = null;
-    isLongCompactedAsDouble = new BitSet();
   }
 
   /**
@@ -77,22 +50,25 @@ public class InferringDoubleBuilder extends DoubleBuilder {
    */
   private final BitSet isLongCompactedAsDouble;
 
+  InferredDoubleBuilder(int initialSize, ProblemAggregator problemAggregator) {
+    super(initialSize, problemAggregator);
+    rawData = null;
+    isLongCompactedAsDouble = new BitSet();
+  }
+
   @Override
-  public void retypeToMixed(Object[] items) {
+  public void copyDataTo(Object[] items) {
     int rawN = rawData == null ? 0 : rawData.length;
     for (int i = 0; i < currentSize; i++) {
       if (isNothing.get(i)) {
         items[i] = null;
       } else {
         if (isLongCompactedAsDouble.get(i)) {
-          double value = Double.longBitsToDouble(data[i]);
-          long reconstructed = (long) value;
-          items[i] = reconstructed;
+          items[i] = (long) data[i];
         } else if (i < rawN && rawData[i] != null) {
           items[i] = rawData[i];
         } else {
-          double value = Double.longBitsToDouble(data[i]);
-          items[i] = value;
+          items[i] = data[i];
         }
       }
     }
@@ -105,27 +81,13 @@ public class InferringDoubleBuilder extends DoubleBuilder {
   @Override
   public void appendBulkStorage(Storage<?> storage) {
     throw new UnsupportedOperationException(
-        "appendBulkStorage is not supported on InferringDoubleBuilder. A DoubleBuilder or"
+        "appendBulkStorage is not supported on InferredDoubleBuilder. A DoubleBuilder or"
             + " MixedBuilder should be used instead. This is a bug in the Table library.");
   }
 
   @Override
-  public void appendDouble(double x) {
-    if (currentSize >= this.data.length) {
-      grow();
-    }
-
-    data[currentSize] = Double.doubleToRawLongBits(x);
-    currentSize++;
-  }
-
-  @Override
-  public void appendLong(long integer) {
-    if (currentSize >= this.data.length) {
-      grow();
-    }
-
-    appendLongNoGrow(integer);
+  public void appendLong(long value) {
+    super.appendLong(value);
   }
 
   private void appendLongNoGrow(long integer) {
@@ -138,46 +100,29 @@ public class InferringDoubleBuilder extends DoubleBuilder {
       isLongCompactedAsDouble.set(currentSize, true);
     }
 
-    data[currentSize] = Double.doubleToRawLongBits(convertedFloatValue);
-    currentSize++;
-  }
-
-  @Override
-  public void appendBigInteger(BigInteger integer) {
-    if (currentSize >= this.data.length) {
-      grow();
-    }
-
-    setRaw(currentSize, integer);
-    double convertedFloatValue = convertBigIntegerToDouble(integer);
-    data[currentSize] = Double.doubleToRawLongBits(convertedFloatValue);
-    currentSize++;
+    data[currentSize++] = convertedFloatValue;
   }
 
   @Override
   public void appendNoGrow(Object o) {
     if (o == null) {
       isNothing.set(currentSize++);
-    } else if (NumericConverter.isFloatLike(o)) {
-      double value = NumericConverter.coerceToDouble(o);
-      data[currentSize++] = Double.doubleToRawLongBits(value);
+      return;
+    }
+
+    if (NumericConverter.isFloatLike(o)) {
+      data[currentSize++] = NumericConverter.coerceToDouble(o);
     } else if (NumericConverter.isCoercibleToLong(o)) {
-      long value = NumericConverter.coerceToLong(o);
-      appendLongNoGrow(value);
+      appendLongNoGrow(NumericConverter.coerceToLong(o));
     } else if (o instanceof BigInteger bigInteger) {
       setRaw(currentSize, bigInteger);
-      double converted = convertBigIntegerToDouble(bigInteger);
-      data[currentSize++] = Double.doubleToRawLongBits(converted);
+      data[currentSize++] = convertBigIntegerToDouble(bigInteger);
+    } else if (o instanceof BigDecimal bigDecimal) {
+      setRaw(currentSize, bigDecimal);
+      data[currentSize++] = convertBigDecimalToDouble(bigDecimal);
     } else {
       throw new ValueTypeMismatchException(getType(), o);
     }
-  }
-
-  @Override
-  public void appendRawNoGrow(long rawData) {
-    throw new UnsupportedOperationException(
-        "appendRawNoGrow is not supported on InferringDoubleBuilder. "
-            + "A DoubleBuilder should be used instead. This is a bug in the Table library.");
   }
 
   private void setRaw(int ix, Number o) {
@@ -193,5 +138,33 @@ public class InferringDoubleBuilder extends DoubleBuilder {
     }
 
     rawData[ix] = o;
+  }
+
+  @Override
+  public boolean accepts(Object o) {
+    return NumericConverter.isCoercibleToDouble(o);
+  }
+
+  @Override
+  public boolean canRetypeTo(StorageType type) {
+    return type instanceof BigDecimalType;
+  }
+
+  @Override
+  public Builder retypeTo(StorageType type) {
+    if (type instanceof BigDecimalType) {
+      Builder res = Builder.getForType(BigDecimalType.INSTANCE, data.length, null);
+      for (int i = 0; i < currentSize; i++) {
+        if (isNothing.get(i)) {
+          res.appendNulls(1);
+        } else {
+          BigDecimal bigDecimal = BigDecimal.valueOf(data[i]);
+          res.appendNoGrow(bigDecimal);
+        }
+      }
+      return res;
+    } else {
+      throw new UnsupportedOperationException();
+    }
   }
 }
