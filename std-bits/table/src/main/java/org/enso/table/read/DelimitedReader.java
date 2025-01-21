@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Queue;
 import java.util.stream.Collectors;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.table.Column;
@@ -67,7 +68,7 @@ public class DelimitedReader {
   /** The line number of the start of the current row in the input file. */
   private long currentLine = 0;
 
-  private Builder[] builders = null;
+  private List<BuilderForType<String>> builders = null;
   private final DelimitedReaderProblemAggregator problemAggregator;
 
   /**
@@ -264,27 +265,27 @@ public class DelimitedReader {
     assert builders != null;
     assert canFitMoreRows();
 
-    if (row.length != builders.length) {
+    if (row.length != builders.size()) {
       problemAggregator.reportInvalidRow(
-          currentLine, keepInvalidRows ? targetTableIndex : null, row, builders.length);
+          currentLine, keepInvalidRows ? targetTableIndex : null, row, builders.size());
 
       if (keepInvalidRows) {
-        for (int i = 0; i < builders.length && i < row.length; i++) {
-          builders[i].append(row[i]);
+        for (int i = 0; i < builders.size() && i < row.length; i++) {
+          builders.get(i).append(row[i]);
         }
 
         // If the current row had fewer columns than expected, nulls are inserted for the missing
         // values.
         // If it had more columns, the excess columns are discarded.
-        for (int i = row.length; i < builders.length; i++) {
-          builders[i].append(null);
+        for (int i = row.length; i < builders.size(); i++) {
+          builders.get(i).appendNulls(1);
         }
 
         targetTableIndex++;
       }
     } else {
-      for (int i = 0; i < builders.length; i++) {
-        builders[i].append(row[i]);
+      for (int i = 0; i < builders.size(); i++) {
+        builders.get(i).append(row[i]);
       }
 
       targetTableIndex++;
@@ -458,17 +459,17 @@ public class DelimitedReader {
       parser.stopParsing();
     }
 
-    Column[] columns = new Column[builders.length];
-    for (int i = 0; i < builders.length; i++) {
+    Column[] columns = new Column[builders.size()];
+    for (int i = 0; i < builders.size(); i++) {
       String columnName = effectiveColumnNames[i];
-      var col = (Storage<String>) builders[i].seal();
+      var stringStorage = builders.get(i).seal();
 
       // We don't expect InvalidFormat to be propagated back to Enso, there is no particular type
       // that we expect, so it can safely be null.
       Value expectedEnsoValueType = Value.asValue(null);
       CommonParseProblemAggregator parseProblemAggregator =
           ParseProblemAggregator.make(problemAggregator, columnName, expectedEnsoValueType);
-      Storage<?> storage = valueParser.parseColumn(col, parseProblemAggregator);
+      Storage<?> storage = valueParser.parseColumn(stringStorage, parseProblemAggregator);
       columns[i] = new Column(columnName, storage);
       context.safepoint();
     }
@@ -490,9 +491,9 @@ public class DelimitedReader {
   private static final int INITIAL_ROW_CAPACITY = 100;
 
   private void initBuilders(int count) {
-    builders = new Builder[count];
+    builders = new ArrayList<>(count);
     for (int i = 0; i < count; i++) {
-      builders[i] = Builder.getForType(TextType.VARIABLE_LENGTH, INITIAL_ROW_CAPACITY, null);
+      builders.add(Builder.getForText(INITIAL_ROW_CAPACITY, TextType.VARIABLE_LENGTH));
     }
   }
 

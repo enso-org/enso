@@ -11,7 +11,7 @@ type Story = StoryObj<Props>
 const schema = z.object({ value: z.array(z.enum(['one', 'two', 'three'])) })
 
 export default {
-  title: 'Components/AriaComponents/Inputs/MultiSelector',
+  title: 'Components/Inputs/MultiSelector',
   component: MultiSelector,
   render: (args) => <MultiSelector {...args} />,
   tags: ['autodocs'],

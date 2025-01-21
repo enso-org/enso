@@ -22,9 +22,9 @@ public final class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping
   }
 
   @Override
-  public void appendNoGrow(Object o) {
+  public void append(Object o) {
     if (o == null) {
-      isNothing.set(size);
+      appendNulls(1);
     } else {
       if (o instanceof Boolean b) {
         if (b) {
@@ -33,18 +33,13 @@ public final class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping
       } else {
         throw new ValueTypeMismatchException(getType(), o);
       }
+      size++;
     }
-    size++;
   }
 
   @Override
   public boolean accepts(Object o) {
     return o instanceof Boolean;
-  }
-
-  @Override
-  public void append(Object o) {
-    appendNoGrow(o);
   }
 
   /**

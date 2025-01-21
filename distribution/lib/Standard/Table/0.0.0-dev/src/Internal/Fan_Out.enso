@@ -268,7 +268,7 @@ map_columns_to_multiple input_column function column_count column_builder=make_s
                 ## Add `output_values` to builders; if there are more builders
                    than `output_values`, pad with null.
                 0.up_to builders.length . each i->
-                    builders.at i . appendNoGrow (output_values.get i Nothing)
+                    builders.at i . append (output_values.get i Nothing)
 
             builders.to_vector
 
@@ -282,7 +282,7 @@ map_columns_to_multiple input_column function column_count column_builder=make_s
                 ## Add `output_values` to builders; if there are more builders
                    than `output_values`, pad with null.
                 0.up_to builders.length . each i->
-                    builders.at i . appendNoGrow (output_values.get i Nothing)
+                    builders.at i . append (output_values.get i Nothing)
 
                 output_values.length
 

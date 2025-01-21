@@ -112,9 +112,9 @@ public class Column {
     for (Object item : items) {
       if (item instanceof Value v) {
         Object converted = Polyglot_Utils.convertPolyglotValue(v);
-        builder.appendNoGrow(converted);
+        builder.append(converted);
       } else {
-        builder.appendNoGrow(item);
+        builder.append(item);
       }
 
       context.safepoint();
@@ -141,7 +141,7 @@ public class Column {
     var builder = Builder.getForType(expectedType, n, problemAggregator);
 
     for (Object item : items) {
-      builder.appendNoGrow(item);
+      builder.append(item);
       context.safepoint();
     }
 

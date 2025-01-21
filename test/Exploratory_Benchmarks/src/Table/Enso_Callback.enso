@@ -11,8 +11,8 @@ import project.Table.Helpers
 
 polyglot java import org.enso.exploratory_benchmark_helpers.MapHelpers
 polyglot java import org.enso.table.data.column.builder.Builder
-polyglot java import org.enso.table.data.column.storage.type.IntegerType;
-polyglot java import org.enso.table.data.column.storage.type.TextType;
+polyglot java import org.enso.table.data.column.storage.type.IntegerType
+polyglot java import org.enso.table.data.column.storage.type.TextType
 polyglot java import org.enso.table.data.table.Column as Java_Column
 
 ## This tests an operation that executes an Enso function on each element of a column.

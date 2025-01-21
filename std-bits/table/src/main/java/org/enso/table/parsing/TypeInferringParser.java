@@ -66,7 +66,7 @@ public class TypeInferringParser extends DatatypeParser {
             innerAggregator.detachFromParent();
             continue parsers;
           }
-          builder.appendNoGrow(parsed);
+          builder.append(parsed);
         } else {
           builder.appendNulls(1);
         }

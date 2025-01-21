@@ -153,10 +153,7 @@ function PopoverContent(props: PopoverContentProps) {
   const dialogRef = React.useRef<HTMLDivElement>(null)
   const dialogId = aria.useId()
 
-  // eslint-disable-next-line no-restricted-syntax
-  const contextState = React.useContext(
-    aria.OverlayTriggerStateContext,
-  ) as aria.OverlayTriggerState | null
+  const contextState = React.useContext(aria.OverlayTriggerStateContext)
   const dialogContext = React.useContext(aria.DialogContext)
 
   // This is safe, because the labelledBy provided by DialogTrigger is always

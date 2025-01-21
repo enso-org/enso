@@ -81,7 +81,7 @@ export const SELECTOR_STYLES = tv({
 export const Selector = forwardRef(function Selector<
   Schema extends TSchema,
   TFieldName extends FieldPath<Schema>,
->(props: SelectorProps<Schema, TFieldName>, ref: React.ForwardedRef<HTMLFieldSetElement>) {
+>(props: SelectorProps<Schema, TFieldName>, ref: React.ForwardedRef<HTMLDivElement>) {
   const {
     name,
     items,
