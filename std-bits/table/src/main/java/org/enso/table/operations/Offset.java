@@ -24,7 +24,7 @@ public class Offset {
         groupingColumns.length == 0 && orderingColumns.length == 0
             ? calculate_ungrouped_unordered_mask(sourceColumns[0].getSize(), n, fillWith)
             : calculate_grouped_ordered_mask(
-                sourceColumns,
+                sourceColumns[0].getSize(),
                 n,
                 fillWith,
                 groupingColumns,
@@ -42,44 +42,46 @@ public class Offset {
     return sourceColumn.getStorage().applyMask(OrderMask.fromArray(rowOrderMask));
   }
 
-  private static int[] calculate_ungrouped_unordered_mask(int size, int n, FillWith fillWith) {
-    return IntStream.range(0, size).map(i -> calculate_row_offset(i, n, fillWith, size)).toArray();
+  private static int[] calculate_ungrouped_unordered_mask(int numRows, int n, FillWith fillWith) {
+    return IntStream.range(0, numRows)
+        .map(i -> calculate_row_offset(i, n, fillWith, numRows))
+        .toArray();
   }
 
-  private static int calculate_row_offset(int i, int n, FillWith fillWith, int size) {
-    int result = i + n;
+  private static int calculate_row_offset(int rowIndex, int n, FillWith fillWith, int numRows) {
+    int result = rowIndex + n;
     if (result < 0) {
       return switch (fillWith) {
         case NOTHING -> Storage.NOT_FOUND_INDEX;
         case CLOSEST_VALUE -> 0;
-        case WRAP_AROUND -> (result % size) == 0 ? 0 : (result % size) + size;
+        case WRAP_AROUND -> (result % numRows) == 0 ? 0 : (result % numRows) + numRows;
       };
-    } else if (result >= size) {
+    } else if (result >= numRows) {
       return switch (fillWith) {
         case NOTHING -> Storage.NOT_FOUND_INDEX;
-        case CLOSEST_VALUE -> size - 1;
-        case WRAP_AROUND -> result % size;
+        case CLOSEST_VALUE -> numRows - 1;
+        case WRAP_AROUND -> result % numRows;
       };
     }
     return result;
   }
 
   private static int[] calculate_grouped_ordered_mask(
-      Column[] sourceColumns,
+      int numRows,
       int n,
       FillWith fillWith,
       Column[] groupingColumns,
       Column[] orderingColumns,
       int[] directions,
       ProblemAggregator problemAggregator) {
-    var offsetRowVisitorFactory = new OffsetRowVisitorFactory(sourceColumns[0], n, fillWith);
+    var offsetRowVisitorFactory = new OffsetRowVisitorFactory(numRows, n, fillWith);
     GroupingOrderingVisitor.visit(
         groupingColumns,
         orderingColumns,
         directions,
         problemAggregator,
         offsetRowVisitorFactory,
-        sourceColumns[0].getSize());
+        numRows);
     return offsetRowVisitorFactory.rowOrderMask;
   }
 
@@ -89,8 +91,8 @@ public class Offset {
     int n;
     FillWith fillWith;
 
-    OffsetRowVisitorFactory(Column sourceColumn, int n, FillWith fillWith) {
-      rowOrderMask = new int[sourceColumn.getSize()];
+    OffsetRowVisitorFactory(int numRows, int n, FillWith fillWith) {
+      rowOrderMask = new int[numRows];
       this.n = n;
       this.fillWith = fillWith;
     }
