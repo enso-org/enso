@@ -5,7 +5,7 @@ import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
 
-public class NullBuilder extends Builder {
+public class NullBuilder implements Builder {
   private int length = 0;
 
   public NullBuilder() {}
@@ -57,5 +57,12 @@ public class NullBuilder extends Builder {
   @Override
   public StorageType getType() {
     return NullType.INSTANCE;
+  }
+
+  @Override
+  public void copyDataTo(Object[] items) {
+    for (int i = 0; i < length; i++) {
+      items[i] = null;
+    }
   }
 }

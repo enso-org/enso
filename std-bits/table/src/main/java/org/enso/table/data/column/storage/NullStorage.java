@@ -2,7 +2,8 @@ package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
 import java.util.List;
-import org.enso.table.data.column.builder.BoolBuilder;
+import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.builder.BuilderForBoolean;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
@@ -202,7 +203,7 @@ public class NullStorage extends Storage<Void> {
     @Override
     public Storage<?> runZip(
         NullStorage storage, Storage<?> arg, MapOperationProblemAggregator problemAggregator) {
-      BoolBuilder builder = new BoolBuilder(storage.size());
+      BuilderForBoolean builder = Builder.getForBoolean(storage.size());
       for (int i = 0; i < storage.size(); i++) {
         if (arg.isNothing(i)) {
           builder.appendNulls(1);
