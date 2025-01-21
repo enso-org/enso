@@ -119,6 +119,9 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
   }
 
   private Value executeMethod(String name, Value... args) {
+    var ret = tryDirectNumericCalculation(name, args);
+    if (ret != null) return ret;
+
     Value method = getMethod.apply(name);
     if (!method.canExecute()) {
       throw new UnsupportedOperationException(name);
@@ -146,6 +149,54 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
       }
       throw e;
     }
+  }
+
+  private Value tryDirectNumericCalculation(String name, Value... args) {
+    // Check for arithmetic operations
+    if (args.length == 2 && args[0].isNumber() && args[1].isNumber()) {
+      if (isInt(args[0]) && isInt(args[1])) {
+        switch (name) {
+          case "+" -> {
+            return Value.asValue(args[0].asInt() + args[1].asInt());
+          }
+          case "-" -> {
+            return Value.asValue(args[0].asInt() - args[1].asInt());
+          }
+          case "*" -> {
+            return Value.asValue(args[0].asInt() * args[1].asInt());
+          }
+          case "/" -> {
+            return Value.asValue(args[0].asInt() / args[1].asInt());
+          }
+          default -> {
+            return null;
+          }
+        }
+      } else {
+        switch (name) {
+          case "+" -> {
+            return Value.asValue(args[0].asDouble() + args[1].asDouble());
+          }
+          case "-" -> {
+            return Value.asValue(args[0].asDouble() - args[1].asDouble());
+          }
+          case "*" -> {
+            return Value.asValue(args[0].asDouble() * args[1].asDouble());
+          }
+          case "/" -> {
+            return Value.asValue(args[0].asDouble() / args[1].asDouble());
+          }
+          default -> {
+            return null;
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  private Boolean isInt(Value v) {
+    return v.isNumber() && v.asDouble() == v.asInt();
   }
 
   @Override

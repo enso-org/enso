@@ -32,3 +32,10 @@ table_offset_impl table:Table (columns:(Vector | Text | Integer | Regex)=[]) n:I
         new_columns = new_names.zip new_storages.to_vector new_name-> new_storage -> Column.from_storage new_name new_storage
         new_columns.fold table t-> c->
             t.set c c.name set_mode
+
+column_offset_impl column:Column n:Integer=-1 fillWith:Fill_With=..Nothing =
+    java_column = column.java_column
+    fillWith_java = fillWith.to_java
+    new_storage = Java_Offset.offset_single_column java_column n fillWith_java
+    new_name = Column_Naming_Helper.in_memory.function_name "offset" [column, n, fillWith]
+    Column.from_storage new_name new_storage
