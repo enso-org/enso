@@ -11,8 +11,11 @@ import static org.hamcrest.Matchers.notNullValue;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import java.util.ArrayList;
+import java.util.List;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.Value;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -225,6 +228,59 @@ public class AtomInteropTest {
         is(true));
   }
 
+  /**
+   * Builtin methods from Any are present even if the Standard.Base.Any module is not imported.
+   *
+   * @throws Exception
+   */
+  @Test
+  public void internalMembersIncludeMethodsFromAny_WithoutImport() throws Exception {
+    var myTypeAtom =
+        ContextUtils.evalModule(
+            ctx,
+            """
+        type My_Type
+            Cons a
+
+        main = My_Type.Cons "a"
+        """);
+    var atom = ContextUtils.unwrapValue(ctx, myTypeAtom);
+    var memberNames = getAllMemberNames(atom);
+    var anyBuiltinMethods = ContextUtils.builtinMethodsFromAny(ctx);
+    for (var method : anyBuiltinMethods) {
+      assertThat(
+          "Builtin method (from Any) is a member of atom", memberNames, hasItem(method.getName()));
+    }
+  }
+
+  /**
+   * When Standard.Base.Any module is imported, all the methods (both builtin and non-builtin) from
+   * Any should be present as internal members of the atom.
+   */
+  @Test
+  public void internalMembersIncludeMethodsFromAny_WithImport() throws Exception {
+    var myTypeAtom =
+        ContextUtils.evalModule(
+            ctx,
+            """
+        from Standard.Base.Any import all
+
+        type My_Type
+            Cons a
+
+        main = My_Type.Cons "a"
+        """);
+    var atom = ContextUtils.unwrapValue(ctx, myTypeAtom);
+    var memberNames = getAllMemberNames(atom);
+    var anyMethods = ContextUtils.allMethodsFromAny(ctx);
+    for (var method : anyMethods) {
+      assertThat(
+          "Non-builtin method (from Any) is a member of atom",
+          memberNames,
+          hasItem(method.getName()));
+    }
+  }
+
   @Test
   public void allMembersAreReadableAndInvocable()
       throws UnsupportedMessageException, InvalidArrayIndexException {
@@ -368,5 +424,21 @@ public class AtomInteropTest {
         "Constructor (type member) is instantiable",
         myType.getMember("Cons_1").canInstantiate(),
         is(true));
+  }
+
+  /**
+   * @param obj {@link ContextUtils#unwrapValue(Context, Value) unwrapped} {@link Value value}.
+   */
+  private List<String> getAllMemberNames(Object obj)
+      throws UnsupportedMessageException, InvalidArrayIndexException {
+    var interop = InteropLibrary.getUncached();
+    var allMembers = interop.getMembers(obj, true);
+    var memberNames = new ArrayList<String>();
+    for (var i = 0; i < interop.getArraySize(allMembers); i++) {
+      var member = interop.readArrayElement(allMembers, i);
+      var memberName = interop.asString(member);
+      memberNames.add(memberName);
+    }
+    return memberNames;
   }
 }

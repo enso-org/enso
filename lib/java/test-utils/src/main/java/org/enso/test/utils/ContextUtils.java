@@ -7,6 +7,7 @@ import com.oracle.truffle.api.library.ExportMessage;
 import java.io.OutputStream;
 import java.nio.file.Paths;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import org.enso.common.LanguageInfo;
@@ -14,6 +15,7 @@ import org.enso.common.MethodNames.Module;
 import org.enso.common.MethodNames.TopScope;
 import org.enso.common.RuntimeOptions;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.callable.function.Function;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Source;
@@ -208,6 +210,38 @@ public final class ContextUtils {
   public static Value getMethodFromModule(Context ctx, String moduleSrc, String methodName) {
     Value module = ctx.eval(Source.create("enso", moduleSrc));
     return module.invokeMember(Module.EVAL_EXPRESSION, methodName);
+  }
+
+  /**
+   * Returns set of all the builtin methods from Any. These methods are present even if the module
+   * was not imported - they are present on the Any builtin type. This is in contrast to {@link
+   * #allMethodsFromAny(Context)} which requires the {@code Standard.Base.Any} module to be first
+   * imported.
+   */
+  public static Set<Function> builtinMethodsFromAny(Context ctx) {
+    var ensoCtx = ContextUtils.leakContext(ctx);
+    // This is a builtin Any type, so only the builtin methods will be included.
+    var anyBuiltinType = ensoCtx.getBuiltins().any();
+    var anyBuiltinMethods = anyBuiltinType.getDefinitionScope().getMethodsForType(anyBuiltinType);
+    assert anyBuiltinMethods != null;
+    return anyBuiltinMethods;
+  }
+
+  /**
+   * Returns set of all the methods on the {@code Standard.Base.Any} type. This includes both
+   * builtin and non-builtin types. For this to work, {@code Standard.Base.Any} module must be
+   * imported first in the context, otherwise an assertion will fail.
+   */
+  public static Set<Function> allMethodsFromAny(Context ctx) {
+    // Includes, e.g., `Any.to`.
+    var ensoCtx = ContextUtils.leakContext(ctx);
+    var anyMod = ensoCtx.findModule("Standard.Base.Any");
+    assert anyMod.isPresent() : "Standard.Base.Any module must be imported first";
+    var anyModScope = anyMod.get().getScope();
+    var anyType = anyModScope.getType("Any", true);
+    var anyMethods = anyModScope.getMethodsForType(anyType);
+    assert anyMethods != null;
+    return anyMethods;
   }
 
   @ExportLibrary(InteropLibrary.class)
