@@ -27,7 +27,7 @@ import org.enso.table.problems.ProblemAggregator;
 /**
  * A builder performing type inference on the appended elements, choosing the best possible storage.
  */
-public class InferredBuilder implements Builder {
+public final class InferredBuilder implements Builder {
   private BuilderWithRetyping currentBuilder = null;
   private int currentSize = 0;
   private final int initialSize;

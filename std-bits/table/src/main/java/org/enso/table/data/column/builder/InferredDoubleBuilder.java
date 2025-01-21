@@ -11,7 +11,7 @@ import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.problems.ProblemAggregator;
 
 /** A double builder variant that preserves types and can be retyped to Mixed. */
-public class InferredDoubleBuilder extends DoubleBuilder implements BuilderWithRetyping {
+public final class InferredDoubleBuilder extends DoubleBuilder implements BuilderWithRetyping {
   /**
    * Converts the provided LongBuilder to a DoubleBuilder.
    *

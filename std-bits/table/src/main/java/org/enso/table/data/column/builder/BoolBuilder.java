@@ -10,7 +10,7 @@ import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.util.BitSets;
 
 /** A builder for boolean columns. */
-public class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping {
+public final class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping {
   private final BitSet vals;
   private final BitSet isNothing;
   int size = 0;

@@ -10,7 +10,7 @@ import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.error.ValueTypeMismatchException;
 
 /** A builder for LocalDate columns. */
-public class DateBuilder extends TypedBuilder<LocalDate> {
+public final class DateBuilder extends TypedBuilder<LocalDate> {
   private final boolean allowDateToDateTimeConversion;
 
   DateBuilder(int size, boolean allowDateToDateTimeConversion) {

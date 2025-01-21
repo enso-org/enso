@@ -5,7 +5,7 @@ import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
 
-public class NullBuilder implements Builder {
+public final class NullBuilder implements Builder {
   private int length = 0;
 
   public NullBuilder() {}
