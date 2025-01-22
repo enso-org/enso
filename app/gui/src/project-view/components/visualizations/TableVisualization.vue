@@ -324,17 +324,13 @@ function getValueTypeIcon(valueType: string) {
   }
 }
 
-function getFilterType(valueType: string) {
-  switch (valueType) {
-    case 'Date':
-      return 'agDateColumnFilter'
-    case 'Integer':
-    case 'Float':
-    case 'Decimal':
-    case 'Byte':
-      return 'agNumberColumnFilter'
-    default:
-      return 'agSetColumnFilter'
+function getFilterType(valueType: string) { 
+  if (valueType === 'Date') {
+    return 'agDateColumnFilter';
+  } else if (isNumericType(valueType)) {
+    return 'agNumberColumnFilter';
+  } else {
+    return 'agSetColumnFilter';
   }
 }
 
