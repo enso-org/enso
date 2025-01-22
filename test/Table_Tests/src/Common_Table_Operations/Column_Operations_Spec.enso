@@ -725,7 +725,7 @@ add_column_operation_specs suite_builder setup =
                             converters.map converter->
                                 const_float = 3.0
                                 constant = converter const_float
-                                Test.with_clue " constant: "+(Meta.get_simple_type_name constant) <|
+                                Test.with_clue " constant: "+(constant.to Meta.Type . name) <|
                                     (x == constant).to_vector . should_equal [False, False, False, Nothing]
                                     (x != constant).to_vector . should_equal [True, True, True, Nothing]
                                     (y == constant).to_vector . should_equal [False, True, False, Nothing]
@@ -734,7 +734,7 @@ add_column_operation_specs suite_builder setup =
                             [6.5, 1000.5].map const_float->
                                 converters.map converter->
                                     constant = converter const_float
-                                    Test.with_clue " constant: "+(Meta.get_simple_type_name constant) <|
+                                    Test.with_clue " constant: "+(constant.to Meta.Type . name) <|
                                         (x < -constant).to_vector . should_equal [False, False, False, Nothing]
                                         (x < constant).to_vector . should_equal [True, True, True, Nothing]
                                         (x <= -constant).to_vector . should_equal [False, False, False, Nothing]

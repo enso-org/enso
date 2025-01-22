@@ -1,12 +1,15 @@
 /** @file Utilities for manipulating and displaying dates and times. */
-import * as newtype from './newtype'
-
-// =================
-// === Constants ===
-// =================
+import type { TextId } from '../../text'
+import { type Newtype, newtypeConstructor } from './newtype'
 
 /** The number of hours in half a day. This is used to get the number of hours for AM/PM time. */
-const HALF_DAY_HOURS = 12
+export const HALF_DAY_HOURS = 12
+/** The number of milliseconds in one minute. */
+export const MINUTE_MS = 60_000
+export const MAX_DAYS_PER_MONTH = 31
+export const DAYS_PER_WEEK = 7
+export const HOURS_PER_DAY = 24
+export const HOUR_MINUTE = 60
 
 /** A mapping from the month index returned by {@link Date.getMonth} to its full name. */
 export const MONTH_NAMES = [
@@ -24,14 +27,45 @@ export const MONTH_NAMES = [
   'December',
 ]
 
-// ================
-// === DateTime ===
-// ================
+export const DAY_3_LETTER_TEXT_IDS = [
+  'sunday3',
+  'monday3',
+  'tuesday3',
+  'wednesday3',
+  'thursday3',
+  'friday3',
+  'saturday3',
+] satisfies TextId[]
+
+export const DAY_TEXT_IDS = [
+  'sunday',
+  'monday',
+  'tuesday',
+  'wednesday',
+  'thursday',
+  'friday',
+  'saturday',
+] satisfies TextId[]
+
+export const MONTH_3_LETTER_TEXT_IDS = [
+  'january3',
+  'february3',
+  'march3',
+  'april3',
+  'may3',
+  'june3',
+  'july3',
+  'august3',
+  'september3',
+  'october3',
+  'november3',
+  'december3',
+] satisfies TextId[]
 
 /** A string with date and time, following the RFC3339 specification. */
-export type Rfc3339DateTime = newtype.Newtype<string, 'Rfc3339DateTime'>
+export type Rfc3339DateTime = Newtype<string, 'Rfc3339DateTime'>
 /** Create a {@link Rfc3339DateTime}. */
-export const Rfc3339DateTime = newtype.newtypeConstructor<Rfc3339DateTime>()
+export const Rfc3339DateTime = newtypeConstructor<Rfc3339DateTime>()
 
 /**
  * Return a new {@link Date} with units below days (hours, minutes, seconds and milliseconds)
@@ -75,4 +109,14 @@ export function formatDateTimeChatFriendly(date: Date) {
 /** Format a {@link Date} as a {@link Rfc3339DateTime}. */
 export function toRfc3339(date: Date) {
   return Rfc3339DateTime(date.toISOString())
+}
+
+/** Convert a UTC date to a local date. */
+export function localDateToUtcDate(date: Date) {
+  return new Date(Number(date) + date.getTimezoneOffset() * MINUTE_MS)
+}
+
+/** Convert a local date to a UTC date. */
+export function utcDateToLocalDate(date: Date) {
+  return new Date(Number(date) - date.getTimezoneOffset() * MINUTE_MS)
 }

@@ -1,8 +1,4 @@
-/**
- * @file
- *
- * Basic input component. Input component is a component that is used to get user input in a text field.
- */
+/** @file Text input. */
 import {
   useRef,
   type CSSProperties,
@@ -32,9 +28,17 @@ import type { ExtractFunction, VariantProps } from '#/utilities/tailwindVariants
 import { omit } from 'enso-common/src/utilities/data/object'
 import { INPUT_STYLES } from '../variants'
 
-/** Props for the Input component. */
-export interface InputProps<Schema extends TSchema, TFieldName extends FieldPath<Schema>>
-  extends FieldStateProps<Omit<aria.InputProps, 'children' | 'size'>, Schema, TFieldName>,
+/** Props for an {@link Input}. */
+export interface InputProps<
+  Schema extends TSchema,
+  TFieldName extends FieldPath<Schema, Constraint>,
+  Constraint extends number | string = number | string,
+> extends FieldStateProps<
+      Omit<aria.InputProps, 'children' | 'size'>,
+      Schema,
+      TFieldName,
+      Constraint
+    >,
     FieldProps,
     FieldVariantProps,
     Omit<VariantProps<typeof INPUT_STYLES>, 'disabled' | 'invalid'>,
@@ -54,8 +58,9 @@ export interface InputProps<Schema extends TSchema, TFieldName extends FieldPath
 /** Basic input component. Input component is a component that is used to get user input in a text field. */
 export const Input = forwardRef(function Input<
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema>,
->(props: InputProps<Schema, TFieldName>, ref: ForwardedRef<HTMLDivElement>) {
+  TFieldName extends FieldPath<Schema, Constraint>,
+  Constraint extends number | string = number | string,
+>(props: InputProps<Schema, TFieldName, Constraint>, ref: ForwardedRef<HTMLDivElement>) {
   const {
     name,
     description,
@@ -82,7 +87,8 @@ export const Input = forwardRef(function Input<
   const { fieldProps, formInstance } = Form.useFieldRegister<
     Omit<aria.InputProps, 'children' | 'size'>,
     Schema,
-    TFieldName
+    TFieldName,
+    Constraint
   >({
     ...props,
     form,
