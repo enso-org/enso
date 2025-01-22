@@ -519,29 +519,71 @@ public final class Type extends EnsoObject {
   private Map<String, Function> methods() {
     if (methods == null) {
       CompilerDirectives.transferToInterpreter();
-      var allMethods = new HashMap<String, Function>();
-      var defScope = definitionScope.asModuleScope();
-      var methodsFromThisScope = defScope.getMethodsForType(this);
-      if (methodsFromThisScope != null) {
-        methodsFromThisScope.forEach(
+      methods = getMethods(true);
+    }
+    return methods;
+  }
+
+  /**
+   * Returns methods (both instance and static) defined on this type, including the ones inherited
+   * from Any. Instance methods are defined on this type, static methods are defined on its {@link
+   * #getEigentype() eigen type}. The methods defined on this type are searched for inside the
+   * module scope where this type is defined, so if there are any other extension methods defined in
+   * other modules, they are not included in the result.
+   *
+   * @param includeStaticMethods If static methods, defined on eigen type, should be included in the
+   *     result.
+   * @return All static and instance methods defined on this type, including the ones inherited from
+   *     Any.
+   */
+  @TruffleBoundary
+  public Map<String, Function> getMethods(boolean includeStaticMethods) {
+    var ctx = EnsoContext.get(null);
+    var allMethods = new HashMap<>(methodsFromAny(ctx));
+    var defScope = definitionScope.asModuleScope();
+    var methodsFromThisScope = defScope.getMethodsForType(this);
+    if (methodsFromThisScope != null) {
+      methodsFromThisScope.forEach(
+          func -> {
+            var simpleName = simpleFuncName(func);
+            allMethods.put(simpleName, func);
+          });
+    }
+    if (includeStaticMethods && eigentype != null) {
+      var methodsFromEigenScope = eigentype.getDefinitionScope().getMethodsForType(eigentype);
+      if (methodsFromEigenScope != null) {
+        methodsFromEigenScope.forEach(
             func -> {
               var simpleName = simpleFuncName(func);
               allMethods.put(simpleName, func);
             });
       }
-      if (eigentype != null) {
-        var methodsFromEigenScope = eigentype.getDefinitionScope().getMethodsForType(eigentype);
-        if (methodsFromEigenScope != null) {
-          methodsFromEigenScope.forEach(
-              func -> {
-                var simpleName = simpleFuncName(func);
-                allMethods.put(simpleName, func);
-              });
-        }
-      }
-      methods = allMethods;
     }
-    return methods;
+    return allMethods;
+  }
+
+  /**
+   * Returns methods inherited from Any. This includes both builtin methods defined on Any builtin
+   * type, and normal methods (non-builtin) defined on {@code Standard.Base.Any.Any} type. Note that
+   * the "normal" methods are present only if the {@code Standard.Base.Any} module has been
+   * imported.
+   */
+  private Map<String, Function> methodsFromAny(EnsoContext ctx) {
+    var allMethods = new HashMap<String, Function>();
+    var anyBuiltinType = ctx.getBuiltins().any();
+    var builtinMethods = anyBuiltinType.getDefinitionScope().getMethodsForType(anyBuiltinType);
+    assert builtinMethods != null : "Builtin methods must always be defined";
+    builtinMethods.forEach(m -> allMethods.put(m.getName(), m));
+    var anyModOpt = ctx.findModule("Standard.Base.Any");
+    if (anyModOpt.isPresent()) {
+      var anyMod = anyModOpt.get();
+      var anyType = anyMod.getScope().getType("Any", true);
+      assert anyType != null;
+      var methods = anyMod.getScope().getMethodsForType(anyType);
+      assert methods != null;
+      methods.forEach(m -> allMethods.put(m.getName(), m));
+    }
+    return allMethods;
   }
 
   private static String simpleFuncName(Function func) {
