@@ -6,7 +6,7 @@ export default {
   title: 'Layouts/UserBar',
   component: UserBarHelpSection,
   render: (args: UserBarHelpSectionProps) => {
-    TOPBAR_LINKS_SCHEMA.parse(args.items)
+    TOPBAR_LINKS_SCHEMA.parse({ items: args.items })
     return <UserBarHelpSection {...args} />
   },
   args: {
