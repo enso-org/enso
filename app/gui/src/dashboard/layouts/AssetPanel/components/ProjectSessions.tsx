@@ -1,48 +1,41 @@
 /** @file A list of previous versions of an asset. */
-import * as reactQuery from '@tanstack/react-query'
-
-import { assetPanelStore } from '#/layouts/AssetPanel'
-import AssetProjectSession from '#/layouts/AssetProjectSession'
-
-import type Backend from '#/services/Backend'
-
 import { Result } from '#/components/Result'
+import { AssetPanelPlaceholder } from '#/layouts/AssetPanel/components/AssetPanelPlaceholder'
 import { useText } from '#/providers/TextProvider'
+import type Backend from '#/services/Backend'
 import { AssetType, BackendType, type ProjectAsset } from '#/services/Backend'
 import { useStore } from '#/utilities/zustand'
+import { useSuspenseQuery } from '@tanstack/react-query'
+import { assetPanelStore } from '../AssetPanelState'
+import { ProjectSession } from './ProjectSession'
 
-/** Props for a {@link AssetProjectSessions}. */
-export interface AssetProjectSessionsProps {
+/** Props for a {@link ProjectSessions}. */
+export interface ProjectSessionsProps {
   readonly backend: Backend
 }
 
 /** A list of previous versions of an asset. */
-export default function AssetProjectSessions(props: AssetProjectSessionsProps) {
+export function ProjectSessions(props: ProjectSessionsProps) {
   const { backend } = props
-
   const { getText } = useText()
-
   const { item } = useStore(assetPanelStore, (state) => ({ item: state.assetPanelProps.item }), {
     unsafeEnableTransition: true,
   })
 
   if (backend.type === BackendType.local) {
-    return <Result status="info" centered title={getText('assetProjectSessions.localBackend')} />
+    return <AssetPanelPlaceholder title={getText('assetProjectSessions.localBackend')} />
   }
-
   if (item == null) {
-    return <Result status="info" centered title={getText('assetProjectSessions.notSelected')} />
+    return <AssetPanelPlaceholder title={getText('assetProjectSessions.notSelected')} />
   }
-
   if (item.type !== AssetType.project) {
-    return <Result status="info" centered title={getText('assetProjectSessions.notProjectAsset')} />
+    return <AssetPanelPlaceholder title={getText('assetProjectSessions.notProjectAsset')} />
   }
-
   return <AssetProjectSessionsInternal {...props} item={item} />
 }
 
 /** Props for a {@link AssetProjectSessionsInternal}. */
-interface AssetProjectSessionsInternalProps extends AssetProjectSessionsProps {
+interface AssetProjectSessionsInternalProps extends ProjectSessionsProps {
   readonly item: ProjectAsset
 }
 
@@ -51,7 +44,7 @@ function AssetProjectSessionsInternal(props: AssetProjectSessionsInternalProps) 
   const { backend, item } = props
   const { getText } = useText()
 
-  const projectSessionsQuery = reactQuery.useSuspenseQuery({
+  const projectSessionsQuery = useSuspenseQuery({
     queryKey: ['getProjectSessions', item.id, item.title],
     queryFn: async () => {
       const sessions = await backend.listProjectSessions(item.id, item.title)
@@ -63,7 +56,7 @@ function AssetProjectSessionsInternal(props: AssetProjectSessionsInternalProps) 
       <Result status="info" centered title={getText('assetProjectSessions.noSessions')} />
     : <div className="flex w-full flex-col justify-start">
         {projectSessionsQuery.data.map((session, i) => (
-          <AssetProjectSession
+          <ProjectSession
             key={session.projectSessionId}
             backend={backend}
             project={item}

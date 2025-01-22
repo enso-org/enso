@@ -11,7 +11,7 @@ const schema = z.object({
   plan: z.enum(['basic', 'pro', 'enterprise']),
 })
 
-type Props = SelectorProps<typeof schema, 'plan'>
+type Props = SelectorProps<typeof schema, 'plan', 'basic' | 'enterprise' | 'pro'>
 
 export default {
   title: 'Components/Inputs/Selector',

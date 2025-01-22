@@ -1,8 +1,4 @@
-/**
- * @file
- *
- * A CheckboxGroup allows users to select one or more items from a list of choices.
- */
+/** @file A selector for one or more items from a list of choices. */
 import type { CheckboxGroupProps as AriaCheckboxGroupProps } from '#/components/aria'
 import { CheckboxGroup as AriaCheckboxGroup, mergeProps } from '#/components/aria'
 import { mergeRefs } from '#/utilities/mergeRefs'
@@ -16,9 +12,11 @@ import { Form, type FieldPath, type FieldProps, type FieldStateProps, type TSche
 import type { TestIdProps } from '../types'
 import { CheckboxGroupProvider } from './CheckboxContext'
 
-/** Props for the {@link CheckboxGroupProps} component. */
-export interface CheckboxGroupProps<Schema extends TSchema, TFieldName extends FieldPath<Schema>>
-  extends FieldStateProps<AriaCheckboxGroupProps, Schema, TFieldName>,
+/** Props for the {@link CheckboxGroup} component. */
+export interface CheckboxGroupProps<
+  Schema extends TSchema,
+  TFieldName extends FieldPath<Schema, readonly string[]>,
+> extends FieldStateProps<AriaCheckboxGroupProps, Schema, TFieldName, readonly string[]>,
     FieldProps,
     FieldVariantProps,
     Omit<VariantProps<typeof CHECKBOX_GROUP_STYLES>, 'disabled' | 'invalid'>,
@@ -34,9 +32,9 @@ const CHECKBOX_GROUP_STYLES = tv({
   variants: { fullWidth: { true: 'w-full' } },
 })
 
-/** A CheckboxGroup allows users to select one or more items from a list of choices. */
+/** A selector for one or more items from a list of choices. */
 export const CheckboxGroup = forwardRef(
-  <Schema extends TSchema, TFieldName extends FieldPath<Schema>>(
+  <Schema extends TSchema, TFieldName extends FieldPath<Schema, readonly string[]>>(
     props: CheckboxGroupProps<Schema, TFieldName>,
     ref: ForwardedRef<HTMLDivElement>,
   ): ReactElement => {

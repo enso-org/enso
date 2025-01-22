@@ -8,8 +8,8 @@ import type {
   UserSession,
 } from '#/authentication/cognito'
 import { render, screen, waitFor } from '#/test'
-import { Rfc3339DateTime } from '#/utilities/dateTime'
 import HttpClient from '#/utilities/HttpClient'
+import { Rfc3339DateTime } from 'enso-common/src/utilities/data/dateTime'
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import { Suspense } from 'react'
 import { Result } from 'ts-results'

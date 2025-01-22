@@ -17,9 +17,9 @@ import { useBackendQuery } from '#/hooks/backendHooks'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import { EVENT_TYPES, EventType, type Event } from '#/services/Backend'
-import { formatDateTime } from '#/utilities/dateTime'
 import { nextSortDirection, SortDirection, type SortInfo } from '#/utilities/sorting'
 import { twMerge } from '#/utilities/tailwindMerge'
+import { formatDateTime } from 'enso-common/src/utilities/data/dateTime'
 
 // =================
 // === Constants ===
