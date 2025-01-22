@@ -167,7 +167,9 @@ export default function PathColumn(props: AssetColumnProps) {
             <SvgMask src={FolderArrowIcon} className="h-3 w-3" />
             <SvgMask src={lastItemInPath.icon} className="h-3 w-3" />
 
-            <Text color="custom">{lastItemInPath.label}</Text>
+            <Text color="custom" truncate="1" className="max-w-48">
+              {lastItemInPath.label}
+            </Text>
           </div>
         </Button>
 
@@ -234,7 +236,9 @@ function PathItem(props: PathItemProps) {
       loaderPosition="icon"
       data-testid={`path-column-item-${label.toLowerCase().replace(/\s+/g, '-')}`}
     >
-      {label}
+      <Text color="custom" truncate="1" className="max-w-48">
+        {label}
+      </Text>
     </Button>
   )
 }

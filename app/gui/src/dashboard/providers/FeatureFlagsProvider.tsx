@@ -4,18 +4,33 @@
  * Feature flags provider.
  * Feature flags are used to enable or disable certain features in the application.
  */
+import { unsafeWriteValue } from '#/utilities/write'
 import { createStore, useStore } from '#/utilities/zustand'
 import { IS_DEV_MODE, isOnElectron } from 'enso-common/src/detect'
 import { z } from 'zod'
-
 import { persist } from 'zustand/middleware'
-import { unsafeWriteValue } from '../utilities/write'
+
+const MIN_ASSETS_TABLE_REFRESH_INTERVAL_MS = 100
+const DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS = 3_000
+
+/**
+ * Feature flags for internal testing.
+ */
+export function featureFlagsForInternalTesting() {
+  return {
+    enableCloudExecution: true,
+    enableAsyncExecution: true,
+    enableAdvancedProjectExecutionOptions: true,
+  }
+}
+
 export const FEATURE_FLAGS_SCHEMA = z.object({
   enableMultitabs: z.boolean(),
   enableAssetsTableBackgroundRefresh: z.boolean(),
-  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-  assetsTableBackgroundRefreshInterval: z.number().min(100),
+  assetsTableBackgroundRefreshInterval: z.number().min(MIN_ASSETS_TABLE_REFRESH_INTERVAL_MS),
   enableCloudExecution: z.boolean(),
+  enableAsyncExecution: z.boolean(),
+  enableAdvancedProjectExecutionOptions: z.boolean(),
 })
 
 /** Feature flags. */
@@ -24,10 +39,11 @@ export type FeatureFlags = z.infer<typeof FEATURE_FLAGS_SCHEMA>
 /** Feature flags store. */
 export interface FeatureFlagsStore {
   readonly featureFlags: FeatureFlags
-  readonly setFeatureFlags: <Key extends keyof FeatureFlags>(
+  readonly setFeatureFlag: <Key extends keyof FeatureFlags>(
     key: Key,
     value: FeatureFlags[Key],
   ) => void
+  readonly setFeatureFlags: (flags: Partial<FeatureFlags>) => void
 }
 
 const flagsStore = createStore<FeatureFlagsStore>()(
@@ -36,12 +52,16 @@ const flagsStore = createStore<FeatureFlagsStore>()(
       featureFlags: {
         enableMultitabs: false,
         enableAssetsTableBackgroundRefresh: true,
-        // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-        assetsTableBackgroundRefreshInterval: 3_000,
+        assetsTableBackgroundRefreshInterval: DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS,
         enableCloudExecution: IS_DEV_MODE || isOnElectron(),
+        enableAsyncExecution: false,
+        enableAdvancedProjectExecutionOptions: true,
       },
-      setFeatureFlags: (key, value) => {
+      setFeatureFlag: (key, value) => {
         set(({ featureFlags }) => ({ featureFlags: { ...featureFlags, [key]: value } }))
+      },
+      setFeatureFlags: (flags) => {
+        set(({ featureFlags }) => ({ featureFlags: { ...featureFlags, ...flags } }))
       },
     }),
     {
@@ -99,6 +119,11 @@ export function useFeatureFlag<Key extends keyof FeatureFlagsStore['featureFlags
 /** Hook to set feature flags. */
 export function useSetFeatureFlags() {
   return useStore(flagsStore, ({ setFeatureFlags }) => setFeatureFlags)
+}
+
+/** Hook to set a specific feature flag. */
+export function useSetFeatureFlag() {
+  return useStore(flagsStore, ({ setFeatureFlag }) => setFeatureFlag)
 }
 
 // Define global API for managing feature flags

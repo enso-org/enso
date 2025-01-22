@@ -1,7 +1,6 @@
 /**
  * @file
- *
- * `<AnimatedBackground />` component visually highlights selected items by sliding a background into view when hovered over or clicked.
+ * Visually highlight selected items by sliding a background into view when hovered over or clicked.
  */
 import type { Transition, Variants } from 'framer-motion'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -56,9 +55,7 @@ export function AnimatedBackground(props: AnimatedBackgroundProps) {
   )
 }
 
-/**
- * Props for {@link AnimatedBackground.Item}.
- */
+/** Props for {@link AnimatedBackground.Item}. */
 type AnimatedBackgroundItemProps = PropsWithChildren<
   AnimatedBackgroundItemPropsWithSelected | AnimatedBackgroundItemPropsWithValue
 > & {
@@ -67,17 +64,13 @@ type AnimatedBackgroundItemProps = PropsWithChildren<
   readonly underlayElement?: React.ReactNode
 }
 
-/**
- * Props for {@link AnimatedBackground.Item} with a `value` prop.
- */
+/** Props for {@link AnimatedBackground.Item} with a `value` prop. */
 interface AnimatedBackgroundItemPropsWithValue {
   readonly value: string
   readonly isSelected?: never
 }
 
-/**
- * Props for {@link AnimatedBackground.Item} with a `isSelected` prop.
- */
+/** Props for {@link AnimatedBackground.Item} with a `isSelected` prop. */
 interface AnimatedBackgroundItemPropsWithSelected {
   readonly isSelected: boolean
   readonly value?: never
@@ -126,9 +119,7 @@ AnimatedBackground.Item = memo(function AnimatedBackgroundItem(props: AnimatedBa
   )
 })
 
-/**
- * Props for {@link AnimatedBackgroundItemUnderlay}.
- */
+/** Props for {@link AnimatedBackgroundItemUnderlay}. */
 interface AnimatedBackgroundItemUnderlayProps {
   readonly isActive: boolean
   readonly underlayElement: React.ReactNode
@@ -141,9 +132,7 @@ const VARIANTS: Variants = {
   visible: { opacity: 1 },
 }
 
-/**
- * Underlay for {@link AnimatedBackground.Item}.
- */
+/** Underlay for {@link AnimatedBackground.Item}. */
 // eslint-disable-next-line no-restricted-syntax
 const AnimatedBackgroundItemUnderlay = memo(function AnimatedBackgroundItemUnderlay(
   props: AnimatedBackgroundItemUnderlayProps,

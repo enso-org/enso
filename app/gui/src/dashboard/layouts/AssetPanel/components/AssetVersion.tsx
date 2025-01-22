@@ -15,9 +15,9 @@ import * as backendService from '#/services/Backend'
 import { duplicateProjectMutationOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOpenProject } from '#/hooks/projectHooks'
-import * as dateTime from '#/utilities/dateTime'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { formatDateTime } from 'enso-common/src/utilities/data/dateTime'
 
 /** Props for a {@link AssetVersion}. */
 export interface AssetVersionProps {
@@ -31,7 +31,7 @@ export interface AssetVersionProps {
 }
 
 /** Displays information describing a specific version of an asset. */
-export default function AssetVersion(props: AssetVersionProps) {
+export function AssetVersion(props: AssetVersionProps) {
   const { placeholder = false, number, version, item, backend, latestVersion, doRestore } = props
   const { getText } = textProvider.useText()
   const queryClient = useQueryClient()
@@ -65,7 +65,7 @@ export default function AssetVersion(props: AssetVersionProps) {
         </div>
 
         <time className="text-xs text-not-selected">
-          {getText('onDateX', dateTime.formatDateTime(new Date(version.lastModified)))}
+          {getText('onDateX', formatDateTime(new Date(version.lastModified)))}
         </time>
       </div>
 
