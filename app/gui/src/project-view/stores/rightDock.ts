@@ -24,12 +24,15 @@ export enum StorageMode {
 export const [provideRightDock, useRightDock] = createContextStore(
   'rightDock',
   (graph: GraphStore, persisted: PersistedStore) => {
-    const inspectedAst = computed(() => unwrapOr(graph.methodAst, undefined))
+    const currentMethodAst = computed(() => unwrapOr(graph.methodAst, undefined))
+    const inspectedAst = computed(() =>
+      currentMethodAst.value?.name.code() !== 'main' ? currentMethodAst.value : undefined,
+    )
     const inspectedMethodPointer = computed(() => unwrapOr(graph.currentMethodPointer, undefined))
     const { user: userSettings } = useSettings()
 
     const storageMode = ref(StorageMode.Default)
-    const markdownDocs = computed(() => inspectedAst.value?.mutableDocumentationMarkdown())
+    const markdownDocs = computed(() => currentMethodAst.value?.mutableDocumentationMarkdown())
 
     const defaultVisible = computedFallback(
       toRef(persisted, 'graphRightDock'),
