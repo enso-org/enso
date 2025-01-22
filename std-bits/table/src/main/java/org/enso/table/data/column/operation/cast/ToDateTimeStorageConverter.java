@@ -28,7 +28,7 @@ public class ToDateTimeStorageConverter implements StorageConverter<ZonedDateTim
   }
 
   public Storage<ZonedDateTime> castFromMixed(
-      ColumnStorage mixedStorage, CastProblemAggregator problemAggregator) {
+      ColumnStorage<?> mixedStorage, CastProblemAggregator problemAggregator) {
     return StorageConverter.innerLoop(
         Builder.getForDateTime(mixedStorage.getSize()),
         mixedStorage,

@@ -82,7 +82,7 @@ public class ToBigIntegerConverter implements StorageConverter<BigInteger> {
   }
 
   private Storage<BigInteger> castFromMixed(
-      ColumnStorage storage, CastProblemAggregator problemAggregator) {
+      ColumnStorage<?> storage, CastProblemAggregator problemAggregator) {
     return StorageConverter.innerLoop(
         Builder.getForBigInteger(storage.getSize(), problemAggregator),
         storage,

@@ -53,7 +53,7 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
   /** Specialised innerLoop so that we can avoid boxing. */
   static Storage<Double> innerLoop(
       BuilderForDouble builder,
-      ColumnStorage storage,
+      ColumnStorage<?> storage,
       ObjLongConsumer<BuilderForDouble> converter) {
     Context context = Context.getCurrent();
 
@@ -72,7 +72,7 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
   }
 
   private Storage<Double> castFromMixed(
-      ColumnStorage mixedStorage, CastProblemAggregator problemAggregator) {
+      ColumnStorage<?> mixedStorage, CastProblemAggregator problemAggregator) {
     return innerLoop(
         Builder.getForDouble(FloatType.FLOAT_64, mixedStorage.getSize(), problemAggregator),
         mixedStorage,

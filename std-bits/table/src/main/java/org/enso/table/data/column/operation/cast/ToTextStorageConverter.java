@@ -55,7 +55,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
   }
 
   private Storage<String> castFromMixed(
-      ColumnStorage mixedStorage, CastProblemAggregator problemAggregator) {
+      ColumnStorage<?> mixedStorage, CastProblemAggregator problemAggregator) {
     return StorageConverter.innerLoop(
         Builder.getForText(mixedStorage.getSize(), targetType),
         mixedStorage,

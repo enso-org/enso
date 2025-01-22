@@ -27,7 +27,7 @@ public class ToDateStorageConverter implements StorageConverter<LocalDate> {
   }
 
   private Storage<LocalDate> castFromMixed(
-      ColumnStorage mixedStorage, CastProblemAggregator problemAggregator) {
+      ColumnStorage<?> mixedStorage, CastProblemAggregator problemAggregator) {
     return StorageConverter.innerLoop(
         Builder.getForDate(mixedStorage.getSize()),
         mixedStorage,

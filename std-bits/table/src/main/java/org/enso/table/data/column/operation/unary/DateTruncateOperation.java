@@ -17,13 +17,13 @@ public class DateTruncateOperation extends AbstractUnaryOperation {
   }
 
   @Override
-  public boolean canApply(ColumnStorage storage) {
+  public boolean canApply(ColumnStorage<?> storage) {
     return storage.getType() == DateTimeType.INSTANCE;
   }
 
   @Override
   protected Builder createBuilder(
-      ColumnStorage storage, MapOperationProblemAggregator problemAggregator) {
+      ColumnStorage<?> storage, MapOperationProblemAggregator problemAggregator) {
     return Builder.getForType(DateType.INSTANCE, storage.getSize(), problemAggregator);
   }
 

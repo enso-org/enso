@@ -32,7 +32,7 @@ public interface UnaryOperation {
       UnaryOperation operation,
       String newColumnName,
       MapOperationProblemAggregator problemAggregator) {
-    ColumnStorage storage = column.getStorage();
+    ColumnStorage<?> storage = column.getStorage();
 
     // If the storage has an inferred storage (e.g. a Mixed column) and the first level can't do get
     // an inferred storage.
@@ -87,13 +87,13 @@ public interface UnaryOperation {
   String getName();
 
   /** Can the operation be applied to the given Storage? */
-  boolean canApply(ColumnStorage storage);
+  boolean canApply(ColumnStorage<?> storage);
 
   /** Applies the operation to the given Storage. */
-  ColumnStorage apply(ColumnStorage storage, MapOperationProblemAggregator problemAggregator);
+  ColumnStorage<?> apply(ColumnStorage<?> storage, MapOperationProblemAggregator problemAggregator);
 
   private static void applyStorageInner(
-      ColumnStorage columnStorage,
+      ColumnStorage<?> columnStorage,
       boolean nothingUnchanged,
       Builder builder,
       LongConsumer callback) {
@@ -111,7 +111,7 @@ public interface UnaryOperation {
 
   /** Applies the operation to the given Storage. */
   static void applyOverObjectStorage(
-      ColumnStorage objectStorage,
+      ColumnStorage<?> objectStorage,
       boolean nothingUnchanged,
       Builder builder,
       Consumer<Object> function) {

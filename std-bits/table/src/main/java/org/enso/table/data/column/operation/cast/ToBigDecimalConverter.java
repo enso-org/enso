@@ -82,7 +82,7 @@ public class ToBigDecimalConverter implements StorageConverter<BigDecimal> {
   }
 
   private Storage<BigDecimal> castFromMixed(
-      ColumnStorage storage, CastProblemAggregator problemAggregator) {
+      ColumnStorage<?> storage, CastProblemAggregator problemAggregator) {
     return StorageConverter.innerLoop(
         Builder.getForBigDecimal(storage.getSize()),
         storage,

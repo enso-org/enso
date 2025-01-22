@@ -17,12 +17,12 @@ public class CountUntrimmed {
 
   /** Counts the number of cells in the columns with leading or trailing whitespace. */
   public static Long apply(Column column, long sampleSize) throws InterruptedException {
-    ColumnStorage storage = column.getStorage();
+    var storage = column.getStorage();
     return applyToStorage(storage, sampleSize);
   }
 
   /** Counts the number of cells in the given storage with leading or trailing whitespace. */
-  public static Long applyToStorage(ColumnStorage storage, long sampleSize)
+  public static Long applyToStorage(ColumnStorage<?> storage, long sampleSize)
       throws InterruptedException {
     return (sampleSize == DEFAULT_SAMPLE_SIZE && storage instanceof StringStorage stringStorage)
         ? stringStorage.cachedUntrimmedCount()

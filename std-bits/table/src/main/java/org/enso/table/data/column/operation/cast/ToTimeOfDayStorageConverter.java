@@ -27,7 +27,7 @@ public class ToTimeOfDayStorageConverter implements StorageConverter<LocalTime> 
   }
 
   private Storage<LocalTime> castFromMixed(
-      ColumnStorage mixedStorage, CastProblemAggregator problemAggregator) {
+      ColumnStorage<?> mixedStorage, CastProblemAggregator problemAggregator) {
     return StorageConverter.innerLoop(
         Builder.getForTime(mixedStorage.getSize()),
         mixedStorage,
