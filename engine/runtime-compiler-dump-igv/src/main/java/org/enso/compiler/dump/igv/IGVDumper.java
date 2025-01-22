@@ -7,8 +7,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.HashMap;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.dump.service.IRDumper;
 import org.graalvm.graphio.GraphOutput;
@@ -22,8 +20,6 @@ public final class IGVDumper implements IRDumper {
   private final String moduleName;
   private final Path outPath;
   private final GraphOutput<EnsoModuleAST, ASTMethod> graphOutput;
-  private final ConcurrentLinkedQueue<CompletableFuture<Void>> tasks =
-      new ConcurrentLinkedQueue<>();
   private int currGraphId;
   private boolean groupCreated;
 
@@ -122,6 +118,4 @@ public final class IGVDumper implements IRDumper {
       throw new IllegalStateException(e);
     }
   }
-
-  private record PassGraph(String passName, EnsoModuleAST ast) {}
 }
