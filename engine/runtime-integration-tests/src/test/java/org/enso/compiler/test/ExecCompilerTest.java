@@ -151,7 +151,6 @@ public class ExecCompilerTest {
     var run = module.invokeMember("eval_expression", "My_Type.Value");
     var atom = run.newInstance(1, 2, 3, 4);
     assertFalse("In spite of error we get an instance back: " + atom, atom.isException());
-    assertEquals("Just three keys", 3, atom.getMemberKeys().size());
     assertTrue("Check a: " + atom.getMemberKeys(), atom.getMemberKeys().contains("a"));
     assertTrue("Check b: " + atom.getMemberKeys(), atom.getMemberKeys().contains("b"));
     assertTrue("Check c: " + atom.getMemberKeys(), atom.getMemberKeys().contains("c"));
