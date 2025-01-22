@@ -37,8 +37,6 @@ const DEFAULT_TRANSITION: Transition = {
 }
 /* eslint-enable @typescript-eslint/no-magic-numbers */
 
-/* eslint-enable @typescript-eslint/no-magic-numbers */
-
 /** `<AnimatedBackground />` component visually highlights selected items by sliding a background into view when hovered over or clicked. */
 export function AnimatedBackground(props: AnimatedBackgroundProps) {
   const { value, transition = DEFAULT_TRANSITION, children } = props
