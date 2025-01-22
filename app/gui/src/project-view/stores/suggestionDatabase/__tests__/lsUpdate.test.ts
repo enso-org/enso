@@ -244,13 +244,6 @@ test('Adding new argument', () => {
   test.check(db)
 })
 
-const bazMap = {
-  foo: 'Ba',
-  bar: 'Bar',
-}
-
-type X = keyof typeof bazMap
-
 test('Modifying arguments', () => {
   const newArg1 = {
     name: 'c',
