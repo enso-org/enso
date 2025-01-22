@@ -66,6 +66,7 @@ export class ProjectPath {
     return [this.withPath(parent || undefined), ident]
   }
 
+  /** Removes the `Main` segment representing the top level module of the project, if present, and returns the result. */
   normalized(): ProjectPath {
     if (!this.path) return this
     const normalized = this.path.match(/^Main(?:\.(.+))?$/)
