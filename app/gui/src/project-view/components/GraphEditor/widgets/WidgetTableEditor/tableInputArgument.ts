@@ -15,7 +15,7 @@ import type { ColumnSpecificParams } from './TableHeader.vue'
 
 /** Id of a fake column with "Add new column" option. */
 export const NEW_COLUMN_ID = 'NewColumn'
-const ROW_INDEX_COLUMN_ID = 'RowIndex'
+export const ROW_INDEX_COLUMN_ID = 'RowIndex'
 /** A header of Row Index Column. */
 export const ROW_INDEX_HEADER = '#'
 /** A default prefix added to the column's index in newly created columns. */

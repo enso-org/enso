@@ -10,12 +10,19 @@ import {
 } from 'ag-grid-enterprise'
 import { computed, ref, toValue, watch } from 'vue'
 
-interface EditedCell {
+export interface EditedCell {
   rowIndex: number | 'header'
   colKey: string
 }
 
-export function useTableEditHandlers(
+/**
+ * A composable containing logic for WidgetTableEditor's edit handler.
+ *
+ * Contains logic of synchronizing state between AgGrid cells and our custom headers,
+ * and react for user input received from them.
+ * @param pointerdown should check if click is outside input element inside the grid.
+ */
+export function useTableEditHandler(
   gridApi: ToValue<
     | {
         stopEditing(cancel: boolean): void
@@ -146,5 +153,16 @@ export function useTableEditHandlers(
     editedCell.value = { rowIndex: nextRow, colKey: firstColumn.value.colId }
   }
 
-  return { handler, editedCell, gridEventHandlers, headerEventHandlers }
+  return {
+    /** WidgetEdit handler representing grid editing */
+    handler,
+    editedCell,
+    /** All event handlers for AgGridVue component */
+    gridEventHandlers,
+    /**
+     * Handlers for header events - they should be called in all `onHeader...` methods in header
+     * params
+     */
+    headerEventHandlers,
+  }
 }

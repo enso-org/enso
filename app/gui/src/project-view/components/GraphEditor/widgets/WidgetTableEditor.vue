@@ -28,7 +28,7 @@ import { ComponentInstance, computed, proxyRefs, ref } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
 import { z } from 'zod'
 import TableHeader, { HeaderParams } from './WidgetTableEditor/TableHeader.vue'
-import { useTableEditHandlers } from './WidgetTableEditor/editHandlers'
+import { useTableEditHandler } from './WidgetTableEditor/editHandlers'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
@@ -66,7 +66,7 @@ const { rowData, columnDefs, moveColumn, moveRow, pasteFromClipboard } = useTabl
 
 // === Edit Handlers ===
 
-const { editedCell, gridEventHandlers, headerEventHandlers } = useTableEditHandlers(
+const { editedCell, gridEventHandlers, headerEventHandlers } = useTableEditHandler(
   () => grid.value?.gridApi,
   () => props.input,
   columnDefs,
