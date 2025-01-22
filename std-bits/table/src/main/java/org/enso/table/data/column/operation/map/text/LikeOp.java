@@ -52,7 +52,7 @@ public class LikeOp extends StringBooleanOp {
       for (int i = 0; i < storage.size(); i++) {
         if (storage.isNothing(i)) {
           newIsNothing.set(i);
-        } else if (pattern.matcher(storage.getItem(i)).matches()) {
+        } else if (pattern.matcher(storage.getBoxed(i)).matches()) {
           newVals.set(i);
         }
 

@@ -93,7 +93,7 @@ public class Sum extends Aggregator {
       if (storage instanceof AbstractLongStorage longStorage) {
         for (int row : indexes) {
           if (!longStorage.isNothing(row)) {
-            addLong(longStorage.getItem(row));
+            addLong(longStorage.get(row));
           }
           context.safepoint();
         }
@@ -172,7 +172,7 @@ public class Sum extends Aggregator {
       if (storage instanceof DoubleStorage doubleStorage) {
         for (int row : indexes) {
           if (!doubleStorage.isNothing(row)) {
-            addDouble(doubleStorage.getItem(row));
+            addDouble(doubleStorage.get(row));
           }
           context.safepoint();
         }

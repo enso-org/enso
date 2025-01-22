@@ -28,7 +28,7 @@ public class LongNullHandling {
         if (storage.isNothing(i) || arg.isNothing(i)) {
           isNothing.set(i);
         } else {
-          newVals[i] = doLong(storage.getItem(i), arg.getItem(i), i, problemAggregator);
+          newVals[i] = doLong(storage.get(i), arg.get(i), i, problemAggregator);
         }
       }
       return new LongStorage(newVals, n, isNothing, IntegerType.INT_64);
@@ -50,7 +50,7 @@ public class LongNullHandling {
         if (storage.isNothing(i) || arg.isNothing(i)) {
           isNothing.set(i);
         } else {
-          Long x = doLong(storage.getItem(i), arg.getItem(i), i, problemAggregator);
+          Long x = doLong(storage.get(i), arg.get(i), i, problemAggregator);
           if (x == null) {
             isNothing.set(i);
           } else {
@@ -90,7 +90,7 @@ public class LongNullHandling {
           isNothing.set(i);
         } else {
           long x =
-              doLong(storage.getItem(i), arg.getItem(i), i, problemAggregator, nullityReporter);
+              doLong(storage.get(i), arg.get(i), i, problemAggregator, nullityReporter);
           if (nullityReporter.wasLastNull) {
             isNothing.set(i);
             nullityReporter.wasLastNull = false;

@@ -3,9 +3,11 @@ package org.enso.table.operations;
 import java.util.BitSet;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.base.statistics.Statistic;
+import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
+import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.IgnoredNaN;
@@ -138,14 +140,17 @@ public class AddRunning {
     @Override
     public Storage<Double> createStorage(long[] result, int size, BitSet isNothing) {
       // Have to convert the long[] to double[].
-      double[] values = new double[size];
+      var builder = Builder.getForDouble(FloatType.FLOAT_64, size, null);
+
       for (int i = 0; i < size; i++) {
         if (!isNothing.get(i)) {
-          values[i] = Double.longBitsToDouble(result[i]);
+          builder.append(Double.longBitsToDouble(result[i]));
+        } else {
+          builder.appendNulls(1);
         }
       }
 
-      return new DoubleStorage(values, size, isNothing);
+      return builder.seal();
     }
   }
 

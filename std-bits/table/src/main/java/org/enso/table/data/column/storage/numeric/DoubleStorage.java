@@ -38,7 +38,7 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
 /** A column containing floating point numbers. */
-public final class DoubleStorage extends NumericStorage<Double>
+public final class DoubleStorage extends Storage<Double>
     implements DoubleArrayAdapter, ColumnStorageWithNothingMap, ColumnDoubleStorage {
   private final double[] data;
   private final BitSet isNothing;
@@ -63,46 +63,47 @@ public final class DoubleStorage extends NumericStorage<Double>
     return new DoubleStorage(new double[0], size, isNothing);
   }
 
-  /**
-   * @inheritDoc
-   */
   @Override
-  public int size() {
+  public long getSize() {
     return size;
   }
 
-  /**
-   * @param idx an index
-   * @return the data item contained at the given index.
-   */
-  public double getItem(long idx) {
-    return data[(int) idx];
+  @Override
+  public Double getBoxed(long idx) {
+    return isNothing(idx) ? null : data[Math.toIntExact(idx)];
   }
 
   @Override
-  public Double getItemBoxed(int idx) {
-    return isNothing.get(idx) ? null : data[idx];
+  public BitSet getIsNothingMap() {
+    return isNothing;
   }
 
-  /**
-   * @inheritDoc
-   */
+  @Override
+  public double get(long index) throws ValueIsNothingException {
+    if (isNothing(index)) {
+      throw new ValueIsNothingException(index);
+    }
+    return data[Math.toIntExact(index)];
+  }
+
   @Override
   public StorageType getType() {
     return FloatType.FLOAT_64;
   }
 
-  /**
-   * @inheritDoc
-   */
+  @Override
+  public double getItemAsDouble(int i) {
+    return get(i);
+  }
+
   @Override
   public boolean isNothing(long idx) {
     return isNothing.get((int) idx);
   }
 
-  @Override
-  public double getItemAsDouble(int i) {
-    return data[i];
+  /** Used by the DoubleBuilder in appendBulkStorage. */
+  public double[] getRawData() {
+    return data;
   }
 
   @Override
@@ -276,10 +277,6 @@ public final class DoubleStorage extends NumericStorage<Double>
     return new DoubleStorage(newData, newData.length, newIsNothing);
   }
 
-  public double[] getRawData() {
-    return data;
-  }
-
   private static MapOperationStorage<Double, DoubleStorage> buildOps() {
     MapOperationStorage<Double, DoubleStorage> ops = new MapOperationStorage<>();
     ops.add(new AddOp<>())
@@ -402,7 +399,7 @@ public final class DoubleStorage extends NumericStorage<Double>
               return null;
             }
 
-            double value = parent.getItem(idx);
+            double value = parent.get(idx);
             assert value % 1.0 == 0.0
                 : "The value " + value + " should be a whole number (guaranteed by checks).";
             return (long) value;
@@ -411,18 +408,5 @@ public final class DoubleStorage extends NumericStorage<Double>
 
     // And rely on its shrinking logic.
     return longAdapter.inferPreciseTypeShrunk();
-  }
-
-  @Override
-  public BitSet getIsNothingMap() {
-    return isNothing;
-  }
-
-  @Override
-  public double get(long index) throws ValueIsNothingException {
-    if (isNothing(index)) {
-      throw new ValueIsNothingException(index);
-    }
-    return getItem(Math.toIntExact(index));
   }
 }

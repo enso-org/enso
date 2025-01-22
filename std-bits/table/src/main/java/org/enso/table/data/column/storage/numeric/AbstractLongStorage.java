@@ -1,6 +1,9 @@
 package org.enso.table.data.column.storage.numeric;
 
 import java.util.BitSet;
+import java.util.List;
+
+import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.numeric.LongRoundOp;
@@ -18,16 +21,58 @@ import org.enso.table.data.column.operation.map.numeric.comparisons.GreaterOrEqu
 import org.enso.table.data.column.operation.map.numeric.comparisons.LessComparison;
 import org.enso.table.data.column.operation.map.numeric.comparisons.LessOrEqualComparison;
 import org.enso.table.data.column.operation.map.numeric.isin.LongIsInOp;
-import org.enso.table.data.column.storage.*;
+import org.enso.table.data.column.storage.BoolStorage;
+import org.enso.table.data.column.storage.ColumnLongStorage;
+import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
+import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ValueIsNothingException;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
+import org.enso.table.data.mask.OrderMask;
+import org.enso.table.data.mask.SliceRange;
 import org.graalvm.polyglot.Context;
 
-public abstract class AbstractLongStorage extends NumericStorage<Long>
+public abstract class AbstractLongStorage extends Storage<Long>
     implements ColumnLongStorage, ColumnStorageWithNothingMap {
-  public abstract long getItem(int idx);
-
   private static final MapOperationStorage<Long, AbstractLongStorage> ops = buildOps();
+
+  private final long size;
+  private final IntegerType type;
+  protected BitSet isNothing;
+
+  protected AbstractLongStorage(long size, IntegerType type, BitSet isNothing) {
+    this.size = size;
+    this.type = type;
+    this.isNothing = isNothing;
+  }
+
+  @Override
+  public final long getSize() {
+    return size;
+  }
+
+  @Override
+  public IntegerType getType() {
+    return type;
+  }
+
+  @Override
+  public Long getBoxed(long index) {
+    return isNothing(index) ? null : get(index);
+  }
+
+  @Override
+  public boolean isNothing(long idx) {
+    return isNothing.get((int) idx);
+  }
+
+  @Override
+  public BitSet getIsNothingMap() {
+    return isNothing;
+  }
+
+  @Override
+  public abstract long get(long index) throws ValueIsNothingException;
 
   @Override
   public boolean isBinaryOpVectorized(String name) {
@@ -60,8 +105,6 @@ public abstract class AbstractLongStorage extends NumericStorage<Long>
     return ops.runZip(name, this, argument, problemAggregator);
   }
 
-  @Override
-  public abstract IntegerType getType();
 
   @Override
   public StorageType inferPreciseType() {
@@ -88,7 +131,7 @@ public abstract class AbstractLongStorage extends NumericStorage<Long>
         continue;
       }
 
-      long item = getItem(i);
+      long item = get(i);
       while (!possibleTypes[currentTypeIdx].fits(item)) {
         currentTypeIdx++;
       }
@@ -124,15 +167,14 @@ public abstract class AbstractLongStorage extends NumericStorage<Long>
   }
 
   @Override
-  public AbstractLongStorage fillMissingFromPrevious(BoolStorage missingIndicator) {
+  public Storage<Long> fillMissingFromPrevious(BoolStorage missingIndicator) {
     if (missingIndicator != null) {
       throw new IllegalStateException(
           "Custom missing value semantics are not supported by AbstractLongStorage.");
     }
 
     int n = size();
-    long[] newData = new long[n];
-    BitSet newIsNothing = new BitSet();
+    var builder = Builder.getForLong(IntegerType.INT_64, n, null);
     long previousValue = 0;
     boolean hasPrevious = false;
 
@@ -141,13 +183,13 @@ public abstract class AbstractLongStorage extends NumericStorage<Long>
       boolean isCurrentNothing = isNothing(i);
       if (isCurrentNothing) {
         if (hasPrevious) {
-          newData[i] = previousValue;
+          builder.appendLong(previousValue);
         } else {
-          newIsNothing.set(i);
+          builder.appendNulls(1);
         }
       } else {
-        long currentValue = getItem(i);
-        newData[i] = currentValue;
+        long currentValue = get(i);
+        builder.appendLong(currentValue);
         previousValue = currentValue;
         hasPrevious = true;
       }
@@ -155,7 +197,7 @@ public abstract class AbstractLongStorage extends NumericStorage<Long>
       context.safepoint();
     }
 
-    return new LongStorage(newData, n, newIsNothing, getType());
+    return builder.seal();
   }
 
   /**
@@ -166,13 +208,90 @@ public abstract class AbstractLongStorage extends NumericStorage<Long>
   public abstract AbstractLongStorage widen(IntegerType widerType);
 
   @Override
-  public long get(long index) throws ValueIsNothingException {
-    if (isNothing(index)) {
-      throw new ValueIsNothingException(index);
+  public Storage<Long> applyFilter(BitSet filterMask, int newLength) {
+    var builder = Builder.getForLong(IntegerType.INT_64, newLength, null);
+    Context context = Context.getCurrent();
+    for (int i = 0; i < getSize(); i++) {
+      if (filterMask.get(i)) {
+        if (isNothing(i)) {
+          builder.appendNulls(1);
+        } else {
+          builder.appendLong(get(i));
+        }
+      }
+
+      context.safepoint();
     }
-    return getItem((int) index);
+    return builder.seal();
   }
 
   @Override
-  public abstract BitSet getIsNothingMap();
+  public Storage<Long> applyMask(OrderMask mask) {
+    var builder = Builder.getForLong(IntegerType.INT_64, mask.length(), null);
+    Context context = Context.getCurrent();
+    for (int i = 0; i < mask.length(); i++) {
+      int position = mask.get(i);
+      if (position == Storage.NOT_FOUND_INDEX || isNothing(position)) {
+        builder.appendNulls(1);
+      } else {
+        builder.appendLong(get(position));
+      }
+
+      context.safepoint();
+    }
+    return builder.seal();
+  }
+
+  @Override
+  public Storage<Long> slice(int offset, int limit) {
+    int size = (int)getSize();
+    int newSize = Math.min(size - offset, limit);
+    var builder = Builder.getForLong(IntegerType.INT_64, newSize, null);
+    Context context = Context.getCurrent();
+    for (int i = 0; i < newSize; i++) {
+      if (isNothing(offset + i)) {
+        builder.appendNulls(1);
+      } else {
+        builder.appendLong(get(offset + i));
+      }
+      context.safepoint();
+    }
+    return builder.seal();
+  }
+
+  @Override
+  public Storage<Long> slice(List<SliceRange> ranges) {
+    int newSize = SliceRange.totalLength(ranges);
+    var builder = Builder.getForLong(IntegerType.INT_64, newSize, null);
+    Context context = Context.getCurrent();
+    for (SliceRange range : ranges) {
+      int rangeStart = range.start();
+      int length = range.end() - rangeStart;
+      for (int i = 0; i < length; i++) {
+        if (isNothing(rangeStart + i)) {
+          builder.appendNulls(1);
+        } else {
+          builder.appendLong(get(rangeStart + i));
+        }
+        context.safepoint();
+      }
+    }
+    return builder.seal();
+  }
+
+  @Override
+  public Storage<Long> appendNulls(int count) {
+    final AbstractLongStorage parent = this;
+    int size = (int)parent.getSize();
+    return new ComputedNullableLongStorage(size + count) {
+      @Override
+      protected Long computeItem(int idx) {
+        if (idx < size) {
+          return parent.getBoxed(idx);
+        } else {
+          return null;
+        }
+      }
+    };
+  }
 }

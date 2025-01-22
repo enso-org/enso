@@ -38,27 +38,26 @@ public class DoubleRoundOp extends TernaryMapOperation<Double, DoubleStorage> {
 
     if (decimalPlaces <= 0) {
       // Return Long storage
-      long[] out = new long[storage.size()];
-      BitSet isNothing = new BitSet();
+      var longBuilder = Builder.getForLong(IntegerType.INT_64, storage.size(), problemAggregator);
 
       for (int i = 0; i < storage.size(); i++) {
         if (!storage.isNothing(i)) {
-          double item = storage.getItemAsDouble(i);
+          double item = storage.get(i);
           boolean special = Double.isNaN(item) || Double.isInfinite(item);
           if (!special) {
-            out[i] = (long) Core_Math_Utils.roundDouble(item, decimalPlaces, useBankers);
+            longBuilder.appendLong((long) Core_Math_Utils.roundDouble(item, decimalPlaces, useBankers));
           } else {
             String msg = "Value is " + item;
             problemAggregator.reportArithmeticError(msg, i);
-            isNothing.set(i);
+            longBuilder.appendNulls(1);
           }
         } else {
-          isNothing.set(i);
+          longBuilder.appendNulls(1);
         }
 
         context.safepoint();
       }
-      return new LongStorage(out, storage.size(), isNothing, IntegerType.INT_64);
+      return longBuilder.seal();
     } else {
       // Return double storage.
       var doubleBuilder =
@@ -66,7 +65,7 @@ public class DoubleRoundOp extends TernaryMapOperation<Double, DoubleStorage> {
 
       for (int i = 0; i < storage.size(); i++) {
         if (!storage.isNothing(i)) {
-          double item = storage.getItemAsDouble(i);
+          double item = storage.get(i);
           boolean special = Double.isNaN(item) || Double.isInfinite(item);
           if (!special) {
             doubleBuilder.appendDouble(

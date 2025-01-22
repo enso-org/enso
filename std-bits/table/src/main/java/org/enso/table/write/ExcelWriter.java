@@ -500,11 +500,11 @@ public class ExcelWriter {
     if (storage.isNothing(j)) {
       cell.setBlank();
     } else if (storage instanceof DoubleStorage doubleStorage) {
-      cell.setCellValue(doubleStorage.getItemAsDouble(j));
+      cell.setCellValue(doubleStorage.get(j));
     } else if (storage instanceof AbstractLongStorage longStorage) {
-      cell.setCellValue(longStorage.getItem(j));
+      cell.setCellValue(longStorage.get(j));
     } else if (storage instanceof BoolStorage boolStorage) {
-      cell.setCellValue(boolStorage.getItem(j));
+      cell.setCellValue(boolStorage.get(j));
     } else {
       Object value = storage.getItemBoxed(j);
       switch (value) {

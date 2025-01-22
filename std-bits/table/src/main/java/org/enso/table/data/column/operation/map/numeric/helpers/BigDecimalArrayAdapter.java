@@ -102,7 +102,7 @@ public interface BigDecimalArrayAdapter {
       if (storage.isNothing(i)) {
         return null;
       } else {
-        long x = storage.getItem(i);
+        long x = storage.getBoxed(i);
         return BigDecimal.valueOf(x);
       }
     }
@@ -125,7 +125,7 @@ public interface BigDecimalArrayAdapter {
       if (storage.isNothing(i)) {
         return null;
       } else {
-        double x = storage.getItemAsDouble(i);
+        double x = storage.get(i);
         return BigDecimal.valueOf(x);
       }
     }

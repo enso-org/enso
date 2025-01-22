@@ -85,7 +85,7 @@ public class Mean extends KnownTypeAggregator {
       if (storage instanceof DoubleStorage doubleStorage) {
         for (int i : indexes) {
           if (!doubleStorage.isNothing(i)) {
-            total += doubleStorage.getItemAsDouble(i);
+            total += doubleStorage.get(i);
             count++;
           }
           context.safepoint();
@@ -93,7 +93,7 @@ public class Mean extends KnownTypeAggregator {
       } else if (storage instanceof AbstractLongStorage longStorage) {
         for (int i : indexes) {
           if (!longStorage.isNothing(i)) {
-            total += longStorage.getItem(i);
+            total += longStorage.get(i);
             count++;
           }
           context.safepoint();

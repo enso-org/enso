@@ -6,6 +6,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.BitSet;
 import org.enso.base.polyglot.NumericConverter;
+import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.numeric.helpers.BigDecimalArrayAdapter;
@@ -18,6 +19,7 @@ import org.enso.table.data.column.storage.numeric.BigDecimalStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
+import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.error.UnexpectedTypeException;
 import org.graalvm.polyglot.Context;
@@ -157,28 +159,27 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
     };
   }
 
-  protected DoubleStorage runDoubleZip(
+  protected Storage<Double> runDoubleZip(
       DoubleArrayAdapter a, DoubleArrayAdapter b, MapOperationProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     int n = a.size();
     int m = Math.min(a.size(), b.size());
-    double[] out = new double[n];
-    BitSet isNothing = new BitSet();
+    var builder = Builder.getForDouble(FloatType.FLOAT_64, n, null);
     for (int i = 0; i < m; i++) {
       if (a.isNothing(i) || b.isNothing(i)) {
-        isNothing.set(i);
+        builder.appendNulls(1);
       } else {
-        out[i] = doDouble(a.getItemAsDouble(i), b.getItemAsDouble(i), i, problemAggregator);
+        builder.append(doDouble(a.getItemAsDouble(i), b.getItemAsDouble(i), i, problemAggregator));
       }
 
       context.safepoint();
     }
 
     if (m < n) {
-      isNothing.set(m, n);
+      builder.appendNulls(n - m);
     }
 
-    return new DoubleStorage(out, n, isNothing);
+    return builder.seal();
   }
 
   private static Storage<? extends Number> allNullStorageOfSameType(Storage<?> storage) {
@@ -191,7 +192,7 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
     };
   }
 
-  protected DoubleStorage runDoubleMap(
+  protected Storage<Double> runDoubleMap(
       DoubleArrayAdapter a, Double b, MapOperationProblemAggregator problemAggregator) {
     if (b == null) {
       return DoubleStorage.makeEmpty(a.size());
@@ -200,19 +201,18 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
     double bNonNull = b;
     Context context = Context.getCurrent();
     int n = a.size();
-    double[] out = new double[n];
-    BitSet isNothing = new BitSet();
+    var builder = Builder.getForDouble(FloatType.FLOAT_64, n, null);
     for (int i = 0; i < n; i++) {
       if (a.isNothing(i)) {
-        isNothing.set(i);
+        builder.appendNulls(1);
       } else {
-        out[i] = doDouble(a.getItemAsDouble(i), bNonNull, i, problemAggregator);
+        builder.appendDouble(doDouble(a.getItemAsDouble(i), bNonNull, i, problemAggregator));
       }
 
       context.safepoint();
     }
 
-    return new DoubleStorage(out, n, isNothing);
+    return builder.seal();
   }
 
   protected LongStorage runLongZip(
@@ -228,7 +228,7 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
       if (a.isNothing(i) || b.isNothing(i)) {
         isNothing.set(i);
       } else {
-        Long r = doLong(a.getItem(i), b.getItem(i), i, problemAggregator);
+        Long r = doLong(a.get(i), b.get(i), i, problemAggregator);
         if (r == null) {
           isNothing.set(i);
         } else {
@@ -261,7 +261,7 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
       if (a.isNothing(i)) {
         isNothing.set(i);
       } else {
-        Long r = doLong(a.getItem(i), bNonNull, i, problemAggregator);
+        Long r = doLong(a.get(i), bNonNull, i, problemAggregator);
         if (r == null) {
           isNothing.set(i);
         } else {

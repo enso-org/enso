@@ -102,7 +102,7 @@ public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
         int n = longStorage.size();
         BitSets.copy(longStorage.getIsNothingMap(), isNothing, currentSize, n);
         for (int i = 0; i < n; i++) {
-          long item = longStorage.getItem(i);
+          long item = longStorage.get(i);
           data[currentSize++] = convertLongToDouble(item);
         }
       } else {
@@ -115,7 +115,7 @@ public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
       if (storage instanceof BigIntegerStorage bigIntegerStorage) {
         int n = bigIntegerStorage.size();
         for (int i = 0; i < n; i++) {
-          BigInteger item = bigIntegerStorage.getItem(i);
+          BigInteger item = bigIntegerStorage.getBoxed(i);
           if (item == null) {
             isNothing.set(currentSize++);
           } else {
@@ -135,7 +135,7 @@ public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
           if (boolStorage.isNothing(i)) {
             isNothing.set(currentSize++);
           } else {
-            data[currentSize++] = boolStorage.getItem(i) ? 1.0 : 0.0;
+            data[currentSize++] = boolStorage.get(i) ? 1.0 : 0.0;
           }
         }
       } else {

@@ -2,12 +2,14 @@ package org.enso.table.data.column.operation.map.numeric.helpers;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.BitSet;
+
+import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.BigDecimalStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
+import org.enso.table.data.column.storage.type.FloatType;
 
 public interface DoubleArrayAdapter {
   double getItemAsDouble(int i);
@@ -16,18 +18,17 @@ public interface DoubleArrayAdapter {
 
   int size();
 
-  default DoubleStorage intoStorage() {
+  default Storage<Double> intoStorage() {
     int n = size();
-    double[] values = new double[n];
-    BitSet isNothing = new BitSet();
+    var builder = Builder.getForDouble(FloatType.FLOAT_64, n, null);
     for (int i = 0; i < n; i++) {
       if (isNothing(i)) {
-        isNothing.set(i);
+        builder.appendNulls(1);
       } else {
-        values[i] = getItemAsDouble(i);
+        builder.appendDouble(getItemAsDouble(i));
       }
     }
-    return new DoubleStorage(values, n, isNothing);
+    return builder.seal();
   }
 
   static DoubleArrayAdapter fromStorage(BigIntegerStorage storage) {
@@ -66,7 +67,7 @@ public interface DoubleArrayAdapter {
 
     @Override
     public double getItemAsDouble(int i) {
-      long x = storage.getItem(i);
+      long x = storage.get(i);
       return (double) x;
     }
 
@@ -90,13 +91,13 @@ public interface DoubleArrayAdapter {
 
     @Override
     public double getItemAsDouble(int i) {
-      BigInteger x = storage.getItem(i);
+      BigInteger x = storage.getBoxed(i);
       return x.doubleValue();
     }
 
     @Override
     public boolean isNothing(long i) {
-      return storage.getItem(i) == null;
+      return storage.isNothing(i);
     }
 
     @Override
@@ -114,13 +115,13 @@ public interface DoubleArrayAdapter {
 
     @Override
     public double getItemAsDouble(int i) {
-      BigDecimal x = storage.getItem(i);
+      BigDecimal x = storage.getBoxed(i);
       return x.doubleValue();
     }
 
     @Override
     public boolean isNothing(long i) {
-      return storage.getItem(i) == null;
+      return storage.isNothing(i);
     }
 
     @Override

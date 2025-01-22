@@ -104,7 +104,7 @@ public final class BigIntegerBuilder extends TypedBuilder<BigInteger> {
           if (storage.isNothing(i)) {
             data[currentSize++] = null;
           } else {
-            long item = longStorage.getItem(i);
+            long item = longStorage.get(i);
             data[currentSize++] = BigInteger.valueOf(item);
           }
         }

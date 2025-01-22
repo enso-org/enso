@@ -42,7 +42,7 @@ public class MapHelpers {
     BitSet isNothing = new BitSet();
     for (int i = 0; i < n; i++) {
       if (!storage1.isNothing(i) && !storage2.isNothing(i)) {
-        result[i] = storage1.getItem(i) + storage2.getItem(i);
+        result[i] = storage1.get(i) + storage2.get(i);
       } else {
         isNothing.set(i);
       }
@@ -72,7 +72,7 @@ public class MapHelpers {
     BitSet isNothing = new BitSet();
     for (int i = 0; i < n; i++) {
       if (!storage.isNothing(i)) {
-        result[i] = storage.getItem(i) + shift;
+        result[i] = storage.get(i) + shift;
       } else {
         isNothing.set(i);
       }

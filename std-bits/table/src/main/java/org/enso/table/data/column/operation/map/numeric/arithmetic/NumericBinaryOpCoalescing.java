@@ -3,6 +3,8 @@ package org.enso.table.data.column.operation.map.numeric.arithmetic;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.BitSet;
+
+import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.numeric.helpers.BigDecimalArrayAdapter;
 import org.enso.table.data.column.operation.map.numeric.helpers.BigIntegerArrayAdapter;
@@ -14,6 +16,7 @@ import org.enso.table.data.column.storage.numeric.BigDecimalStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
+import org.enso.table.data.column.storage.type.FloatType;
 import org.graalvm.polyglot.Context;
 
 /**
@@ -27,18 +30,17 @@ public abstract class NumericBinaryOpCoalescing<T extends Number, I extends Stor
   }
 
   @Override
-  protected DoubleStorage runDoubleZip(
+  protected Storage<Double> runDoubleZip(
       DoubleArrayAdapter a, DoubleArrayAdapter b, MapOperationProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     int n = a.size();
     int m = Math.min(a.size(), b.size());
-    double[] out = new double[n];
-    BitSet isNothing = new BitSet();
+    var builder = Builder.getForDouble(FloatType.FLOAT_64, n, null);
     for (int i = 0; i < m; i++) {
       boolean aNothing = a.isNothing(i);
       boolean bNothing = b.isNothing(i);
       if (aNothing && bNothing) {
-        isNothing.set(i);
+        builder.appendNulls(1);
       } else {
         double r;
         if (aNothing) {
@@ -48,7 +50,7 @@ public abstract class NumericBinaryOpCoalescing<T extends Number, I extends Stor
         } else {
           r = doDouble(a.getItemAsDouble(i), b.getItemAsDouble(i), i, problemAggregator);
         }
-        out[i] = r;
+        builder.appendDouble(r);
       }
 
       context.safepoint();
@@ -56,19 +58,19 @@ public abstract class NumericBinaryOpCoalescing<T extends Number, I extends Stor
 
     for (int i = m; i < n; ++i) {
       if (a.isNothing(i)) {
-        isNothing.set(i);
+        builder.appendNulls(1);
       } else {
-        out[i] = a.getItemAsDouble(i);
+        builder.appendDouble(a.getItemAsDouble(i));
       }
 
       context.safepoint();
     }
 
-    return new DoubleStorage(out, n, isNothing);
+    return builder.seal();
   }
 
   @Override
-  protected DoubleStorage runDoubleMap(
+  protected Storage<Double> runDoubleMap(
       DoubleArrayAdapter a, Double b, MapOperationProblemAggregator problemAggregator) {
     if (b == null) {
       return a.intoStorage();
@@ -77,17 +79,16 @@ public abstract class NumericBinaryOpCoalescing<T extends Number, I extends Stor
     double bNonNull = b;
     Context context = Context.getCurrent();
     int n = a.size();
-    double[] out = new double[n];
-    BitSet isNothing = new BitSet();
+    var builder = Builder.getForDouble(FloatType.FLOAT_64, n, null);
     for (int i = 0; i < n; i++) {
-      out[i] =
+      builder.appendDouble(
           a.isNothing(i)
               ? bNonNull
-              : doDouble(a.getItemAsDouble(i), bNonNull, i, problemAggregator);
+              : doDouble(a.getItemAsDouble(i), bNonNull, i, problemAggregator));
       context.safepoint();
     }
 
-    return new DoubleStorage(out, n, isNothing);
+    return builder.seal();
   }
 
   @Override
@@ -107,11 +108,11 @@ public abstract class NumericBinaryOpCoalescing<T extends Number, I extends Stor
         isNothing.set(i);
       } else {
         if (aNothing) {
-          out[i] = b.getItem(i);
+          out[i] = b.get(i);
         } else if (bNothing) {
-          out[i] = a.getItem(i);
+          out[i] = a.get(i);
         } else {
-          Long r = doLong(a.getItem(i), b.getItem(i), i, problemAggregator);
+          Long r = doLong(a.get(i), b.get(i), i, problemAggregator);
           if (r == null) {
             isNothing.set(i);
           } else {
@@ -127,7 +128,7 @@ public abstract class NumericBinaryOpCoalescing<T extends Number, I extends Stor
       if (a.isNothing(i)) {
         isNothing.set(i);
       } else {
-        out[i] = a.getItem(i);
+        out[i] = a.get(i);
       }
 
       context.safepoint();
@@ -151,7 +152,7 @@ public abstract class NumericBinaryOpCoalescing<T extends Number, I extends Stor
       if (a.isNothing(i)) {
         out[i] = bNonNull;
       } else {
-        Long r = doLong(a.getItem(i), bNonNull, i, problemAggregator);
+        Long r = doLong(a.get(i), bNonNull, i, problemAggregator);
         if (r == null) {
           isNothing.set(i);
         } else {

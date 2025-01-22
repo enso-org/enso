@@ -11,7 +11,7 @@ public class SimpleStorageAggregateHelpers {
     long sum = 0;
     for (int i = 0; i < storage.size(); i++) {
       if (!storage.isNothing(i)) {
-        sum += storage.getItem(i);
+        sum += storage.get(i);
       }
     }
     return sum;
