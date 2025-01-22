@@ -1,7 +1,6 @@
 /** @file Login component responsible for rendering and interactions in sign in flow. */
 import * as router from 'react-router-dom'
 
-import { CLOUD_DASHBOARD_DOMAIN } from 'enso-common'
 import { isOnElectron } from 'enso-common/src/detect'
 
 import { DASHBOARD_PATH, FORGOT_PASSWORD_PATH, REGISTRATION_PATH } from '#/appUtils'
@@ -103,13 +102,7 @@ export default function Login() {
         <Form.FieldValue form={form} name="email">
           {(email) => (
             <Link
-              openInBrowser={isElectron}
-              to={(() => {
-                const newQuery = new URLSearchParams({ email }).toString()
-                return isElectron ?
-                    `https://${CLOUD_DASHBOARD_DOMAIN}${REGISTRATION_PATH}?${newQuery}`
-                  : `${REGISTRATION_PATH}?${newQuery}`
-              })()}
+              to={`${REGISTRATION_PATH}?${new URLSearchParams({ email }).toString()}`}
               icon={CreateAccountIcon}
               text={getText('dontHaveAnAccount')}
             />
