@@ -2,6 +2,8 @@ package org.enso.compiler.dump.igv;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.nio.channels.SocketChannel;
 import java.nio.channels.WritableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -17,8 +19,8 @@ public final class IGVDumper implements IRDumper {
 
   private static final String DEFAULT_DUMP_DIR = "ir-dumps";
   private static final Logger LOGGER = LoggerFactory.getLogger(IGVDumper.class);
+  private static final int DEFAULT_IGV_PORT = 4445;
   private final String moduleName;
-  private final Path outPath;
   private final GraphOutput<EnsoModuleAST, ASTMethod> graphOutput;
   private int currGraphId;
   private boolean groupCreated;
@@ -26,16 +28,13 @@ public final class IGVDumper implements IRDumper {
   /** Count of all the nodes for all the subgraphs */
   private int nodesCnt;
 
-  private IGVDumper(
-      String moduleName, Path outPath, GraphOutput<EnsoModuleAST, ASTMethod> graphOutput) {
+  private IGVDumper(String moduleName, GraphOutput<EnsoModuleAST, ASTMethod> graphOutput) {
     this.moduleName = moduleName;
-    this.outPath = outPath;
     this.graphOutput = graphOutput;
   }
 
   static IGVDumper createForModule(String moduleName) {
-    var outPath = outputForModule(moduleName);
-    var channel = createFileChannel(outPath);
+    var channel = createChannel(moduleName);
     GraphOutput<EnsoModuleAST, ASTMethod> graphOutput;
     try {
       graphOutput =
@@ -48,7 +47,20 @@ public final class IGVDumper implements IRDumper {
       LOGGER.error("Failed to create graph output for module {}", moduleName, e);
       return null;
     }
-    return new IGVDumper(moduleName, outPath, graphOutput);
+    return new IGVDumper(moduleName, graphOutput);
+  }
+
+  private static WritableByteChannel createChannel(String moduleName) {
+    WritableByteChannel channel;
+    try {
+      channel = SocketChannel.open(new InetSocketAddress(DEFAULT_IGV_PORT));
+      LOGGER.info("Connected to IGV");
+    } catch (IOException e) {
+      var outPath = outputForModule(moduleName);
+      LOGGER.info("Failed to connect to IGV. Graph will be dumped in {}", outPath);
+      channel = createFileChannel(outPath);
+    }
+    return channel;
   }
 
   @Override
@@ -87,7 +99,7 @@ public final class IGVDumper implements IRDumper {
       return;
     }
     graphOutput.close();
-    LOGGER.trace("[{}] Graph dumped to {}", moduleName, outPath);
+    LOGGER.trace("[{}] Graph dumped", moduleName);
   }
 
   private static Path outputForModule(String moduleName) {
