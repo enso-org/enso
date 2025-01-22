@@ -16,7 +16,7 @@ import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { injectWidgetTree } from '@/providers/widgetTree'
 import { useGraphStore } from '@/stores/graph'
 import { requiredImports, type RequiredImport } from '@/stores/graph/imports'
-import { useProjectNames } from '@/stores/projectNames'
+import { injectProjectNames } from '@/stores/projectNames'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import {
   SuggestionKind,
@@ -38,7 +38,7 @@ import { computed, proxyRefs, ref, shallowRef, watch } from 'vue'
 const props = defineProps(widgetProps(widgetDefinition))
 const suggestions = useSuggestionDbStore()
 const graph = useGraphStore()
-const projectNames = useProjectNames()
+const projectNames = injectProjectNames()
 
 const tree = injectWidgetTree()
 

@@ -4,7 +4,6 @@ import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabas
 import { Ast } from '@/util/ast'
 import {
   astToQualifiedName,
-  parseIdent,
   parseIdents,
   type Identifier,
   type IdentifierOrOperatorIdentifier,
@@ -51,7 +50,7 @@ export function recognizeImport(ast: Ast.Import): RawImport | null {
       imported: { kind: 'List', names },
     }
   } else if (ast.import_) {
-    const alias = ast.as ? parseIdent(ast.as) : null
+    const alias = ast.as instanceof Ast.Ident ? ast.as.code() : null
     return {
       from: module,
       imported: alias ? { kind: 'Module', alias } : { kind: 'Module' },
@@ -263,10 +262,10 @@ export function requiredImportEquals(left: RequiredImport, right: RequiredImport
   if (left.kind != right.kind) return false
   switch (left.kind) {
     case 'Qualified':
-      return left.module === (right as QualifiedImport).module
+      return left.module.equals((right as QualifiedImport).module)
     case 'Unqualified':
       return (
-        left.from === (right as UnqualifiedImport).from &&
+        left.from.equals((right as UnqualifiedImport).from) &&
         left.import === (right as UnqualifiedImport).import
       )
   }

@@ -68,7 +68,7 @@ export class ProjectPath {
 
   normalized(): ProjectPath {
     if (!this.path) return this
-    const normalized = this.path.match(/^Main(\\..+)?$/)
+    const normalized = this.path.match(/^Main(?:\.(.+))?$/)
     if (normalized) {
       return this.withPath(normalized[1] ? (normalized[1] as QualifiedName) : undefined)
     } else {
@@ -84,6 +84,11 @@ export class ProjectPath {
    */
   isTopElement(): boolean {
     return !this.path || !this.path.includes('.')
+  }
+
+  /** Convert to a plain, JSON-compatible object; this is useful for testing. */
+  toJSON(): object {
+    return { project: this.project || null, path: this.path || null }
   }
 }
 

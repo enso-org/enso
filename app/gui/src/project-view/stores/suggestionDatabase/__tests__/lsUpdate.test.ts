@@ -244,6 +244,13 @@ test('Adding new argument', () => {
   test.check(db)
 })
 
+const bazMap = {
+  foo: 'Ba',
+  bar: 'Bar',
+}
+
+type X = keyof typeof bazMap
+
 test('Modifying arguments', () => {
   const newArg1 = {
     name: 'c',
@@ -342,8 +349,8 @@ class Fixture {
   expectedModule = suggestionEntry<SuggestionKind.Module>({
     kind: SuggestionKind.Module,
     name: unwrap(tryIdentifier('Base')),
-    definedIn: stdPath('Standard.Base'),
-    definitionPath: stdPath('Standard.Base'),
+    definedIn: stdPath('Standard.Base.Main'),
+    definitionPath: stdPath('Standard.Base.Main'),
     returnType: () => 'Standard.Base',
     documentation: parseDocs(this.moduleDocs),
     reexportedIn: stdPath('Standard.Base.Another.Module'),
@@ -359,7 +366,7 @@ class Fixture {
     definedIn: stdPath('Standard.Base.Main'),
     definitionPath: stdPath('Standard.Base.Main.Type'),
     arguments: [this.arg1],
-    returnType: () => 'Standard.Base.Main.Type',
+    returnType: () => 'Standard.Base.Type',
     documentation: parseDocs(this.typeDocs),
     aliases: ['Test Type'],
     isPrivate: false,
@@ -440,8 +447,8 @@ class Fixture {
   expectedLocal = suggestionEntry<SuggestionKind.Local>({
     kind: SuggestionKind.Local,
     name: unwrap(tryIdentifier('local')),
-    definedIn: stdPath('Standard.Base'),
-    definitionPath: stdPath('Standard.Base.local'),
+    definedIn: stdPath('Standard.Base.Main'),
+    definitionPath: stdPath('Standard.Base.Main.local'),
     returnType: () => 'Standard.Base.Number',
     documentation: parseDocs(this.localDocs),
     aliases: [],

@@ -151,7 +151,7 @@ export function useWidgetFunctionCallInfo(
       const fullName = info?.suggestion.definitionPath
       const autoscopedName = '..' + info?.suggestion.name
       return (
-        cfg.possibleFunctions.get(projectNames.printProjectPathDenormalized(fullName)) ??
+        cfg.possibleFunctions.get(projectNames.serializeProjectPathForBackend(fullName)) ??
         cfg.possibleFunctions.get(autoscopedName)
       )
     }

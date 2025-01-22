@@ -12,7 +12,7 @@ import {
 import { useGraphStore } from '@/stores/graph'
 import type { MethodCallInfo } from '@/stores/graph/graphDatabase'
 import { useProjectStore } from '@/stores/project'
-import { useProjectNames } from '@/stores/projectNames'
+import { injectProjectNames } from '@/stores/projectNames'
 import { assert, assertUnreachable } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import type { AstId } from '@/util/ast/abstract'
@@ -39,7 +39,7 @@ const { methodCallInfo, application } = useWidgetFunctionCallInfo(
   () => props.input,
   graph.db,
   project,
-  useProjectNames(),
+  injectProjectNames(),
 )
 
 provideFunctionInfo(

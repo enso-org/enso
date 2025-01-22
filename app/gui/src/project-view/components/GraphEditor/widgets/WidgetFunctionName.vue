@@ -4,7 +4,7 @@ import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widge
 import { useGraphStore } from '@/stores/graph'
 import { usePersisted } from '@/stores/persisted'
 import { useProjectStore } from '@/stores/project'
-import { useProjectNames } from '@/stores/projectNames'
+import { injectProjectNames } from '@/stores/projectNames'
 import { Ast } from '@/util/ast'
 import { Err, Ok, type Result } from '@/util/data/result'
 import { type MethodPointer } from '@/util/methodPointer'
@@ -19,7 +19,7 @@ const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore(true)
 const persisted = usePersisted(true)
 const displayedName = ref(props.input.value.code())
-const projectNames = useProjectNames()
+const projectNames = injectProjectNames()
 
 const project = useProjectStore()
 const renameError = useToast.error()

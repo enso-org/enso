@@ -49,7 +49,7 @@ import type { RequiredImport } from '@/stores/graph/imports'
 import { providePersisted } from '@/stores/persisted'
 import { useProjectStore } from '@/stores/project'
 import { provideNodeExecution } from '@/stores/project/nodeExecution'
-import { useProjectNames } from '@/stores/projectNames'
+import { injectProjectNames } from '@/stores/projectNames'
 import { provideRightDock, StorageMode } from '@/stores/rightDock'
 import { provideSuggestionDbStore } from '@/stores/suggestionDatabase'
 import type { SuggestionId, Typename } from '@/stores/suggestionDatabase/entry'
@@ -78,7 +78,7 @@ import {
 
 const keyboard = provideKeyboard()
 const projectStore = useProjectStore()
-const projectNames = useProjectNames()
+const projectNames = injectProjectNames()
 const suggestionDb = provideSuggestionDbStore(projectStore, projectNames)
 const graphStore = provideGraphStore(projectStore, suggestionDb, projectNames)
 const widgetRegistry = provideWidgetRegistry(graphStore.db)

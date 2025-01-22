@@ -556,8 +556,8 @@ function serializeMethodPointer(
   projectNames: ProjectNameStore,
 ): LSMethodPointer {
   return {
-    module: projectNames.printProjectPathDenormalized(methodPointer.module),
-    definedOnType: projectNames.printProjectPathDenormalized(methodPointer.definedOnType),
+    module: projectNames.serializeProjectPathForBackend(methodPointer.module),
+    definedOnType: projectNames.serializeProjectPathForBackend(methodPointer.definedOnType),
     name: methodPointer.name,
   }
 }

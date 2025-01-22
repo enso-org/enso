@@ -15,7 +15,7 @@ import { injectInteractionHandler, type Interaction } from '@/providers/interact
 import { useGraphStore } from '@/stores/graph'
 import type { RequiredImport } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
-import { useProjectNames } from '@/stores/projectNames'
+import { injectProjectNames } from '@/stores/projectNames'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { type Typename } from '@/stores/suggestionDatabase/entry'
 import type { VisualizationDataSource } from '@/stores/visualization'
@@ -51,7 +51,7 @@ const projectStore = useProjectStore()
 const suggestionDbStore = useSuggestionDbStore()
 const graphStore = useGraphStore()
 const interaction = injectInteractionHandler()
-const projectNames = useProjectNames()
+const projectNames = injectProjectNames()
 
 const props = defineProps<{
   nodePosition: Vec2

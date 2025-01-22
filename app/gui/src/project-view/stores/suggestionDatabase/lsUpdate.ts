@@ -164,7 +164,11 @@ class ModuleSuggestionEntryImpl extends BaseSuggestionEntry implements ModuleSug
   }
 
   get name() {
-    return qnLastSegment(this.definedIn.path ?? this.definedIn.project ?? ('Main' as Identifier))
+    return qnLastSegment(
+      this.definedIn.normalized().path ??
+        this.definedIn.normalized().project ??
+        ('Main' as Identifier),
+    )
   }
   returnType(projectNames: ProjectNameStore) {
     return projectNames.printProjectPath(this.definedIn)

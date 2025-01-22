@@ -167,15 +167,6 @@ export function unrollPropertyAccess(ast: Ast): IdentifierOrOperatorIdentifier[]
 }
 
 /** TODO: Add docs */
-export function parseIdent(ast: Ast): Identifier | null {
-  if (ast instanceof Ident) {
-    return ast.token.code()
-  } else {
-    return null
-  }
-}
-
-/** TODO: Add docs */
 export function parseIdents(ast: Ast): Identifier[] | null {
   return unrollOprChain(ast, ',')
 }

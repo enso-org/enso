@@ -8,7 +8,7 @@ import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { ArgumentInfoKey } from '@/util/callTree'
-import { parseAbsoluteProjectPath } from '@/util/projectPath'
+import { ProjectPath } from '@/util/projectPath'
 import { type Identifier, type QualifiedName } from '@/util/qualifiedName'
 import { computed } from 'vue'
 
@@ -19,14 +19,20 @@ const suggestionDb = useSuggestionDbStore()
 const trueImport = computed(() =>
   requiredImportsByProjectPath(
     suggestionDb.entries,
-    parseAbsoluteProjectPath('Standard.Base.Data.Boolean.Boolean.True' as QualifiedName),
+    ProjectPath.create(
+      'Standard.Base' as QualifiedName,
+      'Data.Boolean.Boolean.True' as QualifiedName,
+    ),
     true,
   ),
 )
 const falseImport = computed(() =>
   requiredImportsByProjectPath(
     suggestionDb.entries,
-    parseAbsoluteProjectPath('Standard.Base.Data.Boolean.Boolean.False' as QualifiedName),
+    ProjectPath.create(
+      'Standard.Base' as QualifiedName,
+      'Data.Boolean.Boolean.False' as QualifiedName,
+    ),
     true,
   ),
 )

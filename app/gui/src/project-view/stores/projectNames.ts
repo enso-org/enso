@@ -2,16 +2,16 @@ import { createContextStore } from '@/providers'
 import { parseAbsoluteProjectPath, ProjectPath } from '@/util/projectPath'
 import { normalizeQualifiedName, qnJoin } from '@/util/qualifiedName'
 import { type ToValue } from '@/util/reactivity'
-import { computed, ref, toValue } from 'vue'
+import { computed, readonly, ref, toRef, toValue } from 'vue'
 import { type Identifier, type QualifiedName } from 'ydoc-shared/ast'
 
-export type ProjectNameStore = ReturnType<typeof useProjectNames>
+export type ProjectNameStore = ReturnType<typeof injectProjectNames>
 
 /** Manages the state of the project's name. */
-function makeProjectNameStore(
-  namespace: ToValue<string | undefined> = 'local',
-  initialName: string = 'Mock_Project',
-  displayName: ToValue<string> = 'Mock_Project',
+function useProjectNameStore(
+  namespace: ToValue<string | undefined>,
+  initialName: string,
+  displayName: ToValue<string>,
 ) {
   const ns = computed(() => {
     if (import.meta.env.PROD && namespace == null) {
@@ -29,6 +29,13 @@ function makeProjectNameStore(
     pendingName.value ? qnJoin(ns.value, pendingName.value) : inboundProject.value,
   )
 
+  /**
+   * Interpret a qualified name as a project path. A project path abstracts the project name, and remains valid if the
+   * current project is renamed.
+   *
+   * To ensure that QNs are interpreted correctly during and after project renames, this should be applied to data
+   * from the backend as it is received.
+   */
   function parseProjectPath(path: QualifiedName): ProjectPath {
     const parsed = parseAbsoluteProjectPath(path)
     return parsed.project === inboundProject.value ?
@@ -36,11 +43,23 @@ function makeProjectNameStore(
       : parsed
   }
 
+  /**
+   * Serialize the path, with any project's `Main` segment elided. This is appropriate for values that will be displayed
+   * to the user or written into source code.
+   */
   function printProjectPath(path: ProjectPath): QualifiedName {
-    return normalizeQualifiedName(printProjectPathDenormalized(path))
+    return normalizeQualifiedName(serializeUnnormalized(path))
   }
 
-  function printProjectPathDenormalized(path: ProjectPath): QualifiedName {
+  /**
+   * Serialize the path, including the `Main` segment if applicable. This is appropriate when the backend will be the
+   * direct consumer of the result, e.g. when serializing a `StackItem` to send to the language server.
+   */
+  function serializeProjectPathForBackend(path: ProjectPath): QualifiedName {
+    return serializeUnnormalized(path)
+  }
+
+  function serializeUnnormalized(path: ProjectPath): QualifiedName {
     const project = path.project ?? outboundProject.value
     return path.path ? qnJoin(project, path.path) : project
   }
@@ -48,7 +67,7 @@ function makeProjectNameStore(
   return {
     parseProjectPath,
     printProjectPath,
-    printProjectPathDenormalized,
+    serializeProjectPathForBackend,
     onProjectRenameRequested: (newName: Identifier) => {
       pendingName.value = newName
     },
@@ -58,13 +77,20 @@ function makeProjectNameStore(
         pendingName.value = undefined
       }
     },
-    displayName: computed(() => toValue(displayName)),
+    displayName: readonly(toRef(displayName)),
   }
 }
 
-export const mockProjectNameStore = makeProjectNameStore
+/** Creates a project name store for use in tests. */
+export function mockProjectNameStore(
+  namespace: ToValue<string | undefined> = 'local',
+  initialName: string = 'Mock_Project',
+  displayName: ToValue<string> = 'Mock Project',
+) {
+  return useProjectNameStore(namespace, initialName, displayName)
+}
 
-export const [provideProjectNames, useProjectNames] = createContextStore(
+export const [provideProjectNames, injectProjectNames] = createContextStore(
   'projectNames',
-  makeProjectNameStore,
+  useProjectNameStore,
 )

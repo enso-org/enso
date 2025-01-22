@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { WidgetInput } from '@/providers/widgetRegistry'
-import { useProjectNames } from '@/stores/projectNames'
+import { injectProjectNames } from '@/stores/projectNames'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { documentationData } from '@/stores/suggestionDatabase/documentation'
 import { colorFromString } from '@/util/colors'
@@ -12,7 +12,7 @@ import WidgetTreeRoot from './GraphEditor/WidgetTreeRoot.vue'
 import { FunctionInfoKey } from './GraphEditor/widgets/WidgetFunctionDef.vue'
 
 const suggestionDb = useSuggestionDbStore()
-const projectNames = useProjectNames()
+const projectNames = injectProjectNames()
 
 const { functionAst, markdownDocs, methodPointer } = defineProps<{
   functionAst: FunctionDef

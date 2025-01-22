@@ -11,7 +11,7 @@ import type { Docs, FunctionDocs, Sections, TypeDocs } from '@/components/Docume
 import { lookupDocumentation, placeholder } from '@/components/DocumentationPanel/ir'
 import SvgButton from '@/components/SvgButton.vue'
 import { groupColorStyle } from '@/composables/nodeColors'
-import { useProjectNames } from '@/stores/projectNames'
+import { injectProjectNames } from '@/stores/projectNames'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import type { SuggestionId } from '@/stores/suggestionDatabase/entry'
 import { suggestionDocumentationUrl } from '@/stores/suggestionDatabase/entry'
@@ -56,7 +56,7 @@ const types = computed<TypeDocs[]>(() => {
 
 const isPlaceholder = computed(() => documentation.value.kind === 'Placeholder')
 
-const projectNames = useProjectNames()
+const projectNames = injectProjectNames()
 
 const name = computed<Opt<QualifiedName>>(() => {
   const docs = documentation.value

@@ -51,6 +51,11 @@ export interface LsUrls {
   ydocUrl: string
 }
 
+const VISUALIZATION_PREPROCESSOR_PATH = ProjectPath.create(
+  'Standard.Visualization' as QualifiedName,
+  'Preprocessor' as Identifier,
+)
+
 function resolveYDocUrl(rpcUrl: string, url: string): URL {
   let resolved
   if (url == '') {
@@ -243,11 +248,6 @@ export const [provideProjectStore, useProjectStore] = createContextStore(
         parseVisualizationData(visualizationDataRegistry.getRawData(visId.value)),
       )
     }
-
-    const VISUALIZATION_PREPROCESSOR_PATH = ProjectPath.create(
-      'Standard.Visualization' as QualifiedName,
-      'Preprocessor' as Identifier,
-    )
 
     const dataflowErrors = new ReactiveMapping(computedValueRegistry.db, (id, info) => {
       const config = computed(() =>
