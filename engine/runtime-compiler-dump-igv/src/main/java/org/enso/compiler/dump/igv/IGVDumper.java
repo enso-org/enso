@@ -8,7 +8,9 @@ import java.nio.channels.WritableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.Map;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.dump.service.IRDumper;
 import org.graalvm.graphio.GraphOutput;
@@ -42,6 +44,7 @@ public final class IGVDumper implements IRDumper {
               .blocks(EnsoModuleAST.AST_DUMP_STRUCTURE)
               .elementsAndLocations(
                   EnsoModuleAST.AST_DUMP_STRUCTURE, EnsoModuleAST.AST_DUMP_STRUCTURE)
+              .attr("type", "Enso IR")
               .build(channel);
     } catch (IOException e) {
       LOGGER.error("Failed to create graph output for module {}", moduleName, e);
@@ -76,18 +79,33 @@ public final class IGVDumper implements IRDumper {
     nodesCnt += moduleAst.getNodes().size();
     try {
       if (!groupCreated) {
-        graphOutput.beginGroup(moduleAst, moduleName, moduleName, null, 0, null);
+        var groupProps = groupProps(moduleName, moduleAst);
+        graphOutput.beginGroup(moduleAst, moduleName, moduleName, null, 0, groupProps);
         groupCreated = true;
       }
-      var props = new HashMap<>();
       LOGGER.trace("[{}] Printing module AST with ID {}", moduleName, currGraphId);
-      graphOutput.print(moduleAst, props, currGraphId, "%s", afterPass);
+      var graphProps = graphProps(afterPass);
+      graphOutput.print(moduleAst, graphProps, currGraphId, "%s", afterPass);
     } catch (IOException e) {
       LOGGER.error("[{}] Failed to dump the graph for pass {}", moduleName, afterPass);
       throw new RuntimeException(e);
     }
     currGraphId++;
     LOGGER.trace("[{}] Dumped after pass {}", moduleName, afterPass);
+  }
+
+  private static Map<String, Object> groupProps(String moduleName, EnsoModuleAST graph) {
+    var props = new HashMap<String, Object>();
+    props.put("moduleName", moduleName);
+    props.put("date", LocalDateTime.now());
+    props.put("srcFile", graph.getSrcFile() == null ? null : graph.getSrcFile().getAbsolutePath());
+    return props;
+  }
+
+  private static Map<String, Object> graphProps(String afterPass) {
+    var props = new HashMap<String, Object>();
+    props.put("passName", afterPass);
+    return props;
   }
 
   @Override
