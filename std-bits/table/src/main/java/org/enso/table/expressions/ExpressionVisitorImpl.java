@@ -226,12 +226,8 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
   @Override
   public Value visitUnaryMinus(ExpressionParser.UnaryMinusContext ctx) {
     var v = visit(ctx.expr());
-    if (v.isNumber()) {
-      if (v.asDouble() == v.asLong()) {
-        return Value.asValue(-1 * v.asLong());
-      } else {
-        return Value.asValue(-1 * v.asDouble());
-      }
+    if (v.isNumber() && v.asDouble() == v.asLong()) {
+      return Value.asValue(Math.negateExact(v.asLong()));
     }
     return executeMethod("*", v, Value.asValue(-1));
   }
