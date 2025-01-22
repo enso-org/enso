@@ -174,6 +174,52 @@ impl Benchmarks {
     }
 }
 
+/// Configuration for how the binary inside the engine distribution should be built.
+#[derive(Copy, Clone, Debug, PartialEq, Default)]
+pub enum EngineLauncher {
+    /// The binary inside the engine distribution will be built as an optimized native image
+    Native,
+    /// The binary inside the engine distribution will be built as native image with assertions
+    /// enabled and debug information
+    DebugNative,
+    /// The binary inside the engine distribution will be a shell script
+    #[default]
+    Shell,
+}
+
+impl FromStr for EngineLauncher {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        match s {
+            "native" => Ok(Self::Native),
+            "debugnative" => Ok(Self::DebugNative),
+            "shell" => Ok(Self::Shell),
+            _ => bail!("Invalid Engine Launcher type: {}", s),
+        }
+    }
+}
+
+impl From<EngineLauncher> for String {
+    fn from(value: EngineLauncher) -> Self {
+        match value {
+            EngineLauncher::Native => "native".to_string(),
+            EngineLauncher::DebugNative => "debugnative".to_string(),
+            EngineLauncher::Shell => "shell".to_string(),
+        }
+    }
+}
+
+impl Display for EngineLauncher {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        match *self {
+            EngineLauncher::Native => write!(f, "native"),
+            EngineLauncher::DebugNative => write!(f, "debugnative"),
+            EngineLauncher::Shell => write!(f, "shell"),
+        }
+    }
+}
+
 /// Describes what should be done with the backend.
 ///
 /// Basically a recipe of what to do with `sbt` and its artifacts.

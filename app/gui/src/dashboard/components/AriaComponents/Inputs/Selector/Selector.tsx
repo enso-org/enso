@@ -82,7 +82,7 @@ export const Selector = forwardRef(function Selector<
   Schema extends TSchema,
   TFieldName extends FieldPath<Schema, T>,
   T,
->(props: SelectorProps<Schema, TFieldName, T>, ref: React.ForwardedRef<HTMLFieldSetElement>) {
+>(props: SelectorProps<Schema, TFieldName, T>, ref: React.ForwardedRef<HTMLDivElement>) {
   const {
     name,
     items,

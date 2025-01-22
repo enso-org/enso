@@ -76,7 +76,7 @@ const useStringField = Form.makeUseField<string>()
 export const ComboBox = forwardRef(function ComboBox<
   Schema extends TSchema,
   TFieldName extends FieldPath<Schema, string>,
->(props: ComboBoxProps<Schema, TFieldName>, ref: ForwardedRef<HTMLFieldSetElement>) {
+>(props: ComboBoxProps<Schema, TFieldName>, ref: ForwardedRef<HTMLDivElement>) {
   const {
     name,
     items,
@@ -194,7 +194,7 @@ function ComboBoxResetButton(props: ComboBoxResetButtonProps) {
       icon={CrossIcon}
       className={className ?? ''}
       onPress={() => {
-        state.setInputValue('')
+        state?.setInputValue('')
       }}
     />
   )

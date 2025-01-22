@@ -177,8 +177,8 @@ export default function PathColumn(props: AssetColumnProps) {
           size="auto"
           placement="bottom end"
           crossOffset={14}
-          variant="primary"
           className="max-w-lg"
+          rounded="xxxlarge"
         >
           <div className="flex items-center gap-1">
             {finalPath.map((entry, index) => (

@@ -114,7 +114,7 @@ public class LookupJoin {
         } else {
           itemToAdd = mergeColumns.original.getItemBoxed(i);
         }
-        mergeColumns.builder.appendNoGrow(itemToAdd);
+        mergeColumns.builder.append(itemToAdd);
       }
 
       // Prepare order mask for new columns / fully-replaced columns

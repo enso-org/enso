@@ -64,7 +64,7 @@ export const FIELD_STYLES = tv({
 // eslint-disable-next-line no-restricted-syntax
 export const Field = forwardRef(function Field<Schema extends types.TSchema>(
   props: FieldComponentProps<Schema>,
-  ref: React.ForwardedRef<HTMLFieldSetElement>,
+  ref: React.ForwardedRef<HTMLDivElement>,
 ) {
   const {
     children,
@@ -94,7 +94,7 @@ export const Field = forwardRef(function Field<Schema extends types.TSchema>(
   const hasError = (error !== undefined ? error : fieldState.error) != null
 
   return (
-    <fieldset
+    <div
       ref={ref}
       className={classes.base({ className })}
       data-testid={props['data-testid']}
@@ -144,6 +144,6 @@ export const Field = forwardRef(function Field<Schema extends types.TSchema>(
           {error ?? fieldState.error}
         </span>
       )}
-    </fieldset>
+    </div>
   )
 })

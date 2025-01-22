@@ -91,7 +91,7 @@ export const MultiSelector = forwardRef(function MultiSelector<
   Schema extends TSchema,
   TFieldName extends FieldPath<Schema, readonly T[]>,
   T,
->(props: MultiSelectorProps<Schema, TFieldName, T>, ref: ForwardedRef<HTMLFieldSetElement>) {
+>(props: MultiSelectorProps<Schema, TFieldName, T>, ref: ForwardedRef<HTMLDivElement>) {
   const {
     name,
     items,

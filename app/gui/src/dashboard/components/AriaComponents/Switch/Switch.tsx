@@ -67,7 +67,7 @@ const useBooleanField = Form.makeUseField<boolean>()
 export const Switch = forwardRef(function Switch<
   Schema extends TSchema,
   TFieldName extends FieldPath<Schema, boolean>,
->(props: SwitchProps<Schema, TFieldName>, ref: ForwardedRef<HTMLFieldSetElement>) {
+>(props: SwitchProps<Schema, TFieldName>, ref: ForwardedRef<HTMLDivElement>) {
   const {
     label,
     isDisabled = false,

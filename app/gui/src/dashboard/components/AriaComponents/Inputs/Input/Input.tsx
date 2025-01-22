@@ -60,7 +60,7 @@ export const Input = forwardRef(function Input<
   Schema extends TSchema,
   TFieldName extends FieldPath<Schema, Constraint>,
   Constraint extends number | string = number | string,
->(props: InputProps<Schema, TFieldName, Constraint>, ref: ForwardedRef<HTMLFieldSetElement>) {
+>(props: InputProps<Schema, TFieldName, Constraint>, ref: ForwardedRef<HTMLDivElement>) {
   const {
     name,
     description,
