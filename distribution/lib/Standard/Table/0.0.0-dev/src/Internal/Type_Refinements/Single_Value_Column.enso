@@ -5,9 +5,9 @@ from Standard.Base import all
 import project.Column.Column
 import project.Value_Type.Value_Type
 
-refine_with_single_value (column : Column) -> Column & Any =
+refine_with_single_value (column : Column) =
     ## We treat a column as single value if it contains a single not-nothing value.
-    if _is_single_value column . not then column else case column.value_type of
+    if _is_single_value column . not then column else case column.inferred_precise_value_type of
         Value_Type.Integer _ -> (column : Column & Integer)
         Value_Type.Float _ -> (column : Column & Float)
         Value_Type.Char _ _ -> (column : Column & Text)

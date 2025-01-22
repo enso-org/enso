@@ -1,0 +1,93 @@
+from Standard.Base import all
+
+from Standard.Table import Column, Value_Type
+
+from Standard.Test import all
+
+add_specs suite_builder =
+    suite_builder.group "single-value Column" group_builder->
+        group_builder.specify "should be a Column but also the underlying value" <|
+            c1 = Column.from_vector "c1" [1]
+            c1.is_a Column . should_be_true
+            c1.is_a Integer . should_be_true
+            c1.is_a Text . should_be_false
+
+            c2 = Column.from_vector "c2" [1.0]
+            c2.is_a Column . should_be_true
+            c2.is_a Float . should_be_true
+
+            c3 = Column.from_vector "c3" ["a"]
+            c3.is_a Column . should_be_true
+            c3.is_a Text . should_be_true
+            c3.is_a Integer . should_be_false
+
+            c4 = Column.from_vector "c4" [True]
+            c4.is_a Column . should_be_true
+            c4.is_a Boolean . should_be_true
+
+            c5 = Column.from_vector "c5" [Date.new 2021 1 1]
+            c5.is_a Column . should_be_true
+            c5.is_a Date . should_be_true
+
+            c6 = Column.from_vector "c6" [Time_Of_Day.new 12 0 0]
+            c6.is_a Column . should_be_true
+            c6.is_a Time_Of_Day . should_be_true
+
+            c7 = Column.from_vector "c7" [Date_Time.new 2021 1 1 12 0 0]
+            c7.is_a Column . should_be_true
+            c7.is_a Date_Time . should_be_true
+
+            c8 = Column.from_vector "c8" [3^500]
+            c8.is_a Column . should_be_true
+            c8.is_a Integer . should_be_true
+
+            c9 = Column.from_vector "c9" [Decimal.new "3.5"]
+            c9.is_a Column . should_be_true
+            c9.is_a Decimal . should_be_true
+
+        group_builder.specify "nothing column is not a single Nothing value" <|
+            c = Column.from_vector "n" [Nothing]
+            c.is_a Column . should_be_true
+            c.is_a Integer . should_be_false
+            c.is_a Nothing . should_be_false
+
+        group_builder.specify "should still allow all column operations and preserve its single-value-ness" <|
+            c1 = Column.from_vector "c1" [23]
+            c1.length . should_equal 1
+            c1.count_nothing . should_equal 0
+            c1.value_type . should_equal Value_Type.Integer
+            c1.at 0 . should_equal 23
+
+            c2 = c1 + 100
+            c2.is_a Column . should_be_true
+            c2.is_a Integer . should_be_true
+
+        group_builder.specify "will also allow to call methods of the single value" <|
+            c1 = Column.from_vector "c1" [1000]
+            # Assuming Column has no log function
+            r1 = c1.log 10
+            r1 . should_equal 3 epsilon=0.001
+
+            c2 = Column.from_vector "c2" [Date.new 2025 1 1]
+            c2.add_work_days 100 . should_equal (Date.new 2025 5 21)
+
+        group_builder.specify "can be passed to functions that expect a matching single value" <|
+            my_integer_fn (x : Integer) -> Integer =
+                1 + x*2
+            c1 = Column.from_vector "c1" [10]
+            r1 = my_integer_fn c1
+            r1 . should_equal 21
+            r1 . is_a Integer . should_be_true
+            # The value is no longer a column after passing it to a function
+            r1 . is_a Column . should_be_false
+
+            my_text_fn (x : Text) -> Text =
+                x + "!"
+            c2 = Column.from_vector "c2" ["hello"]
+            r2 = my_text_fn c2
+            r2 . should_equal "hello!"
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter
