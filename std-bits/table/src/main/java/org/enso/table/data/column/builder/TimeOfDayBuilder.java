@@ -29,6 +29,6 @@ public final class TimeOfDayBuilder extends TypedBuilder<LocalTime> {
 
   @Override
   protected Storage<LocalTime> doSeal() {
-    return new TimeOfDayStorage(data, currentSize);
+    return new TimeOfDayStorage(data);
   }
 }

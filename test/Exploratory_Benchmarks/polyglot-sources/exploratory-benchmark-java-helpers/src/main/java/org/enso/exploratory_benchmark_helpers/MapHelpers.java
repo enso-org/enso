@@ -86,7 +86,7 @@ public class MapHelpers {
     BitSet isNothing = new BitSet();
     for (int i = 0; i < n; i++) {
       if (!storage.isNothing(i)) {
-        result[i] = storage.getItem(i).getYear();
+        result[i] = storage.getBoxed(i).getYear();
       } else {
         isNothing.set(i);
       }

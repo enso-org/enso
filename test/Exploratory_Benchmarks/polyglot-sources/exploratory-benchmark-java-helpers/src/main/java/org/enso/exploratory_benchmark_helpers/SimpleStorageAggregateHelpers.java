@@ -33,7 +33,7 @@ public class SimpleStorageAggregateHelpers {
     int n = storage.size();
     for (int i = 0; i < n; i++) {
       if (!storage.isNothing(i)) {
-        String text = storage.getItem(i);
+        String text = storage.getBoxed(i);
         long length = Text_Utils.grapheme_length(text);
         if (length > longest) {
           longest = length;

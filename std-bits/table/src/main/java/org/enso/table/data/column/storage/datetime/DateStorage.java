@@ -10,15 +10,14 @@ import org.enso.table.data.column.operation.map.datetime.TimeLikeCoalescingOpera
 import org.enso.table.data.column.storage.ObjectStorage;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.type.DateType;
-import org.enso.table.data.column.storage.type.StorageType;
 
 public final class DateStorage extends SpecializedStorage<LocalDate> {
   /**
    * @param data the underlying data
    * @param size the number of items stored
    */
-  public DateStorage(LocalDate[] data, int size) {
-    super(data, size, buildOps());
+  public DateStorage(LocalDate[] data) {
+    super(DateType.INSTANCE, data, buildOps());
   }
 
   private static MapOperationStorage<LocalDate, SpecializedStorage<LocalDate>> buildOps() {
@@ -93,18 +92,13 @@ public final class DateStorage extends SpecializedStorage<LocalDate> {
   }
 
   @Override
-  protected SpecializedStorage<LocalDate> newInstance(LocalDate[] data, int size) {
-    return new DateStorage(data, size);
+  protected SpecializedStorage<LocalDate> newInstance(LocalDate[] data) {
+    return new DateStorage(data);
   }
 
   @Override
   protected LocalDate[] newUnderlyingArray(int size) {
     return new LocalDate[size];
-  }
-
-  @Override
-  public StorageType getType() {
-    return DateType.INSTANCE;
   }
 
   private abstract static class DateComparisonOp

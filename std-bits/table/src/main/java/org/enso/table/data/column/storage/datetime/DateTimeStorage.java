@@ -19,8 +19,8 @@ public final class DateTimeStorage extends SpecializedStorage<ZonedDateTime> {
    * @param data the underlying data
    * @param size the number of items stored
    */
-  public DateTimeStorage(ZonedDateTime[] data, int size) {
-    super(data, size, buildOps());
+  public DateTimeStorage(ZonedDateTime[] data) {
+    super(DateTimeType.INSTANCE, data, buildOps());
   }
 
   private static MapOperationStorage<ZonedDateTime, SpecializedStorage<ZonedDateTime>> buildOps() {
@@ -109,18 +109,13 @@ public final class DateTimeStorage extends SpecializedStorage<ZonedDateTime> {
   }
 
   @Override
-  protected SpecializedStorage<ZonedDateTime> newInstance(ZonedDateTime[] data, int size) {
-    return new DateTimeStorage(data, size);
+  protected SpecializedStorage<ZonedDateTime> newInstance(ZonedDateTime[] data) {
+    return new DateTimeStorage(data);
   }
 
   @Override
   protected ZonedDateTime[] newUnderlyingArray(int size) {
     return new ZonedDateTime[size];
-  }
-
-  @Override
-  public StorageType getType() {
-    return DateTimeType.INSTANCE;
   }
 
   private abstract static class DateTimeComparisonOp

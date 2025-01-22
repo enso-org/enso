@@ -19,8 +19,8 @@ public final class TimeOfDayStorage extends SpecializedStorage<LocalTime> {
    * @param data the underlying data
    * @param size the number of items stored
    */
-  public TimeOfDayStorage(LocalTime[] data, int size) {
-    super(data, size, buildOps());
+  public TimeOfDayStorage(LocalTime[] data) {
+    super(TimeOfDayType.INSTANCE, data, buildOps());
   }
 
   private static MapOperationStorage<LocalTime, SpecializedStorage<LocalTime>> buildOps() {
@@ -108,18 +108,13 @@ public final class TimeOfDayStorage extends SpecializedStorage<LocalTime> {
   }
 
   @Override
-  protected SpecializedStorage<LocalTime> newInstance(LocalTime[] data, int size) {
-    return new TimeOfDayStorage(data, size);
+  protected SpecializedStorage<LocalTime> newInstance(LocalTime[] data) {
+    return new TimeOfDayStorage(data);
   }
 
   @Override
   protected LocalTime[] newUnderlyingArray(int size) {
     return new LocalTime[size];
-  }
-
-  @Override
-  public StorageType getType() {
-    return TimeOfDayType.INSTANCE;
   }
 
   private abstract static class TimeOfDayComparisonOp

@@ -81,7 +81,7 @@ public final class DateTimeBuilder extends TypedBuilder<ZonedDateTime> {
 
   @Override
   protected Storage<ZonedDateTime> doSeal() {
-    return new DateTimeStorage(data, currentSize);
+    return new DateTimeStorage(data);
   }
 
   @Override
