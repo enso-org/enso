@@ -234,22 +234,13 @@ const isVisualizationEnabled = computed({
   },
 })
 const visualizationHovered = ref(false)
-watch(outputHovered, (val) => console.log('outputHovered', val))
-watch(
-  () => keyboard.mod,
-  (val) => console.log('keyboard.mod', val),
-  { immediate: true },
-)
 
 const isVisualizationPreviewed = computed(
   () =>
     keyboard.mod &&
-    // (outputHovered.value || visualizationHovered.value) &&
+    (outputHovered.value || visualizationHovered.value) &&
     !isVisualizationEnabled.value,
 )
-watch(isVisualizationPreviewed, (val) => {
-  console.log('isVisualizationPreviewed', val)
-})
 const isVisualizationVisible = computed(
   () => isVisualizationEnabled.value || isVisualizationPreviewed.value,
 )
@@ -525,8 +516,8 @@ const showMenuAt = ref<{ x: number; y: number }>()
       :isPreview="isVisualizationPreviewed"
       :isFullscreenAllowed="true"
       :isResizable="true"
-      @pointerenter="((visualizationHovered = true), console.log('pointerenter'))"
-      @pointerleave="((visualizationHovered = false), console.log('pointerleave'))"
+      @pointerenter="visualizationHovered = true"
+      @pointerleave="visualizationHovered = false"
       @update:rect="updateVisualizationRect"
       @update:id="emit('update:visualizationId', $event)"
       @update:enabled="emit('update:visualizationEnabled', $event)"

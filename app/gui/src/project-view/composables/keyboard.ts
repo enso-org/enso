@@ -18,7 +18,6 @@ export function useKeyboard() {
    * window is not focused.
    */
   const updateState = (e: MouseEvent | KeyboardEvent) => {
-    console.log('updateState', e.type, e.metaKey)
     state.alt.value = e.altKey
     state.shift.value = e.shiftKey
     state.meta.value = e.metaKey

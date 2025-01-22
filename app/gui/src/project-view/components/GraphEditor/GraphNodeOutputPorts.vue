@@ -131,11 +131,10 @@ function portGroupStyle(port: PortData) {
     '--port-clip-start': start,
     '--port-clip-end': end,
     '--port-label-transform-x': `${((end - start) / 2 + start) * 100}%`,
-    '--node-size-x': `${nodeRect.value?.size.x}px`,
-    '--node-size-y': `${nodeRect.value?.size.y}px`,
+    '--node-size-x': `${nodeRect.value?.size.x ?? 0}px`,
+    '--node-size-y': `${nodeRect.value?.size.y ?? 0}px`,
     '--node-group-color': nodeColor.value,
-    transform: `translate(${nodeRect.value?.pos.x}px, ${nodeRect.value?.pos.y}px)`,
-    // transform: 'var(--output-port-transform)',
+    transform: `translate(${nodeRect.value?.pos.x ?? 0}px, ${nodeRect.value?.pos.y ?? 0}px)`,
   }
 }
 
