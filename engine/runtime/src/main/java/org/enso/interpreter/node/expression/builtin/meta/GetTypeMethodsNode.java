@@ -27,10 +27,9 @@ public abstract class GetTypeMethodsNode extends Node {
   @Specialization
   @CompilerDirectives.TruffleBoundary
   EnsoObject allMethods(Type type) {
-    var methods = type.getDefinitionScope().getMethodNamesForType(type);
-    return methods == null
-        ? ArrayLikeHelpers.empty()
-        : ArrayLikeHelpers.wrapStrings(methods.toArray(new String[0]));
+    var methods = type.getMethods(true);
+    var methodNames = methods.keySet().toArray(String[]::new);
+    return ArrayLikeHelpers.wrapStrings(methodNames);
   }
 
   @Fallback
