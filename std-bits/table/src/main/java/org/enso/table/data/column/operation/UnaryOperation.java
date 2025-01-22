@@ -76,7 +76,7 @@ public interface UnaryOperation {
         nothingUnchanged,
         storageBuilder,
         i -> {
-          Value result = function.apply(column.getStorage().getItemAsObject(i));
+          Value result = function.apply(column.getStorage().getBoxed(i));
           Object converted = Polyglot_Utils.convertPolyglotValue(result);
           storageBuilder.append(converted);
         });
@@ -119,7 +119,7 @@ public interface UnaryOperation {
         objectStorage,
         nothingUnchanged,
         builder,
-        i -> function.accept(objectStorage.getItemAsObject(i)));
+        i -> function.accept(objectStorage.getBoxed(i)));
   }
 
   /** Applies the operation to the given Boolean Storage. */

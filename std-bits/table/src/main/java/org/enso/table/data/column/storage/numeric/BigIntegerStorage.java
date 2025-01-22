@@ -28,8 +28,8 @@ public class BigIntegerStorage extends SpecializedStorage<BigInteger> {
    * @param data the underlying data
    * @param size the number of items stored
    */
-  public BigIntegerStorage(BigInteger[] data, int size) {
-    super(data, size, makeOps());
+  public BigIntegerStorage(BigInteger[] data) {
+    super(BigIntegerType.INSTANCE, data, makeOps());
   }
 
   protected static MapOperationStorage<BigInteger, SpecializedStorage<BigInteger>> makeOps() {
@@ -52,12 +52,12 @@ public class BigIntegerStorage extends SpecializedStorage<BigInteger> {
   }
 
   public static BigIntegerStorage makeEmpty(int size) {
-    return new BigIntegerStorage(new BigInteger[size], size);
+    return new BigIntegerStorage(new BigInteger[size]);
   }
 
   @Override
-  protected SpecializedStorage<BigInteger> newInstance(BigInteger[] data, int size) {
-    return new BigIntegerStorage(data, size);
+  protected SpecializedStorage<BigInteger> newInstance(BigInteger[] data) {
+    return new BigIntegerStorage(data);
   }
 
   @Override
@@ -65,17 +65,12 @@ public class BigIntegerStorage extends SpecializedStorage<BigInteger> {
     return new BigInteger[size];
   }
 
-  @Override
-  public StorageType getType() {
-    return BigIntegerType.INSTANCE;
-  }
-
   private long cachedMaxPrecisionStored = -1;
 
   public long getMaxPrecisionStored() {
     if (cachedMaxPrecisionStored < 0) {
       long maxPrecision = 0;
-      for (int i = 0; i < size; i++) {
+      for (int i = 0; i < getSize(); i++) {
         BigInteger value = data[i];
         if (value == null) {
           continue;
@@ -103,7 +98,7 @@ public class BigIntegerStorage extends SpecializedStorage<BigInteger> {
       boolean allFitInLong = true;
       int visitedCount = 0;
 
-      for (int i = 0; i < size; i++) {
+      for (int i = 0; i < getSize(); i++) {
         BigInteger value = data[i];
         if (value == null) {
           continue;
@@ -142,10 +137,10 @@ public class BigIntegerStorage extends SpecializedStorage<BigInteger> {
 
     // We create a Long storage that gets values by converting our storage.
     ComputedNullableLongStorage longAdapter =
-        new ComputedNullableLongStorage(size) {
+        new ComputedNullableLongStorage(getSize()) {
           @Override
           protected Long computeItem(int idx) {
-            BigInteger bigInteger = parent.getItem(idx);
+            BigInteger bigInteger = parent.getBoxed(idx);
             if (bigInteger == null) {
               return null;
             }

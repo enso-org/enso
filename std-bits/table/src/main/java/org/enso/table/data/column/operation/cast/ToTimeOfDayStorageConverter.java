@@ -32,7 +32,7 @@ public class ToTimeOfDayStorageConverter implements StorageConverter<LocalTime> 
         Builder.getForTime(mixedStorage.getSize()),
         mixedStorage,
         (i) -> {
-          Object o = mixedStorage.getItemAsObject(i);
+          Object o = mixedStorage.getBoxed(i);
           return switch (o) {
             case LocalTime d -> d;
             case ZonedDateTime d -> convertDateTime(d);
@@ -50,7 +50,7 @@ public class ToTimeOfDayStorageConverter implements StorageConverter<LocalTime> 
         Builder.getForTime(dateTimeStorage.size()),
         dateTimeStorage,
         (i) -> {
-          ZonedDateTime dateTime = dateTimeStorage.getItem(i);
+          ZonedDateTime dateTime = dateTimeStorage.getBoxed(i);
           return convertDateTime(dateTime);
         });
   }

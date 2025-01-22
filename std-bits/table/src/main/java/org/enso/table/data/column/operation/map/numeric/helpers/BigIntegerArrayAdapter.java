@@ -15,7 +15,7 @@ public interface BigIntegerArrayAdapter {
     for (int i = 0; i < n; i++) {
       values[i] = getItem(i);
     }
-    return new BigIntegerStorage(values, n);
+    return new BigIntegerStorage(values);
   }
 
   static BigIntegerArrayAdapter fromStorage(BigIntegerStorage storage) {

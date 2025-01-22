@@ -293,7 +293,7 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
       context.safepoint();
     }
 
-    return new BigIntegerStorage(out, n);
+    return new BigIntegerStorage(out);
   }
 
   protected BigIntegerStorage runBigIntegerMap(
@@ -313,7 +313,7 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
       context.safepoint();
     }
 
-    return new BigIntegerStorage(out, n);
+    return new BigIntegerStorage(out);
   }
 
   protected BigDecimalStorage runBigDecimalZip(

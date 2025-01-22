@@ -99,7 +99,7 @@ public class Sum extends Aggregator {
         }
       } else if (storage instanceof BigIntegerStorage bigIntegerStorage) {
         for (int row : indexes) {
-          BigInteger value = bigIntegerStorage.getItem(row);
+          BigInteger value = bigIntegerStorage.getItemBoxed(row);
           if (value != null) {
             addBigInteger(value);
           }

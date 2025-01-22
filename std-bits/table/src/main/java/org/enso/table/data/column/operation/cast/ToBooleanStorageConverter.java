@@ -28,7 +28,7 @@ public class ToBooleanStorageConverter implements StorageConverter<Boolean> {
         Builder.getForBoolean(mixedStorage.getSize()),
         mixedStorage,
         (i) -> {
-          Object o = mixedStorage.getItemAsObject(i);
+          Object o = mixedStorage.getBoxed(i);
           if (o instanceof Boolean b) {
             return b;
           } else {

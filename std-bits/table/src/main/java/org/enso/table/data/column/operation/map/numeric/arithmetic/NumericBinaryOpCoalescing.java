@@ -191,7 +191,7 @@ public abstract class NumericBinaryOpCoalescing<T extends Number, I extends Stor
       context.safepoint();
     }
 
-    return new BigIntegerStorage(out, n);
+    return new BigIntegerStorage(out);
   }
 
   protected BigIntegerStorage runBigIntegerMap(
@@ -215,7 +215,7 @@ public abstract class NumericBinaryOpCoalescing<T extends Number, I extends Stor
       context.safepoint();
     }
 
-    return new BigIntegerStorage(out, n);
+    return new BigIntegerStorage(out);
   }
 
   protected BigDecimalStorage runBigDecimalZip(

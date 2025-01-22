@@ -30,7 +30,7 @@ public class CountUntrimmed {
   }
 
   /** Internal method performing the calculation on a storage. */
-  public static long compute(ColumnStorage storage, long sampleSize, Context context) {
+  public static long compute(ColumnStorage<?> storage, long sampleSize, Context context) {
     long size = storage.getSize();
 
     long count = 0;
@@ -38,7 +38,7 @@ public class CountUntrimmed {
       var rng = new Random(RANDOM_SEED);
       for (int i = 0; i < sampleSize; i++) {
         long idx = rng.nextInt(Math.toIntExact(size));
-        var val = storage.getItemAsObject(idx);
+        var val = storage.getBoxed(idx);
         if (val instanceof String str && Text_Utils.has_leading_trailing_whitespace(str)) {
           count++;
         }
@@ -50,7 +50,7 @@ public class CountUntrimmed {
       count = Math.min(size, (long) Math.ceil((double) count / sampleSize * size));
     } else {
       for (long i = 0; i < storage.getSize(); i++) {
-        var val = storage.getItemAsObject(i);
+        var val = storage.getBoxed(i);
         if (val instanceof String str && Text_Utils.has_leading_trailing_whitespace(str)) {
           count++;
         }

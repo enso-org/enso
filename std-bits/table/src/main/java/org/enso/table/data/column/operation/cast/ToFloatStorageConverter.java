@@ -77,7 +77,7 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
         Builder.getForDouble(FloatType.FLOAT_64, mixedStorage.getSize(), problemAggregator),
         mixedStorage,
         (builder, i) -> {
-          Object o = mixedStorage.getItemAsObject(i);
+          Object o = mixedStorage.getBoxed(i);
 
           if (NumericConverter.isCoercibleToLong(o)) {
             builder.appendLong(NumericConverter.coerceToLong(o));

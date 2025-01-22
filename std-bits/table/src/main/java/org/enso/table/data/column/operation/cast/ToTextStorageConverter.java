@@ -60,7 +60,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
         Builder.getForText(mixedStorage.getSize(), targetType),
         mixedStorage,
         (i) -> {
-          Object o = mixedStorage.getItemAsObject(i);
+          Object o = mixedStorage.getBoxed(i);
           return switch (o) {
             case LocalTime d -> adapt(convertTime(d), problemAggregator);
             case LocalDate d -> adapt(convertDate(d), problemAggregator);

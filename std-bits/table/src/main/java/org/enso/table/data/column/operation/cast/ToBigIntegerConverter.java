@@ -87,7 +87,7 @@ public class ToBigIntegerConverter implements StorageConverter<BigInteger> {
         Builder.getForBigInteger(storage.getSize(), problemAggregator),
         storage,
         (i) -> {
-          Object o = storage.getItemAsObject(i);
+          Object o = storage.getBoxed(i);
           return switch (o) {
             case Boolean b -> booleanAsBigInteger(b);
             case Long l -> BigInteger.valueOf(l);

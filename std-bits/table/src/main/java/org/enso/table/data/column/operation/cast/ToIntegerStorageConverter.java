@@ -54,7 +54,7 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
 
   /** Specialised innerLoop so that we can avoid boxing. */
   static Storage<Long> innerLoop(
-      BuilderForLong builder, ColumnStorage storage, ObjLongConsumer<BuilderForLong> converter) {
+      BuilderForLong builder, ColumnStorage<?> storage, ObjLongConsumer<BuilderForLong> converter) {
     Context context = Context.getCurrent();
 
     long n = storage.getSize();
@@ -72,12 +72,12 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
   }
 
   private Storage<Long> castFromMixed(
-      ColumnStorage mixedStorage, CastProblemAggregator problemAggregator) {
+      ColumnStorage<?> mixedStorage, CastProblemAggregator problemAggregator) {
     return innerLoop(
         Builder.getForLong(targetType, mixedStorage.getSize(), problemAggregator),
         mixedStorage,
         (builder, i) -> {
-          Object o = mixedStorage.getItemAsObject(i);
+          Object o = mixedStorage.getBoxed(i);
           if (o instanceof Boolean b) {
             builder.appendLong(booleanAsLong(b));
           } else if (NumericConverter.isCoercibleToLong(o)) {
