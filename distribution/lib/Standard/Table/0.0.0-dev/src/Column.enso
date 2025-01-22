@@ -36,6 +36,7 @@ from project.Errors import Conversion_Failure, Inexact_Type_Coercion, Invalid_Co
 from project.Internal.Column_Format import all
 from project.Internal.Java_Exports import make_string_builder
 from project.Internal.Storage import enso_to_java, java_to_enso
+from project.Internal.Type_Refinements import refine_with_single_value
 
 polyglot java import org.enso.base.Time_Utils
 polyglot java import org.enso.table.data.column.operation.cast.CastProblemAggregator
@@ -135,7 +136,8 @@ type Column
        Creates a new column given a Java Column object.
     from_java_column : Java_Column -> Column
     from_java_column java_column =
-        Column.Value java_column
+        column = Column.Value java_column
+        column |> refine_with_single_value
 
     ## PRIVATE
        ADVANCED

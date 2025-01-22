@@ -1,0 +1,73 @@
+private
+
+from Standard.Base import all
+
+import project.Column.Column
+import project.Value_Type.Value_Type
+
+refine_with_single_value (column : Column) -> Column & Any =
+    ## We treat a column as single value if it contains a single not-nothing value.
+    if _is_single_value column . not then column else case column.value_type of
+        Value_Type.Integer _ -> (column : Column & Integer)
+        Value_Type.Float _ -> (column : Column & Float)
+        Value_Type.Char _ _ -> (column : Column & Text)
+        Value_Type.Boolean -> (column : Column & Boolean)
+        Value_Type.Date -> (column : Column & Date)
+        Value_Type.Time -> (column : Column & Time_Of_Day)
+        Value_Type.Date_Time True -> (column : Column & Date_Time)
+        Value_Type.Decimal _ scale ->
+            is_integer = scale == 0
+            if is_integer then (column : Column & Integer) else (column : Column & Decimal)
+        # Other types (e.g. Mixed) are not supported.
+        _ -> column
+
+_is_single_value column:Column -> Boolean =
+    (column.length == 1) && (column.at 0 . is_nothing . not)
+
+## PRIVATE
+   This extension should never be exported.
+Integer.from (that : Column) -> Integer =
+    Runtime.assert (_is_single_value that)
+    that.at 0
+
+## PRIVATE
+   This extension should never be exported.
+Float.from (that : Column) -> Float =
+    Runtime.assert (_is_single_value that)
+    that.at 0
+
+## PRIVATE
+   This extension should never be exported.
+Text.from (that : Column) -> Text =
+    Runtime.assert (_is_single_value that)
+    that.at 0
+
+## PRIVATE
+   This extension should never be exported.
+Boolean.from (that : Column) -> Boolean =
+    Runtime.assert (_is_single_value that)
+    that.at 0
+
+## PRIVATE
+   This extension should never be exported.
+Date.from (that : Column) -> Date =
+    Runtime.assert (_is_single_value that)
+    that.at 0
+
+## PRIVATE
+   This extension should never be exported.
+Time_Of_Day.from (that : Column) -> Time_Of_Day =
+    Runtime.assert (_is_single_value that)
+    that.at 0
+
+## PRIVATE
+   This extension should never be exported.
+Date_Time.from (that : Column) -> Date_Time =
+    Runtime.assert (_is_single_value that)
+    that.at 0
+
+## PRIVATE
+   This extension should never be exported.
+Decimal.from (that : Column) -> Decimal =
+    Runtime.assert (_is_single_value that)
+    that.at 0
