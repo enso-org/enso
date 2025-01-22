@@ -26,7 +26,6 @@ export function useKeyboard() {
   }
   useEvent(window, 'keydown', updateState, { capture: true })
   useEvent(window, 'keyup', updateState, { capture: true })
-  useEvent(window, 'pointerenter', updateState, { capture: true })
 
   return proxyRefs({
     alt: state.alt,
