@@ -151,7 +151,6 @@ export const Checkbox = forwardRef(function Checkbox<
                 field={field}
                 defaultValue={defaultValue}
                 onChange={(value) => {
-                  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                   field.onChange({ target: { value } })
                   void formInstance.trigger(name)
                 }}
@@ -250,7 +249,7 @@ const CheckboxInternal = forwardRef(function CheckboxInternal<
 
   const { hasError: fieldStateInvalid } = Form.useFieldState({
     name,
-    // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unsafe-assignment
+    // eslint-disable-next-line no-restricted-syntax
     form: formInstance as unknown as Parameters<typeof Form.useField>[0]['form'],
   })
 
