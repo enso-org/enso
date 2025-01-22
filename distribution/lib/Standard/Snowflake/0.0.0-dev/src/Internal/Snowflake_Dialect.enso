@@ -11,7 +11,6 @@ import Standard.Table.Internal.Vector_Builder.Vector_Builder
 from Standard.Table import Aggregate_Column, Column, Value_Type
 from Standard.Table.Aggregate_Column.Aggregate_Column import all
 from Standard.Table.Errors import Inexact_Type_Coercion
-from Standard.Table.Internal.Storage import get_storage_for_column
 
 import Standard.Database.Connection.Connection.Connection
 import Standard.Database.DB_Column.DB_Column
