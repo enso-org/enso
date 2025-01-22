@@ -100,7 +100,76 @@
     }
   ]
 },
-{
+  {
+    "name":"org.apache.commons.compress.archivers.zip.AsiExtraField",
+    "methods":[{"name":"<init>","parameterTypes":[] }]
+  },
+  {
+    "name":"org.apache.commons.compress.archivers.zip.JarMarker",
+    "methods":[{"name":"<init>","parameterTypes":[] }]
+  },
+  {
+    "name":"org.apache.commons.compress.archivers.zip.ResourceAlignmentExtraField",
+    "methods":[{"name":"<init>","parameterTypes":[] }]
+  },
+  {
+    "name":"org.apache.commons.compress.archivers.zip.UnicodeCommentExtraField",
+    "methods":[{"name":"<init>","parameterTypes":[] }]
+  },
+  {
+    "name":"org.apache.commons.compress.archivers.zip.UnicodePathExtraField",
+    "methods":[{"name":"<init>","parameterTypes":[] }]
+  },
+  {
+    "name":"org.apache.commons.compress.archivers.zip.X000A_NTFS",
+    "methods":[{"name":"<init>","parameterTypes":[] }]
+  },
+  {
+    "name":"org.apache.commons.compress.archivers.zip.X0014_X509Certificates",
+    "methods":[{"name":"<init>","parameterTypes":[] }]
+  },
+  {
+    "name":"org.apache.commons.compress.archivers.zip.X0015_CertificateIdForFile",
+    "methods":[{"name":"<init>","parameterTypes":[] }]
+  },
+  {
+    "name":"org.apache.commons.compress.archivers.zip.X0016_CertificateIdForCentralDirectory",
+    "methods":[{"name":"<init>","parameterTypes":[] }]
+  },
+  {
+    "name":"org.apache.commons.compress.archivers.zip.X0017_StrongEncryptionHeader",
+    "methods":[{"name":"<init>","parameterTypes":[] }]
+  },
+  {
+    "name":"org.apache.commons.compress.archivers.zip.X0019_EncryptionRecipientCertificateList",
+    "methods":[{"name":"<init>","parameterTypes":[] }]
+  },
+  {
+    "name":"org.apache.commons.compress.archivers.zip.X5455_ExtendedTimestamp",
+    "methods":[{"name":"<init>","parameterTypes":[] }]
+  },
+  {
+    "name":"org.apache.commons.compress.archivers.zip.X7875_NewUnix",
+    "methods":[{"name":"<init>","parameterTypes":[] }]
+  },
+  {
+    "name":"org.apache.commons.compress.archivers.zip.Zip64ExtendedInformationExtraField",
+    "methods":[{"name":"<init>","parameterTypes":[] }]
+  },
+  {
+    "name":"org.apache.logging.log4j.message.DefaultFlowMessageFactory",
+    "methods":[{"name":"<init>","parameterTypes":[] }]
+  },
+  {
+    "name":"org.apache.logging.log4j.message.ReusableMessageFactory",
+    "methods":[{"name":"<init>","parameterTypes":[] }]
+  },
+  {
+    "name":"org.apache.logging.slf4j.SLF4JLoggerContextFactory",
+    "methods":[{"name":"<init>","parameterTypes":[] }]
+  },
+
+  {
   "name": "org.enso.table.expressions.ExpressionVisitorImpl",
   "methods":[
     {
@@ -480,6 +549,9 @@
   "name":"org.apache.poi.poifs.filesystem.NotOLE2FileException"
 },
 {
+  "name": "org.apache.poi.poifs.filesystem.OfficeXmlFileException"
+},
+{
   "name":"org.apache.poi.poifs.filesystem.POIFSFileSystem",
   "methods": [
     {
@@ -501,6 +573,23 @@
   ]
 },
 {
+  "name":"org.apache.poi.poifs.filesystem.FileMagic",
+  "fields": [
+    {
+      "name": "OLE2"
+    },
+    {
+      "name": "UNKNOWN"
+    },
+    {
+      "name": "OOXML"
+    },
+    {
+      "name": "XML"
+    }
+  ]
+},
+{
   "name":"org.apache.poi.xssf.usermodel.XSSFWorkbook",
   "methods": [
     {
@@ -517,11 +606,11 @@
   "name":"org.enso.table.excel.xssfreader.XSSFReaderWorkbook",
   "methods": [
     {
-      "name": "getNumberOfSheets",
+      "name": "getRangeNames",
       "parameterTypes": []
     },
     {
-      "name": "getRangeNames",
+      "name": "getNumberOfSheets",
       "parameterTypes": []
     },
     {
@@ -547,7 +636,7 @@
       "parameterTypes": []
     },
     {
-      "name": "getRangeNames",
+      "name": "getNumberOfNames",
       "parameterTypes": []
     }
   ]
@@ -564,7 +653,7 @@
         "parameterTypes": []
       },
       {
-        "name": "getRangeNames",
+        "name": "getNumberOfNames",
         "parameterTypes": []
       }
     ]
@@ -590,10 +679,6 @@
       {
         "name": "getNumberOfNames",
         "parameterTypes": []
-      },
-      {
-        "name": "getRangeNames",
-        "parameterTypes": []
       }
     ]
   },
@@ -606,17 +691,7 @@
     }
   ]
 },
-  {
-    "name": "org.apache.poi.ss.formula.udf.org.apache.poi.ss.formula.udf",
-    "methods": [
-      {
-        "name": "<init>",
-        "parameterTypes": ["org.apache.poi.ss.formula.udf.UDFFinder[]"]
-      }
-    ]
-  },
-
-  {
+{
   "name":"org.apache.poi.ss.usermodel.Workbook"
 },
 {
@@ -631,7 +706,24 @@
     }
   ]
 },
-{
+  {
+    "name":"org.apache.xmlbeans.metadata.system.sXMLCONFIG.TypeSystemHolder",
+    "fields":[{"name":"typeSystem"}]
+  },
+  {
+    "name":"org.apache.xmlbeans.metadata.system.sXMLLANG.TypeSystemHolder",
+    "fields":[{"name":"typeSystem"}]
+  },
+  {
+    "name":"org.apache.xmlbeans.metadata.system.sXMLSCHEMA.TypeSystemHolder",
+    "fields":[{"name":"typeSystem"}]
+  },
+  {
+    "name":"org.apache.xmlbeans.metadata.system.sXMLTOOLS.TypeSystemHolder",
+    "fields":[{"name":"typeSystem"}]
+  },
+
+  {
   "name":"java.util.Comparator",
   "methods": [
     {

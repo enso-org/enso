@@ -188,7 +188,8 @@ add_specs suite_builder =
 
             (table.at "enso_dates" == table.at "py_dates").to_vector . should_equal [True, True]
 
-        group_builder.specify "should work with polyglot values coming from JS" <|
+        pending_js_missing = if Polyglot.is_language_installed "js" then Nothing else "Can't run JavaScript tests, language `js` is not installed."
+        group_builder.specify "should work with polyglot values coming from JS" pending=pending_js_missing <|
             enso_dates = ["enso_dates", [Date.new 2022 8 27, Date.new 1999 1 1]]
             js_dates = ["js_dates", [js_make_date 2022 8 27, js_make_date 1999 1 1]]
             js_objects = ["js_objects", [js_make_object "a" "b", js_make_object "foo" "bar"]]
