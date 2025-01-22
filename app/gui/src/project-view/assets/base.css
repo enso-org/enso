@@ -90,7 +90,7 @@
   --color-node-text-missing-value: white;
 
   &.pending {
-    --color-node-primary: var(--color-node-pending);
+    --color-node-background: var(--color-node-pending);
   }
 
   &.selected {
