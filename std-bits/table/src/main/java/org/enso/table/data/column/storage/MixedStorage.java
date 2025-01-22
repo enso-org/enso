@@ -19,7 +19,7 @@ import org.graalvm.polyglot.Context;
  * specific type.
  */
 public final class MixedStorage extends ObjectStorage implements ColumnStorageWithInferredStorage {
-  private StorageType inferredType = null;
+  private StorageType inferredType;
 
   /**
    * Holds a specialized storage for the inferred type, if available.
@@ -38,16 +38,15 @@ public final class MixedStorage extends ObjectStorage implements ColumnStorageWi
 
   /**
    * @param data the underlying data
-   * @param size the number of items stored
    */
-  public MixedStorage(Object[] data, int size) {
-    super(data, size);
+  public MixedStorage(Object[] data) {
+    super(data);
     inferredType = null;
   }
 
   @Override
-  protected SpecializedStorage<Object> newInstance(Object[] data, int size) {
-    return new MixedStorage(data, size);
+  protected SpecializedStorage<Object> newInstance(Object[] data) {
+    return new MixedStorage(data);
   }
 
   private boolean isNumeric(StorageType type) {
