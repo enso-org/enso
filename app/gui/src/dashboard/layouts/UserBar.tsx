@@ -23,8 +23,7 @@ import { z } from 'zod'
 /** Whether the chat button should be visible. Temporarily disabled. */
 const SHOULD_SHOW_CHAT_BUTTON: boolean = false
 
-// eslint-disable-next-line no-restricted-syntax
-const topbarLinksSchema = z.object({
+export const TOPBAR_LINKS_SCHEMA = z.object({
   items: z.array(
     z
       .object({
@@ -88,7 +87,7 @@ export default function UserBar(props: UserBarProps) {
     // eslint-disable-next-line no-restricted-syntax
     (false as boolean) && !shouldShowPaywallButton
 
-  const topbarLinks = topbarLinksSchema.parse(TOPBAR_LINKS)
+  const topbarLinks = TOPBAR_LINKS_SCHEMA.parse(TOPBAR_LINKS)
 
   return (
     <div className="bg-primary/10 pt-0.5">
@@ -175,7 +174,7 @@ export default function UserBar(props: UserBarProps) {
  * Props for a {@link UserBarHelpSection}.
  */
 export interface UserBarHelpSectionProps {
-  readonly items: z.infer<typeof topbarLinksSchema>['items']
+  readonly items: z.infer<typeof TOPBAR_LINKS_SCHEMA>['items']
 }
 
 /**
