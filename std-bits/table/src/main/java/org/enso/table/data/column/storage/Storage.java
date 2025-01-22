@@ -20,19 +20,48 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
 /** An abstract representation of a data column. */
-public abstract class Storage<T> implements ColumnStorage {
+public abstract class Storage<T> implements ColumnStorage<T> {
+  /** A constant representing the index of a missing value in a column. */
+  public static final int NOT_FOUND_INDEX = -1;
+
   /**
    * @return the number of elements in this column (including NAs)
    */
-  public abstract int size();
-
-  @Override
-  public long getSize() {
-    return size();
+  public final int size() {
+    return Math.toIntExact(getSize());
   }
 
   @Override
+  public abstract long getSize();
+
+  @Override
   public abstract StorageType getType();
+
+  /**
+   * Returns a more specialized storage, if available.
+   *
+   * <p>This storage should have the same type as returned by {@code inferPreciseType}. See {@link
+   * MixedStorage} for more information.
+   */
+  public Storage<?> tryGettingMoreSpecializedStorage() {
+    return this;
+  }
+
+  @Override
+  public abstract boolean isNothing(long index);
+
+  /**
+   * Returns a boxed representation of an item. Missing values are denoted with null.
+   *
+   * @param idx the index to look up
+   * @return the item at position {@code idx}
+   */
+  public final T getItemBoxed(int idx) {
+    return getBoxed(idx);
+  }
+
+  @Override
+  public abstract T getBoxed(long index);
 
   /**
    * @return the type of the values in this column's storage. Most storages just return their type.
@@ -54,27 +83,6 @@ public abstract class Storage<T> implements ColumnStorage {
   public StorageType inferPreciseTypeShrunk() {
     return getType();
   }
-
-  /**
-   * Returns a more specialized storage, if available.
-   *
-   * <p>This storage should have the same type as returned by {@code inferPreciseType}. See {@link
-   * MixedStorage} for more information.
-   */
-  public Storage<?> tryGettingMoreSpecializedStorage() {
-    return this;
-  }
-
-  @Override
-  public abstract boolean isNothing(long index);
-
-  /**
-   * Returns a boxed representation of an item. Missing values are denoted with null.
-   *
-   * @param idx the index to look up
-   * @return the item at position {@code idx}
-   */
-  public abstract T getItemBoxed(int idx);
 
   /** A container for names of vectorizable operation. */
   public static final class Maps {
@@ -427,11 +435,6 @@ public abstract class Storage<T> implements ColumnStorage {
       StorageType targetType, CastProblemAggregator castProblemAggregator) {
     StorageConverter<?> converter = StorageConverter.fromStorageType(targetType);
     return converter.cast(this, castProblemAggregator);
-  }
-
-  @Override
-  public Object getItemAsObject(long index) {
-    return getItemBoxed((int) index);
   }
 
   /** Creates a storage containing a single repeated item. */
