@@ -6,10 +6,13 @@
       "pattern": "org/apache/poi/schemas/ooxml/system/ooxml/.*\\.xsb$"
     },
     {
+      "pattern": "org/apache/poi/schemas/ooxml/element/.*\\.xsb$"
+    },
+    {
       "pattern": "org/apache/xmlbeans/metadata/.*\\.xsb$"
     },
     {
-      "pattern": "org/apache/xmlbeans/impl/.*$"
+      "pattern": "org/apache/xmlbeans/metadata/.*\\.xsd$"
     },
     {
     "pattern":"\\QMETA-INF/log4j-provider.properties\\E"
@@ -86,5 +89,8 @@
   }, {
     "name":"org.apache.xmlbeans.impl.regex.message",
     "locales":[""]
+  }, {
+    "name":"sun.awt.resources.awt",
+    "classNames":["sun.awt.resources.awt"]
   }]
 }
