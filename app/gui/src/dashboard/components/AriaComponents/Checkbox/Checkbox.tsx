@@ -151,6 +151,7 @@ export const Checkbox = forwardRef(function Checkbox<
                 field={field}
                 defaultValue={defaultValue}
                 onChange={(value) => {
+                  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                   field.onChange({ target: { value } })
                   void formInstance.trigger(name)
                 }}
@@ -173,7 +174,7 @@ export const Checkbox = forwardRef(function Checkbox<
   }
 
   return <CheckboxInternal ref={ref} {...props} />
-}) as unknown as (<Schema extends TSchema, TFieldName extends FieldPath<Schema>>(
+}) as unknown as (<Schema extends TSchema, TFieldName extends FieldPath<Schema, boolean>>(
   props: CheckboxProps<Schema, TFieldName> & RefAttributes<HTMLLabelElement>,
 ) => ReactElement) & {
   // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -183,17 +184,17 @@ export const Checkbox = forwardRef(function Checkbox<
 /**
  * Internal props for the {@link Checkbox} component.
  */
-type CheckboxInternalProps<Schema extends TSchema, TFieldName extends FieldPath<Schema>> = Omit<
-  CheckboxProps<Schema, TFieldName>,
-  'name'
-> & {
+type CheckboxInternalProps<
+  Schema extends TSchema,
+  TFieldName extends FieldPath<Schema, boolean>,
+> = Omit<CheckboxProps<Schema, TFieldName>, 'name'> & {
   name?: string
 }
 
 // eslint-disable-next-line no-restricted-syntax
 const CheckboxInternal = forwardRef(function CheckboxInternal<
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema>,
+  TFieldName extends FieldPath<Schema, boolean>,
 >(props: CheckboxInternalProps<Schema, TFieldName>, ref: ForwardedRef<HTMLLabelElement>) {
   const {
     variants = CHECKBOX_STYLES,
@@ -249,7 +250,7 @@ const CheckboxInternal = forwardRef(function CheckboxInternal<
 
   const { hasError: fieldStateInvalid } = Form.useFieldState({
     name,
-    // eslint-disable-next-line no-restricted-syntax
+    // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unsafe-assignment
     form: formInstance as unknown as Parameters<typeof Form.useField>[0]['form'],
   })
 
