@@ -446,19 +446,19 @@ Any.should_be_a self typ =
                 a : Meta.Atom ->
                     if a.constructor == c then Spec_Result.Success else
                         expected_type = c.declaring_type.qualified_name
-                        actual_type = Meta.get_qualified_type_name self
+                        actual_type = self.to Meta.Type . qualified_name
                         message = "Expected a value of type "+expected_type+", built with constructor "+c.name+", but got a value ["+self.to_text+"] of type "+actual_type+", built with constructor "+a.constructor.name+" instead (at "+loc+")."
                         Test.fail message
                 _ ->
                     expected_type = c.declaring_type.qualified_name
-                    actual_type = Meta.get_qualified_type_name self
+                    actual_type = self.to Meta.Type . qualified_name
                     message = "Expected a value of type "+expected_type+", built with constructor "+c.name+", but got a value ["+self.to_text+"] of type "+actual_type+" instead (at "+loc+")."
                     Test.fail message
         meta_type : Meta.Type ->
             ok = self.is_a typ || self==typ
             if ok then Spec_Result.Success else
                 expected_type = meta_type.qualified_name
-                actual_type = Meta.get_qualified_type_name self
+                actual_type = self.to Meta.Type . qualified_name
                 message = "Expected a value of type "+expected_type+" but got a value ["+self.to_text+"] of type "+actual_type+" instead (at "+loc+")."
                 Test.fail message
         # Workaround for 0-argument atom constructors which 'unapplies' them.
@@ -469,13 +469,13 @@ Any.should_be_a self typ =
         _ : Meta.Polyglot ->
             ok = self.is_a typ
             if ok then Spec_Result.Success else
-                actual_type = Meta.get_qualified_type_name self
+                actual_type = self.to Meta.Type . qualified_name
                 message = "Expected a value of Java class "+typ.to_text+" but got a value ["+self.to_text+"] of type "+actual_type+" instead (at "+loc+")."
                 Test.fail message
         p : Meta.Primitive ->
             ok = self == p.value
             if ok then Spec_Result.Success else
-                actual_type = Meta.get_qualified_type_name self
+                actual_type = self.to Meta.Type . qualified_name
                 message = "Expected a value of "+typ.to_text+" but got a value ["+self.to_text+"] of type "+actual_type+" instead (at "+loc+")."
                 Test.fail message
         _ -> fail_on_wrong_arg_type

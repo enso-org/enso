@@ -44,5 +44,4 @@ is_atom value:Standard.Base.Any.Any -> Standard.Base.Data.Boolean.Boolean
 is_error value:Standard.Base.Any.Any -> Standard.Base.Data.Boolean.Boolean
 is_type value:Standard.Base.Any.Any -> Standard.Base.Data.Boolean.Boolean
 is_polyglot value:Standard.Base.Any.Any -> Standard.Base.Data.Boolean.Boolean
-get_qualified_type_name value:Standard.Base.Any.Any -> Standard.Base.Data.Text.Text
 Standard.Base.Meta.Type.from that:Standard.Base.Any.Any -> Standard.Base.Meta.Type

@@ -388,16 +388,9 @@ is_type value -> Boolean = 6 == Meta_Helpers.get_kind_builtin value
    - value: The value to check.
 is_polyglot value -> Boolean = 3 == Meta_Helpers.get_kind_builtin value
 
-## PRIVATE
-
-   Returns the fully qualified type name of the given value.
-
-   Arguments:
-   - value: the value to get the type of.
-get_qualified_type_name value -> Text = @Tail_Call Meta_Helpers.get_qualified_type_name_builtin value
-
 ##
-   Converts any value to its type
+   Converts any value to its `Meta.Type`. Useful for querying various
+   type properties like `.name` or `.qualified_name`.
 
    Arguments:
    - value: the value to get the type of
