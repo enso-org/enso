@@ -10,6 +10,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.regex.Pattern;
+
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -119,9 +120,6 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
   }
 
   private Value executeMethod(String name, Value... args) {
-    var ret = tryDirectNumericCalculation(name, args);
-    if (ret != null) return ret;
-
     Value method = getMethod.apply(name);
     if (!method.canExecute()) {
       throw new UnsupportedOperationException(name);
@@ -149,54 +147,6 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
       }
       throw e;
     }
-  }
-
-  private Value tryDirectNumericCalculation(String name, Value... args) {
-    // Check for arithmetic operations
-    if (args.length == 2 && args[0].isNumber() && args[1].isNumber()) {
-      if (isInt(args[0]) && isInt(args[1])) {
-        switch (name) {
-          case "+" -> {
-            return Value.asValue(args[0].asInt() + args[1].asInt());
-          }
-          case "-" -> {
-            return Value.asValue(args[0].asInt() - args[1].asInt());
-          }
-          case "*" -> {
-            return Value.asValue(args[0].asInt() * args[1].asInt());
-          }
-          case "/" -> {
-            return Value.asValue(args[0].asInt() / args[1].asInt());
-          }
-          default -> {
-            return null;
-          }
-        }
-      } else {
-        switch (name) {
-          case "+" -> {
-            return Value.asValue(args[0].asDouble() + args[1].asDouble());
-          }
-          case "-" -> {
-            return Value.asValue(args[0].asDouble() - args[1].asDouble());
-          }
-          case "*" -> {
-            return Value.asValue(args[0].asDouble() * args[1].asDouble());
-          }
-          case "/" -> {
-            return Value.asValue(args[0].asDouble() / args[1].asDouble());
-          }
-          default -> {
-            return null;
-          }
-        }
-      }
-    }
-    return null;
-  }
-
-  private Boolean isInt(Value v) {
-    return v.isNumber() && v.asDouble() == v.asInt();
   }
 
   @Override
@@ -276,7 +226,15 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
 
   @Override
   public Value visitUnaryMinus(ExpressionParser.UnaryMinusContext ctx) {
-    return executeMethod("*", visit(ctx.expr()), Value.asValue(-1));
+    var v = visit(ctx.expr());
+    if (v.isNumber()) {
+      if (v.asDouble() == v.asLong()) {
+        return Value.asValue(-1 * v.asLong());
+      } else {
+        return Value.asValue(-1 * v.asDouble());
+      }
+    }
+    return executeMethod("*", v, Value.asValue(-1));
   }
 
   @Override
