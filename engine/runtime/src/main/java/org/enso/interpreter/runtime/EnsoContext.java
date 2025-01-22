@@ -148,14 +148,14 @@ public final class EnsoContext {
     this.assertionsEnabled = shouldAssertionsBeEnabled();
     this.shouldWaitForPendingSerializationJobs =
         getOption(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS_KEY);
-    var irDumper = System.getProperty(RuntimeOptions.IR_DUMPER_SYSTEM_PROP);
+    var dumpModuleIR = System.getProperty(RuntimeOptions.IR_DUMPER_SYSTEM_PROP);
     this.compilerConfig =
         new CompilerConfig(
             isParallelismEnabled,
             true,
             !isPrivateCheckDisabled,
             isStaticTypeAnalysisEnabled,
-            scala.Option.apply(irDumper),
+            scala.Option.apply(dumpModuleIR),
             getOption(RuntimeOptions.STRICT_ERRORS_KEY),
             getOption(RuntimeOptions.DISABLE_LINTING_KEY),
             scala.Option.empty());

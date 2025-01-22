@@ -42,7 +42,6 @@ import org.enso.syntax2.Tree
 import org.enso.syntax2.Parser
 
 import java.io.PrintStream
-import java.util.ServiceLoader
 import java.util.concurrent.{
   CompletableFuture,
   ExecutorService,
@@ -76,8 +75,6 @@ class Compiler(
     if (config.outputRedirect.isDefined)
       new PrintStream(config.outputRedirect.get)
     else context.getOut
-  private val irDumperFactory: Option[IRDumpFactoryService] =
-    loadDumperFactoryService()
 
   /** The thread pool that handles parsing of modules. */
   private val pool: ExecutorService = if (config.parallelParsing) {
@@ -92,32 +89,6 @@ class Compiler(
       }
     )
   } else null
-
-  private def loadDumperFactoryService(): Option[IRDumpFactoryService] = {
-    config.irDumper match {
-      case None => None
-      case Some(dumperFactName) =>
-        val loader = ServiceLoader.load(classOf[IRDumpFactoryService])
-        val it     = loader.iterator()
-        while (it.hasNext) {
-          val service = it.next()
-          if (service.getClass.getName == dumperFactName) {
-            context.log(
-              Level.INFO,
-              "Found IRDumpServiceFactory {}",
-              dumperFactName
-            )
-            return Some(service)
-          }
-        }
-        context.log(
-          Level.SEVERE,
-          "No IRDumpServiceFactory found for {}",
-          dumperFactName
-        )
-        None
-    }
-  }
 
   /** Java accessor */
   def getConfig(): CompilerConfig = config
@@ -324,20 +295,21 @@ class Compiler(
     )
 
     var moduleIrDumpers: HashMap[Module, IRDumper] = new HashMap()
-
     def getOrCreateDumper(module: Module): Option[IRDumper] = {
-      irDumperFactory match {
-        case None => None
-        case Some(factory) =>
+      config.dumpModuleIR.flatMap(pattern => {
+        if (module.getName().toString.contains(pattern)) {
           moduleIrDumpers.get(module) match {
             case Some(existing) => Some(existing)
             case None =>
               val dumper =
-                factory.create(module.getName.toString)
+                IRDumpFactoryService.DEFAULT.create(module.getName.toString)
               moduleIrDumpers = moduleIrDumpers.updated(module, dumper)
               Some(dumper)
           }
-      }
+        } else {
+          None
+        }
+      })
     }
 
     def closeAllDumpers(): Unit = {
