@@ -19,7 +19,7 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
 
   /**
    * @param data the underlying data
-   * @param size the number of items stored
+   * @param ops the operations supported by this storage
    */
   protected SpecializedStorage(
       StorageType type, T[] data, MapOperationStorage<T, SpecializedStorage<T>> ops) {
@@ -38,7 +38,7 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
   }
 
   @Override
-  public final StorageType getType() {
+  public StorageType getType() {
     return type;
   }
 

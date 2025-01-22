@@ -24,18 +24,14 @@ import org.slf4j.Logger;
 /** A column storing strings. */
 public final class StringStorage extends SpecializedStorage<String> {
   private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger(StringStorage.class);
-
-  private final TextType type;
   private Future<Long> untrimmedCount;
 
   /**
    * @param data the underlying data
-   * @param size the number of items stored
    * @param type the type of the column
    */
-  public StringStorage(String[] data, int size, TextType type) {
-    super(data, size, buildOps());
-    this.type = type;
+  public StringStorage(String[] data, TextType type) {
+    super(type, data, buildOps());
 
     untrimmedCount =
         CompletableFuture.supplyAsync(
@@ -43,18 +39,19 @@ public final class StringStorage extends SpecializedStorage<String> {
   }
 
   @Override
-  protected SpecializedStorage<String> newInstance(String[] data, int size) {
-    return new StringStorage(data, size, type);
+  public TextType getType() {
+    // As the type is fixed, we can safely cast it.
+    return (TextType)super.getType();
+  }
+
+  @Override
+  protected SpecializedStorage<String> newInstance(String[] data) {
+    return new StringStorage(data, getType());
   }
 
   @Override
   protected String[] newUnderlyingArray(int size) {
     return new String[size];
-  }
-
-  @Override
-  public TextType getType() {
-    return type;
   }
 
   /**
@@ -93,9 +90,9 @@ public final class StringStorage extends SpecializedStorage<String> {
             BitSet isNothing = new BitSet();
             Context context = Context.getCurrent();
             for (int i = 0; i < storage.size(); i++) {
-              if (storage.getItem(i) == null || arg == null) {
+              if (storage.getBoxed(i) == null || arg == null) {
                 isNothing.set(i);
-              } else if (arg instanceof String s && Text_Utils.equals(storage.getItem(i), s)) {
+              } else if (arg instanceof String s && Text_Utils.equals(storage.getBoxed(i), s)) {
                 r.set(i);
               }
 
@@ -113,10 +110,10 @@ public final class StringStorage extends SpecializedStorage<String> {
             BitSet isNothing = new BitSet();
             Context context = Context.getCurrent();
             for (int i = 0; i < storage.size(); i++) {
-              if (storage.getItem(i) == null || i >= arg.size() || arg.isNothing(i)) {
+              if (storage.getBoxed(i) == null || i >= arg.size() || arg.isNothing(i)) {
                 isNothing.set(i);
               } else if (arg.getItemBoxed(i) instanceof String s
-                  && Text_Utils.equals(storage.getItem(i), s)) {
+                  && Text_Utils.equals(storage.getBoxed(i), s)) {
                 r.set(i);
               }
 
@@ -239,6 +236,7 @@ public final class StringStorage extends SpecializedStorage<String> {
 
   @Override
   public StorageType inferPreciseTypeShrunk() {
+    var type = getType();
     if (type.fixedLength()) {
       return type;
     }
@@ -246,7 +244,7 @@ public final class StringStorage extends SpecializedStorage<String> {
     long minLength = Long.MAX_VALUE;
     long maxLength = Long.MIN_VALUE;
     for (int i = 0; i < size(); i++) {
-      String s = getItem(i);
+      String s = getBoxed(i);
       if (s != null) {
         long length = Text_Utils.grapheme_length(s);
         minLength = Math.min(minLength, length);

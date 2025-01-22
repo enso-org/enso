@@ -121,7 +121,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
         Builder.getForText(stringStorage.size(), targetType),
         stringStorage,
         (i) -> {
-          String value = stringStorage.getItem(i);
+          String value = stringStorage.getBoxed(i);
           // Adapting an existing string storage into a new type is done without warnings.
           return adaptWithoutWarning(value);
         });
@@ -173,7 +173,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
     long maxLength = Long.MIN_VALUE;
     long minLength = Long.MAX_VALUE;
     for (int i = 0; i < stringStorage.size(); i++) {
-      String value = stringStorage.getItem(i);
+      String value = stringStorage.getBoxed(i);
       if (value == null) {
         continue;
       }
@@ -202,6 +202,6 @@ public class ToTextStorageConverter implements StorageConverter<String> {
    * canAvoidCopying}.
    */
   private Storage<String> retypeStringStorage(StringStorage stringStorage) {
-    return new StringStorage(stringStorage.getData(), stringStorage.size(), targetType);
+    return new StringStorage(stringStorage.getData(), targetType);
   }
 }

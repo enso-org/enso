@@ -39,7 +39,7 @@ public abstract class StringBooleanOp
       for (int i = 0; i < storage.size(); i++) {
         if (storage.isNothing(i)) {
           newIsNothing.set(i);
-        } else if (doString(storage.getItem(i), argString)) {
+        } else if (doString(storage.getBoxed(i), argString)) {
           newVals.set(i);
         }
 
@@ -53,7 +53,7 @@ public abstract class StringBooleanOp
       for (int i = 0; i < storage.size(); i++) {
         if (storage.isNothing(i)) {
           newIsNothing.set(i);
-        } else if (doObject(storage.getItem(i), arg)) {
+        } else if (doObject(storage.getBoxed(i), arg)) {
           newVals.set(i);
         }
 
@@ -74,7 +74,7 @@ public abstract class StringBooleanOp
       BitSet newIsNothing = new BitSet();
       for (int i = 0; i < storage.size(); i++) {
         if (!storage.isNothing(i) && i < v.size() && !v.isNothing(i)) {
-          if (doString(storage.getItem(i), v.getItem(i))) {
+          if (doString(storage.getBoxed(i), v.getBoxed(i))) {
             newVals.set(i);
           }
         } else {
@@ -91,11 +91,11 @@ public abstract class StringBooleanOp
         if (!storage.isNothing(i) && i < arg.size() && !arg.isNothing(i)) {
           Object x = arg.getItemBoxed(i);
           if (x instanceof String str) {
-            if (doString(storage.getItem(i), str)) {
+            if (doString(storage.getBoxed(i), str)) {
               newVals.set(i);
             }
           } else {
-            if (doObject(storage.getItem(i), x)) {
+            if (doObject(storage.getBoxed(i), x)) {
               newVals.set(i);
             }
           }

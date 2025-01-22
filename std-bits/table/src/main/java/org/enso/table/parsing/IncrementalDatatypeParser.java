@@ -27,7 +27,7 @@ public abstract class IncrementalDatatypeParser extends DatatypeParser {
       int capacity, ProblemAggregator problemAggregator);
 
   /**
-   * Parses a column of texts (represented as a {@code StringStorage}) and returns a new storage,
+   * Parses a column of texts (represented as a {@code Storage<String>}) and returns a new storage,
    * containing the parsed elements.
    */
   @Override

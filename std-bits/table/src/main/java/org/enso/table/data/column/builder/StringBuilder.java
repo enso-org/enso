@@ -60,6 +60,6 @@ public final class StringBuilder extends TypedBuilder<String> {
 
   @Override
   protected Storage<String> doSeal() {
-    return new StringStorage(data, currentSize, type);
+    return new StringStorage(data, type);
   }
 }

@@ -24,12 +24,12 @@ public class MapHelpers {
     String[] result = new String[n];
     for (int i = 0; i < n; i++) {
       if (!storage1.isNothing(i) && !storage2.isNothing(i)) {
-        result[i] = storage1.getItem(i) + storage2.getItem(i);
+        result[i] = storage1.getBoxed(i) + storage2.getBoxed(i);
       } else {
         result[i] = null;
       }
     }
-    return new StringStorage(result, n, TextType.VARIABLE_LENGTH);
+    return new StringStorage(result, TextType.VARIABLE_LENGTH);
   }
 
   public static LongStorage longAddBimap(LongStorage storage1, LongStorage storage2) {
@@ -58,7 +58,7 @@ public class MapHelpers {
       if (storage.isNothing(i)) {
         isNothing.set(i);
       } else {
-        if (Text_Utils.ends_with(storage.getItem(i), suffix)) {
+        if (Text_Utils.ends_with(storage.getBoxed(i), suffix)) {
           result.set(i);
         }
       }
