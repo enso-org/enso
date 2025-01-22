@@ -73,7 +73,6 @@ import * as subscribeSuccess from '#/pages/subscribe/SubscribeSuccess'
 import * as openAppWatcher from '#/layouts/OpenAppWatcher'
 import VersionChecker from '#/layouts/VersionChecker'
 
-import * as devtools from '#/components/Devtools'
 import * as errorBoundary from '#/components/ErrorBoundary'
 import * as suspense from '#/components/Suspense'
 import { RouterProvider } from 'react-aria-components'
@@ -107,6 +106,7 @@ declare module '#/utilities/LocalStorage' {
   interface LocalStorageData {
     readonly inputBindings: Readonly<Record<string, readonly string[]>>
     readonly localRootDirectory: string
+    readonly preferredTimeZone: string
   }
 }
 
@@ -124,6 +124,7 @@ LocalStorage.registerKey('inputBindings', {
 })
 
 LocalStorage.registerKey('localRootDirectory', { schema: z.string() })
+LocalStorage.registerKey('preferredTimeZone', { schema: z.string() })
 
 // ======================
 // === getMainPageUrl ===
@@ -542,11 +543,6 @@ function AppRouter(props: AppRouterProps) {
               <LocalBackendPathSynchronizer />
               <VersionChecker />
               {routes}
-              <suspense.Suspense>
-                <errorBoundary.ErrorBoundary>
-                  <devtools.EnsoDevtools />
-                </errorBoundary.ErrorBoundary>
-              </suspense.Suspense>
             </InputBindingsProvider>
           </AuthProvider>
         </BackendProvider>

@@ -16,17 +16,19 @@ import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import { Form, type FieldPath, type FieldProps, type FieldStateProps, type TSchema } from '../Form'
 import { TEXT_STYLE } from '../Text'
 
-/** Props for the {@Switch} component. */
-export interface SwitchProps<Schema extends TSchema, TFieldName extends FieldPath<Schema>>
+/** Props for a {@link Switch}. */
+export interface SwitchProps<Schema extends TSchema, TFieldName extends FieldPath<Schema, boolean>>
   extends FieldStateProps<
       Omit<AriaSwitchProps, 'children' | 'size' | 'value'> & { value: boolean },
       Schema,
-      TFieldName
+      TFieldName,
+      boolean
     >,
     FieldProps,
     Omit<VariantProps<typeof SWITCH_STYLES>, 'disabled' | 'invalid'> {
   readonly className?: string
   readonly style?: CSSProperties
+  readonly labelPosition?: 'after' | 'before' | undefined
 }
 
 export const SWITCH_STYLES = tv({
@@ -57,10 +59,14 @@ export const SWITCH_STYLES = tv({
   },
 })
 
+// This is a function, even though it does not contain function syntax.
+// eslint-disable-next-line no-restricted-syntax
+const useBooleanField = Form.makeUseField<boolean>()
+
 /** A switch allows a user to turn a setting on or off. */
 export const Switch = forwardRef(function Switch<
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema>,
+  TFieldName extends FieldPath<Schema, boolean>,
 >(props: SwitchProps<Schema, TFieldName>, ref: ForwardedRef<HTMLDivElement>) {
   const {
     label,
@@ -73,12 +79,13 @@ export const Switch = forwardRef(function Switch<
     description,
     error,
     size,
+    labelPosition = 'after',
     ...ariaSwitchProps
   } = props
 
   const switchRef = useRef<HTMLInputElement>(null)
 
-  const { fieldState, formInstance, field } = Form.useField({
+  const { fieldState, formInstance, field } = useBooleanField({
     name,
     isDisabled,
     form,
@@ -94,20 +101,14 @@ export const Switch = forwardRef(function Switch<
     }),
   })
 
-  const {
-    base,
-    thumb,
-    background,
-    label: labelStyle,
-    switch: switchStyles,
-  } = SWITCH_STYLES({ size, disabled: fieldProps.disabled })
+  const styles = SWITCH_STYLES({ size, disabled: fieldProps.disabled })
 
   return (
     <Form.Field
       ref={ref}
       form={formInstance}
       name={name}
-      className={base({ className })}
+      className={styles.base({ className })}
       fullWidth
       description={description}
       error={error}
@@ -125,16 +126,18 @@ export const Switch = forwardRef(function Switch<
         }}
         {...mergeProps<AriaSwitchProps>()(ariaSwitchProps, fieldProps, {
           defaultSelected: field.value,
-          className: switchStyles(),
+          className: styles.switch(),
           onChange: field.onChange,
           onBlur: field.onBlur,
         })}
       >
-        <div className={background()} role="presentation">
-          <span className={thumb()} />
+        {labelPosition === 'before' && <div className={styles.label()}>{label}</div>}
+
+        <div className={styles.background()} role="presentation">
+          <span className={styles.thumb()} />
         </div>
 
-        <div className={labelStyle()}>{label}</div>
+        {labelPosition === 'after' && <div className={styles.label()}>{label}</div>}
       </AriaSwitch>
     </Form.Field>
   )

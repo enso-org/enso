@@ -35,8 +35,8 @@ import { normalizePath } from '#/utilities/fileInfo'
 import { mapNonNullish } from '#/utilities/nullable'
 import * as permissions from '#/utilities/permissions'
 import { tv } from '#/utilities/tailwindVariants'
+import { useStore } from '#/utilities/zustand'
 import { useMutation } from '@tanstack/react-query'
-import { useStore } from '../utilities/zustand'
 
 const ASSET_PROPERTIES_VARIANTS = tv({
   base: '',
@@ -55,10 +55,8 @@ export interface AssetPropertiesProps {
   readonly isReadonly?: boolean
 }
 
-/**
- * Display and modify the properties of an asset.
- */
-export default function AssetProperties(props: AssetPropertiesProps) {
+/** Display and modify the properties of an asset. */
+export function AssetProperties(props: AssetPropertiesProps) {
   const { isReadonly = false, backend, category } = props
 
   const { item, spotlightOn, path } = useStore(
@@ -93,18 +91,14 @@ export default function AssetProperties(props: AssetPropertiesProps) {
   )
 }
 
-/**
- * Props for {@link AssetPropertiesInternal}.
- */
+/** Props for an {@link AssetPropertiesInternal}. */
 export interface AssetPropertiesInternalProps extends AssetPropertiesProps {
   readonly item: AnyAsset
   readonly path: string | null
   readonly spotlightOn: AssetPropertiesSpotlight | null
 }
 
-/**
- * Internal implementation of {@link AssetProperties}.
- */
+/** Display and modify the properties of an asset. */
 function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
   const { backend, item, category, spotlightOn, isReadonly = false, path: pathRaw } = props
   const styles = ASSET_PROPERTIES_VARIANTS({})

@@ -14,26 +14,19 @@ import project.Errors.Common.Not_Found
 import project.Function.Function
 import project.Nothing.Nothing
 import project.Polyglot.Java
+import project.Internal.Meta_Helpers
 from project.Data.Boolean import Boolean, False, True
 from project.Runtime.Managed_Resource import Managed_Resource
 
 type Type
-    ## PRIVATE
-       ADVANCED
-
-       Type meta-representation.
-
-       Arguments:
-       - value: The value of the type in the meta representation.
-    Value value
+    private Value value
 
     ## ADVANCED
        ICON metadata
 
        Returns a vector of `Meta.Constructor` for this type
-    constructors : Vector
-    constructors self =
-        Vector.from_polyglot_array (get_type_constructors self.value Meta.Constructor.Value)
+    constructors self -> Vector Constructor =
+        Meta_Helpers.get_type_constructors_builtin self.value Meta.Constructor.Value
 
     ## ADVANCED
        GROUP Metadata
@@ -57,31 +50,25 @@ type Type
          `Integer.method_name...`:
 
             Meta.meta (Meta.type_of Integer) . methods
-
-
-    methods : Vector
-    methods self =
-        Vector.from_polyglot_array (get_type_methods self.value)
+    methods self -> Vector = Meta_Helpers.get_type_methods_builtin self.value
 
     ## ADVANCED
        GROUP Metadata
        ICON metadata
 
        Returns the fully qualified name of the type.
-    qualified_name : Text
-    qualified_name self =
+    qualified_name self -> Text =
         c = self.value
-        get_qualified_type_name c
+        @Tail_Call Meta_Helpers.get_qualified_type_name_builtin c
 
     ## ADVANCED
        GROUP Metadata
        ICON metadata
 
        Returns the short name of the type.
-    name : Text
-    name self =
+    name self -> Text =
         c = self.value
-        get_short_type_name c
+        @Tail_Call Meta_Helpers.get_short_type_name_builtin c
 
     ## ADVANCED
        GROUP Metadata
@@ -93,69 +80,62 @@ type Type
 
        Arguments:
        - qualified_name: fully qualified name.
-    find : Text -> Type ! Not_Found
-    find qualified_name =
-        raw = find_type_by_qualified_name qualified_name
+    find qualified_name:Text -> Type ! Not_Found =
+        raw = Meta_Helpers.find_type_by_qualified_name_builtin qualified_name
         case Meta.meta raw of
-            t:Meta.Type -> t
+            t:Type -> t
             _ -> Base_Error.throw Not_Found
 
 type Atom
-    ## PRIVATE
-       ADVANCED
+    private Value impl
 
-       An Atom meta-representation.
+    ## ADVANCED
+       GROUP Metadata
+       ICON metadata
 
-       Arguments:
-       - value: The value of the atom in the meta representation.
-    Value value
+       Obtains the real atom value
+    value self = self.impl
 
     ## ADVANCED
        GROUP Metadata
        ICON metadata
 
        Returns a vector of field values of the given atom.
-    fields : Vector
-    fields self = Vector.from_polyglot_array (get_atom_fields self.value)
+    fields self -> Vector Any = Meta_Helpers.get_atom_fields_builtin self.value
 
     ## ADVANCED
        ICON metadata
 
        Returns a constructor value of the given atom.
-    constructor : Constructor
-    constructor self =
-        java_constructor = get_atom_constructor self.value ...
-        Meta.Constructor.Value java_constructor
+    constructor self -> Constructor =
+        c = Meta_Helpers.get_atom_constructor_builtin self.impl ...
+        Meta.Constructor.Value c...
 
 type Constructor
-    ## PRIVATE
-       ADVANCED
+    private Value impl:Function
 
-       A constructor meta-representation.
+    ## ADVANCED
+       GROUP Metadata
+       ICON metadata
 
-       Arguments:
-       - value: The value of the constructor in the meta representation.
-    Value value
+       Obtains the qualified accessor function of the constructor
+    value self -> Function = self.impl...
 
     ## ADVANCED
        GROUP Metadata
        ICON metadata
 
        Returns a vector of field names defined by a constructor.
-    fields : Vector
-    fields self =
-        c = self.value ...
-        Vector.from_polyglot_array (get_constructor_fields c)
+    fields self -> Vector Text =
+        Meta_Helpers.get_constructor_fields_builtin (self.impl...)
 
     ## ADVANCED
        GROUP Metadata
        ICON metadata
 
        Returns the name of a constructor.
-    name : Text
-    name self =
-        c = self.value ...
-        get_constructor_name c
+    name self -> Text =
+        Meta_Helpers.get_constructor_name_builtin (self.impl...)
 
     ## ADVANCED
        ICON braces
@@ -165,39 +145,33 @@ type Constructor
        Arguments:
        - fields: A vector of arguments to pass to the constructor when creating the
          new atom.
-    new : Vector -> Any
-    new self fields =
-        ctor = self.value ...
-        new_atom ctor fields
+    new self fields:Vector|Array =
+        @Tail_Call Meta_Helpers.new_atom_builtin (self.impl...) fields
 
     ## ADVANCED
        GROUP Metadata
        ICON metadata
        Returns the type that this constructor is a part of.
-    declaring_type : Type
-    declaring_type self =
-        c = self.value ...
-        Type.Value (get_constructor_declaring_type c)
+    declaring_type self -> Type =
+        Type.Value (Meta_Helpers.get_constructor_declaring_type_builtin (self.value...))
 
 type Primitive
-    ## PRIVATE
-       ADVANCED
+    private Value impl
 
-       A primitive value meta-representation.
-
-       Arguments:
-       - value: The value of the primitive object in the meta representation.
-    Value value
+    ## ADVANCED
+       GROUP Metadata
+       ICON metadata
+       Returns the (primitive) value wrapped by this type
+    value self = self.impl
 
 type Unresolved_Symbol
+    private Value impl
+
     ## PRIVATE
        ADVANCED
 
-       An unresolved symbol meta-representation.
-
-       Arguments:
-       - value: The value of the unresolved symbol in the meta representation.
-    Value value
+       Returns the raw unresolved symbol
+    value self = self.impl...
 
     ## PRIVATE
        ADVANCED
@@ -207,54 +181,44 @@ type Unresolved_Symbol
 
        Arguments:
        - new_name: The new name for the unresolved symbol.
-    rename : Text -> Any
-    rename self new_name =
-        create_unresolved_symbol new_name self.value
+    rename self new_name:Text -> Unresolved_Symbol =
+        raw = Meta_Helpers.create_unresolved_symbol_builtin new_name self.impl
+        Unresolved_Symbol.Value raw
 
     ## ADVANCED
        GROUP Metadata
        ICON metadata
 
        Returns the name of an unresolved symbol.
-    name : Text
-    name self = get_unresolved_symbol_name self.value
+    name self -> Text = @Tail_Call Meta_Helpers.get_unresolved_symbol_name_builtin self.impl
+
+type Error
+    private Value impl
 
     ## ADVANCED
        GROUP Metadata
        ICON metadata
 
-       Starts building an instrumentation for a given node
-    instrument : Instrumentor
-    instrument self = Instrumentor.Value (instrumentor_builtin "newBuilder" [ self.value ])
-
-type Error
-    ## PRIVATE
-       ADVANCED
-
-       An error meta-representation, containing the payload of a dataflow error.
-
-       Arguments:
-       - value: The payload of the error.
-    Value value
+       Obtains the actual value of the error
+    value self = self.impl
 
 type Polyglot
-    ## PRIVATE
-       ADVANCED
+    private Value impl
 
-       A polyglot value meta-representation.
+    ## ADVANCED
+       GROUP Metadata
+       ICON metadata
 
-       Arguments:
-       - value: The polyglot value contained in the meta representation.
-    Value value
+       Obtains the actual polyglot value
+    value self = self.impl
 
     ## ADVANCED
        GROUP Metadata
        ICON metadata
 
        Returns the language with which a polyglot value is associated.
-    get_language : Language
-    get_language self =
-        lang_str = get_polyglot_language self.value
+    get_language self -> Language =
+        lang_str = Meta_Helpers.get_polyglot_language_builtin self.impl
         if lang_str == "java" then Language.Java else Language.Unknown
 
 ## ADVANCED
@@ -265,8 +229,7 @@ type Polyglot
    Arguments:
    - value_1: The first value.
    - value_2: The second value.
-Any.is_same_object_as : Any -> Boolean
-Any.is_same_object_as self value = is_same_object self value
+Any.is_same_object_as self value -> Boolean = is_same_object self value
 
 ## ADVANCED
    ICON metadata
@@ -275,8 +238,7 @@ Any.is_same_object_as self value = is_same_object self value
 
    Arguments:
    - typ: The type to check `self` against.
-Any.is_a : Any -> Boolean
-Any.is_a self typ = is_a self typ
+Any.is_a self typ -> Boolean = Meta_Helpers.is_a_builtin self typ
 
 ## ADVANCED
    ICON metadata
@@ -285,101 +247,7 @@ Any.is_a self typ = is_a self typ
 
    Arguments:
    - typ: The type to check `self` against.
-Base_Error.is_a : Any -> Boolean
-Base_Error.is_a self typ = typ==Any || typ==Base_Error
-
-## PRIVATE
-
-   Gets the atom constructor instance for the provided atom.
-
-   Arguments:
-   - atom: The atom to obtain the constructor for.
-get_atom_constructor : Atom -> Any
-get_atom_constructor atom = @Builtin_Method "Meta.get_atom_constructor"
-
-## PRIVATE
-
-   Get the fields for the provided atom.
-
-   Arguments:
-   - atom: The atom to obtain the fields for.
-get_atom_fields : Atom -> Array
-get_atom_fields atom = @Builtin_Method "Meta.get_atom_fields"
-
-## PRIVATE
-
-   Get the constructors for the provided type.
-
-   Arguments:
-   - typ: The type to obtain the constructors for.
-   - factory: function to use to wrap constructors in
-get_type_constructors : Atom -> (Any -> Any) -> Array
-get_type_constructors typ factory = @Builtin_Method "Meta.get_type_constructors"
-
-## PRIVATE
-
-   Get the methods for the provided type.
-
-   Arguments:
-   - typ: The type to obtain the methods for.
-get_type_methods : Atom -> Array
-get_type_methods typ = @Builtin_Method "Meta.get_type_methods"
-
-## PRIVATE
-
-   Get a textual representation of the language from which an object comes.
-
-   Arguments:
-   - value: The value to obtain the source language for.
-get_polyglot_language : Any -> Text
-get_polyglot_language value = @Builtin_Method "Meta.get_polyglot_language"
-
-## PRIVATE
-
-   Creates an unresolved symbol for the name in the scope.
-
-   Arguments:
-   - name: The name of the unresolved symbol.
-   - symbol: The unresolved symbol from which to get the scope.
-create_unresolved_symbol : Text -> Any -> Unresolved_Symbol
-create_unresolved_symbol name symbol = @Builtin_Method "Meta.create_unresolved_symbol"
-
-## PRIVATE
-
-   Obtains the name of the provided unresolved symbol.
-
-   Arguments:
-   - symbol: The unresolved symbol from which to get the name.
-get_unresolved_symbol_name : Unresolved_Symbol -> Text
-get_unresolved_symbol_name symbol = @Builtin_Method "Meta.get_unresolved_symbol_name"
-
-## PRIVATE
-
-   Get the fields of an atom constructor.
-
-   Arguments:
-   - atom_constructor: The constructor from which to get the fields.
-get_constructor_fields : Any -> Array
-get_constructor_fields atom_constructor = @Builtin_Method "Meta.get_constructor_fields"
-
-## PRIVATE
-
-   Get the name of an atom constructor.
-
-   Arguments:
-   - atom_constructor: The atom constructor from which to obtain the name.
-get_constructor_name : Any -> Text
-get_constructor_name atom_constructor = @Builtin_Method "Meta.get_constructor_name"
-
-## PRIVATE
-
-   Constructs a new atom using the provided constructor and fields.
-
-   Arguments:
-   - constructor: The constructor for the atom to create.
-   - fields: The arguments to pass to constructor.
-new_atom : Any -> Array -> Atom
-new_atom constructor fields = @Builtin_Method "Meta.new_atom"
+Base_Error.is_a self typ -> Boolean = typ==Any || typ==Base_Error
 
 ## PRIVATE
 
@@ -401,7 +269,7 @@ new_atom constructor fields = @Builtin_Method "Meta.new_atom"
          atom_with_hole.fill 1
          atom_with_hole.value.first.to_text == "1"
 atom_with_hole : (Any -> Atom) -> Any
-atom_with_hole factory = @Builtin_Method "Meta.atom_with_hole_builtin"
+atom_with_hole factory = @Tail_Call Meta_Helpers.atom_with_hole_builtin factory
 
 ## PRIVATE
    ADVANCED
@@ -410,14 +278,19 @@ atom_with_hole factory = @Builtin_Method "Meta.atom_with_hole_builtin"
 
    Arguments:
    - value: The runtime entity to get the meta representation of.
-meta : Any -> Atom | Constructor | Primitive | Polyglot | Unresolved_Symbol | Error
-meta value = if is_atom value then Atom.Value value else
-    if is_atom_constructor value then Constructor.Value value else
-        if is_polyglot value then Polyglot.Value value else
-            if is_unresolved_symbol value then Unresolved_Symbol.Value value else
-                if is_error value then Error.Value value.catch else
-                    if is_type value then Type.Value value.catch else
-                        Primitive.Value value
+meta ~value -> Atom | Constructor | Primitive | Polyglot | Unresolved_Symbol | Error | Type =
+    ac = Meta_Helpers.find_atom_constructor_builtin value...
+    kind = if ac.is_nothing.not then 1 else
+        Meta_Helpers.get_kind_builtin value
+
+    case kind:Integer of
+        1 -> Constructor.Value ac
+        2 -> Atom.Value value
+        3 -> Polyglot.Value value
+        4 -> Unresolved_Symbol.Value value
+        5 -> Error.Value value.catch
+        6 -> Type.Value value
+        _ -> Primitive.Value value
 
 ## PRIVATE
    ADVANCED
@@ -427,8 +300,7 @@ meta value = if is_atom value then Atom.Value value else
    Arguments:
    - value_1: The first value.
    - value_2: The second value.
-is_same_object : Any -> Any -> Boolean
-is_same_object value_1 value_2 = @Builtin_Method "Meta.is_same_object"
+is_same_object value_1 value_2 -> Boolean = @Tail_Call Meta_Helpers.is_same_object_builtin value_1 value_2
 
 ## PRIVATE
    ADVANCED
@@ -438,14 +310,7 @@ is_same_object value_1 value_2 = @Builtin_Method "Meta.is_same_object"
    Arguments:
    - value: The value to check for being an instance of `typ`.
    - typ: The type to check `self` against.
-is_a : Any -> Any -> Boolean
-is_a value typ = @Builtin_Method "Meta.is_a"
-
-## PRIVATE
-java_instance_check value typ =
-    val_java = get_polyglot_language value == "java"
-    typ_java = get_polyglot_language typ == "java"
-    val_java && typ_java && Java.is_instance value typ
+is_a value typ -> Boolean = @Tail_Call Meta_Helpers.is_a_builtin value typ
 
 ## PRIVATE
    ADVANCED
@@ -455,7 +320,7 @@ java_instance_check value typ =
    Arguments:
    - value: The value to get the type of.
 type_of : Any -> Any
-type_of value = @Builtin_Method "Meta.type_of"
+type_of value = @Tail_Call Meta_Helpers.type_of_builtin value
 
 ## PRIVATE
    ADVANCED
@@ -467,7 +332,7 @@ type_of value = @Builtin_Method "Meta.type_of"
    - method: The symbol representing method or constructor to get the attribute for.
    - parameter_name: The name of the parameter to get the attribute for.
 get_annotation : Any -> Any -> Text -> Any | Nothing
-get_annotation target method parameter_name = @Builtin_Method "Meta.get_annotation"
+get_annotation target method parameter_name = @Tail_Call Meta_Helpers.get_annotation_builtin target method parameter_name
 
 ## PRIVATE
    Represents a polyglot language.
@@ -490,8 +355,7 @@ type Language
 
    Arguments:
    - value: The value to check.
-is_atom_constructor : Any -> Boolean
-is_atom_constructor value = @Builtin_Method "Meta.is_atom_constructor"
+is_atom_constructor ~value -> Boolean = Meta_Helpers.find_atom_constructor_builtin value . is_nothing . not
 
 ## PRIVATE
 
@@ -499,8 +363,7 @@ is_atom_constructor value = @Builtin_Method "Meta.is_atom_constructor"
 
    Arguments:
    - value: The value to check.
-is_atom : Any -> Boolean
-is_atom value = @Builtin_Method "Meta.is_atom"
+is_atom value -> Boolean = 2 == Meta_Helpers.get_kind_builtin value
 
 ## PRIVATE
 
@@ -508,8 +371,7 @@ is_atom value = @Builtin_Method "Meta.is_atom"
 
    Arguments:
    - value: The value to check.
-is_error : Any -> Boolean
-is_error value = @Builtin_Method "Meta.is_error"
+is_error value -> Boolean = 5 == Meta_Helpers.get_kind_builtin value
 
 ## PRIVATE
 
@@ -517,174 +379,21 @@ is_error value = @Builtin_Method "Meta.is_error"
 
    Arguments:
    - value: The value to check.
-is_type : Any -> Boolean
-is_type value = @Builtin_Method "Meta.is_type"
-
+is_type value -> Boolean = 6 == Meta_Helpers.get_kind_builtin value
 ## PRIVATE
 
    Checks if the provided value is a polyglot value.
 
    Arguments:
    - value: The value to check.
-is_polyglot : Any -> Boolean
-is_polyglot value = @Builtin_Method "Meta.is_polyglot"
+is_polyglot value -> Boolean = 3 == Meta_Helpers.get_kind_builtin value
 
-## PRIVATE
-
-   Checks if the provided value is an unresolved symbol.
-
-   Arguments:
-   - value: The value to check.
-is_unresolved_symbol : Any -> Boolean
-is_unresolved_symbol value = @Builtin_Method "Meta.is_unresolved_symbol"
-
-## PRIVATE
-
-   Returns a Text representing the source location of a stack frame above
-   the call.
+##
+   Converts any value to its `Meta.Type`. Useful for querying various
+   type properties like `.name` or `.qualified_name`.
 
    Arguments:
-   - skip_frames: how many frames on the stack to skip.
-
-   If the function is called with 0 it will return the location of that call.
-   Note that not only function calls, but also things like pattern matching add
-   frames to the stack and there is no guarantee that the amount of frames that
-   need to be skipped will not change between versions, so this method should be
-   used carefully.
-get_source_location : Integer -> Text
-get_source_location skip_frames =
-    get_source_location_builtin skip_frames
-
-## PRIVATE
-
-   Returns a Text representing the source location of a stack frame above
-   the call.
-
-   Arguments:
-   - frames_to_skip: how many frames on the stack to skip. Called with 0
-     will return exact location of the call.
-get_source_location_builtin : Integer -> Text
-get_source_location_builtin frames_to_skip = @Builtin_Method "Meta.get_source_location_builtin"
-
-## PRIVATE
-
-   Displays the type of the provided value as text.
-
-   Arguments:
-   - value: The value for which to display the type.
-get_simple_type_name : Any -> Text
-get_simple_type_name value = @Builtin_Method "Meta.get_simple_type_name"
-
-## PRIVATE
-
-   Returns the fully qualified type name of the given value.
-
-   Arguments:
-   - value: the value to get the type of.
-get_qualified_type_name : Any -> Text
-get_qualified_type_name value = @Builtin_Method "Meta.get_qualified_type_name"
-
-## PRIVATE
-   Returns a short name of a type (the last part of its qualified name).
-
-   Arguments:
-   - typ: the type to get the short name of.
-get_short_type_name : Any -> Text
-get_short_type_name typ = @Builtin_Method "Meta.get_short_type_name"
-
-## PRIVATE
-   Returns the type that this constructor is a part of.
-
-   Arguments:
-   - constructor: the constructor to get the declaring type of.
-get_constructor_declaring_type : Any -> Any
-get_constructor_declaring_type constructor = @Builtin_Method "Meta.get_constructor_declaring_type"
-
-## PRIVATE
-instrumentor_builtin op args = @Builtin_Method "Meta.instrumentor_builtin"
-
-## PRIVATE
-   ADVANCED
-
-   Builder to create instrumentation for a function
-type Instrumentor
-    ## PRIVATE
-    Value impl
-
-    ## PRIVATE
-    uuid id:Text -> Any = instrumentor_builtin "uuid" id
-
-    ## PRIVATE
-       ADVANCED
-
-       Registers callback to be executed at the begining of node/expression
-       execution. The callback `fn` gets UUID of the node/expression that is
-       being executed and can return `Nothing` to continue regular execution
-       or anything else to skip the execution and just return given value.
-
-       Arguments:
-       - fn: The callback function accepting UUID.
-    on_enter self (fn : Text -> Any | Nothing) =
-        new = instrumentor_builtin "onEnter" [ self.impl, fn ]
-        Instrumentor.Value new
-
-    ## PRIVATE
-       ADVANCED
-
-       Registers callback to be executed when a node/expression evaluation
-       is over. The callback `fn` gets UUID and the computed value (or value
-       of `expression` if specified). Usually
-       the value is _cached_ and returned from `on_enter` callback next time
-       the same expression is evaluated.
-
-       > Example
-         Specify `expression` to _"inline evaluate"_ it.
-            see_a_b uuid:Text ~result =
-              if uuid == "expected-uuid" then
-                IO.println "evalutated to "+result.to_text
-
-            Meta.meta .fn . instrument . on_return fn=see_a_b expression="a+b" . activate
-
-       Arguments:
-       - fn: The callback function accepting UUID and computed value
-       - expression: Expression to evaluate on_return - by default Nothing -
-         e.g. to provide the return value of the function
-    on_return self (fn : Text -> Any -> Nothing) expression:(Text | Nothing)=Nothing =
-        new = instrumentor_builtin "onReturn" [ self.impl, fn, expression ]
-        Instrumentor.Value new
-
-    ## PRIVATE
-       ADVANCED
-
-       Registers callback to be executed when a node/expression representing function is about to be called.
-       The callback `fn` shall accept three arguments. The UUID to identify the expression, the function to be
-       invoked and the arguments to pass to the function. The callback can return `Nothing`
-       (in such case the function gets executed with provided arguments) or some other value,
-       which is then returned instead of calling the function.
-
-       Arguments:
-       - fn: The callback function accepting UUID and function value
-    on_call self (fn : Text -> Function -> Vector Any -> Any | Nothing) =
-        new = instrumentor_builtin "onCall" [ self.impl, fn ]
-        Instrumentor.Value new
-
-    ## PRIVATE
-       ADVANCED
-
-       Activates configured instrumentor. Returns managed resource to
-       deactivate the instrumentor later.
-
-       Arguments:
-       - value: The value of the atom in the meta representation.
-    activate self =
-        finalize_instrumentor impl = instrumentor_builtin "deactivate" [ impl ]
-        create action = (instrumentor_builtin action [ self.impl, finalize_instrumentor ]) : Managed_Resource
-        create "activate"
-
-## PRIVATE
-   Returns type specified by fully qualified name.
-
-   Arguments:
-   - fqn: fully qualified name.
-find_type_by_qualified_name : Text -> Any
-find_type_by_qualified_name fqn = @Builtin_Method "Meta.find_type_by_qualified_name"
+   - value: the value to get the type of
+Type.from (that:Any) =
+   typ = Meta.type_of that
+   Type.Value typ

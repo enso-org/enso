@@ -63,6 +63,7 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
     return optionsOrFormInstance
   } else {
     const {
+      method,
       schema,
       onSubmit,
       canSubmitOffline = false,
@@ -70,7 +71,6 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
       onSubmitted,
       onSubmitSuccess,
       debugName,
-      method,
       ...options
     } = optionsOrFormInstance
 
@@ -241,6 +241,8 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
     const form: types.UseFormReturn<Schema> = {
       ...formInstance,
       submit,
+      // @ts-expect-error Our `UseFormRegister<Schema>` is the same as `react-hook-form`'s,
+      // just with an added constraint.
       control: { ...formInstance.control, register },
       register,
       schema: computedSchema,

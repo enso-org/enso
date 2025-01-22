@@ -9,6 +9,7 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.Atom;
+import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.error.PanicException;
 
@@ -28,8 +29,8 @@ public abstract class GetTypeMethodsNode extends Node {
   @CompilerDirectives.TruffleBoundary
   EnsoObject allMethods(Type type) {
     var methods = type.getMethods(true);
-    var methodNames = methods.keySet().toArray(String[]::new);
-    return ArrayLikeHelpers.wrapStrings(methodNames);
+    var methodNames = methods.keySet().stream().map(Text::create).toArray(Text[]::new);
+    return ArrayLikeHelpers.asVectorEnsoObjects(methodNames);
   }
 
   @Fallback

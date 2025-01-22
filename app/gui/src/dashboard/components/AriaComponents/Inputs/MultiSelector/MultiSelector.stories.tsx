@@ -5,7 +5,7 @@ import { Form } from '../../Form'
 import type { MultiSelectorProps } from './MultiSelector.tsx'
 import { MultiSelector } from './MultiSelector.tsx'
 
-type Props = MultiSelectorProps<typeof schema, 'value'>
+type Props = MultiSelectorProps<typeof schema, 'value', unknown>
 type Story = StoryObj<Props>
 
 const schema = z.object({ value: z.array(z.enum(['one', 'two', 'three'])) })

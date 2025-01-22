@@ -460,4 +460,4 @@ download (uri:(URI | Text)=(Missing_Argument.throw "uri")) file:Writable_File (m
 type Raw_Response
     ## PRIVATE
     get_dropdown_options : Vector Option
-    get_dropdown_options = [Option "Raw HTTP Response" (Meta.get_qualified_type_name Raw_Response)]
+    get_dropdown_options = [Option "Raw HTTP Response" (Raw_Response.to Meta.Type . qualified_name)]
