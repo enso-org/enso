@@ -8,7 +8,10 @@ import project.Value_Type.Value_Type
 refine_with_single_value (column : Column) =
     ## We treat a column as single value if it contains a single not-nothing value.
     if _is_single_value column . not then column else case column.inferred_precise_value_type of
-        Value_Type.Integer _ -> (column : Column & Integer)
+        Value_Type.Integer _ ->
+            # `inferred_precise_value_type` will return Integer if the column was Float but contained integral values - e.g. [2.0]
+            was_originally_float = column.value_type.is_floating_point
+            if was_originally_float then (column : Column & Float & Integer) else (column : Column & Integer)
         Value_Type.Float _ -> (column : Column & Float)
         Value_Type.Char _ _ -> (column : Column & Text)
         Value_Type.Boolean -> (column : Column & Boolean)
@@ -28,7 +31,12 @@ _is_single_value column:Column -> Boolean =
    This extension should never be exported.
 Integer.from (that : Column) -> Integer =
     Runtime.assert (_is_single_value that)
-    that.at 0
+    x = that.at 0
+    case x of
+        _ : Integer -> x
+        _ : Float ->
+            Runtime.assert (x % 1.0 == 0.0)
+            x.truncate
 
 ## PRIVATE
    This extension should never be exported.
