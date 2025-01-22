@@ -9,8 +9,6 @@ import java.nio.file.StandardOpenOption;
 import java.util.HashMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.dump.service.IRDumper;
 import org.graalvm.graphio.GraphOutput;
@@ -24,7 +22,6 @@ public final class IGVDumper implements IRDumper {
   private final String moduleName;
   private final Path outPath;
   private final GraphOutput<EnsoModuleAST, ASTMethod> graphOutput;
-  private final ExecutorService executor;
   private final ConcurrentLinkedQueue<CompletableFuture<Void>> tasks =
       new ConcurrentLinkedQueue<>();
   private int currGraphId;
@@ -34,17 +31,13 @@ public final class IGVDumper implements IRDumper {
   private int nodesCnt;
 
   private IGVDumper(
-      String moduleName,
-      Path outPath,
-      GraphOutput<EnsoModuleAST, ASTMethod> graphOutput,
-      ExecutorService executor) {
+      String moduleName, Path outPath, GraphOutput<EnsoModuleAST, ASTMethod> graphOutput) {
     this.moduleName = moduleName;
     this.outPath = outPath;
     this.graphOutput = graphOutput;
-    this.executor = executor;
   }
 
-  static IGVDumper createForModule(String moduleName, ExecutorService executor) {
+  static IGVDumper createForModule(String moduleName) {
     var outPath = outputForModule(moduleName);
     var channel = createFileChannel(outPath);
     GraphOutput<EnsoModuleAST, ASTMethod> graphOutput;
@@ -59,15 +52,13 @@ public final class IGVDumper implements IRDumper {
       LOGGER.error("Failed to create graph output for module {}", moduleName, e);
       return null;
     }
-    return new IGVDumper(moduleName, outPath, graphOutput, executor);
+    return new IGVDumper(moduleName, outPath, graphOutput);
   }
 
   @Override
   public void dump(Module ir, String moduleName, File srcFile, String afterPass) {
     assert moduleName.equals(this.moduleName);
-    var task =
-        CompletableFuture.runAsync(() -> dumpTask(ir, moduleName, srcFile, afterPass), executor);
-    tasks.add(task);
+    dumpTask(ir, moduleName, srcFile, afterPass);
   }
 
   private void dumpTask(Module ir, String moduleName, File srcFile, String afterPass) {
@@ -93,13 +84,6 @@ public final class IGVDumper implements IRDumper {
 
   @Override
   public void close() {
-    var tasksArr = tasks.toArray(CompletableFuture[]::new);
-    var allTasks = CompletableFuture.allOf(tasksArr);
-    try {
-      allTasks.get();
-    } catch (InterruptedException | ExecutionException e) {
-      LOGGER.error("Failed to wait for all tasks to complete", e);
-    }
     try {
       graphOutput.endGroup();
     } catch (IOException e) {
