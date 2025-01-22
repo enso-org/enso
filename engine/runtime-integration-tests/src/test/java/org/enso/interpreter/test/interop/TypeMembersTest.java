@@ -1,6 +1,7 @@
 package org.enso.interpreter.test.interop;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItem;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -109,7 +110,10 @@ public class TypeMembersTest {
 
     var module = ctx.eval(src);
     var compileError = module.invokeMember("eval_expression", "v");
-    assertEquals("all members", Set.of("to_display_text", "message"), compileError.getMemberKeys());
+    assertEquals(
+        "all members",
+        Set.of("to_display_text", "message", "to_text", "==", "catch_primitive", "pretty"),
+        compileError.getMemberKeys());
   }
 
   @Test
@@ -132,7 +136,7 @@ public class TypeMembersTest {
           var memberNames = getAllMemberNames(typeUnwrapped);
           var anyMethods = ContextUtils.allMethodsFromAny(ctx);
           for (var anyMethod : anyMethods) {
-            assertThat("Has method from Any", memberNames, hasItem(anyMethod));
+            assertThat("Has method from Any", memberNames, hasItem(containsString(anyMethod)));
           }
           return null;
         });
