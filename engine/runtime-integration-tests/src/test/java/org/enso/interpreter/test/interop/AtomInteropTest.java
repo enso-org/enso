@@ -41,6 +41,25 @@ public class AtomInteropTest {
   }
 
   @Test
+  public void atomMemberNames_AreNotQualified() {
+    var myTypeAtom =
+        ContextUtils.evalModule(
+            ctx,
+            """
+        import Standard.Base.Any.Any
+
+        type My_Type
+            Cons field_1 field_2
+
+        main =
+            My_Type.Cons 1 2
+        """);
+    assertThat(myTypeAtom.hasMembers(), is(true));
+    var memberNames = myTypeAtom.getMemberKeys();
+    assertThat("Member names are not qualified", memberNames, hasItem(not(containsString("."))));
+  }
+
+  @Test
   public void atomMembersAreConstructorFields_SingleConstructor() {
     var myTypeAtom =
         ContextUtils.evalModule(
@@ -55,7 +74,6 @@ public class AtomInteropTest {
     assertThat(myTypeAtom.hasMembers(), is(true));
     var memberNames = myTypeAtom.getMemberKeys();
     assertThat("Has at least two fields", memberNames.size(), is(greaterThan(2)));
-    assertThat("Member names are not qualified", memberNames, hasItem(not(containsString("."))));
     for (var consName : List.of("field_1", "field_2")) {
       var member = myTypeAtom.getMember(consName);
       assertThat("Member " + consName + " should be readable", member, is(notNullValue()));

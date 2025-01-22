@@ -573,7 +573,7 @@ public final class Type extends EnsoObject {
     var anyBuiltinType = ctx.getBuiltins().any();
     var builtinMethods = anyBuiltinType.getDefinitionScope().getMethodsForType(anyBuiltinType);
     assert builtinMethods != null : "Builtin methods must always be defined";
-    builtinMethods.forEach(m -> allMethods.put(m.getName(), m));
+    builtinMethods.forEach(m -> allMethods.put(simpleFuncName(m), m));
     var anyModOpt = ctx.findModule("Standard.Base.Any");
     if (anyModOpt.isPresent()) {
       var anyMod = anyModOpt.get();
@@ -581,7 +581,7 @@ public final class Type extends EnsoObject {
       assert anyType != null;
       var methods = anyMod.getScope().getMethodsForType(anyType);
       assert methods != null;
-      methods.forEach(m -> allMethods.put(m.getName(), m));
+      methods.forEach(m -> allMethods.put(simpleFuncName(m), m));
     }
     return allMethods;
   }

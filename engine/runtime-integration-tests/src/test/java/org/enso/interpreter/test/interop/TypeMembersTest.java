@@ -3,6 +3,7 @@ package org.enso.interpreter.test.interop;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -138,6 +139,30 @@ public class TypeMembersTest {
           for (var anyMethod : anyMethods) {
             assertThat("Has method from Any", memberNames, hasItem(containsString(anyMethod)));
           }
+          return null;
+        });
+  }
+
+  @Test
+  public void typeMemberNames_AreNotQualified() {
+    var type =
+        ContextUtils.evalModule(
+            ctx,
+            """
+        from Standard.Base.Any import all
+
+        type My_Type
+            method self = 42
+
+        main = My_Type
+        """);
+    ContextUtils.executeInContext(
+        ctx,
+        () -> {
+          var typeUnwrapped = ContextUtils.unwrapValue(ctx, type);
+          var memberNames = getAllMemberNames(typeUnwrapped);
+          assertThat(
+              "Member names are not qualified", memberNames, not(hasItem(containsString("."))));
           return null;
         });
   }
