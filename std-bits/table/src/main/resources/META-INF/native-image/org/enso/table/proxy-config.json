@@ -10,6 +10,9 @@
   },
   {
     "interfaces":["org.enso.table.data.table.join.lookup.LookupColumnDescription"]
+  },
+  {
+    "interfaces":["org.enso.table.util.FunctionWithException"]
   }
 ]
 
