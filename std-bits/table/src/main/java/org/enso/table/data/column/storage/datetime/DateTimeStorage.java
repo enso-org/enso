@@ -9,23 +9,19 @@ import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.datetime.DateTimeIsInOp;
 import org.enso.table.data.column.operation.map.datetime.TimeLikeBinaryOpReturningBoolean;
 import org.enso.table.data.column.operation.map.datetime.TimeLikeCoalescingOperation;
-import org.enso.table.data.column.storage.ObjectStorage;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.type.DateTimeType;
-import org.enso.table.data.column.storage.type.StorageType;
 
 public final class DateTimeStorage extends SpecializedStorage<ZonedDateTime> {
   /**
    * @param data the underlying data
-   * @param size the number of items stored
    */
   public DateTimeStorage(ZonedDateTime[] data) {
     super(DateTimeType.INSTANCE, data, buildOps());
   }
 
   private static MapOperationStorage<ZonedDateTime, SpecializedStorage<ZonedDateTime>> buildOps() {
-    MapOperationStorage<ZonedDateTime, SpecializedStorage<ZonedDateTime>> t =
-        ObjectStorage.buildObjectOps();
+    MapOperationStorage<ZonedDateTime, SpecializedStorage<ZonedDateTime>> t = new MapOperationStorage<>();
     t.add(new DateTimeIsInOp<>(ZonedDateTime.class));
     t.add(
         new TimeLikeBinaryOpReturningBoolean<>(Maps.EQ, ZonedDateTime.class) {

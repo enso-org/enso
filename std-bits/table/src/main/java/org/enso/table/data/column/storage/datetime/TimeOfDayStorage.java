@@ -9,23 +9,19 @@ import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.datetime.DateTimeIsInOp;
 import org.enso.table.data.column.operation.map.datetime.TimeLikeBinaryOpReturningBoolean;
 import org.enso.table.data.column.operation.map.datetime.TimeLikeCoalescingOperation;
-import org.enso.table.data.column.storage.ObjectStorage;
 import org.enso.table.data.column.storage.SpecializedStorage;
-import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
 
 public final class TimeOfDayStorage extends SpecializedStorage<LocalTime> {
   /**
    * @param data the underlying data
-   * @param size the number of items stored
    */
   public TimeOfDayStorage(LocalTime[] data) {
     super(TimeOfDayType.INSTANCE, data, buildOps());
   }
 
   private static MapOperationStorage<LocalTime, SpecializedStorage<LocalTime>> buildOps() {
-    MapOperationStorage<LocalTime, SpecializedStorage<LocalTime>> t =
-        ObjectStorage.buildObjectOps();
+    MapOperationStorage<LocalTime, SpecializedStorage<LocalTime>> t = new MapOperationStorage<>();
     t.add(new DateTimeIsInOp<>(LocalTime.class));
     t.add(
         new TimeLikeBinaryOpReturningBoolean<>(Maps.EQ, LocalTime.class) {

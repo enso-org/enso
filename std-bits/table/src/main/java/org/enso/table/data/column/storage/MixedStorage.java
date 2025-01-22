@@ -29,8 +29,7 @@ public final class MixedStorage extends ObjectStorage implements ColumnStorageWi
    * inferred type. This allows it to support operations of that type.
    *
    * <p>Once the specialized storage is first computed, all vectorized operations will be forwarded
-   * to it - assuming that it will most likely provide more efficient implementations, even for
-   * operations that are also defined on ObjectStorage.
+   * to it - assuming that it will most likely provide more efficient implementations.
    */
   private Storage<?> cachedInferredStorage = null;
 

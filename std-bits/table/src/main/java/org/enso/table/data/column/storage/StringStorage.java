@@ -78,7 +78,7 @@ public final class StringStorage extends SpecializedStorage<String> {
   }
 
   private static MapOperationStorage<String, SpecializedStorage<String>> buildOps() {
-    MapOperationStorage<String, SpecializedStorage<String>> t = ObjectStorage.buildObjectOps();
+    MapOperationStorage<String, SpecializedStorage<String>> t = new MapOperationStorage<>();
     t.add(
         new BinaryMapOperation<>(Maps.EQ) {
           @Override

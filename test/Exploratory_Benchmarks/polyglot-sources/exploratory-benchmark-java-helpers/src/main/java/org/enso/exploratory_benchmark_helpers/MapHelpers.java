@@ -15,21 +15,21 @@ import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.problems.ProblemAggregator;
 
 public class MapHelpers {
-  public static StringStorage stringConcatBimap(StringStorage storage1, StringStorage storage2) {
+  public static Storage<String> stringConcatBimap(StringStorage storage1, StringStorage storage2) {
     if (storage1.size() != storage2.size()) {
       throw new IllegalArgumentException("Storage sizes must match");
     }
 
     int n = storage1.size();
-    String[] result = new String[n];
+    var builder = Builder.getForText(n, TextType.VARIABLE_LENGTH);
     for (int i = 0; i < n; i++) {
       if (!storage1.isNothing(i) && !storage2.isNothing(i)) {
-        result[i] = storage1.getBoxed(i) + storage2.getBoxed(i);
+        builder.append(storage1.getBoxed(i) + storage2.getBoxed(i));
       } else {
-        result[i] = null;
+        builder.appendNulls(1);
       }
     }
-    return new StringStorage(result, TextType.VARIABLE_LENGTH);
+    return builder.seal();
   }
 
   public static LongStorage longAddBimap(LongStorage storage1, LongStorage storage2) {

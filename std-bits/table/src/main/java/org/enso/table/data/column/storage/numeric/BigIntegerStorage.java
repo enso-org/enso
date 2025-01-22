@@ -17,7 +17,6 @@ import org.enso.table.data.column.operation.map.numeric.comparisons.GreaterOrEqu
 import org.enso.table.data.column.operation.map.numeric.comparisons.LessComparison;
 import org.enso.table.data.column.operation.map.numeric.comparisons.LessOrEqualComparison;
 import org.enso.table.data.column.operation.map.numeric.isin.BigIntegerIsInOp;
-import org.enso.table.data.column.storage.ObjectStorage;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.IntegerType;
@@ -26,15 +25,13 @@ import org.enso.table.data.column.storage.type.StorageType;
 public class BigIntegerStorage extends SpecializedStorage<BigInteger> {
   /**
    * @param data the underlying data
-   * @param size the number of items stored
    */
   public BigIntegerStorage(BigInteger[] data) {
     super(BigIntegerType.INSTANCE, data, makeOps());
   }
 
   protected static MapOperationStorage<BigInteger, SpecializedStorage<BigInteger>> makeOps() {
-    MapOperationStorage<BigInteger, SpecializedStorage<BigInteger>> ops =
-        ObjectStorage.buildObjectOps();
+    MapOperationStorage<BigInteger, SpecializedStorage<BigInteger>> ops = new MapOperationStorage<>();
     return ops.add(new AddOp<>())
         .add(new SubOp<>())
         .add(new MulOp<>())
