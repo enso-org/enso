@@ -10,12 +10,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames.Module;
 import org.enso.common.MethodNames.TopScope;
 import org.enso.common.RuntimeOptions;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.callable.function.Function;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Source;
@@ -218,13 +218,15 @@ public final class ContextUtils {
    * #allMethodsFromAny(Context)} which requires the {@code Standard.Base.Any} module to be first
    * imported.
    */
-  public static Set<Function> builtinMethodsFromAny(Context ctx) {
+  public static Set<String> builtinMethodsFromAny(Context ctx) {
     var ensoCtx = ContextUtils.leakContext(ctx);
     // This is a builtin Any type, so only the builtin methods will be included.
     var anyBuiltinType = ensoCtx.getBuiltins().any();
     var anyBuiltinMethods = anyBuiltinType.getDefinitionScope().getMethodsForType(anyBuiltinType);
     assert anyBuiltinMethods != null;
-    return anyBuiltinMethods;
+    return anyBuiltinMethods.stream()
+        .map(m -> unqualifiedName(m.getName()))
+        .collect(Collectors.toUnmodifiableSet());
   }
 
   /**
@@ -232,7 +234,7 @@ public final class ContextUtils {
    * builtin and non-builtin types. For this to work, {@code Standard.Base.Any} module must be
    * imported first in the context, otherwise an assertion will fail.
    */
-  public static Set<Function> allMethodsFromAny(Context ctx) {
+  public static Set<String> allMethodsFromAny(Context ctx) {
     // Includes, e.g., `Any.to`.
     var ensoCtx = ContextUtils.leakContext(ctx);
     var anyMod = ensoCtx.findModule("Standard.Base.Any");
@@ -241,7 +243,16 @@ public final class ContextUtils {
     var anyType = anyModScope.getType("Any", true);
     var anyMethods = anyModScope.getMethodsForType(anyType);
     assert anyMethods != null;
-    return anyMethods;
+    return anyMethods.stream()
+        .map(m -> unqualifiedName(m.getName()))
+        .collect(Collectors.toUnmodifiableSet());
+  }
+
+  private static String unqualifiedName(String name) {
+    if (name.contains(".")) {
+      return name.substring(name.lastIndexOf('.') + 1);
+    }
+    return name;
   }
 
   @ExportLibrary(InteropLibrary.class)

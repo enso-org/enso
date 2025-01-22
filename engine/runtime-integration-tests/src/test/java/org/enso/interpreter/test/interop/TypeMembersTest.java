@@ -132,7 +132,7 @@ public class TypeMembersTest {
           var memberNames = getAllMemberNames(typeUnwrapped);
           var anyMethods = ContextUtils.allMethodsFromAny(ctx);
           for (var anyMethod : anyMethods) {
-            assertThat("Has method from Any", memberNames, hasItem(anyMethod.getName()));
+            assertThat("Has method from Any", memberNames, hasItem(anyMethod));
           }
           return null;
         });
