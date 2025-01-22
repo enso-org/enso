@@ -390,16 +390,17 @@ is_polyglot value -> Boolean = 3 == Meta_Helpers.get_kind_builtin value
 
 ## PRIVATE
 
-   Displays the type of the provided value as text.
-
-   Arguments:
-   - value: The value for which to display the type.
-get_simple_type_name value -> Text = @Tail_Call Meta_Helpers.get_simple_type_name_builtin value
-
-## PRIVATE
-
    Returns the fully qualified type name of the given value.
 
    Arguments:
    - value: the value to get the type of.
 get_qualified_type_name value -> Text = @Tail_Call Meta_Helpers.get_qualified_type_name_builtin value
+
+##
+   Converts any value to its type
+
+   Arguments:
+   - value: the value to get the type of
+Type.from (that:Any) =
+   typ = Meta.type_of that
+   Type.Value typ

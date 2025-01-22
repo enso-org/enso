@@ -11,7 +11,7 @@ add_specs suite_builder =
     expect_type_representation value expected_text =
             type_name = Meta.get_qualified_type_name value . to_text
             type_name . should_equal <| expected_text
-            simple_name = Meta.get_simple_type_name value . to_text
+            simple_name = value.to Meta.Type . name . to_text
             type_name . ends_with simple_name . should_be_true
 
     suite_builder.group "Type Names of Visualization Defaults" group_builder->
