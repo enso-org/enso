@@ -25,9 +25,9 @@ add_specs suite_builder =
             c4.is_a Column . should_be_true
             c4.is_a Boolean . should_be_true
 
-            #c5 = Column.from_vector "c5" [Date.new 2021 1 1]
-            #c5.is_a Column . should_be_true
-            #c5.is_a Date . should_be_true
+            c5 = Column.from_vector "c5" [Date.new 2021 1 1]
+            c5.is_a Column . should_be_true
+            c5.is_a Date . should_be_true
 
             #c6 = Column.from_vector "c6" [Time_Of_Day.new 12 0 0]
             #c6.is_a Column . should_be_true
