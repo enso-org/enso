@@ -94,8 +94,6 @@ add_expression_specs suite_builder detailed setup =
 
         _ -> group_builder.specify label Nothing pending
 
-    db_null_pending = if setup.is_database && prefix.contains "SQLite" . not then "TODO #11757 - Nothing in expressions in DB"
-
     suite_builder.group prefix+"Expression Integer literals" group_builder->
         specify_test "should be able to add an integer column" group_builder expression_test->
             expression_test "1" 1
@@ -143,7 +141,7 @@ add_expression_specs suite_builder detailed setup =
                     c.name.should_equal "[X] == '\0'"
                     c.to_vector.should_equal [True, False, False]
 
-    suite_builder.group prefix+"Expression Nothing literals" pending=db_null_pending group_builder->
+    suite_builder.group prefix+"Expression Nothing literals" group_builder->
         specify_test "should be able to add an nothing column" group_builder expression_test->
             expression_test "null" Nothing
             expression_test "nUlL" Nothing
@@ -168,31 +166,25 @@ add_expression_specs suite_builder detailed setup =
             nulls = [Nothing, Nothing, Nothing]
             c.not . to_vector . should_equal nulls
 
-            ## TODO fix behaviour in Postgres and other DBs
-               https://github.com/enso-org/enso/issues/11751
-            null_or_sql_fail x =
-                if x.is_error && setup.is_database then x.should_fail_with SQL_Error else
-                    x.should_equal nulls
-
             (c + c) . to_vector . should_equal nulls
             (c - c) . to_vector . should_equal nulls
-            (c * c) . to_vector |> null_or_sql_fail
-            (c / c) . to_vector |> null_or_sql_fail
-            (c ^ c) . to_vector |> null_or_sql_fail
-            (c % c) . to_vector |> null_or_sql_fail
-            (c.starts_with c) . to_vector |> null_or_sql_fail
-            (c.ends_with c) . to_vector |> null_or_sql_fail
-            (c.contains c) . to_vector |> null_or_sql_fail
+            (c * c) . to_vector . should_equal nulls
+            (c / c) . to_vector . should_equal nulls
+            (c ^ c) . to_vector . should_equal nulls
+            (c % c) . to_vector . should_equal nulls
+            (c.starts_with c) . to_vector . should_equal nulls
+            (c.ends_with c) . to_vector . should_equal nulls
+            (c.contains c) . to_vector . should_equal nulls
 
             t.evaluate_expression "not(Nothing)" . to_vector . should_equal nulls
             t.evaluate_expression "Nothing + Nothing" . to_vector . should_equal nulls
             t.evaluate_expression "[X] + Nothing" . to_vector . should_equal nulls
             t.evaluate_expression "Nothing + [X]" . to_vector . should_equal nulls
 
-            t.evaluate_expression "Nothing * Nothing" . to_vector |> null_or_sql_fail
-            t.evaluate_expression "Nothing / Nothing" . to_vector |> null_or_sql_fail
-            t.evaluate_expression "Nothing ^ Nothing" . to_vector |> null_or_sql_fail
-            t.evaluate_expression "Nothing % Nothing" . to_vector |> null_or_sql_fail
+            t.evaluate_expression "Nothing * Nothing" . to_vector . should_equal nulls
+            t.evaluate_expression "Nothing / Nothing" . to_vector . should_equal nulls
+            t.evaluate_expression "Nothing ^ Nothing" . to_vector . should_equal nulls
+            t.evaluate_expression "Nothing % Nothing" . to_vector . should_equal nulls
 
     suite_builder.group prefix+"Expression Date and Time literals" group_builder->
         specify_test "should be able to add a date or time column" group_builder pending=pending_datetime expression_test->
@@ -328,9 +320,8 @@ add_expression_specs suite_builder detailed setup =
             expression_test "[C] IS NULL" [False, False, False, False, True]
             expression_test "[A] IS NOT NULL" [True, True, True, True, True]
             expression_test "[C] IS NOT NULL" [True, True, True, True, False]
-            if db_null_pending.is_nothing then
-                expression_test "Nothing IS NULL" True
-                expression_test "Nothing IS NOT NULL" False
+            expression_test "Nothing IS NULL" True
+            expression_test "Nothing IS NOT NULL" False
 
         specify_test "should be able to check empty" group_builder expression_test->
             expression_test "'Hello World' IS EMPTY" False
@@ -360,10 +351,9 @@ add_expression_specs suite_builder detailed setup =
             expression_test "True && TRUE" True
             expression_test "True AND False" False
 
-            if db_null_pending.is_nothing then
-                expression_test "True && Nothing" Nothing
-                expression_test "Nothing && False" False
-                expression_test "Nothing && True" Nothing
+            expression_test "True && Nothing" Nothing
+            expression_test "Nothing && False" False
+            expression_test "Nothing && True" Nothing
 
             expression_test "True && [Bad]] Name]" [True, False, True, False, True]
             expression_test "False AND [Bad]] Name]" False
@@ -373,9 +363,8 @@ add_expression_specs suite_builder detailed setup =
             expression_test "True OR False" True
             expression_test "False OR False" False
 
-            if db_null_pending.is_nothing then
-                expression_test "Nothing || False" Nothing
-                expression_test "Nothing || True" True
+            expression_test "Nothing || False" Nothing
+            expression_test "Nothing || True" True
 
             expression_test "True OR [Bad]] Name]" True
             expression_test "False || [Bad]] Name]" [True, False, True, False, True]
