@@ -342,86 +342,86 @@ function DialogContent(props: DialogContentProps) {
 
   return (
     <ResetButtonGroupContext>
-    <LayoutGroup>
-      <MotionDialog
-        layout
-        transition={TRANSITION}
-        style={{ height: getDialogHeight() }}
-        id={dialogId}
-        onLayoutAnimationStart={() => {
-          if (scrollerRef.current) {
-            scrollerRef.current.style.overflowY = 'clip'
-          }
-        }}
-        onLayoutAnimationComplete={() => {
-          if (scrollerRef.current) {
-            scrollerRef.current.style.overflowY = ''
-          }
-        }}
-        ref={(ref: HTMLDivElement | null) => {
-          mergeRefs.mergeRefs(dialogRef, (element) => {
-            if (element) {
-              // This is a workaround for the `data-testid` attribute not being
-              // supported by the 'react-aria-components' library.
-              // We need to set the `data-testid` attribute on the dialog element
-              // so that we can use it in our tests.
-              // This is a temporary solution until we refactor the Dialog component
-              // to use `useDialog` hook from the 'react-aria-components' library.
-              // this will allow us to set the `data-testid` attribute on the dialog
-              element.dataset.testid = testId
+      <LayoutGroup>
+        <MotionDialog
+          layout
+          transition={TRANSITION}
+          style={{ height: getDialogHeight() }}
+          id={dialogId}
+          onLayoutAnimationStart={() => {
+            if (scrollerRef.current) {
+              scrollerRef.current.style.overflowY = 'clip'
             }
-          })(ref)
-        }}
-        className={styles.base()}
-        aria-labelledby={titleId}
-        {...ariaDialogProps}
-      >
-        {(opts) => (
-          <>
-            <motion.div layout className="w-full" transition={{ duration: 0 }}>
-              <DialogHeader
-                closeButton={closeButton}
-                title={title}
-                titleId={titleId}
-                scrollerRef={scrollerRef}
-                fitContent={fitContent}
-                hideCloseButton={hideCloseButton}
-                padding={padding}
-                rounded={rounded}
-                size={size}
-                type={type}
-                headerDimensionsRef={headerDimensionsRef}
-                close={opts.close}
-                variants={variants}
-              />
-            </motion.div>
+          }}
+          onLayoutAnimationComplete={() => {
+            if (scrollerRef.current) {
+              scrollerRef.current.style.overflowY = ''
+            }
+          }}
+          ref={(ref: HTMLDivElement | null) => {
+            mergeRefs.mergeRefs(dialogRef, (element) => {
+              if (element) {
+                // This is a workaround for the `data-testid` attribute not being
+                // supported by the 'react-aria-components' library.
+                // We need to set the `data-testid` attribute on the dialog element
+                // so that we can use it in our tests.
+                // This is a temporary solution until we refactor the Dialog component
+                // to use `useDialog` hook from the 'react-aria-components' library.
+                // this will allow us to set the `data-testid` attribute on the dialog
+                element.dataset.testid = testId
+              }
+            })(ref)
+          }}
+          className={styles.base()}
+          aria-labelledby={titleId}
+          {...ariaDialogProps}
+        >
+          {(opts) => (
+            <>
+              <motion.div layout className="w-full" transition={{ duration: 0 }}>
+                <DialogHeader
+                  closeButton={closeButton}
+                  title={title}
+                  titleId={titleId}
+                  scrollerRef={scrollerRef}
+                  fitContent={fitContent}
+                  hideCloseButton={hideCloseButton}
+                  padding={padding}
+                  rounded={rounded}
+                  size={size}
+                  type={type}
+                  headerDimensionsRef={headerDimensionsRef}
+                  close={opts.close}
+                  variants={variants}
+                />
+              </motion.div>
 
-            <motion.div
-              layout
-              layoutScroll
-              className={styles.scroller()}
-              ref={scrollerRef}
-              transition={{ duration: 0 }}
-            >
-              <DialogBody
-                close={opts.close}
-                contentDimensionsRef={contentDimensionsRef}
-                dialogId={dialogId}
-                headerDimensionsRef={headerDimensionsRef}
-                scrollerRef={scrollerRef}
-                measurerWrapperClassName={styles.measurerWrapper()}
-                contentClassName={styles.content()}
-                type={type}
+              <motion.div
+                layout
+                layoutScroll
+                className={styles.scroller()}
+                ref={scrollerRef}
+                transition={{ duration: 0 }}
               >
-                {children}
-              </DialogBody>
-            </motion.div>
-          </>
-        )}
-      </MotionDialog>
+                <DialogBody
+                  close={opts.close}
+                  contentDimensionsRef={contentDimensionsRef}
+                  dialogId={dialogId}
+                  headerDimensionsRef={headerDimensionsRef}
+                  scrollerRef={scrollerRef}
+                  measurerWrapperClassName={styles.measurerWrapper()}
+                  contentClassName={styles.content()}
+                  type={type}
+                >
+                  {children}
+                </DialogBody>
+              </motion.div>
+            </>
+          )}
+        </MotionDialog>
 
-      <dialogStackProvider.DialogStackRegistrar id={dialogId} type={TYPE_TO_DIALOG_TYPE[type]} />
-    </LayoutGroup>
+        <dialogStackProvider.DialogStackRegistrar id={dialogId} type={TYPE_TO_DIALOG_TYPE[type]} />
+      </LayoutGroup>
     </ResetButtonGroupContext>
   )
 }
