@@ -244,7 +244,7 @@ public abstract class NumericBinaryOpCoalescing<T extends Number, I extends Stor
       context.safepoint();
     }
 
-    return new BigDecimalStorage(out, n);
+    return new BigDecimalStorage(out);
   }
 
   protected SpecializedStorage<BigDecimal> runBigDecimalMap(
@@ -268,6 +268,6 @@ public abstract class NumericBinaryOpCoalescing<T extends Number, I extends Stor
       context.safepoint();
     }
 
-    return new BigDecimalStorage(out, n);
+    return new BigDecimalStorage(out);
   }
 }

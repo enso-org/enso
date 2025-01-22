@@ -19,19 +19,18 @@ import org.enso.table.data.column.operation.map.numeric.comparisons.LessOrEqualC
 import org.enso.table.data.column.storage.ObjectStorage;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.type.BigDecimalType;
-import org.enso.table.data.column.storage.type.StorageType;
 
 public final class BigDecimalStorage extends SpecializedStorage<BigDecimal> {
   /**
    * @param data the underlying data
    * @param size the number of items stored
    */
-  public BigDecimalStorage(BigDecimal[] data, int size) {
-    super(data, size, buildOps());
+  public BigDecimalStorage(BigDecimal[] data) {
+    super(BigDecimalType.INSTANCE, data, buildOps());
   }
 
   public static BigDecimalStorage makeEmpty(int size) {
-    return new BigDecimalStorage(new BigDecimal[size], size);
+    return new BigDecimalStorage(new BigDecimal[size]);
   }
 
   private static MapOperationStorage<BigDecimal, SpecializedStorage<BigDecimal>> buildOps() {
@@ -54,17 +53,12 @@ public final class BigDecimalStorage extends SpecializedStorage<BigDecimal> {
   }
 
   @Override
-  protected SpecializedStorage<BigDecimal> newInstance(BigDecimal[] data, int size) {
-    return new BigDecimalStorage(data, size);
+  protected SpecializedStorage<BigDecimal> newInstance(BigDecimal[] data) {
+    return new BigDecimalStorage(data);
   }
 
   @Override
   protected BigDecimal[] newUnderlyingArray(int size) {
     return new BigDecimal[size];
-  }
-
-  @Override
-  public StorageType getType() {
-    return BigDecimalType.INSTANCE;
   }
 }

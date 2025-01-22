@@ -19,7 +19,7 @@ public interface BigDecimalArrayAdapter {
     for (int i = 0; i < n; i++) {
       values[i] = getItem(i);
     }
-    return new BigDecimalStorage(values, n);
+    return new BigDecimalStorage(values);
   }
 
   static BigDecimalArrayAdapter fromStorage(SpecializedStorage<BigDecimal> storage) {
