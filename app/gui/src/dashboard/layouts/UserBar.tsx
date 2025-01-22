@@ -23,6 +23,40 @@ import { z } from 'zod'
 /** Whether the chat button should be visible. Temporarily disabled. */
 const SHOULD_SHOW_CHAT_BUTTON: boolean = false
 
+// eslint-disable-next-line no-restricted-syntax
+const topbarLinksSchema = z.object({
+  items: z.array(
+    z
+      .object({
+        name: z.custom<TextId>(),
+        url: z.string().url(),
+        menu: z.array(
+          z.object({
+            name: z.custom<TextId>().and(z.string()),
+            url: z.string().url(),
+          }),
+        ),
+      })
+      .or(
+        z.object({
+          name: z.custom<TextId>(),
+          menu: z.array(
+            z.object({
+              name: z.custom<TextId>().and(z.string()),
+              url: z.string().url(),
+            }),
+          ),
+        }),
+      )
+      .or(
+        z.object({
+          name: z.custom<TextId>().and(z.string()),
+          url: z.string().url(),
+        }),
+      ),
+  ),
+})
+
 /** Props for a {@link UserBar}. */
 export interface UserBarProps {
   /**
@@ -54,6 +88,8 @@ export default function UserBar(props: UserBarProps) {
     // eslint-disable-next-line no-restricted-syntax
     (false as boolean) && !shouldShowPaywallButton
 
+  const topbarLinks = topbarLinksSchema.parse(TOPBAR_LINKS)
+
   return (
     <div className="bg-primary/10 pt-0.5">
       <div className="flex h-full shrink-0 cursor-default items-center gap-user-bar pl-icons-x pr-2">
@@ -75,7 +111,7 @@ export default function UserBar(props: UserBarProps) {
           )}
         </AnimatePresence>
 
-        <UserBarHelpSection />
+        <UserBarHelpSection items={topbarLinks.items} />
 
         {SHOULD_SHOW_CHAT_BUTTON && (
           <Button
@@ -135,47 +171,19 @@ export default function UserBar(props: UserBarProps) {
   )
 }
 
-// eslint-disable-next-line no-restricted-syntax
-const topbarLinksSchema = z.object({
-  items: z.array(
-    z
-      .object({
-        name: z.custom<TextId>(),
-        url: z.string().url(),
-        menu: z.array(
-          z.object({
-            name: z.custom<TextId>().and(z.string()),
-            url: z.string().url(),
-          }),
-        ),
-      })
-      .or(
-        z.object({
-          name: z.custom<TextId>(),
-          menu: z.array(
-            z.object({
-              name: z.custom<TextId>().and(z.string()),
-              url: z.string().url(),
-            }),
-          ),
-        }),
-      )
-      .or(
-        z.object({
-          name: z.custom<TextId>().and(z.string()),
-          url: z.string().url(),
-        }),
-      ),
-  ),
-})
+/**
+ * Props for a {@link UserBarHelpSection}.
+ */
+export interface UserBarHelpSectionProps {
+  readonly items: z.infer<typeof topbarLinksSchema>['items']
+}
 
 /**
  * A section containing help buttons.
  */
-function UserBarHelpSection() {
+export function UserBarHelpSection(props: UserBarHelpSectionProps) {
+  const { items } = props
   const { getText } = useText()
-
-  const { items } = topbarLinksSchema.parse(TOPBAR_LINKS)
 
   const getSafetyProps = (url: string) =>
     isAbsoluteUrl(url) ? { rel: 'opener', target: '_blank' } : {}
