@@ -5,15 +5,7 @@ import { useGraphEditorState } from '@/providers/graphEditorState'
 import { useGraphStore, type NodeId } from '@/stores/graph'
 import { isDef } from '@vueuse/core'
 import { setIfUndefined } from 'lib0/map'
-import {
-  computed,
-  effectScope,
-  onScopeDispose,
-  ref,
-  watch,
-  watchEffect,
-  type EffectScope,
-} from 'vue'
+import { computed, effectScope, onScopeDispose, ref, watchEffect, type EffectScope } from 'vue'
 import type { AstId } from 'ydoc-shared/ast'
 import CreateNodeFromPortButton from './CreateNodeFromPortButton.vue'
 
@@ -24,7 +16,6 @@ const emit = defineEmits<{
   portDoubleClick: [event: PointerEvent, portId: AstId]
   newNodeClick: [portId: AstId]
   'update:hoverAnim': [progress: number]
-  'update:nodeOutputHovered': [hovered: boolean]
 }>()
 
 const graph = useGraphStore()
@@ -69,11 +60,6 @@ const mouseOverOutput = ref<AstId>()
 const mouseOverCreateNodeFromPortButton = ref(false)
 
 const outputHovered = computed(() => (graph.mouseEditedEdge ? undefined : mouseOverOutput.value))
-watch(outputHovered, (newVal, oldVal) => {
-  if ((newVal != null) !== (oldVal != null)) {
-    emit('update:nodeOutputHovered', newVal != null)
-  }
-})
 
 const anyPortDisconnected = computed(() => {
   for (const port of outputPortsSet.value) {

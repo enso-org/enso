@@ -220,7 +220,7 @@ function ensureSelected() {
   }
 }
 
-const outputHovered = computed(() => graph.nodeOutputHovered.get(nodeId.value) ?? false)
+const outputHovered = computed(() => (graph.nodeOutputHoverAnimations.get(nodeId.value) ?? 0) !== 0)
 const keyboard = injectKeyboard()
 
 const visualizationWidth = computed(() => props.node.vis?.width ?? null)
