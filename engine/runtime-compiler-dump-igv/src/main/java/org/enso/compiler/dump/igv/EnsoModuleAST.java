@@ -448,13 +448,9 @@ final class EnsoModuleAST {
     };
   }
 
-  private ASTNode newNode(Object object, Map<String, Object> props) {
+  private ASTNode newNode(IR ir, Map<String, Object> props) {
     ASTNode.Builder bldr;
-    if (object instanceof IR ir) {
-      bldr = ASTNode.Builder.fromIr(ir, srcFile).id(currentNodeId++);
-    } else {
-      bldr = ASTNode.Builder.fromObject(object).id(currentNodeId++);
-    }
+    bldr = ASTNode.Builder.fromIr(ir, srcFile).id(currentNodeId++);
     props.forEach(bldr::property);
     var node = bldr.build();
     assert !nodes.containsKey(node.getId());
@@ -465,8 +461,8 @@ final class EnsoModuleAST {
     return node;
   }
 
-  private ASTNode newNode(Object object) {
-    return newNode(object, Map.of());
+  private ASTNode newNode(IR ir) {
+    return newNode(ir, Map.of());
   }
 
   private void startBlock() {

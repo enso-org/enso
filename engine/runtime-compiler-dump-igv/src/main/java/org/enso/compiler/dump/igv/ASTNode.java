@@ -87,15 +87,6 @@ final class ASTNode {
       return bldr;
     }
 
-    public static Builder fromObject(Object object) {
-      var bldr = new Builder();
-      var label = Utils.label(object);
-      bldr.object = object;
-      bldr.property("label", label);
-      bldr.property("hashCode", Utils.hash(object));
-      return bldr;
-    }
-
     public Builder id(int id) {
       this.id = id;
       return this;
