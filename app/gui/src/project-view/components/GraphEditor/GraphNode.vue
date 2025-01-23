@@ -251,7 +251,9 @@ watch(isVisualizationVisible, (val) => {
   }
 })
 watch(isVisualizationPreviewed, (newVal, oldVal) => {
-  if (newVal && !oldVal) {
+  if (!newVal) {
+    graph.setNodeHovered(nodeId.value, false)
+  } else if (newVal && !oldVal) {
     graph.db.moveNodeToTop(nodeId.value)
   }
 })
