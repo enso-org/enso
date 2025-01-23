@@ -7,8 +7,6 @@ import org.enso.compiler.context.{
   InlineContext,
   ModuleContext
 }
-import org.enso.compiler.dump.DocsGenerate
-import org.enso.compiler.dump.DocsVisit
 import org.enso.compiler.context.CompilerContext.Module
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.Implicits.AsMetadata
@@ -32,6 +30,7 @@ import org.enso.compiler.phase.{ImportResolver, ImportResolverAlgorithm}
 import org.enso.editions.LibraryName
 import org.enso.pkg.QualifiedName
 import org.enso.common.CompilationStage
+import org.enso.compiler.docs.{DocsGenerate, DocsVisit}
 import org.enso.compiler.dump.service.{IRDumpFactoryService, IRDumper}
 import org.enso.compiler.phase.exports.{
   ExportCycleException,

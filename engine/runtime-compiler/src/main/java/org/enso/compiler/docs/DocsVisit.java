@@ -1,4 +1,4 @@
-package org.enso.compiler.dump;
+package org.enso.compiler.docs;
 
 import java.io.IOException;
 import java.io.PrintWriter;
