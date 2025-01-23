@@ -73,7 +73,7 @@ public class AtomInteropTest {
         """);
     assertThat(myTypeAtom.hasMembers(), is(true));
     var memberNames = myTypeAtom.getMemberKeys();
-    assertThat("Has at least two fields", memberNames.size(), is(greaterThan(2)));
+    assertThat("Has more than two fields", memberNames.size(), is(greaterThan(2)));
     for (var consName : List.of("field_1", "field_2")) {
       var member = myTypeAtom.getMember(consName);
       assertThat("Member " + consName + " should be readable", member, is(notNullValue()));
