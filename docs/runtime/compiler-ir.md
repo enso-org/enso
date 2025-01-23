@@ -14,7 +14,8 @@ for future goals.
 The IR can be visualized using the `enso.compiler.dumpIr` system property. The
 value of the property is a substring of a module name to dump. IRs are dumped
 into the [IGV tool](https://www.graalvm.org/latest/tools/igv/) in a similar way
-to how [GraalVM graphs are dumped](??).
+to how GraalVM graphs are dumped, which is documented in
+[enso4igv](https://github.com/enso-org/enso/blob/2e714a70ddf12456e9f3fa9e132fd2ac43aa3b77/tools/enso4igv/IGV.md#using-the-igv).
 
 When using the `enso.compiler.dumpIr` property, one has to add
 `--add-exports jdk.internal.vm.compiler/org.graalvm.graphio=org.enso.runtime.compiler.dump.igv`
