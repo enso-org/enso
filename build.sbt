@@ -4737,8 +4737,8 @@ lazy val `std-table` = project
       "org.apache.poi"           % "poi-ooxml"               % poiOoxmlVersion,
       "org.apache.xmlbeans"      % "xmlbeans"                % xmlbeansVersion,
       "org.antlr"                % "antlr4-runtime"          % antlrVersion,
-      "org.apache.logging.log4j" % "log4j" % "2.24.3",
-      "org.apache.logging.log4j" % "log4j-to-slf4j"          %  "2.24.3" // org.apache.poi uses log4j
+      "org.apache.logging.log4j" % "log4j"                   % "2.24.3",
+      "org.apache.logging.log4j" % "log4j-to-slf4j"          % "2.24.3" // org.apache.poi uses log4j
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
