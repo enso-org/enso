@@ -4654,14 +4654,14 @@ lazy val `enso-test-java-helpers` = project
       )
       secondaryLocations.foreach { target =>
         IO.copyFile(primaryLocation, target)
-    }
-    val _ = StdBits
-      .copyDependencies(
-        file("test/Table_Tests/polyglot/java/"),
-        Seq(),
-        ignoreScalaLibrary = true
-      )
-      .value
+      }
+      val _ = StdBits
+        .copyDependencies(
+          file("test/Table_Tests/polyglot/java/"),
+          Seq(),
+          ignoreScalaLibrary = true
+        )
+        .value
       result
     }.value
   )
