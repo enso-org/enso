@@ -130,7 +130,7 @@ graph.suggestEdgeFromOutput(outputHovered)
 </script>
 
 <template>
-  <g class="GraphNodeOutputPorts">
+  <g class="GraphNodeOutputPorts" :data-output-ports-node-id="props.nodeId">
     <template v-for="port of outputPorts" :key="port.portId">
       <g :style="portGroupStyle(port)" class="define-node-colors">
         <g
