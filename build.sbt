@@ -3822,7 +3822,7 @@ lazy val `engine-runner` = project
       .dependsOn(NativeImage.additionalCp)
       .dependsOn(NativeImage.smallJdk)
       .dependsOn(
-        createEnginePackage
+        createEnginePackageNoIndex
       )
       .value,
     buildNativeImage := Def.taskDyn {
@@ -5131,21 +5131,69 @@ ThisBuild / createEnginePackage := {
   createEnginePackage.result.value
 }
 
-lazy val buildEngineDistribution =
-  taskKey[Unit]("Builds the engine distribution and optionally native image")
-buildEngineDistribution := Def.taskIf {
+lazy val createEnginePackageNoIndex =
+  taskKey[Unit]("Creates the engine distribution package")
+createEnginePackageNoIndex := {
+  updateLibraryManifests.value
+  val modulesToCopy = componentModulesPaths.value
+  val root          = engineDistributionRoot.value
+  val log           = streams.value.log
+  val cacheFactory  = streams.value.cacheStoreFactory
+  DistributionPackage.createEnginePackage(
+    distributionRoot    = root,
+    cacheFactory        = cacheFactory,
+    log                 = log,
+    jarModulesToCopy    = modulesToCopy,
+    graalVersion        = graalMavenPackagesVersion,
+    javaVersion         = graalVersion,
+    ensoVersion         = ensoVersion,
+    editionName         = currentEdition,
+    sourceStdlibVersion = stdLibVersion,
+    targetStdlibVersion = targetStdlibVersion,
+    targetDir           = (`syntax-rust-definition` / rustParserTargetDirectory).value,
+    generateIndex       = false
+  )
+  log.info(s"Engine package created at $root")
+}
+
+ThisBuild / createEnginePackageNoIndex := {
+  createEnginePackageNoIndex.result.value
+}
+
+lazy val buildEngineDistributionNoIndex =
+  taskKey[Unit](
+    "Builds the engine distribution without generating indexes and optionally generating native image"
+  )
+buildEngineDistributionNoIndex := Def.taskIf {
+  createEnginePackageNoIndex.value
   if (shouldBuildNativeImage.value) {
-    createEnginePackage.value
     (`engine-runner` / buildNativeImage).value
-  } else {
-    createEnginePackage.value
   }
 }.value
 
 // This makes the buildEngineDistribution task usable as a dependency
 // of other tasks.
-ThisBuild / buildEngineDistribution := {
-  buildEngineDistribution.result.value
+ThisBuild / buildEngineDistributionNoIndex := {
+  updateLibraryManifests.value
+  val modulesToCopy = componentModulesPaths.value
+  val root          = engineDistributionRoot.value
+  val log           = streams.value.log
+  val cacheFactory  = streams.value.cacheStoreFactory
+  DistributionPackage.createEnginePackage(
+    distributionRoot    = root,
+    cacheFactory        = cacheFactory,
+    log                 = log,
+    jarModulesToCopy    = modulesToCopy,
+    graalVersion        = graalMavenPackagesVersion,
+    javaVersion         = graalVersion,
+    ensoVersion         = ensoVersion,
+    editionName         = currentEdition,
+    sourceStdlibVersion = stdLibVersion,
+    targetStdlibVersion = targetStdlibVersion,
+    targetDir           = (`syntax-rust-definition` / rustParserTargetDirectory).value,
+    generateIndex       = false
+  )
+  log.info(s"Engine package created at $root")
 }
 
 lazy val shouldBuildNativeImage = taskKey[Boolean](
@@ -5182,35 +5230,17 @@ ThisBuild / engineDistributionRoot := {
   engineDistributionRoot.value
 }
 
-lazy val buildEngineDistributionNoIndex =
-  taskKey[Unit]("Builds the engine distribution without generating indexes")
-buildEngineDistributionNoIndex := {
-  updateLibraryManifests.value
-  val modulesToCopy = componentModulesPaths.value
-  val root          = engineDistributionRoot.value
-  val log           = streams.value.log
-  val cacheFactory  = streams.value.cacheStoreFactory
-  DistributionPackage.createEnginePackage(
-    distributionRoot    = root,
-    cacheFactory        = cacheFactory,
-    log                 = log,
-    jarModulesToCopy    = modulesToCopy,
-    graalVersion        = graalMavenPackagesVersion,
-    javaVersion         = graalVersion,
-    ensoVersion         = ensoVersion,
-    editionName         = currentEdition,
-    sourceStdlibVersion = stdLibVersion,
-    targetStdlibVersion = targetStdlibVersion,
-    targetDir           = (`syntax-rust-definition` / rustParserTargetDirectory).value,
-    generateIndex       = false
-  )
-  log.info(s"Engine package created at $root")
+lazy val buildEngineDistribution =
+  taskKey[Unit]("Builds the engine distribution")
+buildEngineDistribution := {
+  buildEngineDistributionNoIndex.value
+  createEnginePackage.value
 }
 
 // This makes the buildEngineDistributionNoIndex task usable as a dependency
 // of other tasks.
-ThisBuild / buildEngineDistributionNoIndex := {
-  buildEngineDistributionNoIndex.result.value
+ThisBuild / buildEngineDistribution := {
+  buildEngineDistribution.result.value
 }
 
 lazy val runEngineDistribution =
