@@ -5202,25 +5202,23 @@ lazy val shouldBuildNativeImage = taskKey[Boolean](
 )
 
 ThisBuild / shouldBuildNativeImage := {
-  val prop = System.getenv("ENSO_LAUNCHER")
-  prop != null && prop.contains("native")
+  GraalVM.EnsoLauncher.native
 }
 
 ThisBuild / NativeImage.additionalOpts := {
-  val prop = System.getenv("ENSO_LAUNCHER")
-  if (prop == null) {
+  if (GraalVM.EnsoLauncher.shell) {
     Seq()
   } else {
-    var opts = if (prop == "native") {
+    var opts = if (GraalVM.EnsoLauncher.release) {
       Seq("-O3")
     } else {
       Seq("-Ob")
     }
 
-    if (prop.contains("debug")) {
+    if (GraalVM.EnsoLauncher.debug) {
       opts = opts ++ Seq("-H:GenerateDebugInfo=1")
     }
-    if (prop.contains("test")) {
+    if (GraalVM.EnsoLauncher.test) {
       opts = opts ++ Seq("-ea")
     }
     opts

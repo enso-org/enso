@@ -169,10 +169,9 @@ object DistributionPackage {
       log             = log
     )
 
-    var noCopyInNativeMode = System.getenv().get("ENSO_LAUNCHER")
-    if (noCopyInNativeMode != null && noCopyInNativeMode.contains("native")) {
+    if (!GraalVM.EnsoLauncher.shell) {
       log.info(
-        s"Not using shell launchers as ENSO_LAUNCHER env variable is $noCopyInNativeMode"
+        s"Not using shell launchers as ${GraalVM.EnsoLauncher.VAR_NAME} env variable is ${GraalVM.EnsoLauncher.toString}"
       )
     } else {
       copyDirectoryIncremental(

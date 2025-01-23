@@ -189,26 +189,11 @@ pub enum EngineLauncher {
     #[default]
     Shell,
 }
-
 impl FromStr for EngineLauncher {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self> {
-        if s == "shell" {
-            Ok(Self::Shell)
-        } else if s.contains("native") {
-            if s.contains("test") {
-                if s.contains("debug") {
-                    Ok(Self::TestDebugNative)
-                } else {
-                    Ok(Self::TestNative)
-                }
-            } else {
-                Ok(Self::Native)
-            }
-        } else {
-            bail!("Invalid Engine Launcher type: {}", s)
-        }
+        bail!("Parsing of ENSO_LAUNCHER isn't needed: {}", s)
     }
 }
 
@@ -216,8 +201,8 @@ impl From<EngineLauncher> for String {
     fn from(value: EngineLauncher) -> Self {
         match value {
             EngineLauncher::Native => "native".to_string(),
-            EngineLauncher::TestNative => "testnative".to_string(),
-            EngineLauncher::TestDebugNative => "testdebugnative".to_string(),
+            EngineLauncher::TestNative => "native,test".to_string(),
+            EngineLauncher::TestDebugNative => "native,test,debug".to_string(),
             EngineLauncher::Shell => "shell".to_string(),
         }
     }

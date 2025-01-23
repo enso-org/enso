@@ -208,16 +208,17 @@ one of the following:
   the native image.
 - `native`: `buildEngineDistribution` command builds native image in _release
   mode_ - e.g. turns on maximal optimizations increasing the build time.
-- There are additional variants of `native` useful for _development_:
-  - anything that includes `native` substring turns on _native image_ build, but
-    disables optimizations - for example `fastnative` produces build similar to
-    _release mode_, but faster
-  - include `test` to _enable assertions_ - e.g. using `testnative` instructs
+- There are additional variants of `native` useful for _development_. They are specified
+  as comma separated attributes following `native`:
+  - using `native,fast` turns on _native image_ build, but
+    disables optimizations - e.g. produces build similar to
+    _release mode_, but more quickly
+  - using `native,test` _enables assertions_ - e.g. it instructs
     `buildEngineDistribution` command to build native image with assertions
-    enabled (`-ea`). Useful for running tests on the CI.
-  - include `debug` to generate _debugging informations_ for VSCode _native
+    enabled (`-ea`). Useful for running Enso tests in the _native mode_.
+  - using `native,debug` generates _debugging informations_ for VSCode _native
     image debugger_
-  - it is possible to combine all features - e.g. use `debugtestnative`
+  - it is possible to combine all features - e.g. use `debug,fast,test,native`
 
 To test _native image_ launcher choose one of the `native` configurations and
 invoke:
