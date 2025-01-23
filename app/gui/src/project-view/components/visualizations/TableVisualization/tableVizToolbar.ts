@@ -17,7 +17,7 @@ type FilterType = 'number' | 'date' | 'set'
 
 /**
  * Represents the value used for filtering.
- * 
+ *
  * - For comparisons such as 'equals' or 'greater than,' the filter value is a single value (string).
  * - For 'is in' filtering, the filter value is a list of strings.
  * - For range filtering, the filter value consists of two values that define the range.
