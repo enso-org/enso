@@ -197,20 +197,16 @@ impl FromStr for EngineLauncher {
     }
 }
 
-impl From<EngineLauncher> for String {
-    fn from(value: EngineLauncher) -> Self {
-        match value {
+impl Display for EngineLauncher {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        let str = match self {
             EngineLauncher::Native => "native".to_string(),
             EngineLauncher::TestNative => "native,test".to_string(),
             EngineLauncher::TestDebugNative => "native,test,debug".to_string(),
             EngineLauncher::Shell => "shell".to_string(),
-        }
-    }
-}
+        };
 
-impl Display for EngineLauncher {
-    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        write!(f, "{}", self)
+        write!(f, "{}", str)
     }
 }
 
