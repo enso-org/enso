@@ -66,7 +66,6 @@ const emit = defineEmits<{
   toggleDocPanel: []
   'update:edited': [cursorPosition: number]
   'update:rect': [rect: Rect]
-  'update:hoverAnim': [progress: number]
   'update:visualizationId': [id: Opt<VisualizationIdentifier>]
   'update:visualizationRect': [rect: Rect | undefined]
   'update:visualizationEnabled': [enabled: boolean]

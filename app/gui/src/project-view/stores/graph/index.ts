@@ -88,7 +88,7 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
     proj.setObservedFileName('Main.enso')
 
     const nodeRects = reactive(new Map<NodeId, Rect>())
-    const nodeHoverAnimations = reactive(new Map<NodeId, number>())
+    const nodeOutputHoverAnimations = reactive(new Map<NodeId, number>())
     const nodeHovered = reactive(new Map<NodeId, boolean>())
     const nodeOutputHovered = reactive(new Map<NodeId, boolean>())
     const vizRects = reactive(new Map<NodeId, Rect>())
@@ -343,7 +343,7 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
           if (outerAst.isStatement()) Ast.deleteFromParentBlock(outerAst)
           nodeRects.delete(id)
           nodeHovered.delete(id)
-          nodeHoverAnimations.delete(id)
+          nodeOutputHoverAnimations.delete(id)
           nodeOutputHovered.delete(id)
           deletedNodes.add(id)
         }
@@ -475,8 +475,8 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
       nodeOutputHovered.set(nodeId, hovered)
     }
 
-    function updateNodeHoverAnim(nodeId: NodeId, progress: number) {
-      nodeHoverAnimations.set(nodeId, progress)
+    function updateNodeOutputHoverAnim(nodeId: NodeId, progress: number) {
+      nodeOutputHoverAnimations.set(nodeId, progress)
     }
 
     const nodesToPlace = reactive<NodeId[]>([])
@@ -819,7 +819,7 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
       nodeRects,
       nodeHovered,
       nodeOutputHovered,
-      nodeHoverAnimations,
+      nodeOutputHoverAnimations,
       vizRects,
       visibleNodeAreas,
       visibleArea,
@@ -841,7 +841,7 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
       updateNodeRect,
       setNodeHovered,
       setNodeOutputHovered,
-      updateNodeHoverAnim,
+      updateNodeOutputHoverAnim,
       updateVizRect,
       addPortInstance,
       removePortInstance,

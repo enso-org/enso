@@ -149,7 +149,7 @@ const nodeSelection = injectGraphSelection(true)
           "
           @portClick="(event, portId) => graph.createEdgeFromOutput(portId, event)"
           @portDoubleClick="(_event, portId) => emit('outputPortDoubleClick', portId)"
-          @update:hoverAnim="graph.updateNodeHoverAnim(id, $event)"
+          @update:hoverAnim="graph.updateNodeOutputHoverAnim(id, $event)"
           @update:nodeOutputHovered="graph.setNodeOutputHovered(id, $event)"
         />
       </template>
