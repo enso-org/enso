@@ -267,8 +267,8 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
       public void onReturnExceptional(VirtualFrame frame, Throwable exception) {
         if (exception instanceof TailCallException) {
           onTailCallReturn(exception, Function.ArgumentsHelper.getState(frame.getArguments()));
-        } else if (exception instanceof PanicSentinel sentinel) {
-          onReturnValue(frame, sentinel);
+        } else if (exception instanceof PanicSentinel) {
+          onReturnValue(frame, exception);
         } else if (exception instanceof AbstractTruffleException ex) {
           onReturnValue(frame, new PanicSentinel(ex, context.getInstrumentedNode()));
         }
