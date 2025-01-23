@@ -208,11 +208,11 @@ one of the following:
   the native image.
 - `native`: `buildEngineDistribution` command builds native image in _release
   mode_ - e.g. turns on maximal optimizations increasing the build time.
-- There are additional variants of `native` useful for _development_. They are specified
-  as comma separated attributes following `native`:
-  - using `native,fast` turns on _native image_ build, but
-    disables optimizations - e.g. produces build similar to
-    _release mode_, but more quickly
+- There are additional variants of `native` useful for _development_. They are
+  specified as comma separated attributes following `native`:
+  - using `native,fast` turns on _native image_ build, but disables
+    optimizations - e.g. produces build similar to _release mode_, but more
+    quickly
   - using `native,test` _enables assertions_ - e.g. it instructs
     `buildEngineDistribution` command to build native image with assertions
     enabled (`-ea`). Useful for running Enso tests in the _native mode_.
