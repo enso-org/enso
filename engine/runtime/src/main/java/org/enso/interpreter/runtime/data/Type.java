@@ -542,6 +542,14 @@ public final class Type extends EnsoObject {
     var allMethods = new HashMap<String, Function>();
     for (var type : allTypes(ctx)) {
       var methodsOnThisType = type.methodsOnThisType(includeStaticMethods);
+      for (var entry : methodsOnThisType.entrySet()) {
+        var name = entry.getKey();
+        // If a method with the name is already in `allMethods`, it means that it is an override
+        // of a method from super type - let's keep the override.
+        if (!allMethods.containsKey(name)) {
+          allMethods.put(name, entry.getValue());
+        }
+      }
       allMethods.putAll(methodsOnThisType);
     }
     return allMethods;
