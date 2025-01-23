@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.UUID;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.CallArgument;
 import org.enso.compiler.core.ir.DefinitionArgument;
@@ -50,10 +51,11 @@ final class EnsoModuleAST {
   /** Stack of blocks that are being built. */
   private final Queue<ASTBlock.Builder> blockStack = new ArrayDeque<>();
 
-  private int currentNodeId;
+  private final Map<UUID, Integer> nodeIds;
 
-  private EnsoModuleAST(Module moduleIr, File srcFile, String moduleName, int nodeId) {
-    this.currentNodeId = nodeId;
+  private EnsoModuleAST(
+      Module moduleIr, File srcFile, String moduleName, Map<UUID, Integer> nodeIds) {
+    this.nodeIds = nodeIds;
     this.srcFile = srcFile;
     this.moduleName = moduleName;
     this.root = buildTree(moduleIr);
@@ -62,11 +64,11 @@ final class EnsoModuleAST {
   /**
    * @param srcFile Source file for the module. May be null.
    * @param moduleName FQN of the module.
-   * @param nodeId First node id that we should start with. Every node in the whole graph should
-   *     have a different ID.
+   * @param nodeIds Mapping of IR node UUIDs to sequential IDs expected by the IGV.
    */
-  static EnsoModuleAST fromIR(Module module, File srcFile, String moduleName, int nodeId) {
-    return new EnsoModuleAST(module, srcFile, moduleName, nodeId);
+  static EnsoModuleAST fromIR(
+      Module module, File srcFile, String moduleName, Map<UUID, Integer> nodeIds) {
+    return new EnsoModuleAST(module, srcFile, moduleName, nodeIds);
   }
 
   public File getSrcFile() {
@@ -449,8 +451,14 @@ final class EnsoModuleAST {
   }
 
   private ASTNode newNode(IR ir, Map<String, Object> props) {
-    ASTNode.Builder bldr;
-    bldr = ASTNode.Builder.fromIr(ir, srcFile).id(currentNodeId++);
+    ASTNode.Builder bldr = ASTNode.Builder.fromIr(ir, srcFile);
+    var nodeId = nodeIds.get(ir.getId());
+    if (nodeId == null) {
+      var lastSeqId = nodeIds.size();
+      nodeIds.put(ir.getId(), lastSeqId);
+      nodeId = lastSeqId;
+    }
+    bldr.id(nodeId);
     props.forEach(bldr::property);
     var node = bldr.build();
     assert !nodes.containsKey(node.getId());

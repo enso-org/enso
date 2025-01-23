@@ -11,6 +11,7 @@ import java.nio.file.StandardOpenOption;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.dump.service.IRDumper;
 import org.graalvm.graphio.GraphOutput;
@@ -28,8 +29,7 @@ public final class IGVDumper implements IRDumper {
   private int currGraphId;
   private boolean groupCreated;
 
-  /** Count of all the nodes for all the subgraphs */
-  private int nodesCnt;
+  private final Map<UUID, Integer> nodeIds = new HashMap<>();
 
   private IGVDumper(String moduleName) {
     this.moduleName = moduleName;
@@ -78,10 +78,8 @@ public final class IGVDumper implements IRDumper {
   }
 
   private void dumpTask(Module ir, String moduleName, File srcFile, String afterPass) {
-    LOGGER.trace(
-        "[{}] Creating EnsoModuleAST after pass {}, nodeId = {}", moduleName, afterPass, nodesCnt);
-    var moduleAst = EnsoModuleAST.fromIR(ir, srcFile, moduleName, nodesCnt);
-    nodesCnt += moduleAst.getNodes().size();
+    LOGGER.trace("[{}] Creating EnsoModuleAST after pass {}", moduleName, afterPass);
+    var moduleAst = EnsoModuleAST.fromIR(ir, srcFile, moduleName, nodeIds);
     try {
       if (!groupCreated) {
         var groupProps = groupProps(moduleName, moduleAst);
