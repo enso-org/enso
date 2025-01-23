@@ -23,34 +23,39 @@ public final class IGVDumper implements IRDumper {
   private static final Logger LOGGER = LoggerFactory.getLogger(IGVDumper.class);
   private static final int DEFAULT_IGV_PORT = 4445;
   private final String moduleName;
-  private final GraphOutput<EnsoModuleAST, ASTMethod> graphOutput;
+  // Created lazily
+  private GraphOutput<EnsoModuleAST, ASTMethod> graphOutput;
   private int currGraphId;
   private boolean groupCreated;
 
   /** Count of all the nodes for all the subgraphs */
   private int nodesCnt;
 
-  private IGVDumper(String moduleName, GraphOutput<EnsoModuleAST, ASTMethod> graphOutput) {
+  private IGVDumper(String moduleName) {
     this.moduleName = moduleName;
-    this.graphOutput = graphOutput;
   }
 
   static IGVDumper createForModule(String moduleName) {
-    var channel = createChannel(moduleName);
-    GraphOutput<EnsoModuleAST, ASTMethod> graphOutput;
-    try {
-      graphOutput =
-          GraphOutput.newBuilder(EnsoModuleAST.AST_DUMP_STRUCTURE)
-              .blocks(EnsoModuleAST.AST_DUMP_STRUCTURE)
-              .elementsAndLocations(
-                  EnsoModuleAST.AST_DUMP_STRUCTURE, EnsoModuleAST.AST_DUMP_STRUCTURE)
-              .attr("type", "Enso IR")
-              .build(channel);
-    } catch (IOException e) {
-      LOGGER.error("Failed to create graph output for module {}", moduleName, e);
-      return null;
+    return new IGVDumper(moduleName);
+  }
+
+  private GraphOutput<EnsoModuleAST, ASTMethod> graphOutput() {
+    if (graphOutput == null) {
+      var channel = createChannel(moduleName);
+      try {
+        graphOutput =
+            GraphOutput.newBuilder(EnsoModuleAST.AST_DUMP_STRUCTURE)
+                .blocks(EnsoModuleAST.AST_DUMP_STRUCTURE)
+                .elementsAndLocations(
+                    EnsoModuleAST.AST_DUMP_STRUCTURE, EnsoModuleAST.AST_DUMP_STRUCTURE)
+                .attr("type", "Enso IR")
+                .build(channel);
+      } catch (IOException e) {
+        throw new IllegalStateException(
+            "Failed to create graph output for module " + moduleName, e);
+      }
     }
-    return new IGVDumper(moduleName, graphOutput);
+    return graphOutput;
   }
 
   private static WritableByteChannel createChannel(String moduleName) {
@@ -80,12 +85,12 @@ public final class IGVDumper implements IRDumper {
     try {
       if (!groupCreated) {
         var groupProps = groupProps(moduleName, moduleAst);
-        graphOutput.beginGroup(moduleAst, moduleName, moduleName, null, 0, groupProps);
+        graphOutput().beginGroup(moduleAst, moduleName, moduleName, null, 0, groupProps);
         groupCreated = true;
       }
       LOGGER.trace("[{}] Printing module AST with ID {}", moduleName, currGraphId);
       var graphProps = graphProps(afterPass);
-      graphOutput.print(moduleAst, graphProps, currGraphId, "%s", afterPass);
+      graphOutput().print(moduleAst, graphProps, currGraphId, "%s", afterPass);
     } catch (IOException e) {
       LOGGER.error("[{}] Failed to dump the graph for pass {}", moduleName, afterPass);
       throw new RuntimeException(e);
@@ -110,14 +115,19 @@ public final class IGVDumper implements IRDumper {
 
   @Override
   public void close() {
-    try {
-      graphOutput.endGroup();
-    } catch (IOException e) {
-      LOGGER.error("[%s] Failed to end the group".formatted(moduleName), e);
-      return;
+    if (groupCreated) {
+      assert graphOutput != null;
+      try {
+        graphOutput.endGroup();
+      } catch (IOException e) {
+        LOGGER.error("[%s] Failed to end the group".formatted(moduleName), e);
+        return;
+      }
+      graphOutput.close();
+      LOGGER.trace("[{}] Graph dumped", moduleName);
+    } else {
+      LOGGER.trace("[{}] No graphs to dump", moduleName);
     }
-    graphOutput.close();
-    LOGGER.trace("[{}] Graph dumped", moduleName);
   }
 
   private static Path outputForModule(String moduleName) {
