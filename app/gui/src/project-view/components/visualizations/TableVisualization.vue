@@ -2,6 +2,7 @@
 import icons from '@/assets/icons.svg'
 import AgGridTableView, { commonContextMenuActions } from '@/components/shared/AgGridTableView.vue'
 import {
+  GridFilterModel,
   useTableVizToolbar,
   type SortModel,
 } from '@/components/visualizations/TableVisualization/tableVizToolbar'
@@ -123,7 +124,7 @@ const rowCount = ref(0)
 const showRowCount = ref(true)
 const isTruncated = ref(false)
 const isCreateNodeEnabled = ref(false)
-const filterModel = ref({})
+const filterModel = ref<GridFilterModel[]>([])
 const sortModel = ref<SortModel[]>([])
 const dataGroupingMap = shallowRef<Map<string, boolean>>()
 const defaultColDef: Ref<ColDef> = ref({
@@ -323,6 +324,16 @@ function getValueTypeIcon(valueType: string) {
   }
 }
 
+function getFilterType(valueType: string) {
+  if (valueType === 'Date') {
+    return 'agDateColumnFilter'
+  } else if (isNumericType(valueType)) {
+    return 'agNumberColumnFilter'
+  } else {
+    return 'agSetColumnFilter'
+  }
+}
+
 /**
  * Generates the column definition for the table vizulization, including displaying the data value type and
  * data quality indicators.
@@ -341,6 +352,7 @@ function toField(
 
   const displayValue = valueType ? valueType.display_text : null
   const icon = valueType ? getValueTypeIcon(valueType.constructor) : null
+  const filterType = valueType ? getFilterType(valueType.constructor) : null
 
   const dataQualityMetrics =
     typeof props.data === 'object' && 'data_quality_metrics' in props.data ?
@@ -374,6 +386,10 @@ function toField(
   return {
     field: name,
     headerName: name, // AGGrid would demangle it its own way if not specified.
+    filter: filterType,
+    filterParams: {
+      maxNumConditions: 1,
+    },
     headerComponentParams: {
       template,
       setAriaSort: () => {},
@@ -698,6 +714,7 @@ const createDateValue = (item: string, module: Ast.MutableModule) => {
   const dateOrTimePattern = Pattern.parseExpression('(Date.new __ __ __)')
   const dateTimeParts = item
     .match(/\d+/g)!
+    .filter((part, i) => i < 3)
     .map((part) => Ast.tryNumberToEnso(Number(part), module)!)
   return dateOrTimePattern.instantiateCopied([...dateTimeParts])
 }
@@ -710,7 +727,7 @@ function checkSortAndFilter(e: SortChangedEvent) {
     return
   }
   const colState = gridApi.getColumnState()
-  const filter = gridApi.getFilterModel()
+  const gridFilterModel = gridApi.getFilterModel()
   const sort = colState
     .map((cs) => {
       if (cs.sort) {
@@ -722,14 +739,26 @@ function checkSortAndFilter(e: SortChangedEvent) {
       }
     })
     .filter((sort) => sort)
-  if (sort.length || Object.keys(filter).length) {
+  const filter = Object.entries(gridFilterModel).map(([key, value]) => {
+    return {
+      columnName: key,
+      filterType: value.filterType,
+      filterAction: value.type,
+      filter: value.filter,
+      filterTo: value.filterTo,
+      dateFrom: value.dateFrom,
+      dateTo: value.dateTo,
+      values: value.values,
+    }
+  })
+  if (sort.length || filter.length) {
     isCreateNodeEnabled.value = true
     sortModel.value = sort as SortModel[]
     filterModel.value = filter
   } else {
     isCreateNodeEnabled.value = false
     sortModel.value = []
-    filterModel.value = {}
+    filterModel.value = []
   }
 }
 

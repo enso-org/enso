@@ -23,11 +23,13 @@ import project.Internal.Column_Naming_Helper.Column_Naming_Helper
 import project.Internal.Column_Ops
 import project.Internal.Date_Time_Helpers
 import project.Internal.Java_Problems
+import project.Internal.Offset_Helper
 import project.Internal.Parse_Values_Helper
 import project.Internal.Read_Many_Helpers
 import project.Internal.Storage
 import project.Internal.Value_Type_Helpers
 import project.Internal.Widget_Helpers
+import project.Fill_With.Fill_With
 import project.Rows_To_Read.Rows_To_Read
 import project.Table.Table
 import project.Value_Type.Auto
@@ -2614,6 +2616,23 @@ type Column
     running self statistic:Statistic=..Count name=statistic.to_text+" "+self.name =
         data = Statistic.running self.to_vector statistic
         Column.from_vector name data
+
+    ## ALIAS shift, lead, lag, slide, displace
+       GROUP Standard.Base.Values
+       ICON column_add
+
+       Returns a new column offset by n rows, where missing values have been replaced with the provided fill_with strategy.
+
+       Arguments:
+       - n: The number of rows to offset the new column by. Negative n slides the values down in the column, adding records at the start. 
+            Positive n slides the values up in the column, adding records at the end. Defaults to -1.
+       - fill_with: The value to replace missing values with. Defaults to adding Nothing Values.
+       - - ..Nothing - Add Nothing values in the spaces created by sliding the existing values.
+       - - ..Closest_Value - If n is negative the first value gets used, if n is negative the last value gets used.
+       - - ..Wrap_Around - In this mode values that slide off the top or bottom reappear at the other end. So no values get lost they are just rotated.
+    @n (self-> Numeric_Input minimum=0-self.length maximum=self.length)
+    offset self n=-1:Integer fill_with:Fill_With=..Nothing -> Column =
+        Offset_Helper.column_offset_impl self n fill_with
 
     ## PRIVATE
     pretty : Text

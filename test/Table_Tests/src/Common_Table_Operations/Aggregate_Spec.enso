@@ -1259,7 +1259,7 @@ add_aggregate_specs suite_builder setup =
             _ : Float -> Double.isNaN value
             _       -> False
         if matches.not then
-            loc = Meta.get_source_location 2
+            loc = Test.get_source_location 2
             Test.fail "Expected a Nothing or NaN but got: "+value.to_text+" (at "+loc+")."
 
     if setup.flagged ..Supports_Infinity then suite_builder.group prefix+"Table.aggregate should correctly handle infinities" group_builder->

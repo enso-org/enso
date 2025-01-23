@@ -29,8 +29,14 @@ final class DocsUtils {
   static String toSignature(Method.Explicit m) {
     var sb = new StringBuilder();
     sb.append(m.methodName().name());
-    if (m.body() instanceof Lambda fn) {
-      var first = m.isStatic();
+    var ret = processFnBody(m.body(), m.isStatic(), sb);
+    sb.append(" -> ").append(ret);
+    return sb.toString();
+  }
+
+  private static String processFnBody(Expression body, boolean isStatic, StringBuilder sb) {
+    if (body instanceof Lambda fn) {
+      var first = isStatic;
       for (var a : asJava(fn.arguments())) {
         if (first) {
           first = false;
@@ -38,9 +44,15 @@ final class DocsUtils {
         }
         sb.append(" ").append(toSignature(a));
       }
-      var ret = extractTypeOrAny(fn.body());
-      sb.append(" -> ").append(ret);
+      return extractTypeOrAny(fn.body());
     }
+    return ANY;
+  }
+
+  static String toSignature(Method.Conversion m) {
+    var sb = new StringBuilder();
+    sb.append(m.methodName().name());
+    processFnBody(m.body(), true, sb);
     return sb.toString();
   }
 
