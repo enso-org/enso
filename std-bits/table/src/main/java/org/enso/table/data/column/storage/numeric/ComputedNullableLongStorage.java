@@ -1,8 +1,6 @@
 package org.enso.table.data.column.storage.numeric;
 
 import java.util.BitSet;
-
-import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.ValueIsNothingException;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.graalvm.polyglot.Context;
@@ -27,7 +25,7 @@ public abstract class ComputedNullableLongStorage extends AbstractLongStorage {
           "Index " + idx + " is out of bounds for range of length " + getSize() + ".");
     }
 
-    return computeItem((int)idx);
+    return computeItem((int) idx);
   }
 
   @Override

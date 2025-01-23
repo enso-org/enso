@@ -2,7 +2,6 @@ package org.enso.table.data.column.storage.numeric;
 
 import java.util.BitSet;
 import java.util.List;
-
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
@@ -104,7 +103,6 @@ public abstract class AbstractLongStorage extends Storage<Long>
       String name, Storage<?> argument, MapOperationProblemAggregator problemAggregator) {
     return ops.runZip(name, this, argument, problemAggregator);
   }
-
 
   @Override
   public StorageType inferPreciseType() {
@@ -244,7 +242,7 @@ public abstract class AbstractLongStorage extends Storage<Long>
 
   @Override
   public Storage<Long> slice(int offset, int limit) {
-    int size = (int)getSize();
+    int size = (int) getSize();
     int newSize = Math.min(size - offset, limit);
     var builder = Builder.getForLong(IntegerType.INT_64, newSize, null);
     Context context = Context.getCurrent();
@@ -282,7 +280,7 @@ public abstract class AbstractLongStorage extends Storage<Long>
   @Override
   public Storage<Long> appendNulls(int count) {
     final AbstractLongStorage parent = this;
-    int size = (int)parent.getSize();
+    int size = (int) parent.getSize();
     return new ComputedNullableLongStorage(size + count) {
       @Override
       protected Long computeItem(int idx) {

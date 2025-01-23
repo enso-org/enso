@@ -6,11 +6,9 @@ import java.util.List;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
-import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.BitSets;
@@ -113,14 +111,13 @@ public final class LongStorage extends AbstractLongStorage {
     return super.fillMissing(arg, commonType, problemAggregator);
   }
 
-
   public long[] getRawData() {
     return data;
   }
 
   @Override
   public LongStorage slice(int offset, int limit) {
-    int size = (int)getSize();
+    int size = (int) getSize();
     int newSize = Math.min(size - offset, limit);
     long[] newData;
 
@@ -141,7 +138,7 @@ public final class LongStorage extends AbstractLongStorage {
 
   @Override
   public LongStorage appendNulls(int count) {
-    int size = (int)getSize();
+    int size = (int) getSize();
     if (size + count > Builder.MAX_SIZE) {
       throw new IllegalStateException("Cannot append nulls, storage would exceed maximum size.");
     }
@@ -178,6 +175,6 @@ public final class LongStorage extends AbstractLongStorage {
   @Override
   public LongStorage widen(IntegerType widerType) {
     assert widerType.fits(getType());
-    return new LongStorage(data, (int)getSize(), getIsNothingMap(), widerType);
+    return new LongStorage(data, (int) getSize(), getIsNothingMap(), widerType);
   }
 }

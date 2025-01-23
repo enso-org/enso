@@ -31,7 +31,8 @@ public class BigIntegerStorage extends SpecializedStorage<BigInteger> {
   }
 
   protected static MapOperationStorage<BigInteger, SpecializedStorage<BigInteger>> makeOps() {
-    MapOperationStorage<BigInteger, SpecializedStorage<BigInteger>> ops = new MapOperationStorage<>();
+    MapOperationStorage<BigInteger, SpecializedStorage<BigInteger>> ops =
+        new MapOperationStorage<>();
     return ops.add(new AddOp<>())
         .add(new SubOp<>())
         .add(new MulOp<>())

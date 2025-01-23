@@ -41,7 +41,7 @@ public final class StringStorage extends SpecializedStorage<String> {
   @Override
   public TextType getType() {
     // As the type is fixed, we can safely cast it.
-    return (TextType)super.getType();
+    return (TextType) super.getType();
   }
 
   @Override

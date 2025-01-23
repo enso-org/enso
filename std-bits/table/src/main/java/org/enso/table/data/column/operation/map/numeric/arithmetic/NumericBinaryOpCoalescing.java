@@ -2,7 +2,6 @@ package org.enso.table.data.column.operation.map.numeric.arithmetic;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.numeric.helpers.BigDecimalArrayAdapter;

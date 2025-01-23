@@ -32,7 +32,8 @@ public final class BigDecimalStorage extends SpecializedStorage<BigDecimal> {
   }
 
   private static MapOperationStorage<BigDecimal, SpecializedStorage<BigDecimal>> buildOps() {
-    MapOperationStorage<BigDecimal, SpecializedStorage<BigDecimal>> ops = new MapOperationStorage<>();
+    MapOperationStorage<BigDecimal, SpecializedStorage<BigDecimal>> ops =
+        new MapOperationStorage<>();
     return ops.add(new AddOp<>())
         .add(new SubOp<>())
         .add(new MulOp<>())

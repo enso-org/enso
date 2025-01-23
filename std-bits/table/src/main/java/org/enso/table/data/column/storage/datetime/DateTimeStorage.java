@@ -21,7 +21,8 @@ public final class DateTimeStorage extends SpecializedStorage<ZonedDateTime> {
   }
 
   private static MapOperationStorage<ZonedDateTime, SpecializedStorage<ZonedDateTime>> buildOps() {
-    MapOperationStorage<ZonedDateTime, SpecializedStorage<ZonedDateTime>> t = new MapOperationStorage<>();
+    MapOperationStorage<ZonedDateTime, SpecializedStorage<ZonedDateTime>> t =
+        new MapOperationStorage<>();
     t.add(new DateTimeIsInOp<>(ZonedDateTime.class));
     t.add(
         new TimeLikeBinaryOpReturningBoolean<>(Maps.EQ, ZonedDateTime.class) {

@@ -11,7 +11,9 @@ import org.enso.table.problems.ProblemAggregator;
 public class LongNullHandling {
   public interface Operation {
     Storage<Long> run(
-        ColumnLongStorage storage, ColumnLongStorage arg, MapOperationProblemAggregator problemAggregator);
+        ColumnLongStorage storage,
+        ColumnLongStorage arg,
+        MapOperationProblemAggregator problemAggregator);
   }
 
   public abstract static class NoNulls implements Operation {
@@ -21,7 +23,9 @@ public class LongNullHandling {
 
     @Override
     public Storage<Long> run(
-        ColumnLongStorage storage, ColumnLongStorage arg, MapOperationProblemAggregator problemAggregator) {
+        ColumnLongStorage storage,
+        ColumnLongStorage arg,
+        MapOperationProblemAggregator problemAggregator) {
       long n = storage.getSize();
       var builder = Builder.getForLong(IntegerType.INT_64, n, null);
       for (int i = 0; i < n; i++) {
@@ -42,7 +46,9 @@ public class LongNullHandling {
 
     @Override
     public Storage<Long> run(
-        ColumnLongStorage storage, ColumnLongStorage arg, MapOperationProblemAggregator problemAggregator) {
+        ColumnLongStorage storage,
+        ColumnLongStorage arg,
+        MapOperationProblemAggregator problemAggregator) {
       long n = storage.getSize();
       var builder = Builder.getForLong(IntegerType.INT_64, n, null);
       for (int i = 0; i < n; i++) {
@@ -79,7 +85,9 @@ public class LongNullHandling {
 
     @Override
     public Storage<Long> run(
-        ColumnLongStorage storage, ColumnLongStorage arg, MapOperationProblemAggregator problemAggregator) {
+        ColumnLongStorage storage,
+        ColumnLongStorage arg,
+        MapOperationProblemAggregator problemAggregator) {
       long n = storage.getSize();
       var builder = Builder.getForLong(IntegerType.INT_64, n, null);
       NullityReporter nullityReporter = new NullityReporter();
@@ -87,8 +95,7 @@ public class LongNullHandling {
         if (storage.isNothing(i) || arg.isNothing(i)) {
           builder.appendNulls(1);
         } else {
-          long x =
-              doLong(storage.get(i), arg.get(i), i, problemAggregator, nullityReporter);
+          long x = doLong(storage.get(i), arg.get(i), i, problemAggregator, nullityReporter);
           if (nullityReporter.wasLastNull) {
             builder.appendNulls(1);
             nullityReporter.wasLastNull = false;

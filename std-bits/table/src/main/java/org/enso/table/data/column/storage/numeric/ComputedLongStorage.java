@@ -1,15 +1,8 @@
 package org.enso.table.data.column.storage.numeric;
 
 import java.util.BitSet;
-import java.util.List;
-
-import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.ValueIsNothingException;
 import org.enso.table.data.column.storage.type.IntegerType;
-import org.enso.table.data.mask.OrderMask;
-import org.enso.table.data.mask.SliceRange;
-import org.graalvm.polyglot.Context;
 
 /**
  * Implements a storage that computes the ith stored value using some function.

@@ -1,13 +1,11 @@
 package org.enso.table.data.column.operation.map.numeric;
 
-import java.util.BitSet;
 import org.enso.polyglot.common_utils.Core_Math_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.TernaryMapOperation;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
-import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.error.UnexpectedTypeException;
 import org.graalvm.polyglot.Context;
