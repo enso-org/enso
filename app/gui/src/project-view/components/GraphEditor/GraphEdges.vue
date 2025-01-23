@@ -126,12 +126,6 @@ const nodeIdsWithOutputPorts = computed(() =>
 )
 
 const nodeSelection = injectGraphSelection(true)
-
-// TODO: deduplicate with GraphNode.vue
-function setSoleSelected(nodeId: NodeId) {
-  nodeSelection?.setSelection(new Set([nodeId]))
-  graph.db.moveNodeToTop(nodeId)
-}
 </script>
 
 <template>
@@ -150,7 +144,7 @@ function setSoleSelected(nodeId: NodeId) {
           :nodeId="id"
           :forceVisible="graph.nodeHovered.get(id) ?? false"
           @newNodeClick="
-            (setSoleSelected(id),
+            (nodeSelection?.setSoleSelected(id),
             emit('createNodeFromPort', id, [{ commit: false, content: undefined }]))
           "
           @portClick="(event, portId) => graph.createEdgeFromOutput(portId, event)"

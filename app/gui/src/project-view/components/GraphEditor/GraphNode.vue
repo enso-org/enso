@@ -212,8 +212,7 @@ watch(menuVisible, (visible) => {
 })
 
 function setSoleSelected() {
-  nodeSelection?.setSelection(new Set([nodeId.value]))
-  graph.db.moveNodeToTop(nodeId.value)
+  nodeSelection?.setSoleSelected(nodeId.value)
 }
 
 function ensureSelected() {

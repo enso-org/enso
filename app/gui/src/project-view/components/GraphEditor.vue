@@ -176,6 +176,7 @@ const nodeSelection = provideGraphSelection(
   {
     isValid: (id) => graphStore.db.isNodeId(id),
     onSelected: (id) => graphStore.db.moveNodeToTop(id),
+    onSoleSelected: (id) => graphStore.db.moveNodeToTop(id),
     toSorted: (ids) => {
       const idsSet = new Set(ids)
       const inputNodes = [
