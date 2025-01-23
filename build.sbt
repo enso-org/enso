@@ -5106,6 +5106,7 @@ lazy val createEnginePackage =
   taskKey[Unit]("Creates the engine distribution package")
 createEnginePackage := {
   updateLibraryManifests.value
+  buildEngineDistributionNoIndex.value
   val modulesToCopy = componentModulesPaths.value
   val root          = engineDistributionRoot.value
   val log           = streams.value.log
@@ -5326,6 +5327,7 @@ buildStdLib := Def.inputTaskDyn {
 
 lazy val pkgStdLibInternal = inputKey[Unit]("Use `buildStdLib`")
 pkgStdLibInternal := Def.inputTask {
+  buildEngineDistributionNoIndex.value
   val cmd               = allStdBits.parsed
   val root              = engineDistributionRoot.value
   val log: sbt.Logger   = streams.value.log
