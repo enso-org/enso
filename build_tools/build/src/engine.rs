@@ -210,12 +210,7 @@ impl From<EngineLauncher> for String {
 
 impl Display for EngineLauncher {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        match *self {
-            EngineLauncher::Native => write!(f, "native"),
-            EngineLauncher::TestNative => write!(f, "testnative"),
-            EngineLauncher::TestDebugNative => write!(f, "testdebugnative"),
-            EngineLauncher::Shell => write!(f, "shell"),
-        }
+        write!(f, "{}", self)
     }
 }
 
