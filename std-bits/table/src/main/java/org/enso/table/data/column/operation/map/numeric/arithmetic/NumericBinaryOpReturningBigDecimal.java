@@ -1,7 +1,5 @@
 package org.enso.table.data.column.operation.map.numeric.arithmetic;
 
-import static org.enso.table.data.column.operation.map.numeric.helpers.BigDecimalArrayAdapter.fromAnyStorage;
-
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import org.enso.base.polyglot.NumericConverter;
@@ -24,7 +22,7 @@ public abstract class NumericBinaryOpReturningBigDecimal<
       return BigDecimalStorage.makeEmpty(storage.size());
     }
 
-    BigDecimalArrayAdapter lhs = fromAnyStorage(storage);
+    BigDecimalArrayAdapter lhs = BigDecimalArrayAdapter.fromAnyStorage(storage);
     BigDecimal rhs = NumericConverter.coerceToBigDecimal(arg);
     return runBigDecimalMap(lhs, rhs, problemAggregator);
   }

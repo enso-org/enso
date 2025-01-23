@@ -13,5 +13,5 @@ public interface NumericBinaryOpDefinition {
       BigInteger a, BigInteger b, int ix, MapOperationProblemAggregator problemAggregator);
 
   BigDecimal doBigDecimal(
-      BigDecimal a, BigDecimal b, int ix, MapOperationProblemAggregator problemAggregator);
+      BigDecimal a, BigDecimal b, long ix, MapOperationProblemAggregator problemAggregator);
 }

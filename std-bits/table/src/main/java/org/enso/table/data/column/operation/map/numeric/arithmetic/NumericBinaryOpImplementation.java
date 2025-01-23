@@ -11,7 +11,6 @@ import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.numeric.helpers.BigDecimalArrayAdapter;
 import org.enso.table.data.column.operation.map.numeric.helpers.BigIntegerArrayAdapter;
 import org.enso.table.data.column.operation.map.numeric.helpers.DoubleArrayAdapter;
-import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.BigDecimalStorage;
@@ -47,7 +46,9 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
           case BigIntegerStorage s -> runBigIntegerMap(
               BigIntegerArrayAdapter.fromStorage(s), rhs, problemAggregator);
           case BigDecimalStorage s -> runBigDecimalMap(
-              BigDecimalArrayAdapter.fromStorage(s), new BigDecimal(rhs), problemAggregator);
+              BigDecimalArrayAdapter.fromBigDecimalStorage(s),
+              new BigDecimal(rhs),
+              problemAggregator);
           case DoubleStorage s -> runDoubleMap(s, rhs.doubleValue(), problemAggregator);
           default -> throw new IllegalStateException(
               "Unsupported storage: " + storage.getClass().getCanonicalName());
@@ -61,7 +62,7 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
               BigInteger.valueOf(argAsLong),
               problemAggregator);
           case BigDecimalStorage s -> runBigDecimalMap(
-              BigDecimalArrayAdapter.fromStorage(s),
+              BigDecimalArrayAdapter.fromBigDecimalStorage(s),
               BigDecimal.valueOf(argAsLong),
               problemAggregator);
           case DoubleStorage s -> runDoubleMap(s, (double) argAsLong, problemAggregator);
@@ -76,7 +77,7 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
           case BigIntegerStorage s -> runDoubleMap(
               DoubleArrayAdapter.fromStorage(s), doubleArg, problemAggregator);
           case BigDecimalStorage s -> runBigDecimalMap(
-              BigDecimalArrayAdapter.fromStorage(s),
+              BigDecimalArrayAdapter.fromBigDecimalStorage(s),
               BigDecimal.valueOf(doubleArg),
               problemAggregator);
           case DoubleStorage s -> runDoubleMap(s, doubleArg, problemAggregator);
@@ -99,7 +100,7 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
       case DoubleStorage lhs -> switch (arg) {
         case BigDecimalStorage rhs -> {
           BigDecimalArrayAdapter left = BigDecimalArrayAdapter.fromStorage(lhs);
-          BigDecimalArrayAdapter right = BigDecimalArrayAdapter.fromStorage(rhs);
+          BigDecimalArrayAdapter right = BigDecimalArrayAdapter.fromBigDecimalStorage(rhs);
           yield runBigDecimalZip(left, right, problemAggregator);
         }
         default -> runDoubleZip(lhs, fromAnyStorage(arg), problemAggregator);
@@ -116,7 +117,7 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
             DoubleArrayAdapter.fromStorage(lhs), rhs, problemAggregator);
         case BigDecimalStorage rhs -> {
           BigDecimalArrayAdapter left = BigDecimalArrayAdapter.fromStorage(lhs);
-          BigDecimalArrayAdapter right = BigDecimalArrayAdapter.fromStorage(rhs);
+          BigDecimalArrayAdapter right = BigDecimalArrayAdapter.fromBigDecimalStorage(rhs);
           yield runBigDecimalZip(left, right, problemAggregator);
         }
         default -> throw new IllegalStateException(
@@ -138,8 +139,8 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
           case DoubleStorage rhs -> runDoubleZip(
               DoubleArrayAdapter.fromStorage(lhs), rhs, problemAggregator);
           case BigDecimalStorage rhs -> {
-            BigDecimalArrayAdapter left = BigDecimalArrayAdapter.fromStorage(lhs);
-            BigDecimalArrayAdapter right = BigDecimalArrayAdapter.fromStorage(rhs);
+            BigDecimalArrayAdapter left = BigDecimalArrayAdapter.fromBigIntegerStorage(lhs);
+            BigDecimalArrayAdapter right = BigDecimalArrayAdapter.fromBigDecimalStorage(rhs);
             yield runBigDecimalZip(left, right, problemAggregator);
           }
           default -> throw new IllegalStateException(
@@ -148,7 +149,7 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
       }
 
       case BigDecimalStorage lhs -> {
-        BigDecimalArrayAdapter left = BigDecimalArrayAdapter.fromStorage(lhs);
+        BigDecimalArrayAdapter left = BigDecimalArrayAdapter.fromBigDecimalStorage(lhs);
         BigDecimalArrayAdapter right = BigDecimalArrayAdapter.fromAnyStorage(arg);
         yield runBigDecimalZip(left, right, problemAggregator);
       }
@@ -272,85 +273,88 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
     return builder.seal();
   }
 
-  protected BigIntegerStorage runBigIntegerZip(
+  protected Storage<BigInteger> runBigIntegerZip(
       BigIntegerArrayAdapter a,
       BigIntegerArrayAdapter b,
       MapOperationProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     int n = a.size();
     int m = Math.min(a.size(), b.size());
-    BigInteger[] out = new BigInteger[n];
+    var builder = Builder.getForBigInteger(n, null);
     for (int i = 0; i < m; i++) {
       BigInteger x = a.getItem(i);
       BigInteger y = b.getItem(i);
       if (x != null && y != null) {
-        BigInteger r = doBigInteger(x, y, i, problemAggregator);
-        out[i] = r;
+        builder.append(doBigInteger(x, y, i, problemAggregator));
       }
       context.safepoint();
     }
 
-    return new BigIntegerStorage(out);
+    if (m < n) {
+      builder.appendNulls(n - m);
+    }
+
+    return builder.seal();
   }
 
-  protected BigIntegerStorage runBigIntegerMap(
+  protected Storage<BigInteger> runBigIntegerMap(
       BigIntegerArrayAdapter a, BigInteger b, MapOperationProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     int n = a.size();
-    BigInteger[] out = new BigInteger[n];
+    var builder = Builder.getForBigInteger(n, null);
     for (int i = 0; i < n; i++) {
       BigInteger x = a.getItem(i);
       if (x == null || b == null) {
-        out[i] = null;
+        builder.appendNulls(1);
       } else {
-        BigInteger r = doBigInteger(x, b, i, problemAggregator);
-        out[i] = r;
+        builder.append(doBigInteger(x, b, i, problemAggregator));
       }
 
       context.safepoint();
     }
 
-    return new BigIntegerStorage(out);
+    return builder.seal();
   }
 
-  protected BigDecimalStorage runBigDecimalZip(
+  protected Storage<BigDecimal> runBigDecimalZip(
       BigDecimalArrayAdapter a,
       BigDecimalArrayAdapter b,
       MapOperationProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
-    int n = a.size();
-    int m = Math.min(a.size(), b.size());
-    BigDecimal[] out = new BigDecimal[n];
-    for (int i = 0; i < m; i++) {
+    long n = a.size();
+    long m = Math.min(a.size(), b.size());
+    var builder = Builder.getForBigDecimal(n);
+    for (long i = 0; i < n; i++) {
       BigDecimal x = a.getItem(i);
-      BigDecimal y = b.getItem(i);
+      BigDecimal y = i >= m ? null : b.getItem(i);
       if (x != null && y != null) {
-        BigDecimal r = doBigDecimal(x, y, i, problemAggregator);
-        out[i] = r;
+        builder.append(doBigDecimal(x, y, i, problemAggregator));
+      } else {
+        builder.appendNulls(1);
       }
       context.safepoint();
     }
 
-    return new BigDecimalStorage(out);
+    return builder.seal();
   }
 
-  protected SpecializedStorage<BigDecimal> runBigDecimalMap(
+  protected Storage<BigDecimal> runBigDecimalMap(
       BigDecimalArrayAdapter a, BigDecimal b, MapOperationProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
-    int n = a.size();
-    BigDecimal[] out = new BigDecimal[n];
+    long n = a.size();
+    var builder = Builder.getForBigDecimal(n);
+
     for (int i = 0; i < n; i++) {
       BigDecimal x = a.getItem(i);
       if (x == null || b == null) {
-        out[i] = null;
+        builder.appendNulls(1);
       } else {
-        BigDecimal r = doBigDecimal(x, b, i, problemAggregator);
-        out[i] = r;
+        builder.append(doBigDecimal(x, b, i, problemAggregator));
       }
 
       context.safepoint();
     }
 
-    return new BigDecimalStorage(out);
+    return builder.seal();
   }
 }

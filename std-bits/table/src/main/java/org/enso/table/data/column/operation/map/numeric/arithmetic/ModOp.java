@@ -44,9 +44,9 @@ public class ModOp<T extends Number, I extends Storage<? super T>>
 
   @Override
   public BigDecimal doBigDecimal(
-      BigDecimal a, BigDecimal b, int ix, MapOperationProblemAggregator problemAggregator) {
+      BigDecimal a, BigDecimal b, long ix, MapOperationProblemAggregator problemAggregator) {
     if (b.equals(BigDecimal.ZERO)) {
-      problemAggregator.reportDivisionByZero(ix);
+      problemAggregator.reportDivisionByZero((int) ix);
       return null;
     }
 

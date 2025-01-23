@@ -36,7 +36,7 @@ public class AddOp<T extends Number, I extends Storage<? super T>>
 
   @Override
   public BigDecimal doBigDecimal(
-      BigDecimal a, BigDecimal b, int ix, MapOperationProblemAggregator problemAggregator) {
+      BigDecimal a, BigDecimal b, long ix, MapOperationProblemAggregator problemAggregator) {
     return a.add(b);
   }
 }

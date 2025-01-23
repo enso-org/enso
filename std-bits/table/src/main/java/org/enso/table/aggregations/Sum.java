@@ -6,8 +6,8 @@ import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.InferredIntegerBuilder;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
+import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.type.BigIntegerType;
@@ -90,7 +90,7 @@ public class Sum extends Aggregator {
     @Override
     void accumulate(List<Integer> indexes, Storage<?> storage) {
       Context context = Context.getCurrent();
-      if (storage instanceof AbstractLongStorage longStorage) {
+      if (storage instanceof ColumnLongStorage longStorage) {
         for (int row : indexes) {
           if (!longStorage.isNothing(row)) {
             addLong(longStorage.get(row));
@@ -99,7 +99,7 @@ public class Sum extends Aggregator {
         }
       } else if (storage instanceof BigIntegerStorage bigIntegerStorage) {
         for (int row : indexes) {
-          BigInteger value = bigIntegerStorage.getItemBoxed(row);
+          BigInteger value = bigIntegerStorage.getBoxed(row);
           if (value != null) {
             addBigInteger(value);
           }
@@ -107,7 +107,7 @@ public class Sum extends Aggregator {
         }
       } else {
         for (int row : indexes) {
-          add(storage.getItemBoxed(row));
+          add(storage.getBoxed(row));
           context.safepoint();
         }
       }

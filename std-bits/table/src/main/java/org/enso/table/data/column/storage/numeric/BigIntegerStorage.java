@@ -135,7 +135,7 @@ public class BigIntegerStorage extends SpecializedStorage<BigInteger> {
 
     // We create a Long storage that gets values by converting our storage.
     ComputedNullableLongStorage longAdapter =
-        new ComputedNullableLongStorage(getSize()) {
+        new ComputedNullableLongStorage((int) getSize()) {
           @Override
           protected Long computeItem(int idx) {
             BigInteger bigInteger = parent.getBoxed(idx);

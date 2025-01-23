@@ -7,11 +7,8 @@ import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.numeric.helpers.BigDecimalArrayAdapter;
 import org.enso.table.data.column.operation.map.numeric.helpers.BigIntegerArrayAdapter;
 import org.enso.table.data.column.operation.map.numeric.helpers.DoubleArrayAdapter;
-import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
-import org.enso.table.data.column.storage.numeric.BigDecimalStorage;
-import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.graalvm.polyglot.Context;
@@ -29,13 +26,14 @@ public abstract class NumericBinaryOpCoalescing<T extends Number, I extends Stor
   @Override
   protected Storage<Double> runDoubleZip(
       DoubleArrayAdapter a, DoubleArrayAdapter b, MapOperationProblemAggregator problemAggregator) {
-    Context context = Context.getCurrent();
     int n = a.size();
-    int m = Math.min(a.size(), b.size());
-    var builder = Builder.getForDouble(FloatType.FLOAT_64, n, null);
-    for (int i = 0; i < m; i++) {
+    int m = Math.min(n, b.size());
+    var builder = Builder.getForDouble(FloatType.FLOAT_64, n, problemAggregator);
+    Context context = Context.getCurrent();
+
+    for (int i = 0; i < n; i++) {
       boolean aNothing = a.isNothing(i);
-      boolean bNothing = b.isNothing(i);
+      boolean bNothing = i >= m || b.isNothing(i);
       if (aNothing && bNothing) {
         builder.appendNulls(1);
       } else {
@@ -48,16 +46,6 @@ public abstract class NumericBinaryOpCoalescing<T extends Number, I extends Stor
           r = doDouble(a.getItemAsDouble(i), b.getItemAsDouble(i), i, problemAggregator);
         }
         builder.appendDouble(r);
-      }
-
-      context.safepoint();
-    }
-
-    for (int i = m; i < n; ++i) {
-      if (a.isNothing(i)) {
-        builder.appendNulls(1);
-      } else {
-        builder.appendDouble(a.getItemAsDouble(i));
       }
 
       context.safepoint();
@@ -93,13 +81,14 @@ public abstract class NumericBinaryOpCoalescing<T extends Number, I extends Stor
       AbstractLongStorage a,
       AbstractLongStorage b,
       MapOperationProblemAggregator problemAggregator) {
-    Context context = Context.getCurrent();
     int n = a.size();
     int m = Math.min(a.size(), b.size());
     var builder = Builder.getForLong(IntegerType.INT_64, n, null);
-    for (int i = 0; i < m; i++) {
+    Context context = Context.getCurrent();
+
+    for (int i = 0; i < n; i++) {
       boolean aNothing = a.isNothing(i);
-      boolean bNothing = b.isNothing(i);
+      boolean bNothing = i >= m || b.isNothing(i);
       if (aNothing && bNothing) {
         builder.appendNulls(1);
       } else {
@@ -115,16 +104,6 @@ public abstract class NumericBinaryOpCoalescing<T extends Number, I extends Stor
             builder.appendLong(r);
           }
         }
-      }
-
-      context.safepoint();
-    }
-
-    for (int i = m; i < n; ++i) {
-      if (a.isNothing(i)) {
-        builder.appendNulls(1);
-      } else {
-        builder.appendLong(a.get(i));
       }
 
       context.safepoint();
@@ -161,36 +140,37 @@ public abstract class NumericBinaryOpCoalescing<T extends Number, I extends Stor
     return builder.seal();
   }
 
-  protected BigIntegerStorage runBigIntegerZip(
+  protected Storage<BigInteger> runBigIntegerZip(
       BigIntegerArrayAdapter a,
       BigIntegerArrayAdapter b,
       MapOperationProblemAggregator problemAggregator) {
-    Context context = Context.getCurrent();
     int n = a.size();
     int m = Math.min(a.size(), b.size());
-    BigInteger[] out = new BigInteger[n];
-    for (int i = 0; i < m; i++) {
+    var builder = Builder.getForBigInteger(n, problemAggregator);
+    Context context = Context.getCurrent();
+
+    for (int i = 0; i < n; i++) {
       BigInteger x = a.getItem(i);
-      BigInteger y = b.getItem(i);
+      BigInteger y = i >= m ? null : b.getItem(i);
       if (x == null && y == null) {
-        out[i] = null;
+        builder.appendNulls(1);
       } else {
         if (x == null) {
-          out[i] = y;
+          builder.append(y);
         } else if (y == null) {
-          out[i] = x;
+          builder.append(x);
         } else {
           BigInteger r = doBigInteger(x, y, i, problemAggregator);
-          out[i] = r;
+          builder.append(r);
         }
       }
       context.safepoint();
     }
 
-    return new BigIntegerStorage(out);
+    return builder.seal();
   }
 
-  protected BigIntegerStorage runBigIntegerMap(
+  protected Storage<BigInteger> runBigIntegerMap(
       BigIntegerArrayAdapter a, BigInteger b, MapOperationProblemAggregator problemAggregator) {
     if (b == null) {
       return a.intoStorage();
@@ -198,72 +178,70 @@ public abstract class NumericBinaryOpCoalescing<T extends Number, I extends Stor
 
     Context context = Context.getCurrent();
     int n = a.size();
-    BigInteger[] out = new BigInteger[n];
+    var builder = Builder.getForBigInteger(n, problemAggregator);
     for (int i = 0; i < n; i++) {
       BigInteger x = a.getItem(i);
       if (x == null) {
-        out[i] = b;
+        builder.append(b);
       } else {
-        BigInteger r = doBigInteger(x, b, i, problemAggregator);
-        out[i] = r;
+        builder.append(doBigInteger(x, b, i, problemAggregator));
       }
 
       context.safepoint();
     }
 
-    return new BigIntegerStorage(out);
+    return builder.seal();
   }
 
-  protected BigDecimalStorage runBigDecimalZip(
+  protected Storage<BigDecimal> runBigDecimalZip(
       BigDecimalArrayAdapter a,
       BigDecimalArrayAdapter b,
       MapOperationProblemAggregator problemAggregator) {
+    long n = a.size();
+    long m = Math.min(a.size(), b.size());
+    var builder = Builder.getForBigDecimal(n);
     Context context = Context.getCurrent();
-    int n = a.size();
-    int m = Math.min(a.size(), b.size());
-    BigDecimal[] out = new BigDecimal[n];
-    for (int i = 0; i < m; i++) {
+
+    for (long i = 0; i < n; i++) {
       BigDecimal x = a.getItem(i);
-      BigDecimal y = b.getItem(i);
+      BigDecimal y = i >= m ? null : b.getItem(i);
       if (x == null && y == null) {
-        out[i] = null;
+        builder.appendNulls(1);
       } else {
         if (x == null) {
-          out[i] = y;
+          builder.append(y);
         } else if (y == null) {
-          out[i] = x;
+          builder.append(x);
         } else {
-          BigDecimal r = doBigDecimal(x, y, i, problemAggregator);
-          out[i] = r;
+          builder.append(doBigDecimal(x, y, i, problemAggregator));
         }
       }
       context.safepoint();
     }
 
-    return new BigDecimalStorage(out);
+    return builder.seal();
   }
 
-  protected SpecializedStorage<BigDecimal> runBigDecimalMap(
+  protected Storage<BigDecimal> runBigDecimalMap(
       BigDecimalArrayAdapter a, BigDecimal b, MapOperationProblemAggregator problemAggregator) {
     if (b == null) {
       return a.intoStorage();
     }
 
     Context context = Context.getCurrent();
-    int n = a.size();
-    BigDecimal[] out = new BigDecimal[n];
-    for (int i = 0; i < n; i++) {
+    long n = a.size();
+    var builder = Builder.getForBigDecimal(n);
+    for (long i = 0; i < n; i++) {
       BigDecimal x = a.getItem(i);
       if (x == null) {
-        out[i] = b;
+        builder.append(b);
       } else {
-        BigDecimal r = doBigDecimal(x, b, i, problemAggregator);
-        out[i] = r;
+        builder.append(doBigDecimal(x, b, i, problemAggregator));
       }
 
       context.safepoint();
     }
 
-    return new BigDecimalStorage(out);
+    return builder.seal();
   }
 }

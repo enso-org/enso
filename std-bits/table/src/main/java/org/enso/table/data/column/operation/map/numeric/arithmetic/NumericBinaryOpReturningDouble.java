@@ -56,7 +56,7 @@ public abstract class NumericBinaryOpReturningDouble<T extends Number, I extends
 
   @Override
   public BigDecimal doBigDecimal(
-      BigDecimal a, BigDecimal b, int ix, MapOperationProblemAggregator problemAggregator) {
+      BigDecimal a, BigDecimal b, long ix, MapOperationProblemAggregator problemAggregator) {
     throw new IllegalStateException(
         "Impossible: should not reach here - a NumericOpReturningDouble should always use the"
             + " doDouble branch.");

@@ -61,7 +61,7 @@ public final class BigIntegerBuilder extends TypedBuilder<BigInteger> {
 
   @Override
   protected Storage<BigInteger> doSeal() {
-    return new BigIntegerStorage(data, currentSize);
+    return new BigIntegerStorage(data);
   }
 
   @Override
