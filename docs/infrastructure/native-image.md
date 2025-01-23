@@ -218,6 +218,8 @@ one of the following:
     enabled (`-ea`). Useful for running Enso tests in the _native mode_.
   - using `native,debug` generates _debugging informations_ for VSCode _native
     image debugger_
+  - using `native,-ls` disables support for _language server_ in the generated
+    binary
   - it is possible to combine all features - e.g. use `debug,fast,test,native`
 
 To test _native image_ launcher choose one of the `native` configurations and

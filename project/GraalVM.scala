@@ -18,12 +18,14 @@ object GraalVM {
       return if (prop == null) "shell" else prop;
     }
 
-    private lazy val parsed: (Boolean, Boolean, Boolean, Boolean, Boolean) = {
-      var shell  = false
-      var native = false
-      var test   = false
-      var debug  = false
-      var fast   = false
+    private lazy val parsed
+      : (Boolean, Boolean, Boolean, Boolean, Boolean, Boolean) = {
+      var shell                 = false
+      var native                = false
+      var test                  = false
+      var debug                 = false
+      var fast                  = false
+      var disableLanguageServer = false
       toString().split(",").foreach {
         case "shell"  => shell  = true
         case "native" => native = true
@@ -39,6 +41,10 @@ object GraalVM {
           native = true
           fast   = true
         }
+        case "-ls" => {
+          native                = true
+          disableLanguageServer = true
+        }
         case v =>
           throw new IllegalStateException(s"Unexpected value of $VAR_NAME: $v")
       }
@@ -47,14 +53,15 @@ object GraalVM {
           s"Cannot specify `shell` and other properties in $VAR_NAME env variable"
         )
       }
-      (shell, native, test, debug, fast)
+      (shell, native, test, debug, fast, disableLanguageServer)
     }
-    val shell   = parsed._1
-    val native  = parsed._2
-    val test    = parsed._3
-    val debug   = parsed._4
-    val fast    = parsed._5
-    val release = native && !test && !debug && !fast
+    def shell                 = parsed._1
+    def native                = parsed._2
+    def test                  = parsed._3
+    def debug                 = parsed._4
+    def fast                  = parsed._5
+    def disableLanguageServer = parsed._6
+    def release               = native && !test && !debug && !fast && !disableLanguageServer
   }
 
   /** Has the user requested to use Espresso for Java interop? */
