@@ -1,18 +1,22 @@
 [
-  {
-    "interfaces":["org.enso.table.util.NamingProperties"]
-  },
-  {
-    "interfaces":["java.util.function.BiFunction"]
-  },
-  {
-    "interfaces":["org.enso.table.data.mask.SliceRange"]
-  },
-  {
-    "interfaces":["org.enso.table.data.table.join.lookup.LookupColumnDescription"]
-  },
-  {
-    "interfaces":["org.enso.table.util.FunctionWithException"]
-  }
+    {
+        "interfaces": [
+            "org.enso.table.util.NamingProperties"
+        ]
+    },
+    {
+        "interfaces": [
+            "java.util.function.BiFunction"
+        ]
+    },
+    {
+        "interfaces": [
+            "org.enso.table.data.mask.SliceRange"
+        ]
+    },
+    {
+        "interfaces": [
+            "org.enso.table.util.FunctionWithException"
+        ]
+    }
 ]
-
