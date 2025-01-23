@@ -24,7 +24,7 @@ public class InferredDoubleBuilder extends DoubleBuilder implements BuilderWithR
         new InferredDoubleBuilder(longBuilder.getDataSize(), longBuilder.problemAggregator);
 
     for (int i = 0; i < currentSize; i++) {
-      newBuilder.appendLongNoGrow(longBuilder.data[i]);
+      newBuilder.appendLong(longBuilder.data[i]);
     }
     newBuilder.isNothing = longBuilder.isNothing;
 
@@ -86,11 +86,7 @@ public class InferredDoubleBuilder extends DoubleBuilder implements BuilderWithR
   }
 
   @Override
-  public void appendLong(long value) {
-    super.appendLong(value);
-  }
-
-  private void appendLongNoGrow(long integer) {
+  public void appendLong(long integer) {
     double convertedFloatValue = (double) integer;
     boolean isLossy = integer != (long) convertedFloatValue;
     if (isLossy) {
@@ -99,27 +95,23 @@ public class InferredDoubleBuilder extends DoubleBuilder implements BuilderWithR
     } else {
       isLongCompactedAsDouble.set(currentSize, true);
     }
-
-    data[currentSize++] = convertedFloatValue;
+    appendDouble(convertedFloatValue);
   }
 
   @Override
-  public void appendNoGrow(Object o) {
+  public void append(Object o) {
     if (o == null) {
-      isNothing.set(currentSize++);
+      appendNulls(1);
       return;
     }
 
     if (NumericConverter.isFloatLike(o)) {
-      data[currentSize++] = NumericConverter.coerceToDouble(o);
+      appendDouble(NumericConverter.coerceToDouble(o));
     } else if (NumericConverter.isCoercibleToLong(o)) {
-      appendLongNoGrow(NumericConverter.coerceToLong(o));
+      appendLong(NumericConverter.coerceToLong(o));
     } else if (o instanceof BigInteger bigInteger) {
       setRaw(currentSize, bigInteger);
-      data[currentSize++] = convertBigIntegerToDouble(bigInteger);
-    } else if (o instanceof BigDecimal bigDecimal) {
-      setRaw(currentSize, bigDecimal);
-      data[currentSize++] = convertBigDecimalToDouble(bigDecimal);
+      appendDouble(convertBigIntegerToDouble(bigInteger));
     } else {
       throw new ValueTypeMismatchException(getType(), o);
     }
@@ -159,7 +151,7 @@ public class InferredDoubleBuilder extends DoubleBuilder implements BuilderWithR
           res.appendNulls(1);
         } else {
           BigDecimal bigDecimal = BigDecimal.valueOf(data[i]);
-          res.appendNoGrow(bigDecimal);
+          res.append(bigDecimal);
         }
       }
       return res;

@@ -38,15 +38,6 @@ public abstract class TypedBuilder<T> implements BuilderWithRetyping, BuilderFor
   }
 
   @Override
-  public void append(Object o) {
-    if (currentSize >= data.length) {
-      grow();
-    }
-
-    appendNoGrow(o);
-  }
-
-  @Override
   public void appendNulls(int count) {
     currentSize += count;
   }
@@ -79,30 +70,26 @@ public abstract class TypedBuilder<T> implements BuilderWithRetyping, BuilderFor
   }
 
   /**
-   * Grows the underlying array.
+   * Checks if space to append single element, grows the underlying array if needed.
    *
    * <p>The method grows the array by 50% by default to amortize the re-allocation time over
    * appends. It tries to keep the invariant that after calling `grow` the array has at least one
    * free slot.
    */
-  private void grow() {
-    int desiredCapacity = 3;
-    if (data.length > 1) {
-      desiredCapacity = (data.length * 3 / 2);
+  protected void ensureSpaceToAppend() {
+    // Check current size. If there is space, we don't need to grow.
+    if (currentSize < data.length) {
+      return;
     }
 
-    // It is possible for the `currentSize` to grow arbitrarily larger than
-    // the capacity, because when nulls are being added the array is not
-    // resized, only the counter is incremented. Thus, we need to ensure
-    // that we have allocated enough space for at least one element.
-    if (currentSize >= desiredCapacity) {
-      desiredCapacity = currentSize + 1;
-    }
-
+    int desiredCapacity = Math.max(currentSize + 1, data.length > 1 ? data.length * 3 / 2 : 3);
     resize(desiredCapacity);
   }
 
-  private void resize(int desiredCapacity) {
+  protected void resize(int desiredCapacity) {
+    if (data.length == desiredCapacity) {
+      return;
+    }
     this.data = Arrays.copyOf(data, desiredCapacity);
   }
 
@@ -110,7 +97,7 @@ public abstract class TypedBuilder<T> implements BuilderWithRetyping, BuilderFor
 
   @Override
   public Storage<T> seal() {
-    // We grow the array to the exact size, because we want to avoid index out of bounds errors.
+    // We set the array to the exact size, because we want to avoid index out of bounds errors.
     // Most of the time, the builder was initialized with the right size anyway - the only
     // exceptions are e.g. reading results from a database, where the count is unknown.
     // In the future we may rely on smarter storage for sparse columns.

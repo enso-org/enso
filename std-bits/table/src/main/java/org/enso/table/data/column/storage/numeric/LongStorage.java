@@ -130,15 +130,9 @@ public final class LongStorage extends AbstractLongStorage {
     final var builder = Builder.getForType(BigIntegerType.INSTANCE, size, problemAggregator);
     Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
-      if (isNothing.get(i)) {
-        builder.appendNoGrow(bigInteger);
-      } else {
-        builder.appendNoGrow(BigInteger.valueOf(data[i]));
-      }
-
+      builder.append(isNothing.get(i) ? bigInteger : BigInteger.valueOf(data[i]));
       context.safepoint();
     }
-
     return builder.seal();
   }
 

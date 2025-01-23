@@ -56,12 +56,12 @@ public class SnowflakeIntegerColumnMaterializer implements Builder {
   }
 
   @Override
-  public void appendNoGrow(Object o) {
+  public void append(Object o) {
+    ensureSpaceToAppend();
     switch (o) {
       case BigInteger bigInteger -> {
         switch (mode) {
           case BIG_INTEGER -> bigInts[currentSize++] = bigInteger;
-
           case LONG -> {
             if (fitsInLong(bigInteger)) {
               ints[currentSize++] = bigInteger.longValue();
@@ -72,19 +72,8 @@ public class SnowflakeIntegerColumnMaterializer implements Builder {
           }
         }
       }
-
-      case null -> appendNulls(1);
       default -> throw new ValueTypeMismatchException(BigIntegerType.INSTANCE, o);
     }
-  }
-
-  @Override
-  public void append(Object o) {
-    if (currentSize >= capacity()) {
-      grow();
-    }
-
-    appendNoGrow(o);
   }
 
   @Override
@@ -143,24 +132,21 @@ public class SnowflakeIntegerColumnMaterializer implements Builder {
     return mode == Mode.LONG ? ints.length : bigInts.length;
   }
 
-  private void grow() {
-    int desiredCapacity = 3;
-    if (capacity() > 1) {
-      desiredCapacity = (capacity() * 3 / 2);
+  private void ensureSpaceToAppend() {
+    // Check current size. If there is space, we don't need to grow.
+    int dataLength = capacity();
+    if (currentSize < dataLength) {
+      return;
     }
 
-    // It is possible for the `currentSize` to grow arbitrarily larger than
-    // the capacity, because when nulls are being added the array is not
-    // resized, only the counter is incremented. Thus, we need to ensure
-    // that we have allocated enough space for at least one element.
-    if (currentSize >= desiredCapacity) {
-      desiredCapacity = currentSize + 1;
-    }
-
+    int desiredCapacity = Math.max(currentSize + 1, dataLength > 1 ? dataLength * 3 / 2 : 3);
     resize(desiredCapacity);
   }
 
   private void resize(int desiredCapacity) {
+    if (capacity() == desiredCapacity) {
+      return;
+    }
     switch (mode) {
       case LONG -> ints = Arrays.copyOf(ints, desiredCapacity);
       case BIG_INTEGER -> bigInts = Arrays.copyOf(bigInts, desiredCapacity);

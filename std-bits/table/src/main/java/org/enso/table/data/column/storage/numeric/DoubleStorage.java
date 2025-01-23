@@ -23,8 +23,10 @@ import org.enso.table.data.column.operation.map.numeric.comparisons.LessOrEqualC
 import org.enso.table.data.column.operation.map.numeric.helpers.DoubleArrayAdapter;
 import org.enso.table.data.column.operation.map.numeric.isin.DoubleIsInOp;
 import org.enso.table.data.column.storage.BoolStorage;
+import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ValueIsNothingException;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
@@ -37,7 +39,7 @@ import org.graalvm.polyglot.Value;
 
 /** A column containing floating point numbers. */
 public final class DoubleStorage extends NumericStorage<Double>
-    implements DoubleArrayAdapter, ColumnStorageWithNothingMap {
+    implements DoubleArrayAdapter, ColumnStorageWithNothingMap, ColumnDoubleStorage {
   private final double[] data;
   private final BitSet isNothing;
   private final int size;
@@ -414,5 +416,13 @@ public final class DoubleStorage extends NumericStorage<Double>
   @Override
   public BitSet getIsNothingMap() {
     return isNothing;
+  }
+
+  @Override
+  public double get(long index) throws ValueIsNothingException {
+    if (isNothing(index)) {
+      throw new ValueIsNothingException(index);
+    }
+    return getItem(Math.toIntExact(index));
   }
 }

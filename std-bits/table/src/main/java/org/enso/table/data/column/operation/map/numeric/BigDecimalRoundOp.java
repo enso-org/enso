@@ -47,7 +47,7 @@ public class BigDecimalRoundOp
       if (!storage.isNothing(i)) {
         BigDecimal value = storage.getItem(i);
         BigDecimal result = Decimal_Utils.round(value, (int) decimalPlaces.longValue(), useBankers);
-        builder.appendNoGrow(result);
+        builder.append(result);
       } else {
         builder.appendNulls(1);
       }

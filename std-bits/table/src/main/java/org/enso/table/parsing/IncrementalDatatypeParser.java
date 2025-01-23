@@ -16,8 +16,8 @@ public abstract class IncrementalDatatypeParser extends DatatypeParser {
   /**
    * Creates a new column builder expecting the specific datatype, with a specified capacity.
    *
-   * <p>The {@code parseColumn} method will use {@code appendNoGrow} function, so the initial
-   * capacity should be set properly so that the builder can hold all expected elements.
+   * <p>The {@code parseColumn} knows the expected size, so the initial capacity should be set
+   * properly to avoid reallocations.
    *
    * <p>The type returned from {@code parseSingleValue} should be consistent with the types that the
    * builder returned here expects - it should never return a value that cannot be accepted by the
@@ -40,7 +40,7 @@ public abstract class IncrementalDatatypeParser extends DatatypeParser {
       String cell = sourceStorage.getItemBoxed(i);
       if (cell != null) {
         Object parsed = parseSingleValue(cell, problemAggregator);
-        builder.appendNoGrow(parsed);
+        builder.append(parsed);
       } else {
         builder.appendNulls(1);
       }

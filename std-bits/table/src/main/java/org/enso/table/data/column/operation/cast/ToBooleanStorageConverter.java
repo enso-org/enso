@@ -2,6 +2,7 @@ package org.enso.table.data.column.operation.cast;
 
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.BoolStorage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 
@@ -19,13 +20,13 @@ public class ToBooleanStorageConverter implements StorageConverter<Boolean> {
   }
 
   private Storage<Boolean> castFromMixed(
-      Storage<?> mixedStorage, CastProblemAggregator problemAggregator) {
+      ColumnStorage mixedStorage, CastProblemAggregator problemAggregator) {
     // As mixed storage is already boxed, use the standard inner loop.
     return StorageConverter.innerLoop(
-        Builder.getForBoolean(mixedStorage.size()),
+        Builder.getForBoolean(mixedStorage.getSize()),
         mixedStorage,
         (i) -> {
-          Object o = mixedStorage.getItemBoxed(i);
+          Object o = mixedStorage.getItemAsObject(i);
           if (o instanceof Boolean b) {
             return b;
           } else {

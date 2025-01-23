@@ -37,7 +37,7 @@ public abstract class GetTypeConstructorsNode extends Node {
       var metaCons = AtomNewInstanceNode.getUncached().newInstance(factory, cons);
       rawResult[at++] = metaCons;
     }
-    return ArrayLikeHelpers.wrapEnsoObjects(rawResult);
+    return ArrayLikeHelpers.asVectorEnsoObjects(rawResult);
   }
 
   @Fallback

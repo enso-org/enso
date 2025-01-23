@@ -9,8 +9,8 @@ import project.Table.Helpers
 
 polyglot java import org.enso.exploratory_benchmark_helpers.MapHelpers
 polyglot java import org.enso.table.data.column.builder.Builder
-polyglot java import org.enso.table.data.column.storage.type.IntegerType;
-polyglot java import org.enso.table.data.column.storage.type.TextType;
+polyglot java import org.enso.table.data.column.storage.type.IntegerType
+polyglot java import org.enso.table.data.column.storage.type.TextType
 
 # Adding two String columns
 type Boxed_Bi_Map_Test

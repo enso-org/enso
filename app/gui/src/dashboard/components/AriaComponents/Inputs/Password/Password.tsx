@@ -1,6 +1,5 @@
 /** @file A component wrapping {@link Input} with the ability to show and hide password. */
 import { useState } from 'react'
-import type { Path } from 'react-hook-form'
 
 import EyeIcon from '#/assets/eye.svg'
 import EyeCrossedIcon from '#/assets/eye_crossed.svg'
@@ -9,7 +8,6 @@ import {
   Form,
   Input,
   type FieldPath,
-  type FieldValues,
   type InputProps,
   type TSchema,
 } from '#/components/AriaComponents'
@@ -20,13 +18,11 @@ import { AnimatePresence, motion } from 'framer-motion'
 // ================
 
 /** Props for a {@link Password}. */
-export type PasswordProps<Schema extends TSchema, TFieldName extends FieldPath<Schema>> = Omit<
-  InputProps<Schema, TFieldName>,
-  'type'
->
+export interface PasswordProps<Schema extends TSchema, TFieldName extends FieldPath<Schema, string>>
+  extends Omit<InputProps<Schema, TFieldName, string>, 'type'> {}
 
 /** A component wrapping {@link Input} with the ability to show and hide password. */
-export function Password<Schema extends TSchema, TFieldName extends Path<FieldValues<Schema>>>(
+export function Password<Schema extends TSchema, TFieldName extends FieldPath<Schema, string>>(
   props: PasswordProps<Schema, TFieldName>,
 ) {
   const [showPassword, setShowPassword] = useState(false)
@@ -34,14 +30,14 @@ export function Password<Schema extends TSchema, TFieldName extends Path<FieldVa
   const form = Form.useFormContext(props.form)
 
   return (
-    <Input
+    <Input<Schema, TFieldName, string>
       {...props}
       type={showPassword ? 'text' : 'password'}
       addonEnd={
         <>
           {props.addonEnd}
 
-          <Form.FieldValue form={form} name={props.name}>
+          <Form.FieldValue<Schema, TFieldName, string> form={form} name={props.name}>
             {(value) => (
               <AnimatePresence>
                 {value != null && value.length > 0 && (

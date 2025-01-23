@@ -4,6 +4,9 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.BoolStorage;
+import org.enso.table.data.column.storage.ColumnDoubleStorage;
+import org.enso.table.data.column.storage.ColumnLongStorage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.BigDecimalStorage;
@@ -33,23 +36,23 @@ public class ToBigIntegerConverter implements StorageConverter<BigInteger> {
   }
 
   private Storage<BigInteger> convertDoubleStorage(
-      DoubleStorage doubleStorage, CastProblemAggregator problemAggregator) {
+      ColumnDoubleStorage doubleStorage, CastProblemAggregator problemAggregator) {
     return StorageConverter.innerLoop(
-        Builder.getForBigInteger(doubleStorage.size(), problemAggregator),
+        Builder.getForBigInteger(doubleStorage.getSize(), problemAggregator),
         doubleStorage,
         (i) -> {
-          double x = doubleStorage.getItemAsDouble(i);
+          double x = doubleStorage.get(i);
           return BigDecimal.valueOf(x).toBigInteger();
         });
   }
 
   private Storage<BigInteger> convertLongStorage(
-      AbstractLongStorage longStorage, CastProblemAggregator problemAggregator) {
+      ColumnLongStorage longStorage, CastProblemAggregator problemAggregator) {
     return StorageConverter.innerLoop(
-        Builder.getForBigInteger(longStorage.size(), problemAggregator),
+        Builder.getForBigInteger(longStorage.getSize(), problemAggregator),
         longStorage,
         (i) -> {
-          long x = longStorage.getItem(i);
+          long x = longStorage.get(i);
           return BigInteger.valueOf(x);
         });
   }
@@ -60,7 +63,7 @@ public class ToBigIntegerConverter implements StorageConverter<BigInteger> {
         Builder.getForBigInteger(boolStorage.size(), problemAggregator),
         boolStorage,
         (i) -> {
-          boolean x = boolStorage.getItem(i);
+          boolean x = boolStorage.getItem((int) i);
           return booleanAsBigInteger(x);
         });
   }
@@ -71,18 +74,18 @@ public class ToBigIntegerConverter implements StorageConverter<BigInteger> {
         Builder.getForBigInteger(bigDecimalStorage.size(), problemAggregator),
         bigDecimalStorage,
         (i) -> {
-          BigDecimal x = bigDecimalStorage.getItemBoxed(i);
+          BigDecimal x = bigDecimalStorage.getItemBoxed((int) i);
           return x.toBigInteger();
         });
   }
 
   private Storage<BigInteger> castFromMixed(
-      Storage<?> storage, CastProblemAggregator problemAggregator) {
+      ColumnStorage storage, CastProblemAggregator problemAggregator) {
     return StorageConverter.innerLoop(
-        Builder.getForBigInteger(storage.size(), problemAggregator),
+        Builder.getForBigInteger(storage.getSize(), problemAggregator),
         storage,
         (i) -> {
-          Object o = storage.getItemBoxed(i);
+          Object o = storage.getItemAsObject(i);
           return switch (o) {
             case Boolean b -> booleanAsBigInteger(b);
             case Long l -> BigInteger.valueOf(l);

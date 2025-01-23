@@ -57,9 +57,9 @@ public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
   }
 
   @Override
-  public void appendNoGrow(Object o) {
+  public void append(Object o) {
     if (o == null) {
-      isNothing.set(currentSize++);
+      appendNulls(1);
       return;
     }
 
@@ -77,6 +77,7 @@ public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
       throw new ValueTypeMismatchException(getType(), o);
     }
 
+    ensureSpaceToAppend();
     data[currentSize++] = value;
   }
 
@@ -153,9 +154,7 @@ public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
    * @param value the double to append
    */
   public void appendDouble(double value) {
-    if (currentSize >= data.length) {
-      grow();
-    }
+    ensureSpaceToAppend();
     data[currentSize++] = value;
   }
 

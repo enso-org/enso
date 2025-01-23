@@ -27,11 +27,7 @@ abstract class AbstractUnaryLongOperation extends AbstractUnaryOperation {
   @Override
   protected BuilderForLong createBuilder(
       ColumnStorage storage, MapOperationProblemAggregator problemAggregator) {
-    if (storage.getSize() > Integer.MAX_VALUE) {
-      throw new IllegalArgumentException(
-          "Cannot currently operate on columns larger than " + Integer.MAX_VALUE + ".");
-    }
-    return Builder.getForLong(returnType, (int) storage.getSize(), problemAggregator);
+    return Builder.getForLong(returnType, storage.getSize(), problemAggregator);
   }
 
   @Override

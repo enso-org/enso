@@ -24,15 +24,30 @@ import java.time.ZonedDateTime;
 /** Interface defining a builder for creating columns dynamically. */
 public interface Builder {
   /**
+   * The maximum size of a builder.
+   * Currently, just the maximum value of an integer, but should be tested and limited.
+   * For array based builders, must be less than the maximum array size.
+   * */
+  int MAX_SIZE = Integer.MAX_VALUE;
+
+  private static int checkSize(long size) {
+    if (size > MAX_SIZE) {
+      throw new IllegalArgumentException("Columns cannot exceed " + MAX_SIZE + " rows.");
+    }
+
+    return (int)size;
+  }
+
+  /**
    * Constructs a builder accepting values of a specific type.
    *
    * <p>If {@code type} is {@code null}, it will return an {@link InferredBuilder} that will infer
    * the type from the data.
    */
-  static Builder getForType(StorageType type, int size, ProblemAggregator problemAggregator) {
+  static Builder getForType(StorageType type, long size, ProblemAggregator problemAggregator) {
     Builder builder =
         switch (type) {
-          case AnyObjectType _ -> new MixedBuilder(size);
+          case AnyObjectType _ -> new MixedBuilder(checkSize(size));
           case BooleanType _ -> getForBoolean(size);
           case DateType _ -> getForDate(size);
           case DateTimeType _ -> getForDateTime(size);
@@ -44,6 +59,7 @@ public interface Builder {
           case BigIntegerType _ -> getForBigInteger(size, problemAggregator);
           case null -> getInferredBuilder(size, problemAggregator);
         };
+
     assert java.util.Objects.equals(builder.getType(), type);
     return builder;
   }
@@ -53,8 +69,9 @@ public interface Builder {
    *
    * @param size the initial size of the builder.
    */
-  static Builder getInferredBuilder(int size, ProblemAggregator problemAggregator) {
-    return new InferredBuilder(size, problemAggregator, false);
+  static Builder getInferredBuilder(long size, ProblemAggregator problemAggregator) {
+    int checkedSize = checkSize(size);
+    return new InferredBuilder(checkedSize, problemAggregator, false);
   }
 
   /**
@@ -62,8 +79,9 @@ public interface Builder {
    *
    * @param size the initial size of the builder.
    */
-  static BuilderForBoolean getForBoolean(int size) {
-    return new BoolBuilder(size);
+  static BuilderForBoolean getForBoolean(long size) {
+    int checkedSize = checkSize(size);
+    return new BoolBuilder(checkedSize);
   }
 
   /**
@@ -75,8 +93,9 @@ public interface Builder {
    * @param problemAggregator the problem aggregator to use for this builder.
    */
   static BuilderForLong getForLong(
-      IntegerType integerType, int size, ProblemAggregator problemAggregator) {
-    return LongBuilder.make(size, integerType, problemAggregator);
+      IntegerType integerType, long size, ProblemAggregator problemAggregator) {
+    int checkedSize = checkSize(size);
+    return LongBuilder.make(checkedSize, integerType, problemAggregator);
   }
 
   /**
@@ -88,12 +107,13 @@ public interface Builder {
    * @param problemAggregator the problem aggregator to use for this builder.
    */
   static BuilderForDouble getForDouble(
-      FloatType floatType, int size, ProblemAggregator problemAggregator) {
+      FloatType floatType, long size, ProblemAggregator problemAggregator) {
     if (floatType.bits() != Bits.BITS_64) {
       throw new IllegalArgumentException("Only 64-bit floats are currently supported.");
     }
 
-    return new DoubleBuilder(size, problemAggregator);
+    int checkedSize = checkSize(size);
+    return new DoubleBuilder(checkedSize, problemAggregator);
   }
 
   /**
@@ -102,43 +122,40 @@ public interface Builder {
    *
    * @param size the initial size of the builder.
    */
-  static Builder getObjectBuilder(int size) {
-    return new ObjectBuilder(size);
+  static Builder getObjectBuilder(long size) {
+    int checkedSize = checkSize(size);
+    return new ObjectBuilder(checkedSize);
   }
 
-  static BuilderForType<BigDecimal> getForBigDecimal(int size) {
-    return new BigDecimalBuilder(size);
+  static BuilderForType<BigDecimal> getForBigDecimal(long size) {
+    int checkedSize = checkSize(size);
+    return new BigDecimalBuilder(checkedSize);
   }
 
-  static BuilderForType<BigInteger> getForBigInteger(int size, ProblemAggregator problemAggregator) {
-    return new BigIntegerBuilder(size, problemAggregator);
+  static BuilderForType<BigInteger> getForBigInteger(long size, ProblemAggregator problemAggregator) {
+    int checkedSize = checkSize(size);
+    return new BigIntegerBuilder(checkedSize, problemAggregator);
   }
 
-  static BuilderForType<LocalDate> getForDate(int size) {
-    return new DateBuilder(size, false);
+  static BuilderForType<LocalDate> getForDate(long size) {
+    int checkedSize = checkSize(size);
+    return new DateBuilder(checkedSize, false);
   }
 
-  static BuilderForType<ZonedDateTime> getForDateTime(int size) {
-    return new DateTimeBuilder(size, false);
+  static BuilderForType<ZonedDateTime> getForDateTime(long size) {
+    int checkedSize = checkSize(size);
+    return new DateTimeBuilder(checkedSize, false);
   }
 
-  static BuilderForType<String> getForText(int size, TextType textType) {
-    return new StringBuilder(size, textType);
+  static BuilderForType<String> getForText(long size, TextType textType) {
+    int checkedSize = checkSize(size);
+    return new StringBuilder(checkedSize, textType);
   }
 
-  static BuilderForType<LocalTime> getForTime(int size) {
-    return new TimeOfDayBuilder(size);
+  static BuilderForType<LocalTime> getForTime(long size) {
+    int checkedSize = checkSize(size);
+    return new TimeOfDayBuilder(checkedSize);
   }
-
-  /**
-   * Append a new item to this builder, assuming that it has enough allocated space.
-   *
-   * <p>This function should only be used when it is guaranteed that the builder has enough
-   * capacity, for example if it was initialized with an initial capacity known up-front.
-   *
-   * @param o the item to append
-   */
-  void appendNoGrow(Object o);
 
   /**
    * Append a new item to this builder, increasing the capacity if necessary.

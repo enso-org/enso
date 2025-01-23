@@ -48,35 +48,13 @@ public class InferredBuilder implements Builder {
   }
 
   @Override
-  public void appendNoGrow(Object o) {
-    if (currentBuilder == null) {
-      if (o == null) {
-        currentSize++;
-        return;
-      } else {
-        initBuilderFor(o);
-      }
-    }
-    if (o == null) {
-      currentBuilder.appendNulls(1);
-    } else {
-      if (currentBuilder.accepts(o)) {
-        currentBuilder.appendNoGrow(o);
-      } else {
-        retypeAndAppend(o);
-      }
-    }
-    currentSize++;
-  }
-
-  @Override
   public void append(Object o) {
     // ToDo: This a workaround for an issue with polyglot layer. #5590 is related.
     o = Polyglot_Utils.convertPolyglotValue(o);
 
     if (currentBuilder == null) {
       if (o == null) {
-        currentSize++;
+        appendNulls(1);
         return;
       } else {
         initBuilderFor(o);
@@ -193,9 +171,8 @@ public class InferredBuilder implements Builder {
 
   private void retypeToMixed() {
     // The new internal builder must be at least `currentSize` so it can store
-    // all the current values. It must also be at least 'initialSize' since the
-    // caller might be using appendNoGrow and is expecting to write at least
-    // that many values.
+    // all the current values. In order to avoid any extra reallocations, we
+    // also make it at least as big as the initial size.
     int capacity = Math.max(initialSize, currentSize);
     currentBuilder = MixedBuilder.fromBuilder(currentBuilder, capacity);
   }

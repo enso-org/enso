@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { WidgetInputIsSpecificMethodCall } from '@/components/GraphEditor/widgets/WidgetFunction.vue'
-import TableHeader from '@/components/GraphEditor/widgets/WidgetTableEditor/TableHeader.vue'
 import {
   CELLS_LIMIT,
   tableInputCallMayBeHandled,
@@ -10,11 +9,11 @@ import {
 import ResizeHandles from '@/components/ResizeHandles.vue'
 import AgGridTableView from '@/components/shared/AgGridTableView.vue'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
-import { useTooltipRegistry } from '@/providers/tooltipRegistry'
-import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import { defineWidget, Score, widgetProps } from '@/providers/widgetRegistry'
 import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { useGraphStore } from '@/stores/graph'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import { targetIsOutside } from '@/util/autoBlur'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { useToast } from '@/util/toast'
@@ -29,17 +28,23 @@ import type {
   ProcessDataFromClipboardParams,
   RowDragEndEvent,
 } from 'ag-grid-enterprise'
-import { computed, markRaw, ref } from 'vue'
+import { ComponentInstance, computed, proxyRefs, ref } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
 import { z } from 'zod'
+import TableHeader, { HeaderParams } from './WidgetTableEditor/TableHeader.vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
 const suggestionDb = useSuggestionDbStore()
-const grid = ref<ComponentExposed<typeof AgGridTableView<RowData, any>>>()
+const grid = ref<
+  ComponentInstance<typeof AgGridTableView<RowData, any>> &
+    ComponentExposed<typeof AgGridTableView<RowData, any>>
+>()
 const pasteWarning = useToast.warning()
 
-const configSchema = z.object({ size: z.object({ x: z.number(), y: z.number() }) })
+const configSchema = z.object({
+  size: z.object({ x: z.number(), y: z.number() }),
+})
 type Config = z.infer<typeof configSchema>
 
 const DEFAULT_CFG: Config = { size: { x: 200, y: 150 } }
@@ -115,34 +120,48 @@ const cellEditHandler = new CellEditing()
 
 class HeaderEditing {
   handler: WidgetEditHandler
-  stopEditingCallback: ((cancel: boolean) => void) | undefined
+  editedColId = ref<string>()
+  revertChangesCallback: (() => void) | undefined
 
   constructor() {
     this.handler = WidgetEditHandler.New('WidgetTableEditor.headerEditHandler', props.input, {
       cancel: () => {
-        this.stopEditingCallback?.(true)
+        this.revertChangesCallback?.()
+        this.editedColId.value = undefined
       },
       end: () => {
-        this.stopEditingCallback?.(false)
+        this.editedColId.value = undefined
+      },
+      pointerdown: (event) => {
+        if (
+          !(event.target instanceof HTMLInputElement) ||
+          targetIsOutside(event, grid.value?.$el)
+        ) {
+          this.handler.end()
+        } else {
+          return false
+        }
       },
     })
   }
 
-  headerEditedInGrid(stopCb: (cancel: boolean) => void) {
-    // If another header is edited, stop it (with the old callback).
-    if (this.handler.isActive()) {
-      this.stopEditingCallback?.(false)
+  headerEditedInGrid(colId: string, revertChanges: () => void) {
+    if (this.editedColId.value !== colId) {
+      this.editedColId.value = colId
+      if (!this.handler.isActive()) {
+        this.handler.start()
+      }
     }
-    this.stopEditingCallback = stopCb
-    if (!this.handler.isActive()) {
-      this.handler.start()
-    }
+    this.revertChangesCallback = revertChanges
   }
 
-  headerEditingStoppedInGrid() {
-    this.stopEditingCallback = undefined
-    if (this.handler.isActive()) {
-      this.handler.end()
+  headerEditingStoppedInGrid(colId: string) {
+    if (this.editedColId.value === colId) {
+      this.revertChangesCallback = undefined
+      this.editedColId.value = undefined
+      if (this.handler.isActive()) {
+        this.handler.end()
+      }
     }
   }
 }
@@ -164,7 +183,12 @@ const clientBounds = computed({
       portUpdate: {
         origin: props.input.portId,
         metadataKey: 'WidgetTableEditor',
-        metadata: { size: { x: value.width / graphNav.scale, y: value.height / graphNav.scale } },
+        metadata: {
+          size: {
+            x: value.width / graphNav.scale,
+            y: value.height / graphNav.scale,
+          },
+        },
       },
       directInteraction: false,
     })
@@ -211,23 +235,21 @@ function processDataFromClipboard({ data, api }: ProcessDataFromClipboardParams<
 
 // === Column Default Definition ===
 
-const tooltipRegistry = useTooltipRegistry()
-const defaultColDef: ColDef<RowData> = {
+const headerComponentParams = proxyRefs({
+  editedColId: headerEditHandler.editedColId,
+  onHeaderEditingStarted: headerEditHandler.headerEditedInGrid.bind(headerEditHandler),
+  onHeaderEditingStopped: headerEditHandler.headerEditingStoppedInGrid.bind(headerEditHandler),
+})
+
+const defaultColDef: ColDef<RowData> & {
+  headerComponentParams: HeaderParams
+} = {
   editable: true,
   resizable: true,
   sortable: false,
   lockPinned: true,
   menuTabs: ['generalMenuTab'],
-  headerComponentParams: {
-    // TODO[ao]: we mark raw, because otherwise any change _inside_ tooltipRegistry causes the grid
-    //  to be refreshed. Technically, shallowReactive should work here, but it does not,
-    //  I don't know why
-    tooltipRegistry: markRaw(tooltipRegistry),
-    editHandlers: {
-      onHeaderEditingStarted: headerEditHandler.headerEditedInGrid.bind(headerEditHandler),
-      onHeaderEditingStopped: headerEditHandler.headerEditingStoppedInGrid.bind(headerEditHandler),
-    },
-  },
+  headerComponentParams,
   cellStyle: { 'padding-left': 0, 'border-right': '1px solid #C0C0C0' },
 }
 </script>
@@ -260,7 +282,9 @@ export const widgetDefinition = defineWidget(
         :columnDefs="columnDefs"
         :rowData="rowData"
         :getRowId="(row) => `${row.data.index}`"
-        :components="{ agColumnHeader: TableHeader }"
+        :components="{
+          agColumnHeader: TableHeader,
+        }"
         :stopEditingWhenCellsLoseFocus="true"
         :suppressDragLeaveHidesColumns="true"
         :suppressMoveWhenColumnDragging="true"
