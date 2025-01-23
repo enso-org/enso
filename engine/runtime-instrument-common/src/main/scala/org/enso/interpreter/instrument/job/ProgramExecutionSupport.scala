@@ -96,8 +96,12 @@ object ProgramExecutionSupport {
       if (callStack.isEmpty) {
         logger.log(Level.FINEST, s"ON_COMPUTED ${value.getExpressionId}")
 
-        if (VisualizationResult.isInterruptedException(value.getValue)) {
-          value.getValue match {
+        val panicValue = value.getValue match {
+          case panicSentinel: PanicSentinel => panicSentinel.getPanic
+          case other                        => other
+        }
+        if (VisualizationResult.isInterruptedException(panicValue)) {
+          panicValue match {
             case e: AbstractTruffleException =>
               sendInterruptedExpressionUpdate(
                 contextId,
