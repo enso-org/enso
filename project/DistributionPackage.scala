@@ -169,11 +169,18 @@ object DistributionPackage {
       log             = log
     )
 
-    copyDirectoryIncremental(
-      file("distribution/bin"),
-      distributionRoot / "bin",
-      cacheFactory.make("engine-bin")
-    )
+    var noCopyInNativeMode = System.getenv().get("ENSO_LAUNCHER")
+    if (noCopyInNativeMode != null && noCopyInNativeMode.contains("native")) {
+      log.info(
+        s"Not using shell launchers as ENSO_LAUNCHER env variable is $noCopyInNativeMode"
+      )
+    } else {
+      copyDirectoryIncremental(
+        file("distribution/bin"),
+        distributionRoot / "bin",
+        cacheFactory.make("engine-bin")
+      )
+    }
 
     buildEngineManifest(
       template     = file("distribution/manifest.template.yaml"),
