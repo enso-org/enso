@@ -13,7 +13,6 @@ import GraphNodeMessage, {
   iconForMessageType,
   type MessageType,
 } from '@/components/GraphEditor/GraphNodeMessage.vue'
-import GraphNodeOutputPorts from '@/components/GraphEditor/GraphNodeOutputPorts.vue'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import PointFloatingMenu from '@/components/PointFloatingMenu.vue'
@@ -572,7 +571,6 @@ onBlur(() => {
       :type="visibleMessage.type"
     />
     <div class="nodeBackground"></div>
-    <svg class="bgPaths"></svg>
   </div>
   <PointFloatingMenu v-if="showMenuAt" :point="showMenuAt" @close="showMenuAt = undefined">
     <ComponentContextMenu @close="showMenuAt = undefined" />
@@ -580,17 +578,6 @@ onBlur(() => {
 </template>
 
 <style scoped>
-.bgPaths {
-  width: 100%;
-  height: 100%;
-  position: absolute;
-  overflow: visible;
-  top: 0;
-  left: 0;
-  display: flex;
-  --output-port-transform: translateY(var(--viz-below-node));
-}
-
 .GraphNode {
   position: absolute;
   border-radius: var(--node-border-radius);
