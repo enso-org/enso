@@ -66,6 +66,7 @@ const outputPorts = computed((): PortData[] => {
 // === Interactivity ===
 
 const mouseOverOutput = ref<AstId>()
+const mouseOverCreateNodeFromPortButton = ref(false)
 
 const outputHovered = computed(() => (graph.mouseEditedEdge ? undefined : mouseOverOutput.value))
 watch(outputHovered, (newVal, oldVal) => {
@@ -92,7 +93,8 @@ const portsVisible = computed(
   () =>
     props.forceVisible ||
     (outputHovered.value && outputPortsSet.value.has(outputHovered.value)) ||
-    anyPortDisconnected.value,
+    anyPortDisconnected.value ||
+    mouseOverCreateNodeFromPortButton.value,
 )
 
 const portsHoverAnimation = useApproach(() => (portsVisible.value ? 1 : 0), 50, 0.01)
@@ -159,8 +161,11 @@ graph.suggestEdgeFromOutput(outputHovered)
         <text class="outputPortLabel">{{ port.label }}</text>
         <CreateNodeFromPortButton
           v-if="!componentBrowserOpened"
+          :class="{ hovered: mouseOverCreateNodeFromPortButton }"
           :portId="port.portId"
-          @click="emit('newNodeClick', port.portId)"
+          @pointerleave="mouseOverCreateNodeFromPortButton = false"
+          @pointerenter="mouseOverCreateNodeFromPortButton = true"
+          @click="(emit('newNodeClick', port.portId), (mouseOverCreateNodeFromPortButton = false))"
         />
       </g>
     </template>
