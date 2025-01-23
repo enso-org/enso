@@ -16,6 +16,7 @@ import { computed } from 'vue'
 const graph = useGraphStore()
 const selection = injectGraphSelection(true)
 const interaction = injectInteractionHandler()
+const nodeSelection = injectGraphSelection(true)
 
 const props = defineProps<{
   navigator: GraphNavigator
@@ -124,8 +125,6 @@ const nodeIdsWithOutputPorts = computed(() =>
     .filter(([_, node]) => node.type !== 'output')
     .map(([id]) => id),
 )
-
-const nodeSelection = injectGraphSelection(true)
 </script>
 
 <template>
@@ -140,7 +139,6 @@ const nodeSelection = injectGraphSelection(true)
       />
       <template v-for="id in nodeIdsWithOutputPorts" :key="id">
         <GraphNodeOutputPorts
-          class="outputPorts"
           :nodeId="id"
           :forceVisible="graph.nodeHovered.get(id) ?? false"
           @newNodeClick="
@@ -160,14 +158,6 @@ const nodeSelection = injectGraphSelection(true)
 </template>
 
 <style scoped>
-.outputPorts {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 300px;
-  height: 32px;
-}
-
 .overlay {
   position: absolute;
   top: 0;
