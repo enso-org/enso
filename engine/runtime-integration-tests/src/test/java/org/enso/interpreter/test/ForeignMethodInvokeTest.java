@@ -59,7 +59,8 @@ public class ForeignMethodInvokeTest {
       var sw = new StringWriter();
       var pw = new PrintWriter(sw);
       e.printStackTrace(pw);
-      var lines = sw.toString().split("\n");
+      var text = sw.toString().replace(System.getProperty("line.separator"), "\n");
+      var lines = text.split("\n");
       assertThat(
           "Expecting message at first line: " + lines[0],
           lines[0].matches("Cannot parse.*foreign python.*method.*languages are .+"));
