@@ -112,8 +112,17 @@ record ModuleSources(TruffleFile file, Rope rope, Source source) {
       return;
     }
     var libName = root.getParent();
+    if (libName == null) {
+      return;
+    }
     var libNamespace = libName.getParent();
+    if (libNamespace == null) {
+      return;
+    }
     var libVersion = libNamespace.getParent().getParent();
+    if (libVersion == null || libVersion.getParent() == null) {
+      return;
+    }
     var builtDistribution = libVersion.getParent().getParent();
     if ("built-distribution".equals(builtDistribution.getName())) {
       var repositoryRoot = builtDistribution.getParent();

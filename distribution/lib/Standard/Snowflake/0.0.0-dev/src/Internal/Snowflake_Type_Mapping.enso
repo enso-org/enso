@@ -210,8 +210,8 @@ time_fetcher =
         ## Read the time as a string to get the nanosecond precision.
         sf_string = rs.getString i
         if sf_string == Nothing then Nothing else Time_Of_Day.parse sf_string
-    make_builder initial_size _ =
-        java_builder = Java_Exports.make_time_of_day_builder initial_size
+    make_builder initial_size java_problem_aggregator =
+        java_builder = Java_Exports.make_builder_for_type Value_Type.Time initial_size java_problem_aggregator
         Column_Fetcher_Module.make_builder_from_java_object_builder java_builder
     Column_Fetcher.Value fetch_value make_builder
 
@@ -226,8 +226,8 @@ date_time_fetcher =
             # The offset is optional - if we were fetching TIMESTAMP_NTZ it could be missing.
             # The two variants of offset are needed - to handle both `+0200` and `+02:00` formats.
             Date_Time.parse normalized "yyyy-MM-dd HH:mm:ss.f[ ZZ][ ZZZZZ]"
-    make_builder initial_size _ =
-        java_builder = Java_Exports.make_date_time_builder initial_size
+    make_builder initial_size java_problem_aggregator =
+        java_builder = Java_Exports.make_builder_for_type Value_Type.Date_Time initial_size java_problem_aggregator
         Column_Fetcher_Module.make_builder_from_java_object_builder java_builder
     Column_Fetcher.Value fetch_value make_builder
 

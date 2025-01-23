@@ -22,7 +22,6 @@ import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import { TabType } from '#/providers/ProjectsProvider'
 import * as textProvider from '#/providers/TextProvider'
 import type * as backend from '#/services/Backend'
 import { tv } from '#/utilities/tailwindVariants'
@@ -269,7 +268,7 @@ function CategorySwitcher(props: CategorySwitcherProps) {
             />
           )}
 
-          {teamCategories?.map((teamCategory) => (
+          {teamCategories.map((teamCategory) => (
             <CategorySwitcherItem
               key={teamCategory.id}
               {...itemProps}
@@ -278,8 +277,8 @@ function CategorySwitcher(props: CategorySwitcherProps) {
               icon={teamCategory.icon}
               label={teamCategory.label}
               isDisabled={isOffline}
-              buttonLabel={getText('teamCategoryButtonLabel', teamCategory.team.groupName)}
-              dropZoneLabel={getText('teamCategoryDropZoneLabel', teamCategory.team.groupName)}
+              buttonLabel={getText('teamCategoryButtonLabel', teamCategory.team.name)}
+              dropZoneLabel={getText('teamCategoryDropZoneLabel', teamCategory.team.name)}
             />
           ))}
 
@@ -329,7 +328,7 @@ function CategorySwitcher(props: CategorySwitcherProps) {
                 onPress={() => {
                   setSearchParams({
                     [`${SEARCH_PARAMS_PREFIX}SettingsTab`]: JSON.stringify('local'),
-                    [`${SEARCH_PARAMS_PREFIX}page`]: JSON.stringify(TabType.settings),
+                    [`${SEARCH_PARAMS_PREFIX}page`]: JSON.stringify('settings'),
                   })
                 }}
               />

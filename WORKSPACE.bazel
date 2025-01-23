@@ -1,0 +1,100 @@
+## Until bzlmod support is added to rules_scala
+## https://github.com/bazelbuild/rules_scala/pull/1541
+
+load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+http_archive(
+    name = "bazel_skylib",
+    sha256 = "b8a1527901774180afc798aeb28c4634bdccf19c4d98e7bdd1ce79d1fe9aaad7",
+    urls = [
+        "https://mirror.bazel.build/github.com/bazelbuild/bazel-skylib/releases/download/1.4.1/bazel-skylib-1.4.1.tar.gz",
+        "https://github.com/bazelbuild/bazel-skylib/releases/download/1.4.1/bazel-skylib-1.4.1.tar.gz",
+    ],
+)
+
+load("@bazel_skylib//:workspace.bzl", "bazel_skylib_workspace")
+
+RULES_SCALA_VERSION = "6.4.0"
+
+RULES_SCALA_SHA = "9a23058a36183a556a9ba7229b4f204d3e68c8c6eb7b28260521016b38ef4e00"
+
+http_archive(
+    name = "io_bazel_rules_scala",
+    sha256 = RULES_SCALA_SHA,
+    strip_prefix = "rules_scala-%s" % RULES_SCALA_VERSION,
+    url = "https://github.com/bazelbuild/rules_scala/releases/download/v%s/rules_scala-v%s.tar.gz" % (RULES_SCALA_VERSION, RULES_SCALA_VERSION),
+)
+
+load("@io_bazel_rules_scala//:scala_config.bzl", "scala_config")
+
+scala_config(scala_version = "2.13.12")  ## Version has to match the version available in `rules_scala`
+
+load("@io_bazel_rules_scala//scala:scala.bzl", "rules_scala_setup", "rules_scala_toolchain_deps_repositories")
+
+# loads other rules Rules Scala depends on
+rules_scala_setup()
+
+# Loads Maven deps like Scala compiler and standard libs. On production projects you should consider
+# defining a custom deps toolchains to use your project libs instead
+rules_scala_toolchain_deps_repositories(fetch_sources = True)
+
+load("@io_bazel_rules_scala//scala:toolchains.bzl", "scala_register_toolchains")
+load("@io_bazel_rules_scala//testing:scalatest.bzl", "scalatest_repositories", "scalatest_toolchain")
+
+scalatest_repositories()
+
+scalatest_toolchain()
+
+## Note that the default toolchain, enabled via
+## > scala_register_toolchains()
+## will not work due to a bug with SecurityManager
+## https://github.com/bazelbuild/rules_scala/issues/1521
+## Workaround is to use our own scala toolchain with custom options.
+register_toolchains("//toolchains:enso_toolchain")
+
+## Setup `bazel-distribution` for generating pom.xml
+RULES_BAZEL_DISTRIBUTION_SHA = "3f88eb2ff11654039fa64cbc67a8411df1b85fba"
+
+git_repository(
+    name = "vaticle_bazel_distribution",
+    commit = RULES_BAZEL_DISTRIBUTION_SHA,
+    remote = "https://github.com/vaticle/bazel-distribution",
+)
+
+### Dependencies of `bazel-distribution`
+http_archive(
+    name = "rules_pkg",
+    sha256 = "8f9ee2dc10c1ae514ee599a8b42ed99fa262b757058f65ad3c384289ff70c4b8",
+    urls = [
+        "https://mirror.bazel.build/github.com/bazelbuild/rules_pkg/releases/download/0.9.1/rules_pkg-0.9.1.tar.gz",
+        "https://github.com/bazelbuild/rules_pkg/releases/download/0.9.1/rules_pkg-0.9.1.tar.gz",
+    ],
+)
+
+## Uses more up-to-date version of rules_kotlin than what
+## @vaticle_bazel_distribution seems to rely on
+## as encountered various issues, including a blocker of
+## https://github.com/bazelbuild/rules_kotlin/issues/1072.
+rules_kotlin_version = "1.9.0"
+
+rules_kotlin_sha = "5766f1e599acf551aa56f49dab9ab9108269b03c557496c54acaf41f98e2b8d6"
+
+http_archive(
+    name = "io_bazel_rules_kotlin",
+    sha256 = rules_kotlin_sha,
+    urls = ["https://github.com/bazelbuild/rules_kotlin/releases/download/v%s/rules_kotlin-v%s.tar.gz" % (rules_kotlin_version, rules_kotlin_version)],
+)
+
+### Default setup for `baze-distribution`
+load("@io_bazel_rules_kotlin//kotlin:repositories.bzl", "kotlin_repositories")
+
+kotlin_repositories()  # if you want the default. Otherwise see custom kotlinc distribution below
+
+load("@io_bazel_rules_kotlin//kotlin:core.bzl", "kt_register_toolchains")
+
+kt_register_toolchains()
+
+load("@vaticle_bazel_distribution//common:rules.bzl", "workspace_refs")
+
+workspace_refs(name = "enso_org_enso_workspace_refs")

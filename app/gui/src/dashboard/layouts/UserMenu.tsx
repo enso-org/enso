@@ -12,6 +12,9 @@ import { useText } from '#/providers/TextProvider'
 import { Plan } from '#/services/Backend'
 import { download } from '#/utilities/download'
 import { getDownloadUrl } from '#/utilities/github'
+import { useNavigate } from 'react-router-dom'
+import { LOGIN_PATH } from '../appUtils'
+import { useToggleEnsoDevtools } from '../components/Devtools'
 import { useSessionAPI } from '../providers/SessionProvider'
 
 /** Props for a {@link UserMenu}. */
@@ -26,12 +29,14 @@ export interface UserMenuProps {
 export default function UserMenu(props: UserMenuProps) {
   const { hidden = false, goToSettingsPage, onSignOut } = props
 
+  const navigate = useNavigate()
   const localBackend = useLocalBackend()
   const { signOut } = useSessionAPI()
   const { user } = useFullUserSession()
   const { setModal, unsetModal } = useSetModal()
   const { getText } = useText()
   const toastAndLog = useToastAndLog()
+  const toggleEnsoDevtools = useToggleEnsoDevtools()
 
   const entries = (
     <>
@@ -56,14 +61,23 @@ export default function UserMenu(props: UserMenuProps) {
           setModal(<AboutModal />)
         }}
       />
+
+      {user.isEnsoTeamMember && (
+        <MenuEntry
+          action="ensoDevtools"
+          doAction={() => {
+            toggleEnsoDevtools()
+          }}
+        />
+      )}
+
       <MenuEntry
         action="signOut"
         doAction={() => {
           onSignOut()
-          // Wait until React has switched back to drive view, before signing out.
-          window.setTimeout(() => {
-            void signOut()
-          }, 0)
+          void signOut().then(() => {
+            navigate(LOGIN_PATH)
+          })
         }}
       />
     </>

@@ -4,8 +4,6 @@ import com.oracle.truffle.api.dsl.TypeSystem;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import java.util.Arrays;
-import org.enso.interpreter.runtime.callable.UnresolvedConversion;
-import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.EnsoDate;
 import org.enso.interpreter.runtime.data.EnsoDateTime;
@@ -50,8 +48,6 @@ import org.enso.polyglot.data.TypeGraph;
   AtomConstructor.class,
   Type.class,
   DataflowError.class,
-  UnresolvedConversion.class,
-  UnresolvedSymbol.class,
   EnsoBigInteger.class,
   ManagedResource.class,
   ModuleScope.class,

@@ -11,11 +11,10 @@ import * as backendModule from '#/services/Backend'
 import * as array from '#/utilities/array'
 import LocalStorage from '#/utilities/LocalStorage'
 
+const TAB_TYPES = ['drive', 'settings'] as const
+
 /** Main content of the screen. Only one should be visible at a time. */
-export enum TabType {
-  drive = 'drive',
-  settings = 'settings',
-}
+export type TabType = (typeof TAB_TYPES)[number]
 
 declare module '#/utilities/LocalStorage' {
   /** */
@@ -49,7 +48,7 @@ LocalStorage.registerKey('launchedProjects', {
 })
 
 export const PAGES_SCHEMA = z
-  .nativeEnum(TabType)
+  .enum(TAB_TYPES)
   .or(
     z.custom<LaunchedProjectId>(
       (value) => typeof value === 'string' && value.startsWith('project-'),
@@ -93,12 +92,9 @@ export default function ProjectsProvider(props: ProjectsProviderProps) {
   )
   const [page, setPage] = searchParamsState.useSearchParamsState(
     'page',
-    () => TabType.drive,
+    (): LaunchedProjectId | TabType => 'drive',
     (value: unknown): value is LaunchedProjectId | TabType => {
-      return (
-        array.includes(Object.values(TabType), value) ||
-        launchedProjects.some((p) => p.id === value)
-      )
+      return array.includes(TAB_TYPES, value) || launchedProjects.some((p) => p.id === value)
     },
   )
 

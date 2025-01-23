@@ -532,7 +532,15 @@ export default class RemoteBackend extends Backend {
       return this.throw(response, 'usersMeBackendError')
     } else {
       const user = await response.json()
-      this.user = { ...user }
+
+      Object.defineProperty(user, 'isEnsoTeamMember', {
+        value: user.email.endsWith('@enso.org') || user.email.endsWith('@ensoanalytics.com'),
+        writable: false,
+        configurable: false,
+        enumerable: true,
+      })
+
+      this.user = user
 
       return user
     }
@@ -829,6 +837,94 @@ export default class RemoteBackend extends Backend {
     const response = await this.get<backend.ProjectSession[]>(path)
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'listProjectSessionsBackendError', title)
+    } else {
+      return await response.json()
+    }
+  }
+
+  /**
+   * Create a project execution.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  override async createProjectExecution(
+    body: backend.CreateProjectExecutionRequestBody,
+    title: string,
+  ): Promise<backend.ProjectExecution> {
+    const { projectId, ...rest } = body
+    const path = remoteBackendPaths.createProjectExecutionPath(projectId)
+    const response = await this.post<backend.ProjectExecution>(path, rest)
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'createProjectExecutionBackendError', title)
+    } else {
+      return await response.json()
+    }
+  }
+
+  /**
+   * Update a project execution.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  override async updateProjectExecution(
+    executionId: backend.ProjectExecutionId,
+    body: backend.UpdateProjectExecutionRequestBody,
+    projectTitle: string,
+  ): Promise<backend.ProjectExecution> {
+    const path = remoteBackendPaths.updateProjectExecutionPath(executionId)
+    const response = await this.post<backend.ProjectExecution>(path, body)
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'updateProjectExecutionBackendError', projectTitle)
+    } else {
+      return await response.json()
+    }
+  }
+
+  /**
+   * Delete a project execution.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  override async deleteProjectExecution(
+    executionId: backend.ProjectExecutionId,
+    projectTitle: string,
+  ): Promise<void> {
+    const path = remoteBackendPaths.deleteProjectExecutionPath(executionId)
+    const response = await this.delete<backend.ProjectExecution>(path)
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'createProjectExecutionBackendError', projectTitle)
+    } else {
+      return
+    }
+  }
+
+  /**
+   * Return a list of executions for a project.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  override async listProjectExecutions(
+    projectId: backend.ProjectId,
+    title: string,
+  ): Promise<readonly backend.ProjectExecution[]> {
+    const path = remoteBackendPaths.listProjectExecutionsPath(projectId)
+    const response = await this.get<readonly backend.ProjectExecution[]>(path)
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'listProjectExecutionsBackendError', title)
+    } else {
+      return await response.json()
+    }
+  }
+
+  /**
+   * Update a project execution to use the latest version of a project.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  override async syncProjectExecution(
+    executionId: backend.ProjectExecutionId,
+    projectTitle: string,
+  ): Promise<backend.ProjectExecution> {
+    const path = remoteBackendPaths.syncProjectExecutionPath(executionId)
+
+    const response = await this.post<backend.ProjectExecution>(path, {})
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'syncProjectExecutionBackendError', projectTitle)
     } else {
       return await response.json()
     }
@@ -1310,7 +1406,7 @@ export default class RemoteBackend extends Backend {
   async logEvent(message: string, projectId?: string | null, metadata?: object | null) {
     // Prevent events from being logged in dev mode, since we are often using production environment
     // and are polluting real logs.
-    if (detect.IS_DEV_MODE && process.env.ENSO_CLOUD_ENVIRONMENT === 'production') {
+    if (detect.IS_DEV_MODE) {
       return
     }
 
@@ -1435,36 +1531,36 @@ export default class RemoteBackend extends Backend {
 
   /** Send an HTTP GET request to the given path. */
   private get<T = void>(path: string) {
-    return this.client.get<T>(`${process.env.ENSO_CLOUD_API_URL}/${path}`)
+    return this.client.get<T>(`${$config.API_URL}/${path}`)
   }
 
   /** Send a JSON HTTP POST request to the given path. */
   private post<T = void>(path: string, payload: object, options?: RemoteBackendPostOptions) {
-    return this.client.post<T>(`${process.env.ENSO_CLOUD_API_URL}/${path}`, payload, options)
+    return this.client.post<T>(`${$config.API_URL}/${path}`, payload, options)
   }
 
   /** Send a binary HTTP POST request to the given path. */
   private postBinary<T = void>(path: string, payload: Blob) {
-    return this.client.postBinary<T>(`${process.env.ENSO_CLOUD_API_URL}/${path}`, payload)
+    return this.client.postBinary<T>(`${$config.API_URL}/${path}`, payload)
   }
 
   /** Send a JSON HTTP PATCH request to the given path. */
   private patch<T = void>(path: string, payload: object) {
-    return this.client.patch<T>(`${process.env.ENSO_CLOUD_API_URL}/${path}`, payload)
+    return this.client.patch<T>(`${$config.API_URL}/${path}`, payload)
   }
 
   /** Send a JSON HTTP PUT request to the given path. */
   private put<T = void>(path: string, payload: object) {
-    return this.client.put<T>(`${process.env.ENSO_CLOUD_API_URL}/${path}`, payload)
+    return this.client.put<T>(`${$config.API_URL}/${path}`, payload)
   }
 
   /** Send a binary HTTP PUT request to the given path. */
   private putBinary<T = void>(path: string, payload: Blob) {
-    return this.client.putBinary<T>(`${process.env.ENSO_CLOUD_API_URL}/${path}`, payload)
+    return this.client.putBinary<T>(`${$config.API_URL}/${path}`, payload)
   }
 
   /** Send an HTTP DELETE request to the given path. */
   private delete<T = void>(path: string, payload?: Record<string, unknown>) {
-    return this.client.delete<T>(`${process.env.ENSO_CLOUD_API_URL}/${path}`, payload)
+    return this.client.delete<T>(`${$config.API_URL}/${path}`, payload)
   }
 }

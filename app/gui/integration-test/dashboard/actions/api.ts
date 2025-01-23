@@ -5,9 +5,9 @@ import * as backend from '#/services/Backend'
 import type * as remoteBackend from '#/services/RemoteBackend'
 import * as remoteBackendPaths from '#/services/remoteBackendPaths'
 
-import * as dateTime from '#/utilities/dateTime'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
+import * as dateTime from 'enso-common/src/utilities/data/dateTime'
 import * as uniqueString from 'enso-common/src/utilities/uniqueString'
 
 import * as actions from '.'

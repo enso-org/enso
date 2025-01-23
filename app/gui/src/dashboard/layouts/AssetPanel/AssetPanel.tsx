@@ -1,27 +1,27 @@
 /**
  * @file
- * @description
- * The asset panel is a sidebar that can be expanded or collapsed.
+ * A sidebar that can be expanded or collapsed.
  * It is used to view and interact with assets in the drive.
  */
-import docsIcon from '#/assets/file_text.svg'
-import sessionsIcon from '#/assets/group.svg'
-import inspectIcon from '#/assets/inspect.svg'
-import versionsIcon from '#/assets/versions.svg'
+import { AnimatePresence, motion } from 'framer-motion'
+import { memo, startTransition } from 'react'
 
+import type { BackendType } from 'enso-common/src/services/Backend'
+
+import RepeatIcon from '#/assets/arrows_repeat.svg'
+import CalendarIcon from '#/assets/calendar_repeat_outline.svg'
+import DocsIcon from '#/assets/file_text.svg'
+import SessionsIcon from '#/assets/group.svg'
+import InspectIcon from '#/assets/inspect.svg'
+import VersionsIcon from '#/assets/versions.svg'
 import { ErrorBoundary } from '#/components/ErrorBoundary'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { AssetDocs } from '#/layouts/AssetDocs'
+import { isLocalCategory, type Category } from '#/layouts/CategorySwitcher/Category'
 import { useBackend } from '#/providers/BackendProvider'
 import { useText } from '#/providers/TextProvider'
 import { useStore } from '#/utilities/zustand'
-import type { BackendType } from 'enso-common/src/services/Backend'
-import { AnimatePresence, motion } from 'framer-motion'
-import { memo, startTransition } from 'react'
-import { AssetDocs } from '../AssetDocs'
-import AssetProjectSessions from '../AssetProjectSessions'
-import AssetProperties from '../AssetProperties'
-import AssetVersions from '../AssetVersions/AssetVersions'
-import { isLocalCategory, type Category } from '../CategorySwitcher/Category'
+import { useFeatureFlag } from '../../providers/FeatureFlagsProvider'
 import {
   assetPanelStore,
   useIsAssetPanelExpanded,
@@ -29,15 +29,18 @@ import {
 } from './AssetPanelState'
 import { AssetPanelTabs } from './components/AssetPanelTabs'
 import { AssetPanelToggle } from './components/AssetPanelToggle'
-import { type AssetPanelTab } from './types'
+import { AssetProperties } from './components/AssetProperties'
+import { AssetVersions } from './components/AssetVersions'
+import { ProjectExecutions } from './components/ProjectExecutions'
+import { ProjectExecutionsCalendar } from './components/ProjectExecutionsCalendar'
+import { ProjectSessions } from './components/ProjectSessions'
+import type { AssetPanelTab } from './types'
 
 const ASSET_SIDEBAR_COLLAPSED_WIDTH = 48
 const ASSET_PANEL_WIDTH = 480
 const ASSET_PANEL_TOTAL_WIDTH = ASSET_PANEL_WIDTH + ASSET_SIDEBAR_COLLAPSED_WIDTH
 
-/**
- * Props for an {@link AssetPanel}.
- */
+/** Props for an {@link AssetPanel}. */
 export interface AssetPanelProps {
   readonly backendType: BackendType
   readonly category: Category
@@ -79,7 +82,7 @@ export const AssetPanel = memo(function AssetPanel(props: AssetPanelProps) {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: ASSET_SIDEBAR_COLLAPSED_WIDTH }}
             className="absolute bottom-0 right-0 top-0 flex flex-col"
-            onClick={(event) => {
+            onClick={(event: Event) => {
               // Prevent deselecting Assets Table rows.
               event.stopPropagation()
             }}
@@ -92,9 +95,7 @@ export const AssetPanel = memo(function AssetPanel(props: AssetPanelProps) {
   )
 })
 
-/**
- * The internal implementation of the Asset Panel Tabs.
- */
+/** The internal implementation of the Asset Panel Tabs. */
 const InternalAssetPanelTabs = memo(function InternalAssetPanelTabs(
   props: AssetPanelProps & { panelWidth: number },
 ) {
@@ -121,6 +122,8 @@ const InternalAssetPanelTabs = memo(function InternalAssetPanelTabs(
 
   const isExpanded = useIsAssetPanelExpanded()
   const setIsExpanded = useSetIsAssetPanelExpanded()
+
+  const enableAsyncExecution = useFeatureFlag('enableAsyncExecution')
 
   const expandTab = useEventCallback(() => {
     setIsExpanded(true)
@@ -185,7 +188,15 @@ const InternalAssetPanelTabs = memo(function InternalAssetPanelTabs(
                 </AssetPanelTabs.TabPanel>
 
                 <AssetPanelTabs.TabPanel id="sessions">
-                  <AssetProjectSessions backend={backend} />
+                  <ProjectSessions backend={backend} />
+                </AssetPanelTabs.TabPanel>
+
+                <AssetPanelTabs.TabPanel id="executions">
+                  <ProjectExecutions backend={backend} />
+                </AssetPanelTabs.TabPanel>
+
+                <AssetPanelTabs.TabPanel id="executionsCalendar">
+                  <ProjectExecutionsCalendar backend={backend} />
                 </AssetPanelTabs.TabPanel>
 
                 <AssetPanelTabs.TabPanel id="docs">
@@ -210,7 +221,7 @@ const InternalAssetPanelTabs = memo(function InternalAssetPanelTabs(
         <AssetPanelTabs.TabList>
           <AssetPanelTabs.Tab
             id="settings"
-            icon={inspectIcon}
+            icon={InspectIcon}
             label={isLocal ? getText('assetProperties.localBackend') : getText('properties')}
             isExpanded={isExpanded}
             onPress={expandTab}
@@ -218,7 +229,7 @@ const InternalAssetPanelTabs = memo(function InternalAssetPanelTabs(
           />
           <AssetPanelTabs.Tab
             id="versions"
-            icon={versionsIcon}
+            icon={VersionsIcon}
             label={
               isLocal ? getText('assetVersions.localAssetsDoNotHaveVersions') : getText('versions')
             }
@@ -228,7 +239,7 @@ const InternalAssetPanelTabs = memo(function InternalAssetPanelTabs(
           />
           <AssetPanelTabs.Tab
             id="sessions"
-            icon={sessionsIcon}
+            icon={SessionsIcon}
             label={
               isLocal ? getText('assetProjectSessions.localBackend') : getText('projectSessions')
             }
@@ -237,8 +248,30 @@ const InternalAssetPanelTabs = memo(function InternalAssetPanelTabs(
             isDisabled={isLocal}
           />
           <AssetPanelTabs.Tab
+            id="executions"
+            icon={RepeatIcon}
+            label={isLocal ? getText('assetProjectExecutions.localBackend') : getText('executions')}
+            isExpanded={isExpanded}
+            onPress={expandTab}
+            isDisabled={isLocal}
+            isHidden={!enableAsyncExecution}
+          />
+          <AssetPanelTabs.Tab
+            id="executionsCalendar"
+            icon={CalendarIcon}
+            label={
+              isLocal ?
+                getText('assetProjectExecutionsCalendar.localBackend')
+              : getText('executionsCalendar')
+            }
+            isExpanded={isExpanded}
+            onPress={expandTab}
+            isDisabled={isLocal}
+            isHidden={!enableAsyncExecution}
+          />
+          <AssetPanelTabs.Tab
             id="docs"
-            icon={docsIcon}
+            icon={DocsIcon}
             label={getText('docs')}
             isExpanded={isExpanded}
             onPress={expandTab}

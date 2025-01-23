@@ -14,7 +14,6 @@ import * as toast from 'react-toastify'
 import invariant from 'tiny-invariant'
 
 import * as detect from 'enso-common/src/detect'
-import * as gtag from 'enso-common/src/gtag'
 
 import * as appUtils from '#/appUtils'
 
@@ -31,6 +30,10 @@ import type RemoteBackend from '#/services/RemoteBackend'
 
 import type * as cognitoModule from '#/authentication/cognito'
 import { isOrganizationId } from '#/services/RemoteBackend'
+import { Suspense } from 'react'
+import { ErrorBoundary } from 'react-error-boundary'
+import { EnsoDevtools } from '../components/Devtools'
+import { featureFlagsForInternalTesting, useSetFeatureFlags } from './FeatureFlagsProvider'
 
 // ===================
 // === UserSession ===
@@ -150,6 +153,8 @@ export default function AuthProvider(props: AuthProviderProps) {
   const { onAuthenticated, children } = props
 
   const remoteBackend = backendProvider.useRemoteBackend()
+  const setFeatureFlags = useSetFeatureFlags()
+
   const { session, organizationId, signOut } = sessionProvider.useSession()
   const { getText } = textProvider.useText()
   const toastId = React.useId()
@@ -159,7 +164,7 @@ export default function AuthProvider(props: AuthProviderProps) {
   // This component cannot use `useGtagEvent` because `useGtagEvent` depends on the React Context
   // defined by this component.
   const gtagEvent = React.useCallback((name: string, params?: object) => {
-    gtag.event(name, params)
+    gtagHooks.event(name, params)
   }, [])
 
   const usersMeQueryOptions = createUsersMeQuery(session, remoteBackend)
@@ -306,7 +311,7 @@ export default function AuthProvider(props: AuthProviderProps) {
   }, [userData])
 
   React.useEffect(() => {
-    gtag.gtag('set', { platform: detect.platform(), architecture: detect.architecture() })
+    gtagHooks.gtag('set', { platform: detect.platform(), architecture: detect.architecture() })
     return gtagHooks.gtagOpenCloseCallback(gtagEvent, 'open_app', 'close_app')
   }, [gtagEvent])
 
@@ -315,6 +320,12 @@ export default function AuthProvider(props: AuthProviderProps) {
       onAuthenticated(userData.accessToken)
     }
   }, [userData, onAuthenticated])
+
+  React.useEffect(() => {
+    if (userData?.type === UserSessionType.full && userData.user.isEnsoTeamMember) {
+      setFeatureFlags(featureFlagsForInternalTesting())
+    }
+  }, [userData, setFeatureFlags])
 
   const value: AuthContextType = {
     refetchSession,
@@ -369,7 +380,14 @@ export function ProtectedLayout() {
         {/* This div is used as a flag to indicate that the dashboard has been loaded and the user is authenticated. */}
         {/* also it guarantees that the top-level suspense boundary is already resolved */}
         <div data-testid="after-auth-layout" aria-hidden />
+
         <router.Outlet context={session} />
+
+        <Suspense fallback={null}>
+          <ErrorBoundary fallbackRender={() => null}>
+            <EnsoDevtools />
+          </ErrorBoundary>
+        </Suspense>
       </>
     )
   }

@@ -27,7 +27,7 @@ public class BenchmarksRunner {
 
   public static void run(String[] args) throws RunnerException {
     if (args.length == 0) {
-      args = new String[] {"--jvmArgs=-Dbench.all=true"};
+      args = new String[] {"--jvmArgsPrepend=-Dbench.all=true"};
     }
     CommandLineOptions cmdOpts = null;
     try {

@@ -483,7 +483,7 @@ const showMenuAt = ref<{ x: number; y: number }>()
       data-testid="recordingOverriddenButton"
       @click="((isRecordingOverridden = false), setSoleSelected())"
     >
-      <SvgIcon name="record" />
+      <SvgIcon name="workflow_play" />
     </button>
     <ComponentMenu
       v-if="menuVisible"

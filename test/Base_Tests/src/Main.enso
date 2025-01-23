@@ -9,7 +9,6 @@ import project.Semantic.Default_Args_Spec
 import project.Semantic.Error_Spec
 import project.Semantic.Import_Loop.Spec as Import_Loop_Spec
 import project.Semantic.Meta_Spec
-import project.Semantic.Instrumentor_Spec
 import project.Semantic.Meta_Location_Spec
 import project.Semantic.Multi_Value_Convert_Spec
 import project.Semantic.Multi_Value_Spec
@@ -132,7 +131,6 @@ main filter=Nothing =
         Hashset_Spec.add_specs suite_builder
         Maybe_Spec.add_specs suite_builder
         Meta_Spec.add_specs suite_builder
-        Instrumentor_Spec.add_specs suite_builder
         Meta_Location_Spec.add_specs suite_builder
         Multi_Value_Convert_Spec.add_specs suite_builder
         Multi_Value_Spec.add_specs suite_builder
