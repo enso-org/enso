@@ -39,7 +39,7 @@ public abstract class GetAtomFieldsNode extends Node {
     for (var i = 0; i < arr.length; i++) {
       arr[i] = structs.getField(atom, i);
     }
-    return ArrayLikeHelpers.wrapObjectsWithCheckAt(arr);
+    return ArrayLikeHelpers.asVectorWithCheckAt(arr);
   }
 
   @Specialization

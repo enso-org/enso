@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Internal.Instrumentor
 import Standard.Base.Data.Vector.Builder
 from Standard.Test import all
 
@@ -264,5 +265,5 @@ main filter=Nothing =
 
 
 #### METADATA ####
-[[{"index":{"value":172},"size":{"value":3}},"00000000-aaaa-bbbb-0000-000000000000"],[{"index":{"value":114},"size":{"value":61}},"00000000-ffff-bbbb-0000-000000000000"],[{"index":{"value":267},"size":{"value":5}},"00000000-eeee-bbbb-2222-000000000000"],[{"index":{"value":160},"size":{"value":7}},"00000000-ffff-1111-bbbb-000000000000"]]
+[[{"index":{"value":215},"size":{"value":3}},"00000000-aaaa-bbbb-0000-000000000000"],[{"index":{"value":157},"size":{"value":61}},"00000000-ffff-bbbb-0000-000000000000"],[{"index":{"value":310},"size":{"value":5}},"00000000-eeee-bbbb-2222-000000000000"],[{"index":{"value":203},"size":{"value":7}},"00000000-ffff-1111-bbbb-000000000000"]]
 

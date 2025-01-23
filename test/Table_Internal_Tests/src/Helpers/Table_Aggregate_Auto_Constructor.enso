@@ -1,8 +1,8 @@
 from Standard.Base import all
 from Standard.Table import all
 from Standard.Database import all
-# An import was removed here
-#replaced by comment to keep offset
+# needs the internals
+import Standard.Base.Internal.Instrumentor
 import Standard.Visualization
 
 collapsed operator16985 =
