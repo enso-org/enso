@@ -25,11 +25,13 @@
   link.][11926]
 - [Reducing helper methods in `Standard.Base.Meta`.][12031]
 - [Added Table.Offset][12071]
+- [Implemented Generic JDBC connections.][12073]
 - [Added Column.Offset][12092]
 
 [11926]: https://github.com/enso-org/enso/pull/11926
 [12031]: https://github.com/enso-org/enso/pull/12031
 [12071]: https://github.com/enso-org/enso/pull/12071
+[12073]: https://github.com/enso-org/enso/pull/12073
 [12092]: https://github.com/enso-org/enso/pull/12092
 
 #### Enso Language & Runtime

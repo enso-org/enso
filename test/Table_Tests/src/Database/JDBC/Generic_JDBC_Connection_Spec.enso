@@ -1,0 +1,219 @@
+from Standard.Base import all
+
+import Standard.Test.Spec_Result.Spec_Result
+from Standard.Test import all
+
+import Standard.Database.Errors.SQL_Error
+import Standard.Database.JDBC.Generic_JDBC_Connection.Generic_JDBC_Connection
+import Standard.Database.SQL.SQL_Builder
+
+add_specs suite_builder =
+    data_dir = enso_project.data / "transient"
+    database_name = 'test'
+
+    with_database name action =
+        database_root = data_dir / name
+        url = "jdbc:h2:./" + database_root.path + "/" + database_name
+        cleanup =
+            database_root . delete_if_exists recursive=True
+        cleanup
+        Panic.with_finalizer cleanup <|
+            database_root . create_directory
+            action url
+
+    with_connection name action =
+        with_database name url->
+            conn = Generic_JDBC_Connection.connect url
+            conn.should_succeed
+            Panic.with_finalizer conn.close <|
+                action conn
+
+    suite_builder.group "Generic JDBC Connection (H2 database engine)" group_builder->
+        group_builder.specify "should be able to create a connection" <|
+            with_connection "create_connection" (conn-> conn . should_succeed)
+
+        group_builder.specify "should be able to create a table" <|
+            with_connection "create_table" conn->
+                conn.execute "create table foo (a int)"
+                conn.get_tables . should_equal ["FOO"]
+
+        group_builder.specify "should be able to get table info" <|
+            with_connection "get_table_info" conn->
+                conn.execute "create table foo (a int, b text)"
+                conn.execute "create table bar (c float, d timestamp)"
+
+                r = conn.get_table_info schema_pattern="PUBLIC"
+                r.row_count . should_equal 2
+                r.at "TABLE_CAT" . to_vector . should_equal ['TEST', 'TEST']
+                r.at "TABLE_SCHEM" . to_vector . should_equal ['PUBLIC', 'PUBLIC']
+                r.at "TABLE_NAME" . to_vector . sort . should_equal ['BAR', 'FOO']
+
+        group_builder.specify "should be able to get catalogs" <|
+            with_connection "get_catalogs" conn->
+                conn.get_catalogs . should_equal ['TEST']
+
+        group_builder.specify "should be able to get schemas" <|
+            with_connection "get_schemas" conn->
+                conn.get_schemas . sort . should_equal ['INFORMATION_SCHEMA', 'PUBLIC']
+                conn.execute "create schema other"
+                conn.get_schemas . sort . should_equal ['INFORMATION_SCHEMA', 'OTHER', 'PUBLIC']
+
+        ## TODO: implement this for a driver that supports multiple catalogs
+           group_builder.specify "should be able to get schemas by catalog" <|
+
+        group_builder.specify "should be able to get schemas by pattern" <|
+            with_connection "schemas_by_pattern" conn->
+                conn.execute "create schema abc"
+                conn.execute "create schema abd"
+                conn.execute "create schema aed"
+                conn.get_schemas schema_pattern=Nothing . sort . should_contain 'ABC'
+                conn.get_schemas schema_pattern=Nothing . sort . should_contain 'ABD'
+                conn.get_schemas schema_pattern=Nothing . sort . should_contain 'AED'
+                conn.get_schemas schema_pattern="%A%" . sort . should_contain 'ABC'
+                conn.get_schemas schema_pattern="%A%" . sort . should_contain 'ABD'
+                conn.get_schemas schema_pattern="%A%" . sort . should_contain 'AED'
+                conn.get_schemas schema_pattern="%AB%" . sort . should_contain 'ABC'
+                conn.get_schemas schema_pattern="%AB%" . sort . should_contain 'ABD'
+                conn.get_schemas schema_pattern="%AB%" . sort . should_not_contain 'AED'
+                conn.get_schemas schema_pattern="%ABD%" . sort . should_not_contain 'ABC'
+                conn.get_schemas schema_pattern="%ABD%" . sort . should_contain 'ABD'
+                conn.get_schemas schema_pattern="%ABD%" . sort . should_not_contain 'AED'
+                conn.get_schemas schema_pattern="" . sort . should_equal []
+
+        ## TODO: implement this for a driver that supports multiple catalogs
+           group_builder.specify "should be able to get tables by catalog" <|
+
+        group_builder.specify "should be able to get tables by schema pattern" <|
+            with_connection "tables_by_schema_pattern" conn->
+                conn.execute "create schema abc"
+                conn.execute "create schema abd"
+                conn.execute "create schema aed"
+                conn.execute "set schema abc"
+                conn.execute "create table foo_abc (a int)"
+                conn.execute "set schema abd"
+                conn.execute "create table foo_abd (a int)"
+                conn.execute "set schema aed"
+                conn.execute "create table foo_aed (a int)"
+                conn.get_tables schema_pattern=Nothing . sort . should_contain 'FOO_ABC'
+                conn.get_tables schema_pattern=Nothing . sort . should_contain 'FOO_ABD'
+                conn.get_tables schema_pattern=Nothing . sort . should_contain 'FOO_AED'
+                conn.get_tables schema_pattern="%A%" . sort . should_contain 'FOO_ABC'
+                conn.get_tables schema_pattern="%A%" . sort . should_contain 'FOO_ABD'
+                conn.get_tables schema_pattern="%A%" . sort . should_contain 'FOO_AED'
+                conn.get_tables schema_pattern="%AB%" . sort . should_contain 'FOO_ABC'
+                conn.get_tables schema_pattern="%AB%" . sort . should_contain 'FOO_ABD'
+                conn.get_tables schema_pattern="%AB%" . sort . should_not_contain 'FOO_AED'
+                conn.get_tables schema_pattern="%ABD%" . sort . should_not_contain 'FOO_ABC'
+                conn.get_tables schema_pattern="%ABD%" . sort . should_contain 'FOO_ABD'
+                conn.get_tables schema_pattern="%ABD%" . sort . should_not_contain 'FOO_AED'
+                conn.get_tables schema_pattern="" . sort . should_equal []
+
+        group_builder.specify "should be able to get tables by pattern" <|
+            with_connection "tables_by_pattern" conn->
+                conn.execute "create table abc (a int)"
+                conn.execute "create table abd (a int)"
+                conn.execute "create table aed (a int)"
+
+                conn.get_tables table_name_pattern=Nothing . sort . should_contain 'ABC'
+                conn.get_tables table_name_pattern=Nothing . sort . should_contain 'ABD'
+                conn.get_tables table_name_pattern=Nothing . sort . should_contain 'AED'
+                conn.get_tables table_name_pattern="%A%" . sort . should_contain 'ABC'
+                conn.get_tables table_name_pattern="%A%" . sort . should_contain 'ABD'
+                conn.get_tables table_name_pattern="%A%" . sort . should_contain 'AED'
+                conn.get_tables table_name_pattern="%AB%" . sort . should_contain 'ABC'
+                conn.get_tables table_name_pattern="%AB%" . sort . should_contain 'ABD'
+                conn.get_tables table_name_pattern="%AB%" . sort . should_not_contain 'AED'
+                conn.get_tables table_name_pattern="%ABD%" . sort . should_not_contain 'ABC'
+                conn.get_tables table_name_pattern="%ABD%" . sort . should_contain 'ABD'
+                conn.get_tables table_name_pattern="%ABD%" . sort . should_not_contain 'AED'
+                conn.get_tables table_name_pattern="" . sort . should_equal []
+
+        group_builder.specify "should be able to get tables by type" <|
+            with_connection "tables_by_type" conn->
+                conn.execute "create table abc (a int)"
+                conn.execute "create view view_abc as (select * from abc)"
+                conn.get_tables . sort . should_equal ['ABC', 'VIEW_ABC']
+                conn.get_tables table_types=['BASE TABLE', 'VIEW'] . sort . should_contain 'ABC'
+                conn.get_tables table_types=['BASE TABLE', 'VIEW'] . sort . should_contain 'VIEW_ABC'
+                conn.get_tables table_types=['BASE TABLE'] . sort . should_contain 'ABC'
+                conn.get_tables table_types=['BASE TABLE'] . sort . should_not_contain 'VIEW_ABC'
+                conn.get_tables table_types=['VIEW'] . sort . should_not_contain 'ABC'
+                conn.get_tables table_types=['VIEW'] . sort . should_contain 'VIEW_ABC'
+                conn.get_tables table_types=[] . sort . should_equal []
+
+        group_builder.specify "should be able to create tables in multiple schemas" <|
+            with_connection "multiple_schemas" conn->
+                conn.execute "create table foo (a int, b text)"
+                conn.execute "create schema other"
+                conn.execute "set schema other"
+                conn.execute "create table bar (c float, d timestamp)"
+
+                r = conn.get_table_info schema_pattern="PUBLIC"
+                r.row_count . should_equal 1
+                r.at "TABLE_CAT" . to_vector . should_equal ['TEST']
+                r.at "TABLE_SCHEM" . to_vector . should_equal ['PUBLIC']
+                r.at "TABLE_NAME" . to_vector . sort . should_equal ['FOO']
+
+                r2 = conn.get_table_info schema_pattern="OTHER"
+                r2.row_count . should_equal 1
+                r2.at "TABLE_CAT" . to_vector . should_equal ['TEST']
+                r2.at "TABLE_SCHEM" . to_vector . should_equal ['OTHER']
+                r2.at "TABLE_NAME" . to_vector . sort . should_equal ['BAR']
+
+                conn.get_tables schema_pattern='PUBLIC' . should_equal ['FOO']
+                conn.get_tables schema_pattern='OTHER' . should_equal ['BAR']
+
+        group_builder.specify "should be able to insert, update and query data" <|
+            with_connection "insert_and_query" conn->
+                conn.execute "create table foo (a int, b text)"
+                conn.execute "insert into foo (a, b) values (10, 'asdf')"
+                conn.execute "insert into foo (a, b) values (20, 'zxcv')"
+                conn.execute "create table bar (c int, d text)"
+                conn.execute "insert into bar (c, d) values (20, 'qqqq')"
+                conn.execute "insert into bar (c, d) values (30, 'zzzz')"
+
+                r = conn.read "select * from foo"
+                r.row_count . should_equal 2
+                r.columns . map .name . should_equal ["A", "B"]
+                r.at "A" . to_vector . should_equal [10, 20]
+                r.at "B" . to_vector . should_equal ['asdf', 'zxcv']
+
+                r2 = conn.read "select foo.a, foo.b, bar.d from foo join bar on foo.a = bar.c"
+                r2.row_count . should_equal 1
+                r2.columns . map .name . should_equal ["A", "B", "D"]
+                r2.at "A" . to_vector . should_equal [20]
+                r2.at "B" . to_vector . should_equal ['zxcv']
+                r2.at "D" . to_vector . should_equal ['qqqq']
+
+                conn.execute "update foo set b='uuuu' where a=20"
+                r3 = conn.read "select B from foo"
+                r3.at "B" . to_vector . should_equal ['asdf', 'uuuu']
+
+        group_builder.specify "should be able to use SQL_Statements" <|
+            with_connection "with_sql_statements" conn->
+                conn.execute "create table foo (a int, b text)"
+                conn.execute (SQL_Builder.code "insert into foo (a, b) values (" ++ SQL_Builder.interpolation 10 ++ ", " ++ SQL_Builder.interpolation 'asdf' ++ ")").build
+                conn.execute (SQL_Builder.code "insert into foo (a, b) values (" ++ SQL_Builder.interpolation 20 ++ ", " ++ SQL_Builder.interpolation 'zxcv' ++ ")").build
+                r = conn.read (SQL_Builder.code "select * from foo where a=" ++ SQL_Builder.interpolation 20).build
+                r.row_count . should_equal 1
+                r.at "A" . to_vector . should_equal [20]
+                r.at "B" . to_vector . should_equal ['zxcv']
+
+        group_builder.specify "should handle SQL errors" <|
+            with_connection "sql_errors" conn->
+                conn.execute "create table ((((((()" . should_fail_with SQL_Error
+                conn.execute "create table foo (a int)" . should_succeed
+                conn.execute "create table foo (a int)" . should_fail_with SQL_Error
+                conn.read "select * from nonexistent" . should_fail_with SQL_Error
+                conn.execute "insert into foo (a) values ('asdf')" . should_fail_with SQL_Error
+                conn.execute "set schema nonexistent" . should_fail_with SQL_Error
+
+        group_builder.specify "should handle a malformed JDBC URL" <|
+            Generic_JDBC_Connection.connect "jdbc:h3:asdf" . should_fail_with SQL_Error
+            Generic_JDBC_Connection.connect "" . should_fail_with SQL_Error
+            Generic_JDBC_Connection.connect "//:://" . should_fail_with SQL_Error
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter

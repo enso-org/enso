@@ -642,6 +642,7 @@ val jnaVersion              = "5.14.0"
 val googleProtobufVersion   = "3.25.1"
 val shapelessVersion        = "2.3.10"
 val postgresVersion         = "42.4.0"
+val h2Version               = "2.3.232"
 
 // ============================================================================
 // === Utility methods =====================================================
@@ -4642,7 +4643,8 @@ lazy val `enso-test-java-helpers` = project
     Compile / packageBin / artifactPath :=
       file("test/Base_Tests/polyglot/java/helpers.jar"),
     libraryDependencies ++= Seq(
-      "org.graalvm.polyglot" % "polyglot" % graalMavenPackagesVersion % "provided"
+      "org.graalvm.polyglot" % "polyglot" % graalMavenPackagesVersion % "provided",
+      "com.h2database"       % "h2"       % h2Version
     ),
     Compile / packageBin := Def.task {
       val result          = (Compile / packageBin).value
@@ -4652,7 +4654,14 @@ lazy val `enso-test-java-helpers` = project
       )
       secondaryLocations.foreach { target =>
         IO.copyFile(primaryLocation, target)
-      }
+    }
+    val _ = StdBits
+      .copyDependencies(
+        file("test/Table_Tests/polyglot/java/"),
+        Seq(),
+        ignoreScalaLibrary = true
+      )
+      .value
       result
     }.value
   )

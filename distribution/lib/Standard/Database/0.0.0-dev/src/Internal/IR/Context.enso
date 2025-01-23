@@ -200,6 +200,10 @@ type Subquery_Setup
 type Context_Extension
     ## A recipe for building the extension.
 
+    After_Select
+    After_From
+    After_Where
+
        Arguments:
        - position: Determines where the extension code should be inserted.
          The positions of common query parts are following:

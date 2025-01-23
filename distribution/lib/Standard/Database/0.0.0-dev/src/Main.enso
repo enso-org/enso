@@ -16,6 +16,8 @@ export project.Extensions.Upload_In_Memory_Table.delete_rows
 export project.Extensions.Upload_In_Memory_Table.select_into_database_table
 export project.Extensions.Upload_In_Memory_Table.update_rows
 
+export project.JDBC.Generic_JDBC_Connection.Generic_JDBC_Connection
+
 export project.SQL_Query.SQL_Query
 
 export project.Update_Action.Update_Action
