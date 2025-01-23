@@ -324,13 +324,13 @@ function getValueTypeIcon(valueType: string) {
   }
 }
 
-function getFilterType(valueType: string) {
+function getFilterType(valueType: string) { 
   if (valueType === 'Date') {
-    return 'agDateColumnFilter'
+    return 'agDateColumnFilter';
   } else if (isNumericType(valueType)) {
-    return 'agNumberColumnFilter'
+    return 'agNumberColumnFilter';
   } else {
-    return 'agSetColumnFilter'
+    return 'agSetColumnFilter';
   }
 }
 
