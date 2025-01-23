@@ -526,10 +526,10 @@ public final class Type extends EnsoObject {
 
   /**
    * Returns methods (both instance and static) defined on this type, including the ones inherited
-   * from Any. Instance methods are defined on this type, static methods are defined on its {@link
-   * #getEigentype() eigen type}. The methods defined on this type are searched for inside the
-   * module scope where this type is defined, so if there are any other extension methods defined in
-   * other modules, they are not included in the result.
+   * from super types. Instance methods are defined on this type, static methods are defined on its
+   * {@link #getEigentype() eigen type}. The methods defined on this type are searched for inside
+   * the module scope where this type is defined, so if there are any other extension methods
+   * defined in other modules, they are not included in the result.
    *
    * @param includeStaticMethods If static methods, defined on eigen type, should be included in the
    *     result.
@@ -539,7 +539,26 @@ public final class Type extends EnsoObject {
   @TruffleBoundary
   public Map<String, Function> getMethods(boolean includeStaticMethods) {
     var ctx = EnsoContext.get(null);
-    var allMethods = new HashMap<>(methodsFromAny(ctx));
+    var allMethods = new HashMap<String, Function>();
+    for (var type : allTypes(ctx)) {
+      var methodsOnThisType = type.methodsOnThisType(includeStaticMethods);
+      allMethods.putAll(methodsOnThisType);
+    }
+    return allMethods;
+  }
+
+  /**
+   * Returns methods (both instance and static) defined only on this type.
+   *
+   * <p>As opposed to {@link #getMethods(boolean)}, does not include methods inherited from super
+   * types.
+   *
+   * @param includeStaticMethods If static methods, defined on eigen type, should be included in the
+   *     result.
+   */
+  @TruffleBoundary
+  private Map<String, Function> methodsOnThisType(boolean includeStaticMethods) {
+    var allMethods = new HashMap<String, Function>();
     var defScope = definitionScope.asModuleScope();
     var methodsFromThisScope = defScope.getMethodsForType(this);
     if (methodsFromThisScope != null) {
@@ -558,30 +577,6 @@ public final class Type extends EnsoObject {
               allMethods.put(simpleName, func);
             });
       }
-    }
-    return allMethods;
-  }
-
-  /**
-   * Returns methods inherited from Any. This includes both builtin methods defined on Any builtin
-   * type, and normal methods (non-builtin) defined on {@code Standard.Base.Any.Any} type. Note that
-   * the "normal" methods are present only if the {@code Standard.Base.Any} module has been
-   * imported.
-   */
-  private Map<String, Function> methodsFromAny(EnsoContext ctx) {
-    var allMethods = new HashMap<String, Function>();
-    var anyBuiltinType = ctx.getBuiltins().any();
-    var builtinMethods = anyBuiltinType.getDefinitionScope().getMethodsForType(anyBuiltinType);
-    assert builtinMethods != null : "Builtin methods must always be defined";
-    builtinMethods.forEach(m -> allMethods.put(simpleFuncName(m), m));
-    var anyModOpt = ctx.findModule("Standard.Base.Any");
-    if (anyModOpt.isPresent()) {
-      var anyMod = anyModOpt.get();
-      var anyType = anyMod.getScope().getType("Any", true);
-      assert anyType != null;
-      var methods = anyMod.getScope().getMethodsForType(anyType);
-      assert methods != null;
-      methods.forEach(m -> allMethods.put(simpleFuncName(m), m));
     }
     return allMethods;
   }
