@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Table import Column, Value_Type
+from Standard.Table import Column, Table, Value_Type
 
 from Standard.Test import all
 
@@ -51,6 +51,11 @@ add_specs suite_builder =
             c10.is_a Float . should_be_true
             c10.is_a Integer . should_be_true
 
+        group_builder.specify "does not apply to columns that have more rows" <|
+            c1 = Column.from_vector "c1" [1, 2]
+            c1.is_a Column . should_be_true
+            c1.is_a Integer . should_be_false
+
         group_builder.specify "nothing column is not a single Nothing value" <|
             c = Column.from_vector "n" [Nothing]
             c.is_a Column . should_be_true
@@ -77,9 +82,11 @@ add_specs suite_builder =
             c2 = Column.from_vector "c2" [Date.new 2025 1 1]
             c2.add_work_days 100 . should_equal (Date.new 2025 5 21)
 
+        my_integer_fn (x : Integer) -> Integer =
+            1 + x*2
+        my_text_fn (x : Text) -> Text =
+            x + "!"
         group_builder.specify "can be passed to functions that expect a matching single value" <|
-            my_integer_fn (x : Integer) -> Integer =
-                1 + x*2
             c1 = Column.from_vector "c1" [10]
             r1 = my_integer_fn c1
             r1 . should_equal 21
@@ -87,11 +94,19 @@ add_specs suite_builder =
             # The value is no longer a column after passing it to a function
             r1 . is_a Column . should_be_false
 
-            my_text_fn (x : Text) -> Text =
-                x + "!"
             c2 = Column.from_vector "c2" ["hello"]
             r2 = my_text_fn c2
             r2 . should_equal "hello!"
+
+        group_builder.specify "should also work for columns extracted from a Table" <|
+            table = Table.new [["a", [1]], ["b", ["hello"]]]
+            c1 = table.at "a"
+            c1.is_a Column . should_be_true
+            c1.is_a Integer . should_be_true
+            my_integer_fn c1 . should_equal 3
+
+            my_text_fn (table.at "b") . should_equal "hello!"
+
 
 main filter=Nothing =
     suite = Test.build suite_builder->
