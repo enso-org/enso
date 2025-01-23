@@ -164,7 +164,7 @@ public abstract class Storage<T> implements ColumnStorage<T> {
 
     Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
-      Object it = getItemBoxed(i);
+      Object it = getBoxed(i);
       if (skipNulls && it == null) {
         storageBuilder.appendNulls(1);
       } else {
@@ -196,8 +196,8 @@ public abstract class Storage<T> implements ColumnStorage<T> {
     Builder storageBuilder = Builder.getForType(expectedResultType, size(), problemAggregator);
     Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
-      Object it1 = getItemBoxed(i);
-      Object it2 = i < arg.size() ? arg.getItemBoxed(i) : null;
+      Object it1 = getBoxed(i);
+      Object it2 = i < arg.size() ? arg.getBoxed(i) : null;
       if (skipNa && (it1 == null || it2 == null)) {
         storageBuilder.appendNulls(1);
       } else {
@@ -337,7 +337,7 @@ public abstract class Storage<T> implements ColumnStorage<T> {
     Object convertedFallback = Polyglot_Utils.convertPolyglotValue(arg);
     Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
-      Object it = getItemBoxed(i);
+      Object it = getBoxed(i);
       builder.append(it == null ? convertedFallback : it);
       context.safepoint();
     }
@@ -357,7 +357,7 @@ public abstract class Storage<T> implements ColumnStorage<T> {
     var builder = Builder.getForType(commonType, size(), problemAggregator);
     Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
-      builder.append(isNothing(i) ? other.getItemBoxed(i) : getItemBoxed(i));
+      builder.append(isNothing(i) ? other.getBoxed(i) : getBoxed(i));
       context.safepoint();
     }
 
@@ -418,17 +418,17 @@ public abstract class Storage<T> implements ColumnStorage<T> {
    * @return a storage counting the number of times each value in this one has been seen before.
    */
   public Storage<?> duplicateCount() {
-    long[] data = new long[size()];
     HashMap<Object, Integer> occurenceCount = new HashMap<>();
     Context context = Context.getCurrent();
+    var builder = Builder.getForLong(IntegerType.INT_64, size(), null);
     for (int i = 0; i < size(); i++) {
-      var value = getItemBoxed(i);
+      var value = getBoxed(i);
       var count = occurenceCount.getOrDefault(value, 0);
-      data[i] = count;
+      builder.appendLong(count);
       occurenceCount.put(value, count + 1);
       context.safepoint();
     }
-    return new LongStorage(data, IntegerType.INT_64);
+    return builder.seal();
   }
 
   public final Storage<?> cast(

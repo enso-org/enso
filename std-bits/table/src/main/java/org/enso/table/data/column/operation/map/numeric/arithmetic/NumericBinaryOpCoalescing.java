@@ -2,7 +2,6 @@ package org.enso.table.data.column.operation.map.numeric.arithmetic;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.BitSet;
 
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
@@ -14,9 +13,8 @@ import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.BigDecimalStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
-import org.enso.table.data.column.storage.numeric.DoubleStorage;
-import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.type.FloatType;
+import org.enso.table.data.column.storage.type.IntegerType;
 import org.graalvm.polyglot.Context;
 
 /**
@@ -92,31 +90,30 @@ public abstract class NumericBinaryOpCoalescing<T extends Number, I extends Stor
   }
 
   @Override
-  protected LongStorage runLongZip(
+  protected Storage<Long> runLongZip(
       AbstractLongStorage a,
       AbstractLongStorage b,
       MapOperationProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     int n = a.size();
     int m = Math.min(a.size(), b.size());
-    long[] out = new long[n];
-    BitSet isNothing = new BitSet();
+    var builder = Builder.getForLong(IntegerType.INT_64, n, null);
     for (int i = 0; i < m; i++) {
       boolean aNothing = a.isNothing(i);
       boolean bNothing = b.isNothing(i);
       if (aNothing && bNothing) {
-        isNothing.set(i);
+        builder.appendNulls(1);
       } else {
         if (aNothing) {
-          out[i] = b.get(i);
+          builder.appendLong(b.get(i));
         } else if (bNothing) {
-          out[i] = a.get(i);
+          builder.appendLong(a.get(i));
         } else {
           Long r = doLong(a.get(i), b.get(i), i, problemAggregator);
           if (r == null) {
-            isNothing.set(i);
+            builder.appendNulls(1);
           } else {
-            out[i] = r;
+            builder.appendLong(r);
           }
         }
       }
@@ -126,15 +123,15 @@ public abstract class NumericBinaryOpCoalescing<T extends Number, I extends Stor
 
     for (int i = m; i < n; ++i) {
       if (a.isNothing(i)) {
-        isNothing.set(i);
+        builder.appendNulls(1);
       } else {
-        out[i] = a.get(i);
+        builder.appendLong(a.get(i));
       }
 
       context.safepoint();
     }
 
-    return new LongStorage(out, n, isNothing, INTEGER_RESULT_TYPE);
+    return builder.seal();
   }
 
   protected Storage<Long> runLongMap(
@@ -146,24 +143,23 @@ public abstract class NumericBinaryOpCoalescing<T extends Number, I extends Stor
     long bNonNull = b;
     Context context = Context.getCurrent();
     int n = a.size();
-    long[] out = new long[n];
-    BitSet isNothing = new BitSet();
+    var builder = Builder.getForLong(IntegerType.INT_64, n, null);
     for (int i = 0; i < n; i++) {
       if (a.isNothing(i)) {
-        out[i] = bNonNull;
+        builder.appendLong(bNonNull);
       } else {
         Long r = doLong(a.get(i), bNonNull, i, problemAggregator);
         if (r == null) {
-          isNothing.set(i);
+          builder.appendNulls(1);
         } else {
-          out[i] = r;
+          builder.appendLong(r);
         }
       }
 
       context.safepoint();
     }
 
-    return new LongStorage(out, n, isNothing, INTEGER_RESULT_TYPE);
+    return builder.seal();
   }
 
   protected BigIntegerStorage runBigIntegerZip(

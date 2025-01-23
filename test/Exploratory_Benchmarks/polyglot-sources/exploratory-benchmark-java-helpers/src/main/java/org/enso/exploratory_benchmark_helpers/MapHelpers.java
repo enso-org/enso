@@ -32,22 +32,21 @@ public class MapHelpers {
     return builder.seal();
   }
 
-  public static LongStorage longAddBimap(LongStorage storage1, LongStorage storage2) {
+  public static Storage<Long> longAddBimap(LongStorage storage1, LongStorage storage2) {
     if (storage1.size() != storage2.size()) {
       throw new IllegalArgumentException("Storage sizes must match");
     }
 
-    int n = storage1.size();
-    long[] result = new long[n];
-    BitSet isNothing = new BitSet();
-    for (int i = 0; i < n; i++) {
+    long n = storage1.size();
+    var builder = Builder.getForLong(IntegerType.INT_64, n, null);
+    for (long i = 0; i < n; i++) {
       if (!storage1.isNothing(i) && !storage2.isNothing(i)) {
-        result[i] = storage1.get(i) + storage2.get(i);
+        builder.appendLong(storage1.get(i) + storage2.get(i));
       } else {
-        isNothing.set(i);
+        builder.appendNulls(1);
       }
     }
-    return new LongStorage(result, n, isNothing, IntegerType.INT_64);
+    return builder.seal();
   }
 
   public static BoolStorage textEndsWith(StringStorage storage, String suffix) {
@@ -66,32 +65,30 @@ public class MapHelpers {
     return new BoolStorage(result, isNothing, n, false);
   }
 
-  public static LongStorage longAdd(LongStorage storage, long shift) {
+  public static Storage<Long> longAdd(LongStorage storage, long shift) {
     int n = storage.size();
-    long[] result = new long[n];
-    BitSet isNothing = new BitSet();
+    var builder = Builder.getForLong(IntegerType.INT_64, n, null);
     for (int i = 0; i < n; i++) {
       if (!storage.isNothing(i)) {
-        result[i] = storage.get(i) + shift;
+        builder.appendLong(storage.get(i) + shift);
       } else {
-        isNothing.set(i);
+        builder.appendNulls(1);
       }
     }
-    return new LongStorage(result, n, isNothing, IntegerType.INT_64);
+    return builder.seal();
   }
 
-  public static LongStorage getYear(DateStorage storage) {
-    int n = storage.size();
-    long[] result = new long[n];
-    BitSet isNothing = new BitSet();
+  public static Storage<Long> getYear(DateStorage storage) {
+    long n = storage.getSize();
+    var builder = Builder.getForLong(IntegerType.INT_64, n, null);
     for (int i = 0; i < n; i++) {
       if (!storage.isNothing(i)) {
-        result[i] = storage.getBoxed(i).getYear();
+        builder.appendLong(storage.getBoxed(i).getYear());
       } else {
-        isNothing.set(i);
+        builder.appendNulls(1);
       }
     }
-    return new LongStorage(result, n, isNothing, IntegerType.INT_64);
+    return builder.seal();
   }
 
   public static Storage<?> mapCallback(
@@ -99,11 +96,11 @@ public class MapHelpers {
       Function<Object, Object> fn,
       StorageType expectedType,
       ProblemAggregator problemAggregator) {
-    int n = storage.size();
+    long n = storage.getSize();
     Builder builder = Builder.getForType(expectedType, n, problemAggregator);
-    for (int i = 0; i < n; i++) {
+    for (long i = 0; i < n; i++) {
       if (!storage.isNothing(i)) {
-        builder.append(fn.apply(storage.getItemBoxed(i)));
+        builder.append(fn.apply(storage.getBoxed(i)));
       } else {
         builder.appendNulls(1);
       }

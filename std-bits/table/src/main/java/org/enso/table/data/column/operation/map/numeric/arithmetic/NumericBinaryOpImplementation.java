@@ -4,7 +4,6 @@ import static org.enso.table.data.column.operation.map.numeric.helpers.DoubleArr
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.BitSet;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
@@ -215,24 +214,23 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
     return builder.seal();
   }
 
-  protected LongStorage runLongZip(
+  protected Storage<Long> runLongZip(
       AbstractLongStorage a,
       AbstractLongStorage b,
       MapOperationProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     int n = a.size();
     int m = Math.min(a.size(), b.size());
-    long[] out = new long[n];
-    BitSet isNothing = new BitSet();
+    var builder = Builder.getForLong(INTEGER_RESULT_TYPE, n, null);
     for (int i = 0; i < m; i++) {
       if (a.isNothing(i) || b.isNothing(i)) {
-        isNothing.set(i);
+        builder.appendNulls(1);
       } else {
         Long r = doLong(a.get(i), b.get(i), i, problemAggregator);
         if (r == null) {
-          isNothing.set(i);
+          builder.appendNulls(1);
         } else {
-          out[i] = r;
+          builder.appendLong(r);
         }
       }
 
@@ -240,10 +238,10 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
     }
 
     if (m < n) {
-      isNothing.set(m, n);
+      builder.appendNulls(n - m);
     }
 
-    return new LongStorage(out, n, isNothing, INTEGER_RESULT_TYPE);
+    return builder.seal();
   }
 
   protected Storage<Long> runLongMap(
@@ -255,24 +253,23 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
     long bNonNull = b;
     Context context = Context.getCurrent();
     int n = a.size();
-    long[] out = new long[n];
-    BitSet isNothing = new BitSet();
+    var builder = Builder.getForLong(INTEGER_RESULT_TYPE, n, null);
     for (int i = 0; i < n; i++) {
       if (a.isNothing(i)) {
-        isNothing.set(i);
+        builder.appendNulls(1);
       } else {
         Long r = doLong(a.get(i), bNonNull, i, problemAggregator);
         if (r == null) {
-          isNothing.set(i);
+          builder.appendNulls(1);
         } else {
-          out[i] = r;
+          builder.appendLong(r);
         }
       }
 
       context.safepoint();
     }
 
-    return new LongStorage(out, n, isNothing, INTEGER_RESULT_TYPE);
+    return builder.seal();
   }
 
   protected BigIntegerStorage runBigIntegerZip(

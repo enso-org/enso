@@ -1,16 +1,17 @@
 package org.enso.exploratory_benchmark_helpers;
 
-import java.util.BitSet;
+import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
-import org.enso.table.data.column.storage.numeric.LongStorage;
+import org.enso.table.data.column.storage.ColumnLongStorage;
+import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.problems.BlackholeProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 
 public class LongNullHandling {
   public interface Operation {
-    LongStorage run(
-        LongStorage storage, LongStorage arg, MapOperationProblemAggregator problemAggregator);
+    Storage<Long> run(
+        ColumnLongStorage storage, ColumnLongStorage arg, MapOperationProblemAggregator problemAggregator);
   }
 
   public abstract static class NoNulls implements Operation {
@@ -19,19 +20,18 @@ public class LongNullHandling {
         long a, long b, int ix, MapOperationProblemAggregator problemAggregator);
 
     @Override
-    public LongStorage run(
-        LongStorage storage, LongStorage arg, MapOperationProblemAggregator problemAggregator) {
-      int n = storage.size();
-      long[] newVals = new long[n];
-      BitSet isNothing = new BitSet();
+    public Storage<Long> run(
+        ColumnLongStorage storage, ColumnLongStorage arg, MapOperationProblemAggregator problemAggregator) {
+      long n = storage.getSize();
+      var builder = Builder.getForLong(IntegerType.INT_64, n, null);
       for (int i = 0; i < n; i++) {
         if (storage.isNothing(i) || arg.isNothing(i)) {
-          isNothing.set(i);
+          builder.appendNulls(1);
         } else {
-          newVals[i] = doLong(storage.get(i), arg.get(i), i, problemAggregator);
+          builder.appendLong(doLong(storage.get(i), arg.get(i), i, problemAggregator));
         }
       }
-      return new LongStorage(newVals, n, isNothing, IntegerType.INT_64);
+      return builder.seal();
     }
   }
 
@@ -41,24 +41,23 @@ public class LongNullHandling {
         long a, long b, int ix, MapOperationProblemAggregator problemAggregator);
 
     @Override
-    public LongStorage run(
-        LongStorage storage, LongStorage arg, MapOperationProblemAggregator problemAggregator) {
-      int n = storage.size();
-      long[] newVals = new long[n];
-      BitSet isNothing = new BitSet();
+    public Storage<Long> run(
+        ColumnLongStorage storage, ColumnLongStorage arg, MapOperationProblemAggregator problemAggregator) {
+      long n = storage.getSize();
+      var builder = Builder.getForLong(IntegerType.INT_64, n, null);
       for (int i = 0; i < n; i++) {
         if (storage.isNothing(i) || arg.isNothing(i)) {
-          isNothing.set(i);
+          builder.appendNulls(1);
         } else {
           Long x = doLong(storage.get(i), arg.get(i), i, problemAggregator);
           if (x == null) {
-            isNothing.set(i);
+            builder.appendNulls(1);
           } else {
-            newVals[i] = x;
+            builder.appendLong(x);
           }
         }
       }
-      return new LongStorage(newVals, n, isNothing, IntegerType.INT_64);
+      return builder.seal();
     }
   }
 
@@ -79,27 +78,26 @@ public class LongNullHandling {
         NullityReporter nullityReporter);
 
     @Override
-    public LongStorage run(
-        LongStorage storage, LongStorage arg, MapOperationProblemAggregator problemAggregator) {
-      int n = storage.size();
-      long[] newVals = new long[n];
-      BitSet isNothing = new BitSet();
+    public Storage<Long> run(
+        ColumnLongStorage storage, ColumnLongStorage arg, MapOperationProblemAggregator problemAggregator) {
+      long n = storage.getSize();
+      var builder = Builder.getForLong(IntegerType.INT_64, n, null);
       NullityReporter nullityReporter = new NullityReporter();
       for (int i = 0; i < n; i++) {
         if (storage.isNothing(i) || arg.isNothing(i)) {
-          isNothing.set(i);
+          builder.appendNulls(1);
         } else {
           long x =
               doLong(storage.get(i), arg.get(i), i, problemAggregator, nullityReporter);
           if (nullityReporter.wasLastNull) {
-            isNothing.set(i);
+            builder.appendNulls(1);
             nullityReporter.wasLastNull = false;
           } else {
-            newVals[i] = x;
+            builder.appendLong(x);
           }
         }
       }
-      return new LongStorage(newVals, n, isNothing, IntegerType.INT_64);
+      return builder.seal();
     }
   }
 
@@ -109,7 +107,7 @@ public class LongNullHandling {
   private static final ProblemAggregator parentAggregatorForBenchmarks =
       BlackholeProblemAggregator.INSTANCE;
 
-  public static LongStorage runNoNulls(LongStorage arg1, LongStorage arg2) {
+  public static Storage<Long> runNoNulls(ColumnLongStorage arg1, ColumnLongStorage arg2) {
     MapOperationProblemAggregator problemAggregator =
         new MapOperationProblemAggregator(parentAggregatorForBenchmarks, null);
     NoNulls operation =
@@ -129,7 +127,7 @@ public class LongNullHandling {
     return operation.run(arg1, arg2, problemAggregator);
   }
 
-  public static LongStorage runBoxingNulls(LongStorage arg1, LongStorage arg2) {
+  public static Storage<Long> runBoxingNulls(ColumnLongStorage arg1, ColumnLongStorage arg2) {
     MapOperationProblemAggregator problemAggregator =
         new MapOperationProblemAggregator(parentAggregatorForBenchmarks, null);
     BoxingNulls operation =
@@ -149,7 +147,7 @@ public class LongNullHandling {
     return operation.run(arg1, arg2, problemAggregator);
   }
 
-  public static LongStorage runReportingNulls(LongStorage arg1, LongStorage arg2) {
+  public static Storage<Long> runReportingNulls(ColumnLongStorage arg1, ColumnLongStorage arg2) {
     MapOperationProblemAggregator problemAggregator =
         new MapOperationProblemAggregator(parentAggregatorForBenchmarks, null);
     ReportingNulls operation =
