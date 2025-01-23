@@ -106,7 +106,7 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
       BitSet comparisonResults = new BitSet();
       Context context = Context.getCurrent();
       for (int i = 0; i < n; ++i) {
-        Object item = storage.getItemBoxed(i);
+        Object item = storage.getBoxed(i);
         if (item == null) {
           isNothing.set(i);
         } else {
@@ -405,8 +405,8 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
     BitSet isNothing = new BitSet();
     Context context = Context.getCurrent();
     for (int i = 0; i < m; ++i) {
-      Object x = lhs.getItemBoxed(i);
-      Object y = rhs.getItemBoxed(i);
+      Object x = lhs.getBoxed(i);
+      Object y = rhs.getBoxed(i);
       if (x == null || y == null) {
         isNothing.set(i);
       } else {

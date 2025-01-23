@@ -110,7 +110,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
         Builder.getForText(storage.size(), targetType),
         storage,
         (i) -> {
-          var value = storage.getItemBoxed((int) i);
+          var value = storage.getBoxed(i);
           return adapt(converter.apply(value), problemAggregator);
         });
   }

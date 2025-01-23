@@ -32,7 +32,7 @@ public class ShortestOrLongest extends KnownTypeAggregator {
     Object current = null;
 
     for (int row : indexes) {
-      Object value = storage.getItemBoxed(row);
+      Object value = storage.getBoxed(row);
       if (value != null) {
         if (!(value instanceof String asString)) {
           innerAggregator.reportColumnAggregatedProblem(

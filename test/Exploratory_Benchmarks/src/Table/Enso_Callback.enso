@@ -40,7 +40,7 @@ type Boxed_Enso_Callback_Test
         builder = Builder.getForType TextType.VARIABLE_LENGTH n Nothing
         storage = Storage.get_storage_for_column self.text_column
         0.up_to n . each i->
-            case storage.getItemBoxed i of
+            case storage.getBoxed i of
                 Nothing ->
                     builder.appendNulls 1
                 item ->
@@ -105,7 +105,7 @@ type Primitive_Enso_Callback_Test
         builder = Builder.getForLong IntegerType.INT_64 n Nothing
         storage = Storage.get_storage_for_column self.int_column
         0.up_to n . each i->
-            case storage.getItemBoxed i of
+            case storage.getBoxed i of
                 Nothing ->
                     builder.appendNulls 1
                 item ->

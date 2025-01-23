@@ -69,7 +69,7 @@ public abstract class GenericBinaryOpReturningBoolean<T, S extends SpecializedSt
       if (storage.isNothing(i)) {
         newIsNothing.set(i);
       } else {
-        T storageItem = storage.getItemBoxed(i);
+        T storageItem = storage.getBoxed(i);
         assert storageItem != null : "isNothing returned true but element was null";
         boolean r = doOperation(storageItem, arg);
         newVals.set(i, r);
@@ -89,7 +89,7 @@ public abstract class GenericBinaryOpReturningBoolean<T, S extends SpecializedSt
       if (storage.isNothing(i)) {
         newIsNothing.set(i);
       } else {
-        T storageItem = storage.getItemBoxed(i);
+        T storageItem = storage.getBoxed(i);
         assert storageItem != null : "isNothing returned true but element was null";
         boolean r = doOther(storageItem, arg);
         newVals.set(i, r);
@@ -110,8 +110,8 @@ public abstract class GenericBinaryOpReturningBoolean<T, S extends SpecializedSt
       if (storage.isNothing(i) || !(i < m) || argStorage.isNothing(i)) {
         newIsNothing.set(i);
       } else {
-        T storageItem = storage.getItemBoxed(i);
-        T argItem = argStorage.getItemBoxed(i);
+        T storageItem = storage.getBoxed(i);
+        T argItem = argStorage.getBoxed(i);
         assert storageItem != null : "isNothing returned true but element was null";
         assert argItem != null : "isNothing returned true but element was null";
         boolean r = doOperation(storageItem, argItem);
@@ -134,8 +134,8 @@ public abstract class GenericBinaryOpReturningBoolean<T, S extends SpecializedSt
       if (storage.isNothing(i) || !(i < m) || argStorage.isNothing(i)) {
         newIsNothing.set(i);
       } else {
-        T storageItem = storage.getItemBoxed(i);
-        Object argItem = argStorage.getItemBoxed(i);
+        T storageItem = storage.getBoxed(i);
+        Object argItem = argStorage.getBoxed(i);
         assert storageItem != null : "isNothing returned true but element was null";
         assert argItem != null : "isNothing returned true but element was null";
 

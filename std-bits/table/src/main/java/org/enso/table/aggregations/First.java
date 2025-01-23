@@ -53,7 +53,7 @@ public class First extends KnownTypeAggregator {
 
     Context context = Context.getCurrent();
     for (int row : indexes) {
-      Object value = storage.getItemBoxed(row);
+      Object value = storage.getBoxed(row);
       if (ignoreNothing && value == null) {
         continue;
       }
@@ -62,7 +62,7 @@ public class First extends KnownTypeAggregator {
           new OrderedMultiValueKey(this.orderByColumns, row, this.orderByDirections);
       if (key == null || key.compareTo(newKey) > 0) {
         key = newKey;
-        current = storage.getItemBoxed(row);
+        current = storage.getBoxed(row);
       }
 
       context.safepoint();
@@ -74,7 +74,7 @@ public class First extends KnownTypeAggregator {
   private Object firstByRowOrder(List<Integer> indexes) {
     Context context = Context.getCurrent();
     for (int row : indexes) {
-      Object value = storage.getItemBoxed(row);
+      Object value = storage.getBoxed(row);
       if (!ignoreNothing || value != null) {
         return value;
       }

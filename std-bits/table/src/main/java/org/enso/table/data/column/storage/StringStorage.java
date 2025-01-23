@@ -112,7 +112,7 @@ public final class StringStorage extends SpecializedStorage<String> {
             for (int i = 0; i < storage.size(); i++) {
               if (storage.getBoxed(i) == null || i >= arg.size() || arg.isNothing(i)) {
                 isNothing.set(i);
-              } else if (arg.getItemBoxed(i) instanceof String s
+              } else if (arg.getBoxed(i) instanceof String s
                   && Text_Utils.equals(storage.getBoxed(i), s)) {
                 r.set(i);
               }

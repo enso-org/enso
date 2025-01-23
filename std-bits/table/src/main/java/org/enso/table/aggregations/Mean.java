@@ -102,7 +102,7 @@ public class Mean extends KnownTypeAggregator {
         ColumnAggregatedProblemAggregator innerAggregator =
             new ColumnAggregatedProblemAggregator(problemAggregator);
         for (int i : indexes) {
-          Object value = storage.getItemBoxed(i);
+          Object value = storage.getBoxed(i);
           if (value != null) {
             Double dValue = NumericConverter.tryConvertingToDouble(value);
             if (dValue == null) {
@@ -136,7 +136,7 @@ public class Mean extends KnownTypeAggregator {
           new ColumnAggregatedProblemAggregator(problemAggregator);
       Context context = Context.getCurrent();
       for (int i : indexes) {
-        Object value = storage.getItemBoxed(i);
+        Object value = storage.getBoxed(i);
         if (value != null) {
           try {
             BigDecimal valueAsBigDecimal = NumericConverter.coerceToBigDecimal(value);

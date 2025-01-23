@@ -52,7 +52,7 @@ public final class DateTimeBuilder extends TypedBuilder<ZonedDateTime> {
       if (storage instanceof DateStorage dateStorage) {
         Context context = Context.getCurrent();
         for (int i = 0; i < dateStorage.size(); ++i) {
-          LocalDate date = dateStorage.getItemBoxed(i);
+          LocalDate date = dateStorage.getBoxed(i);
           if (date == null) {
             data[currentSize++] = null;
           } else {

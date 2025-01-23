@@ -70,7 +70,7 @@ public final class InferredIntegerBuilder implements Builder {
       appendNulls(storage.size());
     } else {
       for (int i = 0; i < storage.size(); i++) {
-        append(storage.getItemBoxed(i));
+        append(storage.getBoxed(i));
       }
     }
   }

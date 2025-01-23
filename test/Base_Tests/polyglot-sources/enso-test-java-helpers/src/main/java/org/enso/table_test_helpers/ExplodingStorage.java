@@ -51,8 +51,8 @@ public class ExplodingStorage extends Storage<Long> {
   }
 
   @Override
-  public Long getItemBoxed(int idx) {
-    return getItem(idx);
+  public Long getBoxed(long idx) {
+    return getItem((int)idx);
   }
 
   @Override

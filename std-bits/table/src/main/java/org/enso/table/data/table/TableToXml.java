@@ -59,7 +59,7 @@ public class TableToXml {
 
   private static void get_set_attribute(
       Column attribute_column, String legal_name, int row, Element rowElement) throws DOMException {
-    var item = attribute_column.getStorage().getItemBoxed(row);
+    var item = attribute_column.getStorage().getBoxed(row);
     if (item != null) {
       rowElement.setAttribute(legal_name, item.toString());
     }
@@ -68,7 +68,7 @@ public class TableToXml {
   private static void get_append_element(
       Column element_column, String legal_name, int row, Document doc, Element rowElement)
       throws DOMException {
-    var item = element_column.getStorage().getItemBoxed(row);
+    var item = element_column.getStorage().getBoxed(row);
     if (item != null) {
       var columnElement = doc.createElement(legal_name);
       columnElement.setTextContent(item.toString());
@@ -78,7 +78,7 @@ public class TableToXml {
 
   private static void get_set_value(Column value_Column, int row, Element rowElement)
       throws DOMException {
-    var item = value_Column.getStorage().getItemBoxed(row);
+    var item = value_Column.getStorage().getBoxed(row);
     if (item != null) {
       rowElement.setTextContent(item.toString());
     }

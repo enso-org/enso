@@ -37,7 +37,7 @@ public class ObjectBuilder extends TypedBuilder<Object> {
     } else {
       int n = storage.size();
       for (int i = 0; i < n; i++) {
-        data[currentSize++] = storage.getItemBoxed(i);
+        data[currentSize++] = storage.getBoxed(i);
       }
     }
   }

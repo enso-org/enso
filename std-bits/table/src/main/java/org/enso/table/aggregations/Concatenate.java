@@ -35,11 +35,11 @@ public class Concatenate extends KnownTypeAggregator {
     Context context = Context.getCurrent();
     StringBuilder current = null;
     for (int row : indexes) {
-      Object value = storage.getItemBoxed(row);
+      Object value = storage.getBoxed(row);
       if (value == null || value instanceof String) {
         String textValue = toQuotedString(value, quote, separator);
 
-        if (!separator.equals("") && quote.equals("") && textValue.contains(separator)) {
+        if (!separator.isEmpty() && quote.isEmpty() && textValue.contains(separator)) {
           innerAggregator.reportColumnAggregatedProblem(
               new UnquotedDelimiter(this.getName(), row, "Unquoted delimiter."));
         }

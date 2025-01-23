@@ -141,7 +141,7 @@ public class DelimitedWriter {
       for (int col = 0; col < numberOfColumns; ++col) {
         boolean isLast = col == numberOfColumns - 1;
         String columnName = table.getColumns()[col].getName();
-        Object cellValue = table.getColumns()[col].getStorage().getItemBoxed(row);
+        Object cellValue = table.getColumns()[col].getStorage().getBoxed(row);
         String formatted = columnFormatters[col].format(cellValue);
         boolean wantsQuoting =
             writeQuoteBehavior == WriteQuoteBehavior.ALWAYS && wantsQuotesInAlwaysMode(cellValue);

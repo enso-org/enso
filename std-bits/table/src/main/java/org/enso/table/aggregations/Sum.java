@@ -6,10 +6,10 @@ import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.InferredIntegerBuilder;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
+import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
-import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
@@ -169,7 +169,7 @@ public class Sum extends Aggregator {
     @Override
     void accumulate(List<Integer> indexes, Storage<?> storage) {
       Context context = Context.getCurrent();
-      if (storage instanceof DoubleStorage doubleStorage) {
+      if (storage instanceof ColumnDoubleStorage doubleStorage) {
         for (int row : indexes) {
           if (!doubleStorage.isNothing(row)) {
             addDouble(doubleStorage.get(row));
@@ -178,7 +178,7 @@ public class Sum extends Aggregator {
         }
       } else {
         for (int row : indexes) {
-          add(storage.getItemBoxed(row));
+          add(storage.getBoxed(row));
           context.safepoint();
         }
       }

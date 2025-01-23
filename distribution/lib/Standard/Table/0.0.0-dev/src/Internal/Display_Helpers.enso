@@ -89,7 +89,7 @@ ansi_bold enabled txt =
 ## PRIVATE
    Gets a textual representation of the item at position `ix` in `storage`.
 private _get_item_as_text storage ix =
-    item = storage.getItemBoxed ix
+    item = storage.getBoxed ix
     ## Special handling for display of Text to avoid quotes when not necessary.
     case item of
         _ : Text -> _normalize_text_for_display item

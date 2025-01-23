@@ -53,8 +53,13 @@ public final class BoolStorage extends Storage<Boolean>
   }
 
   @Override
-  public int size() {
+  public long getSize() {
     return size;
+  }
+
+  @Override
+  public Boolean getBoxed(long idx) {
+    return isNothing(idx) ? null : negated != values.get((int)idx);
   }
 
   @Override
@@ -63,17 +68,20 @@ public final class BoolStorage extends Storage<Boolean>
   }
 
   @Override
-  public Boolean getItemBoxed(int idx) {
-    return isNothing.get(idx) ? null : getItem(idx);
-  }
+  public boolean get(long index) throws ValueIsNothingException {
+    if (isNothing(index)) {
+      throw new ValueIsNothingException(index);
+    }
 
-  public boolean getItem(long idx) {
-    return negated != values.get((int) idx);
+    return negated != values.get((int)index);
   }
 
   @Override
   public boolean isNothing(long idx) {
-    return isNothing.get((int) idx);
+      if (idx < 0 || idx >= getSize()) {
+          throw new IndexOutOfBoundsException("Index out of bounds: " + idx);
+      }
+      return isNothing.get((int) idx);
   }
 
   @Override
@@ -93,8 +101,17 @@ public final class BoolStorage extends Storage<Boolean>
     return ops.runZip(name, this, argument, problemAggregator);
   }
 
+  public boolean isNegated() {
+    return negated;
+  }
+
   public BitSet getValues() {
     return values;
+  }
+
+  @Override
+  public BitSet getIsNothingMap() {
+    return isNothing;
   }
 
   /**
@@ -146,7 +163,7 @@ public final class BoolStorage extends Storage<Boolean>
           newIsNothing.set(i);
         }
       } else {
-        boolean currentValue = getItem(i);
+        boolean currentValue = get(i);
         newValues.set(i, currentValue);
         previousValue = currentValue;
         hasPrevious = true;
@@ -200,10 +217,6 @@ public final class BoolStorage extends Storage<Boolean>
     return new BoolStorage(newVals, newNa, mask.length(), negated);
   }
 
-  public boolean isNegated() {
-    return negated;
-  }
-
   public Storage<?> iif(
       Value when_true,
       Value when_false,
@@ -216,7 +229,7 @@ public final class BoolStorage extends Storage<Boolean>
     for (int i = 0; i < size; i++) {
       if (isNothing.get(i)) {
         builder.appendNulls(1);
-      } else if (getItem(i)) {
+      } else if (get(i)) {
         builder.append(on_true.apply(i));
       } else {
         builder.append(on_false.apply(i));
@@ -230,7 +243,7 @@ public final class BoolStorage extends Storage<Boolean>
 
   private static IntFunction<Object> makeRowProvider(Value value) {
     if (value.isHostObject() && value.asHostObject() instanceof Storage<?> s) {
-      return i -> (Object) s.getItemBoxed(i);
+      return i -> (Object) s.getBoxed(i);
     }
     var converted = Polyglot_Utils.convertPolyglotValue(value);
     return i -> converted;
@@ -318,19 +331,6 @@ public final class BoolStorage extends Storage<Boolean>
     return new BoolStorage(newValues, newIsNothing, newSize, negated);
   }
 
-  @Override
-  public BitSet getIsNothingMap() {
-    return isNothing;
-  }
-
-  @Override
-  public boolean get(long index) throws ValueIsNothingException {
-    if (isNothing(index)) {
-      throw new ValueIsNothingException(index);
-    }
-    return getItem(index);
-  }
-
   private static class BoolEq extends BinaryMapOperation<Boolean, BoolStorage> {
     public BoolEq() {
       super(Maps.EQ);
@@ -360,7 +360,7 @@ public final class BoolStorage extends Storage<Boolean>
       BitSet isNothing = new BitSet();
       for (int i = 0; i < storage.size; i++) {
         if (!storage.isNothing(i) && i < arg.size() && !arg.isNothing(i)) {
-          if (((Boolean) storage.getItem(i)).equals(arg.getItemBoxed(i))) {
+          if (((Boolean) storage.get(i)).equals(arg.getBoxed(i))) {
             out.set(i);
           }
         } else {
@@ -430,8 +430,8 @@ public final class BoolStorage extends Storage<Boolean>
       }
       int current = isNothing.nextSetBit(0);
       while (current != -1) {
-        Boolean a = storage.getItemBoxed(current);
-        Boolean b = (current < v.size) ? v.getItemBoxed(current) : null;
+        Boolean a = storage.getBoxed(current);
+        Boolean b = (current < v.size) ? v.getBoxed(current) : null;
         if (a == Boolean.FALSE || b == Boolean.FALSE) {
           isNothing.clear(current);
           boolean falseValue = negated;
@@ -502,8 +502,8 @@ public final class BoolStorage extends Storage<Boolean>
       }
       int current = isNothing.nextSetBit(0);
       while (current != -1) {
-        Boolean a = storage.getItemBoxed(current);
-        Boolean b = (current < v.size) ? v.getItemBoxed(current) : null;
+        Boolean a = storage.getBoxed(current);
+        Boolean b = (current < v.size) ? v.getBoxed(current) : null;
         if (a == Boolean.TRUE || b == Boolean.TRUE) {
           isNothing.clear(current);
           boolean trueValue = !negated;
@@ -536,8 +536,8 @@ public final class BoolStorage extends Storage<Boolean>
           if (storage.isNothing(i) || argBoolStorage.isNothing(i)) {
             isNothing.set(i);
           } else {
-            boolean a = storage.getItem(i);
-            boolean b = argBoolStorage.getItem(i);
+            boolean a = storage.get(i);
+            boolean b = argBoolStorage.get(i);
             boolean r = doCompare(a, b);
             out.set(i, r);
           }
@@ -558,8 +558,8 @@ public final class BoolStorage extends Storage<Boolean>
           if (storage.isNothing(i) || arg.isNothing(i)) {
             isNothing.set(i);
           } else {
-            boolean a = storage.getItem(i);
-            Object b = arg.getItemBoxed(i);
+            boolean a = storage.get(i);
+            Object b = arg.getBoxed(i);
             if (b instanceof Boolean bBool) {
               boolean r = doCompare(a, bBool);
               out.set(i, r);
@@ -728,11 +728,11 @@ public final class BoolStorage extends Storage<Boolean>
             isNothing.set(i);
           } else {
             if (isNothingA) {
-              out.set(i, argBoolStorage.getItem(i));
+              out.set(i, argBoolStorage.get(i));
             } else if (isNothingB) {
-              out.set(i, storage.getItem(i));
+              out.set(i, storage.get(i));
             } else {
-              out.set(i, doOperation(storage.getItem(i), argBoolStorage.getItem(i)));
+              out.set(i, doOperation(storage.get(i), argBoolStorage.get(i)));
             }
           }
 
@@ -743,7 +743,7 @@ public final class BoolStorage extends Storage<Boolean>
           if (storage.isNothing(i)) {
             isNothing.set(i);
           } else {
-            out.set(i, storage.getItem(i));
+            out.set(i, storage.get(i));
           }
 
           context.safepoint();

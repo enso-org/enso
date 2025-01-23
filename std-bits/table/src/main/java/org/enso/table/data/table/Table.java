@@ -466,11 +466,11 @@ public class Table {
     for (int row = 0; row < size; row++) {
       for (Column column : to_transpose) {
         for (int i = 0; i < id_columns.length; i++) {
-          storage[i].append(id_columns[i].getStorage().getItemBoxed(row));
+          storage[i].append(id_columns[i].getStorage().getBoxed(row));
         }
 
         storage[id_columns.length].append(column.getName());
-        storage[id_columns.length + 1].append(column.getStorage().getItemBoxed(row));
+        storage[id_columns.length + 1].append(column.getStorage().getBoxed(row));
       }
 
       context.safepoint();

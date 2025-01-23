@@ -37,7 +37,7 @@ public class CountEmpty extends KnownTypeAggregator {
     Context context = Context.getCurrent();
     int count = 0;
     for (int row : indexes) {
-      Object value = storage.getItemBoxed(row);
+      Object value = storage.getBoxed(row);
       if (value == null) {
         count += isEmpty ? 1 : 0;
       } else if (value instanceof String asString) {

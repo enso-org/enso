@@ -60,7 +60,7 @@ public abstract class SpecializedIsInOp<T, S extends Storage<T>> extends BinaryM
       for (int i = 0; i < storage.size(); i++) {
         if (storage.isNothing(i)) {
           isNothing.set(i);
-        } else if (compactRepresentation.coercedValues.contains(storage.getItemBoxed(i))) {
+        } else if (compactRepresentation.coercedValues.contains(storage.getBoxed(i))) {
           newVals.set(i);
         } else if (compactRepresentation.hasNulls) {
           isNothing.set(i);

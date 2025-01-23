@@ -48,16 +48,6 @@ public abstract class Storage<T> implements ColumnStorage<T> {
   @Override
   public abstract boolean isNothing(long index);
 
-  /**
-   * Returns a boxed representation of an item. Missing values are denoted with null.
-   *
-   * @param idx the index to look up
-   * @return the item at position {@code idx}
-   */
-  public final T getItemBoxed(int idx) {
-    return getBoxed(idx);
-  }
-
   @Override
   public abstract T getBoxed(long index);
 

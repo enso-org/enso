@@ -506,7 +506,7 @@ public class ExcelWriter {
     } else if (storage instanceof BoolStorage boolStorage) {
       cell.setCellValue(boolStorage.get(j));
     } else {
-      Object value = storage.getItemBoxed(j);
+      Object value = storage.getBoxed(j);
       switch (value) {
         case String s -> cell.setCellValue(s);
         case Boolean b -> cell.setCellValue(b);

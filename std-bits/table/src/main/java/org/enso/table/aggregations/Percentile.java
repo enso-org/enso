@@ -32,7 +32,7 @@ public class Percentile extends KnownTypeAggregator {
     int count = 0;
     SortedMap<Double, Integer> currentMap = new TreeMap<>();
     for (int row : indexes) {
-      Object value = storage.getItemBoxed(row);
+      Object value = storage.getBoxed(row);
       if (value != null) {
         Double dValue = NumericConverter.tryConvertingToDouble(value);
 

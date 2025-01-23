@@ -33,7 +33,7 @@ type Boxed_Total_Aggregate
         n = self.text_column.length
         storage = get_storage_for_column self.text_column
         (0.up_to n).fold Nothing acc-> ix->
-            item = storage.getItemBoxed ix
+            item = storage.getBoxed ix
             if acc.is_nothing then item else
                 if item.is_nothing then acc else
                     if item.length > acc.length then item else acc
@@ -89,7 +89,7 @@ type Boxed_Sum_Months
         n = self.date_column.length
         storage = get_storage_for_column self.date_column
         (0.up_to n).fold 0 acc-> ix->
-            item = storage.getItemBoxed ix
+            item = storage.getBoxed ix
             if item.is_nothing then acc else
                 acc + item.month
 

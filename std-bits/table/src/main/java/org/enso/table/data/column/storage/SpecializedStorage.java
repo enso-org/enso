@@ -192,7 +192,7 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
 
     @Override
     public Object get(int index) {
-      return storage.getItemBoxed(index);
+      return storage.getBoxed(index);
     }
 
     @Override

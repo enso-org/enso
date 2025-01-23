@@ -76,7 +76,7 @@ public class ToBigIntegerConverter implements StorageConverter<BigInteger> {
         Builder.getForBigInteger(bigDecimalStorage.size(), problemAggregator),
         bigDecimalStorage,
         (i) -> {
-          BigDecimal x = bigDecimalStorage.getBoxed((int) i);
+          BigDecimal x = bigDecimalStorage.getBoxed(i);
           return x.toBigInteger();
         });
   }

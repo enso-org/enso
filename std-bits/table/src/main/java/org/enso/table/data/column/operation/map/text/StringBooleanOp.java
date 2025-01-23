@@ -89,7 +89,7 @@ public abstract class StringBooleanOp
       BitSet newIsNothing = new BitSet();
       for (int i = 0; i < storage.size(); i++) {
         if (!storage.isNothing(i) && i < arg.size() && !arg.isNothing(i)) {
-          Object x = arg.getItemBoxed(i);
+          Object x = arg.getBoxed(i);
           if (x instanceof String str) {
             if (doString(storage.getBoxed(i), str)) {
               newVals.set(i);

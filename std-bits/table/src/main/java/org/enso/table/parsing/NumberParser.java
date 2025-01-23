@@ -114,7 +114,7 @@ public class NumberParser extends IncrementalDatatypeParser {
 
     var context = Context.getCurrent();
     for (int i = 0; i < sourceStorage.size(); i++) {
-      var text = sourceStorage.getItemBoxed(i);
+      var text = sourceStorage.getBoxed(i);
 
       // Check if in unknown state
       var mightBeEuropean = !isInteger() && parser.numberWithSeparators().mightBeEuropean();
@@ -127,7 +127,7 @@ public class NumberParser extends IncrementalDatatypeParser {
         builder =
             makeBuilderWithCapacity(sourceStorage.size(), problemAggregator.createSimpleChild());
         for (int j = 0; j < i; j++) {
-          var subText = sourceStorage.getItemBoxed(j);
+          var subText = sourceStorage.getBoxed(j);
           var subResult = subText == null ? null : parseSingleValue(subText, problemAggregator);
           if (subResult == null) {
             builder.appendNulls(1);

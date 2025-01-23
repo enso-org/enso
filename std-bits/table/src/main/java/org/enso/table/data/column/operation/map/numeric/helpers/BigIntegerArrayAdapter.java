@@ -35,7 +35,7 @@ public interface BigIntegerArrayAdapter {
 
     @Override
     public BigInteger getItem(int i) {
-      return storage.getItemBoxed(i);
+      return storage.getBoxed(i);
     }
 
     @Override
