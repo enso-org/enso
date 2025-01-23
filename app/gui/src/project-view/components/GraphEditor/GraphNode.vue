@@ -238,7 +238,7 @@ const visualizationHovered = ref(false)
 const isVisualizationPreviewed = computed(
   () =>
     keyboard.mod &&
-    (outputHovered.value || visualizationHovered.value) &&
+    (outputHovered.value || visualizationHovered.value || nodeHovered.value) &&
     !isVisualizationEnabled.value,
 )
 const isVisualizationVisible = computed(
