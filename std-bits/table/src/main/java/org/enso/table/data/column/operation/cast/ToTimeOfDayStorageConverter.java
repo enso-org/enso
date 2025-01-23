@@ -3,6 +3,7 @@ package org.enso.table.data.column.operation.cast;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.datetime.DateTimeStorage;
 import org.enso.table.data.column.storage.datetime.TimeOfDayStorage;
@@ -24,12 +25,12 @@ public class ToTimeOfDayStorageConverter implements StorageConverter<LocalTime> 
   }
 
   private Storage<LocalTime> castFromMixed(
-      Storage<?> mixedStorage, CastProblemAggregator problemAggregator) {
+      ColumnStorage mixedStorage, CastProblemAggregator problemAggregator) {
     return StorageConverter.innerLoop(
-        Builder.getForTime(mixedStorage.size()),
+        Builder.getForTime(mixedStorage.getSize()),
         mixedStorage,
         (i) -> {
-          Object o = mixedStorage.getItemBoxed(i);
+          Object o = mixedStorage.getItemAsObject(i);
           return switch (o) {
             case LocalTime d -> d;
             case ZonedDateTime d -> convertDateTime(d);

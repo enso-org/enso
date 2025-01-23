@@ -24,14 +24,8 @@ public class MixedBuilder extends ObjectBuilder implements BuilderWithRetyping {
   }
 
   @Override
-  public Storage<Object> seal() {
-    resize(currentSize);
+  public Storage<Object> doSeal() {
     return new MixedStorage(data, currentSize);
-  }
-
-  @Override
-  public boolean accepts(Object o) {
-    return true;
   }
 
   @Override

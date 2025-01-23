@@ -354,7 +354,7 @@ public class ExcelReader {
     while (row <= endRow && (row - startRow) < rowCount) {
       ExcelRow currentRow = sheet.get(row);
       if (currentRow == null) {
-        builders.forEach(b -> b.append(null));
+        builders.forEach(b -> b.appendNulls(1));
       } else {
         int currentEndCol =
             endCol == -1
@@ -398,7 +398,7 @@ public class ExcelReader {
       int rows,
       ProblemAggregator problemAggregator) {
     for (int i = builders.size(); i <= columnCount; i++) {
-      Builder builder = new InferredBuilder(size, problemAggregator, true);
+      var builder = new InferredBuilder(size, problemAggregator, true);
       builder.appendNulls(rows);
       builders.add(builder);
     }

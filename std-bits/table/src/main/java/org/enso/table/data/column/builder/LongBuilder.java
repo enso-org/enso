@@ -26,7 +26,7 @@ public class LongBuilder extends NumericBuilder implements BuilderForLong, Build
   }
 
   static LongBuilder make(int initialSize, IntegerType type, ProblemAggregator problemAggregator) {
-    if (type.equals(IntegerType.INT_64)) {
+    if (type == null || type.equals(IntegerType.INT_64)) {
       return new LongBuilder(initialSize, problemAggregator);
     } else {
       return new BoundCheckedIntegerBuilder(initialSize, type, problemAggregator);
@@ -138,24 +138,22 @@ public class LongBuilder extends NumericBuilder implements BuilderForLong, Build
    * @param value the integer to append
    */
   public void appendLong(long value) {
-    if (currentSize >= this.data.length) {
-      grow();
-    }
-
-    assert currentSize < this.data.length;
+    ensureSpaceToAppend();
     this.data[currentSize++] = value;
   }
 
-  public void appendNoGrow(Object o) {
+  @Override
+  public void append(Object o) {
     if (o == null) {
-      isNothing.set(currentSize++);
+      appendNulls(1);
+      return;
+    }
+
+    Long x = NumericConverter.tryConvertingToLong(o);
+    if (x != null) {
+      appendLong(x);
     } else {
-      Long x = NumericConverter.tryConvertingToLong(o);
-      if (x != null) {
-        this.data[currentSize++] = x;
-      } else {
-        throw new ValueTypeMismatchException(getType(), o);
-      }
+      throw new ValueTypeMismatchException(getType(), o);
     }
   }
 

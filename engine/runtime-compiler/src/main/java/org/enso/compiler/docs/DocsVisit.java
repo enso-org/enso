@@ -42,6 +42,16 @@ public interface DocsVisit {
   }
 
   /**
+   * Converts a conversion method into textual representation of its signature.
+   *
+   * @param method the conversion method to process
+   * @return text representing the method name and its signature (if any)
+   */
+  public static String toSignature(Method.Conversion method) {
+    return DocsUtils.toSignature(method);
+  }
+
+  /**
    * Converts a constructor into textual representation of its signature.
    *
    * @param cons the constructor to process

@@ -57,8 +57,8 @@ const DATE_PICKER_STYLES = tv({
     dateInput: 'flex justify-center grow',
     dateSegment: 'rounded placeholder-shown:text-primary/30 focus:bg-primary/10 px-[0.5px]',
     resetButton: '',
-    calendarPopover: 'w-0',
-    calendarDialog: 'text-primary text-xs',
+    calendarPopover: '',
+    calendarDialog: 'text-primary text-xs mx-2',
     calendarContainer: '',
     calendarHeader: 'flex items-center mb-2',
     calendarHeading: 'grow text-center',
@@ -75,14 +75,18 @@ const DATE_PICKER_STYLES = tv({
 })
 
 /** Props for a {@link DatePicker}. */
-export interface DatePickerProps<Schema extends TSchema, TFieldName extends FieldPath<Schema>>
-  extends FieldStateProps<
+export interface DatePickerProps<
+  Schema extends TSchema,
+  TFieldName extends FieldPath<Schema, DateValue>,
+> extends Pick<AriaDatePickerProps<DateValue>, 'granularity'>,
+    FieldStateProps<
       Omit<
         AriaDatePickerProps<Extract<FieldValues<Schema>[TFieldName], DateValue>>,
         'children' | 'className' | 'style'
       >,
       Schema,
-      TFieldName
+      TFieldName,
+      DateValue
     >,
     FieldProps,
     Pick<FieldComponentProps<Schema>, 'className' | 'style'>,
@@ -92,13 +96,18 @@ export interface DatePickerProps<Schema extends TSchema, TFieldName extends Fiel
   readonly segments?: Partial<Record<DateSegmentType['type'], boolean>>
 }
 
+// This is a function, even though it does not contain function syntax.
+// eslint-disable-next-line no-restricted-syntax
+const useDateValueField = Form.makeUseField<DateValue>()
+
 /** A date picker. */
 export const DatePicker = forwardRef(function DatePicker<
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema>,
->(props: DatePickerProps<Schema, TFieldName>, ref: ForwardedRef<HTMLFieldSetElement>) {
+  TFieldName extends FieldPath<Schema, DateValue>,
+>(props: DatePickerProps<Schema, TFieldName>, ref: ForwardedRef<HTMLDivElement>) {
   const {
-    noResetButton = false,
+    isRequired = false,
+    noResetButton = isRequired,
     noCalendarHeader = false,
     segments = {},
     name,
@@ -106,13 +115,13 @@ export const DatePicker = forwardRef(function DatePicker<
     form,
     defaultValue,
     label,
-    isRequired,
     className,
     size,
     variants = DATE_PICKER_STYLES,
+    granularity,
   } = props
 
-  const { fieldState, formInstance } = Form.useField({
+  const { fieldState, formInstance } = useDateValueField({
     name,
     isDisabled,
     form,
@@ -141,7 +150,11 @@ export const DatePicker = forwardRef(function DatePicker<
         name={name}
         render={(renderProps) => {
           return (
-            <AriaDatePicker className={styles.base({ className })} {...renderProps.field}>
+            <AriaDatePicker
+              className={styles.base({ className })}
+              {...(granularity != null ? { granularity } : {})}
+              {...renderProps.field}
+            >
               <Label />
               <Group className={styles.inputGroup()}>
                 <Button variant="icon" icon={ArrowIcon} className="rotate-90" />
@@ -213,7 +226,7 @@ function DatePickerResetButton(props: DatePickerResetButtonProps) {
       icon={CrossIcon}
       className={className ?? ''}
       onPress={() => {
-        state.setValue(null)
+        state?.setValue(null)
       }}
     />
   )

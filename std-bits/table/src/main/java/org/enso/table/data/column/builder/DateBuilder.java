@@ -19,7 +19,8 @@ public class DateBuilder extends TypedBuilder<LocalDate> {
   }
 
   @Override
-  public void appendNoGrow(Object o) {
+  public void append(Object o) {
+    ensureSpaceToAppend();
     try {
       data[currentSize++] = (LocalDate) o;
     } catch (ClassCastException e) {
@@ -50,7 +51,7 @@ public class DateBuilder extends TypedBuilder<LocalDate> {
     if (allowDateToDateTimeConversion && Objects.equals(type, DateTimeType.INSTANCE)) {
       var res = new DateTimeBuilder(data.length, true);
       for (int i = 0; i < currentSize; i++) {
-        res.appendNoGrow(data[i]);
+        res.append(data[i]);
       }
       return res;
     }

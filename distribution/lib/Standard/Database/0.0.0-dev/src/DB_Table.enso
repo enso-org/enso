@@ -1896,7 +1896,7 @@ type DB_Table
          defined nor any ordering was specified explicitly by the user, the
          order of columns is undefined and the operation will fail, reporting a
          `Undefined_Column_Order` problem and returning an empty table.
-    @keep_unmatched (make_single_choice [["True", "Boolean.True"], ["False", "Boolean.False"], ["Report", Meta.get_qualified_type_name Report_Unmatched]])
+    @keep_unmatched (make_single_choice [["True", "Boolean.True"], ["False", "Boolean.False"], ["Report", Report_Unmatched.to Meta.Type . qualified_name]])
     zip : DB_Table -> Boolean | Report_Unmatched -> Text -> Problem_Behavior -> DB_Table
     zip self right keep_unmatched=Report_Unmatched right_prefix:Text="Right " on_problems:Problem_Behavior=..Report_Warning =
         _ = [right, keep_unmatched, right_prefix, on_problems]

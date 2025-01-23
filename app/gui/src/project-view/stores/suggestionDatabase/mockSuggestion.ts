@@ -1,4 +1,5 @@
 import {
+  type MethodSuggestionEntry,
   type SuggestionEntry,
   type SuggestionEntryArgument,
 } from '@/stores/suggestionDatabase/entry'
@@ -21,10 +22,11 @@ function makeEntry(lsEntry: lsTypes.SuggestionEntry) {
 const EMPTY_SCOPE = { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } }
 
 /** Mock a module suggestion entry. */
-export function makeModule(fqn: string): SuggestionEntry {
+export function makeModule(fqn: string, opts: { reexport?: string } = {}): SuggestionEntry {
   return makeEntry({
     type: 'module',
     module: fqn,
+    ...(opts.reexport ? { reexport: opts.reexport } : {}),
   })
 }
 
@@ -66,26 +68,27 @@ interface MakeMethodOptions extends DocOptions {
   isStatic?: boolean
   args?: SuggestionEntryArgument[]
   annotations?: string[]
+  module?: string
 }
 
 /** Mock a type method suggestion entry. */
-export function makeMethod(fqn: string, opts: MakeMethodOptions = {}): SuggestionEntry {
+export function makeMethod(fqn: string, opts: MakeMethodOptions = {}): MethodSuggestionEntry {
   assert(isQualifiedName(fqn))
   const [type, name] = qnSplit(fqn)
   assert(type != null)
-  const definedIn = qnParent(type)
-  assert(definedIn != null)
+  const module = opts.module ?? qnParent(type)
+  assert(module != null)
   return makeEntry({
     type: 'method',
     name,
-    module: definedIn,
+    module,
     arguments: opts.args ?? [],
     selfType: type,
     returnType: opts.returnType ?? ANY_TYPE_QN,
     isStatic: opts.isStatic ?? false,
     annotations: opts.annotations ?? [],
     documentation: makeDocumentation(opts),
-  })
+  }) as MethodSuggestionEntry
 }
 
 /** Mock a static type method suggestion entry. */
@@ -110,8 +113,8 @@ function makeDocumentation({ aliases, group }: DocOptions): string {
 /** Mock a module method suggestion entry. */
 export function makeModuleMethod(
   fqn: string,
-  opts: { returnType?: string } & DocOptions = {},
-): SuggestionEntry {
+  opts: Omit<MakeMethodOptions, 'module' | 'isStatic'> = {},
+): MethodSuggestionEntry {
   assert(isQualifiedName(fqn))
   const [module, name] = qnSplit(fqn)
   assert(module != null)
@@ -119,13 +122,13 @@ export function makeModuleMethod(
     type: 'method',
     name,
     module,
-    arguments: [],
+    arguments: opts.args ?? [],
     selfType: module,
     returnType: opts.returnType ?? ANY_TYPE_QN,
     isStatic: true,
-    annotations: [],
+    annotations: opts.annotations ?? [],
     documentation: makeDocumentation(opts),
-  })
+  }) as MethodSuggestionEntry
 }
 
 /** Mock a function suggestion entry. */

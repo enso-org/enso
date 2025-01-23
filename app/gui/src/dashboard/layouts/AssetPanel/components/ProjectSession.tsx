@@ -1,23 +1,22 @@
 /** @file Displays information describing a specific version of an asset. */
 import LogsIcon from '#/assets/logs.svg'
-
 import { Button, DialogTrigger } from '#/components/AriaComponents'
 import ProjectLogsModal from '#/modals/ProjectLogsModal'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
-import type { ProjectAsset, ProjectSession } from '#/services/Backend'
-import { formatDateTime } from '#/utilities/dateTime'
+import type { ProjectSession as BackendProjectSession, ProjectAsset } from '#/services/Backend'
+import { formatDateTime } from 'enso-common/src/utilities/data/dateTime'
 
-/** Props for a {@link AssetProjectSession}. */
-export interface AssetProjectSessionProps {
+/** Props for a {@link ProjectSession}. */
+export interface ProjectSessionProps {
   readonly backend: Backend
   readonly project: ProjectAsset
-  readonly projectSession: ProjectSession
+  readonly projectSession: BackendProjectSession
   readonly index: number
 }
 
 /** Displays information describing a specific version of an asset. */
-export default function AssetProjectSession(props: AssetProjectSessionProps) {
+export function ProjectSession(props: ProjectSessionProps) {
   const { backend, project, projectSession, index } = props
 
   const { getText } = useText()

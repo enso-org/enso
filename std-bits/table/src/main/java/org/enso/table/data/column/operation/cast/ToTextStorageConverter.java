@@ -7,9 +7,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.function.Function;
 import org.enso.polyglot.common_utils.Core_Date_Utils;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.storage.BoolStorage;
-import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.StringStorage;
+import org.enso.table.data.column.storage.*;
 import org.enso.table.data.column.storage.datetime.DateStorage;
 import org.enso.table.data.column.storage.datetime.DateTimeStorage;
 import org.enso.table.data.column.storage.datetime.TimeOfDayStorage;
@@ -55,12 +53,12 @@ public class ToTextStorageConverter implements StorageConverter<String> {
   }
 
   private Storage<String> castFromMixed(
-      Storage<?> mixedStorage, CastProblemAggregator problemAggregator) {
+      ColumnStorage mixedStorage, CastProblemAggregator problemAggregator) {
     return StorageConverter.innerLoop(
-        Builder.getForText(mixedStorage.size(), targetType),
+        Builder.getForText(mixedStorage.getSize(), targetType),
         mixedStorage,
         (i) -> {
-          Object o = mixedStorage.getItemBoxed(i);
+          Object o = mixedStorage.getItemAsObject(i);
           return switch (o) {
             case LocalTime d -> adapt(convertTime(d), problemAggregator);
             case LocalDate d -> adapt(convertDate(d), problemAggregator);
@@ -72,34 +70,34 @@ public class ToTextStorageConverter implements StorageConverter<String> {
   }
 
   private Storage<String> castLongStorage(
-      AbstractLongStorage longStorage, CastProblemAggregator problemAggregator) {
+      ColumnLongStorage longStorage, CastProblemAggregator problemAggregator) {
     return StorageConverter.innerLoop(
-        Builder.getForText(longStorage.size(), targetType),
+        Builder.getForText(longStorage.getSize(), targetType),
         longStorage,
         (i) -> {
-          long value = longStorage.getItem(i);
+          long value = longStorage.get(i);
           return adapt(Long.toString(value), problemAggregator);
         });
   }
 
   private Storage<String> castBoolStorage(
-      BoolStorage boolStorage, CastProblemAggregator problemAggregator) {
+      ColumnBooleanStorage boolStorage, CastProblemAggregator problemAggregator) {
     return StorageConverter.innerLoop(
-        Builder.getForText(boolStorage.size(), targetType),
+        Builder.getForText(boolStorage.getSize(), targetType),
         boolStorage,
         (i) -> {
-          boolean value = boolStorage.getItem(i);
+          boolean value = boolStorage.get(i);
           return adapt(convertBoolean(value), problemAggregator);
         });
   }
 
   private Storage<String> castDoubleStorage(
-      DoubleStorage doubleStorage, CastProblemAggregator problemAggregator) {
+      ColumnDoubleStorage doubleStorage, CastProblemAggregator problemAggregator) {
     return StorageConverter.innerLoop(
-        Builder.getForText(doubleStorage.size(), targetType),
+        Builder.getForText(doubleStorage.getSize(), targetType),
         doubleStorage,
         (i) -> {
-          double value = doubleStorage.getItem(i);
+          double value = doubleStorage.get(i);
           return adapt(Double.toString(value), problemAggregator);
         });
   }
@@ -110,7 +108,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
         Builder.getForText(storage.size(), targetType),
         storage,
         (i) -> {
-          var value = storage.getItemBoxed(i);
+          var value = storage.getItemBoxed((int) i);
           return adapt(converter.apply(value), problemAggregator);
         });
   }

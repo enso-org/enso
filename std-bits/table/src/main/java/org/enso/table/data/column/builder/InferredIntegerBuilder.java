@@ -17,7 +17,6 @@ import org.enso.table.problems.ProblemAggregator;
 public class InferredIntegerBuilder implements Builder {
   private BuilderWithRetyping longBuilder;
   private Builder bigIntegerBuilder = null;
-  private int currentSize = 0;
 
   /** Creates a new instance of this builder, with the given known result length. */
   public InferredIntegerBuilder(int initialSize, ProblemAggregator problemAggregator) {
@@ -29,31 +28,6 @@ public class InferredIntegerBuilder implements Builder {
           "InferredIntegerBuilder must be able to retype to BigIntegerBuilder, but the base "
               + "builder does not support retyping.");
     }
-  }
-
-  @Override
-  public void appendNoGrow(Object o) {
-    if (o == null) {
-      appendNulls(1);
-    } else if (o instanceof BigInteger bi) {
-      retypeToBigIntegerMaybe();
-      bigIntegerBuilder.appendNoGrow(bi);
-    } else {
-      Long lng = NumericConverter.tryConvertingToLong(o);
-      if (lng == null) {
-        throw new IllegalStateException(
-            "Unexpected value added to InferredIntegerBuilder "
-                + o.getClass()
-                + ". This is a bug in the Table library.");
-      } else {
-        if (bigIntegerBuilder != null) {
-          bigIntegerBuilder.appendNoGrow(BigInteger.valueOf(lng));
-        } else {
-          longBuilder.appendNoGrow(lng);
-        }
-      }
-    }
-    currentSize++;
   }
 
   @Override
@@ -78,7 +52,6 @@ public class InferredIntegerBuilder implements Builder {
         }
       }
     }
-    currentSize++;
   }
 
   @Override
@@ -88,7 +61,6 @@ public class InferredIntegerBuilder implements Builder {
     } else {
       longBuilder.appendNulls(count);
     }
-    currentSize += count;
   }
 
   @Override
@@ -100,7 +72,9 @@ public class InferredIntegerBuilder implements Builder {
 
   @Override
   public int getCurrentSize() {
-    return currentSize;
+    return bigIntegerBuilder != null
+        ? bigIntegerBuilder.getCurrentSize()
+        : longBuilder.getCurrentSize();
   }
 
   @Override

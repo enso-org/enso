@@ -757,14 +757,10 @@ watchPostEffect(() => {
       .range(d3.schemeCategory10)
       .domain(seriesLabels.value)
 
-    d3Legend.value.selectAll('circle').remove()
-    d3Legend.value.selectAll('text').remove()
-
     d3Legend.value
-      .selectAll('dots')
+      .selectAll('circle')
       .data(seriesLabels.value)
-      .enter()
-      .append('circle')
+      .join((enter) => enter.append('circle'))
       .attr('cx', function (d, i) {
         return 90 + i * 120
       })
@@ -773,10 +769,9 @@ watchPostEffect(() => {
       .style('fill', (d) => color(d) || DEFAULT_FILL_COLOR)
 
     d3Legend.value
-      .selectAll('labels')
+      .selectAll('text')
       .data(seriesLabels.value)
-      .enter()
-      .append('text')
+      .join((enter) => enter.append('text'))
       .attr('x', function (d, i) {
         return 100 + i * 120
       })

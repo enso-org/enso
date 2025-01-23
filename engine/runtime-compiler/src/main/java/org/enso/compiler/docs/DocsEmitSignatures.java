@@ -41,7 +41,11 @@ final class DocsEmitSignatures implements DocsVisit {
 
   @Override
   public void visitConversion(Method.Conversion c, PrintWriter w) throws IOException {
-    w.println("#### conversion " + c.methodName().name());
+    assert c.typeName().isDefined() : "Conversions need type name: " + c;
+    var fqn = DocsUtils.toFqnOrSimpleName(c.typeName().get());
+    w.append(fqn + ".");
+    w.append(DocsVisit.toSignature(c));
+    w.append(" -> ").println(fqn);
   }
 
   @Override

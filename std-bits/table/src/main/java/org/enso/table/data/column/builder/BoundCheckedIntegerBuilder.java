@@ -34,18 +34,13 @@ public class BoundCheckedIntegerBuilder extends LongBuilder {
   }
 
   @Override
-  public void appendNoGrow(Object o) {
+  public void append(Object o) {
     if (o == null) {
-      isNothing.set(currentSize++);
+      appendNulls(1);
     } else {
       Long x = NumericConverter.tryConvertingToLong(o);
       if (x != null) {
-        if (type.fits(x)) {
-          this.data[currentSize++] = x;
-        } else {
-          isNothing.set(currentSize++);
-          castProblemAggregator.reportNumberOutOfRange(x);
-        }
+        appendLong(x);
       } else {
         throw new ValueTypeMismatchException(type, o);
       }
