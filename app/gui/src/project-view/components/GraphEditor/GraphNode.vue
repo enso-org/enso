@@ -32,6 +32,7 @@ import { useNodeExecution } from '@/stores/project/nodeExecution'
 import { Ast } from '@/util/ast'
 import type { AstId } from '@/util/ast/abstract'
 import { prefixes } from '@/util/ast/node'
+import { onBlur } from '@/util/autoBlur'
 import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
@@ -472,6 +473,10 @@ const { editingComment } = provideComponentButtons(
 )
 
 const showMenuAt = ref<{ x: number; y: number }>()
+onBlur(() => {
+  graph.setNodeHovered(nodeId.value, false)
+  updateNodeHover(undefined)
+})
 </script>
 
 <template>
