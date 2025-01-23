@@ -11,6 +11,11 @@ add_specs suite_builder =
         group_builder.specify "should be a Column but also the underlying value" <|
             c1 = Column.from_vector "c1" [1]
             c1.should_be_a Column
+            IO.println '\n\n'+c1.to_text+"?"
+            case c1 of
+                i : Integer -> IO.println "as int: "+i.to_text
+                _ -> IO.println "not an int"
+            IO.println '\n'
             (c1:Integer).should_equal 1
             Test.expect_panic Type_Error (c1:Text)
 
