@@ -18,6 +18,7 @@ import enso_dev.Table_Tests.Util
 
 from Standard.Test import all
 
+import enso_dev.Base_Tests.Data.Data_Spec
 import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
 import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Temporary_Directory
 import enso_dev.Base_Tests.System.File_Spec as Local_File_Spec
@@ -70,6 +71,9 @@ replace_username_in_data_link base_file =
    past we had a bug precisely due to relying on the defaults: https://github.com/enso-org/enso/issues/9284
 add_specs suite_builder =
     cloud_setup = Cloud_Tests_Setup.prepare
+
+    add_data_specs suite_builder writable_root
+
     suite_builder.group "S3 Path handling" group_builder->
         # Testing just path handling can be done on instances without any credentials:
         root = S3_File.new "s3://"+bucket_name+"/"
@@ -660,6 +664,10 @@ create_data_link_to_s3 credential:AWS_Credential link_location target:S3_File =
         . replace "<ACCESS_KEY>" keys.first
         . replace "<SECRET_KEY>" keys.second
     Data_Link.write_raw_config link_location new_content replace_existing=True
+
+add_data_specs suite_builder root =
+    file_maker path_element:Text = root / "data_spec" / (path_element+".txt")
+    Data_Spec.add_specs "(S3_File) " suite_builder file_maker
 
 main filter=Nothing =
     suite = Test.build suite_builder->

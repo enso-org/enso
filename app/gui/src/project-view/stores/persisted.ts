@@ -4,11 +4,11 @@ import { GraphNavigator } from '@/providers/graphNavigator'
 import { injectVisibility } from '@/providers/visibility'
 import { Ok, Result } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
+import { encodeMethodPointer, MethodPointer } from '@/util/methodPointer'
 import { ToValue } from '@/util/reactivity'
 import { until } from '@vueuse/core'
 import { encoding } from 'lib0'
 import { computed, proxyRefs, ref, toValue } from 'vue'
-import { encodeMethodPointer, MethodPointer } from 'ydoc-shared/languageServerTypes'
 import { GraphStore } from './graph'
 
 export type PersistedStore = ReturnType<typeof usePersisted>
