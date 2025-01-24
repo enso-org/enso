@@ -103,9 +103,6 @@ pub fn setup_bazel() -> Step {
                 "output-base".to_string(),
                 Value::String(format!("${{{{ {} && 'c:/_bazel' || '' }}}}", is_windows_runner())),
             ),
-            ("bazelisk-cache".to_string(), Value::Bool(true)),
-            ("disk-cache".to_string(), Value::Bool(true)),
-            ("repository-cache".to_string(), Value::Bool(true)),
         ]))),
         ..default()
     }
