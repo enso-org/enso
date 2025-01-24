@@ -98,8 +98,16 @@ object DistributionPackage {
   def executableName(baseName: String): String =
     if (Platform.isWindows) baseName + ".exe" else baseName
 
-  private def batName(baseName: String): String =
-    if (Platform.isWindows) baseName + ".bat" else baseName
+  private def batOrExeName(baseName: String): String =
+    if (Platform.isWindows) {
+      if (GraalVM.EnsoLauncher.native) {
+        baseName + ".exe"
+      } else {
+        baseName + ".bat"
+      }
+    } else {
+      baseName
+    }
 
   def createProjectManagerPackage(
     distributionRoot: File,
@@ -337,7 +345,7 @@ object DistributionPackage {
   ): Boolean = {
     import scala.collection.JavaConverters._
 
-    val enso             = distributionRoot / "bin" / batName("enso")
+    val enso             = distributionRoot / "bin" / batOrExeName("enso")
     val pb               = new java.lang.ProcessBuilder()
     val all              = new java.util.ArrayList[String]()
     val runArgumentIndex = locateRunArgument(args)
