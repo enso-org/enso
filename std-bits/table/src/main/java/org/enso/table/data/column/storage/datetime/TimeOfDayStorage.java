@@ -67,7 +67,7 @@ public final class TimeOfDayStorage extends SpecializedStorage<LocalTime> {
         new GenericBinaryObjectMapOperation<LocalTime, SpecializedStorage<LocalTime>, Duration>(
             Maps.SUB, LocalTime.class, TimeOfDayStorage.class) {
           @Override
-          protected Builder createOutputBuilder(int size) {
+          protected Builder createOutputBuilder(long size) {
             return Builder.getObjectBuilder(size);
           }
 
@@ -79,7 +79,7 @@ public final class TimeOfDayStorage extends SpecializedStorage<LocalTime> {
     t.add(
         new TimeLikeCoalescingOperation<>(Maps.MIN, LocalTime.class) {
           @Override
-          protected Builder createOutputBuilder(int size) {
+          protected Builder createOutputBuilder(long size) {
             return Builder.getForType(TimeOfDayType.INSTANCE, size, null);
           }
 
@@ -91,7 +91,7 @@ public final class TimeOfDayStorage extends SpecializedStorage<LocalTime> {
     t.add(
         new TimeLikeCoalescingOperation<>(Maps.MAX, LocalTime.class) {
           @Override
-          protected Builder createOutputBuilder(int size) {
+          protected Builder createOutputBuilder(long size) {
             return Builder.getForType(TimeOfDayType.INSTANCE, size, null);
           }
 
