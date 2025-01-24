@@ -21,7 +21,8 @@ polyglot java import org.enso.table.aggregations.Percentile
 polyglot java import org.enso.table.aggregations.ShortestOrLongest
 polyglot java import org.enso.table.aggregations.StandardDeviation
 polyglot java import org.enso.table.aggregations.Sum
-polyglot java import org.enso.table.data.column.operation.CountNothing
+
+polyglot java import org.enso.table.data.column.operation.CountNothing as CountNothingOp
 polyglot java import org.enso.table.data.column.operation.UnaryOperation
 polyglot java import org.enso.table.data.column.operation.cast.CastProblemAggregator
 polyglot java import org.enso.table.data.column.operation.cast.ConversionFailure
