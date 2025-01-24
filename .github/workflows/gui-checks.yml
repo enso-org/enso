@@ -116,8 +116,8 @@ jobs:
       fail-fast: false
       max-parallel: 24
       matrix:
-        shardIndex: [1, 2, 3, 4]
-        shardTotal: [4]
+        shardIndex: [1, 2, 3, 4, 5, 6]
+        shardTotal: [6]
 
     steps:
       - uses: actions/checkout@v4
