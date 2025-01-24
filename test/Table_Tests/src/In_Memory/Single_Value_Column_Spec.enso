@@ -103,6 +103,15 @@ add_specs suite_builder =
             c2.should_be_a Column
             (c2:Integer).should_equal 123
 
+        group_builder.specify "should also be accepted as right-hand side of binary operators (if casted) and return just a number" <|
+            c1 = Column.from_vector "c1" [23]
+            r1 = 100 + c1:Integer
+            r1.is_a Column . should_be_false
+            r1 . should_equal 123
+
+            r2 = (2 * c1:Integer) + 100
+            r2 . should_equal 146
+
         group_builder.specify "will also allow to call methods of the single value (if casted)" <|
             c1 = Column.from_vector "c1" [1000]
             # Assuming Column has no log function
