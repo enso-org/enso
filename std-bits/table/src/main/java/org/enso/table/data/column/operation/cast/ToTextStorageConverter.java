@@ -107,7 +107,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
   private <T> Storage<String> castTemporalStorage(
       Storage<T> storage, Function<T, String> converter, CastProblemAggregator problemAggregator) {
     return StorageConverter.innerLoop(
-        Builder.getForText(storage.size(), targetType),
+        Builder.getForText(storage.getSize(), targetType),
         storage,
         (i) -> {
           var value = storage.getBoxed(i);
@@ -118,7 +118,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
   private Storage<String> adaptStringStorage(
       StringStorage stringStorage, CastProblemAggregator problemAggregator) {
     return StorageConverter.innerLoop(
-        Builder.getForText(stringStorage.size(), targetType),
+        Builder.getForText(stringStorage.getSize(), targetType),
         stringStorage,
         (i) -> {
           String value = stringStorage.getBoxed(i);
@@ -172,7 +172,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
 
     long maxLength = Long.MIN_VALUE;
     long minLength = Long.MAX_VALUE;
-    for (int i = 0; i < stringStorage.size(); i++) {
+    for (long i = 0; i < stringStorage.getSize(); i++) {
       String value = stringStorage.getBoxed(i);
       if (value == null) {
         continue;

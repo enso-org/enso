@@ -2,8 +2,8 @@ package org.enso.table.data.column.builder;
 
 import java.math.BigInteger;
 import org.enso.base.polyglot.NumericConverter;
+import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
@@ -98,14 +98,14 @@ public final class BigIntegerBuilder extends TypedBuilder<BigInteger> {
   @Override
   public void appendBulkStorage(Storage<?> storage) {
     if (storage.getType() instanceof IntegerType) {
-      if (storage instanceof AbstractLongStorage longStorage) {
-        int n = longStorage.size();
-        for (int i = 0; i < n; i++) {
+      if (storage instanceof ColumnLongStorage longStorage) {
+        long n = longStorage.getSize();
+        for (long i = 0; i < n; i++) {
           if (storage.isNothing(i)) {
-            data[currentSize++] = null;
+            appendNulls(1);
           } else {
             long item = longStorage.getPrimitive(i);
-            data[currentSize++] = BigInteger.valueOf(item);
+            append(BigInteger.valueOf(item));
           }
         }
       } else {

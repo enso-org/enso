@@ -152,10 +152,10 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
     }
 
     return innerLoop(
-        Builder.getForLong(targetType, longStorage.size(), problemAggregator),
+        Builder.getForLong(targetType, longStorage.getSize(), problemAggregator),
         longStorage,
         (builder, i) -> {
-          long value = longStorage.getPrimitive((int) i);
+          long value = longStorage.getPrimitive(i);
           builder.appendLong(value);
         });
   }
@@ -163,7 +163,7 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
   private Storage<Long> convertBigIntegerStorage(
       Storage<BigInteger> storage, CastProblemAggregator problemAggregator) {
     return innerLoop(
-        Builder.getForLong(targetType, storage.size(), problemAggregator),
+        Builder.getForLong(targetType, storage.getSize(), problemAggregator),
         storage,
         (builder, i) -> {
           BigInteger value = storage.getBoxed(i);
@@ -179,7 +179,7 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
   private Storage<Long> convertBigDecimalStorage(
       Storage<BigDecimal> storage, CastProblemAggregator problemAggregator) {
     return innerLoop(
-        Builder.getForLong(targetType, storage.size(), problemAggregator),
+        Builder.getForLong(targetType, storage.getSize(), problemAggregator),
         storage,
         (builder, i) -> {
           BigDecimal value = storage.getBoxed(i);

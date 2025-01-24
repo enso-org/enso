@@ -62,7 +62,7 @@ public class ToBigDecimalConverter implements StorageConverter<BigDecimal> {
   private Storage<BigDecimal> convertBoolStorage(
       BoolStorage boolStorage, CastProblemAggregator problemAggregator) {
     return StorageConverter.innerLoop(
-        Builder.getForBigDecimal(boolStorage.size()),
+        Builder.getForBigDecimal(boolStorage.getSize()),
         boolStorage,
         (i) -> {
           boolean x = boolStorage.getPrimitive(i);
@@ -73,7 +73,7 @@ public class ToBigDecimalConverter implements StorageConverter<BigDecimal> {
   private Storage<BigDecimal> convertBigIntegerStorage(
       BigIntegerStorage bigIntegerStorage, CastProblemAggregator problemAggregator) {
     return StorageConverter.innerLoop(
-        Builder.getForBigDecimal(bigIntegerStorage.size()),
+        Builder.getForBigDecimal(bigIntegerStorage.getSize()),
         bigIntegerStorage,
         (i) -> {
           BigInteger x = bigIntegerStorage.getBoxed(i);

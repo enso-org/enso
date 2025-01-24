@@ -47,7 +47,7 @@ public class ToTimeOfDayStorageConverter implements StorageConverter<LocalTime> 
   private Storage<LocalTime> convertDateTimeStorage(
       DateTimeStorage dateTimeStorage, CastProblemAggregator problemAggregator) {
     return StorageConverter.innerLoop(
-        Builder.getForTime(dateTimeStorage.size()),
+        Builder.getForTime(dateTimeStorage.getSize()),
         dateTimeStorage,
         (i) -> {
           ZonedDateTime dateTime = dateTimeStorage.getBoxed(i);
