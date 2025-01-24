@@ -8,51 +8,23 @@ from Standard.Test import all
 
 add_specs suite_builder =
     suite_builder.group "single-value Column" group_builder->
-        group_builder.specify "should be a Column but also the underlying value" <|
-            c1 = Column.from_vector "c1" [1]
+        group_builder.specify "should be a Column but also Integer" <|
+            c1 = Column.from_vector "ints" [1]
             c1.should_be_a Column
-            IO.println '\n\n'+c1.to_text+"?"
-            case c1 of
-                i : Integer -> IO.println "as int: "+i.to_text
-                _ -> IO.println "not an int"
-            IO.println '\n'
             (c1:Integer).should_equal 1
             Test.expect_panic Type_Error (c1:Text)
 
-            c2 = Column.from_vector "c2" [1.5]
+            # Also test with a large integer
+            c2 = Column.from_vector "bigger ints" [3^500]
             c2.should_be_a Column
-            (c2:Float).should_equal 1.5
+            (c2:Integer).should_equal (3^500)
+
+        group_builder.specify "should be a Column but also Float" <|
+            c1 = Column.from_vector "floats" [1.5]
+            c1.should_be_a Column
+            (c1:Float).should_equal 1.5
             # But a float is not an integer:
-            Test.expect_panic Type_Error (c2:Integer)
-
-            c3 = Column.from_vector "c3" ["a"]
-            c3.should_be_a Column
-            (c3:Text).should_equal "a"
-            Test.expect_panic Type_Error (c3:Integer)
-
-            c4 = Column.from_vector "c4" [True]
-            c4.should_be_a Column
-            (c4:Boolean).should_equal True
-
-            c5 = Column.from_vector "c5" [Date.new 2021 1 1]
-            c5.should_be_a Column
-            (c5:Date).should_equal (Date.new 2021 1 1)
-
-            c6 = Column.from_vector "c6" [Time_Of_Day.new 12 0 0]
-            c6.should_be_a Column
-            (c6:Time_Of_Day).should_equal (Time_Of_Day.new 12 0 0)
-
-            c7 = Column.from_vector "c7" [Date_Time.new 2021 1 1 12 0 0]
-            c7.should_be_a Column
-            (c7:Date_Time).should_equal (Date_Time.new 2021 1 1 12 0 0)
-
-            c8 = Column.from_vector "c8" [3^500]
-            c8.should_be_a Column
-            (c8:Integer).should_equal (3^500)
-
-            c9 = Column.from_vector "c9" [Decimal.new "3.5"]
-            c9.should_be_a Column
-            (c9:Decimal).should_equal (Decimal.new "3.5")
+            Test.expect_panic Type_Error (c1:Integer)
 
             # Integral float is both an integer and a float
             c10 = Column.from_vector "c10" [1.0]
@@ -61,8 +33,39 @@ add_specs suite_builder =
             (c10:Integer).should_equal 1
             Test.expect_panic Type_Error (c10:Text)
 
+        group_builder.specify "should be a Column but also Text" <|
+            c1 = Column.from_vector "texts" ["a"]
+            c1.should_be_a Column
+            (c1:Text).should_equal "a"
+            Test.expect_panic Type_Error (c1:Integer)
+
+        group_builder.specify "should be a Column but also Boolean" <|
+            c1 = Column.from_vector "bools" [True]
+            c1.should_be_a Column
+            (c1:Boolean).should_equal True
+
+        group_builder.specify "should be a Column but also Date" <|
+            c1 = Column.from_vector "dates" [Date.new 2021 1 1]
+            c1.should_be_a Column
+            (c1:Date).should_equal (Date.new 2021 1 1)
+
+        group_builder.specify "should be a Column but also Time_Of_Day" <|
+            c1 = Column.from_vector "times" [Time_Of_Day.new 12 0 0]
+            c1.should_be_a Column
+            (c1:Time_Of_Day).should_equal (Time_Of_Day.new 12 0 0)
+
+        group_builder.specify "should be a Column but also Date_Time" <|
+            c1 = Column.from_vector "date times" [Date_Time.new 2021 1 1 12 0 0]
+            c1.should_be_a Column
+            (c1:Date_Time).should_equal (Date_Time.new 2021 1 1 12 0 0)
+
+        group_builder.specify "should be a Column but also Decimal" <|
+            c1 = Column.from_vector "decimals" [Decimal.new "3.5"]
+            c1.should_be_a Column
+            (c1:Decimal).should_equal (Decimal.new "3.5")
+
         group_builder.specify "does not apply to columns that have more rows" <|
-            c1 = Column.from_vector "c1" [1, 2]
+            c1 = Column.from_vector "more rows" [1, 2]
             c1.should_be_a Column
             Test.expect_panic Type_Error (c1:Integer)
 
@@ -115,6 +118,28 @@ add_specs suite_builder =
             Test.expect_panic Type_Error (my_text_fn c2)
             r2 = my_text_fn c2:Text
             r2 . should_equal "hello!"
+
+        group_builder.specify "retain the properties after being transformed using column operations" <|
+            c1 = Column.from_vector "c1" [10]
+            c2 = Column.from_vector "c2" ["hello"]
+
+            c3 = c1.zip c2 a-> b-> a.to_text+" "+b
+            c3.should_be_a Column
+            r3 = my_text_fn c3:Text
+            r3 . should_equal "10 hello!"
+
+            c4 = c1.is_nothing
+            c4.should_be_a Column
+            (c4:Boolean).should_equal False
+
+            (c1.is_present : Boolean).should_equal True
+            (c2.text_length : Integer).should_equal 5
+            (c2.text_left 1 : Text).should_equal "h"
+            (c2.is_in [] : Boolean).should_equal False
+
+            c5 = Column.from_vector "c5" [Date.new 2024 1 2]
+            (c5.day : Integer).should_equal 2
+            (c5.year : Integer).should_equal 2024
 
         group_builder.specify "should also work for columns extracted from a Table" <|
             table = Table.new [["a", [42]], ["b", ["hello"]]]
