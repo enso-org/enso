@@ -4,10 +4,11 @@ from Standard.Base import all
 
 import project.Column.Column
 import project.Value_Type.Value_Type
+from project.Internal.Type_Refinements.Single_Value_Column_Extensions import all
 
 refine_with_single_value (column : Column) =
     ## We treat a column as single value if it contains a single not-nothing value.
-    if _is_single_value column . not then column else case column.inferred_precise_value_type of
+    if is_single_value column . not then column else case column.inferred_precise_value_type of
         Value_Type.Integer _ ->
             # `inferred_precise_value_type` will return Integer if the column was Float but contained integral values - e.g. [2.0]
             was_originally_float = column.value_type.is_floating_point
@@ -24,58 +25,5 @@ refine_with_single_value (column : Column) =
         # Other types (e.g. Mixed) are not supported.
         _ -> column
 
-_is_single_value column:Column -> Boolean =
+is_single_value column:Column -> Boolean =
     (column.length == 1) && (column.at 0 . is_nothing . not)
-
-## PRIVATE
-   This extension should never be exported.
-Integer.from (that : Column) -> Integer =
-    Runtime.assert (_is_single_value that)
-    x = that.at 0
-    case x of
-        _ : Integer -> x
-        _ : Float ->
-            Runtime.assert (x % 1.0 == 0.0)
-            x.truncate
-
-## PRIVATE
-   This extension should never be exported.
-Float.from (that : Column) -> Float =
-    Runtime.assert (_is_single_value that)
-    that.at 0
-
-## PRIVATE
-   This extension should never be exported.
-Text.from (that : Column) -> Text =
-    Runtime.assert (_is_single_value that)
-    that.at 0
-
-## PRIVATE
-   This extension should never be exported.
-Boolean.from (that : Column) -> Boolean =
-    Runtime.assert (_is_single_value that)
-    that.at 0
-
-## PRIVATE
-   This extension should never be exported.
-Date.from (that : Column) -> Date =
-    Runtime.assert (_is_single_value that)
-    that.at 0
-
-## PRIVATE
-   This extension should never be exported.
-Time_Of_Day.from (that : Column) -> Time_Of_Day =
-    Runtime.assert (_is_single_value that)
-    that.at 0
-
-## PRIVATE
-   This extension should never be exported.
-Date_Time.from (that : Column) -> Date_Time =
-    Runtime.assert (_is_single_value that)
-    that.at 0
-
-## PRIVATE
-   This extension should never be exported.
-Decimal.from (that : Column) -> Decimal =
-    Runtime.assert (_is_single_value that)
-    that.at 0
