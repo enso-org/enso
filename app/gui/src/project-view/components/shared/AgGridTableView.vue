@@ -119,7 +119,7 @@ const _props = defineProps<{
   suppressMoveWhenColumnDragging?: boolean
   textFormatOption?: TextFormatOptions
   processDataFromClipboard?: (params: ProcessDataFromClipboardParams<TData>) => string[][] | null
-  datasource: any;
+  datasource: any
 }>()
 const emit = defineEmits<{
   cellEditingStarted: [event: CellEditingStartedEvent]
@@ -141,24 +141,24 @@ function onGridReady(event: GridReadyEvent<TData>) {
   gridApi.value = event.api
 }
 
-function getRowHeight(params: RowHeightParams): number {
-  if (_props.textFormatOption === 'off') {
-    return DEFAULT_ROW_HEIGHT
-  }
-  const rowData = Object.values(params.data)
-  const textValues = rowData.filter((r): r is string => typeof r === 'string')
+// function getRowHeight(params: RowHeightParams): number {
+//   if (_props.textFormatOption === 'off') {
+//     return DEFAULT_ROW_HEIGHT
+//   }
+//   const rowData = Object.values(params.data)
+//   const textValues = rowData.filter((r): r is string => typeof r === 'string')
 
-  if (!textValues.length) {
-    return DEFAULT_ROW_HEIGHT
-  }
+//   if (!textValues.length) {
+//     return DEFAULT_ROW_HEIGHT
+//   }
 
-  const returnCharsCount = iter.map(textValues, (text) =>
-    iter.count(text.matchAll(LINE_BOUNDARIES)),
-  )
+//   const returnCharsCount = iter.map(textValues, (text) =>
+//     iter.count(text.matchAll(LINE_BOUNDARIES)),
+//   )
 
-  const maxReturnCharsCount = iter.reduce(returnCharsCount, Math.max, 0)
-  return (maxReturnCharsCount + 1) * DEFAULT_ROW_HEIGHT
-}
+//   const maxReturnCharsCount = iter.reduce(returnCharsCount, Math.max, 0)
+//   return (maxReturnCharsCount + 1) * DEFAULT_ROW_HEIGHT
+// }
 
 // watch(
 //   () => _props.textFormatOption,
@@ -356,7 +356,6 @@ const { AgGridVue } = await import('./AgGridTableView/AgGridVue')
       ref="grid"
       class="ag-theme-alpine inner"
       :headerHeight="26"
-      :getRowHeight="getRowHeight"
       :columnDefs="columnDefs"
       :defaultColDef="defaultColDef"
       :copyHeadersToClipboard="true"

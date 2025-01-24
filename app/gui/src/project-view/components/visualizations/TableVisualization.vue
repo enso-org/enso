@@ -244,28 +244,24 @@ function formatText(params: ICellRendererParams) {
 // const expression = Ast.OprApp.new(tempModule, preprocessorInvocation, '<|', rhs)
 // return projectStore.executeExpression(dataSourceValue.contextId, expression.code())
 
-
-
 function createFakeServer() {
   return {
     getData: () => {
       // use executeExpression to get data
-      setTimeout(() => {
-        return ({
-        success: true,
-        rows: [],
-      })
-      }, 0)
+        return {
+          success: true,
+          rows: [{}, {}, {}, {}],
+        }
     },
   }
 }
 
 function createServerSideDatasource(): IServerSideDatasource {
   return {
-    getRows: (params) => {
+    getRows: async (params) => {
       const server = createFakeServer()
       const response = server.getData()
-      console.log({response})
+      console.log({ response })
       setTimeout(() => {
         if (response.success) {
           params.success({ rowData: response.rows })
