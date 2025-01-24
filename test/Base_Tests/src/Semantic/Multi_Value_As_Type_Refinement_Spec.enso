@@ -154,6 +154,19 @@ add_specs suite_builder =
             (c:A&B&C).b_method . should_equal "B method"
             (c:A&B&C).c_method . should_equal "C method"
 
+        group_builder.specify "default to_text should delegate to one of values" pending="TODO: https://github.com/enso-org/enso/issues/11827" <|
+            ab = make_a_and_b
+            ab.to_text . should_equal "(A_Ctor 1)"
+
+            abc = ab:(A & B & C)
+            abc.to_text . should_equal "(A_Ctor 1)"
+
+            c = abc:C
+            c.to_text . should_equal "(C_Ctor (B_Ctor (A_Ctor 1)))"
+
+            (c:A).to_text . should_equal "(A_Ctor 1)"
+            (c:B).to_text . should_equal "(B_Ctor (A_Ctor 1))"
+
 
 main filter=Nothing =
     suite = Test.build suite_builder->
