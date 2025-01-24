@@ -272,8 +272,8 @@ const previewedSuggestionReturnType = computed(() => {
 const previewDataSource = computed<VisualizationDataSource | undefined>(() => {
   if (input.mode.mode !== 'codeEditing') return
   if (!previewedCode.value.trim()) return
-  if (!graphStore.methodAst.ok) return
-  const body = graphStore.methodAst.value.body
+  if (!graphStore.currentMethod.ast.ok) return
+  const body = graphStore.currentMethod.ast.value.body
   if (!body) return
   return {
     type: 'expression',

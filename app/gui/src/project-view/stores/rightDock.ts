@@ -1,12 +1,14 @@
 import { createContextStore } from '@/providers'
+import { GraphStore } from '@/stores/graph'
+import { PersistedStore } from '@/stores/persisted'
+import { type ProjectStore } from '@/stores/project'
+import { useSettings } from '@/stores/settings'
+import { methodPointerEquals } from '@/util/methodPointer'
 import { computedFallback } from '@/util/reactivity'
 import { defineTabButtons, ExtractTabs } from '@/util/tabs'
 import { computed, proxyRefs, ref, toRef } from 'vue'
 import { assertNever } from 'ydoc-shared/util/assert'
 import { unwrapOr } from 'ydoc-shared/util/data/result'
-import { GraphStore } from './graph'
-import { PersistedStore } from './persisted'
-import { useSettings } from './settings'
 
 export type RightDockStore = ReturnType<typeof useRightDock>
 
@@ -23,12 +25,17 @@ export enum StorageMode {
 
 export const [provideRightDock, useRightDock] = createContextStore(
   'rightDock',
-  (graph: GraphStore, persisted: PersistedStore) => {
-    const currentMethodAst = computed(() => unwrapOr(graph.methodAst, undefined))
+  (graph: GraphStore, project: ProjectStore, persisted: PersistedStore) => {
+    const currentMethodAst = computed(() => unwrapOr(graph.currentMethod.ast, undefined))
+    const inspectedMethodPointer = computed(() => unwrapOr(graph.currentMethod.pointer, undefined))
     const inspectedAst = computed(() =>
-      currentMethodAst.value?.name.code() !== 'main' ? currentMethodAst.value : undefined,
+      (
+        inspectedMethodPointer.value &&
+        methodPointerEquals(inspectedMethodPointer.value, project.entryPoint)
+      ) ?
+        undefined
+      : currentMethodAst.value,
     )
-    const inspectedMethodPointer = computed(() => unwrapOr(graph.currentMethodPointer, undefined))
     const { user: userSettings } = useSettings()
 
     const storageMode = ref(StorageMode.Default)
