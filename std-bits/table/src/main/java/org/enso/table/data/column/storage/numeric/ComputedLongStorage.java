@@ -2,7 +2,6 @@ package org.enso.table.data.column.storage.numeric;
 
 import java.util.BitSet;
 import java.util.List;
-
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.mask.OrderMask;

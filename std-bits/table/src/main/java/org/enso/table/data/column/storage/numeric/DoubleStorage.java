@@ -3,7 +3,6 @@ package org.enso.table.data.column.storage.numeric;
 import java.math.BigInteger;
 import java.util.BitSet;
 import java.util.List;
-
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.MapOperationStorage;

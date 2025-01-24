@@ -4,7 +4,6 @@ import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.function.BiFunction;
-
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.cast.CastProblemAggregator;

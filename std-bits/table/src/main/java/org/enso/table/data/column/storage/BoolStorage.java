@@ -3,7 +3,6 @@ package org.enso.table.data.column.storage;
 import java.util.BitSet;
 import java.util.List;
 import java.util.function.IntFunction;
-
 import org.enso.base.CompareException;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;

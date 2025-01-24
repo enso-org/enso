@@ -3,7 +3,6 @@ package org.enso.table.data.table.join.lookup;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.IntStream;
-
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.Storage;

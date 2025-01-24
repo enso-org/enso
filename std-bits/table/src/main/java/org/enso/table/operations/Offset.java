@@ -4,7 +4,6 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.stream.IntStream;
-
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.table.Column;
 import org.enso.table.problems.ProblemAggregator;
@@ -18,8 +17,7 @@ public class Offset {
       Column[] orderingColumns,
       int[] directions,
       ProblemAggregator problemAggregator) {
-    if (n == 0 || sourceColumns.length == 0)
-      return sourceColumns;
+    if (n == 0 || sourceColumns.length == 0) return sourceColumns;
     var rowOrderMask =
         groupingColumns.length == 0 && orderingColumns.length == 0
             ? calculate_ungrouped_unordered_mask(sourceColumns[0].getSize(), n, fillWith)
