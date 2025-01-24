@@ -970,6 +970,9 @@
         ]
     },
     {
+        "name": "org.apache.poi.hssf.util.HSSFColor$HSSFColorPredefined"
+    },
+    {
         "name": "org.apache.poi.ss.formula.udf.org.apache.poi.ss.formula.udf",
         "methods": [
             {
@@ -1835,6 +1838,15 @@
                 "parameterTypes": [
                     "org.apache.xmlbeans.SchemaType"
                 ]
+            }
+        ]
+    },
+    {
+        "name": "java.awt.Toolkit",
+        "methods": [
+            {
+                "name": "getDefaultToolkit",
+                "parameterTypes": []
             }
         ]
     }
