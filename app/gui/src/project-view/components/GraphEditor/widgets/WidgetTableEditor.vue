@@ -10,6 +10,7 @@ import ResizeHandles from '@/components/ResizeHandles.vue'
 import AgGridTableView from '@/components/shared/AgGridTableView.vue'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { defineWidget, Score, widgetProps } from '@/providers/widgetRegistry'
+import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { useGraphStore } from '@/stores/graph'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { targetIsOutside } from '@/util/autoBlur'
@@ -68,14 +69,22 @@ const { rowData, columnDefs, moveColumn, moveRow, pasteFromClipboard } = useTabl
 
 const { editedCell, gridEventHandlers, headerEventHandlers } = useTableEditHandler(
   () => grid.value?.gridApi,
-  () => props.input,
   columnDefs,
-  (handler, event) => {
-    if (!(event.target instanceof HTMLInputElement) || targetIsOutside(event, grid.value?.$el)) {
-      handler.end()
-    } else {
-      return false
-    }
+  (hooks) => {
+    const handler = WidgetEditHandler.New('WidgetTableEditor', props.input, {
+      ...hooks,
+      pointerdown: (event) => {
+        if (
+          !(event.target instanceof HTMLInputElement) ||
+          targetIsOutside(event, grid.value?.$el)
+        ) {
+          handler.end()
+        } else {
+          return false
+        }
+      },
+    })
+    return handler
   },
 )
 

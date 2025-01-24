@@ -1,6 +1,7 @@
 import { NEW_COLUMN_ID } from '@/components/GraphEditor/widgets/WidgetTableEditor/tableInputArgument'
+import { InteractionHandler } from '@/providers/interactionHandler'
 import { WidgetInput } from '@/providers/widgetRegistry'
-import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
+import { WidgetEditHandler, WidgetEditHooks } from '@/providers/widgetRegistry/editHandler'
 import { ToValue } from '@/util/reactivity'
 import {
   CellEditingStartedEvent,
@@ -31,9 +32,8 @@ export function useTableEditHandler(
       }
     | undefined
   >,
-  input: ToValue<WidgetInput>,
   colDefs: ToValue<{ colId: string }[]>,
-  pointerdown: (handler: WidgetEditHandler, event: PointerEvent) => void | boolean,
+  widgetHandlerConstructor: (hooks: WidgetEditHooks) => WidgetEditHandler,
 ) {
   const columnIndexById = computed(
     () => new Map(toValue(colDefs).map((col, index) => [col.colId, index])),
@@ -64,7 +64,7 @@ export function useTableEditHandler(
     }
   })
 
-  const handler = WidgetEditHandler.New('WidgetTableEditor', toValue(input), {
+  const handler = widgetHandlerConstructor({
     cancel() {
       revertChangesCb?.()
       editedCell.value = undefined
@@ -72,7 +72,6 @@ export function useTableEditHandler(
     end() {
       editedCell.value = undefined
     },
-    pointerdown: (event) => pointerdown(handler, event),
     suspend: () => {
       return {
         resume: () => syncGridWithEditedCell(),
@@ -81,8 +80,7 @@ export function useTableEditHandler(
   })
 
   const gridEventHandlers = {
-    cellEditingStarted(event: CellEditingStartedEvent) {
-      console.log('EVENT', event)
+    cellEditingStarted(event: { rowIndex: number | undefined; column: { getColId(): string } }) {
       revertChangesCb = () => toValue(gridApi)?.stopEditing(true)
       editedCell.value =
         event.rowIndex != null ?
@@ -92,7 +90,7 @@ export function useTableEditHandler(
         handler.start()
       }
     },
-    cellEditingStopped(_event: CellEditingStoppedEvent) {
+    cellEditingStopped() {
       const api = toValue(gridApi)
       if (!api?.getEditingCells().length && handler.isActive()) {
         handler.end()
@@ -102,7 +100,6 @@ export function useTableEditHandler(
       syncGridWithEditedCell()
     },
     keydown(event: KeyboardEvent) {
-      console.log('EVENT', event)
       const handler =
         event.code === 'Tab' ? tabPressed
         : event.code === 'Enter' ? enterPressed
@@ -127,6 +124,9 @@ export function useTableEditHandler(
     headerEditingStopped(colId: string) {
       if (editedCell.value?.rowIndex === 'header' && editedCell.value.colKey === colId) {
         editedCell.value = undefined
+        if (!toValue(gridApi)?.getEditingCells().length && handler.isActive()) {
+          handler.end()
+        }
       }
     },
   }

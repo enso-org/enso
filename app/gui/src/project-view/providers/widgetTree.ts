@@ -32,11 +32,11 @@ export const [provideWidgetTree, injectWidgetTree] = createContextStore(
 /** TODO: Add docs */
 export function useCurrentEdit() {
   const currentEditRoot = shallowRef<WidgetEditHandlerRoot>()
-  return {
+  return proxyRefs({
     currentEdit: computed(() => currentEditRoot.value?.currentEdit()),
     setCurrentEditRoot: (root: WidgetEditHandlerRoot) => {
       currentEditRoot.value = root
     },
-  }
+  })
 }
 export type CurrentEdit = ShallowUnwrapRef<ReturnType<typeof useCurrentEdit>>
