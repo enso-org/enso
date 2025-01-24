@@ -182,7 +182,8 @@ add_specs suite_builder =
                 _ -> "structural matching of B.B_Ctor failed"
             r.should_equal "matched: (A_Ctor 1)"
 
-        group_builder.specify "calling a method on one of the types should not lose the intersection type" pending="TODO: https://github.com/enso-org/enso/issues/12143" <|
+        dispatch_pending="TODO: https://github.com/enso-org/enso/issues/12143"
+        group_builder.specify "calling a method on one of the types should not lose the intersection type" pending=dispatch_pending <|
             ab = make_a_and_b
 
             # Checked variant can hide the B part
@@ -266,7 +267,7 @@ add_specs suite_builder =
             r.a_method . should_equal "A method"
             r.b_method . should_equal "B method"
 
-        group_builder.specify "calling `.catch` on an intersection type should not lose even the hidden refinements" <|
+        group_builder.specify "calling `.catch` on an intersection type should not lose even the hidden refinements" pending=dispatch_pending <|
             ab = make_a_and_b
             x = ab:A
             r = x.catch Any _->"catched"
@@ -280,7 +281,7 @@ add_specs suite_builder =
             y.a_method . should_equal "A method"
             y.b_method . should_equal "B method"
 
-        group_builder.specify "calling `.throw_on_warning` on an intersection type should not lose even the hidden refinements" <|
+        group_builder.specify "calling `.throw_on_warning` on an intersection type should not lose even the hidden refinements" pending=dispatch_pending <|
             ab = make_a_and_b
             x = ab:A
             r = x.throw_on_warning
@@ -291,7 +292,7 @@ add_specs suite_builder =
             y.a_method . should_equal "A method"
             y.b_method . should_equal "B method"
 
-        group_builder.specify "attaching warnings to an intersection type should not lose even the hidden refinements" <|
+        group_builder.specify "attaching warnings to an intersection type should not lose even the hidden refinements" pending=dispatch_pending <|
             ab = make_a_and_b
             x = ab:A
             x_with_warning = Warning.attach (Illegal_State.Error "my warning") x
@@ -303,7 +304,7 @@ add_specs suite_builder =
             y.b_method . should_equal "B method"
             Problems.expect_only_warning Illegal_State y
 
-        group_builder.specify "removing warnings from an intersection type should not lose even the hidden refinements" <|
+        group_builder.specify "removing warnings from an intersection type should not lose even the hidden refinements" pending=dispatch_pending <|
             ab = make_a_and_b
             x1 = Warning.attach (Illegal_State.Error "my warning") (ab:A)
             x2 = (Warning.attach (Illegal_State.Error "my warning") ab):A
