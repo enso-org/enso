@@ -34,7 +34,6 @@ const DEFAULT_TRANSITION: Transition = {
   mass: 0.3,
   velocity: 8,
 }
-
 /* eslint-enable @typescript-eslint/no-magic-numbers */
 
 /** `<AnimatedBackground />` component visually highlights selected items by sliding a background into view when hovered over or clicked. */

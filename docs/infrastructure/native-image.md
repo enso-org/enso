@@ -206,25 +206,30 @@ one of the following:
 
 - `shell`: The default value. `buildEngineDistribution` command does not build
   the native image.
-- `debugnative`: `buildEngineDistribution` command builds native image with
-  assertions enabled (`-ea`). Useful for running tests on the CI.
-- `native`: `buildEngineDistribution` command builds native image with
-  assertions disabled (`-ea`). Turns on maximal optimizations which may increase
-  the build time.
+- `native`: `buildEngineDistribution` command builds native image in _release
+  mode_ - e.g. turns on maximal optimizations increasing the build time.
+- There are additional variants of `native` useful for _development_. They are
+  specified as comma separated attributes following `native`:
+  - using `native,fast` turns on _native image_ build, but disables
+    optimizations - e.g. produces build similar to _release mode_, but more
+    quickly
+  - using `native,test` _enables assertions_ - e.g. it instructs
+    `buildEngineDistribution` command to build native image with assertions
+    enabled (`-ea`). Useful for running Enso tests in the _native mode_.
+  - using `native,debug` generates _debugging informations_ for VSCode _native
+    image debugger_
+  - using `native,-ls` disables support for _language server_ in the generated
+    binary
+  - it is possible to combine all features - e.g. use `debug,fast,test,native`
 
-To generate the Native Image for runner either explicitly execute
-
-```bash
-sbt> engine-runner/buildNativeImage
-```
-
-or
+To test _native image_ launcher choose one of the `native` configurations and
+invoke:
 
 ```bash
 $ ENSO_LAUNCHER=native sbt buildEngineDistribution
 ```
 
-and execute any program with that binary - for example `test/Base_Tests`
+then execute any program with that binary - for example `test/Base_Tests`
 
 ```bash
 $ ./built-distribution/enso-engine-*/enso-*/bin/enso --run test/Base_Tests

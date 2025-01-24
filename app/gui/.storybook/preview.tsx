@@ -47,19 +47,24 @@ const reactPreview: ReactPreview = {
   // Decorators are applied in the reverse order they are defined
   decorators: [
     (Story, context) => {
-      const [portalRoot, setPortalRoot] = useState<Element | null>(null)
+      const [roots, setRoots] = useState<{ appRoot: HTMLElement; portalRoot: HTMLElement } | null>(
+        null,
+      )
 
       useLayoutEffect(() => {
-        const portalRoot = document.querySelector('#enso-portal-root')
-        invariant(portalRoot, 'PortalRoot element not found')
+        const appRoot = document.querySelector('#enso-app')
+        invariant(appRoot instanceof HTMLElement, 'AppRoot element not found')
 
-        setPortalRoot(portalRoot)
+        const portalRoot = document.querySelector('#enso-portal-root')
+        invariant(portalRoot instanceof HTMLElement, 'PortalRoot element not found')
+
+        setRoots({ appRoot, portalRoot })
       }, [])
 
-      if (!portalRoot) return <></>
+      if (!roots) return <></>
 
       return (
-        <UIProviders locale="en-US" portalRoot={portalRoot}>
+        <UIProviders locale="en-US" {...roots}>
           <Story {...context} />
         </UIProviders>
       )
@@ -67,7 +72,7 @@ const reactPreview: ReactPreview = {
 
     (Story, context) => (
       <>
-        <div className="enso-app">
+        <div id="enso-app" className="enso-app">
           <Story {...context} />
         </div>
 

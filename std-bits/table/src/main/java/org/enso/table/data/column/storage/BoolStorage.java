@@ -189,7 +189,7 @@ public final class BoolStorage extends Storage<Boolean>
     BitSet newVals = new BitSet();
     for (int i = 0; i < mask.length(); i++) {
       int position = mask.get(i);
-      if (position == Storage.NOT_FOUND_INDEX || isNothing.get(position)) {
+      if (position == OrderMask.NOT_FOUND_INDEX || isNothing.get(position)) {
         newNa.set(i);
       } else if (values.get(position)) {
         newVals.set(i);
