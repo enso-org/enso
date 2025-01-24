@@ -134,6 +134,7 @@ public final class Function extends EnsoObject {
   /**
    * @return the name of this function.
    */
+  @TruffleBoundary
   public String getName() {
     return getCallTarget().getRootNode().getName();
   }
