@@ -6,22 +6,35 @@
   GeoMap visualization][11889].
 - [Round ‘Add component’ button under the component menu replaced by a small
   button protruding from the output port.][11836].
+- [Quick Fix Import Button][12051].
 - [Fixed nodes being selected after deleting other nodes or connections.][11902]
 - [Redo stack is no longer lost when interacting with text literals][11908].
 - [Tooltips are hidden when clicking on a button][12067].
+- [Fixed bug when clicking header in Table Editor Widget didn't start editing
+  it][12064]
+- [Fixed bugs occurring after renaming project from within graph editor][12106].
 
 [11889]: https://github.com/enso-org/enso/pull/11889
 [11836]: https://github.com/enso-org/enso/pull/11836
+[12051]: https://github.com/enso-org/enso/pull/12051
 [11902]: https://github.com/enso-org/enso/pull/11902
 [11908]: https://github.com/enso-org/enso/pull/11908
 [12067]: https://github.com/enso-org/enso/pull/12067
+[12064]: https://github.com/enso-org/enso/pull/12064
+[12106]: https://github.com/enso-org/enso/pull/12106
 
 #### Enso Standard Library
 
 - [Allow using `/` to access files inside a directory reached through a data
   link.][11926]
+- [Reducing helper methods in `Standard.Base.Meta`.][12031]
+- [Added Table.Offset][12071]
+- [Added Column.Offset][12092]
 
 [11926]: https://github.com/enso-org/enso/pull/11926
+[12031]: https://github.com/enso-org/enso/pull/12031
+[12071]: https://github.com/enso-org/enso/pull/12071
+[12092]: https://github.com/enso-org/enso/pull/12092
 
 #### Enso Language & Runtime
 
@@ -158,6 +171,7 @@
 - [Added `add_group_number` to the in-memory database.[11818]
 - [The reload button clears the HTTP cache.][11673]
 - [SQL Server Support for Aggregate][11811]
+- [Added `Download_Mode` parameter to `Data.download`.][12017]
 
 [11235]: https://github.com/enso-org/enso/pull/11235
 [11255]: https://github.com/enso-org/enso/pull/11255
@@ -169,6 +183,7 @@
 [11818]: https://github.com/enso-org/enso/pull/11818
 [11673]: https://github.com/enso-org/enso/pull/11673
 [11811]: https://github.com/enso-org/enso/pull/11811
+[12017]: https://github.com/enso-org/enso/pull/12017
 
 #### Enso Language & Runtime
 

@@ -16,8 +16,12 @@ import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { injectWidgetTree } from '@/providers/widgetTree'
 import { useGraphStore } from '@/stores/graph'
 import { requiredImports, type RequiredImport } from '@/stores/graph/imports'
+import { injectProjectNames } from '@/stores/projectNames'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import {
+  SuggestionKind,
+  entryDisplayPath,
+  entryIsStatic,
   type SuggestionEntry,
   type SuggestionEntryArgument,
 } from '@/stores/suggestionDatabase/entry'
@@ -34,6 +38,7 @@ import { computed, proxyRefs, ref, shallowRef, watch } from 'vue'
 const props = defineProps(widgetProps(widgetDefinition))
 const suggestions = useSuggestionDbStore()
 const graph = useGraphStore()
+const projectNames = injectProjectNames()
 
 const tree = injectWidgetTree()
 
@@ -106,7 +111,7 @@ class ExpressionTag {
   ) {}
 
   static FromQualifiedName(qn: Ast.QualifiedName, label?: Opt<string>): ExpressionTag {
-    const entry = suggestions.entries.getEntryByQualifiedName(qn)
+    const entry = suggestions.entries.getEntryByProjectPath(projectNames.parseProjectPath(qn))
     if (entry) return ExpressionTag.FromEntry(entry, label)
     return new ExpressionTag(qn, label ?? qnLastSegment(qn))
   }
@@ -119,8 +124,8 @@ class ExpressionTag {
 
   static FromEntry(entry: SuggestionEntry, label?: Opt<string>): ExpressionTag {
     const expression =
-      entry.selfType != null ? `_.${entry.name}`
-      : entry.memberOf ? `${qnLastSegment(entry.memberOf)}.${entry.name}`
+      entryIsStatic(entry) ? entryDisplayPath(entry)
+      : entry.kind === SuggestionKind.Method ? `_.${entry.name}`
       : entry.name
     return new ExpressionTag(
       expression,

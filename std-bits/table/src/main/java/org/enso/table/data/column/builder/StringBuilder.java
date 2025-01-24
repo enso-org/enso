@@ -3,31 +3,21 @@ package org.enso.table.data.column.builder;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.StringStorage;
-import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.error.ValueTypeMismatchException;
 
 /** A builder for string columns. */
-public class StringBuilder extends TypedBuilderImpl<String> {
+public class StringBuilder extends TypedBuilder<String> {
   private final TextType type;
 
-  @Override
-  protected String[] newArray(int size) {
-    return new String[size];
-  }
-
   public StringBuilder(int size, TextType type) {
-    super(size);
+    super(type, new String[size]);
     this.type = type;
   }
 
   @Override
-  public StorageType getType() {
-    return type;
-  }
-
-  @Override
-  public void appendNoGrow(Object o) {
+  public void append(Object o) {
+    ensureSpaceToAppend();
     try {
       String str = (String) o;
       if (type.fits(str)) {

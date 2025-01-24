@@ -11,6 +11,7 @@ import Standard.Base.Runtime.Context
 from Standard.Test import all
 import Standard.Test.Test_Environment
 
+import project.Data.Data_Spec
 import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
 import project.Network.Enso_Cloud.Cloud_Tests_Setup.Temporary_Directory
 
@@ -25,6 +26,8 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
         sub = Panic.rethrow <| (test_root / "test-directory").create_directory
         Panic.rethrow <| "Hello Another!".write (sub / "another.txt")
     group_builder.teardown test_root.cleanup
+
+    add_data_specs suite_builder test_root.get
 
     group_builder.specify "should be able to list a directory" <|
         assets = Enso_File.home.list
@@ -393,6 +396,12 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
 
     Local_File_Spec.add_create_and_delete_directory_specs group_builder test_root.get
     Local_File_Spec.add_copy_edge_cases_specs group_builder test_root.get
+
+add_data_specs suite_builder root =
+    my_dir = (root / "data_specs-").create_directory
+    my_dir.should_succeed
+    file_maker path_element:Text = my_dir / (path_element+".txt")
+    Data_Spec.add_specs "(Enso_File) " suite_builder file_maker
 
 main filter=Nothing =
     setup = Cloud_Tests_Setup.prepare

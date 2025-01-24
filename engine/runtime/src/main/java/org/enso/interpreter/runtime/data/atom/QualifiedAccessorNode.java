@@ -54,7 +54,7 @@ final class QualifiedAccessorNode extends EnsoRootNode {
       } else if (atomConstructor == falseCtor) {
         return false;
       } else {
-        return atomConstructor.newInstance();
+        return atomConstructor.getConstructorFunction();
       }
     } else {
       return atomConstructor;

@@ -60,7 +60,7 @@ abstract class UnboxingAtom extends Atom {
   protected final Layout layout;
 
   protected UnboxingAtom(AtomConstructor constructor, Layout layout) {
-    super(constructor);
+    super(constructor, false);
     this.layout = layout;
   }
 

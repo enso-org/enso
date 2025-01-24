@@ -1,21 +1,10 @@
 package org.enso.interpreter.runtime.scope;
 
-import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.TruffleFile;
-import com.oracle.truffle.api.dsl.Bind;
-import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.interop.ArityException;
-import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.UnknownIdentifierException;
-import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import com.oracle.truffle.api.interop.UnsupportedTypeException;
-import com.oracle.truffle.api.library.ExportLibrary;
-import com.oracle.truffle.api.library.ExportMessage;
-import com.oracle.truffle.api.nodes.Node;
 import java.io.File;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
+
 import org.enso.common.MethodNames;
 import org.enso.compiler.PackageRepository;
 import org.enso.editions.LibraryName;
@@ -29,6 +18,21 @@ import org.enso.interpreter.runtime.type.Types;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
 import org.enso.scala.wrapper.ScalaConversions;
+
+import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.TruffleFile;
+import com.oracle.truffle.api.dsl.Bind;
+import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.interop.ArityException;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.UnknownIdentifierException;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.interop.UnsupportedTypeException;
+import com.oracle.truffle.api.library.ExportLibrary;
+import com.oracle.truffle.api.library.ExportMessage;
+import com.oracle.truffle.api.nodes.Node;
+
+import scala.Option;
 
 /** Represents the top scope of Enso execution, containing all the importable modules. */
 @ExportLibrary(InteropLibrary.class)
@@ -184,13 +188,28 @@ public final class TopLevelScope extends EnsoObject {
     @CompilerDirectives.TruffleBoundary
     private static Object compile(Object[] arguments, EnsoContext context)
         throws UnsupportedTypeException, ArityException {
-      boolean shouldCompileDependencies = Types.extractArguments(arguments, Boolean.class);
-      boolean shouldWriteCache = !context.isIrCachingDisabled();
       boolean useGlobalCache = context.isUseGlobalCache();
+      boolean shouldCompileDependencies;
+      scala.Option<String> generateDocs;
+      switch (arguments.length) {
+        case 2 -> {
+          shouldCompileDependencies = Boolean.TRUE.equals(arguments[0]);
+          generateDocs = switch (arguments[1]) {
+            case Boolean b when !b -> Option.empty();
+            case String s -> Option.apply(s);
+            default -> Option.empty();
+          };
+        }
+        default -> {
+          shouldCompileDependencies = Types.extractArguments(arguments, Boolean.class);
+          generateDocs = Option.empty();
+        }
+      }
+      boolean shouldWriteCache = !context.isIrCachingDisabled();
       try {
         return context
             .getCompiler()
-            .compile(shouldCompileDependencies, shouldWriteCache, useGlobalCache)
+            .compile(shouldCompileDependencies, shouldWriteCache, useGlobalCache, generateDocs)
             .get();
       } catch (InterruptedException e) {
         throw new RuntimeException(e);

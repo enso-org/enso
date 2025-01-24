@@ -149,7 +149,7 @@ public class CrossTabIndex {
     for (UnorderedMultiValueKey ySubKey : getYKeys()) {
 
       // Fill the y key columns.
-      IntStream.range(0, yColumns.length).forEach(i -> storage[i].appendNoGrow(ySubKey.get(i)));
+      IntStream.range(0, yColumns.length).forEach(i -> storage[i].append(ySubKey.get(i)));
 
       int offset = yColumns.length;
 
@@ -161,7 +161,7 @@ public class CrossTabIndex {
         }
 
         for (int i = 0; i < aggregates.length; i++) {
-          storage[offset + i].appendNoGrow(aggregates[i].aggregate(rowIds, problemAggregator));
+          storage[offset + i].append(aggregates[i].aggregate(rowIds, problemAggregator));
         }
 
         offset += aggregates.length;

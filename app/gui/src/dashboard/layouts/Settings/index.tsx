@@ -62,6 +62,7 @@ export default function Settings() {
   const [isSidebarPopoverOpen, setIsSidebarPopoverOpen] = React.useState(false)
   const { data: organization = null } = useBackendQuery(backend, 'getOrganization', [])
   const isQueryBlank = !/\S/.test(query)
+  const [preferredTimeZone, setPreferredTimeZone] = useLocalStorageState('preferredTimeZone')
 
   const updateUser = useMutation(backendMutationOptions(backend, 'updateUser')).mutateAsync
   const updateOrganization = useMutation(
@@ -102,6 +103,8 @@ export default function Settings() {
       queryClient,
       isMatch,
       changePassword,
+      preferredTimeZone,
+      setPreferredTimeZone,
     }),
     [
       accessToken,
@@ -119,6 +122,8 @@ export default function Settings() {
       isMatch,
       changePassword,
       localRootDirectory,
+      preferredTimeZone,
+      setPreferredTimeZone,
     ],
   )
 

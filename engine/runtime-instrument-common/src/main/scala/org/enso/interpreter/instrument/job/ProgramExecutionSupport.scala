@@ -96,9 +96,9 @@ object ProgramExecutionSupport {
       if (callStack.isEmpty) {
         logger.log(Level.FINEST, s"ON_COMPUTED ${value.getExpressionId}")
 
-        if (VisualizationResult.isInterruptedException(value.getValue)) {
-          value.getValue match {
-            case e: AbstractTruffleException =>
+        value.getValue match {
+          case sentinel: PanicSentinel =>
+            if (VisualizationResult.isInterruptedException(sentinel.getPanic)) {
               sendInterruptedExpressionUpdate(
                 contextId,
                 executionFrame.syncState,
@@ -106,9 +106,9 @@ object ProgramExecutionSupport {
               )
               // Bail out early. Any references to this value that do not expect
               // Interrupted error will likely return `No_Such_Method` otherwise.
-              throw new ThreadInterruptedException(e);
-            case _ =>
-          }
+              throw new ThreadInterruptedException(sentinel.getPanic)
+            }
+          case _ =>
         }
         sendExpressionUpdate(contextId, executionFrame.syncState, value)
         sendVisualizationUpdates(
