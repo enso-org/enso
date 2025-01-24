@@ -3691,9 +3691,19 @@ lazy val `engine-runner` = project
       val epbLang =
         (`runtime-language-epb` / Compile / fullClasspath).value
           .map(_.data.getAbsolutePath)
-      val langServer =
-        (`language-server` / Compile / fullClasspath).value
+      def langServer = {
+        val log = streams.value.log
+        val path = (`language-server` / Compile / fullClasspath).value
           .map(_.data.getAbsolutePath)
+        if (GraalVM.EnsoLauncher.disableLanguageServer) {
+          log.info(
+            s"Skipping language server in native image build as ${GraalVM.EnsoLauncher.VAR_NAME} env variable is ${GraalVM.EnsoLauncher.toString}"
+          )
+          Seq()
+        } else {
+          path
+        }
+      }
       val core = (
         runnerDeps ++
           runtimeDeps ++
@@ -3822,7 +3832,7 @@ lazy val `engine-runner` = project
       .dependsOn(NativeImage.additionalCp)
       .dependsOn(NativeImage.smallJdk)
       .dependsOn(
-        createEnginePackage
+        createEnginePackageNoIndex
       )
       .value,
     buildNativeImage := Def.taskDyn {
@@ -5106,6 +5116,7 @@ lazy val createEnginePackage =
   taskKey[Unit]("Creates the engine distribution package")
 createEnginePackage := {
   updateLibraryManifests.value
+  buildEngineDistributionNoIndex.value
   val modulesToCopy = componentModulesPaths.value
   val root          = engineDistributionRoot.value
   val log           = streams.value.log
@@ -5131,48 +5142,9 @@ ThisBuild / createEnginePackage := {
   createEnginePackage.result.value
 }
 
-lazy val buildEngineDistribution =
-  taskKey[Unit]("Builds the engine distribution and optionally native image")
-buildEngineDistribution := Def.taskIf {
-  if (shouldBuildNativeImage.value) {
-    createEnginePackage.value
-    (`engine-runner` / buildNativeImage).value
-  } else {
-    createEnginePackage.value
-  }
-}.value
-
-// This makes the buildEngineDistribution task usable as a dependency
-// of other tasks.
-ThisBuild / buildEngineDistribution := {
-  buildEngineDistribution.result.value
-}
-
-lazy val shouldBuildNativeImage = taskKey[Boolean](
-  "Whether native image should be build within buildEngineDistribution task"
-)
-
-ThisBuild / shouldBuildNativeImage := {
-  val prop = System.getenv("ENSO_LAUNCHER")
-  prop == "native" || prop == "debugnative"
-}
-
-ThisBuild / NativeImage.additionalOpts := {
-  val prop = System.getenv("ENSO_LAUNCHER")
-  if (prop == "native") {
-    Seq("-O3")
-  } else {
-    Seq("-ea", "-Ob", "-H:GenerateDebugInfo=1")
-  }
-}
-
-ThisBuild / engineDistributionRoot := {
-  engineDistributionRoot.value
-}
-
-lazy val buildEngineDistributionNoIndex =
-  taskKey[Unit]("Builds the engine distribution without generating indexes")
-buildEngineDistributionNoIndex := {
+lazy val createEnginePackageNoIndex =
+  taskKey[Unit]("Creates the engine distribution package")
+createEnginePackageNoIndex := {
   updateLibraryManifests.value
   val modulesToCopy = componentModulesPaths.value
   val root          = engineDistributionRoot.value
@@ -5195,10 +5167,89 @@ buildEngineDistributionNoIndex := {
   log.info(s"Engine package created at $root")
 }
 
-// This makes the buildEngineDistributionNoIndex task usable as a dependency
+ThisBuild / createEnginePackageNoIndex := {
+  createEnginePackageNoIndex.result.value
+}
+
+lazy val buildEngineDistributionNoIndex =
+  taskKey[Unit](
+    "Builds the engine distribution without generating indexes and optionally generating native image"
+  )
+buildEngineDistributionNoIndex := Def.taskIf {
+  createEnginePackageNoIndex.value
+  if (shouldBuildNativeImage.value) {
+    (`engine-runner` / buildNativeImage).value
+  }
+}.value
+
+// This makes the buildEngineDistribution task usable as a dependency
 // of other tasks.
 ThisBuild / buildEngineDistributionNoIndex := {
-  buildEngineDistributionNoIndex.result.value
+  updateLibraryManifests.value
+  val modulesToCopy = componentModulesPaths.value
+  val root          = engineDistributionRoot.value
+  val log           = streams.value.log
+  val cacheFactory  = streams.value.cacheStoreFactory
+  DistributionPackage.createEnginePackage(
+    distributionRoot    = root,
+    cacheFactory        = cacheFactory,
+    log                 = log,
+    jarModulesToCopy    = modulesToCopy,
+    graalVersion        = graalMavenPackagesVersion,
+    javaVersion         = graalVersion,
+    ensoVersion         = ensoVersion,
+    editionName         = currentEdition,
+    sourceStdlibVersion = stdLibVersion,
+    targetStdlibVersion = targetStdlibVersion,
+    targetDir           = (`syntax-rust-definition` / rustParserTargetDirectory).value,
+    generateIndex       = false
+  )
+  log.info(s"Engine package created at $root")
+}
+
+lazy val shouldBuildNativeImage = taskKey[Boolean](
+  "Whether native image should be build within buildEngineDistribution task"
+)
+
+ThisBuild / shouldBuildNativeImage := {
+  GraalVM.EnsoLauncher.native
+}
+
+ThisBuild / NativeImage.additionalOpts := {
+  if (GraalVM.EnsoLauncher.shell) {
+    Seq()
+  } else {
+    var opts = if (GraalVM.EnsoLauncher.release) {
+      Seq("-O3")
+    } else {
+      Seq("-Ob")
+    }
+
+    if (GraalVM.EnsoLauncher.debug) {
+      opts = opts ++ Seq("-H:GenerateDebugInfo=1")
+    }
+    if (GraalVM.EnsoLauncher.test) {
+      opts = opts ++ Seq("-ea")
+    }
+    opts
+  }
+}
+
+ThisBuild / engineDistributionRoot := {
+  engineDistributionRoot.value
+}
+
+lazy val buildEngineDistribution =
+  taskKey[Unit]("Builds the engine distribution")
+buildEngineDistribution := {
+  buildEngineDistributionNoIndex.value
+  createEnginePackage.value
+}
+
+// This makes the buildEngineDistributionNoIndex task usable as a dependency
+// of other tasks.
+ThisBuild / buildEngineDistribution := {
+  buildEngineDistribution.result.value
 }
 
 lazy val runEngineDistribution =
@@ -5284,6 +5335,7 @@ buildStdLib := Def.inputTaskDyn {
 
 lazy val pkgStdLibInternal = inputKey[Unit]("Use `buildStdLib`")
 pkgStdLibInternal := Def.inputTask {
+  buildEngineDistributionNoIndex.value
   val cmd               = allStdBits.parsed
   val root              = engineDistributionRoot.value
   val log: sbt.Logger   = streams.value.log

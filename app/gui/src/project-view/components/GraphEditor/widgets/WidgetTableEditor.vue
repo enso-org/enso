@@ -16,6 +16,8 @@ import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { targetIsOutside } from '@/util/autoBlur'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
+import { ProjectPath } from '@/util/projectPath'
+import { type IdentifierOrOperatorIdentifier, type QualifiedName } from '@/util/qualifiedName'
 import { useToast } from '@/util/toast'
 import '@ag-grid-community/styles/ag-grid.css'
 import '@ag-grid-community/styles/ag-theme-alpine.css'
@@ -257,9 +259,12 @@ const defaultColDef: ColDef<RowData> & {
 <script lang="ts">
 export const widgetDefinition = defineWidget(
   WidgetInputIsSpecificMethodCall({
-    module: 'Standard.Table.Table',
-    definedOnType: 'Standard.Table.Table.Table',
-    name: 'input',
+    module: ProjectPath.create('Standard.Table' as QualifiedName, 'Table' as QualifiedName),
+    definedOnType: ProjectPath.create(
+      'Standard.Table' as QualifiedName,
+      'Table.Table' as QualifiedName,
+    ),
+    name: 'input' as IdentifierOrOperatorIdentifier,
   }),
   {
     priority: 999,

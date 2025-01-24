@@ -1,10 +1,15 @@
+import { type ProjectNameStore } from '@/stores/projectNames'
 import { type DocumentationData } from '@/stores/suggestionDatabase/documentation'
+import { type MethodPointer } from '@/util/methodPointer'
+import { type ProjectPath } from '@/util/projectPath'
 import {
+  Identifier,
+  qnJoin,
+  qnLastSegment,
   qnSegments,
   type IdentifierOrOperatorIdentifier,
   type QualifiedName,
 } from '@/util/qualifiedName'
-import type { MethodPointer } from 'ydoc-shared/languageServerTypes'
 import {
   type SuggestionEntryArgument,
   type SuggestionEntryScope,
@@ -37,17 +42,17 @@ export enum SuggestionKind {
 export interface SuggestionEntryCommon extends DocumentationData {
   readonly kind: SuggestionKind
   /** A module where the suggested object is defined. */
-  definedIn: QualifiedName
+  definedIn: ProjectPath
   name: IdentifierOrOperatorIdentifier
   /** A type returned by the suggested object. */
-  returnType: Typename
+  returnType(projectNames: ProjectNameStore): Typename
   /** The fully qualified name of the `SuggestionEntry`, disregarding reexports. */
-  definitionPath: QualifiedName
+  definitionPath: ProjectPath
 }
 
 interface Reexportable {
   /** A least-nested module reexporting this entity. */
-  reexportedIn: QualifiedName | undefined
+  reexportedIn: ProjectPath | undefined
 }
 
 interface Scoped {
@@ -66,11 +71,8 @@ interface TakesArguments {
 }
 
 interface IsMemberOf {
-  /**
-   * A type or module this method or constructor belongs to. This will not be `undefined` unless the value was an
-   * invalid qualified name.
-   */
-  memberOf: QualifiedName | undefined
+  /** A type or module this method or constructor belongs to. */
+  memberOf: ProjectPath
 }
 
 export interface ModuleSuggestionEntry extends SuggestionEntryCommon, Reexportable {
@@ -80,7 +82,7 @@ export interface ModuleSuggestionEntry extends SuggestionEntryCommon, Reexportab
 export interface TypeSuggestionEntry extends SuggestionEntryCommon, Reexportable, TakesArguments {
   readonly kind: SuggestionKind.Type
   /** Qualified name of the parent type. */
-  parentType: QualifiedName | undefined
+  parentType: ProjectPath | undefined
 }
 
 export interface ConstructorSuggestionEntry
@@ -100,7 +102,7 @@ export interface MethodSuggestionEntry
     IsMemberOf {
   readonly kind: SuggestionKind.Method
   /** Type of the "self" argument. */
-  selfType: Typename | undefined
+  selfType: ProjectPath | undefined
 }
 
 export interface FunctionSuggestionEntry extends SuggestionEntryCommon, Scoped, TakesArguments {
@@ -156,7 +158,7 @@ export function entryIsStatic(
 
 /** Get the MethodPointer pointing to definition represented by the entry. */
 export function entryMethodPointer(entry: SuggestionEntry): MethodPointer | undefined {
-  if (entry.kind !== SuggestionKind.Method || !entry.memberOf) return
+  if (entry.kind !== SuggestionKind.Method) return
   return {
     module: entry.definedIn,
     definedOnType: entry.memberOf,
@@ -164,17 +166,26 @@ export function entryMethodPointer(entry: SuggestionEntry): MethodPointer | unde
   }
 }
 
+const mainIdent = 'Main' as Identifier
+
+/** Returns the partial path to use when displaying the name with only the final segment of the parent path. */
+export function entryDisplayPath(entry: SuggestionEntry & IsMemberOf): QualifiedName {
+  return qnJoin(
+    entry.memberOf.path && entry.memberOf.path !== 'Main' ? qnLastSegment(entry.memberOf.path)
+    : entry.memberOf.project ? qnLastSegment(entry.memberOf.project)
+    : mainIdent,
+    entry.name,
+  )
+}
+
 const DOCUMENTATION_ROOT = 'https://help.enso.org/docs/api'
 
 /** TODO: Add docs */
 export function suggestionDocumentationUrl(entry: SuggestionEntry): string | undefined {
   if (entry.kind !== SuggestionKind.Method && entry.kind !== SuggestionKind.Function) return
-  const location = entry.definitionPath
-  const segments: string[] = qnSegments(location)
-  if (segments[0] !== 'Standard') return
-  if (segments.length < 3) return
-  const project = `${segments[0]}.${segments[1]}`
-  return [DOCUMENTATION_ROOT, project, ...segments.slice(2)].join('/')
+  const { project, path } = entry.definitionPath
+  if (!project?.startsWith('Standard.') || !path) return
+  return [DOCUMENTATION_ROOT, project, ...qnSegments(path)].join('/')
 }
 
 /** `true` if calling the function without providing a value for this argument will result in an error. */
