@@ -193,6 +193,8 @@ make_json_for_xml_element xml_element max_items type:Text="XML_Element" =
      only a fragment is displayed.
 make_json_for_table : Table -> Integer -> Integer -> Boolean -> Boolean -> JS_Object
 make_json_for_table dataframe max_rows all_rows_count include_index_col is_db_table =
+    act_max = if max_rows < all_rows_count then max_rows else all_rows_count
+    get_vector c         = Warning.set (Vector.new act_max i-> make_json_for_value (c.get i)) []
     columns              = dataframe.columns
     header               = ["header", columns.map .name]
     value_type           = ["value_type", columns.map .value_type]
@@ -200,13 +202,14 @@ make_json_for_table dataframe max_rows all_rows_count include_index_col is_db_ta
     has_index_col        = ["has_index_col", include_index_col]
     links                = ["get_child_node_action", "get_row"]
     child_label          = ["child_label", "row"]
+    is_ssrm              = ["is_ssrm", all_rows_count > max_rows]
     data_quality_metrics = if is_db_table then [] else
         number_nothing = JS_Object.from_pairs [["name", "Count nothings"], ["percentage_value", columns.map .count_nothing]]
         number_untrimmed = case all_rows_count > Column.default_sample_size of
             False -> JS_Object.from_pairs [["name", "Count untrimmed whitespace"], ["percentage_value", columns.map .count_untrimmed]]
             True -> JS_Object.from_pairs [["name", "Count untrimmed whitespace (sampled)"], ["percentage_value", columns.map .count_untrimmed]]
         [number_nothing, number_untrimmed]
-    pairs                = [header, value_type, all_rows, has_index_col, links, ["data_quality_metrics", data_quality_metrics] ,["type", "Table"], child_label, ["ssrm", True], ["getRowsMethod", "getRowsForTable"]]
+    pairs                = [header, value_type, all_rows, has_index_col, links, ["data_quality_metrics", data_quality_metrics] ,["type", "Table"], child_label, is_ssrm]
     JS_Object.from_pairs pairs
 
 ## PRIVATE

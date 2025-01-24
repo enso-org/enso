@@ -107,8 +107,8 @@ import { VueComponentHandle, default as VueComponentHost, VueHost } from '../Vue
 
 const DEFAULT_ROW_HEIGHT = 22
 
-const props = defineProps<{
-  rowData: TData[]
+const _props = defineProps<{
+  rowData?: TData[]
   columnDefs: (ColDef<TData, TValue> | ColGroupDef<TData>)[] | null
   defaultColDef: ColDef<TData>
   getRowId?: GetRowIdFunc<TData>
@@ -119,6 +119,7 @@ const props = defineProps<{
   suppressMoveWhenColumnDragging?: boolean
   textFormatOption?: TextFormatOptions
   processDataFromClipboard?: (params: ProcessDataFromClipboardParams<TData>) => string[][] | null
+  datasource: any;
 }>()
 const emit = defineEmits<{
   cellEditingStarted: [event: CellEditingStartedEvent]
@@ -141,7 +142,7 @@ function onGridReady(event: GridReadyEvent<TData>) {
 }
 
 function getRowHeight(params: RowHeightParams): number {
-  if (props.textFormatOption === 'off') {
+  if (_props.textFormatOption === 'off') {
     return DEFAULT_ROW_HEIGHT
   }
   const rowData = Object.values(params.data)
@@ -159,13 +160,13 @@ function getRowHeight(params: RowHeightParams): number {
   return (maxReturnCharsCount + 1) * DEFAULT_ROW_HEIGHT
 }
 
-watch(
-  () => props.textFormatOption,
-  () => {
-    gridApi.value?.redrawRows()
-    gridApi.value?.resetRowHeights()
-  },
-)
+// watch(
+//   () => _props.textFormatOption,
+//   () => {
+//     gridApi.value?.redrawRows()
+//     gridApi.value?.resetRowHeights()
+//   },
+// )
 
 function updateColumnWidths(event: FirstDataRenderedEvent | RowDataUpdatedEvent) {
   if (event.api == null) {
@@ -316,9 +317,9 @@ function stopIfPrevented(event: Event) {
 const vueHost = new VueHost()
 
 const mappedComponents = computed(() => {
-  if (!props.components) return
+  if (!_props.components) return
   const retval: Record<string, new () => IHeaderComp> = {}
-  for (const [key, comp] of Object.entries(props.components)) {
+  for (const [key, comp] of Object.entries(_props.components)) {
     class ComponentWrapper implements IHeaderComp {
       private readonly container: HTMLElement = document.createElement('div')
       private handle: VueComponentHandle | undefined
@@ -356,7 +357,6 @@ const { AgGridVue } = await import('./AgGridTableView/AgGridVue')
       class="ag-theme-alpine inner"
       :headerHeight="26"
       :getRowHeight="getRowHeight"
-      :rowData="rowData"
       :columnDefs="columnDefs"
       :defaultColDef="defaultColDef"
       :copyHeadersToClipboard="true"
@@ -372,6 +372,8 @@ const { AgGridVue } = await import('./AgGridTableView/AgGridVue')
       :suppressMoveWhenColumnDragging="suppressMoveWhenColumnDragging"
       :processDataFromClipboard="processDataFromClipboard"
       :allowContextMenuWithControlKey="true"
+      :rowModelType="'serverSide'"
+      :serverSideDatasource="datasource"
       @gridReady="onGridReady"
       @firstDataRendered="updateColumnWidths"
       @rowDataUpdated="(updateColumnWidths($event), emit('rowDataUpdated', $event))"

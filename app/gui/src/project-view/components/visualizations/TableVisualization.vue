@@ -14,10 +14,11 @@ import type {
   CellDoubleClickedEvent,
   ColDef,
   ICellRendererParams,
+  IServerSideDatasource,
   ITooltipParams,
   SortChangedEvent,
 } from 'ag-grid-enterprise'
-import { computed, onMounted, ref, shallowRef, watchEffect, type Ref } from 'vue'
+import { computed, ref, shallowRef, watchEffect, type Ref } from 'vue'
 import { TableVisualisationTooltip } from './TableVisualization/TableVisualisationTooltip'
 import { getCellValueType, isNumericType } from './TableVisualization/tableVizUtils'
 
@@ -28,7 +29,7 @@ export const inputType =
 export const defaultPreprocessor = [
   'Standard.Visualization.Table.Visualization',
   'prepare_visualization',
-  '1000',
+  '100',
 ] as const
 
 type Data = number | string | Error | Matrix | ObjectMatrix | UnknownTable | Excel_Workbook
@@ -85,7 +86,6 @@ interface UnknownTable {
   json: unknown
   all_rows_count?: number
   header: string[] | undefined
-  data: unknown[][] | undefined
   value_type: ValueType[]
   has_index_col: boolean | undefined
   links: string[] | undefined
@@ -128,8 +128,8 @@ const sortModel = ref<SortModel[]>([])
 const dataGroupingMap = shallowRef<Map<string, boolean>>()
 const defaultColDef: Ref<ColDef> = ref({
   editable: false,
-  sortable: true,
-  filter: true,
+  // sortable: true,
+  // filter: true,
   resizable: true,
   minWidth: 25,
   cellRenderer: cellRenderer,
@@ -142,25 +142,9 @@ const defaultColDef: Ref<ColDef> = ref({
     'export',
   ],
 } satisfies ColDef)
-const rowData = ref<Record<string, any>[]>([])
 const columnDefs: Ref<ColDef[]> = ref([])
 
 const textFormatterSelected = ref<TextFormatOptions>('partial')
-
-const isRowCountSelectorVisible = computed(() => rowCount.value >= 1000)
-
-const selectableRowLimits = computed(() => {
-  const defaults = [1000, 2500, 5000, 10000, 25000, 50000, 100000].filter(
-    (r) => r <= rowCount.value,
-  )
-  if (rowCount.value < 100000 && !defaults.includes(rowCount.value)) {
-    defaults.push(rowCount.value)
-  }
-  if (!defaults.includes(rowLimit.value)) {
-    defaults.push(rowLimit.value)
-  }
-  return defaults
-})
 
 const isFilterSortNodeEnabled = computed(
   () => config.nodeType === TABLE_NODE_TYPE || config.nodeType === DB_TABLE_NODE_TYPE,
@@ -240,14 +224,56 @@ function formatText(params: ICellRendererParams) {
   return `<span > ${newString} <span>`
 }
 
-function setRowLimit(newRowLimit: number) {
-  if (newRowLimit !== rowLimit.value) {
-    rowLimit.value = newRowLimit
-    config.setPreprocessor(
-      'Standard.Visualization.Table.Visualization',
-      'prepare_visualization',
-      newRowLimit.toString(),
-    )
+// const projectStore = useProjectStore()
+// const tempModule = Ast.MutableModule.Transient()
+// const preprocessorModule = Ast.parseExpression(
+//           'Standard.Visualization.Table.Visualization',
+//           tempModule,
+//         )!
+// const preprocessorQn = Ast.PropertyAccess.new(
+//           tempModule,
+//           preprocessorModule,
+//           'get_rows_for_table',)
+
+// const args = ['100']
+// const preprocessorInvocation = Ast.App.PositionalSequence(preprocessorQn, [
+//           Ast.Wildcard.new(tempModule),
+//           ...args.map((arg) => Ast.Group.new(tempModule, Ast.parseExpression(arg, tempModule)!)),
+//         ])
+// const rhs = Ast.parseExpression(dataSourceValue.expression, tempModule)!
+// const expression = Ast.OprApp.new(tempModule, preprocessorInvocation, '<|', rhs)
+// return projectStore.executeExpression(dataSourceValue.contextId, expression.code())
+
+
+
+function createFakeServer() {
+  return {
+    getData: () => {
+      // use executeExpression to get data
+      setTimeout(() => {
+        return ({
+        success: true,
+        rows: [],
+      })
+      }, 0)
+    },
+  }
+}
+
+function createServerSideDatasource(): IServerSideDatasource {
+  return {
+    getRows: (params) => {
+      const server = createFakeServer()
+      const response = server.getData()
+      console.log({response})
+      setTimeout(() => {
+        if (response.success) {
+          params.success({ rowData: response.rows })
+        } else {
+          params.fail()
+        }
+      }, 500)
+    },
   }
 }
 
@@ -449,10 +475,11 @@ function toLinkField(fieldName: string, options: LinkFieldOptions = {}): ColDef 
   }
 }
 
-/** Return a human-readable representation of an object. */
-function toRender(content: unknown) {
-  return content
-}
+// /** Return a human-readable representation of an object. */
+// function toRender(content: unknown) {
+//   console.log({content})
+//   return content
+// }
 
 watchEffect(() => {
   // If the user switches from one visualization type to another, we can receive the raw object.
@@ -488,7 +515,6 @@ watchEffect(() => {
         cellStyle: { 'white-space': 'normal' },
       },
     ]
-    rowData.value = [{ Error: data_.error }]
   } else if (data_.type === 'Matrix') {
     columnDefs.value = [
       toLinkField(INDEX_FIELD_NAME, {
@@ -500,7 +526,6 @@ watchEffect(() => {
     for (let i = 0; i < data_.column_count; i++) {
       columnDefs.value.push(toField(i.toString()))
     }
-    rowData.value = addRowIndex(data_.json)
     isTruncated.value = data_.all_rows_count !== data_.json.length
   } else if (data_.type === 'Object_Matrix') {
     columnDefs.value = [
@@ -521,7 +546,6 @@ watchEffect(() => {
         })
       }
     }
-    rowData.value = addRowIndex(data_.json)
     isTruncated.value = data_.all_rows_count !== data_.json.length
   } else if (data_.type === 'Excel_Workbook') {
     columnDefs.value = [
@@ -531,7 +555,6 @@ watchEffect(() => {
         getChildAction: data_.get_child_node_action,
       }),
     ]
-    rowData.value = data_.sheet_names.map((name) => ({ Value: name }))
   } else if (Array.isArray(data_.json)) {
     columnDefs.value = [
       toLinkField(INDEX_FIELD_NAME, {
@@ -541,7 +564,6 @@ watchEffect(() => {
       }),
       toField('Value'),
     ]
-    rowData.value = data_.json.map((row, i) => ({ [INDEX_FIELD_NAME]: i, Value: toRender(row) }))
     isTruncated.value = data_.all_rows_count ? data_.all_rows_count !== data_.json.length : false
   } else if (data_.json !== undefined) {
     columnDefs.value =
@@ -554,12 +576,6 @@ watchEffect(() => {
           }),
         ]
       : [toField('Value')]
-    rowData.value =
-      data_.links ?
-        data_.links.map((link) => ({
-          Value: link,
-        }))
-      : [{ Value: toRender(data_.json) }]
   } else {
     const dataHeader =
       ('header' in data_ ? data_.header : [])?.map((v, i) => {
@@ -589,49 +605,7 @@ watchEffect(() => {
           ...dataHeader,
         ]
       : dataHeader
-    const rows = data_.data && data_.data.length > 0 ? (data_.data[0]?.length ?? 0) : 0
-    rowData.value = Array.from({ length: rows }, (_, i) => {
-      const shift = data_.has_index_col ? 1 : 0
-      return Object.fromEntries(
-        columnDefs.value.map((h, j) => {
-          return [
-            h.field,
-            toRender(h.field === INDEX_FIELD_NAME ? i : data_.data?.[j - shift]?.[i]),
-          ]
-        }),
-      )
-    })
-    isTruncated.value = data_.all_rows_count !== rowData.value.length
   }
-
-  // Update paging
-  const newRowCount = data_.all_rows_count == null ? 1 : data_.all_rows_count
-  showRowCount.value = !(data_.all_rows_count == null)
-  rowCount.value = newRowCount
-  const newPageLimit = Math.ceil(newRowCount / rowLimit.value)
-  pageLimit.value = newPageLimit
-  if (page.value > newPageLimit) {
-    page.value = newPageLimit
-  }
-
-  if (rowData.value[0]) {
-    const headers = Object.keys(rowData.value[0])
-    const headerGroupingMap = new Map()
-    headers.forEach((header) => {
-      const needsGrouping = rowData.value.some((row) => {
-        if (header in row && row[header] != null) {
-          const value = typeof row[header] === 'object' ? row[header].value : row[header]
-          return value > 999999 || value < -999999
-        }
-      })
-      headerGroupingMap.set(header, needsGrouping)
-    })
-    dataGroupingMap.value = headerGroupingMap
-  }
-
-  // If data is truncated, we cannot rely on sorting/filtering so will disable.
-  defaultColDef.value.filter = !isTruncated.value
-  defaultColDef.value.sortable = !isTruncated.value
 })
 
 const colTypeMap = computed(() => {
@@ -737,9 +711,9 @@ function checkSortAndFilter(e: SortChangedEvent) {
 // === Updates ===
 // ===============
 
-onMounted(() => {
-  setRowLimit(1000)
-})
+// onMounted(() => {
+//   setRowLimit(1000)
+// })
 
 // ===============
 // === Toolbar ===
@@ -760,37 +734,15 @@ config.setToolbar(
 
 <template>
   <div ref="rootNode" class="TableVisualization" @wheel.stop @pointerdown.stop>
-    <div class="table-visualization-status-bar">
-      <select
-        v-if="isRowCountSelectorVisible"
-        @change="setRowLimit(Number(($event.target as HTMLOptionElement).value))"
-      >
-        <option
-          v-for="limit in selectableRowLimits"
-          :key="limit"
-          :value="limit"
-          v-text="limit"
-        ></option>
-      </select>
-      <template v-if="showRowCount">
-        <span
-          v-if="isRowCountSelectorVisible && isTruncated"
-          v-text="` of ${rowCount} rows (Sorting/Filtering disabled).`"
-        ></span>
-        <span v-else-if="isRowCountSelectorVisible" v-text="' rows.'"></span>
-        <span v-else-if="rowCount === 1" v-text="'1 row.'"></span>
-        <span v-else v-text="`${rowCount} rows.`"></span>
-      </template>
-    </div>
     <!-- TODO[ao]: Suspence in theory is not needed here (the entire visualization is inside
      suspense), but for some reason it causes reactivity loop - see https://github.com/enso-org/enso/issues/10782 -->
     <Suspense>
       <AgGridTableView
         class="scrollable grid"
         :columnDefs="columnDefs"
-        :rowData="rowData"
         :defaultColDef="defaultColDef"
         :textFormatOption="textFormatterSelected"
+        :datasource="createServerSideDatasource()"
         @sortOrFilterUpdated="(e) => checkSortAndFilter(e)"
       />
     </Suspense>
