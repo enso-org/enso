@@ -83,8 +83,8 @@ export function useDisplayedIcon(
   baseIcon: ToValue<Icon | URLString>,
 ) {
   const evaluating = computed(() => {
-    const status = graphDb.getExpressionInfo(toValue(externalId))?.payload.type
-    return status === 'Pending' || status === undefined
+    const payload = graphDb.getExpressionInfo(toValue(externalId))?.payload
+    return payload?.type === 'Pending' && payload.progress
   })
   return {
     displayedIcon: computed(() => (evaluating.value ? '$evaluating' : toValue(baseIcon))),
