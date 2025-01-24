@@ -1,4 +1,5 @@
 /** @file A dropdown menu of user actions and settings. */
+import { IS_DEV_MODE } from 'enso-common/src/detect'
 import DefaultUserIcon from '#/assets/default_user.svg'
 import { Popover, Text } from '#/components/AriaComponents'
 import MenuEntry from '#/components/MenuEntry'
@@ -62,7 +63,7 @@ export default function UserMenu(props: UserMenuProps) {
         }}
       />
 
-      {user.isEnsoTeamMember && (
+      {user.isEnsoTeamMember && IS_DEV_MODE && (
         <MenuEntry
           action="ensoDevtools"
           doAction={() => {
