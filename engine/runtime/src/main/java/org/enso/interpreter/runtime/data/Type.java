@@ -23,10 +23,12 @@ import java.util.Objects;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.node.ConstantNode;
+import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;
 import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode;
-import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
+import org.enso.interpreter.node.callable.resolver.MethodResolverNode;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -416,13 +418,15 @@ public final class Type extends EnsoObject {
         String member,
         Object[] args,
         @Cached("member") String cachedMember,
-        @Cached("findMethod(receiver, member)") Function func,
-        @Cached("buildInvokeFuncNode(func)") InvokeFunctionNode invokeFuncNode)
+        @Cached MethodResolverNode methodResolverNode,
+        @Cached("buildSymbol(receiver, member)") UnresolvedSymbol symbol,
+        @Cached("findMethod(receiver, symbol, methodResolverNode)") Function func,
+        @Cached("buildInvokeCallableNode(func)") InvokeCallableNode invokeCallableNode)
         throws UnsupportedMessageException, UnsupportedTypeException, ArityException {
       var argsWithReceiver = new Object[args.length + 1];
       argsWithReceiver[0] = receiver;
       System.arraycopy(args, 0, argsWithReceiver, 1, args.length);
-      return invokeFuncNode.execute(func, null, null, argsWithReceiver);
+      return invokeCallableNode.execute(func, null, null, argsWithReceiver);
     }
 
     @Specialization(replaces = "doCached")
@@ -436,19 +440,27 @@ public final class Type extends EnsoObject {
             UnsupportedTypeException,
             ArityException,
             UnknownIdentifierException {
-      var method = findMethod(receiver, member);
+      var symbol = buildSymbol(receiver, member);
+      var methodResolverNode = MethodResolverNode.getUncached();
+      var method = findMethod(receiver, symbol, methodResolverNode);
       if (method == null) {
         throw UnknownIdentifierException.create(member);
       }
-      var invokeFuncNode = buildInvokeFuncNode(method);
-      return doCached(receiver, member, args, member, method, invokeFuncNode);
+      var invokeCallableNode = buildInvokeCallableNode(method);
+      return doCached(
+          receiver, member, args, member, methodResolverNode, symbol, method, invokeCallableNode);
     }
 
-    static Function findMethod(Type receiver, String name) {
-      return receiver.methods().get(name);
+    static UnresolvedSymbol buildSymbol(Type receiver, String member) {
+      return UnresolvedSymbol.build(member, receiver.getDefinitionScope());
     }
 
-    static InvokeFunctionNode buildInvokeFuncNode(Function func) {
+    static Function findMethod(
+        Type receiver, UnresolvedSymbol symbol, MethodResolverNode methodResolverNode) {
+      return methodResolverNode.executeResolution(receiver, symbol);
+    }
+
+    static InvokeCallableNode buildInvokeCallableNode(Function func) {
       assert func != null;
       var argumentInfos = func.getSchema().getArgumentInfos();
       var callArgInfos = new CallArgumentInfo[argumentInfos.length];
@@ -457,7 +469,7 @@ public final class Type extends EnsoObject {
         var callArgInfo = new CallArgumentInfo(argInfo.getName());
         callArgInfos[i] = callArgInfo;
       }
-      return InvokeFunctionNode.build(
+      return InvokeCallableNode.build(
           callArgInfos, DefaultsExecutionMode.EXECUTE, ArgumentsExecutionMode.EXECUTE);
     }
   }
