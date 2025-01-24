@@ -78,7 +78,6 @@ export const Input = forwardRef(function Input<
     autoFocus = false,
     className,
     testId: testIdRaw,
-    label,
     ...inputProps
   } = props
   const form = Form.useFormContext(formRaw)
@@ -141,7 +140,6 @@ export const Input = forwardRef(function Input<
         variants: fieldVariants,
         form: formInstance,
       })}
-      label={label}
       ref={ref}
       name={props.name}
       data-testid={testId}
