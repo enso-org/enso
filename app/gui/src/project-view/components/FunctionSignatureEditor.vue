@@ -1,17 +1,18 @@
 <script setup lang="ts">
 import { WidgetInput } from '@/providers/widgetRegistry'
+import { injectProjectNames } from '@/stores/projectNames'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { documentationData } from '@/stores/suggestionDatabase/documentation'
 import { colorFromString } from '@/util/colors'
-import { isQualifiedName } from '@/util/qualifiedName'
+import { type MethodPointer } from '@/util/methodPointer'
 import { computed, ref, watchEffect } from 'vue'
 import { FunctionDef } from 'ydoc-shared/ast'
-import { MethodPointer } from 'ydoc-shared/languageServerTypes'
 import type * as Y from 'yjs'
 import WidgetTreeRoot from './GraphEditor/WidgetTreeRoot.vue'
 import { FunctionInfoKey } from './GraphEditor/widgets/WidgetFunctionDef.vue'
 
 const suggestionDb = useSuggestionDbStore()
+const projectNames = injectProjectNames()
 
 const { functionAst, markdownDocs, methodPointer } = defineProps<{
   functionAst: FunctionDef
@@ -36,9 +37,7 @@ watchEffect((onCleanup) => {
 
 const docsData = computed(() => {
   const definedIn = methodPointer?.module
-  return definedIn && isQualifiedName(definedIn) ?
-      documentationData(docsString.value, definedIn, suggestionDb.groups)
-    : undefined
+  return definedIn && documentationData(docsString.value, definedIn.project, suggestionDb.groups)
 })
 
 const treeRootInput = computed((): WidgetInput => {
@@ -59,10 +58,12 @@ const groupBasedColor = computed(() => {
 })
 
 const returnTypeBasedColor = computed(() => {
-  const suggestionId =
-    methodPointer ? suggestionDb.entries.findByMethodPointer(methodPointer) : undefined
-  const returnType = suggestionId ? suggestionDb.entries.get(suggestionId)?.returnType : undefined
-  return returnType ? colorFromString(returnType) : undefined
+  if (!methodPointer) return
+  const suggestionId = suggestionDb.entries.findByMethodPointer(methodPointer)
+  if (suggestionId == null) return
+  const entry = suggestionDb.entries.get(suggestionId)
+  if (!entry) return
+  return colorFromString(entry.returnType(projectNames))
 })
 
 const rootStyle = computed(() => {

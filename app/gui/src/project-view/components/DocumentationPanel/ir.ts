@@ -2,7 +2,7 @@ import type { SuggestionDb } from '@/stores/suggestionDatabase'
 import type { SuggestionEntry, SuggestionId } from '@/stores/suggestionDatabase/entry'
 import { SuggestionKind } from '@/stores/suggestionDatabase/entry'
 import type { Doc } from '@/util/docParser'
-import type { QualifiedName } from '@/util/qualifiedName'
+import { type ProjectPath } from '@/util/projectPath'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import type { SuggestionEntryArgument } from 'ydoc-shared/languageServerTypes/suggestions'
 
@@ -20,7 +20,7 @@ export interface Placeholder {
 export interface FunctionDocs {
   kind: 'Function'
   id: SuggestionId
-  name: QualifiedName
+  name: ProjectPath
   arguments: SuggestionEntryArgument[]
   sections: Sections
 }
@@ -28,7 +28,7 @@ export interface FunctionDocs {
 export interface TypeDocs {
   kind: 'Type'
   id: SuggestionId
-  name: QualifiedName
+  name: ProjectPath
   arguments: SuggestionEntryArgument[]
   sections: Sections
   methods: FunctionDocs[]
@@ -38,7 +38,7 @@ export interface TypeDocs {
 export interface ModuleDocs {
   kind: 'Module'
   id: SuggestionId
-  name: QualifiedName
+  name: ProjectPath
   sections: Sections
   types: TypeDocs[]
   methods: FunctionDocs[]
@@ -47,7 +47,7 @@ export interface ModuleDocs {
 export interface LocalDocs {
   kind: 'Local'
   id: SuggestionId
-  name: QualifiedName
+  name: ProjectPath
   sections: Sections
 }
 

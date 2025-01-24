@@ -532,25 +532,26 @@ public final class ExecutionService {
    * @param panic the panic to display.
    * @return a human-readable version of its contents.
    */
-  public String getExceptionMessage(PanicException panic) {
+  public String getExceptionMessage(AbstractTruffleException panic) {
     var iop = InteropLibrary.getUncached();
     var p = context.getThreadManager().enter();
+    var payload = panic instanceof PanicException ex ? ex.getPayload() : panic;
     try {
       // Invoking a member on an Atom that does not have a method `to_display_text` will not
       // contrary to what is
       // expected from the documentation, throw an `UnsupportedMessageException`.
       // Instead it will crash with some internal assertion deep inside runtime. Hence the check.
-      if (iop.isMemberInvocable(panic.getPayload(), "to_display_text")) {
-        return iop.asString(iop.invokeMember(panic.getPayload(), "to_display_text"));
+      if (iop.isMemberInvocable(payload, "to_display_text")) {
+        return iop.asString(iop.invokeMember(payload, "to_display_text"));
       } else throw UnsupportedMessageException.create();
     } catch (UnsupportedMessageException
         | ArityException
         | UnknownIdentifierException
         | UnsupportedTypeException e) {
-      return TypeToDisplayTextNode.getUncached().execute(panic.getPayload());
+      return TypeToDisplayTextNode.getUncached().execute(payload);
     } catch (Throwable e) {
       if (iop.isException(e)) {
-        return TypeToDisplayTextNode.getUncached().execute(panic.getPayload());
+        return TypeToDisplayTextNode.getUncached().execute(payload);
       } else {
         throw e;
       }

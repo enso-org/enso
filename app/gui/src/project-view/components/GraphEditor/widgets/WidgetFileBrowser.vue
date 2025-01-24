@@ -10,8 +10,9 @@ import type { RequiredImport } from '@/stores/graph/imports'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
 import { ArgumentInfoKey } from '@/util/callTree'
+import { ProjectPath, printAbsoluteProjectPath } from '@/util/projectPath'
 import { computed } from 'vue'
-import { TextLiteral } from 'ydoc-shared/ast'
+import { TextLiteral, type QualifiedName } from 'ydoc-shared/ast'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
@@ -128,8 +129,11 @@ const innerWidgetInput = computed(() => {
 
 <script lang="ts">
 const TEXT_TYPE = 'Standard.Base.Data.Text.Text'
-const FILE_MODULE = 'Standard.Base.System.File'
-const FILE_TYPE = FILE_MODULE + '.File'
+const FILE_MODULE = ProjectPath.create(
+  'Standard.Base' as QualifiedName,
+  'System.File' as QualifiedName,
+)
+const FILE_TYPE = printAbsoluteProjectPath(FILE_MODULE) + '.File'
 const WRITABLE_FILE_MODULE = 'Standard.Base.System.File.Generic.Writable_File'
 const WRITABLE_FILE_TYPE = WRITABLE_FILE_MODULE + '.Writable_File'
 

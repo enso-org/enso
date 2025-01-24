@@ -5,10 +5,11 @@ import {
 } from '@/providers/widgetRegistry/configuration'
 import type { MethodCallInfo } from '@/stores/graph/graphDatabase'
 import type { ExpressionInfo } from '@/stores/project/computedValueRegistry'
-import type { NodeVisualizationConfiguration } from '@/stores/project/executionContext'
+import { type NodeVisualizationConfiguration } from '@/stores/project/executionContext'
+import { type ProjectNameStore } from '@/stores/projectNames'
 import { entryIsAnnotatable } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
-import type { AstId } from '@/util/ast/abstract'
+import { type AstId, type Identifier } from '@/util/ast/abstract'
 import {
   ArgumentApplication,
   getAccessOprSubject,
@@ -16,13 +17,19 @@ import {
   interpretCall,
 } from '@/util/callTree'
 import type { Result } from '@/util/data/result'
+import { ProjectPath } from '@/util/projectPath'
+import type { QualifiedName } from '@/util/qualifiedName'
 import type { ToValue } from '@/util/reactivity'
 import { computed, toValue, type Ref } from 'vue'
 import type { Opt } from 'ydoc-shared/util/data/opt'
 import type { ExternalId } from 'ydoc-shared/yjsModel'
 
 export const WIDGETS_ENSO_MODULE = 'Standard.Visualization.Widgets'
-export const GET_WIDGETS_METHOD = 'get_widget_json'
+export const GET_WIDGETS_METHOD = 'get_widget_json' as Identifier
+export const WIDGETS_ENSO_PATH = ProjectPath.create(
+  'Standard.Visualization' as QualifiedName,
+  'Widgets' as Identifier,
+)
 
 /**
  * A composable gathering information about call for WidgetFunction basing on AST and
@@ -37,6 +44,7 @@ export function useWidgetFunctionCallInfo(
   project: {
     useVisualizationData(config: Ref<Opt<NodeVisualizationConfiguration>>): Ref<Result<any> | null>
   },
+  projectNames: ProjectNameStore,
 ) {
   const methodCallInfo = computed(() => getMethodCallInfoRecursively(toValue(input).value, graphDb))
   const interpreted = computed(() => interpretCall(toValue(input).value))
@@ -52,7 +60,10 @@ export function useWidgetFunctionCallInfo(
   const selfArgumentPreapplied = computed(() => {
     const info = methodCallInfo.value
     const funcType = info?.methodCall.methodPointer.definedOnType
-    return funcType != null && subjectInfo.value?.typename !== `${funcType}.type`
+    return (
+      funcType != null &&
+      !subjectInfo.value?.typename?.equals(funcType.append('type' as Identifier))
+    )
   })
 
   const widgetQuerySubjectExpressionId = computed<Opt<ExternalId>>(() => {
@@ -106,8 +117,8 @@ export function useWidgetFunctionCallInfo(
         expressionId,
         visualizationModule: WIDGETS_ENSO_MODULE,
         expression: {
-          module: WIDGETS_ENSO_MODULE,
-          definedOnType: WIDGETS_ENSO_MODULE,
+          module: WIDGETS_ENSO_PATH,
+          definedOnType: WIDGETS_ENSO_PATH,
           name: GET_WIDGETS_METHOD,
         },
         positionalArgumentsExpressions,
@@ -118,7 +129,7 @@ export function useWidgetFunctionCallInfo(
       return {
         expressionId: toValue(input).value.externalId,
         visualizationModule: WIDGETS_ENSO_MODULE,
-        expression: `_ -> ${WIDGETS_ENSO_MODULE}.${GET_WIDGETS_METHOD} ${info.suggestion.memberOf ?? info.suggestion.definedIn}`,
+        expression: `_ -> ${WIDGETS_ENSO_MODULE}.${GET_WIDGETS_METHOD} ${projectNames.printProjectPath(info.suggestion.memberOf)}`,
         positionalArgumentsExpressions,
       }
     }
@@ -126,7 +137,9 @@ export function useWidgetFunctionCallInfo(
 
   const subjectTypeMatchesMethod = computed(() => {
     const funcType = methodCallInfo.value?.methodCall.methodPointer.definedOnType
-    return funcType != null && subjectInfo.value?.typename === `${funcType}.type`
+    return (
+      funcType != null && subjectInfo.value?.typename?.equals(funcType.append('type' as Identifier))
+    )
   })
 
   const inheritedConfig = computed(() => {
@@ -137,7 +150,10 @@ export function useWidgetFunctionCallInfo(
       const info = methodCallInfo.value
       const fullName = info?.suggestion.definitionPath
       const autoscopedName = '..' + info?.suggestion.name
-      return cfg.possibleFunctions.get(fullName) ?? cfg.possibleFunctions.get(autoscopedName)
+      return (
+        cfg.possibleFunctions.get(projectNames.serializeProjectPathForBackend(fullName)) ??
+        cfg.possibleFunctions.get(autoscopedName)
+      )
     }
     return undefined
   })

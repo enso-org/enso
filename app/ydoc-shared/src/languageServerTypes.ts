@@ -94,7 +94,7 @@ export type FileEventKind = 'Added' | 'Removed' | 'Modified'
 
 export interface MethodCall {
   /** The method pointer of a call. */
-  methodPointer: MethodPointer
+  methodPointer: LSMethodPointer
 
   /** Indexes of arguments that have not been applied to this method. */
   notAppliedArguments: number[]
@@ -159,12 +159,12 @@ export interface Warnings {
  */
 export interface FunctionSchema {
   /** The method pointer of this function. */
-  methodPointer: MethodPointer
+  methodPointer: LSMethodPointer
   /** Indexes of arguments that have not been applied to this function. */
   notAppliedArguments: number[]
 }
 
-export interface MethodPointer {
+export interface LSMethodPointer {
   /** The fully qualified module name. */
   module: string
   /** The type on which the method is defined. */
@@ -173,8 +173,8 @@ export interface MethodPointer {
   name: string
 }
 
-/** Whether one {@link MethodPointer} deeply equals another. */
-export function methodPointerEquals(left: MethodPointer, right: MethodPointer): boolean {
+/** Whether one {@link LSMethodPointer} deeply equals another. */
+export function methodPointerEquals(left: LSMethodPointer, right: LSMethodPointer): boolean {
   return (
     left.module === right.module &&
     left.definedOnType === right.definedOnType &&
@@ -308,7 +308,7 @@ export interface VisualizationConfiguration {
    */
   visualizationModule: string
   /** An expression that creates a visualization. */
-  expression: string | MethodPointer
+  expression: string | LSMethodPointer
   /** A list of arguments to pass to the visualization expression. */
   positionalArgumentsExpressions?: string[]
 }
@@ -361,7 +361,7 @@ export type StackItem = ExplicitCall | LocalCall
 
 export interface ExplicitCall {
   type: 'ExplicitCall'
-  methodPointer: MethodPointer
+  methodPointer: LSMethodPointer
   thisArgumentExpression?: string | undefined
   positionalArgumentsExpressions: string[]
 }
@@ -371,8 +371,8 @@ export interface LocalCall {
   expressionId: ExpressionId
 }
 
-/** Serialize a {@link MethodPointer}. */
-export function encodeMethodPointer(enc: encoding.Encoder, ptr: MethodPointer) {
+/** Serialize a {@link LSMethodPointer}. */
+export function encodeMethodPointer(enc: encoding.Encoder, ptr: LSMethodPointer) {
   encoding.writeVarString(enc, ptr.module)
   encoding.writeVarString(enc, ptr.name)
   encoding.writeVarString(enc, ptr.definedOnType)

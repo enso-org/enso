@@ -13,6 +13,7 @@ polyglot java import org.enso.base_test_helpers.FileSystemHelper
 from Standard.Test import all
 import Standard.Test.Test_Environment
 
+import project.Data.Data_Spec
 import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
 
 ## We rely on a less strict equality for `File` as it is fine if a relative file gets resolved to absolute.
@@ -37,6 +38,8 @@ add_specs suite_builder =
     only_on_windows = case Platform.os of
         Platform.OS.Windows -> Nothing
         _ -> "This test runs only on Windows."
+
+    add_data_specs suite_builder
 
     suite_builder.group "File Operations" group_builder->
         group_builder.specify "should get name of the root" <|
@@ -1054,6 +1057,10 @@ add_create_and_delete_directory_specs group_builder ~parent_dir =
         r.catch.should_be_a File_Error.Not_Found
 
         dir.delete_if_exists . should_equal Nothing
+
+add_data_specs suite_builder =
+    file_maker path_element:Text = enso_project.data / "transient" / (path_element+".txt")
+    Data_Spec.add_specs "(File) " suite_builder file_maker
 
 add_copy_edge_cases_specs group_builder ~parent_dir file_from_path=File.new =
     group_builder.specify "should allow copy/move edge case with source=target" <|
