@@ -174,10 +174,6 @@ const defaultColDef: ColDef<RowData> & {
   headerComponentParams,
   cellStyle: { 'padding-left': 0, 'border-right': '1px solid #C0C0C0' },
 }
-
-// function tabNextCell(params: TabToNextCellParams<RowData>) {
-//   params.editing
-// }
 </script>
 
 <script lang="ts">
