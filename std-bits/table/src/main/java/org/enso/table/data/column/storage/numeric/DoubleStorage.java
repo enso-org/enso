@@ -79,7 +79,7 @@ public final class DoubleStorage extends Storage<Double>
   }
 
   @Override
-  public double get(long index) throws ValueIsNothingException {
+  public double getPrimitive(long index) throws ValueIsNothingException {
     if (isNothing(index)) {
       throw new ValueIsNothingException(index);
     }
@@ -93,7 +93,7 @@ public final class DoubleStorage extends Storage<Double>
 
   @Override
   public double getItemAsDouble(int i) {
-    return get(i);
+    return getPrimitive(i);
   }
 
   @Override
@@ -399,7 +399,7 @@ public final class DoubleStorage extends Storage<Double>
               return null;
             }
 
-            double value = parent.get(idx);
+            double value = parent.getPrimitive(idx);
             assert value % 1.0 == 0.0
                 : "The value " + value + " should be a whole number (guaranteed by checks).";
             return (long) value;

@@ -68,7 +68,7 @@ public final class BoolStorage extends Storage<Boolean>
   }
 
   @Override
-  public boolean get(long index) throws ValueIsNothingException {
+  public boolean getPrimitive(long index) throws ValueIsNothingException {
     if (isNothing(index)) {
       throw new ValueIsNothingException(index);
     }
@@ -163,7 +163,7 @@ public final class BoolStorage extends Storage<Boolean>
           newIsNothing.set(i);
         }
       } else {
-        boolean currentValue = get(i);
+        boolean currentValue = getPrimitive(i);
         newValues.set(i, currentValue);
         previousValue = currentValue;
         hasPrevious = true;
@@ -229,7 +229,7 @@ public final class BoolStorage extends Storage<Boolean>
     for (int i = 0; i < size; i++) {
       if (isNothing.get(i)) {
         builder.appendNulls(1);
-      } else if (get(i)) {
+      } else if (getPrimitive(i)) {
         builder.append(on_true.apply(i));
       } else {
         builder.append(on_false.apply(i));
@@ -360,7 +360,7 @@ public final class BoolStorage extends Storage<Boolean>
       BitSet isNothing = new BitSet();
       for (int i = 0; i < storage.size; i++) {
         if (!storage.isNothing(i) && i < arg.size() && !arg.isNothing(i)) {
-          if (((Boolean) storage.get(i)).equals(arg.getBoxed(i))) {
+          if (((Boolean) storage.getPrimitive(i)).equals(arg.getBoxed(i))) {
             out.set(i);
           }
         } else {
@@ -536,8 +536,8 @@ public final class BoolStorage extends Storage<Boolean>
           if (storage.isNothing(i) || argBoolStorage.isNothing(i)) {
             isNothing.set(i);
           } else {
-            boolean a = storage.get(i);
-            boolean b = argBoolStorage.get(i);
+            boolean a = storage.getPrimitive(i);
+            boolean b = argBoolStorage.getPrimitive(i);
             boolean r = doCompare(a, b);
             out.set(i, r);
           }
@@ -558,7 +558,7 @@ public final class BoolStorage extends Storage<Boolean>
           if (storage.isNothing(i) || arg.isNothing(i)) {
             isNothing.set(i);
           } else {
-            boolean a = storage.get(i);
+            boolean a = storage.getPrimitive(i);
             Object b = arg.getBoxed(i);
             if (b instanceof Boolean bBool) {
               boolean r = doCompare(a, bBool);
@@ -728,11 +728,11 @@ public final class BoolStorage extends Storage<Boolean>
             isNothing.set(i);
           } else {
             if (isNothingA) {
-              out.set(i, argBoolStorage.get(i));
+              out.set(i, argBoolStorage.getPrimitive(i));
             } else if (isNothingB) {
-              out.set(i, storage.get(i));
+              out.set(i, storage.getPrimitive(i));
             } else {
-              out.set(i, doOperation(storage.get(i), argBoolStorage.get(i)));
+              out.set(i, doOperation(storage.getPrimitive(i), argBoolStorage.getPrimitive(i)));
             }
           }
 
@@ -743,7 +743,7 @@ public final class BoolStorage extends Storage<Boolean>
           if (storage.isNothing(i)) {
             isNothing.set(i);
           } else {
-            out.set(i, storage.get(i));
+            out.set(i, storage.getPrimitive(i));
           }
 
           context.safepoint();

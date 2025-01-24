@@ -66,7 +66,7 @@ public interface DoubleArrayAdapter {
 
     @Override
     public double getItemAsDouble(int i) {
-      long x = storage.get(i);
+      long x = storage.getPrimitive(i);
       return (double) x;
     }
 

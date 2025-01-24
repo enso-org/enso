@@ -77,7 +77,7 @@ type Primitive_Map_Test
                 True ->
                     builder.appendNulls 1
                 False ->
-                    item = storage.getItem i
+                    item = storage.getPrimitive i
                     x = item + shift
                     builder.appendLong x
         Column.from_storage "result" builder.seal

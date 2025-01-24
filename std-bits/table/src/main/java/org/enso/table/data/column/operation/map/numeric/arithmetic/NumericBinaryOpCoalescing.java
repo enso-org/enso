@@ -93,11 +93,11 @@ public abstract class NumericBinaryOpCoalescing<T extends Number, I extends Stor
         builder.appendNulls(1);
       } else {
         if (aNothing) {
-          builder.appendLong(b.get(i));
+          builder.appendLong(b.getPrimitive(i));
         } else if (bNothing) {
-          builder.appendLong(a.get(i));
+          builder.appendLong(a.getPrimitive(i));
         } else {
-          Long r = doLong(a.get(i), b.get(i), i, problemAggregator);
+          Long r = doLong(a.getPrimitive(i), b.getPrimitive(i), i, problemAggregator);
           if (r == null) {
             builder.appendNulls(1);
           } else {
@@ -126,7 +126,7 @@ public abstract class NumericBinaryOpCoalescing<T extends Number, I extends Stor
       if (a.isNothing(i)) {
         builder.appendLong(bNonNull);
       } else {
-        Long r = doLong(a.get(i), bNonNull, i, problemAggregator);
+        Long r = doLong(a.getPrimitive(i), bNonNull, i, problemAggregator);
         if (r == null) {
           builder.appendNulls(1);
         } else {

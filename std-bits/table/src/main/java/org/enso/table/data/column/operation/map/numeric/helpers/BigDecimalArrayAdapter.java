@@ -108,7 +108,7 @@ public interface BigDecimalArrayAdapter {
       if (storage.isNothing(i)) {
         return null;
       } else {
-        long x = storage.get(i);
+        long x = storage.getPrimitive(i);
         return BigDecimal.valueOf(x);
       }
     }
@@ -131,7 +131,7 @@ public interface BigDecimalArrayAdapter {
       if (storage.isNothing(i)) {
         return null;
       } else {
-        double x = storage.get(i);
+        double x = storage.getPrimitive(i);
         return BigDecimal.valueOf(x);
       }
     }

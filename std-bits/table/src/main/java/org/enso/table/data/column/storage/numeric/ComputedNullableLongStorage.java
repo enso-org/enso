@@ -34,7 +34,7 @@ public abstract class ComputedNullableLongStorage extends AbstractLongStorage {
   }
 
   @Override
-  public long get(long idx) throws ValueIsNothingException {
+  public long getPrimitive(long idx) throws ValueIsNothingException {
     Long result = getBoxed(idx);
     if (result == null) {
       throw new ValueIsNothingException(idx);

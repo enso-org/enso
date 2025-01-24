@@ -71,8 +71,8 @@ type Primitive_Bi_Map_Test
             storage_2 = get_storage_for_column self.int_column_2
             0.up_to n . each i->
                 if storage_1.isNothing i || storage_2.isNothing i then builder.appendNulls 1 else
-                    item_1 = storage_1.getItem i
-                    item_2 = storage_2.getItem i
+                    item_1 = storage_1.getPrimitive i
+                    item_2 = storage_2.getPrimitive i
                     res = item_1 + item_2
                     builder.appendLong res
             Column.from_storage "result" builder.seal

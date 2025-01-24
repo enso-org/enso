@@ -95,7 +95,7 @@ type Primitive_Enso_Callback_Test
                 True ->
                     builder.appendNulls 1
                 False ->
-                    item = storage.getItem i
+                    item = storage.getPrimitive i
                     builder.append (fn item)
         Column.from_storage "result" builder.seal
 

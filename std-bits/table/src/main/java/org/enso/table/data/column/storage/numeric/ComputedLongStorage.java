@@ -19,7 +19,7 @@ public abstract class ComputedLongStorage extends AbstractLongStorage {
   }
 
   @Override
-  public long get(long index) throws ValueIsNothingException {
+  public long getPrimitive(long index) throws ValueIsNothingException {
     return computeItem((int) index);
   }
 

@@ -131,7 +131,7 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
     Context context = Context.getCurrent();
     for (int i = 0; i < n; ++i) {
       if (!lhs.isNothing(i)) {
-        long item = lhs.get(i);
+        long item = lhs.getPrimitive(i);
         boolean r = doLong(item, rhs);
         if (r) {
           comparisonResults.set(i);
@@ -294,8 +294,8 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
       if (lhs.isNothing(i) || rhs.isNothing(i)) {
         isNothing.set(i);
       } else {
-        long x = lhs.get(i);
-        long y = rhs.get(i);
+        long x = lhs.getPrimitive(i);
+        long y = rhs.getPrimitive(i);
         boolean r = doLong(x, y);
         if (r) {
           comparisonResults.set(i);

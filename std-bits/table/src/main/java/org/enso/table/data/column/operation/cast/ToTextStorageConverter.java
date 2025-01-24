@@ -77,7 +77,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
         Builder.getForText(longStorage.getSize(), targetType),
         longStorage,
         (i) -> {
-          long value = longStorage.get(i);
+          long value = longStorage.getPrimitive(i);
           return adapt(Long.toString(value), problemAggregator);
         });
   }
@@ -88,7 +88,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
         Builder.getForText(boolStorage.getSize(), targetType),
         boolStorage,
         (i) -> {
-          boolean value = boolStorage.get(i);
+          boolean value = boolStorage.getPrimitive(i);
           return adapt(convertBoolean(value), problemAggregator);
         });
   }
@@ -99,7 +99,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
         Builder.getForText(doubleStorage.getSize(), targetType),
         doubleStorage,
         (i) -> {
-          double value = doubleStorage.get(i);
+          double value = doubleStorage.getPrimitive(i);
           return adapt(Double.toString(value), problemAggregator);
         });
   }
