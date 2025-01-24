@@ -505,6 +505,25 @@
         ]
     },
     {
+        "name": "org.enso.table.excel.ExcelConnectionPool.ConnectionRecord"
+    },
+    {
+        "name": "org.enso.table.excel.ExcelConnectionPool$ConnectionRecord",
+        "fields": [
+            {
+                "name": "refCount"
+            }
+        ],
+        "methods": [
+            {
+                "name": "close",
+                "parameterTypes": [
+                ]
+            }
+        ]
+    },
+
+    {
         "name": "org.enso.table.excel.ExcelConnectionPool.WriteHelper"
     },
     {
@@ -581,7 +600,12 @@
         ]
     },
     {
-        "name": "org.enso.table.excel.ReadOnlyExcelConnection"
+        "name": "org.enso.table.excel.ReadOnlyExcelConnection",
+        "fields": [
+            {
+                "name": "record"
+            }
+        ]
     },
     {
         "name": "org.enso.table.excel.xssfreader.XSSFReaderWorkbook",
