@@ -1,4 +1,5 @@
 import project.Any.Any
+import project.Data.Download.Download_Mode.Download_Mode
 import project.Data.Pair.Pair
 import project.Data.Read.Many_Files_List.Many_Files_List
 import project.Data.Read.Return_As.Return_As
@@ -437,23 +438,33 @@ post (uri:(URI | Text)=(Missing_Argument.throw "uri")) (body:Request_Body=..Empt
    Arguments:
    - uri: The URI to fetch.
    - file: The file to write the response to.
+   - replace_existing: Determines when `download` should proceed with the
+     download, if the destination file already exists. (If the destination file
+     does not exist, the download always proceeds).
+     Options include:
+         - `If_Not_Exists`: Download the file if it does not already exist on
+           disk. (The default.)
+         - `If_Older_Than age`: Download the file if the existing file is older
+           than the specified age.
+         - `Always`: Always download.
    - method: The HTTP method to use. Must be one of `HTTP_Method.Get`,
      `HTTP_Method.Head`, `HTTP_Method.Delete`, `HTTP_Method.Options`.
      Defaults to `HTTP_Method.Get`.
    - headers: The headers to send with the request. Defaults to an empty vector.
 @uri (Text_Input display=..Always)
 @headers Header.default_widget
-download : (URI | Text) -> Writable_File -> HTTP_Method -> Vector (Header | Pair Text Text) -> File ! Request_Error | HTTP_Error
-download (uri:(URI | Text)=(Missing_Argument.throw "uri")) file:Writable_File (method:HTTP_Method=..Get) (headers:(Vector (Header | Pair Text Text))=[]) =
+download : (URI | Text) -> Writable_File -> Download_Mode -> HTTP_Method -> Vector (Header | Pair Text Text) -> File ! Request_Error | HTTP_Error
+download (uri:(URI | Text)=(Missing_Argument.throw "uri")) file:Writable_File (replace_existing:Download_Mode=..If_Not_Exists) (method:HTTP_Method=..Get) (headers:(Vector (Header | Pair Text Text))=[]) =
     Context.Output.if_enabled disabled_message="As writing is disabled, cannot download to a file. Press the Write button ▶ to perform the operation." panic=False <|
-        response = HTTP.fetch uri method headers cache_policy=Cache_Policy.No_Cache
-        case Data_Link.is_data_link_from_metadata response.body.metadata of
-            True ->
-                # If the resource was a data link, we follow it, download the target data and try to write it to a file.
-                data_link = Data_Link_Helpers.interpret_json_as_data_link response.decode_as_json
-                Data_Link_Helpers.save_data_link_to_file data_link file
-            False ->
-                response.write file
+        if replace_existing.should_download file then
+            response = HTTP.fetch uri method headers cache_policy=Cache_Policy.No_Cache
+            case Data_Link.is_data_link_from_metadata response.body.metadata of
+                True ->
+                    # If the resource was a data link, we follow it, download the target data and try to write it to a file.
+                    data_link = Data_Link_Helpers.interpret_json_as_data_link response.decode_as_json
+                    Data_Link_Helpers.save_data_link_to_file data_link file
+                False ->
+                    response.write file
 
 ## If the `format` is set to `Raw_Response`, a raw HTTP `Response` is returned
    that can be then processed further manually.

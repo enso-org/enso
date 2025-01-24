@@ -1,11 +1,12 @@
 import { asNodeId, GraphDb } from '@/stores/graph/graphDatabase'
+import { assert, assertDefined } from '@/util/assert'
 import { Ast } from '@/util/ast'
-import assert from 'assert'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import { expect, test } from 'vitest'
 import { watchEffect } from 'vue'
-import type { AstId } from 'ydoc-shared/ast'
-import { IdMap, type ExternalId, type SourceRange } from 'ydoc-shared/yjsModel'
+import { type AstId } from 'ydoc-shared/ast'
+import { type SourceRange } from 'ydoc-shared/util/data/text'
+import { IdMap, type ExternalId } from 'ydoc-shared/yjsModel'
 
 /** TODO: Add docs */
 export function parseWithSpans<T extends Record<string, SourceRange>>(code: string, spans: T) {
@@ -16,6 +17,7 @@ export function parseWithSpans<T extends Record<string, SourceRange>>(code: stri
   let nextIndex = 0
   for (const name in spans) {
     const span = spans[name]!
+    assertDefined(span)
     const indexStr = `${nextIndex++}`
     const eid =
       idMap.getIfExist(span) ??

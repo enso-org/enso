@@ -9,6 +9,60 @@ import scala.collection.immutable.Seq
 /** A collection of utility methods for everything related to the GraalVM and Truffle.
   */
 object GraalVM {
+  object EnsoLauncher {
+    val VAR_NAME = "ENSO_LAUNCHER"
+
+    override def toString(): String = {
+      val prop = System.getenv(VAR_NAME)
+      // default value is `shell`
+      return if (prop == null) "shell" else prop;
+    }
+
+    private lazy val parsed
+      : (Boolean, Boolean, Boolean, Boolean, Boolean, Boolean) = {
+      var shell                 = false
+      var native                = false
+      var test                  = false
+      var debug                 = false
+      var fast                  = false
+      var disableLanguageServer = false
+      toString().split(",").foreach {
+        case "shell"  => shell  = true
+        case "native" => native = true
+        case "test" => {
+          native = true
+          test   = true
+        }
+        case "debug" => {
+          native = true
+          debug  = true
+        }
+        case "fast" => {
+          native = true
+          fast   = true
+        }
+        case "-ls" => {
+          native                = true
+          disableLanguageServer = true
+        }
+        case v =>
+          throw new IllegalStateException(s"Unexpected value of $VAR_NAME: $v")
+      }
+      if (shell && native) {
+        throw new IllegalStateException(
+          s"Cannot specify `shell` and other properties in $VAR_NAME env variable"
+        )
+      }
+      (shell, native, test, debug, fast, disableLanguageServer)
+    }
+    def shell                 = parsed._1
+    def native                = parsed._2
+    def test                  = parsed._3
+    def debug                 = parsed._4
+    def fast                  = parsed._5
+    def disableLanguageServer = parsed._6
+    def release               = native && !test && !debug && !fast && !disableLanguageServer
+  }
 
   /** Has the user requested to use Espresso for Java interop? */
   private def isEspressoMode(): Boolean =

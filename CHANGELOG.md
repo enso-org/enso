@@ -11,6 +11,7 @@
 - [Redo stack is no longer lost when interacting with text literals][11908].
 - [Fixed bug when clicking header in Table Editor Widget didn't start editing
   it][12064]
+- [Fixed bugs occurring after renaming project from within graph editor][12106].
 
 [11889]: https://github.com/enso-org/enso/pull/11889
 [11836]: https://github.com/enso-org/enso/pull/11836
@@ -18,6 +19,7 @@
 [11902]: https://github.com/enso-org/enso/pull/11902
 [11908]: https://github.com/enso-org/enso/pull/11908
 [12064]: https://github.com/enso-org/enso/pull/12064
+[12106]: https://github.com/enso-org/enso/pull/12106
 
 #### Enso Standard Library
 
@@ -167,6 +169,7 @@
 - [Added `add_group_number` to the in-memory database.[11818]
 - [The reload button clears the HTTP cache.][11673]
 - [SQL Server Support for Aggregate][11811]
+- [Added `Download_Mode` parameter to `Data.download`.][12017]
 
 [11235]: https://github.com/enso-org/enso/pull/11235
 [11255]: https://github.com/enso-org/enso/pull/11255
@@ -178,6 +181,7 @@
 [11818]: https://github.com/enso-org/enso/pull/11818
 [11673]: https://github.com/enso-org/enso/pull/11673
 [11811]: https://github.com/enso-org/enso/pull/11811
+[12017]: https://github.com/enso-org/enso/pull/12017
 
 #### Enso Language & Runtime
 

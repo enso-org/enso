@@ -22,6 +22,7 @@ import { uploadedExpression, Uploader } from '@/components/GraphEditor/upload'
 import GraphMissingView from '@/components/GraphMissingView.vue'
 import GraphMouse from '@/components/GraphMouse.vue'
 import PlusButton from '@/components/PlusButton.vue'
+import RightDockPanel from '@/components/RightDockPanel.vue'
 import SceneScroller from '@/components/SceneScroller.vue'
 import TopBar from '@/components/TopBar.vue'
 import { builtinWidgets } from '@/components/widgets'
@@ -48,6 +49,7 @@ import type { RequiredImport } from '@/stores/graph/imports'
 import { providePersisted } from '@/stores/persisted'
 import { useProjectStore } from '@/stores/project'
 import { provideNodeExecution } from '@/stores/project/nodeExecution'
+import { injectProjectNames } from '@/stores/projectNames'
 import { provideRightDock, StorageMode } from '@/stores/rightDock'
 import { provideSuggestionDbStore } from '@/stores/suggestionDatabase'
 import type { SuggestionId, Typename } from '@/stores/suggestionDatabase/entry'
@@ -73,12 +75,12 @@ import {
   watch,
   type ComponentInstance,
 } from 'vue'
-import RightDockPanel from './RightDockPanel.vue'
 
 const keyboard = provideKeyboard()
 const projectStore = useProjectStore()
-const suggestionDb = provideSuggestionDbStore(projectStore)
-const graphStore = provideGraphStore(projectStore, suggestionDb)
+const projectNames = injectProjectNames()
+const suggestionDb = provideSuggestionDbStore(projectStore, projectNames)
+const graphStore = provideGraphStore(projectStore, suggestionDb, projectNames)
 const widgetRegistry = provideWidgetRegistry(graphStore.db)
 const _visualizationStore = provideVisualizationStore(projectStore)
 
@@ -160,7 +162,7 @@ function panToSelected() {
 
 // == Breadcrumbs ==
 
-const stackNavigator = provideStackNavigator(projectStore, graphStore)
+const stackNavigator = provideStackNavigator(projectStore, graphStore, projectNames)
 const graphMissing = computed(() => graphStore.moduleRoot != null && !graphStore.methodAst.ok)
 
 // === Toasts ===
