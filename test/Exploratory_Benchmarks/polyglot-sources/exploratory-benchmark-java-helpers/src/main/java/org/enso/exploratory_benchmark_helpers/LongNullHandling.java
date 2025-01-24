@@ -19,7 +19,7 @@ public class LongNullHandling {
   public abstract static class NoNulls implements Operation {
 
     protected abstract long doLong(
-        long a, long b, int ix, MapOperationProblemAggregator problemAggregator);
+        long a, long b, long ix, MapOperationProblemAggregator problemAggregator);
 
     @Override
     public Storage<Long> run(
@@ -28,7 +28,7 @@ public class LongNullHandling {
         MapOperationProblemAggregator problemAggregator) {
       long n = storage.getSize();
       var builder = Builder.getForLong(IntegerType.INT_64, n, null);
-      for (int i = 0; i < n; i++) {
+      for (long i = 0; i < n; i++) {
         if (storage.isNothing(i) || arg.isNothing(i)) {
           builder.appendNulls(1);
         } else {
@@ -42,7 +42,7 @@ public class LongNullHandling {
   public abstract static class BoxingNulls implements Operation {
 
     protected abstract Long doLong(
-        long a, long b, int ix, MapOperationProblemAggregator problemAggregator);
+        long a, long b, long ix, MapOperationProblemAggregator problemAggregator);
 
     @Override
     public Storage<Long> run(
@@ -51,7 +51,7 @@ public class LongNullHandling {
         MapOperationProblemAggregator problemAggregator) {
       long n = storage.getSize();
       var builder = Builder.getForLong(IntegerType.INT_64, n, null);
-      for (int i = 0; i < n; i++) {
+      for (long i = 0; i < n; i++) {
         if (storage.isNothing(i) || arg.isNothing(i)) {
           builder.appendNulls(1);
         } else {
@@ -79,7 +79,7 @@ public class LongNullHandling {
     protected abstract long doLong(
         long a,
         long b,
-        int ix,
+        long ix,
         MapOperationProblemAggregator problemAggregator,
         NullityReporter nullityReporter);
 
@@ -91,7 +91,7 @@ public class LongNullHandling {
       long n = storage.getSize();
       var builder = Builder.getForLong(IntegerType.INT_64, n, null);
       NullityReporter nullityReporter = new NullityReporter();
-      for (int i = 0; i < n; i++) {
+      for (long i = 0; i < n; i++) {
         if (storage.isNothing(i) || arg.isNothing(i)) {
           builder.appendNulls(1);
         } else {
@@ -121,7 +121,7 @@ public class LongNullHandling {
         new NoNulls() {
           @Override
           protected long doLong(
-              long a, long b, int ix, MapOperationProblemAggregator problemAggregator) {
+              long a, long b, long ix, MapOperationProblemAggregator problemAggregator) {
             if (b == 0) {
               problemAggregator.reportDivisionByZero(ix);
               return 0;
@@ -141,7 +141,7 @@ public class LongNullHandling {
         new BoxingNulls() {
           @Override
           protected Long doLong(
-              long a, long b, int ix, MapOperationProblemAggregator problemAggregator) {
+              long a, long b, long ix, MapOperationProblemAggregator problemAggregator) {
             if (b == 0) {
               problemAggregator.reportDivisionByZero(ix);
               return null;
@@ -163,7 +163,7 @@ public class LongNullHandling {
           protected long doLong(
               long a,
               long b,
-              int ix,
+              long ix,
               MapOperationProblemAggregator problemAggregator,
               NullityReporter nullityReporter) {
             if (b == 0) {

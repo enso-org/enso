@@ -37,16 +37,15 @@ public class BigDecimalRoundOp
     }
 
     assert decimalPlaces >= ROUND_MIN_DECIMAL_PLACES && decimalPlaces <= ROUND_MAX_DECIMAL_PLACES;
+    int decimalPlacesInt = (int) decimalPlaces.longValue();
 
-    Builder builder =
-        Builder.getForType(BigDecimalType.INSTANCE, storage.size(), problemAggregator);
-
+    Builder builder = Builder.getForBigDecimal(storage.getSize());
     Context context = Context.getCurrent();
 
-    for (int i = 0; i < storage.size(); i++) {
+    for (long i = 0; i < storage.getSize(); i++) {
       if (!storage.isNothing(i)) {
         BigDecimal value = storage.getBoxed(i);
-        BigDecimal result = Decimal_Utils.round(value, (int) decimalPlaces.longValue(), useBankers);
+        BigDecimal result = Decimal_Utils.round(value, decimalPlacesInt, useBankers);
         builder.append(result);
       } else {
         builder.appendNulls(1);

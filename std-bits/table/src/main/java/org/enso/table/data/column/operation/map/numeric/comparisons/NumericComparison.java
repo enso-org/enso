@@ -46,7 +46,7 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
   public Storage<Boolean> runBinaryMap(
       I storage, Object arg, MapOperationProblemAggregator problemAggregator) {
     if (arg == null) {
-      return BoolStorage.makeEmpty(storage.size());
+      return BoolStorage.makeEmpty(storage.getSize());
     } else if (arg instanceof BigInteger bigInteger) {
       return switch (storage) {
         case AbstractLongStorage s -> runBigIntegerMap(

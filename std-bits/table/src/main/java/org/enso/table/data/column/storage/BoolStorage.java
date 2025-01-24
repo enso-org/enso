@@ -38,10 +38,12 @@ public final class BoolStorage extends Storage<Boolean>
     this.negated = negated;
   }
 
-  public static BoolStorage makeEmpty(int size) {
-    BitSet isNothing = new BitSet(size);
-    isNothing.set(0, size);
-    return new BoolStorage(new BitSet(), isNothing, size, false);
+  public static BoolStorage makeEmpty(long size) {
+    int checkedSize = Builder.checkSize(size);
+
+    BitSet isNothing = new BitSet(checkedSize);
+    isNothing.set(0, checkedSize);
+    return new BoolStorage(new BitSet(), isNothing, checkedSize, false);
   }
 
   public static BoolStorage makeConstant(int size, boolean r) {
@@ -340,7 +342,7 @@ public final class BoolStorage extends Storage<Boolean>
     public BoolStorage runBinaryMap(
         BoolStorage storage, Object arg, MapOperationProblemAggregator problemAggregator) {
       if (arg == null) {
-        return BoolStorage.makeEmpty(storage.size);
+        return BoolStorage.makeEmpty(storage.getSize());
       } else if (arg instanceof Boolean v) {
         if (v) {
           return storage;
@@ -590,7 +592,7 @@ public final class BoolStorage extends Storage<Boolean>
     public Storage<?> runBinaryMap(
         BoolStorage storage, Object arg, MapOperationProblemAggregator problemAggregator) {
       if (arg == null) {
-        return BoolStorage.makeEmpty(storage.size);
+        return BoolStorage.makeEmpty(storage.getSize());
       }
 
       if (arg instanceof Boolean b) {
@@ -621,7 +623,7 @@ public final class BoolStorage extends Storage<Boolean>
     public Storage<?> runBinaryMap(
         BoolStorage storage, Object arg, MapOperationProblemAggregator problemAggregator) {
       if (arg == null) {
-        return BoolStorage.makeEmpty(storage.size);
+        return BoolStorage.makeEmpty(storage.getSize());
       }
 
       if (arg instanceof Boolean b) {
@@ -652,7 +654,7 @@ public final class BoolStorage extends Storage<Boolean>
     public Storage<?> runBinaryMap(
         BoolStorage storage, Object arg, MapOperationProblemAggregator problemAggregator) {
       if (arg == null) {
-        return BoolStorage.makeEmpty(storage.size);
+        return BoolStorage.makeEmpty(storage.getSize());
       }
 
       if (arg instanceof Boolean b) {
@@ -683,7 +685,7 @@ public final class BoolStorage extends Storage<Boolean>
     public Storage<?> runBinaryMap(
         BoolStorage storage, Object arg, MapOperationProblemAggregator problemAggregator) {
       if (arg == null) {
-        return BoolStorage.makeEmpty(storage.size);
+        return BoolStorage.makeEmpty(storage.getSize());
       }
 
       if (arg instanceof Boolean b) {

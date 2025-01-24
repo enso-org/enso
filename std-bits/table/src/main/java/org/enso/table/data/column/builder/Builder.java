@@ -32,7 +32,8 @@ public interface Builder {
    * */
   int MAX_SIZE = Integer.MAX_VALUE;
 
-  private static int checkSize(long size) {
+  /** Checks that the size is within the maximum allowed. */
+  static int checkSize(long size) {
     if (size > MAX_SIZE) {
       throw new IllegalArgumentException("Columns cannot exceed " + MAX_SIZE + " rows.");
     }

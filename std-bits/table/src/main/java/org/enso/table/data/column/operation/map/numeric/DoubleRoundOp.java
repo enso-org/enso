@@ -36,9 +36,9 @@ public class DoubleRoundOp extends TernaryMapOperation<Double, DoubleStorage> {
 
     if (decimalPlaces <= 0) {
       // Return Long storage
-      var longBuilder = Builder.getForLong(IntegerType.INT_64, storage.size(), problemAggregator);
+      var longBuilder = Builder.getForLong(IntegerType.INT_64, storage.getSize(), problemAggregator);
 
-      for (int i = 0; i < storage.size(); i++) {
+      for (long i = 0; i < storage.getSize(); i++) {
         if (!storage.isNothing(i)) {
           double item = storage.getPrimitive(i);
           boolean special = Double.isNaN(item) || Double.isInfinite(item);
@@ -47,7 +47,8 @@ public class DoubleRoundOp extends TernaryMapOperation<Double, DoubleStorage> {
                 (long) Core_Math_Utils.roundDouble(item, decimalPlaces, useBankers));
           } else {
             String msg = "Value is " + item;
-            problemAggregator.reportArithmeticError(msg, i);
+            // ToDo: ProblemAggregator should accept a long instead of an int.
+            problemAggregator.reportArithmeticError(msg, (int)i);
             longBuilder.appendNulls(1);
           }
         } else {
@@ -60,9 +61,9 @@ public class DoubleRoundOp extends TernaryMapOperation<Double, DoubleStorage> {
     } else {
       // Return double storage.
       var doubleBuilder =
-          Builder.getForDouble(FloatType.FLOAT_64, storage.size(), problemAggregator);
+          Builder.getForDouble(FloatType.FLOAT_64, storage.getSize(), problemAggregator);
 
-      for (int i = 0; i < storage.size(); i++) {
+      for (long i = 0; i < storage.getSize(); i++) {
         if (!storage.isNothing(i)) {
           double item = storage.getPrimitive(i);
           boolean special = Double.isNaN(item) || Double.isInfinite(item);
@@ -71,7 +72,8 @@ public class DoubleRoundOp extends TernaryMapOperation<Double, DoubleStorage> {
                 Core_Math_Utils.roundDouble(item, decimalPlaces, useBankers));
           } else {
             String msg = "Value is " + item;
-            problemAggregator.reportArithmeticError(msg, i);
+            // ToDo: ProblemAggregator should accept a long instead of an int.
+            problemAggregator.reportArithmeticError(msg, (int)i);
             doubleBuilder.appendNulls(1);
           }
         } else {

@@ -43,8 +43,8 @@ public class LongRoundOp extends TernaryMapOperation<Long, AbstractLongStorage> 
     }
 
     Context context = Context.getCurrent();
-    var builder = Builder.getForLong(IntegerType.INT_64, storage.size(), problemAggregator);
-    for (int i = 0; i < storage.size(); i++) {
+    var builder = Builder.getForLong(IntegerType.INT_64, storage.getSize(), problemAggregator);
+    for (long i = 0; i < storage.getSize(); i++) {
       if (!storage.isNothing(i)) {
         long item = storage.getPrimitive(i);
         boolean outOfRange = item < ROUND_MIN_LONG || item > ROUND_MAX_LONG;
@@ -58,7 +58,8 @@ public class LongRoundOp extends TernaryMapOperation<Long, AbstractLongStorage> 
                   + ROUND_MAX_LONG
                   + " (inclusive), but was "
                   + item;
-          problemAggregator.reportIllegalArgumentError(msg, i);
+          // ToDo: ProblemAggregator should accept a long instead of an int.
+          problemAggregator.reportIllegalArgumentError(msg, (int)i);
           builder.appendNulls(1);
         }
       } else {
