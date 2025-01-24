@@ -201,9 +201,9 @@ add_specs suite_builder =
 
             # But unchecked variant should keep both types and not hide anything
             ab.a_id_unchecked . is_a A . should_be_true
-            #ab.a_id_unchecked . is_a B . should_be_true
+            ab.a_id_unchecked . is_a B . should_be_true
             ab.a_id_unchecked.a_method . should_equal "A method"
-            #ab.a_id_unchecked.b_method . should_equal "B method"
+            ab.a_id_unchecked.b_method . should_equal "B method"
 
             # The same should apply to the B part
             ab.b_id . is_a A . should_be_false
@@ -258,13 +258,77 @@ add_specs suite_builder =
             ab2.a_method . should_equal "A method"
             ab2.b_method . should_equal "B method"
 
-        group_builder.specify "calling both throw_on_warning and catch should not lose the refinements" <|
+        group_builder.specify "calling both `throw_on_warning` and `catch` should not lose the refinements" <|
             ab = make_a_and_b
             r = ab.throw_on_warning Illegal_State . catch Any _->"catched"
             r.is_a A . should_be_true
             r.is_a B . should_be_true
             r.a_method . should_equal "A method"
             r.b_method . should_equal "B method"
+
+        group_builder.specify "calling `.catch` on an intersection type should not lose even the hidden refinements" <|
+            ab = make_a_and_b
+            x = ab:A
+            r = x.catch Any _->"catched"
+            r.a_method . should_equal "A method"
+            # After calling catch we should still be able to bring back the B part
+            (r:B).b_method . should_equal "B method"
+
+            y = r:(A & B)
+            y.is_a A . should_be_true
+            y.is_a B . should_be_true
+            y.a_method . should_equal "A method"
+            y.b_method . should_equal "B method"
+
+        group_builder.specify "calling `.throw_on_warning` on an intersection type should not lose even the hidden refinements" <|
+            ab = make_a_and_b
+            x = ab:A
+            r = x.throw_on_warning
+
+            y = r:(A & B)
+            y.is_a A . should_be_true
+            y.is_a B . should_be_true
+            y.a_method . should_equal "A method"
+            y.b_method . should_equal "B method"
+
+        group_builder.specify "attaching warnings to an intersection type should not lose even the hidden refinements" <|
+            ab = make_a_and_b
+            x = ab:A
+            x_with_warning = Warning.attach (Illegal_State.Error "my warning") x
+
+            y = x_with_warning:(A & B)
+            y.is_a A . should_be_true
+            y.is_a B . should_be_true
+            y.a_method . should_equal "A method"
+            y.b_method . should_equal "B method"
+            Problems.expect_only_warning Illegal_State y
+
+        group_builder.specify "removing warnings from an intersection type should not lose even the hidden refinements" <|
+            ab = make_a_and_b
+            x1 = Warning.attach (Illegal_State.Error "my warning") (ab:A)
+            x2 = (Warning.attach (Illegal_State.Error "my warning") ab):A
+
+            x1_without_warning = x1.remove_warnings
+            x2_without_warning = x2.remove_warnings
+
+            r1 = x1_without_warning:(A & B)
+            r2 = x2_without_warning:(A & B)
+            Problems.assume_no_problems r1
+            r1.is_a A . should_be_true
+            r1.is_a B . should_be_true
+            r1.a_method . should_equal "A method"
+            r2.b_method . should_equal "B method"
+            Problems.assume_no_problems r2
+            r2.is_a A . should_be_true
+            r2.is_a B . should_be_true
+            r2.a_method . should_equal "A method"
+            r2.b_method . should_equal "B method"
+
+            r3 = (ab:A).remove_warnings:(A & B)
+            r3.is_a A . should_be_true
+            r3.is_a B . should_be_true
+            r3.a_method . should_equal "A method"
+            r3.b_method . should_equal "B method"
 
 main filter=Nothing =
     suite = Test.build suite_builder->
