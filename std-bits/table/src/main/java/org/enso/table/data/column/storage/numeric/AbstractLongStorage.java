@@ -29,6 +29,7 @@ import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
+import org.enso.table.problems.BlackholeProblemAggregator;
 import org.graalvm.polyglot.Context;
 
 public abstract class AbstractLongStorage extends Storage<Long>
@@ -172,7 +173,7 @@ public abstract class AbstractLongStorage extends Storage<Long>
     }
 
     long n = getSize();
-    var builder = Builder.getForLong(IntegerType.INT_64, n, null);
+    var builder = Builder.getForLong(IntegerType.INT_64, n, BlackholeProblemAggregator.INSTANCE);
     long previousValue = 0;
     boolean hasPrevious = false;
 
@@ -207,7 +208,7 @@ public abstract class AbstractLongStorage extends Storage<Long>
 
   @Override
   public Storage<Long> applyFilter(BitSet filterMask, int newLength) {
-    var builder = Builder.getForLong(IntegerType.INT_64, newLength, null);
+    var builder = Builder.getForLong(IntegerType.INT_64, newLength, BlackholeProblemAggregator.INSTANCE);
     Context context = Context.getCurrent();
     for (int i = 0; i < getSize(); i++) {
       if (filterMask.get(i)) {
@@ -225,7 +226,7 @@ public abstract class AbstractLongStorage extends Storage<Long>
 
   @Override
   public Storage<Long> applyMask(OrderMask mask) {
-    var builder = Builder.getForLong(IntegerType.INT_64, mask.length(), null);
+    var builder = Builder.getForLong(IntegerType.INT_64, mask.length(), BlackholeProblemAggregator.INSTANCE);
     Context context = Context.getCurrent();
     for (int i = 0; i < mask.length(); i++) {
       int position = mask.get(i);
@@ -244,7 +245,7 @@ public abstract class AbstractLongStorage extends Storage<Long>
   public Storage<Long> slice(int offset, int limit) {
     int size = (int) getSize();
     int newSize = Math.min(size - offset, limit);
-    var builder = Builder.getForLong(IntegerType.INT_64, newSize, null);
+    var builder = Builder.getForLong(IntegerType.INT_64, newSize, BlackholeProblemAggregator.INSTANCE);
     Context context = Context.getCurrent();
     for (int i = 0; i < newSize; i++) {
       if (isNothing(offset + i)) {
@@ -260,7 +261,7 @@ public abstract class AbstractLongStorage extends Storage<Long>
   @Override
   public Storage<Long> slice(List<SliceRange> ranges) {
     int newSize = SliceRange.totalLength(ranges);
-    var builder = Builder.getForLong(IntegerType.INT_64, newSize, null);
+    var builder = Builder.getForLong(IntegerType.INT_64, newSize, BlackholeProblemAggregator.INSTANCE);
     Context context = Context.getCurrent();
     for (SliceRange range : ranges) {
       int rangeStart = range.start();

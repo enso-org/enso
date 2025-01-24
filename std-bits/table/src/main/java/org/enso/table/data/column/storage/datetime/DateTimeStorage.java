@@ -82,7 +82,7 @@ public final class DateTimeStorage extends SpecializedStorage<ZonedDateTime> {
         new TimeLikeCoalescingOperation<>(Maps.MIN, ZonedDateTime.class) {
           @Override
           protected Builder createOutputBuilder(long size) {
-            return Builder.getForType(DateTimeType.INSTANCE, size, null);
+            return Builder.getForDateTime(size);
           }
 
           @Override
@@ -94,7 +94,7 @@ public final class DateTimeStorage extends SpecializedStorage<ZonedDateTime> {
         new TimeLikeCoalescingOperation<>(Maps.MAX, ZonedDateTime.class) {
           @Override
           protected Builder createOutputBuilder(long size) {
-            return Builder.getForType(DateTimeType.INSTANCE, size, null);
+            return Builder.getForDateTime(size);
           }
 
           @Override

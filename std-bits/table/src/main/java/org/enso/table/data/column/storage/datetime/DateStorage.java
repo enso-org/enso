@@ -65,7 +65,7 @@ public final class DateStorage extends SpecializedStorage<LocalDate> {
         new TimeLikeCoalescingOperation<>(Maps.MIN, LocalDate.class) {
           @Override
           protected Builder createOutputBuilder(long size) {
-            return Builder.getForType(DateType.INSTANCE, size, null);
+            return Builder.getForDate(size);
           }
 
           @Override
@@ -77,7 +77,7 @@ public final class DateStorage extends SpecializedStorage<LocalDate> {
         new TimeLikeCoalescingOperation<>(Maps.MAX, LocalDate.class) {
           @Override
           protected Builder createOutputBuilder(long size) {
-            return Builder.getForType(DateType.INSTANCE, size, null);
+            return Builder.getForDate(size);
           }
 
           @Override

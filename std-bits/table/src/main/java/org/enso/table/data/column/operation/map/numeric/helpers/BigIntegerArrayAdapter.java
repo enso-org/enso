@@ -6,6 +6,7 @@ import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
+import org.enso.table.problems.BlackholeProblemAggregator;
 
 public interface BigIntegerArrayAdapter {
   BigInteger getItem(int i);
@@ -14,7 +15,7 @@ public interface BigIntegerArrayAdapter {
 
   default Storage<BigInteger> intoStorage() {
     int n = size();
-    var builder = Builder.getForBigInteger(n, null);
+    var builder = Builder.getForBigInteger(n, BlackholeProblemAggregator.INSTANCE);
     for (int i = 0; i < n; i++) {
       builder.append(getItem(i));
     }

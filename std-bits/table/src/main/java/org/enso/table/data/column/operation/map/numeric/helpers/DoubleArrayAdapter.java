@@ -9,6 +9,7 @@ import org.enso.table.data.column.storage.numeric.BigDecimalStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.type.FloatType;
+import org.enso.table.problems.BlackholeProblemAggregator;
 
 public interface DoubleArrayAdapter {
   double getItemAsDouble(int i);
@@ -19,7 +20,7 @@ public interface DoubleArrayAdapter {
 
   default Storage<Double> intoStorage() {
     int n = size();
-    var builder = Builder.getForDouble(FloatType.FLOAT_64, n, null);
+    var builder = Builder.getForDouble(FloatType.FLOAT_64, n, BlackholeProblemAggregator.INSTANCE);
     for (int i = 0; i < n; i++) {
       if (isNothing(i)) {
         builder.appendNulls(1);

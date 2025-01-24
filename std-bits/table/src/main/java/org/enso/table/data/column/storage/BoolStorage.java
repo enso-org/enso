@@ -195,21 +195,19 @@ public final class BoolStorage extends Storage<Boolean>
   }
 
   @Override
-  public BoolStorage applyMask(OrderMask mask) {
+  public Storage<Boolean> applyMask(OrderMask mask) {
     Context context = Context.getCurrent();
-    BitSet newNa = new BitSet();
-    BitSet newVals = new BitSet();
+    var builder = Builder.getForBoolean(mask.length());
     for (int i = 0; i < mask.length(); i++) {
       int position = mask.get(i);
       if (position == OrderMask.NOT_FOUND_INDEX || isNothing.get(position)) {
-        newNa.set(i);
-      } else if (values.get(position)) {
-        newVals.set(i);
+        builder.appendNulls(1);
+      } else {
+        builder.appendBoolean(getPrimitive(position));
       }
-
       context.safepoint();
     }
-    return new BoolStorage(newVals, newNa, mask.length(), negated);
+    return builder.seal();
   }
 
   public Storage<?> iif(
@@ -307,23 +305,22 @@ public final class BoolStorage extends Storage<Boolean>
   }
 
   @Override
-  public BoolStorage slice(List<SliceRange> ranges) {
+  public Storage<Boolean> slice(List<SliceRange> ranges) {
     Context context = Context.getCurrent();
     int newSize = SliceRange.totalLength(ranges);
-    BitSet newValues = new BitSet(newSize);
-    BitSet newIsNothing = new BitSet(newSize);
-    int offset = 0;
+    var builder = Builder.getForBoolean(newSize);
     for (SliceRange range : ranges) {
       int length = range.end() - range.start();
       for (int i = 0; i < length; ++i) {
-        newValues.set(offset + i, values.get(range.start() + i));
-        newIsNothing.set(offset + i, isNothing.get(range.start() + i));
+        if (isNothing.get(range.start() + i)) {
+          builder.appendNulls(1);
+        } else {
+          builder.appendBoolean(getPrimitive(range.start() + i));
+        }
         context.safepoint();
       }
-      offset += length;
     }
-
-    return new BoolStorage(newValues, newIsNothing, newSize, negated);
+    return builder.seal();
   }
 
   private static class BoolEq extends BinaryMapOperation<Boolean, BoolStorage> {
@@ -348,23 +345,20 @@ public final class BoolStorage extends Storage<Boolean>
     }
 
     @Override
-    public BoolStorage runZip(
+    public Storage<Boolean> runZip(
         BoolStorage storage, Storage<?> arg, MapOperationProblemAggregator problemAggregator) {
+      long n = storage.getSize();
+      var builder = Builder.getForBoolean(n);
       Context context = Context.getCurrent();
-      BitSet out = new BitSet();
-      BitSet isNothing = new BitSet();
-      for (int i = 0; i < storage.size; i++) {
-        if (!storage.isNothing(i) && i < arg.size() && !arg.isNothing(i)) {
-          if (((Boolean) storage.getPrimitive(i)).equals(arg.getBoxed(i))) {
-            out.set(i);
-          }
+      for (long i = 0; i < n; i++) {
+        if (!storage.isNothing(i) && i < arg.getSize() && !arg.isNothing(i)) {
+          builder.appendBoolean(((Boolean) storage.getPrimitive(i)).equals(arg.getBoxed(i)));
         } else {
-          isNothing.set(i);
+          builder.appendNulls(1);
         }
-
         context.safepoint();
       }
-      return new BoolStorage(out, isNothing, storage.size, false);
+      return builder.seal();
     }
   }
 
@@ -522,42 +516,36 @@ public final class BoolStorage extends Storage<Boolean>
     public Storage<?> runZip(
         BoolStorage storage, Storage<?> arg, MapOperationProblemAggregator problemAggregator) {
       if (arg instanceof BoolStorage argBoolStorage) {
-        BitSet out = new BitSet();
-        BitSet isNothing = new BitSet();
-        int n = storage.size;
-        int m = Math.min(n, argBoolStorage.size);
+        long n = storage.getSize();
+        long m = Math.min(n, argBoolStorage.getSize());
+        var builder = Builder.getForBoolean(n);
         Context context = Context.getCurrent();
-        for (int i = 0; i < m; i++) {
-          if (storage.isNothing(i) || argBoolStorage.isNothing(i)) {
-            isNothing.set(i);
+        for (long i = 0; i < n; i++) {
+          if (storage.isNothing(i) || (i >= m || argBoolStorage.isNothing(i))) {
+            builder.appendNulls(1);
           } else {
             boolean a = storage.getPrimitive(i);
             boolean b = argBoolStorage.getPrimitive(i);
             boolean r = doCompare(a, b);
-            out.set(i, r);
+            builder.appendBoolean(r);
           }
-
           context.safepoint();
         }
-
-        isNothing.set(m, n);
-
-        return new BoolStorage(out, isNothing, storage.size, false);
+        return builder.seal();
       } else if (arg.getType() instanceof AnyObjectType) {
-        BitSet out = new BitSet();
-        BitSet isNothing = new BitSet();
-        int n = storage.size;
-        int m = Math.min(n, arg.size());
+        long n = storage.getSize();
+        long m = Math.min(n, arg.getSize());
+        var builder = Builder.getForBoolean(n);
         Context context = Context.getCurrent();
-        for (int i = 0; i < m; i++) {
-          if (storage.isNothing(i) || arg.isNothing(i)) {
-            isNothing.set(i);
+        for (long i = 0; i < n; i++) {
+          if (storage.isNothing(i) || (i >= m || arg.isNothing(i))) {
+            builder.appendNulls(1);
           } else {
             boolean a = storage.getPrimitive(i);
             Object b = arg.getBoxed(i);
             if (b instanceof Boolean bBool) {
               boolean r = doCompare(a, bBool);
-              out.set(i, r);
+              builder.appendBoolean(r);
             } else {
               assert b != null;
               throw new CompareException(a, b);
@@ -566,10 +554,7 @@ public final class BoolStorage extends Storage<Boolean>
 
           context.safepoint();
         }
-
-        isNothing.set(m, n);
-
-        return new BoolStorage(out, isNothing, storage.size, false);
+        return builder.seal();
       } else {
         throw new UnexpectedColumnTypeException("Boolean");
       }
@@ -711,40 +696,27 @@ public final class BoolStorage extends Storage<Boolean>
     public Storage<?> runZip(
         BoolStorage storage, Storage<?> arg, MapOperationProblemAggregator problemAggregator) {
       if (arg instanceof BoolStorage argBoolStorage) {
-        int n = storage.size;
-        int m = Math.min(n, argBoolStorage.size());
-        BitSet out = new BitSet();
-        BitSet isNothing = new BitSet();
+        long n = storage.getSize();
+        long m = Math.min(n, argBoolStorage.getSize());
+        var builder = Builder.getForBoolean(n);
         Context context = Context.getCurrent();
-        for (int i = 0; i < m; i++) {
+        for (long i = 0; i < n; i++) {
           boolean isNothingA = storage.isNothing(i);
-          boolean isNothingB = argBoolStorage.isNothing(i);
+          boolean isNothingB = i >= m || argBoolStorage.isNothing(i);
           if (isNothingA && isNothingB) {
-            isNothing.set(i);
+            builder.appendNulls(1);
           } else {
             if (isNothingA) {
-              out.set(i, argBoolStorage.getPrimitive(i));
+              builder.appendBoolean(argBoolStorage.getPrimitive(i));
             } else if (isNothingB) {
-              out.set(i, storage.getPrimitive(i));
+              builder.appendBoolean(storage.getPrimitive(i));
             } else {
-              out.set(i, doOperation(storage.getPrimitive(i), argBoolStorage.getPrimitive(i)));
+              builder.appendBoolean(doOperation(storage.getPrimitive(i), argBoolStorage.getPrimitive(i)));
             }
           }
-
           context.safepoint();
         }
-
-        for (int i = m; i < n; i++) {
-          if (storage.isNothing(i)) {
-            isNothing.set(i);
-          } else {
-            out.set(i, storage.getPrimitive(i));
-          }
-
-          context.safepoint();
-        }
-
-        return new BoolStorage(out, isNothing, storage.size, false);
+        return builder.seal();
       } else {
         throw new UnexpectedColumnTypeException("Boolean");
       }

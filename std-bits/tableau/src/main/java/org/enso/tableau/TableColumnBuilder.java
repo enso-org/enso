@@ -94,8 +94,7 @@ record TableColumnBuilder(Builder builder, Consumer<Result> appendMethod) {
           throw new IllegalArgumentException("NUMERIC column must have a scale.");
         }
         if (column.scale().getAsInt() == 0) {
-          var bigIntBuilder =
-              Builder.getForType(BigIntegerType.INSTANCE, initialRowCount, problemAggregator);
+          var bigIntBuilder = Builder.getForBigInteger(initialRowCount, problemAggregator);
           return new TableColumnBuilder(
               bigIntBuilder,
               nullAppender(
@@ -103,8 +102,7 @@ record TableColumnBuilder(Builder builder, Consumer<Result> appendMethod) {
                   column.index(),
                   r -> bigIntBuilder.append(r.getBigDecimal(column.index()).toBigInteger())));
         } else {
-          var bigDecimalBuilder =
-              Builder.getForType(BigDecimalType.INSTANCE, initialRowCount, problemAggregator);
+          var bigDecimalBuilder = Builder.getForBigDecimal(initialRowCount);
           return new TableColumnBuilder(
               bigDecimalBuilder,
               nullAppender(
@@ -135,13 +133,13 @@ record TableColumnBuilder(Builder builder, Consumer<Result> appendMethod) {
             column.length().isEmpty()
                 ? new TextType(-1, false)
                 : new TextType(column.length().getAsInt(), column.typeID() == Types.CHAR);
-        var textBuilder = Builder.getForType(textType, initialRowCount, problemAggregator);
+        var textBuilder = Builder.getForText(initialRowCount, textType);
         return new TableColumnBuilder(
             textBuilder,
             nullAppender(
                 textBuilder, column.index(), r -> textBuilder.append(r.getString(column.index()))));
       case Types.DATE:
-        var dateBuilder = Builder.getForType(DateType.INSTANCE, initialRowCount, problemAggregator);
+        var dateBuilder = Builder.getForDate(initialRowCount);
         return new TableColumnBuilder(
             dateBuilder,
             nullAppender(
@@ -149,8 +147,7 @@ record TableColumnBuilder(Builder builder, Consumer<Result> appendMethod) {
                 column.index(),
                 r -> dateBuilder.append(r.getLocalDate(column.index()))));
       case Types.TIME:
-        var timeBuilder =
-            Builder.getForType(TimeOfDayType.INSTANCE, initialRowCount, problemAggregator);
+        var timeBuilder = Builder.getForTime(initialRowCount);
         return new TableColumnBuilder(
             timeBuilder,
             nullAppender(
@@ -158,8 +155,7 @@ record TableColumnBuilder(Builder builder, Consumer<Result> appendMethod) {
                 column.index(),
                 r -> timeBuilder.append(r.getLocalTime(column.index()))));
       case Types.TIMESTAMP:
-        var dateTimeBuilder =
-            Builder.getForType(DateTimeType.INSTANCE, initialRowCount, problemAggregator);
+        var dateTimeBuilder = Builder.getForDateTime(initialRowCount);
         return new TableColumnBuilder(
             dateTimeBuilder,
             nullAppender(
@@ -169,8 +165,7 @@ record TableColumnBuilder(Builder builder, Consumer<Result> appendMethod) {
                     dateTimeBuilder.append(
                         r.getLocalDateTime(column.index()).atZone(ZoneId.systemDefault()))));
       case Types.TIMESTAMP_WITH_TIMEZONE:
-        var dateTimeTzBuilder =
-            Builder.getForType(DateTimeType.INSTANCE, initialRowCount, problemAggregator);
+        var dateTimeTzBuilder = Builder.getForDateTime(initialRowCount);
         return new TableColumnBuilder(
             dateTimeTzBuilder,
             nullAppender(

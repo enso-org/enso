@@ -10,6 +10,7 @@ import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
+import org.enso.table.problems.BlackholeProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 
 public class MapHelpers {
@@ -36,7 +37,7 @@ public class MapHelpers {
     }
 
     long n = storage1.getSize();
-    var builder = Builder.getForLong(IntegerType.INT_64, n, null);
+    var builder = Builder.getForLong(IntegerType.INT_64, n, BlackholeProblemAggregator.INSTANCE);
     for (long i = 0; i < n; i++) {
       if (!storage1.isNothing(i) && !storage2.isNothing(i)) {
         builder.appendLong(storage1.getPrimitive(i) + storage2.getPrimitive(i));
@@ -62,7 +63,7 @@ public class MapHelpers {
 
   public static Storage<Long> longAdd(LongStorage storage, long shift) {
     long n = storage.getSize();
-    var builder = Builder.getForLong(IntegerType.INT_64, n, null);
+    var builder = Builder.getForLong(IntegerType.INT_64, n, BlackholeProblemAggregator.INSTANCE);
     for (long i = 0; i < n; i++) {
       if (!storage.isNothing(i)) {
         builder.appendLong(storage.getPrimitive(i) + shift);
@@ -75,7 +76,7 @@ public class MapHelpers {
 
   public static Storage<Long> getYear(DateStorage storage) {
     long n = storage.getSize();
-    var builder = Builder.getForLong(IntegerType.INT_64, n, null);
+    var builder = Builder.getForLong(IntegerType.INT_64, n, BlackholeProblemAggregator.INSTANCE);
     for (long i = 0; i < n; i++) {
       if (!storage.isNothing(i)) {
         builder.appendLong(storage.getBoxed(i).getYear());

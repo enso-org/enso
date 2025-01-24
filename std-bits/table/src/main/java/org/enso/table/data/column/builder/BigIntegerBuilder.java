@@ -45,7 +45,7 @@ public final class BigIntegerBuilder extends TypedBuilder<BigInteger> {
         return res;
       }
       case BigDecimalType _ -> {
-        var res = Builder.getForType(type, data.length, problemAggregator);
+        var res = Builder.getForBigDecimal(data.length);
         for (int i = 0; i < currentSize; i++) {
           if (data[i] == null) {
             res.appendNulls(1);

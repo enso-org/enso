@@ -20,6 +20,7 @@ import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.error.UnexpectedTypeException;
+import org.enso.table.problems.BlackholeProblemAggregator;
 import org.graalvm.polyglot.Context;
 
 /** An operation expecting a numeric argument and returning a numeric column. */
@@ -276,7 +277,7 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
     Context context = Context.getCurrent();
     int n = a.size();
     int m = Math.min(a.size(), b.size());
-    var builder = Builder.getForBigInteger(n, null);
+    var builder = Builder.getForBigInteger(n, BlackholeProblemAggregator.INSTANCE);
     for (int i = 0; i < m; i++) {
       BigInteger x = a.getItem(i);
       BigInteger y = b.getItem(i);
@@ -297,7 +298,7 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
       BigIntegerArrayAdapter a, BigInteger b, MapOperationProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     int n = a.size();
-    var builder = Builder.getForBigInteger(n, null);
+    var builder = Builder.getForBigInteger(n, BlackholeProblemAggregator.INSTANCE);
     for (int i = 0; i < n; i++) {
       BigInteger x = a.getItem(i);
       if (x == null || b == null) {

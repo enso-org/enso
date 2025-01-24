@@ -80,7 +80,7 @@ public final class TimeOfDayStorage extends SpecializedStorage<LocalTime> {
         new TimeLikeCoalescingOperation<>(Maps.MIN, LocalTime.class) {
           @Override
           protected Builder createOutputBuilder(long size) {
-            return Builder.getForType(TimeOfDayType.INSTANCE, size, null);
+            return Builder.getForTime(size);
           }
 
           @Override
@@ -92,7 +92,7 @@ public final class TimeOfDayStorage extends SpecializedStorage<LocalTime> {
         new TimeLikeCoalescingOperation<>(Maps.MAX, LocalTime.class) {
           @Override
           protected Builder createOutputBuilder(long size) {
-            return Builder.getForType(TimeOfDayType.INSTANCE, size, null);
+            return Builder.getForTime(size);
           }
 
           @Override

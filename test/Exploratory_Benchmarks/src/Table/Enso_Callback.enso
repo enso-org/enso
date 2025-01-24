@@ -37,7 +37,7 @@ type Boxed_Enso_Callback_Test
     enso_map_with_builder self =
         n = self.text_column.length
         fn = self.fn
-        builder = Builder.getForType TextType.VARIABLE_LENGTH n Nothing
+        builder = Builder.getForText n TextType.VARIABLE_LENGTH
         storage = Storage.get_storage_for_column self.text_column
         0.up_to n . each i->
             case storage.getBoxed i of

@@ -116,8 +116,8 @@ public final class StringStorage extends SpecializedStorage<String> {
             long size = storage.getSize();
             var builder = Builder.getForBoolean(size);
             Context context = Context.getCurrent();
-            for (long i = 0; i < storage.size(); i++) {
-              if (storage.getBoxed(i) == null || i >= arg.size() || arg.isNothing(i)) {
+            for (long i = 0; i < size; i++) {
+              if (storage.getBoxed(i) == null || i >= arg.getSize() || arg.isNothing(i)) {
                 builder.appendNulls(1);
               } else {
                 builder.appendBoolean(arg.getBoxed(i) instanceof String s
@@ -249,7 +249,7 @@ public final class StringStorage extends SpecializedStorage<String> {
 
     long minLength = Long.MAX_VALUE;
     long maxLength = Long.MIN_VALUE;
-    for (int i = 0; i < size(); i++) {
+    for (long i = 0; i < getSize(); i++) {
       String s = getBoxed(i);
       if (s != null) {
         long length = Text_Utils.grapheme_length(s);

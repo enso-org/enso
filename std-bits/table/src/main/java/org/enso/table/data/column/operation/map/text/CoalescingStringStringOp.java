@@ -15,7 +15,7 @@ public abstract class CoalescingStringStringOp extends StringStringOp {
   }
 
   @Override
-  public Storage<?> runBinaryMap(
+  public Storage<String> runBinaryMap(
       SpecializedStorage<String> storage,
       Object arg,
       MapOperationProblemAggregator problemAggregator) {
@@ -45,7 +45,7 @@ public abstract class CoalescingStringStringOp extends StringStringOp {
   }
 
   @Override
-  public Storage<?> runZip(
+  public Storage<String> runZip(
       SpecializedStorage<String> storage,
       Storage<?> arg,
       MapOperationProblemAggregator problemAggregator) {

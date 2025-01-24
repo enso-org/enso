@@ -34,8 +34,7 @@ public class Sum extends Aggregator {
   public Builder makeBuilder(int size, ProblemAggregator problemAggregator) {
     return switch (inputType) {
       case IntegerType integerType -> new InferredIntegerBuilder(size, problemAggregator);
-      case BigIntegerType bigIntegerType -> Builder.getForType(
-          bigIntegerType, size, problemAggregator);
+      case BigIntegerType bigIntegerType -> Builder.getForBigInteger(size, problemAggregator);
       case FloatType floatType -> Builder.getForDouble(floatType, size, problemAggregator);
       case NullType nullType -> Builder.getForType(nullType, size, problemAggregator);
       default -> throw new IllegalStateException(

@@ -178,29 +178,6 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
     return newInstance(newData);
   }
 
-  @Override
-  public List<Object> toList() {
-    return new ReadOnlyList<>(this);
-  }
-
-  private static class ReadOnlyList<S> extends AbstractList<Object> {
-    private final SpecializedStorage<S> storage;
-
-    public ReadOnlyList(SpecializedStorage<S> storage) {
-      this.storage = storage;
-    }
-
-    @Override
-    public Object get(int index) {
-      return storage.getBoxed(index);
-    }
-
-    @Override
-    public int size() {
-      return storage.size();
-    }
-  }
-
   /**
    * Returns the specialized storage casted to my own type, if it is of the same type; or null
    * otherwise.

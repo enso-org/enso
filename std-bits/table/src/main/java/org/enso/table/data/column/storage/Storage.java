@@ -13,6 +13,7 @@ import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
+import org.enso.table.problems.BlackholeProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
@@ -21,9 +22,6 @@ import org.graalvm.polyglot.Value;
 public abstract class Storage<T> implements ColumnStorage<T> {
   /** A constant representing the index of a missing value in a column. */
   public static final int NOT_FOUND_INDEX = -1;
-
-  public int size() { return -1;
-  }
 
   @Override
   public abstract long getSize();
@@ -140,14 +138,15 @@ public abstract class Storage<T> implements ColumnStorage<T> {
       boolean skipNulls,
       StorageType expectedResultType,
       ProblemAggregator problemAggregator) {
-    Builder storageBuilder = Builder.getForType(expectedResultType, size(), problemAggregator);
+    Builder storageBuilder = Builder.getForType(expectedResultType, getSize(), problemAggregator);
     if (skipNulls && argument == null) {
-      storageBuilder.appendNulls(size());
+      // ToDo: appendNulls should take a long, not an int. Should have a constant Storage for null.
+      storageBuilder.appendNulls((int)getSize());
       return storageBuilder.seal();
     }
 
     Context context = Context.getCurrent();
-    for (int i = 0; i < size(); i++) {
+    for (long i = 0; i < getSize(); i++) {
       Object it = getBoxed(i);
       if (skipNulls && it == null) {
         storageBuilder.appendNulls(1);
@@ -177,11 +176,11 @@ public abstract class Storage<T> implements ColumnStorage<T> {
       boolean skipNa,
       StorageType expectedResultType,
       ProblemAggregator problemAggregator) {
-    Builder storageBuilder = Builder.getForType(expectedResultType, size(), problemAggregator);
+    Builder storageBuilder = Builder.getForType(expectedResultType, getSize(), problemAggregator);
     Context context = Context.getCurrent();
-    for (int i = 0; i < size(); i++) {
+    for (long i = 0; i < getSize(); i++) {
       Object it1 = getBoxed(i);
-      Object it2 = i < arg.size() ? arg.getBoxed(i) : null;
+      Object it2 = i < arg.getSize() ? arg.getBoxed(i) : null;
       if (skipNa && (it1 == null || it2 == null)) {
         storageBuilder.appendNulls(1);
       } else {
@@ -317,10 +316,10 @@ public abstract class Storage<T> implements ColumnStorage<T> {
    */
   public Storage<?> fillMissing(
       Value arg, StorageType commonType, ProblemAggregator problemAggregator) {
-    Builder builder = Builder.getForType(commonType, size(), problemAggregator);
+    Builder builder = Builder.getForType(commonType, getSize(), problemAggregator);
     Object convertedFallback = Polyglot_Utils.convertPolyglotValue(arg);
     Context context = Context.getCurrent();
-    for (int i = 0; i < size(); i++) {
+    for (long i = 0; i < getSize(); i++) {
       Object it = getBoxed(i);
       builder.append(it == null ? convertedFallback : it);
       context.safepoint();
@@ -338,13 +337,12 @@ public abstract class Storage<T> implements ColumnStorage<T> {
    */
   public Storage<?> fillMissingFrom(
       Storage<?> other, StorageType commonType, ProblemAggregator problemAggregator) {
-    var builder = Builder.getForType(commonType, size(), problemAggregator);
+    var builder = Builder.getForType(commonType, getSize(), problemAggregator);
     Context context = Context.getCurrent();
-    for (int i = 0; i < size(); i++) {
+    for (long i = 0; i < getSize(); i++) {
       builder.append(isNothing(i) ? other.getBoxed(i) : getBoxed(i));
       context.safepoint();
     }
-
     return builder.seal();
   }
 
@@ -404,8 +402,8 @@ public abstract class Storage<T> implements ColumnStorage<T> {
   public Storage<?> duplicateCount() {
     HashMap<Object, Integer> occurenceCount = new HashMap<>();
     Context context = Context.getCurrent();
-    var builder = Builder.getForLong(IntegerType.INT_64, size(), null);
-    for (int i = 0; i < size(); i++) {
+    var builder = Builder.getForLong(IntegerType.INT_64, getSize(), BlackholeProblemAggregator.INSTANCE);
+    for (long i = 0; i < getSize(); i++) {
       var value = getBoxed(i);
       var count = occurenceCount.getOrDefault(value, 0);
       builder.appendLong(count);

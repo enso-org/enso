@@ -32,6 +32,7 @@ import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
+import org.enso.table.problems.BlackholeProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.BitSets;
 import org.graalvm.polyglot.Context;
@@ -220,7 +221,7 @@ public final class DoubleStorage extends Storage<Double>
     }
 
     long n = getSize();
-    var builder = Builder.getForDouble(FloatType.FLOAT_64, n, null);
+    var builder = Builder.getForDouble(FloatType.FLOAT_64, n, BlackholeProblemAggregator.INSTANCE);
     double previousValue = 0;
     boolean hasPrevious = false;
 
@@ -248,7 +249,7 @@ public final class DoubleStorage extends Storage<Double>
 
   @Override
   public Storage<Double> applyFilter(BitSet filterMask, int newLength) {
-    var builder = Builder.getForDouble(FloatType.FLOAT_64, newLength, null);
+    var builder = Builder.getForDouble(FloatType.FLOAT_64, newLength, BlackholeProblemAggregator.INSTANCE);
     Context context = Context.getCurrent();
     for (int i = 0; i < size; i++) {
       if (filterMask.get(i)) {
