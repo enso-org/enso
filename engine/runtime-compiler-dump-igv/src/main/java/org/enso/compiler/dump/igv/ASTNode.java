@@ -79,7 +79,6 @@ final class ASTNode {
       bldr.object = ir;
       bldr.location = location;
       bldr.property("label", label);
-      bldr.property("hashCode", Utils.hash(ir));
       bldr.property("IRClassName", ir.getClass().getName());
       bldr.property("location", ir.identifiedLocation());
       bldr.property("passData", ir.passData());
