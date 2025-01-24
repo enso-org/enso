@@ -6,7 +6,7 @@ import {
   type Typename,
 } from '@/stores/suggestionDatabase/entry'
 import type { Icon } from '@/util/iconMetadata/iconName'
-import type { MethodPointer } from 'ydoc-shared/languageServerTypes'
+import { type MethodPointer } from '@/util/methodPointer'
 
 const typeNameToIconLookup: Record<string, Icon> = {
   'Standard.Base.Data.Text.Text': 'text_input',
@@ -60,7 +60,7 @@ export function iconOfNode(node: NodeId, graphDb: GraphDb) {
       return displayedIconOf(
         suggestionEntry,
         expressionInfo?.methodCall?.methodPointer,
-        expressionInfo?.typename ?? 'Unknown',
+        expressionInfo?.rawTypename ?? 'Unknown',
       )
     case 'output':
       return 'data_output'
