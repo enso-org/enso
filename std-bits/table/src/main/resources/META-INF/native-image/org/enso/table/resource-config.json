@@ -78,9 +78,6 @@
     "pattern":"\\Qurlhandler.props\\E"
   }]},
   "bundles":[{
-    "name":"com.sun.org.apache.xalan.internal.xsltc.compiler.util.ErrorMessages",
-    "classNames":["com.sun.org.apache.xalan.internal.xsltc.compiler.util.ErrorMessages"]
-  }, {
     "name":"com.sun.org.apache.xml.internal.serializer.XMLEntities",
     "locales":[""]
   }, {
