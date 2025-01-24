@@ -2,7 +2,7 @@
 import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
 import { transformPastedText } from '@/components/DocumentationEditor/textPaste'
 import { ensoMarkdown } from '@/components/MarkdownEditor/markdown'
-import VueHostRender, { VueHost } from '@/components/VueHostRender.vue'
+import VueHostRender, { VueHostInstance } from '@/components/VueHostRender.vue'
 import { useCodeMirror } from '@/util/codemirror'
 import { highlightStyle } from '@/util/codemirror/highlight'
 import { useLinkTitles } from '@/util/codemirror/links'
@@ -20,7 +20,7 @@ const { content } = defineProps<{
 const focused = ref(false)
 const editing = computed(() => !readonly.value && focused.value)
 
-const vueHost = new VueHost()
+const vueHost = new VueHostInstance()
 const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('editorRoot')
 const { editorView, readonly, putTextAt } = useCodeMirror(editorRoot, {
   content: () => content,
@@ -70,15 +70,18 @@ defineExpose({
 
 <style scoped>
 :deep(.cm-content) {
+  /*noinspection CssUnresolvedCustomProperty,CssNoGenericFontName*/
   font-family: var(--font-sans);
 }
 
+/*noinspection CssUnusedSymbol*/
 :deep(.cm-editor) {
   opacity: 1;
   color: black;
   font-size: 12px;
 }
 
+/*noinspection CssUnusedSymbol*/
 :deep(img.uploading) {
   opacity: 0.5;
 }
@@ -158,10 +161,32 @@ defineExpose({
     }
   }
 
-  &:has(.list.processingInstruction) {
+  .list:not(.content) {
+    /* Hide indentation spaces */
+    display: none;
+  }
+
+  :global(.cm-BulletList-item),
+  :global(.cm-OrderedList-item) {
     display: list-item;
+  }
+
+  :global(.cm-BulletList-item) {
     list-style-type: disc;
+    &:global(.cm-BulletList-item-odd) {
+      list-style-type: circle;
+    }
+    list-style-position: outside;
+    text-indent: -0.3em;
+    /*noinspection CssUnresolvedCustomProperty*/
+    margin-left: calc(var(--cm-list-depth) * 0.57em + 1em);
+  }
+
+  :global(.cm-OrderedList-item) {
+    list-style-type: decimal;
     list-style-position: inside;
+    /*noinspection CssUnresolvedCustomProperty*/
+    margin-left: calc(var(--cm-list-depth) * 0.85em);
   }
 }
 </style>
