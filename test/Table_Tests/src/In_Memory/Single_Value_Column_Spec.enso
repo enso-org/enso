@@ -26,12 +26,12 @@ add_specs suite_builder =
             # But a float is not an integer:
             Test.expect_panic Type_Error (c1:Integer)
 
-            # Integral float is both an integer and a float
+            # Integral float is still not an integer
             c10 = Column.from_vector "c10" [1.0]
             c10.should_be_a Column
             (c10:Float).should_equal 1.0
-            (c10:Integer).should_equal 1
-            Test.expect_panic Type_Error (c10:Text)
+            Test.expect_panic Type_Error (1.0 : Integer)
+            Test.expect_panic Type_Error (c10:Integer)
 
         group_builder.specify "should be a Column but also Text" <|
             c1 = Column.from_vector "texts" ["a"]
@@ -76,6 +76,21 @@ add_specs suite_builder =
             Test.expect_panic Type_Error (c:Nothing)
             Test.expect_panic Type_Error (c:Integer)
             Test.expect_panic Type_Error (c:Text)
+
+        group_builder.specify "also works for Mixed columns" <|
+            c1 = Column.from_vector "mixed int" [23] Value_Type.Mixed
+            c1.value_type.should_equal Value_Type.Mixed
+            (c1:Integer).should_equal 23
+            Test.expect_panic Type_Error (c1:Float)
+
+            c2 = Column.from_vector "mixed float" [42.0] Value_Type.Mixed
+            c2.value_type.should_equal Value_Type.Mixed
+            (c2:Float).should_equal 42.0
+            Test.expect_panic Type_Error (c2:Integer)
+
+            c3 = Column.from_vector "mixed text" ["hello"] Value_Type.Mixed
+            c3.value_type.should_equal Value_Type.Mixed
+            (c3:Text).should_equal "hello"
 
         group_builder.specify "should still allow all column operations and preserve its single-value-ness" <|
             c1 = Column.from_vector "c1" [23]
