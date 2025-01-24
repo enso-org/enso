@@ -1,9 +1,10 @@
 /**
  * @file Utilities for the Breadcrumbs component
  */
+import type * as aria from 'react-aria-components'
 
-const DEFAULT_VISIBLE_ITEMS_COUNT = 3
-const DEFAULT_LAST_VISIBLE_ITEMS_COUNT = 2
+const DEFAULT_START_VISIBLE_ITEMS_COUNT = 1
+const DEFAULT_END_VISIBLE_ITEMS_COUNT = 2
 
 const DROPDOWN_ITEM_BRAND = Symbol('DropdownItemBrand')
 
@@ -13,6 +14,10 @@ const DROPDOWN_ITEM_BRAND = Symbol('DropdownItemBrand')
 interface BreadcrumbCollapsedItem<T> {
   readonly [DROPDOWN_ITEM_BRAND]: true
   readonly items: T[]
+  /**
+   * Id determines a unique key across the collection
+   */
+  readonly id: aria.Key
 }
 
 /**
@@ -20,53 +25,41 @@ interface BreadcrumbCollapsedItem<T> {
  */
 export interface GetItemsWithCollapsedItemOptions {
   /** The number of visible items */
-  readonly visibleItemsCount?: number
+  readonly startVisibleItemsCount?: number
   /** The number of last visible items */
-  readonly lastVisibleItemsCount?: number
+  readonly endVisibleItemsCount?: number
 }
-
-export function getItemsWithCollapsedItem<T>(
-  items: Array<ItemWithIndex<T>>,
-  options: GetItemsWithCollapsedItemOptions,
-): Array<BreadcrumbCollapsedItem<ItemWithIndex<T>> | ItemWithIndex<T>>
 
 /**
  * Get the items with a collapsed item.
  */
 export function getItemsWithCollapsedItem<T>(
   items: Iterable<T>,
-  options: GetItemsWithCollapsedItemOptions,
-): Array<BreadcrumbCollapsedItem<T> | T>
-
-/**
- * Get the items with a collapsed item.
- */
-export function getItemsWithCollapsedItem<T>(
-  items: Array<ItemWithIndex<T>> | Iterable<T>,
   options: GetItemsWithCollapsedItemOptions = {},
-) {
+): Array<BreadcrumbCollapsedItem<T> | T> {
   const {
-    visibleItemsCount = DEFAULT_VISIBLE_ITEMS_COUNT,
-    lastVisibleItemsCount = DEFAULT_LAST_VISIBLE_ITEMS_COUNT,
+    startVisibleItemsCount = DEFAULT_START_VISIBLE_ITEMS_COUNT,
+    endVisibleItemsCount = DEFAULT_END_VISIBLE_ITEMS_COUNT,
   } = options
 
-  const itemsArray = Array.isArray(items) ? items : Array.from(items)
+  const totalVisibleItemsCount = startVisibleItemsCount + endVisibleItemsCount
 
-  if (itemsArray.length <= visibleItemsCount) {
+  const itemsArray = Array.from(items)
+
+  if (itemsArray.length <= totalVisibleItemsCount) {
     return itemsArray
   }
 
-  // This is safe because we checked the length above
-  // eslint-disable-next-line no-restricted-syntax
-  const firstItem = itemsArray[0] as T
-  const lastVisibleItems = itemsArray.slice(-lastVisibleItemsCount)
+  const firstVisibleItems = itemsArray.slice(0, startVisibleItemsCount)
+  const lastVisibleItems = itemsArray.slice(-endVisibleItemsCount)
 
   const dropdownItem = {
     [DROPDOWN_ITEM_BRAND]: true,
-    items: itemsArray.slice(1, -lastVisibleItemsCount),
+    id: 'collapsed-item',
+    items: itemsArray.slice(startVisibleItemsCount, -endVisibleItemsCount),
   } satisfies BreadcrumbCollapsedItem<T>
 
-  return [firstItem, dropdownItem, ...lastVisibleItems]
+  return [...firstVisibleItems, dropdownItem, ...lastVisibleItems]
 }
 
 /**
@@ -74,19 +67,4 @@ export function getItemsWithCollapsedItem<T>(
  */
 export function isCollapsedItem<T>(item: unknown): item is BreadcrumbCollapsedItem<T> {
   return typeof item === 'object' && item != null && DROPDOWN_ITEM_BRAND in item
-}
-
-/**
- * An item with an index.
- */
-export interface ItemWithIndex<T> {
-  readonly item: T
-  readonly index: number
-}
-
-/**
- * Attach indices to items.
- */
-export function attachIndiciesToItems<T>(items: Iterable<T>): ItemWithIndex<T>[] {
-  return Array.from(items).map((item, index) => ({ item, index }))
 }

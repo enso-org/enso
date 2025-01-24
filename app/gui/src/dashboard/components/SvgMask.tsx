@@ -2,9 +2,10 @@
 import * as React from 'react'
 
 import * as tailwindMerge from '#/utilities/tailwindMerge'
+import type { TestIdProps } from './AriaComponents'
 
 /** Props for a {@link SvgMask}. */
-export interface SvgMaskProps {
+export interface SvgMaskProps extends TestIdProps {
   readonly invert?: boolean
   readonly alt?: string
   /** The URL of the SVG to use as the mask. */
@@ -20,7 +21,7 @@ const SvgMask = React.forwardRef(function SvgMask(
   props: SvgMaskProps,
   ref: React.ForwardedRef<HTMLDivElement>,
 ) {
-  const { invert = false, alt = '', src, style, color, className } = props
+  const { invert = false, alt = '', src, style, color, className, testId = 'svg-mask' } = props
   const urlSrc = `url(${JSON.stringify(src)})`
   const mask = invert ? `${urlSrc}, linear-gradient(white 0 0)` : urlSrc
 
@@ -31,6 +32,7 @@ const SvgMask = React.forwardRef(function SvgMask(
 
   return (
     <div
+      data-testid={testId}
       ref={ref}
       style={{
         ...(style ?? {}),

@@ -2,6 +2,7 @@
   "submit": "Submit",
   "retry": "Retry",
   "hide": "Hide",
+  "more": "More",
 
   "arbitraryFetchError": "An error occurred while fetching data",
   "arbitraryFetchImageError": "An error occurred while fetching an image",

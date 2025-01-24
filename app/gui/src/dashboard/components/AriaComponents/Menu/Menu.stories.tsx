@@ -11,7 +11,12 @@ import type { Meta, StoryObj } from '@storybook/react'
 import { expect, userEvent, within } from '@storybook/test'
 import type { MenuProps } from '.'
 import { Menu } from '.'
+import { passwordSchema } from '../../../pages/authentication/schemas'
+import { useText } from '../../../providers/TextProvider'
 import { Button } from '../Button'
+import { Popover } from '../Dialog'
+import { Form } from '../Form'
+import { Input } from '../Inputs'
 
 const meta = {
   title: 'Components/Menu',
@@ -189,7 +194,7 @@ function MenuContentWithDescription() {
         <Menu.Item icon={Folder} description="This is a description" shortcut="⌘O">
           Open Submenu
         </Menu.Item>
-        <Menu selectionMode="multiple" placement="right">
+        <Menu selectionMode="multiple">
           <Menu.Item description="This is a description" icon={Eye}>
             Submenu item
           </Menu.Item>
@@ -267,4 +272,72 @@ export const DynamicContent: Story = {
 
     await expect(canvas.getByRole('menu')).toBeInTheDocument()
   },
+}
+
+export function WithPopover() {
+  const { getText } = useText()
+  return (
+    <Menu.Trigger>
+      <Button>Open Menu</Button>
+
+      <Menu>
+        <Menu.Item>New File</Menu.Item>
+
+        <Menu.Separator />
+
+        <Menu.SubmenuTrigger>
+          <Menu.Item>Open...</Menu.Item>
+
+          <Popover>
+            <Form
+              method="dialog"
+              schema={(z) => z.object({ name: z.string() })}
+              onSubmit={(values) => {
+                alert(JSON.stringify(values, null, 2))
+              }}
+            >
+              <Input name="name" label="Name" />
+
+              <Button.Group>
+                <Form.Submit>Save</Form.Submit>
+                <Popover.Close>Cancel</Popover.Close>
+              </Button.Group>
+
+              <Form.FormError />
+            </Form>
+          </Popover>
+        </Menu.SubmenuTrigger>
+        <Menu.Item>Save</Menu.Item>
+        <Menu.Item>Cut</Menu.Item>
+        <Menu.Item>Copy</Menu.Item>
+        <Menu.Item>Paste</Menu.Item>
+        <Menu.Item>Delete</Menu.Item>
+        <Menu.Item>Rename</Menu.Item>
+        <Menu.Item>Move</Menu.Item>
+
+        <Menu.SubmenuTrigger>
+          <Menu.Item>Edit Secret</Menu.Item>
+
+          <Popover isDismissable={false}>
+            <Form
+              method="dialog"
+              schema={(z) => z.object({ name: z.string(), password: passwordSchema(getText) })}
+              onSubmit={(values) => {
+                alert(JSON.stringify(values, null, 2))
+              }}
+            >
+              <Input name="name" label="Name" />
+              <Input name="password" type="password" label="Password" />
+
+              <Button.Group>
+                <Form.Submit>Save</Form.Submit>
+                <Popover.Close>Cancel</Popover.Close>
+              </Button.Group>
+              <Form.FormError />
+            </Form>
+          </Popover>
+        </Menu.SubmenuTrigger>
+      </Menu>
+    </Menu.Trigger>
+  )
 }
