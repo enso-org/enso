@@ -151,7 +151,10 @@ public final class IGVDumper implements IRDumper {
   private static WritableByteChannel createFileChannel(Path path) {
     try {
       return Files.newByteChannel(
-          path, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
+          path,
+          StandardOpenOption.CREATE,
+          StandardOpenOption.WRITE,
+          StandardOpenOption.TRUNCATE_EXISTING);
     } catch (IOException e) {
       throw new IllegalStateException(e);
     }
