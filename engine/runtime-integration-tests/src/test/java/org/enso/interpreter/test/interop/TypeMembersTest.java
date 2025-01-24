@@ -1,5 +1,6 @@
 package org.enso.interpreter.test.interop;
 
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItem;
@@ -163,6 +164,29 @@ public class TypeMembersTest {
           var memberNames = getAllMemberNames(typeUnwrapped);
           assertThat(
               "Member names are not qualified", memberNames, not(hasItem(containsString("."))));
+          return null;
+        });
+  }
+
+  @Test
+  public void canInvokeInheritedStaticMethod_OnType() {
+    var myType =
+        ContextUtils.evalModule(
+            ctx,
+            """
+        from Standard.Base.Any import all
+
+        type My_Type
+            method self = 42
+
+        main = My_Type
+        """);
+    ContextUtils.executeInContext(
+        ctx,
+        () -> {
+          var displayTextRes = myType.invokeMember("to_display_text");
+          assertThat("Has correct result type", displayTextRes.isString(), is(true));
+          assertThat("Has correct result value", displayTextRes.asString(), is("My_Type"));
           return null;
         });
   }
