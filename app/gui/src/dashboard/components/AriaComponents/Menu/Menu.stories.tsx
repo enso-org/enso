@@ -8,11 +8,11 @@ import EyeClosed from '#/assets/eye_crossed.svg'
 import Folder from '#/assets/folder.svg'
 import type { Meta, StoryObj } from '@storybook/react'
 
+import { useText } from '#/providers/TextProvider'
 import { expect, userEvent, within } from '@storybook/test'
 import type { MenuProps } from '.'
 import { Menu } from '.'
 import { passwordSchema } from '../../../pages/authentication/schemas'
-import { useText } from '../../../providers/TextProvider'
 import { Button } from '../Button'
 import { Popover } from '../Dialog'
 import { Form } from '../Form'
@@ -21,9 +21,6 @@ import { Input } from '../Inputs'
 const meta = {
   title: 'Components/Menu',
   component: Menu,
-  parameters: {
-    layout: 'centered',
-  },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     const button = canvas.getByRole('button', { name: 'Open Menu' })
@@ -274,70 +271,67 @@ export const DynamicContent: Story = {
   },
 }
 
-export function WithPopover() {
-  const { getText } = useText()
-  return (
-    <Menu.Trigger>
-      <Button>Open Menu</Button>
+export const WithPopover: Story = {
+  render: () => {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const { getText } = useText()
+    return (
+      <Menu.Trigger>
+        <Button>Open Menu</Button>
 
-      <Menu>
-        <Menu.Item>New File</Menu.Item>
+        <Menu>
+          <Menu.Item>New File</Menu.Item>
 
-        <Menu.Separator />
+          <Menu.Separator />
 
-        <Menu.SubmenuTrigger>
-          <Menu.Item>Open...</Menu.Item>
+          <Menu.Item>Save</Menu.Item>
+          <Menu.Item>Cut</Menu.Item>
+          <Menu.Item>Copy</Menu.Item>
+          <Menu.Item>Paste</Menu.Item>
+          <Menu.Item>Delete</Menu.Item>
+          <Menu.Item>Rename</Menu.Item>
+          <Menu.Item>Move</Menu.Item>
 
-          <Popover>
-            <Form
-              method="dialog"
-              schema={(z) => z.object({ name: z.string() })}
-              onSubmit={(values) => {
-                alert(JSON.stringify(values, null, 2))
-              }}
-            >
-              <Input name="name" label="Name" />
+          <Menu.SubmenuTrigger>
+            <Menu.Item>Edit Secret</Menu.Item>
 
-              <Button.Group>
-                <Form.Submit>Save</Form.Submit>
-                <Popover.Close>Cancel</Popover.Close>
-              </Button.Group>
+            <Popover isDismissable={false}>
+              <Form
+                method="dialog"
+                schema={(z) => z.object({ name: z.string(), password: passwordSchema(getText) })}
+                onSubmit={() => new Promise((resolve) => setTimeout(resolve, 1000))}
+              >
+                <Input name="name" label="Name" />
+                <Input name="password" type="password" label="Password" testId="password" />
 
-              <Form.FormError />
-            </Form>
-          </Popover>
-        </Menu.SubmenuTrigger>
-        <Menu.Item>Save</Menu.Item>
-        <Menu.Item>Cut</Menu.Item>
-        <Menu.Item>Copy</Menu.Item>
-        <Menu.Item>Paste</Menu.Item>
-        <Menu.Item>Delete</Menu.Item>
-        <Menu.Item>Rename</Menu.Item>
-        <Menu.Item>Move</Menu.Item>
+                <Button.Group>
+                  <Form.Submit>Save</Form.Submit>
+                  <Popover.Close>Cancel</Popover.Close>
+                </Button.Group>
+                <Form.FormError />
+              </Form>
+            </Popover>
+          </Menu.SubmenuTrigger>
+        </Menu>
+      </Menu.Trigger>
+    )
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
 
-        <Menu.SubmenuTrigger>
-          <Menu.Item>Edit Secret</Menu.Item>
+    const button = canvas.getByRole('button', { name: 'Open Menu' })
+    await userEvent.click(button)
 
-          <Popover isDismissable={false}>
-            <Form
-              method="dialog"
-              schema={(z) => z.object({ name: z.string(), password: passwordSchema(getText) })}
-              onSubmit={(values) => {
-                alert(JSON.stringify(values, null, 2))
-              }}
-            >
-              <Input name="name" label="Name" />
-              <Input name="password" type="password" label="Password" />
+    await userEvent.hover(canvas.getByRole('menuitem', { name: 'Edit Secret' }))
 
-              <Button.Group>
-                <Form.Submit>Save</Form.Submit>
-                <Popover.Close>Cancel</Popover.Close>
-              </Button.Group>
-              <Form.FormError />
-            </Form>
-          </Popover>
-        </Menu.SubmenuTrigger>
-      </Menu>
-    </Menu.Trigger>
-  )
+    const nameInput = await canvas.findByRole('textbox', { name: 'Name' })
+    await userEvent.type(nameInput, 'John')
+
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const passwordInput = canvas.getByTestId('password').querySelector('input')!
+    await userEvent.type(passwordInput, 'abc123sadflmsdkf')
+
+    const saveButton = await canvas.findByRole('button', { name: 'Save' })
+    await userEvent.click(saveButton)
+  },
 }

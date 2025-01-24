@@ -316,17 +316,8 @@ export const WithStartAddon: Story = {
           Settings
         </Breadcrumbs.Item>
         <Breadcrumbs.Item
-          onPress={() => {
-            // Handle click
-          }}
           addonStart={
-            <Button
-              variant="icon"
-              onPress={() => {
-                // Handle click
-              }}
-              aria-label="Edit"
-            >
+            <Button variant="icon" aria-label="Edit">
               ✏️
             </Button>
           }
