@@ -11,6 +11,8 @@
 - [Redo stack is no longer lost when interacting with text literals][11908].
 - [Fixed bug when clicking header in Table Editor Widget didn't start editing
   it][12064]
+- [When editing cells or header names in Table Editor Widget, `tab` and `enter`
+  keys jumps to next cell/ next row respectively.][12129]
 
 [11889]: https://github.com/enso-org/enso/pull/11889
 [11836]: https://github.com/enso-org/enso/pull/11836
@@ -18,6 +20,7 @@
 [11902]: https://github.com/enso-org/enso/pull/11902
 [11908]: https://github.com/enso-org/enso/pull/11908
 [12064]: https://github.com/enso-org/enso/pull/12064
+[12129]: https://github.com/enso-org/enso/pull/12129
 
 #### Enso Standard Library
 
