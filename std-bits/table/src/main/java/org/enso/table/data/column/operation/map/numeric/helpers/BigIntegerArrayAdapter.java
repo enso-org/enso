@@ -1,6 +1,9 @@
 package org.enso.table.data.column.operation.map.numeric.helpers;
 
 import java.math.BigInteger;
+
+import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 
@@ -9,13 +12,13 @@ public interface BigIntegerArrayAdapter {
 
   int size();
 
-  default BigIntegerStorage intoStorage() {
+  default Storage<BigInteger> intoStorage() {
     int n = size();
-    BigInteger[] values = new BigInteger[n];
+    var builder = Builder.getForBigInteger(n, null);
     for (int i = 0; i < n; i++) {
-      values[i] = getItem(i);
+      builder.append(getItem(i));
     }
-    return new BigIntegerStorage(values);
+    return builder.seal();
   }
 
   static BigIntegerArrayAdapter fromStorage(BigIntegerStorage storage) {
@@ -40,7 +43,8 @@ public interface BigIntegerArrayAdapter {
 
     @Override
     public int size() {
-      return storage.size();
+      // ToDo: Will remove these adapters in the next step.
+      return (int)storage.getSize();
     }
 
     @Override
@@ -68,7 +72,8 @@ public interface BigIntegerArrayAdapter {
 
     @Override
     public int size() {
-      return storage.size();
+      // ToDo: Will remove these adapters in the next step.
+      return (int)storage.getSize();
     }
   }
 }

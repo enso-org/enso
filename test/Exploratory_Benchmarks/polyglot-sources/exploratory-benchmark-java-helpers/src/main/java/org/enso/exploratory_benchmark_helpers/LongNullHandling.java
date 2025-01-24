@@ -27,7 +27,7 @@ public class LongNullHandling {
         ColumnLongStorage arg,
         MapOperationProblemAggregator problemAggregator) {
       long n = storage.getSize();
-      var builder = Builder.getForLong(IntegerType.INT_64, n, null);
+      var builder = Builder.getForLong(IntegerType.INT_64, n, problemAggregator);
       for (long i = 0; i < n; i++) {
         if (storage.isNothing(i) || arg.isNothing(i)) {
           builder.appendNulls(1);
@@ -50,7 +50,7 @@ public class LongNullHandling {
         ColumnLongStorage arg,
         MapOperationProblemAggregator problemAggregator) {
       long n = storage.getSize();
-      var builder = Builder.getForLong(IntegerType.INT_64, n, null);
+      var builder = Builder.getForLong(IntegerType.INT_64, n, problemAggregator);
       for (long i = 0; i < n; i++) {
         if (storage.isNothing(i) || arg.isNothing(i)) {
           builder.appendNulls(1);
@@ -89,7 +89,7 @@ public class LongNullHandling {
         ColumnLongStorage arg,
         MapOperationProblemAggregator problemAggregator) {
       long n = storage.getSize();
-      var builder = Builder.getForLong(IntegerType.INT_64, n, null);
+      var builder = Builder.getForLong(IntegerType.INT_64, n, problemAggregator);
       NullityReporter nullityReporter = new NullityReporter();
       for (long i = 0; i < n; i++) {
         if (storage.isNothing(i) || arg.isNothing(i)) {

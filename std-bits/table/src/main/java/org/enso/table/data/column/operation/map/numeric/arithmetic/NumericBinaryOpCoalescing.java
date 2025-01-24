@@ -64,7 +64,7 @@ public abstract class NumericBinaryOpCoalescing<T extends Number, I extends Stor
     double bNonNull = b;
     Context context = Context.getCurrent();
     int n = a.size();
-    var builder = Builder.getForDouble(FloatType.FLOAT_64, n, null);
+    var builder = Builder.getForDouble(FloatType.FLOAT_64, n, problemAggregator);
     for (int i = 0; i < n; i++) {
       builder.appendDouble(
           a.isNothing(i)
@@ -81,12 +81,12 @@ public abstract class NumericBinaryOpCoalescing<T extends Number, I extends Stor
       AbstractLongStorage a,
       AbstractLongStorage b,
       MapOperationProblemAggregator problemAggregator) {
-    int n = a.size();
-    int m = Math.min(a.size(), b.size());
-    var builder = Builder.getForLong(IntegerType.INT_64, n, null);
+    long n = a.getSize();
+    long m = Math.min(n, b.getSize());
+    var builder = Builder.getForLong(IntegerType.INT_64, n, problemAggregator);
     Context context = Context.getCurrent();
 
-    for (int i = 0; i < n; i++) {
+    for (long i = 0; i < n; i++) {
       boolean aNothing = a.isNothing(i);
       boolean bNothing = i >= m || b.isNothing(i);
       if (aNothing && bNothing) {
@@ -120,9 +120,9 @@ public abstract class NumericBinaryOpCoalescing<T extends Number, I extends Stor
 
     long bNonNull = b;
     Context context = Context.getCurrent();
-    int n = a.size();
-    var builder = Builder.getForLong(IntegerType.INT_64, n, null);
-    for (int i = 0; i < n; i++) {
+    long n = a.getSize();
+    var builder = Builder.getForLong(IntegerType.INT_64, n, problemAggregator);
+    for (long i = 0; i < n; i++) {
       if (a.isNothing(i)) {
         builder.appendLong(bNonNull);
       } else {

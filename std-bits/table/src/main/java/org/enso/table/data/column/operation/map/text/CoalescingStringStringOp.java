@@ -19,16 +19,16 @@ public abstract class CoalescingStringStringOp extends StringStringOp {
       SpecializedStorage<String> storage,
       Object arg,
       MapOperationProblemAggregator problemAggregator) {
-    int size = storage.size();
     if (arg == null) {
       return storage;
     } else if (arg instanceof String argString) {
       TextType argumentType = TextType.preciseTypeForValue(argString);
       TextType newType = computeResultType((TextType) storage.getType(), argumentType);
 
+      long size = storage.getSize();
       var builder = Builder.getForText(size, newType);
       Context context = Context.getCurrent();
-      for (int i = 0; i < size; i++) {
+      for (long i = 0; i < size; i++) {
         if (storage.isNothing(i)) {
           builder.appendNulls(1);
         } else {
@@ -50,11 +50,11 @@ public abstract class CoalescingStringStringOp extends StringStringOp {
       Storage<?> arg,
       MapOperationProblemAggregator problemAggregator) {
     if (arg instanceof StringStorage v) {
-      int size = storage.size();
+      long size = storage.getSize();
       TextType newType = computeResultType((TextType) storage.getType(), v.getType());
       var builder = Builder.getForText(size, newType);
       Context context = Context.getCurrent();
-      for (int i = 0; i < size; i++) {
+      for (long i = 0; i < size; i++) {
         String a = storage.getBoxed(i);
         String b = v.getBoxed(i);
         String r;

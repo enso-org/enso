@@ -20,7 +20,6 @@ import org.enso.table.data.column.storage.numeric.BigDecimalStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
-import org.enso.table.util.BitSets;
 import org.graalvm.polyglot.Context;
 
 public abstract class NumericComparison<T extends Number, I extends Storage<? super T>>
@@ -101,70 +100,63 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
         }
       };
     } else {
-      int n = storage.size();
-      BitSet isNothing = new BitSet();
-      BitSet comparisonResults = new BitSet();
+      long n = storage.getSize();
+      var builder = Builder.getForBoolean(n);
       Context context = Context.getCurrent();
       for (int i = 0; i < n; ++i) {
         Object item = storage.getBoxed(i);
         if (item == null) {
-          isNothing.set(i);
+          builder.appendNulls(1);
         } else {
           boolean r = onOtherType(item, arg);
-          if (r) {
-            comparisonResults.set(i);
-          }
+          builder.appendBoolean(r);
         }
 
         context.safepoint();
       }
 
-      return new BoolStorage(comparisonResults, isNothing, n, false);
+      return builder.seal();
     }
   }
 
-  protected BoolStorage runLongMap(
+  protected Storage<Boolean> runLongMap(
       AbstractLongStorage lhs, long rhs, MapOperationProblemAggregator problemAggregator) {
-    int n = lhs.size();
-    BitSet comparisonResults = new BitSet();
-    BitSet isNothing = BitSets.makeDuplicate(lhs.getIsNothingMap());
+    long n = lhs.getSize();
     Context context = Context.getCurrent();
-    for (int i = 0; i < n; ++i) {
-      if (!lhs.isNothing(i)) {
+    var builder = Builder.getForBoolean(n);
+    for (long i = 0; i < n; ++i) {
+      if (lhs.isNothing(i)) {
+        builder.appendNulls(1);
+      } else {
         long item = lhs.getPrimitive(i);
         boolean r = doLong(item, rhs);
-        if (r) {
-          comparisonResults.set(i);
-        }
+        builder.appendBoolean(r);
       }
 
       context.safepoint();
     }
 
-    return new BoolStorage(comparisonResults, isNothing, n, false);
+    return builder.seal();
   }
 
-  protected BoolStorage runDoubleMap(
+  protected Storage<Boolean> runDoubleMap(
       DoubleArrayAdapter lhs, double rhs, MapOperationProblemAggregator problemAggregator) {
     int n = lhs.size();
-    BitSet comparisonResults = new BitSet();
-    BitSet isNothing = new BitSet();
+    var builder = Builder.getForBoolean(n);
     Context context = Context.getCurrent();
     for (int i = 0; i < n; ++i) {
       if (lhs.isNothing(i)) {
-        isNothing.set(i);
+        builder.appendNulls(1);
       } else {
         double item = lhs.getItemAsDouble(i);
         boolean r = doDouble(item, rhs);
-        if (r) {
-          comparisonResults.set(i);
-        }
+        builder.appendBoolean(r);
       }
 
       context.safepoint();
     }
 
-    return new BoolStorage(comparisonResults, isNothing, n, false);
+    return builder.seal();
   }
 
   protected BoolStorage runBigIntegerMap(
@@ -281,97 +273,76 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
     };
   }
 
-  protected BoolStorage runLongZip(
+  protected Storage<Boolean> runLongZip(
       AbstractLongStorage lhs,
       AbstractLongStorage rhs,
       MapOperationProblemAggregator problemAggregator) {
-    int n = lhs.size();
-    int m = Math.min(lhs.size(), rhs.size());
-    BitSet comparisonResults = new BitSet();
-    BitSet isNothing = new BitSet();
+    long n = lhs.getSize();
+    long m = Math.min(n, rhs.getSize());
+    var builder = Builder.getForBoolean(n);
     Context context = Context.getCurrent();
-    for (int i = 0; i < m; ++i) {
-      if (lhs.isNothing(i) || rhs.isNothing(i)) {
-        isNothing.set(i);
+    for (long i = 0; i < n; ++i) {
+      if (lhs.isNothing(i) || (i >= m || rhs.isNothing(i))) {
+        builder.appendNulls(1);
       } else {
         long x = lhs.getPrimitive(i);
         long y = rhs.getPrimitive(i);
         boolean r = doLong(x, y);
-        if (r) {
-          comparisonResults.set(i);
-        }
+        builder.appendBoolean(r);
       }
 
       context.safepoint();
     }
 
-    if (m < n) {
-      isNothing.set(m, n);
-    }
-
-    return new BoolStorage(comparisonResults, isNothing, n, false);
+    return builder.seal();
   }
 
-  protected BoolStorage runDoubleZip(
+  protected Storage<Boolean> runDoubleZip(
       DoubleArrayAdapter lhs,
       DoubleArrayAdapter rhs,
       MapOperationProblemAggregator problemAggregator) {
     int n = lhs.size();
-    int m = Math.min(lhs.size(), rhs.size());
-    BitSet comparisonResults = new BitSet();
-    BitSet isNothing = new BitSet();
+    int m = Math.min(n, rhs.size());
+    var builder = Builder.getForBoolean(n);
     Context context = Context.getCurrent();
-    for (int i = 0; i < m; ++i) {
-      if (lhs.isNothing(i) || rhs.isNothing(i)) {
-        isNothing.set(i);
+    for (int i = 0; i < n; ++i) {
+      if (lhs.isNothing(i) || (i >= m || rhs.isNothing(i))) {
+        builder.appendNulls(1);
       } else {
         double x = lhs.getItemAsDouble(i);
         double y = rhs.getItemAsDouble(i);
         boolean r = doDouble(x, y);
-        if (r) {
-          comparisonResults.set(i);
-        }
+        builder.appendBoolean(r);
       }
 
       context.safepoint();
     }
 
-    if (m < n) {
-      isNothing.set(m, n);
-    }
-
-    return new BoolStorage(comparisonResults, isNothing, n, false);
+    return builder.seal();
   }
 
-  protected BoolStorage runBigIntegerZip(
+  protected Storage<Boolean> runBigIntegerZip(
       BigIntegerArrayAdapter lhs,
       BigIntegerArrayAdapter rhs,
       MapOperationProblemAggregator problemAggregator) {
     int n = lhs.size();
-    int m = Math.min(lhs.size(), rhs.size());
-    BitSet comparisonResults = new BitSet();
-    BitSet isNothing = new BitSet();
+    int m = Math.min(n, rhs.size());
+    var builder = Builder.getForBoolean(n);
     Context context = Context.getCurrent();
-    for (int i = 0; i < m; ++i) {
+    for (int i = 0; i < n; ++i) {
       BigInteger x = lhs.getItem(i);
-      BigInteger y = rhs.getItem(i);
+      BigInteger y = i >= m ? null : rhs.getItem(i);
       if (x == null || y == null) {
-        isNothing.set(i);
+        builder.appendNulls(1);
       } else {
         boolean r = doBigInteger(x, y);
-        if (r) {
-          comparisonResults.set(i);
-        }
+        builder.appendBoolean(r);
       }
 
       context.safepoint();
     }
 
-    if (m < n) {
-      isNothing.set(m, n);
-    }
-
-    return new BoolStorage(comparisonResults, isNothing, n, false);
+    return builder.seal();
   }
 
   protected Storage<Boolean> runBigDecimalZip(
@@ -379,7 +350,7 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
       BigDecimalArrayAdapter rhs,
       MapOperationProblemAggregator problemAggregator) {
     long n = lhs.size();
-    long m = Math.min(lhs.size(), rhs.size());
+    long m = Math.min(n, rhs.size());
     var builder = Builder.getForBoolean(n);
     Context context = Context.getCurrent();
     for (int i = 0; i < n; ++i) {
@@ -397,18 +368,17 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
     return builder.seal();
   }
 
-  protected BoolStorage runMixedZip(
+  protected Storage<Boolean> runMixedZip(
       Storage<?> lhs, Storage<?> rhs, MapOperationProblemAggregator problemAggregator) {
-    int n = lhs.size();
-    int m = Math.min(lhs.size(), rhs.size());
-    BitSet comparisonResults = new BitSet();
-    BitSet isNothing = new BitSet();
+    long n = lhs.getSize();
+    long m = Math.min(n, rhs.getSize());
+    var builder = Builder.getForBoolean(n);
     Context context = Context.getCurrent();
-    for (int i = 0; i < m; ++i) {
+    for (long i = 0; i < n; ++i) {
       Object x = lhs.getBoxed(i);
-      Object y = rhs.getBoxed(i);
+      Object y = i >= m ? null : rhs.getBoxed(i);
       if (x == null || y == null) {
-        isNothing.set(i);
+        builder.appendNulls(1);
       } else {
         boolean r;
         // Any number is coercible to double, if the value is not coercible, it is not a supported
@@ -435,18 +405,12 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
           r = onOtherType(x, y);
         }
 
-        if (r) {
-          comparisonResults.set(i);
-        }
+        builder.appendBoolean(r);
       }
 
       context.safepoint();
     }
 
-    if (m < n) {
-      isNothing.set(m, n);
-    }
-
-    return new BoolStorage(comparisonResults, isNothing, n, false);
+    return builder.seal();
   }
 }

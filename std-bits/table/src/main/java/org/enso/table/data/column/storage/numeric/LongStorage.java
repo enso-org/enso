@@ -34,10 +34,11 @@ public final class LongStorage extends AbstractLongStorage {
     this.data = data;
   }
 
-  public static LongStorage makeEmpty(int size, IntegerType type) {
-    BitSet isNothing = new BitSet(size);
-    isNothing.set(0, size);
-    return new LongStorage(new long[0], size, isNothing, type);
+  public static LongStorage makeEmpty(long size, IntegerType type) {
+    int intSize = Builder.checkSize(size);
+    BitSet isNothing = new BitSet(intSize);
+    isNothing.set(0, intSize);
+    return new LongStorage(new long[0], intSize, isNothing, type);
   }
 
   public LongStorage(long[] data, IntegerType type) {

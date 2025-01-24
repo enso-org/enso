@@ -1,6 +1,8 @@
 package org.enso.table.data.column.operation.map.text;
 
 import java.util.BitSet;
+
+import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.BoolStorage;
@@ -23,43 +25,38 @@ public abstract class StringBooleanOp
   }
 
   @Override
-  public BoolStorage runBinaryMap(
+  public Storage<Boolean> runBinaryMap(
       SpecializedStorage<String> storage,
       Object arg,
       MapOperationProblemAggregator problemAggregator) {
     if (arg == null) {
-      BitSet newVals = new BitSet();
-      BitSet newIsNothing = new BitSet();
-      newIsNothing.set(0, storage.size());
-      return new BoolStorage(newVals, newIsNothing, storage.size(), false);
+      return BoolStorage.makeEmpty(storage.getSize());
     } else if (arg instanceof String argString) {
-      BitSet newVals = new BitSet();
-      BitSet newIsNothing = new BitSet();
       Context context = Context.getCurrent();
-      for (int i = 0; i < storage.size(); i++) {
+      long size = storage.getSize();
+      var builder = Builder.getForBoolean(size);
+      for (long i = 0; i < size; i++) {
         if (storage.isNothing(i)) {
-          newIsNothing.set(i);
-        } else if (doString(storage.getBoxed(i), argString)) {
-          newVals.set(i);
+          builder.appendNulls(1);
+        } else {
+          builder.appendBoolean(doString(storage.getBoxed(i), argString));
         }
-
         context.safepoint();
       }
-      return new BoolStorage(newVals, newIsNothing, storage.size(), false);
+      return builder.seal();
     } else {
-      BitSet newVals = new BitSet();
-      BitSet newIsNothing = new BitSet();
       Context context = Context.getCurrent();
-      for (int i = 0; i < storage.size(); i++) {
+      long size = storage.getSize();
+      var builder = Builder.getForBoolean(size);
+      for (long i = 0; i < size; i++) {
         if (storage.isNothing(i)) {
-          newIsNothing.set(i);
-        } else if (doObject(storage.getBoxed(i), arg)) {
-          newVals.set(i);
+          builder.appendNulls(1);
+        } else {
+          builder.appendBoolean(doObject(storage.getBoxed(i), arg));
         }
-
         context.safepoint();
       }
-      return new BoolStorage(newVals, newIsNothing, storage.size(), false);
+      return builder.seal();
     }
   }
 

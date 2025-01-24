@@ -25,19 +25,23 @@ public class ObjectBuilder extends TypedBuilder<Object> {
 
   @Override
   public void appendBulkStorage(Storage<?> storage) {
-    if (currentSize + storage.size() > data.length) {
-      resize(currentSize + storage.size());
+    var newSize = currentSize + storage.getSize();
+    if (newSize > data.length) {
+      var newSizeInt = Builder.checkSize(newSize);
+      resize(newSizeInt);
     }
 
     if (storage instanceof SpecializedStorage<?> specializedStorage) {
-      System.arraycopy(specializedStorage.getData(), 0, data, currentSize, storage.size());
-      currentSize += storage.size();
+      // We can safely cast here, as for SpecializedStorage the size is always an int.
+      int toCopy = (int)storage.getSize();
+      System.arraycopy(specializedStorage.getData(), 0, data, currentSize, toCopy);
+      currentSize += toCopy;
     } else if (storage.getType() instanceof NullType) {
       appendNulls(storage.size());
     } else {
-      int n = storage.size();
-      for (int i = 0; i < n; i++) {
-        data[currentSize++] = storage.getBoxed(i);
+      long n = storage.getSize();
+      for (long i = 0; i < n; i++) {
+        append(storage.getBoxed(i));
       }
     }
   }

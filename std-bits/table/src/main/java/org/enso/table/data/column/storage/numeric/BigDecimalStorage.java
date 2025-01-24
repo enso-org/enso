@@ -16,6 +16,7 @@ import org.enso.table.data.column.operation.map.numeric.comparisons.GreaterCompa
 import org.enso.table.data.column.operation.map.numeric.comparisons.GreaterOrEqualComparison;
 import org.enso.table.data.column.operation.map.numeric.comparisons.LessComparison;
 import org.enso.table.data.column.operation.map.numeric.comparisons.LessOrEqualComparison;
+import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 
@@ -27,8 +28,9 @@ public final class BigDecimalStorage extends SpecializedStorage<BigDecimal> {
     super(BigDecimalType.INSTANCE, data, buildOps());
   }
 
-  public static BigDecimalStorage makeEmpty(int size) {
-    return new BigDecimalStorage(new BigDecimal[size]);
+  public static BigDecimalStorage makeEmpty(long size) {
+    int intSize = Builder.checkSize(size);
+    return new BigDecimalStorage(new BigDecimal[intSize]);
   }
 
   private static MapOperationStorage<BigDecimal, SpecializedStorage<BigDecimal>> buildOps() {

@@ -57,10 +57,11 @@ public final class DoubleStorage extends Storage<Double>
     this.size = size;
   }
 
-  public static DoubleStorage makeEmpty(int size) {
-    BitSet isNothing = new BitSet(size);
-    isNothing.set(0, size);
-    return new DoubleStorage(new double[0], size, isNothing);
+  public static DoubleStorage makeEmpty(long size) {
+    int intSize = Builder.checkSize(size);
+    BitSet isNothing = new BitSet(intSize);
+    isNothing.set(0, intSize);
+    return new DoubleStorage(new double[0], intSize, isNothing);
   }
 
   @Override

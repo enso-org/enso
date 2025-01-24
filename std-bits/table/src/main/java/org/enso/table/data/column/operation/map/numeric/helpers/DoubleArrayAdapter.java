@@ -77,7 +77,8 @@ public interface DoubleArrayAdapter {
 
     @Override
     public int size() {
-      return storage.size();
+      // ToDo: Will remove these adapters in the next step.
+      return (int)storage.getSize();
     }
   }
 
@@ -101,7 +102,8 @@ public interface DoubleArrayAdapter {
 
     @Override
     public int size() {
-      return storage.size();
+      // ToDo: Will remove these adapters in the next step.
+      return (int)storage.getSize();
     }
   }
 
@@ -125,7 +127,8 @@ public interface DoubleArrayAdapter {
 
     @Override
     public int size() {
-      return storage.size();
+      // ToDo: Will remove these adapters in the next step.
+      return (int)storage.getSize();
     }
   }
 }

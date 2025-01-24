@@ -164,7 +164,7 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
     Context context = Context.getCurrent();
     int n = a.size();
     int m = Math.min(a.size(), b.size());
-    var builder = Builder.getForDouble(FloatType.FLOAT_64, n, null);
+    var builder = Builder.getForDouble(FloatType.FLOAT_64, n, problemAggregator);
     for (int i = 0; i < m; i++) {
       if (a.isNothing(i) || b.isNothing(i)) {
         builder.appendNulls(1);
@@ -184,9 +184,9 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
 
   private static Storage<? extends Number> allNullStorageOfSameType(Storage<?> storage) {
     return switch (storage) {
-      case AbstractLongStorage s -> LongStorage.makeEmpty(storage.size(), INTEGER_RESULT_TYPE);
-      case BigIntegerStorage s -> BigIntegerStorage.makeEmpty(storage.size());
-      case DoubleStorage s -> DoubleStorage.makeEmpty(storage.size());
+      case AbstractLongStorage s -> LongStorage.makeEmpty(storage.getSize(), INTEGER_RESULT_TYPE);
+      case BigIntegerStorage s -> BigIntegerStorage.makeEmpty(storage.getSize());
+      case DoubleStorage s -> DoubleStorage.makeEmpty(storage.getSize());
       default -> throw new IllegalStateException(
           "Unsupported storage: " + storage.getClass().getCanonicalName());
     };
@@ -201,7 +201,7 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
     double bNonNull = b;
     Context context = Context.getCurrent();
     int n = a.size();
-    var builder = Builder.getForDouble(FloatType.FLOAT_64, n, null);
+    var builder = Builder.getForDouble(FloatType.FLOAT_64, n, problemAggregator);
     for (int i = 0; i < n; i++) {
       if (a.isNothing(i)) {
         builder.appendNulls(1);
@@ -220,11 +220,11 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
       AbstractLongStorage b,
       MapOperationProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
-    int n = a.size();
-    int m = Math.min(a.size(), b.size());
-    var builder = Builder.getForLong(INTEGER_RESULT_TYPE, n, null);
-    for (int i = 0; i < m; i++) {
-      if (a.isNothing(i) || b.isNothing(i)) {
+    long n = a.getSize();
+    long m = Math.min(n, b.getSize());
+    var builder = Builder.getForLong(INTEGER_RESULT_TYPE, n, problemAggregator);
+    for (long i = 0; i < n; i++) {
+      if (a.isNothing(i) || (i >= m || b.isNothing(i))) {
         builder.appendNulls(1);
       } else {
         Long r = doLong(a.getPrimitive(i), b.getPrimitive(i), i, problemAggregator);
@@ -238,24 +238,20 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
       context.safepoint();
     }
 
-    if (m < n) {
-      builder.appendNulls(n - m);
-    }
-
     return builder.seal();
   }
 
   protected Storage<Long> runLongMap(
       AbstractLongStorage a, Long b, MapOperationProblemAggregator problemAggregator) {
     if (b == null) {
-      return LongStorage.makeEmpty(a.size(), INTEGER_RESULT_TYPE);
+      return LongStorage.makeEmpty(a.getSize(), INTEGER_RESULT_TYPE);
     }
 
     long bNonNull = b;
     Context context = Context.getCurrent();
-    int n = a.size();
-    var builder = Builder.getForLong(INTEGER_RESULT_TYPE, n, null);
-    for (int i = 0; i < n; i++) {
+    long n = a.getSize();
+    var builder = Builder.getForLong(INTEGER_RESULT_TYPE, n, problemAggregator);
+    for (long i = 0; i < n; i++) {
       if (a.isNothing(i)) {
         builder.appendNulls(1);
       } else {

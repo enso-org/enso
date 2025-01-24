@@ -87,7 +87,7 @@ public final class InferredBuilder implements Builder {
     if (storage.getType() instanceof NullType) {
       appendNulls(storage.size());
     } else {
-      for (int i = 0; i < storage.size(); i++) {
+      for (long i = 0; i < storage.getSize(); i++) {
         append(storage.getBoxed(i));
       }
     }

@@ -90,18 +90,17 @@ public class LongBuilder extends NumericBuilder implements BuilderForLong, Build
     if (Objects.equals(storage.getType(), getType())
         && storage instanceof LongStorage longStorage) {
       // A fast path for the same type - no conversions/checks needed.
-      int n = longStorage.size();
+      int n = (int)longStorage.getSize();
       ensureFreeSpaceFor(n);
       System.arraycopy(longStorage.getRawData(), 0, data, currentSize, n);
       BitSets.copy(longStorage.getIsNothingMap(), isNothing, currentSize, n);
       currentSize += n;
     } else if (storage.getType() instanceof IntegerType otherType && getType().fits(otherType)) {
       if (storage instanceof AbstractLongStorage longStorage) {
-        int n = longStorage.size();
-        ensureFreeSpaceFor(n);
-        for (int i = 0; i < n; i++) {
+        long n = longStorage.getSize();
+        for (long i = 0; i < n; i++) {
           if (longStorage.isNothing(i)) {
-            isNothing.set(currentSize++);
+            appendNulls(1);
           } else {
             appendLong(longStorage.getPrimitive(i));
           }
@@ -114,12 +113,12 @@ public class LongBuilder extends NumericBuilder implements BuilderForLong, Build
       }
     } else if (Objects.equals(storage.getType(), BooleanType.INSTANCE)) {
       if (storage instanceof BoolStorage boolStorage) {
-        int n = boolStorage.size();
-        for (int i = 0; i < n; i++) {
+        long n = boolStorage.getSize();
+        for (long i = 0; i < n; i++) {
           if (boolStorage.isNothing(i)) {
-            isNothing.set(currentSize++);
+            appendNulls(1);
           } else {
-            data[currentSize++] = boolStorage.getPrimitive(i) ? 1L : 0L;
+            appendLong(boolStorage.getPrimitive(i) ? 1L : 0L);
           }
         }
       } else {

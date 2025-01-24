@@ -4,8 +4,10 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Objects;
 import org.enso.base.polyglot.NumericConverter;
-import org.enso.table.data.column.storage.*;
-import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
+import org.enso.table.data.column.storage.BoolStorage;
+import org.enso.table.data.column.storage.ColumnDoubleStorage;
+import org.enso.table.data.column.storage.ColumnLongStorage;
+import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.type.BigIntegerType;
@@ -92,7 +94,7 @@ public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
         currentSize += n;
       } else if (storage instanceof ColumnDoubleStorage doubleStorage) {
         long n = doubleStorage.getSize();
-        for (int i = 0; i < n; i++) {
+        for (long i = 0; i < n; i++) {
           if (storage.isNothing(i)) {
             appendNulls(1);
           } else {
