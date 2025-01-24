@@ -562,7 +562,6 @@ public final class Type extends EnsoObject {
           allMethods.put(name, entry.getValue());
         }
       }
-      allMethods.putAll(methodsOnThisType);
     }
     return allMethods;
   }
@@ -591,11 +590,14 @@ public final class Type extends EnsoObject {
     if (includeStaticMethods && eigentype != null) {
       var methodsFromEigenScope = eigentype.getDefinitionScope().getMethodsForType(eigentype);
       if (methodsFromEigenScope != null) {
-        methodsFromEigenScope.forEach(
-            func -> {
-              var simpleName = simpleFuncName(func);
-              allMethods.put(simpleName, func);
-            });
+        for (var method : methodsFromEigenScope) {
+          var simpleName = simpleFuncName(method);
+          // Don't replace instance methods (with one self argument) with static ones (with two self
+          // arguments).
+          if (!allMethods.containsKey(simpleName)) {
+            allMethods.put(simpleName, method);
+          }
+        }
       }
     }
     return allMethods;
