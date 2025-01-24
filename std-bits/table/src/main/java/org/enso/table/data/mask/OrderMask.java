@@ -13,9 +13,8 @@ public interface OrderMask {
    * Describes the reordering that should happen on the applying storage at the index.
    *
    * <p>The resulting storage should contain the {@code positions[i]}-th element of the original
-   * storage at the {@code idx}-th position. It may return {@link
-   * org.enso.table.data.storage.Storage.NOT_FOUND_INDEX}, in which case a missing value should be
-   * inserted at this position.
+   * storage at the {@code idx}-th position. It may return {@link NOT_FOUND_INDEX}, in which case a
+   * missing value should be inserted at this position.
    *
    * <p>Indices may appear zero or multiple times in the mask - meaning rows that will be gone or
    * duplicated.
