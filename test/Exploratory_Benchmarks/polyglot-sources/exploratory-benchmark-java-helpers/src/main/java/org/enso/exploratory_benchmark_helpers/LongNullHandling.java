@@ -123,7 +123,8 @@ public class LongNullHandling {
           protected long doLong(
               long a, long b, long ix, MapOperationProblemAggregator problemAggregator) {
             if (b == 0) {
-              problemAggregator.reportDivisionByZero(ix);
+              // ToDo: ProblemAggregator should accept a long instead of an int.
+              problemAggregator.reportDivisionByZero((int)ix);
               return 0;
             } else {
               return a / b;
@@ -143,7 +144,8 @@ public class LongNullHandling {
           protected Long doLong(
               long a, long b, long ix, MapOperationProblemAggregator problemAggregator) {
             if (b == 0) {
-              problemAggregator.reportDivisionByZero(ix);
+              // ToDo: ProblemAggregator should accept a long instead of an int.
+              problemAggregator.reportDivisionByZero((int)ix);
               return null;
             } else {
               return a / b;
@@ -167,7 +169,8 @@ public class LongNullHandling {
               MapOperationProblemAggregator problemAggregator,
               NullityReporter nullityReporter) {
             if (b == 0) {
-              problemAggregator.reportDivisionByZero(ix);
+              // ToDo: ProblemAggregator should accept a long instead of an int.
+              problemAggregator.reportDivisionByZero((int)ix);
               nullityReporter.willBeNull();
               return 0;
             } else {
